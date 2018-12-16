@@ -2,17 +2,17 @@ add_library(console_obj OBJECT CliManager.cpp CmdProcessor.cpp)
 add_dependencies(console_obj common)
 
 add_executable(
-    vgraph
-    GraphDbConsole.cpp
+    nebula
+    NebulaConsole.cpp
     $<TARGET_OBJECTS:console_obj>
     $<TARGET_OBJECTS:client_cpp_obj>
     $<TARGET_OBJECTS:base_obj>
-    $<TARGET_OBJECTS:vgraph_thrift_obj>
+    $<TARGET_OBJECTS:graph_thrift_obj>
     $<TARGET_OBJECTS:time_obj>
     $<TARGET_OBJECTS:thread_obj>
 )
 target_link_libraries(
-    vgraph
+    nebula
     thriftcpp2
     thrift
     thrift-core
@@ -43,6 +43,8 @@ target_link_libraries(
     dl
     -pthread
 )
+
+install(TARGETS nebula DESTINATION bin)
 
 #add_subdirectory(test)
 

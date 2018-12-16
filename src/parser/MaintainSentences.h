@@ -10,7 +10,7 @@
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
 
-namespace vesoft {
+namespace nebula {
 
 class ColumnSpecification final {
 public:
@@ -216,6 +216,6 @@ private:
     std::unique_ptr<std::string>                name_;
 };
 
-}   // namespace vesoft
+}   // namespace nebula
 
 #endif  // PARSER_MAINTAINSENTENCES_H_

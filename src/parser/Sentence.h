@@ -9,7 +9,7 @@
 #include "base/Base.h"
 #include "parser/Expressions.h"
 
-namespace vesoft {
+namespace nebula {
 
 class Sentence {
 public:
@@ -46,6 +46,6 @@ inline std::ostream& operator<<(std::ostream &os, Sentence::Kind kind) {
     return os << static_cast<uint32_t>(kind);
 }
 
-}   // namespace vesoft
+}   // namespace nebula
 
 #endif  // PARSER_SENTENCE_H_

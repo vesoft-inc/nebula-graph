@@ -3,8 +3,8 @@
  * This source code is licensed under Apache 2.0 License
  *  (found in the LICENSE.Apache file in the root directory)
  */
-#ifndef PARSER_VGRAPHSCANNER_H_
-#define PARSER_VGRAPHSCANNER_H_
+#ifndef PARSER_GRAPHSCANNER_H_
+#define PARSER_GRAPHSCANNER_H_
 
 #include "base/Base.h"
 
@@ -15,16 +15,16 @@
 
 // Override the interface for yylex since we namespaced it
 #undef YY_DECL
-#define YY_DECL int vesoft::VGraphScanner::yylex()
+#define YY_DECL int nebula::GraphScanner::yylex()
 
-#include "VGraphParser.hpp"
+#include "GraphParser.hpp"
 
-namespace vesoft {
+namespace nebula {
 
-class VGraphScanner : public yyFlexLexer {
+class GraphScanner : public yyFlexLexer {
 public:
-    int yylex(vesoft::VGraphParser::semantic_type * lval,
-              vesoft::VGraphParser::location_type *loc) {
+    int yylex(nebula::GraphParser::semantic_type * lval,
+              nebula::GraphParser::location_type *loc) {
         yylval = lval;
         yylloc = loc;
         return yylex();
@@ -35,10 +35,10 @@ private:
     friend class Scanner_Basic_Test;
     int yylex();
 
-    vesoft::VGraphParser::semantic_type * yylval{nullptr};
-    vesoft::VGraphParser::location_type * yylloc{nullptr};
+    nebula::GraphParser::semantic_type * yylval{nullptr};
+    nebula::GraphParser::location_type * yylloc{nullptr};
 };
 
-}   // namespace vesoft
+}   // namespace nebula
 
-#endif  // PARSER_VGRAPHSCANNER_H_
+#endif  // PARSER_GRAPHSCANNER_H_

@@ -2,12 +2,12 @@
 %skeleton "lalr1.cc"
 %no-lines
 %locations
-%define api.namespace { vesoft }
-%define parser_class_name { VGraphParser }
-%lex-param { vesoft::VGraphScanner& scanner }
-%parse-param { vesoft::VGraphScanner& scanner }
+%define api.namespace { nebula }
+%define parser_class_name { GraphParser }
+%lex-param { nebula::GraphScanner& scanner }
+%parse-param { nebula::GraphScanner& scanner }
 %parse-param { std::string &errmsg }
-%parse-param { vesoft::CompoundSentence** compound }
+%parse-param { nebula::CompoundSentence** compound }
 
 %code requires {
 #include <iostream>
@@ -15,18 +15,18 @@
 #include <string>
 #include "parser/CompoundSentence.h"
 
-namespace vesoft {
+namespace nebula {
 
-class VGraphScanner;
+class GraphScanner;
 
 }
 
 }
 
 %code {
-    static int yylex(vesoft::VGraphParser::semantic_type* yylval,
-            vesoft::VGraphParser::location_type *yylloc,
-            vesoft::VGraphScanner& scanner);
+    static int yylex(nebula::GraphParser::semantic_type* yylval,
+            nebula::GraphParser::location_type *yylloc,
+            nebula::GraphScanner& scanner);
 }
 
 %union {
@@ -34,26 +34,26 @@ class VGraphScanner;
     uint64_t                                intval;
     double                                  doubleval;
     std::string                            *strval;
-    vesoft::Expression                     *expr;
-    vesoft::Sentence                       *sentence;
-    vesoft::CompoundSentence               *compound;
-    vesoft::ColumnSpecification            *colspec;
-    vesoft::ColumnSpecificationList        *colspeclist;
-    vesoft::ColumnType                      type;
-    vesoft::StepClause                     *step_clause;
-    vesoft::FromClause                     *from_clause;
-    vesoft::SourceNodeList                 *src_node_list;
-    vesoft::OverClause                     *over_clause;
-    vesoft::EdgeList                       *edge_list;
-    vesoft::EdgeItem                       *edge_item;
-    vesoft::WhereClause                    *where_clause;
-    vesoft::YieldClause                    *yield_clause;
-    vesoft::YieldColumns                   *yield_columns;
-    vesoft::YieldColumn                    *yield_column;
-    vesoft::PropertyList                   *prop_list;
-    vesoft::ValueList                      *value_list;
-    vesoft::UpdateList                     *update_list;
-    vesoft::UpdateItem                     *update_item;
+    nebula::Expression                     *expr;
+    nebula::Sentence                       *sentence;
+    nebula::CompoundSentence               *compound;
+    nebula::ColumnSpecification            *colspec;
+    nebula::ColumnSpecificationList        *colspeclist;
+    nebula::ColumnType                      type;
+    nebula::StepClause                     *step_clause;
+    nebula::FromClause                     *from_clause;
+    nebula::SourceNodeList                 *src_node_list;
+    nebula::OverClause                     *over_clause;
+    nebula::EdgeList                       *edge_list;
+    nebula::EdgeItem                       *edge_item;
+    nebula::WhereClause                    *where_clause;
+    nebula::YieldClause                    *yield_clause;
+    nebula::YieldColumns                   *yield_columns;
+    nebula::YieldColumn                    *yield_column;
+    nebula::PropertyList                   *prop_list;
+    nebula::ValueList                      *value_list;
+    nebula::UpdateList                     *update_list;
+    nebula::UpdateItem                     *update_item;
 }
 /* keywords */
 %token KW_GO KW_AS KW_TO KW_OR KW_USE KW_SET KW_FROM KW_WHERE KW_ALTER
@@ -770,17 +770,17 @@ compound
 
 %%
 
-void vesoft::VGraphParser::error(const vesoft::VGraphParser::location_type& loc,
-                                     const std::string &msg) {
+void nebula::GraphParser::error(const nebula::GraphParser::location_type& loc,
+                                const std::string &msg) {
     std::ostringstream os;
     os << msg << " at " << loc;
     errmsg = os.str();
 }
 
 
-#include "VGraphScanner.h"
-static int yylex(vesoft::VGraphParser::semantic_type* yylval,
-        vesoft::VGraphParser::location_type *yylloc,
-        vesoft::VGraphScanner& scanner) {
+#include "GraphScanner.h"
+static int yylex(nebula::GraphParser::semantic_type* yylval,
+                 nebula::GraphParser::location_type *yylloc,
+                 nebula::GraphScanner& scanner) {
     return scanner.yylex(yylval, yylloc);
 }

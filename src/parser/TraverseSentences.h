@@ -10,7 +10,7 @@
 #include "parser/Sentence.h"
 #include "parser/Clauses.h"
 
-namespace vesoft {
+namespace nebula {
 
 class GoSentence final : public Sentence {
 public:
@@ -159,6 +159,6 @@ private:
 };
 
 
-}   // namespace vesoft
+}   // namespace nebula
 
 #endif  // PARSER_TRAVERSESENTENCES_H_

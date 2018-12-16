@@ -7,7 +7,7 @@
 #include "base/Base.h"
 #include "parser/Expressions.h"
 
-namespace vesoft {
+namespace nebula {
 
 void ExpressionContext::print() const {
     for (auto &entry : aliasInfo_) {
@@ -899,4 +899,4 @@ Status LogicalExpression::prepare(ExpressionContext *context) {
     return Status::OK();
 }
 
-}   // namespace vesoft
+}   // namespace nebula

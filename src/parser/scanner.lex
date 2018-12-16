@@ -1,17 +1,17 @@
 %option c++
-%option yyclass="VGraphScanner"
+%option yyclass="GraphScanner"
 %option nodefault noyywrap
 %option never-interactive
 %option yylineno
 
 %{
 #include "parser/GQLParser.h"
-#include "parser/VGraphScanner.h"
-#include "VGraphParser.hpp"
+#include "parser/GraphScanner.h"
+#include "GraphParser.hpp"
 
 #define YY_USER_ACTION  yylloc->columns(yyleng);
 
-using TokenType = vesoft::VGraphParser::token;
+using TokenType = nebula::GraphParser::token;
 
 static constexpr size_t MAX_STRING = 4096;
 

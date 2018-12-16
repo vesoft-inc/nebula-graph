@@ -7,7 +7,7 @@
 #include "base/Base.h"
 #include "parser/Clauses.h"
 
-namespace vesoft {
+namespace nebula {
 
 
 std::string StepClause::toString() const {
@@ -110,4 +110,4 @@ std::string YieldClause::toString() const {
     return buf;
 }
 
-}   // namespace vesoft
+}   // namespace nebula

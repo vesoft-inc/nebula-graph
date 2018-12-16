@@ -7,7 +7,7 @@
 #include "base/Base.h"
 #include "parser/TraverseSentences.h"
 
-namespace vesoft {
+namespace nebula {
 
 std::string GoSentence::toString() const {
     std::string buf;
@@ -84,4 +84,4 @@ std::string AssignmentSentence::toString() const {
     return buf;
 }
 
-}   // namespace vesoft
+}   // namespace nebula

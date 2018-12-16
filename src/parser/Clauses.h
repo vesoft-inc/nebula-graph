@@ -9,7 +9,7 @@
 #include "base/Base.h"
 #include "parser/Expressions.h"
 
-namespace vesoft {
+namespace nebula {
 
 class StepClause final {
 public:

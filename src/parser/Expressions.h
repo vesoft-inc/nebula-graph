@@ -10,7 +10,7 @@
 #include "base/Status.h"
 #include <boost/variant.hpp>
 
-namespace vesoft {
+namespace nebula {
 
 enum ColumnType {
     INT8, INT16, INT32, INT64,
@@ -767,6 +767,6 @@ private:
     std::unique_ptr<Expression>                 right_;
 };
 
-}   // namespace vesoft
+}   // namespace nebula
 
 #endif  // PARSER_EXPRESSIONS_H_

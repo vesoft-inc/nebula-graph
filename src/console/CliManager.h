@@ -10,8 +10,8 @@
 #include "base/Base.h"
 #include "console/CmdProcessor.h"
 
-namespace vesoft {
-namespace vgraph {
+namespace nebula {
+namespace graph {
 
 class CliManager final {
 public:
@@ -43,6 +43,6 @@ private:
     std::unique_ptr<CmdProcessor> cmdProcessor_;
 };
 
-}  // namespace vgraph
-}  // namespace vesoft
+}  // namespace graph
+}  // namespace nebula
 #endif  // CONSOLE_CLIMANAGER_H_

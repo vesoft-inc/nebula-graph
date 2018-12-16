@@ -1,6 +1,6 @@
-VGraphParser.cpp
-VGraphParser.hpp
-VGraphScanner.cpp
+GraphParser.cpp
+GraphParser.hpp
+GraphScanner.cpp
 location.hh
 position.hh
 stack.hh

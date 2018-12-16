@@ -11,9 +11,9 @@
 #include "parser/TraverseSentences.h"
 #include "parser/MutateSentences.h"
 
-namespace vesoft {
+namespace nebula {
 
-namespace vgraph {
+namespace graph {
 class CompoundExecutor;
 }
 
@@ -30,11 +30,11 @@ public:
     std::string toString() const;
 
 private:
-    friend class vesoft::vgraph::CompoundExecutor;
+    friend class nebula::graph::CompoundExecutor;
     std::vector<std::unique_ptr<Sentence>>        sentences_;
 };
 
 
-}   // namespace vesoft
+}   // namespace nebula
 
 #endif  // PARSER_COMPOUNDSENTENCE_H_

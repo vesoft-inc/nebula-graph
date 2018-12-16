@@ -7,7 +7,7 @@
 #include "base/Base.h"
 #include "parser/CompoundSentence.h"
 
-namespace vesoft {
+namespace nebula {
 
 std::string CompoundSentence::toString() const {
     std::string buf;
@@ -21,4 +21,4 @@ std::string CompoundSentence::toString() const {
     return buf;
 }
 
-}   // namespace vesoft
+}   // namespace nebula

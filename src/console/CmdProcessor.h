@@ -8,14 +8,14 @@
 #define CONSOLE_CMDPROCESSOR_H_
 
 #include "base/Base.h"
-#include "client/cpp/GraphDbClient.h"
+#include "client/cpp/GraphClient.h"
 
-namespace vesoft {
-namespace vgraph {
+namespace nebula {
+namespace graph {
 
 class CmdProcessor final {
 public:
-    explicit CmdProcessor(std::unique_ptr<GraphDbClient> client)
+    explicit CmdProcessor(std::unique_ptr<GraphClient> client)
         : client_(std::move(client)) {}
     ~CmdProcessor() = default;
 
@@ -26,7 +26,7 @@ public:
     bool process(folly::StringPiece cmd);
 
 private:
-    std::unique_ptr<GraphDbClient> client_;
+    std::unique_ptr<GraphClient> client_;
 
     // The method returns true if the given command is a client command
     // and has been processed. Otherwise, the method returns false
@@ -47,6 +47,6 @@ private:
                    const std::vector<std::string>& formats) const;
 };
 
-}  // namespace vgraph
-}  // namespace vesoft
+}  // namespace graph
+}  // namespace nebula
 #endif  // CONSOLE_CMDPROCESSOR_H_

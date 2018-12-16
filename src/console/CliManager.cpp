@@ -8,10 +8,10 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "console/CliManager.h"
-#include "client/cpp/GraphDbClient.h"
+#include "client/cpp/GraphClient.h"
 
-namespace vesoft {
-namespace vgraph {
+namespace nebula {
+namespace graph {
 
 const int32_t kMaxAuthInfoRetries = 3;
 const int32_t kMaxUsernameLen = 16;
@@ -61,10 +61,10 @@ bool CliManager::connect(const std::string& addr,
     port_ = port;
     username_ = user;
 
-    auto client = std::make_unique<GraphDbClient>(addr_, port_);
+    auto client = std::make_unique<GraphClient>(addr_, port_);
     cpp2::ErrorCode res = client->connect(user, pass);
     if (res == cpp2::ErrorCode::SUCCEEDED) {
-        std::cerr << "\nWelcome to vGraph (Version 0.1)\n\n";
+        std::cerr << "\nWelcome to Nebula Graph (Version 0.1)\n\n";
         cmdProcessor_ = std::make_unique<CmdProcessor>(std::move(client));
         return true;
     } else {
@@ -76,6 +76,7 @@ bool CliManager::connect(const std::string& addr,
 
 
 void CliManager::batch(const std::string& filename) {
+    UNUSED(filename);
 }
 
 
@@ -190,5 +191,5 @@ void CliManager::loadHistory() {
     ::fclose(file);
 }
 
-}  // namespace vgraph
-}  // namespace vesoft
+}  // namespace graph
+}  // namespace nebula

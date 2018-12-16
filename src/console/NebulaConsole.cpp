@@ -7,8 +7,8 @@
 #include "base/Base.h"
 #include "console/CliManager.h"
 
-DEFINE_string(addr, "127.0.0.1", "GraphDB daemon IP address");
-DEFINE_int32(port, 34500, "GraphDB daemon listening port");
+DEFINE_string(addr, "127.0.0.1", "Nebula daemon IP address");
+DEFINE_int32(port, 34500, "Nebula daemon listening port");
 DEFINE_string(username, "", "Username used to authenticate");
 DEFINE_string(password, "", "Password used to authenticate");
 
@@ -16,7 +16,7 @@ DEFINE_string(password, "", "Password used to authenticate");
 int main(int argc, char *argv[]) {
     folly::init(&argc, &argv, true);
 
-    using namespace vesoft::vgraph;
+    using namespace nebula::graph;
 
     CliManager cli;
     if (!cli.connect(FLAGS_addr, FLAGS_port, FLAGS_username, FLAGS_password)) {

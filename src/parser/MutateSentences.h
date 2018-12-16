@@ -10,7 +10,7 @@
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
 
-namespace vesoft {
+namespace nebula {
 
 class PropertyList final {
 public:
@@ -267,6 +267,6 @@ private:
     std::unique_ptr<YieldClause>                yieldClause_;
 };
 
-}   // namespace vesoft
+}   // namespace nebula
 
 #endif  // PARSER_MUTATESENTENCES_H_

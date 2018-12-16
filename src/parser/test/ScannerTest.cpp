@@ -9,15 +9,15 @@
 #include <sstream>
 #include <vector>
 #include <utility>
-#include "parser/VGraphParser.hpp"
-#include "parser/VGraphScanner.h"
+#include "parser/GraphParser.hpp"
+#include "parser/GraphScanner.h"
 
 using namespace ::testing;
 // TODO(dutor) Check on the sematic value of tokens
 
-namespace vesoft {
+namespace nebula {
 
-using semantic_type = vesoft::VGraphParser::semantic_type;
+using semantic_type = nebula::GraphParser::semantic_type;
 static auto checkSemanticValue(const char *expected, semantic_type *sv) {
     auto &actual = *sv->strval;
     if (expected != actual) {
@@ -67,11 +67,11 @@ checkSemanticValue(T expected, semantic_type *sv) {
 
 
 TEST(Scanner, Basic) {
-    using TokenType = vesoft::VGraphParser::token_type;
+    using TokenType = nebula::GraphParser::token_type;
     using Validator = std::function<::testing::AssertionResult()>;
-    vesoft::VGraphParser::semantic_type yylval;
-    vesoft::VGraphParser::location_type yyloc;
-    VGraphScanner scanner;
+    nebula::GraphParser::semantic_type yylval;
+    nebula::GraphParser::location_type yyloc;
+    GraphScanner scanner;
     std::string stream;
 
 #define CHECK_SEMANTIC_TYPE(STR, TYPE)                                      \
@@ -239,4 +239,4 @@ TEST(Scanner, Basic) {
     }
 }
 
-}   // namespace vesoft
+}   // namespace nebula

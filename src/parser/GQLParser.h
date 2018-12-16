@@ -8,10 +8,10 @@
 
 #include "base/Base.h"
 #include "base/StatusOr.h"
-#include "VGraphParser.hpp"
-#include "VGraphScanner.h"
+#include "GraphParser.hpp"
+#include "GraphScanner.h"
 
-namespace vesoft {
+namespace nebula {
 
 class GQLParser {
 public:
@@ -37,12 +37,12 @@ public:
     }
 
 private:
-    vesoft::VGraphScanner           scanner_;
-    vesoft::VGraphParser            parser_;
+    nebula::GraphScanner            scanner_;
+    nebula::GraphParser             parser_;
     std::string                     error_;
     CompoundSentence               *compound_ = nullptr;
 };
 
-}   // namespace vesoft
+}   // namespace nebula
 
 #endif  // PARSER_GQLPARSER_H_

@@ -7,7 +7,7 @@
 #include "base/Base.h"
 #include "parser/MaintainSentences.h"
 
-namespace vesoft {
+namespace nebula {
 
 std::string DefineTagSentence::toString() const {
     std::string buf;
@@ -110,4 +110,4 @@ std::string DescribeEdgeSentence::toString() const {
     return buf;
 }
 
-}   // namespace vesoft
+}   // namespace nebula

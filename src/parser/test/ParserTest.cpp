@@ -10,7 +10,7 @@
 
 // TODO(dutor) Inspect the internal structures to check on the syntax and semantics
 
-namespace vesoft {
+namespace nebula {
 
 TEST(Parser, Go) {
     {
@@ -272,4 +272,4 @@ TEST(Parser, UpdateEdge) {
     }
 }
 
-}   // namespace vesoft
+}   // namespace nebula

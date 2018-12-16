@@ -8,8 +8,8 @@
 #include "console/CmdProcessor.h"
 #include "time/Duration.h"
 
-namespace vesoft {
-namespace vgraph {
+namespace nebula {
+namespace graph {
 
 #define GET_VALUE_WIDTH(VT, FN, FMT) \
     VT val = col.get_ ## FN(); \
@@ -377,6 +377,6 @@ bool CmdProcessor::process(folly::StringPiece cmd) {
     return true;
 }
 
-}  // namespace vgraph
-}  // namespace vesoft
+}  // namespace graph
+}  // namespace nebula
 

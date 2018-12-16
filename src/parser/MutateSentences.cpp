@@ -7,7 +7,7 @@
 #include "base/Base.h"
 #include "parser/MutateSentences.h"
 
-namespace vesoft {
+namespace nebula {
 
 std::string PropertyList::toString() const {
     std::string buf;
@@ -139,4 +139,4 @@ std::string UpdateEdgeSentence::toString() const {
     return buf;
 }
 
-}   // namespace vesoft
+}   // namespace nebula

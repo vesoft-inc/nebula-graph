@@ -7,6 +7,6 @@
 #include "base/Base.h"
 #include "GQLParser.h"
 
-namespace vesoft {
-}   // namespace vesoft
+namespace nebula {
+}   // namespace nebula
 
