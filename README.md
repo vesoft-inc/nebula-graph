@@ -73,7 +73,7 @@ In order to prevent cloud providers monetizing from the project without contribu
 
 ## Contact
 
-* Twitter: <a href="https://twitter.com/NebulaGraph">@NebulaGraph</a> 
+* Twitter: <a href="https://twitter.com/NebulaGraph">@NebulaGraph</a>
 * <a href="https://www.linkedin.com/company/vesoft-nebula-graph/">LinkedIn page</a>
 * <a href="https://nebulagraph.slack.com/archives/DJQC9P0H5/p1557815158000200">Slack channel</a>
 * email: info@vesoft.com
