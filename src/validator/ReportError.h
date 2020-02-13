@@ -13,7 +13,8 @@ namespace nebula {
 namespace graph {
 class ReportError final : public Validator {
 public:
-    ReportError(Sentence* sentence) : Validator(sentence) {};
+    ReportError(Sentence* sentence, ValidateContext* context)
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override {

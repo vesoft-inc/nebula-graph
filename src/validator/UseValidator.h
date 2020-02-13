@@ -4,33 +4,30 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_GOVALIDATOR_H_
-#define VALIDATOR_GOVALIDATOR_H_
+#ifndef VALIDATOR_USEVALIDATOR_H_
+#define VALIDATOR_USEVALIDATOR_H_
 
 #include "base/Base.h"
 #include "validator/Validator.h"
 
 namespace nebula {
 namespace graph {
-class GoValidator final : public Validator {
+class UseValidator final : public Validator {
 public:
-    explicit GoValidator(Sentence* sentence, ValidateContext* context)
+    UseValidator(Sentence* sentence, ValidateContext* context)
         : Validator(sentence, context) {}
 
 private:
+    /**
+     * Will not check the space for use space sentence.
+     */
+    bool spaceChosen() override {
+        return true;
+    }
+
     Status validateImpl() override;
 
     Status toPlan() override;
-
-    Status validateStep();
-
-    Status validateFrom();
-
-    Status validateOver();
-
-    Status validateWhere();
-
-    Status validateYield();
 };
 }  // namespace graph
 }  // namespace nebula

@@ -5,17 +5,18 @@
  */
 
 #include "validator/SetValidator.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 Status SetValidator::validateImpl() {
     auto setSentence = static_cast<SetSentence*>(sentence_);
-    lValidator_ = Validator::makeValidator(setSentence->left());
+    lValidator_ = Validator::makeValidator(setSentence->left(), validateContext_);
     auto status = lValidator_->validate();
     if (!status.ok()) {
         return status;
     }
-    rValidator_ = Validator::makeValidator(setSentence->right());
+    rValidator_ = Validator::makeValidator(setSentence->right(), validateContext_);
     status = rValidator_->validate();
     if (!status.ok()) {
         return status;
@@ -24,11 +25,8 @@ Status SetValidator::validateImpl() {
 }
 
 Status SetValidator::toPlan() {
-    auto leftStart = lValidator_->start();
-    auto rightStart = rValidator_->start();
-    start_ = std::make_shared<StartNode>();
-    start_->merge(leftStart);
-    start_->merge(rightStart);
+    start_ = lValidator_->start();
+    start_->merge(rValidator_->start());
 
     switch (op_) {
         case SetSentence::Operator::UNION:

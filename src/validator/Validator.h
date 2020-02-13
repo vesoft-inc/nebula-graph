@@ -10,16 +10,19 @@
 #include "base/Base.h"
 #include "planner/PlanNode.h"
 #include "parser/Sentence.h"
+#include "validator/ValidateContext.h"
 
 namespace nebula {
 namespace graph {
 class Validator {
 public:
-    explicit Validator(Sentence* sentence) : sentence_(sentence) {};
+    explicit Validator(Sentence* sentence, ValidateContext* context)
+        : sentence_(sentence), validateContext_(context) {}
 
     virtual ~Validator() = default;
 
-    static std::unique_ptr<Validator> makeValidator(Sentence* sentence);
+    static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
+                                                    ValidateContext* context);
 
     Status validate();
 
@@ -32,12 +35,24 @@ public:
     }
 
 protected:
+    /**
+     * Check if a space is chosen for this sentence.
+     */
+    virtual bool spaceChosen();
+
+    /**
+     * Validate the sentence.
+     */
     virtual Status validateImpl() = 0;
 
+    /**
+     * Convert an ast to plan.
+     */
     virtual Status toPlan() = 0;
 
 protected:
     Sentence*                       sentence_;
+    ValidateContext*                validateContext_;
     std::shared_ptr<StartNode>      start_;
     std::shared_ptr<PlanNode>       end_;
 };

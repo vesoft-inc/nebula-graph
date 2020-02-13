@@ -18,9 +18,17 @@ namespace nebula {
 namespace graph {
 class SequentialValidator final : public Validator {
 public:
-    explicit SequentialValidator(Sentence* sentence) : Validator(sentence) {};
+    explicit SequentialValidator(Sentence* sentence, ValidateContext* context)
+        : Validator(sentence, context) {}
 
 private:
+    /**
+     * Will not check the space from the beginning of a query.
+     */
+    bool spaceChosen() override {
+        return true;
+    }
+
     Status validateImpl() override;
 
     /**

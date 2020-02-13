@@ -4,17 +4,18 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_GOVALIDATOR_H_
-#define VALIDATOR_GOVALIDATOR_H_
+#ifndef VALIDATOR_ASSIGNMENTVALIDATOR_H_
+#define VALIDATOR_ASSIGNMENTVALIDATOR_H_
 
 #include "base/Base.h"
 #include "validator/Validator.h"
+#include "validator/ValidateContext.h"
 
 namespace nebula {
 namespace graph {
-class GoValidator final : public Validator {
+class AssignmentValidator final : public Validator {
 public:
-    explicit GoValidator(Sentence* sentence, ValidateContext* context)
+    AssignmentValidator(Sentence* sentence, ValidateContext* context)
         : Validator(sentence, context) {}
 
 private:
@@ -22,15 +23,8 @@ private:
 
     Status toPlan() override;
 
-    Status validateStep();
-
-    Status validateFrom();
-
-    Status validateOver();
-
-    Status validateWhere();
-
-    Status validateYield();
+private:
+    std::unique_ptr<Validator>  validator_;
 };
 }  // namespace graph
 }  // namespace nebula

@@ -8,12 +8,14 @@
 #define VALIDATOR_SETVALIDATOR_H_
 
 #include "validator/Validator.h"
+#include "parser/TraverseSentences.h"
 
 namespace nebula {
 namespace graph {
 class SetValidator final : public Validator {
 public:
-    explicit SetValidator(Sentence* sentence) : Validator(sentence) {};
+    explicit SetValidator(Sentence* sentence, ValidateContext* context)
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;

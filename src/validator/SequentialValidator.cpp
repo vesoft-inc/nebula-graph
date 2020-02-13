@@ -11,9 +11,6 @@ namespace nebula {
 namespace graph {
 Status SequentialValidator::validateImpl() {
     Status status;
-    if (sentence_ == nullptr) {
-        return Status::OK();
-    }
     if (sentence_->kind() != Sentence::Kind::kSequential) {
         return Status::Error(
                 "Sequential validator validates a SequentialSentences,but %ld is given.",
@@ -22,7 +19,7 @@ Status SequentialValidator::validateImpl() {
     auto seqSentence = static_cast<SequentialSentences*>(sentence_);
     auto sentences = seqSentence->sentences();
     for (auto* sentence : sentences) {
-        auto validator = Validator::makeValidator(sentence);
+        auto validator = Validator::makeValidator(sentence, validateContext_);
         status = validator->validate();
         if (!status.ok()) {
             return status;

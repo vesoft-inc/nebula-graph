@@ -13,14 +13,14 @@ namespace graph {
 Status PipeValidator::validateImpl() {
     auto pipeSentence = static_cast<PipedSentence*>(sentence_);
     auto left = pipeSentence->left();
-    lValidator_ = Validator::makeValidator(left);
+    lValidator_ = Validator::makeValidator(left, validateContext_);
     auto status = lValidator_->validate();
     if (!status.ok()) {
         return status;
     }
 
     auto right = pipeSentence->right();
-    rValidator_ = Validator::makeValidator(right);
+    rValidator_ = Validator::makeValidator(right, validateContext_);
     status = rValidator_->validate();
     if (!status.ok()) {
         return status;
