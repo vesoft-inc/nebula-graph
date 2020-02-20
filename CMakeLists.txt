@@ -20,6 +20,7 @@
 #   ENABLE_NATIVE                  -- Build native client
 #   ENABLE_TESTING                 -- Build unit test
 #
+# project(ImportExternalProject)
 cmake_minimum_required(VERSION 3.0.0)
 
 project("Nebula Graph" C CXX)
@@ -315,14 +316,19 @@ macro(nebula_add_library name type)
     endif()
     add_dependencies(
         ${name}
+<<<<<<< HEAD
         common_project
 #        parser_target
+=======
+        nebula-common
+        parser_target
+>>>>>>> Make parser/planner compilable.
     )
 endmacro()
 
 include_directories(AFTER ${NEBULA_HOME}/src)
-include_directories(AFTER modules/common/src)
-include_directories(AFTER modules/common/src/interface)
+include_directories(AFTER ${CMAKE_BINARY_DIR}/modules/common/src)
+include_directories(AFTER ${CMAKE_BINARY_DIR}/modules/common/src/interface)
 include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src)
 include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src/parser)
 
