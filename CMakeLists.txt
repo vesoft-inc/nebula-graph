@@ -20,7 +20,6 @@
 #   ENABLE_NATIVE                  -- Build native client
 #   ENABLE_TESTING                 -- Build unit test
 #
-# project(ImportExternalProject)
 cmake_minimum_required(VERSION 3.0.0)
 
 project("Nebula Graph" C CXX)

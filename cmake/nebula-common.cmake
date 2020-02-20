@@ -4,10 +4,11 @@ ExternalProject_Add(
     PREFIX modules
     SOURCE_DIR modules/common
 #GIT_REPOSITORY git@github.com:vesoft-inc-private/nebula-common.git
+#GIT_TAG HEAD
     GIT_REPOSITORY https://github.com/CPWstatic/nebula-common.git
+    GIT_TAG compiling
     GIT_SHALLOW true
     GIT_PROGRESS true
-    GIT_TAG master
     CMAKE_ARGS
         -DNEBULA_THIRDPARTY_ROOT=${NEBULA_THIRDPARTY_ROOT}
         -DNEBULA_OTHER_ROOT=${NEBULA_OTHER_ROOT}
