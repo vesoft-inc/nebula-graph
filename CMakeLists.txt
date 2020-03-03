@@ -315,13 +315,8 @@ macro(nebula_add_library name type)
     endif()
     add_dependencies(
         ${name}
-<<<<<<< HEAD
         common_project
-#        parser_target
-=======
-        nebula-common
         parser_target
->>>>>>> Make parser/planner compilable.
     )
 endmacro()
 
