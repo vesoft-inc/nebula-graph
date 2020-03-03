@@ -53,6 +53,8 @@ nebula_add_library(
     ReturnExecutor.cpp
     CreateSnapshotExecutor.cpp
     DropSnapshotExecutor.cpp
+    UserExecutor.cpp
+    PrivilegeExecutor.cpp
 )
 
 nebula_add_library(
