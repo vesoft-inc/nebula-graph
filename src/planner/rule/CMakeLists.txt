@@ -5,13 +5,7 @@
 #
 
 nebula_add_library(
-    planner_obj
-    OBJECT
-    PlanNode.cpp
-    Query.cpp
-    Planner.cpp
-    OptRule.cpp
-    RuleSet.cpp
-)
-
-nebula_add_subdirectory(rule)
+  opt_rules_obj
+  OBJECT
+  FilterPushDownRule.cpp
+  )

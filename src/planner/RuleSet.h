@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_PLANNER_H_
-#define PLANNER_PLANNER_H_
+#ifndef PLANNER_RULESET_H_
+#define PLANNER_RULESET_H_
 
 #include <memory>
 #include <set>
@@ -14,18 +14,27 @@ namespace nebula {
 namespace graph {
 
 class OptRule;
-class PlanNode;
 
-class Planner final {
+class RuleSet {
 public:
-    explict Planner(std::set<std::shared_ptr<OptRule>> rules);
+    std::set<std::shared_ptr<OptRule>> getRules() const {
+        return rules_;
+    }
 
-    std::shared_ptr<PlanNode> optimize(std::shared_ptr<PlanNode> node) const;
+    void addRule(std::shared_ptr<OptRule> rule) {
+        rules_.insert(rule);
+    }
 
 private:
     std::set<std::shared_ptr<OptRule>> rules_;
 };
 
+class DefaultRuleSet final : public RuleSet {
+public:
+    DefaultRuleSet();
+};
+
 }   // namespace graph
 }   // namespace nebula
-#endif   // PLANNER_PLANNER_H_
+
+#endif   // PLANNER_RULESET_H_

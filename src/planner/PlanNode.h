@@ -13,11 +13,13 @@
 namespace nebula {
 namespace graph {
 
+class PlanNode;
+
 /**
  * The StateTransition tells executor which node it would transfer to.
  */
-class PlanNode;
 using StateTransitionTable = std::vector<std::shared_ptr<PlanNode>>;
+
 class StateTransition {
 public:
     enum class State : int8_t {
@@ -31,8 +33,12 @@ public:
         return expr_.get();
     }
 
-    StateTransitionTable table() const {
+    const StateTransitionTable& table() const {
         return table_;
+    }
+
+    void setNthNext(size_t i, std::shared_ptr<PlanNode> node) {
+        table_[i] = node;
     }
 
     void setTable(StateTransitionTable&& table) {
@@ -50,11 +56,12 @@ private:
     StateTransitionTable                    table_;
 };
 
+class StartNode;
+
 /**
  * PlanNode is an abstraction of nodes in an execution plan which
  * is a kind of directed cyclic graph.
  */
-class StartNode;
 class PlanNode {
 public:
     enum class Kind : uint8_t {
@@ -91,6 +98,13 @@ public:
         stateTrans_ = std::move(stateTrans);
     }
 
+    void setPreTrans(StateTransition&& prevTrans) {
+        prevTrans_ = std::move(prevTrans);
+    }
+
+    // Replace old successor plan node with new one
+    void replace(std::shared_ptr<PlanNode> old, std::shared_ptr<PlanNode> newNext);
+
     Kind kind() const {
         return kind_;
     }
@@ -114,8 +128,15 @@ public:
     /**
      * This table is used for finding the next node(s) to be executed.
      */
-    StateTransitionTable table() {
+    const StateTransitionTable& table() const {
         return stateTrans_.table();
+    }
+
+    /**
+     * This table is used for finding the previous node(s) to be executed.
+     */
+    const StateTransitionTable& prevTable() const {
+        return prevTrans_.table();
     }
 
     /**
@@ -132,6 +153,9 @@ protected:
     Kind                        kind_{Kind::kUnknown};
     std::vector<std::string>    outputColNames_;
     StateTransition             stateTrans_;
+
+    // Previous plan nodes which are depended by this one
+    StateTransition prevTrans_;
 };
 
 /**

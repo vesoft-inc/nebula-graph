@@ -21,5 +21,15 @@ Status PlanNode::merge(std::shared_ptr<StartNode> start) {
     stateTrans_.addNodes(start->table());
     return Status::OK();
 }
-}  // namespace graph
-}  // namespace nebula
+
+void PlanNode::replace(std::shared_ptr<PlanNode> old, std::shared_ptr<PlanNode> newNext) {
+    auto& successors = table();
+    for (size_t i = 0; i < successors.size(); ++i) {
+        if (successors[i] == old) {
+            stateTrans_.setNthNext(i, newNext);
+        }
+    }
+}
+
+}   // namespace graph
+}   // namespace nebula
