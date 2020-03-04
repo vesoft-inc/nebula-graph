@@ -194,6 +194,7 @@ find_package(BISON 3.0.5 REQUIRED)
 find_package(FLEX REQUIRED)
 find_package(Readline REQUIRED)
 find_package(NCURSES REQUIRED)
+find_package(Libunwind REQUIRED)
 
 add_compile_options(-Wall)
 add_compile_options(-Werror)
@@ -321,8 +322,8 @@ macro(nebula_add_library name type)
 endmacro()
 
 include_directories(AFTER ${NEBULA_HOME}/src)
-include_directories(AFTER ${CMAKE_BINARY_DIR}/modules/common/src)
-include_directories(AFTER ${CMAKE_BINARY_DIR}/modules/common/src/interface)
+include_directories(AFTER modules/common/src)
+include_directories(AFTER modules/common/src/interface)
 include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src)
 include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src/parser)
 
