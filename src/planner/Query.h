@@ -51,7 +51,7 @@ private:
  */
 class GetNeighbors final : public Explore {
 public:
-    GetNeighbors(GraphSpaceID space) : Explore(space) {
+    explicit GetNeighbors(GraphSpaceID space) : Explore(space) {
         kind_ = PlanNode::Kind::kGetNeighbors;
     }
 
@@ -65,12 +65,12 @@ public:
     std::string explain() const override;
 
 private:
-    std::vector<VertexID>               vertices_;
-    std::vector<EdgeType>               edgeTypes_;
+    std::vector<VertexID>                        vertices_;
+    std::vector<EdgeType>                        edgeTypes_;
     std::vector<storage::cpp2::VertexProp>       vertexProps_;
     std::vector<storage::cpp2::EdgeProp>         edgeProps_;
     std::vector<storage::cpp2::StatProp>         statProps_;
-    std::string                         filter_;
+    std::string                                  filter_;
 };
 
 /**
@@ -78,7 +78,7 @@ private:
  */
 class GetVertices final : public Explore {
 public:
-    GetVertices(GraphSpaceID space) : Explore(space) {
+    explicit GetVertices(GraphSpaceID space) : Explore(space) {
         kind_ = PlanNode::Kind::kGetVertices;
     }
 
@@ -92,9 +92,9 @@ public:
     std::string explain() const override;
 
 private:
-    std::vector<VertexID>           vertices_;
+    std::vector<VertexID>                    vertices_;
     std::vector<storage::cpp2::VertexProp>   props_;
-    std::string                     filter_;
+    std::string                              filter_;
 };
 
 /**
@@ -102,7 +102,7 @@ private:
  */
 class GetEdges final : public Explore {
 public:
-    GetEdges(GraphSpaceID space) : Explore(space) {
+    explicit GetEdges(GraphSpaceID space) : Explore(space) {
         kind_ = PlanNode::Kind::kGetEdges;
     }
 
