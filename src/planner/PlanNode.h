@@ -45,36 +45,44 @@ public:
     PlanNode() = default;
 
     PlanNode(std::vector<std::string>&& colNames,
-             std::shared_ptr<PlanNode>&& next) {
+             std::vector<std::shared_ptr<PlanNode>>&& children) {
         outputColNames_ = std::move(colNames);
-        next_ = std::move(next);
+        children_ = std::move(children);
     }
 
     virtual ~PlanNode() = default;
-
-    Kind kind() const {
-        return kind_;
-    }
 
     /**
      * To explain how a query would be executed
      */
     virtual std::string explain() const = 0;
 
+    Kind kind() const {
+        return kind_;
+    }
+
+    int64_t id() const {
+        return id_;
+    }
+
     std::vector<std::string> outputColNames() const {
         return outputColNames_;
     }
 
-    const PlanNode* next() {
-        return next_.get();
+    const std::vector<std::shared_ptr<PlanNode>>& children() const {
+        return children_;
+    }
+
+    void setId(int64_t id) {
+        id_ = id;
     }
 
     void setOutputColNames(std::vector<std::string>&& cols) {
         outputColNames_ = std::move(cols);
     }
 
-    void setNext(std::shared_ptr<PlanNode>&& next) {
-        next_ = std::move(next);
+    void setChildren(std::vector<std::shared_ptr<PlanNode>>&& children) {
+        children_ = std::move(children);
     }
 
     /**
@@ -88,9 +96,10 @@ public:
     Status merge(std::shared_ptr<StartNode> start);
 
 protected:
-    Kind                        kind_{Kind::kUnknown};
-    std::vector<std::string>    outputColNames_;
-    std::shared_ptr<PlanNode>   next_;
+    Kind                                     kind_{Kind::kUnknown};
+    int64_t                                  id_{-1};
+    std::vector<std::string>                 outputColNames_;
+    std::vector<std::shared_ptr<PlanNode>>   children_;
 };
 
 /**
@@ -103,7 +112,8 @@ public:
     }
 
     StartNode(std::vector<std::string>&& colNames,
-              std::shared_ptr<PlanNode>&& next) : PlanNode(std::move(colNames), std::move(next)) {
+              std::vector<std::shared_ptr<PlanNode>>&& children)
+              : PlanNode(std::move(colNames), std::move(children)) {
         kind_ = PlanNode::Kind::kStart;
     }
 
