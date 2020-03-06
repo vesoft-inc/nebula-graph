@@ -14,43 +14,6 @@ namespace nebula {
 namespace graph {
 
 /**
- * The StateTransition tells executor which node it would transfer to.
- */
-class PlanNode;
-using StateTransitionTable = std::vector<std::shared_ptr<PlanNode>>;
-class StateTransition {
-public:
-    enum class State : int8_t {
-        kUnknown = 0,
-        kTrue = 1,
-        kFalse = 2,
-        kConcurrency = 3
-    };
-
-    const Expression* expr() const {
-        return expr_.get();
-    }
-
-    StateTransitionTable table() const {
-        return table_;
-    }
-
-    void setTable(StateTransitionTable&& table) {
-        table_ = std::move(table);
-    }
-
-    void addNodes(StateTransitionTable&& table) {
-        table_.insert(table_.end(),
-                std::make_move_iterator(table.begin()),
-                std::make_move_iterator(table.end()));
-    }
-
-private:
-    std::unique_ptr<Expression>             expr_;
-    StateTransitionTable                    table_;
-};
-
-/**
  * PlanNode is an abstraction of nodes in an execution plan which
  * is a kind of directed cyclic graph.
  */
@@ -71,25 +34,23 @@ public:
         kProject,
         kSort,
         kLimit,
-        kAggregate
+        kAggregate,
+        kSelector,
+        kLoop,
+        kBuildShortestPath,
+        kRegisterVariable,
+        kRegisterSpaceToSession,
     };
 
     PlanNode() = default;
 
-    PlanNode(std::vector<std::string>&& colNames, StateTransition&& stateTrans) {
+    PlanNode(std::vector<std::string>&& colNames,
+             std::shared_ptr<PlanNode>&& next) {
         outputColNames_ = std::move(colNames);
-        stateTrans_ = std::move(stateTrans);
+        next_ = std::move(next);
     }
 
     virtual ~PlanNode() = default;
-
-    void setOutputColNames(std::vector<std::string>&& cols) {
-        outputColNames_ = std::move(cols);
-    }
-
-    void setStateTrans(StateTransition&& stateTrans) {
-        stateTrans_ = std::move(stateTrans);
-    }
 
     Kind kind() const {
         return kind_;
@@ -104,18 +65,16 @@ public:
         return outputColNames_;
     }
 
-    /**
-     * Execution engine will calculate the state by this expression.
-     */
-    const Expression* stateTransExpr() {
-        return stateTrans_.expr();
+    const PlanNode* next() {
+        return next_.get();
     }
 
-    /**
-     * This table is used for finding the next node(s) to be executed.
-     */
-    StateTransitionTable table() {
-        return stateTrans_.table();
+    void setOutputColNames(std::vector<std::string>&& cols) {
+        outputColNames_ = std::move(cols);
+    }
+
+    void setNext(std::shared_ptr<PlanNode>&& next) {
+        next_ = std::move(next);
     }
 
     /**
@@ -131,7 +90,7 @@ public:
 protected:
     Kind                        kind_{Kind::kUnknown};
     std::vector<std::string>    outputColNames_;
-    StateTransition             stateTrans_;
+    std::shared_ptr<PlanNode>   next_;
 };
 
 /**
@@ -144,7 +103,7 @@ public:
     }
 
     StartNode(std::vector<std::string>&& colNames,
-             StateTransition&& stateTrans) : PlanNode(std::move(colNames), std::move(stateTrans)) {
+              std::shared_ptr<PlanNode>&& next) : PlanNode(std::move(colNames), std::move(next)) {
         kind_ = PlanNode::Kind::kStart;
     }
 
