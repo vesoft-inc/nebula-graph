@@ -416,9 +416,6 @@ public:
         : BinarySelect(std::move(condition), std::move(colNames), std::move(children)) {
         kind_ = PlanNode::Kind::kSelector;
     }
-
-private:
-    std::unique_ptr<Expression>     condition_;
 };
 
 class Loop : public BinarySelect {
@@ -434,9 +431,6 @@ public:
         : BinarySelect(std::move(condition), std::move(colNames), std::move(children)) {
         kind_ = PlanNode::Kind::kLoop;
     }
-
-private:
-    std::unique_ptr<Expression>     condition_;
 };
 
 class BuildShortestPath : public PlanNode {
