@@ -53,7 +53,7 @@ protected:
 protected:
     Sentence*                       sentence_;
     ValidateContext*                validateContext_;
-    std::shared_ptr<StartNode>      start_;
+    std::shared_ptr<PlanNode>      start_;
     std::shared_ptr<PlanNode>       end_;
 };
 }  // namespace graph

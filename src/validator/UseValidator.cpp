@@ -6,6 +6,7 @@
 
 #include "validator/UseValidator.h"
 #include "parser/TraverseSentences.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -23,7 +24,9 @@ Status UseValidator::validateImpl() {
 }
 
 Status UseValidator::toPlan() {
-    // TODO: we need a node to update the session.
+    auto space = validateContext_->whichSpace();
+    start_ = std::make_shared<RegisterSpaceToSession>(space.second);
+    end_ = start_;
     return Status::OK();
 }
 }  // namespace graph

@@ -13,7 +13,7 @@ Status SequentialValidator::validateImpl() {
     Status status;
     if (sentence_->kind() != Sentence::Kind::kSequential) {
         return Status::Error(
-                "Sequential validator validates a SequentialSentences,but %ld is given.",
+                "Sequential validator validates a SequentialSentences, but %ld is given.",
                 static_cast<int64_t>(sentence_->kind()));
     }
     auto seqSentence = static_cast<SequentialSentences*>(sentence_);
@@ -31,13 +31,14 @@ Status SequentialValidator::validateImpl() {
 }
 
 Status SequentialValidator::toPlan() {
-    start_ = validators_[0]->start();
+    start_ = validators_[validators_.size() - 1]->start();
     for (decltype(validators_.size()) i = 0; i < (validators_.size() - 1); ++i) {
-        auto status = validators_[i]->end()->append(validators_[i + 1]->start());
+        auto status = PlanNode::append(validators_[i + 1]->end(), validators_[i]->start());
         if (!status.ok()) {
             return status;
         }
     }
+    end_ = validators_[0]->end();
     return Status::OK();
 }
 }  // namespace graph

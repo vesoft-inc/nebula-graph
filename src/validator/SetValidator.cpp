@@ -25,25 +25,25 @@ Status SetValidator::validateImpl() {
 }
 
 Status SetValidator::toPlan() {
-    start_ = lValidator_->start();
-    start_->merge(rValidator_->start());
-
     switch (op_) {
         case SetSentence::Operator::UNION:
-            end_ = std::make_shared<Union>(distinct_);
+            start_ = std::make_shared<Union>(distinct_);
             break;
         case SetSentence::Operator::INTERSECT:
-            end_ = std::make_shared<Intersect>();
+            start_ = std::make_shared<Intersect>();
             break;
         case SetSentence::Operator::MINUS:
-            end_ = std::make_shared<Minus>();
+            start_ = std::make_shared<Minus>();
             break;
         default:
             return Status::Error("Unkown operator: %ld", static_cast<int64_t>(op_));
     }
 
-    lValidator_->end()->append(end_);
-    rValidator_->end()->append(end_);
+    start_->addChild(lValidator_->start());
+    start_->addChild(lValidator_->start());
+    end_ = std::make_shared<EndNode>();
+    lValidator_->end()->addChild(end_);
+    rValidator_->end()->addChild(end_);
     return Status::OK();
 }
 }  // namespace graph

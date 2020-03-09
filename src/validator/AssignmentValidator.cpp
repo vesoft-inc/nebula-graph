@@ -6,6 +6,7 @@
 
 #include "validator/AssignmentValidator.h"
 #include "parser/TraverseSentences.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -16,13 +17,15 @@ Status AssignmentValidator::validateImpl() {
     if (!status.ok()) {
         return status;
     }
-    validateContext_->registerVariable(*assignSentence->var());
+    var_ = *assignSentence->var();
+    validateContext_->registerVariable(var_);
     return Status::OK();
 }
 
 Status AssignmentValidator::toPlan() {
-    start_ = validator_->start();
-    // TODO: need a node to register variable in execution phase.
+    start_ = std::make_shared<RegisterVariable>(std::move(var_));
+    start_->addChild(validator_->start());
+    end_ = validator_->end();
     return Status::OK();
 }
 }  // namespace graph
