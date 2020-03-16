@@ -17,8 +17,10 @@ Status AssignmentValidator::validateImpl() {
     if (!status.ok()) {
         return status;
     }
+
+    auto outputs = validator_->outputs();
     var_ = *assignSentence->var();
-    validateContext_->registerVariable(var_);
+    validateContext_->registerVariable(var_, std::move(outputs));
     return Status::OK();
 }
 

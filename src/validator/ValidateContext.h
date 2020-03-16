@@ -9,17 +9,20 @@
 
 #include "meta/SchemaManager.h"
 #include "service/ClientSession.h"
+#include "datatypes/Value.h"
 
 namespace nebula {
 namespace graph {
+using ColDef = std::pair<std::string, Value::Type>;
+using ColsDef = std::vector<ColDef>;
 class ValidateContext final {
 public:
     void switchToSpace(std::string spaceName, GraphSpaceID spaceId) {
         spaces_.emplace_back(std::make_pair(std::move(spaceName), spaceId));
     }
 
-    void registerVariable(std::string var) {
-        vars_.emplace_back(std::move(var));
+    void registerVariable(std::string var, ColsDef cols) {
+        vars_.emplace(std::move(var), std::move(cols));
     }
 
     bool spaceChosen() const {
@@ -38,7 +41,7 @@ private:
     meta::SchemaManager*                                schemaMng_;
     ClientSession*                                      session_;
     std::vector<std::pair<std::string, GraphSpaceID>>   spaces_;
-    std::vector<std::string>                            vars_;
+    std::unordered_map<std::string, ColsDef>            vars_;
 };
 }  // namespace graph
 }  // namespace nebula

@@ -26,12 +26,24 @@ public:
 
     Status validate();
 
+    void setInputs(ColsDef&& inputs) {
+        inputs_ = std::move(inputs);
+    }
+
     auto start() const {
         return start_;
     }
 
     auto end() const {
         return end_;
+    }
+
+    auto outputs() const {
+        return outputs_;
+    }
+
+    auto inputs() const {
+        return inputs_;
     }
 
 protected:
@@ -53,8 +65,10 @@ protected:
 protected:
     Sentence*                       sentence_;
     ValidateContext*                validateContext_;
-    std::shared_ptr<PlanNode>      start_;
+    std::shared_ptr<PlanNode>       start_;
     std::shared_ptr<PlanNode>       end_;
+    ColsDef                         outputs_;
+    ColsDef                         inputs_;
 };
 }  // namespace graph
 }  // namespace nebula

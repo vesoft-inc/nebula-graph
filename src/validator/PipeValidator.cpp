@@ -21,6 +21,7 @@ Status PipeValidator::validateImpl() {
 
     auto right = pipeSentence->right();
     rValidator_ = Validator::makeValidator(right, validateContext_);
+    rValidator_->setInputs(lValidator_->outputs());
     status = rValidator_->validate();
     if (!status.ok()) {
         return status;

@@ -21,6 +21,14 @@ Status SetValidator::validateImpl() {
     if (!status.ok()) {
         return status;
     }
+
+    auto lCols = lValidator_->outputs();
+    auto rCols = rValidator_->outputs();
+    if (lCols.size() != rCols.size()) {
+        return Status::Error("The used statements have a diffrent number of columns.");
+    }
+
+    outputs_ = std::move(lCols);
     return Status::OK();
 }
 
