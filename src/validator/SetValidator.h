@@ -25,12 +25,12 @@ private:
      * for the left and right subtrees.
      * For example: Go FROM id1 OVER e1 UNION GO FROM id2 OVER e2;
      * The plan of left subtree's would be:
-     *  Start -> GetNeighbor(id1, e1) -> Project(_dst)
+     *  Project(_dst) -> GetNeighbor(id1, e1)
      * and the right would be:
-     *  Start -> GetNeighbor(id2, e2) -> Project(_dst)
+     *  Project(_dst) -> GetNeighbor(id2, e2)
      * After merging, it would be:
-     *  Start -> GetNeighbor(id1, e1) -> Project(_dst) -|
-     *        |-> GetNeighbor(id2, e2) -> Project(_dst) -> Union
+     *  Union -> Project(_dst) -> GetNeighbor(id1, e1) -|
+     *        |-> Project(_dst) -> GetNeighbor(id2, e2) -> End
      */
     Status toPlan() override;
 

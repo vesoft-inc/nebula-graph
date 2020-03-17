@@ -37,11 +37,16 @@ public:
         return schemaMng_;
     }
 
+    int64_t getId() {
+        return ++idCounter_;
+    }
+
 private:
     meta::SchemaManager*                                schemaMng_;
     ClientSession*                                      session_;
     std::vector<std::pair<std::string, GraphSpaceID>>   spaces_;
     std::unordered_map<std::string, ColsDef>            vars_;
+    int64_t                                             idCounter_;
 };
 }  // namespace graph
 }  // namespace nebula
