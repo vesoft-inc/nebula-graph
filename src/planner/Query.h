@@ -534,6 +534,10 @@ public:
         condition_ = condition;
     }
 
+  const Expression* condition() const {
+    return condition_.get();
+  }
+
 private:
     Expression*  condition_;
 };

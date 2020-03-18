@@ -8,7 +8,7 @@ nebula_add_library(
     scheduler_obj
     OBJECT
     PlanFragment.cpp
-    Scheduler.cpp
+    # Scheduler.cpp
     )
 
 # nebula_add_subdirectory(test)

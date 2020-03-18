@@ -5,8 +5,12 @@
 #
 
 nebula_add_library(
-  exec_obj
-  OBJECT
-  Executor.cpp
-  ExecutionContext.cpp
-  )
+    exec_obj
+    OBJECT
+    Executor.cpp
+    ExecutionContext.cpp
+    LoopExecutor.cpp
+    FilterExecutor.cpp
+    StartExecutor.cpp
+    SelectExecutor.cpp
+    )

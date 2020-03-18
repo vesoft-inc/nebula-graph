@@ -9,11 +9,13 @@
 
 #include <list>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <folly/futures/Future.h>
 
 #include "base/Status.h"
+#include "cpp/helpers.h"
 #include "interface/gen-cpp2/graph_types.h"
 
 namespace nebula {
@@ -22,15 +24,22 @@ namespace graph {
 class PlanNode;
 class ExecutionContext;
 
-class Executor {
+class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
     // Create executor according to plan node
-    static std::shared_ptr<Executor> makeExecutor(const PlanNode &node, ExecutionContext *ectx);
+    static Executor *makeExecutor(const PlanNode &node, ExecutionContext *ectx);
+
+    virtual ~Executor() {}
+
+    // Preparation before executing
+    virtual Status prepare() {
+        return Status::OK();
+    }
 
     // Implementation interface of operation logic
-    virtual folly::Future<void> execute() = 0;
+    virtual folly::Future<Status> execute() = 0;
 
-    ExecutionContext *ectx() const {
+    const ExecutionContext *ectx() const {
         return ectx_;
     }
 
@@ -38,17 +47,21 @@ public:
         return id_;
     }
 
-    PlanNode *node() const {
-        return node_;
+    const std::string &name() const {
+        return name_;
     }
 
-    void dependsOn(Executor *dep) {
-        depends_.push_back(dep);
+    const PlanNode *node() const {
+        return node_;
     }
 
 protected:
     // Only allow derived executor to construct
-    explicit Executor(PlanNode *node, ExecutionContext *ectx) : node_(node), ectx_(ectx) {}
+    Executor(const std::string &name, const PlanNode *node, ExecutionContext *ectx)
+        : name_(name), node_(node), ectx_(ectx) {
+        DCHECK_NOTNULL(node_);
+        DCHECK_NOTNULL(ectx_);
+    }
 
     // Store the result of this executor to execution context
     Status finish(std::list<cpp2::Row> dataset);
@@ -56,16 +69,73 @@ protected:
     // Executor unique id
     uint64_t id_;
 
+    // Executor name
+    std::string name_;
+
     // Relative Plan Node
-    PlanNode *node_{nullptr};
+    const PlanNode *node_;
 
     // Execution context for saving some execution data
-    ExecutionContext *ectx_{nullptr};
+    ExecutionContext *ectx_;
 
     // TODO: Some statistics
+};
 
-    // dependencies
-    std::vector<Executor *> depends_;
+class SingleInputExecutor : public Executor {
+public:
+    folly::Future<Status> execute() override {
+        folly::Future<Status> fut = input_->execute();
+        return std::move(fut).then([this](Status s) {
+            if (!s.ok()) return folly::makeFuture(s);
+            return this->exec();
+        });
+    }
+
+protected:
+    SingleInputExecutor(const std::string &name,
+                        const PlanNode *node,
+                        ExecutionContext *ectx,
+                        Executor *input)
+        : Executor(name, node, ectx), input_(input) {
+        DCHECK_NOTNULL(input);
+    }
+
+    virtual folly::Future<Status> exec() {
+        return Status::OK();
+    }
+
+    Executor *input_;
+};
+
+class MultiInputsExecutor : public Executor {
+public:
+    folly::Future<Status> execute() override {
+        std::vector<folly::Future<Status>> futures;
+        for (auto *in : inputs_) {
+            futures.push_back(in->execute());
+        }
+        return folly::collect(futures).then([this](std::vector<Status> ss) {
+            for (auto &s : ss) {
+                if (!s.ok()) return folly::makeFuture(s);
+            }
+            return this->exec();
+        });
+    }
+
+protected:
+    MultiInputsExecutor(const std::string &name,
+                        const PlanNode *node,
+                        ExecutionContext *ectx,
+                        std::vector<Executor *> &&inputs)
+        : Executor(name, node, ectx), inputs_(std::move(inputs)) {
+        DCHECK(!inputs_.empty());
+    }
+
+    virtual folly::Future<Status> exec() {
+        return Status::OK();
+    }
+
+    std::vector<Executor *> inputs_;
 };
 
 }   // namespace graph

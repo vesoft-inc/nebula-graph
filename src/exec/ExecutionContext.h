@@ -18,12 +18,16 @@
 namespace nebula {
 namespace graph {
 
+class Executor;
+
 class ExecutionContext final {
 public:
     using DataSet = cpp2::Row;
     using DataSetList = std::list<cpp2::Row>;
 
     ExecutionContext() = default;
+
+    ~ExecutionContext();
 
     void setValueReservation(int64_t valueReservation) {
         valueReservation_ = valueReservation;
@@ -35,6 +39,12 @@ public:
     // Add variables value
     // TODO: Consider variable reference implementation
     Status addVariable(const std::string& varName, DataSet dataset);
+
+    // Add executor allocated outside to object pool
+    Executor* addObject(Executor* exe) {
+        execPool_.push_back(exe);
+        return exe;
+    }
 
 private:
     // Check whether values have reached the limitation
@@ -51,6 +61,10 @@ private:
 
     // Store all variable's values of query globally
     std::unordered_map<std::string, DataSet> variables_;
+
+    // Executor objects pool. We'd better add a general object pool to manage some created objects
+    // released later
+    std::list<Executor*> execPool_;
 };
 
 }   // namespace graph

@@ -11,6 +11,10 @@
 #include <functional>
 #include <memory>
 
+#include <folly/futures/Future.h>
+
+#include "base/Status.h"
+
 namespace folly {
 
 class CPUThreadPoolExecutor;
@@ -21,6 +25,7 @@ namespace nebula {
 namespace graph {
 
 class PlanFragment;
+class Executor;
 class ExecutionContext;
 
 class Scheduler {
@@ -37,6 +42,9 @@ public:
     void addTask(std::function<void()> task);
 
 private:
+    // Invoke execute interface of each executor
+    static folly::Future<Status> exec(Executor* node, ExecutionContext* ectx);
+
     std::unique_ptr<folly::CPUThreadPoolExecutor> threadPool_;
 };
 

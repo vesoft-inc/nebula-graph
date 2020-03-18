@@ -8,10 +8,18 @@
 
 #include <folly/String.h>
 
+#include "exec/Executor.h"
+
 using folly::stringPrintf;
 
 namespace nebula {
 namespace graph {
+
+ExecutionContext::~ExecutionContext() {
+    for (auto obj : execPool_) {
+        delete obj;
+    }
+}
 
 Status ExecutionContext::addExecutorResult(const std::string& executorId, DataSetList dataset) {
     valueCounts_ += dataset.size();
@@ -33,12 +41,13 @@ Status ExecutionContext::addExecutorResult(const std::string& executorId, DataSe
 }
 
 Status ExecutionContext::addVariable(const std::string& varName, DataSet dataset) {
-    //
+    UNUSED(varName);
+    UNUSED(dataset);
     return Status::OK();
 }
 
 Status ExecutionContext::checkValues() const {
-    if (valueReservation_ < 0 || valueCounts_ < valueReservation_) {
+    if (valueReservation_ < 0 || valueCounts_ < static_cast<uint64_t>(valueReservation_)) {
         return Status::OK();
     }
 
