@@ -5,11 +5,10 @@
 #
 
 nebula_add_library(
-    planner_obj OBJECT
-    PlanNode.cpp
-    ExecutionPlan.cpp
-    Query.cpp
-    IdGenerator.cpp
-)
+    scheduler_obj
+    OBJECT
+    PlanFragment.cpp
+    Scheduler.cpp
+    )
 
-add_subdirectory(test)
+# nebula_add_subdirectory(test)

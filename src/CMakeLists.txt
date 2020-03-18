@@ -4,3 +4,5 @@
 nebula_add_subdirectory(parser)
 nebula_add_subdirectory(planner)
 nebula_add_subdirectory(validator)
+nebula_add_subdirectory(scheduler)
+nebula_add_subdirectory(exec)
