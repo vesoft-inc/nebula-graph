@@ -15,12 +15,6 @@ using folly::stringPrintf;
 namespace nebula {
 namespace graph {
 
-ExecutionContext::~ExecutionContext() {
-    for (auto obj : execPool_) {
-        delete obj;
-    }
-}
-
 Status ExecutionContext::addExecutorResult(const std::string& executorId, DataSetList dataset) {
     valueCounts_ += dataset.size();
     auto status = checkValues();

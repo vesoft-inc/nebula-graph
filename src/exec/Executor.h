@@ -19,6 +19,9 @@
 #include "interface/gen-cpp2/graph_types.h"
 
 namespace nebula {
+
+class ObjectPool;
+
 namespace graph {
 
 class PlanNode;
@@ -27,7 +30,9 @@ class ExecutionContext;
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
     // Create executor according to plan node
-    static Executor *makeExecutor(const PlanNode &node, ExecutionContext *ectx);
+    static Executor *makeExecutor(const PlanNode *node,
+                                  ExecutionContext *ectx,
+                                  ObjectPool *objPool);
 
     virtual ~Executor() {}
 

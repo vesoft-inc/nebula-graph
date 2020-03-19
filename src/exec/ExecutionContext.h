@@ -40,12 +40,6 @@ public:
     // TODO: Consider variable reference implementation
     Status addVariable(const std::string& varName, DataSet dataset);
 
-    // Add executor allocated outside to object pool
-    Executor* addObject(Executor* exe) {
-        execPool_.push_back(exe);
-        return exe;
-    }
-
 private:
     // Check whether values have reached the limitation
     Status checkValues() const;
@@ -61,10 +55,6 @@ private:
 
     // Store all variable's values of query globally
     std::unordered_map<std::string, DataSet> variables_;
-
-    // Executor objects pool. We'd better add a general object pool to manage some created objects
-    // released later
-    std::list<Executor*> execPool_;
 };
 
 }   // namespace graph
