@@ -9,6 +9,8 @@
 
 #include <memory>
 
+#include "cpp/helpers.h"
+
 namespace nebula {
 
 class ObjectPool;
@@ -19,7 +21,7 @@ class PlanNode;
 class ExecutionContext;
 class Executor;
 
-class ExecutionEngine final {
+class ExecutionEngine final : private cpp::NonMovable, private cpp::NonCopyable {
 public:
     explicit ExecutionEngine(std::shared_ptr<PlanNode> planRoot);
 

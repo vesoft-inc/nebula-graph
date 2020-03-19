@@ -15,26 +15,7 @@ using folly::stringPrintf;
 namespace nebula {
 namespace graph {
 
-Status ExecutionContext::addExecutorResult(const std::string& executorId, DataSetList dataset) {
-    valueCounts_ += dataset.size();
-    auto status = checkValues();
-    if (!status.ok()) {
-        return status;
-    }
-
-    auto it = execData_.find(executorId);
-    if (it != execData_.end()) {
-        it->second.push_front(dataset);
-    } else {
-        std::list<DataSetList> l;
-        l.push_front(std::move(dataset));
-        execData_.insert(std::make_pair(executorId, std::move(l)));
-    }
-
-    return Status::OK();
-}
-
-Status ExecutionContext::addVariable(const std::string& varName, DataSet dataset) {
+Status ExecutionContext::addVariable(const std::string& varName, cpp2::DataSet dataset) {
     UNUSED(varName);
     UNUSED(dataset);
     return Status::OK();

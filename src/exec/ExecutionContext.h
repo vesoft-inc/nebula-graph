@@ -8,9 +8,9 @@
 #define EXEC_EXECUTIONCONTEXT_H_
 
 #include <cstdint>
-#include <list>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "base/Status.h"
 #include "interface/gen-cpp2/graph_types.h"
@@ -22,23 +22,17 @@ class Executor;
 
 class ExecutionContext final {
 public:
-    using DataSet = cpp2::Row;
-    using DataSetList = std::list<cpp2::Row>;
-
     ExecutionContext() = default;
 
-    ~ExecutionContext();
+    ~ExecutionContext() = default;
 
     void setValueReservation(int64_t valueReservation) {
         valueReservation_ = valueReservation;
     }
 
-    // Register a executor in the context
-    Status addExecutorResult(const std::string& executorId, DataSetList dataset);
-
-    // Add variables value
+    // Add named or anonymous variables value
     // TODO: Consider variable reference implementation
-    Status addVariable(const std::string& varName, DataSet dataset);
+    Status addVariable(const std::string& varName, cpp2::DataSet dataset);
 
 private:
     // Check whether values have reached the limitation
@@ -50,11 +44,8 @@ private:
     // Number of value reservation for all executors
     int64_t valueReservation_{-1};
 
-    // Map between executor's unique id and its result data after finishing execution
-    std::unordered_map<std::string, std::list<DataSetList>> execData_;
-
     // Store all variable's values of query globally
-    std::unordered_map<std::string, DataSet> variables_;
+    std::unordered_map<std::string, std::vector<cpp2::DataSet>> variables_;
 };
 
 }   // namespace graph

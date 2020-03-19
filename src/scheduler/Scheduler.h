@@ -7,45 +7,21 @@
 #ifndef SCHEDULER_SCHEDULER_H_
 #define SCHEDULER_SCHEDULER_H_
 
-#include <cstdint>
-#include <functional>
 #include <memory>
-
-#include <folly/futures/Future.h>
-
-#include "base/Status.h"
-
-namespace folly {
-
-class CPUThreadPoolExecutor;
-
-}   // namespace folly
 
 namespace nebula {
 namespace graph {
 
-class PlanFragment;
-class Executor;
-class ExecutionContext;
+class PlanNode;
 
 class Scheduler {
 public:
     // TODO(yee): Use same folly executors as graph daemon process
-    explicit Scheduler(uint32_t numThreads);
+    Scheduler() = default;
 
-    // Make PlanFragment executable conversion and schedule them according to their dependent
-    // relationship
-    void schedulePlanFragment(PlanFragment* root, ExecutionContext* ectx);
-
-    // Add task to thread pool. If the number of tasks is more than worker threads, they will be
-    // queued in the pool
-    void addTask(std::function<void()> task);
+    void schedule(std::shared_ptr<PlanNode> planRoot);
 
 private:
-    // Invoke execute interface of each executor
-    static folly::Future<Status> exec(Executor* node, ExecutionContext* ectx);
-
-    std::unique_ptr<folly::CPUThreadPoolExecutor> threadPool_;
 };
 
 }   // namespace graph
