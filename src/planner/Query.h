@@ -32,13 +32,6 @@ public:
         space_ = space;
     }
 
-    Explore(GraphSpaceID space,
-            std::vector<std::string>&& colNames,
-            std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
-        space_ = space;
-    }
-
     GraphSpaceID space() const {
         return space_;
     }
@@ -53,13 +46,6 @@ private:
 class GetNeighbors final : public Explore {
 public:
     explicit GetNeighbors(GraphSpaceID space) : Explore(space) {
-        kind_ = PlanNode::Kind::kGetNeighbors;
-    }
-
-    GetNeighbors(GraphSpaceID space,
-                 std::vector<std::string>&& colNames,
-                 std::vector<std::shared_ptr<PlanNode>>&& children)
-        : Explore(space, std::move(colNames), std::move(children)) {
         kind_ = PlanNode::Kind::kGetNeighbors;
     }
 
@@ -83,13 +69,6 @@ public:
         kind_ = PlanNode::Kind::kGetVertices;
     }
 
-    GetVertices(GraphSpaceID space,
-                std::vector<std::string>&& colNames,
-                std::vector<std::shared_ptr<PlanNode>>&& children)
-        : Explore(space, std::move(colNames), std::move(children)) {
-        kind_ = PlanNode::Kind::kGetVertices;
-    }
-
     std::string explain() const override;
 
 private:
@@ -104,13 +83,6 @@ private:
 class GetEdges final : public Explore {
 public:
     explicit GetEdges(GraphSpaceID space) : Explore(space) {
-        kind_ = PlanNode::Kind::kGetEdges;
-    }
-
-    GetEdges(GraphSpaceID space,
-             std::vector<std::string>&& colNames,
-             std::vector<std::shared_ptr<PlanNode>>&& children)
-        : Explore(space, std::move(colNames), std::move(children)) {
         kind_ = PlanNode::Kind::kGetEdges;
     }
 
@@ -131,13 +103,6 @@ public:
         kind_ = PlanNode::Kind::kReadIndex;
     }
 
-    ReadIndex(GraphSpaceID space,
-              std::vector<std::string>&& colNames,
-              std::vector<std::shared_ptr<PlanNode>>&& children)
-        : Explore(space, std::move(colNames), std::move(children)) {
-        kind_ = PlanNode::Kind::kReadIndex;
-    }
-
     std::string explain() const override;
 };
 
@@ -151,12 +116,15 @@ public:
         condition_ = condition;
     }
 
-    Filter(Expression* condition,
-           std::vector<std::string>&& colNames,
-           std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
+    Filter(std::shared_ptr<PlanNode>&& input,
+           Expression* condition) {
         kind_ = PlanNode::Kind::kFilter;
+        input_ = std::move(input);
         condition_ = condition;
+    }
+
+    void setInput(std::shared_ptr<PlanNode>&& input) {
+        input_ = std::move(input);
     }
 
     const Expression* condition() const {
@@ -166,7 +134,8 @@ public:
     std::string explain() const override;
 
 private:
-    Expression*         condition_;
+    std::shared_ptr<PlanNode>   input_;
+    Expression*                 condition_;
 };
 
 /**
@@ -179,9 +148,23 @@ class SetOp : public PlanNode {
 public:
     SetOp() = default;
 
-    SetOp(std::vector<std::string>&& colNames,
-          std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {}
+    SetOp(std::shared_ptr<PlanNode>&& left,
+          std::shared_ptr<PlanNode>&& right) {
+        left_ = std::move(left);
+        right_ = std::move(right);
+    }
+
+    void setLeft(std::shared_ptr<PlanNode>&& left) {
+        left_ = std::move(left);
+    }
+
+    void setRight(std::shared_ptr<PlanNode>&& right) {
+        right_ = std::move(right);
+    }
+
+protected:
+    std::shared_ptr<PlanNode>   left_;
+    std::shared_ptr<PlanNode>   right_;
 };
 
 /**
@@ -194,16 +177,8 @@ public:
         distinct_ = distinct;
     }
 
-    Union(bool distinct,
-          std::vector<std::string>&& colNames,
-          std::vector<std::shared_ptr<PlanNode>>&& children)
-        : SetOp(std::move(colNames), std::move(children)) {
-        kind_ = PlanNode::Kind::kUnion;
-        distinct_ = distinct;
-    }
-
-    bool distinct() {
-        return distinct_;
+    Union(std::shared_ptr<PlanNode>&& left,
+          std::shared_ptr<PlanNode>&& right) : SetOp(std::move(left), std::move(right)) {
     }
 
     std::string explain() const override;
@@ -221,10 +196,8 @@ public:
         kind_ = PlanNode::Kind::kIntersect;
     }
 
-    Intersect(std::vector<std::string>&& colNames,
-              std::vector<std::shared_ptr<PlanNode>>&& children)
-        : SetOp(std::move(colNames), std::move(children)) {
-        kind_ = PlanNode::Kind::kIntersect;
+    Intersect(std::shared_ptr<PlanNode>&& left,
+              std::shared_ptr<PlanNode>&& right) : SetOp(std::move(left), std::move(right)) {
     }
 
     std::string explain() const override;
@@ -239,17 +212,15 @@ public:
         kind_ = PlanNode::Kind::kMinus;
     }
 
-    Minus(std::vector<std::string>&& colNames,
-          std::vector<std::shared_ptr<PlanNode>>&& children)
-        : SetOp(std::move(colNames), std::move(children)) {
-        kind_ = PlanNode::Kind::kMinus;
+    Minus(std::shared_ptr<PlanNode>&& left,
+          std::shared_ptr<PlanNode>&& right) : SetOp(std::move(left), std::move(right)) {
     }
 
     std::string explain() const override;
 };
 
 /**
- * Project is used to specify the final output.
+ * Project is used to specify output vars or field.
  */
 class Project final : public PlanNode {
 public:
@@ -259,18 +230,15 @@ public:
         distinct_ = distinct;
     }
 
-    Project(YieldColumns* cols,
-            bool distinct,
-            std::vector<std::string>&& colNames,
-            std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
+    Project(std::shared_ptr<PlanNode>&& input, YieldColumns* cols) {
         kind_ = PlanNode::Kind::kProject;
+        input = std::move(input);
         cols_ = cols;
         distinct_ = distinct;
     }
 
-    const YieldColumns* cols() const {
-        return cols_;
+    void setInput(std::shared_ptr<PlanNode>&& input) {
+        input = std::move(input);
     }
 
     bool distinct() const {
@@ -280,8 +248,8 @@ public:
     std::string explain() const override;
 
 private:
-    YieldColumns*       cols_;
-    bool                distinct_;
+    std::shared_ptr<PlanNode>   input_;
+    YieldColumns*               cols_;
 };
 
 /**
@@ -294,12 +262,14 @@ public:
         factors_ = factors;
     }
 
-    Sort(OrderFactors* factors,
-         std::vector<std::string>&& colNames,
-         std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
+    Sort(std::shared_ptr<PlanNode>&& input, OrderFactors* factors) {
         kind_ = PlanNode::Kind::kSort;
+        input_ = std::move(input);
         factors_ = factors;
+    }
+
+    void setInput(std::shared_ptr<PlanNode>&& input) {
+        input_ = std::move(input);
     }
 
     const OrderFactors* factors() {
@@ -309,6 +279,7 @@ public:
     std::string explain() const override;
 
 private:
+    std::shared_ptr<PlanNode>   input_;
     OrderFactors*   factors_;
 };
 
@@ -323,14 +294,15 @@ public:
         count_ = count;
     }
 
-    Limit(int64_t offset,
-          int64_t count,
-          std::vector<std::string>&& colNames,
-          std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
+    Limit(std::shared_ptr<PlanNode> input, int64_t offset, int64_t count) {
         kind_ = PlanNode::Kind::kLimit;
+        input_ = std::move(input);
         offset_ = offset;
         count_ = count;
+    }
+
+    void setInput(std::shared_ptr<PlanNode> input) {
+        input_ = std::move(input);
     }
 
     int64_t offset() const {
@@ -344,6 +316,7 @@ public:
     std::string explain() const override;
 
 private:
+    std::shared_ptr<PlanNode>   input_;
     int64_t     offset_{-1};
     int64_t     count_{-1};
 };
@@ -361,18 +334,15 @@ public:
         groupCols_ = groupCols;
     }
 
-    Aggregate(YieldColumns* yieldCols,
-              YieldColumns* groupCols,
-              std::vector<std::string>&& colNames,
-              std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
+    explicit Aggregate(std::shared_ptr<PlanNode>&& input,
+                       YieldColumns* groupCols) {
         kind_ = PlanNode::Kind::kAggregate;
-        yieldCols_ = yieldCols;
+        input_ = std::move(input);
         groupCols_ = groupCols;
     }
 
-    const YieldColumns* yields() const {
-        return yieldCols_;
+    void setInput(std::shared_ptr<PlanNode>&& input) {
+        input_ = std::move(input);
     }
 
     const YieldColumns* groups() const {
@@ -382,65 +352,80 @@ public:
     std::string explain() const override;
 
 private:
-    YieldColumns*                               yieldCols_;
-    YieldColumns*                               groupCols_;
+    std::shared_ptr<PlanNode>   input_;
+    YieldColumns*               groupCols_;
 };
 
 class BinarySelect : public PlanNode {
 public:
-    explicit BinarySelect(std::unique_ptr<Expression>&& condition) {
-        condition_ = std::move(condition);
-    }
-
-    BinarySelect(std::unique_ptr<Expression>&& condition,
-             std::vector<std::string>&& colNames,
-             std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
-        condition_ = std::move(condition);
+    explicit BinarySelect(Expression* condition) {
+        condition_ = condition;
     }
 
 private:
-    std::unique_ptr<Expression>     condition_;
+    Expression*  condition_;
 };
 
 class Selector : public BinarySelect {
 public:
-    explicit Selector(std::unique_ptr<Expression>&& condition)
-        : BinarySelect(std::move(condition)) {
+    explicit Selector(Expression* condition)
+        : BinarySelect(condition) {
         kind_ = PlanNode::Kind::kSelector;
     }
 
-    Selector(std::unique_ptr<Expression>&& condition,
-             std::vector<std::string>&& colNames,
-             std::vector<std::shared_ptr<PlanNode>>&& children)
-        : BinarySelect(std::move(condition), std::move(colNames), std::move(children)) {
+    Selector(std::shared_ptr<PlanNode>&& input,
+             Expression* condition)
+        : BinarySelect(condition) {
+        input_ = std::move(input);
         kind_ = PlanNode::Kind::kSelector;
+    }
+
+    void setInput(std::shared_ptr<PlanNode>&& input) {
+        input_ = std::move(input);
+    }
+
+    void setIf(std::shared_ptr<PlanNode>&& ifBranch) {
+        if_ = std::move(ifBranch);
+    }
+
+    void setElse(std::shared_ptr<PlanNode>&& elseBranch) {
+        else_ = std::move(elseBranch);
     }
 
     std::string explain() const override;
 
 private:
-    std::vecotr<std::shared_ptr<PlanNode>>  body_;
+    std::shared_ptr<PlanNode>   if_;
+    std::shared_ptr<PlanNode>   else_;
+    std::shared_ptr<PlanNode>   input_;
 };
 
 class Loop : public BinarySelect {
 public:
-    explicit Loop(std::unique_ptr<Expression>&& condition)
-        : BinarySelect(std::move(condition)) {
+    explicit Loop(Expression* condition)
+        : BinarySelect(condition) {
         kind_ = PlanNode::Kind::kLoop;
     }
 
-    Loop(std::unique_ptr<Expression>&& condition,
-         std::vector<std::string>&& colNames,
-         std::vector<std::shared_ptr<PlanNode>>&& children)
-        : BinarySelect(std::move(condition), std::move(colNames), std::move(children)) {
+    Loop(std::shared_ptr<PlanNode>&& input, Expression* condition)
+        : BinarySelect(condition) {
+        input_ = std::move(input);
         kind_ = PlanNode::Kind::kLoop;
+    }
+
+    void setInput(std::shared_ptr<PlanNode>&& input) {
+        input_ = std::move(input);
+    }
+
+    void setBody(std::shared_ptr<PlanNode>&& body) {
+        body_ = std::move(body);
     }
 
     std::string explain() const override;
 
 private:
     std::shared_ptr<PlanNode>   body_;
+    std::shared_ptr<PlanNode>   input_;
 };
 
 class RegisterSpaceToSession : public PlanNode {
@@ -450,22 +435,37 @@ public:
         space_ = space;
     }
 
-    explicit RegisterSpaceToSession(
-         GraphSpaceID space,
-         std::vector<std::string>&& colNames,
-         std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
+    RegisterSpaceToSession(std::shared_ptr<PlanNode>&& input,
+            GraphSpaceID space) {
         kind_ = PlanNode::Kind::kRegisterSpaceToSession;
+        input_ = std::move(input);
         space_ = space;
+    }
+
+    void setInput(std::shared_ptr<PlanNode>&& input) {
+        input_ = std::move(input);
     }
 
     std::string explain() const override;
 
 private:
-    GraphSpaceID    space_;
+    std::shared_ptr<PlanNode>   input_;
+    GraphSpaceID                space_;
 };
 
 class Dedup : public PlanNode {
+public:
+    Dedup(std::shared_ptr<PlanNode>&& input, std::string&& var) {
+        kind_ = PlanNode::Kind::kDedup;
+        input_ = std::move(input);
+        var_ = std::move(var);
+    }
+
+    std::string explain() const override;
+
+private:
+    std::shared_ptr<PlanNode>   input_;
+    std::string                 var_;
 };
 
 class ProduceSemiShortestPath : public PlanNode {

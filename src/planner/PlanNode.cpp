@@ -8,14 +8,5 @@
 
 namespace nebula {
 namespace graph {
-Status PlanNode::append(std::shared_ptr<PlanNode> node,
-                        std::shared_ptr<PlanNode> appended) {
-    if (node->kind() == PlanNode::Kind::kEnd) {
-        node.swap(appended);
-    } else {
-        node->addChild(appended);
-    }
-    return Status::OK();
-}
 }  // namespace graph
 }  // namespace nebula

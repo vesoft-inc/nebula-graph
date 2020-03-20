@@ -6,6 +6,7 @@
 
 #include "validator/Validator.h"
 #include "parser/Sentence.h"
+#include "planner/Query.h"
 #include "validator/GoValidator.h"
 #include "validator/PipeValidator.h"
 #include "validator/ReportError.h"
@@ -27,6 +28,52 @@ std::unique_ptr<Validator> makeValidator(Sentence* sentence, ValidateContext* co
         default:
             return std::make_unique<ReportError>(sentence, context);
     }
+}
+
+Status Validator::appendPlan(std::shared_ptr<PlanNode> node, std::shared_ptr<PlanNode> appended) {
+    switch (node->kind()) {
+        case PlanNode::Kind::kEnd: {
+            // TODO:
+            return Status::Error("Not implement.");
+        }
+        case PlanNode::Kind::kFilter: {
+            static_cast<Filter*>(node.get())->setInput(std::move(appended));
+            break;
+        }
+        case PlanNode::Kind::kProject: {
+            static_cast<Project*>(node.get())->setInput(std::move(appended));
+            break;
+        }
+        case PlanNode::Kind::kSort: {
+            static_cast<Sort*>(node.get())->setInput(std::move(appended));
+            break;
+        }
+        case PlanNode::Kind::kLimit: {
+            static_cast<Limit*>(node.get())->setInput(std::move(appended));
+            break;
+        }
+        case PlanNode::Kind::kAggregate: {
+            static_cast<Aggregate*>(node.get())->setInput(std::move(appended));
+            break;
+        }
+        case PlanNode::Kind::kSelector: {
+            static_cast<Selector*>(node.get())->setInput(std::move(appended));
+            break;
+        }
+        case PlanNode::Kind::kLoop: {
+            static_cast<Loop*>(node.get())->setInput(std::move(appended));
+            break;
+        }
+        case PlanNode::Kind::kRegisterSpaceToSession: {
+            static_cast<RegisterSpaceToSession*>(node.get())->setInput(std::move(appended));
+            break;
+        }
+        default: {
+            return Status::Error(
+                    "%ld not support to append an input.", static_cast<int64_t>(node->kind()));
+        }
+    }
+    return Status::OK();
 }
 
 Status Validator::validate() {

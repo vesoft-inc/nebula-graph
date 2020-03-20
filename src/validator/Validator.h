@@ -24,6 +24,9 @@ public:
     static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
                                                     ValidateContext* context);
 
+    static Status appendPlan(std::shared_ptr<PlanNode> plan,
+                             std::shared_ptr<PlanNode> appended);
+
     Status validate();
 
     void setInputs(ColsDef&& inputs) {
