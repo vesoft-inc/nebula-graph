@@ -418,6 +418,9 @@ public:
     }
 
     std::string explain() const override;
+
+private:
+    std::vecotr<std::shared_ptr<PlanNode>>  body_;
 };
 
 class Loop : public BinarySelect {
@@ -435,10 +438,9 @@ public:
     }
 
     std::string explain() const override;
-};
 
-class BuildShortestPath : public PlanNode {
-    // TODO
+private:
+    std::shared_ptr<PlanNode>   body_;
 };
 
 class RegisterSpaceToSession : public PlanNode {
@@ -463,26 +465,13 @@ private:
     GraphSpaceID    space_;
 };
 
-class RegisterVariable : public PlanNode {
-public:
-    explicit RegisterVariable(std::string&& var) {
-        kind_ = PlanNode::Kind::kRegisterVariable;
-        var_ = std::move(var);
-    }
+class Dedup : public PlanNode {
+};
 
-    explicit RegisterVariable(
-         std::string&& var,
-         std::vector<std::string>&& colNames,
-         std::vector<std::shared_ptr<PlanNode>>&& children)
-        : PlanNode(std::move(colNames), std::move(children)) {
-        kind_ = PlanNode::Kind::kRegisterVariable;
-        var_ = std::move(var);
-    }
+class ProduceSemiShortestPath : public PlanNode {
+};
 
-    std::string explain() const override;
-
-private:
-    std::string     var_;
+class ConjunctPath : public PlanNode {
 };
 }  // namespace graph
 }  // namespace nebula

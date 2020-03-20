@@ -98,8 +98,9 @@ public:
 protected:
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
-    std::vector<std::string>                 outputColNames_;
-    std::vector<std::shared_ptr<PlanNode>>   children_;
+    std::vector<std::shared_ptr<PlanNode>>   inputs_;
+    using VariableName = std::string;
+    std::unordered_set<VariableName>         availableVars_;
 };
 
 class StartNode final : public PlanNode {
