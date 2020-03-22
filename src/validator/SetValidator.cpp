@@ -35,27 +35,30 @@ Status SetValidator::validateImpl() {
 Status SetValidator::toPlan() {
     switch (op_) {
         case SetSentence::Operator::UNION: {
-            auto unionOp = std::make_shared<Union>(lValidator_->start(), rValidator_->start());
+            auto unionOp = Union::make(
+                    lValidator_->start(), rValidator_->start(), validateContext_->plan());
             if (distinct_) {
-                start_ = std::make_shared<Dedup>(lValidator_->start(), "");
+                start_ = Dedup::make(lValidator_->start(), "", validateContext_->plan());
             } else {
                 start_ = unionOp;
             }
             break;
         }
         case SetSentence::Operator::INTERSECT: {
-            start_ = std::make_shared<Intersect>(lValidator_->start(), rValidator_->start());
+            start_ = Intersect::make(
+                    lValidator_->start(), rValidator_->start(), validateContext_->plan());
             break;
         }
         case SetSentence::Operator::MINUS: {
-            start_ = std::make_shared<Minus>(lValidator_->start(), rValidator_->start());
+            start_ = Minus::make(
+                    lValidator_->start(), rValidator_->start(), validateContext_->plan());
             break;
         }
         default:
             return Status::Error("Unkown operator: %ld", static_cast<int64_t>(op_));
     }
 
-    end_ = std::make_shared<EndNode>();
+    end_ = EndNode::make(validateContext_->plan());
     Validator::appendPlan(lValidator_->end(), end_);
     Validator::appendPlan(rValidator_->end(), end_);
     return Status::OK();

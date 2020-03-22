@@ -70,6 +70,28 @@ protected:
     std::unordered_set<VariableName>         availableVars_;
 };
 
+class ExecutionPlan final {
+public:
+    ExecutionPlan() = default;
+
+    void setRoot(PlanNode* root) {
+        root_ = root;
+    }
+
+    PlanNode* addPlanNode(std::unique_ptr<PlanNode>&& node) {
+        auto* tmp = node.get();
+        nodes_.emplace_back(std::move(node));
+        return tmp;
+    }
+
+private:
+    PlanNode*                               root_;
+    std::vector<std::unique_ptr<PlanNode>>  nodes_;
+};
+
+/**
+ * The StartNode and EndNode are only used in a subplan.
+ */
 class StartNode final : public PlanNode {
 public:
     StartNode() {
@@ -85,6 +107,11 @@ class EndNode final : public PlanNode {
 public:
     EndNode() {
         kind_ = PlanNode::Kind::kEnd;
+    }
+
+    static PlanNode* make(ExecutionPlan* plan) {
+        auto end = std::make_unique<EndNode>();
+        return plan->addPlanNode(std::move(end));
     }
 
     std::string explain() const override {

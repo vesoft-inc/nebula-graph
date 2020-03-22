@@ -30,42 +30,42 @@ std::unique_ptr<Validator> makeValidator(Sentence* sentence, ValidateContext* co
     }
 }
 
-Status Validator::appendPlan(std::shared_ptr<PlanNode> node, std::shared_ptr<PlanNode> appended) {
+Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     switch (node->kind()) {
         case PlanNode::Kind::kEnd: {
             // TODO:
             return Status::Error("Not implement.");
         }
         case PlanNode::Kind::kFilter: {
-            static_cast<Filter*>(node.get())->setInput(std::move(appended));
+            static_cast<Filter*>(node)->setInput(appended);
             break;
         }
         case PlanNode::Kind::kProject: {
-            static_cast<Project*>(node.get())->setInput(std::move(appended));
+            static_cast<Project*>(node)->setInput(appended);
             break;
         }
         case PlanNode::Kind::kSort: {
-            static_cast<Sort*>(node.get())->setInput(std::move(appended));
+            static_cast<Sort*>(node)->setInput(appended);
             break;
         }
         case PlanNode::Kind::kLimit: {
-            static_cast<Limit*>(node.get())->setInput(std::move(appended));
+            static_cast<Limit*>(node)->setInput(appended);
             break;
         }
         case PlanNode::Kind::kAggregate: {
-            static_cast<Aggregate*>(node.get())->setInput(std::move(appended));
+            static_cast<Aggregate*>(node)->setInput(appended);
             break;
         }
         case PlanNode::Kind::kSelector: {
-            static_cast<Selector*>(node.get())->setInput(std::move(appended));
+            static_cast<Selector*>(node)->setInput(appended);
             break;
         }
         case PlanNode::Kind::kLoop: {
-            static_cast<Loop*>(node.get())->setInput(std::move(appended));
+            static_cast<Loop*>(node)->setInput(appended);
             break;
         }
         case PlanNode::Kind::kRegisterSpaceToSession: {
-            static_cast<RegisterSpaceToSession*>(node.get())->setInput(std::move(appended));
+            static_cast<RegisterSpaceToSession*>(node)->setInput(appended);
             break;
         }
         default: {
