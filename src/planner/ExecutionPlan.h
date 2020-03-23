@@ -9,6 +9,7 @@
 
 #include "base/Base.h"
 #include "filter/Expressions.h"
+#include "planner/IdGenerator.h"
 
 namespace nebula {
 namespace graph {
@@ -64,29 +65,33 @@ public:
 
 protected:
     Kind                                     kind_{Kind::kUnknown};
-    int64_t                                  id_{-1};
-    std::vector<std::shared_ptr<PlanNode>>   inputs_;
+    int64_t                                  id_{IdGenerator::INVALID_ID};
     using VariableName = std::string;
     std::unordered_set<VariableName>         availableVars_;
 };
 
 class ExecutionPlan final {
 public:
-    ExecutionPlan() = default;
+    ExecutionPlan() {
+        id_ = EPIdGenerator::instance().id();
+    }
 
     void setRoot(PlanNode* root) {
         root_ = root;
     }
 
     PlanNode* addPlanNode(std::unique_ptr<PlanNode>&& node) {
+        node->setId(nodeIdGen_.id());
         auto* tmp = node.get();
         nodes_.emplace_back(std::move(node));
         return tmp;
     }
 
 private:
+    int64_t                                 id_{IdGenerator::INVALID_ID};
     PlanNode*                               root_;
     std::vector<std::unique_ptr<PlanNode>>  nodes_;
+    IdGenerator                             nodeIdGen_;
 };
 
 /**
