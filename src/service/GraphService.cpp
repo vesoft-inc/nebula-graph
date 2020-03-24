@@ -5,11 +5,11 @@
  */
 
 #include "base/Base.h"
-#include "graph/GraphService.h"
+#include "service/GraphService.h"
 #include "time/Duration.h"
-#include "graph/RequestContext.h"
-#include "graph/SimpleAuthenticator.h"
-#include "storage/client/StorageClient.h"
+#include "service/RequestContext.h"
+#include "service/SimpleAuthenticator.h"
+#include "clients/storage/GraphStorageClient.h"
 
 namespace nebula {
 namespace graph {
@@ -40,7 +40,7 @@ folly::Future<cpp2::AuthResponse> GraphService::future_authenticate(
     } else {
         sessionManager_->removeSession(ctx.session()->id());
         ctx.resp().set_error_code(cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD);
-        ctx.resp().set_error_msg(getErrorStr(cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD));
+        // ctx.resp().set_error_msg(getErrorStr(cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD));
     }
 
     ctx.finish();
@@ -65,7 +65,7 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
         if (!result.ok()) {
             FLOG_ERROR("Session not found, id[%ld]", sessionId);
             ctx->resp().set_error_code(cpp2::ErrorCode::E_SESSION_INVALID);
-            ctx->resp().set_error_msg(result.status().toString());
+            // ctx->resp().set_error_msg(result.status().toString());
             ctx->finish();
             return future;
         }

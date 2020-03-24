@@ -1,0 +1,8 @@
+nebula_add_library(
+    service_obj OBJECT
+    ClientSession.cpp
+    ExecutionEngine.cpp
+    GraphFlags.cpp
+    GraphService.cpp
+    SessionManager.cpp
+)

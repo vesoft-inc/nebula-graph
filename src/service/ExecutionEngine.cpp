@@ -5,10 +5,7 @@
  */
 
 #include "base/Base.h"
-#include "graph/ExecutionEngine.h"
-#include "graph/ExecutionContext.h"
-#include "graph/ExecutionPlan.h"
-#include "storage/client/StorageClient.h"
+#include "service/ExecutionEngine.h"
 
 DECLARE_string(meta_server_addrs);
 
@@ -29,14 +26,11 @@ Status ExecutionEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExec
         return addrs.status();
     }
 
-    stats_ = std::make_unique<GraphStats>();
-
     metaClient_ = std::make_unique<meta::MetaClient>(ioExecutor,
                                                      std::move(addrs.value()),
                                                      HostAddr(0, 0),
                                                      0,
-                                                     false,
-                                                     stats_->getMetaClientStats());
+                                                     false);
     // load data try 3 time
     bool loadDataOk = metaClient_->waitForMetadReady(3);
     if (!loadDataOk) {
@@ -47,25 +41,22 @@ Status ExecutionEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExec
     schemaManager_ = meta::SchemaManager::create();
     schemaManager_->init(metaClient_.get());
 
-    gflagsManager_ = std::make_unique<meta::ClientBasedGflagsManager>(metaClient_.get());
+    // gflagsManager_ = std::make_unique<meta::ClientBasedGflagsManager>(metaClient_.get());
 
-    storage_ = std::make_unique<storage::StorageClient>(ioExecutor,
-                                                        metaClient_.get(),
-                                                        stats_->getStorageClientStats());
+    storage_ = std::make_unique<storage::GraphStorageClient>(ioExecutor,
+                                                        metaClient_.get());
     return Status::OK();
 }
 
 void ExecutionEngine::execute(RequestContextPtr rctx) {
-    auto ectx = std::make_unique<ExecutionContext>(std::move(rctx),
-                                                   schemaManager_.get(),
-                                                   gflagsManager_.get(),
-                                                   storage_.get(),
-                                                   metaClient_.get(),
-                                                   stats_.get());
-    // TODO(dutor) add support to plan cache
-    auto plan = new ExecutionPlan(std::move(ectx));
-
-    plan->execute();
+    UNUSED(rctx);
+    // TODO:
+    // 1. need context
+    // 2. parse
+    // 3. validate
+    // 4. optional optimize
+    // 5. execute
+    // 6. response & release
 }
 
 }   // namespace graph
