@@ -8,6 +8,7 @@
 #include "base/Base.h"
 #include "parser/GQLParser.h"
 #include "validator/ASTValidator.h"
+#include "service/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -16,6 +17,7 @@ public:
     void SetUp() override {
         session_ = new ClientSession(0);
         session_->setSpace("test", 0);
+        ectx_ = std::make_unique<ExecutionContext>();
         // TODO: Need AdHocSchemaManager here.
     }
 
@@ -26,6 +28,7 @@ public:
 protected:
     ClientSession*          session_;
     meta::SchemaManager*    schemaMng_;
+    std::unique_ptr<ExecutionContext> ectx_;
 };
 
 TEST_F(ValidatorTest, Subgraph) {
@@ -35,7 +38,7 @@ TEST_F(ValidatorTest, Subgraph) {
         ASSERT_TRUE(result.ok()) << result.status();
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), session_, schemaMng_);
-        auto validateResult = validator.validate();
+        auto validateResult = validator.validate(ectx_.get());
         ASSERT_TRUE(validateResult.ok()) << validateResult.status();
         // TODO: Check the plan.
     }

@@ -114,7 +114,7 @@ if (!CMAKE_CXX_COMPILER)
     message(FATAL_ERROR "No C++ compiler found")
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # coverage
@@ -271,7 +271,6 @@ find_package(BISON 3.0.5 REQUIRED)
 find_package(FLEX REQUIRED)
 find_package(Readline REQUIRED)
 find_package(NCURSES REQUIRED)
-find_package(Libunwind REQUIRED)
 find_package(LibLZMA MODULE)
 
 add_compile_options(-Wall)

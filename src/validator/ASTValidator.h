@@ -14,14 +14,17 @@
 
 namespace nebula {
 namespace graph {
+
+class ExecutionContext;
+
 class ASTValidator final {
 public:
-    explicit ASTValidator(SequentialSentences* sentences,
-                          ClientSession* session,
-                          meta::SchemaManager* schemaMng)
+    ASTValidator(SequentialSentences* sentences,
+                 ClientSession* session,
+                 meta::SchemaManager* schemaMng)
         : sentences_(sentences), session_(session), schemaMng_(schemaMng) {}
 
-    StatusOr<std::unique_ptr<ExecutionPlan>> validate();
+    StatusOr<std::unique_ptr<ExecutionPlan>> validate(ExecutionContext *ectx);
 
     const ValidateContext* context() const {
         return validateContext_.get();

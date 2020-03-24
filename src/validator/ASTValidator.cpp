@@ -8,11 +8,11 @@
 
 namespace nebula {
 namespace graph {
-StatusOr<std::unique_ptr<ExecutionPlan>> ASTValidator::validate() {
+StatusOr<std::unique_ptr<ExecutionPlan>> ASTValidator::validate(ExecutionContext *ectx) {
     // CHECK(!!session_);
     // CHECK(!!schemaMng_);
     validateContext_ = std::make_unique<ValidateContext>();
-    auto plan = std::make_unique<ExecutionPlan>();
+    auto plan = std::make_unique<ExecutionPlan>(ectx);
     validateContext_->setPlan(plan.get());
     validateContext_->setSession(session_);
     validateContext_->setSchemaMng(schemaMng_);
