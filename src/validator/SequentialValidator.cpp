@@ -31,7 +31,7 @@ Status SequentialValidator::validateImpl() {
 }
 
 Status SequentialValidator::toPlan() {
-    start_ = validators_[validators_.size() - 1]->start();
+    start_ = validators_.back()->start();
     for (decltype(validators_.size()) i = 0; i < (validators_.size() - 1); ++i) {
         auto status = PlanNode::append(validators_[i + 1]->end(), validators_[i]->start());
         if (!status.ok()) {

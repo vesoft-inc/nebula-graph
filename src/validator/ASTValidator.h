@@ -20,7 +20,7 @@ public:
 
     Status validate(std::shared_ptr<PlanNode> plan);
 
-    ValidateContext* context() {
+    const ValidateContext* context() const {
         return validateContext_.get();
     }
 
