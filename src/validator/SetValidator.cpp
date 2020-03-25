@@ -58,7 +58,7 @@ Status SetValidator::toPlan() {
             return Status::Error("Unkown operator: %ld", static_cast<int64_t>(op_));
     }
 
-    end_ = EndNode::make(validateContext_->plan());
+    end_ = EndNode::make(nullptr, validateContext_->plan());
     Validator::appendPlan(lValidator_->end(), end_);
     Validator::appendPlan(rValidator_->end(), end_);
     return Status::OK();
