@@ -5,4 +5,5 @@ nebula_add_library(
     GraphFlags.cpp
     GraphService.cpp
     SessionManager.cpp
+    GraphHttpHandler.cpp
 )
