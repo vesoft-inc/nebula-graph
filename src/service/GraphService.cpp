@@ -16,10 +16,10 @@ namespace graph {
 
 Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor) {
     sessionManager_ = std::make_unique<SessionManager>();
-    executionEngine_ = std::make_unique<ExecutionEngine>();
+    queryEngine_ = std::make_unique<QueryEngine>();
     authenticator_ = std::make_unique<SimpleAuthenticator>();
 
-    return executionEngine_->init(std::move(ioExecutor));
+    return queryEngine_->init(std::move(ioExecutor));
 }
 
 
@@ -71,7 +71,7 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
         }
         ctx->setSession(std::move(result).value());
     }
-    executionEngine_->execute(std::move(ctx));
+    queryEngine_->execute(std::move(ctx));
 
     return future;
 }

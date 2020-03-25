@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef SERVICE_EXECUTION_ENGINE_H_
-#define SERVICE_EXECUTION_ENGINE_H_
+#ifndef SERVICE_QUERYENGINE_H_
+#define SERVICE_QUERYENGINE_H_
 
 #include "base/Base.h"
 #include "cpp/helpers.h"
@@ -19,7 +19,7 @@
 #include <folly/executors/IOThreadPoolExecutor.h>
 
 /**
- * ExecutionEngine is responsible to create and manage ExecutionPlan.
+ * QueryEngine is responsible to create and manage ExecutionPlan.
  * For the time being, we don't have the execution plan cache support,
  * instead we create a plan for each query, and destroy it upon finish.
  */
@@ -27,10 +27,10 @@
 namespace nebula {
 namespace graph {
 
-class ExecutionEngine final : public cpp::NonCopyable, public cpp::NonMovable {
+class QueryEngine final : public cpp::NonCopyable, public cpp::NonMovable {
 public:
-    ExecutionEngine();
-    ~ExecutionEngine();
+    QueryEngine();
+    ~QueryEngine();
 
     Status init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor);
 

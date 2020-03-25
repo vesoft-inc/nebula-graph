@@ -5,22 +5,22 @@
  */
 
 #include "base/Base.h"
-#include "service/ExecutionEngine.h"
+#include "service/QueryEngine.h"
 
 DECLARE_string(meta_server_addrs);
 
 namespace nebula {
 namespace graph {
 
-ExecutionEngine::ExecutionEngine() {
+QueryEngine::QueryEngine() {
 }
 
 
-ExecutionEngine::~ExecutionEngine() {
+QueryEngine::~QueryEngine() {
 }
 
 
-Status ExecutionEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor) {
+Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor) {
     auto addrs = network::NetworkUtils::toHosts(FLAGS_meta_server_addrs);
     if (!addrs.ok()) {
         return addrs.status();
@@ -48,15 +48,14 @@ Status ExecutionEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExec
     return Status::OK();
 }
 
-void ExecutionEngine::execute(RequestContextPtr rctx) {
-    UNUSED(rctx);
-    // TODO:
-    // 1. need context
-    // 2. parse
-    // 3. validate
-    // 4. optional optimize
-    // 5. execute
-    // 6. response & release
+void QueryEngine::execute(RequestContextPtr rctx) {
+    // TODO: Use QueryContext.
+    auto ectx = std::make_unique<ExecutionContext>(std::move(rctx),
+                                                   schemaManager_.get(),
+                                                   storage_.get(),
+                                                   metaClient_.get());
+    auto* instance = new QueryInstance(std::move(ectx));
+    intance->execute();
 }
 
 }   // namespace graph

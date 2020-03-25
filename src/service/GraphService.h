@@ -10,7 +10,7 @@
 #include "base/Base.h"
 #include "gen-cpp2/GraphService.h"
 #include "service/Authenticator.h"
-#include "service/ExecutionEngine.h"
+#include "service/QueryEngine.h"
 #include "service/SessionManager.h"
 
 namespace folly {
@@ -40,7 +40,7 @@ public:
 
 private:
     std::unique_ptr<SessionManager>             sessionManager_;
-    std::unique_ptr<ExecutionEngine>            executionEngine_;
+    std::unique_ptr<QueryEngine>                queryEngine_;
     std::unique_ptr<Authenticator>              authenticator_;
 };
 
