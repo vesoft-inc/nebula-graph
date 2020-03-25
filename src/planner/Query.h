@@ -7,8 +7,10 @@
 #ifndef PLANNER_QUERY_H_
 #define PLANNER_QUERY_H_
 
+
 #include "base/Base.h"
-#include "ExecutionPlan.h"
+#include "planner/PlanNode.h"
+#include "planner/ExecutionPlan.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
 #include "interface/gen-cpp2/storage_types.h"
@@ -19,6 +21,37 @@
  */
 namespace nebula {
 namespace graph {
+
+/**
+ * The StartNode and EndNode are only used in a subplan.
+ */
+class StartNode final : public PlanNode {
+public:
+    StartNode() {
+        kind_ = PlanNode::Kind::kStart;
+    }
+
+    std::string explain() const override {
+        return "Start";
+    }
+};
+
+class EndNode final : public PlanNode {
+public:
+    EndNode() {
+        kind_ = PlanNode::Kind::kEnd;
+    }
+
+    static PlanNode* make(ExecutionPlan* plan) {
+        auto end = std::make_unique<EndNode>();
+        return plan->addPlanNode(std::move(end));
+    }
+
+    std::string explain() const override {
+        return "End";
+    }
+};
+
 /**
  * Now we hava four kind of exploration nodes:
  *  GetNeighbors,
@@ -57,7 +90,10 @@ public:
     std::string explain() const override;
 
 private:
+    // vertices are parsing from query.
     std::vector<VertexID>                        vertices_;
+    // vertices may be parsing from runtime.
+    std::unique_ptr<Expression>                  src_;
     std::vector<EdgeType>                        edgeTypes_;
     std::vector<storage::cpp2::VertexProp>       vertexProps_;
     std::vector<storage::cpp2::EdgeProp>         edgeProps_;
@@ -77,7 +113,11 @@ public:
     std::string explain() const override;
 
 private:
+    // vertices are parsing from query.
     std::vector<VertexID>                    vertices_;
+    // vertices may be parsing from runtime.
+    std::unique_ptr<Expression>              src_;
+    // props and filter are parsing from query.
     std::vector<storage::cpp2::VertexProp>   props_;
     std::string                              filter_;
 };
@@ -94,7 +134,13 @@ public:
     std::string explain() const override;
 
 private:
+    // edges_ are parsing from the query.
     std::vector<storage::cpp2::EdgeKey>      edges_;
+    // edges_ may be parsed from runtime.
+    std::unique_ptr<Expression>              src_;
+    std::unique_ptr<Expression>              ranking_;
+    std::unique_ptr<Expression>              dst_;
+    // props and filter are parsing from query.
     std::vector<storage::cpp2::EdgeProp>     props_;
     std::string                              filter_;
 };
@@ -174,9 +220,8 @@ protected:
  */
 class Union final : public SetOp {
 public:
-    explicit Union(bool distinct) {
+    Union() {
         kind_ = PlanNode::Kind::kUnion;
-        distinct_ = distinct;
     }
 
     Union(PlanNode* left, PlanNode* right) : SetOp(left, right) {}
@@ -187,9 +232,6 @@ public:
     }
 
     std::string explain() const override;
-
-private:
-    bool    distinct_;
 };
 
 /**
@@ -235,17 +277,15 @@ public:
  */
 class Project final : public PlanNode {
 public:
-    Project(YieldColumns* cols, bool distinct) {
+    explicit Project(YieldColumns* cols) {
         kind_ = PlanNode::Kind::kProject;
         cols_ = cols;
-        distinct_ = distinct;
     }
 
     Project(PlanNode* input, YieldColumns* cols) {
         kind_ = PlanNode::Kind::kProject;
         input = std::move(input);
         cols_ = cols;
-        distinct_ = distinct;
     }
 
     static PlanNode* make(PlanNode* input,
@@ -257,10 +297,6 @@ public:
 
     void setInput(PlanNode* input) {
         input_ = input;
-    }
-
-    bool distinct() const {
-        return distinct_;
     }
 
     std::string explain() const override;
@@ -360,10 +396,8 @@ private:
  */
 class Aggregate : public PlanNode {
 public:
-    Aggregate(YieldColumns* yieldCols,
-              YieldColumns* groupCols) {
+    explicit Aggregate(YieldColumns* groupCols) {
         kind_ = PlanNode::Kind::kAggregate;
-        yieldCols_ = yieldCols;
         groupCols_ = groupCols;
     }
 

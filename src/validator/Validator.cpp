@@ -14,7 +14,7 @@
 
 namespace nebula {
 namespace graph {
-std::unique_ptr<Validator> makeValidator(Sentence* sentence, ValidateContext* context) {
+std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, ValidateContext* context) {
     CHECK(!!sentence);
     CHECK(!!context);
     auto kind = sentence->kind();

@@ -80,7 +80,7 @@ std::string Loop::explain() const {
 }
 
 std::string RegisterSpaceToSession::explain() const {
-    return "RegisterS[aceToSession";
+    return "RegisterSpaceToSession";
 }
 
 std::string Dedup::explain() const {
