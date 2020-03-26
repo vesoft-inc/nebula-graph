@@ -535,7 +535,7 @@ public:
     }
 
   const Expression* condition() const {
-    return condition_.get();
+    return condition_;
   }
 
 private:
@@ -571,6 +571,14 @@ public:
 
     std::string explain() const override;
 
+    const PlanNode* then() const {
+        return if_;
+    }
+
+    const PlanNode* otherwise() const {
+        return else_;
+    }
+
 private:
     PlanNode*   if_;
     PlanNode*   else_;
@@ -599,6 +607,10 @@ public:
     }
 
     std::string explain() const override;
+
+    const PlanNode* body() const {
+        return body_;
+    }
 
 private:
     PlanNode*   body_;

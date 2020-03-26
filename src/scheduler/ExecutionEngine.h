@@ -25,12 +25,14 @@ class ExecutionEngine final : private cpp::NonMovable, private cpp::NonCopyable 
 public:
     explicit ExecutionEngine(std::shared_ptr<PlanNode> planRoot);
 
+    ~ExecutionEngine() = default;
+
     Executor *makeExecutor() const;
 
 private:
     std::shared_ptr<PlanNode> planRoot_;
-    std::unique_ptr<ObjectPool> objPool_;
-    std::unique_ptr<ExecutionContext> ectx_;
+    std::shared_ptr<ObjectPool> objPool_;
+    std::shared_ptr<ExecutionContext> ectx_;
 };
 
 }   // namespace graph

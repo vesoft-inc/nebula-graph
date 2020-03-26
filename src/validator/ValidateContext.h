@@ -14,8 +14,10 @@
 
 namespace nebula {
 namespace graph {
+
 using ColDef = std::pair<std::string, Value::Type>;
 using ColsDef = std::vector<ColDef>;
+
 class ValidateContext final {
 public:
     void switchToSpace(std::string spaceName, GraphSpaceID spaceId) {
@@ -50,14 +52,19 @@ public:
         return plan_;
     }
 
+    ClientSession* session() const {
+        return session_;
+    }
+
 private:
-    meta::SchemaManager*                                schemaMng_;
-    ClientSession*                                      session_;
+    meta::SchemaManager*                                schemaMng_{nullptr};
+    ClientSession*                                      session_{nullptr};
     std::vector<std::pair<std::string, GraphSpaceID>>   spaces_;
     std::unordered_map<std::string, ColsDef>            vars_;
     int64_t                                             idCounter_;
-    ExecutionPlan*                                      plan_;
+    ExecutionPlan*                                      plan_{nullptr};
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif

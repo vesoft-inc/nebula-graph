@@ -29,6 +29,26 @@ class ExecutionContext;
 
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
+    // For check whether a task is a Executor::Callable by std::is_base_of<>::value in thread pool
+    struct Callable {
+        int64_t planId;
+
+        explicit Callable(Executor *e);
+    };
+
+    // Enable thread pool check the query plan id of each callback registered in future. The functor
+    // is only the proxy of the invocable function fn.
+    template <typename F, typename R = typename folly::futures::detail::callableResult<Status, F>>
+    struct Callback : Callable {
+        F fn;
+
+        Callback(Executor *e, F f) : Callable(e), fn(std::move(f)) {}
+
+        typename R::Return operator()(typename R::Arg &&arg) {
+            return fn(std::forward<typename R::Arg>(arg));
+        }
+    };
+
     // Create executor according to plan node
     static Executor *makeExecutor(const PlanNode *node,
                                   ExecutionContext *ectx,
@@ -60,6 +80,11 @@ public:
         return node_;
     }
 
+    template <typename Fn>
+    Callback<Fn> cb(Fn &&f) {
+        return Callback<Fn>(this, std::forward<Fn>(f));
+    }
+
 protected:
     // Only allow derived executor to construct
     Executor(const std::string &name, const PlanNode *node, ExecutionContext *ectx)
@@ -69,7 +94,7 @@ protected:
     }
 
     // Store the result of this executor to execution context
-    Status finish(std::list<cpp2::Row> dataset);
+    Status finish(nebula::cpp2::Value value);
 
     // Executor unique id
     uint64_t id_;
@@ -117,7 +142,7 @@ public:
     folly::Future<Status> execute() override {
         std::vector<folly::Future<Status>> futures;
         for (auto *in : inputs_) {
-            futures.push_back(in->execute());
+            futures.emplace_back(in->execute());
         }
         return folly::collect(futures).then([this](std::vector<Status> ss) {
             for (auto &s : ss) {

@@ -14,16 +14,20 @@ namespace nebula {
 namespace graph {
 
 void Scheduler::schedule(std::shared_ptr<PlanNode> planRoot) {
-    auto ee = std::make_unique<ExecutionEngine>(planRoot);
-    auto *executor = ee->makeExecutor();
-    auto future = executor->execute();
-    future.then([=](Status s) {
-        if (!s.ok()) {
-            // Response error
-        } else {
-            // Response successfully
-        }
-    });
+    auto ee = new ExecutionEngine(planRoot);
+    ee->makeExecutor()
+        ->execute()
+        .then([=](Status s) {
+            if (!s.ok()) {
+                // Response error
+            } else {
+                // Response successfully
+            }
+        })
+        // .onError([]() {
+        //     // Response error
+        // })
+        .ensure([=]() { delete ee; });
 }
 
 }   // namespace graph

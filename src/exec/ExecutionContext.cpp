@@ -15,9 +15,15 @@ using folly::stringPrintf;
 namespace nebula {
 namespace graph {
 
-Status ExecutionContext::addVariable(const std::string& varName, cpp2::DataSet dataset) {
+nebula::cpp2::Value ExecutionContext::getValue(const std::string& varName) const {
+    auto iter = variables_.find(varName);
+    DCHECK(iter != variables_.end());
+    return iter->second.back();
+}
+
+Status ExecutionContext::addValue(const std::string& varName, nebula::cpp2::Value value) {
     UNUSED(varName);
-    UNUSED(dataset);
+    UNUSED(value);
     return Status::OK();
 }
 

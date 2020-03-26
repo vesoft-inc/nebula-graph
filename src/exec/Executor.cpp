@@ -18,6 +18,10 @@
 namespace nebula {
 namespace graph {
 
+Executor::Callable::Callable(Executor *e) : planId(e->node()->id()) {
+    DCHECK_NOTNULL(e);
+}
+
 // static
 Executor *Executor::makeExecutor(const PlanNode *node,
                                  ExecutionContext *ectx,
@@ -29,7 +33,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             break;
         case PlanNode::Kind::kFilter: {
             auto *filter = static_cast<const Filter *>(node);
-            auto *input = makeExecutor(filter->children()[0].get(), ectx, objPool);
+            auto *input = makeExecutor(filter->input(), ectx, objPool);
             return objPool->add(new FilterExecutor(node, ectx, input));
         }
         case PlanNode::Kind::kGetEdges:
@@ -54,16 +58,15 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             break;
         case PlanNode::Kind::kLoop: {
             auto *loop = static_cast<const Loop *>(node);
-            auto *input = makeExecutor(loop->children()[0].get(), ectx, objPool);
-            auto *body = makeExecutor(loop->loopBody().get(), ectx, objPool);
-            auto *exit = makeExecutor(loop->exitBranch().get(), ectx, objPool);
-            return objPool->add(new LoopExecutor(node, ectx, input, body, exit));
+            auto *input = makeExecutor(loop->input(), ectx, objPool);
+            auto *body = makeExecutor(loop->body(), ectx, objPool);
+            return objPool->add(new LoopExecutor(node, ectx, input, body));
         }
         case PlanNode::Kind::kSelector: {
             auto *select = static_cast<const Selector *>(node);
-            auto *input = makeExecutor(select->children()[0].get(), ectx, objPool);
-            auto *then = makeExecutor(select->thenBranch().get(), ectx, objPool);
-            auto *els = makeExecutor(select->elseBranch().get(), ectx, objPool);
+            auto *input = makeExecutor(select->input(), ectx, objPool);
+            auto *then = makeExecutor(select->then(), ectx, objPool);
+            auto *els = makeExecutor(select->otherwise(), ectx, objPool);
             return objPool->add(new SelectExecutor(node, ectx, input, then, els));
         }
         case PlanNode::Kind::kUnknown:
@@ -74,9 +77,8 @@ Executor *Executor::makeExecutor(const PlanNode *node,
     return nullptr;
 }
 
-Status Executor::finish(std::list<cpp2::Row> dataset) {
-    return ectx_->addExecutorResult(folly::stringPrintf("%s-%lu", name_.c_str(), id_),
-                                    std::move(dataset));
+Status Executor::finish(nebula::cpp2::Value value) {
+    return ectx_->addValue(folly::stringPrintf("%s-%lu", name_.c_str(), id_), std::move(value));
 }
 
 }   // namespace graph

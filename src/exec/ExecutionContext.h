@@ -13,12 +13,10 @@
 #include <vector>
 
 #include "base/Status.h"
-#include "interface/gen-cpp2/graph_types.h"
+#include "interface/gen-cpp2/common_types.h"
 
 namespace nebula {
 namespace graph {
-
-class Executor;
 
 class ExecutionContext final {
 public:
@@ -30,9 +28,11 @@ public:
         valueReservation_ = valueReservation;
     }
 
+    nebula::cpp2::Value getValue(const std::string& varName) const;
+
     // Add named or anonymous variables value
     // TODO: Consider variable reference implementation
-    Status addVariable(const std::string& varName, cpp2::DataSet dataset);
+    Status addValue(const std::string& varName, nebula::cpp2::Value value);
 
 private:
     // Check whether values have reached the limitation
@@ -45,7 +45,7 @@ private:
     int64_t valueReservation_{-1};
 
     // Store all variable's values of query globally
-    std::unordered_map<std::string, std::vector<cpp2::DataSet>> variables_;
+    std::unordered_map<std::string, std::vector<nebula::cpp2::Value>> variables_;
 };
 
 }   // namespace graph

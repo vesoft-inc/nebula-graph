@@ -17,8 +17,8 @@ namespace graph {
 
 ExecutionEngine::ExecutionEngine(std::shared_ptr<PlanNode> planRoot)
     : planRoot_(planRoot),
-      objPool_(std::make_unique<ObjectPool>()),
-      ectx_(std::make_unique<ExecutionContext>()) {
+      objPool_(std::make_shared<ObjectPool>()),
+      ectx_(std::make_shared<ExecutionContext>()) {
     DCHECK(planRoot_);
 }
 

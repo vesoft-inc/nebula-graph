@@ -22,7 +22,7 @@ folly::Future<Status> LoopExecutor::exec() {
     // TODO(yee): eval expression result
     bool result = false;
     if (!result) {
-        return exit_->execute();
+        return folly::makeFuture(Status::OK());
     }
 
     return body_->execute().then([this](Status s) {

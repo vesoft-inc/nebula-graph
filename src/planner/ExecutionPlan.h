@@ -12,6 +12,7 @@
 
 namespace nebula {
 namespace graph {
+
 class ExecutionPlan final {
 public:
     ExecutionPlan() {
@@ -29,12 +30,17 @@ public:
         return tmp;
     }
 
+    int64_t id() const {
+        return id_;
+    }
+
 private:
     int64_t                                 id_{IdGenerator::INVALID_ID};
     PlanNode*                               root_;
     std::vector<std::unique_ptr<PlanNode>>  nodes_;
     IdGenerator                             nodeIdGen_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif
