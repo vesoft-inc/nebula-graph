@@ -6,6 +6,7 @@
 
 #include "validator/GetSubgraphValidator.h"
 #include "parser/TraverseSentences.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -137,6 +138,22 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
 }
 
 Status GetSubgraphValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+
+    // TODO:
+    auto start = StartNode::make(plan);
+    auto* loop = Loop::make(start, plan);
+    auto* bodyStart = StartNode::make(plan);
+    auto* gn1 = GetNeighbors::make(bodyStart, plan);
+    auto* dedup = Dedup::make(gn1, plan);
+    loop->setBody(dedup);
+
+    auto* selector = Selector::make(loop, plan);
+    auto* ifStart = StartNode::make(plan);
+    auto* gn2 = GetNeighbors::make(ifStart, plan);
+    auto* filter = Filter::make(gn2, plan);
+    selector->setIf(filter);
+
     return Status::OK();
 }
 }  // namespace graph
