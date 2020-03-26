@@ -22,8 +22,8 @@ public:
         root_ = root;
     }
 
-    PlanNode* addPlanNode(std::unique_ptr<PlanNode>&& node) {
-        node->setId(nodeIdGen_.id());
+    PlanNode* addPlanNode(std::unique_ptr<PlanNode> node) {
+        node->setId(nodeIdGen_->id());
         auto* tmp = node.get();
         nodes_.emplace_back(std::move(node));
         return tmp;
@@ -31,9 +31,9 @@ public:
 
 private:
     int64_t                                 id_{IdGenerator::INVALID_ID};
-    PlanNode*                               root_;
+    PlanNode*                               root_{nullptr};
     std::vector<std::unique_ptr<PlanNode>>  nodes_;
-    IdGenerator                             nodeIdGen_;
+    std::unique_ptr<IdGenerator>            nodeIdGen_;
 };
 }  // namespace graph
 }  // namespace nebula

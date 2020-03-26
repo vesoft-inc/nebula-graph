@@ -48,7 +48,7 @@ public:
     }
 
 protected:
-    PlanNode* input_;
+    PlanNode* input_{nullptr};
 };
 
 class BiInputNode : public PlanNode {
@@ -66,8 +66,8 @@ public:
     }
 
 protected:
-    PlanNode* left_;
-    PlanNode* right_;
+    PlanNode* left_{nullptr};
+    PlanNode* right_{nullptr};
 };
 
 class EndNode final : public SingleInputNode {
@@ -412,7 +412,7 @@ public:
     std::string explain() const override;
 
 private:
-    YieldColumns*               cols_;
+    YieldColumns*               cols_{nullptr};
 };
 
 /**
@@ -440,7 +440,6 @@ public:
     std::string explain() const override;
 
 private:
-    PlanNode*       input_;
     OrderFactors*   factors_;
 };
 
@@ -535,7 +534,7 @@ public:
     }
 
 private:
-    Expression*  condition_;
+    Expression*  condition_{nullptr};
 };
 
 class Selector : public BinarySelect {
@@ -568,8 +567,8 @@ public:
     std::string explain() const override;
 
 private:
-    PlanNode*   if_;
-    PlanNode*   else_;
+    PlanNode*   if_{nullptr};
+    PlanNode*   else_{nullptr};
 };
 
 class Loop : public BinarySelect {
@@ -597,7 +596,7 @@ public:
     std::string explain() const override;
 
 private:
-    PlanNode*   body_;
+    PlanNode*   body_{nullptr};
 };
 
 class RegisterSpaceToSession : public SingleInputNode {
@@ -624,7 +623,7 @@ public:
     std::string explain() const override;
 
 private:
-    GraphSpaceID    space_;
+    GraphSpaceID    space_{-1};
 };
 
 class Dedup : public SingleInputNode {
