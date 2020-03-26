@@ -42,10 +42,6 @@ public:
         return schemaMng_;
     }
 
-    int64_t getId() {
-        return ++idCounter_;
-    }
-
     ExecutionPlan* plan() const {
         return plan_;
     }
@@ -55,7 +51,6 @@ private:
     ClientSession*                                      session_;
     std::vector<std::pair<std::string, GraphSpaceID>>   spaces_;
     std::unordered_map<std::string, ColsDef>            vars_;
-    int64_t                                             idCounter_;
     ExecutionPlan*                                      plan_;
 };
 }  // namespace graph

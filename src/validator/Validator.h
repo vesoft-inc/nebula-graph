@@ -16,7 +16,7 @@ namespace nebula {
 namespace graph {
 class Validator {
 public:
-    explicit Validator(Sentence* sentence, ValidateContext* context)
+    Validator(Sentence* sentence, ValidateContext* context)
         : sentence_(sentence), validateContext_(context) {}
 
     virtual ~Validator() = default;
