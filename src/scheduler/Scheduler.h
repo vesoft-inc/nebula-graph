@@ -19,7 +19,7 @@ public:
     // TODO(yee): Use same folly executors as graph daemon process
     Scheduler() = default;
 
-    void schedule(std::shared_ptr<PlanNode> planRoot);
+    void schedule(const PlanNode* planRoot);
 
 private:
 };

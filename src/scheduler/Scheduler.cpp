@@ -13,7 +13,7 @@
 namespace nebula {
 namespace graph {
 
-void Scheduler::schedule(std::shared_ptr<PlanNode> planRoot) {
+void Scheduler::schedule(const PlanNode* planRoot) {
     auto ee = new ExecutionEngine(planRoot);
     ee->makeExecutor()
         ->execute()

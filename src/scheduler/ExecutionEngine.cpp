@@ -15,15 +15,18 @@
 namespace nebula {
 namespace graph {
 
-ExecutionEngine::ExecutionEngine(std::shared_ptr<PlanNode> planRoot)
-    : planRoot_(planRoot),
-      objPool_(std::make_shared<ObjectPool>()),
-      ectx_(std::make_shared<ExecutionContext>()) {
+ExecutionEngine::ExecutionEngine(const PlanNode* planRoot)
+    : planRoot_(planRoot), objPool_(new ObjectPool), ectx_(new ExecutionContext) {
     DCHECK(planRoot_);
 }
 
-Executor *ExecutionEngine::makeExecutor() const {
-    return Executor::makeExecutor(planRoot_.get(), ectx_.get(), objPool_.get());
+ExecutionEngine::~ExecutionEngine() {
+    if (objPool_) delete objPool_;
+    if (ectx_) delete ectx_;
+}
+
+Executor* ExecutionEngine::makeExecutor() {
+    return Executor::makeExecutor(planRoot_, ectx_, objPool_);
 }
 
 }   // namespace graph

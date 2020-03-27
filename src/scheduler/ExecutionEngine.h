@@ -7,8 +7,6 @@
 #ifndef SCHEDULER_EXECUTIONENGINE_H_
 #define SCHEDULER_EXECUTIONENGINE_H_
 
-#include <memory>
-
 #include "cpp/helpers.h"
 
 namespace nebula {
@@ -23,16 +21,16 @@ class Executor;
 
 class ExecutionEngine final : private cpp::NonMovable, private cpp::NonCopyable {
 public:
-    explicit ExecutionEngine(std::shared_ptr<PlanNode> planRoot);
+    explicit ExecutionEngine(const PlanNode* planRoot);
 
-    ~ExecutionEngine() = default;
+    ~ExecutionEngine();
 
-    Executor *makeExecutor() const;
+    Executor* makeExecutor();
 
 private:
-    std::shared_ptr<PlanNode> planRoot_;
-    std::shared_ptr<ObjectPool> objPool_;
-    std::shared_ptr<ExecutionContext> ectx_;
+    const PlanNode* planRoot_;
+    ObjectPool* objPool_;
+    ExecutionContext* ectx_;
 };
 
 }   // namespace graph
