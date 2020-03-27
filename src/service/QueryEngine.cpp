@@ -6,6 +6,8 @@
 
 #include "base/Base.h"
 #include "service/QueryEngine.h"
+#include "service/QueryInstance.h"
+#include "service/ExecutionContext.h"
 
 DECLARE_string(meta_server_addrs);
 
@@ -55,7 +57,7 @@ void QueryEngine::execute(RequestContextPtr rctx) {
                                                    storage_.get(),
                                                    metaClient_.get());
     auto* instance = new QueryInstance(std::move(ectx));
-    intance->execute();
+    instance->execute();
 }
 
 }   // namespace graph

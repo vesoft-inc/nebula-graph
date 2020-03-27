@@ -14,6 +14,7 @@
 #include "meta/SchemaManager.h"
 // #include "meta/ClientBasedGflagsManager.h"
 #include "clients/meta/MetaClient.h"
+#include "clients/storage/GraphStorageClient.h"
 
 /**
  * ExecutionContext holds context infos in the execution process, e.g. clients of storage or meta services.
@@ -31,7 +32,7 @@ public:
     ExecutionContext(RequestContextPtr rctx,
                      meta::SchemaManager *sm,
                      // meta::ClientBasedGflagsManager *gflagsManager,
-                     storage::StorageClient *storage,
+                     storage::GraphStorageClient *storage,
                      meta::MetaClient *metaClient) {
         rctx_ = std::move(rctx);
         sm_ = sm;
@@ -50,7 +51,7 @@ public:
         return sm_;
     }
 
-    storage::StorageClient* getStorageClient() const {
+    storage::GraphStorageClient* getStorageClient() const {
         return storageClient_;
     }
 
@@ -62,7 +63,7 @@ private:
     RequestContextPtr                           rctx_;
     meta::SchemaManager                        *sm_{nullptr};
     // meta::ClientBasedGflagsManager             *gflagsManager_{nullptr};
-    storage::StorageClient                     *storageClient_{nullptr};
+    storage::GraphStorageClient                *storageClient_{nullptr};
     meta::MetaClient                           *metaClient_{nullptr};
 };
 
