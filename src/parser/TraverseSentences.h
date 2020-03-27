@@ -635,6 +635,7 @@ public:
                         InBoundClause* in,
                         OutBoundClause* out,
                         BothInOutClause* both) {
+        kind_ = Kind::kGetSubgraph;
         step_.reset(step);
         from_.reset(from);
         in_.reset(in);

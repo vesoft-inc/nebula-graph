@@ -30,6 +30,14 @@ public:
         plan_ = plan;
     }
 
+    void setSession(ClientSession* session) {
+        session_ = session;
+    }
+
+    void setSchemaMng(meta::SchemaManager* schemaMng) {
+        schemaMng_ = schemaMng;
+    }
+
     bool spaceChosen() const {
         return !spaces_.empty();
     }

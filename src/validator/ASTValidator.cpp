@@ -9,9 +9,13 @@
 namespace nebula {
 namespace graph {
 StatusOr<std::unique_ptr<ExecutionPlan>> ASTValidator::validate() {
+    // CHECK(!!session_);
+    // CHECK(!!schemaMng_);
     validateContext_ = std::make_unique<ValidateContext>();
     auto plan = std::make_unique<ExecutionPlan>();
     validateContext_->setPlan(plan.get());
+    validateContext_->setSession(session_);
+    validateContext_->setSchemaMng(schemaMng_);
 
     // check space chosen from session. if chosen, add it to context.
     if (session_->space() > -1) {

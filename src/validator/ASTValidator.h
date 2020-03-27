@@ -10,13 +10,16 @@
 #include "base/Base.h"
 #include "validator/Validator.h"
 #include "parser/SequentialSentences.h"
+#include "meta/SchemaManager.h"
 
 namespace nebula {
 namespace graph {
 class ASTValidator final {
 public:
-    explicit ASTValidator(SequentialSentences* sentences)
-        : sentences_(sentences) {}
+    explicit ASTValidator(SequentialSentences* sentences,
+                          ClientSession* session,
+                          meta::SchemaManager* schemaMng)
+        : sentences_(sentences), session_(session), schemaMng_(schemaMng) {}
 
     StatusOr<std::unique_ptr<ExecutionPlan>> validate();
 
@@ -27,6 +30,7 @@ public:
 private:
     SequentialSentences*                sentences_;
     ClientSession*                      session_;
+    meta::SchemaManager*                schemaMng_;
     std::unique_ptr<ValidateContext>    validateContext_;
 };
 }  // namespace graph

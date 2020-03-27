@@ -16,6 +16,7 @@ class ExecutionPlan final {
 public:
     ExecutionPlan() {
         id_ = EPIdGenerator::instance().id();
+        nodeIdGen_ = std::make_unique<IdGenerator>(0);
     }
 
     ~ExecutionPlan() {
