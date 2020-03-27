@@ -14,22 +14,27 @@ folly::Future<Status> MultiOutputsExecutor::execute() {
 
     if (isInLoopBody_) {
         cpp2::Value val = ectx()->getValue(iterVarName_);
-        if (val.get_iVal() > iterCount) {
+        if (val.get_iVal() > iterCount_) {
             hasBeenRun_ = false;
-            iterCount++;
+            iterCount_++;
         }
     }
 
     if (!hasBeenRun_) {
         hasBeenRun_ = true;
-        return input_->execute().then(cb([this](Status s) {
+        promiseMap_.insert(iterCount_, std::make_shared<folly::SharedPromise<Status>>());
+        return input_->execute().then(cb([this, count = iterCount_](Status s) {
             Status copy = s;
-            sharedPromise_.setValue(std::move(copy));
+            auto iter = promiseMap_.find(count);
+            DCHECK(iter != promiseMap_.end());
+            iter->second->setValue(std::move(copy));
             return s;
         }));
     }
 
-    return sharedPromise_.getFuture();
+    auto iter = promiseMap_.find(iterCount_);
+    DCHECK(iter != promiseMap_.end());
+    return iter->second->getFuture();
 }
 
 }   // namespace graph

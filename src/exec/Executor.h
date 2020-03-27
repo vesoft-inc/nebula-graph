@@ -33,19 +33,23 @@ public:
     struct Callable {
         int64_t planId;
 
-        explicit Callable(Executor *e);
+        explicit Callable(const Executor *e);
     };
 
     // Enable thread pool check the query plan id of each callback registered in future. The functor
     // is only the proxy of the invocable function fn.
-    template <typename F, typename R = typename folly::futures::detail::callableResult<Status, F>>
+    template <typename F>
     struct Callback : Callable {
+        using Extract = folly::futures::detail::Extract<F>;
+        using Return = typename Extract::Return;
+        using FirstArg = typename Extract::FirstArg;
+
         F fn;
 
-        Callback(Executor *e, F f) : Callable(e), fn(std::move(f)) {}
+        Callback(const Executor *e, F f) : Callable(e), fn(std::move(f)) {}
 
-        typename R::Return operator()(typename R::Arg &&arg) {
-            return fn(std::forward<typename R::Arg>(arg));
+        Return operator()(FirstArg &&arg) {
+            return fn(std::forward<FirstArg>(arg));
         }
     };
 
@@ -81,7 +85,7 @@ public:
     }
 
     template <typename Fn>
-    Callback<Fn> cb(Fn &&f) {
+    Callback<Fn> cb(Fn &&f) const {
         return Callback<Fn>(this, std::forward<Fn>(f));
     }
 
@@ -115,10 +119,10 @@ class SingleInputExecutor : public Executor {
 public:
     folly::Future<Status> execute() override {
         folly::Future<Status> fut = input_->execute();
-        return std::move(fut).then([this](Status s) {
+        return std::move(fut).then(cb([this](Status s) {
             if (!s.ok()) return folly::makeFuture(s);
             return this->exec();
-        });
+        }));
     }
 
 protected:
@@ -144,12 +148,12 @@ public:
         for (auto *in : inputs_) {
             futures.emplace_back(in->execute());
         }
-        return folly::collect(futures).then([this](std::vector<Status> ss) {
+        return folly::collect(futures).then(cb([this](std::vector<Status> ss) {
             for (auto &s : ss) {
                 if (!s.ok()) return folly::makeFuture(s);
             }
             return this->exec();
-        });
+        }));
     }
 
 protected:

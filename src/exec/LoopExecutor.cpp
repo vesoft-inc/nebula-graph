@@ -25,12 +25,12 @@ folly::Future<Status> LoopExecutor::exec() {
         return folly::makeFuture(Status::OK());
     }
 
-    return body_->execute().then([this](Status s) {
+    return body_->execute().then(cb([this](Status s) {
         if (!s.ok()) {
             return folly::makeFuture(s);
         }
         return this->exec();
-    });
+    }));
 }
 
 }   // namespace graph

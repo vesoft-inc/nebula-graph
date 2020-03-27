@@ -18,7 +18,7 @@
 namespace nebula {
 namespace graph {
 
-Executor::Callable::Callable(Executor *e) : planId(e->node()->id()) {
+Executor::Callable::Callable(const Executor *e) : planId(e->node()->id()) {
     DCHECK_NOTNULL(e);
 }
 

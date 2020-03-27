@@ -7,6 +7,8 @@
 #ifndef EXEC_MULTIOUTPUTSEXECUTOR_H
 #define EXEC_MULTIOUTPUTSEXECUTOR_H
 
+#include <unordered_map>
+
 #include <folly/SpinLock.h>
 #include <folly/futures/SharedPromise.h>
 
@@ -31,15 +33,17 @@ public:
     folly::Future<Status> execute() override;
 
 private:
+    using PromisePtr = std::shared_ptr<folly::SharedPromise<Status>>;
+
     folly::SpinLock lock_;
 
     // This shared promise to notify all other output executors to run except the guy calling this
     // executor firstly
-    folly::SharedPromise<Status> sharedPromise_;
+    std::unordered_map<int64_t, PromisePtr> promiseMap_;
 
     bool hasBeenRun_{false};
     bool isInLoopBody_{false};
-    int64_t iterCount{-1};
+    int64_t iterCount_{-1};
     std::string iterVarName_;
 };
 
