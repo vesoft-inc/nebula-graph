@@ -24,7 +24,7 @@ StatusOr<std::unique_ptr<ExecutionPlan>> ASTValidator::validate() {
         return status;
     }
 
-    auto root = validator->start();
+    auto root = validator->root();
     if (!root) {
         return Status::Error("Get null plan from sequantial validator.");
     }

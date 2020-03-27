@@ -28,8 +28,8 @@ Status UseValidator::toPlan() {
     // The input will be set by father validator later.
     auto reg = RegisterSpaceToSession::make(nullptr, validateContext_->plan());
     reg->setSpace(space.second);
-    start_ = reg;
-    end_ = start_;
+    root_ = reg;
+    tail_ = root_;
     return Status::OK();
 }
 }  // namespace graph

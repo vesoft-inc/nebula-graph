@@ -36,34 +36,34 @@ Status SetValidator::toPlan() {
     switch (op_) {
         case SetSentence::Operator::UNION: {
             auto unionOp = Union::make(
-                    lValidator_->start(), rValidator_->start(), validateContext_->plan());
+                    lValidator_->root(), rValidator_->root(), validateContext_->plan());
             if (distinct_) {
-                auto dedup = Dedup::make(lValidator_->start(), validateContext_->plan());
+                auto dedup = Dedup::make(lValidator_->root(), validateContext_->plan());
                 // TODO:
                 dedup->setExpr(nullptr);
-                start_ = dedup;
+                root_ = dedup;
             } else {
-                start_ = unionOp;
+                root_ = unionOp;
             }
             break;
         }
         case SetSentence::Operator::INTERSECT: {
-            start_ = Intersect::make(
-                    lValidator_->start(), rValidator_->start(), validateContext_->plan());
+            root_ = Intersect::make(
+                    lValidator_->root(), rValidator_->root(), validateContext_->plan());
             break;
         }
         case SetSentence::Operator::MINUS: {
-            start_ = Minus::make(
-                    lValidator_->start(), rValidator_->start(), validateContext_->plan());
+            root_ = Minus::make(
+                    lValidator_->root(), rValidator_->root(), validateContext_->plan());
             break;
         }
         default:
             return Status::Error("Unkown operator: %ld", static_cast<int64_t>(op_));
     }
 
-    end_ = EndNode::make(nullptr, validateContext_->plan());
-    Validator::appendPlan(lValidator_->end(), end_);
-    Validator::appendPlan(rValidator_->end(), end_);
+    tail_ = MultiOutputsNode::make(nullptr, validateContext_->plan());
+    Validator::appendPlan(lValidator_->tail(), tail_);
+    Validator::appendPlan(rValidator_->tail(), tail_);
     return Status::OK();
 }
 }  // namespace graph

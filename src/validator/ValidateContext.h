@@ -47,11 +47,11 @@ public:
     }
 
 private:
-    meta::SchemaManager*                                schemaMng_;
-    ClientSession*                                      session_;
+    meta::SchemaManager*                                schemaMng_{nullptr};
+    ClientSession*                                      session_{nullptr};
     std::vector<std::pair<std::string, GraphSpaceID>>   spaces_;
     std::unordered_map<std::string, ColsDef>            vars_;
-    ExecutionPlan*                                      plan_;
+    ExecutionPlan*                                      plan_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

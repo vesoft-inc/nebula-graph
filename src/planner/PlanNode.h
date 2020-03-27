@@ -67,6 +67,7 @@ public:
 
     void setId(int64_t id) {
         id_ = id;
+        varGenerated_ = folly::stringPrintf("UNAMED_%ld", id_);
     }
 
     void setPlan(ExecutionPlan* plan) {
@@ -79,6 +80,7 @@ protected:
     ExecutionPlan*                           plan_;
     using VariableName = std::string;
     std::unordered_set<VariableName>         availableVars_;
+    VariableName                             varGenerated_;
 };
 }  // namespace graph
 }  // namespace nebula

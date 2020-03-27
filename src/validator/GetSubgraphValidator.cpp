@@ -154,6 +154,8 @@ Status GetSubgraphValidator::toPlan() {
     auto* filter = Filter::make(gn2, plan);
     selector->setIf(filter);
 
+    root_ = loop;
+    tail_ = start;
     return Status::OK();
 }
 }  // namespace graph

@@ -85,10 +85,13 @@ protected:
     PlanNode* right_{nullptr};
 };
 
-class EndNode final : public SingleInputNode {
+/**
+ * This operator is used for multi output situation.
+ */
+class MultiOutputsNode final : public SingleInputNode {
 public:
-    static EndNode* make(PlanNode* input, ExecutionPlan* plan) {
-        auto* end = new EndNode(input);
+    static MultiOutputsNode* make(PlanNode* input, ExecutionPlan* plan) {
+        auto* end = new MultiOutputsNode(input);
         plan->addPlanNode(end);
         return end;
     }
@@ -98,7 +101,7 @@ public:
     }
 
 private:
-    explicit EndNode(PlanNode* input) {
+    explicit MultiOutputsNode(PlanNode* input) {
         kind_ = PlanNode::Kind::kEnd;
         input_ = input;
     }
