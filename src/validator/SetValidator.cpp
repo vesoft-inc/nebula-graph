@@ -33,15 +33,16 @@ Status SetValidator::validateImpl() {
 }
 
 Status SetValidator::toPlan() {
+    auto* plan = validateContext_->plan();
     switch (op_) {
         case SetSentence::Operator::UNION: {
             auto unionOp = Union::make(
-                    lValidator_->root(), rValidator_->root(), validateContext_->plan());
+                    plan, lValidator_->root(), rValidator_->root());
             if (distinct_) {
                 auto dedup = Dedup::make(
+                        plan,
                         lValidator_->root(),
-                        nullptr/* TODO: build condition*/,
-                        validateContext_->plan());
+                        nullptr/* TODO: build condition*/);
                 root_ = dedup;
             } else {
                 root_ = unionOp;
@@ -50,19 +51,23 @@ Status SetValidator::toPlan() {
         }
         case SetSentence::Operator::INTERSECT: {
             root_ = Intersect::make(
-                    lValidator_->root(), rValidator_->root(), validateContext_->plan());
+                    plan,
+                    lValidator_->root(),
+                    rValidator_->root());
             break;
         }
         case SetSentence::Operator::MINUS: {
             root_ = Minus::make(
-                    lValidator_->root(), rValidator_->root(), validateContext_->plan());
+                    plan,
+                    lValidator_->root(),
+                    rValidator_->root());
             break;
         }
         default:
             return Status::Error("Unkown operator: %ld", static_cast<int64_t>(op_));
     }
 
-    tail_ = MultiOutputsNode::make(nullptr, validateContext_->plan());
+    tail_ = MultiOutputsNode::make(plan, nullptr);
     Validator::appendPlan(lValidator_->tail(), tail_);
     Validator::appendPlan(rValidator_->tail(), tail_);
     return Status::OK();

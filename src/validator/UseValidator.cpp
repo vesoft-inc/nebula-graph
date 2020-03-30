@@ -26,7 +26,7 @@ Status UseValidator::validateImpl() {
 Status UseValidator::toPlan() {
     auto space = validateContext_->whichSpace();
     // The input will be set by father validator later.
-    auto reg = RegisterSpaceToSession::make(nullptr, space.id, validateContext_->plan());
+    auto reg = RegisterSpaceToSession::make(validateContext_->plan(), nullptr, space.id);
     root_ = reg;
     tail_ = root_;
     return Status::OK();

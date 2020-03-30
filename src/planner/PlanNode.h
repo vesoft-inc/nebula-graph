@@ -46,6 +46,8 @@ public:
 
     PlanNode() = default;
 
+    explicit PlanNode(ExecutionPlan* plan);
+
     virtual ~PlanNode() = default;
 
     /**

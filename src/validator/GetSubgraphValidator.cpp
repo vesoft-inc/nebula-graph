@@ -150,6 +150,7 @@ Status GetSubgraphValidator::toPlan() {
     std::vector<storage::cpp2::EdgeProp> edgeProps;
     std::vector<storage::cpp2::StatProp> statProps;
     auto* gn1 = GetNeighbors::make(
+            plan,
             bodyStart,
             space.id,
             std::move(starts_),
@@ -158,12 +159,11 @@ Status GetSubgraphValidator::toPlan() {
             vertexProps,
             edgeProps,
             statProps,
-            "",
-            plan);
+            "");
 
-    auto* dedup = Dedup::make(gn1, nullptr/* TODO: dedup the dsts. */, plan);
+    auto* dedup = Dedup::make(plan, gn1, nullptr/* TODO: dedup the dsts. */);
     // The input of loop will set by father validator.
-    auto* loop = Loop::make(nullptr, dedup, nullptr/* TODO: build condition. */, plan);
+    auto* loop = Loop::make(plan, nullptr, dedup, nullptr/* TODO: build condition. */);
 
     // selector -> loop
     // selector -> filter -> gn2 -> ifStrart
@@ -171,6 +171,7 @@ Status GetSubgraphValidator::toPlan() {
 
     std::vector<VertexID> starts;
     auto* gn2 = GetNeighbors::make(
+            plan,
             ifStart,
             space.id,
             starts,
@@ -179,10 +180,9 @@ Status GetSubgraphValidator::toPlan() {
             std::move(vertexProps),
             std::move(edgeProps),
             std::move(statProps),
-            "",
-            plan);
-    auto* filter = Filter::make(gn2, nullptr/* TODO: build IN condition. */, plan);
-    auto* selector = Selector::make(loop, filter, nullptr, nullptr, plan);
+            "");
+    auto* filter = Filter::make(plan, gn2, nullptr/* TODO: build IN condition. */);
+    auto* selector = Selector::make(plan, loop, filter, nullptr, nullptr);
 
     // TODO: A data collector.
 
