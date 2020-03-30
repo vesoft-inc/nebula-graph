@@ -81,7 +81,7 @@ Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto et = validateContext_->schemaMng()->toEdgeType(space.second, *e->edge());
+            auto et = validateContext_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -102,7 +102,7 @@ Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto et = validateContext_->schemaMng()->toEdgeType(space.second, *e->edge());
+            auto et = validateContext_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -122,7 +122,7 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto et = validateContext_->schemaMng()->toEdgeType(space.second, *e->edge());
+            auto et = validateContext_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -139,23 +139,55 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
 
 Status GetSubgraphValidator::toPlan() {
     auto* plan = validateContext_->plan();
+    auto& space = validateContext_->whichSpace();
 
     // TODO:
-    auto start = StartNode::make(plan);
-    auto* loop = Loop::make(start, plan);
+    // loop -> dedup -> gn1 -> bodyStart
     auto* bodyStart = StartNode::make(plan);
-    auto* gn1 = GetNeighbors::make(bodyStart, plan);
-    auto* dedup = Dedup::make(gn1, plan);
-    loop->setBody(dedup);
 
-    auto* selector = Selector::make(loop, plan);
+    std::vector<EdgeType> edgeTypes;
+    std::vector<storage::cpp2::VertexProp> vertexProps;
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
+    std::vector<storage::cpp2::StatProp> statProps;
+    auto* gn1 = GetNeighbors::make(
+            bodyStart,
+            space.id,
+            std::move(starts_),
+            nullptr, /* TODO: refer to a vriable's column. */
+            edgeTypes,
+            vertexProps,
+            edgeProps,
+            statProps,
+            "",
+            plan);
+
+    auto* dedup = Dedup::make(gn1, nullptr/* TODO: dedup the dsts. */, plan);
+    // The input of loop will set by father validator.
+    auto* loop = Loop::make(nullptr, dedup, nullptr/* TODO: build condition. */, plan);
+
+    // selector -> loop
+    // selector -> filter -> gn2 -> ifStrart
     auto* ifStart = StartNode::make(plan);
-    auto* gn2 = GetNeighbors::make(ifStart, plan);
-    auto* filter = Filter::make(gn2, plan);
-    selector->setIf(filter);
 
-    root_ = loop;
-    tail_ = start;
+    std::vector<VertexID> starts;
+    auto* gn2 = GetNeighbors::make(
+            ifStart,
+            space.id,
+            starts,
+            nullptr, /* TODO: refer to a variable's column. */
+            std::move(edgeTypes),
+            std::move(vertexProps),
+            std::move(edgeProps),
+            std::move(statProps),
+            "",
+            plan);
+    auto* filter = Filter::make(gn2, nullptr/* TODO: build IN condition. */, plan);
+    auto* selector = Selector::make(loop, filter, nullptr, nullptr, plan);
+
+    // TODO: A data collector.
+
+    root_ = selector;
+    tail_ = loop;
     return Status::OK();
 }
 }  // namespace graph

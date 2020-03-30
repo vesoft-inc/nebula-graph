@@ -16,10 +16,18 @@ namespace nebula {
 namespace graph {
 using ColDef = std::pair<std::string, Value::Type>;
 using ColsDef = std::vector<ColDef>;
+
+struct SpaceDescription {
+    std::string name;
+    GraphSpaceID id;
+};
 class ValidateContext final {
 public:
     void switchToSpace(std::string spaceName, GraphSpaceID spaceId) {
-        spaces_.emplace_back(std::make_pair(std::move(spaceName), spaceId));
+        SpaceDescription space;
+        space.name = std::move(spaceName);
+        space.id = spaceId;
+        spaces_.emplace_back(std::move(space));
     }
 
     void registerVariable(std::string var, ColsDef cols) {
@@ -42,7 +50,7 @@ public:
         return !spaces_.empty();
     }
 
-    const std::pair<std::string, GraphSpaceID>& whichSpace() const {
+    const SpaceDescription& whichSpace() const {
         return spaces_.back();
     }
 
@@ -57,7 +65,7 @@ public:
 private:
     meta::SchemaManager*                                schemaMng_{nullptr};
     ClientSession*                                      session_{nullptr};
-    std::vector<std::pair<std::string, GraphSpaceID>>   spaces_;
+    std::vector<SpaceDescription>                       spaces_;
     std::unordered_map<std::string, ColsDef>            vars_;
     ExecutionPlan*                                      plan_{nullptr};
 };
