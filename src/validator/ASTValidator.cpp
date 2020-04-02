@@ -17,7 +17,7 @@ StatusOr<std::unique_ptr<ExecutionPlan>> ASTValidator::validate() {
     validateContext_->setSession(session_);
     validateContext_->setSchemaMng(schemaMng_);
 
-    // check space chosen from session. if chosen, add it to context.
+    // Check if space chosen from session. if chosen, add it to context.
     if (session_->space() > -1) {
         validateContext_->switchToSpace(session_->spaceName(), session_->space());
     }

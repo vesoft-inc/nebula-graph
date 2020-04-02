@@ -1,7 +1,8 @@
 set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
-    $<TARGET_OBJECTS:service_obj>
+    $<TARGET_OBJECTS:session_obj>
+    $<TARGET_OBJECTS:graph_gflags_obj>
     $<TARGET_OBJECTS:parser_obj>
     $<TARGET_OBJECTS:common_filter_obj>
     $<TARGET_OBJECTS:common_network_obj>
