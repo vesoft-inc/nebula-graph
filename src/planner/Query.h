@@ -186,7 +186,7 @@ private:
     // vertices are parsing from query.
     std::vector<VertexID>                        vertices_;
     // vertices may be parsing from runtime.
-    Expression*                                  src_;
+    Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
     std::vector<storage::cpp2::VertexProp>       vertexProps_;
     std::vector<storage::cpp2::EdgeProp>         edgeProps_;
@@ -239,7 +239,7 @@ private:
     // vertices are parsing from query.
     std::vector<VertexID>                    vertices_;
     // vertices may be parsing from runtime.
-    Expression*                              src_;
+    Expression*                              src_{nullptr};
     // props and filter are parsing from query.
     std::vector<storage::cpp2::VertexProp>   props_;
     std::string                              filter_;
@@ -298,9 +298,9 @@ private:
     // edges_ are parsing from the query.
     std::vector<storage::cpp2::EdgeKey>      edges_;
     // edges_ may be parsed from runtime.
-    Expression*                              src_;
-    Expression*                              ranking_;
-    Expression*                              dst_;
+    Expression*                              src_{nullptr};
+    Expression*                              ranking_{nullptr};
+    Expression*                              dst_{nullptr};
     // props and filter are parsing from query.
     std::vector<storage::cpp2::EdgeProp>     props_;
     std::string                              filter_;
@@ -345,7 +345,7 @@ private:
     }
 
 private:
-    Expression*                 condition_;
+    Expression*                 condition_{nullptr};
 };
 
 /**
@@ -531,7 +531,7 @@ private:
     }
 
 private:
-    YieldColumns*   groupCols_;
+    YieldColumns*   groupCols_{nullptr};
 };
 
 class BinarySelect : public SingleInputNode {
@@ -660,7 +660,7 @@ private:
     }
 
 private:
-    Expression*     expr_;
+    Expression*     expr_{nullptr};
 };
 
 class ProduceSemiShortestPath : public PlanNode {

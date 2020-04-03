@@ -79,7 +79,7 @@ public:
 protected:
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{IdGenerator::INVALID_ID};
-    ExecutionPlan*                           plan_;
+    ExecutionPlan*                           plan_{nullptr};
     using VariableName = std::string;
     std::unordered_set<VariableName>         availableVars_;
     VariableName                             varGenerated_;

@@ -28,9 +28,9 @@ public:
     }
 
 private:
-    SequentialSentences*                sentences_;
-    ClientSession*                      session_;
-    meta::SchemaManager*                schemaMng_;
+    SequentialSentences*                sentences_{nullptr};
+    ClientSession*                      session_{nullptr};
+    meta::SchemaManager*                schemaMng_{nullptr};
     std::unique_ptr<ValidateContext>    validateContext_;
 };
 }  // namespace graph
