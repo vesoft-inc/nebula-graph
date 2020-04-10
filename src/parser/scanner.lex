@@ -337,7 +337,7 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                             }
 {IP_OCTET}(\.{IP_OCTET}){3} {
                                 uint32_t octets[4] = {0};
-                                sscanf(yytext, "%i.%i.%i.%i", &octets[3], &octets[2], &octets[1], &octets[0]);
+                                sscanf(yytext, "%ui.%ui.%ui.%ui", &octets[3], &octets[2], &octets[1], &octets[0]);
                                 // The bytes order conforms to the one used in NetworkUtils
                                 uint32_t ipv4 = (octets[3] << 24) | (octets[2] << 16) | (octets[1] << 8) | octets[0];
                                 yylval->intval = ipv4;
@@ -353,9 +353,9 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                                         yyterminate();
                                     }
                                 }
-                                int64_t val = 0;
+                                uint64_t val = 0;
                                 sscanf(yytext, "%lx", &val);
-                                yylval->intval = val;
+                                yylval->intval = static_cast<int64_t>(val);
                                 return TokenType::INTEGER;
                             }
 0{OCT}+                     {
@@ -370,9 +370,9 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                                         yyterminate();
                                     }
                                 }
-                                int64_t val = 0;
+                                uint64_t val = 0;
                                 sscanf(yytext, "%lo", &val);
-                                yylval->intval = val;
+                                yylval->intval = static_cast<int64_t>(val);
                                 return TokenType::INTEGER;
                             }
 {DEC}+                      {
@@ -435,7 +435,7 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                             }
 <DQ_STR,SQ_STR>\\{OCT}{1,3} {
                                 makeSpaceForString(1);
-                                int val = 0;
+                                uint32_t val = 0;
                                 sscanf(yytext + 1, "%o", &val);
                                 if (val > 0xFF) {
                                     yyterminate();
