@@ -245,7 +245,6 @@ message(STATUS "CMAKE_PROGRAM_PATH: " ${PROGRAM_PATH_STR})
 
 find_package(Bzip2 REQUIRED)
 find_package(DoubleConversion REQUIRED)
-#find_package(Fatal REQUIRED)
 find_package(Fbthrift REQUIRED)
 find_package(Folly REQUIRED)
 find_package(Gflags REQUIRED)
@@ -544,6 +543,7 @@ macro(nebula_link_libraries target)
         keyutils
         dl
         ${GETTIME_LIB}
+        resolv
         ${libatomic_link_flags}
         -pthread
         ${COVERAGES}
