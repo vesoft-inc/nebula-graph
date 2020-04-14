@@ -561,7 +561,7 @@ function(nebula_add_subdirectory dir_name)
     add_subdirectory(${dir_name})
 endfunction()
 
-set(NEBULA_CLEAN_ALL_DEPS clean-interface clean-pch clean-hbase)
+set(NEBULA_CLEAN_ALL_DEPS clean-pch)
 nebula_add_subdirectory(src)
 nebula_add_subdirectory(conf)
 nebula_add_subdirectory(resources)
@@ -570,7 +570,7 @@ add_custom_target(
     clean-build
     COMMAND ${CMAKE_MAKE_PROGRAM} clean
     COMMAND "find" "." "-name" "Testing" "|" "xargs" "rm" "-fr"
-    DEPENDS clean-interface clean-pch clean-hbase
+    DEPENDS clean-pch
 )
 
 add_custom_target(
