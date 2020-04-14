@@ -1,0 +1,17 @@
+nebula_add_test(
+    NAME
+        graph_status_test
+    SOURCES
+        GraphStatusTest.cpp
+    OBJECTS
+        $<TARGET_OBJECTS:common_base_obj>
+        $<TARGET_OBJECTS:common_datatypes_obj>
+        $<TARGET_OBJECTS:common_error_msg_thrift_obj>
+        $<TARGET_OBJECTS:graph_status_obj>
+    LIBRARIES
+        ${THRIFT_LIBRARIES}
+        wangle
+        boost_locale
+        gtest
+        gtest_main
+)
