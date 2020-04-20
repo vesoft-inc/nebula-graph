@@ -32,6 +32,33 @@ add_definitions(-DNEBULA_HOME=${NEBULA_HOME})
 
 # To include customized FindXXX.cmake modules
 set(CMAKE_MODULE_PATH "${NEBULA_HOME}/modules/common/" "${NEBULA_HOME}/cmake" "${NEBULA_HOME}/modules/common/cmake" ${CMAKE_MODULE_PATH})
+
+# Submodules
+if("${NEBULA_COMMON_REPO_URL}" STREQUAL "")
+    SET(NEBULA_COMMON_REPO_URL "git@github.com:vesoft-inc-private/nebula-common.git")
+endif()
+
+if("${NEBULA_COMMON_REPO_TAG}" STREQUAL "")
+    SET(NEBULA_COMMON_REPO_TAG "master")
+endif()
+
+SET(NEBULA_COMMON_PACKAGE "nebula-common")
+SET(nebula-common_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules/common)
+
+# Configure the dependent projects
+include(AddDependentProject)
+message(STATUS "")
+message(STATUS ">>>>> Configuring the nebula-common repo <<<<<")
+add_dependent_project(
+    ${NEBULA_HOME}/modules
+    common
+    ${NEBULA_COMMON_REPO_URL}
+    ${NEBULA_COMMON_REPO_TAG}
+)
+find_package(${NEBULA_COMMON_PACKAGE} REQUIRED)
+message(STATUS ">>>>> The nebula-common repo has been configured successfully <<<<<")
+message(STATUS "")
+
 include(LinkerConfig)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc")
@@ -183,32 +210,6 @@ if("${NEBULA_THIRDPARTY_ROOT}" STREQUAL "")
         include(InstallThirdParty)
     endif()
 endif()
-
-# Submodules
-if("${NEBULA_COMMON_REPO_URL}" STREQUAL "")
-    SET(NEBULA_COMMON_REPO_URL "git@github.com:vesoft-inc-private/nebula-common.git")
-endif()
-
-if("${NEBULA_COMMON_REPO_TAG}" STREQUAL "")
-    SET(NEBULA_COMMON_REPO_TAG "master")
-endif()
-
-SET(NEBULA_COMMON_PACKAGE "nebula-common")
-SET(nebula-common_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules/common)
-
-# Configure the dependent projects
-include(AddDependentProject)
-message(STATUS "")
-message(STATUS ">>>>> Configuring the nebula-common repo <<<<<")
-add_dependent_project(
-    ${NEBULA_HOME}/modules
-    common
-    ${NEBULA_COMMON_REPO_URL}
-    ${NEBULA_COMMON_REPO_TAG}
-)
-find_package(${NEBULA_COMMON_PACKAGE} REQUIRED)
-message(STATUS ">>>>> The nebula-common repo has been configured successfully <<<<<")
-message(STATUS "")
 
 # third-party
 if(NOT ${NEBULA_THIRDPARTY_ROOT} STREQUAL "")
