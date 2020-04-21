@@ -9,6 +9,7 @@
 #include <interface/gen-cpp2/common_types.h>
 #include <interface/gen-cpp2/meta_types.h>
 #include "base/Base.h"
+#include "base/StatusOr.h"
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
 
@@ -16,14 +17,12 @@ namespace nebula {
 
 class ColumnSpecification final {
 public:
-    using Value = Expression;
-
-    ColumnSpecification(ColumnType type, std::string *name) {
+    ColumnSpecification(Value::Type type, std::string *name) {
         type_ = type;
         name_.reset(name);
     }
 
-    ColumnType type() const {
+    Value::Type type() const {
         return type_;
     }
 
@@ -31,39 +30,22 @@ public:
         return name_.get();
     }
 
-    void setValue(Value* expr) {
-        defaultExpr_.reset(DCHECK_NOTNULL(expr));
-    }
-
-    Status MUST_USE_RESULT prepare() {
-        if (hasDefault()) {
-            return defaultExpr_->prepare();
-        }
-        return Status::Error();
-    }
-
-    void setContext(ExpressionContext* ctx) {
-        if (defaultExpr_ != nullptr) {
-            defaultExpr_->setContext(ctx);
-        }
+    void setDefault(Expression* expr) {
+        default_.reset(DCHECK_NOTNULL(expr));
     }
 
     bool hasDefault() {
-        return defaultExpr_ != nullptr;
+        return default_ != nullptr;
     }
 
-    OptVariantType getDefault(Getters& getter) {
-        auto r = defaultExpr_->eval(getter);
-        if (!r.ok()) {
-            return std::move(r).status();
-        }
-        return std::move(r).value();
+    Value getDefault() {
+        return default_->eval();
     }
 
 private:
-    ColumnType                                  type_;
+    Value::Type                                 type_;
     std::unique_ptr<std::string>                name_;
-    std::unique_ptr<Value>                      defaultExpr_{nullptr};
+    std::unique_ptr<Expression>                 default_{nullptr};
 };
 
 

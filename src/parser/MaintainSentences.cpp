@@ -49,7 +49,9 @@ std::string CreateTagSentence::toString() const {
     for (auto *col : colSpecs) {
         buf += *col->name();
         buf += " ";
-        buf += columnTypeToString(col->type());
+        std::stringstream ss;
+        ss << col->type();
+        buf += ss.str();
         buf += ",";
     }
     if (!colSpecs.empty()) {
@@ -73,7 +75,9 @@ std::string CreateEdgeSentence::toString() const {
     for (auto &col : colSpecs) {
         buf += *col->name();
         buf += " ";
-        buf += columnTypeToString(col->type());
+        std::stringstream ss;
+        ss << col->type();
+        buf += ss.str();
         buf += ",";
     }
     if (!colSpecs.empty()) {
@@ -106,7 +110,9 @@ std::string AlterSchemaOptItem::toString() const {
     for (auto &col : colSpecs) {
         buf += *col->name();
         buf += " ";
-        buf += columnTypeToString(col->type());
+        std::stringstream ss;
+        ss << col->type();
+        buf += ss.str();
         buf += ",";
     }
     if (!colSpecs.empty()) {
