@@ -40,7 +40,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     int64_t                                 intval;
     double                                  doubleval;
     std::string                            *strval;
-    nebula::Value::Type                     type;
+    nebula::meta::cpp2::PropertyType        type;
     nebula::Expression                     *expr;
     nebula::Sentence                       *sentence;
     nebula::SequentialSentences            *sentences;
@@ -475,16 +475,19 @@ unary_expression
     | KW_NOT unary_expression {
         $$ = new UnaryExpression(Expression::Type::EXP_UNARY_NOT, $2);
     }
+/*
     | L_PAREN type_spec R_PAREN unary_expression {
         $$ = new TypeCastingExpression($2, $4);
     }
+*/
     ;
 
 type_spec
-    : KW_INT { $$ = Value::Type::INT; }
-    | KW_DOUBLE { $$ = Value::Type::FLOAT; }
-    | KW_STRING { $$ = Value::Type::STRING; }
-    | KW_BOOL { $$ = Value::Type::BOOL; }
+    : KW_INT { $$ = meta::cpp2::PropertyType::INT64; }
+    | KW_DOUBLE { $$ = meta::cpp2::PropertyType::FLOAT; }
+    | KW_STRING { $$ = meta::cpp2::PropertyType::STRING; }
+    | KW_BOOL { $$ = meta::cpp2::PropertyType::BOOL; }
+/*  TODO: Support other type. int8, int16, etc.*/
     ;
 
 multiplicative_expression

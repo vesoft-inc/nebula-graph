@@ -9,6 +9,27 @@
 
 namespace nebula {
 
+std::ostream& operator<<(std::ostream& os, meta::cpp2::PropertyType type) {
+    switch (type) {
+        case meta::cpp2::PropertyType::INT64:
+            os << "INT64";
+            break;
+        case meta::cpp2::PropertyType::BOOL:
+            os << "BOOL";
+            break;
+        case meta::cpp2::PropertyType::DOUBLE:
+            os << "DOUBLE";
+            break;
+        case meta::cpp2::PropertyType::STRING:
+            os << "STRING";
+            break;
+        // TODO:
+        default:
+            break;
+    }
+    return os;
+}
+
 std::string SchemaPropItem::toString() const {
     switch (propType_) {
         case TTL_DURATION:

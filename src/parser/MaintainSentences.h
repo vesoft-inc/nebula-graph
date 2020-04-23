@@ -15,14 +15,16 @@
 
 namespace nebula {
 
+std::ostream& operator<<(std::ostream& os, meta::cpp2::PropertyType type);
+
 class ColumnSpecification final {
 public:
-    ColumnSpecification(Value::Type type, std::string *name) {
+    ColumnSpecification(meta::cpp2::PropertyType type, std::string *name) {
         type_ = type;
         name_.reset(name);
     }
 
-    Value::Type type() const {
+    meta::cpp2::PropertyType type() const {
         return type_;
     }
 
@@ -43,7 +45,7 @@ public:
     }
 
 private:
-    Value::Type                                 type_;
+    meta::cpp2::PropertyType                    type_;
     std::unique_ptr<std::string>                name_;
     std::unique_ptr<Expression>                 default_{nullptr};
 };
