@@ -33,6 +33,20 @@ add_definitions(-DNEBULA_HOME=${NEBULA_HOME})
 # To include customized FindXXX.cmake modules
 set(CMAKE_MODULE_PATH "${NEBULA_HOME}/modules/common/" "${NEBULA_HOME}/cmake" "${NEBULA_HOME}/modules/common/cmake" ${CMAKE_MODULE_PATH})
 
+find_package(Git)
+if (GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND
+        ${GIT_EXECUTABLE} rev-parse --short HEAD
+        OUTPUT_VARIABLE GIT_INFO_SHA
+    )
+endif()
+
+if (GIT_INFO_SHA)
+    string(REGEX REPLACE "[^0-9a-f]+" "" GIT_INFO_SHA "${GIT_INFO_SHA}")
+    add_definitions(-DGIT_INFO_SHA=${GIT_INFO_SHA})
+endif()
+
 # Submodules
 if("${NEBULA_COMMON_REPO_URL}" STREQUAL "")
     SET(NEBULA_COMMON_REPO_URL "git@github.com:vesoft-inc-private/nebula-common.git")
@@ -176,22 +190,6 @@ if (${CMAKE_INSTALL_PREFIX} STREQUAL "/usr/local")
     set(CMAKE_INSTALL_PREFIX "/usr/local/nebula")
 endif()
 message(STATUS "CMAKE_INSTALL_PREFIX: " ${CMAKE_INSTALL_PREFIX})
-
-find_package(Git)
-if (GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
-    execute_process(
-        COMMAND
-        ${GIT_EXECUTABLE} rev-parse --short HEAD
-        OUTPUT_VARIABLE GIT_INFO_SHA
-    )
-endif()
-
-if (GIT_INFO_SHA)
-    string(REGEX REPLACE "[^0-9a-f]+" "" GIT_INFO_SHA "${GIT_INFO_SHA}")
-    add_definitions(-DGIT_INFO_SHA=${GIT_INFO_SHA})
-endif()
-
-
 
 # The precedence to decide NEBULA_THIRDPARTY_ROOT is:
 #   1. The path defined with CMake argument, i.e -DNEBULA_THIRDPARTY_ROOT=path
