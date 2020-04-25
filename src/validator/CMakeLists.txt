@@ -9,6 +9,8 @@ nebula_add_library(
     SetValidator.cpp
     UseValidator.cpp
     GetSubgraphValidator.cpp
+    CreateValidator.cpp
+    MutateValidator.cpp
 )
 
 add_subdirectory(test)

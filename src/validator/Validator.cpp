@@ -15,6 +15,7 @@
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/GetSubgraphValidator.h"
+#include "validator/CreateValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -37,6 +38,12 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, Validate
             return std::make_unique<UseValidator>(sentence, context);
         case Sentence::Kind::kGetSubgraph:
             return std::make_unique<GetSubgraphValidator>(sentence, context);
+        case Sentence::Kind::kCreateSpace:
+            return std::make_unique<CreateSpaceValidator>(sentence, context);
+        case Sentence::Kind::kCreateTag:
+            return std::make_unique<CreateTagValidator>(sentence, context);
+        case Sentence::Kind::kCreateEdge:
+            return std::make_unique<CreateEdgeValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }
