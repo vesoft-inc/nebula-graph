@@ -37,7 +37,7 @@ public:
 
     std::unique_ptr<GraphClient> getClient() const;
 private:
-    std::unique_ptr<MockServer>               mServer_{nullptr};
+    std::unique_ptr<MockServer>                     mServer_{nullptr};
     std::unique_ptr<meta::MetaClient>               mClient_{nullptr};
     std::unique_ptr<storage::GraphStorageClient>    sClient_{nullptr};
     uint16_t                                        graphPort_{0};
