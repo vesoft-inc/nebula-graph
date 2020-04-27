@@ -7,7 +7,7 @@
 #include "base/Base.h"
 #include "charset/Charset.h"
 
-#include "util/SchemaCommon.h"
+#include "util/SchemaUtil.h"
 #include "parser/MaintainSentences.h"
 #include "service/GraphFlags.h"
 #include "planner/Maintain.h"
@@ -27,14 +27,12 @@ Status DescSpaceValidator::toPlan() {
     auto *doNode = DescSpace::make(plan, spaceName_);
     YieldColumns* cols = nullptr;
     auto *project = Project::make(plan, doNode, cols);
-    plan->setRoot(project);
+    root_ = project;
+    tail_ = root_;
     return Status::OK();
 }
 
 Status DescTagValidator::validateImpl() {
-    if (!spaceChosen()) {
-        return Status::Error("Please choose a graph space with `USE spaceName' firstly");
-    }
     tagName_ = *sentence_->name();
     return Status::OK();
 }
@@ -47,15 +45,12 @@ Status DescTagValidator::toPlan() {
                                  tagName_);
     YieldColumns* cols = nullptr;
     auto *project = Project::make(plan, doNode, cols);
-    plan->setRoot(project);
+    root_ = project;
+    tail_ = root_;
     return Status::OK();
 }
 
 Status DescEdgeValidator::validateImpl() {
-    if (!spaceChosen()) {
-        return Status::Error("Please choose a graph space with `USE spaceName' firstly");
-    }
-
     edgeName_ = *sentence_->name();
     return Status::OK();
 }
@@ -68,7 +63,8 @@ Status DescEdgeValidator::toPlan() {
                                  edgeName_);
     YieldColumns* cols = nullptr;
     auto *project = Project::make(plan, doNode, cols);
-    plan->setRoot(project);
+    root_ = project;
+    tail_ = root_;
     return Status::OK();
 }
 }  // namespace graph

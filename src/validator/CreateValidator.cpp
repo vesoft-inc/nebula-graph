@@ -7,7 +7,7 @@
 #include "base/Base.h"
 #include "charset/Charset.h"
 
-#include "util/SchemaCommon.h"
+#include "util/SchemaUtil.h"
 #include "parser/MaintainSentences.h"
 #include "service/GraphFlags.h"
 #include "planner/Maintain.h"
@@ -20,7 +20,6 @@ Status CreateSpaceValidator::validateImpl() {
     auto status = Status::OK();
     spaceDesc_ = meta::SpaceDesc();
     spaceDesc_.spaceName_ = std::move(*(sentence_->spaceName()));
-    Status retStatus;
     StatusOr<std::string> retStatusOr;
     std::string result;
     auto* charsetInfo = validateContext_->getCharsetInfo();
@@ -51,20 +50,14 @@ Status CreateSpaceValidator::validateImpl() {
             case SpaceOptItem::CHARSET: {
                 result = item->getCharset();
                 folly::toLowerAscii(result);
-                retStatus = charsetInfo->isSupportCharset(result);
-                if (!retStatus.ok()) {
-                    return retStatus;
-                }
+                NG_RETURN_IF_ERROR(charsetInfo->isSupportCharset(result));
                 spaceDesc_.charsetName_ = std::move(result);
                 break;
             }
             case SpaceOptItem::COLLATE: {
                 result = item->getCollate();
                 folly::toLowerAscii(result);
-                retStatus = charsetInfo->isSupportCollate(result);
-                if (!retStatus.ok()) {
-                    return retStatus;
-                }
+                NG_RETURN_IF_ERROR(charsetInfo->isSupportCollate(result));
                 spaceDesc_.collationName_ = std::move(result);
                 break;
             }
@@ -73,11 +66,8 @@ Status CreateSpaceValidator::validateImpl() {
 
     // if charset and collate are not specified, set default value
     if (!spaceDesc_.charsetName_.empty() && !spaceDesc_.collationName_.empty()) {
-        retStatus = charsetInfo->charsetAndCollateMatch(spaceDesc_.charsetName_,
-                                                        spaceDesc_.collationName_);
-        if (!retStatus.ok()) {
-            return retStatus;
-        }
+        NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(spaceDesc_.charsetName_,
+                    spaceDesc_.collationName_));
     } else if (!spaceDesc_.charsetName_.empty()) {
         retStatusOr = charsetInfo->getDefaultCollationbyCharset(spaceDesc_.charsetName_);
         if (!retStatusOr.ok()) {
@@ -95,26 +85,17 @@ Status CreateSpaceValidator::validateImpl() {
     if (spaceDesc_.charsetName_.empty() && spaceDesc_.collationName_.empty()) {
         std::string charsetName = FLAGS_default_charset;
         folly::toLowerAscii(charsetName);
-        retStatus = charsetInfo->isSupportCharset(charsetName);
-        if (!retStatus.ok()) {
-            return retStatus;
-        }
+        NG_RETURN_IF_ERROR(charsetInfo->isSupportCharset(charsetName));
 
         std::string collateName = FLAGS_default_collate;
         folly::toLowerAscii(collateName);
-        retStatus = charsetInfo->isSupportCollate(collateName);
-        if (!retStatus.ok()) {
-            return retStatus;
-        }
+        NG_RETURN_IF_ERROR(charsetInfo->isSupportCollate(collateName));
 
         spaceDesc_.charsetName_ = std::move(charsetName);
         spaceDesc_.collationName_ = std::move(collateName);
 
-        retStatus = charsetInfo->charsetAndCollateMatch(spaceDesc_.charsetName_,
-                                                        spaceDesc_.collationName_);
-        if (!retStatus.ok()) {
-            return retStatus;
-        }
+        NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(spaceDesc_.charsetName_,
+                    spaceDesc_.collationName_));
     }
 
     ifNotExist_ = sentence_->isIfNotExist();
@@ -124,12 +105,11 @@ Status CreateSpaceValidator::validateImpl() {
 Status CreateSpaceValidator::toPlan() {
     auto* plan = validateContext_->plan();
     root_ = StartNode::make(plan);
-    auto *doNode = CreateSpace::make(plan,
-                                     spaceDesc_,
-                                     ifNotExist_);
+    auto *doNode = CreateSpace::make(plan, spaceDesc_, ifNotExist_);
     YieldColumns* cols = nullptr;
     auto *project = Project::make(plan, doNode, cols);
-    plan->setRoot(project);
+    root_ = project;
+    tail_ = root_;
     return Status::OK();
 }
 
@@ -138,12 +118,12 @@ Status CreateTagValidator::validateImpl() {
     tagName_ = *sentence_->name();
     ifNotExist_ = sentence_->isIfNotExist();
     do {
-        status = SchemaCommon::validateColumns(sentence_->columnSpecs(), schema_);
+        status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
         }
-        status = SchemaCommon::validateProps(sentence_->getSchemaProps(), schema_);
+        status = SchemaUtil::validateProps(sentence_->getSchemaProps(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
@@ -162,7 +142,8 @@ Status CreateTagValidator::toPlan() {
                                    ifNotExist_);
     YieldColumns* cols = nullptr;
     auto *project = Project::make(plan, doNode, cols);
-    plan->setRoot(project);
+    root_ = project;
+    tail_ = root_;
     return Status::OK();
 }
 
@@ -171,12 +152,12 @@ Status CreateEdgeValidator::validateImpl() {
     edgeName_ = *sentence_->name();
     ifNotExist_ = sentence_->isIfNotExist();
     do {
-        status = SchemaCommon::validateColumns(sentence_->columnSpecs(), schema_);
+        status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
         }
-        status = SchemaCommon::validateProps(sentence_->getSchemaProps(), schema_);
+        status = SchemaUtil::validateProps(sentence_->getSchemaProps(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
@@ -195,7 +176,8 @@ Status CreateEdgeValidator::toPlan() {
                                    ifNotExist_);
     YieldColumns* cols = nullptr;
     auto *project = Project::make(plan, doNode, cols);
-    plan->setRoot(project);
+    root_ = project;
+    tail_ = root_;
     return Status::OK();
 }
 }  // namespace graph

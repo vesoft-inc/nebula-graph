@@ -42,7 +42,7 @@ public:
         kLoop,
         kRegisterSpaceToSession,
         kDedup,
-        kMultiOutputs
+        kMultiOutputs,
         kCreateSpace,
         kCreateTag,
         kCreateEdge,

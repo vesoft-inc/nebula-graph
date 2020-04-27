@@ -18,6 +18,7 @@ Status ASTValidator::validate(ExecutionPlan* plan) {
     validateContext_->setPlan(plan);
     validateContext_->setSession(session_);
     validateContext_->setSchemaMng(schemaMng_);
+    validateContext_->setCharsetInfo(charsetInfo_);
 
     // Check if space chosen from session. if chosen, add it to context.
     if (session_->space() > -1) {

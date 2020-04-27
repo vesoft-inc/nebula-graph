@@ -30,7 +30,7 @@ void QueryInstance::execute() {
 
         sentences_ = std::move(result).value();
         validator_ = std::make_unique<ASTValidator>(
-            sentences_.get(), rctx->session(), ectx()->schemaManager());
+            sentences_.get(), rctx->session(), ectx()->schemaManager(), ectx_->getCharsetInfo());
         status = validator_->validate(plan.get());
         if (!status.ok()) {
             LOG(ERROR) << status;

@@ -4,8 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_SCHEMACOMMON_H_
-#define VALIDATOR_SCHEMACOMMON_H_
+#ifndef VALIDATOR_SCHEMAUTIL_H_
+#define VALIDATOR_SCHEMAUTIL_H_
+
 #include "base/Base.h"
 #include "base/StatusOr.h"
 #include "expression/Expression.h"
@@ -16,10 +17,10 @@
 
 namespace nebula {
 namespace graph {
-class SchemaCommon final {
+class SchemaUtil final {
 public:
-    SchemaCommon() = default;
-    ~SchemaCommon() = default;
+    SchemaUtil() = default;
+    ~SchemaUtil() = default;
 
 public:
     static Status validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
@@ -54,5 +55,5 @@ public:
 };
 }  // namespace graph
 }  // namespace nebula
-#endif  // VALIDATOR_SCHEMACOMMON_H_
+#endif  // VALIDATOR_SCHEMAUTIL_H_
 

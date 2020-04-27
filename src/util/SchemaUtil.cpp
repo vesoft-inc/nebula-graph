@@ -5,13 +5,13 @@
 */
 
 #include "base/Base.h"
-#include "SchemaCommon.h"
+#include "SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
 
 // static
-Status SchemaCommon::validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
+Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
                                      meta::cpp2::Schema &schema) {
     auto status = Status::OK();
     std::unordered_set<std::string> nameSet;
@@ -30,7 +30,7 @@ Status SchemaCommon::validateColumns(const std::vector<ColumnSpecification*> &co
 
         if (spec->hasDefaultValue()) {
             auto value = spec->getDefaultValue();
-            auto valStatus = SchemaCommon::toSchemaValue(type, value);
+            auto valStatus = toSchemaValue(type, value);
             if (!valStatus.ok()) {
                 return valStatus.status();
             }
@@ -43,7 +43,7 @@ Status SchemaCommon::validateColumns(const std::vector<ColumnSpecification*> &co
 }
 
 // static
-Status SchemaCommon::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
+Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
                                    meta::cpp2::Schema &schema) {
     auto status = Status::OK();
     if (!schemaProps.empty()) {
@@ -78,7 +78,7 @@ Status SchemaCommon::validateProps(const std::vector<SchemaPropItem*> &schemaPro
 }
 
 // static
-StatusOr<nebula::Value> SchemaCommon::toSchemaValue(const meta::cpp2::PropertyType type,
+StatusOr<nebula::Value> SchemaUtil::toSchemaValue(const meta::cpp2::PropertyType type,
                                                     const Value &v) {
     switch (type) {
         case meta::cpp2::PropertyType::TIMESTAMP: {
@@ -127,13 +127,13 @@ StatusOr<nebula::Value> SchemaCommon::toSchemaValue(const meta::cpp2::PropertyTy
 }
 
 // static
-StatusOr<nebula::Timestamp> SchemaCommon::toTimestamp(const Value &) {
+StatusOr<nebula::Timestamp> SchemaUtil::toTimestamp(const Value &) {
     nebula::Timestamp timestamp = 0;
     return timestamp;
 }
 
 // static
-StatusOr<nebula::Date> SchemaCommon::toDate(const Value &) {
+StatusOr<nebula::Date> SchemaUtil::toDate(const Value &) {
     nebula::Date date;
     date.year = 0;
     date.month = 0;
@@ -142,7 +142,7 @@ StatusOr<nebula::Date> SchemaCommon::toDate(const Value &) {
 }
 
 // static
-StatusOr<nebula::DateTime> SchemaCommon::toDateTime(const Value &) {
+StatusOr<nebula::DateTime> SchemaUtil::toDateTime(const Value &) {
     nebula::DateTime dateTime;
     dateTime.year = 0;
     dateTime.month = 0;
@@ -156,7 +156,7 @@ StatusOr<nebula::DateTime> SchemaCommon::toDateTime(const Value &) {
 }
 
 // static
-Status SchemaCommon::setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
+Status SchemaUtil::setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
     auto ret = schemaProp->getTtlDuration();
     if (!ret.ok()) {
         return ret.status();
@@ -169,7 +169,7 @@ Status SchemaCommon::setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Sche
 
 
 // static
-Status SchemaCommon::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
+Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
     auto ret = schemaProp->getTtlCol();
     if (!ret.ok()) {
         return ret.status();
@@ -179,8 +179,6 @@ Status SchemaCommon::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& s
     // Check the legality of the ttl column name
     for (auto& col : schema.columns) {
         if (col.name == ttlColName) {
-            // Only integer columns and timestamp columns can be used as ttl_col
-            // TODO(YT) Ttl_duration supports datetime type
             if (col.type != meta::cpp2::PropertyType::INT64 &&
                 col.type != meta::cpp2::PropertyType::TIMESTAMP &&
                 col.type != meta::cpp2::PropertyType::DATE &&
@@ -195,7 +193,7 @@ Status SchemaCommon::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& s
 }
 
 // static
-StatusOr<VertexID> SchemaCommon::toVertexID(Expression *expr) {
+StatusOr<VertexID> SchemaUtil::toVertexID(Expression *expr) {
     auto vertexId = expr->eval();
     if (vertexId.isNull() ||
             (vertexId.type() != Value::Type::INT && vertexId.type() != Value::Type::STRING)) {
@@ -207,7 +205,7 @@ StatusOr<VertexID> SchemaCommon::toVertexID(Expression *expr) {
 
 // static
 StatusOr<std::vector<Value>>
-SchemaCommon::toValueVec(std::vector<Expression*> exprs) {
+SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
     std::vector<Value> values;
     values.reserve(exprs.size());
     for (auto *expr : exprs) {
@@ -221,7 +219,7 @@ SchemaCommon::toValueVec(std::vector<Expression*> exprs) {
     return values;
 }
 
-StatusOr<DataSet> SchemaCommon::toDescSchema(const meta::cpp2::Schema &schema) {
+StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
     DataSet dataSet;
     dataSet.colNames = {"Field", "Type", "Null", "Default"};
     for (auto &col : schema.get_columns()) {
@@ -235,7 +233,7 @@ StatusOr<DataSet> SchemaCommon::toDescSchema(const meta::cpp2::Schema &schema) {
     return dataSet;
 }
 
-std::string SchemaCommon::typeToString(const meta::cpp2::ColumnDef &col) {
+std::string SchemaUtil::typeToString(const meta::cpp2::ColumnDef &col) {
     switch (col.get_type()) {
         case meta::cpp2::PropertyType::BOOL:
             return "bool";

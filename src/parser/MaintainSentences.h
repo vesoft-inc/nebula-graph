@@ -47,11 +47,11 @@ public:
         return typeLen_;
     }
 
-    bool hasDefaultValue() {
+    bool hasDefaultValue() const {
         return defaultValue_ != nullptr;
     }
 
-    Value getDefaultValue() {
+    Value getDefaultValue() const {
         return defaultValue_->eval();
     }
 

@@ -61,7 +61,6 @@ reserved_key_words = [
     'KW_DATE',
     'KW_DATETIME',
     'KW_VID_SIZE',
-    'KW_BOOL',
     'KW_TAG',
     'KW_TAGS',
     'KW_UNION',

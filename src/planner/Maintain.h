@@ -28,7 +28,7 @@ public:
     }
 
 public:
-    meta::SpaceDesc getSpaceDesc() const {
+    const meta::SpaceDesc& getSpaceDesc() const {
         return props_;
     }
 
@@ -40,8 +40,7 @@ private:
     CreateSpace(ExecutionPlan* plan,
                 meta::SpaceDesc props,
                 bool ifNotExists)
-        : PlanNode(plan) {
-            kind_ = Kind::kCreateSpace;
+        : PlanNode(plan, Kind::kCreateSpace) {
             props_ = std::move(props);
             ifNotExists_ = ifNotExists;
         }
@@ -59,8 +58,8 @@ public:
     }
 
 protected:
-    SchemaNode(ExecutionPlan* plan, const GraphSpaceID space)
-        : PlanNode(plan), space_(space) {}
+    SchemaNode(ExecutionPlan* plan, Kind kind, const GraphSpaceID space)
+        : PlanNode(plan, kind), space_(space) {}
 
 protected:
     GraphSpaceID        space_;
@@ -69,21 +68,22 @@ protected:
 class CreateSchemaNode : public SchemaNode {
 protected:
     CreateSchemaNode(ExecutionPlan* plan,
+                     Kind kind,
                      GraphSpaceID space,
                      std::string name,
                      meta::cpp2::Schema schema,
                      bool ifNotExists)
-        : SchemaNode(plan, space)
+        : SchemaNode(plan, kind, space)
         , name_(std::move(name))
         , schema_(std::move(schema))
         , ifNotExists_(ifNotExists) {}
 
 public:
-    std::string getName() const {
+    const std::string& getName() const {
         return name_;
     }
 
-    meta::cpp2::Schema getSchema() const {
+    const meta::cpp2::Schema& getSchema() const {
         return schema_;
     }
 
@@ -121,8 +121,12 @@ private:
               std::string tagName,
               meta::cpp2::Schema schema,
               bool ifNotExists)
-        : CreateSchemaNode(plan, space, std::move(tagName), std::move(schema), ifNotExists) {
-            kind_ = Kind::kCreateTag;
+        : CreateSchemaNode(plan,
+                           Kind::kCreateTag,
+                           space,
+                           std::move(tagName),
+                           std::move(schema),
+                           ifNotExists) {
         }
 };
 
@@ -150,8 +154,12 @@ private:
                std::string edgeName,
                meta::cpp2::Schema schema,
                bool ifNotExists)
-        : CreateSchemaNode(plan, space, std::move(edgeName), std::move(schema), ifNotExists) {
-            kind_ = Kind::kCreateEdge;
+        : CreateSchemaNode(plan,
+                           Kind::kCreateEdge,
+                           space,
+                           std::move(edgeName),
+                           std::move(schema),
+                           ifNotExists) {
         }
 };
 
@@ -164,14 +172,15 @@ class AlterEdge final : public PlanNode {
 class DescSchema : public PlanNode {
 protected:
     DescSchema(ExecutionPlan* plan,
+               Kind kind,
                GraphSpaceID space,
                std::string name)
-        : PlanNode(plan)
+        : PlanNode(plan, kind)
         , space_(space)
         , name_(std::move(name)) {}
 
 public:
-    std::string getName() const {
+    const std::string& getName() const {
         return name_;
     }
 
@@ -200,8 +209,7 @@ private:
     DescTag(ExecutionPlan* plan,
             GraphSpaceID space,
             std::string tagName)
-        : DescSchema(plan, space, std::move(tagName)) {
-            kind_ = Kind::kDescTag;
+        : DescSchema(plan, Kind::kDescTag, space, std::move(tagName)) {
         }
 };
 
@@ -221,8 +229,7 @@ private:
     DescEdge(ExecutionPlan* plan,
             GraphSpaceID space,
             std::string edgeName)
-        : DescSchema(plan, space, std::move(edgeName)) {
-            kind_ = Kind::kDescEdge;
+        : DescSchema(plan, Kind::kDescEdge, space, std::move(edgeName)) {
         }
 };
 
@@ -237,15 +244,14 @@ public:
         return "DescSpace";
     }
 
-    std::string getSpaceName() const {
+    const std::string& getSpaceName() const {
         return spaceName_;
     }
 
 private:
     DescSpace(ExecutionPlan* plan,
               std::string spaceName)
-        : PlanNode(plan) {
-            kind_ = Kind::kDescEdge;
+        : PlanNode(plan, Kind::kDescEdge) {
             spaceName_ = std::move(spaceName);
         }
 

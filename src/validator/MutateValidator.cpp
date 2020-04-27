@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 #include "MutateValidator.h"
-#include "util/SchemaCommon.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -83,12 +83,12 @@ Status InsertVerticesValidator::prepareVertices() {
         if (propSize_ != row->values().size()) {
             return Status::Error("Wrong number of value");
         }
-        auto idStatus = SchemaCommon::toVertexID(row->id());
+        auto idStatus = SchemaUtil::toVertexID(row->id());
         if (!idStatus.ok()) {
             return idStatus.status();
         }
         auto vertexId = std::move(idStatus).value();
-        auto valsRet = SchemaCommon::toValueVec(row->values());
+        auto valsRet = SchemaUtil::toValueVec(row->values());
         if (valsRet.ok()) {
             return valsRet.status();
         }
@@ -104,7 +104,7 @@ Status InsertVerticesValidator::prepareVertices() {
             props.reserve(propNames.size());
             for (auto index = 0u; index < propNames.size(); index++) {
                 auto schemaType = schema->getFieldType(propNames[index]);
-                auto valueStatus = SchemaCommon::toSchemaValue(schemaType, values[handleValueNum]);
+                auto valueStatus = SchemaUtil::toSchemaValue(schemaType, values[handleValueNum]);
                 if (!valueStatus.ok()) {
                     return valueStatus.status();
                 }
@@ -186,12 +186,12 @@ Status InsertEdgesValidator::prepareEdges() {;
         if (propNames_.size() != row->values().size()) {
             return Status::Error("Wrong number of value");
         }
-        auto idStatus = SchemaCommon::toVertexID(row->srcid());
+        auto idStatus = SchemaUtil::toVertexID(row->srcid());
         if (!idStatus.ok()) {
             return idStatus.status();
         }
         auto srcId = std::move(idStatus).value();
-        idStatus = SchemaCommon::toVertexID(row->dstid());
+        idStatus = SchemaUtil::toVertexID(row->dstid());
         if (!idStatus.ok()) {
             return idStatus.status();
         }
@@ -199,7 +199,7 @@ Status InsertEdgesValidator::prepareEdges() {;
 
         int64_t rank = row->rank();
 
-        auto valsRet = SchemaCommon::toValueVec(row->values());
+        auto valsRet = SchemaUtil::toValueVec(row->values());
         if (valsRet.ok()) {
             return valsRet.status();
         }
@@ -207,7 +207,7 @@ Status InsertEdgesValidator::prepareEdges() {;
         std::vector<Value> props;
         for (auto index = 0u; index < propNames_.size(); index++) {
             auto schemaType = schema_->getFieldType(propNames_[index]);
-            auto valueStatus = SchemaCommon::toSchemaValue(schemaType, values[index]);
+            auto valueStatus = SchemaUtil::toSchemaValue(schemaType, values[index]);
             if (!valueStatus.ok()) {
                 return valueStatus.status();
             }
