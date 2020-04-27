@@ -43,6 +43,14 @@ public:
         kRegisterSpaceToSession,
         kDedup,
         kMultiOutputs
+        kCreateSpace,
+        kCreateTag,
+        kCreateEdge,
+        kDescSpace,
+        kDescTag,
+        kDescEdge,
+        kInsertVertices,
+        kInsertEdges,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

@@ -11,6 +11,7 @@
 #include "validator/Validator.h"
 #include "parser/MaintainSentences.h"
 #include "parser/AdminSentences.h"
+#include "clients/meta/MetaClient.h"
 
 namespace nebula {
 namespace graph {
@@ -21,11 +22,6 @@ public:
         sentence_ = static_cast<CreateSpaceSentence*>(sentence);
     }
 
-public:
-    meta::SpaceDesc getSpaceDesc() {
-        return std::move(spaceDesc_);
-    }
-
 private:
     Status validateImpl() override;
 
@@ -33,7 +29,8 @@ private:
 
 private:
     CreateSpaceSentence               *sentence_{nullptr};
-    meta::SpaceDesc                   spaceDesc_;
+    meta::SpaceDesc                    spaceDesc_;
+    bool                               ifNotExist_;
 };
 
 class CreateTagValidator final : public Validator {
@@ -49,7 +46,9 @@ private:
 
 private:
     CreateTagSentence               *sentence_{nullptr};
+    std::string                      tagName_;
     meta::cpp2::Schema               schema_;
+    bool                             ifNotExist_;
 };
 
 class CreateEdgeValidator final : public Validator {
@@ -65,7 +64,9 @@ private:
 
 private:
     CreateEdgeSentence               *sentence_{nullptr};
+    std::string                       edgeName_;
     meta::cpp2::Schema                schema_;
+    bool                              ifNotExist_;
 };
 }  // namespace graph
 }  // namespace nebula

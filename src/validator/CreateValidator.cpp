@@ -10,6 +10,8 @@
 #include "util/SchemaCommon.h"
 #include "parser/MaintainSentences.h"
 #include "service/GraphFlags.h"
+#include "planner/Maintain.h"
+#include "planner/Query.h"
 #include "CreateValidator.h"
 
 namespace nebula {
@@ -115,26 +117,35 @@ Status CreateSpaceValidator::validateImpl() {
         }
     }
 
+    ifNotExist_ = sentence_->isIfNotExist();
     return status;
 }
 
 Status CreateSpaceValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    root_ = StartNode::make(plan);
+    auto *doNode = CreateSpace::make(plan,
+                                     spaceDesc_,
+                                     ifNotExist_);
+    YieldColumns* cols = nullptr;
+    auto *project = Project::make(plan, doNode, cols);
+    plan->setRoot(project);
     return Status::OK();
 }
 
 Status CreateTagValidator::validateImpl() {
     auto status = Status::OK();
+    tagName_ = *sentence_->name();
+    ifNotExist_ = sentence_->isIfNotExist();
     do {
-        if (!spaceChosen()) {
-            status = Status::Error("Please choose a graph space with `USE spaceName' firstly");
-            break;
-        }
         status = SchemaCommon::validateColumns(sentence_->columnSpecs(), schema_);
         if (!status.ok()) {
+            VLOG(1) << status;
             break;
         }
         status = SchemaCommon::validateProps(sentence_->getSchemaProps(), schema_);
         if (!status.ok()) {
+            VLOG(1) << status;
             break;
         }
     } while (false);
@@ -142,18 +153,32 @@ Status CreateTagValidator::validateImpl() {
 }
 
 Status CreateTagValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    root_ = StartNode::make(plan);
+    auto *doNode = CreateTag::make(plan,
+                                   validateContext_->whichSpace().id,
+                                   tagName_,
+                                   schema_,
+                                   ifNotExist_);
+    YieldColumns* cols = nullptr;
+    auto *project = Project::make(plan, doNode, cols);
+    plan->setRoot(project);
     return Status::OK();
 }
 
 Status CreateEdgeValidator::validateImpl() {
     auto status = Status::OK();
+    edgeName_ = *sentence_->name();
+    ifNotExist_ = sentence_->isIfNotExist();
     do {
         status = SchemaCommon::validateColumns(sentence_->columnSpecs(), schema_);
         if (!status.ok()) {
+            VLOG(1) << status;
             break;
         }
         status = SchemaCommon::validateProps(sentence_->getSchemaProps(), schema_);
         if (!status.ok()) {
+            VLOG(1) << status;
             break;
         }
     } while (false);
@@ -161,6 +186,16 @@ Status CreateEdgeValidator::validateImpl() {
 }
 
 Status CreateEdgeValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    root_ = StartNode::make(plan);
+    auto *doNode = CreateTag::make(plan,
+                                   validateContext_->whichSpace().id,
+                                   edgeName_,
+                                   schema_,
+                                   ifNotExist_);
+    YieldColumns* cols = nullptr;
+    auto *project = Project::make(plan, doNode, cols);
+    plan->setRoot(project);
     return Status::OK();
 }
 }  // namespace graph

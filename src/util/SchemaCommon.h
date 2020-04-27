@@ -9,6 +9,7 @@
 #include "base/Base.h"
 #include "base/StatusOr.h"
 #include "expression/Expression.h"
+#include "datatypes/DataSet.h"
 #include "interface/gen-cpp2/common_types.h"
 #include "interface/gen-cpp2/meta_types.h"
 #include "parser/MaintainSentences.h"
@@ -46,6 +47,10 @@ public:
     static StatusOr<VertexID> toVertexID(Expression *expr);
 
     static StatusOr<std::vector<Value>> toValueVec(std::vector<Expression*> exprs);
+
+    static StatusOr<DataSet> toDescSchema(const meta::cpp2::Schema &schema);
+
+    static std::string typeToString(const meta::cpp2::ColumnDef &col);
 };
 }  // namespace graph
 }  // namespace nebula

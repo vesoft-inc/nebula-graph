@@ -32,7 +32,7 @@ public:
     static DateTime getUTCTime(bool decimals = false);
 
     // return true if value is Ok
-    static bool checkDatetime(const DateTime &nTime);
+    static bool checkDateTime(const DateTime &nTime);
 
     static StatusOr<Date> intToDate(const int64_t value);
 
@@ -71,8 +71,6 @@ public:
     static StatusOr<DateTime> isDate(const std::string &value);
 
     static StatusOr<DateTime> isDateTime(const std::string &value);
-
-    static bool checkDateTime(const DateTime &nTime);
 };
 
 

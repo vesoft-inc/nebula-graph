@@ -48,5 +48,18 @@ TEST_F(ValidatorTest, Subgraph) {
         // TODO: Check the plan.
     }
 }
+
+TEST_F(ValidatorTest, Schema) {
+    {
+        std::string query = "CREATE TAG person(name STRING, age INT, hobby FIXED_STRING(10))";
+        auto result = GQLParser().parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), session_, schemaMng_);
+        auto validateResult = validator.validate();
+        ASSERT_TRUE(validateResult.ok()) << validateResult.status();
+        // TODO: Check the plan.
+    }
+}
 }  // namespace graph
 }  // namespace nebula

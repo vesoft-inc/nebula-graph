@@ -285,7 +285,7 @@ StatusOr<DateTime> TimeCommon::toDateTimeValue(const Value &value, DateTimeType 
         return status.status();
     }
     auto resultValue = status.value();
-    if (!checkDatetime(resultValue)) {
+    if (!checkDateTime(resultValue)) {
         return Status::Error("Wrong time format");
     }
     return resultValue;

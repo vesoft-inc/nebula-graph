@@ -220,5 +220,55 @@ SchemaCommon::toValueVec(std::vector<Expression*> exprs) {
     }
     return values;
 }
+
+StatusOr<DataSet> SchemaCommon::toDescSchema(const meta::cpp2::Schema &schema) {
+    DataSet dataSet;
+    dataSet.colNames = {"Field", "Type", "Null", "Default"};
+    for (auto &col : schema.get_columns()) {
+        std::vector<Value> row;
+        row.emplace_back(Value(col.get_name()));
+        row.emplace_back(typeToString(col));
+        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        row.emplace_back(nullable ? "YES" : "NO");
+        row.emplace_back(col.get_default_value());
+    }
+    return dataSet;
+}
+
+std::string SchemaCommon::typeToString(const meta::cpp2::ColumnDef &col) {
+    switch (col.get_type()) {
+        case meta::cpp2::PropertyType::BOOL:
+            return "bool";
+        case meta::cpp2::PropertyType::INT8:
+            return "int8";
+        case meta::cpp2::PropertyType::INT16:
+            return "int16";
+        case meta::cpp2::PropertyType::INT32:
+            return "int32";
+        case meta::cpp2::PropertyType::INT64:
+            return "int64";
+        case meta::cpp2::PropertyType::VID:
+            return "vid";
+        case meta::cpp2::PropertyType::FLOAT:
+            return "float";
+        case meta::cpp2::PropertyType::DOUBLE:
+            return "double";
+        case meta::cpp2::PropertyType::STRING:
+            return "string";
+        case meta::cpp2::PropertyType::FIXED_STRING: {
+            auto typeLen = col.__isset.type_length ? *col.get_type_length() : 0;
+            return folly::stringPrintf("fixed_string(%d)", typeLen);
+        }
+        case meta::cpp2::PropertyType::TIMESTAMP:
+            return "timestamp";
+        case meta::cpp2::PropertyType::DATE:
+            return "date";
+        case meta::cpp2::PropertyType::DATETIME:
+            return "datetime";
+        case meta::cpp2::PropertyType::UNKNOWN:
+            return "";
+    }
+    return "";
+}
 }  // namespace graph
 }  // namespace nebula
