@@ -22,8 +22,10 @@ namespace graph {
 folly::Future<Status> GetEdgesExecutor::execute() {
     return SingleInputExecutor::execute().then(cb([this](Status s) {
         if (!s.ok()) return error(std::move(s));
-        watch_.start();
-        return getEdges().ensure([this]() { watch_.stop(); });
+        return getEdges().ensure([this]() {
+            // TODO(yee): some cleanup or stats actions
+            UNUSED(this);
+        });
     }));
 }
 

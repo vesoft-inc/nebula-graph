@@ -7,7 +7,6 @@
 #include "exec/query/SelectExecutor.h"
 
 #include "planner/Query.h"
-#include "util/StopWatch.h"
 
 namespace nebula {
 namespace graph {
@@ -41,7 +40,6 @@ folly::Future<Status> SelectExecutor::execute() {
         auto result = true;
 
         {
-            ScopedTimer sc(elapsedTime_);
             dumpLog();
 
             auto* select = asNode<Selector>(node());

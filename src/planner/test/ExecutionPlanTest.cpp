@@ -15,7 +15,8 @@
 #include "planner/Query.h"
 #include "service/ExecutionContext.h"
 
-namespace chrono = std::chrono;
+using std::chrono::duration_cast;
+using std::chrono::microseconds;
 
 namespace nebula {
 namespace graph {
@@ -48,9 +49,8 @@ public:
                 .then([](Status s) { ASSERT_TRUE(s.ok()) << s.toString(); })
                 .onError([](const ExecutionError& e) { LOG(INFO) << e.what(); })
                 .onError([](const std::exception& e) { LOG(INFO) << "exception: " << e.what(); })
-                .ensure([this, executor]() {
-                    LOG(INFO) << "Execution plan profiling\n" << executor->debugString() << "\n";
-                    auto us = chrono::duration_cast<chrono::microseconds>(watch_.elapsed());
+                .ensure([this]() {
+                    auto us = duration_cast<microseconds>(watch_.elapsed());
                     LOG(INFO) << "elapsed time: " << us.count() << "us";
                     cleanup();
                 });

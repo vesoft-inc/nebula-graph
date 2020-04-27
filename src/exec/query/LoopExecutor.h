@@ -8,7 +8,6 @@
 #define EXEC_QUERY_LOOPEXECUTOR_H_
 
 #include "exec/Executor.h"
-#include "util/StopWatch.h"
 
 namespace nebula {
 namespace graph {
@@ -17,14 +16,11 @@ class LoopExecutor final : public SingleInputExecutor {
 public:
     LoopExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input, Executor *body)
         : SingleInputExecutor("LoopExecutor", node, ectx, input),
-          body_(body),
-          stopWatch_(loopTime_) {}
+          body_(body) {}
 
     Status prepare() override;
 
     folly::Future<Status> execute() override;
-
-    std::string debugString() const override;
 
 private:
     folly::Future<Status> iterate();
@@ -38,9 +34,6 @@ private:
     // body. The mainly usage is that MultiOutputsExecutor could check whether current execution is
     // called multiple times.
     int64_t iterCount_{-1};
-
-    StopWatch stopWatch_;
-    std::chrono::nanoseconds loopTime_{0};
 };
 
 }   // namespace graph

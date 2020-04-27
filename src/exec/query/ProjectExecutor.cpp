@@ -8,7 +8,6 @@
 
 #include "parser/Clauses.h"
 #include "planner/Query.h"
-#include "util/StopWatch.h"
 
 namespace nebula {
 namespace graph {
@@ -16,7 +15,6 @@ namespace graph {
 folly::Future<Status> ProjectExecutor::execute() {
     return SingleInputExecutor::execute().then(cb([this](Status s) {
         if (!s.ok()) return error(std::move(s));
-        ScopedTimer sc(elapsedTime_);
         dumpLog();
         auto *project = asNode<Project>(node());
         auto columns = project->columns();

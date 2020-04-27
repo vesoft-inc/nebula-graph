@@ -171,11 +171,6 @@ Executor *Executor::makeExecutor(const PlanNode *node,
     return ectx->objPool()->add(exec);
 }
 
-std::string Executor::debugString() const {
-    auto us = std::chrono::duration_cast<std::chrono::microseconds>(elapsedTime_).count();
-    return stringPrintf("%s(%ld): elapsedTime(%ldus)", name_.c_str(), id(), us);
-}
-
 int64_t Executor::id() const {
     return node()->id();
 }
@@ -219,10 +214,6 @@ folly::Future<Status> SingleInputExecutor::execute() {
     return input_->execute();
 }
 
-std::string SingleInputExecutor::debugString() const {
-    return input_->debugString() + "\n" + Executor::debugString();
-}
-
 folly::Future<Status> MultiInputsExecutor::execute() {
     std::vector<folly::Future<Status>> futures;
     for (auto *in : inputs_) {
@@ -234,15 +225,6 @@ folly::Future<Status> MultiInputsExecutor::execute() {
         }
         return Status::OK();
     }));
-}
-
-std::string MultiInputsExecutor::debugString() const {
-    std::stringstream ss;
-    for (auto in : inputs_) {
-        ss << in->debugString() << "\n";
-    }
-    ss << Executor::debugString();
-    return ss.str();
 }
 
 }   // namespace graph

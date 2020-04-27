@@ -14,7 +14,6 @@
 #include "datatypes/Vertex.h"
 #include "exec/Executor.h"
 #include "interface/gen-cpp2/storage_types.h"
-#include "util/StopWatch.h"
 
 namespace nebula {
 namespace graph {
@@ -22,7 +21,7 @@ namespace graph {
 class GetNeighborsExecutor final : public SingleInputExecutor {
 public:
     GetNeighborsExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-        : SingleInputExecutor("GetNeighborsExecutor", node, ectx, input), watch_(elapsedTime_) {}
+        : SingleInputExecutor("GetNeighborsExecutor", node, ectx, input) {}
 
     folly::Future<Status> execute() override;
 
@@ -34,8 +33,6 @@ private:
     Status collectVertexTags(const std::vector<std::string> &schema,
                              const std::vector<Value> &resp,
                              std::vector<Tag> *tags) const;
-
-    StopWatch watch_;
 };
 
 }   // namespace graph

@@ -8,7 +8,6 @@
 #define EXEC_QUERY_GETVERTICESEXECUTOR_H_
 
 #include "exec/Executor.h"
-#include "util/StopWatch.h"
 
 namespace nebula {
 namespace graph {
@@ -16,14 +15,12 @@ namespace graph {
 class GetVerticesExecutor final : public SingleInputExecutor {
 public:
     GetVerticesExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-        : SingleInputExecutor("GetVerticesExecutor", node, ectx, input), watch_(elapsedTime_) {}
+        : SingleInputExecutor("GetVerticesExecutor", node, ectx, input) {}
 
     folly::Future<Status> execute() override;
 
 private:
     folly::Future<Status> getVertices();
-
-    StopWatch watch_;
 };
 
 }   // namespace graph

@@ -8,7 +8,6 @@
 
 #include "planner/Query.h"
 #include "service/ExecutionContext.h"
-#include "util/StopWatch.h"
 
 namespace nebula {
 namespace graph {
@@ -37,7 +36,6 @@ folly::Future<Status> MultiOutputsExecutor::execute() {
     }
 
     return input_->execute().then(cb([this](Status s) {
-        ScopedTimer sc(elapsedTime_);
         dumpLog();
 
         sharedPromise_->setValue(s);

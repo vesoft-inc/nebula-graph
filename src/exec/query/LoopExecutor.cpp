@@ -29,8 +29,10 @@ folly::Future<Status> LoopExecutor::execute() {
     return SingleInputExecutor::execute().then(cb([this](Status s) {
         if (!s.ok()) return error(std::move(s));
 
-        stopWatch_.start();
-        return iterate().ensure([this]() { stopWatch_.stop(); });
+        return iterate().ensure([this]() {
+            // TODO(yee): some cleanup or stats actions
+            UNUSED(this);
+        });
     }));
 }
 
@@ -48,8 +50,6 @@ folly::Future<Status> LoopExecutor::iterate() {
 }
 
 bool LoopExecutor::toContinue() {
-    ScopedTimer st(elapsedTime_);
-
     dumpLog();
     auto *loopNode = asNode<Loop>(node());
     const Expression *expr = loopNode->condition();
@@ -66,12 +66,6 @@ bool LoopExecutor::toContinue() {
     value.setInt(++iterCount_);
     ectx()->addValue(loopNode->varName(), std::move(value));
     return true;
-}
-
-std::string LoopExecutor::debugString() const {
-    auto loopTime = std::chrono::duration_cast<std::chrono::microseconds>(loopTime_).count();
-    auto prefix = SingleInputExecutor::debugString();
-    return stringPrintf("%s, loopTime(%ldus)", prefix.c_str(), loopTime);
 }
 
 }   // namespace graph

@@ -65,8 +65,6 @@ public:
     // Implementation interface of operation logic
     virtual folly::Future<Status> execute() = 0;
 
-    virtual std::string debugString() const;
-
     ExecutionContext *ectx() const {
         return ectx_;
     }
@@ -79,10 +77,6 @@ public:
 
     const PlanNode *node() const {
         return node_;
-    }
-
-    std::chrono::nanoseconds elapsedTime() const {
-        return elapsedTime_;
     }
 
     template <typename Fn>
@@ -124,8 +118,6 @@ protected:
     ExecutionContext *ectx_;
 
     // TODO: Some statistics
-
-    std::chrono::nanoseconds elapsedTime_{0};
 };
 
 class SingleInputExecutor : public Executor {
@@ -135,8 +127,6 @@ public:
     }
 
     folly::Future<Status> execute() override;
-
-    std::string debugString() const override;
 
 protected:
     SingleInputExecutor(const std::string &name,
@@ -161,8 +151,6 @@ public:
     }
 
     folly::Future<Status> execute() override;
-
-    std::string debugString() const override;
 
 protected:
     MultiInputsExecutor(const std::string &name,

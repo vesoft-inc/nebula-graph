@@ -8,7 +8,6 @@
 #define EXEC_QUERY_GETEDGESEXECUTOR_H_
 
 #include "exec/Executor.h"
-#include "util/StopWatch.h"
 
 namespace nebula {
 namespace graph {
@@ -16,14 +15,12 @@ namespace graph {
 class GetEdgesExecutor final : public SingleInputExecutor {
 public:
     GetEdgesExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-        : SingleInputExecutor("GetEdgesExecutor", node, ectx, input), watch_(elapsedTime_) {}
+        : SingleInputExecutor("GetEdgesExecutor", node, ectx, input) {}
 
     folly::Future<Status> execute() override;
 
 private:
     folly::Future<Status> getEdges();
-
-    StopWatch watch_;
 };
 
 }   // namespace graph
