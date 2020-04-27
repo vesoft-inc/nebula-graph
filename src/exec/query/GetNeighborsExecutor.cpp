@@ -6,6 +6,8 @@
 
 #include "exec/query/GetNeighborsExecutor.h"
 
+#include <sstream>
+
 // common
 #include "clients/storage/GraphStorageClient.h"
 #include "datatypes/List.h"
@@ -14,7 +16,6 @@
 #include "planner/Query.h"
 #include "service/ExecutionContext.h"
 
-using nebula::cpp2::TagID;
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::GetNeighborsResponse;
@@ -34,13 +35,11 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 }
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
-    dumpLog();
-
     const GetNeighbors* gn = asNode<GetNeighbors>(node());
     Expression* srcExpr = gn->src();
-    // TODO(yee): get vertex id list by evaluating above expression
-    UNUSED(srcExpr);
-    // srcExpr->eval(Getters &getters);
+    Value value = srcExpr->eval();
+    // TODO(yee): compute starting point
+    UNUSED(value);
 
     std::vector<std::string> colNames;
 
@@ -82,77 +81,32 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 }
 
 Status GetNeighborsExecutor::handleResponse(const std::vector<GetNeighborsResponse>& responses) {
-    // nebula::List l;
-    // for (auto& resp : responses) {
-    //     auto vertices = resp.get_vertices();
-    //     if (vertices == nullptr) {
-    //         LOG(INFO) << "Empty vertices in response";
-    //         continue;
-    //     }
+    for (auto& resp : responses) {
+        checkResponseResult(resp.get_result());
 
-    //     for (auto& vertex : *vertices) {
-    //         auto vertData = vertex.get_vertex_data();
-    //         if (vertData == nullptr) {
-    //             LOG(INFO) << "Empty properties in vertex " << vertex.get_id();
-    //             continue;
-    //         }
+        auto dataset = resp.get_vertices();
+        if (dataset == nullptr) {
+            LOG(INFO) << "Empty dataset in response";
+            continue;
+        }
 
-    //         auto gn = asNode<GetNeighbors>(node());
-    //         std::vector<Tag> tags;
-    //         auto status = collectVertexTags(gn->vertexProps(), vertData->get_props(), &tags);
-    //         if (!status.ok()) return status;
-
-    //         nebula::Vertex vert;
-    //         vert.vid = vertex.get_id();
-    //         vert.tags = std::move(tags);
-
-    //         l.values.emplace_back(std::move(vert));
-    //     }
-    // }
-
-    // // Store response results to ExecutionContext
-    // return finish({std::move(l)});
-    UNUSED(responses);
-    return Status::OK();
+        // Store response results to ExecutionContext
+        return finish({*dataset});
+    }
+    return Status::Error("Invalid result of neighbors");
 }
 
-Status GetNeighborsExecutor::collectVertexTags(const std::vector<std::string>& schema,
-                                               const std::vector<Value>& resp,
-                                               std::vector<Tag>* tags) const {
-    // if (schema.size() != resp.size()) {
-    //     return Status::Error("Invalid storage response data of vertices");
-    // }
-
-    // std::unordered_map<TagID, Tag> tagMap;
-    // // auto schemaMgr = ectx()->schemaManager();
-
-    // for (size_t i = 0, e = schema.size(); i < e; i++) {
-    //     auto tagId = schema[i].get_tag();
-    //     auto iter = tagMap.find(tagId);
-    //     if (iter == tagMap.end()) {
-    //         // TODO(yee): wait for nebula-common updating
-    //         // auto tagName = schemaMgr->toTagName(gn->space(), tagId);
-    //         nebula::Tag tag;
-    //         std::string tagName = "";
-    //         tag.name = tagName;
-    //         auto inserted = tagMap.insert({tagId, std::move(tag)});
-    //         if (!inserted.second) {
-    //             return Status::Error("Runtime error for caching tag %d", tagId);
-    //         }
-    //         iter = inserted.first;
-    //     }
-    //     iter->second.props.insert({schema[i].get_name(), std::move(resp[i])});
-    // }
-
-    // for (auto& t : tagMap) {
-    //     tags->emplace_back(std::move(t.second));
-    // }
-    // return Status::OK();
-
-    UNUSED(schema);
-    UNUSED(resp);
-    UNUSED(tags);
-    return Status::OK();
+void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseCommon& result) const {
+    auto failedParts = result.get_failed_parts();
+    if (!failedParts.empty()) {
+        std::stringstream ss;
+        for (auto& part : failedParts) {
+            ss << "error code: " << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(part.get_code())
+               << ", leader: " << part.get_leader()->ip << ":" << part.get_leader()->port
+               << ", part id: " << part.get_part_id() << "; ";
+        }
+        LOG(ERROR) << ss.str();
+    }
 }
 
 }   // namespace graph

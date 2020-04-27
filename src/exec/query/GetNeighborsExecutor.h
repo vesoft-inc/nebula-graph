@@ -30,9 +30,7 @@ private:
 
     Status handleResponse(const std::vector<storage::cpp2::GetNeighborsResponse> &responses);
 
-    Status collectVertexTags(const std::vector<std::string> &schema,
-                             const std::vector<Value> &resp,
-                             std::vector<Tag> *tags) const;
+    void checkResponseResult(const storage::cpp2::ResponseCommon &resp) const;
 };
 
 }   // namespace graph
