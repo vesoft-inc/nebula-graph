@@ -19,7 +19,7 @@ void QueryInstance::execute() {
     FLOG_INFO("Parsing query: %s", rctx->query().c_str());
 
     Status status;
-    std::unique_ptr<ExecutionPlan> plan;
+    auto plan = std::make_unique<ExecutionPlan>(ectx());
     do {
         auto result = GQLParser().parse(rctx->query());
         if (!result.ok()) {
@@ -31,14 +31,11 @@ void QueryInstance::execute() {
         sentences_ = std::move(result).value();
         validator_ = std::make_unique<ASTValidator>(
             sentences_.get(), rctx->session(), ectx()->schemaManager());
-        auto validateResult = validator_->validate(ectx());
-        if (!validateResult.ok()) {
-            status = std::move(validateResult).status();
+        status = validator_->validate(plan.get());
+        if (!status.ok()) {
             LOG(ERROR) << status;
             break;
         }
-
-        plan = std::move(validateResult.value());
 
         // TODO: optional optimize for plan.
     } while (false);
