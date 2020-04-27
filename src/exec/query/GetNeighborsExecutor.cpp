@@ -14,6 +14,7 @@
 #include "planner/Query.h"
 #include "service/ExecutionContext.h"
 
+using nebula::cpp2::TagID;
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::GetNeighborsResponse;
@@ -39,14 +40,21 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     UNUSED(srcExpr);
     // srcExpr->eval(Getters &getters);
 
+    std::vector<std::string> colNames;
+
     GraphStorageClient* storageClient = ectx()->getStorageClient();
     return storageClient
         ->getNeighbors(gn->space(),
+                       std::move(colNames),
                        gn->vertices(),
                        gn->edgeTypes(),
-                       gn->vertexProps(),
-                       gn->edgeProps(),
-                       gn->statProps(),
+                       gn->edgeDirection(),
+                       &gn->statProps(),
+                       &gn->vertexProps(),
+                       &gn->edgeProps(),
+                       gn->dedup(),
+                       gn->orderBy(),
+                       gn->limit(),
                        gn->filter())
         .via(runner())
         .then([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
@@ -72,69 +80,76 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 }
 
 Status GetNeighborsExecutor::handleResponse(const std::vector<GetNeighborsResponse>& responses) {
-    nebula::List l;
-    for (auto& resp : responses) {
-        auto vertices = resp.get_vertices();
-        if (vertices == nullptr) {
-            LOG(INFO) << "Empty vertices in response";
-            continue;
-        }
+    // nebula::List l;
+    // for (auto& resp : responses) {
+    //     auto vertices = resp.get_vertices();
+    //     if (vertices == nullptr) {
+    //         LOG(INFO) << "Empty vertices in response";
+    //         continue;
+    //     }
 
-        for (auto& vertex : *vertices) {
-            auto vertData = vertex.get_vertex_data();
-            if (vertData == nullptr) {
-                LOG(INFO) << "Empty properties in vertex " << vertex.get_id();
-                continue;
-            }
+    //     for (auto& vertex : *vertices) {
+    //         auto vertData = vertex.get_vertex_data();
+    //         if (vertData == nullptr) {
+    //             LOG(INFO) << "Empty properties in vertex " << vertex.get_id();
+    //             continue;
+    //         }
 
-            auto gn = asNode<GetNeighbors>(node());
-            std::vector<nebula::Tag> tags;
-            auto status = collectVertexTags(gn->vertexProps(), vertData->get_props(), &tags);
-            if (!status.ok()) return status;
+    //         auto gn = asNode<GetNeighbors>(node());
+    //         std::vector<Tag> tags;
+    //         auto status = collectVertexTags(gn->vertexProps(), vertData->get_props(), &tags);
+    //         if (!status.ok()) return status;
 
-            nebula::Vertex vert;
-            vert.vid = vertex.get_id();
-            vert.tags = std::move(tags);
+    //         nebula::Vertex vert;
+    //         vert.vid = vertex.get_id();
+    //         vert.tags = std::move(tags);
 
-            l.values.emplace_back(std::move(vert));
-        }
-    }
+    //         l.values.emplace_back(std::move(vert));
+    //     }
+    // }
 
-    // Store response results to ExecutionContext
-    return finish({std::move(l)});
+    // // Store response results to ExecutionContext
+    // return finish({std::move(l)});
+    UNUSED(responses);
+    return Status::OK();
 }
 
-Status GetNeighborsExecutor::collectVertexTags(const std::vector<storage::cpp2::VertexProp>& schema,
-                                               const std::vector<nebula::Value>& resp,
-                                               std::vector<nebula::Tag>* tags) const {
-    if (schema.size() != resp.size()) {
-        return Status::Error("Invalid storage response data of vertices");
-    }
+Status GetNeighborsExecutor::collectVertexTags(const std::vector<std::string>& schema,
+                                               const std::vector<Value>& resp,
+                                               std::vector<Tag>* tags) const {
+    // if (schema.size() != resp.size()) {
+    //     return Status::Error("Invalid storage response data of vertices");
+    // }
 
-    std::unordered_map<nebula::cpp2::TagID, nebula::Tag> tagMap;
-    // auto schemaMgr = ectx()->schemaManager();
+    // std::unordered_map<TagID, Tag> tagMap;
+    // // auto schemaMgr = ectx()->schemaManager();
 
-    for (size_t i = 0, e = schema.size(); i < e; i++) {
-        auto tagId = schema[i].get_tag();
-        auto iter = tagMap.find(tagId);
-        if (iter == tagMap.end()) {
-            // TODO(yee): wait for nebula-common updating
-            // auto tagName = schemaMgr->toTagName(gn->space(), tagId);
-            nebula::Tag tag;
-            std::string tagName = "";
-            tag.name = tagName;
-            auto inserted = tagMap.insert({tagId, std::move(tag)});
-            if (!inserted.second) {
-                return Status::Error("Runtime error for caching tag %d", tagId);
-            }
-            iter = inserted.first;
-        }
-        iter->second.props.insert({schema[i].get_name(), std::move(resp[i])});
-    }
+    // for (size_t i = 0, e = schema.size(); i < e; i++) {
+    //     auto tagId = schema[i].get_tag();
+    //     auto iter = tagMap.find(tagId);
+    //     if (iter == tagMap.end()) {
+    //         // TODO(yee): wait for nebula-common updating
+    //         // auto tagName = schemaMgr->toTagName(gn->space(), tagId);
+    //         nebula::Tag tag;
+    //         std::string tagName = "";
+    //         tag.name = tagName;
+    //         auto inserted = tagMap.insert({tagId, std::move(tag)});
+    //         if (!inserted.second) {
+    //             return Status::Error("Runtime error for caching tag %d", tagId);
+    //         }
+    //         iter = inserted.first;
+    //     }
+    //     iter->second.props.insert({schema[i].get_name(), std::move(resp[i])});
+    // }
 
-    for (auto& t : tagMap) {
-        tags->emplace_back(std::move(t.second));
-    }
+    // for (auto& t : tagMap) {
+    //     tags->emplace_back(std::move(t.second));
+    // }
+    // return Status::OK();
+
+    UNUSED(schema);
+    UNUSED(resp);
+    UNUSED(tags);
     return Status::OK();
 }
 

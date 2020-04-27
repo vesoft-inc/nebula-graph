@@ -14,7 +14,7 @@
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
-using nebula::storage::cpp2::EdgePropResponse;
+using nebula::storage::cpp2::GetPropResponse;
 
 namespace nebula {
 namespace graph {
@@ -35,15 +35,16 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         return error(Status::Error("Invalid storage client for GetEdgesExecutor"));
     }
 
-    auto *ge = asNode<GetEdges>(node());
+    // auto *ge = asNode<GetEdges>(node());
 
-    return client->getEdgeProps(ge->space(), ge->edges(), ge->props(), ge->filter())
-        .via(runner())
-        .then([this](StorageRpcResponse<EdgePropResponse> resp) {
-            resp.responses();
-            nebula::Value value;
-            return finish(std::move(value));
-        });
+    // return client->getProps(ge->space(), ge->edges(), ge->props(), ge->filter())
+    //     .via(runner())
+    //     .then([this](StorageRpcResponse<GetPropResponse> resp) {
+    //         resp.responses();
+    //         nebula::Value value;
+    //         return finish(std::move(value));
+    //     });
+    return start();
 }
 
 }   // namespace graph

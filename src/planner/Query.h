@@ -209,28 +209,28 @@ public:
         return src_;
     }
 
-    std::vector<VertexID> vertices() const {
+    const std::vector<Row>& vertices() const {
         return vertices_;
     }
 
-    std::vector<EdgeType> edgeTypes() const {
+    storage::cpp2::EdgeDirection edgeDirection() const {
+        return edgeDirection_;
+    }
+
+    const std::vector<EdgeType>& edgeTypes() const {
         return edgeTypes_;
     }
 
-    std::vector<storage::cpp2::VertexProp> vertexProps() const {
+    const std::vector<std::string>& vertexProps() const {
         return vertexProps_;
     }
 
-    std::vector<storage::cpp2::EdgeProp> edgeProps() const {
+    const std::vector<std::string>& edgeProps() const {
         return edgeProps_;
     }
 
-    std::vector<storage::cpp2::StatProp> statProps() const {
+    const std::vector<storage::cpp2::StatProp>& statProps() const {
         return statProps_;
-    }
-
-    std::string filter() const {
-        return filter_;
     }
 
 private:
@@ -307,7 +307,7 @@ public:
 
     std::string explain() const override;
 
-    std::vector<VertexID> vertices() const {
+    const std::vector<Row>& vertices() const {
         return vertices_;
     }
 
@@ -315,12 +315,8 @@ public:
         return src_;
     }
 
-    std::vector<storage::cpp2::VertexProp> props() const {
+    const std::vector<std::string>& props() const {
         return props_;
-    }
-
-    std::string filter() const {
-        return filter_;
     }
 
 private:
@@ -390,7 +386,7 @@ public:
 
     std::string explain() const override;
 
-    std::vector<storage::cpp2::EdgeKey> edges() const {
+    const std::vector<Row>& edges() const {
         return edges_;
     }
 
@@ -406,12 +402,8 @@ public:
         return dst_;
     }
 
-    std::vector<storage::cpp2::EdgeProp> props() const {
+    const std::vector<std::string>& props() const {
         return props_;
-    }
-
-    std::string filter() const {
-        return filter_;
     }
 
 private:

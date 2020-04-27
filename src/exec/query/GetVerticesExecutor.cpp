@@ -14,7 +14,7 @@
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
-using nebula::storage::cpp2::VertexPropResponse;
+using nebula::storage::cpp2::GetPropResponse;
 
 namespace nebula {
 namespace graph {
@@ -30,24 +30,25 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 folly::Future<Status> GetVerticesExecutor::getVertices() {
     dumpLog();
 
-    auto *gv = asNode<GetVertices>(node());
-    Expression *srcExpr = gv->src();
-    UNUSED(srcExpr);
+    // auto *gv = asNode<GetVertices>(node());
+    // Expression *srcExpr = gv->src();
+    // UNUSED(srcExpr);
 
-    std::vector<VertexID> vertices;
-    // TODO(yee): compute vertices by evaluate expression
+    // std::vector<VertexID> vertices;
+    // // TODO(yee): compute vertices by evaluate expression
 
-    GraphStorageClient *storageClient_ = ectx()->getStorageClient();
+    // GraphStorageClient *storageClient_ = ectx()->getStorageClient();
 
-    return storageClient_->getVertexProps(gv->space(), vertices, gv->props(), gv->filter())
-        .via(runner())
-        .then([this](StorageRpcResponse<VertexPropResponse> resp) {
-            if (!resp.succeeded()) return Status::PartNotFound();
-            resp.responses();
-            nebula::Value value;
-            finish(std::move(value));
-            return Status::OK();
-        });
+    // return storageClient_->getVertexProps(gv->space(), vertices, gv->props(), gv->filter())
+    //     .via(runner())
+    //     .then([this](StorageRpcResponse<VertexPropResponse> resp) {
+    //         if (!resp.succeeded()) return Status::PartNotFound();
+    //         resp.responses();
+    //         nebula::Value value;
+    //         finish(std::move(value));
+    //         return Status::OK();
+    //     });
+    return start();
 }
 
 }   // namespace graph

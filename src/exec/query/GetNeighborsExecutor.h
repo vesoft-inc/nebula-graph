@@ -29,12 +29,11 @@ public:
 private:
     folly::Future<Status> getNeighbors();
 
-    Status handleResponse(
-        const std::vector<nebula::storage::cpp2::GetNeighborsResponse> &responses);
+    Status handleResponse(const std::vector<storage::cpp2::GetNeighborsResponse> &responses);
 
-    Status collectVertexTags(const std::vector<storage::cpp2::VertexProp> &schema,
-                             const std::vector<nebula::Value> &resp,
-                             std::vector<nebula::Tag> *tags) const;
+    Status collectVertexTags(const std::vector<std::string> &schema,
+                             const std::vector<Value> &resp,
+                             std::vector<Tag> *tags) const;
 
     StopWatch watch_;
 };
