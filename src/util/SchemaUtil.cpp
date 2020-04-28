@@ -222,14 +222,19 @@ SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
 StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
     DataSet dataSet;
     dataSet.colNames = {"Field", "Type", "Null", "Default"};
+    std::vector<Row> rows;
     for (auto &col : schema.get_columns()) {
-        std::vector<Value> row;
-        row.emplace_back(Value(col.get_name()));
-        row.emplace_back(typeToString(col));
+        std::vector<Value> columns;
+        columns.emplace_back(Value(col.get_name()));
+        columns.emplace_back(typeToString(col));
         auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
-        row.emplace_back(nullable ? "YES" : "NO");
-        row.emplace_back(col.get_default_value());
+        columns.emplace_back(nullable ? "YES" : "NO");
+        columns.emplace_back(col.get_default_value());
+        Row row;
+        row.columns = std::move(columns);
+        rows.emplace_back(row);
     }
+    dataSet.rows = std::move(rows);
     return dataSet;
 }
 

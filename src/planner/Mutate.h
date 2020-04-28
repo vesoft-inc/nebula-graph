@@ -48,8 +48,7 @@ private:
                    GraphSpaceID spaceId,
                    std::vector<storage::cpp2::NewVertex> vertices,
                    bool overwritable)
-    : PlanNode(plan)
-    , kind_(Kind::kInsertVertices)
+    : PlanNode(plan, Kind::kInsertVertices)
     , space_(spaceId)
     , vertices_(std::move(vertices))
     , overwritable_(overwritable) {}
@@ -93,8 +92,7 @@ private:
                 GraphSpaceID spaceId,
                 std::vector<storage::cpp2::NewEdge> edges,
                 bool overwritable)
-    : PlanNode(plan)
-    , kind_(Kind::kInsertEdges)
+    : PlanNode(plan, Kind::kInsertEdges)
     , space_(spaceId)
     , edges_(std::move(edges))
     , overwritable_(overwritable) {}
