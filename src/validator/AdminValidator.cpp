@@ -10,9 +10,9 @@
 #include "util/SchemaUtil.h"
 #include "parser/MaintainSentences.h"
 #include "service/GraphFlags.h"
-#include "planner/Maintain.h"
+#include "planner/Admin.h"
 #include "planner/Query.h"
-#include "CreateValidator.h"
+#include "validator/AdminValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -113,67 +113,15 @@ Status CreateSpaceValidator::toPlan() {
     return Status::OK();
 }
 
-Status CreateTagValidator::validateImpl() {
-    auto status = Status::OK();
-    tagName_ = *sentence_->name();
-    ifNotExist_ = sentence_->isIfNotExist();
-    do {
-        status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
-        if (!status.ok()) {
-            VLOG(1) << status;
-            break;
-        }
-        status = SchemaUtil::validateProps(sentence_->getSchemaProps(), schema_);
-        if (!status.ok()) {
-            VLOG(1) << status;
-            break;
-        }
-    } while (false);
-    return status;
-}
-
-Status CreateTagValidator::toPlan() {
-    auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
-    auto *doNode = CreateTag::make(plan,
-                                   validateContext_->whichSpace().id,
-                                   tagName_,
-                                   schema_,
-                                   ifNotExist_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
-    tail_ = root_;
+Status DescSpaceValidator::validateImpl() {
+    spaceName_ = *sentence_->spaceName();
     return Status::OK();
 }
 
-Status CreateEdgeValidator::validateImpl() {
-    auto status = Status::OK();
-    edgeName_ = *sentence_->name();
-    ifNotExist_ = sentence_->isIfNotExist();
-    do {
-        status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
-        if (!status.ok()) {
-            VLOG(1) << status;
-            break;
-        }
-        status = SchemaUtil::validateProps(sentence_->getSchemaProps(), schema_);
-        if (!status.ok()) {
-            VLOG(1) << status;
-            break;
-        }
-    } while (false);
-    return status;
-}
-
-Status CreateEdgeValidator::toPlan() {
+Status DescSpaceValidator::toPlan() {
     auto* plan = validateContext_->plan();
     root_ = StartNode::make(plan);
-    auto *doNode = CreateTag::make(plan,
-                                   validateContext_->whichSpace().id,
-                                   edgeName_,
-                                   schema_,
-                                   ifNotExist_);
+    auto *doNode = DescSpace::make(plan, spaceName_);
     YieldColumns* cols = nullptr;
     auto *project = Project::make(plan, doNode, cols);
     root_ = project;

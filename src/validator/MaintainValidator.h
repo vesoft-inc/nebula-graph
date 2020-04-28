@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_CREATEVALIDATOR_H_
-#define VALIDATOR_CREATEVALIDATOR_H_
+#ifndef VALIDATOR_MAINTAINVALIDATOR_H_
+#define VALIDATOR_MAINTAINVALIDATOR_H_
 
 #include "base/Base.h"
 #include "validator/Validator.h"
@@ -15,24 +15,6 @@
 
 namespace nebula {
 namespace graph {
-class CreateSpaceValidator final : public Validator {
-public:
-    CreateSpaceValidator(Sentence* sentence, ValidateContext* context)
-            : Validator(sentence, context) {
-        sentence_ = static_cast<CreateSpaceSentence*>(sentence);
-    }
-
-private:
-    Status validateImpl() override;
-
-    Status toPlan() override;
-
-private:
-    CreateSpaceSentence               *sentence_{nullptr};
-    meta::SpaceDesc                    spaceDesc_;
-    bool                               ifNotExist_;
-};
-
 class CreateTagValidator final : public Validator {
 public:
     CreateTagValidator(Sentence* sentence, ValidateContext* context)
@@ -68,6 +50,41 @@ private:
     meta::cpp2::Schema                schema_;
     bool                              ifNotExist_;
 };
+
+class DescTagValidator final : public Validator {
+public:
+    DescTagValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<DescribeTagSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    DescribeTagSentence                   *sentence_{nullptr};
+    std::string                            tagName_;
+};
+
+class DescEdgeValidator final : public Validator {
+public:
+    DescEdgeValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<DescribeEdgeSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    DescribeEdgeSentence               *sentence_{nullptr};
+    std::string                         edgeName_;
+};
+
 }  // namespace graph
 }  // namespace nebula
-#endif
+#endif  // VALIDATOR_MAINTAINVALIDATOR_H_

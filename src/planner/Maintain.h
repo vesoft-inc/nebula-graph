@@ -13,44 +13,6 @@
 
 namespace nebula {
 namespace graph {
-class CreateSpace final : public PlanNode {
-public:
-    static CreateSpace* make(ExecutionPlan* plan,
-                             meta::SpaceDesc props,
-                             bool ifNotExists) {
-    return new CreateSpace(plan,
-                           std::move(props),
-                           ifNotExists);
-    }
-
-    std::string explain() const override {
-        return "CreateSpace";
-    }
-
-public:
-    const meta::SpaceDesc& getSpaceDesc() const {
-        return props_;
-    }
-
-    bool getIfNotExists() const {
-        return ifNotExists_;
-    }
-
-private:
-    CreateSpace(ExecutionPlan* plan,
-                meta::SpaceDesc props,
-                bool ifNotExists)
-        : PlanNode(plan, Kind::kCreateSpace) {
-            props_ = std::move(props);
-            ifNotExists_ = ifNotExists;
-        }
-
-
-private:
-    meta::SpaceDesc               props_;
-    bool                          ifNotExists_;
-};
-
 class SchemaNode : public PlanNode {
 public:
     GraphSpaceID space() const {
@@ -231,32 +193,6 @@ private:
             std::string edgeName)
         : DescSchema(plan, Kind::kDescEdge, space, std::move(edgeName)) {
         }
-};
-
-class DescSpace final : public PlanNode {
-public:
-    static DescSpace* make(ExecutionPlan* plan,
-                           std::string spaceName) {
-    return new DescSpace(plan, std::move(spaceName));
-    }
-
-    std::string explain() const override {
-        return "DescSpace";
-    }
-
-    const std::string& getSpaceName() const {
-        return spaceName_;
-    }
-
-private:
-    DescSpace(ExecutionPlan* plan,
-              std::string spaceName)
-        : PlanNode(plan, Kind::kDescEdge) {
-            spaceName_ = std::move(spaceName);
-        }
-
-private:
-    std::string           spaceName_;
 };
 
 class DropTag final : public PlanNode {

@@ -9,8 +9,8 @@ nebula_add_library(
     SetValidator.cpp
     UseValidator.cpp
     GetSubgraphValidator.cpp
-    CreateValidator.cpp
-    DescValidator.cpp
+    AdminValidator.cpp
+    MaintainValidator.cpp
     MutateValidator.cpp
 )
 

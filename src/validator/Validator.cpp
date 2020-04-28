@@ -15,8 +15,8 @@
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/GetSubgraphValidator.h"
-#include "validator/CreateValidator.h"
-#include "validator/DescValidator.h"
+#include "validator/AdminValidator.h"
+#include "validator/MaintainValidator.h"
 
 namespace nebula {
 namespace graph {
