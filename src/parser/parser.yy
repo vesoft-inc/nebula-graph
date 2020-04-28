@@ -654,6 +654,10 @@ vid
     | uuid_expression {
         $$ = $1;
     }
+    | STRING {
+        $$ = new ConstantExpression(*$1);
+        delete $1;
+    }
     ;
 
 unary_integer

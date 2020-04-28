@@ -5,6 +5,8 @@
  */
 #include "MutateValidator.h"
 #include "util/SchemaUtil.h"
+#include "planner/Mutate.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -29,6 +31,17 @@ Status InsertVerticesValidator::validateImpl() {
 }
 
 Status InsertVerticesValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    root_ = StartNode::make(plan);
+    auto *doNode = InsertVertices::make(plan,
+                                        validateContext_->whichSpace().id,
+                                        vertices_,
+                                        tagPropNames_,
+                                        overwritable_);
+    YieldColumns* cols = nullptr;
+    auto *project = Project::make(plan, doNode, cols);
+    root_ = project;
+    tail_ = root_;
     return Status::OK();
 }
 
@@ -89,7 +102,7 @@ Status InsertVerticesValidator::prepareVertices() {
         }
         auto vertexId = std::move(idStatus).value();
         auto valsRet = SchemaUtil::toValueVec(row->values());
-        if (valsRet.ok()) {
+        if (!valsRet.ok()) {
             return valsRet.status();
         }
         auto values = std::move(valsRet).value();
@@ -121,7 +134,6 @@ Status InsertVerticesValidator::prepareVertices() {
         vertex.set_tags(std::move(tags));
         vertices_.emplace_back(std::move(vertex));
     }
-
     return Status::OK();
 }
 
@@ -147,6 +159,17 @@ Status InsertEdgesValidator::validateImpl() {
 }
 
 Status InsertEdgesValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    root_ = StartNode::make(plan);
+    auto *doNode = InsertEdges::make(plan,
+                                        validateContext_->whichSpace().id,
+                                        edges_,
+                                        propNames_,
+                                        overwritable_);
+    YieldColumns* cols = nullptr;
+    auto *project = Project::make(plan, doNode, cols);
+    root_ = project;
+    tail_ = root_;
     return Status::OK();
 }
 
@@ -200,7 +223,7 @@ Status InsertEdgesValidator::prepareEdges() {;
         int64_t rank = row->rank();
 
         auto valsRet = SchemaUtil::toValueVec(row->values());
-        if (valsRet.ok()) {
+        if (!valsRet.ok()) {
             return valsRet.status();
         }
         auto values = std::move(valsRet).value();

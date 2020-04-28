@@ -22,6 +22,7 @@ Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &colu
         nameSet.emplace(*spec->name());
         meta::cpp2::ColumnDef column;
         auto type = spec->type();
+        column.set_name(*spec->name());
         column.set_type(type);
         column.set_nullable(spec->isNull());
         if (meta::cpp2::PropertyType::FIXED_STRING == type) {

@@ -17,6 +17,7 @@
 #include "validator/GetSubgraphValidator.h"
 #include "validator/AdminValidator.h"
 #include "validator/MaintainValidator.h"
+#include "validator/MutateValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -51,6 +52,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, Validate
             return std::make_unique<DescTagValidator>(sentence, context);
         case Sentence::Kind::kDescribeEdge:
             return std::make_unique<DescEdgeValidator>(sentence, context);
+        case Sentence::Kind::kInsertVertices:
+            return std::make_unique<InsertVerticesValidator>(sentence, context);
+        case Sentence::Kind::kInsertEdges:
+            return std::make_unique<InsertEdgesValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }
@@ -91,7 +96,7 @@ Status Validator::validate() {
         return Status::Error("Sentence was not given");
     }
 
-    if (!spaceChosen()) {
+    if (!noSpaceRequired_ && !spaceChosen()) {
         VLOG(1) << "Space was not chosen.";
         status = Status::Error("Space was not chosen.");
         return status;

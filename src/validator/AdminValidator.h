@@ -20,6 +20,7 @@ public:
     CreateSpaceValidator(Sentence* sentence, ValidateContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<CreateSpaceSentence*>(sentence);
+        setNoSpaceRequired();
     }
 
 private:
@@ -38,6 +39,7 @@ public:
     DescSpaceValidator(Sentence* sentence, ValidateContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<DescribeSpaceSentence*>(sentence);
+        setNoSpaceRequired();
     }
 
 private:

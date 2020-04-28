@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/schema/DescTagExecutor.h"
+#include "exec/maintain/DescTagExecutor.h"
 #include "planner/Maintain.h"
 #include "service/ExecutionContext.h"
 #include "util/SchemaUtil.h"

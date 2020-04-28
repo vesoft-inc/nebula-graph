@@ -72,11 +72,11 @@ Status CreateEdgeValidator::validateImpl() {
 Status CreateEdgeValidator::toPlan() {
     auto* plan = validateContext_->plan();
     root_ = StartNode::make(plan);
-    auto *doNode = CreateTag::make(plan,
-                                   validateContext_->whichSpace().id,
-                                   edgeName_,
-                                   schema_,
-                                   ifNotExist_);
+    auto *doNode = CreateEdge::make(plan,
+                                    validateContext_->whichSpace().id,
+                                    edgeName_,
+                                    schema_,
+                                    ifNotExist_);
     YieldColumns* cols = nullptr;
     auto *project = Project::make(plan, doNode, cols);
     root_ = project;

@@ -20,9 +20,9 @@ folly::Future<Status> InsertVerticesExecutor::execute() {
 folly::Future<Status> InsertVerticesExecutor::insertVertices() {
     dumpLog();
 
-    auto *gv = asNode<InsertVertices>(node());
-    return ectx()->getStorageClient()->addVertices(gv->space(),
-            gv->getVertices(), gv->getOverwritable())
+    auto *ivNode = asNode<InsertVertices>(node());
+    return ectx()->getStorageClient()->addVertices(ivNode->space(),
+            ivNode->getVertices(), ivNode->getPropNames(), ivNode->getOverwritable())
         .via(runner())
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
             auto completeness = resp.completeness();

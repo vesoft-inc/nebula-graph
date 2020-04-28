@@ -201,9 +201,6 @@ class DropTag final : public PlanNode {
 class DropEdge final : public PlanNode {
 };
 
-class DropSpace final : public PlanNode {
-};
-
 class CreateTagIndex final : public PlanNode {
 };
 

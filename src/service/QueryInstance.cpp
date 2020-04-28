@@ -16,7 +16,7 @@ namespace graph {
 
 void QueryInstance::execute() {
     auto *rctx = ectx()->rctx();
-    FLOG_INFO("Parsing query: %s", rctx->query().c_str());
+    VLOG(1) << "Parsing query: " << rctx->query();
 
     Status status;
     auto plan = std::make_unique<ExecutionPlan>(ectx());

@@ -20,18 +20,6 @@ public:
         sentence_ = static_cast<InsertVerticesSentence*>(sentence);
     }
 
-    std::vector<storage::cpp2::NewVertex> getVerticesData() {
-        return std::move(vertices_);
-    }
-
-    std::unordered_map<TagID, std::vector<std::string>> getTagPropNames() {
-        return std::move(tagPropNames_);
-    }
-
-    bool getOverwritable() {
-        return overwritable_;
-    }
-
 private:
     Status validateImpl() override;
 
@@ -57,18 +45,6 @@ public:
     InsertEdgesValidator(Sentence* sentence, ValidateContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<InsertEdgesSentence*>(sentence);
-    }
-
-    std::vector<storage::cpp2::NewEdge> getEdgesData() {
-        return edges_;
-    }
-
-    std::vector<std::string> getEdgePropNames() {
-        return std::move(propNames_);
-    }
-
-    bool getOverwritable() {
-        return overwritable_;
     }
 
 private:

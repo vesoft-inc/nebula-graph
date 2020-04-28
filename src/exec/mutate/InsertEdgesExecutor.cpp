@@ -19,10 +19,10 @@ folly::Future<Status> InsertEdgesExecutor::execute() {
 
 folly::Future<Status> InsertEdgesExecutor::insertEdges() {
     dumpLog();
-    auto *gv = asNode<InsertEdges>(node());
+    auto *ieNode = asNode<InsertEdges>(node());
 
-    return ectx()->getStorageClient()->addEdges(gv->space(),
-            gv->getEdges(), gv->getOverwritable())
+    return ectx()->getStorageClient()->addEdges(ieNode->space(),
+            ieNode->getEdges(), ieNode->getPropNames(), ieNode->getOverwritable())
         .via(runner())
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
             auto completeness = resp.completeness();

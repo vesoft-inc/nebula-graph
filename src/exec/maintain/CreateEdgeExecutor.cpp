@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/schema/CreateEdgeExecutor.h"
+#include "exec/maintain/CreateEdgeExecutor.h"
 #include "planner/Maintain.h"
 #include "service/ExecutionContext.h"
 
@@ -18,9 +18,9 @@ folly::Future<Status> CreateEdgeExecutor::execute() {
 folly::Future<Status> CreateEdgeExecutor::createEdge() {
     dumpLog();
 
-    auto *gv = asNode<CreateEdge>(node());
-    return ectx()->getMetaClient()->createEdgeSchema(gv->space(),
-            gv->getName(), gv->getSchema(), gv->getIfNotExists())
+    auto *ceNode = asNode<CreateEdge>(node());
+    return ectx()->getMetaClient()->createEdgeSchema(ceNode->space(),
+            ceNode->getName(), ceNode->getSchema(), ceNode->getIfNotExists())
         .via(runner())
         .then([this](StatusOr<bool> resp) {
             if (!resp.ok()) {

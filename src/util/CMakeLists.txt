@@ -5,7 +5,7 @@
 #
 
 nebula_add_library(
-    schema_common_obj OBJECT
+    schema_util_obj OBJECT
     SchemaUtil.cpp
 )
 

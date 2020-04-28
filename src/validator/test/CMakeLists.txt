@@ -1,5 +1,5 @@
 set(VALIDATOR_TEST_LIBS
-    $<TARGET_OBJECTS:schema_common_obj>
+    $<TARGET_OBJECTS:schema_util_obj>
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
     $<TARGET_OBJECTS:session_obj>

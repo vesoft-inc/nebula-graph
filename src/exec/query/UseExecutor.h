@@ -4,26 +4,23 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_SCHEMA_CREATEEDGEEXECUTOR_H_
-#define EXEC_SCHEMA_CREATEEDGEEXECUTOR_H_
+#ifndef EXEC_QUERY_USEEXECUTOR_H_
+#define EXEC_QUERY_USEEXECUTOR_H_
 
 #include "exec/Executor.h"
 
 namespace nebula {
 namespace graph {
 
-class CreateEdgeExecutor final : public Executor {
+class UseExecutor final : public SingleInputExecutor {
 public:
-    CreateEdgeExecutor(const PlanNode *node, ExecutionContext *ectx)
-        : Executor("CreateEdgeExecutor", node, ectx) {}
+    UseExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
+        : SingleInputExecutor("UseExecutor", node, ectx, input) {}
 
     folly::Future<Status> execute() override;
-
-private:
-    folly::Future<Status> createEdge();
 };
 
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_SCHEMA_CREATEEDGEEXECUTOR_H_
+#endif   // EXEC_QUERY_USEEXECUTOR_H_

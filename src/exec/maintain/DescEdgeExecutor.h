@@ -4,26 +4,26 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_SCHEMA_DESCTAGEXECUTOR_H_
-#define EXEC_SCHEMA_DESCTAGEXECUTOR_H_
+#ifndef EXEC_MAINTAIN_DESCEDGEEXECUTOR_H_
+#define EXEC_MAINTAIN_DESCEDGEEXECUTOR_H_
 
 #include "exec/Executor.h"
 
 namespace nebula {
 namespace graph {
 
-class DescTagExecutor final : public Executor {
+class DescEdgeExecutor final : public Executor {
 public:
-    DescTagExecutor(const PlanNode *node, ExecutionContext *ectx)
-        : Executor("DescTagExecutor", node, ectx) {}
+    DescEdgeExecutor(const PlanNode *node, ExecutionContext *ectx)
+        : Executor("DescEdgeExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
 
 private:
-    folly::Future<Status> descTag();
+    folly::Future<Status> descEdge();
 };
 
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_SCHEMA_DESCTAGEXECUTOR_H_
+#endif   // EXEC_MAINTAIN_DESCEDGEEXECUTOR_H_
