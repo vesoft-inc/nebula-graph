@@ -11,9 +11,11 @@
 #include "validator/Validator.h"
 #include "parser/SequentialSentences.h"
 #include "meta/SchemaManager.h"
-#include "charset/Charset.h"
 
 namespace nebula {
+
+class CharsetInfo;
+
 namespace graph {
 
 class ExecutionPlan;

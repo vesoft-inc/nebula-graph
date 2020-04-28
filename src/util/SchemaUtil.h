@@ -19,8 +19,7 @@ namespace nebula {
 namespace graph {
 class SchemaUtil final {
 public:
-    SchemaUtil() = default;
-    ~SchemaUtil() = default;
+    SchemaUtil() = delete;
 
 public:
     static Status validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
@@ -30,7 +29,7 @@ public:
                                 meta::cpp2::Schema &schema);
 
     static StatusOr<nebula::Value> toSchemaValue(const meta::cpp2::PropertyType type,
-                                          const Value &v);
+                                                 const Value &v);
 
     // Conver int64 or string to Timestamp
     static StatusOr<nebula::Timestamp> toTimestamp(const Value &v);
