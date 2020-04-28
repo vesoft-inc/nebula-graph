@@ -4,27 +4,30 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "base/Base.h"
+#include "util/IdGenerator.h"
+
 #include <gtest/gtest.h>
-#include "planner/IdGenerator.h"
+
 #include "concurrent/Barrier.h"
 
 namespace nebula {
-namespace graph {
-TEST(IdGeneratorTest, gen) {
+
+TEST(IdGeneratorTest, TestSequenceIdGenerating) {
+    auto idGen = IdGenerator::get(IdGenerator::Type::SEQUENCE);
+    ASSERT_NE(idGen, nullptr);
     nebula::concurrent::Barrier bar(3);
     std::vector<int64_t> ids1;
-    auto t1 = std::thread([&ids1, &bar] () {
+    auto t1 = std::thread([&ids1, &bar, idGen]() mutable {
         for (auto i = 0; i < 5; ++i) {
-            ids1.emplace_back(EPIdGenerator::instance().id());
+            ids1.emplace_back(idGen->id());
         }
         bar.wait();
     });
 
     std::vector<int64_t> ids2;
-    auto t2 = std::thread([&ids2, &bar] () {
+    auto t2 = std::thread([&ids2, &bar, idGen]() mutable {
         for (auto i = 0; i < 5; ++i) {
-            ids2.emplace_back(EPIdGenerator::instance().id());
+            ids2.emplace_back(idGen->id());
         }
         bar.wait();
     });
@@ -39,5 +42,5 @@ TEST(IdGeneratorTest, gen) {
     std::vector<int64_t> expected = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     EXPECT_EQ(expected, ids1);
 }
-}  // namespace graph
-}  // namespace nebula
+
+}   // namespace nebula

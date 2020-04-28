@@ -5,12 +5,17 @@
  */
 
 #include "planner/PlanNode.h"
+
 #include "planner/ExecutionPlan.h"
+#include "util/IdGenerator.h"
 
 namespace nebula {
 namespace graph {
 
-PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
+PlanNode::PlanNode(ExecutionPlan* plan, Kind kind)
+    : kind_(kind),
+      id_(IdGenerator::get(IdGenerator::Type::SEQUENCE)->invalidId()),
+      plan_(plan) {
     DCHECK_NOTNULL(plan_);
     plan_->addPlanNode(this);
 }

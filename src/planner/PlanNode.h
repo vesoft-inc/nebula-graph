@@ -9,7 +9,6 @@
 
 #include "base/Base.h"
 #include "expression/Expression.h"
-#include "planner/IdGenerator.h"
 
 namespace nebula {
 namespace graph {
@@ -58,16 +57,16 @@ public:
         return kind_;
     }
 
-    int64_t id() const {
-        return id_;
-    }
-
     std::string varName() const {
         return varGenerated_;
     }
 
     const ExecutionPlan* plan() const {
         return plan_;
+    }
+
+    int64_t id() const {
+        return id_;
     }
 
     void setId(int64_t id) {
@@ -83,7 +82,7 @@ protected:
     static const char* toString(Kind kind);
 
     Kind                                     kind_{Kind::kUnknown};
-    int64_t                                  id_{IdGenerator::INVALID_ID};
+    int64_t                                  id_;
     ExecutionPlan*                           plan_{nullptr};
     using VariableName = std::string;
     std::unordered_set<VariableName>         availableVars_;

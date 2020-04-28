@@ -2,13 +2,10 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-#
 
 nebula_add_library(
-    planner_obj OBJECT
-    PlanNode.cpp
-    ExecutionPlan.cpp
-    Query.cpp
-)
+  id_generator_obj OBJECT
+  IdGenerator.cpp
+  )
 
 nebula_add_subdirectory(test)

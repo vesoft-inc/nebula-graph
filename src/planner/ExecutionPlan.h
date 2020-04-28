@@ -8,7 +8,6 @@
 #define PLANNER_EXECUTIONPLAN_H_
 
 #include <cstdint>
-#include <memory>
 
 namespace nebula {
 
@@ -18,7 +17,6 @@ namespace graph {
 
 class ExecutionContext;
 class Executor;
-class IdGenerator;
 class PlanNode;
 class ExecutionContext;
 
@@ -48,7 +46,6 @@ private:
     int64_t                                 id_;
     PlanNode*                               root_{nullptr};
     ExecutionContext*                       ectx_{nullptr};
-    std::unique_ptr<IdGenerator>            nodeIdGen_;
 };
 
 }  // namespace graph
