@@ -81,7 +81,7 @@ public:
 private:
     DescSpace(ExecutionPlan* plan,
               std::string spaceName)
-        : PlanNode(plan, Kind::kDescEdge) {
+        : PlanNode(plan, Kind::kDescSpace) {
             spaceName_ = std::move(spaceName);
         }
 

@@ -37,15 +37,12 @@ Status CreateTagValidator::validateImpl() {
 
 Status CreateTagValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
     auto *doNode = CreateTag::make(plan,
                                    validateContext_->whichSpace().id,
                                    tagName_,
                                    schema_,
                                    ifNotExist_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
+    root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
@@ -71,15 +68,12 @@ Status CreateEdgeValidator::validateImpl() {
 
 Status CreateEdgeValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
     auto *doNode = CreateEdge::make(plan,
                                     validateContext_->whichSpace().id,
                                     edgeName_,
                                     schema_,
                                     ifNotExist_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
+    root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
@@ -91,13 +85,10 @@ Status DescTagValidator::validateImpl() {
 
 Status DescTagValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
     auto *doNode = DescTag::make(plan,
                                  validateContext_->whichSpace().id,
                                  tagName_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
+    root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
@@ -109,13 +100,10 @@ Status DescEdgeValidator::validateImpl() {
 
 Status DescEdgeValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
-    auto *doNode = DescTag::make(plan,
-                                 validateContext_->whichSpace().id,
-                                 edgeName_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
+    auto *doNode = DescEdge::make(plan,
+                                  validateContext_->whichSpace().id,
+                                  edgeName_);
+    root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }

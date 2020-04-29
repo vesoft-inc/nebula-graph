@@ -104,11 +104,8 @@ Status CreateSpaceValidator::validateImpl() {
 
 Status CreateSpaceValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
     auto *doNode = CreateSpace::make(plan, spaceDesc_, ifNotExist_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
+    root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
@@ -120,11 +117,8 @@ Status DescSpaceValidator::validateImpl() {
 
 Status DescSpaceValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
     auto *doNode = DescSpace::make(plan, spaceName_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
+    root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }

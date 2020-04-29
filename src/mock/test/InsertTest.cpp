@@ -47,30 +47,6 @@ TEST_F(SchemaTest, TestSpace) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
-    {
-        cpp2::ExecutionResponse resp;
-        std::string query = "DESC SPACE space_for_default;";
-        auto code = client_->execute(query, resp);
-        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
-        DataSet expect;
-        expect.colNames = {"ID", "Name", "Partition number", "Replica Factor",
-                           "Vid Size", "Charset", "Collate"};
-        std::vector<Row> rows;
-        std::vector<Value> columns;
-        Row row;
-        columns.emplace_back(1);
-        columns.emplace_back(9);
-        columns.emplace_back(1);
-        columns.emplace_back(8);
-        columns.emplace_back("");
-        columns.emplace_back("");
-        row.columns = std::move(columns);
-        rows.emplace_back(row);
-        expect.rows = rows;
-        ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(1, resp.get_data()->size());
-        // ASSERT_EQ(expect, (*resp.get_data())[0]);
-    }
     sleep(FLAGS_heartbeat_interval_secs + 1);
     {
         cpp2::ExecutionResponse resp;
@@ -87,14 +63,6 @@ TEST_F(SchemaTest, TestTag) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
-    {
-        cpp2::ExecutionResponse resp;
-        std::string query = "DESC TAG student;";
-        auto code = client_->execute(query, resp);
-        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
-        ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(1, resp.get_data()->size());
-    }
 }
 
 TEST_F(SchemaTest, TestEdge) {
@@ -103,14 +71,6 @@ TEST_F(SchemaTest, TestEdge) {
         std::string query = "CREATE EDGE schoolmate(start int, end int);";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
-    }
-    {
-        cpp2::ExecutionResponse resp;
-        std::string query = "DESC EDGE schoolmate;";
-        auto code = client_->execute(query, resp);
-        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
-        ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(1, resp.get_data()->size());
     }
 }
 
@@ -127,13 +87,6 @@ TEST_F(SchemaTest, TestInsert) {
         cpp2::ExecutionResponse resp;
         std::string query = "INSERT VERTEX student(name, age, grade) "
                             "VALUES \"Lily\":(\"Lily\", 18, \"three\");";
-        auto code = client_->execute(query, resp);
-        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
-    }
-    {
-        cpp2::ExecutionResponse resp;
-        std::string query = "INSERT VERTEX student(name, age, grade) "
-                            "VALUES 100:(\"100\", 17, \"three\");";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }

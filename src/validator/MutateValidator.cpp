@@ -32,15 +32,12 @@ Status InsertVerticesValidator::validateImpl() {
 
 Status InsertVerticesValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
     auto *doNode = InsertVertices::make(plan,
                                         validateContext_->whichSpace().id,
                                         vertices_,
                                         tagPropNames_,
                                         overwritable_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
+    root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
@@ -160,15 +157,12 @@ Status InsertEdgesValidator::validateImpl() {
 
 Status InsertEdgesValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    root_ = StartNode::make(plan);
     auto *doNode = InsertEdges::make(plan,
-                                        validateContext_->whichSpace().id,
-                                        edges_,
-                                        propNames_,
-                                        overwritable_);
-    YieldColumns* cols = nullptr;
-    auto *project = Project::make(plan, doNode, cols);
-    root_ = project;
+                                     validateContext_->whichSpace().id,
+                                     edges_,
+                                     propNames_,
+                                     overwritable_);
+    root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }

@@ -114,6 +114,7 @@ StatusOr<meta::cpp2::Schema> MetaCache::getTag(const meta::cpp2::GetTagReq &req)
     auto &tagSchemas = spaceIter->second.tagSchemas_;
     auto findIter = tagSchemas.find(tagName);
     if (findIter == tagSchemas.end()) {
+        LOG(ERROR) << "Tag name: " << tagName << " not found";
         return Status::Error("Not found");
     }
     return findIter->second.get_schema();

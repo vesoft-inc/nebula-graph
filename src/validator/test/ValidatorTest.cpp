@@ -50,20 +50,5 @@ TEST_F(ValidatorTest, Subgraph) {
         // TODO: Check the plan.
     }
 }
-
-TEST_F(ValidatorTest, Schema) {
-    {
-        std::string query = "CREATE SPACE space;"
-                            "CREATE TAG person(name STRING, age INT, hobby FIXED_STRING(10));"
-                            "CREATE EDGE like(name STRING, age INT, hobby FIXED_STRING(10));";
-        auto result = GQLParser().parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), session_, schemaMng_, charsetInfo_);
-        auto validateResult = validator.validate(plan_.get());
-        ASSERT_TRUE(validateResult.ok()) << validateResult;
-        // TODO: Check the plan.
-    }
-}
 }  // namespace graph
 }  // namespace nebula

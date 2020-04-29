@@ -10,6 +10,8 @@
 
 #include "exec/ExecutionError.h"
 #include "exec/Executor.h"
+#include "planner/ExecutionPlan.h"
+#include "planner/PlanNode.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +21,7 @@ void QueryInstance::execute() {
     VLOG(1) << "Parsing query: " << rctx->query();
 
     Status status;
-    auto plan = std::make_unique<ExecutionPlan>(ectx());
+    plan_ = std::make_unique<ExecutionPlan>(ectx());
     do {
         auto result = GQLParser().parse(rctx->query());
         if (!result.ok()) {
@@ -31,7 +33,7 @@ void QueryInstance::execute() {
         sentences_ = std::move(result).value();
         validator_ = std::make_unique<ASTValidator>(
             sentences_.get(), rctx->session(), ectx()->schemaManager(), ectx_->getCharsetInfo());
-        status = validator_->validate(plan.get());
+        status = validator_->validate(plan_.get());
         if (!status.ok()) {
             LOG(ERROR) << status;
             break;
@@ -45,7 +47,7 @@ void QueryInstance::execute() {
         return;
     }
 
-    auto executor = plan->createExecutor();
+    auto executor = plan_->createExecutor();
     status = executor->prepare();
     if (!status.ok()) {
         onError(std::move(status));
@@ -61,7 +63,7 @@ void QueryInstance::execute() {
         })
         .onError([this](const ExecutionError &e) { onError(e.status()); })
         .onError([this](const std::exception &e) { onError(Status::Error("%s", e.what())); })
-        .ensure([p = std::move(plan)]() mutable { p.reset(); });
+        .ensure([]() mutable { });
 }
 
 void QueryInstance::onFinish() {
@@ -71,6 +73,12 @@ void QueryInstance::onFinish() {
     rctx->resp().set_latency_in_us(latency);
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
+    auto value = ectx()->getValue(plan_->root()->varName());
+    if (!value.empty()) {
+        std::vector<DataSet> data;
+        data.emplace_back(value.moveDataSet());
+        rctx->resp().set_data(std::move(data));
+    }
     rctx->finish();
 
     // The `QueryInstance' is the root node holding all resources during the execution.
