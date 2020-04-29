@@ -15,16 +15,14 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> CreateSpaceExecutor::execute() {
-    watch_.start();
-    return createSpace().ensure([this]() { watch_.stop(); });
+    return createSpace().ensure([this]() { UNUSED(this); });
 }
 
 folly::Future<Status> CreateSpaceExecutor::createSpace() {
     dumpLog();
 
-    auto *gv = asNode<CreateSpace>(node());
-    meta::SpaceDesc spaceDesc;
-    return qctx()->getMetaClient()->createSpace(gv->getSpaceDesc(), gv->getIfNotExists())
+    auto *csNode = asNode<CreateSpace>(node());
+    return qctx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
         .via(runner())
         .then([this](StatusOr<bool> resp) {
             if (!resp.ok()) return resp.status();

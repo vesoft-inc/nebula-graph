@@ -62,8 +62,7 @@ void QueryInstance::execute() {
             }
         })
         .onError([this](const ExecutionError &e) { onError(e.status()); })
-        .onError([this](const std::exception &e) { onError(Status::Error("%s", e.what())); })
-        .ensure([]() mutable { });
+        .onError([this](const std::exception &e) { onError(Status::Error("%s", e.what())); });
 }
 
 void QueryInstance::onFinish() {

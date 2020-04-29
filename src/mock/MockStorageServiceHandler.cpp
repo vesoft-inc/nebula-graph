@@ -10,14 +10,16 @@
 namespace nebula {
 namespace graph {
 
-#define RETURN_ERROR_COMMON() \
-    storage::cpp2::ResponseCommon result; \
-    std::vector<storage::cpp2::PartitionResult> partsCode; \
-    storage::cpp2::PartitionResult partitionResult; \
-    partitionResult.set_code(storage::cpp2::ErrorCode::E_UNKNOWN); \
-    partsCode.emplace_back(std::move(partitionResult)); \
-    result.set_failed_parts(partsCode); \
-    resp.set_result(result);
+#define GENERATE_ERROR_COMMON() \
+    do { \
+        storage::cpp2::ResponseCommon result; \
+        std::vector<storage::cpp2::PartitionResult> partsCode; \
+        storage::cpp2::PartitionResult partitionResult; \
+        partitionResult.set_code(storage::cpp2::ErrorCode::E_UNKNOWN); \
+        partsCode.emplace_back(std::move(partitionResult)); \
+        result.set_failed_parts(partsCode); \
+        resp.set_result(std::move(result)); \
+    } while (false);
 
 folly::Future<storage::cpp2::GetNeighborsResponse>
 MockStorageServiceHandler::future_getNeighbors(const storage::cpp2::GetNeighborsRequest& req) {
@@ -42,8 +44,7 @@ MockStorageServiceHandler::future_addVertices(const storage::cpp2::AddVerticesRe
     storage::cpp2::ExecResponse resp;
     auto status = storageCache_->addVertices(req);
     if (!status.ok()) {
-        RETURN_ERROR_COMMON();
-        resp.set_result(std::move(result));
+        GENERATE_ERROR_COMMON();
     }
     promise.setValue(std::move(resp));
     return future;
@@ -56,8 +57,7 @@ MockStorageServiceHandler::future_addEdges(const storage::cpp2::AddEdgesRequest&
     storage::cpp2::ExecResponse resp;
     auto status = storageCache_->addEdges(req);
     if (!status.ok()) {
-        RETURN_ERROR_COMMON();
-        resp.set_result(std::move(result));
+        GENERATE_ERROR_COMMON();
     }
     promise.setValue(std::move(resp));
     return future;

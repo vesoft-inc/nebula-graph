@@ -7,7 +7,6 @@
 #ifndef EXEC_MUTATE_INSERTVERTICESEXECUTOR_H_
 #define EXEC_MUTATE_INSERTVERTICESEXECUTOR_H_
 
-#include "base/StatusOr.h"
 #include "exec/Executor.h"
 
 namespace nebula {

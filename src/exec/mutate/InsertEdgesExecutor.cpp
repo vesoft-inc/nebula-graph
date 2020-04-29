@@ -30,7 +30,7 @@ folly::Future<Status> InsertEdgesExecutor::insertEdges() {
                 const auto& failedCodes = resp.failedParts();
                 for (auto it = failedCodes.begin(); it != failedCodes.end(); it++) {
                     LOG(ERROR) << "Insert edges failed, error "
-                               << static_cast<int32_t>(it->second)
+                               << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second)
                                << ", part " << it->first;
                 }
                 return Status::Error("Insert edges not complete, completeness: %d",

@@ -12,7 +12,7 @@
 
 namespace nebula {
 
-TEST(Parser, CreateSchema) {
+TEST(Parser, TestSchemaCreation) {
     // All type
     {
         GQLParser parser;

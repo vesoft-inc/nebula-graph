@@ -14,7 +14,6 @@
 namespace nebula {
 namespace graph {
 
-using AssertionResult = ::testing::AssertionResult;
 class TestBase : public ::testing::Test {
 protected:
     void SetUp() override;

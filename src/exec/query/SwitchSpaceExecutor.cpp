@@ -12,14 +12,11 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> SwitchSpaceExecutor::execute() {
-    folly::Promise<Status> promise;
-    auto future = promise.getFuture();
     auto *spaceToNode = asNode<SwitchSpace>(node());
     ectx()->rctx()->session()->setSpace(spaceToNode->getSpaceName(), spaceToNode->getSpaceId());
     LOG(INFO) << "Graph space switched to `" << spaceToNode->getSpaceName()
               << "', space id: " << spaceToNode->getSpaceId();
-    promise.setValue(Status::OK());
-    return future;
+    return start();
 }
 
 }   // namespace graph

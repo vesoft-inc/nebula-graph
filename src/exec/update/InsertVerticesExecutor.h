@@ -8,7 +8,6 @@
 #define EXEC_SCHEMA_INSERTVERTICESEXECUTOR_H_
 
 #include "exec/Executor.h"
-#include "util/StopWatch.h"
 
 namespace nebula {
 namespace graph {
@@ -16,14 +15,12 @@ namespace graph {
 class InsertVericesExecutor final : public Executor {
 public:
     InsertVericesExecutor(const PlanNode *node, ExecutionContext *ectx)
-        : Executor("InsertVericesExecutor", node, ectx), watch_(elapsedTime_) {}
+        : Executor("InsertVericesExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
 
 private:
     folly::Future<Status> createSpace();
-
-    StopWatch watch_;
 };
 
 }   // namespace graph
