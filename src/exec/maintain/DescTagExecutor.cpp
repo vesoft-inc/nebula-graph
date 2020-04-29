@@ -19,8 +19,8 @@ folly::Future<Status> DescTagExecutor::execute() {
 folly::Future<Status> DescTagExecutor::descTag() {
     dumpLog();
 
-    auto *gv = asNode<DescTag>(node());
-    return ectx()->getMetaClient()->getTagSchema(gv->getSpaceId(), gv->getName())
+    auto *dtNode = asNode<DescTag>(node());
+    return ectx()->getMetaClient()->getTagSchema(dtNode->getSpaceId(), dtNode->getName())
             .via(runner())
             .then([this](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {

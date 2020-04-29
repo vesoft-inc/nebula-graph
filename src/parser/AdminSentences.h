@@ -145,7 +145,7 @@ public:
         if (isInt()) {
             return asInt();
         } else {
-            LOG(ERROR) << "charset value illegal.";
+            LOG(ERROR) << "vid size illegal.";
             return 0;
         }
     }

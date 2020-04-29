@@ -18,9 +18,9 @@ folly::Future<Status> CreateTagExecutor::execute() {
 folly::Future<Status> CreateTagExecutor::createTag() {
     dumpLog();
 
-    auto *gv = asNode<CreateTag>(node());
-    return ectx()->getMetaClient()->createTagSchema(gv->space(),
-            gv->getName(), gv->getSchema(), gv->getIfNotExists())
+    auto *ctNode = asNode<CreateTag>(node());
+    return ectx()->getMetaClient()->createTagSchema(ctNode->space(),
+            ctNode->getName(), ctNode->getSchema(), ctNode->getIfNotExists())
         .via(runner())
         .then([this](StatusOr<bool> resp) {
             if (!resp.ok()) {
