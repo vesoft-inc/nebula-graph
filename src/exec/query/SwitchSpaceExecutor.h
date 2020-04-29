@@ -4,18 +4,18 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_QUERY_USEEXECUTOR_H_
-#define EXEC_QUERY_USEEXECUTOR_H_
+#ifndef EXEC_QUERY_SWITCHSPACEEXECUTOR_H_
+#define EXEC_QUERY_SWITCHSPACEEXECUTOR_H_
 
 #include "exec/Executor.h"
 
 namespace nebula {
 namespace graph {
 
-class UseExecutor final : public SingleInputExecutor {
+class SwitchSpaceExecutor final : public SingleInputExecutor {
 public:
-    UseExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-        : SingleInputExecutor("UseExecutor", node, ectx, input) {}
+    SwitchSpaceExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
+        : SingleInputExecutor("SwitchSpaceExecutor", node, ectx, input) {}
 
     folly::Future<Status> execute() override;
 };
@@ -23,4 +23,4 @@ public:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_QUERY_USEEXECUTOR_H_
+#endif   // EXEC_QUERY_SWITCHSPACEEXECUTOR_H_

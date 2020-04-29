@@ -487,7 +487,6 @@ unary_expression
 
 type_spec
     : KW_BOOL { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::BOOL); }
-    /* TODO: Support other type. int8, int16, etc.*/
     | KW_INT8 { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::INT8); }
     | KW_INT16 { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::INT16); }
     | KW_INT32 { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::INT32); }
@@ -497,7 +496,7 @@ type_spec
     | KW_DOUBLE { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::DOUBLE); }
     | KW_STRING { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::STRING); }
     | KW_FIXED_STRING L_PAREN INTEGER R_PAREN {
-        if ($3 > 32767) {
+        if ($3 > std::numeric_limits<int16_t>::max()) {
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = new ColumnTypeDef(meta::cpp2::PropertyType::FIXED_STRING, $3);

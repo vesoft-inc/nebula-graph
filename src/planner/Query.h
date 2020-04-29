@@ -743,13 +743,13 @@ private:
     PlanNode*   body_{nullptr};
 };
 
-class RegisterSpaceToSession : public SingleInputNode {
+class SwitchSpace : public SingleInputNode {
 public:
-    static RegisterSpaceToSession* make(ExecutionPlan* plan,
+    static SwitchSpace* make(ExecutionPlan* plan,
                                         PlanNode* input,
                                         std::string spaceName,
                                         GraphSpaceID spaceId) {
-        return new RegisterSpaceToSession(plan, input, spaceName, spaceId);
+        return new SwitchSpace(plan, input, spaceName, spaceId);
     }
 
     const std::string& getSpaceName() const {
@@ -763,11 +763,11 @@ public:
     std::string explain() const override;
 
 private:
-    RegisterSpaceToSession(ExecutionPlan* plan,
+    SwitchSpace(ExecutionPlan* plan,
                            PlanNode* input,
                            std::string spaceName,
                            GraphSpaceID spaceId)
-        : SingleInputNode(plan, Kind::kRegisterSpaceToSession, input) {
+        : SingleInputNode(plan, Kind::kSwitchSpace, input) {
         spaceName_ = std::move(spaceName);
         spaceId_ = spaceId;
     }

@@ -27,7 +27,7 @@
 #include "exec/query/SortExecutor.h"
 #include "exec/query/StartExecutor.h"
 #include "exec/query/UnionExecutor.h"
-#include "exec/query/UseExecutor.h"
+#include "exec/query/SwitchSpaceExecutor.h"
 #include "exec/admin/CreateSpaceExecutor.h"
 #include "exec/admin/DescSpaceExecutor.h"
 #include "exec/maintain/CreateTagExecutor.h"
@@ -171,10 +171,10 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             exec = new DedupExecutor(dedup, ectx, input);
             break;
         }
-        case PlanNode::Kind::kRegisterSpaceToSession: {
-            auto useSpace = asNode<RegisterSpaceToSession>(node);
-            auto input = makeExecutor(useSpace->input(), ectx, cache);
-            exec = new UseExecutor(useSpace, ectx, input);
+        case PlanNode::Kind::kSwitchSpace: {
+            auto switchSpace = asNode<SwitchSpace>(node);
+            auto input = makeExecutor(switchSpace->input(), ectx, cache);
+            exec = new SwitchSpaceExecutor(switchSpace, ectx, input);
             break;
         }
         case PlanNode::Kind::kCreateSpace: {

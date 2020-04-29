@@ -40,7 +40,7 @@ public:
         kAggregate,
         kSelector,
         kLoop,
-        kRegisterSpaceToSession,
+        kSwitchSpace,
         kDedup,
         kMultiOutputs,
         kCreateSpace,

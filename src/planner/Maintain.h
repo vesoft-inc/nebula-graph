@@ -13,6 +13,8 @@
 
 namespace nebula {
 namespace graph {
+// TODO: All DDLs, DMLs and DQLs could be used in a single query
+// which would make them in a single and big execution plan
 class SchemaNode : public PlanNode {
 public:
     GraphSpaceID space() const {

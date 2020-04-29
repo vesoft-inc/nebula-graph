@@ -97,6 +97,8 @@ void QueryInstance::onError(Status status) {
     } else {
         rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
+    auto &spaceName = rctx->session()->spaceName();
+    rctx->resp().set_space_name(spaceName);
     // rctx->resp().set_error_msg(status.toString());
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().set_latency_in_us(latency);
