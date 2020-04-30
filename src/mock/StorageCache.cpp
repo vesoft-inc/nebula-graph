@@ -20,6 +20,9 @@ StorageCache::StorageCache(uint16_t metaPort) {
     metaClient_ = std::make_unique<meta::MetaClient>(threadPool,
             std::move(hostStatus).value(), options);
     metaClient_->waitForMetadReady();
+
+    mgr_ = std::make_unique<meta::ServerBasedSchemaManager>();
+    mgr_->init(metaClient_.get());
 }
 
 Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
@@ -136,55 +139,6 @@ StorageCache::getProps(const storage::cpp2::GetPropRequest&) {
         }
     }
 #endif
-}
-
-std::vector<std::string> StorageCache::getTagPropNamesFromCache(const GraphSpaceID spaceId,
-                                                                const TagID tagId) {
-    auto verRet = metaClient_->getLatestTagVersionFromCache(spaceId, tagId);
-    if (!verRet.ok()) {
-        LOG(ERROR) << "Get version failed: spaceId: " << spaceId << ", tagId: " << tagId;
-        return {};
-    }
-    auto version = verRet.value();
-    std::vector<std::string> names;
-    auto status = metaClient_->getTagSchemaFromCache(spaceId, tagId, version);
-    if (!status.ok()) {
-        LOG(ERROR) << status.status();
-        return {};
-    }
-    auto schema = status.value();
-    if (schema == nullptr) {
-        return {};
-    }
-    for (auto i = 0u; i < schema->getNumFields(); i++) {
-        names.emplace_back(schema->getFieldName(i));
-        LOG(INFO) << "Prop name: " << schema->getFieldName(i);
-    }
-    return names;
-}
-
-std::vector<std::string> StorageCache::getEdgePropNamesFromCache(const GraphSpaceID spaceId,
-                                                                 const EdgeType edgeType) {
-    auto verRet = metaClient_->getLatestEdgeVersionFromCache(spaceId, edgeType);
-    if (!verRet.ok()) {
-        LOG(ERROR) << "Get version failed: spaceId: " << spaceId << ", edgeType: " << edgeType;
-        return {};
-    }
-    auto version = verRet.value();
-    std::vector<std::string> names;
-    auto status = metaClient_->getEdgeSchemaFromCache(spaceId, edgeType, version);
-    if (!status.ok()) {
-        LOG(ERROR) << status.status();
-        return {};
-    }
-    auto schema = status.value();
-    if (schema == nullptr) {
-        return {};
-    }
-    for (auto i = 0u; i < schema->getNumFields(); i++) {
-        names.emplace_back(schema->getFieldName(i));
-    }
-    return names;
 }
 }  // namespace graph
 }  // namespace nebula

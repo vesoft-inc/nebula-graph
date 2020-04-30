@@ -11,6 +11,7 @@
 #include "base/StatusOr.h"
 #include "interface/gen-cpp2/storage_types.h"
 #include "clients/meta/MetaClient.h"
+#include "meta/ServerBasedSchemaManager.h"
 
 namespace nebula {
 namespace graph {
@@ -70,7 +71,8 @@ private:
 
     std::unordered_map<GraphSpaceID, SpaceDataInfo>   cache_;
     mutable folly::RWSpinLock                         lock_;
-    std::unique_ptr<meta::MetaClient>                 metaClient_{nullptr};
+    std::unique_ptr<meta::MetaClient>                 metaClient_;
+    std::unique_ptr<meta::ServerBasedSchemaManager>   mgr_;
 };
 
 }  // namespace graph
