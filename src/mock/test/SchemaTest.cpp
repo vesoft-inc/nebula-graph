@@ -135,7 +135,7 @@ TEST_F(SchemaTest, TestInsert) {
         std::string query = "INSERT VERTEX student(name, age, grade) "
                             "VALUES 100:(\"100\", 17, \"three\");";
         auto code = client_->execute(query, resp);
-        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        ASSERT_NE(cpp2::ErrorCode::SUCCEEDED, code);
     }
     {
         cpp2::ExecutionResponse resp;

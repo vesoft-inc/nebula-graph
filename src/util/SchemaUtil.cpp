@@ -12,7 +12,7 @@ namespace graph {
 
 // static
 Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
-                                     meta::cpp2::Schema &schema) {
+                                   meta::cpp2::Schema &schema) {
     auto status = Status::OK();
     std::unordered_set<std::string> nameSet;
     for (auto& spec : columnSpecs) {
@@ -45,7 +45,7 @@ Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &colu
 
 // static
 Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
-                                   meta::cpp2::Schema &schema) {
+                                 meta::cpp2::Schema &schema) {
     auto status = Status::OK();
     if (!schemaProps.empty()) {
         for (auto& schemaProp : schemaProps) {
@@ -80,7 +80,7 @@ Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps
 
 // static
 StatusOr<nebula::Value> SchemaUtil::toSchemaValue(const meta::cpp2::PropertyType type,
-                                                    const Value &v) {
+                                                  const Value &v) {
     switch (type) {
         case meta::cpp2::PropertyType::TIMESTAMP: {
             if (v.type() != Value::Type::INT && v.type() != Value::Type::STRING) {
@@ -135,6 +135,7 @@ StatusOr<nebula::Timestamp> SchemaUtil::toTimestamp(const Value &) {
 
 // static
 StatusOr<nebula::Date> SchemaUtil::toDate(const Value &) {
+    // TODO: Add Date processing
     nebula::Date date;
     date.year = 0;
     date.month = 0;
@@ -144,6 +145,7 @@ StatusOr<nebula::Date> SchemaUtil::toDate(const Value &) {
 
 // static
 StatusOr<nebula::DateTime> SchemaUtil::toDateTime(const Value &) {
+    // TODO: Add AateTime processing
     nebula::DateTime dateTime;
     dateTime.year = 0;
     dateTime.month = 0;
@@ -180,10 +182,10 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
     // Check the legality of the ttl column name
     for (auto& col : schema.columns) {
         if (col.name == ttlColName) {
+            // Only integer columns and timestamp columns can be used as ttl_col
+            // TODO(YT) Ttl_duration supports datetime type
             if (col.type != meta::cpp2::PropertyType::INT64 &&
-                col.type != meta::cpp2::PropertyType::TIMESTAMP &&
-                col.type != meta::cpp2::PropertyType::DATE &&
-                col.type != meta::cpp2::PropertyType::DATETIME) {
+                col.type != meta::cpp2::PropertyType::TIMESTAMP) {
                 return Status::Error("Ttl column type illegal");
             }
             schema.schema_prop.set_ttl_col(ttlColName);
@@ -196,12 +198,11 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 // static
 StatusOr<VertexID> SchemaUtil::toVertexID(Expression *expr) {
     auto vertexId = expr->eval();
-    if (vertexId.isNull() ||
-            (vertexId.type() != Value::Type::INT && vertexId.type() != Value::Type::STRING)) {
+    if (vertexId.type() != Value::Type::STRING) {
         LOG(ERROR) << "Wrong vertex id type";
         return Status::Error("Wrong vertex id type");
     }
-    return expr->toString();
+    return vertexId.getStr();
 }
 
 // static

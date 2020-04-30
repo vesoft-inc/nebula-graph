@@ -27,7 +27,6 @@ folly::Future<Status> CreateEdgeExecutor::createEdge() {
                 LOG(ERROR) << resp.status();
                 return resp.status();
             }
-            finish(Value());
             return Status::OK();
         });
 }

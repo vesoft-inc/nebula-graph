@@ -121,6 +121,7 @@ private:
     CharsetInfo                                *charsetInfo_{nullptr};
 
     std::unique_ptr<ObjectPool> objPool_;
+    // It will be move to QueryContex as the result store of the execution
     std::unordered_map<std::string, std::list<Value>> valuesMap_;
 };
 

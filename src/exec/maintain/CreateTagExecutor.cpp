@@ -27,7 +27,6 @@ folly::Future<Status> CreateTagExecutor::createTag() {
                 LOG(ERROR) << resp.status();
                 return resp.status();
             }
-            finish(Value());
             return Status::OK();
         });
 }

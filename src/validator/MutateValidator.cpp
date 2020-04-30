@@ -197,7 +197,7 @@ Status InsertEdgesValidator::check() {
 }
 
 Status InsertEdgesValidator::prepareEdges() {;
-    edges_.reserve(rows_.size());
+    edges_.reserve(rows_.size()*2);
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propNames_.size() != row->values().size()) {
@@ -231,6 +231,7 @@ Status InsertEdgesValidator::prepareEdges() {;
             props.emplace_back(std::move(valueStatus).value());
         }
 
+        // outbound
         storage::cpp2::NewEdge edge;
         edge.key.set_src(srcId);
         edge.key.set_dst(dstId);
@@ -239,6 +240,10 @@ Status InsertEdgesValidator::prepareEdges() {;
         edge.set_props(std::move(props));
         edge.__isset.key = true;
         edge.__isset.props = true;
+        edges_.emplace_back(edge);
+
+        // inbound
+        edge.key.set_edge_type(-edgeType_);
         edges_.emplace_back(std::move(edge));
     }
 

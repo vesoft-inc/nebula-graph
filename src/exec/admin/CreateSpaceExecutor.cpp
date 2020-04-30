@@ -26,7 +26,6 @@ folly::Future<Status> CreateSpaceExecutor::createSpace() {
                 LOG(ERROR) << resp.status();
                 return resp.status();
             }
-            finish(Value());
             return Status::OK();
         });
 }
