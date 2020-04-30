@@ -19,7 +19,7 @@ namespace graph {
         partsCode.emplace_back(std::move(partitionResult)); \
         result.set_failed_parts(partsCode); \
         resp.set_result(std::move(result)); \
-    } while (false);
+    } while (false)
 
 folly::Future<storage::cpp2::GetNeighborsResponse>
 MockStorageServiceHandler::future_getNeighbors(const storage::cpp2::GetNeighborsRequest& req) {
