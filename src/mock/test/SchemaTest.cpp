@@ -49,6 +49,13 @@ TEST_F(SchemaTest, TestSpace) {
     }
     {
         cpp2::ExecutionResponse resp;
+        std::string query = "CREATE SPACE space_set_vid_size(partition_num=9, "
+                            "replica_factor=1, vid_size=20);";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
         std::string query = "DESC SPACE space_for_default;";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
@@ -136,6 +143,13 @@ TEST_F(SchemaTest, TestInsert) {
                             "VALUES 100:(\"100\", 17, \"three\");";
         auto code = client_->execute(query, resp);
         ASSERT_NE(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "INSERT EDGE schoolmate(start, end) "
+                            "VALUES \"Tom\"->\"Lily\":(2009, 2011)";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
     {
         cpp2::ExecutionResponse resp;
