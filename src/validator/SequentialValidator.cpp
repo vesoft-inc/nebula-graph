@@ -31,6 +31,7 @@ Status SequentialValidator::validateImpl() {
 }
 
 Status SequentialValidator::toPlan() {
+    auto* plan = validateContext_->plan();
     root_ = validators_.back()->root();
     for (decltype(validators_.size()) i = 0; i < (validators_.size() - 1); ++i) {
         auto status = Validator::appendPlan(validators_[i + 1]->tail(), validators_[i]->root());
@@ -38,7 +39,8 @@ Status SequentialValidator::toPlan() {
             return status;
         }
     }
-    tail_ = validators_[0]->tail();
+    tail_ = StartNode::make(plan);
+    Validator::appendPlan(validators_[0]->tail(), tail_);
     return Status::OK();
 }
 }  // namespace graph
