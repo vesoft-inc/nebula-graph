@@ -21,8 +21,3 @@ nebula_add_library(
     ClientSession.cpp
     SessionManager.cpp
 )
-
-nebula_add_library(
-    graph_http_obj OBJECT
-    GraphHttpHandler.cpp
-)
