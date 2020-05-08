@@ -234,9 +234,8 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
         columns.emplace_back(typeToString(col));
         auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
         columns.emplace_back(nullable ? "YES" : "NO");
-        if (col.__isset.default_value) {
-            columns.emplace_back(*col.get_default_value());
-        }
+        auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
+        columns.emplace_back(std::move(defaultValue));
         Row row;
         row.columns = std::move(columns);
         rows.emplace_back(row);

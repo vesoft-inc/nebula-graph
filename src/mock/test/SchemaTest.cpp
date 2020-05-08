@@ -63,20 +63,15 @@ TEST_F(SchemaTest, TestSpace) {
         expect.colNames = {"ID", "Name", "Partition number", "Replica Factor",
                            "Vid Size", "Charset", "Collate"};
         std::vector<Row> rows;
-        std::vector<Value> columns;
+        std::vector<Value> columns = {Value(1), Value("space_for_default"), Value(9),
+                                      Value(1), Value(8), Value("utf8"), Value("utf8_bin")};
         Row row;
-        columns.emplace_back(1);
-        columns.emplace_back(9);
-        columns.emplace_back(1);
-        columns.emplace_back(8);
-        columns.emplace_back("");
-        columns.emplace_back("");
         row.columns = std::move(columns);
         rows.emplace_back(row);
         expect.rows = rows;
         ASSERT_TRUE(resp.__isset.data);
         ASSERT_EQ(1, resp.get_data()->size());
-        // ASSERT_EQ(expect, (*resp.get_data())[0]);
+        ASSERT_EQ(expect, (*resp.get_data())[0]);
     }
     sleep(FLAGS_heartbeat_interval_secs + 1);
     {
@@ -101,6 +96,22 @@ TEST_F(SchemaTest, TestTag) {
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
         ASSERT_EQ(1, resp.get_data()->size());
+        DataSet expect;
+        expect.colNames = {"Field", "Type", "Null", "Default"};
+        std::vector<Row> rows;
+        std::vector<Value> columns1 = {Value("name"), Value("string"), Value("YES"), Value()};
+        std::vector<Value> columns2 = {Value("age"), Value("int8"), Value("YES"), Value()};
+        std::vector<Value> columns3 = {Value("grade"), Value("fixed_string(10)"),
+                                       Value("YES"), Value()};
+        Row row;
+        row.columns = std::move(columns1);
+        rows.emplace_back(row);
+        row.columns = std::move(columns2);
+        rows.emplace_back(row);
+        row.columns = std::move(columns3);
+        rows.emplace_back(row);
+        expect.rows = std::move(rows);
+        ASSERT_EQ(expect, (*resp.get_data())[0]);
     }
 }
 
@@ -118,6 +129,18 @@ TEST_F(SchemaTest, TestEdge) {
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
         ASSERT_EQ(1, resp.get_data()->size());
+        DataSet expect;
+        expect.colNames = {"Field", "Type", "Null", "Default"};
+        std::vector<Row> rows;
+        std::vector<Value> columns1 = {Value("start"), Value("int64"), Value("YES"), Value()};
+        std::vector<Value> columns2 = {Value("end"), Value("int64"), Value("YES"), Value()};
+        Row row;
+        row.columns = std::move(columns1);
+        rows.emplace_back(row);
+        row.columns = std::move(columns2);
+        rows.emplace_back(row);
+        expect.rows = std::move(rows);
+        ASSERT_EQ(expect, (*resp.get_data())[0]);
     }
 }
 
