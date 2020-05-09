@@ -17,9 +17,9 @@ steps:
       - cp ./ci/deploy_key ~/.ssh/id_rsa
       - chmod 0400 ~/.ssh/id_rsa
       - echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
-      - cmake -E make_directory build
-      - cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTING=on -B build/
-      - cmake --build build/ -j $(nproc)
+      - mkdir build && cd build
+      - cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTING=on ..
+      - make -j $(nproc)
       - ctest -j $(nproc) --timeout 400 --output-on-failure
     depends_on:
       - lint
@@ -43,9 +43,9 @@ steps:
       - cp ./ci/deploy_key ~/.ssh/id_rsa
       - chmod 0400 ~/.ssh/id_rsa
       - echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
-      - cmake -E make_directory build
-      - cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_UBSAN=on -DENABLE_TESTING=on -B build/
-      - cmake --build build/ -j $(nproc)
+      - mkdir build && cd build
+      - cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_UBSAN=on -DENABLE_TESTING=on ..
+      - make -j $(nproc)
       - ctest -j $(nproc) --timeout 400 --output-on-failure
     depends_on:
       - lint
