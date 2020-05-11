@@ -16,11 +16,18 @@
 
 namespace nebula {
 
+// Require emplace_back, reserve and clear for the object pool container
+// And only accept one explict template argument
+template <template <typename, typename...> class Container = std::list>
 class ObjectPool final : private cpp::NonCopyable, private cpp::NonMovable {
 public:
     ObjectPool() {}
 
     ~ObjectPool() = default;
+
+    void reserve(std::size_t to) {
+        objects_.reserve(to);
+    }
 
     void clear() {
         folly::SpinLockGuard g(lock_);
@@ -37,7 +44,7 @@ public:
 
 private:
     // Hold the ownership of any object only
-    class OwnershipHolder : private cpp::NonCopyable, private cpp::NonMovable {
+    class OwnershipHolder : private cpp::NonCopyable {
     public:
         OwnershipHolder() = delete;
         OwnershipHolder(void*, std::function<void(void*)>) = delete;
@@ -46,8 +53,19 @@ private:
         explicit OwnershipHolder(T *obj) : obj_(obj),
             deleteFn_([](void *p) { delete reinterpret_cast<T*>(p); }) {}
 
+        // Move ownership
+        OwnershipHolder(OwnershipHolder &&o) {
+            obj_ = o.obj_;
+            o.obj_ = nullptr;
+
+            deleteFn_ = o.deleteFn_;
+            o.deleteFn_ = nullptr;
+        }
+
         ~OwnershipHolder() {
-            CHECK_NOTNULL(deleteFn_)(CHECK_NOTNULL(obj_));
+            if (deleteFn_ && obj_) {
+                deleteFn_(obj_);
+            }
         }
 
     private:
@@ -55,7 +73,7 @@ private:
         std::function<void(void *)> deleteFn_;
     };
 
-    std::list<OwnershipHolder> objects_;
+    Container<OwnershipHolder> objects_;
     folly::SpinLock lock_;
 };
 
