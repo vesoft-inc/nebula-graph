@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef GRAPH_TEST_TESTENV_H_
-#define GRAPH_TEST_TESTENV_H_
+#ifndef MOCK_TEST_TESTENV_H_
+#define MOCK_TEST_TESTENV_H_
 
 #include "base/Base.h"
 #include "fs/TempDir.h"
