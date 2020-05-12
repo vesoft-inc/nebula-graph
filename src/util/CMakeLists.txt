@@ -7,5 +7,13 @@
 nebula_add_library(
     schema_util_obj OBJECT
     SchemaUtil.cpp
+    ExpressionContextImpl.cpp
 )
+
+nebula_add_library(
+    idgenerator_obj OBJECT
+    IdGenerator.cpp
+)
+
+nebula_add_subdirectory(test)
 

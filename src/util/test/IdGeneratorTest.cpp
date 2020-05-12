@@ -4,9 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "base/Base.h"
 #include <gtest/gtest.h>
-#include "planner/IdGenerator.h"
+#include "base/Base.h"
+#include "util/IdGenerator.h"
 #include "concurrent/Barrier.h"
 
 namespace nebula {

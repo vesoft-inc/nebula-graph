@@ -8,7 +8,7 @@
 
 #include "base/Base.h"
 #include "expression/Expression.h"
-#include "expression/AliasPropertyExpression.h"
+#include "expression/SymbolPropertyExpression.h"
 #include "expression/ArithmeticExpression.h"
 #include "expression/ConstantExpression.h"
 #include "expression/FunctionCallExpression.h"

@@ -5,9 +5,8 @@
  */
 
 #include "planner/ExecutionPlan.h"
-
 #include "exec/Executor.h"
-#include "planner/IdGenerator.h"
+#include "util/IdGenerator.h"
 #include "planner/PlanNode.h"
 #include "service/ExecutionContext.h"
 #include "util/ObjectPool.h"

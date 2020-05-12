@@ -6,6 +6,7 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:query_engine_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
+    $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_network_obj>
     $<TARGET_OBJECTS:common_fs_obj>

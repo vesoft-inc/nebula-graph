@@ -9,7 +9,6 @@ nebula_add_library(
     PlanNode.cpp
     ExecutionPlan.cpp
     Query.cpp
-    IdGenerator.cpp
     Mutate.h
 )
 
