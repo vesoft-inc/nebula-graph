@@ -30,6 +30,7 @@ folly::Future<Status> GetEdgesExecutor::execute() {
 }
 
 folly::Future<Status> GetEdgesExecutor::getEdges() {
+    CHECK_NODE_TYPE(GetEdges);
     dumpLog();
 
     GraphStorageClient *client = ectx()->getStorageClient();
@@ -37,16 +38,34 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         return error(Status::Error("Invalid storage client for GetEdgesExecutor"));
     }
 
-    // auto *ge = asNode<GetEdges>(node());
-
-    // return client->getProps(ge->space(), ge->edges(), ge->props(), ge->filter())
-    //     .via(runner())
-    //     .then([this](StorageRpcResponse<GetPropResponse> resp) {
-    //         resp.responses();
-    //         nebula::Value value;
-    //         return finish(std::move(value));
-    //     });
-    return start();
+    auto *ge = asNode<GetEdges>(node());
+    std::vector<std::string> cols{nebula::_SRC, nebula::_TYPE, nebula::_RANK, nebula::_DST};
+    for (const auto &prop : ge->props()) {
+        cols.emplace_back(prop);
+    }
+    return client
+        ->getProps(ge->space(),
+                   cols,
+                   ge->edges(),
+                   ge->props(),
+                   ge->dedup(),
+                   ge->orderBy(),
+                   ge->limit(),
+                   ge->filter())
+        .via(runner())
+        .then([this](StorageRpcResponse<GetPropResponse> rpcResp) {
+            HANDLE_COMPLETENESS(rpcResp);
+            // Ok, merge DataSets to one
+            nebula::DataSet v;
+            for (auto &resp : rpcResp.responses()) {
+                auto *props = resp.get_props();
+                if (props != nullptr) {
+                    v.merge(std::move(*props));
+                }
+            }
+            finish(std::move(v));
+            return Status::OK();
+        });
 }
 
 }   // namespace graph

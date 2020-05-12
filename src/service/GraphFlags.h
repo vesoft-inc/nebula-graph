@@ -31,4 +31,6 @@ DECLARE_string(default_charset);
 DECLARE_string(default_collate);
 DECLARE_bool(enable_authorize);
 
-#endif  // GRAPH_GRAPHFLAGS_H_
+DECLARE_bool(strict_responses_check);
+
+#endif   // GRAPH_GRAPHFLAGS_H_

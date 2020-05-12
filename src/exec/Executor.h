@@ -17,6 +17,33 @@
 #include "base/Status.h"
 #include "cpp/helpers.h"
 #include "datatypes/Value.h"
+#include "service/GraphFlags.h"
+
+#define CHECK_NODE_TYPE(kKind)                                                                     \
+    do {                                                                                           \
+        CHECK_EQ(node()->kind(), PlanNode::Kind::k##kKind);                                        \
+    } while (0);
+
+// pass the StorageRPCResponse struct instead of completeness number to avoid user pass a not
+// related interger
+#define HANDLE_COMPLETENESS(rpcResp)                                                               \
+    do {                                                                                           \
+        auto completeness = rpcResp.completeness();                                                \
+        if (completeness != 100) {                                                                 \
+            const auto &failedCodes = rpcResp.failedParts();                                       \
+            for (auto it = failedCodes.begin(); it != failedCodes.end(); it++) {                   \
+                LOG(ERROR) << __FUNCTION__ << " failed, error "                                    \
+                           << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second)             \
+                           << ", part " << it->first;                                              \
+            }                                                                                      \
+            if (FLAGS_strict_responses_check) {                                                    \
+                return Status::Error("%s complete, completeness: %d", __FUNCTION__, completeness); \
+            } else if (completeness == 0) {                                                        \
+                return Status::Error(                                                              \
+                    "%s not complete, completeness: %d", __FUNCTION__, completeness);              \
+            }                                                                                      \
+        }                                                                                          \
+    } while (0);
 
 namespace nebula {
 namespace graph {

@@ -56,10 +56,32 @@ const char* PlanNode::toString(Kind kind) {
             return "MultiOutputs";
         case Kind::kSwitchSpace:
             return "RegisterSpaceToSession";
+        case Kind::kCreateSpace:
+            return "CreateSpace";
+        case Kind::kCreateTag:
+            return "CreateTag";
+        case Kind::kCreateEdge:
+            return "CreateEdge";
+        case Kind::kDescSpace:
+            return "DescSpace";
+        case Kind::kDescTag:
+            return "DescTag";
+        case Kind::kDescEdge:
+            return "DescEdge";
+        case Kind::kInsertVertices:
+            return "InsertVertices";
+        case Kind::kInsertEdges:
+            return "InsertEdges";
         case Kind::kUnknown:
-        default:
-            return "kUnknown";
+            return "Unknown";
+            // no default so the compiler will warning when lack one enumerate
     }
+    return "Unkown";
+}
+
+std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {
+    os << PlanNode::toString(kind);
+    return os;
 }
 
 }   // namespace graph

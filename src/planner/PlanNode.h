@@ -87,16 +87,19 @@ public:
         plan_ = plan;
     }
 
-protected:
     static const char* toString(Kind kind);
 
-    Kind                                     kind_{Kind::kUnknown};
-    int64_t                                  id_{IdGenerator::INVALID_ID};
-    ExecutionPlan*                           plan_{nullptr};
+protected:
+    Kind kind_{Kind::kUnknown};
+    int64_t id_{IdGenerator::INVALID_ID};
+    ExecutionPlan* plan_{nullptr};
     using VariableName = std::string;
-    std::unordered_set<VariableName>         availableVars_;
-    VariableName                             varGenerated_;
+    std::unordered_set<VariableName> availableVars_;
+    VariableName varGenerated_;
 };
-}  // namespace graph
-}  // namespace nebula
-#endif  // PLANNER_PLANNODE_H_
+
+std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
+
+}   // namespace graph
+}   // namespace nebula
+#endif   // PLANNER_PLANNODE_H_

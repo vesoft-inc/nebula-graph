@@ -30,26 +30,42 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 }
 
 folly::Future<Status> GetVerticesExecutor::getVertices() {
+    CHECK_NODE_TYPE(GetVertices)
     dumpLog();
 
-    // auto *gv = asNode<GetVertices>(node());
-    // Expression *srcExpr = gv->src();
-    // UNUSED(srcExpr);
+    auto *gv = asNode<GetVertices>(node());
 
-    // std::vector<VertexID> vertices;
-    // // TODO(yee): compute vertices by evaluate expression
-
-    // GraphStorageClient *storageClient_ = ectx()->getStorageClient();
-
-    // return storageClient_->getVertexProps(gv->space(), vertices, gv->props(), gv->filter())
-    //     .via(runner())
-    //     .then([this](StorageRpcResponse<VertexPropResponse> resp) {
-    //         if (!resp.succeeded()) return Status::PartNotFound();
-    //         resp.responses();
-    //         nebula::Value value;
-    //         finish(std::move(value));
-    //         return Status::OK();
-    //     });
+    GraphStorageClient *storageClient = ectx()->getStorageClient();
+    if (storageClient == nullptr) {
+        return error(Status::Error("Invalid storage client for GetVerticesExecutor"));
+    }
+    std::vector<std::string> cols{nebula::_VID};
+    for (const auto &prop : gv->props()) {
+        cols.emplace_back(prop);
+    }
+    return storageClient
+        ->getProps(gv->space(),
+                   cols,
+                   gv->vertices(),
+                   gv->props(),
+                   gv->dedup(),
+                   gv->orderBy(),
+                   gv->limit(),
+                   gv->filter())
+        .via(runner())
+        .then([this](StorageRpcResponse<GetPropResponse> rpcResp) {
+            HANDLE_COMPLETENESS(rpcResp);
+            // Ok, merge DataSets to one
+            nebula::DataSet v;
+            for (auto &resp : rpcResp.responses()) {
+                auto *props = resp.get_props();
+                if (props != nullptr) {
+                    v.merge(std::move(*props));
+                }
+            }
+            finish(std::move(v));
+            return Status::OK();
+        });
     return start();
 }
 
