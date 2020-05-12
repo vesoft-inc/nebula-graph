@@ -39,23 +39,14 @@ jobs:
       image: vesoft/nebula-dev:${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
-      - name: Prepare
+      - name: CMake
         run: |
           mkdir -p ~/.ssh
           cp ./ci/deploy_key ~/.ssh/id_rsa
           chmod 0400 ~/.ssh/id_rsa
           echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
-      - name: CMake
-        run: |
           cmake -E make_directory build
-          cmake \
-            -DCMAKE_CXX_COMPILER=g++ \
-            -DCMAKE_C_COMPILER=gcc \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DENABLE_TESTING=on \
-            -B build/
+          cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTING=on -B build/
       - name: Make
         run: cmake --build build/ -j $(nproc)
       - name: CTest
@@ -80,25 +71,14 @@ jobs:
         ASAN_OPTIONS: fast_unwind_on_malloc=0
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
-      - name: Prepare
+      - name: CMake
         run: |
           mkdir -p ~/.ssh
           cp ./ci/deploy_key ~/.ssh/id_rsa
           chmod 0400 ~/.ssh/id_rsa
           echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
-      - name: CMake
-        run: |
           cmake -E make_directory build
-          cmake \
-            -DCMAKE_CXX_COMPILER=clang++ \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DENABLE_ASAN=on \
-            -DENABLE_UBSAN=on \
-            -DENABLE_TESTING=on \
-            -B build/
+          cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_UBSAN=on -DENABLE_TESTING=on -B build/
       - name: Make
         run: cmake --build build/ -j $(nproc)
       - name: CTest
