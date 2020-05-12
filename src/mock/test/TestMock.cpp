@@ -168,26 +168,263 @@ TEST_F(MockServerTest, TestMeta) {
 }
 
 TEST_F(MockServerTest, DISABLED_TestStorage) {
+    auto metaClient = gEnv->getMetaClient();
     auto storageClient = gEnv->getStorageClient();
-    GraphSpaceID space = 1;
-    std::vector<Value> props;
-    props.emplace_back("hello");
-    storage::cpp2::NewTag tag;
-    tag.set_tag_id(3);
-    tag.set_props(std::move(props));
-    std::vector<storage::cpp2::NewTag> tags;
-    tags.emplace_back(tag);
+    // create tag person
+    {
+        meta::cpp2::Schema tagSchema;
+        std::vector<meta::cpp2::ColumnDef> cols;
 
-    storage::cpp2::NewVertex vertex;
-    vertex.set_id("2020");
-    vertex.set_tags(std::move(tags));
-    std::vector<storage::cpp2::NewVertex> vertices;
-    vertices.emplace_back(std::move(vertex));
+        meta::cpp2::ColumnDef col;
+        col.set_name("name");
+        col.set_type(meta::cpp2::PropertyType::STRING);
+        col.set_default_value(nebula::Value("NULL"));
 
-    std::unordered_map<TagID, std::vector<std::string>> propNames;
-    propNames[3] = {"col"};
-    auto resp = storageClient->addVertices(space, vertices, propNames, false).get();
-    ASSERT_TRUE(resp.succeeded());
+        cols.emplace_back(col);
+        col.set_name("age");
+        col.set_type(meta::cpp2::PropertyType::INT8);
+        col.set_default_value(nebula::Value(18));
+        cols.emplace_back(std::move(col));
+
+        tagSchema.set_columns(std::move(cols));
+        auto status = metaClient->createTagSchema(1, "person", tagSchema, false).get();
+        ASSERT_TRUE(status.ok());
+
+        sleep(FLAGS_heartbeat_interval_secs + 1);
+    }
+
+    // add vertex
+    {
+        auto ret = metaClient->getTagIDByNameFromCache(1, "person");
+        ASSERT_TRUE(ret.ok());
+        auto tagId = ret.value();
+        GraphSpaceID space = 1;
+        std::vector<Value> props;
+        props.emplace_back("laura");
+        storage::cpp2::NewTag tag;
+        tag.set_tag_id(tagId);
+        tag.set_props(std::move(props));
+        std::vector<storage::cpp2::NewTag> tags;
+        tags.emplace_back(tag);
+
+        storage::cpp2::NewVertex vertex;
+        vertex.set_id("laura");
+        vertex.set_tags(std::move(tags));
+        std::vector<storage::cpp2::NewVertex> vertices;
+        vertices.emplace_back(std::move(vertex));
+
+        std::unordered_map<TagID, std::vector<std::string>> propNames;
+        propNames[tagId] = {"name"};
+        auto resp = storageClient->addVertices(space, vertices, propNames, false).get();
+        ASSERT_TRUE(resp.succeeded());
+    }
+
+    // Get person.name
+    {
+        std::vector<Row> vids;
+        Row row;
+        row.columns.emplace_back("laura");
+        vids.emplace_back(std::move(row));
+        storage::cpp2::PropExp prop;
+        prop.set_prop("person.name");
+        prop.set_alias("p_name");
+        auto getResp = storageClient->getProps(1, {"_vid"}, vids, {prop}).get();
+        ASSERT_TRUE(getResp.succeeded());
+        auto response = getResp.responses();
+        ASSERT_EQ(1, response.size());
+        ASSERT_NE(nullptr, response[0].get_props());
+        ASSERT_EQ(2, response[0].get_props()->colNames.size());
+        ASSERT_EQ("_vid", response[0].get_props()->colNames[0]);
+        ASSERT_EQ("person:name_p_name", response[0].get_props()->colNames[1]);
+        ASSERT_EQ(1, response[0].get_props()->rows.size());
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[0]);
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[1]);
+    }
+
+    // Get person.*
+    {
+        std::vector<Row> vids;
+        Row row;
+        row.columns.emplace_back("laura");
+        vids.emplace_back(std::move(row));
+        storage::cpp2::PropExp prop;
+        prop.set_prop("person.*");
+        prop.set_alias("");
+        auto getResp = storageClient->getProps(1, {"_vid"}, vids, {prop}).get();
+        ASSERT_TRUE(getResp.succeeded());
+        auto response = getResp.responses();
+        ASSERT_EQ(1, response.size());
+        ASSERT_NE(nullptr, response[0].get_props());
+        ASSERT_EQ(3, response[0].get_props()->colNames.size());
+        ASSERT_EQ("_vid", response[0].get_props()->colNames[0]);
+        ASSERT_EQ(1, response[0].get_props()->rows.size());
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[0]);
+        if ("person:age_age" == response[0].get_props()->colNames[1]) {
+            ASSERT_EQ("person:name_name", response[0].get_props()->colNames[2]);
+            ASSERT_EQ(Value(18), response[0].get_props()->rows[0].columns[1]);
+            ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[2]);
+        } else if ("person:name_name" == response[0].get_props()->colNames[1]) {
+            ASSERT_EQ("person:age_age", response[0].get_props()->colNames[2]);
+            ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[1]);
+            ASSERT_EQ(Value(18), response[0].get_props()->rows[0].columns[2]);
+        } else {
+            ASSERT_TRUE(false);
+        }
+    }
+
+    // Get all
+    {
+        std::vector<Row> vids;
+        Row row;
+        row.columns.emplace_back("laura");
+        vids.emplace_back(std::move(row));
+        auto getResp = storageClient->getProps(1, {"_vid"}, vids, {}).get();
+        ASSERT_TRUE(getResp.succeeded());
+        auto response = getResp.responses();
+        ASSERT_EQ(1, response.size());
+        ASSERT_NE(nullptr, response[0].get_props());
+        ASSERT_EQ(3, response[0].get_props()->colNames.size());
+        ASSERT_EQ("_vid", response[0].get_props()->colNames[0]);
+        ASSERT_EQ(1, response[0].get_props()->rows.size());
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[0]);
+        if ("person:age_age" == response[0].get_props()->colNames[1]) {
+            ASSERT_EQ("person:name_name", response[0].get_props()->colNames[2]);
+            ASSERT_EQ(Value(18), response[0].get_props()->rows[0].columns[1]);
+            ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[2]);
+        } else if ("person:name_name" == response[0].get_props()->colNames[1]) {
+            ASSERT_EQ("person:age_age", response[0].get_props()->colNames[2]);
+            ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[1]);
+            ASSERT_EQ(Value(18), response[0].get_props()->rows[0].columns[2]);
+        } else {
+            ASSERT_TRUE(false);
+        }
+    }
+
+    // GetNeighbors
+    // create edge classmate
+    {
+        meta::cpp2::Schema edgeSchema;
+        std::vector<meta::cpp2::ColumnDef> cols;
+
+        meta::cpp2::ColumnDef col;
+        col.set_name("start");
+        col.set_type(meta::cpp2::PropertyType::INT16);
+        col.set_default_value(nebula::Value(2010));
+
+        cols.emplace_back(col);
+        col.set_name("end");
+        col.set_type(meta::cpp2::PropertyType::INT16);
+        col.set_default_value(nebula::Value(2014));
+        cols.emplace_back(std::move(col));
+
+        edgeSchema.set_columns(std::move(cols));
+        auto status = metaClient->createEdgeSchema(1, "classmate", edgeSchema, false).get();
+        ASSERT_TRUE(status.ok());
+
+        sleep(FLAGS_heartbeat_interval_secs + 1);
+    }
+
+    // add edge
+    {
+        auto ret = metaClient->getEdgeTypeByNameFromCache(1, "classmate");
+        ASSERT_TRUE(ret.ok());
+        auto edgeType = ret.value();
+        GraphSpaceID space = 1;
+        std::vector<Value> props;
+        props.emplace_back(2012);
+        storage::cpp2::NewEdge edge;
+        storage::cpp2::EdgeKey edgeKey;
+        edgeKey.set_src("laura");
+        edgeKey.set_edge_type(edgeType);
+        edgeKey.set_ranking(1);
+        edgeKey.set_dst("laura");
+        edge.set_key(edgeKey);
+        edge.set_props(std::move(props));
+        std::vector<storage::cpp2::NewEdge> edges;
+        edges.emplace_back(std::move(edge));
+
+        std::vector<std::string> propNames = {"start"};
+        auto resp = storageClient->addEdges(space, edges, propNames, false).get();
+        ASSERT_TRUE(resp.succeeded());
+    }
+    // getNeighbors
+    {
+        auto ret = metaClient->getEdgeTypeByNameFromCache(1, "classmate");
+        ASSERT_TRUE(ret.ok());
+        auto edgeType = ret.value();
+
+        GraphSpaceID space = 1;
+        std::vector<std::string> colNames = {"_vid"};
+        std::vector<Row> vertices;
+        Row row;
+        row.columns = {Value("laura")};
+        vertices.emplace_back(row);
+        std::vector<EdgeType> edgeTypes;
+        edgeTypes.emplace_back(edgeType);
+        storage::cpp2::EdgeDirection edgeDirection = storage::cpp2::EdgeDirection::BOTH;
+        std::vector<storage::cpp2::StatProp> statProps;
+        storage::cpp2::PropExp propExp;
+        propExp.prop = "person.name";
+        propExp.alias = "name";
+        std::vector<storage::cpp2::PropExp> vertexProps = {propExp};
+
+        std::vector<storage::cpp2::PropExp> edgeProps;
+        propExp.prop = "classmate._src";
+        propExp.alias = "src";
+        edgeProps.emplace_back(propExp);
+        propExp.prop = "classmate._type";
+        propExp.alias = "type";
+        edgeProps.emplace_back(propExp);
+        propExp.prop = "classmate._rank";
+        propExp.alias = "ranking";
+        edgeProps.emplace_back(propExp);
+        propExp.prop = "classmate._dst";
+        propExp.alias = "dst";
+        edgeProps.emplace_back(propExp);
+        propExp.prop = "classmate.start";
+        propExp.alias = "start";
+        edgeProps.emplace_back(propExp);
+
+        auto resp = storageClient->getNeighbors(space,
+                                                colNames,
+                                                vertices,
+                                                edgeTypes,
+                                                edgeDirection,
+                                                &statProps,
+                                                &vertexProps,
+                                                &edgeProps).get();
+        ASSERT_TRUE(resp.succeeded());
+        auto response = resp.responses();
+        ASSERT_EQ(1, response.size());
+        ASSERT_NE(nullptr, response[0].get_vertices());
+        ASSERT_EQ(4, response[0].get_vertices()->colNames.size());
+        ASSERT_EQ("_vid", response[0].get_vertices()->colNames[0]);
+        ASSERT_EQ("_stat:", response[0].get_vertices()->colNames[1]);
+        ASSERT_EQ("_tag:person:name_name", response[0].get_vertices()->colNames[2]);
+        ASSERT_EQ("_edge:classmate:_src_src:_type_type:_rank_ranking:_dst_dst:start_start",
+                response[0].get_vertices()->colNames[3]);
+
+        ASSERT_EQ(1, response[0].get_vertices()->rows.size());
+        ASSERT_EQ(4, response[0].get_vertices()->rows[0].columns.size());
+        auto &resultRow = response[0].get_vertices()->rows[0];
+        // vid
+        ASSERT_EQ(Value("laura"), resultRow.columns[0]);
+        // stat
+        ASSERT_EQ(Value(), resultRow.columns[1]);
+
+        // vid prop
+        auto &verticesValue = resultRow.columns[2].getList().values;
+        ASSERT_EQ(Value("laura"), verticesValue[0]);
+
+        // edge prop
+        auto &edgeValue = resultRow.columns[3].getList().values[0].getList().values;
+        ASSERT_EQ(5, edgeValue.size());
+        ASSERT_EQ(Value("laura"), edgeValue[0]);
+        ASSERT_EQ(Value(edgeType), edgeValue[1]);
+        ASSERT_EQ(Value(1), edgeValue[2]);
+        ASSERT_EQ(Value("laura"), edgeValue[3]);
+        ASSERT_EQ(Value(2012), edgeValue[4]);
+    }
 }
 
 }   // namespace graph

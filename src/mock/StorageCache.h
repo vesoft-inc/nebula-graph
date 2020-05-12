@@ -12,6 +12,9 @@
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/clients/meta/MetaClient.h"
 #include "common/meta/ServerBasedSchemaManager.h"
+#include "common/meta/NebulaSchemaProvider.h"
+#include <thrift/lib/cpp2/protocol/Serializer.h>
+#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
 namespace nebula {
 namespace graph {
@@ -42,7 +45,6 @@ public:
 
     Status addEdges(const storage::cpp2::AddEdgesRequest& req);
 
-private:
     StatusOr<std::unordered_map<std::string, Value>>
     getTagWholeValue(const GraphSpaceID spaceId,
                      const TagID tagId,
@@ -62,8 +64,6 @@ private:
 
 private:
     struct SpaceDataInfo {
-        SpaceDataInfo() = default;
-        ~SpaceDataInfo() = default;
         VerticesInfo     vertices;
         EdgesInfo        edges;
     };
