@@ -9,7 +9,7 @@
 
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
-#include "planner/IdGenerator.h"
+#include "util/IdGenerator.h"
 
 namespace nebula {
 namespace graph {

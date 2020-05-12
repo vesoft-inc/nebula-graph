@@ -9,51 +9,51 @@
 
 namespace nebula {
 namespace graph {
-const Value& getVar(const std::string& var) const {
+const Value& ExpressionContextImpl::getVar(const std::string& var) const {
     UNUSED(var);
     return NULL_VALUE;
 }
 
-const Value& getVersionedVar(const std::string& var,
-                             size_t version) const {
+const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
+                                                    size_t version) const {
     UNUSED(var);
     UNUSED(version);
     return NULL_VALUE;
 }
 
-const Value& getVarProp(const std::string& var,
-                        const std::string& prop) const {
+const Value& ExpressionContextImpl::getVarProp(const std::string& var,
+                                               const std::string& prop) const {
     // TODO
     UNUSED(var);
     UNUSED(prop);
     return NULL_VALUE;
 }
 
-const Value& getEdgeProp(const std::string& edgeType,
-                         const std::string& prop) const {
+const Value& ExpressionContextImpl::getEdgeProp(const std::string& edgeType,
+                                                const std::string& prop) const {
     // TODO
     UNUSED(edgeType);
     UNUSED(prop);
     return NULL_VALUE;
 }
 
-const Value& getSrcProp(const std::string& tag,
-                        const std::string& prop) const {
+const Value& ExpressionContextImpl::getSrcProp(const std::string& tag,
+                                               const std::string& prop) const {
     // TODO
     UNUSED(tag);
     UNUSED(prop);
     return NULL_VALUE;
 }
 
-const Value& getEdgeProp(const std::string& tag,
-                         const std::string& prop) const {
+const Value& ExpressionContextImpl::getDstProp(const std::string& tag,
+                                               const std::string& prop) const {
     // TODO
     UNUSED(tag);
     UNUSED(prop);
     return NULL_VALUE;
 }
 
-const Value& getInputProp(const std::string& prop) const {
+const Value& ExpressionContextImpl::getInputProp(const std::string& prop) const {
     // TODO
     UNUSED(prop);
     return NULL_VALUE;

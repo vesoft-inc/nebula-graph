@@ -418,8 +418,7 @@ var_ref_expression
 
 alias_ref_expression
     : name_label DOT name_label {
-        $$ = new AliasPropertyExpression(
-                Expression::Kind::kAliasProperty, new std::string(""), $1, $3);
+        $$ = new EdgePropertyExpression($1, $3);
     }
     | name_label DOT TYPE_PROP {
         $$ = new EdgeTypeExpression($1);
