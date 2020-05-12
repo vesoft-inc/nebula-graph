@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - centos7
+          - ubuntu1804
+        compiler:
+          - clang-9.0.0
+          - gcc-9.2.0
+    container:
+      image: vesoft/nebula-dev:${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: CMake
+        run: |
+          ./ci/deploy.sh
+          cmake -E make_directory build
+          [[ "${{ matrix.compiler }}" == "gcc-9.2.0" ]] && \
+            cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTING=on -B build/ || \
+            cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_UBSAN=on -DENABLE_TESTING=on -B build/
+      - name: Make
+        run: cmake --build build/ -j $(nproc)
+      - name: CTest
+        timeout-minutes: 30
+        working-directory: build
+        run: ctest -j $(nproc) --timeout 400 --output-on-failure

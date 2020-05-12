@@ -5,18 +5,15 @@ name: gcc_build
 
 steps:
   - name: lint
-    image: vesoft/nebula-dev:latest
+    image: vesoft/nebula-dev:ubuntu1804
     commands:
-      - cd .linters/cpp && ln -snf hooks/pre-commit.sh
-      - ./pre-commit.sh $(git --no-pager diff --name-only $(git log --oneline -n 1 | cut -d ' ' -f 1,5) | sed -E 's/(.*)/..\/..\/\1/g')
+      - ln -snf .linters/cpp/hooks/pre-commit.sh .linters/cpp/pre-commit.sh
+      - .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD~1 HEAD | sed -r 's/(.*)/..\\/..\\/\\\1/g')
 
   - name: gcc_build
-    image: vesoft/nebula-dev:latest
+    image: vesoft/nebula-dev:ubuntu1804
     commands:
-      - mkdir -p ~/.ssh
-      - cp ./ci/deploy_key ~/.ssh/id_rsa
-      - chmod 0400 ~/.ssh/id_rsa
-      - echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+      - ./ci/deploy.sh
       - mkdir build && cd build
       - cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTING=on ..
       - make -j $(nproc)
@@ -31,20 +28,17 @@ name: clang_build
 
 steps:
   - name: lint
-    image: vesoft/nebula-dev:latest
+    image: vesoft/nebula-dev:ubuntu1804
     commands:
-      - cd .linters/cpp && ln -snf hooks/pre-commit.sh
-      - ./pre-commit.sh $(git --no-pager diff --name-only $(git log --oneline -n 1 | cut -d ' ' -f 1,5) | sed -E 's/(.*)/..\/..\/\1/g')
+      - ln -snf .linters/cpp/hooks/pre-commit.sh .linters/cpp/pre-commit.sh
+      - .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD~1 HEAD | sed -r 's/(.*)/..\\/..\\/\\\1/g')
 
   - name: clang_build
-    image: vesoft/nebula-dev:latest
+    image: vesoft/nebula-dev:ubuntu1804
     commands:
-      - mkdir -p ~/.ssh
-      - cp ./ci/deploy_key ~/.ssh/id_rsa
-      - chmod 0400 ~/.ssh/id_rsa
-      - echo -e "Host github.com\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+      - ./ci/deploy.sh
       - mkdir build && cd build
-      - cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_UBSAN=on -DENABLE_TESTING=on ..
+      - cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_TESTING=on ..
       - make -j $(nproc)
       - ctest -j $(nproc) --timeout 400 --output-on-failure
     depends_on:
