@@ -62,6 +62,38 @@ public:
                     const std::vector<Value>& props,
                     const std::vector<std::string> &names);
 
+<<<<<<< HEAD
+=======
+    StatusOr<DataSet> getVertices(GraphSpaceID spaceId,
+                                  const VerticesInfo &vertices,
+                                  const storage::cpp2::GetPropRequest &req);
+
+    StatusOr<DataSet> getEdges(GraphSpaceID spaceId,
+                               const EdgesInfo &edgesInfo,
+                               const storage::cpp2::GetPropRequest &req);
+
+    // Use src_id get to all edgeType
+    std::unordered_map<VertexID, std::vector<storage::cpp2::EdgeKey>>
+    getAllEdgeKeys(const std::vector<VertexID> &vertices,
+                   const EdgesInfo &edgesInfo,
+                   const storage::cpp2::EdgeDirection edgeDirection);
+
+    // Use src_id and edge type to get all edgeType
+    std::unordered_map<VertexID, std::vector<storage::cpp2::EdgeKey>>
+    getMultiEdgeKeys(const std::vector<VertexID> &vertices,
+                     const std::vector<EdgeType> &edgeTypes,
+                     const EdgesInfo &edgesInfo);
+
+    StatusOr<std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>>
+    getTagPropNames(const GraphSpaceID spaceId, const std::vector<storage::cpp2::PropExp> &props);
+
+    StatusOr<std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>>
+    getEdgePropNames(const GraphSpaceID spaceId, const std::vector<storage::cpp2::PropExp> &props);
+
+    StatusOr<DataSet> getNeighborsResult(GraphSpaceID spaceId);
+
+
+>>>>>>> add test
 private:
     struct SpaceDataInfo {
         VerticesInfo     vertices;
