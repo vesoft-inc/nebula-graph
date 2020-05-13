@@ -8,6 +8,7 @@
 #define UTIL_EXPRESSIONCONTEXT_H_
 
 #include "context/ExpressionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -44,7 +45,7 @@ public:
     const Value& getInputProp(const std::string& prop) const override;
 
 private:
-    QueryContext    qCtxt_;
+    QueryContext*    qCtxt_;
 };
 }  // namespace graph
 }  // namespace nebula
