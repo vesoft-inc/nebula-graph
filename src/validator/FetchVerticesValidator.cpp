@@ -84,7 +84,7 @@ Status FetchVerticesValidator::prepareVertices() {
     auto vids = sentence_->vidList();
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
-        vertices_.emplace_back(nebula::Row({vid->eval().getVertex().vid}));
+        vertices_.emplace_back(nebula::Row({vid->eval()}));
     }
     return Status::OK();
 }
