@@ -29,10 +29,10 @@ TEST(QueryContext, HistoryTest) {
     ASSERT_EQ(4, ctx.numVersions("v1"));
     const auto& hist1 = ctx.getHistory("v1");
     auto it = hist1.begin();
-    EXPECT_EQ(Value(true), *it++);
-    EXPECT_EQ(Value(3.14), *it++);
-    EXPECT_EQ(Value("Hello world"), *it++);
     EXPECT_EQ(Value(10), *it++);
+    EXPECT_EQ(Value("Hello world"), *it++);
+    EXPECT_EQ(Value(3.14), *it++);
+    EXPECT_EQ(Value(true), *it++);
     EXPECT_TRUE(it == hist1.end());
 
     ctx.truncHistory("v1", 5);
@@ -43,8 +43,8 @@ TEST(QueryContext, HistoryTest) {
 
     const auto& hist2 = ctx.getHistory("v1");
     auto it2 = hist2.begin();
-    EXPECT_EQ(Value(true), *it2++);
     EXPECT_EQ(Value(3.14), *it2++);
+    EXPECT_EQ(Value(true), *it2++);
     EXPECT_TRUE(it2 == hist2.end());
 }
 

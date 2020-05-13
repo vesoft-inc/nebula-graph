@@ -16,10 +16,12 @@ const Value& ExpressionContextImpl::getVar(const std::string& var) const {
 const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
                                                     int64_t version) const {
     auto& val = qCtxt_->getHistory(var);
-    if (version <= 0) {
+    if (version <= 0 && static_cast<size_t>(std::abs(version)) < val.size()) {
         return val[val.size() + version -1];
-    } else {
+    } else if (version > 0 && static_cast<size_t>(version) <= val.size()) {
         return val[version - 1];
+    } else {
+        return kEmpty;
     }
     return kNullValue;
 }

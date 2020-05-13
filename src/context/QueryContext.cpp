@@ -43,7 +43,7 @@ void QueryContext::truncHistory(const std::string& name, size_t numVersionsToKee
 const Value& QueryContext::getValue(const std::string& name) const {
     auto it = valueMap_.find(name);
     if (it != valueMap_.end()) {
-        return it->second.front();
+        return it->second.back();
     } else {
         return kEmpty;
     }
