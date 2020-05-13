@@ -311,7 +311,7 @@ StatusOr<DataSet> StorageCache::getNeighbors(const storage::cpp2::GetNeighborsRe
                             auto findProp = edgesInfo[edgeKey].find(prop.first);
                             if (findProp == edgesInfo[edgeKey].end()) {
                                 return Status::Error("Wrong edge prop name: %s",
-                                                     prop.first.c_str());
+                                                      prop.first.c_str());
                             }
                             values.emplace_back(findProp->second);
                         } else {
@@ -450,12 +450,101 @@ StatusOr<DataSet> StorageCache::getVertices(GraphSpaceID spaceId,
 }
 
 StatusOr<DataSet> StorageCache::getEdges(GraphSpaceID spaceId,
-                                         const EdgesInfo &edges,
+                                         const EdgesInfo &edgesInfo,
                                          const storage::cpp2::GetPropRequest &req) {
-    UNUSED(spaceId);
-    UNUSED(edges);
-    UNUSED(req);
-    return DataSet();
+    std::unordered_map<std::string,
+            std::vector<std::pair<std::string, std::string>>> edgePropNames;
+    auto parts = req.get_parts();
+    std::vector<storage::cpp2::EdgeKey> edgeKeys;
+    for (auto &part : parts) {
+        for (auto &row : part.second) {
+            if (row.columns.size() != 4) {
+                return Status::Error("Wrong row size: %ld", row.columns.size());
+            }
+            if (row.columns[0].type() != Value::Type::STRING ||
+                row.columns[1].type() != Value::Type::INT ||
+                row.columns[2].type() != Value::Type::INT ||
+                row.columns[3].type() != Value::Type::STRING) {
+                return Status::Error("Wrong value type");
+            }
+
+            storage::cpp2::EdgeKey edgeKey;
+            edgeKey.set_src(row.columns[0].getStr());
+            edgeKey.set_edge_type(row.columns[1].getInt());
+            edgeKey.set_ranking(row.columns[2].getInt());
+            edgeKey.set_dst(row.columns[3].getStr());
+            auto eFindIt = edgesInfo.find(edgeKey);
+            if (eFindIt == edgesInfo.end()) {
+                return Status::Error(folly::stringPrintf("Edge `%s:%ld:%ld:%s' not found",
+                                                          row.columns[0].getStr().c_str(),
+                                                          row.columns[1].getInt(),
+                                                          row.columns[2].getInt(),
+                                                          row.columns[3].getStr().c_str()));
+            }
+
+            edgeKeys.emplace_back(std::move(edgeKey));
+
+            auto ret = mgr_->toEdgeName(spaceId, edgeKey.get_edge_type());
+            if (!ret.ok()) {
+                return ret.status();
+            }
+            auto edgeName = std::move(ret).value();
+            for (auto &prop : eFindIt->second) {
+                edgePropNames[edgeName].emplace_back(prop.first, prop.first);
+            }
+        }
+    }
+
+    auto props = req.get_props();
+    if (props.size() != 0) {
+        edgePropNames.clear();
+        auto ret = getEdgePropNames(spaceId, props);
+        if (!ret.ok()) {
+            return ret.status();
+        }
+        edgePropNames = std::move(ret).value();
+    }
+    // Init column name
+    std::vector<std::string> columnNames;
+    columnNames.emplace_back(SRC);
+    columnNames.emplace_back(TYPE);
+    columnNames.emplace_back(RANK);
+    columnNames.emplace_back(DST);
+    for (auto &edge : edgePropNames) {
+        for (auto &prop : edge.second) {
+            columnNames.emplace_back(folly::stringPrintf("%s:%s_%s",
+                    edge.first.c_str(), prop.first.c_str(), prop.second.c_str()));
+        }
+    }
+
+    std::vector<Row> rows;
+    for (auto &edgeKey : edgeKeys) {
+        Row row;
+        auto eFindIt = edgesInfo.find(edgeKey);
+        if (eFindIt == edgesInfo.end()) {
+            return Status::Error("Wrong edge");
+        }
+        auto &edgeInfo = eFindIt->second;
+        row.columns.emplace_back(Value(edgeKey.get_src()));
+        row.columns.emplace_back(Value(edgeKey.get_edge_type()));
+        row.columns.emplace_back(Value(edgeKey.get_ranking()));
+        row.columns.emplace_back(Value(edgeKey.get_dst()));
+        for (auto &edge : edgePropNames) {
+            for (auto &propName : edge.second) {
+                auto propFind = edgeInfo.find(propName.first);
+                if (propFind != edgeInfo.end()) {
+                    row.columns.emplace_back(propFind->second);
+                } else {
+                    row.columns.emplace_back(Value());
+                }
+            }
+        }
+        rows.emplace_back(row);
+    }
+    DataSet result;
+    result.colNames = std::move(columnNames);
+    result.rows = std::move(rows);
+    return result;
 }
 
 StatusOr<std::unordered_map<std::string, Value>>
@@ -470,7 +559,6 @@ StorageCache::getTagWholeValue(const GraphSpaceID spaceId,
     if (schema == nullptr) {
         return Status::Error("TagID `%d' not exist", tagId);
     }
-    LOG(INFO) << "tagId: " << tagId << ", schema->getNumFields(): " << schema->getNumFields();
     return getPropertyInfo(schema, props, names);
 }
 

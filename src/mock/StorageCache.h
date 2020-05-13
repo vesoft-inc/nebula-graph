@@ -101,7 +101,7 @@ private:
                                   const storage::cpp2::GetPropRequest &req);
 
     StatusOr<DataSet> getEdges(GraphSpaceID spaceId,
-                               const EdgesInfo &edges,
+                               const EdgesInfo &edgesInfo,
                                const storage::cpp2::GetPropRequest &req);
 
     // Use src_id get to all edgeType

@@ -167,7 +167,7 @@ TEST_F(MockServerTest, TestMeta) {
     sleep(FLAGS_heartbeat_interval_secs + 1);
 }
 
-TEST_F(MockServerTest, TestStorage) {
+TEST_F(MockServerTest, TestStorageGetVertices) {
     auto metaClient = gEnv->getMetaClient();
     auto storageClient = gEnv->getStorageClient();
     // create tag person
@@ -299,9 +299,13 @@ TEST_F(MockServerTest, TestStorage) {
             ASSERT_TRUE(false);
         }
     }
+}
 
-    // GetNeighbors
-    // create edge classmate
+
+TEST_F(MockServerTest, TestStorageGetEdges) {
+    auto metaClient = gEnv->getMetaClient();
+    auto storageClient = gEnv->getStorageClient();
+    // Create edge classmate
     {
         meta::cpp2::Schema edgeSchema;
         std::vector<meta::cpp2::ColumnDef> cols;
@@ -324,12 +328,12 @@ TEST_F(MockServerTest, TestStorage) {
         sleep(FLAGS_heartbeat_interval_secs + 1);
     }
 
-    // add edge
+    auto ret = metaClient->getEdgeTypeByNameFromCache(1, "classmate");
+    ASSERT_TRUE(ret.ok());
+    auto edgeType = ret.value();
+    GraphSpaceID space = 1;
+    // Add edge
     {
-        auto ret = metaClient->getEdgeTypeByNameFromCache(1, "classmate");
-        ASSERT_TRUE(ret.ok());
-        auto edgeType = ret.value();
-        GraphSpaceID space = 1;
         std::vector<Value> props;
         props.emplace_back(2012);
         storage::cpp2::NewEdge edge;
@@ -347,7 +351,131 @@ TEST_F(MockServerTest, TestStorage) {
         auto resp = storageClient->addEdges(space, edges, propNames, false).get();
         ASSERT_TRUE(resp.succeeded());
     }
-    // getNeighbors
+
+    // Get edge.start
+    {
+        std::vector<Row> edgeKeys;
+        Row row;
+        row.columns.emplace_back("laura");
+        row.columns.emplace_back(edgeType);
+        row.columns.emplace_back(1);
+        row.columns.emplace_back("laura");
+        edgeKeys.emplace_back(std::move(row));
+        storage::cpp2::PropExp prop;
+        prop.set_prop("classmate.start");
+        prop.set_alias("start");
+        auto getResp = storageClient->getProps(space,
+                {"_src", "_type", "_rank", "_dst"}, edgeKeys, {prop}).get();
+        ASSERT_TRUE(getResp.succeeded());
+        auto response = getResp.responses();
+        ASSERT_EQ(1, response.size());
+        ASSERT_NE(nullptr, response[0].get_props());
+        ASSERT_EQ(5, response[0].get_props()->colNames.size());
+        ASSERT_EQ("_src", response[0].get_props()->colNames[0]);
+        ASSERT_EQ("_type", response[0].get_props()->colNames[1]);
+        ASSERT_EQ("_rank", response[0].get_props()->colNames[2]);
+        ASSERT_EQ("_dst", response[0].get_props()->colNames[3]);
+        ASSERT_EQ("classmate:start_start", response[0].get_props()->colNames[4]);
+        ASSERT_EQ(1, response[0].get_props()->rows.size());
+        ASSERT_EQ(5, response[0].get_props()->rows[0].columns.size());
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[0]);
+        ASSERT_EQ(Value(edgeType), response[0].get_props()->rows[0].columns[1]);
+        ASSERT_EQ(Value(1), response[0].get_props()->rows[0].columns[2]);
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[3]);
+        ASSERT_EQ(Value(2012), response[0].get_props()->rows[0].columns[4]);
+    }
+
+    // Get classmate.*
+    {
+        std::vector<Row> edgeKeys;
+        Row row;
+        row.columns.emplace_back("laura");
+        row.columns.emplace_back(edgeType);
+        row.columns.emplace_back(1);
+        row.columns.emplace_back("laura");
+        edgeKeys.emplace_back(std::move(row));
+        storage::cpp2::PropExp prop;
+        prop.set_prop("classmate.*");
+        auto getResp = storageClient->getProps(space,
+                {"_src", "_type", "_rank", "_dst"}, edgeKeys, {}).get();
+        ASSERT_TRUE(getResp.succeeded());
+        auto response = getResp.responses();
+        ASSERT_EQ(1, response.size());
+        ASSERT_NE(nullptr, response[0].get_props());
+        ASSERT_EQ(6, response[0].get_props()->colNames.size());
+        ASSERT_EQ(1, response[0].get_props()->rows.size());
+        ASSERT_EQ(6, response[0].get_props()->rows[0].columns.size());
+
+        ASSERT_EQ("_src", response[0].get_props()->colNames[0]);
+        ASSERT_EQ("_type", response[0].get_props()->colNames[1]);
+        ASSERT_EQ("_rank", response[0].get_props()->colNames[2]);
+        ASSERT_EQ("_dst", response[0].get_props()->colNames[3]);
+
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[0]);
+        ASSERT_EQ(Value(edgeType), response[0].get_props()->rows[0].columns[1]);
+        ASSERT_EQ(Value(1), response[0].get_props()->rows[0].columns[2]);
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[3]);
+
+        if ("classmate:start_start" == response[0].get_props()->colNames[4]) {
+            ASSERT_EQ("classmate:end_end", response[0].get_props()->colNames[5]);
+            ASSERT_EQ(Value(2012), response[0].get_props()->rows[0].columns[4]);
+            ASSERT_EQ(Value(2014), response[0].get_props()->rows[0].columns[5]);
+        } else if ("classmate:end_end" == response[0].get_props()->colNames[4]) {
+            ASSERT_EQ("classmate:start_start", response[0].get_props()->colNames[5]);
+            ASSERT_EQ(Value(2014), response[0].get_props()->rows[0].columns[4]);
+            ASSERT_EQ(Value(2012), response[0].get_props()->rows[0].columns[5]);
+        } else {
+            ASSERT_TRUE(false);
+        }
+    }
+
+    // Get all
+    {
+        std::vector<Row> edgeKeys;
+        Row row;
+        row.columns.emplace_back("laura");
+        row.columns.emplace_back(edgeType);
+        row.columns.emplace_back(1);
+        row.columns.emplace_back("laura");
+        edgeKeys.emplace_back(std::move(row));
+        auto getResp = storageClient->getProps(space,
+                {"_src", "_type", "_rank", "_dst"}, edgeKeys, {}).get();
+        ASSERT_TRUE(getResp.succeeded());
+        auto response = getResp.responses();
+        ASSERT_EQ(1, response.size());
+        ASSERT_NE(nullptr, response[0].get_props());
+        ASSERT_EQ(6, response[0].get_props()->colNames.size());
+        ASSERT_EQ(1, response[0].get_props()->rows.size());
+        ASSERT_EQ(6, response[0].get_props()->rows[0].columns.size());
+
+        ASSERT_EQ("_src", response[0].get_props()->colNames[0]);
+        ASSERT_EQ("_type", response[0].get_props()->colNames[1]);
+        ASSERT_EQ("_rank", response[0].get_props()->colNames[2]);
+        ASSERT_EQ("_dst", response[0].get_props()->colNames[3]);
+
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[0]);
+        ASSERT_EQ(Value(edgeType), response[0].get_props()->rows[0].columns[1]);
+        ASSERT_EQ(Value(1), response[0].get_props()->rows[0].columns[2]);
+        ASSERT_EQ(Value("laura"), response[0].get_props()->rows[0].columns[3]);
+
+        if ("classmate:start_start" == response[0].get_props()->colNames[4]) {
+            ASSERT_EQ("classmate:end_end", response[0].get_props()->colNames[5]);
+            ASSERT_EQ(Value(2012), response[0].get_props()->rows[0].columns[4]);
+            ASSERT_EQ(Value(2014), response[0].get_props()->rows[0].columns[5]);
+        } else if ("classmate:end_end" == response[0].get_props()->colNames[4]) {
+            ASSERT_EQ("classmate:start_start", response[0].get_props()->colNames[5]);
+            ASSERT_EQ(Value(2014), response[0].get_props()->rows[0].columns[4]);
+            ASSERT_EQ(Value(2012), response[0].get_props()->rows[0].columns[5]);
+        } else {
+            ASSERT_TRUE(false);
+        }
+    }
+}
+
+TEST_F(MockServerTest, TestStorageGetNeighbors) {
+    auto metaClient = gEnv->getMetaClient();
+    auto storageClient = gEnv->getStorageClient();
+    // GetNeighbors
     {
         auto ret = metaClient->getEdgeTypeByNameFromCache(1, "classmate");
         ASSERT_TRUE(ret.ok());
