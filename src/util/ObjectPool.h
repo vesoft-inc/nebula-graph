@@ -17,7 +17,7 @@
 namespace nebula {
 
 // Require emplace_back, reserve and clear for the object pool container
-// And only accept one explict template argument
+// And only accept one explicit template argument
 template <template <typename, typename...> class Container = std::list>
 class ObjectPool final : private cpp::NonCopyable, private cpp::NonMovable {
 public:
@@ -47,11 +47,11 @@ private:
     class OwnershipHolder : private cpp::NonCopyable {
     public:
         OwnershipHolder() = delete;
-        OwnershipHolder(void*, std::function<void(void*)>) = delete;
+        OwnershipHolder(void *, std::function<void(void *)>) = delete;
         // !Note the parameter obj is the object created by new
-        template<typename T>
-        explicit OwnershipHolder(T *obj) : obj_(obj),
-            deleteFn_([](void *p) { delete reinterpret_cast<T*>(p); }) {}
+        template <typename T>
+        explicit OwnershipHolder(T *obj)
+            : obj_(obj), deleteFn_([](void *p) { delete reinterpret_cast<T *>(p); }) {}
 
         // Move ownership
         OwnershipHolder(OwnershipHolder &&o) {

@@ -16,12 +16,13 @@
 #include "parser/SequentialSentences.h"
 #include "service/RequestContext.h"
 // #include "meta/ClientBasedGflagsManager.h"
-#include "clients/meta/MetaClient.h"
 #include "charset/Charset.h"
+#include "clients/meta/MetaClient.h"
 #include "util/ObjectPool.h"
 
 /**
- * ExecutionContext holds context infos in the execution process, e.g. clients of storage or meta services.
+ * ExecutionContext holds context infos in the execution process, e.g. clients of storage or meta
+ * services.
  */
 
 namespace nebula {
@@ -48,7 +49,7 @@ public:
           storageClient_(storage),
           metaClient_(metaClient),
           charsetInfo_(charsetInfo),
-          objPool_(std::make_unique<ObjectPool>()) {
+          objPool_(std::make_unique<ObjectPool<std::list>>()) {
         DCHECK_NOTNULL(sm_);
         DCHECK_NOTNULL(storageClient_);
         DCHECK_NOTNULL(metaClient_);
@@ -56,7 +57,7 @@ public:
     }
 
     // for test
-    ExecutionContext() : objPool_(std::make_unique<ObjectPool>()) {}
+    ExecutionContext() : objPool_(std::make_unique<ObjectPool<>>()) {}
 
     ~ExecutionContext();
 
@@ -108,19 +109,19 @@ public:
         return charsetInfo_;
     }
 
-    ObjectPool* objPool() const {
+    ObjectPool<>* objPool() const {
         return objPool_.get();
     }
 
 private:
-    RequestContextPtr                           rctx_;
-    meta::SchemaManager                        *sm_{nullptr};
+    RequestContextPtr rctx_;
+    meta::SchemaManager* sm_{nullptr};
     // meta::ClientBasedGflagsManager             *gflagsManager_{nullptr};
-    storage::GraphStorageClient                *storageClient_{nullptr};
-    meta::MetaClient                           *metaClient_{nullptr};
-    CharsetInfo                                *charsetInfo_{nullptr};
+    storage::GraphStorageClient* storageClient_{nullptr};
+    meta::MetaClient* metaClient_{nullptr};
+    CharsetInfo* charsetInfo_{nullptr};
 
-    std::unique_ptr<ObjectPool> objPool_;
+    std::unique_ptr<ObjectPool<std::list>> objPool_;
     // It will be move to QueryContex as the result store of the execution
     std::unordered_map<std::string, std::list<Value>> valuesMap_;
 };
@@ -128,4 +129,4 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // GRAPH_EXECUTIONCONTEXT_H_
+#endif   // GRAPH_EXECUTIONCONTEXT_H_

@@ -12,6 +12,7 @@
 
 namespace nebula {
 
+template <template <typename, typename...> class Container>
 class ObjectPool;
 
 namespace graph {
@@ -42,15 +43,15 @@ public:
         return root_;
     }
 
-    Executor *createExecutor();
+    Executor* createExecutor();
 
 private:
-    int64_t                                 id_;
-    PlanNode*                               root_{nullptr};
-    ExecutionContext*                       ectx_{nullptr};
-    std::unique_ptr<IdGenerator>            nodeIdGen_;
+    int64_t id_;
+    PlanNode* root_{nullptr};
+    ExecutionContext* ectx_{nullptr};
+    std::unique_ptr<IdGenerator> nodeIdGen_;
 };
 
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula
 #endif
