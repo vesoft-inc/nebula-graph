@@ -7,8 +7,8 @@ steps:
   - name: lint
     image: vesoft/nebula-dev:ubuntu1804
     commands:
-      - ln -snf .linters/cpp/hooks/pre-commit.sh .linters/cpp/pre-commit.sh
-      - .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD~1 HEAD | sed -r 's/(.*)/..\\/..\\/\\\1/g')
+      - ln -snf $PWD/.linters/cpp/hooks/pre-commit.sh $PWD/.linters/cpp/pre-commit.sh
+      - .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD^ HEAD)
 
   - name: gcc_build
     image: vesoft/nebula-dev:ubuntu1804
@@ -30,8 +30,8 @@ steps:
   - name: lint
     image: vesoft/nebula-dev:ubuntu1804
     commands:
-      - ln -snf .linters/cpp/hooks/pre-commit.sh .linters/cpp/pre-commit.sh
-      - .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD~1 HEAD | sed -r 's/(.*)/..\\/..\\/\\\1/g')
+      - ln -snf $PWD/.linters/cpp/hooks/pre-commit.sh $PWD/.linters/cpp/pre-commit.sh
+      - .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD^ HEAD)
 
   - name: clang_build
     image: vesoft/nebula-dev:ubuntu1804
