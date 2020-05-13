@@ -39,14 +39,36 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     }
 
     auto *ge = asNode<GetEdges>(node());
-    std::vector<std::string> cols{nebula::_SRC, nebula::_TYPE, nebula::_RANK, nebula::_DST};
-    for (const auto &prop : ge->props()) {
-        cols.emplace_back(prop);
+    nebula::DataSet edges({nebula::_SRC, nebula::_TYPE, nebula::_RANK, nebula::_DST});
+    if (!ge->edges().empty()) {
+        edges.rows.insert(edges.rows.end(),
+                          std::make_move_iterator(ge->edges().begin()),
+                          std::make_move_iterator(ge->edges().end()));
+    }
+    if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
+        auto src = ge->src()->eval();
+        auto ranking = ge->ranking()->eval();
+        auto dst = ge->dst()->eval();
+        if (src.type() != Value::Type::LIST || ranking.type() != Value::Type::LIST ||
+            dst.type() != Value::Type::LIST) {
+            return error(Status::Error("Invalid edge expression"));
+        }
+        if (src.getList().values.size() != ranking.getList().values.size() ||
+            ranking.getList().values.size() != dst.getList().values.size()) {
+            return error(Status::Error("Invalid edge expression"));
+        }
+        for (std::size_t i = 0; i < src.getList().values.size(); ++i) {
+            edges.emplace_back(nebula::Row({
+                src.getList().values[i].getVertex().vid,
+                ge->type(),
+                ranking.getList().values[i].getInt(),
+                dst.getList().values[i].getVertex().vid,
+            }));
+        }
     }
     return client
         ->getProps(ge->space(),
-                   cols,
-                   ge->edges(),
+                   std::move(edges),
                    ge->props(),
                    ge->dedup(),
                    ge->orderBy(),
@@ -60,7 +82,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             for (auto &resp : rpcResp.responses()) {
                 auto *props = resp.get_props();
                 if (props != nullptr) {
-                    v.merge(std::move(*props));
+                    v.append(std::move(*props));
                 }
             }
             finish(std::move(v));

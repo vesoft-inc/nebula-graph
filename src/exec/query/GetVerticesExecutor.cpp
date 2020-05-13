@@ -39,14 +39,24 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     if (storageClient == nullptr) {
         return error(Status::Error("Invalid storage client for GetVerticesExecutor"));
     }
-    std::vector<std::string> cols{nebula::_VID};
-    for (const auto &prop : gv->props()) {
-        cols.emplace_back(prop);
+    nebula::DataSet vertices({nebula::_VID});
+    if (!gv->vertices().empty()) {
+        vertices.rows.insert(vertices.rows.end(),
+                             std::make_move_iterator(gv->vertices().begin()),
+                             std::make_move_iterator(gv->vertices().end()));
+    }
+    if (gv->src() != nullptr) {
+        auto src = gv->src()->eval();
+        if (src.type() != Value::Type::LIST) {
+            return error(Status::Error("Invalid edge expression"));
+        }
+        for (std::size_t i = 0; i < src.getList().values.size(); ++i) {
+            vertices.emplace_back(nebula::Row({src.getList().values[i].getVertex().vid}));
+        }
     }
     return storageClient
         ->getProps(gv->space(),
-                   cols,
-                   gv->vertices(),
+                   std::move(vertices),
                    gv->props(),
                    gv->dedup(),
                    gv->orderBy(),
@@ -60,7 +70,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
             for (auto &resp : rpcResp.responses()) {
                 auto *props = resp.get_props();
                 if (props != nullptr) {
-                    v.merge(std::move(*props));
+                    v.append(std::move(*props));
                 }
             }
             finish(std::move(v));

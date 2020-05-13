@@ -275,6 +275,10 @@ public:
         return yieldColumns_->columns();
     }
 
+    YieldColumns* yieldColumns() const {
+        return yieldColumns_.get();
+    }
+
     bool isDistinct() const {
         return distinct_;
     }

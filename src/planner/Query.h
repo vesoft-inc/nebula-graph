@@ -362,6 +362,7 @@ public:
                           GraphSpaceID space,
                           std::vector<Row> edges,
                           Expression* src,
+                          EdgeType    type,
                           Expression* ranking,
                           Expression* dst,
                           std::vector<std::string> props,
@@ -375,6 +376,7 @@ public:
                 space,
                 std::move(edges),
                 src,
+                type,
                 ranking,
                 dst,
                 std::move(props),
@@ -392,6 +394,10 @@ public:
 
     Expression* src() const {
         return src_;
+    }
+
+    EdgeType type() const {
+        return type_;
     }
 
     Expression* ranking() const {
@@ -412,6 +418,7 @@ private:
              GraphSpaceID space,
              std::vector<Row> edges,
              Expression* src,
+             EdgeType    type,
              Expression* ranking,
              Expression* dst,
              std::vector<std::string> props,
@@ -429,6 +436,7 @@ private:
                   std::move(orderBy)) {
         edges_ = std::move(edges);
         src_ = std::move(src);
+        type_ = type;
         ranking_ = std::move(ranking);
         dst_ = std::move(dst);
         props_ = std::move(props);
@@ -439,6 +447,7 @@ private:
     std::vector<Row>                         edges_;
     // edges_ may be parsed from runtime.
     Expression*                              src_{nullptr};
+    EdgeType                                 type_{0};
     Expression*                              ranking_{nullptr};
     Expression*                              dst_{nullptr};
     // props and filter are parsing from query.

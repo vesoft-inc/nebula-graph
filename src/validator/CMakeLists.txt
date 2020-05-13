@@ -12,6 +12,8 @@ nebula_add_library(
     AdminValidator.cpp
     MaintainValidator.cpp
     MutateValidator.cpp
+    FetchEdgesValidator.cpp
+    FetchVerticesValidator.cpp
 )
 
 add_subdirectory(test)
