@@ -7,7 +7,6 @@
 nebula_add_library(
     schema_util_obj OBJECT
     SchemaUtil.cpp
-    ExpressionContextImpl.cpp
 )
 
 nebula_add_library(

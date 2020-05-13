@@ -5,20 +5,19 @@
  */
 
 #include "datatypes/Value.h"
-#include "util/ExpressionContextImpl.h"
+#include "context/ExpressionContextImpl.h"
 
 namespace nebula {
 namespace graph {
 const Value& ExpressionContextImpl::getVar(const std::string& var) const {
-    UNUSED(var);
-    return NULL_VALUE;
+    return qCtxt_->getValue(var);
 }
 
 const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
-                                                    size_t version) const {
+                                                    int64_t version) const {
     UNUSED(var);
     UNUSED(version);
-    return NULL_VALUE;
+    return kNullValue;
 }
 
 const Value& ExpressionContextImpl::getVarProp(const std::string& var,
@@ -26,7 +25,7 @@ const Value& ExpressionContextImpl::getVarProp(const std::string& var,
     // TODO
     UNUSED(var);
     UNUSED(prop);
-    return NULL_VALUE;
+    return kNullValue;
 }
 
 const Value& ExpressionContextImpl::getEdgeProp(const std::string& edgeType,
@@ -34,7 +33,7 @@ const Value& ExpressionContextImpl::getEdgeProp(const std::string& edgeType,
     // TODO
     UNUSED(edgeType);
     UNUSED(prop);
-    return NULL_VALUE;
+    return kNullValue;
 }
 
 const Value& ExpressionContextImpl::getSrcProp(const std::string& tag,
@@ -42,7 +41,7 @@ const Value& ExpressionContextImpl::getSrcProp(const std::string& tag,
     // TODO
     UNUSED(tag);
     UNUSED(prop);
-    return NULL_VALUE;
+    return kNullValue;
 }
 
 const Value& ExpressionContextImpl::getDstProp(const std::string& tag,
@@ -50,13 +49,13 @@ const Value& ExpressionContextImpl::getDstProp(const std::string& tag,
     // TODO
     UNUSED(tag);
     UNUSED(prop);
-    return NULL_VALUE;
+    return kNullValue;
 }
 
 const Value& ExpressionContextImpl::getInputProp(const std::string& prop) const {
     // TODO
     UNUSED(prop);
-    return NULL_VALUE;
+    return kNullValue;
 }
 }  // namespace graph
 }  // namespace nebula
