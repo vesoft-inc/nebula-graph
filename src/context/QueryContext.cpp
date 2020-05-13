@@ -10,7 +10,7 @@ namespace nebula {
 
 void QueryContext::setValue(const std::string& name, Value&& val) {
     auto& hist = valueMap_[name];
-    hist.emplace_front(std::move(val));
+    hist.emplace_back(std::move(val));
 }
 
 
@@ -33,8 +33,8 @@ void QueryContext::truncHistory(const std::string& name, size_t numVersionsToKee
         if (it->second.size() <= numVersionsToKeep) {
             return;
         }
-        // Truncate the tail, only keep the first N values
-        it->second.resize(numVersionsToKeep);
+        // Only keep the latest N values
+        it->second.erase(it->second.begin(), it->second.end() - numVersionsToKeep);
     }
 }
 
@@ -50,8 +50,8 @@ const Value& QueryContext::getValue(const std::string& name) const {
 }
 
 
-const std::list<Value>& QueryContext::getHistory(const std::string& name) const {
-    static const std::list<Value> kEmptyList;
+const std::vector<Value>& QueryContext::getHistory(const std::string& name) const {
+    static const std::vector<Value> kEmptyList;
 
     auto it = valueMap_.find(name);
     if (it != valueMap_.end()) {

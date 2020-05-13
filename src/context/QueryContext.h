@@ -37,7 +37,7 @@ public:
 
     // Return all existing history of the value. The front is the latest value
     // and the back is the oldest value
-    const std::list<Value>& getHistory(const std::string& name) const;
+    const std::vector<Value>& getHistory(const std::string& name) const;
 
     void setValue(const std::string& name, Value&& val);
 
@@ -48,7 +48,7 @@ public:
 
 private:
     // name -> Value with multiple versions
-    std::unordered_map<std::string, std::list<Value>> valueMap_;
+    std::unordered_map<std::string, std::vector<Value>> valueMap_;
 };
 
 }  // namespace nebula
