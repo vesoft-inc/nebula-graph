@@ -63,5 +63,9 @@ const Value& ExpressionContextImpl::getInputProp(const std::string& prop) const 
     UNUSED(prop);
     return kNullValue;
 }
+
+void ExpressionContextImpl::setVar(const std::string& var, Value val) {
+    qCtxt_->setValue(var, std::move(val));
+}
 }  // namespace graph
 }  // namespace nebula

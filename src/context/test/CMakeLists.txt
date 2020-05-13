@@ -12,3 +12,16 @@ nebula_add_test(
     LIBRARIES gtest
 )
 
+nebula_add_test(
+    NAME
+        expression_context_test
+    SOURCES
+        ExpressionContextTest.cpp
+    OBJECTS
+        $<TARGET_OBJECTS:context_obj>
+        $<TARGET_OBJECTS:common_datatypes_obj>
+    LIBRARIES
+        gtest
+        gtest_main
+)
+
