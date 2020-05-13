@@ -46,6 +46,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                              std::make_move_iterator(gv->vertices().end()));
     }
     if (gv->src() != nullptr) {
+        // TODO(shylock) pass expression context
         auto src = gv->src()->eval();
         if (src.type() != Value::Type::LIST) {
             return error(Status::Error("Invalid edge expression"));

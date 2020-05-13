@@ -46,6 +46,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                           std::make_move_iterator(ge->edges().end()));
     }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
+        // TODO(shylock) pass expression context
         auto src = ge->src()->eval();
         auto ranking = ge->ranking()->eval();
         auto dst = ge->dst()->eval();

@@ -84,7 +84,8 @@ Status FetchEdgesValidator::prepareEdges() {
         // row: _src, _type, _ranking, _dst
         edges_.reserve(sentence_->keys()->keys().size());
         for (const auto &key : sentence_->keys()->keys()) {
-            edges_.emplace_back(nebula::Row({key->srcid(), edgeType_, key->rank(), key->dstid()}));
+            edges_.emplace_back(
+                nebula::Row({key->srcid()->eval(), edgeType_, key->rank(), key->dstid()->eval()}));
         }
     }
     return Status::OK();
