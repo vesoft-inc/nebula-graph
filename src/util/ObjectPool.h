@@ -44,7 +44,7 @@ public:
 
 private:
     // Hold the ownership of any object only
-    class OwnershipHolder : private cpp::NonCopyable {
+    class OwnershipHolder final : private cpp::NonCopyable {
     public:
         OwnershipHolder() = delete;
         OwnershipHolder(void *, std::function<void(void *)>) = delete;
