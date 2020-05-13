@@ -41,13 +41,11 @@ void QueryContext::truncHistory(const std::string& name, size_t numVersionsToKee
 
 // Get the latest version of the value
 const Value& QueryContext::getValue(const std::string& name) const {
-    static const Value kNullValue(NullType::__NULL__);
-
     auto it = valueMap_.find(name);
     if (it != valueMap_.end()) {
         return it->second.front();
     } else {
-        return kNullValue;
+        return kEmpty;
     }
 }
 

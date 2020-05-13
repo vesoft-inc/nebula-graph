@@ -13,12 +13,16 @@ namespace nebula {
 namespace graph {
 class ExpressionContextImpl final : public ExpressionContext {
 public:
+    explicit ExpressionContextImpl(QueryContext* qCtxt) {
+        qCtxt_ = qCtxt;
+    }
+
     // Get the latest version value for the given variable name, such as $a, $b
     const Value& getVar(const std::string& var) const override;
 
     // Get the given version value for the given variable name, such as $a, $b
     const Value& getVersionedVar(const std::string& var,
-                                 size_t version) const override;
+                                 int64_t version) const override;
 
     // Get the specified property from a variable, such as $a.prop_name
     const Value& getVarProp(const std::string& var,
@@ -38,6 +42,9 @@ public:
 
     // Get the specified property from the input, such as $-.prop_name
     const Value& getInputProp(const std::string& prop) const override;
+
+private:
+    QueryContext    qCtxt_;
 };
 }  // namespace graph
 }  // namespace nebula
