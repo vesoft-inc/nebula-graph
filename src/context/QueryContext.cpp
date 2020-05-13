@@ -29,27 +29,38 @@ size_t QueryContext::numVersions(const std::string& name) const {
 // Only keep the last several versoins of the Value
 void QueryContext::truncHistory(const std::string& name, size_t numVersionsToKeep) {
     auto it = valueMap_.find(name);
-    CHECK(it != valueMap_.end());
-    if (it->second.size() <= numVersionsToKeep) {
-        return;
+    if (it != valueMap_.end()) {
+        if (it->second.size() <= numVersionsToKeep) {
+            return;
+        }
+        // Truncate the tail, only keep the first N values
+        it->second.resize(numVersionsToKeep);
     }
-    // Truncate the tail, only keep the first N values
-    it->second.resize(numVersionsToKeep);
 }
 
 
 // Get the latest version of the value
 const Value& QueryContext::getValue(const std::string& name) const {
+    static const Value kNullValue(NullType::__NULL__);
+
     auto it = valueMap_.find(name);
-    CHECK(it != valueMap_.end());
-    return it->second.front();
+    if (it != valueMap_.end()) {
+        return it->second.front();
+    } else {
+        return kNullValue;
+    }
 }
 
 
 const std::list<Value>& QueryContext::getHistory(const std::string& name) const {
+    static const std::list<Value> kEmptyList;
+
     auto it = valueMap_.find(name);
-    CHECK(it != valueMap_.end());
-    return it->second;
+    if (it != valueMap_.end()) {
+        return it->second;
+    } else {
+        return kEmptyList;
+    }
 }
 
 }  // namespace nebula

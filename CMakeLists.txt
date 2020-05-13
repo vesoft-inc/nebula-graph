@@ -532,7 +532,6 @@ macro(nebula_link_libraries target)
         boost_system
         event
         double-conversion
-        resolv
         s2
         ${OPENSSL_SSL_LIBRARY}
         ${OPENSSL_CRYPTO_LIBRARY}
