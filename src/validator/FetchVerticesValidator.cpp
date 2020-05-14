@@ -57,7 +57,7 @@ Status FetchVerticesValidator::check() {
 
     if (sentence_->isAllTagProps()) {
         // empty for all tag
-        tagName_ = "*";
+        tagName_ = *sentence_->tag();
     } else {
         tagName_ = *(sentence_->tag());
         auto tagStatus = validateContext_->schemaMng()->toTagID(spaceId_, tagName_);
