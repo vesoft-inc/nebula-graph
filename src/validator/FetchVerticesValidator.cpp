@@ -77,10 +77,13 @@ Status FetchVerticesValidator::check() {
 }
 
 Status FetchVerticesValidator::prepareVertices() {
+    // from ref, eval when execute
     if (sentence_->isRef()) {
         src_ = sentence_->ref();
+        return Status::OK();
     }
 
+    // from constant, eval now
     auto vids = sentence_->vidList();
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
@@ -98,16 +101,19 @@ Status FetchVerticesValidator::prepareProperties() {
         dedup_ = yield->isDistinct();
         for (const auto col : yield->columns()) {
             if (col->expr()->isAliasPropertyExpression()) {
-                auto *expr = static_cast<AliasPropertyExpression *>(col->expr());
-                if (tagId_.hasValue() && *expr->alias() != tagName_) {
-                    return Status::Error("Mismatched tag name");
+                if (tagId_.hasValue()) {   // check properties when specified TAG
+                    auto *expr = static_cast<AliasPropertyExpression *>(col->expr());
+                    if (*expr->alias() != tagName_) {
+                        return Status::Error("Mismatched tag name");
+                    }
+                    // Check is prop name in schema
+                    if (schema_->getFieldIndex(*expr->prop()) < 0) {
+                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
+                        return Status::Error("Unknown column `%s' in schema",
+                                             expr->prop()->c_str());
+                    }
                 }
-                // Check is prop name in schema
-                if (schema_->getFieldIndex(*expr->prop()) < 0) {
-                    LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
-                    return Status::Error("Unknown column `%s' in schema", expr->prop()->c_str());
-                }
-                props_.emplace_back(expr->encode());
+                props_.emplace_back(col->expr()->encode());
             } else {
                 return Status::NotSupported("Unsupported expression");
             }

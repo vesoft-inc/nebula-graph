@@ -73,12 +73,15 @@ Status FetchEdgesValidator::check() {
 }
 
 Status FetchEdgesValidator::prepareEdges() {
+    // from ref, eval in execute
     if (sentence_->isRef()) {
         src_ = sentence_->ref()->srcid();
         ranking_ = sentence_->ref()->rank();
         dst_ = sentence_->ref()->dstid();
+        return Status::OK();
     }
 
+    // from constant, eval now
     auto keys = sentence_->keys();
     if (keys != nullptr) {
         // row: _src, _type, _ranking, _dst
