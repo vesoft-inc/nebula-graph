@@ -87,6 +87,7 @@ Status FetchVerticesValidator::prepareVertices() {
     auto vids = sentence_->vidList();
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
+        // TODO(shylock) Add a new value type VID to semantic this
         auto v = vid->eval();
         if (!v.isStr()) {   // string as vid
             return Status::NotSupported("Not a vertex id");

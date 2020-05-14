@@ -47,6 +47,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
         // TODO(shylock) pass expression context
+        // TODO(shylock) add a value type EDGE_ID to simplify the checking by pass List[EDGE_ID]
         // Accept List[Str], List[Int], List[Str]
         auto src = ge->src()->eval();
         auto ranking = ge->ranking()->eval();

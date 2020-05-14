@@ -47,6 +47,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     }
     if (gv->src() != nullptr) {
         // TODO(shylock) pass expression context
+        // TODO(shylock) add a new value type VID to semantic this by pass List[VID]
         // Accept List[Str]
         auto src = gv->src()->eval();
         if (src.type() != Value::Type::LIST) {
