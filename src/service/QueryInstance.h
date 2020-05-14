@@ -12,7 +12,7 @@
 #include "common/cpp/helpers.h"
 #include "parser/GQLParser.h"
 #include "validator/ASTValidator.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 /**
  * QueryInstance coordinates the execution process,
@@ -25,8 +25,8 @@ namespace graph {
 
 class QueryInstance final : public cpp::NonCopyable, public cpp::NonMovable {
 public:
-    explicit QueryInstance(std::unique_ptr<ExecutionContext> ectx) {
-        ectx_ = std::move(ectx);
+    explicit QueryInstance(std::unique_ptr<QueryContext> qctx) {
+        qctx_ = std::move(qctx);
     }
 
     ~QueryInstance() = default;
@@ -35,7 +35,7 @@ public:
 
     /**
      * If the whole execution was done, `onFinish' would be invoked.
-     * All `onFinish' should do is to ask `executor_' to fill the `ectx()->rctx()->resp()',
+     * All `onFinish' should do is to ask `executor_' to fill the `qctx()->rctx()->resp()',
      * which in turn asks the last sub-executor to do the actual job.
      */
     void onFinish();
@@ -46,13 +46,13 @@ public:
      */
     void onError(Status);
 
-    ExecutionContext* ectx() const {
-        return ectx_.get();
+    QueryContext* qctx() const {
+        return qctx_.get();
     }
 
 private:
     std::unique_ptr<SequentialSentences>        sentences_;
-    std::unique_ptr<ExecutionContext>           ectx_;
+    std::unique_ptr<QueryContext>               qctx_;
     std::unique_ptr<ASTValidator>               validator_;
     std::unique_ptr<ExecutionPlan>              plan_;
 };

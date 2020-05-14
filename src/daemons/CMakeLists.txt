@@ -21,6 +21,7 @@ nebula_add_executable(
         $<TARGET_OBJECTS:exec_obj>
         $<TARGET_OBJECTS:schedule_obj>
         $<TARGET_OBJECTS:idgenerator_obj>
+        $<TARGET_OBJECTS:context_obj>
         $<TARGET_OBJECTS:common_expression_obj>
         $<TARGET_OBJECTS:common_http_client_obj>
         $<TARGET_OBJECTS:common_network_obj>

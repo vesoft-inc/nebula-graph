@@ -5,8 +5,12 @@
  */
 
 #include "validator/GetSubgraphValidator.h"
+
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
+#include "expression/VariableExpression.h"
+#include "expression/UnaryExpression.h"
+#include "expression/ConstantExpression.h"
 
 namespace nebula {
 namespace graph {
@@ -161,9 +165,17 @@ Status GetSubgraphValidator::toPlan() {
             std::move(edgeProps),
             std::move(statProps));
 
-    auto* dedup = Dedup::make(plan, gn1, nullptr/* TODO: dedup the dsts. */);
+    // ++cnt{0} <= steps
+    auto condition = new RelationalExpression(
+                Expression::Type::EXP_REL_LE,
+                new UnaryExpression(
+                        Expression::Type::EXP_UNARY_INCR,
+                        new VersionedVariableExpression(
+                                new std::string("cnt"),
+                                new ConstantExpression(0))),
+                new ConstantExpression(static_cast<int32_t>(steps_)));
     // The input of loop will set by father validator.
-    auto* loop = Loop::make(plan, nullptr, dedup, nullptr/* TODO: build condition. */);
+    auto* loop = Loop::make(plan, nullptr, gn1, plan->addExpression(condition));
 
     // selector -> loop
     // selector -> filter -> gn2 -> ifStrart

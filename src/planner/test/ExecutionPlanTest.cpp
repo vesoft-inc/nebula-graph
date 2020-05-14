@@ -13,7 +13,7 @@
 #include "exec/ExecutionError.h"
 #include "exec/Executor.h"
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
@@ -24,8 +24,8 @@ namespace graph {
 class ExecutionPlanTest : public ::testing::Test {
 public:
     void SetUp() override {
-        ectx_ = std::make_unique<ExecutionContext>();
-        plan_ = std::make_unique<ExecutionPlan>(ectx_.get());
+        qctx_ = std::make_unique<QueryContext>();
+        plan_ = std::make_unique<ExecutionPlan>(qctx_.get());
     }
 
     void cleanup() {
@@ -55,7 +55,7 @@ public:
 protected:
     folly::stop_watch<> watch_;
     std::unique_ptr<ExecutionPlan> plan_;
-    std::unique_ptr<ExecutionContext> ectx_;
+    std::unique_ptr<QueryContext>  qctx_;
 };
 
 TEST_F(ExecutionPlanTest, TestSimplePlan) {

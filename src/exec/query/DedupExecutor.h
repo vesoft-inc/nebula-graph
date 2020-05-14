@@ -14,8 +14,13 @@ namespace graph {
 
 class DedupExecutor final : public Executor {
 public:
+<<<<<<< HEAD
     DedupExecutor(const PlanNode *node, ExecutionContext *ectx)
         : Executor("DedupExecutor", node, ectx) {}
+=======
+    DedupExecutor(const PlanNode *node, QueryContext *qctx, Executor *input)
+        : SingleInputExecutor("DedupExecutor", node, qctx, input) {}
+>>>>>>> Replace ExecutionContext with QueryContext.
 
     folly::Future<Status> execute() override;
 };

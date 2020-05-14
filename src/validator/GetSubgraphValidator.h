@@ -31,6 +31,7 @@ private:
     Status validateOutBound(OutBoundClause* out);
 
     Status validateBothInOutBound(BothInOutClause* out);
+
 private:
     uint32_t                                    steps_{1};
     std::vector<Row>                            starts_;

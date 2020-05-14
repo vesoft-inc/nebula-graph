@@ -4,9 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "common/base/Base.h"
-
 #include "service/QueryInstance.h"
+
+#include "common/base/Base.h"
 
 #include "exec/ExecutionError.h"
 #include "exec/Executor.h"
@@ -17,11 +17,11 @@ namespace nebula {
 namespace graph {
 
 void QueryInstance::execute() {
-    auto *rctx = ectx()->rctx();
+    auto *rctx = qctx()->rctx();
     VLOG(1) << "Parsing query: " << rctx->query();
 
     Status status;
-    plan_ = std::make_unique<ExecutionPlan>(ectx());
+    plan_ = std::make_unique<ExecutionPlan>(qctx());
     do {
         auto result = GQLParser().parse(rctx->query());
         if (!result.ok()) {
@@ -32,7 +32,7 @@ void QueryInstance::execute() {
 
         sentences_ = std::move(result).value();
         validator_ = std::make_unique<ASTValidator>(
-            sentences_.get(), rctx->session(), ectx()->schemaManager(), ectx_->getCharsetInfo());
+            sentences_.get(), rctx->session(), qctx()->schemaManager(), qctx_->getCharsetInfo());
         status = validator_->validate(plan_.get());
         if (!status.ok()) {
             LOG(ERROR) << status;
@@ -60,13 +60,13 @@ void QueryInstance::execute() {
 }
 
 void QueryInstance::onFinish() {
-    auto *rctx = ectx()->rctx();
+    auto *rctx = qctx()->rctx();
     // executor_->setupResponse(rctx->resp());
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().set_latency_in_us(latency);
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
-    auto value = ectx()->getValue(plan_->root()->varName());
+    auto value = qctx()->getValue(plan_->root()->varName());
     if (!value.empty()) {
         std::vector<DataSet> data;
         data.emplace_back(value.moveDataSet());
@@ -82,7 +82,7 @@ void QueryInstance::onFinish() {
 }
 
 void QueryInstance::onError(Status status) {
-    auto *rctx = ectx()->rctx();
+    auto *rctx = qctx()->rctx();
     if (status.isSyntaxError()) {
         rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);
     } else if (status.isStatementEmpty()) {

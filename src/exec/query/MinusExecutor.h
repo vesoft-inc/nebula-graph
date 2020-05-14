@@ -14,8 +14,12 @@ namespace graph {
 
 class MinusExecutor : public Executor {
 public:
+<<<<<<< HEAD
     MinusExecutor(const PlanNode *node, ExecutionContext *ectx)
         : Executor("MinusExecutor", node, ectx) {}
+=======
+    MinusExecutor(const PlanNode *node, QueryContext *qctx, Executor *left, Executor *right);
+>>>>>>> Replace ExecutionContext with QueryContext.
 
     folly::Future<Status> execute() override;
 };

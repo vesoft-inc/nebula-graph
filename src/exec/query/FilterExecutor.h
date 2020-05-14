@@ -14,8 +14,13 @@ namespace graph {
 
 class FilterExecutor final : public Executor {
 public:
+<<<<<<< HEAD
     FilterExecutor(const PlanNode *node, ExecutionContext *ectx)
         : Executor("FilterExecutor", node, ectx) {}
+=======
+    FilterExecutor(const PlanNode *node, QueryContext *qctx, Executor *input)
+        : SingleInputExecutor("FilterExecutor", node, qctx, input) {}
+>>>>>>> Replace ExecutionContext with QueryContext.
 
     folly::Future<Status> execute() override;
 };

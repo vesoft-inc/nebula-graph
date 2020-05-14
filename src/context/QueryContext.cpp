@@ -7,7 +7,7 @@
 #include "context/QueryContext.h"
 
 namespace nebula {
-
+namespace graph {
 void QueryContext::setValue(const std::string& name, Value&& val) {
     auto& hist = valueMap_[name];
     hist.emplace_back(std::move(val));
@@ -60,5 +60,5 @@ const std::vector<Value>& QueryContext::getHistory(const std::string& name) cons
         return kEmptyList;
     }
 }
-
+}  // namespace graph
 }  // namespace nebula

@@ -14,8 +14,13 @@ namespace graph {
 
 class LimitExecutor final : public Executor {
 public:
+<<<<<<< HEAD
     LimitExecutor(const PlanNode *node, ExecutionContext *ectx)
         : Executor("LimitExecutor", node, ectx) {}
+=======
+    LimitExecutor(const PlanNode *node, QueryContext *qctx, Executor *input)
+        : SingleInputExecutor("LimitExecutor", node, qctx, input) {}
+>>>>>>> Replace ExecutionContext with QueryContext.
 
 private:
     folly::Future<Status> execute() override;

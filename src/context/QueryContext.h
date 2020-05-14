@@ -9,9 +9,18 @@
 
 #include "common/base/Base.h"
 #include "common/datatypes/Value.h"
+#include "common/meta/SchemaManager.h"
+#include "common/cpp/helpers.h"
+#include "common/charset/Charset.h"
+#include "parser/SequentialSentences.h"
+#include "service/RequestContext.h"
+// #include "meta/ClientBasedGflagsManager.h"
+#include "clients/meta/MetaClient.h"
+#include "clients/storage/GraphStorageClient.h"
+#include "util/ObjectPool.h"
 
 namespace nebula {
-
+namespace graph {
 /***************************************************************************
  *
  * The context for each query request
@@ -27,7 +36,27 @@ namespace nebula {
  **************************************************************************/
 class QueryContext {
 public:
+    using RequestContextPtr = std::unique_ptr<RequestContext<cpp2::ExecutionResponse>>;
+
     QueryContext() = default;
+    QueryContext(RequestContextPtr rctx,
+                 meta::SchemaManager* sm,
+                 // meta::ClientBasedGflagsManager *gflagsManager,
+                 storage::GraphStorageClient* storage,
+                 meta::MetaClient* metaClient,
+                 CharsetInfo* charsetInfo)
+        : rctx_(std::move(rctx)),
+          sm_(sm),
+          // gflagsManager_(gflagsManager),
+          storageClient_(storage),
+          metaClient_(metaClient),
+          charsetInfo_(charsetInfo),
+          objPool_(std::make_unique<ObjectPool>()) {
+        DCHECK_NOTNULL(sm_);
+        DCHECK_NOTNULL(storageClient_);
+        DCHECK_NOTNULL(metaClient_);
+        DCHECK_NOTNULL(charsetInfo_);
+    }
     virtual ~QueryContext() = default;
 
     // Get the latest version of the value
@@ -46,10 +75,42 @@ public:
     // Only keep the last several versoins of the Value
     void truncHistory(const std::string& name, size_t numVersionsToKeep);
 
-private:
-    // name -> Value with multiple versions
-    std::unordered_map<std::string, std::vector<Value>> valueMap_;
-};
+    RequestContext<cpp2::ExecutionResponse>* rctx() const {
+        return rctx_.get();
+    }
 
+    meta::SchemaManager* schemaManager() const {
+        return sm_;
+    }
+
+    storage::GraphStorageClient* getStorageClient() const {
+        return storageClient_;
+    }
+
+    meta::MetaClient* getMetaClient() const {
+        return metaClient_;
+    }
+
+    CharsetInfo* getCharsetInfo() const {
+        return charsetInfo_;
+    }
+
+    ObjectPool* objPool() const {
+        return objPool_.get();
+    }
+
+private:
+    RequestContextPtr                                       rctx_;
+    meta::SchemaManager*                                    sm_{nullptr};
+    // meta::ClientBasedGflagsManager             *gflagsManager_{nullptr};
+    storage::GraphStorageClient*                            storageClient_{nullptr};
+    meta::MetaClient*                                       metaClient_{nullptr};
+    CharsetInfo*                                            charsetInfo_{nullptr};
+    // The Object Poll holds all internal generated objects.
+    std::unique_ptr<ObjectPool>                             objPool_;
+    // name -> Value with multiple versions
+    std::unordered_map<std::string, std::vector<Value>>     valueMap_;
+};
+}  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_QUERYCONTEXT_H_

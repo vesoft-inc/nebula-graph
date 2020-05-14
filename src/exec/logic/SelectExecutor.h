@@ -14,7 +14,17 @@ namespace graph {
 
 class SelectExecutor final : public Executor {
 public:
+<<<<<<< HEAD:src/exec/logic/SelectExecutor.h
     SelectExecutor(const PlanNode* node, ExecutionContext* ectx, Executor* then, Executor* els);
+=======
+    SelectExecutor(const PlanNode* node,
+                   QueryContext* qctx,
+                   Executor* input,
+                   Executor* then,
+                   Executor* els);
+
+    Status prepare() override;
+>>>>>>> Replace ExecutionContext with QueryContext.:src/exec/query/SelectExecutor.h
 
     folly::Future<Status> execute() override;
 

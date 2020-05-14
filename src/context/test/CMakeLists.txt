@@ -9,6 +9,8 @@ nebula_add_test(
     OBJECTS
         $<TARGET_OBJECTS:context_obj>
         $<TARGET_OBJECTS:common_datatypes_obj>
+        $<TARGET_OBJECTS:session_obj>
+        $<TARGET_OBJECTS:common_time_obj>
     LIBRARIES gtest
 )
 
@@ -20,6 +22,8 @@ nebula_add_test(
     OBJECTS
         $<TARGET_OBJECTS:context_obj>
         $<TARGET_OBJECTS:common_datatypes_obj>
+        $<TARGET_OBJECTS:session_obj>
+        $<TARGET_OBJECTS:common_time_obj>
     LIBRARIES
         gtest
         gtest_main

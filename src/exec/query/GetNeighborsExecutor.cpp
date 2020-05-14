@@ -8,13 +8,12 @@
 
 #include <sstream>
 
-// common
 #include "common/clients/storage/GraphStorageClient.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/Vertex.h"
-// graph
+
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -39,7 +38,7 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 
     std::vector<std::string> colNames;
 
-    GraphStorageClient* storageClient = ectx()->getStorageClient();
+    GraphStorageClient* storageClient = qctx()->getStorageClient();
     return storageClient
         ->getNeighbors(gn->space(),
                        std::move(colNames),
@@ -86,7 +85,7 @@ Status GetNeighborsExecutor::handleResponse(const std::vector<GetNeighborsRespon
             continue;
         }
 
-        // Store response results to ExecutionContext
+        // Store response results to QueryContext
         return finish({*dataset});
     }
     return Status::Error("Invalid result of neighbors");

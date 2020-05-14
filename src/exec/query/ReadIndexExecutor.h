@@ -14,8 +14,13 @@ namespace graph {
 
 class ReadIndexExecutor final : public Executor {
 public:
+<<<<<<< HEAD
     ReadIndexExecutor(const PlanNode *node, ExecutionContext *ectx)
         : Executor("ReadIndexExecutor", node, ectx) {}
+=======
+    ReadIndexExecutor(const PlanNode *node, QueryContext *qctx, Executor *input)
+        : SingleInputExecutor("ReadIndexExecutor", node, qctx, input) {}
+>>>>>>> Replace ExecutionContext with QueryContext.
 
 private:
     folly::Future<Status> execute() override;

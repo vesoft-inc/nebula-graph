@@ -15,24 +15,28 @@
 namespace nebula {
 namespace graph {
 
-ExecutionPlan::ExecutionPlan(ExecutionContext* ectx)
+ExecutionPlan::ExecutionPlan(QueryContext* qctx)
     : id_(EPIdGenerator::instance().id()),
-      ectx_(DCHECK_NOTNULL(ectx)),
+      qctx_(DCHECK_NOTNULL(ectx)),
       nodeIdGen_(std::make_unique<IdGenerator>(0)),
       scheduler_(std::make_unique<Scheduler>(ectx)) {}
 
 ExecutionPlan::~ExecutionPlan() {
-    ectx_ = nullptr;
+    qctx_ = nullptr;
 }
 
 PlanNode* ExecutionPlan::addPlanNode(PlanNode* node) {
     node->setId(nodeIdGen_->id());
-    return ectx_->objPool()->add(node);
+    return qctx_->objPool()->add(node);
+}
+
+Expression* ExecutionPlan::addExpression(Expression* expr) {
+    return qctx_->objPool()->add(expr);
 }
 
 Executor* ExecutionPlan::createExecutor() {
     std::unordered_map<int64_t, Executor*> cache;
-    return Executor::makeExecutor(root_, ectx_, &cache);
+    return Executor::makeExecutor(root_, qctx_, &cache);
 }
 
 folly::Future<Status> ExecutionPlan::execute() {

@@ -10,7 +10,7 @@
 
 #include "parser/GQLParser.h"
 #include "validator/ASTValidator.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 #include "planner/ExecutionPlan.h"
 
 namespace nebula {
@@ -20,8 +20,8 @@ public:
     void SetUp() override {
         session_ = new ClientSession(0);
         session_->setSpace("test", 0);
-        ectx_ = std::make_unique<ExecutionContext>();
-        plan_ = std::make_unique<ExecutionPlan>(ectx_.get());
+        qctx_ = std::make_unique<QueryContext>();
+        plan_ = std::make_unique<ExecutionPlan>(qctx_.get());
         charsetInfo_ = CharsetInfo::instance();
         // TODO: Need AdHocSchemaManager here.
     }
@@ -33,7 +33,7 @@ public:
 protected:
     ClientSession                      *session_;
     meta::SchemaManager                *schemaMng_;
-    std::unique_ptr<ExecutionContext>   ectx_;
+    std::unique_ptr<QueryContext>   qctx_;
     std::unique_ptr<ExecutionPlan>      plan_;
     CharsetInfo*                        charsetInfo_;
 };

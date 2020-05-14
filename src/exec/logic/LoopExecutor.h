@@ -14,7 +14,15 @@ namespace graph {
 
 class LoopExecutor final : public Executor {
 public:
+<<<<<<< HEAD:src/exec/logic/LoopExecutor.h
     LoopExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *body);
+=======
+    LoopExecutor(const PlanNode *node, QueryContext *qctx, Executor *input, Executor *body)
+        : SingleInputExecutor("LoopExecutor", node, qctx, input),
+          body_(body) {}
+
+    Status prepare() override;
+>>>>>>> Replace ExecutionContext with QueryContext.:src/exec/query/LoopExecutor.h
 
     folly::Future<Status> execute() override;
 
@@ -26,7 +34,7 @@ private:
     // Hold the last executor node of loop body executors chain
     Executor *body_{nullptr};
 
-    // Represent loop index. It will be updated and stored in ExecutionContext before starting loop
+    // Represent loop index. It will be updated and stored in QueryContext before starting loop
     // body. The mainly usage is that MultiOutputsExecutor could check whether current execution is
     // called multiple times.
     int64_t iterCount_{-1};

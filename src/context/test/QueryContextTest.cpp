@@ -9,7 +9,7 @@
 #include "context/QueryContext.h"
 
 namespace nebula {
-
+namespace graph {
 TEST(QueryContext, ReadWriteTest) {
     QueryContext ctx;
     ctx.setValue("v1", 10);
@@ -47,7 +47,7 @@ TEST(QueryContext, HistoryTest) {
     EXPECT_EQ(Value(true), *it2++);
     EXPECT_TRUE(it2 == hist2.end());
 }
-
+}  // namespace graph
 }  // namespace nebula
 
 

@@ -9,6 +9,7 @@
 #include "context/ExpressionContextImpl.h"
 
 namespace nebula {
+namespace graph {
 TEST(ExpressionContextTest, GetVar) {
     QueryContext qCtxt;
     qCtxt.setValue("v1", 10);
@@ -25,4 +26,5 @@ TEST(ExpressionContextTest, GetVar) {
     EXPECT_EQ(Value(3.14), eCtxt.getVersionedVar("v1", -1));
     EXPECT_EQ(Value(10), eCtxt.getVersionedVar("v1", 1));
 }
+}  // namespace graph
 }  // namespace nebula

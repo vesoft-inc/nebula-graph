@@ -9,6 +9,8 @@
 
 #include <cstdint>
 #include <memory>
+#include "expression/Expression.h"
+#include "context/QueryContext.h"
 
 #include <folly/futures/Future.h>
 
@@ -20,16 +22,14 @@ class ObjectPool;
 
 namespace graph {
 
-class ExecutionContext;
 class Executor;
 class IdGenerator;
 class PlanNode;
-class ExecutionContext;
 class Scheduler;
 
 class ExecutionPlan final {
 public:
-    explicit ExecutionPlan(ExecutionContext* ectx);
+    explicit ExecutionPlan(QueryContext* qctx);
 
     ~ExecutionPlan();
 
@@ -37,7 +37,15 @@ public:
         root_ = root;
     }
 
+    /**
+     * Save all generated plan node in object pool.
+     */
     PlanNode* addPlanNode(PlanNode* node);
+
+    /**
+     * Save all generated expression in object pool.
+     */
+    Expression* addExpression(Expression* expr);
 
     int64_t id() const {
         return id_;
@@ -54,7 +62,7 @@ private:
 
     int64_t                                 id_;
     PlanNode*                               root_{nullptr};
-    ExecutionContext*                       ectx_{nullptr};
+    QueryContext*                           qctx_{nullptr};
     std::unique_ptr<IdGenerator>            nodeIdGen_;
     std::unique_ptr<Scheduler>              scheduler_;
 };
