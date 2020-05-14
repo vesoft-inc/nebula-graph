@@ -34,10 +34,10 @@ Status FetchEdgesValidator::validateImpl() {
 }
 
 Status FetchEdgesValidator::toPlan() {
-    // Start [-> some input] -> GetEdges -> Project -> End
+    // Start [-> some input] -> GetEdges -> Project [-> next stage] -> End
     auto *plan = validateContext_->plan();
     auto *doNode = GetEdges::make(plan,
-                                  nullptr /*TODO(shylock) INPUT*/,
+                                  root_,  // previous root as input
                                   spaceId_,
                                   std::move(edges_),
                                   src_,

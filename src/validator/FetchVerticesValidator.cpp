@@ -34,10 +34,10 @@ Status FetchVerticesValidator::validateImpl() {
 }
 
 Status FetchVerticesValidator::toPlan() {
-    // Start [-> some input] -> GetVertices -> Project -> End
+    // Start [-> some input] -> GetVertices -> Project [-> next stage] -> End
     auto *plan = validateContext_->plan();
     auto *doNode = GetVertices::make(plan,
-                                     nullptr /*TODO(shylock)*/,
+                                     root_,  // previous root as input
                                      spaceId_,
                                      std::move(vertices_),
                                      src_,
