@@ -47,6 +47,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
         // TODO(shylock) pass expression context
+        // Accept List[Str], List[Int], List[Str]
         auto src = ge->src()->eval();
         auto ranking = ge->ranking()->eval();
         auto dst = ge->dst()->eval();
@@ -59,11 +60,20 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             return error(Status::Error("Invalid edge expression"));
         }
         for (std::size_t i = 0; i < src.getList().values.size(); ++i) {
+            if (!src.getList().values[i].isStr()) {
+                return Status::NotSupported("Invalid src id");
+            }
+            if (!ranking.getList().values[i].isInt()) {
+                return Status::NotSupported("Invalid ranking");
+            }
+            if (!dst.getList().values[i].isStr()) {
+                return Status::NotSupported("Invalid src id");
+            }
             edges.emplace_back(nebula::Row({
-                src.getList().values[i].getVertex().vid,
+                std::move(src).getList().values[i].getStr(),
                 ge->type(),
-                ranking.getList().values[i].getInt(),
-                dst.getList().values[i].getVertex().vid,
+                std::move(ranking).getList().values[i].getInt(),
+                std::move(dst).getList().values[i].getStr(),
             }));
         }
     }

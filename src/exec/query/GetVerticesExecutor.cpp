@@ -47,12 +47,16 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     }
     if (gv->src() != nullptr) {
         // TODO(shylock) pass expression context
+        // Accept List[Str]
         auto src = gv->src()->eval();
         if (src.type() != Value::Type::LIST) {
-            return error(Status::Error("Invalid edge expression"));
+            return error(Status::Error("Invalid vertex expression"));
         }
         for (std::size_t i = 0; i < src.getList().values.size(); ++i) {
-            vertices.emplace_back(nebula::Row({src.getList().values[i].getVertex().vid}));
+            if (!src.getList().values[i].isStr()) {
+                return Status::NotSupported("Invalid vid");
+            }
+            vertices.emplace_back(nebula::Row({std::move(src).getList().values[i].getStr()}));
         }
     }
     return storageClient
