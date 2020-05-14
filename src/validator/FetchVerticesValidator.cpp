@@ -87,7 +87,11 @@ Status FetchVerticesValidator::prepareVertices() {
     auto vids = sentence_->vidList();
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
-        vertices_.emplace_back(nebula::Row({vid->eval()}));
+        auto v = vid->eval();
+        if (!v.isStr()) {   // string as vid
+            return Status::NotSupported("Not a vertex id");
+        }
+        vertices_.emplace_back(nebula::Row({std::move(v).getStr()}));
     }
     return Status::OK();
 }

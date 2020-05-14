@@ -87,8 +87,17 @@ Status FetchEdgesValidator::prepareEdges() {
         // row: _src, _type, _ranking, _dst
         edges_.reserve(sentence_->keys()->keys().size());
         for (const auto &key : sentence_->keys()->keys()) {
-            edges_.emplace_back(
-                nebula::Row({key->srcid()->eval(), edgeType_, key->rank(), key->dstid()->eval()}));
+            auto src = key->srcid()->eval();
+            if (!src.isStr()) {   // string as vid
+                return Status::NotSupported("src is not a vertex id");
+            }
+            auto ranking = key->rank();
+            auto dst = key->dstid()->eval();
+            if (!src.isStr()) {
+                return Status::NotSupported("dst is not a vertex id");
+            }
+            edges_.emplace_back(nebula::Row(
+                {std::move(src).getStr(), edgeType_, ranking, std::move(dst).getStr()}));
         }
     }
     return Status::OK();
