@@ -102,10 +102,14 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         const auto *projectNode = static_cast<const Project *>(plan_->root());
         auto *cols = projectNode->columns();
         ASSERT_NE(cols, nullptr);
-        std::vector<std::string> yields{"tag1.prop1", "tag1.prop2"};
+        std::vector<std::string> props{"prop1", "prop2"};
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &col = cols->columns()[i];
-            ASSERT_EQ(*col->alias(), yields[i]);
+            const auto *expr = col->expr();
+            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            const auto *aliasPropertyExpr = reinterpret_cast<const AliasPropertyExpression *>(expr);
+            ASSERT_EQ(*aliasPropertyExpr->alias(), "tag1");
+            ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
         }
         // GetVertices
         auto *input = projectNode->input();
@@ -114,7 +118,6 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         auto *getVerticesNode = static_cast<GetVertices *>(input);
         std::vector<nebula::Row> vertices{nebula::Row({"1"})};
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
-        std::vector<std::string> propNames{"prop1", "prop2"};
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &prop = getVerticesNode->props()[i];
             auto expr = Expression::decode(prop);
@@ -122,7 +125,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
             ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
             auto aliasPropertyExpr = reinterpret_cast<AliasPropertyExpression *>(expr.get());
             ASSERT_EQ(*aliasPropertyExpr->alias(), "tag1");
-            ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
+            ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
         }
     }
     // ON *
@@ -153,10 +156,15 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         const auto *projectNode = static_cast<const Project *>(plan_->root());
         auto *cols = projectNode->columns();
         ASSERT_NE(cols, nullptr);
-        std::vector<std::string> yields{"tag1.prop1", "tag2.prop2"};
+        std::vector<std::string> alias{"tag1", "tag2"};
+        std::vector<std::string> props{"prop1", "prop2"};
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &col = cols->columns()[i];
-            ASSERT_EQ(*col->alias(), yields[i]);
+            const auto *expr = col->expr();
+            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            const auto *aliasPropertyExpr = reinterpret_cast<const AliasPropertyExpression *>(expr);
+            ASSERT_EQ(*aliasPropertyExpr->alias(), alias[i]);
+            ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
         }
         // GetVertices
         auto *input = projectNode->input();
@@ -165,16 +173,14 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         auto *getVerticesNode = static_cast<GetVertices *>(input);
         std::vector<nebula::Row> vertices{nebula::Row({"1", "2"})};
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
-        std::vector<std::string> propTagNames{"tag1", "tag2"};
-        std::vector<std::string> propNames{"prop1", "prop2"};
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &prop = getVerticesNode->props()[i];
             auto expr = Expression::decode(prop);
             ASSERT_NE(expr, nullptr);
             ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
             auto aliasPropertyExpr = reinterpret_cast<AliasPropertyExpression *>(expr.get());
-            ASSERT_EQ(*aliasPropertyExpr->alias(), propTagNames[i]);
-            ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
+            ASSERT_EQ(*aliasPropertyExpr->alias(), alias[i]);
+            ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
         }
     }
 }
@@ -245,10 +251,14 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         const auto *projectNode = static_cast<const Project *>(plan_->root());
         auto *cols = projectNode->columns();
         ASSERT_NE(cols, nullptr);
-        std::vector<std::string> yields{"edge1.prop1", "edge1.prop2"};
+        std::vector<std::string> propNames{"prop1", "prop2"};
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &col = cols->columns()[i];
-            ASSERT_EQ(*col->alias(), yields[i]);
+            const auto *expr = col->expr();
+            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            const auto *aliasPropertyExpr = reinterpret_cast<const AliasPropertyExpression *>(expr);
+            ASSERT_EQ(*aliasPropertyExpr->alias(), "edge1");
+            ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
         }
         // GetEdges
         auto *input = projectNode->input();
@@ -257,7 +267,6 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         auto *getEdgesNode = static_cast<GetEdges *>(input);
         std::vector<nebula::Row> edges{nebula::Row({"1", 0 /*TODO(shylock)type*/, 0, "2"})};
         ASSERT_EQ(getEdgesNode->edges(), edges);
-        std::vector<std::string> propNames{"prop1", "prop2"};
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &prop = getEdgesNode->props()[i];
             auto expr = Expression::decode(prop);
