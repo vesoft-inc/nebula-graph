@@ -48,7 +48,7 @@ Status FetchVerticesValidator::toPlan() {
                                      std::move(filter_));
     auto *projectNode = Project::make(plan, doNode, sentence_->yieldClause()->yieldColumns());
     root_ = projectNode;
-    tail_ = root_;
+    tail_ = doNode;
     return Status::OK();
 }
 
