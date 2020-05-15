@@ -71,9 +71,36 @@ private:
 
 class DropSpace final : public PlanNode {
 public:
+    static DropSpace* make(ExecutionPlan* plan,
+                           std::string spaceName,
+                           bool ifExists) {
+        return new DropSpace(plan, std::move(spaceName), ifExists);
+    }
+
     std::string explain() const override {
         return "DropSpace";
     }
+
+    const std::string& getSpaceName() const {
+        return spaceName_;
+    }
+
+    bool getIfExists() const {
+        return ifExists_;
+    }
+
+private:
+    DropSpace(ExecutionPlan* plan,
+              std::string spaceName,
+              bool ifExists)
+        : PlanNode(plan, Kind::kDropSpace) {
+        spaceName_ = std::move(spaceName);
+        ifExists_ = ifExists;
+    }
+
+private:
+    std::string           spaceName_;
+    bool                  ifExists_;
 };
 
 class DescSpace final : public SingleInputNode {
@@ -102,6 +129,21 @@ private:
 
 private:
     std::string           spaceName_;
+};
+
+class ShowSpaces final : public PlanNode {
+public:
+    static ShowSpaces* make(ExecutionPlan* plan) {
+        return new ShowSpaces(plan);
+    }
+
+    std::string explain() const override {
+        return "ShowSpaces";
+    }
+
+private:
+    explicit ShowSpaces(ExecutionPlan* plan)
+            : PlanNode(plan, Kind::kShowSpaces) {}
 };
 
 class Config final : public PlanNode {

@@ -59,19 +59,50 @@ TEST_F(SchemaTest, TestSpace) {
         std::string query = "DESC SPACE space_for_default;";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
-        DataSet expect;
-        expect.colNames = {"ID", "Name", "Partition number", "Replica Factor",
-                           "Vid Size", "Charset", "Collate"};
-        std::vector<Row> rows;
-        std::vector<Value> columns = {Value(1), Value("space_for_default"), Value(9),
-                                      Value(1), Value(8), Value("utf8"), Value("utf8_bin")};
-        Row row;
-        row.values = std::move(columns);
-        rows.emplace_back(row);
-        expect.rows = rows;
-        ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(expect, *resp.get_data());
+        std::vector<std::string> colNames = {"ID", "Name", "Partition number", "Replica Factor",
+                                             "Vid Size", "Charset", "Collate"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<Value> values = {Value(1), Value("space_for_default"), Value(9),
+                                     Value(1), Value(8), Value("utf8"), Value("utf8_bin")};
+        ASSERT_TRUE(verifyValues(resp, values));
     }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE SPACE space_2("
+                            "partition_num=9, replica_factor=1, vid_size=20);";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "SHOW SPACES;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {{"space_2"}, {"space_for_default"}};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
+    // Drop space
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DROP SPACE space_2";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "SHOW SPACES;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<Value> values = {"space_for_default"};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
+}
+
+TEST_F(SchemaTest, TestTag) {
     sleep(FLAGS_heartbeat_interval_secs + 1);
     {
         cpp2::ExecutionResponse resp;
@@ -79,9 +110,6 @@ TEST_F(SchemaTest, TestSpace) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
-}
-
-TEST_F(SchemaTest, TestTag) {
     {
         cpp2::ExecutionResponse resp;
         std::string query = "CREATE TAG student(name STRING, age INT8, grade FIXED_STRING(10));";
@@ -111,6 +139,38 @@ TEST_F(SchemaTest, TestTag) {
         expect.rows = std::move(rows);
         ASSERT_TRUE(resp.__isset.data);
         ASSERT_EQ(expect, *resp.get_data());
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE TAG person(name STRING DEFAULT \"\", amount FLOAT);";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "SHOW TAGS;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {{"person"}, {"student"}};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DROP TAG person;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "SHOW TAGS;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<Value> values = {"student"};
+        ASSERT_TRUE(verifyValues(resp, values));
     }
     {
         cpp2::ExecutionResponse resp;
@@ -146,6 +206,38 @@ TEST_F(SchemaTest, TestEdge) {
         rows.emplace_back(row);
         expect.rows = std::move(rows);
         ASSERT_EQ(expect, *resp.get_data());
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE EDGE like(name STRING DEFAULT \"\", amount FLOAT);";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "SHOW EDGES;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {{"like"}, {"schoolmate"}};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DROP EDGE like;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "SHOW EDGES;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<Value> values = {"schoolmate"};
+        ASSERT_TRUE(verifyValues(resp, values));
     }
     {
         cpp2::ExecutionResponse resp;

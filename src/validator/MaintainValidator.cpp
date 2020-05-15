@@ -230,5 +230,64 @@ Status AlterEdgeValidator::toPlan() {
     tail_ = root_;
     return Status::OK();
 }
+
+Status ShowTagsValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowTagsValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *doNode = ShowTags::make(plan,
+                                  validateContext_->whichSpace().id);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowEdgesValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowEdgesValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *doNode = ShowEdges::make(plan,
+                                   validateContext_->whichSpace().id);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status DropTagValidator::validateImpl() {
+    name_ = *sentence_->name();
+    ifExists_ = sentence_->isIfExists();
+    return Status::OK();
+}
+
+Status DropTagValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *doNode = DropTag::make(plan,
+                                 validateContext_->whichSpace().id,
+                                 name_,
+                                 ifExists_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status DropEdgeValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status DropEdgeValidator::toPlan() {
+    auto sentence = static_cast<DropEdgeSentence*>(sentence_);
+    auto* plan = validateContext_->plan();
+    auto *doNode = DropEdge::make(plan,
+                                  validateContext_->whichSpace().id,
+                                  sentence->name(),
+                                  sentence->isIfExists());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
 }  // namespace graph
 }  // namespace nebula

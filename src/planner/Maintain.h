@@ -284,17 +284,130 @@ private:
     }
 };
 
-class DropTag final : public SingleInputNode {
+class ShowTags final : public PlanNode {
 public:
+    static ShowTags* make(ExecutionPlan* plan,
+                          GraphSpaceID space) {
+        return new ShowTags(plan, space);
+    }
+
+    std::string explain() const override {
+        return "ShowTags";
+    }
+
+    GraphSpaceID getSpaceId() const {
+        return space_;
+    }
+
+private:
+    ShowTags(ExecutionPlan* plan,
+            GraphSpaceID space)
+            : PlanNode(plan, Kind::kShowTags) {
+        space_ = space;
+    }
+
+private:
+    GraphSpaceID           space_;
+};
+
+class ShowEdges final : public PlanNode {
+public:
+    static ShowEdges* make(ExecutionPlan* plan,
+                           GraphSpaceID space) {
+        return new ShowEdges(plan, space);
+    }
+
+    std::string explain() const override {
+        return "ShowEdges";
+    }
+
+    GraphSpaceID getSpaceId() const {
+        return space_;
+    }
+
+private:
+    ShowEdges(ExecutionPlan* plan,
+              GraphSpaceID space)
+              : PlanNode(plan, Kind::kShowEdges) {
+        space_ = space;
+    }
+
+private:
+    GraphSpaceID           space_;
+};
+
+class DropSchema : public PlanNode {
+protected:
+    DropSchema(ExecutionPlan* plan,
+               Kind kind,
+               GraphSpaceID space,
+               std::string name,
+               bool ifExists)
+            : PlanNode(plan, kind)
+            , space_(space)
+            , name_(std::move(name))
+            , ifExists_(ifExists) {}
+
+public:
+    const std::string& getName() const {
+        return name_;
+    }
+
+    GraphSpaceID getSpaceId() const {
+        return space_;
+    }
+
+    GraphSpaceID getIfExists() const {
+        return ifExists_;
+    }
+
+protected:
+    GraphSpaceID           space_;
+    std::string            name_;
+    bool                   ifExists_;
+};
+
+class DropTag final : public DropSchema {
+public:
+    static DropTag* make(ExecutionPlan* plan,
+                         GraphSpaceID space,
+                         std::string name,
+                         bool ifExists) {
+        return new DropTag(plan, space, name, ifExists);
+    }
+
     std::string explain() const override {
         return "DropTag";
+    }
+
+private:
+    DropTag(ExecutionPlan* plan,
+            GraphSpaceID space,
+            std::string name,
+            bool ifExists)
+    : DropSchema(plan, Kind::kDropTag, space, name, ifExists) {
     }
 };
 
 class DropEdge final : public SingleInputNode {
 public:
+    static DropEdge* make(ExecutionPlan* plan,
+                          GraphSpaceID space,
+                          std::string name,
+                          bool ifExists) {
+        return new DropEdge(plan, space, name, ifExists);
+    }
+
     std::string explain() const override {
         return "DropEdge";
+    }
+
+private:
+    DropEdge(ExecutionPlan* plan,
+             GraphSpaceID space,
+             std::string name,
+             bool ifExists)
+    : DropSchema(plan, Kind::kDropEdge, space, name, ifExists) {
     }
 };
 

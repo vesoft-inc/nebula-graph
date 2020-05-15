@@ -56,11 +56,13 @@ const char* PlanNode::toString(Kind kind) {
             return "Dedup";
         case PlanNode::Kind::kMultiOutputs:
             return "MultiOutputs";
-        case PlanNode::Kind::kCreateSpace:
+        case Kind::kSwitchSpace:
+            return "RegisterSpaceToSession";
+        case Kind::kCreateSpace:
             return "CreateSpace";
-        case PlanNode::Kind::kCreateTag:
+        case Kind::kCreateTag:
             return "CreateTag";
-        case PlanNode::Kind::kCreateEdge:
+        case Kind::kCreateEdge:
             return "CreateEdge";
         case PlanNode::Kind::kDescSpace:
             return "DescSpace";
@@ -78,6 +80,16 @@ const char* PlanNode::toString(Kind kind) {
             return "InsertEdges";
         case PlanNode::Kind::kDataCollect:
             return "DataCollect";
+        case PlanNode::Kind::kShowSpaces:
+            return "kShowSpaces";
+        case PlanNode::Kind::kShowTags:
+            return "kShowTags";
+        case PlanNode::Kind::kShowEdges:
+            return "kShowEdges";
+        case PlanNode::Kind::kDropTag:
+            return "kDropTag";
+        case PlanNode::Kind::kDropEdge:
+            return "kDropEdge";
         default:
             LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(kind);
     }

@@ -125,5 +125,31 @@ Status DescSpaceValidator::toPlan() {
     tail_ = root_;
     return Status::OK();
 }
+
+Status ShowSpacesValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowSpacesValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *doNode = ShowSpaces::make(plan);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status DropSpaceValidator::validateImpl() {
+    spaceName_ = *sentence_->spaceName();
+    ifExists_ = sentence_->isIfExists();
+    return Status::OK();
+}
+
+Status DropSpaceValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *doNode = DropSpace::make(plan, spaceName_, ifExists_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
 }  // namespace graph
 }  // namespace nebula

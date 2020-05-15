@@ -18,7 +18,7 @@ namespace graph {
 class CreateTagValidator final : public Validator {
 public:
     CreateTagValidator(Sentence* sentence, QueryContext* context)
-    : Validator(sentence, context) {
+        : Validator(sentence, context) {
         sentence_ = static_cast<CreateTagSentence*>(sentence);
     }
 
@@ -36,7 +36,7 @@ private:
 class CreateEdgeValidator final : public Validator {
 public:
     CreateEdgeValidator(Sentence* sentence, QueryContext* context)
-    : Validator(sentence, context) {
+        : Validator(sentence, context) {
         sentence_ = static_cast<CreateEdgeSentence*>(sentence);
     }
 
@@ -54,7 +54,7 @@ private:
 class DescTagValidator final : public Validator {
 public:
     DescTagValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         sentence_ = static_cast<DescribeTagSentence*>(sentence);
     }
 
@@ -67,7 +67,7 @@ private:
 class DescEdgeValidator final : public Validator {
 public:
     DescEdgeValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         sentence_ = static_cast<DescribeEdgeSentence*>(sentence);
     }
 
@@ -80,7 +80,8 @@ private:
 class AlterValidator : public Validator {
 public:
     AlterValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {}
+        : Validator(sentence, context) {}
+
 protected:
     Status alterSchema(const std::vector<AlterSchemaOptItem*>& schemaOpts,
                        const std::vector<SchemaPropItem*>& schemaProps);
@@ -94,8 +95,7 @@ protected:
 class AlterTagValidator final : public AlterValidator {
 public:
     AlterTagValidator(Sentence* sentence, QueryContext* context)
-            : AlterValidator(sentence, context) {
-    }
+        : AlterValidator(sentence, context) {
 
 private:
     Status validateImpl() override;
@@ -106,7 +106,53 @@ private:
 class AlterEdgeValidator final : public AlterValidator {
 public:
     AlterEdgeValidator(Sentence* sentence, QueryContext* context)
-            : AlterValidator(sentence, context) {
+        : AlterValidator(sentence, context) {
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowTagsValidator final : public Validator {
+public:
+    ShowTagsValidator(Sentence* sentence, ValidateContext* context)
+        : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowEdgesValidator final : public Validator {
+public:
+    ShowEdgesValidator(Sentence* sentence, ValidateContext* context)
+        : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropTagValidator final : public Validator {
+public:
+    DropTagValidator(Sentence* sentence, ValidateContext* context)
+        : Validator(sentence, context) {
+        sentence_ = static_cast<DropTagSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropEdgeValidator final : public Validator {
+public:
+    DropEdgeValidator(Sentence* sentence, ValidateContext* context)
+        : Validator(sentence, context) {
     }
 
 private:

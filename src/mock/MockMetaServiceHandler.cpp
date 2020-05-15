@@ -41,8 +41,19 @@ MockMetaServiceHandler::future_createSpace(const meta::cpp2::CreateSpaceReq& req
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_dropSpace(const meta::cpp2::DropSpaceReq&) {
-    RETURN_SUCCESSED();
+MockMetaServiceHandler::future_dropSpace(const meta::cpp2::DropSpaceReq &req) {
+    folly::Promise<meta::cpp2::ExecResp> promise;
+    auto future = promise.getFuture();
+    meta::cpp2::ExecResp resp;
+    auto status = MetaCache::instance().dropSpace(req);
+    if (!status.ok()) {
+        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        promise.setValue(std::move(resp));
+        return future;
+    }
+    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    promise.setValue(std::move(resp));
+    return future;
 }
 
 folly::Future<meta::cpp2::ListSpacesResp>

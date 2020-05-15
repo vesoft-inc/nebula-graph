@@ -45,6 +45,37 @@ private:
     Status toPlan() override;
 };
 
+class ShowSpacesValidator final : public Validator {
+public:
+    ShowSpacesValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropSpaceValidator final : public Validator {
+public:
+    DropSpaceValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<DropSpaceSentence*>(sentence);
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    DropSpaceSentence                       *sentence_{nullptr};
+    std::string                              spaceName_;
+    bool                                     ifExists_;
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_ADMINVALIDATOR_H_

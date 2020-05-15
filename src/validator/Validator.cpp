@@ -64,6 +64,18 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<AlterTagValidator>(sentence, context);
         case Sentence::Kind::kAlterEdge:
             return std::make_unique<AlterEdgeValidator>(sentence, context);
+        case Sentence::Kind::kShowSpaces:
+            return std::make_unique<ShowSpacesValidator>(sentence, context);
+        case Sentence::Kind::kShowTags:
+            return std::make_unique<ShowTagsValidator>(sentence, context);
+        case Sentence::Kind::kShowEdges:
+            return std::make_unique<ShowEdgesValidator>(sentence, context);
+        case Sentence::Kind::kDropSpace:
+            return std::make_unique<DropSpaceValidator>(sentence, context);
+        case Sentence::Kind::kDropTag:
+            return std::make_unique<DropTagValidator>(sentence, context);
+        case Sentence::Kind::kDropEdge:
+            return std::make_unique<DropEdgeValidator>(sentence, context);
         case Sentence::Kind::kInsertVertices:
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:

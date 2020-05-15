@@ -15,6 +15,8 @@
 #include "exec/admin/CreateSpaceExecutor.h"
 #include "exec/admin/DescSpaceExecutor.h"
 #include "exec/admin/SwitchSpaceExecutor.h"
+#include "exec/admin/ShowSpacesExecutor.h"
+#include "exec/admin/DropSpaceExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
@@ -24,6 +26,8 @@
 #include "exec/maintain/DescEdgeExecutor.h"
 #include "exec/maintain/DescTagExecutor.h"
 #include "exec/maintain/AlterSchemaExecutor.h"
+#include "exec/maintain/ShowSchemaExecutor.h"
+#include "exec/maintain/DropSchemaExecutor.h"
 #include "exec/mutate/InsertEdgesExecutor.h"
 #include "exec/mutate/InsertVerticesExecutor.h"
 #include "exec/query/AggregateExecutor.h"
@@ -213,6 +217,16 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             exec->addDependent(dep);
             break;
         }
+        case PlanNode::Kind::kShowSpaces: {
+            auto showSpaces = asNode<ShowSpaces>(node);
+            exec = new ShowSpacesExecutor(showSpaces, ectx);
+            break;
+        }
+        case PlanNode::Kind::kDropSpace: {
+            auto dropSpace = asNode<DropSpace>(node);
+            exec = new DropSpaceExecutor(dropSpace, ectx);
+            break;
+        }
         case PlanNode::Kind::kCreateTag: {
             auto createTag = asNode<CreateTag>(node);
             auto dep = makeExecutor(createTag->dep(), qctx, visited);
@@ -253,6 +267,25 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto dep = makeExecutor(alterEdge->dep(), qctx, visited);
             exec = new AlterEdgeExecutor(alterEdge, qctx);
             exec->addDependent(dep);
+            break;
+        case PlanNode::Kind::kShowTags: {
+            auto showTags = asNode<ShowTags>(node);
+            exec = new ShowTagsExecutor(showTags, ectx);
+            break;
+        }
+        case PlanNode::Kind::kShowEdges: {
+            auto showEdges = asNode<ShowEdges>(node);
+            exec = new ShowEdgesExecutor(showEdges, ectx);
+            break;
+        }
+        case PlanNode::Kind::kDropTag: {
+            auto dropTag = asNode<DropTag>(node);
+            exec = new DropTagExecutor(dropTag, ectx);
+            break;
+        }
+        case PlanNode::Kind::kDropEdge: {
+            auto dropEdge = asNode<DropEdge>(node);
+            exec = new DropEdgeExecutor(dropEdge, ectx);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {

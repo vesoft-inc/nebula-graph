@@ -17,73 +17,94 @@ using nebula::network::NetworkUtils;
 
 class ConfigRowItem;
 
-class ShowSentence final : public Sentence {
+class ShowHostsSentence : public Sentence {
 public:
-    enum class ShowType : uint32_t {
-        kUnknown,
-        kShowHosts,
-        kShowSpaces,
-        kShowParts,
-        kShowTags,
-        kShowEdges,
-        kShowTagIndexes,
-        kShowEdgeIndexes,
-        kShowUsers,
-        kShowRoles,
-        kShowCreateSpace,
-        kShowCreateTag,
-        kShowCreateEdge,
-        kShowCreateTagIndex,
-        kShowCreateEdgeIndex,
-        kShowTagIndexStatus,
-        kShowEdgeIndexStatus,
-        kShowSnapshots,
-        kShowCharset,
-        kShowCollation
-    };
-
-    explicit ShowSentence(ShowType sType) {
-        kind_ = Kind::kShow;
-        showType_ = std::move(sType);
+    ShowHostsSentence() {
+        kind_ = Kind::kShowHosts;
     }
+    std::string toString() const override;
+};
 
-    ShowSentence(ShowType sType, std::vector<int32_t>* list) {
-        kind_ = Kind::kShow;
-        list_.reset(list);
-        showType_ = std::move(sType);
+class ShowSpacesSentence : public Sentence {
+public:
+    ShowSpacesSentence() {
+        kind_ = Kind::kShowSpaces;
     }
+    std::string toString() const override;
+};
 
-    ShowSentence(ShowType sType, std::string *name) {
-        kind_ = Kind::kShow;
+class ShowCreateSpacesSentence : public Sentence {
+public:
+    explicit ShowCreateSpacesSentence(std::string *name) {
         name_.reset(name);
-        showType_ = std::move(sType);
+        kind_ = Kind::kShowCreateSpace;
+    }
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>                name_;
+};
+
+class ShowPartsSentence : public Sentence {
+public:
+    ShowPartsSentence() {
+        kind_ = Kind::kShowParts;
+    }
+
+    explicit ShowPartsSentence(std::vector<int32_t>* list) {
+        list_.reset(list);
+        kind_ = Kind::kShowParts;
     }
 
     std::string toString() const override;
 
-    ShowType showType() const {
-        return showType_;
-    }
+private:
+    std::unique_ptr<std::vector<int32_t>> list_;
+};
 
-    std::vector<int32_t>* getList() {
-        return list_.get();
+class ShowUsersSentence : public Sentence {
+public:
+    ShowUsersSentence() {
+        kind_ = Kind::kShowUsers;
     }
+    std::string toString() const override;
+};
 
-    std::string* getName() {
-        return name_.get();
+class ShowRolesSentence : public Sentence {
+public:
+    explicit ShowRolesSentence(std::string *name) {
+        name_.reset(name);
+        kind_ = Kind::kShowRoles;
     }
+    std::string toString() const override;
 
 private:
-    ShowType                              showType_{ShowType::kUnknown};
-    std::unique_ptr<std::vector<int32_t>> list_;
     std::unique_ptr<std::string>          name_;
 };
 
+class ShowSnapshotsSentence : public Sentence {
+public:
+    ShowSnapshotsSentence() {
+        kind_ = Kind::kShowSnapshots;
+    }
+    std::string toString() const override;
+};
 
-inline std::ostream& operator<<(std::ostream &os, const ShowSentence::ShowType &type) {
-    return os << static_cast<uint32_t>(type);
-}
+class ShowCharsetSentence final : public Sentence {
+public:
+    ShowCharsetSentence() {
+        kind_ = Kind::kShowCharset;
+    }
+    std::string toString() const override;
+};
 
+class ShowCollationSentence final : public Sentence {
+public:
+    ShowCollationSentence() {
+        kind_ = Kind::kShowCollation;
+    }
+    std::string toString() const override;
+};
 
 class SpaceOptItem final {
 public:
