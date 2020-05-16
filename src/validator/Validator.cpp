@@ -5,6 +5,7 @@
  */
 
 #include "validator/Validator.h"
+
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "validator/GoValidator.h"

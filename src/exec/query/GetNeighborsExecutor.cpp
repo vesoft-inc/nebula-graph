@@ -39,10 +39,12 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     std::vector<std::string> colNames;
 
     GraphStorageClient* storageClient = qctx()->getStorageClient();
+    // TODO:
+    std::vector<Row> vertices;
     return storageClient
         ->getNeighbors(gn->space(),
                        std::move(colNames),
-                       gn->vertices(),
+                       vertices,
                        gn->edgeTypes(),
                        gn->edgeDirection(),
                        &gn->statProps(),

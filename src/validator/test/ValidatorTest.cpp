@@ -12,6 +12,7 @@
 #include "validator/ASTValidator.h"
 #include "context/QueryContext.h"
 #include "planner/ExecutionPlan.h"
+#include "validator/ValidateContext.h"
 
 namespace nebula {
 namespace graph {
@@ -33,7 +34,7 @@ public:
 protected:
     ClientSession                      *session_;
     meta::SchemaManager                *schemaMng_;
-    std::unique_ptr<QueryContext>   qctx_;
+    std::unique_ptr<QueryContext>       qctx_;
     std::unique_ptr<ExecutionPlan>      plan_;
     CharsetInfo*                        charsetInfo_;
 };
@@ -44,7 +45,7 @@ TEST_F(ValidatorTest, Subgraph) {
         auto result = GQLParser().parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
         auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), session_, schemaMng_, charsetInfo_);
+        ASTValidator validator(sentences.get(), session_, qctx_.get());
         auto validateResult = validator.validate(plan_.get());
         ASSERT_TRUE(validateResult.ok()) << validateResult;
         // TODO: Check the plan.

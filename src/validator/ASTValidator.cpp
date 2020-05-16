@@ -14,15 +14,11 @@ namespace graph {
 Status ASTValidator::validate(ExecutionPlan* plan) {
     // CHECK(!!session_);
     // CHECK(!!schemaMng_);
-    validateContext_ = std::make_unique<ValidateContext>();
-    validateContext_->setPlan(plan);
-    validateContext_->setSession(session_);
-    validateContext_->setSchemaMng(schemaMng_);
-    validateContext_->setCharsetInfo(charsetInfo_);
 
     // Check if space chosen from session. if chosen, add it to context.
-    if (session_->space() > -1) {
-        validateContext_->switchToSpace(session_->spaceName(), session_->space());
+    auto session = validateContext_->session();
+    if (session->space() > -1) {
+        validateContext_->switchToSpace(session->spaceName(), session->space());
     }
 
     auto validator = Validator::makeValidator(sentences_, validateContext_.get());

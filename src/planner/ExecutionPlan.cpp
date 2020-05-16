@@ -30,10 +30,6 @@ PlanNode* ExecutionPlan::addPlanNode(PlanNode* node) {
     return qctx_->objPool()->add(node);
 }
 
-Expression* ExecutionPlan::addExpression(Expression* expr) {
-    return qctx_->objPool()->add(expr);
-}
-
 Executor* ExecutionPlan::createExecutor() {
     std::unordered_map<int64_t, Executor*> cache;
     return Executor::makeExecutor(root_, qctx_, &cache);

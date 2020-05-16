@@ -43,9 +43,12 @@ public:
     PlanNode* addPlanNode(PlanNode* node);
 
     /**
-     * Save all generated expression in object pool.
+     * Save all generated object in object pool.
      */
-    Expression* addExpression(Expression* expr);
+    template <typename T>
+    T* saveObject(T* obj) {
+        return qctx_->objPool()->add(obj);
+    }
 
     int64_t id() const {
         return id_;

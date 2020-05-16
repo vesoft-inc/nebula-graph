@@ -10,6 +10,7 @@
 #include "common/base/Base.h"
 #include "validator/Validator.h"
 #include "parser/Clauses.h"
+
 namespace nebula {
 namespace graph {
 class GetSubgraphValidator final : public Validator {
@@ -34,7 +35,7 @@ private:
 
 private:
     uint32_t                                    steps_{1};
-    std::vector<Row>                            starts_;
+    std::vector<Value>                          starts_;
     Expression*                                 srcRef_{nullptr};
     std::vector<EdgeType>                       edgeTypes_;
 };

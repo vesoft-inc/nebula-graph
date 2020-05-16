@@ -12,6 +12,7 @@
 #include "common/datatypes/Value.h"
 #include "common/charset/Charset.h"
 #include "planner/ExecutionPlan.h"
+#include "util/AnnoVarGenerator.h"
 
 namespace nebula {
 namespace graph {
@@ -23,8 +24,13 @@ struct SpaceDescription {
     std::string name;
     GraphSpaceID id;
 };
+
 class ValidateContext final {
 public:
+    ValidateContext() {
+        varGen_ = std::make_unique<AnnoVarGenerator>();
+    }
+
     void switchToSpace(std::string spaceName, GraphSpaceID spaceId) {
         SpaceDescription space;
         space.name = std::move(spaceName);
@@ -44,12 +50,8 @@ public:
         session_ = session;
     }
 
-    void setSchemaMng(meta::SchemaManager* schemaMng) {
-        schemaMng_ = schemaMng;
-    }
-
-    void setCharsetInfo(CharsetInfo* charsetInfo) {
-        charsetInfo_ = charsetInfo;
+    void setQueryContext(QueryContext* qctx) {
+        qctx_ = qctx;
     }
 
     bool spaceChosen() const {
@@ -61,7 +63,7 @@ public:
     }
 
     meta::SchemaManager* schemaMng() const {
-        return schemaMng_;
+        return qctx_->schemaManager();
     }
 
     ExecutionPlan* plan() const {
@@ -69,20 +71,30 @@ public:
     }
 
     CharsetInfo* getCharsetInfo() {
-        return charsetInfo_;
+        return qctx_->getCharsetInfo();
     }
 
     ClientSession* session() const {
         return session_;
     }
 
+    QueryContext* qctx() const {
+        return qctx_;
+    }
+
+    AnnoVarGenerator* varGen() const {
+        return varGen_.get();
+    }
+
 private:
-    meta::SchemaManager*                                schemaMng_{nullptr};
+    QueryContext*                                       qctx_{nullptr};
     ClientSession*                                      session_{nullptr};
+    // spaces_ is the trace of space switch
     std::vector<SpaceDescription>                       spaces_;
+    // vars_ saves all named variable
     std::unordered_map<std::string, ColsDef>            vars_;
     ExecutionPlan*                                      plan_{nullptr};
-    CharsetInfo*                                        charsetInfo_{nullptr};
+    std::unique_ptr<AnnoVarGenerator>                   varGen_;
 };
 
 }  // namespace graph

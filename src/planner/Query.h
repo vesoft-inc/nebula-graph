@@ -175,7 +175,6 @@ public:
     static GetNeighbors* make(ExecutionPlan* plan,
                               PlanNode* input,
                               GraphSpaceID space,
-                              std::vector<Row> vertices,
                               Expression* src,
                               std::vector<EdgeType> edgeTypes,
                               storage::cpp2::EdgeDirection edgeDirection,
@@ -190,7 +189,6 @@ public:
                 plan,
                 input,
                 space,
-                std::move(vertices),
                 src,
                 std::move(edgeTypes),
                 edgeDirection,
@@ -207,10 +205,6 @@ public:
 
     Expression* src() const {
         return src_;
-    }
-
-    const std::vector<Row>& vertices() const {
-        return vertices_;
     }
 
     storage::cpp2::EdgeDirection edgeDirection() const {
@@ -237,7 +231,6 @@ private:
     GetNeighbors(ExecutionPlan* plan,
                  PlanNode* input,
                  GraphSpaceID space,
-                 std::vector<Row> vertices,
                  Expression* src,
                  std::vector<EdgeType> edgeTypes,
                  storage::cpp2::EdgeDirection edgeDirection,
@@ -256,7 +249,6 @@ private:
                   limit,
                   std::move(filter),
                   std::move(orderBy)) {
-        vertices_ = std::move(vertices);
         src_ = src;
         edgeTypes_ = std::move(edgeTypes);
         edgeDirection_ = edgeDirection;
@@ -266,9 +258,6 @@ private:
     }
 
 private:
-    // vertices are parsing from query.
-    std::vector<Row>                             vertices_;
-    // vertices may be parsing from runtime.
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
     storage::cpp2::EdgeDirection                 edgeDirection_;

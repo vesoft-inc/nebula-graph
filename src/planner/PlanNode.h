@@ -70,6 +70,10 @@ public:
         return id_;
     }
 
+    void setVar(std::string var) {
+        varGenerated_ = var;
+    }
+
     std::string varName() const {
         return varGenerated_;
     }
@@ -97,6 +101,7 @@ protected:
     std::unordered_set<VariableName>         availableVars_;
     VariableName                             varGenerated_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLANNODE_H_
