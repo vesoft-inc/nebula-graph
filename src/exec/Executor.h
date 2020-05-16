@@ -26,30 +26,6 @@ class ExecutionContext;
 
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
-    // For check whether a task is a Executor::Callable by std::is_base_of<>::value in thread pool
-    struct Callable {
-        int64_t planId;
-
-        explicit Callable(const Executor *e);
-    };
-
-    // Enable thread pool check the query plan id of each callback registered in future. The functor
-    // is only the proxy of the invocable function fn.
-    template <typename F>
-    struct Callback : Callable {
-        using Extract = folly::futures::detail::Extract<F>;
-        using Return = typename Extract::Return;
-        using FirstArg = typename Extract::FirstArg;
-
-        F fn;
-
-        Callback(const Executor *e, F f) : Callable(e), fn(std::move(f)) {}
-
-        Return operator()(FirstArg &&arg) {
-            return fn(std::forward<FirstArg>(arg));
-        }
-    };
-
     // Create executor according to plan node
     static Executor *makeExecutor(const PlanNode *node,
                                   ExecutionContext *ectx,
@@ -81,11 +57,6 @@ public:
 
     const PlanNode *node() const {
         return node_;
-    }
-
-    template <typename Fn>
-    Callback<Fn> cb(Fn &&f) const {
-        return Callback<Fn>(this, std::forward<Fn>(f));
     }
 
     template <typename T>
