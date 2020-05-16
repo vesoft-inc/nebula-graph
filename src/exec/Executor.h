@@ -65,6 +65,10 @@ public:
     // Implementation interface of operation logic
     virtual folly::Future<Status> execute() = 0;
 
+    virtual int32_t numInputs() const {
+        return 0;
+    }
+
     ExecutionContext *ectx() const {
         return ectx_;
     }
@@ -128,6 +132,14 @@ public:
 
     folly::Future<Status> execute() override;
 
+    Executor *input() const {
+        return input_;
+    }
+
+    int32_t numInputs() const override {
+        return 1;
+    }
+
 protected:
     SingleInputExecutor(const std::string &name,
                         const PlanNode *node,
@@ -151,6 +163,14 @@ public:
     }
 
     folly::Future<Status> execute() override;
+
+    int32_t numInputs() const override {
+        return static_cast<int32_t>(inputs_.size());
+    }
+
+    const std::vector<Executor *> &inputs() const {
+        return inputs_;
+    }
 
 protected:
     MultiInputsExecutor(const std::string &name,

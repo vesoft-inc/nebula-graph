@@ -21,14 +21,10 @@ MinusExecutor::MinusExecutor(const PlanNode *node,
 }
 
 folly::Future<Status> MinusExecutor::execute() {
-    return MultiInputsExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
+    dumpLog();
 
-        dumpLog();
-
-        // TODO(yee):
-        return start();
-    }));
+    // TODO(yee):
+    return start();
 }
 
 }   // namespace graph

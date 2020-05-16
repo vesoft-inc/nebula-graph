@@ -15,18 +15,17 @@ namespace graph {
 class LoopExecutor final : public SingleInputExecutor {
 public:
     LoopExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input, Executor *body)
-        : SingleInputExecutor("LoopExecutor", node, ectx, input),
-          body_(body) {}
+        : SingleInputExecutor("LoopExecutor", node, ectx, input), body_(body) {}
 
     Status prepare() override;
 
     folly::Future<Status> execute() override;
 
+    Executor *loopBody() const {
+        return body_;
+    }
+
 private:
-    folly::Future<Status> iterate();
-
-    bool toContinue();
-
     // Hold the last executor node of loop body executors chain
     Executor *body_;
 

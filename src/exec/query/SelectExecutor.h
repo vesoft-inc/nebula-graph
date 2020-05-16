@@ -24,6 +24,14 @@ public:
 
     folly::Future<Status> execute() override;
 
+    Executor* thenBody() const {
+        return then_;
+    }
+
+    Executor* elseBody() const {
+        return else_;
+    }
+
 private:
     Executor* then_;
     Executor* else_;

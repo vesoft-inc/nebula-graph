@@ -21,12 +21,9 @@ IntersectExecutor::IntersectExecutor(const PlanNode *node,
 }
 
 folly::Future<Status> IntersectExecutor::execute() {
-    return MultiInputsExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-        dumpLog();
-        // TODO(yee):
-        return start();
-    }));
+    dumpLog();
+    // TODO(yee):
+    return start();
 }
 
 }   // namespace graph

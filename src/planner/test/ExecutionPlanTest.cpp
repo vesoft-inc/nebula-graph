@@ -45,7 +45,7 @@ public:
 
         watch_.reset();
         auto future =
-            executor->execute()
+            plan_->schedule(executor)
                 .then([](Status s) { ASSERT_TRUE(s.ok()) << s.toString(); })
                 .onError([](const ExecutionError& e) { LOG(INFO) << e.what(); })
                 .onError([](const std::exception& e) { LOG(INFO) << "exception: " << e.what(); })

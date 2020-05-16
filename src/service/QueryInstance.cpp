@@ -53,7 +53,8 @@ void QueryInstance::execute() {
         onError(std::move(status));
         return;
     }
-    executor->execute()
+
+    plan_->schedule(executor)
         .then([this](Status s) {
             if (s.ok()) {
                 this->onFinish();

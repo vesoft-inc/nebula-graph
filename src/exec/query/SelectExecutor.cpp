@@ -34,25 +34,14 @@ Status SelectExecutor::prepare() {
 }
 
 folly::Future<Status> SelectExecutor::execute() {
-    return SingleInputExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
+    dumpLog();
 
-        auto result = true;
+    auto* select = asNode<Selector>(node());
+    auto* expr = select->condition();
+    UNUSED(expr);
 
-        {
-            dumpLog();
-
-            auto* select = asNode<Selector>(node());
-            auto* expr = select->condition();
-            UNUSED(expr);
-        }
-
-        if (result) {
-            return then_->execute();
-        } else {
-            return else_->execute();
-        }
-    }));
+    // FIXME: store expression value to execution context
+    return Status::OK();
 }
 
 }   // namespace graph

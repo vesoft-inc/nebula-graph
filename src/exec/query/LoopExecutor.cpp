@@ -26,30 +26,6 @@ Status LoopExecutor::prepare() {
 }
 
 folly::Future<Status> LoopExecutor::execute() {
-    return SingleInputExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-
-        return iterate().ensure([this]() {
-            // TODO(yee): some cleanup or stats actions
-            UNUSED(this);
-        });
-    }));
-}
-
-folly::Future<Status> LoopExecutor::iterate() {
-    if (!toContinue()) {
-        return start();
-    }
-
-    return body_->execute().then(cb([this](Status s) {
-        if (!s.ok()) {
-            return error(std::move(s));
-        }
-        return this->iterate();
-    }));
-}
-
-bool LoopExecutor::toContinue() {
     dumpLog();
     auto *loopNode = asNode<Loop>(node());
     const Expression *expr = loopNode->condition();
@@ -58,14 +34,14 @@ bool LoopExecutor::toContinue() {
 
     if (iterCount_ >= 1) {
         // FIXME: Just for test
-        return false;
+        return Status::Error("Just for test");
     }
 
     // Update iterate variable value in execution context before loop body running
     nebula::Value value;
     value.setInt(++iterCount_);
     ectx()->addValue(loopNode->varName(), std::move(value));
-    return true;
+    return Status::OK();
 }
 
 }   // namespace graph

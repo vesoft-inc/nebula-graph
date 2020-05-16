@@ -21,12 +21,9 @@ UnionExecutor::UnionExecutor(const PlanNode *node,
 }
 
 folly::Future<Status> UnionExecutor::execute() {
-    return MultiInputsExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-        dumpLog();
-        // TODO(yee): implement union results of left and right inputs
-        return start();
-    }));
+    dumpLog();
+    // TODO(yee): implement union results of left and right inputs
+    return start();
 }
 
 }   // namespace graph

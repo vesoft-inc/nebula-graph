@@ -9,6 +9,7 @@
 #include "exec/Executor.h"
 #include "planner/IdGenerator.h"
 #include "planner/PlanNode.h"
+#include "schedule/Scheduler.h"
 #include "service/ExecutionContext.h"
 #include "util/ObjectPool.h"
 
@@ -18,7 +19,8 @@ namespace graph {
 ExecutionPlan::ExecutionPlan(ExecutionContext* ectx)
     : id_(EPIdGenerator::instance().id()),
       ectx_(ectx),
-      nodeIdGen_(std::make_unique<IdGenerator>(0)) {
+      nodeIdGen_(std::make_unique<IdGenerator>(0)),
+      scheduler_(std::make_unique<Scheduler>(ectx)) {
     DCHECK_NOTNULL(ectx);
 }
 
@@ -34,6 +36,10 @@ PlanNode* ExecutionPlan::addPlanNode(PlanNode* node) {
 Executor* ExecutionPlan::createExecutor() {
     std::unordered_map<int64_t, Executor*> cache;
     return Executor::makeExecutor(root_, ectx_, &cache);
+}
+
+folly::Future<Status> ExecutionPlan::schedule(Executor* executor) {
+    return scheduler_->schedule(executor);
 }
 
 }   // namespace graph
