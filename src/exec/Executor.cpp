@@ -268,22 +268,5 @@ folly::Executor *Executor::runner() const {
     return ectx()->rctx()->runner();
 }
 
-folly::Future<Status> SingleInputExecutor::execute() {
-    return input_->execute();
-}
-
-folly::Future<Status> MultiInputsExecutor::execute() {
-    std::vector<folly::Future<Status>> futures;
-    for (auto *in : inputs_) {
-        futures.emplace_back(in->execute());
-    }
-    return folly::collect(futures).then(cb([](std::vector<Status> ss) {
-        for (auto &s : ss) {
-            if (!s.ok()) return s;
-        }
-        return Status::OK();
-    }));
-}
-
 }   // namespace graph
 }   // namespace nebula

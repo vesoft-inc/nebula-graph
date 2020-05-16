@@ -130,8 +130,6 @@ public:
         return input_->prepare();
     }
 
-    folly::Future<Status> execute() override;
-
     Executor *input() const {
         return input_;
     }
@@ -161,8 +159,6 @@ public:
         }
         return Status::OK();
     }
-
-    folly::Future<Status> execute() override;
 
     int32_t numInputs() const override {
         return static_cast<int32_t>(inputs_.size());
