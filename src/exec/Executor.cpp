@@ -254,9 +254,10 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
     DCHECK_NOTNULL(node_);
     DCHECK_NOTNULL(qctx_);
 
+    ectx_ = qctx->ectx();
     // Initialize the position in ExecutionContext for each executor before execution plan
     // starting to run. This will avoid lock something for thread safety in real execution
-    qctx_->setValue(node->varName(), nebula::Value());
+    ectx_->setValue(node->varName(), nebula::Value());
 }
 
 folly::Future<Status> Executor::start(Status status) const {
@@ -268,7 +269,7 @@ folly::Future<Status> Executor::error(Status status) const {
 }
 
 Status Executor::finish(nebula::Value &&value) {
-    qctx_->setValue(node()->varName(), std::move(value));
+    ectx_->setValue(node()->varName(), std::move(value));
     return Status::OK();
 }
 

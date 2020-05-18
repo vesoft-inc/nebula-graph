@@ -15,7 +15,7 @@ namespace nebula {
 namespace graph {
 class GetSubgraphValidator final : public Validator {
 public:
-    GetSubgraphValidator(Sentence* sentence, ValidateContext* context)
+    GetSubgraphValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:

@@ -21,7 +21,6 @@ void QueryInstance::execute() {
     VLOG(1) << "Parsing query: " << rctx->query();
 
     Status status;
-    plan_ = std::make_unique<ExecutionPlan>(qctx());
     do {
         auto result = GQLParser().parse(rctx->query());
         if (!result.ok()) {
@@ -32,8 +31,8 @@ void QueryInstance::execute() {
 
         sentences_ = std::move(result).value();
         validator_ = std::make_unique<ASTValidator>(
-            sentences_.get(), rctx->session(), qctx());
-        status = validator_->validate(plan_.get());
+            sentences_.get(), qctx());
+        status = validator_->validate();
         if (!status.ok()) {
             LOG(ERROR) << status;
             break;
@@ -47,7 +46,19 @@ void QueryInstance::execute() {
         return;
     }
 
+<<<<<<< HEAD
     plan_->execute()
+=======
+    std::unordered_map<int64_t, Executor*> cache;
+    auto executor = Executor::makeExecutor(
+            qctx_->plan()->root(), qctx_.get(), &cache);
+    status = executor->prepare();
+    if (!status.ok()) {
+        onError(std::move(status));
+        return;
+    }
+    executor->execute()
+>>>>>>> Refactor the context.
         .then([this](Status s) {
             if (s.ok()) {
                 this->onFinish();
@@ -66,7 +77,7 @@ void QueryInstance::onFinish() {
     rctx->resp().set_latency_in_us(latency);
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
-    auto value = qctx()->getValue(plan_->root()->varName());
+    auto value = qctx()->ectx()->getValue(qctx()->plan()->root()->varName());
     if (!value.empty()) {
         std::vector<DataSet> data;
         data.emplace_back(value.moveDataSet());

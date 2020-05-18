@@ -10,12 +10,12 @@
 namespace nebula {
 namespace graph {
 const Value& ExpressionContextImpl::getVar(const std::string& var) const {
-    return qCtxt_->getValue(var);
+    return ectx_->getValue(var);
 }
 
 const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
                                                     int64_t version) const {
-    auto& val = qCtxt_->getHistory(var);
+    auto& val = ectx_->getHistory(var);
     if (version <= 0 && static_cast<size_t>(std::abs(version)) < val.size()) {
         return val[val.size() + version -1];
     } else if (version > 0 && static_cast<size_t>(version) <= val.size()) {
@@ -65,7 +65,7 @@ const Value& ExpressionContextImpl::getInputProp(const std::string& prop) const 
 }
 
 void ExpressionContextImpl::setVar(const std::string& var, Value val) {
-    qCtxt_->setValue(var, std::move(val));
+    ectx_->setValue(var, std::move(val));
 }
 }  // namespace graph
 }  // namespace nebula

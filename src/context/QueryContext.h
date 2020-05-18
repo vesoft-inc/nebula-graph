@@ -18,6 +18,8 @@
 #include "clients/meta/MetaClient.h"
 #include "clients/storage/GraphStorageClient.h"
 #include "util/ObjectPool.h"
+#include "context/ValidateContext.h"
+#include "context/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -50,36 +52,33 @@ public:
           // gflagsManager_(gflagsManager),
           storageClient_(storage),
           metaClient_(metaClient),
-          charsetInfo_(charsetInfo),
-          objPool_(std::make_unique<ObjectPool>()) {
+          charsetInfo_(charsetInfo) {
         DCHECK_NOTNULL(sm_);
         DCHECK_NOTNULL(storageClient_);
         DCHECK_NOTNULL(metaClient_);
         DCHECK_NOTNULL(charsetInfo_);
+        objPool_ = std::make_unique<ObjectPool>();
+        ep_ = std::make_unique<ExecutionPlan>(objPool_.get());
     }
     virtual ~QueryContext() = default;
-
-    // Get the latest version of the value
-    const Value& getValue(const std::string& name) const;
-
-    size_t numVersions(const std::string& name) const;
-
-    // Return all existing history of the value. The front is the latest value
-    // and the back is the oldest value
-    const std::vector<Value>& getHistory(const std::string& name) const;
-
-    void setValue(const std::string& name, Value&& val);
-
-    void deleteValue(const std::string& name);
-
-    // Only keep the last several versoins of the Value
-    void truncHistory(const std::string& name, size_t numVersionsToKeep);
 
     RequestContext<cpp2::ExecutionResponse>* rctx() const {
         return rctx_.get();
     }
 
-    meta::SchemaManager* schemaManager() const {
+    ValidateContext* vctx() const {
+        return vctx_.get();
+    }
+
+    ExecutionContext* ectx() const {
+        return ectx_.get();
+    }
+
+    ExecutionPlan* plan() const {
+        return ep_.get();
+    }
+
+    meta::SchemaManager* schemaMng() const {
         return sm_;
     }
 
@@ -101,15 +100,17 @@ public:
 
 private:
     RequestContextPtr                                       rctx_;
+    std::unique_ptr<ValidateContext>                        vctx_;
+    std::unique_ptr<ExecutionContext>                       ectx_;
+    std::unique_ptr<ExecutionPlan>                          ep_;
     meta::SchemaManager*                                    sm_{nullptr};
     // meta::ClientBasedGflagsManager             *gflagsManager_{nullptr};
     storage::GraphStorageClient*                            storageClient_{nullptr};
     meta::MetaClient*                                       metaClient_{nullptr};
     CharsetInfo*                                            charsetInfo_{nullptr};
-    // The Object Poll holds all internal generated objects.
+    // The Object Pool holds all internal generated objects.
+    // e.g. expressions, plan nodes, executors
     std::unique_ptr<ObjectPool>                             objPool_;
-    // name -> Value with multiple versions
-    std::unordered_map<std::string, std::vector<Value>>     valueMap_;
 };
 }  // namespace graph
 }  // namespace nebula

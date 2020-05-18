@@ -10,16 +10,13 @@
 #include <cstdint>
 #include <memory>
 #include "expression/Expression.h"
-#include "context/QueryContext.h"
+#include "util/ObjectPool.h"
 
 #include <folly/futures/Future.h>
 
 #include "common/base/Status.h"
 
 namespace nebula {
-
-class ObjectPool;
-
 namespace graph {
 
 class Executor;
@@ -29,7 +26,7 @@ class Scheduler;
 
 class ExecutionPlan final {
 public:
-    explicit ExecutionPlan(QueryContext* qctx);
+    explicit ExecutionPlan(ObjectPool* objectPool);
 
     ~ExecutionPlan();
 
@@ -47,7 +44,7 @@ public:
      */
     template <typename T>
     T* saveObject(T* obj) {
-        return qctx_->objPool()->add(obj);
+        return objPool_->add(obj);
     }
 
     int64_t id() const {
@@ -65,9 +62,8 @@ private:
 
     int64_t                                 id_;
     PlanNode*                               root_{nullptr};
-    QueryContext*                           qctx_{nullptr};
+    ObjectPool*                             objPool_{nullptr};
     std::unique_ptr<IdGenerator>            nodeIdGen_;
-    std::unique_ptr<Scheduler>              scheduler_;
 };
 
 }  // namespace graph

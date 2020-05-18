@@ -11,7 +11,7 @@
 #include "validator/Validator.h"
 #include "parser/SequentialSentences.h"
 #include "service/ClientSession.h"
-#include "validator/ValidateContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 
@@ -24,23 +24,14 @@ class ExecutionPlan;
 class ASTValidator final {
 public:
     ASTValidator(SequentialSentences* sentences,
-                 ClientSession* session,
                  QueryContext* qctx)
-        : sentences_(sentences) {
-        validateContext_ = std::make_unique<ValidateContext>();
-        validateContext_->setSession(session);
-        validateContext_->setQueryContext(qctx);
-    }
+        : sentences_(sentences), qctx_(qctx) {}
 
-    Status validate(ExecutionPlan* plan);
-
-    const ValidateContext* context() const {
-        return validateContext_.get();
-    }
+    Status validate();
 
 private:
     SequentialSentences*                sentences_{nullptr};
-    std::unique_ptr<ValidateContext>    validateContext_;
+    QueryContext*                       qctx_;
 };
 }  // namespace graph
 }  // namespace nebula

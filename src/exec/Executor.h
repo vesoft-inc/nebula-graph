@@ -22,6 +22,7 @@ namespace graph {
 
 class PlanNode;
 class QueryContext;
+class ExecutionContext;
 
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
@@ -93,8 +94,9 @@ protected:
     // Relative Plan Node
     const PlanNode *node_;
 
-    // Execution context for saving some execution data
     QueryContext *qctx_;
+    // Execution context for saving some execution data
+    ExecutionContext *ectx_;
 
     // Topology
     std::set<Executor *> depends_;

@@ -15,31 +15,17 @@
 namespace nebula {
 namespace graph {
 
-ExecutionPlan::ExecutionPlan(QueryContext* qctx)
+ExecutionPlan::ExecutionPlan(ObjectPool* objectPool)
     : id_(EPIdGenerator::instance().id()),
-      qctx_(DCHECK_NOTNULL(ectx)),
-      nodeIdGen_(std::make_unique<IdGenerator>(0)),
-      scheduler_(std::make_unique<Scheduler>(ectx)) {}
+      objPool_(objectPool),
+      nodeIdGen_(std::make_unique<IdGenerator>(0)) {}
 
 ExecutionPlan::~ExecutionPlan() {
-    qctx_ = nullptr;
 }
 
 PlanNode* ExecutionPlan::addPlanNode(PlanNode* node) {
     node->setId(nodeIdGen_->id());
-    return qctx_->objPool()->add(node);
+    return objPool_->add(node);
 }
-
-Executor* ExecutionPlan::createExecutor() {
-    std::unordered_map<int64_t, Executor*> cache;
-    return Executor::makeExecutor(root_, qctx_, &cache);
-}
-
-folly::Future<Status> ExecutionPlan::execute() {
-    auto executor = createExecutor();
-    scheduler_->analyze(executor);
-    return scheduler_->schedule(executor);
-}
-
 }   // namespace graph
 }   // namespace nebula

@@ -14,7 +14,7 @@ namespace graph {
 
 folly::Future<Status> SwitchSpaceExecutor::execute() {
     auto *spaceToNode = asNode<SwitchSpace>(node());
-    qctx()->rctx()->session()->setSpace(spaceToNode->getSpaceName(), spaceToNode->getSpaceId());
+    qctx_->rctx()->session()->setSpace(spaceToNode->getSpaceName(), spaceToNode->getSpaceId());
     LOG(INFO) << "Graph space switched to `" << spaceToNode->getSpaceName()
               << "', space id: " << spaceToNode->getSpaceId();
     return start();

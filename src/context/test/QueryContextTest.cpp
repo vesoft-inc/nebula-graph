@@ -6,12 +6,12 @@
 
 #include "common/base/Base.h"
 #include <gtest/gtest.h>
-#include "context/QueryContext.h"
+#include "context/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
-TEST(QueryContext, ReadWriteTest) {
-    QueryContext ctx;
+TEST(ExecutionContext, ReadWriteTest) {
+    ExecutionContext ctx;
     ctx.setValue("v1", 10);
     ctx.setValue("v2", "Hello world");
     EXPECT_EQ(Value(10), ctx.getValue("v1"));
@@ -19,8 +19,8 @@ TEST(QueryContext, ReadWriteTest) {
 }
 
 
-TEST(QueryContext, HistoryTest) {
-    QueryContext ctx;
+TEST(ExecutionContext, HistoryTest) {
+    ExecutionContext ctx;
     ctx.setValue("v1", 10);
     ctx.setValue("v1", "Hello world");
     ctx.setValue("v1", 3.14);

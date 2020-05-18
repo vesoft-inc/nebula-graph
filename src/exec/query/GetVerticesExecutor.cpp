@@ -35,7 +35,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     // std::vector<VertexID> vertices;
     // // TODO(yee): compute vertices by evaluate expression
 
-    // GraphStorageClient *storageClient_ = qctx()->getStorageClient();
+    // GraphStorageClient *storageClient_ = ectx_->getStorageClient();
 
     // return storageClient_->getVertexProps(gv->space(), vertices, gv->props(), gv->filter())
     //     .via(runner())

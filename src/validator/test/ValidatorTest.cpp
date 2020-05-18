@@ -12,7 +12,7 @@
 #include "validator/ASTValidator.h"
 #include "context/QueryContext.h"
 #include "planner/ExecutionPlan.h"
-#include "validator/ValidateContext.h"
+#include "context/ValidateContext.h"
 
 namespace nebula {
 namespace graph {
@@ -21,7 +21,6 @@ public:
     void SetUp() override {
         session_ = new ClientSession(0);
         session_->setSpace("test", 0);
-        qctx_ = std::make_unique<QueryContext>();
         plan_ = std::make_unique<ExecutionPlan>(qctx_.get());
         charsetInfo_ = CharsetInfo::instance();
         // TODO: Need AdHocSchemaManager here.
@@ -32,11 +31,11 @@ public:
     }
 
 protected:
-    ClientSession                      *session_;
-    meta::SchemaManager                *schemaMng_;
     std::unique_ptr<QueryContext>       qctx_;
+    std::unique_ptr<ClientSession>      session_;
+    meta::SchemaManager*                schemaMng_{nullptr};
+    CharsetInfo*                        charsetInfo_{nullptr};
     std::unique_ptr<ExecutionPlan>      plan_;
-    CharsetInfo*                        charsetInfo_;
 };
 
 TEST_F(ValidatorTest, Subgraph) {

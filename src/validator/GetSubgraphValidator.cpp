@@ -78,13 +78,13 @@ Status GetSubgraphValidator::validateFrom(FromClause* from) {
 
 Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
     if (in != nullptr) {
-        auto space = validateContext_->whichSpace();
+        auto space = vctx_->whichSpace();
         for (auto* e : in->edges()) {
             if (e->alias() != nullptr) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto et = validateContext_->schemaMng()->toEdgeType(space.id, *e->edge());
+            auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -99,13 +99,13 @@ Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
 
 Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
     if (out != nullptr) {
-        auto space = validateContext_->whichSpace();
+        auto space = vctx_->whichSpace();
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto et = validateContext_->schemaMng()->toEdgeType(space.id, *e->edge());
+            auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -119,13 +119,13 @@ Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
 
 Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
     if (out != nullptr) {
-        auto space = validateContext_->whichSpace();
+        auto space = vctx_->whichSpace();
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto et = validateContext_->schemaMng()->toEdgeType(space.id, *e->edge());
+            auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -141,8 +141,8 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
 }
 
 Status GetSubgraphValidator::toPlan() {
-    auto* plan = validateContext_->plan();
-    auto& space = validateContext_->whichSpace();
+    auto* plan = qctx_->plan();
+    auto& space = vctx_->whichSpace();
 
     // TODO:
     // loop -> project -> gn1 -> bodyStart
@@ -152,8 +152,8 @@ Status GetSubgraphValidator::toPlan() {
     std::vector<storage::cpp2::PropExp> vertexProps;
     std::vector<storage::cpp2::PropExp> edgeProps;
     std::vector<storage::cpp2::StatProp> statProps;
-    auto vidsToSave = validateContext_->varGen()->getVar();
-    validateContext_->qctx()->setValue(vidsToSave, List(std::move(starts_)));
+    auto vidsToSave = vctx_->varGen()->getVar();
+    qctx_->ectx()->setValue(vidsToSave, List(std::move(starts_)));
     auto* vids = new VariablePropertyExpression(
                 new std::string(vidsToSave),
                 new std::string("_vid"));
@@ -179,8 +179,8 @@ Status GetSubgraphValidator::toPlan() {
     project->setVar(vidsToSave);
 
     // ++counter{0} <= steps
-    auto counter = validateContext_->varGen()->getVar();
-    validateContext_->qctx()->setValue(counter, 0);
+    auto counter = vctx_->varGen()->getVar();
+    qctx_->ectx()->setValue(counter, 0);
     auto* condition = new RelationalExpression(
                 Expression::Type::EXP_REL_LE,
                 new UnaryExpression(

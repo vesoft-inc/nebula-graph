@@ -64,7 +64,7 @@ bool LoopExecutor::toContinue() {
     // Update iterate variable value in execution context before loop body running
     nebula::Value value;
     value.setInt(++iterCount_);
-    qctx()->setValue(loopNode->varName(), std::move(value));
+    ectx_->setValue(loopNode->varName(), std::move(value));
     return true;
 }
 

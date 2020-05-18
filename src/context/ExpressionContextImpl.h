@@ -14,8 +14,8 @@ namespace nebula {
 namespace graph {
 class ExpressionContextImpl final : public ExpressionContext {
 public:
-    explicit ExpressionContextImpl(QueryContext* qCtxt) {
-        qCtxt_ = qCtxt;
+    explicit ExpressionContextImpl(ExecutionContext* ectx) {
+        ectx_ = ectx;
     }
 
     // Get the latest version value for the given variable name, such as $a, $b
@@ -47,7 +47,7 @@ public:
     void setVar(const std::string&, Value val) override;
 
 private:
-    QueryContext*    qCtxt_;
+    ExecutionContext* ectx_;
 };
 }  // namespace graph
 }  // namespace nebula

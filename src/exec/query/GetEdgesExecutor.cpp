@@ -30,7 +30,7 @@ folly::Future<Status> GetEdgesExecutor::execute() {
 folly::Future<Status> GetEdgesExecutor::getEdges() {
     dumpLog();
 
-    GraphStorageClient *client = qctx()->getStorageClient();
+    GraphStorageClient *client = qctx_->getStorageClient();
     if (client == nullptr) {
         return error(Status::Error("Invalid storage client for GetEdgesExecutor"));
     }

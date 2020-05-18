@@ -38,7 +38,7 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 
     std::vector<std::string> colNames;
 
-    GraphStorageClient* storageClient = qctx()->getStorageClient();
+    GraphStorageClient* storageClient = qctx_->getStorageClient();
     // TODO:
     std::vector<Row> vertices;
     return storageClient
