@@ -17,13 +17,8 @@ using folly::stringPrintf;
 namespace nebula {
 namespace graph {
 
-Status LoopExecutor::prepare() {
-    auto status = body_->prepare();
-    if (!status.ok()) {
-        return status;
-    }
-    return input_->prepare();
-}
+LoopExecutor::LoopExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *body)
+    : Executor("LoopExecutor", node, ectx), body_(DCHECK_NOTNULL(body)) {}
 
 folly::Future<Status> LoopExecutor::execute() {
     dumpLog();

@@ -15,22 +15,9 @@ SelectExecutor::SelectExecutor(const PlanNode* node,
                                ExecutionContext* ectx,
                                Executor* then,
                                Executor* els)
-    : Executor("SelectExecutor", node, ectx), then_(then), else_(els) {
-    DCHECK_NOTNULL(then_);
-    DCHECK_NOTNULL(else_);
-}
-
-Status SelectExecutor::prepare() {
-    auto status = then_->prepare();
-    if (!status.ok()) {
-        return status;
-    }
-    status = else_->prepare();
-    if (!status.ok()) {
-        return status;
-    }
-    return input_->prepare();
-}
+    : Executor("SelectExecutor", node, ectx),
+      then_(DCHECK_NOTNULL(then)),
+      else_(DCHECK_NOTNULL(els)) {}
 
 folly::Future<Status> SelectExecutor::execute() {
     dumpLog();

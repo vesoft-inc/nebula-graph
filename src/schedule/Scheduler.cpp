@@ -17,19 +17,15 @@
 namespace nebula {
 namespace graph {
 
-Scheduler::Task::Task(const Executor *e) : planId(e->node()->id()) {
-    DCHECK_NOTNULL(e);
-}
+Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id()) {}
 
-Scheduler::Scheduler(ExecutionContext *ectx) : ectx_(ectx) {
-    DCHECK_NOTNULL(ectx_);
-}
+Scheduler::Scheduler(ExecutionContext *ectx) : ectx_(DCHECK_NOTNULL(ectx)) {}
 
 folly::Future<Status> Scheduler::schedule(Executor *executor) {
     switch (executor->node()->kind()) {
         case PlanNode::Kind::kSelector: {
             auto sel = static_cast<SelectExecutor *>(executor);
-            return schedule(sel->input())
+            return schedule(sel->depends())
                 .then(task(sel,
                            [sel, this](Status status) {
                                if (!status.ok()) return error(std::move(status));
@@ -45,7 +41,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
         }
         case PlanNode::Kind::kLoop: {
             auto loop = static_cast<LoopExecutor *>(executor);
-            return schedule(loop->input()).then(task(loop, [loop, this](Status status) {
+            return schedule(loop->depends()).then(task(loop, [loop, this](Status status) {
                 if (!status.ok()) return error(std::move(status));
                 return iterate(loop);
             }));
@@ -75,7 +71,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             } else {
                 // Release spin lock to avoid dead lock before reentry of schedule
                 lock_.unlock();
-                return schedule(mout->input()).then([mout, this](Status status) {
+                return schedule(mout->depends()).then([mout, this](Status status) {
                     folly::SpinLockGuard l(lock_);
                     auto it = multiOutputPromiseMap_.find(mout->node()->varName());
                     CHECK(it != multiOutputPromiseMap_.end());
@@ -90,19 +86,27 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             auto deps = executor->depends();
             if (deps.empty()) return executor->execute();
 
-            std::vector<folly::Future<Status>> futures;
-            for (auto dep : deps) {
-                futures.emplace_back(schedule(dep));
-            }
-            return folly::collect(futures).then(
-                task(executor, [executor, this](std::vector<Status> stats) {
-                    for (auto s : stats) {
-                        if (!s.ok()) return error(std::move(s));
-                    }
-                    return executor->execute();
-                }));
+            return schedule(deps).then(task(executor, [executor, this](Status stats) {
+                if (!stats.ok()) return error(std::move(stats));
+                return executor->execute();
+            }));
         }
     }
+}
+
+folly::Future<Status> Scheduler::schedule(const std::set<Executor *> &dependents) {
+    CHECK(!dependents.empty());
+
+    std::vector<folly::Future<Status>> futures;
+    for (auto dep : dependents) {
+        futures.emplace_back(schedule(dep));
+    }
+    return folly::collect(futures).then([this](std::vector<Status> stats) {
+        for (auto s : stats) {
+            if (!s.ok()) return error(std::move(s));
+        }
+        return folly::makeFuture(Status::OK());
+    });
 }
 
 folly::Future<Status> Scheduler::error(Status status) const {

@@ -16,8 +16,6 @@ class SelectExecutor final : public Executor {
 public:
     SelectExecutor(const PlanNode* node, ExecutionContext* ectx, Executor* then, Executor* els);
 
-    Status prepare() override;
-
     folly::Future<Status> execute() override;
 
     Executor* thenBody() const {

@@ -47,8 +47,8 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                        gn->edgeTypes(),
                        gn->edgeDirection(),
                        &gn->statProps(),
-                       &gn->vertexProps(),
-                       &gn->edgeProps(),
+                       nullptr,   // FIXME
+                       nullptr,
                        gn->dedup(),
                        gn->orderBy(),
                        gn->limit(),

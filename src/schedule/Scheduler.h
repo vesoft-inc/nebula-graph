@@ -8,6 +8,7 @@
 #define SCHEDULE_SCHEDULER_H_
 
 #include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 
@@ -60,6 +61,8 @@ private:
     ExecTask<Fn> task(Executor *e, Fn &&f) const {
         return ExecTask<Fn>(e, std::forward<Fn>(f));
     }
+
+    folly::Future<Status> schedule(const std::set<Executor *> &dependents);
 
     // Throw execution exception for early failure
     folly::Future<Status> error(Status status) const;

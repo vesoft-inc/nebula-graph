@@ -24,12 +24,13 @@ folly::Future<Status> MultiOutputsExecutor::execute() {
         return sharedPromise_->getFuture();
     }
 
-    return input_->execute().then([this](Status s) {
-        dumpLog();
+    // return input_->execute().then([this](Status s) {
+    //     dumpLog();
 
-        sharedPromise_->setValue(s);
-        return s;
-    });
+    //     sharedPromise_->setValue(s);
+    //     return s;
+    // });
+    return folly::makeFuture(Status::OK());
 }
 
 }   // namespace graph

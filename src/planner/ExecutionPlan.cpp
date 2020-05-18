@@ -18,11 +18,9 @@ namespace graph {
 
 ExecutionPlan::ExecutionPlan(ExecutionContext* ectx)
     : id_(EPIdGenerator::instance().id()),
-      ectx_(ectx),
+      ectx_(DCHECK_NOTNULL(ectx)),
       nodeIdGen_(std::make_unique<IdGenerator>(0)),
-      scheduler_(std::make_unique<Scheduler>(ectx)) {
-    DCHECK_NOTNULL(ectx);
-}
+      scheduler_(std::make_unique<Scheduler>(ectx)) {}
 
 ExecutionPlan::~ExecutionPlan() {
     ectx_ = nullptr;

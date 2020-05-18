@@ -25,7 +25,7 @@ public:
     folly::Future<Status> execute() override;
 
     int32_t numOutputs() const {
-        return outCount_;
+        return static_cast<int32_t>(successors_.size());
     }
 
 private:
@@ -37,7 +37,6 @@ private:
     // executor firstly
     std::shared_ptr<folly::SharedPromise<Status>> sharedPromise_;
 
-    bool prepared_{false};
     int32_t currentOut_{0};
 };
 
