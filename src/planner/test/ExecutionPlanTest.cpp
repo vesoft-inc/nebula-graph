@@ -99,7 +99,7 @@ TEST_F(ExecutionPlanTest, TestLoopPlan) {
     run();
 }
 
-TEST_F(ExecutionPlanTest, TestMutiOutputs) {
+TEST_F(ExecutionPlanTest, TestMultiOutputs) {
     auto start = StartNode::make(plan_.get());
     auto mout = MultiOutputsNode::make(plan_.get(), start);
     auto filter = Filter::make(plan_.get(), mout, nullptr);
@@ -112,7 +112,7 @@ TEST_F(ExecutionPlanTest, TestMutiOutputs) {
     run();
 }
 
-TEST_F(ExecutionPlanTest, TestMutiOutputsInLoop) {
+TEST_F(ExecutionPlanTest, TestMultiOutputsInLoop) {
     auto loopStart = StartNode::make(plan_.get());
     auto mout = MultiOutputsNode::make(plan_.get(), loopStart);
     auto filter = Filter::make(plan_.get(), mout, nullptr);

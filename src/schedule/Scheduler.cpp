@@ -22,13 +22,29 @@ Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id(
 Scheduler::Scheduler(ExecutionContext *ectx) : ectx_(DCHECK_NOTNULL(ectx)) {}
 
 void Scheduler::analyze(Executor *executor) {
-    if (executor->node()->kind() == PlanNode::Kind::kMultiOutputs) {
-        const auto &name = executor->node()->varName();
-        auto it = multiOutputPromiseMap_.find(name);
-        if (it == multiOutputPromiseMap_.end()) {
-            MultipleData data(executor->successors().size());
-            multiOutputPromiseMap_.emplace(name, std::move(data));
+    switch (executor->node()->kind()) {
+        case PlanNode::Kind::kMultiOutputs: {
+            const auto &name = executor->node()->varName();
+            auto it = multiOutputPromiseMap_.find(name);
+            if (it == multiOutputPromiseMap_.end()) {
+                MultipleData data(executor->successors().size());
+                multiOutputPromiseMap_.emplace(name, std::move(data));
+            }
+            break;
         }
+        case PlanNode::Kind::kSelector: {
+            auto sel = static_cast<SelectExecutor *>(executor);
+            analyze(sel->thenBody());
+            analyze(sel->elseBody());
+            break;
+        }
+        case PlanNode::Kind::kLoop: {
+            auto loop = static_cast<LoopExecutor *>(executor);
+            analyze(loop->loopBody());
+            break;
+        }
+        default:
+            break;
     }
 
     for (auto dep : executor->depends()) {

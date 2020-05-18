@@ -27,15 +27,9 @@ folly::Future<Status> LoopExecutor::execute() {
     // TODO(yee): eval expression result
     UNUSED(expr);
 
-    if (iterCount_ >= 1) {
-        // FIXME: Just for test
-        return Status::Error("Just for test");
-    }
-
     // Update iterate variable value in execution context before loop body running
-    nebula::Value value;
-    value.setBool(++iterCount_ >= 1);
-    ectx()->addValue(loopNode->varName(), std::move(value));
+    nebula::Value value(++iterCount_ < 2);
+    finish(std::move(value));
     return Status::OK();
 }
 
