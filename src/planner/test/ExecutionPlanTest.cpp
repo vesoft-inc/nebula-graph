@@ -37,12 +37,9 @@ public:
     void run() {
         ASSERT_NE(plan_->root(), nullptr);
 
-        Executor* executor = plan_->createExecutor();
-        ASSERT_NE(executor, nullptr);
-
         watch_.reset();
         auto future =
-            plan_->schedule(executor)
+            plan_->execute()
                 .then([](Status s) { ASSERT_TRUE(s.ok()) << s.toString(); })
                 .onError([](const ExecutionError& e) { LOG(INFO) << e.what(); })
                 .onError([](const std::exception& e) { LOG(INFO) << "exception: " << e.what(); })

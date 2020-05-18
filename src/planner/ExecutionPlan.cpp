@@ -36,7 +36,8 @@ Executor* ExecutionPlan::createExecutor() {
     return Executor::makeExecutor(root_, ectx_, &cache);
 }
 
-folly::Future<Status> ExecutionPlan::schedule(Executor* executor) {
+folly::Future<Status> ExecutionPlan::execute() {
+    auto executor = createExecutor();
     scheduler_->analyze(executor);
     return scheduler_->schedule(executor);
 }

@@ -47,8 +47,7 @@ void QueryInstance::execute() {
         return;
     }
 
-    auto executor = plan_->createExecutor();
-    plan_->schedule(executor)
+    plan_->execute()
         .then([this](Status s) {
             if (s.ok()) {
                 this->onFinish();

@@ -47,11 +47,11 @@ public:
         return root_;
     }
 
-    Executor *createExecutor();
-
-    folly::Future<Status> schedule(Executor *executor);
+    folly::Future<Status> execute();
 
 private:
+    Executor* createExecutor();
+
     int64_t                                 id_;
     PlanNode*                               root_{nullptr};
     ExecutionContext*                       ectx_{nullptr};
