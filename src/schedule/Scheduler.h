@@ -30,7 +30,6 @@ public:
     // For check whether a task is a Scheduler::Task by std::is_base_of<>::value in thread pool
     struct Task {
         int64_t planId;
-
         explicit Task(const Executor *e);
     };
 
@@ -73,16 +72,16 @@ private:
 
     ExecutionContext *ectx_;
 
-    struct MultipleData {
+    struct MultiOutputData {
         folly::SpinLock lock;
         std::unique_ptr<folly::SharedPromise<Status>> promise;
         int32_t numOutputs;
 
-        explicit MultipleData(int32_t outputs)
+        explicit MultiOutputData(int32_t outputs)
             : promise(std::make_unique<folly::SharedPromise<Status>>()), numOutputs(outputs) {}
     };
 
-    std::unordered_map<std::string, MultipleData> multiOutputPromiseMap_;
+    std::unordered_map<std::string, MultiOutputData> multiOutputPromiseMap_;
 };
 
 }   // namespace graph

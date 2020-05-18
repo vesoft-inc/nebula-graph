@@ -50,11 +50,11 @@ public:
         return node_;
     }
 
-    const std::set<Executor *> depends() const {
+    const std::set<Executor *> &depends() const {
         return depends_;
     }
 
-    const std::set<Executor *> successors() const {
+    const std::set<Executor *> &successors() const {
         return successors_;
     }
 
