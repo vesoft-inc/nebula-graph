@@ -66,7 +66,7 @@ private:
     folly::Future<Status> schedule(const std::set<Executor *> &dependents);
 
     // Throw execution exception for early failure
-    folly::Future<Status> error(Status status) const;
+    static folly::Future<Status> error(Status status);
 
     folly::Future<Status> iterate(LoopExecutor *loop);
 

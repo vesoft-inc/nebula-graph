@@ -58,7 +58,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             auto sel = static_cast<SelectExecutor *>(executor);
             return schedule(sel->depends())
                 .then(task(sel,
-                           [sel, this](Status status) {
+                           [sel](Status status) {
                                if (!status.ok()) return error(std::move(status));
                                return sel->execute();
                            }))
@@ -100,7 +100,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
                 return data.promise->getFuture();
             }
 
-            return schedule(mout->depends()).then([&data, mout, this](Status status) {
+            return schedule(mout->depends()).then([&data, mout](Status status) {
                 // Notify and wake up all wait tasks
                 data.promise->setValue(status);
 
@@ -113,7 +113,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             auto deps = executor->depends();
             if (deps.empty()) return executor->execute();
 
-            return schedule(deps).then(task(executor, [executor, this](Status stats) {
+            return schedule(deps).then(task(executor, [executor](Status stats) {
                 if (!stats.ok()) return error(std::move(stats));
                 return executor->execute();
             }));
@@ -128,7 +128,7 @@ folly::Future<Status> Scheduler::schedule(const std::set<Executor *> &dependents
     for (auto dep : dependents) {
         futures.emplace_back(schedule(dep));
     }
-    return folly::collect(futures).then([this](std::vector<Status> stats) {
+    return folly::collect(futures).then([](std::vector<Status> stats) {
         for (auto s : stats) {
             if (!s.ok()) return error(std::move(s));
         }
@@ -136,7 +136,8 @@ folly::Future<Status> Scheduler::schedule(const std::set<Executor *> &dependents
     });
 }
 
-folly::Future<Status> Scheduler::error(Status status) const {
+// static
+folly::Future<Status> Scheduler::error(Status status) {
     return folly::makeFuture<Status>(ExecutionError(std::move(status)));
 }
 
