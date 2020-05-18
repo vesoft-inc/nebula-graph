@@ -17,9 +17,8 @@ namespace graph {
 
 ExecutionPlan::ExecutionPlan(ExecutionContext* ectx)
     : id_(EPIdGenerator::instance().id()),
-      ectx_(ectx),
+      ectx_(DCHECK_NOTNULL(ectx)),
       nodeIdGen_(std::make_unique<IdGenerator>(0)) {
-    DCHECK_NOTNULL(ectx);
 }
 
 ExecutionPlan::~ExecutionPlan() {

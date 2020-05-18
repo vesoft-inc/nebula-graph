@@ -133,8 +133,7 @@ protected:
                         const PlanNode *node,
                         ExecutionContext *ectx,
                         Executor *input)
-        : Executor(name, node, ectx), input_(input) {
-        DCHECK_NOTNULL(input);
+        : Executor(name, node, ectx), input_(DCHECK_NOTNULL(input)) {
     }
 
     Executor *input_;

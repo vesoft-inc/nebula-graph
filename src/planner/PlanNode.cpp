@@ -10,8 +10,7 @@
 namespace nebula {
 namespace graph {
 
-PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
-    DCHECK_NOTNULL(plan_);
+PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(DCHECK_NOTNULL(plan)) {
     plan_->addPlanNode(this);
 }
 

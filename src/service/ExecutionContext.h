@@ -43,16 +43,12 @@ public:
                      meta::MetaClient* metaClient,
                      CharsetInfo* charsetInfo)
         : rctx_(std::move(rctx)),
-          sm_(sm),
+          sm_(DCHECK_NOTNULL(sm)),
           // gflagsManager_(gflagsManager),
-          storageClient_(storage),
-          metaClient_(metaClient),
-          charsetInfo_(charsetInfo),
+          storageClient_(DCHECK_NOTNULL(storage)),
+          metaClient_(DCHECK_NOTNULL(metaClient)),
+          charsetInfo_(DCHECK_NOTNULL(charsetInfo)),
           objPool_(std::make_unique<ObjectPool>()) {
-        DCHECK_NOTNULL(sm_);
-        DCHECK_NOTNULL(storageClient_);
-        DCHECK_NOTNULL(metaClient_);
-        DCHECK_NOTNULL(charsetInfo_);
     }
 
     // for test

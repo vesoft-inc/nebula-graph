@@ -16,9 +16,9 @@ SelectExecutor::SelectExecutor(const PlanNode* node,
                                Executor* input,
                                Executor* then,
                                Executor* els)
-    : SingleInputExecutor("SelectExecutor", node, ectx, input), then_(then), else_(els) {
-    DCHECK_NOTNULL(then_);
-    DCHECK_NOTNULL(else_);
+    : SingleInputExecutor("SelectExecutor", node, ectx, input),
+    then_(DCHECK_NOTNULL(then)),
+    else_(DCHECK_NOTNULL(els)) {
 }
 
 Status SelectExecutor::prepare() {

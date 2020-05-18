@@ -49,8 +49,7 @@ using folly::stringPrintf;
 namespace nebula {
 namespace graph {
 
-Executor::Callable::Callable(const Executor *e) : planId(e->node()->id()) {
-    DCHECK_NOTNULL(e);
+Executor::Callable::Callable(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id()) {
 }
 
 // static
@@ -223,9 +222,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             break;
     }
 
-    DCHECK_NOTNULL(exec);
-
-    cache->insert({node->id(), exec});
+    cache->insert({node->id(), DCHECK_NOTNULL(exec)});
     return ectx->objPool()->add(exec);
 }
 
@@ -234,10 +231,7 @@ int64_t Executor::id() const {
 }
 
 Executor::Executor(const std::string &name, const PlanNode *node, ExecutionContext *ectx)
-    : name_(name), node_(node), ectx_(ectx) {
-    DCHECK_NOTNULL(node_);
-    DCHECK_NOTNULL(ectx_);
-
+    : name_(name), node_(DCHECK_NOTNULL(node)), ectx_(DCHECK_NOTNULL(ectx)) {
     // Initialize the position in ExecutionContext for each executor before execution plan
     // starting to run. This will avoid lock something for thread safety in real execution
     ectx_->addValue(node->varName(), nebula::Value());

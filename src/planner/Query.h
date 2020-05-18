@@ -84,9 +84,7 @@ public:
 
 protected:
     BiInputNode(ExecutionPlan* plan, Kind kind, PlanNode* left, PlanNode* right)
-        : PlanNode(plan, kind), left_(left), right_(right) {
-        DCHECK_NOTNULL(left_);
-        DCHECK_NOTNULL(right_);
+        : PlanNode(plan, kind), left_(DCHECK_NOTNULL(left)), right_(DCHECK_NOTNULL(right)) {
     }
 
     PlanNode* left_{nullptr};
