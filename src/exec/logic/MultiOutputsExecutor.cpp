@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/MultiOutputsExecutor.h"
+#include "exec/logic/MultiOutputsExecutor.h"
 
 #include "planner/Query.h"
 #include "service/ExecutionContext.h"

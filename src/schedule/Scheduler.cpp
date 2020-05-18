@@ -8,9 +8,9 @@
 
 #include "exec/ExecutionError.h"
 #include "exec/Executor.h"
-#include "exec/query/LoopExecutor.h"
-#include "exec/query/MultiOutputsExecutor.h"
-#include "exec/query/SelectExecutor.h"
+#include "exec/logic/LoopExecutor.h"
+#include "exec/logic/MultiOutputsExecutor.h"
+#include "exec/logic/SelectExecutor.h"
 #include "planner/PlanNode.h"
 #include "service/ExecutionContext.h"
 
