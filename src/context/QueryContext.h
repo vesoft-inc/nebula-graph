@@ -14,7 +14,6 @@
 #include "common/charset/Charset.h"
 #include "parser/SequentialSentences.h"
 #include "service/RequestContext.h"
-// #include "meta/ClientBasedGflagsManager.h"
 #include "clients/meta/MetaClient.h"
 #include "clients/storage/GraphStorageClient.h"
 #include "util/ObjectPool.h"
@@ -40,16 +39,13 @@ class QueryContext {
 public:
     using RequestContextPtr = std::unique_ptr<RequestContext<cpp2::ExecutionResponse>>;
 
-    QueryContext() = default;
     QueryContext(RequestContextPtr rctx,
                  meta::SchemaManager* sm,
-                 // meta::ClientBasedGflagsManager *gflagsManager,
                  storage::GraphStorageClient* storage,
                  meta::MetaClient* metaClient,
                  CharsetInfo* charsetInfo)
         : rctx_(std::move(rctx)),
           sm_(sm),
-          // gflagsManager_(gflagsManager),
           storageClient_(storage),
           metaClient_(metaClient),
           charsetInfo_(charsetInfo) {
@@ -59,8 +55,38 @@ public:
         DCHECK_NOTNULL(charsetInfo_);
         objPool_ = std::make_unique<ObjectPool>();
         ep_ = std::make_unique<ExecutionPlan>(objPool_.get());
+        vctx_ = std::make_unique<ValidateContext>();
+        ectx_ = std::make_unique<ExecutionContext>();
     }
+
+    QueryContext() {
+        objPool_ = std::make_unique<ObjectPool>();
+        ep_ = std::make_unique<ExecutionPlan>(objPool_.get());
+        vctx_ = std::make_unique<ValidateContext>();
+        ectx_ = std::make_unique<ExecutionContext>();
+    }
+
     virtual ~QueryContext() = default;
+
+    void setRctx(RequestContextPtr rctx) {
+        rctx_ = std::move(rctx);
+    }
+
+    void setSchemaManager(meta::SchemaManager* sm) {
+        sm_ = sm;
+    }
+
+    void setStorageClient(storage::GraphStorageClient* storage) {
+        storageClient_ = storage;
+    }
+
+    void setMetaClient(meta::MetaClient* metaClient) {
+        metaClient_ = metaClient;
+    }
+
+    void setCharsetInfo(CharsetInfo* charsetInfo) {
+        charsetInfo_ = charsetInfo;
+    }
 
     RequestContext<cpp2::ExecutionResponse>* rctx() const {
         return rctx_.get();
