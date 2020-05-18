@@ -113,16 +113,101 @@ private:
 };
 
 class AlterTag final : public SingleInputNode {
+protected:
+    AlterSchemaNode(ExecutionPlan* plan,
+                    Kind kind,
+                    GraphSpaceID space,
+                    std::string name,
+                    std::vector<meta::cpp2::AlterSchemaItem> items,
+                    meta::cpp2::SchemaProp schemaProp)
+            : SchemaNode(plan, kind, space)
+            , name_(std::move(name))
+            , schemaItems_(std::move(items))
+            , schemaProp_(std::move(schemaProp)) {}
+
 public:
+    const std::string& getName() const {
+        return name_;
+    }
+
+    const std::vector<meta::cpp2::AlterSchemaItem>& getSchemaItems() const {
+        return schemaItems_;
+    }
+
+    const meta::cpp2::SchemaProp& getSchemaProp() const {
+        return schemaProp_;
+    }
+
+protected:
+    std::string                                name_;
+    std::vector<meta::cpp2::AlterSchemaItem>   schemaItems_;
+    meta::cpp2::SchemaProp                     schemaProp_;
+};
+
+class AlterTag final : public AlterSchemaNode {
+>>>>>>> Add alter executor
+public:
+    static AlterTag* make(ExecutionPlan* plan,
+                          GraphSpaceID space,
+                          std::string name,
+                          std::vector<meta::cpp2::AlterSchemaItem> items,
+                          meta::cpp2::SchemaProp schemaProp) {
+        return new AlterTag(plan,
+                            space,
+                            std::move(name),
+                            std::move(items),
+                            std::move(schemaProp));
+    }
+
     std::string explain() const override {
         return "AlterTag";
+    }
+
+private:
+    AlterTag(ExecutionPlan* plan,
+             GraphSpaceID space,
+             std::string name,
+             std::vector<meta::cpp2::AlterSchemaItem> items,
+             meta::cpp2::SchemaProp schemaProp)
+            : AlterSchemaNode(plan,
+                              Kind::kAlterTag,
+                              space,
+                              std::move(name),
+                              std::move(items),
+                              std::move(schemaProp)) {
     }
 };
 
 class AlterEdge final : public SingleInputNode {
 public:
+    static AlterEdge* make(ExecutionPlan* plan,
+                           GraphSpaceID space,
+                           std::string name,
+                           std::vector<meta::cpp2::AlterSchemaItem> items,
+                           meta::cpp2::SchemaProp schemaProp) {
+        return new AlterEdge(plan,
+                             space,
+                             std::move(name),
+                             std::move(items),
+                             std::move(schemaProp));
+    }
+
     std::string explain() const override {
         return "AlterEdge";
+    }
+
+private:
+    AlterEdge(ExecutionPlan* plan,
+              GraphSpaceID space,
+              std::string name,
+              std::vector<meta::cpp2::AlterSchemaItem> items,
+              meta::cpp2::SchemaProp schemaProp)
+            : AlterSchemaNode(plan,
+                              Kind::kAlterEdge,
+                              space,
+                              std::move(name),
+                              std::move(items),
+                              std::move(schemaProp)) {
     }
 };
 

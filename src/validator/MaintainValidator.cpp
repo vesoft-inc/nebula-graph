@@ -126,5 +126,105 @@ Status DescEdgeValidator::toPlan() {
     tail_ = root_;
     return Status::OK();
 }
+
+Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem*>& schemaOpts,
+                                   const std::vector<SchemaPropItem*>& schemaProps) {
+        for (auto& schemaOpt : schemaOpts) {
+            meta::cpp2::AlterSchemaItem schemaItem;
+            auto opType = schemaOpt->toType();
+            schemaItem.set_op(opType);
+            meta::cpp2::Schema schema;
+            if (opType == meta::cpp2::AlterSchemaOp::DROP) {
+                const auto& colNames = schemaOpt->columnNames();
+                for (auto& colName : colNames) {
+                    meta::cpp2::ColumnDef column;
+                    column.name = *colName;
+                    schema.columns.emplace_back(std::move(column));
+                }
+            } else {
+                const auto& specs = schemaOpt->columnSpecs();
+                for (auto& spec : specs) {
+                    meta::cpp2::ColumnDef column;
+                    column.name = *spec->name();
+                    column.type = spec->type();
+                    if (spec->hasDefaultValue()) {
+                        column.set_default_value(spec->getDefaultValue());
+                    }
+                    if (spec->type() == meta::cpp2::PropertyType::FIXED_STRING) {
+                        column.set_type_length(spec->typeLen());
+                    }
+                    if (spec->isNull()) {
+                        column.set_nullable(true);
+                    }
+                    schema.columns.emplace_back(std::move(column));
+                }
+            }
+
+            schemaItem.set_schema(std::move(schema));
+            schemaItems_.emplace_back(std::move(schemaItem));
+        }
+
+        for (auto& schemaProp : schemaProps) {
+            auto propType = schemaProp->getPropType();
+            StatusOr<int64_t> retInt;
+            StatusOr<std::string> retStr;
+            int ttlDuration;
+            switch (propType) {
+                case SchemaPropItem::TTL_DURATION:
+                    retInt = schemaProp->getTtlDuration();
+                    if (!retInt.ok()) {
+                        return retInt.status();
+                    }
+                    ttlDuration = retInt.value();
+                    schemaProp_.set_ttl_duration(ttlDuration);
+                    break;
+                case SchemaPropItem::TTL_COL:
+                    // Check the legality of the column in meta
+                    retStr = schemaProp->getTtlCol();
+                    if (!retStr.ok()) {
+                        return retStr.status();
+                    }
+                    schemaProp_.set_ttl_col(retStr.value());
+                    break;
+                default:
+                    return Status::Error("Property type not support");
+            }
+        }
+        return Status::OK();
+}
+
+Status AlterTagValidator::validateImpl() {
+    name_ = *sentence_->name();
+    return alterSchema(sentence_->getSchemaOpts(), sentence_->getSchemaProps());
+}
+
+Status AlterTagValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = AlterTag::make(plan,
+                                  vctx_->whichSpace().id,
+                                  name_,
+                                  schemaItems_,
+                                  schemaProp_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status AlterEdgeValidator::validateImpl() {
+    name_ = *sentence_->name();
+    return alterSchema(sentence_->getSchemaOpts(), sentence_->getSchemaProps());
+}
+
+Status AlterEdgeValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = AlterEdge::make(plan,
+                                   vctx_->whichSpace().id,
+                                   name_,
+                                   schemaItems_,
+                                   schemaProp_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
 }  // namespace graph
 }  // namespace nebula

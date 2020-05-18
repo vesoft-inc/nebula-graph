@@ -23,6 +23,7 @@
 #include "exec/maintain/CreateTagExecutor.h"
 #include "exec/maintain/DescEdgeExecutor.h"
 #include "exec/maintain/DescTagExecutor.h"
+#include "exec/maintain/AlterSchemaExecutor.h"
 #include "exec/mutate/InsertEdgesExecutor.h"
 #include "exec/mutate/InsertVerticesExecutor.h"
 #include "exec/query/AggregateExecutor.h"
@@ -226,6 +227,11 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             exec->addDependent(input);
             break;
         }
+        case PlanNode::Kind::kAlterTag: {
+            auto alterTag = asNode<AlterTag>(node);
+            exec = new AlterTagExecutor(alterTag, qctx);
+            break;
+        }
         case PlanNode::Kind::kCreateEdge: {
             auto createEdge = asNode<CreateEdge>(node);
             auto input = makeExecutor(createEdge->input(), qctx, visited);
@@ -238,6 +244,11 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto input = makeExecutor(descEdge->input(), qctx, visited);
             exec = new DescEdgeExecutor(descEdge, qctx);
             exec->addDependent(input);
+            break;
+        }
+        case PlanNode::Kind::kAlterEdge: {
+            auto alterEdge = asNode<AlterEdge>(node);
+            exec = new AlterEdgeExecutor(alterEdge, qctx);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {
@@ -263,7 +274,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kUnknown:
         default:
-            LOG(FATAL) << "Unknown plan node kind.";
+            LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
             break;
     }
 

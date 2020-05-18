@@ -77,6 +77,52 @@ private:
     Status toPlan() override;
 };
 
+class AlterValidator : public Validator {
+public:
+    AlterValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {}
+protected:
+    Status alterSchema(const std::vector<AlterSchemaOptItem*>& schemaOpts,
+                       const std::vector<SchemaPropItem*>& schemaProps);
+
+protected:
+    std::vector<meta::cpp2::AlterSchemaItem>          schemaItems_;
+    meta::cpp2::SchemaProp                            schemaProp_;
+    std::string                                       name_;
+};
+
+class AlterTagValidator final : public AlterValidator {
+public:
+    AlterTagValidator(Sentence* sentence, QueryContext* context)
+            : AlterValidator(sentence, context) {
+        sentence_ = static_cast<AlterTagSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    AlterTagSentence                              *sentence_{nullptr};
+};
+
+class AlterEdgeValidator final : public AlterValidator {
+public:
+    AlterEdgeValidator(Sentence* sentence, QueryContext* context)
+            : AlterValidator(sentence, context) {
+        sentence_ = static_cast<AlterEdgeSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    AlterEdgeSentence                             *sentence_{nullptr};
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_MAINTAINVALIDATOR_H_

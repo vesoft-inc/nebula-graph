@@ -54,6 +54,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescTagValidator>(sentence, context);
         case Sentence::Kind::kDescribeEdge:
             return std::make_unique<DescEdgeValidator>(sentence, context);
+        case Sentence::Kind::kAlterTag:
+            return std::make_unique<AlterTagValidator>(sentence, context);
+        case Sentence::Kind::kAlterEdge:
+            return std::make_unique<AlterEdgeValidator>(sentence, context);
         case Sentence::Kind::kInsertVertices:
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
