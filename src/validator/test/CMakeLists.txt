@@ -1,5 +1,6 @@
 set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:schema_util_obj>
+    $<TARGET_OBJECTS:exec_obj>
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
     $<TARGET_OBJECTS:session_obj>
@@ -18,7 +19,14 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_datatypes_obj>
     $<TARGET_OBJECTS:common_base_obj>
     $<TARGET_OBJECTS:common_meta_thrift_obj>
+    $<TARGET_OBJECTS:common_meta_obj>
     $<TARGET_OBJECTS:common_charset_obj>
+    $<TARGET_OBJECTS:common_graph_storage_client_obj>
+    $<TARGET_OBJECTS:common_storage_thrift_obj>
+    $<TARGET_OBJECTS:common_storage_client_base_obj>
+    $<TARGET_OBJECTS:common_meta_client_obj>
+    $<TARGET_OBJECTS:common_conf_obj>
+    $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
 )
 
 nebula_add_test(
