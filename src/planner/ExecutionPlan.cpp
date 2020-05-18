@@ -37,6 +37,7 @@ Executor* ExecutionPlan::createExecutor() {
 }
 
 folly::Future<Status> ExecutionPlan::schedule(Executor* executor) {
+    scheduler_->analyze(executor);
     return scheduler_->schedule(executor);
 }
 

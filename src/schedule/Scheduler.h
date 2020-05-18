@@ -37,6 +37,8 @@ public:
     explicit Scheduler(ExecutionContext *ectx);
     ~Scheduler() = default;
 
+    void analyze(Executor *executor);
+
     folly::Future<Status> schedule(Executor *executor);
 
 private:
@@ -71,9 +73,8 @@ private:
 
     ExecutionContext *ectx_;
 
-    folly::SpinLock lock_;
-
     struct MultipleData {
+        folly::SpinLock lock;
         std::unique_ptr<folly::SharedPromise<Status>> promise;
         int32_t numOutputs;
 

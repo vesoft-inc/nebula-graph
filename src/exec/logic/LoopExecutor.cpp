@@ -34,7 +34,7 @@ folly::Future<Status> LoopExecutor::execute() {
 
     // Update iterate variable value in execution context before loop body running
     nebula::Value value;
-    value.setInt(++iterCount_);
+    value.setBool(++iterCount_ >= 1);
     ectx()->addValue(loopNode->varName(), std::move(value));
     return Status::OK();
 }

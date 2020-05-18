@@ -21,6 +21,21 @@ Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id(
 
 Scheduler::Scheduler(ExecutionContext *ectx) : ectx_(DCHECK_NOTNULL(ectx)) {}
 
+void Scheduler::analyze(Executor *executor) {
+    if (executor->node()->kind() == PlanNode::Kind::kMultiOutputs) {
+        const auto &name = executor->node()->varName();
+        auto it = multiOutputPromiseMap_.find(name);
+        if (it == multiOutputPromiseMap_.end()) {
+            MultipleData data(executor->successors().size());
+            multiOutputPromiseMap_.emplace(name, std::move(data));
+        }
+    }
+
+    for (auto dep : executor->depends()) {
+        analyze(dep);
+    }
+}
+
 folly::Future<Status> Scheduler::schedule(Executor *executor) {
     switch (executor->node()->kind()) {
         case PlanNode::Kind::kSelector: {
@@ -48,39 +63,35 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
         }
         case PlanNode::Kind::kMultiOutputs: {
             auto mout = static_cast<MultiOutputsExecutor *>(executor);
-            lock_.lock();
             auto it = multiOutputPromiseMap_.find(mout->node()->varName());
-            if (it == multiOutputPromiseMap_.end()) {
-                MultipleData data(mout->numOutputs());
-                const auto &name = mout->node()->varName();
-                auto res = multiOutputPromiseMap_.emplace(name, std::move(data));
-                CHECK(res.second) << "Fail to insert executor outputs executor data: " << name;
-                it = std::move(res.first);
-            } else {
-                if (it->second.numOutputs == 0) {
+            CHECK(it != multiOutputPromiseMap_.end());
+
+            auto &data = it->second;
+            bool runnable = false;
+            {
+                folly::SpinLockGuard g(data.lock);
+                if (data.numOutputs == 0) {
                     // Reset executor outputs executor status when it's in loop
-                    it->second.numOutputs = mout->numOutputs();
-                    it->second.promise = std::make_unique<folly::SharedPromise<Status>>();
+                    data.numOutputs = static_cast<int32_t>(mout->successors().size());
+                    data.promise = std::make_unique<folly::SharedPromise<Status>>();
                 }
+
+                data.numOutputs--;
+                runnable = data.numOutputs > 0;
             }
 
-            it->second.numOutputs--;
-            if (it->second.numOutputs > 0) {
-                lock_.unlock();
-                return it->second.promise->getFuture();
-            } else {
-                // Release spin lock to avoid dead lock before reentry of schedule
-                lock_.unlock();
-                return schedule(mout->depends()).then([mout, this](Status status) {
-                    folly::SpinLockGuard l(lock_);
-                    auto it = multiOutputPromiseMap_.find(mout->node()->varName());
-                    CHECK(it != multiOutputPromiseMap_.end());
-                    // Notify and wake up all wait tasks
-                    it->second.promise->setValue(status);
-
-                    return status;
-                });
+            if (!runnable) {
+                return data.promise->getFuture();
             }
+
+            return schedule(mout->depends()).then([&data, mout, this](Status status) {
+                // Notify and wake up all wait tasks
+                data.promise->setValue(status);
+
+                if (!status.ok()) return error(std::move(status));
+
+                return mout->execute();
+            });
         }
         default: {
             auto deps = executor->depends();

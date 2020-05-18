@@ -26,6 +26,8 @@ folly::Future<Status> SelectExecutor::execute() {
     auto* expr = select->condition();
     UNUSED(expr);
 
+    finish(nebula::Value(true));
+
     // FIXME: store expression value to execution context
     return Status::OK();
 }

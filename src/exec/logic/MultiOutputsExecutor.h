@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H
-#define EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H
+#ifndef EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H_
+#define EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H_
 
 #include <unordered_map>
 
@@ -23,24 +23,9 @@ public:
         : Executor("MultiOutputsExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
-
-    int32_t numOutputs() const {
-        return static_cast<int32_t>(successors_.size());
-    }
-
-private:
-    // This executor may be called parallelly by other executors depending on it. So it is necessary
-    // to lock the execution for thread safety.
-    folly::SpinLock lock_;
-
-    // This shared promise to notify all other output executors to run except the guy calling this
-    // executor firstly
-    std::shared_ptr<folly::SharedPromise<Status>> sharedPromise_;
-
-    int32_t currentOut_{0};
 };
 
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H
+#endif   // EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H_
