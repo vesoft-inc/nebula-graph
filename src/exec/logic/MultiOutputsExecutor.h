@@ -17,14 +17,16 @@
 namespace nebula {
 namespace graph {
 
-class MultiOutputsExecutor final : public SingleInputExecutor {
+class MultiOutputsExecutor final : public Executor {
 public:
-    MultiOutputsExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-        : SingleInputExecutor("MultiOutputsExecutor", node, ectx, input) {}
-
-    Status prepare() override;
+    MultiOutputsExecutor(const PlanNode *node, ExecutionContext *ectx)
+        : Executor("MultiOutputsExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
+
+    int32_t numOutputs() const {
+        return outCount_;
+    }
 
 private:
     // This executor may be called parallelly by other executors depending on it. So it is necessary
@@ -36,7 +38,6 @@ private:
     std::shared_ptr<folly::SharedPromise<Status>> sharedPromise_;
 
     bool prepared_{false};
-    int32_t outCount_{0};
     int32_t currentOut_{0};
 };
 

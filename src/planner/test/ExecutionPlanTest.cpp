@@ -40,9 +40,6 @@ public:
         Executor* executor = plan_->createExecutor();
         ASSERT_NE(executor, nullptr);
 
-        auto status = executor->prepare();
-        ASSERT(status.ok());
-
         watch_.reset();
         auto future =
             plan_->schedule(executor)

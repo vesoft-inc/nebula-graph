@@ -7,8 +7,8 @@
 #ifndef EXEC_EXECUTOR_H_
 #define EXEC_EXECUTOR_H_
 
-#include <list>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -33,17 +33,8 @@ public:
 
     virtual ~Executor() {}
 
-    // Preparation before executing
-    virtual Status prepare() {
-        return Status::OK();
-    }
-
     // Implementation interface of operation logic
     virtual folly::Future<Status> execute() = 0;
-
-    virtual int32_t numInputs() const {
-        return 0;
-    }
 
     ExecutionContext *ectx() const {
         return ectx_;
@@ -57,6 +48,20 @@ public:
 
     const PlanNode *node() const {
         return node_;
+    }
+
+    const std::set<Executor *> depends() const {
+        return depends_;
+    }
+
+    const std::set<Executor *> successors() const {
+        return successors_;
+    }
+
+    Executor *addDependent(Executor *dep) {
+        depends_.emplace(dep);
+        dep->successors_.emplace(this);
+        return this;
     }
 
     template <typename T>
@@ -92,63 +97,11 @@ protected:
     // Execution context for saving some execution data
     ExecutionContext *ectx_;
 
+    // Topology
+    std::set<Executor *> depends_;
+    std::set<Executor *> successors_;
+
     // TODO: Some statistics
-};
-
-class SingleInputExecutor : public Executor {
-public:
-    Status prepare() override {
-        return input_->prepare();
-    }
-
-    Executor *input() const {
-        return input_;
-    }
-
-    int32_t numInputs() const override {
-        return 1;
-    }
-
-protected:
-    SingleInputExecutor(const std::string &name,
-                        const PlanNode *node,
-                        ExecutionContext *ectx,
-                        Executor *input)
-        : Executor(name, node, ectx), input_(input) {
-        DCHECK_NOTNULL(input);
-    }
-
-    Executor *input_;
-};
-
-class MultiInputsExecutor : public Executor {
-public:
-    Status prepare() override {
-        for (auto input : inputs_) {
-            auto status = input->prepare();
-            if (!status.ok()) return status;
-        }
-        return Status::OK();
-    }
-
-    int32_t numInputs() const override {
-        return static_cast<int32_t>(inputs_.size());
-    }
-
-    const std::vector<Executor *> &inputs() const {
-        return inputs_;
-    }
-
-protected:
-    MultiInputsExecutor(const std::string &name,
-                        const PlanNode *node,
-                        ExecutionContext *ectx,
-                        std::vector<Executor *> &&inputs)
-        : Executor(name, node, ectx), inputs_(std::move(inputs)) {
-        DCHECK(!inputs_.empty());
-    }
-
-    std::vector<Executor *> inputs_;
 };
 
 }   // namespace graph

@@ -13,10 +13,9 @@ namespace graph {
 
 SelectExecutor::SelectExecutor(const PlanNode* node,
                                ExecutionContext* ectx,
-                               Executor* input,
                                Executor* then,
                                Executor* els)
-    : SingleInputExecutor("SelectExecutor", node, ectx, input), then_(then), else_(els) {
+    : Executor("SelectExecutor", node, ectx), then_(then), else_(els) {
     DCHECK_NOTNULL(then_);
     DCHECK_NOTNULL(else_);
 }

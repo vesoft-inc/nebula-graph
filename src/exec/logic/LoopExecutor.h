@@ -12,10 +12,10 @@
 namespace nebula {
 namespace graph {
 
-class LoopExecutor final : public SingleInputExecutor {
+class LoopExecutor final : public Executor {
 public:
-    LoopExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input, Executor *body)
-        : SingleInputExecutor("LoopExecutor", node, ectx, input), body_(body) {}
+    LoopExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *body)
+        : Executor("LoopExecutor", node, ectx), body_(body) {}
 
     Status prepare() override;
 

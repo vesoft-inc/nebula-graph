@@ -11,15 +11,6 @@
 namespace nebula {
 namespace graph {
 
-UnionExecutor::UnionExecutor(const PlanNode *node,
-                             ExecutionContext *ectx,
-                             Executor *left,
-                             Executor *right)
-    : MultiInputsExecutor("UnionExecutor", node, ectx, {left, right}) {
-    DCHECK_NOTNULL(left);
-    DCHECK_NOTNULL(right);
-}
-
 folly::Future<Status> UnionExecutor::execute() {
     dumpLog();
     // TODO(yee): implement union results of left and right inputs

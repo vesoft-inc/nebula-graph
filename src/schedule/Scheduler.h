@@ -7,7 +7,13 @@
 #ifndef SCHEDULE_SCHEDULER_H_
 #define SCHEDULE_SCHEDULER_H_
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+
+#include <folly/SpinLock.h>
 #include <folly/futures/Future.h>
+#include <folly/futures/SharedPromise.h>
 
 #include "base/Status.h"
 
@@ -61,6 +67,18 @@ private:
     folly::Future<Status> iterate(LoopExecutor *loop);
 
     ExecutionContext *ectx_;
+
+    folly::SpinLock lock_;
+
+    struct MultipleData {
+        std::unique_ptr<folly::SharedPromise<Status>> promise;
+        int32_t numOutputs;
+
+        explicit MultipleData(int32_t outputs)
+            : promise(std::make_unique<folly::SharedPromise<Status>>()), numOutputs(outputs) {}
+    };
+
+    std::unordered_map<std::string, MultipleData> multiOutputPromiseMap_;
 };
 
 }   // namespace graph

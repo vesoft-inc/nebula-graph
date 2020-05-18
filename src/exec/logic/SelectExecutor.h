@@ -12,13 +12,9 @@
 namespace nebula {
 namespace graph {
 
-class SelectExecutor final : public SingleInputExecutor {
+class SelectExecutor final : public Executor {
 public:
-    SelectExecutor(const PlanNode* node,
-                   ExecutionContext* ectx,
-                   Executor* input,
-                   Executor* then,
-                   Executor* els);
+    SelectExecutor(const PlanNode* node, ExecutionContext* ectx, Executor* then, Executor* els);
 
     Status prepare() override;
 

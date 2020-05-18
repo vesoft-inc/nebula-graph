@@ -11,15 +11,6 @@
 namespace nebula {
 namespace graph {
 
-IntersectExecutor::IntersectExecutor(const PlanNode *node,
-                                     ExecutionContext *ectx,
-                                     Executor *left,
-                                     Executor *right)
-    : MultiInputsExecutor("IntersectExecutor", node, ectx, {left, right}) {
-    DCHECK_NOTNULL(left);
-    DCHECK_NOTNULL(right);
-}
-
 folly::Future<Status> IntersectExecutor::execute() {
     dumpLog();
     // TODO(yee):

@@ -51,38 +51,56 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             }));
         }
         case PlanNode::Kind::kMultiOutputs: {
-            // TODO(yee)
-            return executor->execute();
-        }
-        default: {
-            switch (executor->numInputs()) {
-                case 0: {
-                    // StartExecutor
-                    return executor->execute();
-                }
-                case 1: {
-                    auto single = static_cast<SingleInputExecutor *>(executor);
-                    return schedule(single->input())
-                        .then(task(single, [single, this](Status status) {
-                            if (!status.ok()) return error(std::move(status));
-                            return single->execute();
-                        }));
-                }
-                default: {
-                    auto multiple = static_cast<MultiInputsExecutor *>(executor);
-                    std::vector<folly::Future<Status>> futures;
-                    for (auto input : multiple->inputs()) {
-                        futures.emplace_back(schedule(input));
-                    }
-                    return folly::collect(futures).then(
-                        task(multiple, [multiple, this](std::vector<Status> stats) {
-                            for (auto s : stats) {
-                                if (!s.ok()) return error(std::move(s));
-                            }
-                            return multiple->execute();
-                        }));
+            auto mout = static_cast<MultiOutputsExecutor *>(executor);
+            lock_.lock();
+            auto it = multiOutputPromiseMap_.find(mout->node()->varName());
+            if (it == multiOutputPromiseMap_.end()) {
+                MultipleData data(mout->numOutputs());
+                const auto &name = mout->node()->varName();
+                auto res = multiOutputPromiseMap_.emplace(name, std::move(data));
+                CHECK(res.second) << "Fail to insert executor outputs executor data: " << name;
+                it = std::move(res.first);
+            } else {
+                if (it->second.numOutputs == 0) {
+                    // Reset executor outputs executor status when it's in loop
+                    it->second.numOutputs = mout->numOutputs();
+                    it->second.promise = std::make_unique<folly::SharedPromise<Status>>();
                 }
             }
+
+            it->second.numOutputs--;
+            if (it->second.numOutputs > 0) {
+                lock_.unlock();
+                return it->second.promise->getFuture();
+            } else {
+                // Release spin lock to avoid dead lock before reentry of schedule
+                lock_.unlock();
+                return schedule(mout->input()).then([mout, this](Status status) {
+                    folly::SpinLockGuard l(lock_);
+                    auto it = multiOutputPromiseMap_.find(mout->node()->varName());
+                    CHECK(it != multiOutputPromiseMap_.end());
+                    // Notify and wake up all wait tasks
+                    it->second.promise->setValue(status);
+
+                    return status;
+                });
+            }
+        }
+        default: {
+            auto deps = executor->depends();
+            if (deps.empty()) return executor->execute();
+
+            std::vector<folly::Future<Status>> futures;
+            for (auto dep : deps) {
+                futures.emplace_back(schedule(dep));
+            }
+            return folly::collect(futures).then(
+                task(executor, [executor, this](std::vector<Status> stats) {
+                    for (auto s : stats) {
+                        if (!s.ok()) return error(std::move(s));
+                    }
+                    return executor->execute();
+                }));
         }
     }
 }

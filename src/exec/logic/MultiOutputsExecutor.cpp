@@ -12,22 +12,11 @@
 namespace nebula {
 namespace graph {
 
-Status MultiOutputsExecutor::prepare() {
-    outCount_++;
-    if (!prepared_) {
-        prepared_ = true;
-        return input_->prepare();
-    }
-
-    return Status::OK();
-}
-
 folly::Future<Status> MultiOutputsExecutor::execute() {
     folly::SpinLockGuard g(lock_);
 
     if (currentOut_ == 0) {
-        DCHECK_GT(outCount_, 0);
-        currentOut_ = outCount_;
+        currentOut_ = successors_.size();
         sharedPromise_ = std::make_shared<folly::SharedPromise<Status>>();
     }
 

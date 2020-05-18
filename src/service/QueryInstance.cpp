@@ -48,12 +48,6 @@ void QueryInstance::execute() {
     }
 
     auto executor = plan_->createExecutor();
-    status = executor->prepare();
-    if (!status.ok()) {
-        onError(std::move(status));
-        return;
-    }
-
     plan_->schedule(executor)
         .then([this](Status s) {
             if (s.ok()) {
