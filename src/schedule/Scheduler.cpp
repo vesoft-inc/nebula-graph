@@ -87,7 +87,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             {
                 folly::SpinLockGuard g(data.lock);
                 if (data.numOutputs == 0) {
-                    // Reset executor outputs executor status when it's in loop
+                    // Reset promise of output executors when it's in loop
                     data.numOutputs = static_cast<int32_t>(mout->successors().size());
                     data.promise = std::make_unique<folly::SharedPromise<Status>>();
                 }
@@ -101,7 +101,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             }
 
             return schedule(mout->depends()).then([&data, mout](Status status) {
-                // Notify and wake up all wait tasks
+                // Notify and wake up all waited tasks
                 data.promise->setValue(status);
 
                 if (!status.ok()) return mout->error(std::move(status));
