@@ -59,11 +59,11 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             return schedule(sel->depends())
                 .then(task(sel,
                            [sel](Status status) {
-                               if (!status.ok()) return error(std::move(status));
+                               if (!status.ok()) return sel->error(std::move(status));
                                return sel->execute();
                            }))
                 .then(task(sel, [sel, this](Status status) {
-                    if (!status.ok()) return error(std::move(status));
+                    if (!status.ok()) return sel->error(std::move(status));
 
                     auto val = ectx_->getValue(sel->node()->varName());
                     auto cond = val.moveBool();
@@ -73,7 +73,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
         case PlanNode::Kind::kLoop: {
             auto loop = static_cast<LoopExecutor *>(executor);
             return schedule(loop->depends()).then(task(loop, [loop, this](Status status) {
-                if (!status.ok()) return error(std::move(status));
+                if (!status.ok()) return loop->error(std::move(status));
                 return iterate(loop);
             }));
         }
@@ -104,7 +104,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
                 // Notify and wake up all wait tasks
                 data.promise->setValue(status);
 
-                if (!status.ok()) return error(std::move(status));
+                if (!status.ok()) return mout->error(std::move(status));
 
                 return mout->execute();
             });
@@ -114,7 +114,7 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             if (deps.empty()) return executor->execute();
 
             return schedule(deps).then(task(executor, [executor](Status stats) {
-                if (!stats.ok()) return error(std::move(stats));
+                if (!stats.ok()) return executor->error(std::move(stats));
                 return executor->execute();
             }));
         }
@@ -130,26 +130,21 @@ folly::Future<Status> Scheduler::schedule(const std::set<Executor *> &dependents
     }
     return folly::collect(futures).then([](std::vector<Status> stats) {
         for (auto s : stats) {
-            if (!s.ok()) return error(std::move(s));
+            if (!s.ok()) return s;
         }
-        return folly::makeFuture(Status::OK());
+        return Status::OK();
     });
-}
-
-// static
-folly::Future<Status> Scheduler::error(Status status) {
-    return folly::makeFuture<Status>(ExecutionError(std::move(status)));
 }
 
 folly::Future<Status> Scheduler::iterate(LoopExecutor *loop) {
     return loop->execute().then(task(loop, [loop, this](Status status) {
-        if (!status.ok()) return error(std::move(status));
+        if (!status.ok()) return loop->error(std::move(status));
 
         auto val = ectx_->getValue(loop->node()->varName());
         auto cond = val.moveBool();
         if (!cond) return folly::makeFuture(Status::OK());
         return schedule(loop->loopBody()).then(task(loop, [loop, this](Status s) {
-            if (!s.ok()) return error(std::move(s));
+            if (!s.ok()) return loop->error(std::move(s));
             return iterate(loop);
         }));
     }));

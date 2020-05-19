@@ -70,15 +70,15 @@ public:
         return static_cast<const T *>(node);
     }
 
+    // Throw runtime error to stop whole execution early
+    folly::Future<Status> error(Status status) const;
+
 protected:
     // Only allow derived executor to construct
     Executor(const std::string &name, const PlanNode *node, ExecutionContext *ectx);
 
     // Start a future chain and bind it to thread pool
     folly::Future<Status> start(Status status = Status::OK()) const;
-
-    // Throw runtime error to stop whole execution early
-    folly::Future<Status> error(Status status) const;
 
     folly::Executor *runner() const;
 
