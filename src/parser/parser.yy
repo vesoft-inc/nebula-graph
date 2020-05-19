@@ -1931,6 +1931,7 @@ host_item
         $$->host = std::move(*$1);
         delete $1;
         $$->port = $3;
+        delete $1;
     }
 
 port : INTEGER { $$ = $1; }
