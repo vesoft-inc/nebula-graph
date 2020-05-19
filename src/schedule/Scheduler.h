@@ -17,6 +17,7 @@
 #include <folly/futures/SharedPromise.h>
 
 #include "base/Status.h"
+#include "cpp/helpers.h"
 
 namespace nebula {
 namespace graph {
@@ -25,7 +26,7 @@ class Executor;
 class ExecutionContext;
 class LoopExecutor;
 
-class Scheduler final {
+class Scheduler final : private cpp::NonCopyable, private cpp::NonMovable {
 public:
     // For check whether a task is a Scheduler::Task by std::is_base_of<>::value in thread pool
     struct Task {
@@ -42,7 +43,7 @@ public:
 
 private:
     // Enable thread pool check the query plan id of each callback registered in future. The functor
-    // is only the proxy of the invocable function fn.
+    // is only the proxy of the invocable function `fn`.
     template <typename F>
     struct ExecTask : Task {
         using Extract = folly::futures::detail::Extract<F>;
