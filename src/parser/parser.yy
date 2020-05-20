@@ -140,9 +140,9 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 /* token type specification */
 %token <boolval> BOOL
-%token <intval> INTEGER IPV4
+%token <intval> INTEGER
 %token <doubleval> DOUBLE
-%token <strval> STRING VARIABLE LABEL
+%token <strval> STRING VARIABLE LABEL IPV4
 
 %type <strval> name_label unreserved_keyword agg_function
 %type <strval> admin_operation admin_para
@@ -1920,7 +1920,13 @@ host_list
     ;
 
 host_item
-    : STRING COLON port {
+    : IPV4 COLON port {
+        $$ = new nebula::HostAddr();
+        $$->host = std::move(*$1);
+        delete $1;
+        $$->port = $3;
+    }
+    | STRING COLON port {
         $$ = new nebula::HostAddr();
         $$->host = std::move(*$1);
         delete $1;
