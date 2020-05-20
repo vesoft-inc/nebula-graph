@@ -14,11 +14,6 @@ Status InsertVerticesValidator::validateImpl() {
     spaceId_ = vctx_->whichSpace().id;
     auto status = Status::OK();
     do {
-        if (!spaceChosen()) {
-            status = Status::Error("Please choose a graph space with `USE spaceName' firstly");
-            break;
-        }
-
         status = check();
         if (!status.ok()) {
             break;
@@ -250,5 +245,65 @@ Status InsertEdgesValidator::prepareEdges() {;
 
     return Status::OK();
 }
+
+Status DeleteVerticesValidator::validateImpl() {
+    vertices_ = sentence_->vidList()->vidList();
+    return Status::OK();
+}
+
+Status DeleteVerticesValidator::toPlan() {
+    auto spaceId = validateContext_->whichSpace().id;
+    auto plan = validateContext_->plan();
+    auto *start = StartNode::make(plan);
+    auto* getNeighbors = GetNeighbors::make(plan,
+                                            start,
+                                            spaceId,
+                                            {},
+                                            nullptr,
+                                            {},
+                                            storage::cpp2::EdgeDirection::BOTH,
+                                            {},
+                                            {},
+                                            {});
+
+    auto *deNode = DeleteEdges::make(plan,
+                                     getNeighbors,
+                                     spaceId,
+                                     -1,
+                                     {});
+
+    auto *dvNode = DeleteVertices::make(plan,
+                                        deNode,
+                                        spaceId,
+                                        vertices_);
+    root_ = dvNode;
+    tail_ = start;
+    return Status::OK();
+}
+
+Status DeleteEdgesValidator::validateImpl() {
+    auto spaceId = validateContext_->whichSpace().id;
+    auto edgeStatus = validateContext_->schemaMng()->toEdgeType(spaceId, *sentence_->edge());
+    if (!edgeStatus.ok()) {
+        return edgeStatus.status();
+    }
+    edgeType_ = edgeStatus.value();
+    edgeKeys_ = sentence_->keys();
+    return Status::OK();
+}
+
+Status DeleteEdgesValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *start = StartNode::make(plan);
+    auto *doNode = DeleteEdges::make(plan,
+                                     start,
+                                     validateContext_->whichSpace().id,
+                                     edgeType_,
+                                     edgeKeys_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

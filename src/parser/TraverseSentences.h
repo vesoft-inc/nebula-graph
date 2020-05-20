@@ -389,7 +389,7 @@ public:
         keys_.emplace_back(key);
     }
 
-    std::vector<EdgeKey*> keys() {
+    std::vector<EdgeKey*> keys() const {
         std::vector<EdgeKey*> result;
         result.resize(keys_.size());
         auto get = [](const auto&key) { return key.get(); };

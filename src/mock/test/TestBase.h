@@ -27,6 +27,7 @@ protected:
     static ::testing::AssertionResult TestError() {
         return ::testing::AssertionFailure();
     }
+<<<<<<< HEAD
 
     ::testing::AssertionResult verifyColNames(const cpp2::ExecutionResponse &resp,
                                               const std::vector<std::string> &expected) {
@@ -101,6 +102,8 @@ protected:
         }
         return TestOK();
     }
+=======
+>>>>>>> add delete executor
 };
 
 }   // namespace graph

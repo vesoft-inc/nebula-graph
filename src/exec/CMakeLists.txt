@@ -33,6 +33,8 @@ nebula_add_library(
     maintain/EdgeExecutor.cpp
     mutate/InsertVerticesExecutor.cpp
     mutate/InsertEdgesExecutor.cpp
+    mutate/DeleteVerticesExecutor.cpp
+    mutate/DeleteEdgesExecutor.cpp
 )
 
 nebula_add_subdirectory(query/test)

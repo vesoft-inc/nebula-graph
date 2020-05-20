@@ -9,6 +9,7 @@
 
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "planner/Query.h"
+#include "parser/TraverseSentences.h"
 
 /**
  * All mutate-related nodes would put in this file.
@@ -144,18 +145,89 @@ public:
     }
 };
 
-class DeleteVertex final : public SingleInputNode {
+class DeleteVertices final : public SingleInputNode {
 public:
-    std::string explain() const override {
-        return "DeleteVertex";
+    static DeleteVertices* make(ExecutionPlan* plan,
+                                PlanNode* input,
+                                GraphSpaceID spaceId,
+                                std::vector<Expression*> vertices) {
+        return new DeleteVertices(plan,
+                                  input,
+                                  spaceId,
+                                  std::move(vertices));
     }
+
+    std::string explain() const override {
+        return "DeleteVertices";
+    }
+
+    GraphSpaceID getSpace() const {
+        return space_;
+    }
+
+    std::vector<Expression*> getVertices() const {
+        return vertices_;
+    }
+
+private:
+    DeleteVertices(ExecutionPlan* plan,
+                   PlanNode* input,
+                   GraphSpaceID spaceId,
+                   std::vector<Expression*> vertices)
+    : SingleInputNode(plan, Kind::kDeleteVertices, input)
+    , space_(spaceId)
+    , vertices_(vertices) {}
+
+private:
+    GraphSpaceID                            space_;
+    std::vector<Expression*>                vertices_;
 };
 
-class DeleteEdge final : public SingleInputNode {
+class DeleteEdges final : public SingleInputNode {
 public:
-    std::string explain() const override {
-        return "DeleteEdge";
+    static DeleteEdges* make(ExecutionPlan* plan,
+                             PlanNode* input,
+                             GraphSpaceID spaceId,
+                             EdgeType edgeType,
+                             EdgeKeys *edgeKeys) {
+        return new DeleteEdges(plan,
+                               input,
+                               spaceId,
+                               edgeType,
+                               edgeKeys);
     }
+
+    std::string explain() const override {
+        return "DeleteEdges";
+    }
+
+    GraphSpaceID getSpace() const {
+        return space_;
+    }
+
+    EdgeType getEdgeType() const {
+        return edgeType_;
+    }
+
+    const EdgeKeys* getEdgeKeys() const {
+        return edgeKeys_;
+    }
+
+private:
+    DeleteEdges(ExecutionPlan* plan,
+                PlanNode* input,
+                GraphSpaceID spaceId,
+                EdgeType edgeType,
+                EdgeKeys *edgeKeys)
+    : SingleInputNode(plan, Kind::kDeleteEdges, input)
+    , space_(spaceId)
+    , edgeType_(edgeType)
+    , edgeKeys_(edgeKeys) {}
+
+private:
+    GraphSpaceID                               space_;
+    EdgeType                                   edgeType_;
+    EdgeKeys                                  *edgeKeys_;
 };
 }  // namespace graph
 }  // namespace nebula

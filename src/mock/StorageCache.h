@@ -45,6 +45,15 @@ public:
 
     Status addEdges(const storage::cpp2::AddEdgesRequest& req);
 
+    Status deleteVertices(const storage::cpp2::DeleteVerticesRequest &req);
+
+    Status deleteEdges(const storage::cpp2::DeleteEdgesRequest &req);
+
+    StatusOr<DataSet> getNeighbors(const storage::cpp2::GetNeighborsRequest &req);
+
+    StatusOr<DataSet> getProps(const storage::cpp2::GetPropRequest &req);
+
+private:
     StatusOr<std::unordered_map<std::string, Value>>
     getTagWholeValue(const GraphSpaceID spaceId,
                      const TagID tagId,
@@ -62,8 +71,6 @@ public:
                     const std::vector<Value>& props,
                     const std::vector<std::string> &names);
 
-<<<<<<< HEAD
-=======
     StatusOr<DataSet> getVertices(GraphSpaceID spaceId,
                                   const VerticesInfo &vertices,
                                   const storage::cpp2::GetPropRequest &req);
@@ -109,3 +116,4 @@ private:
 }  // namespace graph
 }  // namespace nebula
 #endif  // EXEC_STORAGECACHE_H_
+

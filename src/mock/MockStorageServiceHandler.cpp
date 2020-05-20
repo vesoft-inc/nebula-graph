@@ -83,17 +83,27 @@ MockStorageServiceHandler::future_addEdges(const storage::cpp2::AddEdgesRequest&
 
 folly::Future<storage::cpp2::ExecResponse>
 MockStorageServiceHandler::future_deleteEdges(const storage::cpp2::DeleteEdgesRequest& req) {
-    UNUSED(req);
     folly::Promise<storage::cpp2::ExecResponse> promise;
     auto future = promise.getFuture();
+    storage::cpp2::ExecResponse resp;
+    auto status = storageCache_->deleteEdges(req);
+    if (!status.ok()) {
+        GENERATE_ERROR_COMMON();
+    }
+    promise.setValue(std::move(resp));
     return future;
 }
 
 folly::Future<storage::cpp2::ExecResponse>
 MockStorageServiceHandler::future_deleteVertices(const storage::cpp2::DeleteVerticesRequest& req) {
-    UNUSED(req);
     folly::Promise<storage::cpp2::ExecResponse> promise;
     auto future = promise.getFuture();
+    storage::cpp2::ExecResponse resp;
+    auto status = storageCache_->deleteVertices(req);
+    if (!status.ok()) {
+        GENERATE_ERROR_COMMON();
+    }
+    promise.setValue(std::move(resp));
     return future;
 }
 

@@ -55,6 +55,7 @@ public:
         kUpdateVertex,
         kInsertEdges,
         kUpdateEdge,
+<<<<<<< HEAD
         kShowHosts,
         kShowSpaces,
         kShowParts,
@@ -75,6 +76,10 @@ public:
         kShowCharset,
         kShowCollation,
         kDeleteVertex,
+=======
+        kShow,
+        kDeleteVertices,
+>>>>>>> add delete executor
         kDeleteEdges,
         kLookup,
         kCreateSpace,

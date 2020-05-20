@@ -130,6 +130,7 @@ Status StorageCache::addEdges(const storage::cpp2::AddEdgesRequest& req) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 StatusOr<std::unordered_map<std::string, Value>>
 StorageCache::getTagWholeValue(const GraphSpaceID spaceId,
                                const TagID tagId,
@@ -142,6 +143,51 @@ StorageCache::getTagWholeValue(const GraphSpaceID spaceId,
     if (schema == nullptr) {
         return Status::Error("TagId `%d' not exist", tagId);
 =======
+=======
+Status StorageCache::deleteVertices(const storage::cpp2::DeleteVerticesRequest &req) {
+    folly::RWSpinLock::WriteHolder holder(lock_);
+    auto spaceId = req.get_space_id();
+    auto spaceFind = cache_.find(spaceId);
+    SpaceDataInfo *spaceDataInfo = nullptr;
+    if (spaceFind == cache_.end()) {
+        return Status::Error("Space `%d' not found", spaceId);
+    }
+    spaceDataInfo = &spaceFind->second;
+
+    auto &parts = req.get_parts();
+    for (auto &part : parts) {
+        for (auto &vId : part.second) {
+            auto findV = spaceDataInfo->vertices.find(vId);
+            if (findV != spaceDataInfo->vertices.end()) {
+                spaceDataInfo->vertices.erase(findV);
+            }
+        }
+    }
+    return Status::OK();
+}
+
+Status StorageCache::deleteEdges(const storage::cpp2::DeleteEdgesRequest &req) {
+    folly::RWSpinLock::WriteHolder holder(lock_);
+    auto spaceId = req.get_space_id();
+    auto spaceFind = cache_.find(spaceId);
+    SpaceDataInfo *spaceDataInfo = nullptr;
+    if (spaceFind == cache_.end()) {
+        return Status::Error("Space `%d' not found", spaceId);
+    }
+    spaceDataInfo = &spaceFind->second;
+    auto &parts = req.get_parts();
+    for (auto &part : parts) {
+        for (auto &edge : part.second) {
+            auto findE = spaceDataInfo->edges.find(edge);
+            if (findE != spaceDataInfo->edges.end()) {
+                spaceDataInfo->edges.erase(findE);
+            }
+        }
+    }
+    return Status::OK();
+}
+
+>>>>>>> add delete executor
 StatusOr<DataSet> StorageCache::getNeighbors(const storage::cpp2::GetNeighborsRequest &req) {
     folly::RWSpinLock::ReadHolder holder(lock_);
     DataSet dataSet;

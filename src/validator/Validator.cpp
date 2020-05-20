@@ -97,12 +97,19 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
             return std::make_unique<InsertEdgesValidator>(sentence, context);
+<<<<<<< HEAD
         case Sentence::Kind::kCreateSnapshot:
             return std::make_unique<CreateSnapshotValidator>(sentence, context);
         case Sentence::Kind::kDropSnapshot:
             return std::make_unique<DropSnapshotValidator>(sentence, context);
         case Sentence::Kind::kShowSnapshots:
             return std::make_unique<ShowSnapshotsValidator>(sentence, context);
+=======
+        case Sentence::Kind::kDeleteVertices:
+            return std::make_unique<DeleteVerticesValidator>(sentence, context);
+        case Sentence::Kind::kDeleteEdges:
+            return std::make_unique<DeleteEdgesValidator>(sentence, context);
+>>>>>>> add delete executor
         default:
             return std::make_unique<ReportError>(sentence, context);
     }

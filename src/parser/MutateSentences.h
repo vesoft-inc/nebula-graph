@@ -10,6 +10,7 @@
 #include "common/base/StatusOr.h"
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
+#include "parser/MutateSentences.h"
 
 namespace nebula {
 
@@ -505,7 +506,7 @@ class DeleteVerticesSentence final : public Sentence {
 public:
     explicit DeleteVerticesSentence(VertexIDList *vidList) {
         vidList_.reset(vidList);
-        kind_ = Kind::kDeleteVertex;
+        kind_ = Kind::kDeleteVertices;
     }
 
     VertexIDList* vidList() const {

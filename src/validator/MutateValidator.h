@@ -10,6 +10,8 @@
 #include "validator/Validator.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/MutateSentences.h"
+#include "parser/TraverseSentences.h"
+#include "expression/Expression.h"
 
 namespace nebula {
 namespace graph {
@@ -62,6 +64,41 @@ private:
     std::vector<std::string>                          propNames_;
     std::vector<EdgeRowItem*>                         rows_;
     std::vector<storage::cpp2::NewEdge>               edges_;
+};
+
+class DeleteVerticesValidator final : public Validator {
+public:
+    DeleteVerticesValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<DeleteVerticesSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    DeleteVerticesSentence                    *sentence_{nullptr};
+    std::vector<Expression*>                   vertices_;
+};
+
+class DeleteEdgesValidator final : public Validator {
+public:
+    DeleteEdgesValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<DeleteEdgesSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    DeleteEdgesSentence                         *sentence_{nullptr};
+    EdgeKeys                                    *edgeKeys_;
+    EdgeType                                     edgeType_;
 };
 }  // namespace graph
 }  // namespace nebula
