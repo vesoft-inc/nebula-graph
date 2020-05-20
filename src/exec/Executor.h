@@ -88,7 +88,7 @@ public:
         return Callback<Fn>(this, std::forward<Fn>(f));
     }
 
-#define NODE_DOWN_TRANSITION(node) \
+#define NODE_DOWN_CAST(node) \
     template <typename T> \
     static std::enable_if_t<std::is_same<node##Node, T>::value, const T *> \
     asNode(const PlanNode* from) { \
@@ -96,35 +96,35 @@ public:
         return static_cast<const node##Node *>(from); \
     }
 
-    NODE_DOWN_TRANSITION(Start)
-    NODE_DOWN_TRANSITION(End)
-    NODE_DOWN_TRANSITION(GetNeighbors)
-    NODE_DOWN_TRANSITION(GetVertices)
-    NODE_DOWN_TRANSITION(GetEdges)
-    NODE_DOWN_TRANSITION(ReadIndex)
-    NODE_DOWN_TRANSITION(Filter)
-    NODE_DOWN_TRANSITION(Union)
-    NODE_DOWN_TRANSITION(Intersect)
-    NODE_DOWN_TRANSITION(Minus)
-    NODE_DOWN_TRANSITION(Project)
-    NODE_DOWN_TRANSITION(Sort)
-    NODE_DOWN_TRANSITION(Limit)
-    NODE_DOWN_TRANSITION(Aggregate)
-    NODE_DOWN_TRANSITION(Selector)
-    NODE_DOWN_TRANSITION(Loop)
-    NODE_DOWN_TRANSITION(SwitchSpace)
-    NODE_DOWN_TRANSITION(Dedup)
-    NODE_DOWN_TRANSITION(MultiOutputs)
-    NODE_DOWN_TRANSITION(CreateSpace)
-    NODE_DOWN_TRANSITION(CreateTag)
-    NODE_DOWN_TRANSITION(CreateEdge)
-    NODE_DOWN_TRANSITION(DescSpace)
-    NODE_DOWN_TRANSITION(DescTag)
-    NODE_DOWN_TRANSITION(DescEdge)
-    NODE_DOWN_TRANSITION(InsertVertices)
-    NODE_DOWN_TRANSITION(InsertEdges)
+    NODE_DOWN_CAST(Start)
+    NODE_DOWN_CAST(End)
+    NODE_DOWN_CAST(GetNeighbors)
+    NODE_DOWN_CAST(GetVertices)
+    NODE_DOWN_CAST(GetEdges)
+    NODE_DOWN_CAST(ReadIndex)
+    NODE_DOWN_CAST(Filter)
+    NODE_DOWN_CAST(Union)
+    NODE_DOWN_CAST(Intersect)
+    NODE_DOWN_CAST(Minus)
+    NODE_DOWN_CAST(Project)
+    NODE_DOWN_CAST(Sort)
+    NODE_DOWN_CAST(Limit)
+    NODE_DOWN_CAST(Aggregate)
+    NODE_DOWN_CAST(Selector)
+    NODE_DOWN_CAST(Loop)
+    NODE_DOWN_CAST(SwitchSpace)
+    NODE_DOWN_CAST(Dedup)
+    NODE_DOWN_CAST(MultiOutputs)
+    NODE_DOWN_CAST(CreateSpace)
+    NODE_DOWN_CAST(CreateTag)
+    NODE_DOWN_CAST(CreateEdge)
+    NODE_DOWN_CAST(DescSpace)
+    NODE_DOWN_CAST(DescTag)
+    NODE_DOWN_CAST(DescEdge)
+    NODE_DOWN_CAST(InsertVertices)
+    NODE_DOWN_CAST(InsertEdges)
 
-#undef NODE_DOWN_TRANSITION
+#undef NODE_DOWN_CAST
 
 
 protected:
