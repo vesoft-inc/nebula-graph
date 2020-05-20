@@ -1697,7 +1697,7 @@ TEST(Parser, BalanceOperation) {
     }
     {
         GQLParser parser;
-        std::string query = "BALANCE DATA REMOVE 192.168.0.1:50000,192.168.0.1:50001";
+        std::string query = "BALANCE DATA REMOVE \"192.168.0.1\":50000,\"192.168.0.1\":50001";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }

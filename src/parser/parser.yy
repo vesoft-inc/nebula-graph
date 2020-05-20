@@ -1920,9 +1920,10 @@ host_list
     ;
 
 host_item
-    : IPV4 COLON port {
+    : STRING COLON port {
         $$ = new nebula::HostAddr();
-        $$->ip = $1;
+        $$->host = std::move(*$1);
+        delete $1;
         $$->port = $3;
     }
 
