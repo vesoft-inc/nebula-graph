@@ -19,7 +19,7 @@ folly::Future<Status> InsertEdgesExecutor::execute() {
 
 folly::Future<Status> InsertEdgesExecutor::insertEdges() {
     dumpLog();
-    auto *ieNode = asNode<InsertEdges>(node());
+    auto *ieNode = asNode<InsertEdgesNode>(node());
 
     return ectx()->getStorageClient()->addEdges(ieNode->space(),
             ieNode->getEdges(), ieNode->getPropNames(), ieNode->getOverwritable())

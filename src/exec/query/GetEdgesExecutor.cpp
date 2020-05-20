@@ -37,7 +37,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         return error(Status::Error("Invalid storage client for GetEdgesExecutor"));
     }
 
-    // auto *ge = asNode<GetEdges>(node());
+    // auto *ge = asNode<GetEdgesNode>(node());
 
     // return client->getProps(ge->space(), ge->edges(), ge->props(), ge->filter())
     //     .via(runner())

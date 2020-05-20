@@ -21,37 +21,37 @@ const char* PlanNode::toString(Kind kind) {
         case Kind::kStart:
             return "Start";
         case Kind::kEnd:
-            return "End";
+            return "EndNode";
         case Kind::kUnion:
-            return "Union";
+            return "UnionNode";
         case Kind::kLoop:
-            return "Loop";
+            return "LoopNode";
         case Kind::kSort:
-            return "Sort";
+            return "SortNode";
         case Kind::kDedup:
-            return "Dedup";
+            return "DedupNode";
         case Kind::kMinus:
-            return "Minus";
+            return "MinusNode";
         case Kind::kIntersect:
-            return "Intersect";
+            return "IntersectNode";
         case Kind::kAggregate:
-            return "Aggregate";
+            return "AggregateNode";
         case Kind::kFilter:
-            return "Filter";
+            return "FilterNode";
         case Kind::kGetEdges:
-            return "GetEdges";
+            return "GetEdgesNode";
         case Kind::kGetVertices:
-            return "GetVertices";
+            return "GetVerticesNode";
         case Kind::kGetNeighbors:
-            return "GetNeighbors";
+            return "GetNeighborsNode";
         case Kind::kLimit:
-            return "Limit";
+            return "LimitNode";
         case Kind::kProject:
-            return "Project";
+            return "ProjectNode";
         case Kind::kSelector:
-            return "Selector";
+            return "SelectorNode";
         case Kind::kReadIndex:
-            return "ReadIndex";
+            return "ReadIndexNode";
         case Kind::kMultiOutputs:
             return "MultiOutputs";
         case Kind::kSwitchSpace:
@@ -60,6 +60,11 @@ const char* PlanNode::toString(Kind kind) {
         default:
             return "kUnknown";
     }
+}
+
+std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {
+    os << PlanNode::toString(kind);
+    return os;
 }
 
 }   // namespace graph

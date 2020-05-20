@@ -17,14 +17,14 @@ namespace nebula {
 namespace graph {
 // TODO: All DDLs, DMLs and DQLs could be used in a single query
 // which would make them in a single and big execution plan
-class InsertVertices final : public PlanNode {
+class InsertVerticesNode final : public PlanNode {
 public:
-    static InsertVertices* make(ExecutionPlan* plan,
+    static InsertVerticesNode* make(ExecutionPlan* plan,
                                 GraphSpaceID spaceId,
                                 std::vector<storage::cpp2::NewVertex> vertices,
                                 std::unordered_map<TagID, std::vector<std::string>> tagPropNames,
                                 bool overwritable) {
-        return new InsertVertices(plan,
+        return new InsertVerticesNode(plan,
                                   spaceId,
                                   std::move(vertices),
                                   std::move(tagPropNames),
@@ -32,7 +32,7 @@ public:
     }
 
     std::string explain() const override {
-        return "InsertVertices";
+        return "InsertVerticesNode";
     }
 
     GraphSpaceID space() const {
@@ -52,7 +52,7 @@ public:
     }
 
 private:
-    InsertVertices(ExecutionPlan* plan,
+    InsertVerticesNode(ExecutionPlan* plan,
                    GraphSpaceID spaceId,
                    std::vector<storage::cpp2::NewVertex> vertices,
                    std::unordered_map<TagID, std::vector<std::string>> tagPropNames,
@@ -70,14 +70,14 @@ private:
     bool                                                       overwritable_;
 };
 
-class InsertEdges final : public PlanNode {
+class InsertEdgesNode final : public PlanNode {
 public:
-    static InsertEdges* make(ExecutionPlan* plan,
+    static InsertEdgesNode* make(ExecutionPlan* plan,
                              GraphSpaceID spaceId,
                              std::vector<storage::cpp2::NewEdge> edges,
                              std::vector<std::string> propNames,
                              bool overwritable) {
-        return new InsertEdges(plan,
+        return new InsertEdgesNode(plan,
                                spaceId,
                                std::move(edges),
                                std::move(propNames),
@@ -85,7 +85,7 @@ public:
     }
 
     std::string explain() const override {
-        return "InsertEdges";
+        return "InsertEdgesNode";
     }
 
     GraphSpaceID space() const {
@@ -105,7 +105,7 @@ public:
     }
 
 private:
-    InsertEdges(ExecutionPlan* plan,
+    InsertEdgesNode(ExecutionPlan* plan,
                 GraphSpaceID spaceId,
                 std::vector<storage::cpp2::NewEdge> edges,
                 std::vector<std::string> propNames,
@@ -123,10 +123,10 @@ private:
     bool                                       overwritable_;
 };
 
-class UpdateVertex final : public PlanNode {
+class UpdateVertexNode final : public PlanNode {
 public:
     std::string explain() const override {
-        return "UpdateVertex";
+        return "UpdateVertexNode";
     }
 };
 
@@ -137,17 +137,17 @@ public:
     }
 };
 
-class DeleteVertex final : public PlanNode {
+class DeleteVertexNode final : public PlanNode {
 public:
     std::string explain() const override {
-        return "DeleteVertex";
+        return "DeleteVertexNode";
     }
 };
 
-class DeleteEdge final : public PlanNode {
+class DeleteEdgeNode final : public PlanNode {
 public:
     std::string explain() const override {
-        return "DeleteEdge";
+        return "DeleteEdgeNode";
     }
 };
 }  // namespace graph

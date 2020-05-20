@@ -727,7 +727,7 @@ TEST(Parser, InsertVertex) {
     }
 }
 
-TEST(Parser, UpdateVertex) {
+TEST(Parser, UpdateVertexNode) {
     {
         GQLParser parser;
         std::string query = "UPDATE VERTEX 12345 "
@@ -885,7 +885,7 @@ TEST(Parser, UpdateEdge) {
     }
 }
 
-TEST(Parser, DeleteVertex) {
+TEST(Parser, DeleteVertexNode) {
     {
         GQLParser parser;
         std::string query = "DELETE VERTEX 12345";
@@ -924,7 +924,7 @@ TEST(Parser, DeleteVertex) {
     }
 }
 
-TEST(Parser, DeleteEdge) {
+TEST(Parser, DeleteEdgeNode) {
     {
         GQLParser parser;
         std::string query = "DELETE EDGE transfer 12345 -> 54321";
@@ -1728,7 +1728,7 @@ TEST(Parser, FindPath) {
     }
 }
 
-TEST(Parser, Limit) {
+TEST(Parser, LimitNode) {
     {
         GQLParser parser;
         std::string query = "GO FROM 1 OVER work | LIMIT 1";

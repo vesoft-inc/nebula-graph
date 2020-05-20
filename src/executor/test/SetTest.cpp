@@ -389,7 +389,7 @@ TEST_F(SetTest, UnionDistinct) {
     }
 }
 
-TEST_F(SetTest, Minus) {
+TEST_F(SetTest, MinusNode) {
     {
         cpp2::ExecutionResponse resp;
         auto *fmt =
@@ -424,7 +424,7 @@ TEST_F(SetTest, Minus) {
     }
 }
 
-TEST_F(SetTest, Intersect) {
+TEST_F(SetTest, IntersectNode) {
     {
         cpp2::ExecutionResponse resp;
         auto *fmt =

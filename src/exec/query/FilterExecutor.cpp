@@ -15,7 +15,7 @@ folly::Future<Status> FilterExecutor::execute() {
     return SingleInputExecutor::execute().then(cb([this](Status s) {
         if (!s.ok()) return error(std::move(s));
         dumpLog();
-        auto* filter = asNode<Filter>(node());
+        auto* filter = asNode<FilterNode>(node());
         auto* expr = filter->condition();
         UNUSED(expr);
         return start();

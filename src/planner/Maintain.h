@@ -61,14 +61,14 @@ protected:
     bool                   ifNotExists_;
 };
 
-class CreateTag final : public CreateSchemaNode {
+class CreateTagNode final : public CreateSchemaNode {
 public:
-    static CreateTag* make(ExecutionPlan* plan,
+    static CreateTagNode* make(ExecutionPlan* plan,
                            GraphSpaceID space,
                            std::string tagName,
                            meta::cpp2::Schema schema,
                            bool ifNotExists) {
-    return new CreateTag(plan,
+    return new CreateTagNode(plan,
                          space,
                          std::move(tagName),
                          std::move(schema),
@@ -76,11 +76,11 @@ public:
     }
 
     std::string explain() const override {
-        return "CreateTag";
+        return "CreateTagNode";
     }
 
 private:
-    CreateTag(ExecutionPlan* plan,
+    CreateTagNode(ExecutionPlan* plan,
               GraphSpaceID space,
               std::string tagName,
               meta::cpp2::Schema schema,
@@ -94,14 +94,14 @@ private:
         }
 };
 
-class CreateEdge final : public CreateSchemaNode {
+class CreateEdgeNode final : public CreateSchemaNode {
 public:
-    static CreateEdge* make(ExecutionPlan* plan,
+    static CreateEdgeNode* make(ExecutionPlan* plan,
                             GraphSpaceID space,
                             std::string edgeName,
                             meta::cpp2::Schema schema,
                             bool ifNotExists) {
-    return new CreateEdge(plan,
+    return new CreateEdgeNode(plan,
                           space,
                           std::move(edgeName),
                           std::move(schema),
@@ -109,11 +109,11 @@ public:
     }
 
     std::string explain() const override {
-        return "CreateEdge";
+        return "CreateEdgeNode";
     }
 
 private:
-    CreateEdge(ExecutionPlan* plan,
+    CreateEdgeNode(ExecutionPlan* plan,
                GraphSpaceID space,
                std::string edgeName,
                meta::cpp2::Schema schema,
@@ -127,17 +127,17 @@ private:
         }
 };
 
-class AlterTag final : public PlanNode {
+class AlterTagNode final : public PlanNode {
 public:
     std::string explain() const override {
-        return "AlterTag";
+        return "AlterTagNode";
     }
 };
 
-class AlterEdge final : public PlanNode {
+class AlterEdgeNode final : public PlanNode {
 public:
     std::string explain() const override {
-        return "AlterEdge";
+        return "AlterEdgeNode";
     }
 };
 
@@ -165,57 +165,57 @@ protected:
     std::string            name_;
 };
 
-class DescTag final : public DescSchema {
+class DescTagNode final : public DescSchema {
 public:
-    static DescTag* make(ExecutionPlan* plan,
+    static DescTagNode* make(ExecutionPlan* plan,
                          GraphSpaceID space,
                          std::string tagName) {
-    return new DescTag(plan, space, std::move(tagName));
+    return new DescTagNode(plan, space, std::move(tagName));
     }
 
     std::string explain() const override {
-        return "DescTag";
+        return "DescTagNode";
     }
 
 private:
-    DescTag(ExecutionPlan* plan,
+    DescTagNode(ExecutionPlan* plan,
             GraphSpaceID space,
             std::string tagName)
         : DescSchema(plan, Kind::kDescTag, space, std::move(tagName)) {
         }
 };
 
-class DescEdge final : public DescSchema {
+class DescEdgeNode final : public DescSchema {
 public:
-    static DescEdge* make(ExecutionPlan* plan,
+    static DescEdgeNode* make(ExecutionPlan* plan,
                           GraphSpaceID space,
                           std::string edgeName) {
-    return new DescEdge(plan, space, std::move(edgeName));
+    return new DescEdgeNode(plan, space, std::move(edgeName));
     }
 
     std::string explain() const override {
-        return "DescEdge";
+        return "DescEdgeNode";
     }
 
 private:
-    DescEdge(ExecutionPlan* plan,
+    DescEdgeNode(ExecutionPlan* plan,
             GraphSpaceID space,
             std::string edgeName)
         : DescSchema(plan, Kind::kDescEdge, space, std::move(edgeName)) {
         }
 };
 
-class DropTag final : public PlanNode {
+class DropTagNode final : public PlanNode {
 public:
     std::string explain() const override {
-        return "DropTag";
+        return "DropTagNode";
     }
 };
 
-class DropEdge final : public PlanNode {
+class DropEdgeNode final : public PlanNode {
 public:
     std::string explain() const override {
-        return "DropEdge";
+        return "DropEdgeNode";
     }
 };
 

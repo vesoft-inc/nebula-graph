@@ -28,18 +28,18 @@ class Show final : public PlanNode {
     }
 };
 
-class CreateSpace final : public PlanNode {
+class CreateSpaceNode final : public PlanNode {
 public:
-    static CreateSpace* make(ExecutionPlan* plan,
+    static CreateSpaceNode* make(ExecutionPlan* plan,
                              meta::SpaceDesc props,
                              bool ifNotExists) {
-    return new CreateSpace(plan,
+    return new CreateSpaceNode(plan,
                            std::move(props),
                            ifNotExists);
     }
 
     std::string explain() const override {
-        return "CreateSpace";
+        return "CreateSpaceNode";
     }
 
 public:
@@ -52,7 +52,7 @@ public:
     }
 
 private:
-    CreateSpace(ExecutionPlan* plan,
+    CreateSpaceNode(ExecutionPlan* plan,
                 meta::SpaceDesc props,
                 bool ifNotExists)
         : PlanNode(plan, Kind::kCreateSpace) {
@@ -66,22 +66,22 @@ private:
     bool                          ifNotExists_;
 };
 
-class DropSpace final : public PlanNode {
+class DropSpaceNode final : public PlanNode {
 public:
     std::string explain() const override {
-        return "DropSpace";
+        return "DropSpaceNode";
     }
 };
 
-class DescSpace final : public PlanNode {
+class DescSpaceNode final : public PlanNode {
 public:
-    static DescSpace* make(ExecutionPlan* plan,
+    static DescSpaceNode* make(ExecutionPlan* plan,
                            std::string spaceName) {
-    return new DescSpace(plan, std::move(spaceName));
+    return new DescSpaceNode(plan, std::move(spaceName));
     }
 
     std::string explain() const override {
-        return "DescSpace";
+        return "DescSpaceNode";
     }
 
     const std::string& getSpaceName() const {
@@ -89,7 +89,7 @@ public:
     }
 
 private:
-    DescSpace(ExecutionPlan* plan,
+    DescSpaceNode(ExecutionPlan* plan,
               std::string spaceName)
         : PlanNode(plan, Kind::kDescSpace) {
             spaceName_ = std::move(spaceName);

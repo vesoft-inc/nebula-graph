@@ -42,7 +42,7 @@ folly::Future<Status> SelectExecutor::execute() {
         {
             dumpLog();
 
-            auto* select = asNode<Selector>(node());
+            auto* select = asNode<SelectorNode>(node());
             auto* expr = select->condition();
             UNUSED(expr);
         }

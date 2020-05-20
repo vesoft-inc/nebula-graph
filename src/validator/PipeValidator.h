@@ -25,12 +25,12 @@ private:
      * Connect the execution plans for the left and right subtrees.
      * For example: Go FROM id1 OVER e1 YIELD e1._dst AS id | GO FROM $-.id OVER e2;
      * The plan of left subtree's would be:
-     *  Project(_dst) -> GetNeighbor(id1, e1)
+     *  ProjectNode(_dst) -> GetNeighbor(id1, e1)
      * and the right would be:
-     *  Project(_dst) -> GetNeighbor(id2, e2)
+     *  ProjectNode(_dst) -> GetNeighbor(id2, e2)
      * After connecting, it would be:
-     *  Project(_dst) -> GetNeighbor(id2, e2) ->
-                Project(_dst) -> GetNeighbor(id1, e1)
+     *  ProjectNode(_dst) -> GetNeighbor(id2, e2) ->
+                ProjectNode(_dst) -> GetNeighbor(id1, e1)
      */
     Status toPlan() override;
 

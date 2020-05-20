@@ -51,7 +51,7 @@ folly::Future<Status> LoopExecutor::iterate() {
 
 bool LoopExecutor::toContinue() {
     dumpLog();
-    auto *loopNode = asNode<Loop>(node());
+    auto *loopNode = asNode<LoopNode>(node());
     const Expression *expr = loopNode->condition();
     // TODO(yee): eval expression result
     UNUSED(expr);

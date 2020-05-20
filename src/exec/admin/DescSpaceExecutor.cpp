@@ -18,7 +18,7 @@ folly::Future<Status> DescSpaceExecutor::execute() {
 folly::Future<Status> DescSpaceExecutor::descSpace() {
     dumpLog();
 
-    auto *dsNode = asNode<DescSpace>(node());
+    auto *dsNode = asNode<DescSpaceNode>(node());
     return ectx()->getMetaClient()->getSpace(dsNode->getSpaceName())
         .via(runner())
         .then([this](StatusOr<meta::cpp2::SpaceItem> resp) {

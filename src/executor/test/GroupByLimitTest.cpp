@@ -489,7 +489,7 @@ TEST_F(GroupByLimitTest, GroupByOrderByLimitTest) {
         };
         ASSERT_TRUE(verifyResult(resp, expected, false));
     }
-    // Test with Limit
+    // Test with LimitNode
     {
         cpp2::ExecutionResponse resp;
         auto &player1 = players_["Carmelo Anthony"];

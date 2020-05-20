@@ -32,7 +32,7 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 folly::Future<Status> GetVerticesExecutor::getVertices() {
     dumpLog();
 
-    // auto *gv = asNode<GetVertices>(node());
+    // auto *gv = asNode<GetVerticesNode>(node());
     // Expression *srcExpr = gv->src();
     // UNUSED(srcExpr);
 

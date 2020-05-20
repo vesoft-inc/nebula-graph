@@ -72,55 +72,55 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             break;
         }
         case PlanNode::Kind::kAggregate: {
-            auto agg = asNode<Aggregate>(node);
+            auto agg = asNode<AggregateNode>(node);
             auto input = makeExecutor(agg->input(), ectx, cache);
             exec = new AggregateExecutor(agg, ectx, input);
             break;
         }
         case PlanNode::Kind::kSort: {
-            auto sort = asNode<Sort>(node);
+            auto sort = asNode<SortNode>(node);
             auto input = makeExecutor(sort->input(), ectx, cache);
             exec = new SortExecutor(sort, ectx, input);
             break;
         }
         case PlanNode::Kind::kFilter: {
-            auto filter = asNode<Filter>(node);
+            auto filter = asNode<FilterNode>(node);
             auto input = makeExecutor(filter->input(), ectx, cache);
             exec = new FilterExecutor(filter, ectx, input);
             break;
         }
         case PlanNode::Kind::kGetEdges: {
-            auto ge = asNode<GetEdges>(node);
+            auto ge = asNode<GetEdgesNode>(node);
             auto input = makeExecutor(ge->input(), ectx, cache);
             exec = new GetEdgesExecutor(ge, ectx, input);
             break;
         }
         case PlanNode::Kind::kGetVertices: {
-            auto gv = asNode<GetVertices>(node);
+            auto gv = asNode<GetVerticesNode>(node);
             auto input = makeExecutor(gv->input(), ectx, cache);
             exec = new GetVerticesExecutor(gv, ectx, input);
             break;
         }
         case PlanNode::Kind::kGetNeighbors: {
-            auto gn = asNode<GetNeighbors>(node);
+            auto gn = asNode<GetNeighborsNode>(node);
             auto input = makeExecutor(gn->input(), ectx, cache);
             exec = new GetNeighborsExecutor(gn, ectx, input);
             break;
         }
         case PlanNode::Kind::kLimit: {
-            auto limit = asNode<Limit>(node);
+            auto limit = asNode<LimitNode>(node);
             auto input = makeExecutor(limit->input(), ectx, cache);
             exec = new LimitExecutor(limit, ectx, input);
             break;
         }
         case PlanNode::Kind::kProject: {
-            auto project = asNode<Project>(node);
+            auto project = asNode<ProjectNode>(node);
             auto input = makeExecutor(project->input(), ectx, cache);
             exec = new ProjectExecutor(project, ectx, input);
             break;
         }
         case PlanNode::Kind::kReadIndex: {
-            auto readIndex = asNode<ReadIndex>(node);
+            auto readIndex = asNode<ReadIndexNode>(node);
             auto input = makeExecutor(readIndex->input(), ectx, cache);
             exec = new ReadIndexExecutor(readIndex, ectx, input);
             break;
@@ -130,35 +130,35 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             break;
         }
         case PlanNode::Kind::kUnion: {
-            auto uni = asNode<Union>(node);
+            auto uni = asNode<UnionNode>(node);
             auto left = makeExecutor(uni->left(), ectx, cache);
             auto right = makeExecutor(uni->right(), ectx, cache);
             exec = new UnionExecutor(uni, ectx, left, right);
             break;
         }
         case PlanNode::Kind::kIntersect: {
-            auto intersect = asNode<Intersect>(node);
+            auto intersect = asNode<IntersectNode>(node);
             auto left = makeExecutor(intersect->left(), ectx, cache);
             auto right = makeExecutor(intersect->right(), ectx, cache);
             exec = new IntersectExecutor(intersect, ectx, left, right);
             break;
         }
         case PlanNode::Kind::kMinus: {
-            auto minus = asNode<Minus>(node);
+            auto minus = asNode<MinusNode>(node);
             auto left = makeExecutor(minus->left(), ectx, cache);
             auto right = makeExecutor(minus->right(), ectx, cache);
             exec = new MinusExecutor(minus, ectx, left, right);
             break;
         }
         case PlanNode::Kind::kLoop: {
-            auto loop = asNode<Loop>(node);
+            auto loop = asNode<LoopNode>(node);
             auto input = makeExecutor(loop->input(), ectx, cache);
             auto body = makeExecutor(loop->body(), ectx, cache);
             exec = new LoopExecutor(loop, ectx, input, body);
             break;
         }
         case PlanNode::Kind::kSelector: {
-            auto select = asNode<Selector>(node);
+            auto select = asNode<SelectorNode>(node);
             auto input = makeExecutor(select->input(), ectx, cache);
             auto then = makeExecutor(select->then(), ectx, cache);
             auto els = makeExecutor(select->otherwise(), ectx, cache);
@@ -166,54 +166,54 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             break;
         }
         case PlanNode::Kind::kDedup: {
-            auto dedup = asNode<Dedup>(node);
+            auto dedup = asNode<DedupNode>(node);
             auto input = makeExecutor(dedup->input(), ectx, cache);
             exec = new DedupExecutor(dedup, ectx, input);
             break;
         }
         case PlanNode::Kind::kSwitchSpace: {
-            auto switchSpace = asNode<SwitchSpace>(node);
+            auto switchSpace = asNode<SwitchSpaceNode>(node);
             auto input = makeExecutor(switchSpace->input(), ectx, cache);
             exec = new SwitchSpaceExecutor(switchSpace, ectx, input);
             break;
         }
         case PlanNode::Kind::kCreateSpace: {
-            auto createSpace = asNode<CreateSpace>(node);
+            auto createSpace = asNode<CreateSpaceNode>(node);
             exec = new CreateSpaceExecutor(createSpace, ectx);
             break;
         }
         case PlanNode::Kind::kDescSpace: {
-            auto descSpace = asNode<DescSpace>(node);
+            auto descSpace = asNode<DescSpaceNode>(node);
             exec = new DescSpaceExecutor(descSpace, ectx);
             break;
         }
         case PlanNode::Kind::kCreateTag: {
-            auto createTag = asNode<CreateTag>(node);
+            auto createTag = asNode<CreateTagNode>(node);
             exec = new CreateTagExecutor(createTag, ectx);
             break;
         }
         case PlanNode::Kind::kDescTag: {
-            auto descTag = asNode<DescTag>(node);
+            auto descTag = asNode<DescTagNode>(node);
             exec = new DescTagExecutor(descTag, ectx);
             break;
         }
         case PlanNode::Kind::kCreateEdge: {
-            auto createEdge = asNode<CreateEdge>(node);
+            auto createEdge = asNode<CreateEdgeNode>(node);
             exec = new CreateEdgeExecutor(createEdge, ectx);
             break;
         }
         case PlanNode::Kind::kDescEdge: {
-            auto descEdge = asNode<DescEdge>(node);
+            auto descEdge = asNode<DescEdgeNode>(node);
             exec = new DescEdgeExecutor(descEdge, ectx);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {
-            auto insertV = asNode<InsertVertices>(node);
+            auto insertV = asNode<InsertVerticesNode>(node);
             exec = new InsertVerticesExecutor(insertV, ectx);
             break;
         }
         case PlanNode::Kind::kInsertEdges: {
-            auto insertE = asNode<InsertEdges>(node);
+            auto insertE = asNode<InsertEdgesNode>(node);
             exec = new InsertEdgesExecutor(insertE, ectx);
             break;
         }

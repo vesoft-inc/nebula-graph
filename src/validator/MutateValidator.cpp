@@ -32,7 +32,7 @@ Status InsertVerticesValidator::validateImpl() {
 
 Status InsertVerticesValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    auto *doNode = InsertVertices::make(plan,
+    auto *doNode = InsertVerticesNode::make(plan,
                                         validateContext_->whichSpace().id,
                                         vertices_,
                                         tagPropNames_,
@@ -157,7 +157,7 @@ Status InsertEdgesValidator::validateImpl() {
 
 Status InsertEdgesValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    auto *doNode = InsertEdges::make(plan,
+    auto *doNode = InsertEdgesNode::make(plan,
                                      validateContext_->whichSpace().id,
                                      edges_,
                                      propNames_,

@@ -12,7 +12,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> SwitchSpaceExecutor::execute() {
-    auto *spaceToNode = asNode<SwitchSpace>(node());
+    auto *spaceToNode = asNode<SwitchSpaceNode>(node());
     ectx()->rctx()->session()->setSpace(spaceToNode->getSpaceName(), spaceToNode->getSpaceId());
     LOG(INFO) << "Graph space switched to `" << spaceToNode->getSpaceName()
               << "', space id: " << spaceToNode->getSpaceId();

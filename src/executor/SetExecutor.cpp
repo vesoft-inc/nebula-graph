@@ -158,16 +158,16 @@ void SetExecutor::execute() {
 }
 
 void SetExecutor::doUnion() {
-    VLOG(3) << "Do Union.";
+    VLOG(3) << "Do UnionNode.";
     if (!leftResult_->hasData()) {
-        VLOG(3) << "Union has right result.";
+        VLOG(3) << "UnionNode has right result.";
         rightResult_->setColNames(std::move(colNames_));
         finishExecution(std::move(rightResult_));
         return;
     }
 
     if (!rightResult_->hasData()) {
-        VLOG(3) << "Union has left result.";
+        VLOG(3) << "UnionNode has left result.";
         finishExecution(std::move(leftResult_));
         return;
     }
@@ -322,15 +322,15 @@ void SetExecutor::doIntersect() {
 }
 
 void SetExecutor::doMinus() {
-    VLOG(3) << "Do Minus.";
+    VLOG(3) << "Do MinusNode.";
     if (!leftResult_->hasData()) {
-        VLOG(3) << "Minus has only right result.";
+        VLOG(3) << "MinusNode has only right result.";
         onEmptyInputs();
         return;
     }
 
     if (!rightResult_->hasData()) {
-        VLOG(3) << "Minus has left result.";
+        VLOG(3) << "MinusNode has left result.";
         finishExecution(std::move(leftResult_));
         return;
     }

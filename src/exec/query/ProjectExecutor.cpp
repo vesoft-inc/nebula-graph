@@ -16,7 +16,7 @@ folly::Future<Status> ProjectExecutor::execute() {
     return SingleInputExecutor::execute().then(cb([this](Status s) {
         if (!s.ok()) return error(std::move(s));
         dumpLog();
-        auto *project = asNode<Project>(node());
+        auto *project = asNode<ProjectNode>(node());
         auto columns = project->columns();
         UNUSED(columns);
         return start();

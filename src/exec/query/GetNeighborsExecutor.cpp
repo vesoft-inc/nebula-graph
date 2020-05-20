@@ -35,7 +35,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 }
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
-    const GetNeighbors* gn = asNode<GetNeighbors>(node());
+    const GetNeighborsNode* gn = asNode<GetNeighborsNode>(node());
     Expression* srcExpr = gn->src();
     Value value = srcExpr->eval();
     // TODO(yee): compute starting point

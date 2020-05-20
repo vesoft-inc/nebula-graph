@@ -182,7 +182,7 @@ void UpdateVertexExecutor::finishExecution(storage::cpp2::UpdateResponse &&rpcRe
 
 
 void UpdateVertexExecutor::execute() {
-    FLOG_INFO("Executing UpdateVertex: %s", sentence_->toString().c_str());
+    FLOG_INFO("Executing UpdateVertexNode: %s", sentence_->toString().c_str());
     std::string filterStr = filter_ ? Expression::encode(filter_) : "";
     auto returns = getReturnColumns();
     auto future = ectx()->getStorageClient()->updateVertex(spaceId_,

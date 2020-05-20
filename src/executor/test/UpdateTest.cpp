@@ -29,7 +29,7 @@ protected:
 };
 
 
-TEST_F(UpdateTest, UpdateVertex) {
+TEST_F(UpdateTest, UpdateVertexNode) {
     // INSERT VERTEX course(name, credits), building(name) VALUES 101:("Math", 3, "No5");
     {   // OnlySet
         cpp2::ExecutionResponse resp;

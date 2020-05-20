@@ -67,10 +67,10 @@ protected:
 TEST_F(ExecutionPlanTest, TestSimplePlan) {
     auto start = StartNode::make(plan_.get());
     Expression* expr = nullptr;
-    auto filter = Filter::make(plan_.get(), start, expr);
-    auto dedup = Dedup::make(plan_.get(), filter, nullptr);
+    auto filter = FilterNode::make(plan_.get(), start, expr);
+    auto dedup = DedupNode::make(plan_.get(), filter, nullptr);
     YieldColumns* cols = nullptr;
-    auto proj = Project::make(plan_.get(), dedup, cols);
+    auto proj = ProjectNode::make(plan_.get(), dedup, cols);
     plan_->setRoot(proj);
 
     run();
@@ -79,11 +79,11 @@ TEST_F(ExecutionPlanTest, TestSimplePlan) {
 TEST_F(ExecutionPlanTest, TestSelect) {
     auto start = StartNode::make(plan_.get());
     auto thenStart = StartNode::make(plan_.get());
-    auto filter = Filter::make(plan_.get(), thenStart, nullptr);
+    auto filter = FilterNode::make(plan_.get(), thenStart, nullptr);
     auto elseStart = StartNode::make(plan_.get());
-    auto project = Project::make(plan_.get(), elseStart, nullptr);
-    auto select = Selector::make(plan_.get(), start, filter, project, nullptr);
-    auto output = Project::make(plan_.get(), select, nullptr);
+    auto project = ProjectNode::make(plan_.get(), elseStart, nullptr);
+    auto select = SelectorNode::make(plan_.get(), start, filter, project, nullptr);
+    auto output = ProjectNode::make(plan_.get(), select, nullptr);
 
     plan_->setRoot(output);
 
@@ -93,9 +93,9 @@ TEST_F(ExecutionPlanTest, TestSelect) {
 TEST_F(ExecutionPlanTest, TestLoopPlan) {
     auto start = StartNode::make(plan_.get());
     auto bodyStart = StartNode::make(plan_.get());
-    auto filter = Filter::make(plan_.get(), bodyStart, nullptr);
-    auto loop = Loop::make(plan_.get(), start, filter, nullptr);
-    auto project = Project::make(plan_.get(), loop, nullptr);
+    auto filter = FilterNode::make(plan_.get(), bodyStart, nullptr);
+    auto loop = LoopNode::make(plan_.get(), start, filter, nullptr);
+    auto project = ProjectNode::make(plan_.get(), loop, nullptr);
 
     plan_->setRoot(project);
 
@@ -105,10 +105,10 @@ TEST_F(ExecutionPlanTest, TestLoopPlan) {
 TEST_F(ExecutionPlanTest, TestMutiOutputs) {
     auto start = StartNode::make(plan_.get());
     auto mout = MultiOutputsNode::make(plan_.get(), start);
-    auto filter = Filter::make(plan_.get(), mout, nullptr);
-    auto project = Project::make(plan_.get(), mout, nullptr);
-    auto uni = Union::make(plan_.get(), filter, project);
-    auto output = Project::make(plan_.get(), uni, nullptr);
+    auto filter = FilterNode::make(plan_.get(), mout, nullptr);
+    auto project = ProjectNode::make(plan_.get(), mout, nullptr);
+    auto uni = UnionNode::make(plan_.get(), filter, project);
+    auto output = ProjectNode::make(plan_.get(), uni, nullptr);
 
     plan_->setRoot(output);
 
@@ -118,13 +118,13 @@ TEST_F(ExecutionPlanTest, TestMutiOutputs) {
 TEST_F(ExecutionPlanTest, TestMutiOutputsInLoop) {
     auto loopStart = StartNode::make(plan_.get());
     auto mout = MultiOutputsNode::make(plan_.get(), loopStart);
-    auto filter = Filter::make(plan_.get(), mout, nullptr);
-    auto project = Project::make(plan_.get(), mout, nullptr);
-    auto uni = Union::make(plan_.get(), filter, project);
-    auto loopEnd = Project::make(plan_.get(), uni, nullptr);
+    auto filter = FilterNode::make(plan_.get(), mout, nullptr);
+    auto project = ProjectNode::make(plan_.get(), mout, nullptr);
+    auto uni = UnionNode::make(plan_.get(), filter, project);
+    auto loopEnd = ProjectNode::make(plan_.get(), uni, nullptr);
     auto start = StartNode::make(plan_.get());
-    auto loop = Loop::make(plan_.get(), start, loopEnd, nullptr);
-    auto end = Project::make(plan_.get(), loop, nullptr);
+    auto loop = LoopNode::make(plan_.get(), start, loopEnd, nullptr);
+    auto end = ProjectNode::make(plan_.get(), loop, nullptr);
 
     plan_->setRoot(end);
 

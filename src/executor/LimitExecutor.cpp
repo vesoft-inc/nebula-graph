@@ -30,7 +30,7 @@ Status LimitExecutor::prepare() {
 
 
 void LimitExecutor::execute() {
-    FLOG_INFO("Executing Limit: %s", sentence_->toString().c_str());
+    FLOG_INFO("Executing LimitNode: %s", sentence_->toString().c_str());
     if (inputs_ == nullptr || !inputs_->hasData() || count_ == 0) {
         onEmptyInputs();
         return;

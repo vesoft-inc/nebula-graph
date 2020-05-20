@@ -20,7 +20,7 @@ folly::Future<Status> InsertVerticesExecutor::execute() {
 folly::Future<Status> InsertVerticesExecutor::insertVertices() {
     dumpLog();
 
-    auto *ivNode = asNode<InsertVertices>(node());
+    auto *ivNode = asNode<InsertVerticesNode>(node());
     return ectx()->getStorageClient()->addVertices(ivNode->space(),
             ivNode->getVertices(), ivNode->getPropNames(), ivNode->getOverwritable())
         .via(runner())

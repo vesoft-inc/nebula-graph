@@ -17,6 +17,10 @@
 #include "base/Status.h"
 #include "cpp/helpers.h"
 #include "datatypes/Value.h"
+#include "planner/Query.h"
+#include "planner/Maintain.h"
+#include "planner/Mutate.h"
+#include "planner/Admin.h"
 
 namespace nebula {
 namespace graph {
@@ -84,11 +88,44 @@ public:
         return Callback<Fn>(this, std::forward<Fn>(f));
     }
 
-    template <typename T>
-    static std::enable_if_t<std::is_base_of<PlanNode, T>::value, const T *> asNode(
-        const PlanNode *node) {
-        return static_cast<const T *>(node);
+#define NODE_DOWN_TRANSITION(node) \
+    template <typename T> \
+    static std::enable_if_t<std::is_same<node##Node, T>::value, const T *> \
+    asNode(const PlanNode* from) { \
+        CHECK_EQ(from->kind(), PlanNode::Kind::k##node); \
+        return static_cast<const node##Node *>(from); \
     }
+
+    NODE_DOWN_TRANSITION(Start)
+    NODE_DOWN_TRANSITION(End)
+    NODE_DOWN_TRANSITION(GetNeighbors)
+    NODE_DOWN_TRANSITION(GetVertices)
+    NODE_DOWN_TRANSITION(GetEdges)
+    NODE_DOWN_TRANSITION(ReadIndex)
+    NODE_DOWN_TRANSITION(Filter)
+    NODE_DOWN_TRANSITION(Union)
+    NODE_DOWN_TRANSITION(Intersect)
+    NODE_DOWN_TRANSITION(Minus)
+    NODE_DOWN_TRANSITION(Project)
+    NODE_DOWN_TRANSITION(Sort)
+    NODE_DOWN_TRANSITION(Limit)
+    NODE_DOWN_TRANSITION(Aggregate)
+    NODE_DOWN_TRANSITION(Selector)
+    NODE_DOWN_TRANSITION(Loop)
+    NODE_DOWN_TRANSITION(SwitchSpace)
+    NODE_DOWN_TRANSITION(Dedup)
+    NODE_DOWN_TRANSITION(MultiOutputs)
+    NODE_DOWN_TRANSITION(CreateSpace)
+    NODE_DOWN_TRANSITION(CreateTag)
+    NODE_DOWN_TRANSITION(CreateEdge)
+    NODE_DOWN_TRANSITION(DescSpace)
+    NODE_DOWN_TRANSITION(DescTag)
+    NODE_DOWN_TRANSITION(DescEdge)
+    NODE_DOWN_TRANSITION(InsertVertices)
+    NODE_DOWN_TRANSITION(InsertEdges)
+
+#undef NODE_DOWN_TRANSITION
+
 
 protected:
     // Only allow derived executor to construct

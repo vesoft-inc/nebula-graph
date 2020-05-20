@@ -37,6 +37,22 @@ private:
     }
 };
 
+
+class EndNode final : public PlanNode {
+public:
+    static EndNode* make(ExecutionPlan* plan) {
+        return new EndNode(plan);
+    }
+
+    std::string explain() const override {
+        return "End";
+    }
+
+private:
+    explicit EndNode(ExecutionPlan* plan) : PlanNode(plan, Kind::kEnd) {
+    }
+};
+
 class SingleInputNode : public PlanNode {
 public:
     PlanNode* input() const {
@@ -113,10 +129,10 @@ private:
 
 /**
  * Now we hava four kind of exploration nodes:
- *  GetNeighbors,
- *  GetVertices,
- *  GetEdges,
- *  ReadIndex
+ *  GetNeighborsNode,
+ *  GetVerticesNode,
+ *  GetEdgesNode,
+ *  ReadIndexNode
  */
 class Explore : public SingleInputNode {
 public:
@@ -170,9 +186,9 @@ protected:
 /**
  * Get neighbors' property
  */
-class GetNeighbors final : public Explore {
+class GetNeighborsNode final : public Explore {
 public:
-    static GetNeighbors* make(ExecutionPlan* plan,
+    static GetNeighborsNode* make(ExecutionPlan* plan,
                               PlanNode* input,
                               GraphSpaceID space,
                               std::vector<Row> vertices,
@@ -186,7 +202,7 @@ public:
                               std::vector<storage::cpp2::OrderBy> orderBy = {},
                               int64_t limit = std::numeric_limits<int64_t>::max(),
                               std::string filter = "") {
-        return new GetNeighbors(
+        return new GetNeighborsNode(
                 plan,
                 input,
                 space,
@@ -234,7 +250,7 @@ public:
     }
 
 private:
-    GetNeighbors(ExecutionPlan* plan,
+    GetNeighborsNode(ExecutionPlan* plan,
                  PlanNode* input,
                  GraphSpaceID space,
                  std::vector<Row> vertices,
@@ -280,9 +296,9 @@ private:
 /**
  * Get property with given vertex keys.
  */
-class GetVertices final : public Explore {
+class GetVerticesNode final : public Explore {
 public:
-    static GetVertices* make(ExecutionPlan* plan,
+    static GetVerticesNode* make(ExecutionPlan* plan,
                              PlanNode* input,
                              GraphSpaceID space,
                              std::vector<Row> vertices,
@@ -292,7 +308,7 @@ public:
                              std::vector<storage::cpp2::OrderBy> orderBy = {},
                              int64_t limit = std::numeric_limits<int64_t>::max(),
                              std::string filter = "") {
-        return new GetVertices(
+        return new GetVerticesNode(
                 plan,
                 input,
                 space,
@@ -320,7 +336,7 @@ public:
     }
 
 private:
-    GetVertices(ExecutionPlan* plan,
+    GetVerticesNode(ExecutionPlan* plan,
                 PlanNode* input,
                 GraphSpaceID space,
                 std::vector<Row> vertices,
@@ -355,9 +371,9 @@ private:
 /**
  * Get property with given edge keys.
  */
-class GetEdges final : public Explore {
+class GetEdgesNode final : public Explore {
 public:
-    static GetEdges* make(ExecutionPlan* plan,
+    static GetEdgesNode* make(ExecutionPlan* plan,
                           PlanNode* input,
                           GraphSpaceID space,
                           std::vector<Row> edges,
@@ -369,7 +385,7 @@ public:
                           int64_t limit = std::numeric_limits<int64_t>::max(),
                           std::vector<storage::cpp2::OrderBy> orderBy = {},
                           std::string filter = "") {
-        return new GetEdges(
+        return new GetEdgesNode(
                 plan,
                 input,
                 space,
@@ -407,7 +423,7 @@ public:
     }
 
 private:
-    GetEdges(ExecutionPlan* plan,
+    GetEdgesNode(ExecutionPlan* plan,
              PlanNode* input,
              GraphSpaceID space,
              std::vector<Row> edges,
@@ -448,23 +464,23 @@ private:
 /**
  * Read data through the index.
  */
-class ReadIndex final : public Explore {
+class ReadIndexNode final : public Explore {
 public:
-    ReadIndex(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
+    ReadIndexNode(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
         : Explore(plan, Kind::kReadIndex, input, space) {}
 
     std::string explain() const override;
 };
 
 /**
- * A Filter node helps filt some records with condition.
+ * A FilterNode node helps filt some records with condition.
  */
-class Filter final : public SingleInputNode {
+class FilterNode final : public SingleInputNode {
 public:
-    static Filter* make(ExecutionPlan* plan,
+    static FilterNode* make(ExecutionPlan* plan,
                         PlanNode* input,
                         Expression* condition) {
-        return new Filter(plan, input, condition);
+        return new FilterNode(plan, input, condition);
     }
 
     const Expression* condition() const {
@@ -474,7 +490,7 @@ public:
     std::string explain() const override;
 
 private:
-    Filter(ExecutionPlan* plan, PlanNode* input, Expression* condition)
+    FilterNode(ExecutionPlan* plan, PlanNode* input, Expression* condition)
       : SingleInputNode(plan, Kind::kFilter, input) {
         condition_ = condition;
     }
@@ -500,60 +516,60 @@ protected:
 /**
  * Combine two set of records.
  */
-class Union final : public SetOp {
+class UnionNode final : public SetOp {
 public:
-    static Union* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
-        return new Union(plan, left, right);
+    static UnionNode* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
+        return new UnionNode(plan, left, right);
     }
 
     std::string explain() const override;
 
 private:
-    Union(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
+    UnionNode(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
         : SetOp(plan, Kind::kUnion, left, right) {}
 };
 
 /**
  * Return the intersected records between two sets.
  */
-class Intersect final : public SetOp {
+class IntersectNode final : public SetOp {
 public:
-    static Intersect* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
-        return new Intersect(plan, left, right);
+    static IntersectNode* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
+        return new IntersectNode(plan, left, right);
     }
 
     std::string explain() const override;
 
 private:
-    Intersect(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
+    IntersectNode(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
         : SetOp(plan, Kind::kIntersect, left, right) {}
 };
 
 /**
  * Do subtraction between two sets.
  */
-class Minus final : public SetOp {
+class MinusNode final : public SetOp {
 public:
-    static Minus* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
-        return new Minus(plan, left, right);
+    static MinusNode* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
+        return new MinusNode(plan, left, right);
     }
 
     std::string explain() const override;
 
 private:
-    Minus(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
+    MinusNode(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
         : SetOp(plan, Kind::kMinus, left, right) {}
 };
 
 /**
- * Project is used to specify output vars or field.
+ * ProjectNode is used to specify output vars or field.
  */
-class Project final : public SingleInputNode {
+class ProjectNode final : public SingleInputNode {
 public:
-    static Project* make(ExecutionPlan* plan,
+    static ProjectNode* make(ExecutionPlan* plan,
                          PlanNode* input,
                          YieldColumns* cols) {
-        return new Project(plan, input, cols);
+        return new ProjectNode(plan, input, cols);
     }
 
     std::string explain() const override;
@@ -563,7 +579,7 @@ public:
     }
 
 private:
-    Project(ExecutionPlan* plan, PlanNode* input, YieldColumns* cols)
+    ProjectNode(ExecutionPlan* plan, PlanNode* input, YieldColumns* cols)
       : SingleInputNode(plan, Kind::kProject, input) {
         cols_ = cols;
     }
@@ -573,14 +589,14 @@ private:
 };
 
 /**
- * Sort the given record set.
+ * SortNode the given record set.
  */
-class Sort final : public SingleInputNode {
+class SortNode final : public SingleInputNode {
 public:
-    static Sort* make(ExecutionPlan* plan,
+    static SortNode* make(ExecutionPlan* plan,
                       PlanNode* input,
                       OrderFactors* factors) {
-        return new Sort(plan, input, factors);
+        return new SortNode(plan, input, factors);
     }
 
     const OrderFactors* factors() {
@@ -590,7 +606,7 @@ public:
     std::string explain() const override;
 
 private:
-    Sort(ExecutionPlan* plan, PlanNode* input, OrderFactors* factors)
+    SortNode(ExecutionPlan* plan, PlanNode* input, OrderFactors* factors)
       : SingleInputNode(plan, Kind::kSort, input) {
         factors_ = factors;
     }
@@ -602,13 +618,13 @@ private:
 /**
  * Output the records with the given limitation.
  */
-class Limit final : public SingleInputNode {
+class LimitNode final : public SingleInputNode {
 public:
-    static Limit* make(ExecutionPlan* plan,
+    static LimitNode* make(ExecutionPlan* plan,
                        PlanNode* input,
                        int64_t offset,
                        int64_t count) {
-        return new Limit(plan, input, offset, count);
+        return new LimitNode(plan, input, offset, count);
     }
 
     int64_t offset() const {
@@ -622,7 +638,7 @@ public:
     std::string explain() const override;
 
 private:
-    Limit(ExecutionPlan* plan, PlanNode* input, int64_t offset, int64_t count)
+    LimitNode(ExecutionPlan* plan, PlanNode* input, int64_t offset, int64_t count)
         : SingleInputNode(plan, Kind::kLimit, input) {
         offset_ = offset;
         count_ = count;
@@ -637,12 +653,12 @@ private:
  * Do Aggregation with the given set of records,
  * such as AVG(), COUNT()...
  */
-class Aggregate : public SingleInputNode {
+class AggregateNode : public SingleInputNode {
 public:
-    static Aggregate* make(ExecutionPlan* plan,
+    static AggregateNode* make(ExecutionPlan* plan,
                            PlanNode* input,
                            YieldColumns* groupCols) {
-        return new Aggregate(plan, input, groupCols);
+        return new AggregateNode(plan, input, groupCols);
     }
 
     const YieldColumns* groups() const {
@@ -652,7 +668,7 @@ public:
     std::string explain() const override;
 
 private:
-    Aggregate(ExecutionPlan* plan, PlanNode* input, YieldColumns* groupCols)
+    AggregateNode(ExecutionPlan* plan, PlanNode* input, YieldColumns* groupCols)
         : SingleInputNode(plan, Kind::kAggregate, input) {
         groupCols_ = groupCols;
     }
@@ -674,14 +690,14 @@ protected:
     Expression*  condition_{nullptr};
 };
 
-class Selector : public BinarySelect {
+class SelectorNode : public BinarySelect {
 public:
-    static Selector* make(ExecutionPlan* plan,
+    static SelectorNode* make(ExecutionPlan* plan,
                           PlanNode* input,
                           PlanNode* ifBranch,
                           PlanNode* elseBranch,
                           Expression* condition) {
-        return new Selector(plan, input, ifBranch, elseBranch, condition);
+        return new SelectorNode(plan, input, ifBranch, elseBranch, condition);
     }
 
     void setIf(PlanNode* ifBranch) {
@@ -703,7 +719,7 @@ public:
     }
 
 private:
-    Selector(ExecutionPlan* plan,
+    SelectorNode(ExecutionPlan* plan,
              PlanNode* input,
              PlanNode* ifBranch,
              PlanNode* elseBranch,
@@ -718,13 +734,13 @@ private:
     PlanNode*   else_{nullptr};
 };
 
-class Loop : public BinarySelect {
+class LoopNode : public BinarySelect {
 public:
-    static Loop* make(ExecutionPlan* plan,
+    static LoopNode* make(ExecutionPlan* plan,
                       PlanNode* input,
                       PlanNode* body,
                       Expression* condition) {
-        return new Loop(plan, input, body, condition);
+        return new LoopNode(plan, input, body, condition);
     }
 
     void setBody(PlanNode* body) {
@@ -738,18 +754,18 @@ public:
     }
 
 private:
-    Loop(ExecutionPlan* plan, PlanNode* input, PlanNode* body, Expression* condition);
+    LoopNode(ExecutionPlan* plan, PlanNode* input, PlanNode* body, Expression* condition);
 
     PlanNode*   body_{nullptr};
 };
 
-class SwitchSpace : public SingleInputNode {
+class SwitchSpaceNode : public SingleInputNode {
 public:
-    static SwitchSpace* make(ExecutionPlan* plan,
+    static SwitchSpaceNode* make(ExecutionPlan* plan,
                                         PlanNode* input,
                                         std::string spaceName,
                                         GraphSpaceID spaceId) {
-        return new SwitchSpace(plan, input, spaceName, spaceId);
+        return new SwitchSpaceNode(plan, input, spaceName, spaceId);
     }
 
     const std::string& getSpaceName() const {
@@ -763,7 +779,7 @@ public:
     std::string explain() const override;
 
 private:
-    SwitchSpace(ExecutionPlan* plan,
+    SwitchSpaceNode(ExecutionPlan* plan,
                            PlanNode* input,
                            std::string spaceName,
                            GraphSpaceID spaceId)
@@ -777,12 +793,12 @@ private:
     GraphSpaceID    spaceId_{-1};
 };
 
-class Dedup : public SingleInputNode {
+class DedupNode : public SingleInputNode {
 public:
-    static Dedup* make(ExecutionPlan* plan,
+    static DedupNode* make(ExecutionPlan* plan,
                        PlanNode* input,
                        Expression* expr) {
-        return new Dedup(plan, input, expr);
+        return new DedupNode(plan, input, expr);
     }
 
     void setExpr(Expression* expr) {
@@ -792,7 +808,7 @@ public:
     std::string explain() const override;
 
 private:
-    Dedup(ExecutionPlan* plan, PlanNode* input, Expression* expr)
+    DedupNode(ExecutionPlan* plan, PlanNode* input, Expression* expr)
         : SingleInputNode(plan, Kind::kDedup, input) {
         expr_ = expr;
     }

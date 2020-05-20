@@ -36,10 +36,10 @@ Status SetValidator::toPlan() {
     auto* plan = validateContext_->plan();
     switch (op_) {
         case SetSentence::Operator::UNION: {
-            auto unionOp = Union::make(
+            auto unionOp = UnionNode::make(
                     plan, lValidator_->root(), rValidator_->root());
             if (distinct_) {
-                auto dedup = Dedup::make(
+                auto dedup = DedupNode::make(
                         plan,
                         lValidator_->root(),
                         nullptr/* TODO: build condition*/);
@@ -50,14 +50,14 @@ Status SetValidator::toPlan() {
             break;
         }
         case SetSentence::Operator::INTERSECT: {
-            root_ = Intersect::make(
+            root_ = IntersectNode::make(
                     plan,
                     lValidator_->root(),
                     rValidator_->root());
             break;
         }
         case SetSentence::Operator::MINUS: {
-            root_ = Minus::make(
+            root_ = MinusNode::make(
                     plan,
                     lValidator_->root(),
                     rValidator_->root());

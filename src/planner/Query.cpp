@@ -12,86 +12,86 @@ using folly::stringPrintf;
 
 namespace nebula {
 namespace graph {
-std::string GetNeighbors::explain() const {
+std::string GetNeighborsNode::explain() const {
     // TODO:
-    return "GetNeighbors";
+    return "GetNeighborsNode";
 }
 
-std::string GetVertices::explain() const {
+std::string GetVerticesNode::explain() const {
     // TODO:
-    return "GetVertices";
+    return "GetVerticesNode";
 }
 
-std::string GetEdges::explain() const {
+std::string GetEdgesNode::explain() const {
     // TODO:
-    return "GetEdges";
+    return "GetEdgesNode";
 }
 
-std::string ReadIndex::explain() const {
+std::string ReadIndexNode::explain() const {
     // TODO:
-    return "ReadIndex";
+    return "ReadIndexNode";
 }
 
-std::string Filter::explain() const {
+std::string FilterNode::explain() const {
     // TODO:
-    return "Filter";
+    return "FilterNode";
 }
 
-std::string Union::explain() const {
+std::string UnionNode::explain() const {
     // TODO:
-    return "Union";
+    return "UnionNode";
 }
 
-std::string Intersect::explain() const {
+std::string IntersectNode::explain() const {
     // TODO:
-    return "Intersect";
+    return "IntersectNode";
 }
 
-std::string Minus::explain() const {
+std::string MinusNode::explain() const {
     // TODO:
-    return "Minus";
+    return "MinusNode";
 }
 
-std::string Project::explain() const {
+std::string ProjectNode::explain() const {
     // TODO:
-    return "Project";
+    return "ProjectNode";
 }
 
-std::string Sort::explain() const {
+std::string SortNode::explain() const {
     // TODO:
-    return "Sort";
+    return "SortNode";
 }
 
-std::string Limit::explain() const {
+std::string LimitNode::explain() const {
     std::string buf;
     buf.reserve(256);
-    buf += "Limit: ";
+    buf += "LimitNode: ";
     buf += folly::stringPrintf("offset %ld, count %ld", offset_, count_);
     return buf;
 }
 
-std::string Aggregate::explain() const {
+std::string AggregateNode::explain() const {
     // TODO:
-    return "Aggregate";
+    return "AggregateNode";
 }
 
-std::string Selector::explain() const {
-    return "Selector";
+std::string SelectorNode::explain() const {
+    return "SelectorNode";
 }
 
-Loop::Loop(ExecutionPlan* plan, PlanNode* input, PlanNode* body, Expression* condition)
+LoopNode::LoopNode(ExecutionPlan* plan, PlanNode* input, PlanNode* body, Expression* condition)
     : BinarySelect(plan, Kind::kLoop, input, condition), body_(body) {}
 
-std::string Loop::explain() const {
-    return "Loop";
+std::string LoopNode::explain() const {
+    return "LoopNode";
 }
 
-std::string SwitchSpace::explain() const {
-    return "SwitchSpace";
+std::string SwitchSpaceNode::explain() const {
+    return "SwitchSpaceNode";
 }
 
-std::string Dedup::explain() const {
-    return "Dedup";
+std::string DedupNode::explain() const {
+    return "DedupNode";
 }
 }  // namespace graph
 }  // namespace nebula

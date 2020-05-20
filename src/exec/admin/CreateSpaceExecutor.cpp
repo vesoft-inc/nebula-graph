@@ -18,7 +18,7 @@ folly::Future<Status> CreateSpaceExecutor::execute() {
 folly::Future<Status> CreateSpaceExecutor::createSpace() {
     dumpLog();
 
-    auto *csNode = asNode<CreateSpace>(node());
+    auto *csNode = asNode<CreateSpaceNode>(node());
     return ectx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
         .via(runner())
         .then([](StatusOr<bool> resp) {
