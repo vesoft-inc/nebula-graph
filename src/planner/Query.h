@@ -58,6 +58,8 @@ protected:
     }
 
     PlanNode* input_{nullptr};
+    // Datasource for this node.
+    std::string inputVar_;
 };
 
 class BiInputNode : public PlanNode {
@@ -91,6 +93,9 @@ protected:
 
     PlanNode* left_{nullptr};
     PlanNode* right_{nullptr};
+    // Datasource for this node.
+    std::string leftVar_;
+    std::string rightVar_;
 };
 
 /**

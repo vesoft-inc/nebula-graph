@@ -15,7 +15,7 @@ TEST(ExpressionContextTest, GetVar) {
     qctx.setValue("v1", 10);
     qctx.setValue("v2", "Hello world");
 
-    graph::ExpressionContextImpl ectx(&qctx);
+    graph::ExpressionContextImpl ectx(&qctx, "");
     EXPECT_EQ(Value(10), ectx.getVar("v1"));
     EXPECT_EQ(Value("Hello world"), ectx.getVar("v2"));
 
