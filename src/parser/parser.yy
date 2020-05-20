@@ -1923,6 +1923,7 @@ host_item
     : STRING COLON port {
         $$ = new nebula::HostAddr();
         $$->host = std::move(*$1);
+        delete $1;
         $$->port = $3;
     }
 
