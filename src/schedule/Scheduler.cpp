@@ -129,7 +129,7 @@ folly::Future<Status> Scheduler::schedule(const std::set<Executor *> &dependents
         futures.emplace_back(schedule(dep));
     }
     return folly::collect(futures).then([](std::vector<Status> stats) {
-        for (auto s : stats) {
+        for (auto &s : stats) {
             if (!s.ok()) return s;
         }
         return Status::OK();
