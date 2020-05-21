@@ -27,7 +27,7 @@ void Scheduler::analyze(Executor *executor) {
             const auto &name = executor->node()->varName();
             auto it = multiOutputPromiseMap_.find(name);
             if (it == multiOutputPromiseMap_.end()) {
-                MultiOutputData data(executor->successors().size());
+                MultiOutputsData data(executor->successors().size());
                 multiOutputPromiseMap_.emplace(name, std::move(data));
             }
             break;

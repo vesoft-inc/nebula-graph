@@ -70,16 +70,16 @@ private:
 
     ExecutionContext *ectx_;
 
-    struct MultiOutputData {
+    struct MultiOutputsData {
         folly::SpinLock lock;
         std::unique_ptr<folly::SharedPromise<Status>> promise;
         int32_t numOutputs;
 
-        explicit MultiOutputData(int32_t outputs)
+        explicit MultiOutputsData(int32_t outputs)
             : promise(std::make_unique<folly::SharedPromise<Status>>()), numOutputs(outputs) {}
     };
 
-    std::unordered_map<std::string, MultiOutputData> multiOutputPromiseMap_;
+    std::unordered_map<std::string, MultiOutputsData> multiOutputPromiseMap_;
 };
 
 }   // namespace graph
