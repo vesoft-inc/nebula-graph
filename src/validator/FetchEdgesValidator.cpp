@@ -34,7 +34,7 @@ Status FetchEdgesValidator::validateImpl() {
 }
 
 Status FetchEdgesValidator::toPlan() {
-    // Start [-> some input] -> GetEdges [-> DeDup] -> Project [-> next stage] -> End
+    // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
     auto *plan = validateContext_->plan();
     auto *doNode = GetEdges::make(plan,
                                   root_,  // previous root as input
@@ -50,12 +50,16 @@ Status FetchEdgesValidator::toPlan() {
                                   std::move(orderBy_),
                                   std::move(filter_));
     auto *current = doNode;
+    if (sentence_->yieldClause() != nullptr) {
+        auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yieldColumns());
+        current = projectNode;
+    }
+    // Project select the properties then dedup
     if (dedup_) {
         auto *dedupNode = Dedup::make(plan, current, nullptr);
         current = dedupNode;
     }
-    auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yieldColumns());
-    root_ = projectNode;
+    root_ = current;
     tail_ = doNode;
     return Status::OK();
 }
