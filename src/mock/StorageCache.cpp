@@ -701,16 +701,16 @@ StatusOr<std::unordered_map<std::string, Value>>
 StorageCache::getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> schema,
                               const std::vector<Value>& props,
                               const std::vector<std::string> &names) {
+    std::unordered_map<std::string, Value> propertyInfo;
     auto number = schema->getNumFields();
     if (number == 0 && props.size() == 0) {
-        return {};
+        return propertyInfo;
     }
     if (number == 0 && props.size() != 0) {
         return Status::Error("Wrong value about empty schema");
     }
 
     std::bitset<32> indexBitSet;
-    std::unordered_map<std::string, Value> propertyInfo;
     auto index = 0u;
     for (auto &item : names) {
         auto filed = schema->field(item);

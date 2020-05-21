@@ -65,7 +65,16 @@ std::unique_ptr<GraphClient> DeleteTest::client_{nullptr};
     }
     {
         cpp2::ExecutionResponse resp;
-        std::string cmd = "CREATE EDGE like(likeness double)";
+        std::string cmd = "CREATE TAG person();";
+        auto code = client_->execute(cmd, resp);
+        if (cpp2::ErrorCode::SUCCEEDED != code) {
+            return TestError() << "Do cmd:" << cmd
+                               << " failed, error code " << static_cast<int32_t>(code);
+        }
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string cmd = "CREATE EDGE like(likeness DOUBLE);";
         auto code = client_->execute(cmd, resp);
         if (cpp2::ErrorCode::SUCCEEDED != code) {
             return TestError() << "Do cmd:" << cmd
@@ -75,17 +84,18 @@ std::unique_ptr<GraphClient> DeleteTest::client_{nullptr};
     sleep(FLAGS_heartbeat_interval_secs + 1);
     {
         cpp2::ExecutionResponse resp;
-        std::string cmd = "INSERT EDGE like(likeness) VALUES \"A\" -> \"B\":(10.0)";
+        std::string cmd = "INSERT VERTEX person() VALUES \"A\":(), \"B\":(), "
+                          "\"C\":(), \"D\":(), \"E\":()";
         auto code = client_->execute(cmd, resp);
         if (cpp2::ErrorCode::SUCCEEDED != code) {
             return TestError() << "Do cmd:" << cmd
                                << " failed, error code " << static_cast<int32_t>(code);
         }
     }
-
     {
         cpp2::ExecutionResponse resp;
-        std::string cmd = "INSERT EDGE like(likeness) VALUES \"A\" -> \"C\":(20.0)";
+        std::string cmd = "INSERT EDGE like(likeness) VALUES \"A\" -> \"B\":(10.0), "
+                          "\"A\" -> \"C\":(20.0), \"D\" -> \"E\":(30.0), \"D\" -> \"F\":(30.0)";
         auto code = client_->execute(cmd, resp);
         if (cpp2::ErrorCode::SUCCEEDED != code) {
             return TestError() << "Do cmd:" << cmd
@@ -93,6 +103,31 @@ std::unique_ptr<GraphClient> DeleteTest::client_{nullptr};
         }
     }
     return TestOK();
+}
+
+TEST_F(DeleteTest, DISABLED_TestVertices) {
+    // Wrong type
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DELETE VERTEX 11";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::E_EXECUTION_ERROR, code);
+    }
+    // Delete one
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DELETE VERTEX \"C\"";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    // Delete multi
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DELETE VERTEX \"C\", \"B\"";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    // TODO(Laura): add pipe test
 }
 
 TEST_F(DeleteTest, TestEdges) {
@@ -109,6 +144,7 @@ TEST_F(DeleteTest, TestEdges) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
+    // TODO(Laura): add pipe test
 }
 
 }   // namespace graph

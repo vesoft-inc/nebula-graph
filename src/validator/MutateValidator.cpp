@@ -254,6 +254,7 @@ Status DeleteVerticesValidator::validateImpl() {
 Status DeleteVerticesValidator::toPlan() {
     auto spaceId = validateContext_->whichSpace().id;
     auto plan = validateContext_->plan();
+    // TODO(Laura): add planNode to get the start vertices
     auto *start = StartNode::make(plan);
     auto* getNeighbors = GetNeighbors::make(plan,
                                             start,
