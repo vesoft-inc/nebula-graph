@@ -4,9 +4,11 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 nebula_add_test(
-    NAME parser_fuzzer
-    FUZZER ON
-    SOURCES ParserFuzzer.cpp
-    OBJECTS ${PARSER_TEST_LIBS}
-    LIBRARIES ${THRIFT_LIBRARIES} wangle
+    NAME query_context_test
+    SOURCES QueryContextTest.cpp
+    OBJECTS
+        $<TARGET_OBJECTS:context_obj>
+        $<TARGET_OBJECTS:common_datatypes_obj>
+    LIBRARIES gtest
 )
+
