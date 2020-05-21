@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 #
 
-macro(add_dependent_project base name repo tag)
+macro(add_dependent_project base name repo tag sha)
 
 # Clone or update the repo
 if(EXISTS ${base}/${name}/.git)
@@ -18,7 +18,7 @@ else()
     message(STATUS "Cloning from the repo \"" ${repo} "\"")
     execute_process(
         COMMAND
-            ${GIT_EXECUTABLE} clone --depth 1 --progress --single-branch --branch ${tag} ${repo} ${base}/${name}
+            ${GIT_EXECUTABLE} clone --progress --single-branch --branch ${tag} ${repo} ${base}/${name}
         RESULT_VARIABLE clone_result
     )
 endif()
@@ -35,6 +35,15 @@ if(NOT ${clone_result} EQUAL 0)
         "\"")
 else()
     message(STATUS "Updated the repo from \"" ${repo} "\" (branch \"" ${tag} "\")")
+endif()
+
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} checkout ${sha}
+    WORKING_DIRECTORY ${base}/${name}
+    RESULT_VARIABLE co_result
+)
+if(NOT ${co_result} EQUAL 0)
+    message(FATAL_ERROR "Failed to checkout commit sha \"" ${sha} "\"")
 endif()
 
 # Configure the repo

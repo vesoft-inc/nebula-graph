@@ -15,6 +15,7 @@
 #
 #   NEBULA_COMMON_REPO_URL         -- Git URL for the nebula-common repo
 #   NEBULA_COMMON_REPO_TAG         -- Tag/branch of the nebula-common repo
+#   NEBULA_COMMON_REPO_SHA         -- commit sha of the nebula-common repo
 #
 #   ENABLE_JEMALLOC                -- Link jemalloc into all executables
 #   ENABLE_NATIVE                  -- Build native client
@@ -56,6 +57,10 @@ if("${NEBULA_COMMON_REPO_TAG}" STREQUAL "")
     SET(NEBULA_COMMON_REPO_TAG "master")
 endif()
 
+if("${NEBULA_COMMON_REPO_SHA}" STREQUAL "")
+    SET(NEBULA_COMMON_REPO_SHA "8db3ac30a60822aeadc9dc4916183466396e8bc6")
+endif()
+
 SET(NEBULA_COMMON_PACKAGE "nebula-common")
 SET(nebula-common_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules/common)
 
@@ -68,6 +73,7 @@ add_dependent_project(
     common
     ${NEBULA_COMMON_REPO_URL}
     ${NEBULA_COMMON_REPO_TAG}
+    ${NEBULA_COMMON_REPO_SHA}
 )
 find_package(${NEBULA_COMMON_PACKAGE} REQUIRED)
 message(STATUS ">>>>> The nebula-common repo has been configured successfully <<<<<")
