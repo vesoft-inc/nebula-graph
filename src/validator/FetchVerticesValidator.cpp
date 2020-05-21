@@ -34,7 +34,7 @@ Status FetchVerticesValidator::validateImpl() {
 }
 
 Status FetchVerticesValidator::toPlan() {
-    // Start [-> some input] -> GetVertices -> Project [-> next stage] -> End
+    // Start [-> some input] -> GetVertices [->DeDup] -> Project [-> next stage] -> End
     auto *plan = validateContext_->plan();
     auto *doNode = GetVertices::make(plan,
                                      root_,  // previous root as input
@@ -46,7 +46,12 @@ Status FetchVerticesValidator::toPlan() {
                                      std::move(orderBy_),
                                      limit_,
                                      std::move(filter_));
-    auto *projectNode = Project::make(plan, doNode, sentence_->yieldClause()->yieldColumns());
+    auto *current = doNode;
+    if (dedup_) {
+        auto *dedupNode = Dedup::make(plan, current, nullptr);
+        current = dedupNode;
+    }
+    auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yieldColumns());
     root_ = projectNode;
     tail_ = doNode;
     return Status::OK();
