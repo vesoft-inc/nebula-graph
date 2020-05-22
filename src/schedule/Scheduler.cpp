@@ -83,20 +83,16 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
             CHECK(it != multiOutputPromiseMap_.end());
 
             auto &data = it->second;
-            bool runnable = false;
-            {
-                folly::SpinLockGuard g(data.lock);
-                if (data.numOutputs == 0) {
-                    // Reset promise of output executors when it's in loop
-                    data.numOutputs = static_cast<int32_t>(mout->successors().size());
-                    data.promise = std::make_unique<folly::SharedPromise<Status>>();
-                }
 
-                data.numOutputs--;
-                runnable = data.numOutputs > 0;
+            folly::SpinLockGuard g(data.lock);
+            if (data.numOutputs == 0) {
+                // Reset promise of output executors when it's in loop
+                data.numOutputs = static_cast<int32_t>(mout->successors().size());
+                data.promise = std::make_unique<folly::SharedPromise<Status>>();
             }
 
-            if (!runnable) {
+            data.numOutputs--;
+            if (data.numOutputs > 0) {
                 return data.promise->getFuture();
             }
 
