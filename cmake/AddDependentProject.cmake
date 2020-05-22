@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-#
 
 macro(add_dependent_project base name repo tag sha)
 
@@ -17,8 +16,7 @@ if(EXISTS ${base}/${name}/.git)
 else()
     message(STATUS "Cloning from the repo \"" ${repo} "\"")
     execute_process(
-        COMMAND
-            ${GIT_EXECUTABLE} clone --progress --single-branch --branch ${tag} ${repo} ${base}/${name}
+        COMMAND ${GIT_EXECUTABLE} clone --progress --single-branch --branch ${tag} ${repo} ${base}/${name}
         RESULT_VARIABLE clone_result
     )
 endif()
