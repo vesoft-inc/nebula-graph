@@ -96,14 +96,14 @@ folly::Future<Status> Scheduler::schedule(Executor *executor) {
                 return data.promise->getFuture();
             }
 
-            return schedule(mout->depends()).then([&data, mout](Status status) {
+            return schedule(mout->depends()).then(task(mout, [&data, mout](Status status) {
                 // Notify and wake up all waited tasks
                 data.promise->setValue(status);
 
                 if (!status.ok()) return mout->error(std::move(status));
 
                 return mout->execute();
-            });
+            }));
         }
         default: {
             auto deps = executor->depends();
