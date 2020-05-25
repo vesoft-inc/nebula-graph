@@ -24,7 +24,69 @@ public:
     void TearDown() override {
         TestBase::TearDown();
     };
+
+    void addVertex(GraphSpaceID space,
+                   VertexID vertex,
+                   std::unordered_map<TagID, std::vector<std::string>> propNames,
+                   std::vector<Value> values,
+                   bool overwritable);
+
+    void addEdge(GraphSpaceID space,
+                 VertexID srcId,
+                 VertexID dstId,
+                 int64_t rank,
+                 EdgeType edgeType,
+                 std::vector<std::string> propNames,
+                 std::vector<Value> values,
+                 bool overwritable);
 };
+
+void MockServerTest::addVertex(GraphSpaceID space,
+                               VertexID id,
+                               std::unordered_map<TagID, std::vector<std::string>> propNames,
+                               std::vector<Value> values,
+                               bool overwritable) {
+    CHECK_GE(propNames.size(), 1);
+    auto storageClient = gEnv->getStorageClient();
+    storage::cpp2::NewTag tag;
+    tag.set_tag_id(propNames.begin()->first);
+    tag.set_props(std::move(values));
+    std::vector<storage::cpp2::NewTag> tags;
+    tags.emplace_back(tag);
+
+    storage::cpp2::NewVertex vertex;
+    vertex.set_id(std::move(id));
+    vertex.set_tags(std::move(tags));
+    std::vector<storage::cpp2::NewVertex> vertices;
+    vertices.emplace_back(std::move(vertex));
+
+    auto resp = storageClient->addVertices(space,
+            std::move(vertices), std::move(propNames), overwritable).get();
+    ASSERT_TRUE(resp.succeeded());
+}
+
+void MockServerTest::addEdge(GraphSpaceID space,
+                             VertexID srcId,
+                             VertexID dstId,
+                             int64_t rank,
+                             EdgeType edgeType,
+                             std::vector<std::string> propNames,
+                             std::vector<Value> values,
+                             bool overwritable) {
+    auto storageClient = gEnv->getStorageClient();
+    storage::cpp2::NewEdge edge;
+    storage::cpp2::EdgeKey edgeKey;
+    edgeKey.set_src(srcId);
+    edgeKey.set_edge_type(edgeType);
+    edgeKey.set_ranking(rank);
+    edgeKey.set_dst(dstId);
+    edge.set_key(edgeKey);
+    edge.set_props(std::move(values));
+    std::vector<storage::cpp2::NewEdge> edges;
+    edges.emplace_back(std::move(edge));
+    auto resp = storageClient->addEdges(space, edges, propNames, overwritable).get();
+    ASSERT_TRUE(resp.succeeded());
+}
 
 TEST_F(MockServerTest, TestMeta) {
     GraphSpaceID spaceId1 = 0;
@@ -198,25 +260,9 @@ TEST_F(MockServerTest, TestStorageGetVertices) {
         auto ret = metaClient->getTagIDByNameFromCache(1, "person");
         ASSERT_TRUE(ret.ok());
         auto tagId = ret.value();
-        GraphSpaceID space = 1;
-        std::vector<Value> props;
-        props.emplace_back("laura");
-        storage::cpp2::NewTag tag;
-        tag.set_tag_id(tagId);
-        tag.set_props(std::move(props));
-        std::vector<storage::cpp2::NewTag> tags;
-        tags.emplace_back(tag);
-
-        storage::cpp2::NewVertex vertex;
-        vertex.set_id("laura");
-        vertex.set_tags(std::move(tags));
-        std::vector<storage::cpp2::NewVertex> vertices;
-        vertices.emplace_back(std::move(vertex));
-
         std::unordered_map<TagID, std::vector<std::string>> propNames;
         propNames[tagId] = {"name"};
-        auto resp = storageClient->addVertices(space, vertices, propNames, false).get();
-        ASSERT_TRUE(resp.succeeded());
+        addVertex(1, "laura", std::move(propNames), {Value("laura")}, false);
     }
 
     // Get person.name
@@ -334,22 +380,7 @@ TEST_F(MockServerTest, TestStorageGetEdges) {
     GraphSpaceID space = 1;
     // Add edge
     {
-        std::vector<Value> props;
-        props.emplace_back(2012);
-        storage::cpp2::NewEdge edge;
-        storage::cpp2::EdgeKey edgeKey;
-        edgeKey.set_src("laura");
-        edgeKey.set_edge_type(edgeType);
-        edgeKey.set_ranking(1);
-        edgeKey.set_dst("laura");
-        edge.set_key(edgeKey);
-        edge.set_props(std::move(props));
-        std::vector<storage::cpp2::NewEdge> edges;
-        edges.emplace_back(std::move(edge));
-
-        std::vector<std::string> propNames = {"start"};
-        auto resp = storageClient->addEdges(space, edges, propNames, false).get();
-        ASSERT_TRUE(resp.succeeded());
+        addEdge(1, "laura", "laura", 1, edgeType, {"start"}, { Value(2012) }, false);
     }
 
     // Get edge.start
