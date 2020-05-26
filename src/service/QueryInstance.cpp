@@ -70,14 +70,12 @@ void QueryInstance::onFinish() {
     rctx->resp().set_latency_in_us(latency);
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
-    /*
-    auto& value = qctx()->ectx()->getValue(qctx()->plan()->root()->varName());
+    auto&& value = qctx()->ectx()->moveValue(qctx()->plan()->root()->varName());
     if (!value.empty()) {
         std::vector<DataSet> data;
         data.emplace_back(value.moveDataSet());
         rctx->resp().set_data(std::move(data));
     }
-    */
     rctx->finish();
 
     // The `QueryInstance' is the root node holding all resources during the execution.

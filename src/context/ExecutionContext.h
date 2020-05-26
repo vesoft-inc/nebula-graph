@@ -66,6 +66,10 @@ public:
         return value_;
     }
 
+    Value&& moveValue() {
+        return std::move(value_);
+    }
+
     Iterator& iter() const {
         return *iter_;
     }
@@ -84,6 +88,8 @@ public:
 
     // Get the latest version of the value
     const Value& getValue(const std::string& name) const;
+
+    Value&& moveValue(const std::string& name);
 
     const Result& getResult(const std::string& name) const;
 
