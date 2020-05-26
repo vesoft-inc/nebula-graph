@@ -49,11 +49,11 @@ endif()
 
 # Submodules
 if("${NEBULA_COMMON_REPO_URL}" STREQUAL "")
-    SET(NEBULA_COMMON_REPO_URL "git@github.com:vesoft-inc-private/nebula-common.git")
+    SET(NEBULA_COMMON_REPO_URL "git@github.com:laura-ding/nebula-common.git")
 endif()
 
 if("${NEBULA_COMMON_REPO_TAG}" STREQUAL "")
-    SET(NEBULA_COMMON_REPO_TAG "master")
+    SET(NEBULA_COMMON_REPO_TAG "fix_value")
 endif()
 
 SET(NEBULA_COMMON_PACKAGE "nebula-common")

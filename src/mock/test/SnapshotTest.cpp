@@ -59,12 +59,11 @@ TEST_F(SnapshotTest, TestAll) {
         auto code = client_->execute(cmd, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(resp.get_data()->size(), 1);
-        auto& snapshots = (*resp.get_data())[0];
+        auto snapshots = resp.get_data();
         std::vector<std::string> colNames = {"Name", "Status", "Hosts"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
-        ASSERT_EQ(1, snapshots.rows.size());
-        snapshotName.append(snapshots.rows[0].columns[0].getStr());
+        ASSERT_EQ(1, snapshots->rows.size());
+        snapshotName.append(snapshots->rows[0].columns[0].getStr());
     }
     {
         cpp2::ExecutionResponse resp;
@@ -78,11 +77,10 @@ TEST_F(SnapshotTest, TestAll) {
         auto code = client_->execute(cmd, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(resp.get_data()->size(), 1);
-        auto& snapshots = (*resp.get_data())[0];
+        auto snapshots = resp.get_data();
         std::vector<std::string> colNames = {"Name", "Status", "Hosts"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
-        ASSERT_TRUE(snapshots.rows.empty());
+        ASSERT_TRUE(snapshots->rows.empty());
     }
 }
 
