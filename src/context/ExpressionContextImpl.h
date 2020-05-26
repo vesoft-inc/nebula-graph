@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef UTIL_EXPRESSIONCONTEXT_H_
-#define UTIL_EXPRESSIONCONTEXT_H_
+#ifndef CONTEXT_EXPRESSIONCONTEXTIMPL_H_
+#define CONTEXT_EXPRESSIONCONTEXTIMPL_H_
 
 #include "context/ExpressionContext.h"
 #include "context/QueryContext.h"
@@ -53,4 +53,4 @@ private:
 };
 }  // namespace graph
 }  // namespace nebula
-#endif
+#endif  // CONTEXT_EXPRESSIONCONTEXTIMPL_H_

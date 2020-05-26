@@ -95,50 +95,13 @@ public:
         return value_;
     }
 
-    const Value& getColumn(const std::string& col) const override {
-        auto& current = *iter_;
-        auto segment = std::get<0>(current);
-        auto& index = colIndex_[segment];
-        auto found = index.find(col);
-        if (found == index.end()) {
-            return kNullValue;
-        }
-        auto row = std::get<1>(current);
-        return row->columns[found->second];
-    }
+    const Value& getColumn(const std::string& col) const override;
 
     const Value& getTagProp(const std::string& tag,
-                            const std::string& prop) const override {
-        auto& current = *iter_;
-        auto segment = std::get<0>(current);
-        auto index = tagPropIndex_[segment].find(tag);
-        if (index == tagPropIndex_[segment].end()) {
-            return kNullValue;
-        }
-        auto propIndex = index->second.find(prop);
-        if (propIndex == index->second.end()) {
-            return kNullValue;
-        }
-        auto& list = std::get<3>(current);
-        return list->values[propIndex->second];
-    }
+                            const std::string& prop) const override;
 
     const Value& getEdgeProp(const std::string& edge,
-                             const std::string& prop) const override {
-        auto& current = *iter_;
-        auto segment = std::get<0>(current);
-        auto index = edgePropIndex_[segment].find(edge);
-        if (index == edgePropIndex_[segment].end()) {
-            return kNullValue;
-        }
-        auto propIndex = index->second.find(prop);
-        if (propIndex == index->second.end()) {
-            return kNullValue;
-        }
-        auto& list = std::get<3>(current);
-        return list->values[propIndex->second];
-    }
-
+                             const std::string& prop) const override;
 
 private:
     int64_t buildIndex(const std::vector<std::string>& colNames);
