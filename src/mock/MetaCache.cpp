@@ -5,6 +5,7 @@
  */
 
 #include "mock/MetaCache.h"
+#include "network/NetworkUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -431,6 +432,46 @@ Status MetaCache::alterSchemaProp(meta::cpp2::Schema &schema,
 
     schema.set_schema_prop(std::move(schemaProp));
     return Status::OK();
+}
+
+Status MetaCache::createSnapshot() {
+    folly::RWSpinLock::WriteHolder holder(lock_);
+    if (cache_.empty()) {
+        return Status::OK();
+    }
+    meta::cpp2::Snapshot snapshot;
+    char ch[60];
+    std::time_t t = std::time(nullptr);
+    std::strftime(ch, sizeof(ch), "%Y_%m_%d_%H_%M_%S", localtime(&t));
+    auto snapshotName = folly::stringPrintf("SNAPSHOT_%s", ch);
+    snapshot.set_name(snapshotName);
+    snapshot.set_status(meta::cpp2::SnapshotStatus::VALID);
+    DCHECK(!hostSet_.empty());
+    snapshot.set_hosts(network::NetworkUtils::toHostsStr(
+            std::vector<HostAddr>(hostSet_.begin(), hostSet_.end())));
+    snapshots_[snapshotName] = std::move(snapshot);
+    return Status::OK();
+}
+
+Status MetaCache::dropSnapshot(const meta::cpp2::DropSnapshotReq& req) {
+    folly::RWSpinLock::WriteHolder holder(lock_);
+    auto name = req.get_name();
+    auto find = snapshots_.find(name);
+    if (find == snapshots_.end()) {
+        return Status::Error("`%s' is nonexistent", name.c_str());
+    }
+    snapshots_.erase(find);
+    return Status::OK();
+}
+
+StatusOr<std::vector<meta::cpp2::Snapshot>> MetaCache::listSnapshots() {
+    folly::RWSpinLock::ReadHolder holder(lock_);
+    std::vector<meta::cpp2::Snapshot> snapshots;
+    for (auto& snapshot : snapshots_) {
+        snapshots.emplace_back(snapshot.second);
+    }
+    return snapshots;
+>>>>>>> add snapshot executor
 }
 }  // namespace graph
 }  // namespace nebula

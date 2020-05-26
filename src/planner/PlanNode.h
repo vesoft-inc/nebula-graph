@@ -59,6 +59,9 @@ public:
         kInsertVertices,
         kInsertEdges,
         kDataCollect,
+        kCreateSnapshot,
+        kDropSnapshot,
+        kShowSnapshots,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

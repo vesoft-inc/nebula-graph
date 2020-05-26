@@ -1,0 +1,109 @@
+/* Copyright (c) 2020 vesoft inc. All rights reserved.
+*
+* This source code is licensed under Apache 2.0 License,
+* attached with Common Clause Condition 1.0, found in the LICENSES directory.
+*/
+
+#include "exec/admin/SpaceExecutor.h"
+#include "planner/Admin.h"
+#include "service/ExecutionContext.h"
+
+namespace nebula {
+namespace graph {
+folly::Future<Status> CreateSpaceExecutor::execute() {
+    dumpLog();
+
+    auto *csNode = asNode<CreateSpace>(node());
+    return ectx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
+            .via(runner())
+            .then([](StatusOr<bool> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                return Status::OK();
+            });
+}
+
+
+folly::Future<Status> DescSpaceExecutor::execute() {
+    dumpLog();
+
+    auto *dsNode = asNode<DescSpace>(node());
+    return ectx()->getMetaClient()->getSpace(dsNode->getSpaceName())
+            .via(runner())
+            .then([this](StatusOr<meta::cpp2::SpaceItem> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                DataSet dataSet;
+                dataSet.colNames = {"ID",
+                                    "Name",
+                                    "Partition number",
+                                    "Replica Factor",
+                                    "Vid Size",
+                                    "Charset",
+                                    "Collate"};
+                auto &spaceItem = resp.value();
+                auto &properties = spaceItem.get_properties();
+                Row row;
+                row.columns.emplace_back(spaceItem.get_space_id());
+                row.columns.emplace_back(properties.get_space_name());
+                row.columns.emplace_back(properties.get_partition_num());
+                row.columns.emplace_back(properties.get_replica_factor());
+                row.columns.emplace_back(properties.get_vid_size());
+                row.columns.emplace_back(properties.get_charset_name());
+                row.columns.emplace_back(properties.get_collate_name());
+                dataSet.rows.emplace_back(std::move(row));
+                finish(Value(std::move(dataSet)));
+                return Status::OK();
+            });
+}
+
+folly::Future<Status> DropSpaceExecutor::execute() {
+    dumpLog();
+
+    auto *dsNode = asNode<DropSpace>(node());
+    return ectx()->getMetaClient()->dropSpace(dsNode->getSpaceName(), dsNode->getIfExists())
+            .via(runner())
+            .then([this](StatusOr<bool> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                return Status::OK();
+            });
+}
+
+
+folly::Future<Status> ShowSpacesExecutor::execute() {
+    dumpLog();
+
+    return ectx()->getMetaClient()->listSpaces()
+            .via(runner())
+            .then([this](StatusOr<std::vector<meta::SpaceIdName>> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                auto spaceItems = std::move(resp).value();
+
+                DataSet dataSet;
+                dataSet.colNames = {"Name"};
+                std::set<std::string> orderSpaceNames;
+                for (auto &space : spaceItems) {
+                    orderSpaceNames.emplace(space.second);
+                }
+                for (auto &name : orderSpaceNames) {
+                    Row row;
+                    row.columns.emplace_back(name);
+                    dataSet.rows.emplace_back(std::move(row));
+                }
+                finish(dataSet);
+                return Status::OK();
+            });
+}
+
+}   // namespace graph
+}   // namespace nebula

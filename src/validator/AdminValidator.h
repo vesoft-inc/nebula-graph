@@ -73,8 +73,51 @@ private:
 
 private:
     DropSpaceSentence                       *sentence_{nullptr};
-    std::string                              spaceName_;
-    bool                                     ifExists_;
+};
+
+class CreateSnapshotValidator final : public Validator {
+public:
+    CreateSnapshotValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        UNUSED(sentence);
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropSnapshotValidator final : public Validator {
+public:
+    DropSnapshotValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<DropSnapshotSentence*>(sentence);
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    DropSnapshotSentence                   *sentence_{nullptr};
+};
+
+class ShowSnapshotsValidator final : public Validator {
+public:
+    ShowSnapshotsValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        UNUSED(sentence);
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
 };
 }  // namespace graph
 }  // namespace nebula

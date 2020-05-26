@@ -162,16 +162,57 @@ public:
 
 class CreateSnapshot final : public PlanNode {
 public:
+    static CreateSnapshot* make(ExecutionPlan* plan) {
+        return new CreateSnapshot(plan);
+    }
+
     std::string explain() const override {
         return "CreateSnapshot";
     }
+
+private:
+    explicit CreateSnapshot(ExecutionPlan* plan)
+        : PlanNode(plan, Kind::kCreateSnapshot) {}
 };
 
 class DropSnapshot final : public PlanNode {
 public:
+    static DropSnapshot* make(ExecutionPlan* plan,
+                              std::string snapshotName) {
+        return new DropSnapshot(plan, std::move(snapshotName));
+    }
+
     std::string explain() const override {
         return "DropSnapshot";
     }
+
+    const std::string& getShapshotName() const {
+        return shapshotName_;
+    }
+
+private:
+    explicit DropSnapshot(ExecutionPlan* plan, std::string snapshotName)
+        : PlanNode(plan, Kind::kDropSnapshot) {
+        shapshotName_ = std::move(snapshotName);
+    }
+
+private:
+    std::string           shapshotName_;
+};
+
+class ShowSnapshots final : public PlanNode {
+public:
+    static ShowSnapshots* make(ExecutionPlan* plan) {
+        return new ShowSnapshots(plan);
+    }
+
+    std::string explain() const override {
+        return "ShowSnapshots";
+    }
+
+private:
+    explicit ShowSnapshots(ExecutionPlan* plan)
+        : PlanNode(plan, Kind::kShowSnapshots) {}
 };
 
 class Download final : public PlanNode {

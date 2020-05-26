@@ -37,6 +37,10 @@ nebula_add_library(
     maintain/AlterSchemaExecutor.cpp
     maintain/ShowSchemaExecutor.cpp
     maintain/DropSchemaExecutor.cpp
+    admin/SpaceExecutor.cpp
+    admin/SnapshotExecutor.cpp
+    maintain/TagExecutor.cpp
+    maintain/EdgeExecutor.cpp
     mutate/InsertVerticesExecutor.cpp
     mutate/InsertEdgesExecutor.cpp
 )

@@ -12,11 +12,9 @@
 #include "context/ExecutionContext.h"
 #include "context/QueryContext.h"
 #include "exec/ExecutionError.h"
-#include "exec/admin/CreateSpaceExecutor.h"
-#include "exec/admin/DescSpaceExecutor.h"
 #include "exec/admin/SwitchSpaceExecutor.h"
-#include "exec/admin/ShowSpacesExecutor.h"
-#include "exec/admin/DropSpaceExecutor.h"
+#include "exec/admin/SpaceExecutor.h"
+#include "exec/admin/SnapshotExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
@@ -28,6 +26,8 @@
 #include "exec/maintain/AlterSchemaExecutor.h"
 #include "exec/maintain/ShowSchemaExecutor.h"
 #include "exec/maintain/DropSchemaExecutor.h"
+#include "exec/maintain/EdgeExecutor.h"
+#include "exec/maintain/TagExecutor.h"
 #include "exec/mutate/InsertEdgesExecutor.h"
 #include "exec/mutate/InsertVerticesExecutor.h"
 #include "exec/query/AggregateExecutor.h"
@@ -307,6 +307,21 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto dep = makeExecutor(dc->dep(), qctx, visited);
             exec = new DataCollectExecutor(dc, qctx);
             exec->addDependent(dep);
+            break;
+        }
+        case PlanNode::Kind::kCreateSnapshot: {
+            auto createSnapshot = asNode<CreateSnapshot>(node);
+            exec = new CreateSnapshotExecutor(createSnapshot, ectx);
+            break;
+        }
+        case PlanNode::Kind::kDropSnapshot: {
+            auto dropSnapshot = asNode<DropSnapshot>(node);
+            exec = new DropSnapshotExecutor(dropSnapshot, ectx);
+            break;
+        }
+        case PlanNode::Kind::kShowSnapshots: {
+            auto showSnapshots = asNode<ShowSnapshots>(node);
+            exec = new ShowSnapshotsExecutor(showSnapshots, ectx);
             break;
         }
         case PlanNode::Kind::kUnknown:

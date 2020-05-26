@@ -90,6 +90,12 @@ const char* PlanNode::toString(Kind kind) {
             return "kDropTag";
         case PlanNode::Kind::kDropEdge:
             return "kDropEdge";
+        case Kind::kCreateSnapshot:
+            return "CreateSnapshot";
+        case Kind::kDropSnapshot:
+            return "DropSnapshot";
+        case Kind::kShowSnapshots:
+            return "ShowSnapshots";
         default:
             LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(kind);
     }
