@@ -9,6 +9,7 @@
 
 #include "base/Base.h"
 #include "datatypes/Value.h"
+#include "context/Iterator.h"
 
 namespace nebula {
 namespace graph {
@@ -25,81 +26,39 @@ namespace graph {
  * planner, the optimizer, and the executor.
  *
  **************************************************************************/
-
-class Iter {
-public:
-    explicit Iter(const Value& value) : value_(value) {}
-
-    virtual bool hasNext() const = 0;
-
-    virtual Iter& next() = 0;
-
-    Iter& operator++() {
-        return next();
-    }
-
-    virtual const Value& operator*() = 0;
-
-    // The derived class should rewrite get prop if the Value is kind of dataset.
-    virtual const Value& getProp(const std::string& prop) {
-        return kEmpty;
-    }
-
-protected:
-    const Value& value_;
-};
-
-class DefaultIter final : public Iter {
-public:
-    explicit DefaultIter(const Value& value) : Iter(value) {}
-
-    bool hasNext() const override {
-        return !(counter_ > 0);
-    }
-
-    Iter& next() {
-        counter_++;
-        return *this;
-    }
-
-    const Value& operator*() {
-        return value_;
-    }
-
-private:
-    int64_t counter_{0};
-};
-
 class State final {
 public:
     enum class Stat : uint8_t {
-        UNEXECUTED,
-        PARTIAL_SUCCESS,
-        SUCCESS
-    }
+        kUnExecuted,
+        kPartialSuccess,
+        kSuccess
+    };
 
+    State() = default;
     State(Stat stat, std::string msg) {
         stat_ = stat;
         msg_ = std::move(msg);
     }
 
 private:
-    Stat            stat_;
+    Stat            stat_{Stat::kUnExecuted};
     std::string     msg_;
 };
 
 // An executor will produce a result.
 class Result final {
 public:
+    Result() = default;
+
     explicit Result(Value&& val) {
         value_ = std::move(val);
-        stat_ = State(State::Stat::SUCCESS, "");
+        state_ = State(State::Stat::kSuccess, "");
         iter_ = std::make_unique<DefaultIter>(value_);
     }
 
-    Result(Value&& val, State stat, std::unique_ptr<Iter> iter) {
+    Result(Value&& val, State stat, std::unique_ptr<Iterator> iter) {
         value_ = std::move(val);
-        stat_ = stat;
+        state_ = stat;
         iter = std::move(iter);
     }
 
@@ -107,14 +66,14 @@ public:
         return value_;
     }
 
-    Iter& iter() const {
+    Iterator& iter() const {
         return *iter_;
     }
 
 private:
-    Value                    value_;
-    State                    state_;
-    std::unique_ptr<Iter>    iter_;
+    Value                           value_;
+    State                           state_;
+    std::unique_ptr<Iterator>       iter_;
 };
 
 class ExecutionContext {
@@ -124,7 +83,9 @@ public:
     virtual ~ExecutionContext() = default;
 
     // Get the latest version of the value
-    const Result& getValue(const std::string& name) const;
+    const Value& getValue(const std::string& name) const;
+
+    const Result& getResult(const std::string& name) const;
 
     size_t numVersions(const std::string& name) const;
 
@@ -132,7 +93,9 @@ public:
     // and the back is the oldest value
     const std::vector<Result>& getHistory(const std::string& name) const;
 
-    void setValue(const std::string& name, Result&& val);
+    void setValue(const std::string& name, Value&& val);
+
+    void setResult(const std::string& name, Result&& result);
 
     void deleteValue(const std::string& name);
 

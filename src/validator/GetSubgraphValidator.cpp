@@ -182,9 +182,9 @@ Status GetSubgraphValidator::toPlan() {
     auto counter = vctx_->varGen()->getVar();
     qctx_->ectx()->setValue(counter, 0);
     auto* condition = new RelationalExpression(
-                Expression::Type::EXP_REL_LE,
+                Expression::Kind::kRelLE,
                 new UnaryExpression(
-                        Expression::Type::EXP_UNARY_INCR,
+                        Expression::Kind::kUnaryIncr,
                         new VersionedVariableExpression(
                                 new std::string(counter),
                                 new ConstantExpression(0))),

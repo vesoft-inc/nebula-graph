@@ -14,7 +14,7 @@ namespace nebula {
 namespace graph {
 class ExpressionContextImpl final : public ExpressionContext {
 public:
-    ExpressionContextImpl(ExecutionContext* ectx, Iter* iter) {
+    ExpressionContextImpl(ExecutionContext* ectx, Iterator* iter) {
         ectx_ = ectx;
         iter_ = iter;
     }
@@ -31,7 +31,7 @@ public:
                             const std::string& prop) const override;
 
     // Get the specified property from the edge, such as edge_type.prop_name
-    const Value& getEdgeProp(const std::string& edgeType,
+    const Value& getEdgeProp(const std::string& edge,
                              const std::string& prop) const override;
 
     // Get the specified property from the source vertex, such as $^.prop_name
@@ -49,7 +49,7 @@ public:
 
 private:
     ExecutionContext*                 ectx_;
-    Iter*                             iter_;
+    Iterator*                         iter_;
 };
 }  // namespace graph
 }  // namespace nebula

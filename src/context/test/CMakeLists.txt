@@ -4,8 +4,8 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 nebula_add_test(
-    NAME query_context_test
-    SOURCES QueryContextTest.cpp
+    NAME exec_context_test
+    SOURCES ExecutionContextTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:context_obj>
         $<TARGET_OBJECTS:common_datatypes_obj>

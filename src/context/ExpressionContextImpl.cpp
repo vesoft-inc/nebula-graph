@@ -13,7 +13,7 @@ const Value& ExpressionContextImpl::getVar(const std::string& var) const {
     if (ectx_ == nullptr) {
         return kEmpty;
     }
-    return ectx_->getValue(var).value();
+    return ectx_->getValue(var);
 }
 
 const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
@@ -22,11 +22,11 @@ const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
         return kEmpty;
     }
     auto& result = ectx_->getHistory(var);
-    auto& val = result.value();
-    if (version <= 0 && static_cast<size_t>(std::abs(version)) < val.size()) {
-        return val[val.size() + version -1];
-    } else if (version > 0 && static_cast<size_t>(version) <= val.size()) {
-        return val[version - 1];
+    auto size = result.size();
+    if (version <= 0 && static_cast<size_t>(std::abs(version)) < size) {
+        return result[size + version -1].value();
+    } else if (version > 0 && static_cast<size_t>(version) <= size) {
+        return result[version - 1].value();
     } else {
         return kEmpty;
     }
@@ -34,40 +34,47 @@ const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
 
 const Value& ExpressionContextImpl::getVarProp(const std::string& var,
                                                const std::string& prop) const {
+    UNUSED(var);
     if (iter_ != nullptr) {
-        return iter_->getProp(prop);
+        return iter_->getColumn(prop);
     } else {
-        // TODO
         return kEmpty;
     }
 }
 
-const Value& ExpressionContextImpl::getEdgeProp(const std::string& edgeType,
+const Value& ExpressionContextImpl::getEdgeProp(const std::string& edge,
                                                 const std::string& prop) const {
-    // TODO
-    UNUSED(edgeType);
-    UNUSED(prop);
-    return kNullValue;
+    if (iter_ != nullptr) {
+        return iter_->getEdgeProp(edge, prop);
+    } else {
+        return kEmpty;
+    }
 }
 
 const Value& ExpressionContextImpl::getSrcProp(const std::string& tag,
                                                const std::string& prop) const {
-    // TODO
-    UNUSED(tag);
-    UNUSED(prop);
-    return kNullValue;
+    if (iter_ != nullptr) {
+        return iter_->getTagProp(tag, prop);
+    } else {
+        return kEmpty;
+    }
 }
 
 const Value& ExpressionContextImpl::getDstProp(const std::string& tag,
                                                const std::string& prop) const {
-    // TODO
-    UNUSED(tag);
-    UNUSED(prop);
-    return kNullValue;
+    if (iter_ != nullptr) {
+        return iter_->getTagProp(tag, prop);
+    } else {
+        return kEmpty;
+    }
 }
 
 const Value& ExpressionContextImpl::getInputProp(const std::string& prop) const {
-    return iter_->getProp(prop);
+    if (iter_ != nullptr) {
+        return iter_->getColumn(prop);
+    } else {
+        return kEmpty;
+    }
 }
 
 void ExpressionContextImpl::setVar(const std::string& var, Value val) {

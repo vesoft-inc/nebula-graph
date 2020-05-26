@@ -8,9 +8,16 @@
 
 namespace nebula {
 namespace graph {
-void ExecutionContext::setValue(const std::string& name, Result&& val) {
+void ExecutionContext::setValue(const std::string& name, Value&& val) {
+    Result result(std::move(val));
     auto& hist = valueMap_[name];
-    hist.emplace_back(std::move(val));
+    hist.emplace_back(std::move(result));
+}
+
+
+void ExecutionContext::setResult(const std::string& name, Result&& result) {
+    auto& hist = valueMap_[name];
+    hist.emplace_back(std::move(result));
 }
 
 
@@ -40,7 +47,17 @@ void ExecutionContext::truncHistory(const std::string& name, size_t numVersionsT
 
 
 // Get the latest version of the value
-const Result& ExecutionContext::getValue(const std::string& name) const {
+const Value& ExecutionContext::getValue(const std::string& name) const {
+    auto it = valueMap_.find(name);
+    if (it != valueMap_.end()) {
+        return it->second.back().value();
+    } else {
+        return kEmpty;
+    }
+}
+
+
+const Result& ExecutionContext::getResult(const std::string& name) const {
     static const Result kEmptyResult;
     auto it = valueMap_.find(name);
     if (it != valueMap_.end()) {
