@@ -484,5 +484,152 @@ Status DeleteEdgesValidator::toPlan() {
     return Status::OK();
 }
 
+void UpdateBaseValidator::getCondition() {
+    auto *clause = sentence_->whenClause();
+    if (clause != nullptr) {
+        auto filter = clause->filter();
+        if (filter != nullptr) {
+            condition_ = filter->encode();
+        }
+    }
+}
+
+void UpdateBaseValidator::getReturnProps() {
+//    auto *clause = sentence_->yieldClause();
+//    if (clause != nullptr) {
+//        // TODO(Larua): get yieldclause
+//        auto *yields = clause->columns();
+//        for (auto *col : yields) {
+//            if (col->alias() == nullptr) {
+//                yieldProps_.emplace_back(col->expr()->toString());
+//            } else {
+//                yieldProps_.emplace_back(*col->alias());
+//            }
+//            auto column = Expression::encode(col->expr());
+//            returnProps_.emplace_back(std::move(column));
+//        }
+//    }
+}
+
+Status UpdateVertexValidator::getUpdateProps() {
+    auto status = Status::OK();
+    auto items = sentence_->updateList()->items();
+    for (auto& item : items) {
+        storage::cpp2::UpdatedVertexProp updatedProp;
+        auto fieldExpr = item->getFieldExpr();
+        // TODO(Laura): Check the kind of fieldExpr
+        if (fieldExpr == nullptr) {
+            LOG(ERROR) << "== fieldExpr is nullptr";
+            return Status::SyntaxError("Empty vertex update item field");
+        }
+        // TODO(Laura): get tagName and prop name from AliasPropertyExpression
+        std::string tagName;
+        auto tagStatus = validateContext_->schemaMng()->toTagID(
+                validateContext_->whichSpace().id, tagName);
+        if (!tagStatus.ok()) {
+            LOG(ERROR) << "No schema found for " << tagName;
+            return Status::Error("No schema found for `%s'", tagName.c_str());
+        }
+        updatedProp.set_tag_id(tagStatus.value());
+//        updatedProp.set_name(*expr->prop());
+//        updatedProp.set_value(prop->value().encode());
+        updatedProps_.emplace_back(std::move(updatedProp));
+    }
+    return status;
+}
+
+Status UpdateVertexValidator::validateImpl() {
+    vId_ = sentence_->getVid();
+    insertable_ = sentence_->getInsertable();
+    getCondition();
+    getReturnProps();
+    auto status = getUpdateProps();
+    if (!status.ok()) {
+        return status;
+    }
+
+    return status;
+}
+
+Status UpdateVertexValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *start = StartNode::make(plan);
+    auto *doNode = UpdateVertex::make(plan,
+                                      start,
+                                      validateContext_->whichSpace().id,
+                                      vId_,
+                                      updatedProps_,
+                                      insertable_,
+                                      returnProps_,
+                                      condition_,
+                                      yieldProps_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status UpdateEdgeValidator::getUpdateProps() {
+    LOG(INFO) << "=== UpdateEdgeValidator::getUpdateProps ===";
+    auto status = Status::OK();
+    auto items = sentence_->updateList()->items();
+    for (auto& item : items) {
+        storage::cpp2::UpdatedEdgeProp updatedProp;
+        auto field = item->getFieldName();
+        // TODO(Laura): Check the kind of fieldExpr
+        if (field == nullptr) {
+            LOG(ERROR) << "== field is nullptr";
+            return Status::SyntaxError("Empty vertex update item field");
+        }
+        // TODO(Laura): get tagName and prop name from AliasPropertyExpression
+//         updatedProp.set_name("");
+//         updatedProp.set_value(prop->value().encode());
+//         updatedProps_.emplace_back(std::move(updatedProp));
+    }
+    return status;
+}
+
+Status UpdateEdgeValidator::validateImpl() {
+    auto spaceId = validateContext_->whichSpace().id;
+    getCondition();
+    getReturnProps();
+    srcId_ = sentence_->getSrcId();
+    dstId_ = sentence_->getDstId();
+    rank_ = sentence_->getRank();
+    do {
+        auto status = getUpdateProps();
+        if (!status.ok()) {
+            return status;
+        }
+        auto edgeStatus = validateContext_->schemaMng()->toEdgeType(spaceId,
+                                                                    *sentence_->getEdgeName());
+        if (!edgeStatus.ok()) {
+            return edgeStatus.status();
+        }
+        edgeType_ = edgeStatus.value();
+    } while (false);
+
+    return Status::OK();
+}
+
+Status UpdateEdgeValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *start = StartNode::make(plan);
+    auto *doNode = UpdateEdge::make(plan,
+                                    start,
+                                    validateContext_->whichSpace().id,
+                                    srcId_,
+                                    dstId_,
+                                    edgeType_,
+                                    rank_,
+                                    updatedProps_,
+                                    insertable_,
+                                    returnProps_,
+                                    condition_,
+                                    yieldProps_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

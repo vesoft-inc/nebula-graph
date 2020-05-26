@@ -114,6 +114,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DeleteVerticesValidator>(sentence, context);
         case Sentence::Kind::kDeleteEdges:
             return std::make_unique<DeleteEdgesValidator>(sentence, context);
+        case Sentence::Kind::kUpdateVertex:
+            return std::make_unique<UpdateVertexValidator>(sentence, context);
+        case Sentence::Kind::kUpdateEdge:
+            return std::make_unique<UpdateEdgeValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }

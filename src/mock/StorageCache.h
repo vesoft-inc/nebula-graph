@@ -12,6 +12,9 @@
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/clients/meta/MetaClient.h"
 #include "common/meta/ServerBasedSchemaManager.h"
+#include "common/meta/NebulaSchemaProvider.h"
+#include <thrift/lib/cpp2/protocol/Serializer.h>
+#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
 namespace nebula {
 namespace graph {
@@ -28,9 +31,15 @@ struct EdgeHasher {
 };
 
 using VerticesInfo = std::unordered_map<VertexID,
+<<<<<<< HEAD
                      std::unordered_map<TagID, std::unordered_map<std::string, Value>>>;
 using EdgesInfo = std::unordered_map<storage::cpp2::EdgeKey,
                                      std::unordered_map<std::string, Value>, EdgeHasher>;
+=======
+      std::unordered_map<TagID, std::unordered_map<std::string, Value>>>;
+using EdgesInfo = std::unordered_map<storage::cpp2::EdgeKey,
+      std::unordered_map<std::string, Value>, EdgeHasher>;
+>>>>>>> add update executor and test
 
 class StorageCache final {
 public:
@@ -42,6 +51,7 @@ public:
 
     Status addEdges(const storage::cpp2::AddEdgesRequest& req);
 
+<<<<<<< HEAD
 private:
     StatusOr<std::unordered_map<std::string, Value>>
     getTagWholeValue(const GraphSpaceID spaceId,
@@ -64,6 +74,34 @@ private:
     struct SpaceDataInfo {
         SpaceDataInfo() = default;
         ~SpaceDataInfo() = default;
+=======
+    StatusOr<DataSet> getProps(const storage::cpp2::GetPropRequest &req);
+
+    StatusOr<DataSet> updateVertex(const storage::cpp2::UpdateVertexRequest &req);
+
+    StatusOr<DataSet> updateEdge(const storage::cpp2::UpdateEdgeRequest &req);
+
+private:
+    StatusOr<std::unordered_map<std::string, Value>>
+    getTagWholeValue(const GraphSpaceID spaceId,
+                     const TagID tagId,
+                     const std::vector<Value>& props,
+                     const std::vector<std::string> &names);
+
+    StatusOr<std::unordered_map<std::string, Value>>
+    getEdgeWholeValue(const GraphSpaceID spaceId,
+                      const EdgeType edgeType,
+                      const std::vector<Value>& props,
+                      const std::vector<std::string> &names);
+
+    StatusOr<std::unordered_map<std::string, Value>>
+    getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> schema,
+                    const std::vector<Value>& props,
+                    const std::vector<std::string> &names);
+
+private:
+    struct SpaceDataInfo {
+>>>>>>> add update executor and test
         VerticesInfo     vertices;
         EdgesInfo        edges;
     };

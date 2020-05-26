@@ -11,6 +11,7 @@
 
 #include "planner/Query.h"
 #include "parser/TraverseSentences.h"
+#include "interface/gen-cpp2/storage_types.h"
 
 /**
  * All mutate-related nodes would put in this file.
@@ -132,18 +133,216 @@ private:
     bool                                       overwritable_;
 };
 
-class UpdateVertex final : public SingleInputNode {
+class UpdateBase : public SingleInputNode {
 public:
+    static UpdateBase* make(Kind kind,
+                            ExecutionPlan* plan,
+                            PlanNode* input,
+                            GraphSpaceID spaceId,
+                            bool insertable,
+                            std::vector<std::string> returnProps,
+                            std::string condition,
+                            std::vector<std::string> yieldProps) {
+        return new UpdateBase(kind,
+                              plan,
+                              input,
+                              spaceId,
+                              insertable,
+                              returnProps,
+                              condition,
+                              yieldProps);
+    }
+
+    GraphSpaceID space() const {
+        return space_;
+    }
+
+    bool getInsertable() const {
+        return insertable_;
+    }
+
+    const std::vector<std::string>& getReturnProps() const {
+        return returnProps_;
+    }
+
+    const std::string getCondition() const {
+        return condition_;
+    }
+
+    const std::vector<std::string>& getYieldProps() const {
+        return yieldProps_;
+    }
+
+protected:
+    UpdateBase(Kind kind,
+               ExecutionPlan* plan,
+               PlanNode* input,
+               GraphSpaceID spaceId,
+               bool insertable,
+               std::vector<std::string> returnProps,
+               std::string condition,
+               std::vector<std::string> yieldProps)
+    : SingleInputNode(plan, kind, input)
+    , space_(spaceId)
+    , insertable_(insertable)
+    , returnProps_(std::move(returnProps))
+    , condition_(std::move(condition))
+    , yieldProps_(std::move(yieldProps)) {}
+
+private:
+    GraphSpaceID                                        space_;
+    bool                                                insertable_;
+    std::vector<std::string>                            returnProps_;
+    std::string                                         condition_;
+    std::vector<std::string>                            yieldProps_;
+};
+
+class UpdateVertex final : public UpdateBase {
+public:
+    static UpdateVertex* make(ExecutionPlan* plan,
+                              PlanNode* input,
+                              GraphSpaceID spaceId,
+                              Expression* vId,
+                              std::vector<storage::cpp2::UpdatedVertexProp> updatedProps,
+                              bool insertable,
+                              std::vector<std::string> returnProps,
+                              std::string condition,
+                              std::vector<std::string> yieldProps) {
+        return new UpdateVertex(plan,
+                                input,
+                                spaceId,
+                                vId,
+                                updatedProps,
+                                insertable,
+                                returnProps,
+                                condition,
+                                yieldProps);
+    }
+
     std::string explain() const override {
         return "UpdateVertex";
     }
+
+    Expression* getVertex() const {
+        return vId_;
+    }
+
+    const std::vector<storage::cpp2::UpdatedVertexProp>& getUpdatedProps() const {
+        return updatedProps_;
+    }
+
+private:
+    UpdateVertex(ExecutionPlan* plan,
+                 PlanNode* input,
+                 GraphSpaceID spaceId,
+                 Expression* vId,
+                 std::vector<storage::cpp2::UpdatedVertexProp> updatedProps,
+                 bool insertable,
+                 std::vector<std::string> returnProps,
+                 std::string condition,
+                 std::vector<std::string> yieldProps)
+        : UpdateBase(Kind::kUpdateVertex,
+                    plan,
+                    input,
+                    spaceId,
+                    insertable,
+                    std::move(returnProps),
+                    std::move(condition),
+                    std::move(yieldProps))
+        , vId_(vId)
+        , updatedProps_(std::move(updatedProps)) {}
+
+private:
+    Expression*                                         vId_{nullptr};
+    std::vector<storage::cpp2::UpdatedVertexProp>       updatedProps_;
 };
 
-class UpdateEdge final : public SingleInputNode {
+class UpdateEdge final : public UpdateBase {
 public:
+    static UpdateEdge* make(ExecutionPlan* plan,
+                            PlanNode* input,
+                            GraphSpaceID spaceId,
+                            Expression* srcId,
+                            Expression* dstId,
+                            EdgeType edgeType,
+                            int64_t rank,
+                            std::vector<storage::cpp2::UpdatedEdgeProp> updatedProps,
+                            bool insertable,
+                            std::vector<std::string> returnProps,
+                            std::string condition,
+                            std::vector<std::string> yieldProps) {
+        return new UpdateEdge(plan,
+                              input,
+                              spaceId,
+                              srcId,
+                              dstId,
+                              edgeType,
+                              rank,
+                              updatedProps,
+                              insertable,
+                              returnProps,
+                              condition,
+                              yieldProps);
+    }
+
     std::string explain() const override {
         return "UpdateEdge";
     }
+
+    Expression* getSrcId() const {
+        return srcId_;
+    }
+
+    Expression* getDstId() const {
+        return dstId_;
+    }
+
+    int64_t getRank() const {
+        return rank_;
+    }
+
+    EdgeType getEdgeType() const {
+        return edgeType_;
+    }
+
+    const std::vector<storage::cpp2::UpdatedEdgeProp>& getUpdatedProps() const {
+        return updatedProps_;
+    }
+
+private:
+    UpdateEdge(ExecutionPlan* plan,
+               PlanNode* input,
+               GraphSpaceID spaceId,
+               Expression* srcId,
+               Expression* dstId,
+               EdgeType edgeType,
+               int64_t rank,
+               std::vector<storage::cpp2::UpdatedEdgeProp> updatedProps,
+               bool insertable,
+               std::vector<std::string> returnProps,
+               std::string condition,
+               std::vector<std::string> yieldProps)
+        : UpdateBase(Kind::kUpdateEdge,
+                    plan,
+                    input,
+                    spaceId,
+                    insertable,
+                    std::move(returnProps),
+                    std::move(condition),
+                    std::move(yieldProps))
+
+        , srcId_(srcId)
+        , dstId_(dstId)
+        , edgeType_(edgeType)
+        , rank_(rank)
+        , updatedProps_(std::move(updatedProps)) {}
+
+private:
+    Expression*                                         srcId_{nullptr};
+    Expression*                                         dstId_{nullptr};
+    EdgeType                                            edgeType_;
+    int64_t                                             rank_;
+    std::vector<storage::cpp2::UpdatedEdgeProp>         updatedProps_;
 };
 
 class DeleteVertices final : public SingleInputNode {

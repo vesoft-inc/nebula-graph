@@ -19,7 +19,6 @@ protected:
     void SetUp() override;
 
     void TearDown() override;
-
     static ::testing::AssertionResult TestOK() {
         return ::testing::AssertionSuccess();
     }
