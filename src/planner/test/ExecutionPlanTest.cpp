@@ -14,6 +14,7 @@
 #include "exec/Executor.h"
 #include "planner/Query.h"
 #include "context/QueryContext.h"
+#include "schedule/Scheduler.h"
 
 using std::chrono::duration_cast;
 using std::chrono::microseconds;
@@ -26,6 +27,7 @@ public:
     void SetUp() override {
         qctx_ = std::make_unique<QueryContext>();
         plan_ = qctx_->plan();
+        scheduler_ = std::make_unique<Scheduler>(qctx_->ectx());
     }
 
     void cleanup() {
@@ -39,12 +41,9 @@ public:
             qctx_->plan()->root(), qctx_.get(), &cache);
         ASSERT_NE(executor, nullptr);
 
-        auto status = executor->prepare();
-        ASSERT(status.ok());
-
         watch_.reset();
-        auto future =
-            plan_->execute()
+        scheduler_->analyze(executor);
+        scheduler_->schedule(executor)
                 .then([](Status s) { ASSERT_TRUE(s.ok()) << s.toString(); })
                 .onError([](const ExecutionError& e) { LOG(INFO) << e.what(); })
                 .onError([](const std::exception& e) { LOG(INFO) << "exception: " << e.what(); })
@@ -53,14 +52,13 @@ public:
                     LOG(INFO) << "elapsed time: " << us.count() << "us";
                     cleanup();
                 });
-
-        std::move(future).get();
     }
 
 protected:
     folly::stop_watch<> watch_;
     ExecutionPlan* plan_;
     std::unique_ptr<QueryContext>  qctx_;
+    std::unique_ptr<Scheduler>  scheduler_;
 };
 
 TEST_F(ExecutionPlanTest, TestSimplePlan) {

@@ -14,13 +14,8 @@ namespace graph {
 
 class SwitchSpaceExecutor final : public Executor {
 public:
-<<<<<<< HEAD:src/exec/admin/SwitchSpaceExecutor.h
-    SwitchSpaceExecutor(const PlanNode *node, ExecutionContext *ectx)
-        : Executor("SwitchSpaceExecutor", node, ectx) {}
-=======
-    SwitchSpaceExecutor(const PlanNode *node, QueryContext *qctx, Executor *input)
-        : SingleInputExecutor("SwitchSpaceExecutor", node, qctx, input) {}
->>>>>>> Replace ExecutionContext with QueryContext.:src/exec/query/SwitchSpaceExecutor.h
+    SwitchSpaceExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("SwitchSpaceExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };

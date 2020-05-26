@@ -9,7 +9,6 @@
 #include "util/IdGenerator.h"
 #include "planner/PlanNode.h"
 #include "schedule/Scheduler.h"
-#include "service/ExecutionContext.h"
 #include "util/ObjectPool.h"
 
 namespace nebula {

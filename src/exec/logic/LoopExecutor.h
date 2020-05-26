@@ -14,15 +14,7 @@ namespace graph {
 
 class LoopExecutor final : public Executor {
 public:
-<<<<<<< HEAD:src/exec/logic/LoopExecutor.h
-    LoopExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *body);
-=======
-    LoopExecutor(const PlanNode *node, QueryContext *qctx, Executor *input, Executor *body)
-        : SingleInputExecutor("LoopExecutor", node, qctx, input),
-          body_(body) {}
-
-    Status prepare() override;
->>>>>>> Replace ExecutionContext with QueryContext.:src/exec/query/LoopExecutor.h
+    LoopExecutor(const PlanNode *node, QueryContext *qctx, Executor *body);
 
     folly::Future<Status> execute() override;
 

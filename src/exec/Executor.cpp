@@ -41,7 +41,7 @@
 #include "planner/Mutate.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/ExecutionContext.h"
 #include "util/ObjectPool.h"
 #include "context/QueryContext.h"
 
@@ -130,8 +130,6 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto input = makeExecutor(readIndex->input(), qctx, cache);
             exec = new ReadIndexExecutor(readIndex, qctx);
             exec->addDependent(input);
-            auto input = makeExecutor(readIndex->input(), qctx, cache);
-            exec = new ReadIndexExecutor(readIndex, qctx, input);
             break;
         }
         case PlanNode::Kind::kStart: {
@@ -142,7 +140,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto uni = asNode<Union>(node);
             auto left = makeExecutor(uni->left(), qctx, cache);
             auto right = makeExecutor(uni->right(), qctx, cache);
-            exec = new UnionExecutor(uni, ectx);
+            exec = new UnionExecutor(uni, qctx);
             exec->addDependent(left)->addDependent(right);
             break;
         }

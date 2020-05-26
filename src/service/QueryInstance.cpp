@@ -46,19 +46,12 @@ void QueryInstance::execute() {
         return;
     }
 
-<<<<<<< HEAD
-    plan_->execute()
-=======
     std::unordered_map<int64_t, Executor*> cache;
     auto executor = Executor::makeExecutor(
             qctx_->plan()->root(), qctx_.get(), &cache);
-    status = executor->prepare();
-    if (!status.ok()) {
-        onError(std::move(status));
-        return;
-    }
-    executor->execute()
->>>>>>> Refactor the context.
+    scheduler_ = std::make_unique<Scheduler>(qctx_->ectx());
+    scheduler_->analyze(executor);
+    scheduler_->schedule(executor)
         .then([this](Status s) {
             if (s.ok()) {
                 this->onFinish();
