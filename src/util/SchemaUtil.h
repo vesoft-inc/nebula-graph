@@ -7,12 +7,12 @@
 #ifndef VALIDATOR_SCHEMAUTIL_H_
 #define VALIDATOR_SCHEMAUTIL_H_
 
-#include "base/Base.h"
-#include "base/StatusOr.h"
-#include "expression/Expression.h"
-#include "datatypes/DataSet.h"
-#include "interface/gen-cpp2/common_types.h"
-#include "interface/gen-cpp2/meta_types.h"
+#include "common/base/Base.h"
+#include "common/base/StatusOr.h"
+#include "common/expression/Expression.h"
+#include "common/datatypes/DataSet.h"
+#include "common/interface/gen-cpp2/common_types.h"
+#include "common/interface/gen-cpp2/meta_types.h"
 #include "parser/MaintainSentences.h"
 
 namespace nebula {
@@ -55,4 +55,3 @@ public:
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_SCHEMAUTIL_H_
-

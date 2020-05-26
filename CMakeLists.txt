@@ -469,8 +469,7 @@ macro(nebula_add_library name type)
 endmacro()
 
 include_directories(AFTER ${NEBULA_HOME}/src)
-include_directories(AFTER modules/common/src)
-include_directories(AFTER modules/common/src/interface)
+include_directories(AFTER ${NEBULA_HOME}/modules/common/src)
 include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src)
 include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src/parser)
 

@@ -7,7 +7,7 @@
 #include "InsertEdgesExecutor.h"
 #include "planner/Mutate.h"
 #include "service/ExecutionContext.h"
-#include "clients/storage/GraphStorageClient.h"
+#include "common/clients/storage/GraphStorageClient.h"
 
 
 namespace nebula {
