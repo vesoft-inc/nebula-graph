@@ -5,7 +5,7 @@
  */
 
 #include "common/base/Base.h"
-#include "PipeValidator.h"
+#include "validator/PipeValidator.h"
 #include "parser/TraverseSentences.h"
 
 namespace nebula {

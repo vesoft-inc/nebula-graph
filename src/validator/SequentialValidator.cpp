@@ -5,7 +5,7 @@
  */
 
 #include "common/base/Base.h"
-#include "SequentialValidator.h"
+#include "validator/SequentialValidator.h"
 
 namespace nebula {
 namespace graph {

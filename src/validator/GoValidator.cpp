@@ -5,7 +5,7 @@
  */
 
 #include "common/base/Base.h"
-#include "GoValidator.h"
+#include "validator/GoValidator.h"
 #include "parser/TraverseSentences.h"
 
 namespace nebula {

@@ -8,8 +8,8 @@
 
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
-#include "GraphParser.hpp"
-#include "GraphScanner.h"
+#include "parser/GraphParser.hpp"
+#include "parser/GraphScanner.h"
 
 namespace nebula {
 

@@ -4,9 +4,10 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#include "mock/MockMetaServiceHandler.h"
+
 #include "common/time/WallClock.h"
-#include "MockMetaServiceHandler.h"
-#include "MetaCache.h"
+#include "mock/MetaCache.h"
 
 namespace nebula {
 namespace graph {

@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "InsertVerticesExecutor.h"
+#include "exec/mutate/InsertVerticesExecutor.h"
 #include "planner/Mutate.h"
 #include "service/ExecutionContext.h"
 #include "common/clients/storage/GraphStorageClient.h"

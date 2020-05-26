@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "InsertEdgesExecutor.h"
+#include "exec/mutate/InsertEdgesExecutor.h"
 #include "planner/Mutate.h"
 #include "service/ExecutionContext.h"
 #include "common/clients/storage/GraphStorageClient.h"
