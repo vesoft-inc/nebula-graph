@@ -6,9 +6,8 @@
 
 #include "UpdateExecutor.h"
 #include "planner/Mutate.h"
-#include "service/ExecutionContext.h"
-#include "clients/storage/GraphStorageClient.h"
 #include "util/SchemaUtil.h"
+#include "context/QueryContext.h"
 
 
 namespace nebula {
@@ -29,16 +28,14 @@ StatusOr<DataSet> UpdateBaseExecutor::handleResult(const DataSet &data) {
         return Status::Error("Wrong return prop size");
     }
     DataSet result;
-    std::vector<Row> rows;
     result.colNames = std::move(yieldPros_);
-    for (auto &row : result.rows) {
+    for (auto &row : data.rows) {
         std::vector<Value> columns;
         for (auto i = 1u; i < row.columns.size(); i++) {
             columns.emplace_back(std::move(row.columns[i]));
         }
-        rows.emplace_back(std::move(columns));
+        result.rows.emplace_back(std::move(columns));
     }
-    result.rows = std::move(rows);
     return result;
 }
 
@@ -55,7 +52,7 @@ folly::Future<Status> UpdateVertexExecutor::updateVertex() {
     }
     auto vertexId = std::move(vIdRet).value();
     yieldPros_ = uvNode->getYieldProps();
-    return ectx()->getStorageClient()->updateVertex(uvNode->space(),
+    return qctx()->getStorageClient()->updateVertex(uvNode->space(),
                                                     vertexId,
                                                     uvNode->getUpdatedProps(),
                                                     uvNode->getInsertable(),
@@ -99,7 +96,7 @@ folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
     edgeKey.set_edge_type(ueNode->getEdgeType());
     edgeKey.set_dst(std::move(dstIdRet).value());
     yieldPros_ = ueNode->getYieldProps();
-    return ectx()->getStorageClient()->updateEdge(ueNode->space(),
+    return qctx()->getStorageClient()->updateEdge(ueNode->space(),
                                                   edgeKey,
                                                   ueNode->getUpdatedProps(),
                                                   ueNode->getInsertable(),

@@ -10,11 +10,6 @@ DECLARE_int32(heartbeat_interval_secs);
 
 namespace nebula {
 namespace graph {
-constexpr char SRC[] = "_src";
-constexpr char TYPE[] = "_type";
-constexpr char RANK[] = "_rank";
-constexpr char DST[] = "_dst";
-
 StorageCache::StorageCache(uint16_t metaPort) {
     FLAGS_heartbeat_interval_secs = 1;
     auto threadPool = std::make_shared<folly::IOThreadPoolExecutor>(1);
@@ -392,12 +387,11 @@ StatusOr<DataSet> StorageCache::updateEdge(const storage::cpp2::UpdateEdgeReques
     auto findEdge = spaceInfo.edges.find(edgeKey);
 
     if (findEdge == spaceInfo.edges.end() && !insertable) {
-        return Status::Error("Edge `%s' not found",
-                folly::stringPrintf("%s:%d:%ld:%s",
-                                     edgeKey.get_src().c_str(),
-                                     edgeKey.get_edge_type(),
-                                     edgeKey.get_ranking(),
-                                     edgeKey.get_dst().c_str()).c_str());
+        return Status::Error("Edge `%s:%d:%ld:%s' not found",
+                              edgeKey.get_src().c_str(),
+                              edgeKey.get_edge_type(),
+                              edgeKey.get_ranking(),
+                              edgeKey.get_dst().c_str());
     }
 
     DataSet dataSet;

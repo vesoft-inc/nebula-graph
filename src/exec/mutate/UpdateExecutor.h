@@ -13,12 +13,12 @@
 namespace nebula {
 namespace graph {
 
-class UpdateBaseExecutor : public SingleInputExecutor {
+class UpdateBaseExecutor : public Executor {
 public:
     UpdateBaseExecutor(const std::string &execName,
                        const PlanNode *node,
-                       ExecutionContext *ectx)
-            : SingleInputExecutor(execName, node, ectx) {}
+                       QueryContext *ectx)
+            : Executor(execName, node, ectx) {}
 
     virtual ~UpdateBaseExecutor() {}
 
@@ -31,7 +31,7 @@ protected:
 
 class UpdateVertexExecutor final : public UpdateBaseExecutor {
 public:
-    UpdateVertexExecutor(const PlanNode *node, ExecutionContext *ectx)
+    UpdateVertexExecutor(const PlanNode *node, QueryContext *ectx)
         : UpdateBaseExecutor("UpdateVertexExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
@@ -42,7 +42,7 @@ private:
 
 class UpdateEdgeExecutor final : public UpdateBaseExecutor {
 public:
-    UpdateEdgeExecutor(const PlanNode *node, ExecutionContext *ectx)
+    UpdateEdgeExecutor(const PlanNode *node, QueryContext *ectx)
             : UpdateBaseExecutor("UpdateEdgeExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;

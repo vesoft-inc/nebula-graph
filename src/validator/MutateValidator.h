@@ -73,7 +73,7 @@ public:
 =======
 class UpdateBaseValidator : public Validator {
 public:
-    explicit UpdateBaseValidator(Sentence* sentence, ValidateContext* context)
+    explicit UpdateBaseValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<UpdateBaseSentence*>(sentence);
     }
@@ -112,7 +112,7 @@ protected:
 
 class UpdateVertexValidator final : public UpdateBaseValidator {
 public:
-    UpdateVertexValidator(Sentence* sentence, ValidateContext* context)
+    UpdateVertexValidator(Sentence* sentence, QueryContext* context)
             : UpdateBaseValidator(sentence, context) {
         sentence_ = static_cast<UpdateVertexSentence*>(sentence);
 >>>>>>> add update executor and test
@@ -154,7 +154,7 @@ private:
 
 class UpdateEdgeValidator final : public UpdateBaseValidator {
 public:
-    UpdateEdgeValidator(Sentence* sentence, ValidateContext* context)
+    UpdateEdgeValidator(Sentence* sentence, QueryContext* context)
             : UpdateBaseValidator(sentence, context) {
         sentence_ = static_cast<UpdateEdgeSentence*>(sentence);
 >>>>>>> add update executor and test

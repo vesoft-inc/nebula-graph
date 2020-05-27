@@ -148,9 +148,13 @@ public:
                               input,
                               spaceId,
                               insertable,
-                              returnProps,
-                              condition,
-                              yieldProps);
+                              std::move(returnProps),
+                              std::move(condition),
+                              std::move(yieldProps));
+    }
+
+    std::string explain() const override {
+        return "";
     }
 
     GraphSpaceID space() const {
@@ -182,12 +186,12 @@ protected:
                std::vector<std::string> returnProps,
                std::string condition,
                std::vector<std::string> yieldProps)
-    : SingleInputNode(plan, kind, input)
-    , space_(spaceId)
-    , insertable_(insertable)
-    , returnProps_(std::move(returnProps))
-    , condition_(std::move(condition))
-    , yieldProps_(std::move(yieldProps)) {}
+        : SingleInputNode(plan, kind, input)
+        , space_(spaceId)
+        , insertable_(insertable)
+        , returnProps_(std::move(returnProps))
+        , condition_(std::move(condition))
+        , yieldProps_(std::move(yieldProps)) {}
 
 private:
     GraphSpaceID                                        space_;
@@ -242,13 +246,13 @@ private:
                  std::string condition,
                  std::vector<std::string> yieldProps)
         : UpdateBase(Kind::kUpdateVertex,
-                    plan,
-                    input,
-                    spaceId,
-                    insertable,
-                    std::move(returnProps),
-                    std::move(condition),
-                    std::move(yieldProps))
+                     plan,
+                     input,
+                     spaceId,
+                     insertable,
+                     std::move(returnProps),
+                     std::move(condition),
+                     std::move(yieldProps))
         , vId_(vId)
         , updatedProps_(std::move(updatedProps)) {}
 
@@ -323,13 +327,13 @@ private:
                std::string condition,
                std::vector<std::string> yieldProps)
         : UpdateBase(Kind::kUpdateEdge,
-                    plan,
-                    input,
-                    spaceId,
-                    insertable,
-                    std::move(returnProps),
-                    std::move(condition),
-                    std::move(yieldProps))
+                     plan,
+                     input,
+                     spaceId,
+                     insertable,
+                     std::move(returnProps),
+                     std::move(condition),
+                     std::move(yieldProps))
 
         , srcId_(srcId)
         , dstId_(dstId)

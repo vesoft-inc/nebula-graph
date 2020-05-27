@@ -524,8 +524,8 @@ Status UpdateVertexValidator::getUpdateProps() {
         }
         // TODO(Laura): get tagName and prop name from AliasPropertyExpression
         std::string tagName;
-        auto tagStatus = validateContext_->schemaMng()->toTagID(
-                validateContext_->whichSpace().id, tagName);
+        auto tagStatus = qctx_->schemaMng()->toTagID(
+                vctx_->whichSpace().id, tagName);
         if (!tagStatus.ok()) {
             LOG(ERROR) << "No schema found for " << tagName;
             return Status::Error("No schema found for `%s'", tagName.c_str());
@@ -552,11 +552,11 @@ Status UpdateVertexValidator::validateImpl() {
 }
 
 Status UpdateVertexValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *start = StartNode::make(plan);
     auto *doNode = UpdateVertex::make(plan,
                                       start,
-                                      validateContext_->whichSpace().id,
+                                      vctx_->whichSpace().id,
                                       vId_,
                                       updatedProps_,
                                       insertable_,
@@ -569,7 +569,6 @@ Status UpdateVertexValidator::toPlan() {
 }
 
 Status UpdateEdgeValidator::getUpdateProps() {
-    LOG(INFO) << "=== UpdateEdgeValidator::getUpdateProps ===";
     auto status = Status::OK();
     auto items = sentence_->updateList()->items();
     for (auto& item : items) {
@@ -589,7 +588,7 @@ Status UpdateEdgeValidator::getUpdateProps() {
 }
 
 Status UpdateEdgeValidator::validateImpl() {
-    auto spaceId = validateContext_->whichSpace().id;
+    auto spaceId = vctx_->whichSpace().id;
     getCondition();
     getReturnProps();
     srcId_ = sentence_->getSrcId();
@@ -600,8 +599,8 @@ Status UpdateEdgeValidator::validateImpl() {
         if (!status.ok()) {
             return status;
         }
-        auto edgeStatus = validateContext_->schemaMng()->toEdgeType(spaceId,
-                                                                    *sentence_->getEdgeName());
+        auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId,
+                                                        *sentence_->getEdgeName());
         if (!edgeStatus.ok()) {
             return edgeStatus.status();
         }
@@ -612,11 +611,11 @@ Status UpdateEdgeValidator::validateImpl() {
 }
 
 Status UpdateEdgeValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *start = StartNode::make(plan);
     auto *doNode = UpdateEdge::make(plan,
                                     start,
-                                    validateContext_->whichSpace().id,
+                                    vctx_->whichSpace().id,
                                     srcId_,
                                     dstId_,
                                     edgeType_,

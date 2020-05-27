@@ -7,7 +7,7 @@
 #ifndef GRAPH_TEST_UPDATETESTBASE_H
 #define GRAPH_TEST_UPDATETESTBASE_H
 
-#include "base/Base.h"
+#include "common/base/Base.h"
 #include "mock/test/TestEnv.h"
 #include "mock/test/TestBase.h"
 
