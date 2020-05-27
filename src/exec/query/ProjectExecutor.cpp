@@ -17,7 +17,8 @@ folly::Future<Status> ProjectExecutor::execute() {
     dumpLog();
     auto *project = asNode<Project>(node());
     auto columns = project->columns()->columns();
-    auto* iter = ectx_->getResult(project->inputVar()).iter();
+    auto *iter = ectx_->getResult(project->inputVar()).iter();
+    DCHECK(!!iter);
     ExpressionContextImpl expCtx(ectx_, iter);
     // TODO: build colNames in validator.
     std::vector<std::string> colNames;
