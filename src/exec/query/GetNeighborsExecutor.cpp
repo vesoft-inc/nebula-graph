@@ -24,14 +24,10 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetNeighborsExecutor::execute() {
-    return SingleInputExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-
-        return getNeighbors().ensure([this]() {
-            // TODO(yee): some cleanup or stats actions
-            UNUSED(this);
-        });
-    }));
+    return getNeighbors().ensure([this]() {
+        // TODO(yee): some cleanup or stats actions
+        UNUSED(this);
+    });
 }
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
@@ -51,8 +47,8 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                        gn->edgeTypes(),
                        gn->edgeDirection(),
                        &gn->statProps(),
-                       &gn->vertexProps(),
-                       &gn->edgeProps(),
+                       nullptr,   // FIXME
+                       nullptr,
                        gn->dedup(),
                        gn->orderBy(),
                        gn->limit(),
@@ -102,7 +98,7 @@ void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseComm
         std::stringstream ss;
         for (auto& part : failedParts) {
             ss << "error code: " << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(part.get_code())
-               << ", leader: " << part.get_leader()->ip << ":" << part.get_leader()->port
+               << ", leader: " << part.get_leader()->host << ":" << part.get_leader()->port
                << ", part id: " << part.get_part_id() << "; ";
         }
         LOG(ERROR) << ss.str();
