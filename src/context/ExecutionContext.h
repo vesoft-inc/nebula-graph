@@ -50,16 +50,19 @@ class Result final {
 public:
     Result() = default;
 
-    explicit Result(Value&& val) {
-        value_ = std::move(val);
-        state_ = State(State::Stat::kSuccess, "");
-        iter_ = std::make_unique<DefaultIter>(value_);
+    static Result buildDefault(Value&& val) {
+        return Result(std::move(val));
     }
 
-    Result(Value&& val, State stat, std::unique_ptr<Iterator> iter) {
-        value_ = std::move(val);
-        state_ = stat;
-        iter = std::move(iter);
+    static Result buildGetNeighbors(Value&& val, State&& stat) {
+        Result result(std::move(val), std::move(stat));
+        auto iter = std::make_unique<GetNeighborsIter>(result.value());
+        result.setIter(std::move(iter));
+        return result;
+    }
+
+    void setIter(std::unique_ptr<Iterator> iter) {
+        iter_ = std::move(iter);
     }
 
     const Value& value() const {
@@ -72,6 +75,18 @@ public:
 
     Iterator& iter() const {
         return *iter_;
+    }
+
+private:
+    explicit Result(Value&& val) {
+        value_ = std::move(val);
+        state_ = State(State::Stat::kSuccess, "");
+        iter_ = std::make_unique<DefaultIter>(value_);
+    }
+
+    Result(Value&& val, State stat) {
+        value_ = std::move(val);
+        state_ = stat;
     }
 
 private:

@@ -9,9 +9,8 @@
 namespace nebula {
 namespace graph {
 void ExecutionContext::setValue(const std::string& name, Value&& val) {
-    Result result(std::move(val));
     auto& hist = valueMap_[name];
-    hist.emplace_back(std::move(result));
+    hist.emplace_back(Result::buildDefault(std::move(val)));
 }
 
 
