@@ -17,12 +17,15 @@
 #include "common/cpp/helpers.h"
 #include "common/datatypes/Value.h"
 
+#include "context/ExecutionContext.h"
+
 namespace nebula {
 namespace graph {
 
 class PlanNode;
 class QueryContext;
 class ExecutionContext;
+class Result;
 
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
@@ -84,6 +87,7 @@ protected:
 
     // Store the result of this executor to execution context
     Status finish(nebula::Value &&value);
+    Status finish(Result &&result);
 
     // Dump some execution logging messages
     void dumpLog() const;

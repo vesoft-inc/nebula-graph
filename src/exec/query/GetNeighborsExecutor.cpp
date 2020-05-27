@@ -83,7 +83,7 @@ Status GetNeighborsExecutor::handleResponse(StorageRpcResponse<GetNeighborsRespo
 
         list.values.emplace_back(std::move(*dataset));
     }
-    return finish(Value(std::move(list)));
+    return finish(Result::buildGetNeighbors(Value(std::move(list)), std::move(state)));
 }
 
 void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseCommon& result) const {
