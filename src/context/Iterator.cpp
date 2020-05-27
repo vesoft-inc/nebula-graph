@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#inlcude "context/Iterator.h"
+#include "context/Iterator.h"
 
 namespace nebula {
 namespace graph {
@@ -47,7 +47,7 @@ int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
         }
         if (colNames[i].find("_edge") == 0) {
             auto ret = buildPropIndex(colNames[i]);
-            edgePropIndex_.back().emplace_back(std::move(ret));
+            edgePropIndex_.back().emplace(std::move(ret));
             if (edgeStartIndex < 0) {
                 edgeStartIndex = i;
             }
@@ -69,7 +69,7 @@ std::pair<std::string, std::unordered_map<std::string, int64_t>>
     return std::make_pair(pieces[1], std::move(kv));
 }
 
-const Value& GetNeighborsIter::getColumn(const std::string& col) const override {
+const Value& GetNeighborsIter::getColumn(const std::string& col) const {
     auto& current = *iter_;
     auto segment = std::get<0>(current);
     auto& index = colIndex_[segment];
@@ -82,7 +82,7 @@ const Value& GetNeighborsIter::getColumn(const std::string& col) const override 
 }
 
 const Value& GetNeighborsIter::getTagProp(const std::string& tag,
-                                          const std::string& prop) const override {
+                                          const std::string& prop) const {
     auto& current = *iter_;
     auto segment = std::get<0>(current);
     auto index = tagPropIndex_[segment].find(tag);
@@ -98,7 +98,7 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
 }
 
 const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
-                                           const std::string& prop) const override {
+                                           const std::string& prop) const {
     auto& current = *iter_;
     auto segment = std::get<0>(current);
     auto index = edgePropIndex_[segment].find(edge);

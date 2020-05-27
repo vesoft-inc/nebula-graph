@@ -19,12 +19,12 @@ public:
 
     virtual ~Iterator() = default;
 
-    virtual bool hasNext() const = 0;
+    virtual bool valid() const = 0;
 
-    virtual Iterator& next() = 0;
+    virtual void next() = 0;
 
-    Iterator& operator++() {
-        return next();
+    void operator++() {
+        next();
     }
 
     virtual const Value& operator*() = 0;
@@ -61,13 +61,12 @@ class DefaultIter final : public Iterator {
 public:
     explicit DefaultIter(const Value& value) : Iterator(value) {}
 
-    bool hasNext() const override {
+    bool valid() const override {
         return !(counter_ > 0);
     }
 
-    Iterator& next() override {
+    void next() override {
         counter_++;
-        return *this;
     }
 
     const Value& operator*() override {
@@ -82,13 +81,12 @@ class GetNeighborsIter final : public Iterator {
 public:
     explicit GetNeighborsIter(const Value& value);
 
-    bool hasNext() const override {
-        return iter_ < edges_.end() - 1;
+    bool valid() const override {
+        return iter_ < edges_.end();
     }
 
-    Iterator& next() override {
+    void next() override {
         ++iter_;
-        return *this;
     }
 
     const Value& operator*() override {
@@ -106,7 +104,8 @@ public:
 private:
     int64_t buildIndex(const std::vector<std::string>& colNames);
 
-    std::unordered_map<std::string, int64_t> buildPropIndex(const std::string& props);
+    std::pair<std::string, std::unordered_map<std::string, int64_t>>
+    buildPropIndex(const std::string& props);
 
 private:
     std::vector<std::unordered_map<std::string, int64_t>> colIndex_;

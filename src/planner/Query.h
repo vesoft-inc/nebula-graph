@@ -47,6 +47,10 @@ public:
         input_ = input;
     }
 
+    const std::string& inputVar() const {
+        return inputVar_;
+    }
+
     std::string explain() const override {
         return "";
     }
@@ -78,6 +82,14 @@ public:
 
     PlanNode* right() const {
         return right_;
+    }
+
+    const std::string& leftInputVar() const {
+        return leftVar_;
+    }
+
+    const std::string& rightInputVar() const {
+        return rightVar_;
     }
 
     std::string explain() const override {

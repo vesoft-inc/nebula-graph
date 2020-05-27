@@ -73,8 +73,8 @@ public:
         return std::move(value_);
     }
 
-    Iterator& iter() const {
-        return *iter_;
+    Iterator* iter() const {
+        return iter_.get();
     }
 
 private:
