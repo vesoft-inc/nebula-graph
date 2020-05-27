@@ -51,6 +51,7 @@ public:
         kDescEdge,
         kInsertVertices,
         kInsertEdges,
+        kShow,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
