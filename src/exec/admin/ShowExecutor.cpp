@@ -31,7 +31,7 @@ folly::Future<Status> ShowExecutor::showHosts() {
         ->getMetaClient()
         ->listHosts()
         .via(runner())
-        .thenValue([this](auto &&resp) {
+        .then([this](auto &&resp) {
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();
                 return resp.status();
@@ -73,8 +73,7 @@ folly::Future<Status> ShowExecutor::showHosts() {
             }  // row loop
             finish(std::move(v));
             return Status::OK();
-        })
-        .thenError([](auto &&e) { return Status::Error(e.what()); });
+        });
 }
 
 }  // namespace graph
