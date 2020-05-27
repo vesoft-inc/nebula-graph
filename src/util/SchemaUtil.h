@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_SCHEMAUTIL_H_
-#define VALIDATOR_SCHEMAUTIL_H_
+#ifndef UTIL_SCHEMAUTIL_H_
+#define UTIL_SCHEMAUTIL_H_
 
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
@@ -17,6 +17,7 @@
 
 namespace nebula {
 namespace graph {
+
 class SchemaUtil final {
 public:
     SchemaUtil() = delete;
@@ -52,6 +53,8 @@ public:
 
     static std::string typeToString(const meta::cpp2::ColumnDef &col);
 };
+
 }  // namespace graph
 }  // namespace nebula
-#endif  // VALIDATOR_SCHEMAUTIL_H_
+
+#endif  // UTIL_SCHEMAUTIL_H_

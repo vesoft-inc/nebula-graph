@@ -17,7 +17,7 @@
 #undef YY_DECL
 #define YY_DECL int nebula::GraphScanner::yylex()
 
-#include "GraphParser.hpp"
+#include "parser/GraphParser.hpp"
 
 namespace nebula {
 

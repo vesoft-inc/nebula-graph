@@ -471,7 +471,6 @@ endmacro()
 include_directories(AFTER ${NEBULA_HOME}/src)
 include_directories(AFTER ${NEBULA_HOME}/modules/common/src)
 include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src)
-include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src/parser)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L ${NEBULA_THIRDPARTY_ROOT}/lib")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L ${NEBULA_THIRDPARTY_ROOT}/lib64")
