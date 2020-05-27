@@ -38,7 +38,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &col = cols->columns()[i];
             const auto *expr = col->expr();
-            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kAliasProperty);
             const auto *aliasPropertyExpr = reinterpret_cast<const AliasPropertyExpression *>(expr);
             ASSERT_EQ(*aliasPropertyExpr->alias(), "tag1");
             ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
@@ -52,9 +52,9 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &prop = getVerticesNode->props()[i];
-            auto expr = Expression::decode(prop);
+            auto expr = Expression::decode(prop.get_prop());
             ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kAliasProperty);
             auto aliasPropertyExpr = reinterpret_cast<AliasPropertyExpression *>(expr.get());
             ASSERT_EQ(*aliasPropertyExpr->alias(), "tag1");
             ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
@@ -89,7 +89,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &col = cols->columns()[i];
             const auto *expr = col->expr();
-            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kAliasProperty);
             const auto *aliasPropertyExpr = reinterpret_cast<const AliasPropertyExpression *>(expr);
             ASSERT_EQ(*aliasPropertyExpr->alias(), alias[i]);
             ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
@@ -103,9 +103,9 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &prop = getVerticesNode->props()[i];
-            auto expr = Expression::decode(prop);
+            auto expr = Expression::decode(prop.get_prop());
             ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kAliasProperty);
             auto aliasPropertyExpr = reinterpret_cast<AliasPropertyExpression *>(expr.get());
             ASSERT_EQ(*aliasPropertyExpr->alias(), alias[i]);
             ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);

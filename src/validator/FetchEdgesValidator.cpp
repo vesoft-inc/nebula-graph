@@ -49,7 +49,7 @@ Status FetchEdgesValidator::toPlan() {
                                   limit_,
                                   std::move(orderBy_),
                                   std::move(filter_));
-    auto *current = doNode;
+    PlanNode *current = doNode;
     if (sentence_->yieldClause() != nullptr) {
         auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yieldColumns());
         current = projectNode;
@@ -131,7 +131,10 @@ Status FetchEdgesValidator::prepareProperties() {
                     LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
                     return Status::Error("Unknown column `%s' in schema", expr->prop()->c_str());
                 }
-                props_.emplace_back(expr->encode());
+                storage::cpp2::PropExp p;
+                p.set_alias(""/*TODO(shylock) Maybe extra*/);
+                p.set_prop(col->expr()->encode());
+                props_.emplace_back(std::move(p));
             } else {
                 return Status::NotSupported("Unsupported expression");
             }

@@ -287,7 +287,7 @@ public:
                              GraphSpaceID space,
                              std::vector<Row> vertices,
                              Expression* src,
-                             std::vector<std::string> props,
+                             std::vector<storage::cpp2::PropExp> props,
                              bool dedup = false,
                              std::vector<storage::cpp2::OrderBy> orderBy = {},
                              int64_t limit = std::numeric_limits<int64_t>::max(),
@@ -315,7 +315,7 @@ public:
         return src_;
     }
 
-    const std::vector<std::string>& props() const {
+    const std::vector<storage::cpp2::PropExp>& props() const {
         return props_;
     }
 
@@ -325,7 +325,7 @@ private:
                 GraphSpaceID space,
                 std::vector<Row> vertices,
                 Expression* src,
-                std::vector<std::string> props,
+                std::vector<storage::cpp2::PropExp> props,
                 bool dedup,
                 std::vector<storage::cpp2::OrderBy> orderBy,
                 int64_t limit,
@@ -349,7 +349,7 @@ private:
     // vertices may be parsing from runtime.
     Expression*                              src_{nullptr};
     // props and filter are parsing from query.
-    std::vector<std::string>                 props_;
+    std::vector<storage::cpp2::PropExp>                props_;
 };
 
 /**
@@ -365,7 +365,7 @@ public:
                           EdgeType    type,
                           Expression* ranking,
                           Expression* dst,
-                          std::vector<std::string> props,
+                          std::vector<storage::cpp2::PropExp> props,
                           bool dedup = false,
                           int64_t limit = std::numeric_limits<int64_t>::max(),
                           std::vector<storage::cpp2::OrderBy> orderBy = {},
@@ -408,7 +408,7 @@ public:
         return dst_;
     }
 
-    const std::vector<std::string>& props() const {
+    const std::vector<storage::cpp2::PropExp>& props() const {
         return props_;
     }
 
@@ -421,7 +421,7 @@ private:
              EdgeType    type,
              Expression* ranking,
              Expression* dst,
-             std::vector<std::string> props,
+             std::vector<storage::cpp2::PropExp> props,
              bool dedup,
              int64_t limit,
              std::vector<storage::cpp2::OrderBy> orderBy,
@@ -451,7 +451,7 @@ private:
     Expression*                              ranking_{nullptr};
     Expression*                              dst_{nullptr};
     // props and filter are parsing from query.
-    std::vector<std::string>                 props_;
+    std::vector<storage::cpp2::PropExp>                props_;
 };
 
 /**

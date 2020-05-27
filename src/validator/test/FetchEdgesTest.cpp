@@ -43,7 +43,7 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &col = cols->columns()[i];
             const auto *expr = col->expr();
-            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kAliasProperty);
             const auto *aliasPropertyExpr = reinterpret_cast<const AliasPropertyExpression *>(expr);
             ASSERT_EQ(*aliasPropertyExpr->alias(), "edge1");
             ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
@@ -57,9 +57,9 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         ASSERT_EQ(getEdgesNode->edges(), edges);
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &prop = getEdgesNode->props()[i];
-            auto expr = Expression::decode(prop);
+            auto expr = Expression::decode(prop.get_prop());
             ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->type(), Expression::Type::EXP_ALIAS_PROPERTY);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kAliasProperty);
             auto aliasPropertyExpr = reinterpret_cast<AliasPropertyExpression *>(expr.get());
             ASSERT_EQ(*aliasPropertyExpr->alias(), "edge1");
             ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
