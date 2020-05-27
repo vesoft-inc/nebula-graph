@@ -24,7 +24,6 @@ set(VALIDATOR_TEST_LIBS
 nebula_add_test(
     NAME validator_test
     SOURCES
-        ValidatorTest.cpp
         FetchVerticesTest.cpp
         FetchEdgesTest.cpp
         SubGraphTest.cpp
