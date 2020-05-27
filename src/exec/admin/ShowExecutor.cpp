@@ -48,27 +48,32 @@ folly::Future<Status> ShowExecutor::showHosts() {
                                host.get_hostAddr().port,
                                meta::cpp2::_HostStatus_VALUES_TO_NAMES.at(host.get_status()),
                                static_cast<int64_t>(host.get_leader_parts().size())});
-                std::string leaders;
-                std::string parts;
+                std::stringstream leaders;
+                std::stringstream parts;
+                std::size_t i = 0;
                 for (const auto &l : host.get_leader_parts()) {
-                    leaders +=
-                        l.first + ":" + std::to_string(l.second.size()) + kPartitionDelimeter;
+                    leaders << l.first << ":" << l.second.size();
+                    if (i < host.get_leader_parts().size() - 1) {
+                        leaders << kPartitionDelimeter;
+                    }
+                    ++i;
                 }
                 if (host.get_leader_parts().empty()) {
-                    leaders = kNoPartition;
-                } else {
-                    leaders.resize(leaders.size() - sizeof(kPartitionDelimeter));
+                    leaders << kNoPartition;
                 }
+                i = 0;
                 for (const auto &p : host.get_all_parts()) {
-                    parts += p.first + ":" + std::to_string(p.second.size()) + kPartitionDelimeter;
+                    parts << p.first << ":" << p.second.size();
+                    if (i < host.get_leader_parts().size() - 1) {
+                        parts << kPartitionDelimeter;
+                    }
+                    ++i;
                 }
                 if (host.get_all_parts().empty()) {
-                    parts = kNoPartition;
-                } else {
-                    parts.resize(parts.size() - sizeof(kPartitionDelimeter));
+                    parts << kNoPartition;
                 }
-                r.emplace_back(std::move(leaders));
-                r.emplace_back(std::move(parts));
+                r.emplace_back(leaders.str());
+                r.emplace_back(parts.str());
                 v.emplace_back(std::move(r));
             }  // row loop
             finish(std::move(v));
