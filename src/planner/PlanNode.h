@@ -53,6 +53,7 @@ public:
         kInsertEdges,
         // user related
         kCreateUser,
+        kDropUser,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
