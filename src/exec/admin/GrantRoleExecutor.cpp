@@ -22,15 +22,7 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
     return ectx()->getMetaClient()->grantToUser(grNode->item())
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            if (!resp.ok()) {
-                LOG(ERROR) << resp.status();
-                return resp.status();
-            }
-            if (resp.value()) {
-                return Status::OK();
-            } else {
-                return Status::Error("Grant role failed");
-            }
+            HANDLE_EXEC_RESPONSE(resp);
         });
 }
 

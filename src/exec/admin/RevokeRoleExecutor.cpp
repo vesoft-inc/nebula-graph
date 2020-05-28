@@ -22,15 +22,7 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
     return ectx()->getMetaClient()->revokeFromUser(rrNode->item())
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            if (!resp.ok()) {
-                LOG(ERROR) << resp.status();
-                return resp.status();
-            }
-            if (resp.value()) {
-                return Status::OK();
-            } else {
-                return Status::Error("Revoke role failed");
-            }
+            HANDLE_EXEC_RESPONSE(resp);
         });
 }
 

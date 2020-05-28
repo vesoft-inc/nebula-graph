@@ -104,6 +104,17 @@ protected:
     // TODO: Some statistics
 };
 
+#define HANDLE_EXEC_RESPONSE(resp) \
+    if (!resp.ok()) { \
+        LOG(ERROR) << resp.status(); \
+        return resp.status(); \
+    } \
+    if (resp.value()) { \
+        return Status::OK(); \
+    } else { \
+        return Status::Error("%s failed.", __FUNCTION__); \
+    }
+
 }   // namespace graph
 }   // namespace nebula
 
