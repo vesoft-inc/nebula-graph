@@ -28,7 +28,7 @@ class Show final : public PlanNode {
     }
 };
 
-class CreateSpace final : public PlanNode {
+class CreateSpace final : public CreateNode {
 public:
     static CreateSpace* make(ExecutionPlan* plan,
                              meta::SpaceDesc props,
@@ -47,23 +47,14 @@ public:
         return props_;
     }
 
-    bool getIfNotExists() const {
-        return ifNotExists_;
-    }
-
 private:
     CreateSpace(ExecutionPlan* plan,
                 meta::SpaceDesc props,
                 bool ifNotExists)
-        : PlanNode(plan, Kind::kCreateSpace) {
-            props_ = std::move(props);
-            ifNotExists_ = ifNotExists;
-        }
-
+        : CreateNode(plan, Kind::kCreateSpace, ifNotExists), props_(std::move(props)) {}
 
 private:
     meta::SpaceDesc               props_;
-    bool                          ifNotExists_;
 };
 
 class DropSpace final : public PlanNode {
@@ -140,6 +131,43 @@ public:
         return "Ingest";
     }
 };
+
+// User related Node
+class CreateUser final : public CreateNode {
+public:
+    static CreateUser* make(ExecutionPlan* plan,
+                            std::string username,
+                            std::string password,
+                            bool ifNotExists) {
+    return new CreateUser(plan,
+                          std::move(username),
+                          std::move(password),
+                          ifNotExists);
+    }
+
+    std::string explain() const override {
+        return "CreateUser";
+    }
+
+    const std::string& username() const {
+        return username_;
+    }
+
+    const std::string& password() const {
+        return password_;
+    }
+
+private:
+    CreateUser(ExecutionPlan* plan, std::string username, std::string password,  bool ifNotExists)
+        : CreateNode(plan, Kind::kCreateUser, ifNotExists),
+          username_(std::move(username)),
+          password_(std::move(password)) {}
+
+private:
+    std::string username_;
+    std::string password_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_

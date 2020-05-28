@@ -51,6 +51,8 @@ public:
         kDescEdge,
         kInsertVertices,
         kInsertEdges,
+        // user related
+        kCreateUser,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
@@ -97,6 +99,22 @@ protected:
     std::unordered_set<VariableName>         availableVars_;
     VariableName                             varGenerated_;
 };
+
+// Some template node such as Create template for the node create something(user,tag...)
+// Fit the conflict create process
+class CreateNode : public PlanNode {
+public:
+    CreateNode(ExecutionPlan* plan, Kind kind, bool ifNotExist = false)
+        : PlanNode(plan, kind), ifNotExist_(ifNotExist) {}
+
+    bool ifNotExist() const {
+        return ifNotExist_;
+    }
+
+private:
+    bool ifNotExist_{false};
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLANNODE_H_

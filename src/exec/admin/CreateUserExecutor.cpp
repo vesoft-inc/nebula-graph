@@ -4,22 +4,23 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/admin/CreateSpaceExecutor.h"
+#include "exec/admin/CreateUserExecutor.h"
 #include "planner/Admin.h"
 #include "service/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> CreateSpaceExecutor::execute() {
-    return createSpace().ensure([this]() { UNUSED(this); });
+folly::Future<Status> CreateUserExecutor::execute() {
+    return createUser().ensure([this]() { UNUSED(this); });
 }
 
-folly::Future<Status> CreateSpaceExecutor::createSpace() {
+folly::Future<Status> CreateUserExecutor::createUser() {
     dumpLog();
 
-    auto *csNode = asNode<CreateSpace>(node());
-    return ectx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->ifNotExist())
+    auto *cuNode = asNode<CreateUser>(node());
+    return ectx()->getMetaClient()->createUser(
+            cuNode->username(), cuNode->password(), cuNode->ifNotExist())
         .via(runner())
         .then([](StatusOr<bool> resp) {
             if (!resp.ok()) {
