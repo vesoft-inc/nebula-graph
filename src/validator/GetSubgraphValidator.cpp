@@ -153,10 +153,15 @@ Status GetSubgraphValidator::toPlan() {
     std::vector<storage::cpp2::PropExp> edgeProps;
     std::vector<storage::cpp2::StatProp> statProps;
     auto vidsToSave = vctx_->varGen()->getVar();
-    qctx_->ectx()->setValue(vidsToSave, List(std::move(starts_)));
-    auto* vids = new VariablePropertyExpression(
-                new std::string(vidsToSave),
-                new std::string("_vid"));
+    DataSet ds;
+    ds.colNames.emplace_back("_vid");
+    for (auto& vid : starts_) {
+        Row row;
+        row.columns.emplace_back(vid);
+        ds.rows.emplace_back(std::move(row));
+    }
+    qctx_->ectx()->setValue(vidsToSave, std::move(ds));
+    auto* vids = new VariableExpression(new std::string(vidsToSave));
     auto* gn1 = GetNeighbors::make(
             plan,
             bodyStart,
@@ -176,7 +181,7 @@ Status GetSubgraphValidator::toPlan() {
             new std::string("_vid"));
     columns->addColumn(column);
     auto* project = Project::make(plan, gn1, plan->saveObject(columns));
-    project->setVar(vidsToSave);
+    project->setOutputVar(vidsToSave);
 
     // ++counter{0} <= steps
     auto counter = vctx_->varGen()->getVar();

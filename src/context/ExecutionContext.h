@@ -40,15 +40,21 @@ public:
         msg_ = std::move(msg);
     }
 
+    const Stat& stat() const {
+        return stat_;
+    }
+
 private:
     Stat            stat_{Stat::kUnExecuted};
     std::string     msg_;
 };
 
+
 // An executor will produce a result.
 class Result final {
 public:
-    Result() = default;
+    static const Result kEmptyResult;
+    static const std::vector<Result> kEmptyResultList;
 
     static Result buildDefault(Value&& val) {
         return Result(std::move(val));
@@ -80,11 +86,21 @@ public:
         return std::move(value_);
     }
 
+    const State& state() const {
+        return state_;
+    }
+
     Iterator* iter() const {
         return iter_.get();
     }
 
 private:
+    Result() {
+        value_ = Value(NullType::__NULL__);
+        state_ = State(State::Stat::kUnExecuted, "");
+        iter_ = std::make_unique<DefaultIter>(value_);
+    }
+
     explicit Result(Value&& val) {
         value_ = std::move(val);
         state_ = State(State::Stat::kSuccess, "");

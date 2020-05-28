@@ -8,6 +8,10 @@
 
 namespace nebula {
 namespace graph {
+
+const Result Result::kEmptyResult = Result();
+const std::vector<Result> Result::kEmptyResultList;
+
 void ExecutionContext::setValue(const std::string& name, Value&& val) {
     auto& hist = valueMap_[name];
     hist.emplace_back(Result::buildDefault(std::move(val)));
@@ -67,12 +71,11 @@ Value&& ExecutionContext::moveValue(const std::string& name) {
 
 
 const Result& ExecutionContext::getResult(const std::string& name) const {
-    static const Result kEmptyResult;
     auto it = valueMap_.find(name);
     if (it != valueMap_.end()) {
         return it->second.back();
     } else {
-        return kEmptyResult;
+        return Result::kEmptyResult;
     }
 }
 

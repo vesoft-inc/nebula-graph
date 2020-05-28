@@ -47,6 +47,10 @@ public:
         input_ = input;
     }
 
+    void setInputVar(std::string inputVar) {
+        inputVar_ = std::move(inputVar);
+    }
+
     const std::string& inputVar() const {
         return inputVar_;
     }
@@ -74,6 +78,14 @@ public:
 
     void setRight(PlanNode* right) {
         right_ = right;
+    }
+
+    void setLeftVar(std::string leftVar) {
+        leftVar_ = std::move(leftVar);
+    }
+
+    void setRightVar(std::string rightVar) {
+        rightVar_ = std::move(rightVar);
     }
 
     PlanNode* left() const {
