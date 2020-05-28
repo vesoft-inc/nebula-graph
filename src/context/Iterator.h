@@ -128,6 +128,47 @@ private:
     std::vector<Edge>              edges_;
     std::vector<Edge>::iterator    iter_;
 };
+
+class SequentialIter final : public Iterator {
+public:
+    explicit SequentialIter(const Value& value) : Iterator(value) {
+        DCHECK(value.type() == Value::Type::DATASET);
+        auto& ds = value.getDataSet();
+        rows_ = &ds.rows;
+        iter_ = rows_->begin();
+        for (size_t i = 0; i < ds.colNames.size(); ++i) {
+            colIndex_.emplace(ds.colNames[i], i);
+        }
+    }
+
+    bool valid() const override {
+        return iter_ < rows_->end();
+    }
+
+    void next() override {
+        ++iter_;
+    }
+
+    const Value& operator*() override {
+        return value_;
+    }
+
+    const Value& getColumn(const std::string& col) const override {
+        auto& row = *iter_;
+        auto index = colIndex_.find(col);
+        if (index == colIndex_.end()) {
+            return kNullValue;
+        } else {
+            DCHECK_LT(index->second, row.columns.size());
+            return row.columns[index->second];
+        }
+    }
+
+private:
+    const std::vector<Row>*                     rows_;
+    std::vector<Row>::const_iterator            iter_;
+    std::unordered_map<std::string, int64_t>    colIndex_;
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_ITERATOR_H_

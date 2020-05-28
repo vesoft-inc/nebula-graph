@@ -61,6 +61,13 @@ public:
         return result;
     }
 
+    static Result buildSequential(Value&& val, State&& stat) {
+        Result result(std::move(val), std::move(stat));
+        auto iter = std::make_unique<SequentialIter>(result.value());
+        result.setIter(std::move(iter));
+        return result;
+    }
+
     void setIter(std::unique_ptr<Iterator> iter) {
         iter_ = std::move(iter);
     }
