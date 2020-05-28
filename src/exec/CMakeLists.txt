@@ -25,7 +25,7 @@ nebula_add_library(
     query/UnionExecutor.cpp
     admin/SwitchSpaceExecutor.cpp
     admin/CreateSpaceExecutor.cpp
-    admin/ShowExecutor.cpp
+    admin/ShowHostsExecutor.cpp
     admin/DescSpaceExecutor.cpp
     maintain/CreateTagExecutor.cpp
     maintain/CreateEdgeExecutor.cpp

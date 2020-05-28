@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/admin/ShowExecutor.h"
+#include "exec/admin/ShowHostsExecutor.h"
 
 #include "planner/Admin.h"
 #include "service/ExecutionContext.h"
@@ -12,19 +12,11 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> ShowExecutor::execute() {
-    auto *showNode = asNode<Show>(node());
-    switch (DCHECK_NOTNULL(showNode)->showKind()) {
-    case Show::ShowKind::kUnknown:
-        return Status::NotSupported("Unknown show command");
-    case Show::ShowKind::kHosts:
-        return showHosts();
-        // no default so the compiler will warning when lack
-    }
-    return Status::NotSupported("Unknown show command %d", static_cast<int>(showNode->showKind()));
+folly::Future<Status> ShowHostsExecutor::execute() {
+    return showHosts().ensure([this]() { UNUSED(this); });
 }
 
-folly::Future<Status> ShowExecutor::showHosts() {
+folly::Future<Status> ShowHostsExecutor::showHosts() {
     static constexpr char kNoPartition[]        = "No valid partition";
     static constexpr char kPartitionDelimeter[] = ", ";
     return ectx()

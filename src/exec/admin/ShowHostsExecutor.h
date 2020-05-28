@@ -11,10 +11,10 @@
 namespace nebula {
 namespace graph {
 
-class ShowExecutor final : public Executor {
+class ShowHostsExecutor final : public Executor {
 public:
-    ShowExecutor(const PlanNode *node, ExecutionContext *ectx)
-        : Executor("ShowExecutor", node, ectx) {}
+    ShowHostsExecutor(const PlanNode *node, ExecutionContext *ectx)
+        : Executor("ShowHostsExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
 

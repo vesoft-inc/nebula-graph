@@ -21,41 +21,19 @@ namespace nebula {
 namespace graph {
 // TODO: All DDLs, DMLs and DQLs could be used in a single query
 // which would make them in a single and big execution plan
-class Show final : public PlanNode {
+class ShowHosts final : public PlanNode {
+    // TODO(shylock) meta/storage/graph enumerate
 public:
-    enum class ShowKind {
-        kUnknown,
-        kHosts,
-    };
-
-    static Show* make(ExecutionPlan* plan,
-                      ShowKind kind) {
-        return new Show(plan, kind);
+    static ShowHosts* make(ExecutionPlan* plan) {
+        return new ShowHosts(plan);
     }
 
     std::string explain() const override {
-        return "Show " + toString(showKind_);
-    }
-
-    ShowKind showKind() const {
-        return showKind_;
+        return "ShowHosts";
     }
 
 private:
-    static std::string toString(ShowKind kind) {
-        switch (kind) {
-        case ShowKind::kUnknown:
-            return "Unknown";
-        case ShowKind::kHosts:
-            return "Hosts";
-        // No default so the compiler will warning when lack
-        }
-        return "Unknown";
-    }
-
-    Show(ExecutionPlan* plan, ShowKind kind) : PlanNode(plan, Kind::kShow), showKind_(kind) {}
-
-    ShowKind showKind_{ShowKind::kUnknown};
+    explicit ShowHosts(ExecutionPlan* plan) : PlanNode(plan, Kind::kShowHosts) {}
 };
 
 class CreateSpace final : public PlanNode {
