@@ -64,7 +64,7 @@ std::pair<std::string, std::unordered_map<std::string, int64_t>>
     std::unordered_map<std::string, int64_t> kv;
     DCHECK_GE(pieces.size(), 2);
     for (size_t i = 2; i < pieces.size(); ++i) {
-        kv.emplace(pieces[i], i);
+        kv.emplace(pieces[i], i - 2);
     }
     return std::make_pair(pieces[1], std::move(kv));
 }

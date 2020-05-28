@@ -29,9 +29,7 @@ public:
 
     virtual const Value& operator*() = 0;
 
-    virtual size_t size() const {
-        return 1;
-    }
+    virtual size_t size() const = 0;
 
     // The derived class should rewrite get prop if the Value is kind of dataset.
     virtual const Value& getColumn(const std::string& col) const {
@@ -73,6 +71,10 @@ public:
         return value_;
     }
 
+    size_t size() const override {
+        return 1;
+    }
+
 private:
     int64_t counter_{0};
 };
@@ -91,6 +93,10 @@ public:
 
     const Value& operator*() override {
         return value_;
+    }
+
+    size_t size() const override {
+        return edges_.size();
     }
 
     const Value& getColumn(const std::string& col) const override;
@@ -151,6 +157,10 @@ public:
 
     const Value& operator*() override {
         return value_;
+    }
+
+    size_t size() const override {
+        return rows_->size();
     }
 
     const Value& getColumn(const std::string& col) const override {

@@ -11,7 +11,9 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_datatypes_obj>
         $<TARGET_OBJECTS:session_obj>
         $<TARGET_OBJECTS:common_time_obj>
-    LIBRARIES gtest
+    LIBRARIES
+        gtest
+        gtest_main
 )
 
 nebula_add_test(
@@ -29,3 +31,17 @@ nebula_add_test(
         gtest_main
 )
 
+nebula_add_test(
+    NAME
+        iterator_test
+    SOURCES
+        IteratorTest.cpp
+    OBJECTS
+        $<TARGET_OBJECTS:context_obj>
+        $<TARGET_OBJECTS:common_datatypes_obj>
+        $<TARGET_OBJECTS:session_obj>
+        $<TARGET_OBJECTS:common_time_obj>
+    LIBRARIES
+        gtest
+        gtest_main
+)
