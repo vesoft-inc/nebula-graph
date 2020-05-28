@@ -59,6 +59,7 @@ public:
         kRevokeRole,
         kChangePassword,
         kListUserRoles,
+        kListUsers,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

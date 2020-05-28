@@ -362,6 +362,21 @@ private:
     std::string username_;
 };
 
+class ListUsers final : public PlanNode {
+public:
+    static ListUsers* make(ExecutionPlan* plan) {
+        return new ListUsers(plan);
+    }
+
+    std::string explain() const override {
+        return "ListUsers";
+    }
+
+private:
+    explicit ListUsers(ExecutionPlan* plan)
+        : PlanNode(plan, Kind::kListUsers) {}
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_

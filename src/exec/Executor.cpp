@@ -19,6 +19,8 @@
 #include "exec/admin/GrantRoleExecutor.h"
 #include "exec/admin/RevokeRoleExecutor.h"
 #include "exec/admin/ChangePasswordExecutor.h"
+#include "exec/admin/ListUserRolesExecutor.h"
+#include "exec/admin/ListUsersExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
@@ -264,6 +266,16 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         case PlanNode::Kind::kChangePassword: {
             auto changePassword = asNode<ChangePassword>(node);
             exec = new ChangePasswordExecutor(changePassword, ectx);
+            break;
+        }
+        case PlanNode::Kind::kListUserRoles: {
+            auto listUserRoles = asNode<ListUserRoles>(node);
+            exec = new ListUserRolesExecutor(listUserRoles, ectx);
+            break;
+        }
+        case PlanNode::Kind::kListUsers: {
+            auto listUsers = asNode<ListUsers>(node);
+            exec = new ListUsersExecutor(listUsers, ectx);
             break;
         }
         case PlanNode::Kind::kUnknown:
