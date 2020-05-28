@@ -336,6 +336,32 @@ private:
     std::string newPassword_;
 };
 
+
+class ListUserRoles final : public PlanNode {
+public:
+    static ListUserRoles* make(ExecutionPlan* plan,
+                               std::string username) {
+        return new ListUserRoles(plan,
+                                 std::move(username));
+    }
+
+    std::string explain() const override {
+        return "ListUserRoles";
+    }
+
+    const std::string& username() const {
+        return username_;
+    }
+
+private:
+    ListUserRoles(ExecutionPlan* plan, std::string username)
+        : PlanNode(plan, Kind::kListUserRoles),
+          username_(std::move(username)) {}
+
+private:
+    std::string username_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_

@@ -1,0 +1,42 @@
+/* Copyright (c) 2020 vesoft inc. All rights reserved.
+ *
+ * This source code is licensed under Apache 2.0 License,
+ * attached with Common Clause Condition 1.0, found in the LICENSES directory.
+ */
+
+#include "exec/admin/ListUserRolesExecutor.h"
+#include "planner/Admin.h"
+#include "service/ExecutionContext.h"
+
+namespace nebula {
+namespace graph {
+
+folly::Future<Status> ListUserRolesExecutor::execute() {
+    return listUserRoles().ensure([this]() { UNUSED(this); });
+}
+
+folly::Future<Status> ListUserRolesExecutor::listUserRoles() {
+    dumpLog();
+
+    auto *lurNode = asNode<ListUserRoles>(node());
+    return ectx()->getMetaClient()->getUserRoles(lurNode->username())
+        .via(runner())
+        .then([](StatusOr<std::vector<meta::cpp2::RoleItem>> &&resp) {
+            if (!resp.ok()) {
+                return std::move(resp).status();
+            }
+            nebula::DataSet v({"Account", "Role Type"});
+            auto items = std::move(resp).value();
+            for (const auto &item : items) {
+                v.emplace_back(nebula::Row(
+                    {
+                        item.get_user_id(),
+                        meta::cpp2::_RoleType_VALUES_TO_NAMES.at(item.get_role_type())
+                    }));
+            }
+            return Status::OK();
+        });
+}
+
+}   // namespace graph
+}   // namespace nebula
