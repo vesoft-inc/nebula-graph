@@ -54,6 +54,7 @@ public:
         // user related
         kCreateUser,
         kDropUser,
+        kUpdateUser,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

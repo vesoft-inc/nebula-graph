@@ -195,6 +195,39 @@ private:
     std::string username_;
 };
 
+class UpdateUser final : public PlanNode {
+public:
+    static UpdateUser* make(ExecutionPlan* plan,
+                            std::string username,
+                            std::string password) {
+        return new UpdateUser(plan,
+                            std::move(username),
+                            std::move(password));
+    }
+
+    std::string explain() const override {
+        return "UpdateUser";
+    }
+
+    const std::string& username() const {
+        return username_;
+    }
+
+    const std::string& password() const {
+        return password_;
+    }
+
+private:
+    UpdateUser(ExecutionPlan* plan, std::string username, std::string password)
+        : PlanNode(plan, Kind::kUpdateUser),
+          username_(std::move(username)),
+          password_(std::move(password)) {}
+
+private:
+    std::string username_;
+    std::string password_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_
