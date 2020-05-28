@@ -19,7 +19,7 @@ public:
     folly::Future<Status> execute() override;
 
 private:
-    folly::Future<Status> createUser();
+    folly::Future<Status> dropUser();
 };
 
 }   // namespace graph

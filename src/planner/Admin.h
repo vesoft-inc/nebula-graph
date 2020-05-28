@@ -261,6 +261,39 @@ private:
     meta::cpp2::RoleItem item_;
 };
 
+class RevokeRole final : public PlanNode {
+public:
+    static RevokeRole* make(ExecutionPlan* plan,
+                           std::string username,
+                           GraphSpaceID space,
+                           meta::cpp2::RoleType role) {
+        return new RevokeRole(plan,
+                            std::move(username),
+                            space,
+                            role);
+    }
+
+    std::string explain() const override {
+        return "RevokeRole";
+    }
+
+    const meta::cpp2::RoleItem &item() const {
+        return item_;
+    }
+
+private:
+    RevokeRole(ExecutionPlan* plan,
+        std::string username, GraphSpaceID space, meta::cpp2::RoleType role)
+        : PlanNode(plan, Kind::kRevokeRole) {
+            item_.set_user_id(std::move(username));
+            item_.set_space_id(space);
+            item_.set_role_type(role);
+        }
+
+private:
+    meta::cpp2::RoleItem item_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_

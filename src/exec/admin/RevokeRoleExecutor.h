@@ -11,15 +11,15 @@
 namespace nebula {
 namespace graph {
 
-class UpdateUserExecutor final : public Executor {
+class RevokeRoleExecutor final : public Executor {
 public:
-    UpdateUserExecutor(const PlanNode *node, ExecutionContext *ectx)
-        : Executor("UpdateUserExecutor", node, ectx) {}
+    RevokeRoleExecutor(const PlanNode *node, ExecutionContext *ectx)
+        : Executor("RevokeRoleExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
 
 private:
-    folly::Future<Status> updateUser();
+    folly::Future<Status> revokeRole();
 };
 
 }   // namespace graph

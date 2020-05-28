@@ -12,10 +12,10 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> DropUserExecutor::execute() {
-    return createUser().ensure([this]() { UNUSED(this); });
+    return dropUser().ensure([this]() { UNUSED(this); });
 }
 
-folly::Future<Status> DropUserExecutor::createUser() {
+folly::Future<Status> DropUserExecutor::dropUser() {
     dumpLog();
 
     auto *duNode = asNode<DropUser>(node());
