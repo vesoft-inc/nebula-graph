@@ -139,10 +139,10 @@ public:
                             std::string username,
                             std::string password,
                             bool ifNotExists) {
-    return new CreateUser(plan,
-                          std::move(username),
-                          std::move(password),
-                          ifNotExists);
+        return new CreateUser(plan,
+                            std::move(username),
+                            std::move(password),
+                            ifNotExists);
     }
 
     std::string explain() const override {
@@ -166,6 +166,33 @@ private:
 private:
     std::string username_;
     std::string password_;
+};
+
+class DropUser final : public DropNode {
+public:
+    static DropUser* make(ExecutionPlan* plan,
+                            std::string username,
+                            bool ifNotExists) {
+        return new DropUser(plan,
+                            std::move(username),
+                            ifNotExists);
+    }
+
+    std::string explain() const override {
+        return "DropUser";
+    }
+
+    const std::string& username() const {
+        return username_;
+    }
+
+private:
+    DropUser(ExecutionPlan* plan, std::string username, bool ifNotExists)
+        : DropNode(plan, Kind::kDropUser, ifNotExists),
+          username_(std::move(username)) {}
+
+private:
+    std::string username_;
 };
 
 }  // namespace graph

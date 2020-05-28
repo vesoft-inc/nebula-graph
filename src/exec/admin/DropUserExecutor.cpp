@@ -4,23 +4,22 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/admin/CreateUserExecutor.h"
+#include "exec/admin/DropUserExecutor.h"
 #include "planner/Admin.h"
 #include "service/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> CreateUserExecutor::execute() {
+folly::Future<Status> DropUserExecutor::execute() {
     return createUser().ensure([this]() { UNUSED(this); });
 }
 
-folly::Future<Status> CreateUserExecutor::createUser() {
+folly::Future<Status> DropUserExecutor::createUser() {
     dumpLog();
 
-    auto *cuNode = asNode<CreateUser>(node());
-    return ectx()->getMetaClient()->createUser(
-            cuNode->username(), cuNode->password(), cuNode->ifNotExist())
+    auto *duNode = asNode<DropUser>(node());
+    return ectx()->getMetaClient()->dropUser(duNode->username(), duNode->ifExist())
         .via(runner())
         .then([](StatusOr<bool> resp) {
             if (!resp.ok()) {
@@ -30,7 +29,7 @@ folly::Future<Status> CreateUserExecutor::createUser() {
             if (resp.value()) {
                 return Status::OK();
             } else {
-                return Status::Error("Create user failed.");
+                return Status::Error("Drop user failed");
             }
         });
 }

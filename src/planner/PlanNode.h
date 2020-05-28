@@ -115,6 +115,19 @@ private:
     bool ifNotExist_{false};
 };
 
+class DropNode : public PlanNode {
+public:
+    DropNode(ExecutionPlan* plan, Kind kind, bool ifExist = false)
+        : PlanNode(plan, kind), ifExist_(ifExist) {}
+
+    bool ifExist() const {
+        return ifExist_;
+    }
+
+private:
+    bool ifExist_{false};
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLANNODE_H_
