@@ -31,6 +31,7 @@ nebula_add_library(
     admin/UpdateUserExecutor.cpp
     admin/GrantRoleExecutor.cpp
     admin/RevokeRoleExecutor.cpp
+    admin/ChangePasswordExecutor.cpp
     maintain/CreateTagExecutor.cpp
     maintain/CreateEdgeExecutor.cpp
     maintain/DescTagExecutor.cpp

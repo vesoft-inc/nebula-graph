@@ -294,6 +294,48 @@ private:
     meta::cpp2::RoleItem item_;
 };
 
+class ChangePassword final : public PlanNode {
+public:
+    static ChangePassword* make(ExecutionPlan* plan,
+                            std::string username,
+                            std::string password,
+                            std::string newPassword) {
+        return new ChangePassword(plan,
+                            std::move(username),
+                            std::move(password),
+                            std::move(newPassword));
+    }
+
+    std::string explain() const override {
+        return "ChangePassword";
+    }
+
+    const std::string& username() const {
+        return username_;
+    }
+
+    const std::string& password() const {
+        return password_;
+    }
+
+    const std::string& newPassword() const {
+        return newPassword_;
+    }
+
+private:
+    ChangePassword(ExecutionPlan* plan, std::string username, std::string password,
+        std::string newPassword)
+        : PlanNode(plan, Kind::kChangePassword),
+          username_(std::move(username)),
+          password_(std::move(password)),
+          newPassword_(std::move(newPassword)) {}
+
+private:
+    std::string username_;
+    std::string password_;
+    std::string newPassword_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_
