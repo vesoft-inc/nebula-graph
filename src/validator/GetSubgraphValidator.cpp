@@ -8,9 +8,9 @@
 
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
-#include "expression/VariableExpression.h"
-#include "expression/UnaryExpression.h"
-#include "expression/ConstantExpression.h"
+#include "common/expression/VariableExpression.h"
+#include "common/expression/UnaryExpression.h"
+#include "common/expression/ConstantExpression.h"
 
 namespace nebula {
 namespace graph {

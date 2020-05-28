@@ -7,7 +7,8 @@
 #ifndef CONTEXT_EXPRESSIONCONTEXTIMPL_H_
 #define CONTEXT_EXPRESSIONCONTEXTIMPL_H_
 
-#include "context/ExpressionContext.h"
+#include "common/context/ExpressionContext.h"
+
 #include "context/QueryContext.h"
 
 namespace nebula {

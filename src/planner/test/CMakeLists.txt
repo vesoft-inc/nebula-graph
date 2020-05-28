@@ -44,16 +44,9 @@ nebula_add_test(
         $<TARGET_OBJECTS:planner_obj>
         $<TARGET_OBJECTS:exec_obj>
         $<TARGET_OBJECTS:schedule_obj>
-<<<<<<< HEAD
-        $<TARGET_OBJECTS:util_obj>
-=======
         $<TARGET_OBJECTS:schema_util_obj>
         $<TARGET_OBJECTS:idgenerator_obj>
-<<<<<<< HEAD
->>>>>>> Fix compiling.
-=======
         $<TARGET_OBJECTS:context_obj>
->>>>>>> Replace ExecutionContext with QueryContext.
     LIBRARIES
         gtest
         proxygenhttpserver

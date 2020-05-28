@@ -6,13 +6,8 @@
 
 #include "exec/query/GetEdgesExecutor.h"
 
-<<<<<<< HEAD
-// common
 #include "common/clients/storage/GraphStorageClient.h"
-// graph
-=======
-#include "clients/storage/GraphStorageClient.h"
->>>>>>> Replace ExecutionContext with QueryContext.
+
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 

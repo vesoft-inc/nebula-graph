@@ -7,7 +7,8 @@
 #ifndef UTIL_ANNOVARGENERATOR_H_
 #define UTIL_ANNOVARGENERATOR_H_
 
-#include "base/Base.h"
+#include "common/base/Base.h"
+
 #include "util/IdGenerator.h"
 
 namespace nebula {

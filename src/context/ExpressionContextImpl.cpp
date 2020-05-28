@@ -4,7 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "datatypes/Value.h"
+#include "common/datatypes/Value.h"
+
 #include "context/ExpressionContextImpl.h"
 
 namespace nebula {

@@ -9,12 +9,13 @@
 
 #include <cstdint>
 #include <memory>
-#include "expression/Expression.h"
-#include "util/ObjectPool.h"
 
 #include <folly/futures/Future.h>
 
 #include "common/base/Status.h"
+#include "common/expression/Expression.h"
+
+#include "util/ObjectPool.h"
 
 namespace nebula {
 namespace graph {

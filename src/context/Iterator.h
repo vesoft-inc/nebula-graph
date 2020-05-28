@@ -7,9 +7,9 @@
 #ifndef CONTEXT_ITERATOR_H_
 #define CONTEXT_ITERATOR_H_
 
-#include "datatypes/Value.h"
-#include "datatypes/List.h"
-#include "datatypes/DataSet.h"
+#include "common/datatypes/Value.h"
+#include "common/datatypes/List.h"
+#include "common/datatypes/DataSet.h"
 
 namespace nebula {
 namespace graph {
