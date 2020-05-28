@@ -55,6 +55,7 @@ public:
         kCreateUser,
         kDropUser,
         kUpdateUser,
+        kGrantRole,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
