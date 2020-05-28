@@ -13,6 +13,11 @@
 #include "exec/admin/CreateSpaceExecutor.h"
 #include "exec/admin/DescSpaceExecutor.h"
 #include "exec/admin/SwitchSpaceExecutor.h"
+#include "exec/admin/CreateUserExecutor.h"
+#include "exec/admin/DropUserExecutor.h"
+#include "exec/admin/UpdateUserExecutor.h"
+#include "exec/admin/GrantRoleExecutor.h"
+#include "exec/admin/RevokeRoleExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
@@ -229,6 +234,27 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto insertE = asNode<InsertEdges>(node);
             exec = new InsertEdgesExecutor(insertE, ectx);
             break;
+        }
+        case PlanNode::Kind::kCreateUser: {
+            auto createUser = asNode<CreateUser>(node);
+            exec = new CreateUserExecutor(createUser, ectx);
+            break;
+        }
+        case PlanNode::Kind::kDropUser: {
+            auto dropUser = asNode<DropUser>(node);
+            exec = new DropUserExecutor(dropUser, ectx);
+        }
+        case PlanNode::Kind::kUpdateUser: {
+            auto updateUser = asNode<UpdateUser>(node);
+            exec = new UpdateUserExecutor(updateUser, ectx);
+        }
+        case PlanNode::Kind::kGrantRole: {
+            auto grantRole = asNode<GrantRole>(node);
+            exec = new GrantRoleExecutor(grantRole, ectx);
+        }
+        case PlanNode::Kind::kRevokeRole: {
+            auto revokeRole = asNode<RevokeRole>(node);
+            exec = new RevokeRoleExecutor(revokeRole, ectx);
         }
         case PlanNode::Kind::kUnknown:
         default:
