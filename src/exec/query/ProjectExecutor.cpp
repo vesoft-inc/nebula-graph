@@ -37,10 +37,12 @@ folly::Future<Status> ProjectExecutor::execute() {
         Row row;
         for (auto& col : columns) {
             auto val = Expression::eval(col->expr());
-            ds.rows.emplace_back(std::move(row));
+            row.columns.emplace_back(std::move(val));
         }
+        ds.rows.emplace_back(std::move(row));
     }
-    auto status = finish(Result::buildDefault(Value(std::move(ds))));
+    auto status = finish(Result::buildSequential(
+                Value(std::move(ds)), State(State::Stat::kSuccess, "")));
     if (!status.ok()) {
         return error(std::move(status));
     }
