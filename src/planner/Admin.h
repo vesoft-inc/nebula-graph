@@ -377,6 +377,27 @@ private:
         : PlanNode(plan, Kind::kListUsers) {}
 };
 
+class ListRoles final : public PlanNode {
+public:
+    static ListRoles* make(ExecutionPlan* plan, GraphSpaceID space) {
+        return new ListRoles(plan, space);
+    }
+
+    std::string explain() const override {
+        return "ListRoles";
+    }
+
+    GraphSpaceID space() const {
+        return space_;
+    }
+
+private:
+    explicit ListRoles(ExecutionPlan* plan, GraphSpaceID space)
+        : PlanNode(plan, Kind::kListRoles), space_(space) {}
+
+    GraphSpaceID space_{-1};
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_

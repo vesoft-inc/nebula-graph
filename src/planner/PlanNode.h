@@ -60,6 +60,7 @@ public:
         kChangePassword,
         kListUserRoles,
         kListUsers,
+        kListRoles,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

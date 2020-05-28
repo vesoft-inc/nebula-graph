@@ -21,7 +21,7 @@ folly::Future<Status> ListUserRolesExecutor::listUserRoles() {
     auto *lurNode = asNode<ListUserRoles>(node());
     return ectx()->getMetaClient()->getUserRoles(lurNode->username())
         .via(runner())
-        .then([](StatusOr<std::vector<meta::cpp2::RoleItem>> &&resp) {
+        .then([this](StatusOr<std::vector<meta::cpp2::RoleItem>> &&resp) {
             if (!resp.ok()) {
                 return std::move(resp).status();
             }
@@ -34,7 +34,7 @@ folly::Future<Status> ListUserRolesExecutor::listUserRoles() {
                         meta::cpp2::_RoleType_VALUES_TO_NAMES.at(item.get_role_type())
                     }));
             }
-            return Status::OK();
+            return finish(std::move(v));
         });
 }
 
