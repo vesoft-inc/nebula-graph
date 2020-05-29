@@ -51,24 +51,24 @@ private:
 
 
 // An executor will produce a result.
-class Result final {
+class ExecResult final {
 public:
-    static const Result kEmptyResult;
-    static const std::vector<Result> kEmptyResultList;
+    static const ExecResult kEmptyResult;
+    static const std::vector<ExecResult> kEmptyResultList;
 
-    static Result buildDefault(Value&& val) {
-        return Result(std::move(val));
+    static ExecResult buildDefault(Value&& val) {
+        return ExecResult(std::move(val));
     }
 
-    static Result buildGetNeighbors(Value&& val, State&& stat) {
-        Result result(std::move(val), std::move(stat));
+    static ExecResult buildGetNeighbors(Value&& val, State&& stat) {
+        ExecResult result(std::move(val), std::move(stat));
         auto iter = std::make_unique<GetNeighborsIter>(result.value());
         result.setIter(std::move(iter));
         return result;
     }
 
-    static Result buildSequential(Value&& val, State&& stat) {
-        Result result(std::move(val), std::move(stat));
+    static ExecResult buildSequential(Value&& val, State&& stat) {
+        ExecResult result(std::move(val), std::move(stat));
         auto iter = std::make_unique<SequentialIter>(result.value());
         result.setIter(std::move(iter));
         return result;
@@ -95,19 +95,19 @@ public:
     }
 
 private:
-    Result() {
-        value_ = Value(NullType::__NULL__);
+    ExecResult() {
+        value_ = Value();
         state_ = State(State::Stat::kUnExecuted, "");
         iter_ = std::make_unique<DefaultIter>(value_);
     }
 
-    explicit Result(Value&& val) {
+    explicit ExecResult(Value&& val) {
         value_ = std::move(val);
         state_ = State(State::Stat::kSuccess, "");
         iter_ = std::make_unique<DefaultIter>(value_);
     }
 
-    Result(Value&& val, State stat) {
+    ExecResult(Value&& val, State stat) {
         value_ = std::move(val);
         state_ = stat;
     }
@@ -129,17 +129,17 @@ public:
 
     Value&& moveValue(const std::string& name);
 
-    const Result& getResult(const std::string& name) const;
+    const ExecResult& getResult(const std::string& name) const;
 
     size_t numVersions(const std::string& name) const;
 
     // Return all existing history of the value. The front is the latest value
     // and the back is the oldest value
-    const std::vector<Result>& getHistory(const std::string& name) const;
+    const std::vector<ExecResult>& getHistory(const std::string& name) const;
 
     void setValue(const std::string& name, Value&& val);
 
-    void setResult(const std::string& name, Result&& result);
+    void setResult(const std::string& name, ExecResult&& result);
 
     void deleteValue(const std::string& name);
 
@@ -148,7 +148,7 @@ public:
 
 private:
     // name -> Value with multiple versions
-    std::unordered_map<std::string, std::vector<Result>>     valueMap_;
+    std::unordered_map<std::string, std::vector<ExecResult>>     valueMap_;
 };
 }  // namespace graph
 }  // namespace nebula

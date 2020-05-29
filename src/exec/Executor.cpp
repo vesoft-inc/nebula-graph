@@ -249,8 +249,8 @@ int64_t Executor::id() const {
 
 Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *qctx)
     : name_(name), node_(node), qctx_(qctx) {
-    DCHECK_NOTNULL(node_);
-    DCHECK_NOTNULL(qctx_);
+    DCHECK(!!node_);
+    DCHECK(!!qctx_);
 
     ectx_ = qctx->ectx();
     // Initialize the position in ExecutionContext for each executor before execution plan

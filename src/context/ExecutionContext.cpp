@@ -9,16 +9,16 @@
 namespace nebula {
 namespace graph {
 
-const Result Result::kEmptyResult = Result();
-const std::vector<Result> Result::kEmptyResultList;
+const ExecResult ExecResult::kEmptyResult = ExecResult();
+const std::vector<ExecResult> ExecResult::kEmptyResultList;
 
 void ExecutionContext::setValue(const std::string& name, Value&& val) {
     auto& hist = valueMap_[name];
-    hist.emplace_back(Result::buildDefault(std::move(val)));
+    hist.emplace_back(ExecResult::buildDefault(std::move(val)));
 }
 
 
-void ExecutionContext::setResult(const std::string& name, Result&& result) {
+void ExecutionContext::setResult(const std::string& name, ExecResult&& result) {
     auto& hist = valueMap_[name];
     hist.emplace_back(std::move(result));
 }
@@ -70,24 +70,22 @@ Value&& ExecutionContext::moveValue(const std::string& name) {
 }
 
 
-const Result& ExecutionContext::getResult(const std::string& name) const {
+const ExecResult& ExecutionContext::getResult(const std::string& name) const {
     auto it = valueMap_.find(name);
     if (it != valueMap_.end()) {
         return it->second.back();
     } else {
-        return Result::kEmptyResult;
+        return ExecResult::kEmptyResult;
     }
 }
 
 
-const std::vector<Result>& ExecutionContext::getHistory(const std::string& name) const {
-    static const std::vector<Result> kEmptyList;
-
+const std::vector<ExecResult>& ExecutionContext::getHistory(const std::string& name) const {
     auto it = valueMap_.find(name);
     if (it != valueMap_.end()) {
         return it->second;
     } else {
-        return kEmptyList;
+        return ExecResult::kEmptyResultList;
     }
 }
 }  // namespace graph

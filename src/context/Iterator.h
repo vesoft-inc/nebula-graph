@@ -115,14 +115,9 @@ private:
 
 private:
     std::vector<std::unordered_map<std::string, int64_t>> colIndex_;
-    using PropIndex = std::vector</* segment */
-                            std::unordered_map<
-                                         std::string, /* tag or edge */
-                                         std::unordered_map<std::string, /* prop */
-                                                            int64_t      /* id */
-                                                           >
-                                       >
-                                 >;
+    using PropIdxMap = std::unordered_map<std::string, int64_t>;
+    using TagEdgePropMap = std::unordered_map<std::string, PropIdxMap>;
+    using PropIndex = std::vector<TagEdgePropMap>;
     using Edge = std::tuple<int64_t, /* segment id */
                            const Row*,
                            int64_t, /* column id */

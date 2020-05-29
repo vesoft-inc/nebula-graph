@@ -58,7 +58,7 @@ int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
 }
 
 std::pair<std::string, std::unordered_map<std::string, int64_t>>
-    GetNeighborsIter::buildPropIndex(const std::string& props) {
+GetNeighborsIter::buildPropIndex(const std::string& props) {
     std::vector<std::string> pieces;
     folly::split(":", props, pieces);
     std::unordered_map<std::string, int64_t> kv;
