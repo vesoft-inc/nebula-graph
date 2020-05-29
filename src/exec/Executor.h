@@ -14,9 +14,9 @@
 
 #include <folly/futures/Future.h>
 
-#include "base/Status.h"
-#include "cpp/helpers.h"
-#include "datatypes/Value.h"
+#include "common/base/Status.h"
+#include "common/cpp/helpers.h"
+#include "common/datatypes/Value.h"
 #include "service/GraphFlags.h"
 
 #define CHECK_NODE_TYPE(kKind)                                                                     \

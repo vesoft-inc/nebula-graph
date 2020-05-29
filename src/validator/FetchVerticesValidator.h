@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "base/Base.h"
-#include "interface/gen-cpp2/storage_types.h"
+#include "common/base/Base.h"
+#include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/TraverseSentences.h"
 #include "validator/Validator.h"
 
