@@ -1,3 +1,13 @@
+#!/usr/bin/env bash
+#
+# Copyright (c) 2020 vesoft inc. All rights reserved.
+#
+# This source code is licensed under Apache 2.0 License,
+# attached with Common Clause Condition 1.0, found in the LICENSES directory.
+
+mkdir -p $HOME/.ssh
+
+cat <<EOF >> $HOME/.ssh/id_rsa
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABFwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAQEAyx55MYXG4urn6mzgd35TL6clKf3s6nbCgjQaduo1dCOVIAYmvpIY
@@ -25,3 +35,11 @@ IcRPIo/RIOLgsHy5i2jXmWZ+MnNmAVP/cxsBi4GLGkSQ1cMQr/kC8e5JSpuMWvrNI0N5sH
 4TSmXezTufgLIT+QvCbZzWkbwHEU9JaN4DXyNoLPD9x0Z2nRoflLmArzxFMQhNqrHX49UC
 IDyP14Iwnzc8Q38HAAAAFmR1dG9yLmhvdUBuZWJ1bGEtZGV2LTEBAgME
 -----END OPENSSH PRIVATE KEY-----
+EOF
+
+chmod 0400 $HOME/.ssh/id_rsa
+
+cat <<EOF >> $HOME/.ssh/config
+Host github.com
+     StrictHostKeyChecking no
+EOF

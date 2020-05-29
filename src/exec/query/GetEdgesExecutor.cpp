@@ -7,7 +7,7 @@
 #include "exec/query/GetEdgesExecutor.h"
 
 // common
-#include "clients/storage/GraphStorageClient.h"
+#include "common/clients/storage/GraphStorageClient.h"
 // graph
 #include "planner/Query.h"
 #include "service/ExecutionContext.h"
@@ -20,13 +20,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetEdgesExecutor::execute() {
-    return SingleInputExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-        return getEdges().ensure([this]() {
-            // TODO(yee): some cleanup or stats actions
-            UNUSED(this);
-        });
-    }));
+    return getEdges();
 }
 
 folly::Future<Status> GetEdgesExecutor::getEdges() {

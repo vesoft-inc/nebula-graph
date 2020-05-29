@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-#
 
 nebula_add_test(
     NAME execution_plan_test
@@ -44,7 +43,8 @@ nebula_add_test(
         $<TARGET_OBJECTS:validator_obj>
         $<TARGET_OBJECTS:planner_obj>
         $<TARGET_OBJECTS:exec_obj>
-        $<TARGET_OBJECTS:schema_util_obj>
+        $<TARGET_OBJECTS:schedule_obj>
+        $<TARGET_OBJECTS:util_obj>
     LIBRARIES
         gtest
         proxygenhttpserver

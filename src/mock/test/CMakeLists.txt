@@ -6,7 +6,7 @@
 
 set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:mock_obj>
-    $<TARGET_OBJECTS:schema_util_obj>
+    $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:service_obj>
     $<TARGET_OBJECTS:session_obj>
     $<TARGET_OBJECTS:query_engine_obj>
@@ -16,6 +16,7 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
     $<TARGET_OBJECTS:exec_obj>
+    $<TARGET_OBJECTS:schedule_obj>
     $<TARGET_OBJECTS:common_graph_client_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_http_client_obj>

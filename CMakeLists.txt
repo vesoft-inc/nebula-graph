@@ -245,7 +245,6 @@ message(STATUS "CMAKE_PROGRAM_PATH: " ${PROGRAM_PATH_STR})
 
 find_package(Bzip2 REQUIRED)
 find_package(DoubleConversion REQUIRED)
-#find_package(Fatal REQUIRED)
 find_package(Fbthrift REQUIRED)
 find_package(Folly REQUIRED)
 find_package(Gflags REQUIRED)
@@ -470,10 +469,8 @@ macro(nebula_add_library name type)
 endmacro()
 
 include_directories(AFTER ${NEBULA_HOME}/src)
-include_directories(AFTER modules/common/src)
-include_directories(AFTER modules/common/src/interface)
+include_directories(AFTER ${NEBULA_HOME}/modules/common/src)
 include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src)
-include_directories(AFTER ${CMAKE_CURRENT_BINARY_DIR}/src/parser)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L ${NEBULA_THIRDPARTY_ROOT}/lib")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L ${NEBULA_THIRDPARTY_ROOT}/lib64")
@@ -533,7 +530,6 @@ macro(nebula_link_libraries target)
         boost_system
         event
         double-conversion
-        resolv
         s2
         ${OPENSSL_SSL_LIBRARY}
         ${OPENSSL_CRYPTO_LIBRARY}
@@ -544,6 +540,7 @@ macro(nebula_link_libraries target)
         keyutils
         dl
         ${GETTIME_LIB}
+        resolv
         ${libatomic_link_flags}
         -pthread
         ${COVERAGES}
