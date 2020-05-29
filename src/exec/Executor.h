@@ -87,7 +87,7 @@ protected:
 
     // Store the result of this executor to execution context
     Status finish(nebula::Value &&value);
-    Status finish(Result &&result);
+    Status finish(ExecResult &&result);
 
     // Dump some execution logging messages
     void dumpLog() const;

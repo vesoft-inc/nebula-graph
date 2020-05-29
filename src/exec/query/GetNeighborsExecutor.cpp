@@ -15,6 +15,9 @@
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 
+using nebula::storage::StorageRpcResponse;
+using nebula::storage::cpp2::GetNeighborsResponse;
+using nebula::storage::GraphStorageClient;
 
 namespace nebula {
 namespace graph {
@@ -58,7 +61,7 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
         });
 }
 
-Status GetNeighborsExecutor::handleResponse(StorageRpcResponse<GetNeighborsResponse>& resps) {
+Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
     auto completeness = resps.completeness();
     if (completeness != 0) {
         return Status::Error("Get neighbors failed");
@@ -83,7 +86,7 @@ Status GetNeighborsExecutor::handleResponse(StorageRpcResponse<GetNeighborsRespo
 
         list.values.emplace_back(std::move(*dataset));
     }
-    return finish(Result::buildGetNeighbors(Value(std::move(list)), std::move(state)));
+    return finish(ExecResult::buildGetNeighbors(Value(std::move(list)), std::move(state)));
 }
 
 void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseCommon& result) const {

@@ -13,14 +13,9 @@
 #include "common/datatypes/Value.h"
 #include "common/datatypes/Vertex.h"
 #include "common/interface/gen-cpp2/storage_types.h"
-#include "common/interface/gen-cpp2/storage_types.h"
 #include "common/clients/storage/GraphStorageClient.h"
 
 #include "exec/Executor.h"
-
-using nebula::storage::GraphStorageClient;
-using nebula::storage::StorageRpcResponse;
-using nebula::storage::cpp2::GetNeighborsResponse;
 
 namespace nebula {
 namespace graph {
@@ -35,7 +30,8 @@ public:
 private:
     folly::Future<Status> getNeighbors();
 
-    Status handleResponse(StorageRpcResponse<GetNeighborsResponse>& resps);
+    using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
+    Status handleResponse(RpcResponse& resps);
 
     void checkResponseResult(const storage::cpp2::ResponseCommon &resp) const;
 };

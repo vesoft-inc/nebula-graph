@@ -32,7 +32,8 @@ TEST_F(QueryExecutorsTest, Project) {
         ds.rows.emplace_back(std::move(row));
     }
     auto expected = ds;
-    qctx_->ectx()->setResult(vids, Result::buildSequential(Value(std::move(ds)), State()));
+    qctx_->ectx()->setResult(vids,
+                ExecResult::buildSequential(Value(std::move(ds)), State()));
 
     auto* columns = new YieldColumns();
     auto* column = new YieldColumn(

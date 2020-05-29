@@ -45,6 +45,7 @@ TEST_F(SubgraphTest, Base) {
         cpp2::ExecutionResponse resp;
         std::string query = "GET SUBGRAPH 3 STEPS FROM 1";
         auto code = client_->execute(query, resp);
+        UNUSED(code);
         // ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         // TODO: check result.
     }

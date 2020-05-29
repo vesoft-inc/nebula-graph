@@ -41,7 +41,7 @@ folly::Future<Status> ProjectExecutor::execute() {
         }
         ds.rows.emplace_back(std::move(row));
     }
-    auto status = finish(Result::buildSequential(
+    auto status = finish(ExecResult::buildSequential(
                 Value(std::move(ds)), State(State::Stat::kSuccess, "")));
     if (!status.ok()) {
         return error(std::move(status));

@@ -270,7 +270,7 @@ Status Executor::finish(nebula::Value &&value) {
     return Status::OK();
 }
 
-Status Executor::finish(Result &&result) {
+Status Executor::finish(ExecResult &&result) {
     ectx_->setResult(node()->varName(), std::move(result));
     return Status::OK();
 }
