@@ -1,10 +1,15 @@
+# Copyright (c) 2020 vesoft inc. All rights reserved.
+#
+# This source code is licensed under Apache 2.0 License,
+# attached with Common Clause Condition 1.0, found in the LICENSES directory.
+
 nebula_add_executable(
     NAME
         nebula-graphd
     SOURCES
         GraphDaemon.cpp
     OBJECTS
-        $<TARGET_OBJECTS:schema_util_obj>
+        $<TARGET_OBJECTS:util_obj>
         $<TARGET_OBJECTS:service_obj>
         $<TARGET_OBJECTS:session_obj>
         $<TARGET_OBJECTS:query_engine_obj>
@@ -13,6 +18,7 @@ nebula_add_executable(
         $<TARGET_OBJECTS:validator_obj>
         $<TARGET_OBJECTS:planner_obj>
         $<TARGET_OBJECTS:exec_obj>
+        $<TARGET_OBJECTS:schedule_obj>
         $<TARGET_OBJECTS:common_expression_obj>
         $<TARGET_OBJECTS:common_http_client_obj>
         $<TARGET_OBJECTS:common_network_obj>

@@ -5,7 +5,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "base/Base.h"
+#include "common/base/Base.h"
 #include "parser/GQLParser.h"
 
 // TODO(dutor) Inspect the internal structures to check on the syntax and semantics
@@ -1701,6 +1701,12 @@ TEST(Parser, BalanceOperation) {
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
+    {
+        GQLParser parser;
+        std::string query = "BALANCE DATA REMOVE 192.168.0.1:50000,\"localhost\":50001";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
 }
 
 TEST(Parser, CrashByFuzzer) {
@@ -2004,4 +2010,3 @@ TEST(Parser, UseReservedKeyword) {
     }
 }
 }   // namespace nebula
-

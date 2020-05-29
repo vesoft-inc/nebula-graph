@@ -8,8 +8,8 @@
 #define PLANNER_ADMIN_H_
 
 #include "planner/PlanNode.h"
-#include "interface/gen-cpp2/meta_types.h"
-#include "clients/meta/MetaClient.h"
+#include "common/interface/gen-cpp2/meta_types.h"
+#include "common/clients/meta/MetaClient.h"
 
 /**
  * All admin-related nodes would be put in this file.
@@ -22,6 +22,10 @@ namespace graph {
 // TODO: All DDLs, DMLs and DQLs could be used in a single query
 // which would make them in a single and big execution plan
 class Show final : public PlanNode {
+ public:
+    std::string explain() const override {
+        return "Show";
+    }
 };
 
 class CreateSpace final : public PlanNode {
@@ -63,6 +67,10 @@ private:
 };
 
 class DropSpace final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "DropSpace";
+    }
 };
 
 class DescSpace final : public PlanNode {
@@ -92,21 +100,45 @@ private:
 };
 
 class Config final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "Config";
+    }
 };
 
 class Balance final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "Balance";
+    }
 };
 
 class CreateSnapshot final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "CreateSnapshot";
+    }
 };
 
 class DropSnapshot final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "DropSnapshot";
+    }
 };
 
 class Download final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "Download";
+    }
 };
 
 class Ingest final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "Ingest";
+    }
 };
 }  // namespace graph
 }  // namespace nebula

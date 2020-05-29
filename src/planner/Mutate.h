@@ -7,7 +7,7 @@
 #ifndef PLANNER_MUTATE_H_
 #define PLANNER_MUTATE_H_
 
-#include "interface/gen-cpp2/storage_types.h"
+#include "common/interface/gen-cpp2/storage_types.h"
 #include "PlanNode.h"
 
 /**
@@ -124,15 +124,31 @@ private:
 };
 
 class UpdateVertex final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "UpdateVertex";
+    }
 };
 
 class UpdateEdge final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "UpdateEdge";
+    }
 };
 
 class DeleteVertex final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "DeleteVertex";
+    }
 };
 
 class DeleteEdge final : public PlanNode {
+public:
+    std::string explain() const override {
+        return "DeleteEdge";
+    }
 };
 }  // namespace graph
 }  // namespace nebula

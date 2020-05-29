@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "base/Base.h"
+#include "common/base/Base.h"
 
 #include "service/QueryInstance.h"
 
@@ -47,13 +47,7 @@ void QueryInstance::execute() {
         return;
     }
 
-    auto executor = plan_->createExecutor();
-    status = executor->prepare();
-    if (!status.ok()) {
-        onError(std::move(status));
-        return;
-    }
-    executor->execute()
+    plan_->execute()
         .then([this](Status s) {
             if (s.ok()) {
                 this->onFinish();
