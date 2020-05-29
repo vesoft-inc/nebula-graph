@@ -59,11 +59,28 @@ public:
 
     Status heartBeat(const meta::cpp2::HBReq &req);
 
-    Status listUsers(const meta::cpp2::ListUsersReq& req);
-
     std::vector<meta::cpp2::HostItem> listHosts();
 
     std::unordered_map<PartitionID, std::vector<HostAddr>> getParts();
+
+////////////////////////////////////////////// ACL related mock ////////////////////////////////////
+    meta::cpp2::ExecResp createUser(const meta::cpp2::CreateUserReq& req);
+
+    meta::cpp2::ExecResp dropUser(const meta::cpp2::DropUserReq& req);
+
+    meta::cpp2::ExecResp alterUser(const meta::cpp2::AlterUserReq& req);
+
+    meta::cpp2::ExecResp grantRole(const meta::cpp2::GrantRoleReq& req);
+
+    meta::cpp2::ExecResp revokeRole(const meta::cpp2::RevokeRoleReq& req);
+
+    meta::cpp2::ListUsersResp listUsers(const meta::cpp2::ListUsersReq& req);
+
+    meta::cpp2::ListRolesResp listRoles(const meta::cpp2::ListRolesReq& req);
+
+    meta::cpp2::ExecResp changePassword(const meta::cpp2::ChangePasswordReq& req);
+
+    meta::cpp2::ListRolesResp getUserRoles(const meta::cpp2::GetUserRolesReq& req);
 
 private:
     MetaCache() = default;
@@ -117,6 +134,21 @@ private:
     std::unordered_map<std::string, meta::cpp2::SpaceItem>   spaces_;
     int64_t                                                  id_{0};
     mutable folly::RWSpinLock                                lock_;
+
+///////////////////////////////////////////// ACL cache ////////////////////////////////////////////
+    struct UserInfo {
+        std::string password;
+        // revserved
+    };
+
+    // username -> UserInfo
+    std::unordered_map<std::string, UserInfo>  users_;
+    mutable folly::RWSpinLock                  userLock_;
+    // authority
+    using UserRoles =
+        std::unordered_map<std::string/*user*/, std::unordered_set<meta::cpp2::RoleType>>;
+    std::unordered_map<GraphSpaceID, UserRoles> roles_;
+    mutable folly::RWSpinLock                   roleLock_;
 };
 
 }  // namespace graph
