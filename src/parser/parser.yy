@@ -16,6 +16,7 @@
 #include <cstddef>
 #include "parser/SequentialSentences.h"
 #include "parser/ColumnTypeDef.h"
+#include "common/interface/gen-cpp2/meta_types.h"
 
 namespace nebula {
 
@@ -145,7 +146,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token <strval> STRING VARIABLE LABEL IPV4
 
 %type <strval> name_label unreserved_keyword agg_function
-%type <strval> admin_operation admin_para
+%type <strval> admin_job_operation admin_job_para
 %type <expr> expression logic_xor_expression logic_or_expression logic_and_expression
 %type <expr> relational_expression multiplicative_expression additive_expression
 %type <expr> unary_expression constant_expression equality_expression base_expression
@@ -227,7 +228,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence
 %type <sentence> create_snapshot_sentence drop_snapshot_sentence
 
-%type <sentence> admin_sentence
+%type <sentence> admin_job_sentence
 %type <sentence> create_user_sentence alter_user_sentence drop_user_sentence change_password_sentence
 %type <sentence> show_sentence
 
@@ -1608,41 +1609,41 @@ ingest_sentence
     }
     ;
 
-admin_sentence
-    : KW_SUBMIT KW_JOB admin_operation {
-        auto sentence = new AdminSentence("add_job");
+admin_job_sentence
+    : KW_SUBMIT KW_JOB admin_job_operation {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
         sentence->addPara(*$3);
         $$ = sentence;
     }
     | KW_SHOW KW_JOBS {
-        auto sentence = new AdminSentence("show_jobs");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::SHOW_All);
         $$ = sentence;
     }
     | KW_SHOW KW_JOB INTEGER {
-        auto sentence = new AdminSentence("show_job");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::SHOW);
         sentence->addPara(std::to_string($3));
         $$ = sentence;
     }
     | KW_STOP KW_JOB INTEGER {
-        auto sentence = new AdminSentence("stop_job");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::STOP);
         sentence->addPara(std::to_string($3));
         $$ = sentence;
     }
     | KW_RECOVER KW_JOB {
-        auto sentence = new AdminSentence("recover_job");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::RECOVER);
         $$ = sentence;
     }
     ;
 
-admin_operation
+admin_job_operation
     : KW_COMPACT { $$ = new std::string("compact"); }
     | KW_FLUSH   { $$ = new std::string("flush"); }
-    | admin_operation admin_para {
+    | admin_job_operation admin_job_para {
         $$ = new std::string(*$1 + " " + *$2);
     }
     ;
 
-admin_para
+admin_job_para
     : name_label ASSIGN name_label {
         auto left = *$1;
         auto right = *$3;
@@ -1989,7 +1990,7 @@ mutate_sentence
     | delete_edge_sentence { $$ = $1; }
     | download_sentence { $$ = $1; }
     | ingest_sentence { $$ = $1; }
-    | admin_sentence { $$ = $1; }
+    | admin_job_sentence { $$ = $1; }
     ;
 
 maintain_sentence
