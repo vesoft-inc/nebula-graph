@@ -132,6 +132,12 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<ShowCharsetValidator>(sentence, context);
         case Sentence::Kind::kShowCollation:
             return std::make_unique<ShowCollationValidator>(sentence, context);
+        case Sentence::Kind::kGetConfig:
+            return std::make_unique<GetConfigValidator>(sentence, context);
+        case Sentence::Kind::kSetConfig:
+            return std::make_unique<SetConfigValidator>(sentence, context);
+        case Sentence::Kind::kShowConfigs:
+            return std::make_unique<ShowConfigsValidator>(sentence, context);
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kMatch:
         case Sentence::Kind::kCreateTagIndex:

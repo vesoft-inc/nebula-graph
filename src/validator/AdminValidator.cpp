@@ -256,5 +256,98 @@ Status ShowCollationValidator::toPlan() {
     tail_ = root_;
     return Status::OK();
 }
+
+Status ShowConfigsValidator::validateImpl() {
+    auto item = sentence_->configItem();
+    if (item != nullptr) {
+        module_ = item->getModule();
+    } else {
+        module_ = meta::cpp2::ConfigModule::ALL;
+    }
+    return Status::OK();
+}
+
+Status ShowConfigsValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = ShowConfigs::make(plan, module_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status SetConfigValidator::validateImpl() {
+    auto item = sentence_->configItem();
+    if (item == nullptr) {
+        return Status::Error("Empty config item");
+    }
+    if (item->getName() != nullptr) {
+        name_ = *item->getName();
+    }
+    name_ = *item->getName();
+    module_ = item->getModule();
+    auto updateItems = item->getUpdateItems();
+    if (updateItems == nullptr) {
+        module_ = item->getModule();
+        if (item->getName() != nullptr) {
+            name_ = *item->getName();
+        }
+
+        if (item->getValue() != nullptr) {
+            ExpressionContextImpl ctx(nullptr, nullptr);
+            value_ = item->getValue()->eval(ctx);
+        }
+    } else {
+        Map configs;
+        ExpressionContextImpl ctx(nullptr, nullptr);
+        for (auto &updateItem : updateItems->items()) {
+            std::string name;
+            Value value;
+            if (updateItem->field() == nullptr || updateItem->value() == nullptr) {
+                return Status::Error("Empty item");
+            }
+            name = *updateItem->field();
+
+            value = updateItem->value()->eval(ctx);
+
+            if (value.isNull() || (!value.isNumeric() && !value.isStr() && !value.isBool())) {
+                return Status::Error("Wrong value: %s", name.c_str());
+            }
+            configs.kvs.emplace(std::move(name), std::move(value));
+        }
+        value_.setMap(std::move(configs));
+    }
+
+    return Status::OK();
+}
+
+Status SetConfigValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = SetConfig::make(plan, module_, std::move(name_), std::move(value_));
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status GetConfigValidator::validateImpl() {
+    auto item = sentence_->configItem();
+    if (item == nullptr) {
+        return Status::Error("Empty config item");
+    }
+
+    module_ = item->getModule();
+    if (item->getName() != nullptr) {
+        name_ = *item->getName();
+    }
+    name_ = *item->getName();
+    return Status::OK();
+}
+
+Status GetConfigValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = GetConfig::make(plan, module_, std::move(name_));
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
 }  // namespace graph
 }  // namespace nebula

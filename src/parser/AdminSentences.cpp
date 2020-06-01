@@ -32,6 +32,14 @@ std::string ShowRolesSentence::toString() const {
     return folly::stringPrintf("SHOW ROLES IN %s", name_.get()->c_str());
 }
 
+std::string ShowUsersSentence::toString() const {
+    return std::string("SHOW USERS");
+}
+
+std::string ShowRolesSentence::toString() const {
+    return folly::stringPrintf("SHOW ROLES IN %s", name_.get()->c_str());
+}
+
 std::string ShowSnapshotsSentence::toString() const {
     return std::string("SHOW SNAPSHOTS");
 }
@@ -104,18 +112,16 @@ std::string ConfigRowItem::toString() const {
     return "";
 }
 
-std::string ConfigSentence::toString() const {
-    switch (subType_) {
-        case SubType::kShow:
-            return std::string("SHOW CONFIGS ") + configItem_->toString();
-        case SubType::kSet:
-            return std::string("SET CONFIGS ") + configItem_->toString();
-        case SubType::kGet:
-            return std::string("GET CONFIGS ") + configItem_->toString();
-        default:
-            FLOG_FATAL("Type illegal");
-    }
-    return "Unknown";
+std::string ShowConfigsSentence::toString() const {
+    return std::string("SHOW CONFIGS ") + configItem_->toString();
+}
+
+std::string SetConfigSentence::toString() const {
+    return std::string("SET CONFIGS ") + configItem_->toString();
+}
+
+std::string GetConfigSentence::toString() const {
+    return std::string("GET CONFIGS ") + configItem_->toString();
 }
 
 std::string BalanceSentence::toString() const {

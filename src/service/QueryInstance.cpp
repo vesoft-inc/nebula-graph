@@ -117,6 +117,7 @@ void QueryInstance::onError(Status status) {
     rctx->resp().set_error_msg(status.toString());
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().set_latency_in_us(latency);
+    rctx->resp().set_error_msg(status.toString());
     rctx->finish();
     delete this;
 }
