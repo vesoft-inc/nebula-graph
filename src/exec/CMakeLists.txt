@@ -26,6 +26,7 @@ nebula_add_library(
     admin/SwitchSpaceExecutor.cpp
     admin/CreateSpaceExecutor.cpp
     admin/DescSpaceExecutor.cpp
+    admin/SubmitJobExecutor.cpp
     maintain/CreateTagExecutor.cpp
     maintain/CreateEdgeExecutor.cpp
     maintain/DescTagExecutor.cpp

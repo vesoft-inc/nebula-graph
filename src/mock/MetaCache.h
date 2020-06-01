@@ -9,6 +9,8 @@
 
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
+#include "common/base/ErrorOr.h"
+#include "common/thread/GenericWorker.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 
 namespace nebula {
@@ -65,8 +67,15 @@ public:
 
     std::unordered_map<PartitionID, std::vector<HostAddr>> getParts();
 
+    ErrorOr<meta::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
+    runAdminJob(const meta::cpp2::AdminJobReq& req);
+
 private:
     MetaCache() = default;
+
+    int64_t incId() {
+        return ++id_;
+    }
 
     enum class EntryType : int8_t {
         SPACE       = 0x01,
@@ -117,6 +126,27 @@ private:
     std::unordered_map<std::string, meta::cpp2::SpaceItem>   spaces_;
     int64_t                                                  id_{0};
     mutable folly::RWSpinLock                                lock_;
+
+////////////////////////////////////////////// Job /////////////////////////////////////////////////
+    struct JobDesc {
+        meta::cpp2::AdminCmd            cmd_;  // compact, flush ...
+        std::vector<std::string>        paras_;
+        meta::cpp2::JobStatus           status_;
+        int64_t                         startTime_;
+        int64_t                         stopTime_;
+    };
+    struct TaskDesc {
+        int32_t                         iTask_;
+        nebula::HostAddr                dest_;
+        meta::cpp2::JobStatus           status_;
+        int64_t                         startTime_;
+        int64_t                         stopTime_;
+    };
+    mutable folly::RWSpinLock                          jobLock_;
+    // jobId => jobs
+    std::unordered_map<int64_t, JobDesc>               jobs_;
+    // jobId => tasks
+    std::unordered_map<int64_t, std::vector<TaskDesc>> tasks_;
 };
 
 }  // namespace graph

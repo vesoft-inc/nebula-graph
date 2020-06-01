@@ -140,6 +140,38 @@ public:
         return "Ingest";
     }
 };
+
+class SubmitJob final : public PlanNode {
+public:
+    static SubmitJob* make(ExecutionPlan* plan,
+                           meta::cpp2::AdminJobOp op,
+                           std::vector<std::string> params) {
+        return new SubmitJob(plan, op, std::move(params));
+    }
+
+    std::string explain() const override {
+        return "SubmitJob";
+    }
+
+public:
+    meta::cpp2::AdminJobOp jobOp() const {
+        return op_;
+    }
+
+    const std::vector<std::string> &params() const {
+        return params_;
+    }
+
+private:
+    SubmitJob(ExecutionPlan* plan, meta::cpp2::AdminJobOp op, std::vector<std::string> params)
+        : PlanNode(plan, Kind::kSubmitJob), op_(op), params_(std::move(params)) {}
+
+
+private:
+    meta::cpp2::AdminJobOp   op_;
+    std::vector<std::string> params_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_
