@@ -20,19 +20,20 @@ Status MetaCache::createSpace(const meta::cpp2::CreateSpaceReq &req, GraphSpaceI
     auto ifNotExists = req.get_if_not_exists();
     auto properties = req.get_properties();
     auto spaceName = properties.get_space_name();
-    auto findIter = spaces_.find(spaceName);
-    if (ifNotExists && findIter != spaces_.end()) {
-        spaceId = findIter->second.get_space_id();
+    const auto findIter = spaceIndex_.find(spaceName);
+    if (ifNotExists && findIter != spaceIndex_.end()) {
+        spaceId = findIter->second;
         return Status::OK();
     }
-    if (findIter != spaces_.end()) {
+    if (findIter != spaceIndex_.end()) {
         return Status::Error("Space `%s' existed", spaceName.c_str());
     }
     spaceId = ++id_;
+    spaceIndex_.emplace(spaceName, spaceId);
     meta::cpp2::SpaceItem space;
     space.set_space_id(spaceId);
     space.set_properties(std::move(properties));
-    spaces_[spaceName] = space;
+    spaces_[spaceId] = space;
     VLOG(1) << "space name: " << space.get_properties().get_space_name()
             << ", partition_num: " << space.get_properties().get_partition_num()
             << ", replica_factor: " << space.get_properties().get_replica_factor()
@@ -43,24 +44,25 @@ Status MetaCache::createSpace(const meta::cpp2::CreateSpaceReq &req, GraphSpaceI
 
 StatusOr<meta::cpp2::SpaceItem> MetaCache::getSpace(const meta::cpp2::GetSpaceReq &req) {
     folly::RWSpinLock::ReadHolder holder(lock_);
-    auto findIter = spaces_.find(req.get_space_name());
-    if (findIter == spaces_.end()) {
+    auto findIter = spaceIndex_.find(req.get_space_name());
+    if (findIter == spaceIndex_.end()) {
         return Status::Error("Space `%s' not found", req.get_space_name().c_str());
     }
-    VLOG(1) << "space name: " << findIter->second.get_properties().get_space_name()
-            << ", partition_num: " << findIter->second.get_properties().get_partition_num()
-            << ", replica_factor: " << findIter->second.get_properties().get_replica_factor()
-            << ", rvid_size: " << findIter->second.get_properties().get_vid_size();
-    return findIter->second;
+    const auto spaceInfo = spaces_.find(findIter->second);
+    VLOG(1) << "space name: " << spaceInfo->second.get_properties().get_space_name()
+            << ", partition_num: " << spaceInfo->second.get_properties().get_partition_num()
+            << ", replica_factor: " << spaceInfo->second.get_properties().get_replica_factor()
+            << ", rvid_size: " << spaceInfo->second.get_properties().get_vid_size();
+    return spaceInfo->second;
 }
 
 StatusOr<std::vector<meta::cpp2::IdName>> MetaCache::listSpaces() {
     folly::RWSpinLock::ReadHolder holder(lock_);
     std::vector<meta::cpp2::IdName> spaces;
-    for (auto &item : spaces_) {
+    for (const auto &index : spaceIndex_) {
         meta::cpp2::IdName idName;
-        idName.set_id(to(item.second.get_space_id(), EntryType::SPACE));
-        idName.set_name(item.first);
+        idName.set_id(to(index.second, EntryType::SPACE));
+        idName.set_name(index.first);
         spaces.emplace_back(idName);
     }
     return spaces;
@@ -69,18 +71,18 @@ StatusOr<std::vector<meta::cpp2::IdName>> MetaCache::listSpaces() {
 Status MetaCache::dropSpace(const meta::cpp2::DropSpaceReq &req) {
     folly::RWSpinLock::WriteHolder holder(lock_);
     auto spaceName  = req.get_space_name();
-    auto findIter = spaces_.find(spaceName);
+    auto findIter = spaceIndex_.find(spaceName);
     auto ifExists = req.get_if_exists();
 
-    if (ifExists && findIter == spaces_.end()) {
+    if (ifExists && findIter == spaceIndex_.end()) {
         Status::OK();
     }
 
-    if (findIter == spaces_.end()) {
+    if (findIter == spaceIndex_.end()) {
         return Status::Error("Space `%s' not existed", req.get_space_name().c_str());
     }
-    auto id = findIter->second.get_space_id();
-    spaces_.erase(spaceName);
+    auto id = findIter->second;
+    spaces_.erase(id);
     cache_.erase(id);
     return Status::OK();
 }
@@ -254,7 +256,7 @@ Status MetaCache::listUsers(const meta::cpp2::ListUsersReq&) {
 std::vector<meta::cpp2::HostItem> MetaCache::listHosts() {
     folly::RWSpinLock::WriteHolder holder(lock_);
     std::vector<meta::cpp2::HostItem> hosts;
-    for (auto& spaceIdIt : spaces_) {
+    for (auto& spaceIdIt : spaceIndex_) {
         auto spaceName = spaceIdIt.first;
         for (auto &h : hostSet_) {
             meta::cpp2::HostItem host;
@@ -279,5 +281,74 @@ std::unordered_map<PartitionID, std::vector<HostAddr>> MetaCache::getParts() {
     }
     return parts;
 }
+
+ErrorOr<int64_t, meta::cpp2::ErrorCode> MetaCache::balanceSubmit(GraphSpaceID space) {
+    folly::RWSpinLock::ReadHolder rh(lock_);
+    const auto spaceInfo = spaces_.find(space);
+    if (spaceInfo == spaces_.end()) {
+        return meta::cpp2::ErrorCode::E_NOT_FOUND;
+    }
+    for (const auto &job : balanceJobs_) {
+        if (job.second.space == space) {
+            return meta::cpp2::ErrorCode::E_BALANCER_RUNNING;
+        }
+    }
+    std::vector<BalanceTask> jobs;
+    for (PartitionID i = 1; i <= spaceInfo->second.get_properties().get_partition_num(); ++i) {
+        for (const auto &host : hostSet_) {
+            jobs.emplace_back(BalanceTask{
+                // mock
+                space,
+                i,
+                host,
+                host,
+                meta::cpp2::TaskResult::IN_PROGRESS,
+            });
+        }
+    }
+    auto jobId = incId();
+    balanceTasks_.emplace(jobId, std::move(jobs));
+    balanceJobs_.emplace(jobId, BalanceJob{
+        space,
+        meta::cpp2::TaskResult::IN_PROGRESS,
+    });
+    return jobId;
+}
+
+meta::cpp2::ErrorCode MetaCache::balanceStop(int64_t id) {
+    auto job = balanceJobs_.find(id);
+    if (job == balanceJobs_.end()) {
+        return meta::cpp2::ErrorCode::E_NOT_FOUND;
+    }
+    job->second.status = meta::cpp2::TaskResult::FAILED;
+    return meta::cpp2::ErrorCode::SUCCEEDED;
+}
+
+meta::cpp2::ErrorCode MetaCache::balanceLeaders() {
+    return meta::cpp2::ErrorCode::SUCCEEDED;
+}
+
+ErrorOr<meta::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
+MetaCache::showBalance(int64_t id) {
+    const auto job = balanceTasks_.find(id);
+    if (job == balanceTasks_.end()) {
+        return meta::cpp2::ErrorCode::E_NOT_FOUND;
+    }
+    std::vector<meta::cpp2::BalanceTask> result;
+    result.reserve(job->second.size());
+    for (const auto &task : job->second) {
+        meta::cpp2::BalanceTask taskInfo;
+        std::stringstream idStr;
+        idStr << "[";
+        idStr << id << ", ";
+        idStr << task.space << ":" << task.part << ", ";
+        idStr << task.from << "->" << task.to;
+        idStr << "]";
+        taskInfo.set_id(idStr.str());
+        taskInfo.set_result(task.status);
+    }
+    return result;
+}
+
 }  // namespace graph
 }  // namespace nebula

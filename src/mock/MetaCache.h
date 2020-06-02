@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
+#include "common/base/ErrorOr.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 
 namespace nebula {
@@ -65,6 +66,12 @@ public:
 
     std::unordered_map<PartitionID, std::vector<HostAddr>> getParts();
 
+    ErrorOr<int64_t, meta::cpp2::ErrorCode> balanceSubmit(GraphSpaceID space);
+    meta::cpp2::ErrorCode balanceStop(int64_t id);
+    meta::cpp2::ErrorCode                   balanceLeaders();
+    ErrorOr<meta::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
+    showBalance(int64_t id);
+
 private:
     MetaCache() = default;
 
@@ -105,6 +112,10 @@ private:
     using EdgeSchemas = std::unordered_map<std::string, meta::cpp2::EdgeItem>;
     using Indexes = std::unordered_map<std::string, meta::cpp2::IndexItem>;
 
+    int64_t incId() {
+        return ++id_;
+    }
+
     struct SpaceInfoCache {
         TagSchemas              tagSchemas_;
         EdgeSchemas             edgeSchemas_;
@@ -113,10 +124,26 @@ private:
     };
 
     std::unordered_set<HostAddr>                             hostSet_;
+    std::unordered_map<std::string, GraphSpaceID>            spaceIndex_;
     std::unordered_map<GraphSpaceID, SpaceInfoCache>         cache_;
-    std::unordered_map<std::string, meta::cpp2::SpaceItem>   spaces_;
+    std::unordered_map<GraphSpaceID, meta::cpp2::SpaceItem>  spaces_;
     int64_t                                                  id_{0};
     mutable folly::RWSpinLock                                lock_;
+
+////////////////////////////////////////////// Balance /////////////////////////////////////////////
+    struct BalanceTask {
+        GraphSpaceID           space;
+        PartitionID            part;
+        HostAddr               from;
+        HostAddr               to;
+        meta::cpp2::TaskResult status;
+    };
+    struct BalanceJob {
+        GraphSpaceID           space;
+        meta::cpp2::TaskResult status;
+    };
+    std::unordered_map<int64_t, std::vector<BalanceTask>> balanceTasks_;
+    std::unordered_map<int64_t, BalanceJob>               balanceJobs_;
 };
 
 }  // namespace graph

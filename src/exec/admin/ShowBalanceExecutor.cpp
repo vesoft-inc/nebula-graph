@@ -27,6 +27,8 @@ folly::Future<Status> ShowBalanceExecutor::showBalance() {
                 return std::move(resp).status();
             }
             auto tasks = std::move(resp).value();
+            // TODO(shylock) typed items instead binary
+            // E.G. "balanceId", "spaceId", "partId", "from", "to"
             DataSet v({"balanceId, spaceId:partId, src->dst", "status"});
             for (auto &task : tasks) {
                 v.emplace_back(Row({
