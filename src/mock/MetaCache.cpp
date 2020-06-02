@@ -5,7 +5,8 @@
  */
 
 #include "mock/MetaCache.h"
-#include "network/NetworkUtils.h"
+#include "MetaCache.h"
+#include "common/network/NetworkUtils.h"
 
 namespace nebula {
 namespace graph {

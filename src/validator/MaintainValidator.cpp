@@ -18,7 +18,7 @@ namespace nebula {
 namespace graph {
 Status CreateTagValidator::validateImpl() {
     auto status = Status::OK();
-    tagName_ = *sentence_->name();
+    name_ = *sentence_->name();
     ifNotExist_ = sentence_->isIfNotExist();
     do {
         // Check the validateContext has the same name schema
@@ -59,7 +59,7 @@ Status CreateTagValidator::toPlan() {
 
 Status CreateEdgeValidator::validateImpl() {
     auto status = Status::OK();
-    edgeName_ = *sentence_->name();
+    name_ = *sentence_->name();
     ifNotExist_ = sentence_->isIfNotExist();
     do {
         // Check the validateContext has the same name schema
@@ -252,6 +252,36 @@ Status ShowEdgesValidator::toPlan() {
     auto* plan = validateContext_->plan();
     auto *doNode = ShowEdges::make(plan,
                                    validateContext_->whichSpace().id);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowCreateTagValidator::validateImpl() {
+    name_ = *sentence_->name();
+    return Status::OK();
+}
+
+Status ShowCreateTagValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *doNode = ShowCreateTag::make(plan,
+                                       validateContext_->whichSpace().id,
+                                       name_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowCreateEdgeValidator::validateImpl() {
+    name_ = *sentence_->name();
+    return Status::OK();
+}
+
+Status ShowCreateEdgeValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *doNode = ShowCreateEdge::make(plan,
+                                        validateContext_->whichSpace().id,
+                                        name_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

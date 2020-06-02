@@ -28,7 +28,7 @@ private:
 
 private:
     CreateTagSentence               *sentence_{nullptr};
-    std::string                      tagName_;
+    std::string                      name_;
     meta::cpp2::Schema               schema_;
     bool                             ifNotExist_;
 };
@@ -46,7 +46,7 @@ private:
 
 private:
     CreateEdgeSentence               *sentence_{nullptr};
-    std::string                       edgeName_;
+    std::string                       name_;
     meta::cpp2::Schema                schema_;
     bool                              ifNotExist_;
 };
@@ -64,6 +64,23 @@ private:
     Status toPlan() override;
 };
 
+class ShowCreateTagValidator final : public Validator {
+public:
+    ShowCreateTagValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<ShowCreateTagSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    ShowCreateTagSentence               *sentence_{nullptr};
+    std::string                          name_;
+};
+
 class DescEdgeValidator final : public Validator {
 public:
     DescEdgeValidator(Sentence* sentence, QueryContext* context)
@@ -75,6 +92,26 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+private:
+    DescribeEdgeSentence               *sentence_{nullptr};
+    std::string                         name_;
+};
+
+class ShowCreateEdgeValidator final : public Validator {
+public:
+    ShowCreateEdgeValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<ShowCreateEdgeSentence*>(sentence);
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    ShowCreateEdgeSentence               *sentence_{nullptr};
+    std::string                           name_;
 };
 
 class AlterValidator : public Validator {

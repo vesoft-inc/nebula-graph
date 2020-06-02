@@ -1681,7 +1681,7 @@ show_sentence
         $$ = new ConfigSentence(ConfigSentence::SubType::kShow, $3);
     }
     | KW_SHOW KW_CREATE KW_SPACE name_label {
-        $$ = new ShowCreateSpacesSentence($4);
+        $$ = new ShowCreateSpaceSentence($4);
     }
     | KW_SHOW KW_CREATE KW_TAG name_label {
         $$ = new ShowCreateTagSentence($4);

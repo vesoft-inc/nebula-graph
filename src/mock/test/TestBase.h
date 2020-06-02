@@ -51,8 +51,8 @@ protected:
         }
         for (auto i = 0u; i < colNames.size(); i++) {
             if (colNames[i] != expected[i]) {
-                return TestError() << "wrong size, result size: " << colNames.size()
-                                   << ", expect size: " << expected.size();
+                return TestError() << "resp colName: " << colNames[i]
+                                   << ", expect colName: " << expected[i];
             }
         }
         return TestOK();

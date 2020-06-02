@@ -150,6 +150,18 @@ Status DropSpaceValidator::toPlan() {
     return Status::OK();
 }
 
+Status ShowCreateSpaceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowCreateSpaceValidator::toPlan() {
+    auto* plan = validateContext_->plan();
+    auto *doNode = ShowCreateSpace::make(plan, *sentence_->spaceName());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
 Status CreateSnapshotValidator::validateImpl() {
     return Status::OK();
 }
@@ -168,7 +180,7 @@ Status DropSnapshotValidator::validateImpl() {
 
 Status DropSnapshotValidator::toPlan() {
     auto* plan = validateContext_->plan();
-    auto *doNode = DropSnapshot::make(plan, *sentence_->getName());
+    auto *doNode = DropSnapshot::make(plan, *sentence_->name());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

@@ -56,13 +56,13 @@ const char* PlanNode::toString(Kind kind) {
             return "Dedup";
         case PlanNode::Kind::kMultiOutputs:
             return "MultiOutputs";
-        case Kind::kSwitchSpace:
+        case PlanNode::Kind::kSwitchSpace:
             return "RegisterSpaceToSession";
-        case Kind::kCreateSpace:
+        case PlanNode::Kind::kCreateSpace:
             return "CreateSpace";
-        case Kind::kCreateTag:
+        case PlanNode::Kind::kCreateTag:
             return "CreateTag";
-        case Kind::kCreateEdge:
+        case PlanNode::Kind::kCreateEdge:
             return "CreateEdge";
         case PlanNode::Kind::kDescSpace:
             return "DescSpace";
@@ -80,22 +80,36 @@ const char* PlanNode::toString(Kind kind) {
             return "InsertEdges";
         case PlanNode::Kind::kDataCollect:
             return "DataCollect";
+        case PlanNode::Kind::kShowCreateSpace:
+            return "ShowCreateSpace";
+        case PlanNode::Kind::kShowCreateTag:
+            return "ShowCreateTag";
+        case PlanNode::Kind::kShowCreateEdge:
+            return "ShowCreateEdge";
+        case PlanNode::Kind::kDropSpace:
+            return "DropSpace";
+        case PlanNode::Kind::kDropTag:
+            return "DropTag";
+        case PlanNode::Kind::kDropEdge:
+            return "DropEdge";
         case PlanNode::Kind::kShowSpaces:
             return "kShowSpaces";
         case PlanNode::Kind::kShowTags:
             return "kShowTags";
         case PlanNode::Kind::kShowEdges:
             return "kShowEdges";
-        case PlanNode::Kind::kDropTag:
-            return "kDropTag";
-        case PlanNode::Kind::kDropEdge:
-            return "kDropEdge";
-        case Kind::kCreateSnapshot:
+        case PlanNode::Kind::kCreateSnapshot:
             return "CreateSnapshot";
-        case Kind::kDropSnapshot:
+        case PlanNode::Kind::kDropSnapshot:
             return "DropSnapshot";
-        case Kind::kShowSnapshots:
+        case PlanNode::Kind::kShowSnapshots:
             return "ShowSnapshots";
+        case PlanNode::Kind::kInsertVertices:
+            return "InsertVertices";
+        case PlanNode::Kind::kInsertEdges:
+            return "InsertEdges";
+        case PlanNode::Kind::kDataCollect:
+            return "DataCollect";
         default:
             LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(kind);
     }

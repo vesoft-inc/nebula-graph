@@ -227,6 +227,11 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             exec = new DropSpaceExecutor(dropSpace, ectx);
             break;
         }
+        case PlanNode::Kind::kShowCreateSpace: {
+            auto showCreateSpace = asNode<ShowCreateSpace>(node);
+            exec = new ShowCreateSpaceExecutor(showCreateSpace, ectx);
+            break;
+        }
         case PlanNode::Kind::kCreateTag: {
             auto createTag = asNode<CreateTag>(node);
             auto dep = makeExecutor(createTag->dep(), qctx, visited);
@@ -286,6 +291,16 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         case PlanNode::Kind::kDropEdge: {
             auto dropEdge = asNode<DropEdge>(node);
             exec = new DropEdgeExecutor(dropEdge, ectx);
+            break;
+        }
+        case PlanNode::Kind::kShowCreateTag: {
+            auto showCreateTag = asNode<ShowCreateTag>(node);
+            exec = new ShowCreateTagExecutor(showCreateTag, ectx);
+            break;
+        }
+        case PlanNode::Kind::kShowCreateEdge: {
+            auto showCreateEdge = asNode<ShowCreateEdge>(node);
+            exec = new ShowCreateEdgeExecutor(showCreateEdge, ectx);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {

@@ -16,7 +16,7 @@ std::string ShowSpacesSentence::toString() const {
     return std::string("SHOW SPACES");
 }
 
-std::string ShowCreateSpacesSentence::toString() const {
+std::string ShowCreateSpaceSentence::toString() const {
     return folly::stringPrintf("SHOW CREATE SPACE %s", name_.get()->c_str());
 }
 

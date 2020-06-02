@@ -89,8 +89,7 @@ folly::Future<Status> ShowSpacesExecutor::execute() {
                 }
                 auto spaceItems = std::move(resp).value();
 
-                DataSet dataSet;
-                dataSet.colNames = {"Name"};
+                DataSet dataSet({"Name"});
                 std::set<std::string> orderSpaceNames;
                 for (auto &space : spaceItems) {
                     orderSpaceNames.emplace(space.second);
@@ -100,10 +99,40 @@ folly::Future<Status> ShowSpacesExecutor::execute() {
                     row.columns.emplace_back(name);
                     dataSet.rows.emplace_back(std::move(row));
                 }
-                finish(dataSet);
+                finish(std::move(dataSet));
                 return Status::OK();
             });
 }
 
+folly::Future<Status> ShowCreateSpaceExecutor::execute() {
+    dumpLog();
+
+    auto *scsNode = asNode<ShowCreateSpace>(node());
+    return ectx()->getMetaClient()->getSpace(scsNode->getSpaceName())
+            .via(runner())
+            .then([this](StatusOr<meta::cpp2::SpaceItem> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                auto properties = resp.value().get_properties();
+                DataSet dataSet({"Space", "Create Space"});
+                Row row;
+                row.columns.emplace_back(properties.get_space_name());
+                auto fmt = "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
+                           "vid_size = %d, charset = %s, collate = %s)";
+                row.columns.emplace_back(
+                        folly::stringPrintf(fmt,
+                                            properties.get_space_name().c_str(),
+                                            properties.get_partition_num(),
+                                            properties.get_replica_factor(),
+                                            properties.get_vid_size(),
+                                            properties.get_charset_name().c_str(),
+                                            properties.get_collate_name().c_str()));
+                dataSet.rows.emplace_back(std::move(row));
+                finish(std::move(dataSet));
+                return Status::OK();
+            });
+}
 }   // namespace graph
 }   // namespace nebula

@@ -75,6 +75,23 @@ private:
     DropSpaceSentence                       *sentence_{nullptr};
 };
 
+class ShowCreateSpaceValidator final : public Validator {
+public:
+    ShowCreateSpaceValidator(Sentence* sentence, ValidateContext* context)
+            : Validator(sentence, context) {
+        sentence_ = static_cast<ShowCreateSpaceSentence*>(sentence);
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    ShowCreateSpaceSentence                   *sentence_{nullptr};
+};
+
 class CreateSnapshotValidator final : public Validator {
 public:
     CreateSnapshotValidator(Sentence* sentence, ValidateContext* context)

@@ -96,5 +96,26 @@ folly::Future<Status> ShowEdgesExecutor::execute() {
                 return Status::OK();
             });
 }
+
+folly::Future<Status> ShowCreateEdgeExecutor::execute() {
+    dumpLog();
+
+    auto *sceNode = asNode<ShowCreateEdge>(node());
+    return ectx()->getMetaClient()->getEdgeSchema(sceNode->getSpaceId(), sceNode->getName())
+            .via(runner())
+            .then([this, sceNode](StatusOr<meta::cpp2::Schema> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                auto ret = SchemaUtil::toShowCreateSchema(false, sceNode->getName(), resp.value());
+                if (!ret.ok()) {
+                    LOG(ERROR) << ret.status();
+                    return ret.status();
+                }
+                finish(Value(std::move(ret).value()));
+                return Status::OK();
+            });
+}
 }   // namespace graph
 }   // namespace nebula

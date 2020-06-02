@@ -153,6 +153,32 @@ public:
     }
 };
 
+class ShowCreateSpace final : public PlanNode {
+public:
+    static ShowCreateSpace* make(ExecutionPlan* plan,
+                                 std::string spaceName) {
+        return new ShowCreateSpace(plan, std::move(spaceName));
+    }
+
+    std::string explain() const override {
+        return "ShowCreateSpace";
+    }
+
+    const std::string& getSpaceName() const {
+        return spaceName_;
+    }
+
+private:
+    ShowCreateSpace(ExecutionPlan* plan,
+                    std::string spaceName)
+        : PlanNode(plan, Kind::kShowCreateSpace) {
+        spaceName_ = std::move(spaceName);
+    }
+
+private:
+    std::string           spaceName_;
+};
+
 class Balance final : public PlanNode {
 public:
     std::string explain() const override {

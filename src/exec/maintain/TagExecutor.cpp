@@ -94,5 +94,26 @@ folly::Future<Status> ShowTagsExecutor::execute() {
                 return Status::OK();
             });
 }
+
+folly::Future<Status> ShowCreateTagExecutor::execute() {
+    dumpLog();
+
+    auto *sctNode = asNode<ShowCreateTag>(node());
+    return ectx()->getMetaClient()->getTagSchema(sctNode->getSpaceId(), sctNode->getName())
+            .via(runner())
+            .then([this, sctNode](StatusOr<meta::cpp2::Schema> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                auto ret = SchemaUtil::toShowCreateSchema(true, sctNode->getName(), resp.value());
+                if (!ret.ok()) {
+                    LOG(ERROR) << ret.status();
+                    return ret.status();
+                }
+                finish(Value(std::move(ret).value()));
+                return Status::OK();
+            });
+}
 }   // namespace graph
 }   // namespace nebula

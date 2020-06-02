@@ -83,6 +83,24 @@ TEST_F(SchemaTest, TestSpace) {
         std::vector<std::vector<Value>> values = {{"space_2"}, {"space_for_default"}};
         ASSERT_TRUE(verifyValues(resp, values));
     }
+    // Show Create space
+    std::string createSpaceStr;
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "SHOW CREATE SPACE space_2";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        createSpaceStr = "CREATE SPACE `space_2` ("
+                         "partition_num = 9, "
+                         "replica_factor = 1, "
+                         "vid_size = 20, "
+                         "charset = utf8, "
+                         "collate = utf8_bin)";
+        std::vector<std::string> colNames = {"Space", "Create Space"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<Value> values = {"space_2", createSpaceStr};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
     // Drop space
     {
         cpp2::ExecutionResponse resp;
@@ -100,6 +118,20 @@ TEST_F(SchemaTest, TestSpace) {
         std::vector<Value> values = {"space_for_default"};
         ASSERT_TRUE(verifyValues(resp, values));
     }
+    // use show create space result
+    {
+        cpp2::ExecutionResponse resp;
+        auto code = client_->execute(createSpaceStr, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+
+        std::string query = "SHOW SPACES;";
+        code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {{"space_2"}, {"space_for_default"}};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
 }
 
 TEST_F(SchemaTest, TestTag) {
@@ -112,7 +144,9 @@ TEST_F(SchemaTest, TestTag) {
     }
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "CREATE TAG student(name STRING, age INT8, grade FIXED_STRING(10));";
+        std::string query = "CREATE TAG student(name STRING NOT NULL, "
+                            "age INT8 DEFAULT 18, grade FIXED_STRING(10), start INT64)"
+                            " ttl_duration = 3600, ttl_col = \"start\";";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
@@ -122,23 +156,14 @@ TEST_F(SchemaTest, TestTag) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        DataSet expect;
-        expect.colNames = {"Field", "Type", "Null", "Default"};
-        std::vector<Row> rows;
-        std::vector<Value> columns1 = {Value("name"), Value("string"), Value("YES"), Value()};
-        std::vector<Value> columns2 = {Value("age"), Value("int8"), Value("YES"), Value()};
-        std::vector<Value> columns3 = {Value("grade"), Value("fixed_string(10)"),
-                                       Value("YES"), Value()};
-        Row row;
-        row.values = std::move(columns1);
-        rows.emplace_back(row);
-        row.values = std::move(columns2);
-        rows.emplace_back(row);
-        row.values = std::move(columns3);
-        rows.emplace_back(row);
-        expect.rows = std::move(rows);
-        ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(expect, *resp.get_data());
+        std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {
+                {Value("name"), Value("string"), Value("NO"), Value()},
+                {Value("age"), Value("int8"), Value("YES"), Value(18)},
+                {Value("grade"), Value("fixed_string(10)"), Value("YES"), Value()},
+                {Value("start"), Value("int64"), Value("YES"), Value()}};
+        ASSERT_TRUE(verifyValues(resp, values));
     }
     {
         cpp2::ExecutionResponse resp;
@@ -156,9 +181,27 @@ TEST_F(SchemaTest, TestTag) {
         std::vector<std::vector<Value>> values = {{"person"}, {"student"}};
         ASSERT_TRUE(verifyValues(resp, values));
     }
+    // Show Create tag
+    std::string createTagStr;
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "DROP TAG person;";
+        std::string query = "SHOW CREATE TAG student";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        createTagStr = "CREATE TAG `student` (\n"
+                        " `name` string NOT NULL,\n"
+                        " `age` int8 NULL DEFAULT 18,\n"
+                        " `grade` fixed_string(10) NULL,\n"
+                        " `start` int64 NULL\n"
+                        ") ttl_duration = 3600, ttl_col = \"start\"";
+        std::vector<std::string> colNames = {"Tag", "Create Tag"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<Value> values = {"student", createTagStr};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DROP TAG student;";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
@@ -169,7 +212,21 @@ TEST_F(SchemaTest, TestTag) {
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         std::vector<std::string> colNames = {"Name"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
-        std::vector<Value> values = {"student"};
+        std::vector<Value> values = {"person"};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
+    // Check the show create tag result is ok
+    {
+        cpp2::ExecutionResponse resp;
+        auto code = client_->execute(createTagStr, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+
+        std::string query = "SHOW TAGS;";
+        code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {{"person"}, {"student"}};
         ASSERT_TRUE(verifyValues(resp, values));
     }
     {
@@ -194,22 +251,16 @@ TEST_F(SchemaTest, TestEdge) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        DataSet expect;
-        expect.colNames = {"Field", "Type", "Null", "Default"};
-        std::vector<Row> rows;
-        std::vector<Value> columns1 = {Value("start"), Value("int64"), Value("YES"), Value()};
-        std::vector<Value> columns2 = {Value("end"), Value("int64"), Value("YES"), Value()};
-        Row row;
-        row.values = std::move(columns1);
-        rows.emplace_back(row);
-        row.values = std::move(columns2);
-        rows.emplace_back(row);
-        expect.rows = std::move(rows);
-        ASSERT_EQ(expect, *resp.get_data());
+        std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {
+                {Value("start"), Value("int64"), Value("NO"), Value(2020)},
+                {Value("end"), Value("int64"), Value("YES"), Value()}};
+        ASSERT_TRUE(verifyValues(resp, values));
     }
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "CREATE EDGE like(name STRING DEFAULT \"\", amount FLOAT);";
+        std::string query = "CREATE EDGE like(name STRING NOT NULL DEFAULT \"\", amount FLOAT);";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
@@ -222,6 +273,23 @@ TEST_F(SchemaTest, TestEdge) {
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<std::vector<Value>> values = {{"like"}, {"schoolmate"}};
         ASSERT_TRUE(verifyValues(resp, values));
+    }
+    // Show Create edge
+    std::string createEdgeStr;
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "SHOW CREATE EDGE like";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        createEdgeStr = "CREATE EDGE `like` (\n"
+                        " `name` string NOT NULL DEFAULT \"\",\n"
+                        " `amount` float NULL\n"
+                        ") ttl_duration = 0, ttl_col = \"\"";
+        std::vector<std::string> colNames = {"Edge", "Create Edge"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<Value> values = {"like", createEdgeStr};
+        ASSERT_TRUE(verifyValues(resp, values));
+        LOG(INFO) << "createEdgeStr: " << createEdgeStr;
     }
     {
         cpp2::ExecutionResponse resp;
@@ -245,6 +313,20 @@ TEST_F(SchemaTest, TestEdge) {
                             "CREATE EDGE edge1(name STRING, age INT8, grade FIXED_STRING(10));";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    // Check the show create edge result is ok
+    {
+        cpp2::ExecutionResponse resp;
+        auto code = client_->execute(createEdgeStr, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+
+        std::string query = "SHOW EDGES;";
+        code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        std::vector<std::string> colNames = {"Name"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {{"like"}, {"schoolmate"}};
+        ASSERT_TRUE(verifyValues(resp, values));
     }
 }
 

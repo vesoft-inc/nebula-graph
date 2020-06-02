@@ -195,6 +195,9 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
     }
 
     auto  ttlColName = ret.value();
+    if (ttlColName.empty()) {
+        return Status::OK();
+    }
     // Check the legality of the ttl column name
     for (auto& col : schema.columns) {
         if (col.name == ttlColName) {
@@ -240,22 +243,78 @@ SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
 }
 
 StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
-    DataSet dataSet;
-    dataSet.colNames = {"Field", "Type", "Null", "Default"};
-    std::vector<Row> rows;
+    DataSet dataSet({"Field", "Type", "Null", "Default"});
     for (auto &col : schema.get_columns()) {
-        std::vector<Value> columns;
-        columns.emplace_back(Value(col.get_name()));
-        columns.emplace_back(typeToString(col));
-        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
-        columns.emplace_back(nullable ? "YES" : "NO");
-        auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
-        columns.emplace_back(std::move(defaultValue));
         Row row;
-        row.values = std::move(columns);
-        rows.emplace_back(row);
+        row.columns.emplace_back(Value(col.get_name()));
+        row.columns.emplace_back(typeToString(col));
+        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        row.columns.emplace_back(nullable ? "YES" : "NO");
+        auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
+        row.columns.emplace_back(std::move(defaultValue));
+        dataSet.emplace_back(std::move(row));
     }
-    dataSet.rows = std::move(rows);
+    return dataSet;
+}
+
+StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
+                                                 const std::string &name,
+                                                 const meta::cpp2::Schema &schema) {
+    DataSet dataSet;
+    std::string createStr;
+    createStr.resize(1024);
+    if (isTag) {
+        dataSet.colNames = {"Tag", "Create Tag"};
+        createStr = "CREATE TAG `" + name + "` (\n";
+    } else {
+        dataSet.colNames = {"Edge", "Create Edge"};
+        createStr = "CREATE EDGE `" + name + "` (\n";
+    }
+    Row row;
+    row.emplace_back(name);
+    for (auto &col : schema.get_columns()) {
+        createStr += " `" + col.get_name() + "`";
+        createStr += " " + typeToString(col);
+        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        if (!nullable) {
+            createStr += " NOT NULL";
+        } else {
+            createStr += " NULL";
+        }
+
+        if (col.__isset.default_value) {
+            auto value = col.get_default_value();
+            auto valueRet = value->toString();
+            CHECK(valueRet.ok());
+            auto &toStr = valueRet.value();
+            if (value->isNumeric() || value->isBool()) {
+                createStr += " DEFAULT " + toStr;
+            } else {
+                createStr += " DEFAULT \"" + toStr + "\"";
+            }
+        }
+        createStr += ",\n";
+    }
+    if (!schema.columns.empty()) {
+        createStr.resize(createStr.size() -2);
+        createStr += "\n";
+    }
+    createStr += ")";
+    auto prop = schema.get_schema_prop();
+    createStr += " ttl_duration = ";
+    if (prop.__isset.ttl_duration) {
+        createStr += folly::to<std::string>(*prop.get_ttl_duration());
+    } else {
+        createStr += "0";
+    }
+    createStr += ", ttl_col = ";
+    if (prop.__isset.ttl_col && !(prop.get_ttl_col()->empty())) {
+        createStr += "\"" + *prop.get_ttl_col() + "\"";
+    } else {
+        createStr += "\"\"";
+    }
+    row.emplace_back(std::move(createStr));
+    dataSet.rows.emplace_back(std::move(row));
     return dataSet;
 }
 

@@ -708,6 +708,10 @@ public:
 
     std::string toString() const override;
 
+    const std::string* name() const {
+        return name_.get();
+    }
+
 private:
     std::unique_ptr<std::string>                name_;
 };
@@ -720,6 +724,10 @@ public:
     }
 
     std::string toString() const override;
+
+    const std::string* name() const {
+        return name_.get();
+    }
 
 private:
     std::unique_ptr<std::string>                name_;

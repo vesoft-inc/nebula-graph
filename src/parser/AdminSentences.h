@@ -33,14 +33,17 @@ public:
     std::string toString() const override;
 };
 
-class ShowCreateSpacesSentence : public Sentence {
+class ShowCreateSpaceSentence : public Sentence {
 public:
-    explicit ShowCreateSpacesSentence(std::string *name) {
+    explicit ShowCreateSpaceSentence(std::string *name) {
         name_.reset(name);
         kind_ = Kind::kShowCreateSpace;
     }
     std::string toString() const override;
 
+    const std::string* spaceName() const {
+        return name_.get();
+    }
 private:
     std::unique_ptr<std::string>                name_;
 };
@@ -55,7 +58,6 @@ public:
         list_.reset(list);
         kind_ = Kind::kShowParts;
     }
-
     std::string toString() const override;
 
 private:
@@ -466,7 +468,7 @@ public:
         name_.reset(name);
     }
 
-    const std::string* getName() {
+    const std::string* name() {
         return name_.get();
     }
 

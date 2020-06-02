@@ -284,6 +284,48 @@ private:
     }
 };
 
+class ShowCreateTag final : public DescSchema {
+public:
+    static ShowCreateTag* make(ExecutionPlan* plan,
+                               GraphSpaceID space,
+                               std::string name) {
+        return new ShowCreateTag(plan, space, std::move(name));
+    }
+
+    std::string explain() const override {
+        return "ShowCreateTag";
+    }
+
+private:
+    ShowCreateTag(ExecutionPlan* plan,
+                  GraphSpaceID space,
+                  std::string name)
+        : DescSchema(plan, Kind::kShowCreateTag, space, std::move(name)) {
+    }
+};
+
+class ShowCreateEdge final : public DescSchema {
+public:
+    static ShowCreateEdge* make(ExecutionPlan* plan,
+                                GraphSpaceID space,
+                                std::string name) {
+        return new ShowCreateEdge(plan, space, std::move(name));
+    }
+
+    std::string explain() const override {
+        return "ShowCreateEdge";
+    }
+
+private:
+    ShowCreateEdge(ExecutionPlan* plan,
+                   GraphSpaceID space,
+                   std::string name)
+        : DescSchema(plan, Kind::kShowCreateEdge, space, std::move(name)) {
+>>>>>>> Add show create executor
+>>>>>>> Add show create executor
+    }
+};
+
 class ShowTags final : public PlanNode {
 public:
     static ShowTags* make(ExecutionPlan* plan,
