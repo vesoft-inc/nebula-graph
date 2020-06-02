@@ -13,6 +13,9 @@
 #include "exec/admin/CreateSpaceExecutor.h"
 #include "exec/admin/DescSpaceExecutor.h"
 #include "exec/admin/SwitchSpaceExecutor.h"
+#include "exec/admin/BalanceLeadersExecutor.h"
+#include "exec/admin/BalanceExecutor.h"
+#include "exec/admin/ShowBalanceExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
@@ -228,6 +231,21 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         case PlanNode::Kind::kInsertEdges: {
             auto insertE = asNode<InsertEdges>(node);
             exec = new InsertEdgesExecutor(insertE, ectx);
+            break;
+        }
+        case PlanNode::Kind::kBalanceLeaders: {
+            auto balanceLeaders = asNode<BalanceLeaders>(node);
+            exec = new BalanceLeadersExecutor(balanceLeaders, ectx);
+            break;
+        }
+        case PlanNode::Kind::kBalance: {
+            auto balance = asNode<Balance>(node);
+            exec = new BalanceExecutor(balance, ectx);
+            break;
+        }
+        case PlanNode::Kind::kShowBalance: {
+            auto showBalance = asNode<ShowBalance>(node);
+            exec = new ShowBalanceExecutor(showBalance, ectx);
             break;
         }
         case PlanNode::Kind::kUnknown:

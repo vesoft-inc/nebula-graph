@@ -106,13 +106,6 @@ public:
     }
 };
 
-class Balance final : public PlanNode {
-public:
-    std::string explain() const override {
-        return "Balance";
-    }
-};
-
 class CreateSnapshot final : public PlanNode {
 public:
     std::string explain() const override {
@@ -140,6 +133,69 @@ public:
         return "Ingest";
     }
 };
+
+class BalanceLeaders final : public PlanNode {
+public:
+    static BalanceLeaders* make(ExecutionPlan* plan) {
+        return new BalanceLeaders(plan);
+    }
+
+    std::string explain() const override {
+        return "BalanceLeaders";
+    }
+
+private:
+    explicit BalanceLeaders(ExecutionPlan* plan)
+        : PlanNode(plan, Kind::kBalanceLeaders) {}
+};
+
+class Balance final : public PlanNode {
+public:
+    static Balance* make(ExecutionPlan* plan, bool stop, std::vector<HostAddr> dels) {
+        return new Balance(plan, stop, std::move(dels));
+    }
+
+    std::string explain() const override {
+        return "Balance";
+    }
+
+    bool stop() const {
+        return stop_;
+    }
+
+    const std::vector<HostAddr> &dels() const {
+        return dels_;
+    }
+
+private:
+    Balance(ExecutionPlan* plan, bool stop, std::vector<HostAddr> dels)
+        : PlanNode(plan, Kind::kBalance), stop_(stop), dels_(std::move(dels)) {}
+
+    bool                  stop_;
+    std::vector<HostAddr> dels_;
+};
+
+class ShowBalance final : public PlanNode {
+public:
+    static ShowBalance* make(ExecutionPlan* plan, int64_t id) {
+        return new ShowBalance(plan, id);
+    }
+
+    std::string explain() const override {
+        return "ShowBalance";
+    }
+
+    int64_t id() const {
+        return id_;
+    }
+
+private:
+    ShowBalance(ExecutionPlan* plan, int64_t id)
+        : PlanNode(plan, Kind::kShowBalance), id_(id) {}
+
+    int64_t id_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_
