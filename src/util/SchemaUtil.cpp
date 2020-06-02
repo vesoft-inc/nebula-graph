@@ -196,6 +196,7 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 
     auto  ttlColName = ret.value();
     if (ttlColName.empty()) {
+        schema.schema_prop.set_ttl_col("");
         return Status::OK();
     }
     // Check the legality of the ttl column name
