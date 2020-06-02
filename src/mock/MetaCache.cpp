@@ -363,6 +363,7 @@ MetaCache::runAdminJob(const meta::cpp2::AdminJobReq& req) {
             meta::cpp2::TaskDesc taskDesc;
             taskDesc.set_job_id(job->first);
             taskDesc.set_task_id(task.iTask_);
+            taskDesc.set_host(task.dest_);
             taskDesc.set_status(task.status_);
             taskDesc.set_start_time(task.startTime_);
             taskDesc.set_stop_time(task.stopTime_);
@@ -382,14 +383,14 @@ MetaCache::runAdminJob(const meta::cpp2::AdminJobReq& req) {
             jobDesc.set_start_time(job.second.startTime_);
             jobDesc.set_stop_time(job.second.stopTime_);
             jobsDesc.emplace_back(std::move(jobDesc));
-            result.set_job_desc(std::move(jobsDesc));
         }
+        result.set_job_desc(std::move(jobsDesc));
         return result;
     }
     case meta::cpp2::AdminJobOp::STOP: {
         folly::RWSpinLock::WriteHolder wh(jobLock_);
         JOB_CHECK_ID();
-        if (job->second.status_ != meta::cpp2::JobStatus::QUEUE ||
+        if (job->second.status_ != meta::cpp2::JobStatus::QUEUE &&
             job->second.status_ != meta::cpp2::JobStatus::RUNNING) {
             return meta::cpp2::ErrorCode::E_CONFLICT;
         }

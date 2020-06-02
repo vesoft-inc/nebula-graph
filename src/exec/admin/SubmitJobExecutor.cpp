@@ -15,10 +15,23 @@ namespace graph {
 folly::Future<Status> SubmitJobExecutor::execute() {
     auto *sjNode = asNode<SubmitJob>(node());
     auto jobOp = sjNode->jobOp();
-    return ectx()->getMetaClient()->submitJob(jobOp, sjNode->params())
+    meta::cpp2::AdminCmd cmd = meta::cpp2::AdminCmd::COMPACT;
+    if (jobOp == meta::cpp2::AdminJobOp::ADD) {
+        std::vector<std::string> params;
+        folly::split(" ", sjNode->params().front(), params, true);
+        if (params.front() == "compact") {
+            cmd = meta::cpp2::AdminCmd::COMPACT;
+        } else if (params.front() == "flush") {
+            cmd = meta::cpp2::AdminCmd::FLUSH;
+        } else {
+            LOG(FATAL) << "Unknown job command " << params.front();
+        }
+    }
+    return ectx()->getMetaClient()->submitJob(jobOp, cmd, sjNode->params())
         .via(runner())
         .then([jobOp, this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
             if (!resp.ok()) {
+                LOG(ERROR) << resp.status().toString();
                 return std::move(resp).status();
             }
             switch (jobOp) {
@@ -50,7 +63,7 @@ folly::Future<Status> SubmitJobExecutor::execute() {
                 auto &tasksDesc = *resp.value().get_task_desc();
                 for (const auto & taskDesc : tasksDesc) {
                     v.emplace_back(nebula::Row({
-                        taskDesc.get_job_id(),
+                        taskDesc.get_task_id(),
                         taskDesc.get_host().host,
                         meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(taskDesc.get_status()),
                         taskDesc.get_start_time(),

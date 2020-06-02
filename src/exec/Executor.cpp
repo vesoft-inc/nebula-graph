@@ -13,6 +13,7 @@
 #include "exec/admin/CreateSpaceExecutor.h"
 #include "exec/admin/DescSpaceExecutor.h"
 #include "exec/admin/SwitchSpaceExecutor.h"
+#include "exec/admin/SubmitJobExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
@@ -228,6 +229,11 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         case PlanNode::Kind::kInsertEdges: {
             auto insertE = asNode<InsertEdges>(node);
             exec = new InsertEdgesExecutor(insertE, ectx);
+            break;
+        }
+        case PlanNode::Kind::kSubmitJob: {
+            auto submitJob = asNode<SubmitJob>(node);
+            exec = new SubmitJobExecutor(submitJob, ectx);
             break;
         }
         case PlanNode::Kind::kUnknown:

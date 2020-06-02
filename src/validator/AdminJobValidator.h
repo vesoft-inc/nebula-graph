@@ -18,6 +18,9 @@ public:
     AdminJobValidator(Sentence* sentence, ValidateContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<AdminJobSentence*>(sentence);
+        if (sentence_->getType() != meta::cpp2::AdminJobOp::ADD) {
+            setNoSpaceRequired();
+        }
     }
 
 private:

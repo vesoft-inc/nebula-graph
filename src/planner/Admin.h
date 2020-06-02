@@ -158,6 +158,10 @@ public:
         return op_;
     }
 
+    meta::cpp2::AdminCmd cmd() const {
+        return cmd_;
+    }
+
     const std::vector<std::string> &params() const {
         return params_;
     }
@@ -169,6 +173,7 @@ private:
 
 private:
     meta::cpp2::AdminJobOp   op_;
+    meta::cpp2::AdminCmd     cmd_;
     std::vector<std::string> params_;
 };
 

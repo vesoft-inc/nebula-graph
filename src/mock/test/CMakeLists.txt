@@ -80,3 +80,17 @@ nebula_add_test(
         gtest
         gtest_main
 )
+
+nebula_add_test(
+    NAME
+        admin_job_test
+    SOURCES
+        AdminJobTest.cpp
+    OBJECTS
+        ${GRAPH_TEST_LIB}
+    LIBRARIES
+        ${THRIFT_LIBRARIES}
+        wangle
+        gtest
+        gtest_main
+)

@@ -4,8 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_QUERY_SWITCHSPACEEXECUTOR_H_
-#define EXEC_QUERY_SWITCHSPACEEXECUTOR_H_
+#pragma once
 
 #include "exec/Executor.h"
 
@@ -22,5 +21,3 @@ public:
 
 }   // namespace graph
 }   // namespace nebula
-
-#endif   // EXEC_QUERY_SWITCHSPACEEXECUTOR_H_
