@@ -53,6 +53,7 @@ public:
         kInsertEdges,
         kBalanceLeaders,
         kBalance,
+        kStopBalance,
         kShowBalance,
     };
 

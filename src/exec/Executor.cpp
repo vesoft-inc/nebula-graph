@@ -15,6 +15,7 @@
 #include "exec/admin/SwitchSpaceExecutor.h"
 #include "exec/admin/BalanceLeadersExecutor.h"
 #include "exec/admin/BalanceExecutor.h"
+#include "exec/admin/StopBalanceExecutor.h"
 #include "exec/admin/ShowBalanceExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
@@ -241,6 +242,11 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         case PlanNode::Kind::kBalance: {
             auto balance = asNode<Balance>(node);
             exec = new BalanceExecutor(balance, ectx);
+            break;
+        }
+        case PlanNode::Kind::kStopBalance: {
+            auto stopBalance = asNode<Balance>(node);
+            exec = new StopBalanceExecutor(stopBalance, ectx);
             break;
         }
         case PlanNode::Kind::kShowBalance: {

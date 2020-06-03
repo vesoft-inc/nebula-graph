@@ -16,6 +16,7 @@
 #include "validator/UseValidator.h"
 #include "validator/GetSubgraphValidator.h"
 #include "validator/AdminValidator.h"
+#include  "validator/BalanceValidator.h"
 #include "validator/MaintainValidator.h"
 #include "validator/MutateValidator.h"
 
@@ -56,6 +57,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, Validate
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
             return std::make_unique<InsertEdgesValidator>(sentence, context);
+        case Sentence::Kind::kBalance:
+            return std::make_unique<BalanceValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }

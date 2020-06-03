@@ -282,46 +282,47 @@ std::unordered_map<PartitionID, std::vector<HostAddr>> MetaCache::getParts() {
     return parts;
 }
 
-ErrorOr<int64_t, meta::cpp2::ErrorCode> MetaCache::balanceSubmit(GraphSpaceID space) {
+ErrorOr<meta::cpp2::ErrorCode, int64_t> MetaCache::balanceSubmit(std::vector<HostAddr> dels) {
     folly::RWSpinLock::ReadHolder rh(lock_);
-    const auto spaceInfo = spaces_.find(space);
-    if (spaceInfo == spaces_.end()) {
-        return meta::cpp2::ErrorCode::E_NOT_FOUND;
-    }
     for (const auto &job : balanceJobs_) {
-        if (job.second.space == space) {
+        if (job.second.status == meta::cpp2::TaskResult::IN_PROGRESS) {
             return meta::cpp2::ErrorCode::E_BALANCER_RUNNING;
         }
     }
     std::vector<BalanceTask> jobs;
-    for (PartitionID i = 1; i <= spaceInfo->second.get_properties().get_partition_num(); ++i) {
-        for (const auto &host : hostSet_) {
-            jobs.emplace_back(BalanceTask{
-                // mock
-                space,
-                i,
-                host,
-                host,
-                meta::cpp2::TaskResult::IN_PROGRESS,
-            });
+    for (const auto &spaceInfo : spaces_) {
+        for (PartitionID i = 1; i <= spaceInfo.second.get_properties().get_partition_num(); ++i) {
+            for (const auto &host : hostSet_) {  // Note mock partition in each host here
+                if (std::find(dels.begin(), dels.end(), host) != dels.end()) {
+                    continue;
+                }
+                jobs.emplace_back(BalanceTask{
+                    // mock
+                    spaceInfo.first,
+                    i,
+                    host,
+                    host,
+                    meta::cpp2::TaskResult::IN_PROGRESS,
+                });
+            }
         }
     }
     auto jobId = incId();
     balanceTasks_.emplace(jobId, std::move(jobs));
     balanceJobs_.emplace(jobId, BalanceJob{
-        space,
         meta::cpp2::TaskResult::IN_PROGRESS,
     });
     return jobId;
 }
 
-meta::cpp2::ErrorCode MetaCache::balanceStop(int64_t id) {
-    auto job = balanceJobs_.find(id);
-    if (job == balanceJobs_.end()) {
-        return meta::cpp2::ErrorCode::E_NOT_FOUND;
+ErrorOr<meta::cpp2::ErrorCode, int64_t> MetaCache::balanceStop() {
+    for (auto &job : balanceJobs_) {
+        if (job.second.status == meta::cpp2::TaskResult::IN_PROGRESS) {
+            job.second.status = meta::cpp2::TaskResult::FAILED;
+            return job.first;
+        }
     }
-    job->second.status = meta::cpp2::TaskResult::FAILED;
-    return meta::cpp2::ErrorCode::SUCCEEDED;
+    return meta::cpp2::ErrorCode::E_NO_RUNNING_BALANCE_PLAN;
 }
 
 meta::cpp2::ErrorCode MetaCache::balanceLeaders() {
@@ -346,6 +347,7 @@ MetaCache::showBalance(int64_t id) {
         idStr << "]";
         taskInfo.set_id(idStr.str());
         taskInfo.set_result(task.status);
+        result.emplace_back(std::move(taskInfo));
     }
     return result;
 }

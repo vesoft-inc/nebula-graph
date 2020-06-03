@@ -27,6 +27,7 @@ nebula_add_library(
     admin/CreateSpaceExecutor.cpp
     admin/DescSpaceExecutor.cpp
     admin/BalanceExecutor.cpp
+    admin/StopBalanceExecutor.cpp
     admin/BalanceLeadersExecutor.cpp
     admin/ShowBalanceExecutor.cpp
     maintain/CreateTagExecutor.cpp

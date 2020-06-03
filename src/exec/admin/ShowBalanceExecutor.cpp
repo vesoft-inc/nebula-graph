@@ -29,13 +29,35 @@ folly::Future<Status> ShowBalanceExecutor::showBalance() {
             auto tasks = std::move(resp).value();
             // TODO(shylock) typed items instead binary
             // E.G. "balanceId", "spaceId", "partId", "from", "to"
+            uint32_t total = 0, succeeded = 0, failed = 0, inProgress = 0, invalid = 0;
             DataSet v({"balanceId, spaceId:partId, src->dst", "status"});
             for (auto &task : tasks) {
+                ++total;
+                switch (task.get_result()) {
+                    case meta::cpp2::TaskResult::FAILED:
+                        ++failed;
+                        break;
+                    case meta::cpp2::TaskResult::IN_PROGRESS:
+                        ++inProgress;
+                        break;
+                    case meta::cpp2::TaskResult::INVALID:
+                        ++invalid;
+                        break;
+                    case meta::cpp2::TaskResult::SUCCEEDED:
+                        ++succeeded;
+                        break;
+                }
                 v.emplace_back(Row({
                     std::move(task).get_id(),
                     meta::cpp2::_TaskResult_VALUES_TO_NAMES.at(task.get_result())
                 }));
             }
+            double percentage = total == 0 ? 0 : static_cast<double>(succeeded) / total * 100;
+            v.emplace_back(Row({
+                folly::sformat("Total:{}, Succeeded:{}, Failed:{}, In Progress:{}, Invalid:{}",
+                    total, succeeded, failed, inProgress, invalid),
+                percentage
+            }));
             return finish(std::move(v));
         });
 }

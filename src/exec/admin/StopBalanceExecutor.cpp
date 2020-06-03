@@ -4,22 +4,21 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/admin/BalanceExecutor.h"
+#include "exec/admin/StopBalanceExecutor.h"
 #include "planner/Admin.h"
 #include "service/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> BalanceExecutor::execute() {
-    return balance().ensure([this]() { UNUSED(this); });
+folly::Future<Status> StopBalanceExecutor::execute() {
+    return stopBalance().ensure([this]() { UNUSED(this); });
 }
 
-folly::Future<Status> BalanceExecutor::balance() {
+folly::Future<Status> StopBalanceExecutor::stopBalance() {
     dumpLog();
 
-    auto *bNode = asNode<Balance>(node());
-    return ectx()->getMetaClient()->balance(bNode->dels(), false)
+    return ectx()->getMetaClient()->balance({}, true)
         .via(runner())
         .then([this](StatusOr<int64_t> resp) {
             if (!resp.ok()) {

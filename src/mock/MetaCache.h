@@ -66,8 +66,8 @@ public:
 
     std::unordered_map<PartitionID, std::vector<HostAddr>> getParts();
 
-    ErrorOr<int64_t, meta::cpp2::ErrorCode> balanceSubmit(GraphSpaceID space);
-    meta::cpp2::ErrorCode balanceStop(int64_t id);
+    ErrorOr<meta::cpp2::ErrorCode, int64_t> balanceSubmit(std::vector<HostAddr> dels);
+    ErrorOr<meta::cpp2::ErrorCode, int64_t> balanceStop();
     meta::cpp2::ErrorCode                   balanceLeaders();
     ErrorOr<meta::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
     showBalance(int64_t id);
@@ -139,7 +139,6 @@ private:
         meta::cpp2::TaskResult status;
     };
     struct BalanceJob {
-        GraphSpaceID           space;
         meta::cpp2::TaskResult status;
     };
     std::unordered_map<int64_t, std::vector<BalanceTask>> balanceTasks_;

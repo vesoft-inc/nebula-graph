@@ -151,16 +151,12 @@ private:
 
 class Balance final : public PlanNode {
 public:
-    static Balance* make(ExecutionPlan* plan, bool stop, std::vector<HostAddr> dels) {
-        return new Balance(plan, stop, std::move(dels));
+    static Balance* make(ExecutionPlan* plan, std::vector<HostAddr> dels) {
+        return new Balance(plan, std::move(dels));
     }
 
     std::string explain() const override {
         return "Balance";
-    }
-
-    bool stop() const {
-        return stop_;
     }
 
     const std::vector<HostAddr> &dels() const {
@@ -168,11 +164,25 @@ public:
     }
 
 private:
-    Balance(ExecutionPlan* plan, bool stop, std::vector<HostAddr> dels)
-        : PlanNode(plan, Kind::kBalance), stop_(stop), dels_(std::move(dels)) {}
+    Balance(ExecutionPlan* plan, std::vector<HostAddr> dels)
+        : PlanNode(plan, Kind::kBalance), dels_(std::move(dels)) {}
 
-    bool                  stop_;
     std::vector<HostAddr> dels_;
+};
+
+class StopBalance final : public PlanNode {
+public:
+    static StopBalance* make(ExecutionPlan* plan) {
+        return new StopBalance(plan);
+    }
+
+    std::string explain() const override {
+        return "StopBalance";
+    }
+
+private:
+    explicit StopBalance(ExecutionPlan* plan)
+        : PlanNode(plan, Kind::kStopBalance) {}
 };
 
 class ShowBalance final : public PlanNode {
