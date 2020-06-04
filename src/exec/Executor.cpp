@@ -234,7 +234,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kSubmitJob: {
             auto submitJob = asNode<SubmitJob>(node);
-            exec = new SubmitJobExecutor(submitJob, ectx);
+            exec = new SubmitJobExecutor(submitJob, qctx);
             break;
         }
         case PlanNode::Kind::kUnknown:

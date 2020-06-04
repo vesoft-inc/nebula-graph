@@ -7,7 +7,7 @@
 #include "exec/admin/SubmitJobExecutor.h"
 
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -27,7 +27,7 @@ folly::Future<Status> SubmitJobExecutor::execute() {
             LOG(FATAL) << "Unknown job command " << params.front();
         }
     }
-    return ectx()->getMetaClient()->submitJob(jobOp, cmd, sjNode->params())
+    return qctx()->getMetaClient()->submitJob(jobOp, cmd, sjNode->params())
         .via(runner())
         .then([jobOp, this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
             if (!resp.ok()) {

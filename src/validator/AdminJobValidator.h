@@ -15,7 +15,7 @@ namespace graph {
 
 class AdminJobValidator final : public Validator {
 public:
-    AdminJobValidator(Sentence* sentence, ValidateContext* context)
+    AdminJobValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<AdminJobSentence*>(sentence);
         if (sentence_->getType() != meta::cpp2::AdminJobOp::ADD) {

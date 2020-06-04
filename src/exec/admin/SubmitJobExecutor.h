@@ -13,7 +13,7 @@ namespace graph {
 
 class SubmitJobExecutor final : public Executor {
 public:
-    SubmitJobExecutor(const PlanNode *node, ExecutionContext *ectx)
+    SubmitJobExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("SubmitJobExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
