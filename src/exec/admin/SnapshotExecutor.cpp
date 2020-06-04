@@ -52,30 +52,17 @@ folly::Future<Status> ShowSnapshotsExecutor::execute() {
                 }
 
                 auto snapshots = std::move(resp).value();
-                DataSet dataSet;
-                dataSet.colNames = {"Name", "Status", "Hosts"};
-
-                auto getStatus = [](meta::cpp2::SnapshotStatus status) -> std::string {
-                    std::string str;
-                    switch (status) {
-                        case meta::cpp2::SnapshotStatus::INVALID :
-                            str = "INVALID";
-                            break;
-                        case meta::cpp2::SnapshotStatus::VALID :
-                            str = "VALID";
-                            break;
-                    }
-                    return str;
-                };
+                DataSet dataSet({"Name", "Status", "Hosts"});
 
                 for (auto &snapshot : snapshots) {
                     Row row;
                     row.columns.emplace_back(snapshot.name);
-                    row.columns.emplace_back(getStatus(snapshot.status));
+                    row.columns.emplace_back(
+                            meta::cpp2::_SnapshotStatus_VALUES_TO_NAMES.at(snapshot.status));
                     row.columns.emplace_back(snapshot.hosts);
                     dataSet.rows.emplace_back(std::move(row));
                 }
-                finish(Value(std::move(dataSet)));
+                finish(std::move(dataSet));
                 return Status::OK();
             });
 }
