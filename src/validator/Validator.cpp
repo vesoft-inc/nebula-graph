@@ -5,6 +5,7 @@
  */
 
 #include "validator/Validator.h"
+
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "validator/GoValidator.h"
@@ -22,7 +23,7 @@
 
 namespace nebula {
 namespace graph {
-std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, ValidateContext* context) {
+std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
     CHECK(!!sentence);
     CHECK(!!context);
     auto kind = sentence->kind();
@@ -89,7 +90,7 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
 Status Validator::validate() {
     Status status;
 
-    if (!validateContext_) {
+    if (!vctx_) {
         VLOG(1) << "Validate context was not given.";
         return Status::Error("Validate context was not given.");
     }
@@ -119,7 +120,7 @@ Status Validator::validate() {
 }
 
 bool Validator::spaceChosen() {
-    return validateContext_->spaceChosen();
+    return vctx_->spaceChosen();
 }
 }  // namespace graph
 }  // namespace nebula
