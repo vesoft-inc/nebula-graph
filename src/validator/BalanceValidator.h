@@ -15,7 +15,7 @@ namespace graph {
 
 class BalanceValidator final : public Validator {
 public:
-    BalanceValidator(Sentence* sentence, ValidateContext* context)
+    BalanceValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<BalanceSentence*>(sentence);
         setNoSpaceRequired();

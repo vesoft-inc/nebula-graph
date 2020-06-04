@@ -6,7 +6,6 @@
 
 #include "exec/admin/BalanceExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +18,7 @@ folly::Future<Status> BalanceExecutor::balance() {
     dumpLog();
 
     auto *bNode = asNode<Balance>(node());
-    return ectx()->getMetaClient()->balance(bNode->dels(), false)
+    return qctx()->getMetaClient()->balance(bNode->dels(), false)
         .via(runner())
         .then([this](StatusOr<int64_t> resp) {
             if (!resp.ok()) {

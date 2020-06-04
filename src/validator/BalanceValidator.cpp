@@ -13,7 +13,7 @@ namespace nebula {
 namespace graph {
 
 Status BalanceValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     PlanNode *current = nullptr;
     switch (sentence_->subType()) {
     case BalanceSentence::SubType::kLeader:

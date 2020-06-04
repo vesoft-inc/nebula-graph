@@ -6,7 +6,6 @@
 
 #include "exec/admin/StopBalanceExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -18,7 +17,7 @@ folly::Future<Status> StopBalanceExecutor::execute() {
 folly::Future<Status> StopBalanceExecutor::stopBalance() {
     dumpLog();
 
-    return ectx()->getMetaClient()->balance({}, true)
+    return qctx()->getMetaClient()->balance({}, true)
         .via(runner())
         .then([this](StatusOr<int64_t> resp) {
             if (!resp.ok()) {

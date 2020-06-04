@@ -7,13 +7,14 @@
 #pragma once
 
 #include "exec/Executor.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
 
 class BalanceExecutor final : public Executor {
 public:
-    BalanceExecutor(const PlanNode *node, ExecutionContext *ectx)
+    BalanceExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("BalanceExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;

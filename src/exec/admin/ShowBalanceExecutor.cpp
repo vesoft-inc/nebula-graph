@@ -6,7 +6,6 @@
 
 #include "exec/admin/ShowBalanceExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +18,7 @@ folly::Future<Status> ShowBalanceExecutor::showBalance() {
     dumpLog();
 
     auto *sbNode = asNode<ShowBalance>(node());
-    return ectx()->getMetaClient()->showBalance(sbNode->id())
+    return qctx()->getMetaClient()->showBalance(sbNode->id())
         .via(runner())
         .then([this](StatusOr<std::vector<meta::cpp2::BalanceTask>> resp) {
             if (!resp.ok()) {

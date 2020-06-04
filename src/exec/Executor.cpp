@@ -237,22 +237,22 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kBalanceLeaders: {
             auto balanceLeaders = asNode<BalanceLeaders>(node);
-            exec = new BalanceLeadersExecutor(balanceLeaders, ectx);
+            exec = new BalanceLeadersExecutor(balanceLeaders, qctx);
             break;
         }
         case PlanNode::Kind::kBalance: {
             auto balance = asNode<Balance>(node);
-            exec = new BalanceExecutor(balance, ectx);
+            exec = new BalanceExecutor(balance, qctx);
             break;
         }
         case PlanNode::Kind::kStopBalance: {
             auto stopBalance = asNode<Balance>(node);
-            exec = new StopBalanceExecutor(stopBalance, ectx);
+            exec = new StopBalanceExecutor(stopBalance, qctx);
             break;
         }
         case PlanNode::Kind::kShowBalance: {
             auto showBalance = asNode<ShowBalance>(node);
-            exec = new ShowBalanceExecutor(showBalance, ectx);
+            exec = new ShowBalanceExecutor(showBalance, qctx);
             break;
         }
         case PlanNode::Kind::kUnknown:
