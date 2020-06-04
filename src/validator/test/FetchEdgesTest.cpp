@@ -6,6 +6,7 @@
 
 #include "validator/FetchEdgesValidator.h"
 #include "validator/test/ValidatorTest.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -16,8 +17,9 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         ASSERT_TRUE(toPlan("FETCH PROP ON edge1 \"1\"->\"2\""));
         // check plan
         // GetEdgess
-        ASSERT_EQ(plan_->root()->kind(), PlanNode::Kind::kGetEdges);
-        const auto *getEdgesNode = static_cast<const GetEdges *>(plan_->root());
+        auto *plan = qCtx_->plan();
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetEdges);
+        const auto *getEdgesNode = static_cast<const GetEdges *>(plan->root());
         auto *input = getEdgesNode->input();
         ASSERT_EQ(input, nullptr);
         std::vector<nebula::Row> edges{nebula::Row({
@@ -35,17 +37,18 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         ASSERT_TRUE(toPlan("FETCH PROP ON edge1 \"1\"->\"2\" YIELD edge1.prop1, edge1.prop2"));
         // check plan
         // Project
-        ASSERT_EQ(plan_->root()->kind(), PlanNode::Kind::kProject);
-        const auto *projectNode = static_cast<const Project *>(plan_->root());
+        auto *plan = qCtx_->plan();
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
+        const auto *projectNode = static_cast<const Project *>(plan->root());
         auto *cols = projectNode->columns();
         ASSERT_NE(cols, nullptr);
         std::vector<std::string> propNames{"prop1", "prop2"};
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &col = cols->columns()[i];
             const auto *expr = col->expr();
-            ASSERT_EQ(expr->kind(), Expression::Kind::kAliasProperty);
-            const auto *aliasPropertyExpr = reinterpret_cast<const AliasPropertyExpression *>(expr);
-            ASSERT_EQ(*aliasPropertyExpr->alias(), "edge1");
+            ASSERT_EQ(expr->kind(), Expression::Kind::kVarProperty);
+            const auto *aliasPropertyExpr = static_cast<const SymbolPropertyExpression *>(expr);
+            ASSERT_EQ(*aliasPropertyExpr->sym(), "edge1");
             ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
         }
         // GetEdges
@@ -59,9 +62,9 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
             const auto &prop = getEdgesNode->props()[i];
             auto expr = Expression::decode(prop.get_prop());
             ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->kind(), Expression::Kind::kAliasProperty);
-            auto aliasPropertyExpr = reinterpret_cast<AliasPropertyExpression *>(expr.get());
-            ASSERT_EQ(*aliasPropertyExpr->alias(), "edge1");
+            ASSERT_EQ(expr->kind(), Expression::Kind::kVarProperty);
+            auto aliasPropertyExpr = reinterpret_cast<SymbolPropertyExpression *>(expr.get());
+            ASSERT_EQ(*aliasPropertyExpr->sym(), "edge1");
             ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
         }
     }
@@ -73,8 +76,8 @@ TEST_F(ValidatorTest, FetchEdgesPropFailed) {
         auto result = GQLParser().parse("FETCH PROP ON edge1 \"1\" YIELD edge2.prop2");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), session_, schemaMng_, charsetInfo_);
-        auto validateResult = validator.validate(plan_.get());
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
         ASSERT_FALSE(validateResult.ok());
     }
 
@@ -84,8 +87,8 @@ TEST_F(ValidatorTest, FetchEdgesPropFailed) {
             GQLParser().parse("FETCH PROP ON not_exist_edge \"1\" YIELD not_exist_edge.prop");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), session_, schemaMng_, charsetInfo_);
-        auto validateResult = validator.validate(plan_.get());
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
         ASSERT_FALSE(validateResult.ok());
     }
 
@@ -94,8 +97,8 @@ TEST_F(ValidatorTest, FetchEdgesPropFailed) {
         auto result = GQLParser().parse("FETCH PROP ON edge1 \"1\" YIELD edge1.not_exist_prop");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), session_, schemaMng_, charsetInfo_);
-        auto validateResult = validator.validate(plan_.get());
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
         ASSERT_FALSE(validateResult.ok());
     }
 }

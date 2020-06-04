@@ -6,11 +6,10 @@
 
 #include "exec/query/GetVerticesExecutor.h"
 
-// common
 #include "common/clients/storage/GraphStorageClient.h"
-// graph
+
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -32,7 +31,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
 
     auto *gv = asNode<GetVertices>(node());
 
-    GraphStorageClient *storageClient = ectx()->getStorageClient();
+    GraphStorageClient *storageClient = qctx()->getStorageClient();
     if (storageClient == nullptr) {
         return error(Status::Error("Invalid storage client for GetVerticesExecutor"));
     }
@@ -43,10 +42,10 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                              std::make_move_iterator(gv->vertices().end()));
     }
     if (gv->src() != nullptr) {
-        // TODO(shylock) pass expression context
-        // TODO(shylock) add a new value type VID to semantic this by pass List[VID]
-        // Accept List[Str]
-        auto src = gv->src()->eval();
+        // Accept Table such as | $a | which indicate src
+        auto valueIter = std::make_unique<SequentialIter>(getSingleInputValue());
+        auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
+        auto src = gv->src()->eval(expCtx);
         if (src.type() != Value::Type::LIST) {
             return error(Status::Error("Invalid vertex expression"));
         }

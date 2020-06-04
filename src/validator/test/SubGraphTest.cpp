@@ -4,10 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "ValidatorTest.h"
-
-namespace nebula {
-namespace graph {
+#include "validator/GetSubgraphValidator.h"
+#include "validator/test/ValidatorTest.h"
+#include "planner/Query.h"
 
 TEST_F(ValidatorTest, Subgraph) {
     {
@@ -15,12 +14,12 @@ TEST_F(ValidatorTest, Subgraph) {
         auto result = GQLParser().parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
         auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), session_, schemaMng_, charsetInfo_);
-        auto validateResult = validator.validate(plan_.get());
+        auto context = buildContext();
+        ASTValidator validator(sentences.get(), context.get());
+        auto validateResult = validator.validate();
         ASSERT_TRUE(validateResult.ok()) << validateResult;
         // TODO: Check the plan.
+        auto plan = context->plan();
+        ASSERT_NE(plan, nullptr);
     }
 }
-
-}   // namespace graph
-}   // namespace nebula

@@ -6,11 +6,10 @@
 
 #include "exec/query/GetEdgesExecutor.h"
 
-// common
 #include "common/clients/storage/GraphStorageClient.h"
-// graph
+
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -27,7 +26,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     CHECK_NODE_TYPE(GetEdges);
     dumpLog();
 
-    GraphStorageClient *client = ectx()->getStorageClient();
+    GraphStorageClient *client = qctx()->getStorageClient();
     if (client == nullptr) {
         return error(Status::Error("Invalid storage client for GetEdgesExecutor"));
     }
@@ -40,12 +39,12 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                           std::make_move_iterator(ge->edges().end()));
     }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
-        // TODO(shylock) pass expression context
-        // TODO(shylock) add a value type EDGE_ID to simplify the checking by pass List[EDGE_ID]
-        // Accept List[Str], List[Int], List[Str]
-        auto src = ge->src()->eval();
-        auto ranking = ge->ranking()->eval();
-        auto dst = ge->dst()->eval();
+        // Accept Table such as | $a | $b | $c | which indicate src, ranking or dst
+        auto valueIter = std::make_unique<SequentialIter>(getSingleInputValue());
+        auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
+        auto src = ge->src()->eval(expCtx);
+        auto ranking = ge->ranking()->eval(expCtx);
+        auto dst = ge->dst()->eval(expCtx);
         if (src.type() != Value::Type::LIST || ranking.type() != Value::Type::LIST ||
             dst.type() != Value::Type::LIST) {
             return error(Status::Error("Invalid edge expression"));

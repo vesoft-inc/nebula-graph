@@ -16,7 +16,7 @@ namespace graph {
 
 class FetchEdgesValidator final : public Validator {
 public:
-    FetchEdgesValidator(Sentence* sentence, ValidateContext* context)
+    FetchEdgesValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
         sentence_ = static_cast<FetchEdgesSentence*>(sentence);
     }

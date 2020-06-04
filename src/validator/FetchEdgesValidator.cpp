@@ -35,7 +35,7 @@ Status FetchEdgesValidator::validateImpl() {
 
 Status FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
-    auto *plan = validateContext_->plan();
+    auto *plan = qctx_->plan();
     auto *doNode = GetEdges::make(plan,
                                   root_,  // previous root as input
                                   spaceId_,
@@ -65,14 +65,14 @@ Status FetchEdgesValidator::toPlan() {
 }
 
 Status FetchEdgesValidator::check() {
-    spaceId_ = validateContext_->whichSpace().id;
+    spaceId_ = vctx_->whichSpace().id;
     edgeTypeName_ = *sentence_->edge();
-    auto edgeStatus = validateContext_->schemaMng()->toEdgeType(spaceId_, edgeTypeName_);
+    auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, edgeTypeName_);
     if (!edgeStatus.ok()) {
         return edgeStatus.status();
     }
     edgeType_ = edgeStatus.value();
-    schema_ = validateContext_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
+    schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
     if (schema_ == nullptr) {
         LOG(ERROR) << "No schema found for " << sentence_->edge();
         return Status::Error("No schema found for `%s'", sentence_->edge()->c_str());
@@ -91,18 +91,19 @@ Status FetchEdgesValidator::prepareEdges() {
     }
 
     // from constant, eval now
+    std::unique_ptr<ExpressionContext> dummy = std::make_unique<ExpressionContextImpl>();
     auto keys = sentence_->keys();
     if (keys != nullptr) {
         // row: _src, _type, _ranking, _dst
         edges_.reserve(sentence_->keys()->keys().size());
         for (const auto &key : sentence_->keys()->keys()) {
             // TODO(shylock) Add new value type EDGE_ID to semantic and simplify this
-            auto src = key->srcid()->eval();
+            auto src = key->srcid()->eval(*dummy);
             if (!src.isStr()) {   // string as vid
                 return Status::NotSupported("src is not a vertex id");
             }
             auto ranking = key->rank();
-            auto dst = key->dstid()->eval();
+            auto dst = key->dstid()->eval(*dummy);
             if (!src.isStr()) {
                 return Status::NotSupported("dst is not a vertex id");
             }
@@ -121,9 +122,15 @@ Status FetchEdgesValidator::prepareProperties() {
     } else {
         dedup_ = yield->isDistinct();
         for (const auto col : yield->columns()) {
-            if (col->expr()->isAliasPropertyExpression()) {
-                auto *expr = static_cast<AliasPropertyExpression *>(col->expr());
-                if (*expr->alias() != edgeTypeName_) {
+            if (col->expr()->kind() == Expression::Kind::kEdgeProperty ||
+                col->expr()->kind() == Expression::Kind::kDstProperty ||
+                col->expr()->kind() == Expression::Kind::kSrcProperty ||
+                col->expr()->kind() == Expression::Kind::kEdgeSrc ||
+                col->expr()->kind() == Expression::Kind::kEdgeType ||
+                col->expr()->kind() == Expression::Kind::kEdgeRank ||
+                col->expr()->kind() == Expression::Kind::kEdgeDst) {
+                auto *expr = static_cast<SymbolPropertyExpression *>(col->expr());
+                if (*expr->sym() != edgeTypeName_) {
                     return Status::Error("Mismatched edge type name");
                 }
                 // Check is prop name in schema

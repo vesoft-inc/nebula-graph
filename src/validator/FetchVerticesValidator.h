@@ -16,7 +16,7 @@ namespace graph {
 
 class FetchVerticesValidator final : public Validator {
 public:
-    FetchVerticesValidator(Sentence* sentence, ValidateContext* context)
+    FetchVerticesValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
         sentence_ = static_cast<FetchVerticesSentence*>(sentence);
     }

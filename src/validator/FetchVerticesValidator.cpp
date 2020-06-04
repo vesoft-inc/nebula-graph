@@ -35,7 +35,7 @@ Status FetchVerticesValidator::validateImpl() {
 
 Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
-    auto *plan = validateContext_->plan();
+    auto *plan = qctx_->plan();
     auto *doNode = GetVertices::make(plan,
                                      root_,  // previous root as input
                                      spaceId_,
@@ -62,21 +62,21 @@ Status FetchVerticesValidator::toPlan() {
 }
 
 Status FetchVerticesValidator::check() {
-    spaceId_ = validateContext_->whichSpace().id;
+    spaceId_ = vctx_->whichSpace().id;
 
     if (sentence_->isAllTagProps()) {
         // empty for all tag
         tagName_ = *sentence_->tag();
     } else {
         tagName_ = *(sentence_->tag());
-        auto tagStatus = validateContext_->schemaMng()->toTagID(spaceId_, tagName_);
+        auto tagStatus = qctx_->schemaMng()->toTagID(spaceId_, tagName_);
         if (!tagStatus.ok()) {
             LOG(ERROR) << "No schema found for " << tagName_;
             return Status::Error("No schema found for `%s'", tagName_.c_str());
         }
 
         tagId_ = tagStatus.value();
-        schema_ = validateContext_->schemaMng()->getTagSchema(spaceId_, tagId_.value());
+        schema_ = qctx_->schemaMng()->getTagSchema(spaceId_, tagId_.value());
         if (schema_ == nullptr) {
             LOG(ERROR) << "No schema found for " << tagName_;
             return Status::Error("No schema found for `%s'", tagName_.c_str());
@@ -93,11 +93,13 @@ Status FetchVerticesValidator::prepareVertices() {
     }
 
     // from constant, eval now
+    // TODO(shylock) add eval() method for expression
+    std::unique_ptr<ExpressionContext> dummy = std::make_unique<ExpressionContextImpl>();
     auto vids = sentence_->vidList();
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
         // TODO(shylock) Add a new value type VID to semantic this
-        auto v = vid->eval();
+        auto v = vid->eval(*dummy);
         if (!v.isStr()) {   // string as vid
             return Status::NotSupported("Not a vertex id");
         }
@@ -114,10 +116,17 @@ Status FetchVerticesValidator::prepareProperties() {
     } else {
         dedup_ = yield->isDistinct();
         for (const auto col : yield->columns()) {
-            if (col->expr()->isAliasPropertyExpression()) {
+            // The properties from storage directly
+            if (col->expr()->kind() == Expression::Kind::kEdgeProperty ||
+                col->expr()->kind() == Expression::Kind::kDstProperty ||
+                col->expr()->kind() == Expression::Kind::kSrcProperty ||
+                col->expr()->kind() == Expression::Kind::kEdgeSrc ||
+                col->expr()->kind() == Expression::Kind::kEdgeType ||
+                col->expr()->kind() == Expression::Kind::kEdgeRank ||
+                col->expr()->kind() == Expression::Kind::kEdgeDst) {
                 if (tagId_.hasValue()) {   // check properties when specified TAG
-                    auto *expr = static_cast<AliasPropertyExpression *>(col->expr());
-                    if (*expr->alias() != tagName_) {
+                    auto *expr = static_cast<SymbolPropertyExpression *>(col->expr());
+                    if (*expr->sym() != tagName_) {
                         return Status::Error("Mismatched tag name");
                     }
                     // Check is prop name in schema
