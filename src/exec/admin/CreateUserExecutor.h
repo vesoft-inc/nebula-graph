@@ -13,7 +13,7 @@ namespace graph {
 
 class CreateUserExecutor final : public Executor {
 public:
-    CreateUserExecutor(const PlanNode *node, ExecutionContext *ectx)
+    CreateUserExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("CreateUserExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;

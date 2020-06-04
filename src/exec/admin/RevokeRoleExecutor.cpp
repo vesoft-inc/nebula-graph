@@ -6,7 +6,7 @@
 
 #include "exec/admin/RevokeRoleExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -20,7 +20,7 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
 
     auto *rrNode = asNode<RevokeRole>(node());
     const auto &spaceName = rrNode->spaceName();
-    auto spaceIdResult = ectx()->getMetaClient()->getSpaceIdByNameFromCache(spaceName);
+    auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(spaceName);
     if (!spaceIdResult.ok()) {
         return std::move(spaceIdResult).status();
     }
@@ -29,7 +29,7 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
     item.set_space_id(spaceId);
     item.set_user_id(rrNode->username());
     item.set_role_type(rrNode->role());
-    return ectx()->getMetaClient()->revokeFromUser(std::move(item))
+    return qctx()->getMetaClient()->revokeFromUser(std::move(item))
         .via(runner())
         .then([](StatusOr<bool> resp) {
             HANDLE_EXEC_RESPONSE(resp);

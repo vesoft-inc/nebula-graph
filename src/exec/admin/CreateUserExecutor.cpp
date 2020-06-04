@@ -6,7 +6,7 @@
 
 #include "exec/admin/CreateUserExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +19,7 @@ folly::Future<Status> CreateUserExecutor::createUser() {
     dumpLog();
 
     auto *cuNode = asNode<CreateUser>(node());
-    return ectx()->getMetaClient()->createUser(
+    return qctx()->getMetaClient()->createUser(
             cuNode->username(), cuNode->password(), cuNode->ifNotExist())
         .via(runner())
         .then([](StatusOr<bool> resp) {

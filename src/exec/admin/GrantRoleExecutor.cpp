@@ -6,7 +6,7 @@
 
 #include "exec/admin/GrantRoleExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -20,7 +20,7 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
 
     auto *grNode = asNode<GrantRole>(node());
     const auto &spaceName = grNode->spaceName();
-    auto spaceIdResult = ectx()->getMetaClient()->getSpaceIdByNameFromCache(spaceName);
+    auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(spaceName);
     if (!spaceIdResult.ok()) {
         return std::move(spaceIdResult).status();
     }
@@ -29,7 +29,7 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
     item.set_space_id(spaceId);  // TODO(shylock) pass space name directly
     item.set_user_id(grNode->username());
     item.set_role_type(grNode->role());
-    return ectx()->getMetaClient()->grantToUser(std::move(item))
+    return qctx()->getMetaClient()->grantToUser(std::move(item))
         .via(runner())
         .then([](StatusOr<bool> resp) {
             HANDLE_EXEC_RESPONSE(resp);

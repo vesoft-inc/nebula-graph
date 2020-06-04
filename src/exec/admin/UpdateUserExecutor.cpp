@@ -6,7 +6,7 @@
 
 #include "exec/admin/UpdateUserExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +19,7 @@ folly::Future<Status> UpdateUserExecutor::updateUser() {
     dumpLog();
 
     auto *uuNode = asNode<UpdateUser>(node());
-    return ectx()->getMetaClient()->alterUser(uuNode->username(), uuNode->password())
+    return qctx()->getMetaClient()->alterUser(uuNode->username(), uuNode->password())
         .via(runner())
         .then([](StatusOr<bool> resp) {
             HANDLE_EXEC_RESPONSE(resp);

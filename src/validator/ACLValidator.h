@@ -13,7 +13,7 @@ namespace graph {
 
 class CreateUserValidator final : public Validator {
 public:
-    CreateUserValidator(Sentence* sentence, ValidateContext* context)
+    CreateUserValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<CreateUserSentence*>(sentence);
         setNoSpaceRequired();
@@ -30,7 +30,7 @@ private:
 
 class DropUserValidator final : public Validator {
 public:
-    DropUserValidator(Sentence* sentence, ValidateContext* context)
+    DropUserValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<DropUserSentence*>(sentence);
         setNoSpaceRequired();
@@ -47,7 +47,7 @@ private:
 
 class UpdateUserValidator final : public Validator {
 public:
-    UpdateUserValidator(Sentence* sentence, ValidateContext* context)
+    UpdateUserValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<AlterUserSentence*>(sentence);
         setNoSpaceRequired();
@@ -64,7 +64,7 @@ private:
 
 class ChangePasswordValidator final : public Validator {
 public:
-    ChangePasswordValidator(Sentence* sentence, ValidateContext* context)
+    ChangePasswordValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<ChangePasswordSentence*>(sentence);
         setNoSpaceRequired();
@@ -81,7 +81,7 @@ private:
 
 class GrantRoleValidator final : public Validator {
 public:
-    GrantRoleValidator(Sentence* sentence, ValidateContext* context)
+    GrantRoleValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<GrantSentence*>(sentence);
         setNoSpaceRequired();
@@ -98,7 +98,7 @@ private:
 
 class RevokeRoleValidator final : public Validator {
 public:
-    RevokeRoleValidator(Sentence* sentence, ValidateContext* context)
+    RevokeRoleValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<RevokeSentence*>(sentence);
         setNoSpaceRequired();

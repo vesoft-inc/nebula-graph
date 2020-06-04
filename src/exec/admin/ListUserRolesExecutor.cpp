@@ -6,7 +6,7 @@
 
 #include "exec/admin/ListUserRolesExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +19,7 @@ folly::Future<Status> ListUserRolesExecutor::listUserRoles() {
     dumpLog();
 
     auto *lurNode = asNode<ListUserRoles>(node());
-    return ectx()->getMetaClient()->getUserRoles(lurNode->username())
+    return qctx()->getMetaClient()->getUserRoles(lurNode->username())
         .via(runner())
         .then([this](StatusOr<std::vector<meta::cpp2::RoleItem>> &&resp) {
             if (!resp.ok()) {

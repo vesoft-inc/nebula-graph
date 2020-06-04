@@ -6,7 +6,7 @@
 
 #include "exec/admin/ChangePasswordExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +19,7 @@ folly::Future<Status> ChangePasswordExecutor::changePassword() {
     dumpLog();
 
     auto *cpNode = asNode<ChangePassword>(node());
-    return ectx()->getMetaClient()->changePassword(
+    return qctx()->getMetaClient()->changePassword(
             cpNode->username(), cpNode->newPassword(), cpNode->password())
         .via(runner())
         .then([](StatusOr<bool> resp) {
