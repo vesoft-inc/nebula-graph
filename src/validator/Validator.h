@@ -77,6 +77,14 @@ protected:
     ColsDef                         inputs_;
     bool                            noSpaceRequired_{false};
 };
+
+#define SINGLE_NODE_PLAN_TEMPLATE(Node, ...) \
+    auto* plan = validateContext_->plan(); \
+    auto *doNode = Node::make(plan, __VA_ARGS__); \
+    root_ = doNode; \
+    tail_ = root_; \
+    return Status::OK();
+
 }  // namespace graph
 }  // namespace nebula
 #endif

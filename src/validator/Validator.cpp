@@ -18,6 +18,7 @@
 #include "validator/AdminValidator.h"
 #include "validator/MaintainValidator.h"
 #include "validator/MutateValidator.h"
+#include "validator/ACLValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -56,6 +57,18 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, Validate
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
             return std::make_unique<InsertEdgesValidator>(sentence, context);
+        case Sentence::Kind::kCreateUser:
+            return std::make_unique<CreateUserValidator>(sentence, context);
+        case Sentence::Kind::kDropUser:
+            return std::make_unique<DropUserValidator>(sentence, context);
+        case Sentence::Kind::kAlterUser:
+            return std::make_unique<UpdateUserValidator>(sentence, context);
+        case Sentence::Kind::kChangePassword:
+            return std::make_unique<ChangePasswordValidator>(sentence, context);
+        case Sentence::Kind::kGrant:
+            return std::make_unique<GrantRoleValidator>(sentence, context);
+        case Sentence::Kind::kRevoke:
+            return std::make_unique<RevokeRoleValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }

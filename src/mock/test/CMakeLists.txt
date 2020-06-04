@@ -57,8 +57,6 @@ nebula_add_test(
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES
-        proxygenhttpserver
-        proxygenlib
         ${THRIFT_LIBRARIES}
         wangle
         gtest
@@ -73,8 +71,20 @@ nebula_add_test(
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES
-        proxygenhttpserver
-        proxygenlib
+        ${THRIFT_LIBRARIES}
+        wangle
+        gtest
+        gtest_main
+)
+
+nebula_add_test(
+    NAME
+        acl_test
+    SOURCES
+        ACLTest.cpp
+    OBJECTS
+        ${GRAPH_TEST_LIB}
+    LIBRARIES
         ${THRIFT_LIBRARIES}
         wangle
         gtest

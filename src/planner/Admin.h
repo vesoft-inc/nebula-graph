@@ -232,11 +232,11 @@ class GrantRole final : public PlanNode {
 public:
     static GrantRole* make(ExecutionPlan* plan,
                            std::string username,
-                           GraphSpaceID space,
+                           std::string spaceName,
                            meta::cpp2::RoleType role) {
         return new GrantRole(plan,
                             std::move(username),
-                            space,
+                            std::move(spaceName),
                             role);
     }
 
@@ -244,32 +244,41 @@ public:
         return "GrantRole";
     }
 
-    const meta::cpp2::RoleItem &item() const {
-        return item_;
+    const std::string &username() const {
+        return username_;
+    }
+
+    const std::string &spaceName() const {
+        return spaceName_;
+    }
+
+    meta::cpp2::RoleType role() const {
+        return role_;
     }
 
 private:
     GrantRole(ExecutionPlan* plan,
-        std::string username, GraphSpaceID space, meta::cpp2::RoleType role)
-        : PlanNode(plan, Kind::kGrantRole) {
-            item_.set_user_id(std::move(username));
-            item_.set_space_id(space);
-            item_.set_role_type(role);
-        }
+        std::string username, std::string spaceName, meta::cpp2::RoleType role)
+        : PlanNode(plan, Kind::kGrantRole),
+          username_(std::move(username)),
+          spaceName_(std::move(spaceName)),
+          role_(role) {}
 
 private:
-    meta::cpp2::RoleItem item_;
+    std::string username_;
+    std::string spaceName_;
+    meta::cpp2::RoleType role_;
 };
 
 class RevokeRole final : public PlanNode {
 public:
     static RevokeRole* make(ExecutionPlan* plan,
                            std::string username,
-                           GraphSpaceID space,
+                           std::string spaceName,
                            meta::cpp2::RoleType role) {
         return new RevokeRole(plan,
                             std::move(username),
-                            space,
+                            std::move(spaceName),
                             role);
     }
 
@@ -277,21 +286,30 @@ public:
         return "RevokeRole";
     }
 
-    const meta::cpp2::RoleItem &item() const {
-        return item_;
+    const std::string &username() const {
+        return username_;
+    }
+
+    const std::string &spaceName() const {
+        return spaceName_;
+    }
+
+    meta::cpp2::RoleType role() const {
+        return role_;
     }
 
 private:
     RevokeRole(ExecutionPlan* plan,
-        std::string username, GraphSpaceID space, meta::cpp2::RoleType role)
-        : PlanNode(plan, Kind::kRevokeRole) {
-            item_.set_user_id(std::move(username));
-            item_.set_space_id(space);
-            item_.set_role_type(role);
-        }
+        std::string username, std::string spaceName, meta::cpp2::RoleType role)
+        : PlanNode(plan, Kind::kRevokeRole),
+          username_(std::move(username)),
+          spaceName_(std::move(spaceName)),
+          role_(role) {}
 
 private:
-    meta::cpp2::RoleItem item_;
+    std::string          username_;
+    std::string          spaceName_;
+    meta::cpp2::RoleType role_;
 };
 
 class ChangePassword final : public PlanNode {

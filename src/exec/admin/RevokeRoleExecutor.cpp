@@ -19,7 +19,17 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
     dumpLog();
 
     auto *rrNode = asNode<RevokeRole>(node());
-    return ectx()->getMetaClient()->revokeFromUser(rrNode->item())
+    const auto &spaceName = rrNode->spaceName();
+    auto spaceIdResult = ectx()->getMetaClient()->getSpaceIdByNameFromCache(spaceName);
+    if (!spaceIdResult.ok()) {
+        return std::move(spaceIdResult).status();
+    }
+    auto spaceId = spaceIdResult.value();
+    meta::cpp2::RoleItem item;
+    item.set_space_id(spaceId);
+    item.set_user_id(rrNode->username());
+    item.set_role_type(rrNode->role());
+    return ectx()->getMetaClient()->revokeFromUser(std::move(item))
         .via(runner())
         .then([](StatusOr<bool> resp) {
             HANDLE_EXEC_RESPONSE(resp);
