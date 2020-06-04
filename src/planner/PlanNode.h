@@ -9,7 +9,7 @@
 
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
-#include "planner/IdGenerator.h"
+#include "util/IdGenerator.h"
 
 namespace nebula {
 namespace graph {
@@ -71,8 +71,12 @@ public:
         return id_;
     }
 
+    void setOutputVar(std::string var) {
+        outputVar_ = std::move(var);
+    }
+
     std::string varName() const {
-        return varGenerated_;
+        return outputVar_;
     }
 
     const ExecutionPlan* plan() const {
@@ -81,7 +85,7 @@ public:
 
     void setId(int64_t id) {
         id_ = id;
-        varGenerated_ = folly::stringPrintf("%s_%ld", toString(kind_), id_);
+        outputVar_ = folly::stringPrintf("%s_%ld", toString(kind_), id_);
     }
 
     void setPlan(ExecutionPlan* plan) {
@@ -96,8 +100,9 @@ protected:
     ExecutionPlan*                           plan_{nullptr};
     using VariableName = std::string;
     std::unordered_set<VariableName>         availableVars_;
-    VariableName                             varGenerated_;
+    VariableName                             outputVar_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLANNODE_H_
