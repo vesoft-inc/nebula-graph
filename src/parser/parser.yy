@@ -458,11 +458,15 @@ opt_argument_list
 argument_list
     : expression {
         $$ = new ArgumentList();
-        $$->addArgument($1);
+        std::unique_ptr<Expression> arg;
+        arg.reset($1);
+        $$->addArgument(std::move(arg));
     }
     | argument_list COMMA expression {
         $$ = $1;
-        $$->addArgument($3);
+        std::unique_ptr<Expression> arg;
+        arg.reset($3);
+        $$->addArgument(std::move(arg));
     }
     ;
 

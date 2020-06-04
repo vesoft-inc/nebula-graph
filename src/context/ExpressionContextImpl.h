@@ -9,7 +9,8 @@
 
 #include "common/context/ExpressionContext.h"
 
-#include "context/QueryContext.h"
+#include "context/ExecutionContext.h"
+#include "context/Iterator.h"
 
 namespace nebula {
 namespace graph {
