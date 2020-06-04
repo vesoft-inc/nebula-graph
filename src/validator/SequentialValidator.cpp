@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "base/Base.h"
-#include "SequentialValidator.h"
+#include "common/base/Base.h"
+#include "validator/SequentialValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +19,7 @@ Status SequentialValidator::validateImpl() {
     auto seqSentence = static_cast<SequentialSentences*>(sentence_);
     auto sentences = seqSentence->sentences();
     for (auto* sentence : sentences) {
-        auto validator = makeValidator(sentence, validateContext_);
+        auto validator = makeValidator(sentence, qctx_);
         status = validator->validate();
         if (!status.ok()) {
             return status;

@@ -7,13 +7,13 @@
 #ifndef VALIDATOR_REPORTERROR_H_
 #define VALIDATOR_REPORTERROR_H_
 
-#include "base/Base.h"
+#include "common/base/Base.h"
 
 namespace nebula {
 namespace graph {
 class ReportError final : public Validator {
 public:
-    ReportError(Sentence* sentence, ValidateContext* context)
+    ReportError(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:

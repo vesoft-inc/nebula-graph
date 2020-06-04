@@ -4,10 +4,12 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "InsertEdgesExecutor.h"
+#include "exec/mutate/InsertEdgesExecutor.h"
+
+#include "common/clients/storage/GraphStorageClient.h"
+
 #include "planner/Mutate.h"
-#include "service/ExecutionContext.h"
-#include "clients/storage/GraphStorageClient.h"
+#include "context/QueryContext.h"
 
 
 namespace nebula {
@@ -21,7 +23,7 @@ folly::Future<Status> InsertEdgesExecutor::insertEdges() {
     dumpLog();
     auto *ieNode = asNode<InsertEdges>(node());
 
-    return ectx()->getStorageClient()->addEdges(ieNode->space(),
+    return qctx()->getStorageClient()->addEdges(ieNode->space(),
             ieNode->getEdges(), ieNode->getPropNames(), ieNode->getOverwritable())
         .via(runner())
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {

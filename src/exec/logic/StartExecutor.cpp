@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/StartExecutor.h"
+#include "exec/logic/StartExecutor.h"
 
 #include "planner/PlanNode.h"
 

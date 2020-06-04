@@ -12,10 +12,10 @@
 namespace nebula {
 namespace graph {
 
-class SortExecutor final : public SingleInputExecutor {
+class SortExecutor final : public Executor {
 public:
-    SortExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-        : SingleInputExecutor("SortExecutor", node, ectx, input) {}
+    SortExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("SortExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };

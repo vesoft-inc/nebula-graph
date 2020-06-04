@@ -12,10 +12,10 @@
 namespace nebula {
 namespace graph {
 
-class AggregateExecutor final : public SingleInputExecutor {
+class AggregateExecutor final : public Executor {
 public:
-    AggregateExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-        : SingleInputExecutor("AggregateExecutor", node, ectx, input) {}
+    AggregateExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("AggregateExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };

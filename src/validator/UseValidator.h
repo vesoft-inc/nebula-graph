@@ -7,14 +7,14 @@
 #ifndef VALIDATOR_USEVALIDATOR_H_
 #define VALIDATOR_USEVALIDATOR_H_
 
-#include "base/Base.h"
+#include "common/base/Base.h"
 #include "validator/Validator.h"
 
 namespace nebula {
 namespace graph {
 class UseValidator final : public Validator {
 public:
-    UseValidator(Sentence* sentence, ValidateContext* context)
+    UseValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:

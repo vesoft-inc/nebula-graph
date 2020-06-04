@@ -12,9 +12,10 @@
 namespace nebula {
 namespace graph {
 
-class MinusExecutor : public MultiInputsExecutor {
+class MinusExecutor : public Executor {
 public:
-    MinusExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *left, Executor *right);
+    MinusExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("MinusExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };

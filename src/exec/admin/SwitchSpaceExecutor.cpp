@@ -4,16 +4,17 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/SwitchSpaceExecutor.h"
+#include "exec/admin/SwitchSpaceExecutor.h"
+
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> SwitchSpaceExecutor::execute() {
     auto *spaceToNode = asNode<SwitchSpace>(node());
-    ectx()->rctx()->session()->setSpace(spaceToNode->getSpaceName(), spaceToNode->getSpaceId());
+    qctx_->rctx()->session()->setSpace(spaceToNode->getSpaceName(), spaceToNode->getSpaceId());
     LOG(INFO) << "Graph space switched to `" << spaceToNode->getSpaceName()
               << "', space id: " << spaceToNode->getSpaceId();
     return start();

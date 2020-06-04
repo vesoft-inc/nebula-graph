@@ -9,19 +9,19 @@
 
 #include <vector>
 
-#include "base/StatusOr.h"
-#include "datatypes/Value.h"
-#include "datatypes/Vertex.h"
+#include "common/base/StatusOr.h"
+#include "common/datatypes/Value.h"
+#include "common/datatypes/Vertex.h"
 #include "exec/Executor.h"
-#include "interface/gen-cpp2/storage_types.h"
+#include "common/interface/gen-cpp2/storage_types.h"
 
 namespace nebula {
 namespace graph {
 
-class GetNeighborsExecutor final : public SingleInputExecutor {
+class GetNeighborsExecutor final : public Executor {
 public:
-    GetNeighborsExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-        : SingleInputExecutor("GetNeighborsExecutor", node, ectx, input) {}
+    GetNeighborsExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("GetNeighborsExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 

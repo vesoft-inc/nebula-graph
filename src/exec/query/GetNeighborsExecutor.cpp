@@ -8,13 +8,12 @@
 
 #include <sstream>
 
-// common
-#include "clients/storage/GraphStorageClient.h"
-#include "datatypes/List.h"
-#include "datatypes/Vertex.h"
-// graph
+#include "common/clients/storage/GraphStorageClient.h"
+#include "common/datatypes/List.h"
+#include "common/datatypes/Vertex.h"
+
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -24,35 +23,28 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetNeighborsExecutor::execute() {
-    return SingleInputExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-
-        return getNeighbors().ensure([this]() {
-            // TODO(yee): some cleanup or stats actions
-            UNUSED(this);
-        });
-    }));
+    return getNeighbors().ensure([this]() {
+        // TODO(yee): some cleanup or stats actions
+        UNUSED(this);
+    });
 }
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     const GetNeighbors* gn = asNode<GetNeighbors>(node());
-    Expression* srcExpr = gn->src();
-    Value value = srcExpr->eval();
-    // TODO(yee): compute starting point
-    UNUSED(value);
-
     std::vector<std::string> colNames;
 
-    GraphStorageClient* storageClient = ectx()->getStorageClient();
+    GraphStorageClient* storageClient = qctx_->getStorageClient();
+    // TODO:
+    std::vector<Row> vertices;
     return storageClient
         ->getNeighbors(gn->space(),
                        std::move(colNames),
-                       gn->vertices(),
+                       vertices,
                        gn->edgeTypes(),
                        gn->edgeDirection(),
                        &gn->statProps(),
-                       &gn->vertexProps(),
-                       &gn->edgeProps(),
+                       nullptr,   // FIXME
+                       nullptr,
                        gn->dedup(),
                        gn->orderBy(),
                        gn->limit(),
@@ -90,7 +82,7 @@ Status GetNeighborsExecutor::handleResponse(const std::vector<GetNeighborsRespon
             continue;
         }
 
-        // Store response results to ExecutionContext
+        // Store response results to QueryContext
         return finish({*dataset});
     }
     return Status::Error("Invalid result of neighbors");
@@ -102,7 +94,7 @@ void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseComm
         std::stringstream ss;
         for (auto& part : failedParts) {
             ss << "error code: " << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(part.get_code())
-               << ", leader: " << part.get_leader()->ip << ":" << part.get_leader()->port
+               << ", leader: " << part.get_leader()->host << ":" << part.get_leader()->port
                << ", part id: " << part.get_part_id() << "; ";
         }
         LOG(ERROR) << ss.str();

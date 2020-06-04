@@ -6,11 +6,10 @@
 
 #include "exec/query/GetEdgesExecutor.h"
 
-// common
-#include "clients/storage/GraphStorageClient.h"
-// graph
+#include "common/clients/storage/GraphStorageClient.h"
+
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -20,19 +19,13 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetEdgesExecutor::execute() {
-    return SingleInputExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-        return getEdges().ensure([this]() {
-            // TODO(yee): some cleanup or stats actions
-            UNUSED(this);
-        });
-    }));
+    return getEdges();
 }
 
 folly::Future<Status> GetEdgesExecutor::getEdges() {
     dumpLog();
 
-    GraphStorageClient *client = ectx()->getStorageClient();
+    GraphStorageClient *client = qctx_->getStorageClient();
     if (client == nullptr) {
         return error(Status::Error("Invalid storage client for GetEdgesExecutor"));
     }

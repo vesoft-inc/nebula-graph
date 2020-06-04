@@ -8,12 +8,12 @@
 #define PLANNER_QUERY_H_
 
 
-#include "base/Base.h"
+#include "common/base/Base.h"
 #include "planner/PlanNode.h"
 #include "planner/ExecutionPlan.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
-#include "interface/gen-cpp2/storage_types.h"
+#include "common/interface/gen-cpp2/storage_types.h"
 
 /**
  * All query-related nodes would be put in this file,
@@ -47,6 +47,14 @@ public:
         input_ = input;
     }
 
+    void setInputVar(std::string inputVar) {
+        inputVar_ = std::move(inputVar);
+    }
+
+    const std::string& inputVar() const {
+        return inputVar_;
+    }
+
     std::string explain() const override {
         return "";
     }
@@ -58,6 +66,8 @@ protected:
     }
 
     PlanNode* input_{nullptr};
+    // Datasource for this node.
+    std::string inputVar_;
 };
 
 class BiInputNode : public PlanNode {
@@ -70,12 +80,28 @@ public:
         right_ = right;
     }
 
+    void setLeftVar(std::string leftVar) {
+        leftVar_ = std::move(leftVar);
+    }
+
+    void setRightVar(std::string rightVar) {
+        rightVar_ = std::move(rightVar);
+    }
+
     PlanNode* left() const {
         return left_;
     }
 
     PlanNode* right() const {
         return right_;
+    }
+
+    const std::string& leftInputVar() const {
+        return leftVar_;
+    }
+
+    const std::string& rightInputVar() const {
+        return rightVar_;
     }
 
     std::string explain() const override {
@@ -91,6 +117,9 @@ protected:
 
     PlanNode* left_{nullptr};
     PlanNode* right_{nullptr};
+    // Datasource for this node.
+    std::string leftVar_;
+    std::string rightVar_;
 };
 
 /**
@@ -175,12 +204,11 @@ public:
     static GetNeighbors* make(ExecutionPlan* plan,
                               PlanNode* input,
                               GraphSpaceID space,
-                              std::vector<Row> vertices,
                               Expression* src,
                               std::vector<EdgeType> edgeTypes,
                               storage::cpp2::EdgeDirection edgeDirection,
-                              std::vector<std::string> vertexProps,
-                              std::vector<std::string> edgeProps,
+                              std::vector<storage::cpp2::PropExp> vertexProps,
+                              std::vector<storage::cpp2::PropExp> edgeProps,
                               std::vector<storage::cpp2::StatProp> statProps,
                               bool dedup = false,
                               std::vector<storage::cpp2::OrderBy> orderBy = {},
@@ -190,7 +218,6 @@ public:
                 plan,
                 input,
                 space,
-                std::move(vertices),
                 src,
                 std::move(edgeTypes),
                 edgeDirection,
@@ -209,10 +236,6 @@ public:
         return src_;
     }
 
-    const std::vector<Row>& vertices() const {
-        return vertices_;
-    }
-
     storage::cpp2::EdgeDirection edgeDirection() const {
         return edgeDirection_;
     }
@@ -221,11 +244,11 @@ public:
         return edgeTypes_;
     }
 
-    const std::vector<std::string>& vertexProps() const {
+    const std::vector<storage::cpp2::PropExp>& vertexProps() const {
         return vertexProps_;
     }
 
-    const std::vector<std::string>& edgeProps() const {
+    const std::vector<storage::cpp2::PropExp>& edgeProps() const {
         return edgeProps_;
     }
 
@@ -237,12 +260,11 @@ private:
     GetNeighbors(ExecutionPlan* plan,
                  PlanNode* input,
                  GraphSpaceID space,
-                 std::vector<Row> vertices,
                  Expression* src,
                  std::vector<EdgeType> edgeTypes,
                  storage::cpp2::EdgeDirection edgeDirection,
-                 std::vector<std::string> vertexProps,
-                 std::vector<std::string> edgeProps,
+                 std::vector<storage::cpp2::PropExp> vertexProps,
+                 std::vector<storage::cpp2::PropExp> edgeProps,
                  std::vector<storage::cpp2::StatProp> statProps,
                  bool dedup,
                  std::vector<storage::cpp2::OrderBy> orderBy,
@@ -256,7 +278,6 @@ private:
                   limit,
                   std::move(filter),
                   std::move(orderBy)) {
-        vertices_ = std::move(vertices);
         src_ = src;
         edgeTypes_ = std::move(edgeTypes);
         edgeDirection_ = edgeDirection;
@@ -266,14 +287,11 @@ private:
     }
 
 private:
-    // vertices are parsing from query.
-    std::vector<Row>                             vertices_;
-    // vertices may be parsing from runtime.
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
     storage::cpp2::EdgeDirection                 edgeDirection_;
-    std::vector<std::string>                     vertexProps_;
-    std::vector<std::string>                     edgeProps_;
+    std::vector<storage::cpp2::PropExp>          vertexProps_;
+    std::vector<storage::cpp2::PropExp>          edgeProps_;
     std::vector<storage::cpp2::StatProp>         statProps_;
 };
 

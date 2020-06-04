@@ -12,12 +12,10 @@
 namespace nebula {
 namespace graph {
 
-class IntersectExecutor : public MultiInputsExecutor {
+class IntersectExecutor : public Executor {
 public:
-    IntersectExecutor(const PlanNode *node,
-                      ExecutionContext *ectx,
-                      Executor *left,
-                      Executor *right);
+    IntersectExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("IntersectExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };

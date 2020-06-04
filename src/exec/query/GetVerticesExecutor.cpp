@@ -6,11 +6,10 @@
 
 #include "exec/query/GetVerticesExecutor.h"
 
-// common
-#include "clients/storage/GraphStorageClient.h"
-// graph
+#include "common/clients/storage/GraphStorageClient.h"
+
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -20,13 +19,10 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetVerticesExecutor::execute() {
-    return SingleInputExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-        return getVertices().ensure([this]() {
-            // TODO(yee): some cleanup or stats actions
-            UNUSED(this);
-        });
-    }));
+    return getVertices().ensure([this]() {
+        // TODO(yee): some cleanup or stats actions
+        UNUSED(this);
+    });
 }
 
 folly::Future<Status> GetVerticesExecutor::getVertices() {
@@ -39,7 +35,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     // std::vector<VertexID> vertices;
     // // TODO(yee): compute vertices by evaluate expression
 
-    // GraphStorageClient *storageClient_ = ectx()->getStorageClient();
+    // GraphStorageClient *storageClient_ = ectx_->getStorageClient();
 
     // return storageClient_->getVertexProps(gv->space(), vertices, gv->props(), gv->filter())
     //     .via(runner())

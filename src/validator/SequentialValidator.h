@@ -7,7 +7,7 @@
 #ifndef VALIDATOR_SEQUENTIALVALIDATOR_H_
 #define VALIDATOR_SEQUENTIALVALIDATOR_H_
 
-#include "base/Base.h"
+#include "common/base/Base.h"
 #include "validator/Validator.h"
 #include "parser/SequentialSentences.h"
 
@@ -18,7 +18,7 @@ namespace nebula {
 namespace graph {
 class SequentialValidator final : public Validator {
 public:
-    SequentialValidator(Sentence* sentence, ValidateContext* context)
+    SequentialValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:

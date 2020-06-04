@@ -4,8 +4,8 @@
 * attached with Common Clause Condition 1.0, found in the LICENSES directory.
 */
 
-#include "base/Base.h"
-#include "charset/Charset.h"
+#include "common/base/Base.h"
+#include "common/charset/Charset.h"
 
 #include "util/SchemaUtil.h"
 #include "parser/MaintainSentences.h"
@@ -36,9 +36,9 @@ Status CreateTagValidator::validateImpl() {
 }
 
 Status CreateTagValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = CreateTag::make(plan,
-                                   validateContext_->whichSpace().id,
+                                   vctx_->whichSpace().id,
                                    tagName_,
                                    schema_,
                                    ifNotExist_);
@@ -67,9 +67,9 @@ Status CreateEdgeValidator::validateImpl() {
 }
 
 Status CreateEdgeValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = CreateEdge::make(plan,
-                                    validateContext_->whichSpace().id,
+                                    vctx_->whichSpace().id,
                                     edgeName_,
                                     schema_,
                                     ifNotExist_);
@@ -84,9 +84,9 @@ Status DescTagValidator::validateImpl() {
 }
 
 Status DescTagValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = DescTag::make(plan,
-                                 validateContext_->whichSpace().id,
+                                 vctx_->whichSpace().id,
                                  tagName_);
     root_ = doNode;
     tail_ = root_;
@@ -99,9 +99,9 @@ Status DescEdgeValidator::validateImpl() {
 }
 
 Status DescEdgeValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = DescEdge::make(plan,
-                                  validateContext_->whichSpace().id,
+                                  vctx_->whichSpace().id,
                                   edgeName_);
     root_ = doNode;
     tail_ = root_;
