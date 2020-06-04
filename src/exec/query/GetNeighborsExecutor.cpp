@@ -31,14 +31,11 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     const GetNeighbors* gn = asNode<GetNeighbors>(node());
-<<<<<<< HEAD
-    std::vector<std::string> colNames;
-=======
     Expression* srcExpr = gn->src();
-    Value value = srcExpr->eval();
+    ExpressionContextImpl ctx(qctx_->ectx(), nullptr);
+    auto& value = srcExpr->eval(ctx);
     DCHECK_EQ(value.type(), Value::Type::DATASET);
     auto& input = value.getDataSet();
->>>>>>> Implement get neighbors.
 
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     return storageClient

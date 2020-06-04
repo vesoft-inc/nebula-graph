@@ -19,7 +19,7 @@ folly::Future<Status> ProjectExecutor::execute() {
     auto columns = project->columns()->columns();
     auto *iter = ectx_->getResult(project->inputVar()).iter();
     DCHECK(!!iter);
-    ExpressionContextImpl expCtx(ectx_, iter);
+    ExpressionContextImpl ctx(ectx_, iter);
     // TODO: build colNames in validator.
     std::vector<std::string> colNames;
     for (auto& col : columns) {
@@ -28,7 +28,6 @@ folly::Future<Status> ProjectExecutor::execute() {
         } else {
             colNames.emplace_back(*col->alias());
         }
-        col->expr()->setEctx(&expCtx);
     }
 
     DataSet ds;
@@ -36,7 +35,7 @@ folly::Future<Status> ProjectExecutor::execute() {
     for (; iter->valid(); iter->next()) {
         Row row;
         for (auto& col : columns) {
-            auto val = Expression::eval(col->expr());
+            Value val = col->expr()->eval(ctx);
             row.columns.emplace_back(std::move(val));
         }
         ds.rows.emplace_back(std::move(row));
