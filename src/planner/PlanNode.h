@@ -92,7 +92,9 @@ public:
     }
 
     PlanNode* addInput(const PlanNode* input) {
-        inputs_.emplace_back(DCHECK_NOTNULL(input));
+        // FIXME:
+        // inputs_.emplace_back(DCHECK_NOTNULL(input));
+        inputs_.emplace_back(input);
         return this;
     }
 

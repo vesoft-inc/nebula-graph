@@ -19,7 +19,6 @@
 #include "validator/AdminValidator.h"
 #include "validator/MaintainValidator.h"
 #include "validator/MutateValidator.h"
-#include "validator/ExplainValidator.h"
 
 namespace nebula {
 namespace graph {
