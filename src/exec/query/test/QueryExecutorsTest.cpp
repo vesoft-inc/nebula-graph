@@ -45,6 +45,7 @@ TEST_F(QueryExecutorsTest, Project) {
     auto* plan = qctx_->plan();
     auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
     project->setInputVar(vids);
+    project->setColNames(std::vector<std::string>{"_vid"});
     auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
     auto future = proExe->execute();
     auto status = std::move(future).get();
