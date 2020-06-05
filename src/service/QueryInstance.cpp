@@ -45,8 +45,7 @@ void QueryInstance::execute() {
         return;
     }
 
-    Scheduler(qctx())
-        .schedule()
+    scheduler_->schedule()
         .then([this](Status s) {
             if (s.ok()) {
                 this->onFinish();

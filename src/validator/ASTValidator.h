@@ -14,7 +14,6 @@
 namespace nebula {
 
 class Sentence;
-class CharsetInfo;
 
 namespace graph {
 

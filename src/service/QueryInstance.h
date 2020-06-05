@@ -13,6 +13,7 @@
 #include "parser/GQLParser.h"
 #include "validator/ASTValidator.h"
 #include "context/QueryContext.h"
+#include "schedule/Scheduler.h"
 
 /**
  * QueryInstance coordinates the execution process,
@@ -27,6 +28,7 @@ class QueryInstance final : public cpp::NonCopyable, public cpp::NonMovable {
 public:
     explicit QueryInstance(std::unique_ptr<QueryContext> qctx) {
         qctx_ = std::move(qctx);
+        scheduler_ = std::make_unique<Scheduler>(qctx_.get());
     }
 
     ~QueryInstance() = default;
@@ -54,6 +56,7 @@ private:
     std::unique_ptr<SequentialSentences>        sentences_;
     std::unique_ptr<QueryContext>               qctx_;
     std::unique_ptr<ASTValidator>               validator_;
+    std::unique_ptr<Scheduler>                  scheduler_;
 };
 
 }   // namespace graph
