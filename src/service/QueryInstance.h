@@ -13,7 +13,6 @@
 #include "parser/GQLParser.h"
 #include "validator/ASTValidator.h"
 #include "context/QueryContext.h"
-#include "schedule/Scheduler.h"
 
 /**
  * QueryInstance coordinates the execution process,
@@ -55,7 +54,6 @@ private:
     std::unique_ptr<SequentialSentences>        sentences_;
     std::unique_ptr<QueryContext>               qctx_;
     std::unique_ptr<ASTValidator>               validator_;
-    std::unique_ptr<Scheduler>                  scheduler_;
 };
 
 }   // namespace graph
