@@ -143,7 +143,9 @@ Status FetchEdgesValidator::prepareProperties() {
                 p.set_prop(col->expr()->encode());
                 props_.emplace_back(std::move(p));
             } else {
-                return Status::NotSupported("Unsupported expression");
+                LOG(ERROR) << "Unsupported expression " << col->expr()->kind();
+                return Status::NotSupported("Unsupported expression %d",
+                                            static_cast<int>(col->expr()->kind()));
             }
         }
     }

@@ -62,7 +62,7 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
         case Sentence::Kind::kFetchVertices:
             return std::make_unique<FetchVerticesValidator>(sentence, context);
         case Sentence::Kind::kFetchEdges:
-            return std::make_unique<FetchVerticesValidator>(sentence, context);
+            return std::make_unique<FetchEdgesValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }

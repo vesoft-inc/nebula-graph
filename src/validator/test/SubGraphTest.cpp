@@ -8,6 +8,9 @@
 #include "validator/test/ValidatorTest.h"
 #include "planner/Query.h"
 
+namespace nebula {
+namespace graph {
+
 TEST_F(ValidatorTest, Subgraph) {
     {
         std::string query = "GET SUBGRAPH 3 STEPS FROM 1";
@@ -23,3 +26,6 @@ TEST_F(ValidatorTest, Subgraph) {
         ASSERT_NE(plan, nullptr);
     }
 }
+
+}  // namespace graph
+}  // namespace nebula

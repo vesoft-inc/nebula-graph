@@ -5,6 +5,9 @@
  */
 
 #include "mock/StorageCache.h"
+#include <gtest/gtest-printers.h>
+#include "common/expression/Expression.h"
+#include "common/expression/SymbolPropertyExpression.h"
 
 DECLARE_int32(heartbeat_interval_secs);
 
@@ -108,37 +111,109 @@ Status StorageCache::addEdges(const storage::cpp2::AddEdgesRequest& req) {
     return Status::OK();
 }
 
-StatusOr<std::vector<DataSet>>
-StorageCache::getProps(const storage::cpp2::GetPropRequest&) {
-    return {};
-#if 0
-    folly::RWSpinLock::ReadHolder holder(lock_);
-    std::vector<storage::cpp2::VertexPropData> data;
+StatusOr<DataSet> StorageCache::getProps(const storage::cpp2::GetPropRequest& req) {
     auto spaceId = req.get_space_id();
-    auto findIt = cache_.find(spaceId);
-    if (findIt == cache_.end()) {
-        return Status::Error("SpaceID `%d' not found", spaceId);
-    }
-    auto vertices = findIt->second.vertices;
-    auto parts = req.get_parts();
-    std::vector<storage::cpp2::VertexProp> props;
-    if (req.__isset.vertex_props) {
-        props = req.get_vertex_props();
-    }
-
-    for (auto &part : parts) {
-        for (auto &vId : part.second) {
-            auto vFindIt = vertices.find(vId);
-            if (vFindIt == vertices.end()) {
-                return Status::Error("VertexId `%s' not found", vId.c_str());
+    const auto &props = req.get_props();
+    std::vector<TagID>       tagsId;
+    std::vector<std::string> symsName;
+    std::vector<std::string> propsName;
+    symsName.reserve(props.size());
+    propsName.reserve(props.size());
+    for (const auto &prop : props) {
+        auto propExpr =  Expression::decode(prop.get_prop());
+        CHECK(
+            propExpr->kind() == Expression::Kind::kEdgeProperty ||
+            propExpr->kind() == Expression::Kind::kDstProperty ||
+            propExpr->kind() == Expression::Kind::kSrcProperty ||
+            propExpr->kind() == Expression::Kind::kEdgeSrc ||
+            propExpr->kind() == Expression::Kind::kEdgeType ||
+            propExpr->kind() == Expression::Kind::kEdgeRank ||
+            propExpr->kind() == Expression::Kind::kEdgeDst);
+        auto *symbolExpr = static_cast<SymbolPropertyExpression*>(propExpr.get());
+        symsName.emplace_back(*symbolExpr->sym());
+        propsName.emplace_back(*symbolExpr->prop());
+        if (req.get_column_names().front() == _VID) {
+            auto tagIdResult = metaClient_->getTagIDByNameFromCache(spaceId, *symbolExpr->sym());
+            if (!tagIdResult.ok()) {
+                LOG(ERROR) << tagIdResult.status().toString();
+                return std::move(tagIdResult).status();
             }
-            storage::cpp2::VertexPropData vertex;
-            vertex.set_id(vId);
-            vertex.set_props(vFindIt.second);
-            vertex.set_names();
+            tagsId.emplace_back(tagIdResult.value());
+        } else {
+            auto edgeResult = metaClient_->getEdgeTypeByNameFromCache(spaceId, *symbolExpr->sym());
+            if (!edgeResult.ok()) {
+                LOG(ERROR) << edgeResult.status().toString();
+                return std::move(edgeResult).status();
+            }
         }
     }
-#endif
+    DataSet v;
+    std::unordered_map<std::string, std::vector<std::string>> symProps;
+    for (std::size_t i = 0; i < symsName.size(); ++i) {
+        v.colNames.emplace_back(symsName[i] + "." + propsName[i]);
+        auto symProp = symProps.find(symsName[i]);
+        if (symProp == symProps.end()) {
+            symProps.emplace(symsName[i], std::vector<std::string>{propsName[i]});
+        } else {
+            symProp->second.emplace_back(propsName[i]);
+        }
+    }
+
+    folly::RWSpinLock::ReadHolder rh(lock_);
+    const auto spaceData = cache_.find(spaceId);
+    if (spaceData == cache_.end()) {
+        return Status::Error("Not space %d", spaceId);
+    }
+    if (req.get_column_names().front() == _VID) {
+        // get vertices
+        const auto &vertices = spaceData->second.vertices;
+        for (const auto &part : req.get_parts()) {
+            for (const auto &row : part.second) {
+                const auto &vid = row.columns.front();
+                const auto &vertex = vertices.find(vid.getStr());
+                if (vertex != vertices.end()) {
+                    Row record;
+                    for (std::size_t i = 0; i < tagsId.size(); ++i) {
+                        const auto tagProps = vertex->second.find(tagsId[i]);
+                        if (tagProps != vertex->second.end()) {
+                            const auto propIndex = tagProps->second.propIndexes.find(propsName[i]);
+                            if (propIndex != tagProps->second.propIndexes.end()) {
+                                record.emplace_back(tagProps->second.propValues[propIndex->second]);
+                            } else {
+                                record.emplace_back(Value());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        // get edges
+        const auto &edges = spaceData->second.edges;
+        for (const auto &part : req.get_parts()) {
+            for (const auto &row : part.second) {
+                const auto &src = row.columns[0];
+                const auto type = row.columns[1];
+                const auto ranking = row.columns[2];
+                const auto &dst = row.columns[3];
+                const auto key =
+                    getEdgeKey(src.getStr(), type.getInt(), ranking.getInt(), dst.getStr());
+                const auto edge = edges.find(key);
+                if (edge != edges.end()) {
+                    Row record;
+                    for (std::size_t i = 0; i < propsName.size(); ++i) {
+                        const auto propIndex = edge->second.propIndexes.find(propsName[i]);
+                        if (propIndex != edge->second.propIndexes.end()) {
+                            record.emplace_back(edge->second.propValues[propIndex->second]);
+                        } else {
+                            record.emplace_back(Value());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return std::move(v);
 }
 }  // namespace graph
 }  // namespace nebula

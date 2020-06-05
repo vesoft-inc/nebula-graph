@@ -48,7 +48,7 @@ void QueryInstance::execute() {
 
     std::unordered_map<int64_t, Executor*> cache;
     auto executor = Executor::makeExecutor(
-            qctx_->plan()->root(), qctx_.get(), &cache);
+            DCHECK_NOTNULL(qctx_->plan()->root()), qctx_.get(), &cache);
     scheduler_ = std::make_unique<Scheduler>(qctx_->ectx());
     scheduler_->analyze(executor);
     scheduler_->schedule(executor)

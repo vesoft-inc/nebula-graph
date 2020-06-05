@@ -92,16 +92,20 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kGetEdges: {
             auto ge = asNode<GetEdges>(node);
-            auto input = makeExecutor(ge->input(), qctx, cache);
             exec = new GetEdgesExecutor(ge, qctx);
-            exec->addDependent(input);
+            if (ge->input() != nullptr) {
+                auto input = makeExecutor(ge->input(), qctx, cache);
+                exec->addDependent(input);
+            }
             break;
         }
         case PlanNode::Kind::kGetVertices: {
             auto gv = asNode<GetVertices>(node);
-            auto input = makeExecutor(gv->input(), qctx, cache);
             exec = new GetVerticesExecutor(gv, qctx);
-            exec->addDependent(input);
+            if (gv->input() != nullptr) {
+                auto input = makeExecutor(gv->input(), qctx, cache);
+                exec->addDependent(input);
+            }
             break;
         }
         case PlanNode::Kind::kGetNeighbors: {

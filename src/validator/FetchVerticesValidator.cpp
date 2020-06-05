@@ -141,6 +141,7 @@ Status FetchVerticesValidator::prepareProperties() {
                 p.set_prop(col->expr()->encode());
                 props_.emplace_back(std::move(p));
             } else {
+                LOG(ERROR) << "Unsupported expression " << col->expr()->kind();
                 return Status::NotSupported("Unsupported expression");
             }
         }

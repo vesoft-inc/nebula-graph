@@ -26,13 +26,13 @@ public:
 
     Status addEdges(const storage::cpp2::AddEdgesRequest& req);
 
-    StatusOr<std::vector<DataSet>> getProps(const storage::cpp2::GetPropRequest&);
+    StatusOr<DataSet> getProps(const storage::cpp2::GetPropRequest& req);
 
 private:
-    std::string getEdgeKey(VertexID srcId,
-                           EdgeType type,
-                           EdgeRanking rank,
-                           VertexID dstId) {
+    std::string getEdgeKey(const VertexID &srcId,
+                           const EdgeType type,
+                           const EdgeRanking rank,
+                           const VertexID &dstId) {
         std::string key;
         key.reserve(srcId.size() + sizeof(EdgeType) + sizeof(EdgeRanking) + dstId.size());
         key.append(srcId.data(), srcId.size())
