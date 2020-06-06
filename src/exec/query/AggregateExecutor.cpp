@@ -37,13 +37,15 @@ folly::Future<Status> AggregateExecutor::execute() {
             for (auto& item : groupItems) {
                 auto fun = funVec[item.second]();
                 funs.emplace_back(fun);
-                fun->apply(item.first->eval(ctx));
+                auto& v = item.first->eval(ctx);
+                fun->apply(v);
             }
-            result.emplace(list, funs);
+            result.emplace(std::make_pair(std::move(list), std::move(funs)));
         } else {
             DCHECK_EQ(it->second.size(), groupItems.size());
             for (size_t i = 0; i < groupItems.size(); ++i) {
-                it->second[i]->apply(groupItems[i].first->eval(ctx));
+                auto& v = groupItems[i].first->eval(ctx);
+                it->second[i]->apply(v);
             }
         }
     }
