@@ -31,14 +31,14 @@ public:
     virtual ~AggFun() {}
 
 public:
-    virtual void apply(Value &val) = 0;
+    virtual void apply(const Value &val) = 0;
     virtual Value getResult() = 0;
 };
 
 
 class Group final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         col_ = val;
     }
 
@@ -53,7 +53,7 @@ private:
 
 class Count final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         UNUSED(val);
         count_ = count_ + 1;
     }
@@ -69,7 +69,7 @@ private:
 
 class Sum final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         if (sum_.type() == Value::Type::__EMPTY__) {
             sum_ = val;
         } else {
@@ -89,7 +89,7 @@ private:
 
 class Avg final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         if (sum_.type() == Value::Type::__EMPTY__) {
             sum_ = val;
         } else {
@@ -110,7 +110,7 @@ private:
 
 class CountDistinct final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         valueSet_.emplace(val);
     }
 
@@ -126,7 +126,7 @@ private:
 
 class Max final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         if (max_.type() == Value::Type::__EMPTY__ || val > max_) {
             max_ = val;
         }
@@ -143,7 +143,7 @@ private:
 
 class Min final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         if (min_.type() == Value::Type::__EMPTY__ || val < min_) {
             min_ = val;
         }
@@ -160,7 +160,7 @@ private:
 
 class Stdev final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         UNUSED(val);
         // TODO
     }
@@ -174,7 +174,7 @@ public:
 
 class BitAnd final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         UNUSED(val);
         // TODO
     }
@@ -188,7 +188,7 @@ public:
 
 class BitOr final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         UNUSED(val);
         // TODO
     }
@@ -202,7 +202,7 @@ public:
 
 class BitXor final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         UNUSED(val);
         // TODO
     }
@@ -215,7 +215,7 @@ public:
 
 class Collect final : public AggFun {
 public:
-    void apply(Value &val) override {
+    void apply(const Value &val) override {
         list_.values.emplace_back(val);
     }
 

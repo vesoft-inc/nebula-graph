@@ -6,14 +6,63 @@
 
 #include "exec/query/AggregateExecutor.h"
 
+#include "common/datatypes/List.h"
+#include "context/ExpressionContextImpl.h"
+#include "planner/AggregateFunction.h"
 #include "planner/PlanNode.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> AggregateExecutor::execute() {
     dumpLog();
-    // TODO(yee)
+    auto* agg = asNode<Aggregate>(node());
+    auto groupKeys = agg->groupKeys();
+    auto groupItems = agg->groupItems();
+    auto *iter = ectx_->getResult(agg->inputVar()).iter();
+    DCHECK(!!iter);
+    ExpressionContextImpl ctx(ectx_, iter);
+
+    std::unordered_map<List, std::vector<std::shared_ptr<AggFun>>> result;
+    for (; iter->valid(); iter->next()) {
+        List list;
+        for (auto& key : groupKeys) {
+            list.values.emplace_back(key->eval(ctx));
+        }
+
+        auto it = result.find(list);
+        if (it == result.end()) {
+            std::vector<std::shared_ptr<AggFun>> funs;
+            for (auto& item : groupItems) {
+                auto fun = funVec[item.second]();
+                funs.emplace_back(fun);
+                fun->apply(item.first->eval(ctx));
+            }
+            result.emplace(list, funs);
+        } else {
+            DCHECK_EQ(it->second.size(), groupItems.size());
+            for (size_t i = 0; i < groupItems.size(); ++i) {
+                it->second[i]->apply(groupItems[i].first->eval(ctx));
+            }
+        }
+    }
+
+    DataSet ds;
+    ds.colNames = std::move(agg->colNames());
+    ds.rows.reserve(result.size());
+    for (auto& kv : result) {
+        Row row;
+        for (auto& f : kv.second) {
+            row.columns.emplace_back(f->getResult());
+        }
+        ds.rows.emplace_back(std::move(row));
+    }
+    auto status = finish(ExecResult::buildSequential(
+                Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+    if (!status.ok()) {
+        return error(std::move(status));
+    }
     return start();
 }
 

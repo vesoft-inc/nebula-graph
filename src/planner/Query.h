@@ -654,15 +654,15 @@ private:
  */
 class Aggregate : public SingleInputNode {
 public:
-    using GroupItem = std::pair<Expression*, std::shared_ptr<AggFun>>;
+    using GroupItem = std::pair<Expression*, std::string>;
     static Aggregate* make(ExecutionPlan* plan,
                            PlanNode* input,
-                           std::vector<std::string>&& groupKeys,
+                           std::vector<Expression*>&& groupKeys,
                            std::vector<GroupItem>&& groupItems) {
         return new Aggregate(plan, input, std::move(groupKeys), std::move(groupItems));
     }
 
-    std::vector<std::string> groupKeys() const {
+    std::vector<Expression*> groupKeys() const {
         return groupKeys_;
     }
 
@@ -675,7 +675,7 @@ public:
 private:
     Aggregate(ExecutionPlan* plan,
               PlanNode* input,
-              std::vector<std::string>&& groupKeys,
+              std::vector<Expression*>&& groupKeys,
               std::vector<GroupItem>&& groupItems)
         : SingleInputNode(plan, Kind::kAggregate, input) {
         groupKeys_ = std::move(groupKeys);
@@ -683,7 +683,7 @@ private:
     }
 
 private:
-    std::vector<std::string>    groupKeys_;
+    std::vector<Expression*>    groupKeys_;
     std::vector<GroupItem>      groupItems_;
 };
 
