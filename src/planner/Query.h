@@ -7,13 +7,14 @@
 #ifndef PLANNER_QUERY_H_
 #define PLANNER_QUERY_H_
 
-
 #include "common/base/Base.h"
+#include "common/interface/gen-cpp2/storage_types.h"
+
 #include "planner/PlanNode.h"
 #include "planner/ExecutionPlan.h"
+#include "planner/AggregateFunction.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
-#include "common/interface/gen-cpp2/storage_types.h"
 
 /**
  * All query-related nodes would be put in this file,
@@ -653,26 +654,37 @@ private:
  */
 class Aggregate : public SingleInputNode {
 public:
+    using GroupItem = std::pair<Expression*, std::shared_ptr<AggFun>>;
     static Aggregate* make(ExecutionPlan* plan,
                            PlanNode* input,
-                           YieldColumns* groupCols) {
-        return new Aggregate(plan, input, groupCols);
+                           std::vector<std::string>&& groupKeys,
+                           std::vector<GroupItem>&& groupItems) {
+        return new Aggregate(plan, input, std::move(groupKeys), std::move(groupItems));
     }
 
-    const YieldColumns* groups() const {
-        return groupCols_;
+    std::vector<std::string> groupKeys() const {
+        return groupKeys_;
+    }
+
+    std::vector<GroupItem> groupItems() const {
+        return groupItems_;
     }
 
     std::string explain() const override;
 
 private:
-    Aggregate(ExecutionPlan* plan, PlanNode* input, YieldColumns* groupCols)
+    Aggregate(ExecutionPlan* plan,
+              PlanNode* input,
+              std::vector<std::string>&& groupKeys,
+              std::vector<GroupItem>&& groupItems)
         : SingleInputNode(plan, Kind::kAggregate, input) {
-        groupCols_ = groupCols;
+        groupKeys_ = std::move(groupKeys);
+        groupItems_ = std::move(groupItems);
     }
 
 private:
-    YieldColumns*   groupCols_;
+    std::vector<std::string>    groupKeys_;
+    std::vector<GroupItem>      groupItems_;
 };
 
 class BinarySelect : public SingleInputNode {
