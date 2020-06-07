@@ -83,6 +83,39 @@ TEST_F(AggregateTest, Group) {
         EXPECT_EQ(sortedDs, expected);
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "col3"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(i / 2);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), ""));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "col3"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
 }
 
 TEST_F(AggregateTest, Collect) {
@@ -134,6 +167,41 @@ TEST_F(AggregateTest, Collect) {
         auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
         agg->setInputVar(*input_);
         agg->setColNames(std::vector<std::string>{"list"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        // TODO: Implement the < for list.
+        // EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"list"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            List list;
+            list.values = {i / 2, i / 2};
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(std::move(list));
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupItems.emplace_back(std::make_pair(expr1.get(), kCollect));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "col3"});
 
         auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
         auto future = aggExe->execute();
@@ -202,6 +270,39 @@ TEST_F(AggregateTest, Count) {
         EXPECT_EQ(sortedDs, expected);
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
+    {
+        DataSet expected;
+        expected.colNames = {"col3", "count"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i / 2);
+            row.columns.emplace_back(2);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), ""));
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), kCount));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col3", "count"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
 }
 
 TEST_F(AggregateTest, Sum) {
@@ -247,6 +348,39 @@ TEST_F(AggregateTest, Sum) {
         auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
         agg->setInputVar(*input_);
         agg->setColNames(std::vector<std::string>{"sum"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "sum"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back((i / 2) * 2);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kSum));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "sum"});
 
         auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
         auto future = aggExe->execute();
@@ -314,6 +448,39 @@ TEST_F(AggregateTest, Avg) {
         EXPECT_EQ(sortedDs, expected);
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "avg"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(i / 2);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kAvg));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "avg"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
 }
 
 TEST_F(AggregateTest, CountDistinct) {
@@ -370,6 +537,39 @@ TEST_F(AggregateTest, CountDistinct) {
         EXPECT_EQ(sortedDs, expected);
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "count"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(1);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kCountDist));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "count"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
 }
 
 TEST_F(AggregateTest, Max) {
@@ -397,6 +597,39 @@ TEST_F(AggregateTest, Max) {
         EXPECT_EQ(result.value().getDataSet(), expected);
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "max"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(i / 2);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kMax));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "max"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
 }
 
 TEST_F(AggregateTest, Min) {
@@ -422,6 +655,39 @@ TEST_F(AggregateTest, Min) {
         EXPECT_TRUE(status.ok());
         auto& result = qctx_->ectx()->getResult(agg->varName());
         EXPECT_EQ(result.value().getDataSet(), expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "min"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(i / 2);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kMin));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "min"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
 }

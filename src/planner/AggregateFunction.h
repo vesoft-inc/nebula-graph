@@ -176,7 +176,7 @@ class BitAnd final : public AggFun {
 public:
     void apply(const Value &val) override {
         UNUSED(val);
-        // TODO
+        // TODO : implement the bit and for value;
     }
 
     Value getResult() override {
@@ -190,7 +190,7 @@ class BitOr final : public AggFun {
 public:
     void apply(const Value &val) override {
         UNUSED(val);
-        // TODO
+        // TODO : implement the bit or for value;
     }
 
     Value getResult() override {
@@ -204,7 +204,7 @@ class BitXor final : public AggFun {
 public:
     void apply(const Value &val) override {
         UNUSED(val);
-        // TODO
+        // TODO : implement the bit xor for value;
     }
 
     Value getResult() override {
