@@ -5,7 +5,9 @@
 
 nebula_add_test(
     NAME query_executors_test
-    SOURCES QueryExecutorsTest.cpp
+    SOURCES
+        ProjectTest.cpp
+        AggregateTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:exec_obj>
         $<TARGET_OBJECTS:context_obj>

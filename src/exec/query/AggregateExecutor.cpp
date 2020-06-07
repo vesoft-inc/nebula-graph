@@ -20,9 +20,9 @@ folly::Future<Status> AggregateExecutor::execute() {
     auto* agg = asNode<Aggregate>(node());
     auto groupKeys = agg->groupKeys();
     auto groupItems = agg->groupItems();
-    auto *iter = ectx_->getResult(agg->inputVar()).iter();
+    auto iter = ectx_->getResult(agg->inputVar()).iter();
     DCHECK(!!iter);
-    ExpressionContextImpl ctx(ectx_, iter);
+    ExpressionContextImpl ctx(ectx_, iter.get());
 
     std::unordered_map<List, std::vector<std::shared_ptr<AggFun>>> result;
     for (; iter->valid(); iter->next()) {

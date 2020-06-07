@@ -17,8 +17,6 @@ public:
     ProjectExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("ProjectExecutor", node, qctx) {}
 
-private:
-    friend class QueryExecutorsTest_Project_Test;
     folly::Future<Status> execute() override;
 };
 

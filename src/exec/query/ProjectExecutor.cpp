@@ -17,9 +17,9 @@ folly::Future<Status> ProjectExecutor::execute() {
     dumpLog();
     auto *project = asNode<Project>(node());
     auto columns = project->columns()->columns();
-    auto *iter = ectx_->getResult(project->inputVar()).iter();
+    auto iter = ectx_->getResult(project->inputVar()).iter();
     DCHECK(!!iter);
-    ExpressionContextImpl ctx(ectx_, iter);
+    ExpressionContextImpl ctx(ectx_, iter.get());
 
     DataSet ds;
     ds.colNames = std::move(project->colNames());
