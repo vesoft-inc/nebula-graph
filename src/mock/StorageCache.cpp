@@ -24,8 +24,7 @@ StorageCache::StorageCache(uint16_t metaPort) {
             std::move(hostStatus).value(), options);
     metaClient_->waitForMetadReady();
 
-    mgr_ = std::make_unique<meta::ServerBasedSchemaManager>();
-    mgr_->init(metaClient_.get());
+    mgr_ = meta::SchemaManager::create(metaClient_.get());
 }
 
 Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
@@ -184,11 +183,37 @@ StatusOr<DataSet> StorageCache::getProps(const storage::cpp2::GetPropRequest& re
                             }
                         }
                     }
+                    v.emplace_back(std::move(record));
                 }
             }
         }
     } else {
         // get edges
+        if (propsName.empty()) {
+            LOG(FATAL) << "Not supported";
+        }
+
+        if (propsName.front() == "*") {
+            v.clear();
+            v.colNames.emplace_back(symsName.front() + "." + _SRC);
+            v.colNames.emplace_back(symsName.front() + "." + _DST);
+            v.colNames.emplace_back(symsName.front() + "." + _RANK);
+            const auto edgeTypeResult = mgr_->toEdgeType(spaceId, symsName.front());
+            if (!edgeTypeResult.ok()) {
+                LOG(ERROR) << "Edge " << symsName.front() << " not find.";
+                return Status::EdgeNotFound("Edge %s not find.", symsName.front().c_str());
+            }
+            auto edgeType = edgeTypeResult.value();
+            const auto edgeSchema = mgr_->getEdgeSchema(spaceId, edgeType);
+            if (edgeSchema != nullptr) {
+                LOG(ERROR) << "Edge " << symsName.front() << " schema not find.";
+                return Status::EdgeNotFound("Edge type %d schema not find.", edgeType);
+            }
+            for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
+                v.colNames.emplace_back(symsName.front() + "." + edgeSchema->getFieldName(i));
+            }
+        }
+
         const auto &edges = spaceData->second.edges;
         for (const auto &part : req.get_parts()) {
             for (const auto &row : part.second) {
@@ -201,14 +226,25 @@ StatusOr<DataSet> StorageCache::getProps(const storage::cpp2::GetPropRequest& re
                 const auto edge = edges.find(key);
                 if (edge != edges.end()) {
                     Row record;
-                    for (std::size_t i = 0; i < propsName.size(); ++i) {
-                        const auto propIndex = edge->second.propIndexes.find(propsName[i]);
-                        if (propIndex != edge->second.propIndexes.end()) {
-                            record.emplace_back(edge->second.propValues[propIndex->second]);
-                        } else {
-                            record.emplace_back(Value());
+                    if (propsName.front() == "*") {
+                        // all properties of this edge
+                        record.emplace_back(src);
+                        record.emplace_back(dst);
+                        record.emplace_back(ranking);
+                        for (const auto &value : edge->second.propValues) {
+                            record.emplace_back(value);
+                        }
+                    } else {
+                        for (std::size_t i = 0; i < propsName.size(); ++i) {
+                            const auto propIndex = edge->second.propIndexes.find(propsName[i]);
+                            if (propIndex != edge->second.propIndexes.end()) {
+                                record.emplace_back(edge->second.propValues[propIndex->second]);
+                            } else {
+                                record.emplace_back(Value());
+                            }
                         }
                     }
+                    v.emplace_back(std::move(record));
                 }
             }
         }

@@ -5,6 +5,7 @@
  */
 
 #include "validator/FetchVerticesValidator.h"
+#include <memory>
 #include "planner/Query.h"
 
 namespace nebula {
@@ -111,8 +112,17 @@ Status FetchVerticesValidator::prepareVertices() {
 Status FetchVerticesValidator::prepareProperties() {
     auto *yield = sentence_->yieldClause();
     if (yield == nullptr) {
-        // empty for all properties
+        // empty for all tag and properties
         props_.clear();
+        if (!sentence_->isAllTagProps()) {
+            // for one tag all properties
+            EdgePropertyExpression expr(new std::string(*sentence_->tag()),
+                                        new std::string("*"));
+            storage::cpp2::PropExp p;
+            p.set_alias(""/*TODO(shylock) maybe extra*/);
+            p.set_prop(expr.encode());
+            props_.emplace_back(std::move(p));
+        }
     } else {
         dedup_ = yield->isDistinct();
         for (const auto col : yield->columns()) {

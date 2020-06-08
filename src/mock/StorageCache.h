@@ -72,7 +72,7 @@ private:
     std::unordered_map<GraphSpaceID, SpaceDataInfo>   cache_;
     mutable folly::RWSpinLock                         lock_;
     std::unique_ptr<meta::MetaClient>                 metaClient_;
-    std::unique_ptr<meta::ServerBasedSchemaManager>   mgr_;
+    std::unique_ptr<meta::SchemaManager>              mgr_;
 };
 
 }  // namespace graph

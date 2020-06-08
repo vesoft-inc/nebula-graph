@@ -125,18 +125,56 @@ TEST_F(FetchEdgesTest, FetchEdgesProp) {
         std::string query = "FETCH PROP ON edge1 \"1\"->\"2\"";
         client_->execute(query, resp);
         ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+
+        DataSet expected({"edge1._src", "edge1._dst", "edge1._rank", "edge1.prop1"});
+        expected.emplace_back(Row({
+            "1", "2", 0, 3
+        }));
+        ASSERT_TRUE(verifyDataSetWithoutOrder(resp, expected));
     }
-    // With YIELD
+    // With YIELD TODO(shylock) delay on Project
+    // {
+        // cpp2::ExecutionResponse resp;
+        // std::string query = "FETCH PROP ON edge1 \"1\"->\"2\" YIELD edge1.prop1 AS p";
+        // client_->execute(query, resp);
+        // ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+
+        // DataSet expected({"p"});
+        // expected.emplace_back(Row({
+            // 3
+        // }));
+        // ASSERT_TRUE(verifyDataSetWithoutOrder(resp, expected));
+    // }
+
     {
+        // not exists edge id
         cpp2::ExecutionResponse resp;
-        std::string query = "FETCH PROP ON edge1 \"1\"->\"2\" YIELD edge1.prop1 AS p";
+        std::string query = "FETCH PROP ON edge1 \"1\"->\"not_exists_key\"";
         client_->execute(query, resp);
         ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+
+        DataSet expected({"edge1._src", "edge1._dst", "edge1._rank", "edge1.prop1"});
+        ASSERT_TRUE(verifyDataSetWithoutOrder(resp, expected));
+    }
+
+    {
+        // mix exists and not exists edge id
+        // not exists edge id
+        cpp2::ExecutionResponse resp;
+        std::string query = "FETCH PROP ON edge1 \"1\"->\"not_exists_key\", \"1\"->\"2\"";
+        client_->execute(query, resp);
+        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+
+        DataSet expected({"edge1._src", "edge1._dst", "edge1._rank", "edge1.prop1"});
+        expected.emplace_back(Row({
+            "1", "2", 0, 3
+        }));
+        ASSERT_TRUE(verifyDataSetWithoutOrder(resp, expected));
     }
 }
 
 TEST_F(FetchEdgesTest, FetchEdgesPropFailed) {
-    // mismatched tag
+    // mismatched edge type
     {
         cpp2::ExecutionResponse resp;
         std::string query = "FETCH PROP ON edge1 \"1\" YIELD edge2.prop2";
@@ -144,7 +182,7 @@ TEST_F(FetchEdgesTest, FetchEdgesPropFailed) {
         ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
 
-    // notexist edge
+    // notexist edge type
     {
         cpp2::ExecutionResponse resp;
         std::string query = "FETCH PROP ON not_exist_edge \"1\" YIELD not_exist_edge.prop2";

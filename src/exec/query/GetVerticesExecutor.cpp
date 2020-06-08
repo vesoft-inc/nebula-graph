@@ -69,10 +69,17 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
             HANDLE_COMPLETENESS(rpcResp);
             // Ok, merge DataSets to one
             nebula::DataSet v;
-            for (auto &resp : rpcResp.responses()) {
-                auto *props = resp.get_props();
-                if (props != nullptr) {
-                    v.append(std::move(*props));
+            if (!rpcResp.responses().empty()) {
+                if (rpcResp.responses().front().__isset.props) {
+                    v = std::move(*rpcResp.responses().front().get_props());
+                }
+            }
+            if (rpcResp.responses().size() > 1) {
+                for (std::size_t i = 1; i < rpcResp.responses().size(); ++i) {
+                    auto resp = rpcResp.responses()[i];
+                    if (resp.__isset.props) {
+                        v.append(std::move(*resp.get_props()));
+                    }
                 }
             }
             finish(std::move(v));

@@ -79,30 +79,30 @@ nebula_add_test(
         gtest_main
 )
 
-nebula_add_test(
-    NAME
-        fetch_vertices_test
-    SOURCES
-        FetchVerticesTest.cpp
-    OBJECTS
-        ${GRAPH_TEST_LIB}
-    LIBRARIES
-        ${THRIFT_LIBRARIES}
-        wangle
-        gtest
-        gtest_main
-)
+# nebula_add_test(
+    # NAME
+        # fetch_vertices_test
+    # SOURCES
+        # FetchVerticesTest.cpp
+    # OBJECTS
+        # ${GRAPH_TEST_LIB}
+    # LIBRARIES
+        # ${THRIFT_LIBRARIES}
+        # wangle
+        # gtest
+        # gtest_main
+# )
 
-nebula_add_test(
-    NAME
-        fetch_edges_test
-    SOURCES
-        FetchEdgesTest.cpp
-    OBJECTS
-        ${GRAPH_TEST_LIB}
-    LIBRARIES
-        ${THRIFT_LIBRARIES}
-        wangle
-        gtest
-        gtest_main
-)
+# nebula_add_test(
+    # NAME
+        # fetch_edges_test
+    # SOURCES
+        # FetchEdgesTest.cpp
+    # OBJECTS
+        # ${GRAPH_TEST_LIB}
+    # LIBRARIES
+        # ${THRIFT_LIBRARIES}
+        # wangle
+        # gtest
+        # gtest_main
+# )

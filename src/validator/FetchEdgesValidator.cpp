@@ -117,8 +117,14 @@ Status FetchEdgesValidator::prepareEdges() {
 Status FetchEdgesValidator::prepareProperties() {
     auto *yield = sentence_->yieldClause();
     if (yield == nullptr) {
-        // empty for all properties
+        // "edge.*"
         props_.clear();
+        EdgePropertyExpression expr(new std::string(*sentence_->edge()),
+                                    new std::string("*"));
+        storage::cpp2::PropExp p;
+        p.set_alias(""/*TODO(shylock) Maybe extra*/);
+        p.set_prop(expr.encode());
+        props_.emplace_back(std::move(p));
     } else {
         dedup_ = yield->isDistinct();
         for (const auto col : yield->columns()) {
