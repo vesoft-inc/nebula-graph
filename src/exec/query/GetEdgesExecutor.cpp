@@ -5,7 +5,6 @@
  */
 
 #include "exec/query/GetEdgesExecutor.h"
-#include <algorithm>
 
 #include "common/clients/storage/GraphStorageClient.h"
 
