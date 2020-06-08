@@ -15,6 +15,29 @@ namespace graph {
 class AggregateTest : public testing::Test {
 protected:
     static void SetUpTestCase() {
+        // ======================
+        // | col1 | col2 | col3 |
+        // ----------------------
+        // |  0   |  0   |  0   |
+        // ----------------------
+        // |  1   |  0   |  0   |
+        // ----------------------
+        // |  2   |  1   |  0   |
+        // ----------------------
+        // |  3   |  1   |  0   |
+        // ----------------------
+        // |  4   |  2   |  1   |
+        // ----------------------
+        // |  5   |  2   |  1   |
+        // ----------------------
+        // |  6   |  3   |  1   |
+        // ----------------------
+        // |  7   |  3   |  1   |
+        // ----------------------
+        // |  8   |  4   |  2   |
+        // ----------------------
+        // |  9   |  4   |  2   |
+        // ----------------------
         input_ = std::make_unique<std::string>("input_agg");
         qctx_ = std::make_unique<QueryContext>();
         DataSet ds;
@@ -55,6 +78,19 @@ struct RowCmp {
 
 TEST_F(AggregateTest, Group) {
     {
+        // ========
+        // | col2 |
+        // --------
+        // |  0   |
+        // --------
+        // |  1   |
+        // --------
+        // |  2   |
+        // --------
+        // |  3   |
+        // --------
+        // |  4   |
+        // --------
         DataSet expected;
         expected.colNames = {"col2"};
         for (auto i = 0; i < 5; ++i) {
@@ -63,6 +99,8 @@ TEST_F(AggregateTest, Group) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2
+        // items = col2
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -84,6 +122,19 @@ TEST_F(AggregateTest, Group) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ===============
+        // | col2 | col3 |
+        // ---------------
+        // |  0   |  0   |
+        // ---------------
+        // |  1   |  0   |
+        // ---------------
+        // |  2   |  1   |
+        // ---------------
+        // |  3   |  1   |
+        // ---------------
+        // |  4   |  2   |
+        // ---------------
         DataSet expected;
         expected.colNames = {"col2", "col3"};
         for (auto i = 0; i < 5; ++i) {
@@ -93,6 +144,8 @@ TEST_F(AggregateTest, Group) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2, col3
+        // items = col2, col3
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -120,6 +173,11 @@ TEST_F(AggregateTest, Group) {
 
 TEST_F(AggregateTest, Collect) {
     {
+        // ====================================
+        // | list                             |
+        // ------------------------------------
+        // | [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]   |
+        // ------------------------------------
         DataSet expected;
         expected.colNames = {"list"};
         Row row;
@@ -130,6 +188,8 @@ TEST_F(AggregateTest, Collect) {
         row.emplace_back(std::move(list));
         expected.rows.emplace_back(std::move(row));
 
+        // key =
+        // items = collect(col1)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
@@ -148,6 +208,29 @@ TEST_F(AggregateTest, Collect) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ========
+        // | list |
+        // --------
+        // | [ 0 ]|
+        // --------
+        // | [ 1 ]|
+        // --------
+        // | [ 2 ]|
+        // --------
+        // | [ 3 ]|
+        // --------
+        // | [ 4 ]|
+        // --------
+        // | [ 5 ]|
+        // --------
+        // | [ 6 ]|
+        // --------
+        // | [ 7 ]|
+        // --------
+        // | [ 8 ]|
+        // --------
+        // | [ 9 ]|
+        // --------
         DataSet expected;
         expected.colNames = {"list"};
         for (auto i = 0; i < 10; ++i) {
@@ -679,6 +762,291 @@ TEST_F(AggregateTest, Min) {
         auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
         agg->setInputVar(*input_);
         agg->setColNames(std::vector<std::string>{"col2", "min"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+}
+
+TEST_F(AggregateTest, BitAnd) {
+    {
+        DataSet expected;
+        expected.colNames = {"bit_and"};
+        Row row;
+        row.emplace_back(0);
+        expected.rows.emplace_back(std::move(row));
+
+        // key =
+        // items = bit_and(col1)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
+        groupItems.emplace_back(std::make_pair(expr.get(), kBitAnd));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"bit_and"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        EXPECT_EQ(result.value().getDataSet(), expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"bit_and"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        // key = col2
+        // items = bit_and(col2)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), kBitAnd));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"bit_and"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "bit_and"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(i / 2);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        // key = col2, col3
+        // items = col2, bit_and(col3)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kBitAnd));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "bit_and"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+}
+
+TEST_F(AggregateTest, BitOr) {
+    {
+        DataSet expected;
+        expected.colNames = {"bit_or"};
+        Row row;
+        row.emplace_back(15);
+        expected.rows.emplace_back(std::move(row));
+
+        // key =
+        // items = bit_or(col1)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
+        groupItems.emplace_back(std::make_pair(expr.get(), kBitOr));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"bit_or"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        EXPECT_EQ(result.value().getDataSet(), expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"bit_or"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        // key = col2
+        // items = bit_or(col2)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), kBitOr));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"bit_or"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "bit_or"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(i / 2);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        // key = col2, col3
+        // items = col2, bit_or(col3)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kBitOr));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "bit_or"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+}
+
+TEST_F(AggregateTest, BitXor) {
+    {
+        DataSet expected;
+        expected.colNames = {"bit_xor"};
+        Row row;
+        row.emplace_back(1);
+        expected.rows.emplace_back(std::move(row));
+
+        // key =
+        // items = bit_xor(col1)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
+        groupItems.emplace_back(std::make_pair(expr.get(), kBitXor));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"bit_xor"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        EXPECT_EQ(result.value().getDataSet(), expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"bit_xor"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(0);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        // key = col2
+        // items = bit_xor(col2)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), kBitXor));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"bit_xor"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        DataSet expected;
+        expected.colNames = {"col2", "bit_xor"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(0);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        // key = col2, col3
+        // items = col2, bit_xor(col3)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kBitXor));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "bit_xor"});
 
         auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
         auto future = aggExe->execute();

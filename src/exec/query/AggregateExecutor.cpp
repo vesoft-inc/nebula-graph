@@ -7,9 +7,9 @@
 #include "exec/query/AggregateExecutor.h"
 
 #include "common/datatypes/List.h"
+#include "common/function/AggregateFunction.h"
 
 #include "context/ExpressionContextImpl.h"
-#include "planner/AggregateFunction.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
 
@@ -36,7 +36,7 @@ folly::Future<Status> AggregateExecutor::execute() {
         if (it == result.end()) {
             std::vector<std::shared_ptr<AggFun>> funs;
             for (auto& item : groupItems) {
-                auto fun = funVec[item.second]();
+                auto fun = AggFun::aggFunMap_[item.second]();
                 funs.emplace_back(fun);
                 auto& v = item.first->eval(ctx);
                 fun->apply(v);

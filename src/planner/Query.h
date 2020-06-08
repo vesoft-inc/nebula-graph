@@ -9,10 +9,10 @@
 
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "common/function/AggregateFunction.h"
 
 #include "planner/PlanNode.h"
 #include "planner/ExecutionPlan.h"
-#include "planner/AggregateFunction.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
 

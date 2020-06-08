@@ -18,6 +18,7 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_datatypes_obj>
         $<TARGET_OBJECTS:common_expression_obj>
         $<TARGET_OBJECTS:common_time_obj>
+        $<TARGET_OBJECTS:common_function_obj>
     LIBRARIES
         gtest gtest_main
 )
