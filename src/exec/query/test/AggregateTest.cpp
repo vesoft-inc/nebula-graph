@@ -399,7 +399,7 @@ TEST_F(AggregateTest, Avg) {
         DataSet expected;
         expected.colNames = {"avg"};
         Row row;
-        row.emplace_back(4.5);
+        row.emplace_back(4);
         expected.rows.emplace_back(std::move(row));
 
         std::vector<Expression*> groupKeys;

@@ -114,7 +114,6 @@ public:
         colNames_ = std::move(cols);
     }
 
-protected:
     static const char* toString(Kind kind);
 
 protected:
