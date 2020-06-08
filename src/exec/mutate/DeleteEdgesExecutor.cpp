@@ -5,8 +5,7 @@
  */
 
 #include "DeleteEdgesExecutor.h"
-#include "service/ExecutionContext.h"
-#include "clients/storage/GraphStorageClient.h"
+#include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 
 
@@ -14,10 +13,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> DeleteEdgesExecutor::execute() {
-    return SingleInputExecutor::execute().then(cb([this](Status s) {
-        if (!s.ok()) return error(std::move(s));
-        return deleteEdges().ensure([this]() { UNUSED(this); });
-    }));
+    return deleteEdges();
 }
 
 folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
@@ -29,7 +25,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
         return status;
     }
 
-    return ectx()->getStorageClient()->deleteEdges(deNode->getSpace(), std::move(edgeKeys_))
+    return qctx()->getStorageClient()->deleteEdges(deNode->getSpace(), std::move(edgeKeys_))
         .via(runner())
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
             auto completeness = resp.completeness();

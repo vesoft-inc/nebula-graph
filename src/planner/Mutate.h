@@ -174,9 +174,9 @@ private:
                    PlanNode* input,
                    GraphSpaceID spaceId,
                    std::vector<Expression*> vertices)
-    : SingleInputNode(plan, Kind::kDeleteVertices, input)
-    , space_(spaceId)
-    , vertices_(vertices) {}
+        : SingleInputNode(plan, Kind::kDeleteVertices, input)
+        , space_(spaceId)
+        , vertices_(vertices) {}
 
 private:
     GraphSpaceID                            space_;
@@ -219,10 +219,10 @@ private:
                 GraphSpaceID spaceId,
                 EdgeType edgeType,
                 EdgeKeys *edgeKeys)
-    : SingleInputNode(plan, Kind::kDeleteEdges, input)
-    , space_(spaceId)
-    , edgeType_(edgeType)
-    , edgeKeys_(edgeKeys) {}
+        : SingleInputNode(plan, Kind::kDeleteEdges, input)
+        , space_(spaceId)
+        , edgeType_(edgeType)
+        , edgeKeys_(edgeKeys) {}
 
 private:
     GraphSpaceID                               space_;

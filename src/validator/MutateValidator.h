@@ -11,7 +11,6 @@
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/MutateSentences.h"
 #include "parser/TraverseSentences.h"
-#include "expression/Expression.h"
 
 namespace nebula {
 namespace graph {
@@ -68,7 +67,7 @@ private:
 
 class DeleteVerticesValidator final : public Validator {
 public:
-    DeleteVerticesValidator(Sentence* sentence, ValidateContext* context)
+    DeleteVerticesValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<DeleteVerticesSentence*>(sentence);
     }
@@ -85,7 +84,7 @@ private:
 
 class DeleteEdgesValidator final : public Validator {
 public:
-    DeleteEdgesValidator(Sentence* sentence, ValidateContext* context)
+    DeleteEdgesValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<DeleteEdgesSentence*>(sentence);
     }

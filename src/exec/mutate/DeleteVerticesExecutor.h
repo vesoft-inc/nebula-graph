@@ -8,15 +8,14 @@
 #define EXEC_MUTATE_DELETEVERTICESEXECUTOR_H_
 
 #include "exec/Executor.h"
-#include "expression/Expression.h"
 
 namespace nebula {
 namespace graph {
 
-class DeleteVerticesExecutor final : public SingleInputExecutor {
+class DeleteVerticesExecutor final : public Executor {
 public:
-    DeleteVerticesExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-            : SingleInputExecutor("DeleteVerticesExecutor", node, ectx, input) {}
+    DeleteVerticesExecutor(const PlanNode *node, QueryContext *qctx)
+            : Executor("DeleteVerticesExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 

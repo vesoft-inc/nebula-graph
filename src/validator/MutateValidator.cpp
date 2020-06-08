@@ -252,15 +252,14 @@ Status DeleteVerticesValidator::validateImpl() {
 }
 
 Status DeleteVerticesValidator::toPlan() {
-    auto spaceId = validateContext_->whichSpace().id;
-    auto plan = validateContext_->plan();
+    auto spaceId = vctx_->whichSpace().id;
+    auto plan = qctx_->plan();
     // TODO(Laura): add planNode to get the start vertices
     auto *start = StartNode::make(plan);
     auto* getNeighbors = GetNeighbors::make(plan,
                                             start,
                                             spaceId,
                                             {},
-                                            nullptr,
                                             {},
                                             storage::cpp2::EdgeDirection::BOTH,
                                             {},
@@ -283,8 +282,8 @@ Status DeleteVerticesValidator::toPlan() {
 }
 
 Status DeleteEdgesValidator::validateImpl() {
-    auto spaceId = validateContext_->whichSpace().id;
-    auto edgeStatus = validateContext_->schemaMng()->toEdgeType(spaceId, *sentence_->edge());
+    auto spaceId = vctx_->whichSpace().id;
+    auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId, *sentence_->edge());
     if (!edgeStatus.ok()) {
         return edgeStatus.status();
     }
@@ -294,11 +293,11 @@ Status DeleteEdgesValidator::validateImpl() {
 }
 
 Status DeleteEdgesValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *start = StartNode::make(plan);
     auto *doNode = DeleteEdges::make(plan,
                                      start,
-                                     validateContext_->whichSpace().id,
+                                     vctx_->whichSpace().id,
                                      edgeType_,
                                      edgeKeys_);
     root_ = doNode;

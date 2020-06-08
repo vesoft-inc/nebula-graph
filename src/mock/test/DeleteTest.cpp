@@ -4,9 +4,6 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "base/Status.h"
-#include "network/NetworkUtils.h"
-#include "interface/gen-cpp2/common_types.h"
 #include "mock/test/TestEnv.h"
 #include "mock/test/TestBase.h"
 #include <gtest/gtest.h>

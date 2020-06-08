@@ -8,17 +8,16 @@
 #define EXEC_MUTATE_DELETEEDGEEXECUTOR_H_
 
 #include "exec/Executor.h"
-#include "expression/Expression.h"
-#include "interface/gen-cpp2/storage_types.h"
+#include "common/interface/gen-cpp2/storage_types.h"
 #include "planner/Mutate.h"
 
 namespace nebula {
 namespace graph {
 
-class DeleteEdgesExecutor final : public SingleInputExecutor {
+class DeleteEdgesExecutor final : public Executor {
 public:
-    DeleteEdgesExecutor(const PlanNode *node, ExecutionContext *ectx, Executor *input)
-            : SingleInputExecutor("DeleteEdgesExecutor", node, ectx, input) {}
+    DeleteEdgesExecutor(const PlanNode *node, QueryContext *qctx)
+            : Executor("DeleteEdgesExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 

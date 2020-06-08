@@ -221,14 +221,13 @@ TEST_F(MockServerTest, DISABLED_TestStorage) {
 
     // Get person.name
     {
-        std::vector<Row> vids;
-        Row row;
-        row.columns.emplace_back("laura");
-        vids.emplace_back(std::move(row));
+        DataSet dataSet({"_vid"});
+        Row row({"laura"});
+        dataSet.emplace_back(row);
         storage::cpp2::PropExp prop;
         prop.set_prop("person.name");
         prop.set_alias("p_name");
-        auto getResp = storageClient->getProps(1, {"_vid"}, vids, {prop}).get();
+        auto getResp = storageClient->getProps(1, dataSet, {prop}).get();
         ASSERT_TRUE(getResp.succeeded());
         auto response = getResp.responses();
         ASSERT_EQ(1, response.size());
@@ -243,14 +242,13 @@ TEST_F(MockServerTest, DISABLED_TestStorage) {
 
     // Get person.*
     {
-        std::vector<Row> vids;
-        Row row;
-        row.columns.emplace_back("laura");
-        vids.emplace_back(std::move(row));
+        DataSet dataSet({"_vid"});
+        Row row({"laura"});
+        dataSet.emplace_back(row);
         storage::cpp2::PropExp prop;
         prop.set_prop("person.*");
         prop.set_alias("");
-        auto getResp = storageClient->getProps(1, {"_vid"}, vids, {prop}).get();
+        auto getResp = storageClient->getProps(1, dataSet, {prop}).get();
         ASSERT_TRUE(getResp.succeeded());
         auto response = getResp.responses();
         ASSERT_EQ(1, response.size());
@@ -274,11 +272,10 @@ TEST_F(MockServerTest, DISABLED_TestStorage) {
 
     // Get all
     {
-        std::vector<Row> vids;
-        Row row;
-        row.columns.emplace_back("laura");
-        vids.emplace_back(std::move(row));
-        auto getResp = storageClient->getProps(1, {"_vid"}, vids, {}).get();
+        DataSet dataSet({"_vid"});
+        Row row({"laura"});
+        dataSet.emplace_back(row);
+        auto getResp = storageClient->getProps(1, dataSet, {}).get();
         ASSERT_TRUE(getResp.succeeded());
         auto response = getResp.responses();
         ASSERT_EQ(1, response.size());
@@ -354,18 +351,13 @@ TEST_F(MockServerTest, TestStorageGetEdges) {
 
     // Get edge.start
     {
-        std::vector<Row> edgeKeys;
-        Row row;
-        row.columns.emplace_back("laura");
-        row.columns.emplace_back(edgeType);
-        row.columns.emplace_back(1);
-        row.columns.emplace_back("laura");
-        edgeKeys.emplace_back(std::move(row));
+        DataSet dataSet({"_src", "_type", "_rank", "_dst"});
+        Row row({"laura", edgeType, 1, "laura"});
+        dataSet.emplace_back(row);
         storage::cpp2::PropExp prop;
         prop.set_prop("classmate.start");
         prop.set_alias("start");
-        auto getResp = storageClient->getProps(space,
-                {"_src", "_type", "_rank", "_dst"}, edgeKeys, {prop}).get();
+        auto getResp = storageClient->getProps(space, dataSet, {prop}).get();
         ASSERT_TRUE(getResp.succeeded());
         auto response = getResp.responses();
         ASSERT_EQ(1, response.size());
@@ -387,17 +379,12 @@ TEST_F(MockServerTest, TestStorageGetEdges) {
 
     // Get classmate.*
     {
-        std::vector<Row> edgeKeys;
-        Row row;
-        row.columns.emplace_back("laura");
-        row.columns.emplace_back(edgeType);
-        row.columns.emplace_back(1);
-        row.columns.emplace_back("laura");
-        edgeKeys.emplace_back(std::move(row));
+        DataSet dataSet({"_src", "_type", "_rank", "_dst"});
+        Row row({"laura", edgeType, 1, "laura"});
+        dataSet.emplace_back(row);
         storage::cpp2::PropExp prop;
         prop.set_prop("classmate.*");
-        auto getResp = storageClient->getProps(space,
-                {"_src", "_type", "_rank", "_dst"}, edgeKeys, {}).get();
+        auto getResp = storageClient->getProps(space, dataSet, {}).get();
         ASSERT_TRUE(getResp.succeeded());
         auto response = getResp.responses();
         ASSERT_EQ(1, response.size());
@@ -431,15 +418,10 @@ TEST_F(MockServerTest, TestStorageGetEdges) {
 
     // Get all
     {
-        std::vector<Row> edgeKeys;
-        Row row;
-        row.columns.emplace_back("laura");
-        row.columns.emplace_back(edgeType);
-        row.columns.emplace_back(1);
-        row.columns.emplace_back("laura");
-        edgeKeys.emplace_back(std::move(row));
-        auto getResp = storageClient->getProps(space,
-                {"_src", "_type", "_rank", "_dst"}, edgeKeys, {}).get();
+        DataSet dataSet({"_src", "_type", "_rank", "_dst"});
+        Row row({"laura", edgeType, 1, "laura"});
+        dataSet.emplace_back(row);
+        auto getResp = storageClient->getProps(space, dataSet, {}).get();
         ASSERT_TRUE(getResp.succeeded());
         auto response = getResp.responses();
         ASSERT_EQ(1, response.size());

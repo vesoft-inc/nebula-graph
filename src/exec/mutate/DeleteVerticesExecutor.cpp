@@ -6,8 +6,7 @@
 
 #include "DeleteVerticesExecutor.h"
 #include "planner/Mutate.h"
-#include "service/ExecutionContext.h"
-#include "clients/storage/GraphStorageClient.h"
+#include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 
 
@@ -16,16 +15,7 @@ namespace graph {
 
 folly::Future<Status> DeleteVerticesExecutor::execute() {
     dumpLog();
-    return SingleInputExecutor::execute().then(cb([this](Status status) {
-        if (!status.ok()) {
-            return error(std::move(status));
-        }
-
-        return deleteVertices().ensure([this]() {
-            // TODO: stats actions
-            UNUSED(this);
-        });
-    }));
+    return deleteVertices();
 }
 
 folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
@@ -41,7 +31,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
         vertices_.emplace_back(std::move(vIdRet).value());
     }
 
-    return ectx()->getStorageClient()->deleteVertices(space_, vertices_)
+    return qctx()->getStorageClient()->deleteVertices(space_, vertices_)
         .via(runner())
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
             auto completeness = resp.completeness();
