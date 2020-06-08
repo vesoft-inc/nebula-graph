@@ -6,16 +6,16 @@
 
 #include "exec/query/ProjectExecutor.h"
 
+#include "context/ExpressionContextImpl.h"
 #include "parser/Clauses.h"
 #include "planner/Query.h"
-#include "context/ExpressionContextImpl.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> ProjectExecutor::execute() {
     dumpLog();
-    auto *project = asNode<Project>(node());
+    auto* project = asNode<Project>(node());
     auto columns = project->columns()->columns();
     auto iter = ectx_->getResult(project->inputVar()).iter();
     DCHECK(!!iter);
@@ -31,13 +31,9 @@ folly::Future<Status> ProjectExecutor::execute() {
         }
         ds.rows.emplace_back(std::move(row));
     }
-    auto status = finish(ExecResult::buildSequential(
-                Value(std::move(ds)), State(State::Stat::kSuccess, "")));
-    if (!status.ok()) {
-        return error(std::move(status));
-    }
-    return start();
+    return finish(ExecResult::buildSequential(
+        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
 }
 
-}   // namespace graph
-}   // namespace nebula
+}  // namespace graph
+}  // namespace nebula

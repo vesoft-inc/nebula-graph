@@ -24,8 +24,6 @@ namespace graph {
 
 class PlanNode;
 class QueryContext;
-class ExecutionContext;
-class Result;
 
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:

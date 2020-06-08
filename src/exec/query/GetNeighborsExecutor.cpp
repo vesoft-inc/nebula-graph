@@ -64,7 +64,7 @@ Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
         return Status::Error("Get neighbors failed");
     }
 
-    State state;
+    State state(State::Stat::kSuccess, "");
     if (completeness != 100) {
         state = State(State::Stat::kPartialSuccess,
                     folly::stringPrintf("Get neighbors partially failed: %d %%", completeness));
