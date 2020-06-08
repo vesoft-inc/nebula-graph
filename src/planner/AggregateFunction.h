@@ -55,15 +55,15 @@ class Count final : public AggFun {
 public:
     void apply(const Value &val) override {
         UNUSED(val);
-        count_ = count_ + 1;
+        cnt_ = cnt_ + 1;
     }
 
     Value getResult() override {
-        return count_;
+        return cnt_;
     }
 
 private:
-    Value   count_{0};
+    Value   cnt_{0};
 };
 
 
@@ -90,21 +90,17 @@ private:
 class Avg final : public AggFun {
 public:
     void apply(const Value &val) override {
-        if (sum_.type() == Value::Type::__EMPTY__) {
-            sum_ = val;
-        } else {
-            sum_ = sum_ + val;
-        }
-        count_ = count_ + 1;
+        cnt_ = cnt_ + 1;
+        avg_ = avg_ + (val - avg_) / cnt_;
     }
 
     Value getResult() override {
-        return sum_ / count_;
+        return avg_;
     }
 
 private:
-    Value               sum_;
-    int64_t            count_{0};
+    Value               avg_{0.0};
+    Value               cnt_{0.0};
 };
 
 
@@ -161,14 +157,20 @@ private:
 class Stdev final : public AggFun {
 public:
     void apply(const Value &val) override {
-        UNUSED(val);
-        // TODO
+        cnt_ = cnt_ + 1;
+        avg_ = avg_ + (val - avg_) / cnt_;
+        var_ = (cnt_ - 1) / (cnt_ * cnt_) * ((val - avg_) * (val - avg_))
+            + (cnt_ - 1) / cnt_ * avg_;
     }
 
     Value getResult() override {
-        // TODO
-        return kEmpty;
+        return std::sqrt(var_.getFloat());
     }
+
+private:
+    Value   avg_{0.0};
+    Value   cnt_{0.0};
+    Value   var_{0.0};
 };
 
 
