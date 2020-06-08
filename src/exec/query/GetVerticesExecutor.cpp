@@ -5,6 +5,7 @@
  */
 
 #include "exec/query/GetVerticesExecutor.h"
+#include <boost/variant/variant.hpp>
 
 #include "common/clients/storage/GraphStorageClient.h"
 
@@ -42,19 +43,14 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                              std::make_move_iterator(gv->vertices().end()));
     }
     if (gv->src() != nullptr) {
-        // Accept Table such as | $a | which indicate src
+        // Accept Table such as | $a | $b | $c |... as input which one column indicate src
         auto valueIter = std::make_unique<SequentialIter>(getSingleInputValue());
         auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
         auto src = gv->src()->eval(expCtx);
-        if (src.type() != Value::Type::LIST) {
-            return error(Status::Error("Invalid vertex expression"));
-        }
-        for (std::size_t i = 0; i < src.getList().values.size(); ++i) {
-            if (!src.getList().values[i].isStr()) {
-                return Status::NotSupported("Invalid vid");
-            }
-            vertices.emplace_back(nebula::Row({std::move(src).getList().values[i].getStr()}));
-        }
+        // a table such as |$exp|
+        DataSet &input = src.mutableDataSet();
+        input.colNames = vertices.colNames;
+        vertices.append(std::move(input));
     }
     return storageClient
         ->getProps(gv->space(),

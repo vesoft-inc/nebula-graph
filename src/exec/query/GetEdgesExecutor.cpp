@@ -5,6 +5,7 @@
  */
 
 #include "exec/query/GetEdgesExecutor.h"
+#include <algorithm>
 
 #include "common/clients/storage/GraphStorageClient.h"
 
@@ -39,37 +40,19 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                           std::make_move_iterator(ge->edges().end()));
     }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
-        // Accept Table such as | $a | $b | $c | which indicate src, ranking or dst
+        // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
         auto valueIter = std::make_unique<SequentialIter>(getSingleInputValue());
         auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
         auto src = ge->src()->eval(expCtx);
         auto ranking = ge->ranking()->eval(expCtx);
         auto dst = ge->dst()->eval(expCtx);
-        if (src.type() != Value::Type::LIST || ranking.type() != Value::Type::LIST ||
-            dst.type() != Value::Type::LIST) {
-            return error(Status::Error("Invalid edge expression"));
-        }
-        if (src.getList().values.size() != ranking.getList().values.size() ||
-            ranking.getList().values.size() != dst.getList().values.size()) {
-            return error(Status::Error("Invalid edge expression"));
-        }
-        for (std::size_t i = 0; i < src.getList().values.size(); ++i) {
-            if (!src.getList().values[i].isStr()) {
-                return Status::NotSupported("Invalid src id");
-            }
-            if (!ranking.getList().values[i].isInt()) {
-                return Status::NotSupported("Invalid ranking");
-            }
-            if (!dst.getList().values[i].isStr()) {
-                return Status::NotSupported("Invalid src id");
-            }
-            edges.emplace_back(nebula::Row({
-                std::move(src).getList().values[i].getStr(),
-                ge->type(),
-                std::move(ranking).getList().values[i].getInt(),
-                std::move(dst).getList().values[i].getStr(),
-            }));
-        }
+        // merge to one table | $a | $b | $c |
+        auto srcT = src.mutableDataSet();
+        srcT.merge(_TYPE, Value(ge->type()));  // type
+        srcT.merge(std::move(ranking.mutableDataSet()));
+        srcT.merge(std::move(dst.mutableDataSet()));
+        srcT.colNames = edges.colNames;
+        edges.append(std::move(srcT));
     }
     return client
         ->getProps(ge->space(),
