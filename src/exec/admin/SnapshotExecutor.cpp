@@ -6,7 +6,7 @@
 
 #include "exec/admin/SnapshotExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -14,7 +14,7 @@ namespace graph {
 folly::Future<Status> CreateSnapshotExecutor::execute() {
     dumpLog();
 
-    return ectx()->getMetaClient()->createSnapshot()
+    return qctx()->getMetaClient()->createSnapshot()
             .via(runner())
             .then([this](StatusOr<bool> resp) {
                 if (!resp.ok()) {
@@ -29,7 +29,7 @@ folly::Future<Status> DropSnapshotExecutor::execute() {
     dumpLog();
 
     auto *dsNode = asNode<DropSnapshot>(node());
-    return ectx()->getMetaClient()->dropSnapshot(dsNode->getShapshotName())
+    return qctx()->getMetaClient()->dropSnapshot(dsNode->getShapshotName())
             .via(runner())
             .then([this](StatusOr<bool> resp) {
                 if (!resp.ok()) {
@@ -43,7 +43,7 @@ folly::Future<Status> DropSnapshotExecutor::execute() {
 folly::Future<Status> ShowSnapshotsExecutor::execute() {
     dumpLog();
 
-    return ectx()->getMetaClient()->listSnapshots()
+    return qctx()->getMetaClient()->listSnapshots()
             .via(runner())
             .then([this](StatusOr<std::vector<meta::cpp2::Snapshot>> resp) {
                 if (!resp.ok()) {

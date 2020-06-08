@@ -6,8 +6,8 @@
 
 #include "exec/maintain/EdgeExecutor.h"
 #include "planner/Maintain.h"
-#include "service/ExecutionContext.h"
 #include "util/SchemaUtil.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -16,7 +16,7 @@ folly::Future<Status> CreateEdgeExecutor::execute() {
     dumpLog();
 
     auto *ceNode = asNode<CreateEdge>(node());
-    return ectx()->getMetaClient()->createEdgeSchema(ceNode->space(),
+    return qctx()->getMetaClient()->createEdgeSchema(ceNode->space(),
             ceNode->getName(), ceNode->getSchema(), ceNode->getIfNotExists())
             .via(runner())
             .then([](StatusOr<bool> resp) {
@@ -33,7 +33,7 @@ folly::Future<Status> DescEdgeExecutor::execute() {
     dumpLog();
 
     auto *deNode = asNode<DescEdge>(node());
-    return ectx()->getMetaClient()->getEdgeSchema(deNode->getSpaceId(), deNode->getName())
+    return qctx()->getMetaClient()->getEdgeSchema(deNode->getSpaceId(), deNode->getName())
             .via(runner())
             .then([this](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {
@@ -55,7 +55,7 @@ folly::Future<Status> DropEdgeExecutor::execute() {
     dumpLog();
 
     auto *deNode = asNode<DropEdge>(node());
-    return ectx()->getMetaClient()->dropEdgeSchema(deNode->getSpaceId(),
+    return qctx()->getMetaClient()->dropEdgeSchema(deNode->getSpaceId(),
                                                    deNode->getName(),
                                                    deNode->getIfExists())
             .via(runner())
@@ -72,7 +72,7 @@ folly::Future<Status> ShowEdgesExecutor::execute() {
     dumpLog();
 
     auto *seNode = asNode<ShowEdges>(node());
-    return ectx()->getMetaClient()->listEdgeSchemas(seNode->getSpaceId())
+    return qctx()->getMetaClient()->listEdgeSchemas(seNode->getSpaceId())
             .via(runner())
             .then([this](StatusOr<std::vector<meta::cpp2::EdgeItem>> resp) {
                 if (!resp.ok()) {
@@ -101,7 +101,7 @@ folly::Future<Status> ShowCreateEdgeExecutor::execute() {
     dumpLog();
 
     auto *sceNode = asNode<ShowCreateEdge>(node());
-    return ectx()->getMetaClient()->getEdgeSchema(sceNode->getSpaceId(), sceNode->getName())
+    return qctx()->getMetaClient()->getEdgeSchema(sceNode->getSpaceId(), sceNode->getName())
             .via(runner())
             .then([this, sceNode](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {

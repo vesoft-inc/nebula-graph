@@ -236,9 +236,9 @@ Status ShowTagsValidator::validateImpl() {
 }
 
 Status ShowTagsValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = ShowTags::make(plan,
-                                  validateContext_->whichSpace().id);
+                                  vctx_->whichSpace().id);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -249,9 +249,9 @@ Status ShowEdgesValidator::validateImpl() {
 }
 
 Status ShowEdgesValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = ShowEdges::make(plan,
-                                   validateContext_->whichSpace().id);
+                                   vctx_->whichSpace().id);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -263,9 +263,9 @@ Status ShowCreateTagValidator::validateImpl() {
 }
 
 Status ShowCreateTagValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = ShowCreateTag::make(plan,
-                                       validateContext_->whichSpace().id,
+                                       vctx_->whichSpace().id,
                                        name_);
     root_ = doNode;
     tail_ = root_;
@@ -278,9 +278,9 @@ Status ShowCreateEdgeValidator::validateImpl() {
 }
 
 Status ShowCreateEdgeValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = ShowCreateEdge::make(plan,
-                                        validateContext_->whichSpace().id,
+                                        vctx_->whichSpace().id,
                                         name_);
     root_ = doNode;
     tail_ = root_;
@@ -294,9 +294,9 @@ Status DropTagValidator::validateImpl() {
 }
 
 Status DropTagValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = DropTag::make(plan,
-                                 validateContext_->whichSpace().id,
+                                 vctx_->whichSpace().id,
                                  name_,
                                  ifExists_);
     root_ = doNode;

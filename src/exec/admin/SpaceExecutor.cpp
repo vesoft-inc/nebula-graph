@@ -6,7 +6,7 @@
 
 #include "exec/admin/SpaceExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -14,7 +14,7 @@ folly::Future<Status> CreateSpaceExecutor::execute() {
     dumpLog();
 
     auto *csNode = asNode<CreateSpace>(node());
-    return ectx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
+    return qctx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
             .via(runner())
             .then([](StatusOr<bool> resp) {
                 if (!resp.ok()) {
@@ -30,7 +30,7 @@ folly::Future<Status> DescSpaceExecutor::execute() {
     dumpLog();
 
     auto *dsNode = asNode<DescSpace>(node());
-    return ectx()->getMetaClient()->getSpace(dsNode->getSpaceName())
+    return qctx()->getMetaClient()->getSpace(dsNode->getSpaceName())
             .via(runner())
             .then([this](StatusOr<meta::cpp2::SpaceItem> resp) {
                 if (!resp.ok()) {
@@ -65,7 +65,7 @@ folly::Future<Status> DropSpaceExecutor::execute() {
     dumpLog();
 
     auto *dsNode = asNode<DropSpace>(node());
-    return ectx()->getMetaClient()->dropSpace(dsNode->getSpaceName(), dsNode->getIfExists())
+    return qctx()->getMetaClient()->dropSpace(dsNode->getSpaceName(), dsNode->getIfExists())
             .via(runner())
             .then([this](StatusOr<bool> resp) {
                 if (!resp.ok()) {
@@ -80,7 +80,7 @@ folly::Future<Status> DropSpaceExecutor::execute() {
 folly::Future<Status> ShowSpacesExecutor::execute() {
     dumpLog();
 
-    return ectx()->getMetaClient()->listSpaces()
+    return qctx()->getMetaClient()->listSpaces()
             .via(runner())
             .then([this](StatusOr<std::vector<meta::SpaceIdName>> resp) {
                 if (!resp.ok()) {
@@ -108,7 +108,7 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
     dumpLog();
 
     auto *scsNode = asNode<ShowCreateSpace>(node());
-    return ectx()->getMetaClient()->getSpace(scsNode->getSpaceName())
+    return qctx()->getMetaClient()->getSpace(scsNode->getSpaceName())
             .via(runner())
             .then([this](StatusOr<meta::cpp2::SpaceItem> resp) {
                 if (!resp.ok()) {

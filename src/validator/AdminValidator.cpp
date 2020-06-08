@@ -131,7 +131,7 @@ Status ShowSpacesValidator::validateImpl() {
 }
 
 Status ShowSpacesValidator::toPlan() {
-    auto *plan = validateContext_->plan();
+    auto *plan = qctx_->plan();
     auto *doNode = ShowSpaces::make(plan);
     root_ = doNode;
     tail_ = root_;
@@ -143,7 +143,7 @@ Status DropSpaceValidator::validateImpl() {
 }
 
 Status DropSpaceValidator::toPlan() {
-    auto *plan = validateContext_->plan();
+    auto *plan = qctx_->plan();
     auto *doNode = DropSpace::make(plan, *sentence_->spaceName(), sentence_->isIfExists());
     root_ = doNode;
     tail_ = root_;
@@ -155,7 +155,7 @@ Status ShowCreateSpaceValidator::validateImpl() {
 }
 
 Status ShowCreateSpaceValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = ShowCreateSpace::make(plan, *sentence_->spaceName());
     root_ = doNode;
     tail_ = root_;
@@ -167,7 +167,7 @@ Status CreateSnapshotValidator::validateImpl() {
 }
 
 Status CreateSnapshotValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = CreateSnapshot::make(plan);
     root_ = doNode;
     tail_ = root_;
@@ -179,7 +179,7 @@ Status DropSnapshotValidator::validateImpl() {
 }
 
 Status DropSnapshotValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = DropSnapshot::make(plan, *sentence_->name());
     root_ = doNode;
     tail_ = root_;
@@ -191,7 +191,7 @@ Status ShowSnapshotsValidator::validateImpl() {
 }
 
 Status ShowSnapshotsValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = ShowSnapshots::make(plan);
     root_ = doNode;
     tail_ = root_;

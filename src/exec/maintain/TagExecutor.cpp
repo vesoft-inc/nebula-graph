@@ -6,8 +6,8 @@
 
 #include "exec/maintain/TagExecutor.h"
 #include "planner/Maintain.h"
-#include "service/ExecutionContext.h"
 #include "util/SchemaUtil.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -16,7 +16,7 @@ folly::Future<Status> CreateTagExecutor::execute() {
     dumpLog();
 
     auto *ctNode = asNode<CreateTag>(node());
-    return ectx()->getMetaClient()->createTagSchema(ctNode->space(),
+    return qctx()->getMetaClient()->createTagSchema(ctNode->space(),
             ctNode->getName(), ctNode->getSchema(), ctNode->getIfNotExists())
             .via(runner())
             .then([](StatusOr<bool> resp) {
@@ -32,7 +32,7 @@ folly::Future<Status> DescTagExecutor::execute() {
     dumpLog();
 
     auto *dtNode = asNode<DescTag>(node());
-    return ectx()->getMetaClient()->getTagSchema(dtNode->getSpaceId(), dtNode->getName())
+    return qctx()->getMetaClient()->getTagSchema(dtNode->getSpaceId(), dtNode->getName())
             .via(runner())
             .then([this](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {
@@ -53,7 +53,7 @@ folly::Future<Status> DropTagExecutor::execute() {
     dumpLog();
 
     auto *dtNode = asNode<DropTag>(node());
-    return ectx()->getMetaClient()->dropTagSchema(dtNode->getSpaceId(),
+    return qctx()->getMetaClient()->dropTagSchema(dtNode->getSpaceId(),
                                                   dtNode->getName(),
                                                   dtNode->getIfExists())
             .via(runner())
@@ -70,7 +70,7 @@ folly::Future<Status> ShowTagsExecutor::execute() {
     dumpLog();
 
     auto *stNode = asNode<ShowTags>(node());
-    return ectx()->getMetaClient()->listTagSchemas(stNode->getSpaceId())
+    return qctx()->getMetaClient()->listTagSchemas(stNode->getSpaceId())
             .via(runner())
             .then([this](StatusOr<std::vector<meta::cpp2::TagItem>> resp) {
                 if (!resp.ok()) {
@@ -99,7 +99,7 @@ folly::Future<Status> ShowCreateTagExecutor::execute() {
     dumpLog();
 
     auto *sctNode = asNode<ShowCreateTag>(node());
-    return ectx()->getMetaClient()->getTagSchema(sctNode->getSpaceId(), sctNode->getName())
+    return qctx()->getMetaClient()->getTagSchema(sctNode->getSpaceId(), sctNode->getName())
             .via(runner())
             .then([this, sctNode](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {

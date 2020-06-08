@@ -219,17 +219,17 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kShowSpaces: {
             auto showSpaces = asNode<ShowSpaces>(node);
-            exec = new ShowSpacesExecutor(showSpaces, ectx);
+            exec = new ShowSpacesExecutor(showSpaces, qctx);
             break;
         }
         case PlanNode::Kind::kDropSpace: {
             auto dropSpace = asNode<DropSpace>(node);
-            exec = new DropSpaceExecutor(dropSpace, ectx);
+            exec = new DropSpaceExecutor(dropSpace, qctx);
             break;
         }
         case PlanNode::Kind::kShowCreateSpace: {
             auto showCreateSpace = asNode<ShowCreateSpace>(node);
-            exec = new ShowCreateSpaceExecutor(showCreateSpace, ectx);
+            exec = new ShowCreateSpaceExecutor(showCreateSpace, qctx);
             break;
         }
         case PlanNode::Kind::kCreateTag: {
@@ -275,32 +275,32 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             break;
         case PlanNode::Kind::kShowTags: {
             auto showTags = asNode<ShowTags>(node);
-            exec = new ShowTagsExecutor(showTags, ectx);
+            exec = new ShowTagsExecutor(showTags, qctx);
             break;
         }
         case PlanNode::Kind::kShowEdges: {
             auto showEdges = asNode<ShowEdges>(node);
-            exec = new ShowEdgesExecutor(showEdges, ectx);
+            exec = new ShowEdgesExecutor(showEdges, qctx);
             break;
         }
         case PlanNode::Kind::kDropTag: {
             auto dropTag = asNode<DropTag>(node);
-            exec = new DropTagExecutor(dropTag, ectx);
+            exec = new DropTagExecutor(dropTag, qctx);
             break;
         }
         case PlanNode::Kind::kDropEdge: {
             auto dropEdge = asNode<DropEdge>(node);
-            exec = new DropEdgeExecutor(dropEdge, ectx);
+            exec = new DropEdgeExecutor(dropEdge, qctx);
             break;
         }
         case PlanNode::Kind::kShowCreateTag: {
             auto showCreateTag = asNode<ShowCreateTag>(node);
-            exec = new ShowCreateTagExecutor(showCreateTag, ectx);
+            exec = new ShowCreateTagExecutor(showCreateTag, qctx);
             break;
         }
         case PlanNode::Kind::kShowCreateEdge: {
             auto showCreateEdge = asNode<ShowCreateEdge>(node);
-            exec = new ShowCreateEdgeExecutor(showCreateEdge, ectx);
+            exec = new ShowCreateEdgeExecutor(showCreateEdge, qctx);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {
@@ -326,17 +326,17 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kCreateSnapshot: {
             auto createSnapshot = asNode<CreateSnapshot>(node);
-            exec = new CreateSnapshotExecutor(createSnapshot, ectx);
+            exec = new CreateSnapshotExecutor(createSnapshot, qctx);
             break;
         }
         case PlanNode::Kind::kDropSnapshot: {
             auto dropSnapshot = asNode<DropSnapshot>(node);
-            exec = new DropSnapshotExecutor(dropSnapshot, ectx);
+            exec = new DropSnapshotExecutor(dropSnapshot, qctx);
             break;
         }
         case PlanNode::Kind::kShowSnapshots: {
             auto showSnapshots = asNode<ShowSnapshots>(node);
-            exec = new ShowSnapshotsExecutor(showSnapshots, ectx);
+            exec = new ShowSnapshotsExecutor(showSnapshots, qctx);
             break;
         }
         case PlanNode::Kind::kUnknown:

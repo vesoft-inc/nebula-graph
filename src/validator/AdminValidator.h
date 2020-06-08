@@ -47,7 +47,7 @@ private:
 
 class ShowSpacesValidator final : public Validator {
 public:
-    ShowSpacesValidator(Sentence* sentence, ValidateContext* context)
+    ShowSpacesValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         setNoSpaceRequired();
     }
@@ -60,7 +60,7 @@ private:
 
 class DropSpaceValidator final : public Validator {
 public:
-    DropSpaceValidator(Sentence* sentence, ValidateContext* context)
+    DropSpaceValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<DropSpaceSentence*>(sentence);
         setNoSpaceRequired();
@@ -77,7 +77,7 @@ private:
 
 class ShowCreateSpaceValidator final : public Validator {
 public:
-    ShowCreateSpaceValidator(Sentence* sentence, ValidateContext* context)
+    ShowCreateSpaceValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<ShowCreateSpaceSentence*>(sentence);
         setNoSpaceRequired();
@@ -94,7 +94,7 @@ private:
 
 class CreateSnapshotValidator final : public Validator {
 public:
-    CreateSnapshotValidator(Sentence* sentence, ValidateContext* context)
+    CreateSnapshotValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         UNUSED(sentence);
         setNoSpaceRequired();
@@ -108,7 +108,7 @@ private:
 
 class DropSnapshotValidator final : public Validator {
 public:
-    DropSnapshotValidator(Sentence* sentence, ValidateContext* context)
+    DropSnapshotValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<DropSnapshotSentence*>(sentence);
         setNoSpaceRequired();
@@ -125,7 +125,7 @@ private:
 
 class ShowSnapshotsValidator final : public Validator {
 public:
-    ShowSnapshotsValidator(Sentence* sentence, ValidateContext* context)
+    ShowSnapshotsValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         UNUSED(sentence);
         setNoSpaceRequired();

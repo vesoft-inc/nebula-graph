@@ -66,7 +66,7 @@ private:
 
 class ShowCreateTagValidator final : public Validator {
 public:
-    ShowCreateTagValidator(Sentence* sentence, ValidateContext* context)
+    ShowCreateTagValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<ShowCreateTagSentence*>(sentence);
     }
@@ -99,7 +99,7 @@ private:
 
 class ShowCreateEdgeValidator final : public Validator {
 public:
-    ShowCreateEdgeValidator(Sentence* sentence, ValidateContext* context)
+    ShowCreateEdgeValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<ShowCreateEdgeSentence*>(sentence);
     }
@@ -153,8 +153,8 @@ private:
 
 class ShowTagsValidator final : public Validator {
 public:
-    ShowTagsValidator(Sentence* sentence, ValidateContext* context)
-        : Validator(sentence, context) {}
+    ShowTagsValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -164,7 +164,7 @@ private:
 
 class ShowEdgesValidator final : public Validator {
 public:
-    ShowEdgesValidator(Sentence* sentence, ValidateContext* context)
+    ShowEdgesValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:
@@ -175,9 +175,8 @@ private:
 
 class DropTagValidator final : public Validator {
 public:
-    DropTagValidator(Sentence* sentence, ValidateContext* context)
+    DropTagValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
-        sentence_ = static_cast<DropTagSentence*>(sentence);
     }
 
 private:
@@ -188,8 +187,8 @@ private:
 
 class DropEdgeValidator final : public Validator {
 public:
-    DropEdgeValidator(Sentence* sentence, ValidateContext* context)
-        : Validator(sentence, context) {
+    DropEdgeValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
     }
 
 private:
