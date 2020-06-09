@@ -79,8 +79,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                     }
                 }
             }
-            finish(std::move(v));
-            return Status::OK();
+            return finish(std::move(v));
         });
 }
 

@@ -78,8 +78,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                     }
                 }
             }
-            finish(std::move(v));
-            return Status::OK();
+            return finish(std::move(v));
         });
     return start();
 }
