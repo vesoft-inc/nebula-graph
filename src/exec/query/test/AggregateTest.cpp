@@ -241,6 +241,8 @@ TEST_F(AggregateTest, Collect) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col1
+        // items = collect(col1)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
@@ -263,6 +265,19 @@ TEST_F(AggregateTest, Collect) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ===================
+        // | col2 | list     |
+        // -------------------
+        // |  0   | [ 0, 0 ] |
+        // -------------------
+        // |  1   | [ 0, 0 ] |
+        // -------------------
+        // |  2   | [ 1, 1 ] |
+        // -------------------
+        // |  3   | [ 1, 1 ] |
+        // -------------------
+        // |  4   | [ 2, 2 ] |
+        // -------------------
         DataSet expected;
         expected.colNames = {"list"};
         for (auto i = 0; i < 5; ++i) {
@@ -274,6 +289,8 @@ TEST_F(AggregateTest, Collect) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2
+        // items = col2, collect(col3)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -301,12 +318,18 @@ TEST_F(AggregateTest, Collect) {
 
 TEST_F(AggregateTest, Count) {
     {
+        // ========
+        // | count|
+        // --------
+        // | 10   |
         DataSet expected;
         expected.colNames = {"count"};
         Row row;
         row.emplace_back(10);
         expected.rows.emplace_back(std::move(row));
 
+        // key =
+        // items = count(col1)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
@@ -325,6 +348,18 @@ TEST_F(AggregateTest, Count) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ========
+        // | count|
+        // --------
+        // |   2  |
+        // --------
+        // |   2  |
+        // --------
+        // |   2  |
+        // --------
+        // |   2  |
+        // --------
+        // |   2  |
         DataSet expected;
         expected.colNames = {"count"};
         for (auto i = 0; i < 5; ++i) {
@@ -333,6 +368,8 @@ TEST_F(AggregateTest, Count) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2
+        // items = count(col2)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -354,6 +391,19 @@ TEST_F(AggregateTest, Count) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ================
+        // | col3 | count |
+        // ----------------
+        // |  0   |   2   |
+        // ----------------
+        // |  0   |   2   |
+        // ----------------
+        // |  1   |   2   |
+        // ----------------
+        // |  1   |   2   |
+        // ----------------
+        // |  2   |   2   |
+        // ----------------
         DataSet expected;
         expected.colNames = {"col3", "count"};
         for (auto i = 0; i < 5; ++i) {
@@ -363,6 +413,8 @@ TEST_F(AggregateTest, Count) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col3, col2
+        // items = col3, count(col2)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
@@ -390,12 +442,18 @@ TEST_F(AggregateTest, Count) {
 
 TEST_F(AggregateTest, Sum) {
     {
+        // ========
+        // | sum  |
+        // --------
+        // | 45   |
         DataSet expected;
         expected.colNames = {"sum"};
         Row row;
         row.emplace_back(45);
         expected.rows.emplace_back(std::move(row));
 
+        // key =
+        // items = sum(col1)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
@@ -414,6 +472,18 @@ TEST_F(AggregateTest, Sum) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ========
+        // | sum  |
+        // --------
+        // |   0  |
+        // --------
+        // |   4  |
+        // --------
+        // |   8  |
+        // --------
+        // |   12 |
+        // --------
+        // |   16 |
         DataSet expected;
         expected.colNames = {"sum"};
         for (auto i = 0; i < 5; ++i) {
@@ -422,6 +492,8 @@ TEST_F(AggregateTest, Sum) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2
+        // items = sum(col2)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -443,6 +515,19 @@ TEST_F(AggregateTest, Sum) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ================
+        // | col2 | sum   |
+        // ----------------
+        // |  0   |   0   |
+        // ----------------
+        // |  1   |   0   |
+        // ----------------
+        // |  2   |   2   |
+        // ----------------
+        // |  3   |   2   |
+        // ----------------
+        // |  4   |   4   |
+        // ----------------
         DataSet expected;
         expected.colNames = {"col2", "sum"};
         for (auto i = 0; i < 5; ++i) {
@@ -452,6 +537,8 @@ TEST_F(AggregateTest, Sum) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2, col3
+        // items = col2, sum(col3)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -479,12 +566,18 @@ TEST_F(AggregateTest, Sum) {
 
 TEST_F(AggregateTest, Avg) {
     {
+        // ========
+        // | avg  |
+        // --------
+        // | 4.5  |
         DataSet expected;
         expected.colNames = {"avg"};
         Row row;
         row.emplace_back(4.5);
         expected.rows.emplace_back(std::move(row));
 
+        // key =
+        // items = avg(col1)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
@@ -503,6 +596,18 @@ TEST_F(AggregateTest, Avg) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ========
+        // | avg  |
+        // --------
+        // |   0  |
+        // --------
+        // |   1  |
+        // --------
+        // |   2  |
+        // --------
+        // |   3  |
+        // --------
+        // |   4  |
         DataSet expected;
         expected.colNames = {"avg"};
         for (auto i = 0; i < 5; ++i) {
@@ -511,6 +616,8 @@ TEST_F(AggregateTest, Avg) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2
+        // items = avg(col2)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -532,6 +639,19 @@ TEST_F(AggregateTest, Avg) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ================
+        // | col2 | avg   |
+        // ----------------
+        // |  0   |   0   |
+        // ----------------
+        // |  1   |   0   |
+        // ----------------
+        // |  2   |   1   |
+        // ----------------
+        // |  3   |   1   |
+        // ----------------
+        // |  4   |   2   |
+        // ----------------
         DataSet expected;
         expected.colNames = {"col2", "avg"};
         for (auto i = 0; i < 5; ++i) {
@@ -541,6 +661,8 @@ TEST_F(AggregateTest, Avg) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2, col3
+        // items = col2, sum(col3)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -568,12 +690,18 @@ TEST_F(AggregateTest, Avg) {
 
 TEST_F(AggregateTest, CountDistinct) {
     {
+        // ===============
+        // | count_dist  |
+        // ---------------
+        // |    10       |
         DataSet expected;
         expected.colNames = {"count"};
         Row row;
         row.emplace_back(10);
         expected.rows.emplace_back(std::move(row));
 
+        // key =
+        // items = count_dist(col1)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
@@ -592,6 +720,18 @@ TEST_F(AggregateTest, CountDistinct) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ===============
+        // | count_dist  |
+        // ---------------
+        // |   1         |
+        // ---------------
+        // |   1         |
+        // ---------------
+        // |   1         |
+        // ---------------
+        // |   1         |
+        // ---------------
+        // |   1         |
         DataSet expected;
         expected.colNames = {"count"};
         for (auto i = 0; i < 5; ++i) {
@@ -600,6 +740,8 @@ TEST_F(AggregateTest, CountDistinct) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2
+        // items = count_dist(col2)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -621,6 +763,19 @@ TEST_F(AggregateTest, CountDistinct) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // =======================
+        // | col2 | count_dist   |
+        // -----------------------
+        // |  0   |   1          |
+        // -----------------------
+        // |  1   |   1          |
+        // -----------------------
+        // |  2   |   1          |
+        // -----------------------
+        // |  3   |   1          |
+        // -----------------------
+        // |  4   |   1          |
+        // -----------------------
         DataSet expected;
         expected.colNames = {"col2", "count"};
         for (auto i = 0; i < 5; ++i) {
@@ -630,6 +785,8 @@ TEST_F(AggregateTest, CountDistinct) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2, col3
+        // items = col2, count_dist(col3)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -657,12 +814,18 @@ TEST_F(AggregateTest, CountDistinct) {
 
 TEST_F(AggregateTest, Max) {
     {
+        // ========
+        // | max  |
+        // --------
+        // | 10   |
         DataSet expected;
         expected.colNames = {"max"};
         Row row;
         row.emplace_back(9);
         expected.rows.emplace_back(std::move(row));
 
+        // key =
+        // items = max(col1)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
@@ -681,6 +844,19 @@ TEST_F(AggregateTest, Max) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ================
+        // | col2 | max   |
+        // ----------------
+        // |  0   |   0   |
+        // ----------------
+        // |  1   |   0   |
+        // ----------------
+        // |  2   |   1   |
+        // ----------------
+        // |  3   |   1   |
+        // ----------------
+        // |  4   |   2   |
+        // ----------------
         DataSet expected;
         expected.colNames = {"col2", "max"};
         for (auto i = 0; i < 5; ++i) {
@@ -690,6 +866,8 @@ TEST_F(AggregateTest, Max) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2, col3
+        // items = col2, max(col3)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -717,12 +895,18 @@ TEST_F(AggregateTest, Max) {
 
 TEST_F(AggregateTest, Min) {
     {
+        // ========
+        // | min  |
+        // --------
+        // | 10   |
         DataSet expected;
         expected.colNames = {"min"};
         Row row;
         row.emplace_back(0);
         expected.rows.emplace_back(std::move(row));
 
+        // key =
+        // items = min(col1)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
@@ -741,6 +925,19 @@ TEST_F(AggregateTest, Min) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ================
+        // | col2 | min   |
+        // ----------------
+        // |  0   |   0   |
+        // ----------------
+        // |  1   |   0   |
+        // ----------------
+        // |  2   |   1   |
+        // ----------------
+        // |  3   |   1   |
+        // ----------------
+        // |  4   |   2   |
+        // ----------------
         DataSet expected;
         expected.colNames = {"col2", "min"};
         for (auto i = 0; i < 5; ++i) {
@@ -750,6 +947,8 @@ TEST_F(AggregateTest, Min) {
             expected.rows.emplace_back(std::move(row));
         }
 
+        // key = col2, col3
+        // items = col2, min(col3)
         std::vector<Expression*> groupKeys;
         std::vector<Aggregate::GroupItem> groupItems;
         auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
@@ -775,8 +974,136 @@ TEST_F(AggregateTest, Min) {
     }
 }
 
+TEST_F(AggregateTest, Stdev) {
+    {
+        // ===============
+        // | stdev       |
+        // ---------------
+        // |2.87228132327|
+        DataSet expected;
+        expected.colNames = {"stdev"};
+        Row row;
+        row.emplace_back(2.87228132327);
+        expected.rows.emplace_back(std::move(row));
+
+        // key =
+        // items = stdev(col1)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col1"));
+        groupItems.emplace_back(std::make_pair(expr.get(), kStd));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"stdev"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        EXPECT_EQ(result.value().getDataSet(), expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        // ===============
+        // | stdev      |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   0         |
+        DataSet expected;
+        expected.colNames = {"stdev"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(0);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        // key = col2
+        // items = stdev(col2)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), kStd));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"stdev"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+    {
+        // =======================
+        // | col2 | stdev       |
+        // -----------------------
+        // |  0   |   0          |
+        // -----------------------
+        // |  1   |   0          |
+        // -----------------------
+        // |  2   |   0          |
+        // -----------------------
+        // |  3   |   0          |
+        // -----------------------
+        // |  4   |   0          |
+        // -----------------------
+        DataSet expected;
+        expected.colNames = {"col2", "stdev"};
+        for (auto i = 0; i < 5; ++i) {
+            Row row;
+            row.columns.emplace_back(i);
+            row.columns.emplace_back(0);
+            expected.rows.emplace_back(std::move(row));
+        }
+
+        // key = col2, col3
+        // items = col2, stdev(col3)
+        std::vector<Expression*> groupKeys;
+        std::vector<Aggregate::GroupItem> groupItems;
+        auto expr = std::make_unique<InputPropertyExpression>(new std::string("col2"));
+        groupKeys.emplace_back(expr.get());
+        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        auto expr1 = std::make_unique<InputPropertyExpression>(new std::string("col3"));
+        groupKeys.emplace_back(expr1.get());
+        groupItems.emplace_back(std::make_pair(expr1.get(), kStd));
+        auto* plan = qctx_->plan();
+        auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys), std::move(groupItems));
+        agg->setInputVar(*input_);
+        agg->setColNames(std::vector<std::string>{"col2", "stdev"});
+
+        auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());
+        auto future = aggExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+        auto& result = qctx_->ectx()->getResult(agg->varName());
+        DataSet sortedDs = result.value().getDataSet();
+        std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());
+        EXPECT_EQ(sortedDs, expected);
+        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    }
+}
+
 TEST_F(AggregateTest, BitAnd) {
     {
+        // ===============
+        // | bit_and     |
+        // ---------------
+        // |     0       |
         DataSet expected;
         expected.colNames = {"bit_and"};
         Row row;
@@ -803,6 +1130,18 @@ TEST_F(AggregateTest, BitAnd) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ===============
+        // | bit_and     |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   1         |
+        // ---------------
+        // |   2         |
+        // ---------------
+        // |   3         |
+        // ---------------
+        // |   4         |
         DataSet expected;
         expected.colNames = {"bit_and"};
         for (auto i = 0; i < 5; ++i) {
@@ -834,6 +1173,19 @@ TEST_F(AggregateTest, BitAnd) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // =======================
+        // | col2 | bit_and      |
+        // -----------------------
+        // |  0   |   0          |
+        // -----------------------
+        // |  1   |   0          |
+        // -----------------------
+        // |  2   |   1          |
+        // -----------------------
+        // |  3   |   1          |
+        // -----------------------
+        // |  4   |   2          |
+        // -----------------------
         DataSet expected;
         expected.colNames = {"col2", "bit_and"};
         for (auto i = 0; i < 5; ++i) {
@@ -872,6 +1224,10 @@ TEST_F(AggregateTest, BitAnd) {
 
 TEST_F(AggregateTest, BitOr) {
     {
+        // ===============
+        // | bit_or      |
+        // ---------------
+        // |    15       |
         DataSet expected;
         expected.colNames = {"bit_or"};
         Row row;
@@ -898,6 +1254,18 @@ TEST_F(AggregateTest, BitOr) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ===============
+        // | bit_or      |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   1         |
+        // ---------------
+        // |   2         |
+        // ---------------
+        // |   3         |
+        // ---------------
+        // |   4         |
         DataSet expected;
         expected.colNames = {"bit_or"};
         for (auto i = 0; i < 5; ++i) {
@@ -929,6 +1297,19 @@ TEST_F(AggregateTest, BitOr) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // =======================
+        // | col2 | bit_or       |
+        // -----------------------
+        // |  0   |   0          |
+        // -----------------------
+        // |  1   |   0          |
+        // -----------------------
+        // |  2   |   1          |
+        // -----------------------
+        // |  3   |   1          |
+        // -----------------------
+        // |  4   |   2          |
+        // -----------------------
         DataSet expected;
         expected.colNames = {"col2", "bit_or"};
         for (auto i = 0; i < 5; ++i) {
@@ -967,6 +1348,10 @@ TEST_F(AggregateTest, BitOr) {
 
 TEST_F(AggregateTest, BitXor) {
     {
+        // ===============
+        // | bit_xor     |
+        // ---------------
+        // |    1        |
         DataSet expected;
         expected.colNames = {"bit_xor"};
         Row row;
@@ -993,6 +1378,18 @@ TEST_F(AggregateTest, BitXor) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // ===============
+        // | bit_xor     |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   0         |
+        // ---------------
+        // |   0         |
         DataSet expected;
         expected.colNames = {"bit_xor"};
         for (auto i = 0; i < 5; ++i) {
@@ -1024,6 +1421,19 @@ TEST_F(AggregateTest, BitXor) {
         EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
     }
     {
+        // =======================
+        // | col2 | bit_xor      |
+        // -----------------------
+        // |  0   |   0          |
+        // -----------------------
+        // |  1   |   0          |
+        // -----------------------
+        // |  2   |   0          |
+        // -----------------------
+        // |  3   |   0          |
+        // -----------------------
+        // |  4   |   0          |
+        // -----------------------
         DataSet expected;
         expected.colNames = {"col2", "bit_xor"};
         for (auto i = 0; i < 5; ++i) {
