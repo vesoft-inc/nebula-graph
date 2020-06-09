@@ -80,27 +80,12 @@ public:
 
     virtual ~UpdateBaseValidator() {}
 
-public:
-    bool getInsertable() const {
-        return insertable_;
-    }
-
-    const std::vector<std::string>& getReturnProps() const {
-        return returnProps_;
-    }
-
-    const std::vector<std::string>& getYieldProps() const {
-        return yieldProps_;
-    }
-
-    const std::string& getCondition() const {
-        return condition_;
-    }
-
 protected:
     void getCondition();
 
     void getReturnProps();
+
+    Status getUpdateProps();
 
 protected:
     UpdateBaseSentence                                 *sentence_{nullptr};
@@ -108,6 +93,7 @@ protected:
     std::vector<std::string>                            returnProps_;
     std::vector<std::string>                            yieldProps_;
     std::string                                         condition_;
+    std::vector<storage::cpp2::UpdatedProp>             updatedProps_;
 };
 
 class UpdateVertexValidator final : public UpdateBaseValidator {
@@ -144,12 +130,10 @@ public:
 =======
     Status toPlan() override;
 
-    Status getUpdateProps();
-
 private:
     UpdateVertexSentence                               *sentence_{nullptr};
     Expression*                                         vId_{nullptr};
-    std::vector<storage::cpp2::UpdatedVertexProp>       updatedProps_;
+    TagID                                               tagId_{-1};
 };
 
 class UpdateEdgeValidator final : public UpdateBaseValidator {
@@ -166,6 +150,7 @@ private:
     Status toPlan() override;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     Status checkInput();
 
     Status buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
@@ -178,14 +163,19 @@ private:
 =======
     Status getUpdateProps();
 
+=======
+>>>>>>> update expression
 private:
     UpdateEdgeSentence                               *sentence_{nullptr};
     Expression*                                       srcId_{nullptr};
     Expression*                                       dstId_{nullptr};
     int64_t                                           rank_{0};
     EdgeType                                          edgeType_{-1};
+<<<<<<< HEAD
     std::vector<storage::cpp2::UpdatedEdgeProp>       updatedProps_;
 >>>>>>> add update executor and test
+=======
+>>>>>>> update expression
 };
 }  // namespace graph
 }  // namespace nebula

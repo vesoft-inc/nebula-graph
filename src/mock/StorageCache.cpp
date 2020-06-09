@@ -209,6 +209,7 @@ StorageCache::getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> 
 StatusOr<DataSet> StorageCache::updateVertex(const storage::cpp2::UpdateVertexRequest &req) {
     auto spaceId = req.get_space_id();
     auto &vertex = req.get_vertex_id();
+    auto tagId = req.get_tag_id();
     auto updatedProps = req.get_updated_props();
     bool insertable = false;
     if (req.__isset.insertable) {
@@ -305,16 +306,14 @@ StorageCache::getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> 
             return dataSet;
         }
         auto vertexInfo = findVertex->second;
+        auto tagFind = vertexInfo.find(tagId);
+        if (tagFind == vertexInfo.end()) {
+            return Status::Error("Tag `%d' not found", tagId);
+        }
+        auto props = tagFind->second;
         for (auto &updatedProp : updatedProps) {
-            auto tagId = updatedProp.get_tag_id();
             auto prop = updatedProp.get_name();
             auto value = updatedProp.get_value();
-
-            auto tagFind = vertexInfo.find(tagId);
-            if (tagFind == vertexInfo.end()) {
-                return Status::Error("Tag `%d' not found", tagId);
-            }
-            auto props = tagFind->second;
             auto propFind = props.find(prop);
             if (propFind == props.end()) {
                 return Status::Error("Prop `%s' not found", prop.c_str());
@@ -331,34 +330,29 @@ StorageCache::getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> 
             std::vector<std::string> names;
             std::vector<Value> values;
         };
-        std::unordered_map<TagID, TagPropValue> tagsInfo;
+        TagPropValue tagInfo;
         for (auto &updatedProp : updatedProps) {
-            auto tagId = updatedProp.get_tag_id();
             auto name = updatedProp.get_name();
-            // TODO(Laura): get value expr value
+            // TODO(Laura): get value by expr
             auto value = updatedProp.get_value();
             auto findTag = tagsInfo.find(tagId);
             if (findTag != tagsInfo.end()) {
                 findTag->second.names.emplace_back(name);
                 findTag->second.values.emplace_back(value);
             } else {
-                TagPropValue tagPropValue;
-                tagPropValue.names.emplace_back(updatedProp.get_name());
-                tagPropValue.values.emplace_back(updatedProp.get_value());
-                tagsInfo[tagId] = tagPropValue;
+                tagInfo.names.emplace_back(updatedProp.get_name());
+                tagInfo.values.emplace_back(updatedProp.get_value());
             }
         }
 
         auto vertexInfo = &verticesInfo.vertices[vertex];
 
-        for (auto &tag : tagsInfo) {
-            auto ret = getTagWholeValue(spaceId, tag.first, tag.second.values, tag.second.names);
-            if (!ret.ok()) {
-                LOG(ERROR) << ret.status();
-                return ret.status();
-            }
-            (*vertexInfo)[tag.first] = std::move(ret).value();
+        auto ret = getTagWholeValue(spaceId, tagId, tagInfo.values, tagInfo.names);
+        if (!ret.ok()) {
+            LOG(ERROR) << ret.status();
+            return ret.status();
         }
+        (*vertexInfo)[tagId] = std::move(ret).value();
     }
     return dataSet;
 }

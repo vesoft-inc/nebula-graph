@@ -68,7 +68,7 @@ if("${NEBULA_COMMON_REPO_URL}" STREQUAL "")
 endif()
 
 if("${NEBULA_COMMON_REPO_TAG}" STREQUAL "")
-    SET(NEBULA_COMMON_REPO_TAG "fix_value")
+    SET(NEBULA_COMMON_REPO_TAG "update")
 endif()
 
 SET(NEBULA_COMMON_PACKAGE "nebula-common")

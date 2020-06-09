@@ -46,6 +46,7 @@ folly::Future<Status> UpdateVertexExecutor::execute() {
 folly::Future<Status> UpdateVertexExecutor::updateVertex() {
     dumpLog();
     auto *uvNode = asNode<UpdateVertex>(node());
+    // TODO: need to handle the vid from pipe or var
     auto vIdRet = SchemaUtil::toVertexID(uvNode->getVertex());
     if (!vIdRet.ok()) {
         return vIdRet.status();
@@ -54,6 +55,7 @@ folly::Future<Status> UpdateVertexExecutor::updateVertex() {
     yieldPros_ = uvNode->getYieldProps();
     return qctx()->getStorageClient()->updateVertex(uvNode->space(),
                                                     vertexId,
+                                                    uvNode->getTagId(),
                                                     uvNode->getUpdatedProps(),
                                                     uvNode->getInsertable(),
                                                     uvNode->getReturnProps(),

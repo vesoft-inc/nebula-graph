@@ -207,7 +207,8 @@ public:
                               PlanNode* input,
                               GraphSpaceID spaceId,
                               Expression* vId,
-                              std::vector<storage::cpp2::UpdatedVertexProp> updatedProps,
+                              TagID tagId,
+                              std::vector<storage::cpp2::UpdatedProp> updatedProps,
                               bool insertable,
                               std::vector<std::string> returnProps,
                               std::string condition,
@@ -216,6 +217,7 @@ public:
                                 input,
                                 spaceId,
                                 vId,
+                                tagId,
                                 updatedProps,
                                 insertable,
                                 returnProps,
@@ -231,7 +233,11 @@ public:
         return vId_;
     }
 
-    const std::vector<storage::cpp2::UpdatedVertexProp>& getUpdatedProps() const {
+    TagID getTagId() const {
+        return tagId_;
+    }
+
+    const std::vector<storage::cpp2::UpdatedProp>& getUpdatedProps() const {
         return updatedProps_;
     }
 
@@ -240,7 +246,8 @@ private:
                  PlanNode* input,
                  GraphSpaceID spaceId,
                  Expression* vId,
-                 std::vector<storage::cpp2::UpdatedVertexProp> updatedProps,
+                 TagID tagId,
+                 std::vector<storage::cpp2::UpdatedProp> updatedProps,
                  bool insertable,
                  std::vector<std::string> returnProps,
                  std::string condition,
@@ -254,11 +261,13 @@ private:
                      std::move(condition),
                      std::move(yieldProps))
         , vId_(vId)
+        , tagId_(tagId)
         , updatedProps_(std::move(updatedProps)) {}
 
 private:
     Expression*                                         vId_{nullptr};
-    std::vector<storage::cpp2::UpdatedVertexProp>       updatedProps_;
+    TagID                                               tagId_{-1};
+    std::vector<storage::cpp2::UpdatedProp>             updatedProps_;
 };
 
 class UpdateEdge final : public UpdateBase {
@@ -270,7 +279,7 @@ public:
                             Expression* dstId,
                             EdgeType edgeType,
                             int64_t rank,
-                            std::vector<storage::cpp2::UpdatedEdgeProp> updatedProps,
+                            std::vector<storage::cpp2::UpdatedProp> updatedProps,
                             bool insertable,
                             std::vector<std::string> returnProps,
                             std::string condition,
@@ -309,7 +318,7 @@ public:
         return edgeType_;
     }
 
-    const std::vector<storage::cpp2::UpdatedEdgeProp>& getUpdatedProps() const {
+    const std::vector<storage::cpp2::UpdatedProp>& getUpdatedProps() const {
         return updatedProps_;
     }
 
@@ -321,7 +330,7 @@ private:
                Expression* dstId,
                EdgeType edgeType,
                int64_t rank,
-               std::vector<storage::cpp2::UpdatedEdgeProp> updatedProps,
+               std::vector<storage::cpp2::UpdatedProp> updatedProps,
                bool insertable,
                std::vector<std::string> returnProps,
                std::string condition,
@@ -346,7 +355,7 @@ private:
     Expression*                                         dstId_{nullptr};
     EdgeType                                            edgeType_;
     int64_t                                             rank_;
-    std::vector<storage::cpp2::UpdatedEdgeProp>         updatedProps_;
+    std::vector<storage::cpp2::UpdatedProp>             updatedProps_;
 };
 
 class DeleteVertices final : public SingleInputNode {

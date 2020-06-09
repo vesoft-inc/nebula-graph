@@ -90,6 +90,10 @@ Status InsertVerticesValidator::prepareVertices() {
         if (propSize_ != row->values().size()) {
             return Status::Error("Wrong number of value");
         }
+        if (row->id() == nullptr || row->id()->kind() != Expression::Kind::kConstant) {
+            LOG(ERROR) << "Wrong vid type";
+            return Status::Error("Wrong vid type");
+        }
         auto idStatus = SchemaUtil::toVertexID(row->id());
         if (!idStatus.ok()) {
             return idStatus.status();
@@ -197,6 +201,18 @@ Status InsertEdgesValidator::prepareEdges() {;
         if (propNames_.size() != row->values().size()) {
             return Status::Error("Wrong number of value");
         }
+        if (row->srcid() == nullptr ||
+                row->srcid()->kind() != Expression::Kind::kConstant) {
+            LOG(ERROR) << "Wrong src vid type";
+            return Status::Error("Wrong src vid type");
+        }
+
+        if (row->dstid() == nullptr ||
+                row->dstid()->kind() != Expression::Kind::kConstant) {
+            LOG(ERROR) << "Wrong dst vid type";
+            return Status::Error("Wrong dst vid type");
+        }
+
         auto idStatus = SchemaUtil::toVertexID(row->srcid());
         if (!idStatus.ok()) {
             return idStatus.status();
@@ -495,44 +511,44 @@ void UpdateBaseValidator::getCondition() {
 }
 
 void UpdateBaseValidator::getReturnProps() {
-//    auto *clause = sentence_->yieldClause();
-//    if (clause != nullptr) {
-//        // TODO(Larua): get yieldclause
-//        auto *yields = clause->columns();
-//        for (auto *col : yields) {
-//            if (col->alias() == nullptr) {
-//                yieldProps_.emplace_back(col->expr()->toString());
-//            } else {
-//                yieldProps_.emplace_back(*col->alias());
-//            }
-//            auto column = Expression::encode(col->expr());
-//            returnProps_.emplace_back(std::move(column));
-//        }
-//    }
+    auto *clause = sentence_->yieldClause();
+    if (clause != nullptr) {
+        auto yields = clause->columns();
+        for (auto *col : yields) {
+            if (col->alias() == nullptr) {
+                yieldProps_.emplace_back(col->expr()->toString());
+            } else {
+                yieldProps_.emplace_back(*col->alias());
+            }
+            auto column = Expression::encode(*col->expr());
+            returnProps_.emplace_back(std::move(column));
+        }
+    }
 }
 
-Status UpdateVertexValidator::getUpdateProps() {
+Status UpdateBaseValidator::getUpdateProps() {
     auto status = Status::OK();
     auto items = sentence_->updateList()->items();
     for (auto& item : items) {
-        storage::cpp2::UpdatedVertexProp updatedProp;
+        storage::cpp2::UpdatedProp updatedProp;
+        auto field = item->getFieldName();
+        if (field == nullptr) {
+            LOG(ERROR) << "field is nullptr";
+            return Status::SyntaxError("Empty edge update item field name");
+        }
         auto fieldExpr = item->getFieldExpr();
-        // TODO(Laura): Check the kind of fieldExpr
-        if (fieldExpr == nullptr) {
-            LOG(ERROR) << "== fieldExpr is nullptr";
-            return Status::SyntaxError("Empty vertex update item field");
-        }
         // TODO(Laura): get tagName and prop name from AliasPropertyExpression
-        std::string tagName;
-        auto tagStatus = qctx_->schemaMng()->toTagID(
-                vctx_->whichSpace().id, tagName);
-        if (!tagStatus.ok()) {
-            LOG(ERROR) << "No schema found for " << tagName;
-            return Status::Error("No schema found for `%s'", tagName.c_str());
+        if (fieldExpr == nullptr) {
+            LOG(ERROR) << "fieldExpr is nullptr";
+            return Status::SyntaxError("Empty edge update item field value");
         }
-        updatedProp.set_tag_id(tagStatus.value());
-//        updatedProp.set_name(*expr->prop());
-//        updatedProp.set_value(prop->value().encode());
+
+        if (fieldExpr->kind() != Expression::Kind::kEdgeProperty) {
+            LOG(ERROR) << "fieldExpr type is not kEdgeProperty";
+            return Status::SyntaxError("Empty edge update item field value");
+        }
+        updatedProp.set_name(*field);
+        updatedProp.set_value(Expression::encode(*fieldExpr));
         updatedProps_.emplace_back(std::move(updatedProp));
     }
     return status;
@@ -543,11 +559,20 @@ Status UpdateVertexValidator::validateImpl() {
     insertable_ = sentence_->getInsertable();
     getCondition();
     getReturnProps();
-    auto status = getUpdateProps();
-    if (!status.ok()) {
-        return status;
-    }
-
+    Status status = Status::OK();
+    do {
+        status = getUpdateProps();
+        if (!status.ok()) {
+            break;
+        }
+        auto tagRet = qctx_->schemaMng()->toTagID(vctx_->whichSpace().id,
+                                             *sentence_->getTagName());
+        if (!tagRet.ok()) {
+            status = std::move(tagRet).status();
+            break;
+        }
+        tagId_ = tagRet.value();
+    } while (false);
     return status;
 }
 
@@ -558,6 +583,7 @@ Status UpdateVertexValidator::toPlan() {
                                       start,
                                       vctx_->whichSpace().id,
                                       vId_,
+                                      tagId_,
                                       updatedProps_,
                                       insertable_,
                                       returnProps_,
@@ -568,25 +594,6 @@ Status UpdateVertexValidator::toPlan() {
     return Status::OK();
 }
 
-Status UpdateEdgeValidator::getUpdateProps() {
-    auto status = Status::OK();
-    auto items = sentence_->updateList()->items();
-    for (auto& item : items) {
-        storage::cpp2::UpdatedEdgeProp updatedProp;
-        auto field = item->getFieldName();
-        // TODO(Laura): Check the kind of fieldExpr
-        if (field == nullptr) {
-            LOG(ERROR) << "== field is nullptr";
-            return Status::SyntaxError("Empty vertex update item field");
-        }
-        // TODO(Laura): get tagName and prop name from AliasPropertyExpression
-//         updatedProp.set_name("");
-//         updatedProp.set_value(prop->value().encode());
-//         updatedProps_.emplace_back(std::move(updatedProp));
-    }
-    return status;
-}
-
 Status UpdateEdgeValidator::validateImpl() {
     auto spaceId = vctx_->whichSpace().id;
     getCondition();
@@ -594,20 +601,22 @@ Status UpdateEdgeValidator::validateImpl() {
     srcId_ = sentence_->getSrcId();
     dstId_ = sentence_->getDstId();
     rank_ = sentence_->getRank();
+    Status status = Status::OK();
     do {
-        auto status = getUpdateProps();
+        status = getUpdateProps();
         if (!status.ok()) {
-            return status;
+            break;
         }
-        auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId,
-                                                        *sentence_->getEdgeName());
-        if (!edgeStatus.ok()) {
-            return edgeStatus.status();
+
+        auto edgeRet = qctx_->schemaMng()->toEdgeType(spaceId, *sentence_->getEdgeName());
+        if (!edgeRet.ok()) {
+            status = std::move(edgeRet).status();
+            break;
         }
-        edgeType_ = edgeStatus.value();
+        edgeType_ = edgeRet.value();
     } while (false);
 
-    return Status::OK();
+    return status;
 }
 
 Status UpdateEdgeValidator::toPlan() {

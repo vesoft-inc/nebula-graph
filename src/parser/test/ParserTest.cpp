@@ -740,49 +740,65 @@ TEST(Parser, InsertVertex) {
 TEST(Parser, UpdateVertex) {
     {
         GQLParser parser;
-        std::string query = "UPDATE VERTEX \"dutor\" "
-                            "SET person.name=\"dutor\", person.age=30, "
-                                "job.salary=10000, person.create_time=1551331999";
+        std::string query = "UPDATE VERTEX ON person \"12345\" "
+                            "SET name=\"dutor\", age=30;";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "UPDATE VERTEX \"dutor\" "
-                            "SET person.name=\"dutor\", person.age=$^.person.age + 1, "
-                                "person.married=true "
-                            "WHEN $^.job.salary > 10000 && $^.person.age > 30";
+        std::string query = "UPDATE VERTEX ON person \"12345\" "
+                            "SET name=\"dutor\", age=30 "
+                            "YIELD person.name AS Name, person.create_time AS Time";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "UPDATE VERTEX \"dutor\" "
-                            "SET person.name=\"dutor\", person.age=31, person.married=true, "
-                                "job.salary=1.1 * $^.person.create_time / 31536000 "
-                            "YIELD $^.person.name AS Name, job.name AS Title, "
-                                  "$^.job.salary AS Salary";
+        std::string query = "UPDATE VERTEX ON person \"1234\" "
+                            "SET name=\"dutor\", age=30, married=true "
+                            "WHEN person.age > 10000 && person.name== \"CTO\" || person.age < 30 ";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "UPDATE VERTEX \"dutor\" "
-                            "SET person.name=\"dutor\", person.age=30, person.married=true "
-                            "WHEN $^.job.salary > 10000 && $^.job.name == \"CTO\" || "
-                                  "$^.person.age < 30"
-                            "YIELD $^.person.name AS Name, $^.job.salary AS Salary, "
-                                  "$^.person.create_time AS Time";
+        std::string query = "UPDATE VERTEX ON person \"12345\" "
+                            "SET name=\"dutor\", age=30, married=true "
+                            "WHEN person.age > 10000 && person.name== \"CTO\" || person.age < 30 "
+                            "YIELD person.name AS Name, person.create_time AS Time";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "UPSERT VERTEX \"dutor\" "
-                            "SET person.name=\"dutor\", person.age = 30, job.name =\"CTO\" "
-                            "WHEN $^.job.salary > 10000 "
-                            "YIELD $^.person.name AS Name, $^.job.salary AS Salary, "
-                                  "$^.person.create_time AS Time";
+        std::string query = "UPSERT VERTEX ON person \"12345\" "
+                            "SET name=\"dutor\", age = 30 ";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "UPSERT VERTEX ON person \"12345\" "
+                            "SET name=\"dutor\", age = 30 "
+                            "YIELD person.name AS Name, person.create_time AS Time";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "UPSERT VERTEX ON person \"12345\" "
+                            "SET name=\"dutor\", age = 30 "
+                            "WHEN person.age > 10 ";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "UPSERT VERTEX ON person \"12345\" "
+                            "SET name=\"dutor\", age = 30 "
+                            "WHEN person.age > 10 "
+                            "YIELD person.name AS Name, person.create_time AS Time";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
@@ -861,14 +877,14 @@ TEST(Parser, InsertEdge) {
 TEST(Parser, UpdateEdge) {
     {
         GQLParser parser;
-        std::string query = "UPDATE EDGE \"12345\" -> \"54321\" OF transfer "
+        std::string query = "UPDATE EDGE ON transfer \"12345\" -> \"54321\""
                             "SET amount=3.14, time=1537408527";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "UPDATE EDGE \"12345\" -> \"54321\"@789 OF transfer "
+        std::string query = "UPDATE EDGE ON transfer \"12345\" -> \"54321\"@789"
                             "SET amount=3.14,time=1537408527 "
                             "WHEN transfer.amount > 3.14 && $^.person.name == \"dutor\"";
         auto result = parser.parse(query);
@@ -876,17 +892,16 @@ TEST(Parser, UpdateEdge) {
     }
     {
         GQLParser parser;
-        std::string query = "UPDATE EDGE \"12345\" -> \"54321\" OF transfer "
+        std::string query = "UPDATE EDGE ON transfer \"12345\" -> \"54321\" "
                             "SET amount = 3.14 + $^.job.salary, time = 1537408527 "
                             "WHEN transfer.amount > 3.14 || $^.job.salary >= 10000 "
-                            "YIELD transfer.amount, transfer.time AS Time, "
-                                "$^.person.name AS PayFrom";
+                            "YIELD transfer.amount, transfer.time AS Time";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "UPSERT EDGE \"12345\" -> \"54321\" @789 OF transfer "
+        std::string query = "UPSERT EDGE ON transfer \"12345\" -> \"54321\" @789 "
                             "SET amount=$^.job.salary + 3.14, time=1537408527 "
                             "WHEN transfer.amount > 3.14 && $^.job.salary >= 10000 "
                             "YIELD transfer.amount,transfer.time, $^.person.name AS Name";

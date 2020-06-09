@@ -401,6 +401,7 @@ protected:
 class UpdateVertexSentence final : public UpdateBaseSentence {
 public:
     UpdateVertexSentence(Expression *vid,
+                         std::string *tagName,
                          UpdateList *updateList,
                          WhenClause *whenClause,
                          YieldClause *yieldClause,
@@ -408,6 +409,7 @@ public:
         : UpdateBaseSentence(updateList, whenClause, yieldClause, isInsertable) {
         kind_ = Kind::kUpdateVertex;
         vid_.reset(vid);
+        tagName_.reset(tagName);
     }
 
     ~UpdateVertexSentence() {}
@@ -418,6 +420,10 @@ public:
 
     Expression* getVid() const {
         return vid_.get();
+    }
+
+    std::string* getTagName() const {
+        return tagName_.get();
     }
 
     const UpdateList* updateList() const {
@@ -436,6 +442,7 @@ public:
 
 private:
     std::unique_ptr<Expression>                 vid_;
+    std::unique_ptr<std::string>                tagName_;
 };
 
 

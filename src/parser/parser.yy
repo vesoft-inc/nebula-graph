@@ -186,8 +186,6 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <edge_row_item> edge_row_item
 %type <update_list> update_list
 %type <update_item> update_item
-%type <update_list> update_vertex_list
-%type <update_item> update_vertex_item
 %type <space_opt_list> space_opt_list
 %type <space_opt_item> space_opt_item
 %type <alter_schema_opt_list> alter_schema_opt_list
@@ -1494,35 +1492,6 @@ edge_row_item
 
 rank: unary_integer { $$ = $1; };
 
-update_vertex_list
-    : update_vertex_item {
-        $$ = new UpdateList();
-        $$->addItem($1);
-    }
-    | update_vertex_list COMMA update_vertex_item {
-        $$ = $1;
-        $$->addItem($3);
-    }
-    ;
-
-update_vertex_item
-    : alias_ref_expression ASSIGN expression {
-        $$ = new UpdateItem($1, $3);
-        delete $1;
-    }
-    ;
-
-update_vertex_sentence
-    : KW_UPDATE KW_VERTEX vid KW_SET update_vertex_list when_clause yield_clause {
-        auto sentence = new UpdateVertexSentence($3, $5, $6, $7);
-        $$ = sentence;
-    }
-    | KW_UPSERT KW_VERTEX vid KW_SET update_vertex_list when_clause yield_clause {
-        auto sentence = new UpdateVertexSentence($3, $5, $6, $7, true);
-        $$ = sentence;
-    }
-    ;
-
 update_list
     : update_item {
         $$ = new UpdateList();
@@ -1540,25 +1509,36 @@ update_item
     }
     ;
 
+update_vertex_sentence
+    : KW_UPDATE KW_VERTEX KW_ON name_label vid KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateVertexSentence($5, $4, $7, $8, $9);
+        $$ = sentence;
+    }
+    | KW_UPSERT KW_VERTEX KW_ON name_label vid KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateVertexSentence($5, $4, $7, $8, $9, true);
+        $$ = sentence;
+    }
+    ;
+
 update_edge_sentence
-    : KW_UPDATE KW_EDGE vid R_ARROW vid KW_OF name_label
+    : KW_UPDATE KW_EDGE KW_ON name_label vid R_ARROW vid
       KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateEdgeSentence($3, $5, 0, $7, $9, $10, $11);
+        auto sentence = new UpdateEdgeSentence($5, $7, 0, $4, $9, $10, $11);
         $$ = sentence;
     }
-    | KW_UPSERT KW_EDGE vid R_ARROW vid KW_OF name_label
+    | KW_UPSERT KW_EDGE KW_ON name_label vid R_ARROW vid
       KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateEdgeSentence($3, $5, 0, $7, $9, $10, $11, true);
+        auto sentence = new UpdateEdgeSentence($5, $7, 0, $4, $9, $10, $11, true);
         $$ = sentence;
     }
-    | KW_UPDATE KW_EDGE vid R_ARROW vid AT rank KW_OF name_label
+    | KW_UPDATE KW_EDGE KW_ON name_label vid R_ARROW vid AT rank
       KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateEdgeSentence($3, $5, $7, $9, $11, $12, $13);
+        auto sentence = new UpdateEdgeSentence($5, $7, $9, $4, $11, $12, $13);
         $$ = sentence;
     }
-    | KW_UPSERT KW_EDGE vid R_ARROW vid AT rank KW_OF name_label
+    | KW_UPSERT KW_EDGE KW_ON name_label vid R_ARROW vid AT rank
       KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateEdgeSentence($3, $5, $7, $9, $11, $12, $13, true);
+        auto sentence = new UpdateEdgeSentence($5, $7, $9, $4, $11, $12, $13, true);
         $$ = sentence;
     }
     ;
