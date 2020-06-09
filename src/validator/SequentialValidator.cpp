@@ -6,6 +6,8 @@
 
 #include "common/base/Base.h"
 #include "validator/SequentialValidator.h"
+#include "service/GraphFlags.h"
+#include "service/PermissionCheck.h"
 
 namespace nebula {
 namespace graph {
@@ -19,6 +21,16 @@ Status SequentialValidator::validateImpl() {
     auto seqSentence = static_cast<SequentialSentences*>(sentence_);
     auto sentences = seqSentence->sentences();
     for (auto* sentence : sentences) {
+        if (FLAGS_enable_authorize) {
+            auto *session = qctx_->rctx()->session();
+            /**
+             * Skip special operations check at here. they are :
+             * kUse, kDescribeSpace, kRevoke and kGrant.
+             */
+            if (!PermissionCheck::permissionCheck(DCHECK_NOTNULL(session), sentence)) {
+                return Status::PermissionError("Permission denied");
+            }
+        }
         auto validator = makeValidator(sentence, qctx_);
         status = validator->validate();
         if (!status.ok()) {

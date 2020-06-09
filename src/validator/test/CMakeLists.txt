@@ -14,6 +14,7 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:schedule_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
+    $<TARGET_OBJECTS:graph_auth_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_network_obj>
     $<TARGET_OBJECTS:common_fs_obj>

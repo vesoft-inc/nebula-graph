@@ -19,9 +19,9 @@ namespace graph {
 class ValidatorTest : public ::testing::Test {
 public:
     static void SetUpTestCase() {
-        auto session = new ClientSession(0);
+        auto session = Session::create(0);
         session->setSpace("test", 0);
-        session_.reset(session);
+        session_ = session;
         // TODO: Need AdHocSchemaManager here.
     }
 
@@ -34,10 +34,10 @@ public:
     std::unique_ptr<QueryContext> buildContext();
 
 protected:
-    static std::shared_ptr<ClientSession>      session_;
+    static std::shared_ptr<Session>            session_;
     static meta::SchemaManager*                schemaMng_;
 };
-std::shared_ptr<ClientSession> ValidatorTest::session_;
+std::shared_ptr<Session> ValidatorTest::session_;
 meta::SchemaManager* ValidatorTest::schemaMng_;
 
 std::unique_ptr<QueryContext> ValidatorTest::buildContext() {
