@@ -5,7 +5,8 @@
 
 nebula_add_test(
     NAME query_test
-    SOURCES UnionExecutorTest.cpp
+    SOURCES
+        UnionExecutorTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:common_expression_obj>
         $<TARGET_OBJECTS:common_network_obj>

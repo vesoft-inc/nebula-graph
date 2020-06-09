@@ -32,7 +32,7 @@ public:
 
     virtual ~Executor() {}
 
-    // Each executor inherited from the Executor should get input values from ExecutionContext,
+    // Each executor inherited from this class should get input values from ExecutionContext,
     // execute expression evaluation and save output result back to ExecutionContext after
     // computation
     virtual folly::Future<Status> execute() = 0;

@@ -62,6 +62,7 @@ TEST_F(UnionExecutorTest, TestBase) {
     EXPECT_EQ(result.type(), Value::Type::DATASET);
     auto resultDS = result.moveDataSet();
     EXPECT_EQ(resultDS.colNames, colNames);
+    EXPECT_EQ(resultDS.rowSize(), ds[0].rowSize() + ds[1].rowSize());
 
     for (size_t i = 0; i < 2; ++i) {
         for (size_t j = 0; j < ds[i].rowSize(); ++j) {
@@ -80,5 +81,48 @@ TEST_F(UnionExecutorTest, TestBase) {
     }
 }
 
+TEST_F(UnionExecutorTest, TestDifferentColumns) {
+    auto left = StartNode::make(plan_);
+    auto right = StartNode::make(plan_);
+    auto unionNode = Union::make(plan_, left, right);
+
+    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
+
+    DataSet lds;
+    lds.colNames = {"col1"};
+    DataSet rds;
+    rds.colNames = {"col1", "col2"};
+
+    // Must save the values after constructing executors
+    qctx_->ectx()->setValue(left->varName(), Value(lds));
+    qctx_->ectx()->setValue(right->varName(), Value(rds));
+    auto future = unionExecutor->execute();
+    auto status = std::move(future).get();
+
+    EXPECT_EQ(status.toString(),
+              "The data sets to union have different columns: <col1> vs. <col1,col2>");
+}
+
+TEST_F(UnionExecutorTest, TestDifferentValueType) {
+    auto left = StartNode::make(plan_);
+    auto right = StartNode::make(plan_);
+    auto unionNode = Union::make(plan_, left, right);
+
+    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
+
+    List lst;
+    DataSet rds;
+
+    // Must save the values after constructing executors
+    qctx_->ectx()->setValue(left->varName(), Value(lst));
+    qctx_->ectx()->setValue(right->varName(), Value(rds));
+    auto future = unionExecutor->execute();
+    auto status = std::move(future).get();
+
+    EXPECT_EQ(status.toString(),
+              folly::stringPrintf("Invalid data types of dependencies: %d vs. %d.",
+                                  static_cast<uint8_t>(Value::Type::LIST),
+                                  static_cast<uint8_t>(Value::Type::DATASET)));
+}
 }   // namespace graph
 }   // namespace nebula

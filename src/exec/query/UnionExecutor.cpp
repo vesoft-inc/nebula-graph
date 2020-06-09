@@ -6,6 +6,8 @@
 
 #include "exec/query/UnionExecutor.h"
 
+#include <folly/String.h>
+
 #include "context/ExecutionContext.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
@@ -22,13 +24,22 @@ folly::Future<Status> UnionExecutor::execute() {
     auto leftData = ectx_->getValue(left->varName());
     auto rightData = ectx_->getValue(right->varName());
 
-    DCHECK_EQ(leftData.type(), Value::Type::DATASET);
-    DCHECK_EQ(rightData.type(), Value::Type::DATASET);
+    if (leftData.type() != Value::Type::DATASET || rightData.type() != Value::Type::DATASET) {
+        return Status::Error("Invalid data types of dependencies: %d vs. %d.",
+                             static_cast<uint8_t>(leftData.type()),
+                             static_cast<uint8_t>(rightData.type()));
+    }
 
     auto lds = leftData.getDataSet();
     auto rds = rightData.getDataSet();
 
-    DCHECK(lds.colNames == rds.colNames);
+    if (!(lds.colNames == rds.colNames)) {
+        auto lcols = folly::join(",", lds.colNames.begin(), lds.colNames.end());
+        auto rcols = folly::join(",", rds.colNames.begin(), rds.colNames.end());
+        return Status::Error("The data sets to union have different columns: <%s> vs. <%s>",
+                             lcols.c_str(),
+                             rcols.c_str());
+    }
 
     DataSet ds(lds);
     ds.rows.reserve(lds.rowSize() + rds.rowSize());
