@@ -76,7 +76,7 @@ struct RowCmp {
     }
 };
 
-#define TEST_AGG_1(FUN)                                                     \
+#define TEST_AGG_1(FUN, COL)                                                \
     std::vector<Expression*> groupKeys;                                     \
     std::vector<Aggregate::GroupItem> groupItems;                           \
     auto expr =                                                             \
@@ -86,7 +86,7 @@ struct RowCmp {
     auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys),        \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
-    agg->setColNames(std::vector<std::string>{FUN});                        \
+    agg->setColNames(std::vector<std::string>{COL});                        \
                                                                             \
     auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());    \
     auto future = aggExe->execute();                                        \
@@ -96,7 +96,7 @@ struct RowCmp {
     EXPECT_EQ(result.value().getDataSet(), expected);                       \
     EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
 
-#define TEST_AGG_2(FUN)                                                     \
+#define TEST_AGG_2(FUN, COL)                                                \
     std::vector<Expression*> groupKeys;                                     \
     std::vector<Aggregate::GroupItem> groupItems;                           \
     auto expr =                                                             \
@@ -107,7 +107,7 @@ struct RowCmp {
     auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys),        \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
-    agg->setColNames(std::vector<std::string>{FUN});                        \
+    agg->setColNames(std::vector<std::string>{COL});                        \
                                                                             \
     auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());    \
     auto future = aggExe->execute();                                        \
@@ -119,13 +119,14 @@ struct RowCmp {
     EXPECT_EQ(sortedDs, expected);                                          \
     EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
 
-#define TEST_AGG_3(FUN)                                                     \
+#define TEST_AGG_3(FUN, COL)                                                \
     std::vector<Expression*> groupKeys;                                     \
     std::vector<Aggregate::GroupItem> groupItems;                           \
     auto expr =                                                             \
         std::make_unique<InputPropertyExpression>(new std::string("col2")); \
     groupKeys.emplace_back(expr.get());                                     \
-    groupItems.emplace_back(std::make_pair(expr.get(), ""));                \
+    groupItems.emplace_back(                                                \
+        std::make_pair(expr.get(), AggFun::Function::kNone));               \
     auto expr1 =                                                            \
         std::make_unique<InputPropertyExpression>(new std::string("col3")); \
     groupKeys.emplace_back(expr1.get());                                    \
@@ -134,7 +135,7 @@ struct RowCmp {
     auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys),        \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
-    agg->setColNames(std::vector<std::string>{"col2", FUN});                \
+    agg->setColNames(std::vector<std::string>{"col2", COL});                \
                                                                             \
     auto aggExe = std::make_unique<AggregateExecutor>(agg, qctx_.get());    \
     auto future = aggExe->execute();                                        \
@@ -162,7 +163,7 @@ TEST_F(AggregateTest, Group) {
         // |  4   |
         // --------
         DataSet expected;
-        expected.colNames = {""};
+        expected.colNames = {"col2"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -171,7 +172,7 @@ TEST_F(AggregateTest, Group) {
 
         // key = col2
         // items = col2
-        TEST_AGG_2("")
+        TEST_AGG_2(AggFun::Function::kNone, "col2")
     }
     {
         // ===============
@@ -188,7 +189,7 @@ TEST_F(AggregateTest, Group) {
         // |  4   |  2   |
         // ---------------
         DataSet expected;
-        expected.colNames = {"col2", ""};
+        expected.colNames = {"col2", "col3"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -198,7 +199,7 @@ TEST_F(AggregateTest, Group) {
 
         // key = col2, col3
         // items = col2, col3
-        TEST_AGG_3("")
+        TEST_AGG_3(AggFun::Function::kNone, "col3")
     }
 }
 
@@ -210,7 +211,7 @@ TEST_F(AggregateTest, Collect) {
         // | [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]   |
         // ------------------------------------
         DataSet expected;
-        expected.colNames = {kCollect};
+        expected.colNames = {"list"};
         Row row;
         List list;
         for (auto i = 0; i < 10; ++i) {
@@ -221,7 +222,7 @@ TEST_F(AggregateTest, Collect) {
 
         // key =
         // items = collect(col1)
-        TEST_AGG_1(kCollect)
+        TEST_AGG_1(AggFun::Function::kCollect, "list")
     }
     {
         // ========
@@ -264,7 +265,8 @@ TEST_F(AggregateTest, Collect) {
         auto expr =
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
         groupKeys.emplace_back(expr.get());
-        groupItems.emplace_back(std::make_pair(expr.get(), kCollect));
+        groupItems.emplace_back(
+            std::make_pair(expr.get(), AggFun::Function::kCollect));
         auto* plan = qctx_->plan();
         auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys),
                                     std::move(groupItems));
@@ -325,10 +327,11 @@ TEST_F(AggregateTest, Collect) {
         auto expr =
             std::make_unique<InputPropertyExpression>(new std::string("col2"));
         groupKeys.emplace_back(expr.get());
-        groupItems.emplace_back(std::make_pair(expr.get(), ""));
+        groupItems.emplace_back(std::make_pair(expr.get(), AggFun::Function::kNone));
         auto expr1 =
             std::make_unique<InputPropertyExpression>(new std::string("col3"));
-        groupItems.emplace_back(std::make_pair(expr1.get(), kCollect));
+        groupItems.emplace_back(
+            std::make_pair(expr1.get(), AggFun::Function::kCollect));
         auto* plan = qctx_->plan();
         auto* agg = Aggregate::make(plan, nullptr, std::move(groupKeys),
                                     std::move(groupItems));
@@ -366,14 +369,14 @@ TEST_F(AggregateTest, Count) {
         // --------
         // | 10   |
         DataSet expected;
-        expected.colNames = {kCount};
+        expected.colNames = {"count"};
         Row row;
         row.emplace_back(10);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = count(col1)
-        TEST_AGG_1(kCount)
+        TEST_AGG_1(AggFun::Function::kCount, "count")
     }
     {
         // ========
@@ -389,7 +392,7 @@ TEST_F(AggregateTest, Count) {
         // --------
         // |   2  |
         DataSet expected;
-        expected.colNames = {kCount};
+        expected.colNames = {"count"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(2);
@@ -398,7 +401,7 @@ TEST_F(AggregateTest, Count) {
 
         // key = col2
         // items = count(col2)
-        TEST_AGG_2(kCount)
+        TEST_AGG_2(AggFun::Function::kCount, "count")
     }
     {
         // ================
@@ -415,7 +418,7 @@ TEST_F(AggregateTest, Count) {
         // |  4   |   2   |
         // ----------------
         DataSet expected;
-        expected.colNames = {"col2", kCount};
+        expected.colNames = {"col2", "count"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -425,7 +428,7 @@ TEST_F(AggregateTest, Count) {
 
         // key = col3, col2
         // items = col3, count(col2)
-        TEST_AGG_3(kCount)
+        TEST_AGG_3(AggFun::Function::kCount, "count")
     }
 }
 
@@ -436,14 +439,14 @@ TEST_F(AggregateTest, Sum) {
         // --------
         // | 45   |
         DataSet expected;
-        expected.colNames = {kSum};
+        expected.colNames = {"sum"};
         Row row;
         row.emplace_back(45);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = sum(col1)
-        TEST_AGG_1(kSum)
+        TEST_AGG_1(AggFun::Function::kSum, "sum")
     }
     {
         // ========
@@ -459,7 +462,7 @@ TEST_F(AggregateTest, Sum) {
         // --------
         // |   16 |
         DataSet expected;
-        expected.colNames = {kSum};
+        expected.colNames = {"sum"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(2 * i);
@@ -468,7 +471,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key = col2
         // items = sum(col2)
-        TEST_AGG_2(kSum)
+        TEST_AGG_2(AggFun::Function::kSum, "sum")
     }
     {
         // ================
@@ -485,7 +488,7 @@ TEST_F(AggregateTest, Sum) {
         // |  4   |   4   |
         // ----------------
         DataSet expected;
-        expected.colNames = {"col2", kSum};
+        expected.colNames = {"col2", "sum"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -495,7 +498,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key = col2, col3
         // items = col2, sum(col3)
-        TEST_AGG_3(kSum)
+        TEST_AGG_3(AggFun::Function::kSum, "sum")
     }
 }
 
@@ -506,14 +509,14 @@ TEST_F(AggregateTest, Avg) {
         // --------
         // | 4.5  |
         DataSet expected;
-        expected.colNames = {kAvg};
+        expected.colNames = {"avg"};
         Row row;
         row.emplace_back(4.5);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = avg(col1)
-        TEST_AGG_1(kAvg)
+        TEST_AGG_1(AggFun::Function::kAvg, "avg")
     }
     {
         // ========
@@ -529,7 +532,7 @@ TEST_F(AggregateTest, Avg) {
         // --------
         // |   4  |
         DataSet expected;
-        expected.colNames = {kAvg};
+        expected.colNames = {"avg"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -538,7 +541,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key = col2
         // items = avg(col2)
-        TEST_AGG_2(kAvg)
+        TEST_AGG_2(AggFun::Function::kAvg, "avg")
     }
     {
         // ================
@@ -555,7 +558,7 @@ TEST_F(AggregateTest, Avg) {
         // |  4   |   2   |
         // ----------------
         DataSet expected;
-        expected.colNames = {"col2", kAvg};
+        expected.colNames = {"col2", "avg"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -565,7 +568,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key = col2, col3
         // items = col2, sum(col3)
-        TEST_AGG_3(kAvg)
+        TEST_AGG_3(AggFun::Function::kAvg, "avg")
     }
 }
 
@@ -576,14 +579,14 @@ TEST_F(AggregateTest, CountDistinct) {
         // ---------------
         // |    10       |
         DataSet expected;
-        expected.colNames = {kCountDist};
+        expected.colNames = {"count_dist"};
         Row row;
         row.emplace_back(10);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = count_dist(col1)
-        TEST_AGG_1(kCountDist)
+        TEST_AGG_1(AggFun::Function::kCountDist, "count_dist")
     }
     {
         // ===============
@@ -599,7 +602,7 @@ TEST_F(AggregateTest, CountDistinct) {
         // ---------------
         // |   1         |
         DataSet expected;
-        expected.colNames = {kCountDist};
+        expected.colNames = {"count_dist"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(1);
@@ -608,7 +611,7 @@ TEST_F(AggregateTest, CountDistinct) {
 
         // key = col2
         // items = count_dist(col2)
-        TEST_AGG_2(kCountDist)
+        TEST_AGG_2(AggFun::Function::kCountDist, "count_dist")
     }
     {
         // =======================
@@ -625,7 +628,7 @@ TEST_F(AggregateTest, CountDistinct) {
         // |  4   |   1          |
         // -----------------------
         DataSet expected;
-        expected.colNames = {"col2", kCountDist};
+        expected.colNames = {"col2", "count_dist"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -635,7 +638,7 @@ TEST_F(AggregateTest, CountDistinct) {
 
         // key = col2, col3
         // items = col2, count_dist(col3)
-        TEST_AGG_3(kCountDist)
+        TEST_AGG_3(AggFun::Function::kCountDist, "count_dist")
     }
 }
 
@@ -646,14 +649,14 @@ TEST_F(AggregateTest, Max) {
         // --------
         // | 10   |
         DataSet expected;
-        expected.colNames = {kMax};
+        expected.colNames = {"max"};
         Row row;
         row.emplace_back(9);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = max(col1)
-        TEST_AGG_1(kMax)
+        TEST_AGG_1(AggFun::Function::kMax, "max")
     }
     {
         // ================
@@ -670,7 +673,7 @@ TEST_F(AggregateTest, Max) {
         // |  4   |   2   |
         // ----------------
         DataSet expected;
-        expected.colNames = {"col2", kMax};
+        expected.colNames = {"col2", "max"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -680,7 +683,7 @@ TEST_F(AggregateTest, Max) {
 
         // key = col2, col3
         // items = col2, max(col3)
-        TEST_AGG_3(kMax)
+        TEST_AGG_3(AggFun::Function::kMax, "max")
     }
 }
 
@@ -691,14 +694,14 @@ TEST_F(AggregateTest, Min) {
         // --------
         // | 10   |
         DataSet expected;
-        expected.colNames = {kMin};
+        expected.colNames = {"min"};
         Row row;
         row.emplace_back(0);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = min(col1)
-        TEST_AGG_1(kMin)
+        TEST_AGG_1(AggFun::Function::kMin, "min")
     }
     {
         // ================
@@ -715,7 +718,7 @@ TEST_F(AggregateTest, Min) {
         // |  4   |   2   |
         // ----------------
         DataSet expected;
-        expected.colNames = {"col2", kMin};
+        expected.colNames = {"col2", "min"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -725,7 +728,7 @@ TEST_F(AggregateTest, Min) {
 
         // key = col2, col3
         // items = col2, min(col3)
-        TEST_AGG_3(kMin)
+        TEST_AGG_3(AggFun::Function::kMin, "min")
     }
 }
 
@@ -736,14 +739,14 @@ TEST_F(AggregateTest, Stdev) {
         // ---------------
         // |2.87228132327|
         DataSet expected;
-        expected.colNames = {kStd};
+        expected.colNames = {"stdev"};
         Row row;
         row.emplace_back(2.87228132327);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = stdev(col1)
-        TEST_AGG_1(kStd)
+        TEST_AGG_1(AggFun::Function::kStdev, "stdev")
     }
     {
         // ===============
@@ -759,7 +762,7 @@ TEST_F(AggregateTest, Stdev) {
         // ---------------
         // |   0         |
         DataSet expected;
-        expected.colNames = {kStd};
+        expected.colNames = {"stdev"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(0);
@@ -768,7 +771,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key = col2
         // items = stdev(col2)
-        TEST_AGG_2(kStd)
+        TEST_AGG_2(AggFun::Function::kStdev, "stdev")
     }
     {
         // =======================
@@ -785,7 +788,7 @@ TEST_F(AggregateTest, Stdev) {
         // |  4   |   0          |
         // -----------------------
         DataSet expected;
-        expected.colNames = {"col2", kStd};
+        expected.colNames = {"col2", "stdev"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -795,7 +798,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key = col2, col3
         // items = col2, stdev(col3)
-        TEST_AGG_3(kStd)
+        TEST_AGG_3(AggFun::Function::kStdev, "stdev")
     }
 }
 
@@ -806,14 +809,14 @@ TEST_F(AggregateTest, BitAnd) {
         // ---------------
         // |     0       |
         DataSet expected;
-        expected.colNames = {kBitAnd};
+        expected.colNames = {"bit_and"};
         Row row;
         row.emplace_back(0);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = bit_and(col1)
-        TEST_AGG_1(kBitAnd)
+        TEST_AGG_1(AggFun::Function::kBitAnd, "bit_and")
     }
     {
         // ===============
@@ -829,7 +832,7 @@ TEST_F(AggregateTest, BitAnd) {
         // ---------------
         // |   4         |
         DataSet expected;
-        expected.colNames = {kBitAnd};
+        expected.colNames = {"bit_and"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -838,7 +841,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key = col2
         // items = bit_and(col2)
-        TEST_AGG_2(kBitAnd)
+        TEST_AGG_2(AggFun::Function::kBitAnd, "bit_and")
     }
     {
         // =======================
@@ -855,7 +858,7 @@ TEST_F(AggregateTest, BitAnd) {
         // |  4   |   2          |
         // -----------------------
         DataSet expected;
-        expected.colNames = {"col2", kBitAnd};
+        expected.colNames = {"col2", "bit_and"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -865,7 +868,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key = col2, col3
         // items = col2, bit_and(col3)
-        TEST_AGG_3(kBitAnd)
+        TEST_AGG_3(AggFun::Function::kBitAnd, "bit_and")
     }
 }
 
@@ -876,14 +879,14 @@ TEST_F(AggregateTest, BitOr) {
         // ---------------
         // |    15       |
         DataSet expected;
-        expected.colNames = {kBitOr};
+        expected.colNames = {"bit_or"};
         Row row;
         row.emplace_back(15);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = bit_or(col1)
-        TEST_AGG_1(kBitOr)
+        TEST_AGG_1(AggFun::Function::kBitOr, "bit_or")
     }
     {
         // ===============
@@ -899,7 +902,7 @@ TEST_F(AggregateTest, BitOr) {
         // ---------------
         // |   4         |
         DataSet expected;
-        expected.colNames = {kBitOr};
+        expected.colNames = {"bit_or"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -908,7 +911,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key = col2
         // items = bit_or(col2)
-        TEST_AGG_2(kBitOr)
+        TEST_AGG_2(AggFun::Function::kBitOr, "bit_or")
     }
     {
         // =======================
@@ -925,7 +928,7 @@ TEST_F(AggregateTest, BitOr) {
         // |  4   |   2          |
         // -----------------------
         DataSet expected;
-        expected.colNames = {"col2", kBitOr};
+        expected.colNames = {"col2", "bit_or"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -935,7 +938,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key = col2, col3
         // items = col2, bit_or(col3)
-        TEST_AGG_3(kBitOr)
+        TEST_AGG_3(AggFun::Function::kBitOr, "bit_or")
     }
 }
 
@@ -946,14 +949,14 @@ TEST_F(AggregateTest, BitXor) {
         // ---------------
         // |    1        |
         DataSet expected;
-        expected.colNames = {kBitXor};
+        expected.colNames = {"bit_xor"};
         Row row;
         row.emplace_back(1);
         expected.rows.emplace_back(std::move(row));
 
         // key =
         // items = bit_xor(col1)
-        TEST_AGG_1(kBitXor)
+        TEST_AGG_1(AggFun::Function::kBitXor, "bit_xor")
     }
     {
         // ===============
@@ -969,7 +972,7 @@ TEST_F(AggregateTest, BitXor) {
         // ---------------
         // |   0         |
         DataSet expected;
-        expected.colNames = {kBitXor};
+        expected.colNames = {"bit_xor"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(0);
@@ -978,7 +981,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key = col2
         // items = bit_xor(col2)
-        TEST_AGG_2(kBitXor)
+        TEST_AGG_2(AggFun::Function::kBitXor, "bit_xor")
     }
     {
         // =======================
@@ -995,7 +998,7 @@ TEST_F(AggregateTest, BitXor) {
         // |  4   |   0          |
         // -----------------------
         DataSet expected;
-        expected.colNames = {"col2", kBitXor};
+        expected.colNames = {"col2", "bit_xor"};
         for (auto i = 0; i < 5; ++i) {
             Row row;
             row.columns.emplace_back(i);
@@ -1005,7 +1008,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key = col2, col3
         // items = col2, bit_xor(col3)
-        TEST_AGG_3(kBitXor)
+        TEST_AGG_3(AggFun::Function::kBitXor, "bit_xor")
     }
 }
 }  // namespace graph

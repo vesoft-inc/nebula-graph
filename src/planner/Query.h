@@ -654,7 +654,7 @@ private:
  */
 class Aggregate : public SingleInputNode {
 public:
-    using GroupItem = std::pair<Expression*, std::string>;
+    using GroupItem = std::pair<Expression*, AggFun::Function>;
     static Aggregate* make(ExecutionPlan* plan,
                            PlanNode* input,
                            std::vector<Expression*>&& groupKeys,

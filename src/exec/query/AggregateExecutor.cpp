@@ -25,7 +25,7 @@ folly::Future<Status> AggregateExecutor::execute() {
     DCHECK(!!iter);
     ExpressionContextImpl ctx(ectx_, iter.get());
 
-    std::unordered_map<List, std::vector<std::shared_ptr<AggFun>>> result;
+    std::unordered_map<List, std::vector<std::unique_ptr<AggFun>>> result;
     for (; iter->valid(); iter->next()) {
         List list;
         for (auto& key : groupKeys) {
@@ -34,12 +34,12 @@ folly::Future<Status> AggregateExecutor::execute() {
 
         auto it = result.find(list);
         if (it == result.end()) {
-            std::vector<std::shared_ptr<AggFun>> funs;
+            std::vector<std::unique_ptr<AggFun>> funs;
             for (auto& item : groupItems) {
                 auto fun = AggFun::aggFunMap_[item.second]();
-                funs.emplace_back(fun);
                 auto& v = item.first->eval(ctx);
                 fun->apply(v);
+                funs.emplace_back(std::move(fun));
             }
             result.emplace(std::make_pair(std::move(list), std::move(funs)));
         } else {
