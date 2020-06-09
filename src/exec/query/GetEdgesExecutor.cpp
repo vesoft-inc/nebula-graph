@@ -40,18 +40,20 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
         // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
-        auto valueIter = std::make_unique<SequentialIter>(getSingleInputValue());
-        auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
-        auto src = ge->src()->eval(expCtx);
-        auto ranking = ge->ranking()->eval(expCtx);
-        auto dst = ge->dst()->eval(expCtx);
-        // merge to one table | $a | $b | $c |
-        auto srcT = src.mutableDataSet();
-        srcT.merge(_TYPE, Value(ge->type()));  // type
-        srcT.merge(std::move(ranking.mutableDataSet()));
-        srcT.merge(std::move(dst.mutableDataSet()));
-        srcT.colNames = edges.colNames;
-        edges.append(std::move(srcT));
+        auto valueIter = SequentialIter(getSingleInputValue());
+        auto expCtx = ExpressionContextImpl(qctx()->ectx(), &valueIter);
+        for (; valueIter.valid(); valueIter.next()) {
+            auto src = ge->src()->eval(expCtx);
+            auto ranking = ge->ranking()->eval(expCtx);
+            auto dst = ge->dst()->eval(expCtx);
+            if (!src.isStr() || !ranking.isInt() || !dst.isStr()) {
+                LOG(ERROR) << "Mismatched edge key type";
+                return Status::Error("Mismatched edge key type");
+            }
+            edges.emplace_back(Row({
+                std::move(src), ge->type(), std::move(ranking), std::move(dst)
+            }));
+        }
     }
     return client
         ->getProps(ge->space(),

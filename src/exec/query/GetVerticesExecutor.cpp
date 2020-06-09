@@ -44,13 +44,18 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     }
     if (gv->src() != nullptr) {
         // Accept Table such as | $a | $b | $c |... as input which one column indicate src
-        auto valueIter = std::make_unique<SequentialIter>(getSingleInputValue());
-        auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
-        auto src = gv->src()->eval(expCtx);
-        // a table such as |$exp|
-        DataSet &input = src.mutableDataSet();
-        input.colNames = vertices.colNames;
-        vertices.append(std::move(input));
+        auto valueIter = SequentialIter(getSingleInputValue());
+        auto expCtx = ExpressionContextImpl(qctx()->ectx(), &valueIter);
+        for (; valueIter.valid(); valueIter.next()) {
+            auto src = gv->src()->eval(expCtx);
+            if (src.isStr()) {
+                LOG(ERROR) << "Mismatched vid type.";
+                return Status::Error("Mismatched vid type.");
+            }
+            vertices.emplace_back(Row({
+                std::move(src)
+            }));
+        }
     }
     return storageClient
         ->getProps(gv->space(),
