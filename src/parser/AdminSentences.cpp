@@ -171,7 +171,7 @@ meta::cpp2::AdminJobOp AdminJobSentence::getType() const {
     return op_;
 }
 
-std::vector<std::string> AdminJobSentence::getParas() const {
+const std::vector<std::string> &AdminJobSentence::getParas() const {
     return paras_;
 }
 

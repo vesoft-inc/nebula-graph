@@ -465,7 +465,7 @@ public:
     void addPara(const std::string& para);
     std::string toString() const override;
     meta::cpp2::AdminJobOp getType() const;
-    std::vector<std::string> getParas() const;
+    const std::vector<std::string> &getParas() const;
 
 private:
     meta::cpp2::AdminJobOp   op_;
