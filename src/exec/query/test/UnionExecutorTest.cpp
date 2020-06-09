@@ -9,7 +9,6 @@
 #include <memory>
 
 #include <folly/String.h>
-#include <folly/init/Init.h>
 #include <gtest/gtest.h>
 
 #include "context/ExecutionContext.h"
@@ -52,9 +51,10 @@ TEST_F(UnionExecutorTest, TestBase) {
     auto right = StartNode::make(plan_);
     auto unionNode = Union::make(plan_, left, right);
 
+    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
+    // Must save the values after constructing executors
     qctx_->ectx()->setValue(left->varName(), Value(ds[0]));
     qctx_->ectx()->setValue(right->varName(), Value(ds[1]));
-    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
     auto future = unionExecutor->execute();
     EXPECT_TRUE(std::move(future).get().ok());
 
@@ -68,7 +68,7 @@ TEST_F(UnionExecutorTest, TestBase) {
             auto col1 = stringPrintf("ds%lur%lu", i, j);
             bool found = false;
             for (size_t k = 0; k < resultDS.rowSize(); ++k) {
-                auto &columns = resultDS.rows[k].columns;
+                auto& columns = resultDS.rows[k].columns;
                 EXPECT_EQ(columns.size(), 2);
                 if (columns[0] == col1 && columns[1] == static_cast<int64_t>(j)) {
                     found = true;
@@ -82,10 +82,3 @@ TEST_F(UnionExecutorTest, TestBase) {
 
 }   // namespace graph
 }   // namespace nebula
-
-int main(int argc, char** argv) {
-    testing::InitGoogleTest(&argc, argv);
-    folly::init(&argc, &argv, true);
-    google::SetStderrLogging(google::INFO);
-    return RUN_ALL_TESTS();
-}

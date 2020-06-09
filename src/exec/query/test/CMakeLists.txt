@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 nebula_add_test(
-    NAME union_test
+    NAME query_test
     SOURCES UnionExecutorTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:common_expression_obj>

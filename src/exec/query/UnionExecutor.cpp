@@ -25,8 +25,8 @@ folly::Future<Status> UnionExecutor::execute() {
     DCHECK_EQ(leftData.type(), Value::Type::DATASET);
     DCHECK_EQ(rightData.type(), Value::Type::DATASET);
 
-    auto lds = leftData.moveDataSet();
-    auto rds = rightData.moveDataSet();
+    auto lds = leftData.getDataSet();
+    auto rds = rightData.getDataSet();
 
     DCHECK(lds.colNames == rds.colNames);
 
