@@ -118,12 +118,9 @@ private:
     using PropIdxMap = std::unordered_map<std::string, int64_t>;
     using TagEdgePropMap = std::unordered_map<std::string, PropIdxMap>;
     using PropIndex = std::vector<TagEdgePropMap>;
-    using Edge = std::tuple<int64_t, /* segment id */
-                           const Row*,
-                           int64_t, /* column id */
-                           const List* /* edge props */
-                          >;
-    PropIndex                      tagPropIndex_;
+    // Edge format: <segment_id, row, column_id, edge_props>
+    using Edge = std::tuple<int64_t, const Row*, int64_t, const List*>;
+    PropIndex tagPropIndex_;
     PropIndex                      edgePropIndex_;
     std::vector<const DataSet*>    segments_;
     std::vector<Edge>              edges_;
@@ -177,5 +174,3 @@ private:
 }  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_ITERATOR_H_
-
-

@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <vector>
+
 #include <folly/futures/Future.h>
 
 #include "common/base/Status.h"
@@ -27,20 +28,22 @@ class ExecutionContext;
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
     // Create executor according to plan node
-    static Executor *makeExecutor(const PlanNode *node,
-                                  QueryContext *qctx,
-                                  std::unordered_map<int64_t, Executor *> *cache);
+    static Executor *makeExecutor(const PlanNode *node, QueryContext *qctx);
 
     virtual ~Executor() {}
 
-    // Implementation interface of operation logic
+    // Each executor inherited from the Executor should get input values from ExecutionContext,
+    // execute expression evaluation and save output result back to ExecutionContext after
+    // computation
     virtual folly::Future<Status> execute() = 0;
 
     QueryContext *qctx() const {
         return qctx_;
     }
 
-    int64_t id() const;
+    int64_t id() const {
+        return id_;
+    }
 
     const std::string &name() const {
         return name_;
@@ -77,6 +80,10 @@ protected:
     // Only allow derived executor to construct
     Executor(const std::string &name, const PlanNode *node, QueryContext *qctx);
 
+    static Executor *makeExecutor(const PlanNode *node,
+                                  QueryContext *qctx,
+                                  std::unordered_map<int64_t, Executor *> *cache);
+
     // Start a future chain and bind it to thread pool
     folly::Future<Status> start(Status status = Status::OK()) const;
 
@@ -85,9 +92,11 @@ protected:
     // Store the result of this executor to execution context
     Status finish(nebula::Value &&value);
 
-    // Dump some execution logging messages
+    // Dump some execution logging messages, only for debugging
+    // TODO(yee): Remove it after implementing profile function
     void dumpLog() const;
 
+    int64_t id_;
     // Executor name
     std::string name_;
 

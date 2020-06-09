@@ -37,6 +37,7 @@ protected:
     static std::shared_ptr<ClientSession>      session_;
     static meta::SchemaManager*                schemaMng_;
 };
+
 std::shared_ptr<ClientSession> ValidatorTest::session_;
 meta::SchemaManager* ValidatorTest::schemaMng_;
 
