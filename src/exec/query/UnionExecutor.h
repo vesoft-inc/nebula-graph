@@ -23,9 +23,6 @@ public:
     folly::Future<Status> execute() override;
 
     static bool rowComparator(const Row &lhs, const Row &rhs);
-
-private:
-    static void doDistinct(DataSet *ds);
 };
 
 }   // namespace graph

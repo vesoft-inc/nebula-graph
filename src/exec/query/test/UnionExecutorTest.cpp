@@ -74,6 +74,7 @@ TEST_F(UnionExecutorTest, TestBase) {
     expected.colNames = {"lcol1", "lcol2"};
     expected.rows = {
         Row({Value(1), Value("row1")}),
+        Row({Value(1), Value("row1")}),
         Row({Value(2), Value("row2")}),
         Row({Value(3), Value("row3")}),
     };
@@ -127,46 +128,6 @@ TEST_F(UnionExecutorTest, TestDifferentValueType) {
               folly::stringPrintf("Invalid data types of dependencies: %d vs. %d.",
                                   static_cast<uint8_t>(Value::Type::LIST),
                                   static_cast<uint8_t>(Value::Type::DATASET)));
-}
-
-TEST_F(UnionExecutorTest, TestUionAll) {
-    auto left = StartNode::make(plan_);
-    auto right = StartNode::make(plan_);
-    auto unionNode = Union::make(plan_, left, right, false);
-
-    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
-
-    DataSet lds;
-    lds.colNames = {"lcol1", "lcol2"};
-    lds.rows = {
-        Row({Value(1), Value("row1")}),
-        Row({Value(2), Value("row2")}),
-    };
-
-    DataSet rds;
-    rds.colNames = {"rcol1", "rcol2"};
-    rds.rows = {
-        Row({Value(1), Value("row1")}),
-        Row({Value(3), Value("row3")}),
-    };
-
-    DataSet expected;
-    expected.colNames = {"lcol1", "lcol2"};
-    expected.rows = {
-        Row({Value(1), Value("row1")}),
-        Row({Value(1), Value("row1")}),
-        Row({Value(2), Value("row2")}),
-        Row({Value(3), Value("row3")}),
-    };
-
-    qctx_->ectx()->setValue(left->varName(), Value(lds));
-    qctx_->ectx()->setValue(right->varName(), Value(rds));
-
-    auto future = unionExecutor->execute();
-    auto status = std::move(future).get();
-    EXPECT_TRUE(status.ok());
-    auto result = qctx_->ectx()->getValue(unionNode->varName());
-    EXPECT_TRUE(diffDataSet(result.getDataSet(), expected));
 }
 
 }   // namespace graph

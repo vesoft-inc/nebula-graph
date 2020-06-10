@@ -516,21 +516,15 @@ protected:
  */
 class Union final : public SetOp {
 public:
-    static Union* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right, bool distinct = true) {
-        return new Union(plan, left, right, distinct);
+    static Union* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
+        return new Union(plan, left, right);
     }
-
-  bool distinct() const {
-      return distinct_;
-  }
 
     std::string explain() const override;
 
 private:
-    Union(ExecutionPlan* plan, PlanNode* left, PlanNode* right, bool distinct)
-        : SetOp(plan, Kind::kUnion, left, right), distinct_(distinct) {}
-
-    bool distinct_{true};
+    Union(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
+        : SetOp(plan, Kind::kUnion, left, right) {}
 };
 
 /**

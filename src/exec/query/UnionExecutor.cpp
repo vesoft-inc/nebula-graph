@@ -50,10 +50,6 @@ folly::Future<Status> UnionExecutor::execute() {
         ds.rows.emplace_back(row);
     }
 
-    if (unionNode->distinct()) {
-        doDistinct(&ds);
-    }
-
     return finish(std::move(ds));
 }
 
@@ -63,14 +59,6 @@ bool UnionExecutor::rowComparator(const Row &lhs, const Row &rhs) {
         if (!(lhs.columns[i] < rhs.columns[i])) return false;
     }
     return true;
-}
-
-// static
-void UnionExecutor::doDistinct(DataSet *ds) {
-    // TODO(yee): use hash table to speed up this step
-    std::sort(ds->rows.begin(), ds->rows.end(), rowComparator);
-    auto last = std::unique(ds->rows.begin(), ds->rows.end());
-    ds->rows.erase(last, ds->rows.end());
 }
 
 }   // namespace graph
