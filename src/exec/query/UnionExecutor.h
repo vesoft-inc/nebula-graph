@@ -21,8 +21,6 @@ public:
         : Executor("UnionExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
-
-    static bool rowComparator(const Row &lhs, const Row &rhs);
 };
 
 }   // namespace graph

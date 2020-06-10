@@ -31,11 +31,18 @@ public:
         if (lhs.colNames != rhs.colNames) return false;
         if (lhs.rows.size() != rhs.rows.size()) return false;
 
+        auto sorter = [](const Row& l, const Row& r) -> bool {
+            for (size_t i = 0; i < l.columns.size(); ++i) {
+                if (!(l.columns[i] < r.columns[i])) return false;
+            }
+            return true;
+        };
+
         // Following sort will change the input data sets, so make the copies
         auto l = lhs;
         auto r = rhs;
-        std::sort(l.rows.begin(), l.rows.end(), UnionExecutor::rowComparator);
-        std::sort(r.rows.begin(), r.rows.end(), UnionExecutor::rowComparator);
+        std::sort(l.rows.begin(), l.rows.end(), sorter);
+        std::sort(r.rows.begin(), r.rows.end(), sorter);
         return l.rows == r.rows;
     }
 

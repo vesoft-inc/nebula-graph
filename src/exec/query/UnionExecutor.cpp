@@ -53,13 +53,5 @@ folly::Future<Status> UnionExecutor::execute() {
     return finish(std::move(ds));
 }
 
-// static
-bool UnionExecutor::rowComparator(const Row &lhs, const Row &rhs) {
-    for (size_t i = 0; i < lhs.columns.size(); ++i) {
-        if (!(lhs.columns[i] < rhs.columns[i])) return false;
-    }
-    return true;
-}
-
 }   // namespace graph
 }   // namespace nebula
