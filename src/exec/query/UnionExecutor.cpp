@@ -26,7 +26,7 @@ folly::Future<Status> UnionExecutor::execute() {
     auto leftData = ectx_->getValue(left->varName());
     auto rightData = ectx_->getValue(right->varName());
 
-    if (leftData.type() != Value::Type::DATASET || rightData.type() != Value::Type::DATASET) {
+    if (!leftData.isDataSet() || !rightData.isDataSet()) {
         return Status::Error("Invalid data types of dependencies: %d vs. %d.",
                              static_cast<uint8_t>(leftData.type()),
                              static_cast<uint8_t>(rightData.type()));
