@@ -44,7 +44,7 @@ protected:
     ExecutionPlan* plan_;
 };
 
-TEST_F(UnionExecutorTest, TestBase) {
+TEST_F(UnionExecutorTest, TestUnionAll) {
     DataSet lds;
     lds.colNames = {"lcol1", "lcol2"};
     lds.rows = {
