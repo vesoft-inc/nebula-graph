@@ -10,6 +10,9 @@
 #include "exec/Executor.h"
 
 namespace nebula {
+
+struct Row;
+
 namespace graph {
 
 class UnionExecutor : public Executor {
@@ -18,6 +21,8 @@ public:
         : Executor("UnionExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
+
+    static bool rowComparator(const Row &lhs, const Row &rhs);
 
 private:
     static void doDistinct(DataSet *ds);

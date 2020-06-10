@@ -58,14 +58,17 @@ folly::Future<Status> UnionExecutor::execute() {
 }
 
 // static
+bool UnionExecutor::rowComparator(const Row &lhs, const Row &rhs) {
+    for (size_t i = 0; i < lhs.columns.size(); ++i) {
+        if (!(lhs.columns[i] < rhs.columns[i])) return false;
+    }
+    return true;
+}
+
+// static
 void UnionExecutor::doDistinct(DataSet *ds) {
     // TODO(yee): use hash table to speed up this step
-    std::sort(ds->rows.begin(), ds->rows.end(), [](const Row &lhs, const Row &rhs) -> bool {
-        for (size_t i = 0; i < lhs.columns.size(); ++i) {
-            if (lhs.columns[i] >= rhs.columns[i]) return false;
-        }
-        return true;
-    });
+    std::sort(ds->rows.begin(), ds->rows.end(), rowComparator);
     auto last = std::unique(ds->rows.begin(), ds->rows.end());
     ds->rows.erase(last, ds->rows.end());
 }

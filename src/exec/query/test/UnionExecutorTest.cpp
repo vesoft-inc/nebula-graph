@@ -30,21 +30,13 @@ public:
     static bool diffDataSet(const DataSet& lhs, const DataSet& rhs) {
         if (lhs.colNames != rhs.colNames) return false;
         if (lhs.rows.size() != rhs.rows.size()) return false;
-        return diffDataSetInner(lhs, rhs) && diffDataSetInner(rhs, lhs);
-    }
 
-    static bool diffDataSetInner(const DataSet& lhs, const DataSet& rhs) {
-        for (auto& lrow : lhs.rows) {
-            bool found = false;
-            for (auto& rrow : rhs.rows) {
-                if (lrow == rrow) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) return false;
-        }
-        return true;
+        // Following sort will change the input data sets, so make the copies
+        auto l = lhs;
+        auto r = rhs;
+        std::sort(l.rows.begin(), l.rows.end(), UnionExecutor::rowComparator);
+        std::sort(r.rows.begin(), r.rows.end(), UnionExecutor::rowComparator);
+        return l.rows == r.rows;
     }
 
 protected:
