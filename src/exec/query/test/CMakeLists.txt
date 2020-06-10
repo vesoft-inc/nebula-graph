@@ -7,7 +7,6 @@ nebula_add_test(
     NAME query_executors_test
     SOURCES
         ProjectTest.cpp
-        AggregateTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:exec_obj>
         $<TARGET_OBJECTS:context_obj>
@@ -18,7 +17,6 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_datatypes_obj>
         $<TARGET_OBJECTS:common_expression_obj>
         $<TARGET_OBJECTS:common_time_obj>
-        $<TARGET_OBJECTS:common_function_obj>
     LIBRARIES
         gtest gtest_main
 )
