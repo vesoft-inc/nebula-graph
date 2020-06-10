@@ -27,25 +27,45 @@ public:
         plan_ = qctx_->plan();
     }
 
+    static bool diffDataSet(const DataSet& lhs, const DataSet& rhs) {
+        if (lhs.colNames != rhs.colNames) return false;
+        if (lhs.rows.size() != rhs.rows.size()) return false;
+        return diffDataSetInner(lhs, rhs) && diffDataSetInner(rhs, lhs);
+    }
+
+    static bool diffDataSetInner(const DataSet& lhs, const DataSet& rhs) {
+        for (auto& lrow : lhs.rows) {
+            bool found = false;
+            for (auto& rrow : rhs.rows) {
+                if (lrow == rrow) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return false;
+        }
+        return true;
+    }
+
 protected:
     std::unique_ptr<QueryContext> qctx_;
     ExecutionPlan* plan_;
 };
 
 TEST_F(UnionExecutorTest, TestBase) {
-    std::vector<std::string> colNames = {"col1", "col2"};
-    DataSet ds[2];
-    ds[0].colNames = colNames;
-    ds[0].rows.resize(3);
-    ds[1].colNames = colNames;
-    ds[1].rows.resize(5);
-    for (size_t i = 0; i < 2; ++i) {
-        for (size_t j = 0; j < ds[i].rowSize(); ++j) {
-            Row row;
-            row.columns = {Value(stringPrintf("ds%lur%lu", i, j)), Value(static_cast<int64_t>(j))};
-            ds[i].rows[j] = std::move(row);
-        }
-    }
+    DataSet lds;
+    lds.colNames = {"lcol1", "lcol2"};
+    lds.rows = {
+        Row({Value(1), Value("row1")}),
+        Row({Value(2), Value("row2")}),
+    };
+
+    DataSet rds;
+    rds.colNames = {"rcol1", "rcol2"};
+    rds.rows = {
+        Row({Value(1), Value("row1")}),
+        Row({Value(3), Value("row3")}),
+    };
 
     auto left = StartNode::make(plan_);
     auto right = StartNode::make(plan_);
@@ -53,32 +73,24 @@ TEST_F(UnionExecutorTest, TestBase) {
 
     auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
     // Must save the values after constructing executors
-    qctx_->ectx()->setValue(left->varName(), Value(ds[0]));
-    qctx_->ectx()->setValue(right->varName(), Value(ds[1]));
+    qctx_->ectx()->setValue(left->varName(), Value(lds));
+    qctx_->ectx()->setValue(right->varName(), Value(rds));
     auto future = unionExecutor->execute();
     EXPECT_TRUE(std::move(future).get().ok());
 
+    DataSet expected;
+    expected.colNames = {"lcol1", "lcol2"};
+    expected.rows = {
+        Row({Value(1), Value("row1")}),
+        Row({Value(2), Value("row2")}),
+        Row({Value(3), Value("row3")}),
+    };
+
     auto result = qctx_->ectx()->getValue(unionNode->varName());
     EXPECT_EQ(result.type(), Value::Type::DATASET);
-    auto resultDS = result.moveDataSet();
-    EXPECT_EQ(resultDS.colNames, colNames);
-    EXPECT_EQ(resultDS.rowSize(), ds[0].rowSize() + ds[1].rowSize());
 
-    for (size_t i = 0; i < 2; ++i) {
-        for (size_t j = 0; j < ds[i].rowSize(); ++j) {
-            auto col1 = stringPrintf("ds%lur%lu", i, j);
-            bool found = false;
-            for (size_t k = 0; k < resultDS.rowSize(); ++k) {
-                auto& columns = resultDS.rows[k].columns;
-                EXPECT_EQ(columns.size(), 2);
-                if (columns[0] == col1 && columns[1] == static_cast<int64_t>(j)) {
-                    found = true;
-                    break;
-                }
-            }
-            EXPECT_TRUE(found);
-        }
-    }
+    auto resultDS = result.moveDataSet();
+    EXPECT_TRUE(diffDataSet(resultDS, expected));
 }
 
 TEST_F(UnionExecutorTest, TestDifferentColumns) {
@@ -124,5 +136,46 @@ TEST_F(UnionExecutorTest, TestDifferentValueType) {
                                   static_cast<uint8_t>(Value::Type::LIST),
                                   static_cast<uint8_t>(Value::Type::DATASET)));
 }
+
+TEST_F(UnionExecutorTest, TestUionAll) {
+    auto left = StartNode::make(plan_);
+    auto right = StartNode::make(plan_);
+    auto unionNode = Union::make(plan_, left, right, false);
+
+    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
+
+    DataSet lds;
+    lds.colNames = {"lcol1", "lcol2"};
+    lds.rows = {
+        Row({Value(1), Value("row1")}),
+        Row({Value(2), Value("row2")}),
+    };
+
+    DataSet rds;
+    rds.colNames = {"rcol1", "rcol2"};
+    rds.rows = {
+        Row({Value(1), Value("row1")}),
+        Row({Value(3), Value("row3")}),
+    };
+
+    DataSet expected;
+    expected.colNames = {"lcol1", "lcol2"};
+    expected.rows = {
+        Row({Value(1), Value("row1")}),
+        Row({Value(1), Value("row1")}),
+        Row({Value(2), Value("row2")}),
+        Row({Value(3), Value("row3")}),
+    };
+
+    qctx_->ectx()->setValue(left->varName(), Value(lds));
+    qctx_->ectx()->setValue(right->varName(), Value(rds));
+
+    auto future = unionExecutor->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+    auto result = qctx_->ectx()->getValue(unionNode->varName());
+    EXPECT_TRUE(diffDataSet(result.getDataSet(), expected));
+}
+
 }   // namespace graph
 }   // namespace nebula

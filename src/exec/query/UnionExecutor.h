@@ -18,6 +18,9 @@ public:
         : Executor("UnionExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
+
+private:
+    static void doDistinct(DataSet *ds);
 };
 
 }   // namespace graph

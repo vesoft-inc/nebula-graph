@@ -6,6 +6,8 @@
 
 #include "exec/query/UnionExecutor.h"
 
+#include <algorithm>
+
 #include <folly/String.h>
 
 #include "context/ExecutionContext.h"
@@ -33,7 +35,7 @@ folly::Future<Status> UnionExecutor::execute() {
     auto lds = leftData.getDataSet();
     auto rds = rightData.getDataSet();
 
-    if (!(lds.colNames == rds.colNames)) {
+    if (lds.colNames.size() != rds.colNames.size()) {
         auto lcols = folly::join(",", lds.colNames.begin(), lds.colNames.end());
         auto rcols = folly::join(",", rds.colNames.begin(), rds.colNames.end());
         return Status::Error("The data sets to union have different columns: <%s> vs. <%s>",
@@ -48,7 +50,24 @@ folly::Future<Status> UnionExecutor::execute() {
         ds.rows.emplace_back(row);
     }
 
+    if (unionNode->distinct()) {
+        doDistinct(&ds);
+    }
+
     return finish(std::move(ds));
+}
+
+// static
+void UnionExecutor::doDistinct(DataSet *ds) {
+    // TODO(yee): use hash table to speed up this step
+    std::sort(ds->rows.begin(), ds->rows.end(), [](const Row &lhs, const Row &rhs) -> bool {
+        for (size_t i = 0; i < lhs.columns.size(); ++i) {
+            if (lhs.columns[i] >= rhs.columns[i]) return false;
+        }
+        return true;
+    });
+    auto last = std::unique(ds->rows.begin(), ds->rows.end());
+    ds->rows.erase(last, ds->rows.end());
 }
 
 }   // namespace graph
