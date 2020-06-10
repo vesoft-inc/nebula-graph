@@ -15,9 +15,9 @@
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 
-using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::GetNeighborsResponse;
+using nebula::storage::GraphStorageClient;
 
 namespace nebula {
 namespace graph {
@@ -31,15 +31,17 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     const GetNeighbors* gn = asNode<GetNeighbors>(node());
-    std::vector<std::string> colNames;
+    Expression* srcExpr = gn->src();
+    ExpressionContextImpl ctx(qctx_->ectx(), nullptr);
+    auto& value = srcExpr->eval(ctx);
+    DCHECK_EQ(value.type(), Value::Type::DATASET);
+    auto& input = value.getDataSet();
 
     GraphStorageClient* storageClient = qctx_->getStorageClient();
-    // TODO:
-    std::vector<Row> vertices;
     return storageClient
         ->getNeighbors(gn->space(),
-                       std::move(colNames),
-                       vertices,
+                       std::move(input.colNames),
+                       std::move(input.rows),
                        gn->edgeTypes(),
                        gn->edgeDirection(),
                        &gn->statProps(),
@@ -53,28 +55,25 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                        gn->filter())
         .via(runner())
         .then([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
-            auto completeness = resp.completeness();
-            if (completeness != 0) {
-                return error(Status::Error("Get neighbors failed"));
-            }
-            if (completeness != 100) {
-                // TODO(dutor) We ought to let the user know that the execution was partially
-                // performed, even in the case that this happened in the intermediate process.
-                // Or, make this case configurable at runtime.
-                // For now, we just do some logging and keep going.
-                LOG(INFO) << "Get neighbors partially failed: " << completeness << "%";
-                for (auto& error : resp.failedParts()) {
-                    LOG(ERROR) << "part: " << error.first
-                               << "error code: " << static_cast<int>(error.second);
-                }
-            }
-
-            auto status = handleResponse(resp.responses());
+            auto status = handleResponse(resp);
             return status.ok() ? start() : error(std::move(status));
         });
 }
 
-Status GetNeighborsExecutor::handleResponse(const std::vector<GetNeighborsResponse>& responses) {
+Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
+    auto completeness = resps.completeness();
+    if (completeness != 0) {
+        return Status::Error("Get neighbors failed");
+    }
+
+    State state(State::Stat::kSuccess, "");
+    if (completeness != 100) {
+        state = State(State::Stat::kPartialSuccess,
+                    folly::stringPrintf("Get neighbors partially failed: %d %%", completeness));
+    }
+
+    auto& responses = resps.responses();
+    List list;
     for (auto& resp : responses) {
         checkResponseResult(resp.get_result());
 
@@ -84,10 +83,9 @@ Status GetNeighborsExecutor::handleResponse(const std::vector<GetNeighborsRespon
             continue;
         }
 
-        // Store response results to QueryContext
-        // return finish({*dataset});
+        list.values.emplace_back(std::move(*dataset));
     }
-    return Status::Error("Invalid result of neighbors");
+    return finish(ExecResult::buildGetNeighbors(Value(std::move(list)), std::move(state)));
 }
 
 void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseCommon& result) const {
