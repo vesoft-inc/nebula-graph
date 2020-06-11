@@ -50,7 +50,8 @@ TEST(IteratorTest, Sequential) {
                 iter.next();
             }
         }
-        for (iter.begin(); iter.valid(); iter.next()) {
+        iter.reset();
+        for (; iter.valid(); iter.next()) {
             EXPECT_NE(iter.getColumn("col1").getInt() % 2, 0);
         }
     }
@@ -190,7 +191,8 @@ TEST(IteratorTest, GetNeighbor) {
                 {1, 1, 3, 3, 5, 5, 7, 7, 9, 9,
                  1, 1, 3, 3, 5, 5, 7, 7, 9, 9};
         std::vector<Value> result;
-        for (iter.begin(); iter.valid(); iter.next()) {
+        iter.reset();
+        for (; iter.valid(); iter.next()) {
             result.emplace_back(iter.getColumn("_vid"));
         }
         EXPECT_EQ(result.size(), 20);

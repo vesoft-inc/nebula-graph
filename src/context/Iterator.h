@@ -25,7 +25,7 @@ public:
 
     virtual void erase() = 0;
 
-    virtual void begin() = 0;
+    virtual void reset() = 0;
 
     void operator++() {
         next();
@@ -75,7 +75,7 @@ public:
         counter_--;
     }
 
-    void begin() override {
+    void reset() override {
         counter_ = 0;
     }
 
@@ -110,7 +110,7 @@ public:
         iter_ = edges_.erase(iter_);
     }
 
-    void begin() override {
+    void reset() override {
         iter_ = edges_.begin();
     }
 
@@ -182,7 +182,7 @@ public:
         iter_ = rows_.erase(iter_);
     }
 
-    void begin() override {
+    void reset() override {
         iter_ = rows_.begin();
     }
 
