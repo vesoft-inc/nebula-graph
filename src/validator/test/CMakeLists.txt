@@ -31,7 +31,10 @@ set(VALIDATOR_TEST_LIBS
 
 nebula_add_test(
     NAME validator_test
-    SOURCES ValidatorTest.cpp
+    SOURCES
+        ValidatorTest.cpp
+        ACLValidatorTest.cpp
+        GetSubgraphValidatorTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
 )
