@@ -171,7 +171,8 @@ bool PermissionManager::canWriteData(Session *session) {
     return havePermission;
 }
 
-/*static*/ bool PermissionManager::canShow(Session *session,
+/*static*/
+bool PermissionManager::canShow(Session *session,
                                 ShowSentence::ShowType type,
                                 GraphSpaceID targetSpace) {
     if (!FLAGS_enable_authorize) {

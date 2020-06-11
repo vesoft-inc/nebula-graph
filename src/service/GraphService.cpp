@@ -19,25 +19,6 @@ namespace nebula {
 namespace graph {
 
 Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor) {
-    // TODO(shylock) reuse meta client with QueryEngine
-    auto addrs = network::NetworkUtils::toHosts(FLAGS_meta_server_addrs);
-    if (!addrs.ok()) {
-        return addrs.status();
-    }
-
-    meta::MetaClientOptions options;
-    options.serviceName_ = "graph";
-    options.skipConfig_ = FLAGS_local_config;
-    metaClient_ = std::make_unique<meta::MetaClient>(ioExecutor,
-                                                     std::move(addrs.value()),
-                                                     options);
-    // load data try 3 time
-    bool loadDataOk = metaClient_->waitForMetadReady(3);
-    if (!loadDataOk) {
-        // Resort to retrying in the background
-        LOG(WARNING) << "Failed to synchronously wait for meta service ready";
-    }
-
     sessionManager_ = std::make_unique<SessionManager>();
     queryEngine_ = std::make_unique<QueryEngine>();
 
@@ -59,7 +40,7 @@ folly::Future<cpp2::AuthResponse> GraphService::future_authenticate(
     if (!FLAGS_enable_authorize) {
         onHandle(ctx, cpp2::ErrorCode::SUCCEEDED);
     } else if (auth(username, password)) {
-        auto roles = metaClient_->getRolesByUserFromCache(username);
+        auto roles = queryEngine_->metaClient()->getRolesByUserFromCache(username);
         for (const auto& role : roles) {
             ctx.session()->setRole(role.get_space_id(), role.get_role_type());
         }
@@ -136,15 +117,16 @@ void GraphService::onHandle(RequestContext<cpp2::AuthResponse>& ctx, cpp2::Error
 }
 
 bool GraphService::auth(const std::string& username, const std::string& password) {
-    std::string auth_type = FLAGS_auth_type;
-    folly::toLowerAscii(auth_type);
-    if (!auth_type.compare("password")) {
-        auto authenticator = std::make_unique<PasswordAuthenticator>(metaClient_.get());
+    std::string authType = FLAGS_auth_type;
+    folly::toLowerAscii(authType);
+    if (!authType.compare("password")) {
+        auto authenticator = std::make_unique<PasswordAuthenticator>(queryEngine_->metaClient());
         return authenticator->auth(username, encryption::MD5Utils::md5Encode(password));
-    } else if (!auth_type.compare("cloud")) {
-        auto authenticator = std::make_unique<CloudAuthenticator>(metaClient_.get());
+    } else if (!authType.compare("cloud")) {
+        auto authenticator = std::make_unique<CloudAuthenticator>(queryEngine_->metaClient());
         return authenticator->auth(username, password);
     }
+    LOG(WARNING) << "Unknown auth type: " << authType;
     return false;
 }
 

@@ -14,7 +14,7 @@
 namespace nebula {
 namespace graph {
 
-CloudAuthenticator::CloudAuthenticator(meta::MetaClient* client) {
+CloudAuthenticator::CloudAuthenticator(const meta::MetaClient* client) {
     metaClient_ = client;
 }
 
@@ -44,7 +44,7 @@ bool CloudAuthenticator::auth(const std::string& user, const std::string& passwo
     try {
         auto json = folly::parseJson(result.value());
         if (json["code"].asString().compare("0") != 0) {
-            LOG(ERROR) << "Cloud authentication failed";
+            LOG(ERROR) << "Cloud authentication failed, user: " << user;
             return false;
         }
     } catch (std::exception& e) {

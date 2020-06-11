@@ -45,7 +45,6 @@ private:
 
     std::unique_ptr<SessionManager>             sessionManager_;
     std::unique_ptr<QueryEngine>                queryEngine_;
-    std::unique_ptr<meta::MetaClient>           metaClient_;
 };
 
 }   // namespace graph

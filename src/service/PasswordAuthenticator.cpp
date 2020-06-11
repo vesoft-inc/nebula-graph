@@ -9,7 +9,7 @@
 namespace nebula {
 namespace graph {
 
-PasswordAuthenticator::PasswordAuthenticator(meta::MetaClient* client) {
+PasswordAuthenticator::PasswordAuthenticator(const meta::MetaClient* client) {
     metaClient_ = client;
 }
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 vesoft inc. All rights reserved.
+/* Copyright (c) 2020 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -16,12 +16,12 @@ namespace graph {
 
 class PasswordAuthenticator final : public Authenticator {
 public:
-    explicit PasswordAuthenticator(meta::MetaClient* client);
+    explicit PasswordAuthenticator(const meta::MetaClient* client);
 
     bool auth(const std::string& user, const std::string& password) override;
 
 private:
-    meta::MetaClient*               metaClient_;
+    const meta::MetaClient*               metaClient_;
 };
 
 }   // namespace graph
