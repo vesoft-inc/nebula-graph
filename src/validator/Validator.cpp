@@ -24,8 +24,8 @@
 namespace nebula {
 namespace graph {
 std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
-    CHECK(!!sentence);
-    CHECK(!!context);
+    CHECK_NOTNULL(sentence);
+    CHECK_NOTNULL(context);
     auto kind = sentence->kind();
     switch (kind) {
         case Sentence::Kind::kSequential:
@@ -90,8 +90,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
             break;
         }
         default: {
-            return Status::Error(
-                    "%ld not support to append an input.", static_cast<int64_t>(node->kind()));
+            return Status::Error("%s not support to append an input.",
+                                 PlanNode::toString(node->kind()));
         }
     }
     return Status::OK();
@@ -131,6 +131,29 @@ Status Validator::validate() {
 
 bool Validator::spaceChosen() {
     return vctx_->spaceChosen();
+}
+
+std::vector<std::string> Validator::evalResultColNames(const YieldColumns* cols) const {
+    std::vector<std::string> colNames;
+    for (auto& col : cols->columns()) {
+        if (col->alias() != nullptr) {
+            colNames.emplace_back(*col->alias());
+        } else {
+            switch (col->expr()->kind()) {
+                case Expression::Kind::kInputProperty: {
+                    auto expr = static_cast<InputPropertyExpression*>(col->expr());
+                    colNames.emplace_back(*expr->sym());
+                    break;
+                }
+                default: {
+                    colNames.emplace_back(col->expr()->toString());
+                    break;
+                }
+            }
+        }
+    }
+
+    return colNames;
 }
 }  // namespace graph
 }  // namespace nebula
