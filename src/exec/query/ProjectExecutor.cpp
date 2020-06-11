@@ -22,7 +22,7 @@ folly::Future<Status> ProjectExecutor::execute() {
     ExpressionContextImpl ctx(ectx_, iter.get());
 
     DataSet ds;
-    ds.colNames = std::move(project->colNames());
+    ds.colNames = project->colNames();
     for (; iter->valid(); iter->next()) {
         Row row;
         for (auto& col : columns) {
