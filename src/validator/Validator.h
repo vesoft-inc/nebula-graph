@@ -15,10 +15,13 @@
 
 namespace nebula {
 namespace graph {
+
 class Validator {
 public:
     Validator(Sentence* sentence, QueryContext* qctx)
-        : sentence_(sentence), qctx_(qctx), vctx_(qctx->vctx()) {}
+        : sentence_(DCHECK_NOTNULL(sentence)),
+          qctx_(DCHECK_NOTNULL(qctx)),
+          vctx_(DCHECK_NOTNULL(qctx->vctx())) {}
 
     virtual ~Validator() = default;
 
@@ -69,14 +72,19 @@ protected:
      */
     virtual Status toPlan() = 0;
 
+    std::vector<std::string> evalResultColNames(const YieldColumns* cols) const;
+
 protected:
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
     ValidateContext*                vctx_{nullptr};
+    // root and tail of a subplan.
     PlanNode*                       root_{nullptr};
     PlanNode*                       tail_{nullptr};
+    // The input columns and output columns of a sentence.
     ColsDef                         outputs_;
     ColsDef                         inputs_;
+    // Admin sentences do not requires a space to be chosen.
     bool                            noSpaceRequired_{false};
 };
 }  // namespace graph

@@ -19,9 +19,15 @@ public:
 
     virtual ~Iterator() = default;
 
+    virtual std::unique_ptr<Iterator> copy() const = 0;
+
     virtual bool valid() const = 0;
 
     virtual void next() = 0;
+
+    virtual void erase() = 0;
+
+    virtual void reset() = 0;
 
     void operator++() {
         next();
@@ -59,12 +65,24 @@ class DefaultIter final : public Iterator {
 public:
     explicit DefaultIter(const Value& value) : Iterator(value) {}
 
+    std::unique_ptr<Iterator> copy() const override {
+        return std::make_unique<DefaultIter>(*this);
+    }
+
     bool valid() const override {
         return !(counter_ > 0);
     }
 
     void next() override {
         counter_++;
+    }
+
+    void erase() override {
+        counter_--;
+    }
+
+    void reset() override {
+        counter_ = 0;
     }
 
     const Value& operator*() override {
@@ -83,12 +101,29 @@ class GetNeighborsIter final : public Iterator {
 public:
     explicit GetNeighborsIter(const Value& value);
 
+    std::unique_ptr<Iterator> copy() const override {
+        auto copy = std::make_unique<GetNeighborsIter>(*this);
+        copy->reset();
+        return copy;
+    }
+
     bool valid() const override {
         return iter_ < edges_.end();
     }
 
     void next() override {
+        if (!valid()) {
+            return;
+        }
         ++iter_;
+    }
+
+    void erase() override {
+        iter_ = edges_.erase(iter_);
+    }
+
+    void reset() override {
+        iter_ = edges_.begin();
     }
 
     const Value& operator*() override {
@@ -135,19 +170,38 @@ public:
     explicit SequentialIter(const Value& value) : Iterator(value) {
         DCHECK(value.type() == Value::Type::DATASET);
         auto& ds = value.getDataSet();
-        rows_ = &ds.rows;
-        iter_ = rows_->begin();
+        for (auto& row : ds.rows) {
+            rows_.emplace_back(&row);
+        }
+        iter_ = rows_.begin();
         for (size_t i = 0; i < ds.colNames.size(); ++i) {
             colIndex_.emplace(ds.colNames[i], i);
         }
     }
 
+    std::unique_ptr<Iterator> copy() const override {
+        auto copy = std::make_unique<SequentialIter>(*this);
+        copy->reset();
+        return copy;
+    }
+
     bool valid() const override {
-        return iter_ < rows_->end();
+        return iter_ < rows_.end();
     }
 
     void next() override {
+        if (!valid()) {
+            return;
+        }
         ++iter_;
+    }
+
+    void erase() override {
+        iter_ = rows_.erase(iter_);
+    }
+
+    void reset() override {
+        iter_ = rows_.begin();
     }
 
     const Value& operator*() override {
@@ -155,24 +209,27 @@ public:
     }
 
     size_t size() const override {
-        return rows_->size();
+        return rows_.size();
     }
 
     const Value& getColumn(const std::string& col) const override {
-        auto& row = *iter_;
+        if (!valid()) {
+            return kNullValue;
+        }
+        auto row = *iter_;
         auto index = colIndex_.find(col);
         if (index == colIndex_.end()) {
             return kNullValue;
         } else {
-            DCHECK_LT(index->second, row.columns.size());
-            return row.columns[index->second];
+            DCHECK_LT(index->second, row->columns.size());
+            return row->columns[index->second];
         }
     }
 
 private:
-    const std::vector<Row>*                     rows_;
-    std::vector<Row>::const_iterator            iter_;
-    std::unordered_map<std::string, int64_t>    colIndex_;
+    std::vector<const Row*>                      rows_;
+    std::vector<const Row*>::iterator            iter_;
+    std::unordered_map<std::string, int64_t>     colIndex_;
 };
 }  // namespace graph
 }  // namespace nebula
