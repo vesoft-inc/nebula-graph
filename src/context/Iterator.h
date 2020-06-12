@@ -13,6 +13,7 @@
 
 namespace nebula {
 namespace graph {
+
 class Iterator {
 public:
     explicit Iterator(const Value& value) : value_(value) {}
@@ -27,7 +28,12 @@ public:
 
     virtual void erase() = 0;
 
+    // Reset iterator position to begin
     virtual void reset() = 0;
+
+    // Reset iterator position to `poc' from begin. Must be sure that the `poc' position
+    // is lower than `size()' before resetting
+    virtual void reset(size_t poc) = 0;
 
     void operator++() {
         next();
@@ -85,6 +91,11 @@ public:
         counter_ = 0;
     }
 
+    void reset(size_t poc) override {
+        DCHECK_LT(poc, size());
+        counter_ += poc;
+    }
+
     const Value& operator*() override {
         return value_;
     }
@@ -126,6 +137,11 @@ public:
         iter_ = edges_.begin();
     }
 
+    void reset(size_t poc) override {
+        DCHECK_LT(poc, edges_.size());
+        iter_ = edges_.begin() + poc;
+    }
+
     const Value& operator*() override {
         return value_;
     }
@@ -153,11 +169,8 @@ private:
     using PropIdxMap = std::unordered_map<std::string, int64_t>;
     using TagEdgePropMap = std::unordered_map<std::string, PropIdxMap>;
     using PropIndex = std::vector<TagEdgePropMap>;
-    using Edge = std::tuple<int64_t, /* segment id */
-                           const Row*,
-                           int64_t, /* column id */
-                           const List* /* edge props */
-                          >;
+    // Edge: <segment_id, row, column_id, edge_props>
+    using Edge = std::tuple<int64_t, const Row*, int64_t, const List*>;
     PropIndex                      tagPropIndex_;
     PropIndex                      edgePropIndex_;
     std::vector<const DataSet*>    segments_;
@@ -204,6 +217,11 @@ public:
         iter_ = rows_.begin();
     }
 
+    void reset(size_t poc) override {
+        DCHECK_LT(poc, size());
+        iter_ = rows_.begin() + poc;
+    }
+
     const Value& operator*() override {
         return value_;
     }
@@ -231,8 +249,7 @@ private:
     std::vector<const Row*>::iterator            iter_;
     std::unordered_map<std::string, int64_t>     colIndex_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_ITERATOR_H_
-
-
