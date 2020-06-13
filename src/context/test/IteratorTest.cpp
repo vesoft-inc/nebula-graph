@@ -601,7 +601,7 @@ TEST(IteratorTest, TestUnionIterator) {
     }
 }
 
-TEST(IteratorTest, ColsHash) {
+TEST(IteratorTest, DedupTest) {
     DataSet ds({"col1", "col2"});
     ds.rows.emplace_back(Row({Value(10), Value("aa")}));
     ds.rows.emplace_back(Row({Value(20), Value("bb")}));
@@ -611,30 +611,34 @@ TEST(IteratorTest, ColsHash) {
     SequentialIter iter(val);
     EXPECT_EQ(iter.size(), 3);
     std::unordered_set<ColVals, ColsHasher> unique;
-    for (; iter.valid(); iter.next()) {
+    while (iter.valid()) {
         ColVals vals;
         auto &value1 = iter.getColumn("col1");
         vals.cols.emplace_back(&value1);
         auto &value2 = iter.getColumn("col2");
         vals.cols.emplace_back(&value2);
-        unique.emplace(std::move(vals));
+        if (unique.find(vals) != unique.end()) {
+            LOG(INFO) << "Erase col";
+            iter.erase();
+        } else {
+            unique.emplace(std::move(vals));
+            iter.next();
+        }
     }
-
+    iter.reset();
     ASSERT_EQ(2, unique.size());
-    auto begin = unique.begin();
-    ASSERT_EQ(2, begin->cols.size());
-    if (*(begin->cols[0]) == 10) {
-        ASSERT_EQ("aa", *(begin->cols[1]));
-        begin++;
-        ASSERT_EQ(20, *(begin->cols[0]));
-        ASSERT_EQ("bb", *(begin->cols[1]));
-    } else {
-        ASSERT_EQ(20, *(begin->cols[0]));
-        ASSERT_EQ("bb", *(begin->cols[1]));
-        begin++;
-        ASSERT_EQ(10, *(begin->cols[0]));
-        ASSERT_EQ("aa", *(begin->cols[1]));
-    }
+    ASSERT_EQ(iter.size(), 2);
+
+    // Check unique result
+    ASSERT_TRUE(iter.valid());
+    ASSERT_EQ(10, iter.getColumn("col1"));
+    ASSERT_EQ("aa", iter.getColumn("col2"));
+    iter.next();
+    ASSERT_TRUE(iter.valid());
+    ASSERT_EQ(20, iter.getColumn("col1"));
+    ASSERT_EQ("bb", iter.getColumn("col2"));
+    iter.next();
+    ASSERT_FALSE(iter.valid());
 }
 
 }  // namespace graph
