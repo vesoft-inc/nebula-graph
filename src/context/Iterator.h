@@ -237,6 +237,32 @@ private:
     std::unordered_map<std::string, int64_t>     colIndex_;
 };
 
+struct ColVals {
+    std::vector<const Value*> cols;
+
+    bool operator==(const ColVals &rhs) const {
+        if (rhs.cols.size() != cols.size()) {
+            return false;
+        }
+
+        for (auto i = 0u;  i < cols.size(); i++) {
+            if (*cols[i] != *rhs.cols[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+struct ColsHasher {
+    std::size_t operator()(const ColVals& colVals) const {
+        size_t seed = 0;
+        for (auto &col : colVals.cols) {
+            seed ^= std::hash<Value>()(*col) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
+    }
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_ITERATOR_H_

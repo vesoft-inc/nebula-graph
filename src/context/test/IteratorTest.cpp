@@ -94,9 +94,8 @@ TEST(IteratorTest, GetNeighbor) {
         List edges;
         for (auto j = 0; j < 2; ++j) {
             List edge;
-            for (auto k = 0; k < 2; ++k) {
-                edge.values.emplace_back(k);
-            }
+            edge.values.emplace_back("edge1_prop1");
+            edge.values.emplace_back("edge1_prop2");
             edges.values.emplace_back(std::move(edge));
         }
         row.columns.emplace_back(edges);
@@ -121,7 +120,8 @@ TEST(IteratorTest, GetNeighbor) {
         for (auto j = 0; j < 2; ++j) {
             List edge;
             for (auto k = 0; k < 2; ++k) {
-                edge.values.emplace_back(k);
+                edge.values.emplace_back("edge2_prop1");
+                edge.values.emplace_back("edge2_prop2");
             }
             edges.values.emplace_back(std::move(edge));
         }
@@ -175,7 +175,7 @@ TEST(IteratorTest, GetNeighbor) {
     {
         GetNeighborsIter iter(val);
         std::vector<Value> expected;
-        expected.insert(expected.end(), 20, 0);
+        expected.insert(expected.end(), 20, "edge1_prop1");
         expected.insert(expected.end(), 20, Value(NullType::__NULL__));
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
@@ -188,7 +188,7 @@ TEST(IteratorTest, GetNeighbor) {
         GetNeighborsIter iter(val);
         std::vector<Value> expected;
         expected.insert(expected.end(), 20, Value(NullType::__NULL__));
-        expected.insert(expected.end(), 20, 0);
+        expected.insert(expected.end(), 20, "edge2_prop1");
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
             result.emplace_back(iter.getEdgeProp("edge2", "prop1"));
@@ -202,7 +202,7 @@ TEST(IteratorTest, GetNeighbor) {
         auto copyIter2 = copyIter1->copy();
         std::vector<Value> expected;
         expected.insert(expected.end(), 20, Value(NullType::__NULL__));
-        expected.insert(expected.end(), 20, 0);
+        expected.insert(expected.end(), 20, "edge2_prop1");
         std::vector<Value> result;
         for (; copyIter2->valid(); copyIter2->next()) {
             result.emplace_back(copyIter2->getEdgeProp("edge2", "prop1"));
@@ -240,5 +240,40 @@ TEST(IteratorTest, GetNeighbor) {
     }
 }
 
+TEST(IteratorTest, ColsHash) {
+    DataSet ds({"col1", "col2"});
+    ds.rows.emplace_back(Row({Value(10), Value("aa")}));
+    ds.rows.emplace_back(Row({Value(20), Value("bb")}));
+    ds.rows.emplace_back(Row({Value(10), Value("aa")}));
+
+    Value val(ds);
+    SequentialIter iter(val);
+    EXPECT_EQ(iter.size(), 3);
+    std::unordered_set<ColVals, ColsHasher> unique;
+    for (; iter.valid(); iter.next()) {
+        ColVals vals;
+        auto &value1 = iter.getColumn("col1");
+        vals.cols.emplace_back(&value1);
+        auto &value2 = iter.getColumn("col2");
+        vals.cols.emplace_back(&value2);
+        unique.emplace(std::move(vals));
+    }
+
+    ASSERT_EQ(2, unique.size());
+    auto begin = unique.begin();
+    ASSERT_EQ(2, begin->cols.size());
+    if (*(begin->cols[0]) == 10) {
+        ASSERT_EQ("aa", *(begin->cols[1]));
+        begin++;
+        ASSERT_EQ(20, *(begin->cols[0]));
+        ASSERT_EQ("bb", *(begin->cols[1]));
+    } else {
+        ASSERT_EQ(20, *(begin->cols[0]));
+        ASSERT_EQ("bb", *(begin->cols[1]));
+        begin++;
+        ASSERT_EQ(10, *(begin->cols[0]));
+        ASSERT_EQ("aa", *(begin->cols[1]));
+    }
+}
 }  // namespace graph
 }  // namespace nebula

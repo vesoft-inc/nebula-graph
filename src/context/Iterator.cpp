@@ -9,7 +9,7 @@
 namespace nebula {
 namespace graph {
 GetNeighborsIter::GetNeighborsIter(const Value& value) : Iterator(value) {
-    DCHECK(value.type() == Value::Type::LIST);
+    DCHECK(value.isList());
     int64_t segment = 0;
     for (auto& val : value_.getList().values) {
         DCHECK(val.type() == Value::Type::DATASET);
@@ -100,8 +100,11 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
     if (propIndex == index->second.end()) {
         return kNullValue;
     }
-    auto& list = std::get<3>(current);
-    return list->values[propIndex->second];
+    auto& row = std::get<1>(current);
+    DCHECK_GT(row->columns.size(), 3);
+    DCHECK(row->columns[2].isList());
+    auto& list = row->columns[2].getList();
+    return list.values[propIndex->second];
 }
 
 const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
