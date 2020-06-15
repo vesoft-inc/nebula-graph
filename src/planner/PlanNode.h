@@ -94,21 +94,6 @@ public:
         plan_ = plan;
     }
 
-    PlanNode* addInput(const PlanNode* input) {
-        // FIXME:
-        // inputs_.emplace_back(DCHECK_NOTNULL(input));
-        inputs_.emplace_back(input);
-        return this;
-    }
-
-    const PlanNode* input(size_t i) const {
-        return i < inputs_.size() ? inputs_[i] : nullptr;
-    }
-
-    const std::vector<const PlanNode*>& inputs() const {
-        return inputs_;
-    }
-
     void setColNames(std::vector<std::string>&& cols) {
         colNames_ = std::move(cols);
     }
@@ -121,7 +106,6 @@ protected:
     ExecutionPlan*                           plan_{nullptr};
     using VariableName = std::string;
     VariableName                             outputVar_;
-    std::vector<const PlanNode*>             inputs_;
     std::vector<std::string>                 colNames_;
 };
 

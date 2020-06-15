@@ -6,6 +6,7 @@
 
 #include "common/base/Base.h"
 #include "validator/SequentialValidator.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -31,7 +32,7 @@ Status SequentialValidator::validateImpl() {
 }
 
 Status SequentialValidator::toPlan() {
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     root_ = validators_.back()->root();
     for (decltype(validators_.size()) i = 0; i < (validators_.size() - 1); ++i) {
         auto status = Validator::appendPlan(validators_[i + 1]->tail(), validators_[i]->root());

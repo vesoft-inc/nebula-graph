@@ -156,6 +156,7 @@ std::unique_ptr<QueryContext> ValidatorTest::buildContext() {
     return qctx;
 }
 
+
 TEST_F(ValidatorTest, Subgraph) {
     {
         std::string query = "GET SUBGRAPH 3 STEPS FROM \"1\"";
@@ -168,8 +169,11 @@ TEST_F(ValidatorTest, Subgraph) {
         ASSERT_TRUE(validateResult.ok()) << validateResult;
         auto plan = context->plan();
         ASSERT_NE(plan, nullptr);
-        // std::vector<PlanNode::Kind> expected = {};
-        // ASSERT_TRUE(verifyPlan(plan->root(), expected));
+        using PK = nebula::graph::PlanNode::Kind;
+        std::vector<PlanNode::Kind> expected = {
+            PK::kLoop, PK::kStart, PK::kProject, PK::kGetNeighbors, PK::kStart
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
 }
 }  // namespace graph
