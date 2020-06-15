@@ -65,10 +65,11 @@ void QueryInstance::onFinish() {
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
     auto&& value = qctx()->ectx()->moveValue(qctx()->plan()->root()->varName());
-    if (!value.empty()) {
-        std::vector<DataSet> data;
-        data.emplace_back(value.moveDataSet());
-        rctx->resp().set_data(std::move(data));
+    if (value.type() == Value::Type::DATASET) {
+        auto result = value.moveDataSet();
+        if (!result.colNames.empty() || !result.rows.empty()) {
+            rctx->resp().set_data(std::move(result));
+        }
     }
     rctx->finish();
 
@@ -93,6 +94,7 @@ void QueryInstance::onError(Status status) {
     // rctx->resp().set_error_msg(status.toString());
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().set_latency_in_us(latency);
+    rctx->resp().set_error_msg(status.toString());
     rctx->finish();
     delete this;
 }
