@@ -22,6 +22,5 @@ std::unique_ptr<QueryContext> ValidatorTest::buildContext() {
     return qctx;
 }
 
-
 }  // namespace graph
 }  // namespace nebula
