@@ -28,10 +28,9 @@ folly::Future<Status> ShowBalanceExecutor::showBalance() {
             auto tasks = std::move(resp).value();
             // TODO(shylock) typed items instead binary
             // E.G. "balanceId", "spaceId", "partId", "from", "to"
-            uint32_t total = 0, succeeded = 0, failed = 0, inProgress = 0, invalid = 0;
+            uint32_t total = tasks.size(), succeeded = 0, failed = 0, inProgress = 0, invalid = 0;
             DataSet v({"balanceId, spaceId:partId, src->dst", "status"});
             for (auto &task : tasks) {
-                ++total;
                 switch (task.get_result()) {
                     case meta::cpp2::TaskResult::FAILED:
                         ++failed;
