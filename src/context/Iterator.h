@@ -28,12 +28,12 @@ public:
 
     virtual void erase() = 0;
 
-    // Reset iterator position to begin
-    virtual void reset() = 0;
-
     // Reset iterator position to `poc' from begin. Must be sure that the `poc' position
     // is lower than `size()' before resetting
-    virtual void reset(size_t poc) = 0;
+    void reset(size_t poc = 0) {
+        DCHECK((poc == 0 && size() == 0) || (poc < size()));
+        doReset(poc);
+    }
 
     void operator++() {
         next();
@@ -64,6 +64,8 @@ public:
     }
 
 protected:
+    virtual void doReset(size_t poc) = 0;
+
     const Value& value_;
 };
 
@@ -87,15 +89,6 @@ public:
         counter_--;
     }
 
-    void reset() override {
-        counter_ = 0;
-    }
-
-    void reset(size_t poc) override {
-        DCHECK_LT(poc, size());
-        counter_ = poc;
-    }
-
     const Value& operator*() override {
         return value_;
     }
@@ -105,6 +98,10 @@ public:
     }
 
 private:
+    void doReset(size_t poc) override {
+        counter_ = poc;
+    }
+
     int64_t counter_{0};
 };
 
@@ -133,15 +130,6 @@ public:
         iter_ = edges_.erase(iter_);
     }
 
-    void reset() override {
-        iter_ = edges_.begin();
-    }
-
-    void reset(size_t poc) override {
-        DCHECK_LT(poc, edges_.size());
-        iter_ = edges_.begin() + poc;
-    }
-
     const Value& operator*() override {
         return value_;
     }
@@ -159,6 +147,10 @@ public:
                              const std::string& prop) const override;
 
 private:
+    void doReset(size_t poc) override {
+        iter_ = edges_.begin() + poc;
+    }
+
     int64_t buildIndex(const std::vector<std::string>& colNames);
 
     std::pair<std::string, std::unordered_map<std::string, int64_t>>
@@ -213,15 +205,6 @@ public:
         iter_ = rows_.erase(iter_);
     }
 
-    void reset() override {
-        iter_ = rows_.begin();
-    }
-
-    void reset(size_t poc) override {
-        DCHECK_LT(poc, size());
-        iter_ = rows_.begin() + poc;
-    }
-
     const Value& operator*() override {
         return value_;
     }
@@ -245,6 +228,10 @@ public:
     }
 
 private:
+    void doReset(size_t poc) override {
+        iter_ = rows_.begin() + poc;
+    }
+
     std::vector<const Row*>                      rows_;
     std::vector<const Row*>::iterator            iter_;
     std::unordered_map<std::string, int64_t>     colIndex_;
