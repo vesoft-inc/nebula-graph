@@ -12,7 +12,6 @@
 #include "common/datatypes/List.h"
 #include "common/datatypes/Vertex.h"
 
-#include "planner/Query.h"
 #include "context/QueryContext.h"
 
 using nebula::storage::StorageRpcResponse;
@@ -23,36 +22,53 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetNeighborsExecutor::execute() {
+    dumpLog();
+    auto status = buildRequestDataSet();
+    if (!status.ok()) {
+        return error(std::move(status));
+    }
     return getNeighbors().ensure([this]() {
         // TODO(yee): some cleanup or stats actions
         UNUSED(this);
     });
 }
 
-folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
-    const GetNeighbors* gn = asNode<GetNeighbors>(node());
-    Expression* srcExpr = gn->src();
-    ExpressionContextImpl ctx(qctx_->ectx(), nullptr);
-    auto& value = srcExpr->eval(ctx);
-    DCHECK_EQ(value.type(), Value::Type::DATASET);
-    auto& input = value.getDataSet();
+Status GetNeighborsExecutor::buildRequestDataSet() {
+    auto& inputVar = gn_->inputVar();
+    auto& inputResult = ectx_->getResult(inputVar);
+    auto iter = inputResult.iter();
+    ExpressionContextImpl ctx(ectx_, iter.get());
+    DataSet input;
+    reqDs_.colNames = {"_vid"};
+    reqDs_.rows.reserve(iter->size());
+    auto* src = gn_->src();
+    for (; iter->valid(); iter->next()) {
+        auto val = Expression::eval(src, ctx);
+        Row row;
+        row.emplace_back(std::move(val));
+        reqDs_.rows.emplace_back(std::move(row));
+    }
 
+    return Status::OK();
+}
+
+folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     return storageClient
-        ->getNeighbors(gn->space(),
-                       std::move(input.colNames),
-                       std::move(input.rows),
-                       gn->edgeTypes(),
-                       gn->edgeDirection(),
-                       &gn->statProps(),
-                       nullptr,   // FIXME
-                       nullptr,
-                       nullptr,
-                       gn->dedup(),
-                       gn->random(),
-                       gn->orderBy(),
-                       gn->limit(),
-                       gn->filter())
+        ->getNeighbors(gn_->space(),
+                       std::move(reqDs_.colNames),
+                       std::move(reqDs_.rows),
+                       gn_->edgeTypes(),
+                       gn_->edgeDirection(),
+                       &gn_->statProps(),
+                       &gn_->vertexProps(),
+                       &gn_->edgeProps(),
+                       &gn_->exprs(),
+                       gn_->dedup(),
+                       gn_->random(),
+                       gn_->orderBy(),
+                       gn_->limit(),
+                       gn_->filter())
         .via(runner())
         .then([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
             auto status = handleResponse(resp);
@@ -62,7 +78,7 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 
 Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
     auto completeness = resps.completeness();
-    if (completeness != 0) {
+    if (completeness == 0) {
         return Status::Error("Get neighbors failed");
     }
 
@@ -73,6 +89,7 @@ Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
     }
 
     auto& responses = resps.responses();
+    VLOG(1) << "Resp size: " << responses.size();
     List list;
     for (auto& resp : responses) {
         checkResponseResult(resp.get_result());
@@ -83,9 +100,11 @@ Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
             continue;
         }
 
+        VLOG(1) << "Resp row size: " << dataset->rows.size();
         list.values.emplace_back(std::move(*dataset));
     }
-    return finish(ExecResult::buildGetNeighbors(Value(std::move(list)), std::move(state)));
+    auto result = Value(std::move(list));
+    return finish(ExecResult::buildGetNeighbors(std::move(result), std::move(state)));
 }
 
 void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseCommon& result) const {

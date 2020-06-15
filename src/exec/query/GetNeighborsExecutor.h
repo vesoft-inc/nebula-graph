@@ -16,24 +16,32 @@
 #include "common/clients/storage/GraphStorageClient.h"
 
 #include "exec/Executor.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
-
 class GetNeighborsExecutor final : public Executor {
 public:
     GetNeighborsExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("GetNeighborsExecutor", node, qctx) {}
+        : Executor("GetNeighborsExecutor", node, qctx) {
+        gn_ = asNode<GetNeighbors>(node);
+    }
 
     folly::Future<Status> execute() override;
 
 private:
+    Status buildRequestDataSet();
+
     folly::Future<Status> getNeighbors();
 
     using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
     Status handleResponse(RpcResponse& resps);
 
     void checkResponseResult(const storage::cpp2::ResponseCommon &resp) const;
+
+private:
+    DataSet               reqDs_;
+    const GetNeighbors*   gn_;
 };
 
 }   // namespace graph
