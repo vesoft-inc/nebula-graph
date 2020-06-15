@@ -18,7 +18,7 @@ folly::Future<Status> BalanceExecutor::balance() {
     dumpLog();
 
     auto *bNode = asNode<Balance>(node());
-    return qctx()->getMetaClient()->balance(bNode->dels(), false)
+    return qctx()->getMetaClient()->balance(bNode->deleteHosts(), false)
         .via(runner())
         .then([this](StatusOr<int64_t> resp) {
             if (!resp.ok()) {
