@@ -93,7 +93,7 @@ public:
 
     void reset(size_t poc) override {
         DCHECK_LT(poc, size());
-        counter_ += poc;
+        counter_ = poc;
     }
 
     const Value& operator*() override {
