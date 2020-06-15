@@ -183,7 +183,7 @@ Status GetSubgraphValidator::toPlan() {
                 new std::string("_vid")),
             new std::string("_vid"));
     columns->addColumn(column);
-    auto* project = Project::make(plan, gn1, plan->saveObject(columns));
+    auto* project = Project::make(plan, gn1, std::unique_ptr<YieldColumns>(columns));
     project->setOutputVar(vidsToSave);
     project->setColNames(evalResultColNames(columns));
 

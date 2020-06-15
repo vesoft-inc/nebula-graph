@@ -635,8 +635,16 @@ public:
         return groupClause_.get();
     }
 
+    std::unique_ptr<GroupClause> moveGroupClause() {
+        return std::move(groupClause_);
+    }
+
     const YieldClause* yieldClause() const {
         return yieldClause_.get();
+    }
+
+    std::unique_ptr<YieldClause> moveYieldClause() {
+        return std::move(yieldClause_);
     }
 
     std::string toString() const override;

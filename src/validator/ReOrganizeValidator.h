@@ -27,5 +27,20 @@ private:
     std::unique_ptr<OrderFactors>   orderFactors_;
 };
 
+class GroupByValidator : public Validator {
+public:
+    GroupByValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    std::unique_ptr<GroupClause>   groupClause_;
+    std::unique_ptr<YieldClause>   yieldClause_;
+};
+
 }  // namespace graph
 }  // namespace nebula

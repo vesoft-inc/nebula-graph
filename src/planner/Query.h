@@ -565,25 +565,23 @@ private:
 class Project final : public SingleInputNode {
 public:
     static Project* make(ExecutionPlan* plan,
-                         PlanNode* input,
-                         YieldColumns* cols) {
-        return new Project(plan, input, cols);
+                         const PlanNode* input,
+                         std::unique_ptr<YieldColumns> &&cols) {
+        return new Project(plan, input, std::move(cols));
     }
 
     std::string explain() const override;
 
     const YieldColumns* columns() const {
-        return cols_;
+        return cols_.get();
     }
 
 private:
-    Project(ExecutionPlan* plan, PlanNode* input, YieldColumns* cols)
-      : SingleInputNode(plan, Kind::kProject, input) {
-        cols_ = cols;
-    }
+    Project(ExecutionPlan* plan, const PlanNode* input, std::unique_ptr<YieldColumns> &&cols)
+      : SingleInputNode(plan, Kind::kProject, input), cols_(std::move(cols)) { }
 
 private:
-    YieldColumns*               cols_{nullptr};
+    std::unique_ptr<YieldColumns>               cols_{nullptr};
 };
 
 /**
@@ -643,6 +641,33 @@ private:
 private:
     int64_t     offset_{-1};
     int64_t     count_{-1};
+};
+
+/**
+ * GroupBy the given record set.
+ */
+class GroupBy final : public SingleInputNode {
+public:
+    static GroupBy* make(ExecutionPlan* plan,
+                      const PlanNode* input,
+                      std::unique_ptr<YieldColumns> &&groupBy) {
+        return new GroupBy(plan, input, std::move(groupBy));
+    }
+
+    const YieldColumns* groupBy() const {
+        return groupBy_.get();
+    }
+
+    std::string explain() const override;
+
+private:
+    GroupBy(ExecutionPlan* plan,
+            const PlanNode* input,
+            std::unique_ptr<YieldColumns> &&groupBy)
+      : SingleInputNode(plan, Kind::kGroupBy, input), groupBy_(std::move(groupBy)) { }
+
+private:
+    std::unique_ptr<YieldColumns>              groupBy_{nullptr};
 };
 
 /**

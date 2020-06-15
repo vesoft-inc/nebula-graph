@@ -12,6 +12,7 @@
 namespace nebula {
 namespace graph {
 
+// OrderBy
 Status OrderByValidator::validateImpl() {
     auto *orderBySentence = static_cast<OrderBySentence*>(sentence_);
     orderFactors_ = orderBySentence->moveFactors();
@@ -22,6 +23,29 @@ Status OrderByValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *doNode = Sort::make(plan, plan->root(), std::move(orderFactors_));
     root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+
+// GroupBy
+Status GroupByValidator::validateImpl() {
+    auto *groupBySentence = static_cast<GroupBySentence*>(sentence_);
+
+    groupClause_ = groupBySentence->moveGroupClause();
+    yieldClause_ = groupBySentence->moveYieldClause();
+    return Status::OK();
+}
+
+Status GroupByValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    PlanNode *current = GroupBy::make(plan, plan->root(), groupClause_->moveColumns());
+
+    if (yieldClause_ != nullptr) {
+        current = Project::make(plan, current, yieldClause_->moveYieldColumns());
+    }
+
+    root_ = current;
     tail_ = root_;
     return Status::OK();
 }

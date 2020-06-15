@@ -275,6 +275,10 @@ public:
         return yieldColumns_->columns();
     }
 
+    std::unique_ptr<YieldColumns> moveYieldColumns() {
+        return std::move(yieldColumns_);
+    }
+
     bool isDistinct() const {
         return distinct_;
     }
@@ -299,6 +303,9 @@ public:
         return groupColumns_->columns();
     }
 
+    std::unique_ptr<YieldColumns> moveColumns() {
+        return std::move(groupColumns_);
+    }
 
     std::string toString() const;
 
