@@ -22,7 +22,7 @@ folly::Future<Status> DropUserExecutor::dropUser() {
     return qctx()->getMetaClient()->dropUser(duNode->username(), duNode->ifExist())
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp);
+            HANDLE_EXEC_RESPONSE(resp, "Drop user failed!");
         });
 }
 

@@ -23,7 +23,7 @@ folly::Future<Status> CreateUserExecutor::createUser() {
             cuNode->username(), cuNode->password(), cuNode->ifNotExist())
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp);
+            HANDLE_EXEC_RESPONSE(resp, "Create User failed!");
         });
 }
 

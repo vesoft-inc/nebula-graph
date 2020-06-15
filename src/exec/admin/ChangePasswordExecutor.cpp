@@ -23,7 +23,7 @@ folly::Future<Status> ChangePasswordExecutor::changePassword() {
             cpNode->username(), cpNode->newPassword(), cpNode->password())
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp);
+            HANDLE_EXEC_RESPONSE(resp, "Change password failed!");
         });
 }
 

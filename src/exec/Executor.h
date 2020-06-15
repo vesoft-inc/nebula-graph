@@ -107,7 +107,7 @@ protected:
     // TODO: Some statistics
 };
 
-#define HANDLE_EXEC_RESPONSE(resp) \
+#define HANDLE_EXEC_RESPONSE(resp, errorMsgFmt, ...) \
     if (!resp.ok()) { \
         LOG(ERROR) << resp.status(); \
         return resp.status(); \
@@ -115,7 +115,7 @@ protected:
     if (resp.value()) { \
         return Status::OK(); \
     } else { \
-        return Status::Error("%s failed.", __FUNCTION__); \
+        return Status::Error(errorMsgFmt, ## __VA_ARGS__); \
     }
 
 }   // namespace graph

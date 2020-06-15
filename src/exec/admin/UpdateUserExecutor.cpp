@@ -22,7 +22,7 @@ folly::Future<Status> UpdateUserExecutor::updateUser() {
     return qctx()->getMetaClient()->alterUser(uuNode->username(), uuNode->password())
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp);
+            HANDLE_EXEC_RESPONSE(resp, "Update user failed!");
         });
 }
 
