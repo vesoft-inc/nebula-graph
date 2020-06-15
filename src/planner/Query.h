@@ -518,7 +518,7 @@ public:
         return new Filter(plan, input, condition);
     }
 
-    const Expression* condition() const {
+    Expression* condition() const {
         return condition_;
     }
 
@@ -824,24 +824,26 @@ class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(ExecutionPlan* plan,
                        PlanNode* input,
-                       Expression* expr) {
-        return new Dedup(plan, input, expr);
+                       std::vector<Expression*> exprs) {
+        return new Dedup(plan, input, exprs);
     }
 
-    void setExpr(Expression* expr) {
-        expr_ = expr;
+    std::vector<Expression*> getExprs() const {
+        return exprs_;
     }
 
     std::string explain() const override;
 
 private:
-    Dedup(ExecutionPlan* plan, PlanNode* input, Expression* expr)
+    Dedup(ExecutionPlan* plan,
+          PlanNode* input,
+          std::vector<Expression*> exprs)
         : SingleInputNode(plan, Kind::kDedup, input) {
-        expr_ = expr;
+        exprs_ = exprs;
     }
 
 private:
-    Expression*     expr_{nullptr};
+    std::vector<Expression*>     exprs_;
 };
 
 class DataCollect final : public SingleInputNode {

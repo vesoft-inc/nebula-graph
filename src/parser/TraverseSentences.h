@@ -594,6 +594,10 @@ public:
         return yieldClause_->columns();
     }
 
+    YieldColumns* yieldColumns() const {
+        return yieldClause_->yields();
+    }
+
     void setWhereClause(WhereClause *clause) {
         whereClause_.reset(clause);
     }
@@ -606,11 +610,20 @@ public:
         return yieldClause_.get();
     }
 
+    void setDistinct() {
+        distinct_ = true;
+    }
+
+    auto distinct() {
+        return distinct_;
+    }
+
     std::string toString() const override;
 
 private:
     std::unique_ptr<YieldClause>               yieldClause_;
     std::unique_ptr<WhereClause>               whereClause_;
+    bool                                       distinct_{false};
 };
 
 class GroupBySentence final : public Sentence {
