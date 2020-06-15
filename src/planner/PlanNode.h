@@ -86,6 +86,10 @@ public:
         return plan_;
     }
 
+    std::vector<std::string> colNames() const {
+        return colNames_;
+    }
+
     void setId(int64_t id) {
         id_ = id;
         outputVar_ = folly::stringPrintf("%s_%ld", toString(kind_), id_);
@@ -95,15 +99,36 @@ public:
         plan_ = plan;
     }
 
-protected:
+    PlanNode* addInput(const PlanNode* input) {
+        // FIXME:
+        // inputs_.emplace_back(DCHECK_NOTNULL(input));
+        inputs_.emplace_back(input);
+        return this;
+    }
+
+    const PlanNode* input(size_t i) const {
+        return i < inputs_.size() ? inputs_[i] : nullptr;
+    }
+
+    const std::vector<const PlanNode*>& inputs() const {
+        return inputs_;
+    }
+
+    void setColNames(std::vector<std::string>&& cols) {
+        colNames_ = std::move(cols);
+    }
+
     static const char* toString(Kind kind);
 
+protected:
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{IdGenerator::INVALID_ID};
     ExecutionPlan*                           plan_{nullptr};
     using VariableName = std::string;
     std::unordered_set<VariableName>         availableVars_;
     VariableName                             outputVar_;
+    std::vector<const PlanNode*>             inputs_;
+    std::vector<std::string>                 colNames_;
 };
 
 }  // namespace graph
