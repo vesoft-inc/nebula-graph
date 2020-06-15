@@ -70,8 +70,7 @@ TEST_F(SchemaTest, TestSpace) {
         rows.emplace_back(row);
         expect.rows = rows;
         ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(1, resp.get_data()->size());
-        ASSERT_EQ(expect, (*resp.get_data())[0]);
+        ASSERT_EQ(expect, *resp.get_data());
     }
     sleep(FLAGS_heartbeat_interval_secs + 1);
     {
@@ -95,7 +94,6 @@ TEST_F(SchemaTest, TestTag) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(1, resp.get_data()->size());
         DataSet expect;
         expect.colNames = {"Field", "Type", "Null", "Default"};
         std::vector<Row> rows;
@@ -111,7 +109,8 @@ TEST_F(SchemaTest, TestTag) {
         row.columns = std::move(columns3);
         rows.emplace_back(row);
         expect.rows = std::move(rows);
-        ASSERT_EQ(expect, (*resp.get_data())[0]);
+        ASSERT_TRUE(resp.__isset.data);
+        ASSERT_EQ(expect, *resp.get_data());
     }
 }
 
@@ -128,7 +127,6 @@ TEST_F(SchemaTest, TestEdge) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(1, resp.get_data()->size());
         DataSet expect;
         expect.colNames = {"Field", "Type", "Null", "Default"};
         std::vector<Row> rows;
@@ -140,7 +138,7 @@ TEST_F(SchemaTest, TestEdge) {
         row.columns = std::move(columns2);
         rows.emplace_back(row);
         expect.rows = std::move(rows);
-        ASSERT_EQ(expect, (*resp.get_data())[0]);
+        ASSERT_EQ(expect, *resp.get_data());
     }
 }
 
