@@ -126,6 +126,5 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     return list->values[propIndex->second];
 }
 
-
 }  // namespace graph
 }  // namespace nebula

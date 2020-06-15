@@ -237,32 +237,46 @@ private:
     std::unordered_map<std::string, int64_t>     colIndex_;
 };
 
-struct ColVals {
-    std::vector<const Value*> cols;
+struct ValueRefs {
+    std::vector<const Value*> values;
 
-    bool operator==(const ColVals &rhs) const {
-        if (rhs.cols.size() != cols.size()) {
+    ValueRefs() = default;
+    ValueRefs(const ValueRefs&) = default;
+    ValueRefs(ValueRefs&&) = default;
+    explicit ValueRefs(std::vector<const Value*>&& vals) {
+        values = std::move(vals);
+    }
+
+    void clear() {
+        values.clear();
+    }
+
+    bool operator==(const ValueRefs &rhs) const {
+        if (rhs.values.size() != values.size()) {
             return false;
         }
 
-        for (auto i = 0u;  i < cols.size(); i++) {
-            if (*cols[i] != *rhs.cols[i]) {
+        for (auto i = 0u;  i < values.size(); i++) {
+            if (*values[i] != *rhs.values[i]) {
                 return false;
             }
         }
         return true;
     }
 };
+}  // namespace graph
+}  // namespace nebula
 
-struct ColsHasher {
-    std::size_t operator()(const ColVals& colVals) const {
+namespace std {
+template<>
+struct hash<nebula::graph::ValueRefs> {
+    std::size_t operator()(const nebula::graph::ValueRefs& h) const noexcept {
         size_t seed = 0;
-        for (auto &col : colVals.cols) {
-            seed ^= std::hash<Value>()(*col) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        for (auto &value : h.values) {
+            seed ^= std::hash<nebula::Value>()(*value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
         return seed;
     }
 };
-}  // namespace graph
-}  // namespace nebula
+}  // namespace std
 #endif  // CONTEXT_ITERATOR_H_
