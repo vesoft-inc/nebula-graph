@@ -30,6 +30,7 @@ public:
     folly::Future<Status> execute() override;
 
 private:
+    friend class GetNeighborsTest_BuildRequestDataSet_Test;
     Status buildRequestDataSet();
 
     folly::Future<Status> getNeighbors();

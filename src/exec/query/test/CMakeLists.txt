@@ -43,6 +43,7 @@ nebula_add_test(
     NAME query_executors_test
     SOURCES
         ProjectTest.cpp
+        GetNeighborsTest.cpp
     OBJECTS
         ${EXEC_QUERY_TEST_LIBS}
     LIBRARIES
