@@ -19,6 +19,7 @@
 #include "validator/AdminValidator.h"
 #include "validator/MaintainValidator.h"
 #include "validator/MutateValidator.h"
+#include "validator/ReOrganizeValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -57,6 +58,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
             return std::make_unique<InsertEdgesValidator>(sentence, context);
+        case Sentence::Kind::kOrderBy:
+            return std::make_unique<OrderByValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }

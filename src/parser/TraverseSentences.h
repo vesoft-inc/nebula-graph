@@ -283,6 +283,10 @@ public:
         return orderFactors_->factors();
     }
 
+    std::unique_ptr<OrderFactors> moveFactors() {
+        return std::move(orderFactors_);
+    }
+
     std::string toString() const override;
 
 private:

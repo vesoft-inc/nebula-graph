@@ -43,7 +43,7 @@ public:
         return PlanNode::input(0);
     }
 
-    void setInput(PlanNode* input) {
+    void setInput(const PlanNode* input) {
         addInput(input);
     }
 
@@ -56,7 +56,7 @@ public:
     }
 
 protected:
-    SingleInputNode(ExecutionPlan* plan, Kind kind, PlanNode* input) : PlanNode(plan, kind) {
+    SingleInputNode(ExecutionPlan* plan, Kind kind, const PlanNode* input) : PlanNode(plan, kind) {
         setInput(input);
     }
 
@@ -592,25 +592,23 @@ private:
 class Sort final : public SingleInputNode {
 public:
     static Sort* make(ExecutionPlan* plan,
-                      PlanNode* input,
-                      OrderFactors* factors) {
-        return new Sort(plan, input, factors);
+                      const PlanNode* input,
+                      std::unique_ptr<OrderFactors> &&factors) {
+        return new Sort(plan, input, std::move(factors));
     }
 
-    const OrderFactors* factors() {
-        return factors_;
+    const OrderFactors* factors() const {
+        return factors_.get();
     }
 
     std::string explain() const override;
 
 private:
-    Sort(ExecutionPlan* plan, PlanNode* input, OrderFactors* factors)
-      : SingleInputNode(plan, Kind::kSort, input) {
-        factors_ = factors;
-    }
+    Sort(ExecutionPlan* plan, const PlanNode* input, std::unique_ptr<OrderFactors> &&factors)
+      : SingleInputNode(plan, Kind::kSort, input), factors_(std::move(factors)) { }
 
 private:
-    OrderFactors*   factors_{nullptr};
+    std::unique_ptr<OrderFactors>   factors_{nullptr};
 };
 
 /**
