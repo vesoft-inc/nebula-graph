@@ -471,7 +471,7 @@ private:
         }
         const Row* row;
     };
-    
+
     std::vector<RowRef>                          rows_;
     std::vector<RowRef>::iterator                iter_;
     std::unordered_map<std::string, int64_t>     colIndex_;
