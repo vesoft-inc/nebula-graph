@@ -71,6 +71,14 @@ public:
         return Value::kEmpty;
     }
 
+    Value getVertex() const {
+        return Value();
+    }
+
+    Value getEdge() const {
+        return Value();
+    }
+
 protected:
     virtual void doReset(size_t pos) = 0;
 
@@ -157,7 +165,16 @@ private:
     buildPropIndex(const std::string& props);
 
 private:
+    // Maps the origin column names with its column index, each response
+    // has a segment.
+    // | _vid | _stats | _tag:t1:p1:p2 | _edge:e1:p1:p2 |
+    // -> {_vid : 0, _stats : 1, _tag:t1:p1:p2 : 2, _edge:d1:p1:p2 : 3}
     std::vector<std::unordered_map<std::string, int64_t>> colIndex_;
+
+    // Maps the property name with its index, each response has a segment
+    // in PropIndex.
+    // _tag:t1:p1:p2  ->  {t1 : {p1 : 0, p2 : 1}}
+    // _edge:e1:p1:p2  ->  {e1 : {p1 : 0, p2 : 1}}
     using PropIdxMap = std::unordered_map<std::string, int64_t>;
     using TagEdgePropMap = std::unordered_map<std::string, PropIdxMap>;
     using PropIndex = std::vector<TagEdgePropMap>;

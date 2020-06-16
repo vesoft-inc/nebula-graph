@@ -68,7 +68,11 @@ GetNeighborsIter::buildPropIndex(const std::string& props) {
     for (size_t i = 2; i < pieces.size(); ++i) {
         kv.emplace(pieces[i], i - 2);
     }
-    return std::make_pair(pieces[1], std::move(kv));
+    // The first character of the tag/edge name is +/-.
+    // It's not used for now.
+    DCHECK_GT(pieces[1].size(), 1);
+    auto& name = pieces[1];
+    return std::make_pair(name.substr(1, name.size()), std::move(kv));
 }
 
 const Value& GetNeighborsIter::getColumn(const std::string& col) const {
@@ -123,7 +127,5 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     auto& list = std::get<3>(current);
     return list->values[propIndex->second];
 }
-
-
 }  // namespace graph
 }  // namespace nebula
