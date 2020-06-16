@@ -24,8 +24,12 @@ Status SortValidator::toPlan() {
     std::vector<std::pair<std::string, OrderFactor::OrderType>> nameType;
     auto* columns = new YieldColumns();
     for (auto &factor : factors_) {
-        auto* columns = new YieldColumns();
-        auto* column = new YieldColumn(factor->expr());
+        if (factor->expr()->kind() != Expression::Kind::kInputProperty) {
+            return Status::Error("Wrong expression");
+        }
+        auto expr = static_cast<InputPropertyExpression*>(factor->expr());
+        nameType.emplace_back(std::make_pair(*expr->sym(), factor->orderType()));
+        auto* column = new YieldColumn(expr);
         columns->addColumn(column);
     }
 
@@ -34,7 +38,7 @@ Status SortValidator::toPlan() {
     project->setOutputVar(projectName);
     project->setColNames(evalResultColNames(columns));
 
-    auto *sortNode = Sort::make(plan, project, std::move(factors_));
+    auto *sortNode = Sort::make(plan, project, std::move(nameType));
     sortNode->setInputVar(projectName);
     root_ = sortNode;
     tail_ = root_;

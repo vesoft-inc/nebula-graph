@@ -17,7 +17,6 @@ Status LimitValidator::validateImpl() {
     if (offset_ < 0) {
         return Status::SyntaxError("skip `%ld' is illegal", offset_);
     }
-    count_ = sentence_->count();
     if (count_ < 0) {
         return Status::SyntaxError("count `%ld' is illegal", count_);
     }
