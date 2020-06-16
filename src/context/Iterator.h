@@ -41,11 +41,11 @@ public:
         next();
     }
 
-    virtual const Value& value() {
+    virtual const Value& value() const {
         return *value_;
     }
 
-    const Value& operator*() {
+    const Value& operator*() const {
         return value();
     }
 
