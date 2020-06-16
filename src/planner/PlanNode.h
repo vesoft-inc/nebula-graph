@@ -24,32 +24,41 @@ class PlanNode {
 public:
     enum class Kind : uint8_t {
         kUnknown = 0,
+
         kStart,
-        kGetNeighbors,
-        kGetVertices,
-        kGetEdges,
-        kReadIndex,
-        kFilter,
-        kUnion,
-        kIntersect,
-        kMinus,
-        kProject,
-        kSort,
-        kLimit,
-        kAggregate,
-        kSelector,
-        kLoop,
         kSwitchSpace,
-        kDedup,
-        kMultiOutputs,
         kCreateSpace,
         kCreateTag,
         kCreateEdge,
         kDescSpace,
         kDescTag,
         kDescEdge,
+        // Put no input plan node above
+        kAnchorNoInput,
+
+        kGetNeighbors,
+        kGetVertices,
+        kGetEdges,
+        kReadIndex,
+        kFilter,
+        kProject,
+        kSort,
+        kLimit,
+        kAggregate,
+        kDedup,
+        kMultiOutputs,
         kInsertVertices,
         kInsertEdges,
+        kSelector,
+        kLoop,
+        // Put single input plan node above
+        kAnchorSingleInput,
+
+        kUnion,
+        kIntersect,
+        kMinus,
+        // Put biInput plan node above
+        kAnchorBiInput,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
@@ -99,6 +108,24 @@ public:
     }
 
     static const char* toString(Kind kind);
+
+    // Is derived from no input node
+    bool isNoInput() const {
+        return static_cast<uint8_t>(kind_) > static_cast<uint8_t>(Kind::kUnknown) &&
+            static_cast<uint8_t>(kind_) < static_cast<uint8_t>(Kind::kAnchorNoInput);
+    }
+
+    // Is derived from single input node
+    bool isSingleInput() const {
+        return static_cast<uint8_t>(kind_) > static_cast<uint8_t>(Kind::kAnchorNoInput) &&
+            static_cast<uint8_t>(kind_) < static_cast<uint8_t>(Kind::kAnchorSingleInput);
+    }
+
+    // Is derived from biInput node
+    bool isBiInput() const {
+        return static_cast<uint8_t>(kind_) > static_cast<uint8_t>(Kind::kAnchorSingleInput) &&
+            static_cast<uint8_t>(kind_) < static_cast<uint8_t>(Kind::kAnchorBiInput);
+    }
 
 protected:
     Kind                                     kind_{Kind::kUnknown};
