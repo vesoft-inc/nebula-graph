@@ -28,11 +28,11 @@ public:
 
     virtual void erase() = 0;
 
-    // Reset iterator position to `poc' from begin. Must be sure that the `poc' position
+    // Reset iterator position to `pos' from begin. Must be sure that the `pos' position
     // is lower than `size()' before resetting
-    void reset(size_t poc = 0) {
-        DCHECK((poc == 0 && size() == 0) || (poc < size()));
-        doReset(poc);
+    void reset(size_t pos = 0) {
+        DCHECK((pos == 0 && size() == 0) || (pos < size()));
+        doReset(pos);
     }
 
     void operator++() {
@@ -64,7 +64,7 @@ public:
     }
 
 protected:
-    virtual void doReset(size_t poc) = 0;
+    virtual void doReset(size_t pos) = 0;
 
     const Value& value_;
 };
@@ -98,8 +98,8 @@ public:
     }
 
 private:
-    void doReset(size_t poc) override {
-        counter_ = poc;
+    void doReset(size_t pos) override {
+        counter_ = pos;
     }
 
     int64_t counter_{0};
@@ -147,8 +147,8 @@ public:
                              const std::string& prop) const override;
 
 private:
-    void doReset(size_t poc) override {
-        iter_ = edges_.begin() + poc;
+    void doReset(size_t pos) override {
+        iter_ = edges_.begin() + pos;
     }
 
     int64_t buildIndex(const std::vector<std::string>& colNames);
@@ -228,8 +228,8 @@ public:
     }
 
 private:
-    void doReset(size_t poc) override {
-        iter_ = rows_.begin() + poc;
+    void doReset(size_t pos) override {
+        iter_ = rows_.begin() + pos;
     }
 
     std::vector<const Row*>                      rows_;
