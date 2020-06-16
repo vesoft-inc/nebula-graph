@@ -599,6 +599,99 @@ TEST(IteratorTest, TestUnionIterator) {
         }
     }
 }
+
+TEST(IteratorTest, EraseRange) {
+    DataSet ds({"col1", "col2"});
+    for (auto i = 0; i < 10; ++i) {
+        ds.rows.emplace_back(Row({i, folly::to<std::string>(i)}));
+    }
+    // erase out of range pos
+    {
+        Value val(ds);
+        SequentialIter iter(val);
+        iter.eraseRange(5, 11);
+        ASSERT_EQ(iter.size(), 10);
+        auto i = 0;
+        for (; iter.valid(); iter.next()) {
+            ASSERT_EQ(iter.getColumn("col1"), i);
+            ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+            ++i;
+        }
+    }
+    // erase in range
+    {
+        Value val(ds);
+        SequentialIter iter(val);
+        iter.eraseRange(0, 10);
+        ASSERT_EQ(iter.size(), 0);
+    }
+    // erase part
+    {
+        Value val(ds);
+        SequentialIter iter(val);
+        iter.eraseRange(0, 5);
+        EXPECT_EQ(iter.size(), 5);
+        auto i = 5;
+        for (; iter.valid(); iter.next()) {
+            ASSERT_EQ(iter.getColumn("col1"), i);
+            ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+            ++i;
+        }
+    }
+}
+
+TEST(IteratorTest, Sort) {
+    DataSet ds({"col1", "col2"});
+    ds.rows.emplace_back(Row({Value("dd"), Value(10)}));
+    ds.rows.emplace_back(Row({Value("aa"), Value(10)}));
+    ds.rows.emplace_back(Row({Value("dd"), Value(20)}));
+    // sort one col ASC
+    {
+        Value val(ds);
+        SequentialIter iter(val);
+        std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
+        factors.emplace_back(std::make_pair("col1", OrderFactor::OrderType::ASCEND));
+        iter.sort(factors);
+        ASSERT_EQ(iter.size(), 3);
+        ASSERT_TRUE(iter.valid());
+        ASSERT_EQ(iter.getColumn("col1"), "aa");
+        ASSERT_EQ(iter.getColumn("col2"), 10);
+        iter.next();
+        ASSERT_TRUE(iter.valid());
+        ASSERT_EQ(iter.getColumn("col1"), "dd");
+        ASSERT_EQ(iter.getColumn("col2"), 10);
+        iter.next();
+        ASSERT_TRUE(iter.valid());
+        ASSERT_EQ(iter.getColumn("col1"), "dd");
+        ASSERT_EQ(iter.getColumn("col2"), 20);
+        iter.next();
+        ASSERT_FALSE(iter.valid());
+    }
+
+    // sort two cols, first col ASC, second col DES
+    {
+        Value val(ds);
+        SequentialIter iter(val);
+        std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
+        factors.emplace_back(std::make_pair("col1", OrderFactor::OrderType::ASCEND));
+        factors.emplace_back(std::make_pair("col2", OrderFactor::OrderType::DESCEND));
+        iter.sort(factors);
+        ASSERT_EQ(iter.size(), 3);
+        ASSERT_TRUE(iter.valid());
+        ASSERT_EQ(iter.getColumn("col1"), "aa");
+        ASSERT_EQ(iter.getColumn("col2"), 10);
+        iter.next();
+        ASSERT_TRUE(iter.valid());
+        ASSERT_EQ(iter.getColumn("col1"), "dd");
+        ASSERT_EQ(iter.getColumn("col2"), 20);
+        iter.next();
+        ASSERT_TRUE(iter.valid());
+        ASSERT_EQ(iter.getColumn("col1"), "dd");
+        ASSERT_EQ(iter.getColumn("col2"), 10);
+        iter.next();
+        ASSERT_FALSE(iter.valid());
+    }
+}
 }  // namespace graph
 }  // namespace nebula
 

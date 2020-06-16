@@ -14,6 +14,7 @@
 #include "common/datatypes/Value.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/DataSet.h"
+#include "parser/TraverseSentences.h"
 
 namespace nebula {
 namespace graph {
@@ -42,9 +43,13 @@ public:
 
     virtual void next() = 0;
 
+    // erase current iter
     virtual void erase() = 0;
 
     virtual const Row* row() const = 0;
+
+    // erase range iter, no include last
+    virtual void eraseRange(size_t first, size_t last) = 0;
 
     // Reset iterator position to `pos' from begin. Must be sure that the `pos' position
     // is lower than `size()' before resetting
@@ -52,6 +57,12 @@ public:
         DCHECK((pos == 0 && size() == 0) || (pos < size()));
         doReset(pos);
     }
+
+    virtual void clear() = 0;
+
+    virtual void sort(const std::vector<
+            std::pair<std::string, OrderFactor::OrderType>
+            > &factors) = 0;
 
     void operator++() {
         next();
@@ -132,6 +143,23 @@ public:
         counter_--;
     }
 
+    void eraseRange(size_t, size_t) override {
+        return;
+    }
+
+    void clear() override {
+        reset();
+    }
+
+    void sort(const std::vector<
+            std::pair<std::string, OrderFactor::OrderType>>&) override {
+        return;
+    }
+
+    const Value& operator*() override {
+        return value_;
+    }
+
     size_t size() const override {
         return 1;
     }
@@ -176,6 +204,29 @@ public:
         if (valid()) {
             iter_ = logicalRows_.erase(iter_);
         }
+    }
+
+    void eraseRange(size_t first, size_t last) override {
+        if (first >= last || last > size() || first >= size()) {
+            return;
+        }
+        edges_.erase(edges_.begin() + first, edges_.begin() + last);
+        iter_ = edges_.begin();
+    }
+
+    void clear() override {
+        edges_.clear();
+        reset();
+    }
+
+    void sort(const std::vector<
+            std::pair<std::string, OrderFactor::OrderType>>&) override {
+        LOG(FATAL) << "GetNeighborsIter not sorted ";
+        return;
+    }
+
+    const Value& operator*() override {
+        return value_;
     }
 
     size_t size() const override {
@@ -302,7 +353,8 @@ public:
         DCHECK(value->isDataSet());
         auto& ds = value->getDataSet();
         for (auto& row : ds.rows) {
-            rows_.emplace_back(&row);
+            RowRef rowRef(&row);
+            rows_.emplace_back(std::move(rowRef));
         }
         iter_ = rows_.begin();
         for (size_t i = 0; i < ds.colNames.size(); ++i) {
@@ -330,6 +382,54 @@ public:
         iter_ = rows_.erase(iter_);
     }
 
+    void eraseRange(size_t first, size_t last) override {
+        if (first >= last || last > size() || first >= size()) {
+            return;
+        }
+        rows_.erase(rows_.begin() + first, rows_.begin() + last);
+        iter_ = rows_.begin();
+    }
+
+    void clear() override {
+        rows_.clear();
+        reset();
+    }
+
+    void sort(const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors) override {
+        if (factors.empty()) {
+            return;
+        }
+        auto comparator = [this, &factors] (RowRef &lhs, RowRef &rhs) {
+            const auto &lhsColumns = lhs.row->columns;
+            const auto &rhsColumns = rhs.row->columns;
+            for (auto &factor : factors) {
+                auto indexFind = this->colIndex_.find(factor.first);
+                if (indexFind == colIndex_.end()) {
+                    LOG(ERROR) << "Column name: " << factor.first << " not exist.";
+                    continue;
+                }
+                auto index = indexFind->second;
+                auto orderType = factor.second;
+                if (lhsColumns[index] == rhsColumns[index]) {
+                    continue;
+                }
+
+                if (orderType == OrderFactor::OrderType::ASCEND) {
+                    return lhsColumns[index] < rhsColumns[index];
+                } else if (orderType == OrderFactor::OrderType::DESCEND) {
+                    return lhsColumns[index] > rhsColumns[index];
+                }
+            }
+            return false;
+        };
+        std::sort(rows_.begin(), rows_.end(), comparator);
+        reset();
+    }
+
+    const Value& operator*() override {
+        return value_;
+    }
+
     size_t size() const override {
         return rows_.size();
     }
@@ -338,13 +438,13 @@ public:
         if (!valid()) {
             return Value::kNullValue;
         }
-        auto row = *iter_;
+        auto rowRef = *iter_;
         auto index = colIndex_.find(col);
         if (index == colIndex_.end()) {
             return Value::kNullValue;
         } else {
             DCHECK_LT(index->second, row->values.size());
-            return row->values[index->second];
+            return rowRef.row->values[index->second];
         }
     }
 
@@ -364,8 +464,16 @@ private:
         iter_ = rows_.begin() + pos;
     }
 
-    std::vector<const Row*>                      rows_;
-    std::vector<const Row*>::iterator            iter_;
+private:
+    struct RowRef {
+        explicit RowRef(const Row* in) {
+            row = in;
+        }
+        const Row* row;
+    };
+    
+    std::vector<RowRef>                          rows_;
+    std::vector<RowRef>::iterator                iter_;
     std::unordered_map<std::string, int64_t>     colIndex_;
 };
 

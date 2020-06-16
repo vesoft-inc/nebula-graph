@@ -5,16 +5,25 @@
  */
 
 #include "exec/query/SortExecutor.h"
-
-#include "planner/PlanNode.h"
+#include "context/ExpressionContextImpl.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> SortExecutor::execute() {
     dumpLog();
-    // TODO(yee):
-    return start();
+    auto* sort = asNode<Sort>(node());
+    auto iter = ectx_->getResult(sort->inputVar()).iter();
+
+    if (iter == nullptr) {
+        return finish(ExecResult::buildDefault(Value()));
+    }
+    auto result = ExecResult::buildDefault(ectx_->getResult(sort->inputVar()).copyValue());
+    ExpressionContextImpl ctx(ectx_, iter.get());
+    iter->sort(sort->factors());
+    result.setIter(std::move(iter));
+    return finish(std::move(result));
 }
 
 }   // namespace graph
