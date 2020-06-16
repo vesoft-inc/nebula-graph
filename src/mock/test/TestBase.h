@@ -20,7 +20,7 @@ protected:
 
     void TearDown() override;
 
-    static ::testing::AssertionResult verifyDataSetWithoutOrder(const cpp2::ExecutionResponse &resp,
+    static ::testing::AssertionResult verifyDataSetWithoutOrder(cpp2::ExecutionResponse &resp,
                                                                 DataSet &expected) {
         if (resp.get_error_code() != cpp2::ErrorCode::SUCCEEDED) {
             return ::testing::AssertionFailure() << "query failed: "
@@ -29,17 +29,13 @@ protected:
         if (!resp.__isset.data) {
             return ::testing::AssertionFailure() << "No data in response";
         }
-        const auto &data = *resp.get_data();
-        if (data.empty()) {
-            return ::testing::AssertionFailure() << "No data in response";
-        }
-        auto dataSet = data.front();
-        std::sort(dataSet.rows.begin(), dataSet.rows.end());
+        auto &data = *resp.get_data();
+        std::sort(data.rows.begin(), data.rows.end());
         std::sort(expected.rows.begin(), expected.rows.end());
-        if (dataSet != expected) {
+        if (data != expected) {
             return ::testing::AssertionFailure() << "Not match data set" << std::endl
                 << "Resp: " << std::endl
-                << dataSet
+                << data
                 << "Expected: " << std::endl
                 << expected;
         } else {

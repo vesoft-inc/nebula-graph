@@ -41,7 +41,6 @@
 #include "planner/Mutate.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
-#include "context/ExecutionContext.h"
 #include "util/ObjectPool.h"
 #include "context/QueryContext.h"
 
@@ -282,6 +281,11 @@ const Value &Executor::getSingleInputValue() {
     const auto *input = CHECK_NOTNULL(singleInput)->input();
     const auto &inputVarName = DCHECK_NOTNULL(input)->varName();
     return ectx_->getValue(inputVarName);
+}
+
+Status Executor::finish(ExecResult &&result) {
+    ectx_->setResult(node()->varName(), std::move(result));
+    return Status::OK();
 }
 
 void Executor::dumpLog() const {

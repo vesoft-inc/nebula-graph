@@ -27,15 +27,52 @@ TEST(IteratorTest, Sequential) {
         row.columns.emplace_back(folly::to<std::string>(i));
         ds.rows.emplace_back(std::move(row));
     }
+    {
+        Value val(ds);
+        SequentialIter iter(val);
+        EXPECT_EQ(iter.size(), 10);
+        auto i = 0;
+        for (; iter.valid(); iter.next()) {
+            EXPECT_EQ(iter.getColumn("col1"), i);
+            EXPECT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+            ++i;
+        }
+    }
+    {
+        Value val(ds);
+        SequentialIter iter(val);
+        auto copyIter1 = iter.copy();
+        auto copyIter2 = copyIter1->copy();
+        EXPECT_EQ(copyIter2->size(), 10);
+        auto i = 0;
+        for (; copyIter2->valid(); copyIter2->next()) {
+            EXPECT_EQ(copyIter2->getColumn("col1"), i);
+            EXPECT_EQ(copyIter2->getColumn("col2"), folly::to<std::string>(i));
+            ++i;
+        }
+    }
+    // erase
+    {
+        Value val(std::move(ds));
+        SequentialIter iter(val);
+        EXPECT_EQ(iter.size(), 10);
+        while (iter.valid()) {
+            if (iter.getColumn("col1").getInt() % 2 == 0) {
+                iter.erase();
+            } else {
+                iter.next();
+            }
+        }
+        int32_t count = 0;
+        for (iter.reset(); iter.valid(); iter.next()) {
+            EXPECT_NE(iter.getColumn("col1").getInt() % 2, 0);
+            count++;
+        }
 
-    Value val(std::move(ds));
-    SequentialIter iter(val);
-    EXPECT_EQ(iter.size(), 10);
-    auto i = 0;
-    for (; iter.valid(); iter.next()) {
-        EXPECT_EQ(iter.getColumn("col1"), i);
-        EXPECT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
-        ++i;
+        for (iter.reset(1); iter.valid(); iter.next()) {
+            count--;
+        }
+        EXPECT_EQ(count, 1);
     }
 }
 
@@ -159,6 +196,49 @@ TEST(IteratorTest, GetNeighbor) {
         EXPECT_EQ(result.size(), 40);
         EXPECT_EQ(expected, result);
     }
+    {
+        GetNeighborsIter iter(val);
+        auto copyIter1 = iter.copy();
+        auto copyIter2 = copyIter1->copy();
+        std::vector<Value> expected;
+        expected.insert(expected.end(), 20, Value(NullType::__NULL__));
+        expected.insert(expected.end(), 20, 0);
+        std::vector<Value> result;
+        for (; copyIter2->valid(); copyIter2->next()) {
+            result.emplace_back(copyIter2->getEdgeProp("edge2", "prop1"));
+        }
+        EXPECT_EQ(result.size(), 40);
+        EXPECT_EQ(expected, result);
+    }
+    // erase
+    {
+        GetNeighborsIter iter(val);
+        while (iter.valid()) {
+            if (iter.getColumn("_vid").getInt() % 2 == 0) {
+                iter.erase();
+            } else {
+                iter.next();
+            }
+        }
+        std::vector<Value> expected =
+                {1, 1, 3, 3, 5, 5, 7, 7, 9, 9,
+                 1, 1, 3, 3, 5, 5, 7, 7, 9, 9};
+        std::vector<Value> result;
+
+        int count = 0;
+        for (iter.reset(); iter.valid(); iter.next()) {
+            result.emplace_back(iter.getColumn("_vid"));
+            count++;
+        }
+        EXPECT_EQ(result.size(), 20);
+        EXPECT_EQ(expected, result);
+
+        for (iter.reset(10); iter.valid(); iter.next()) {
+            count--;
+        }
+        EXPECT_EQ(count, 10);
+    }
 }
+
 }  // namespace graph
 }  // namespace nebula

@@ -44,12 +44,13 @@
         }                                                                                          \
     } while (0);
 
+#include "context/ExecutionContext.h"
+
 namespace nebula {
 namespace graph {
 
 class PlanNode;
 class QueryContext;
-class ExecutionContext;
 
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
@@ -111,6 +112,7 @@ protected:
 
     // Store the result of this executor to execution context
     Status finish(nebula::Value &&value);
+    Status finish(ExecResult &&result);
 
     // Note: will fatal when called in non single input node
     const Value &getSingleInputValue();
