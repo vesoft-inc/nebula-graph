@@ -159,17 +159,11 @@ private:
         iter_ = edges_.begin() + pos;
     }
 
-    int64_t buildIndex(const std::vector<std::string>& colNames);
-
-    std::pair<std::string, std::unordered_map<std::string, int64_t>>
-    buildPropIndex(const std::string& props);
-
-private:
     // Maps the origin column names with its column index, each response
     // has a segment.
     // | _vid | _stats | _tag:t1:p1:p2 | _edge:e1:p1:p2 |
     // -> {_vid : 0, _stats : 1, _tag:t1:p1:p2 : 2, _edge:d1:p1:p2 : 3}
-    std::vector<std::unordered_map<std::string, int64_t>> colIndex_;
+    using ColumnIndex = std::vector<std::unordered_map<std::string, int64_t>>;
 
     // Maps the property name with its index, each response has a segment
     // in PropIndex.
@@ -180,6 +174,14 @@ private:
     using PropIndex = std::vector<TagEdgePropMap>;
     // Edge: <segment_id, row, column_id, edge_props>
     using Edge = std::tuple<int64_t, const Row*, int64_t, const List*>;
+
+    int64_t buildIndex(const std::vector<std::string>& colNames);
+
+    void buildPropIndex(const std::string& props,
+                        bool isEdge,
+                        TagEdgePropMap& propMap);
+
+    ColumnIndex                    colIndex_;
     PropIndex                      tagPropIndex_;
     PropIndex                      edgePropIndex_;
     std::vector<const DataSet*>    segments_;

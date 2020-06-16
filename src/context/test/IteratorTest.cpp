@@ -78,7 +78,7 @@ TEST(IteratorTest, Sequential) {
 
 TEST(IteratorTest, GetNeighbor) {
     DataSet ds1;
-    ds1.colNames = {"_vid", "_stats", "_tag:tag1:prop1:prop2", "_edge:edge1:prop1:prop2"};
+    ds1.colNames = {"_vid", "_stats", "_tag:tag1:prop1:prop2", "_edge:+edge1:prop1:prop2"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         // _vid
@@ -104,7 +104,7 @@ TEST(IteratorTest, GetNeighbor) {
     }
 
     DataSet ds2;
-    ds2.colNames = {"_vid", "_stats", "_tag:tag2:prop1:prop2", "_edge:edge2:prop1:prop2"};
+    ds2.colNames = {"_vid", "_stats", "_tag:tag2:prop1:prop2", "_edge:-edge2:prop1:prop2"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         // _vid

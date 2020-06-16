@@ -43,24 +43,23 @@ int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
     for (size_t i = 0; i < colNames.size(); ++i) {
         kv.emplace(colNames[i], i);
         if (colNames[i].find("_tag") == 0) {
-            auto ret = buildPropIndex(colNames[i]);
-            tagPropIndex_.back().emplace(std::move(ret));
-            continue;
-        }
-        if (colNames[i].find("_edge") == 0) {
-            auto ret = buildPropIndex(colNames[i]);
-            edgePropIndex_.back().emplace(std::move(ret));
+            buildPropIndex(colNames[i], false, tagPropIndex_.back());
+        } else if (colNames[i].find("_edge") == 0) {
+            buildPropIndex(colNames[i], true, edgePropIndex_.back());
             if (edgeStartIndex < 0) {
                 edgeStartIndex = i;
             }
+        } else {
+            // In this case, the column name would be _vid, _stats
         }
     }
     colIndex_.emplace_back(std::move(kv));
     return edgeStartIndex;
 }
 
-std::pair<std::string, std::unordered_map<std::string, int64_t>>
-GetNeighborsIter::buildPropIndex(const std::string& props) {
+void GetNeighborsIter::buildPropIndex(const std::string& props,
+                                      bool isEdge,
+                                      TagEdgePropMap& propMap) {
     std::vector<std::string> pieces;
     folly::split(":", props, pieces);
     std::unordered_map<std::string, int64_t> kv;
@@ -68,11 +67,16 @@ GetNeighborsIter::buildPropIndex(const std::string& props) {
     for (size_t i = 2; i < pieces.size(); ++i) {
         kv.emplace(pieces[i], i - 2);
     }
-    // The first character of the tag/edge name is +/-.
-    // It's not used for now.
+
     DCHECK_GT(pieces[1].size(), 1);
     auto& name = pieces[1];
-    return std::make_pair(name.substr(1, name.size()), std::move(kv));
+    if (isEdge) {
+        // The first character of the tag/edge name is +/-.
+        // It's not used for now.
+        propMap.emplace(name.substr(1, name.size()), std::move(kv));
+    } else {
+        propMap.emplace(name, std::move(kv));
+    }
 }
 
 const Value& GetNeighborsIter::getColumn(const std::string& col) const {
