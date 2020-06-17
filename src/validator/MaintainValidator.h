@@ -95,32 +95,24 @@ class AlterTagValidator final : public AlterValidator {
 public:
     AlterTagValidator(Sentence* sentence, QueryContext* context)
             : AlterValidator(sentence, context) {
-        sentence_ = static_cast<AlterTagSentence*>(sentence);
     }
 
 private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    AlterTagSentence                              *sentence_{nullptr};
 };
 
 class AlterEdgeValidator final : public AlterValidator {
 public:
     AlterEdgeValidator(Sentence* sentence, QueryContext* context)
             : AlterValidator(sentence, context) {
-        sentence_ = static_cast<AlterEdgeSentence*>(sentence);
     }
 
 private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    AlterEdgeSentence                             *sentence_{nullptr};
 };
 
 }  // namespace graph

@@ -179,7 +179,6 @@ TEST_F(SchemaTest, TestAlterTag) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(1, resp.get_data()->size());
         std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<std::vector<Value>> values = {
@@ -215,7 +214,6 @@ TEST_F(SchemaTest, TestAlterEdge) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(1, resp.get_data()->size());
         std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<std::vector<Value>> values = {

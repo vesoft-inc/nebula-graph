@@ -194,34 +194,36 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem*>& schem
 }
 
 Status AlterTagValidator::validateImpl() {
-    name_ = *sentence_->name();
-    return alterSchema(sentence_->getSchemaOpts(), sentence_->getSchemaProps());
+    auto sentence = static_cast<AlterTagSentence*>(sentence_);
+    name_ = *sentence->name();
+    return alterSchema(sentence->getSchemaOpts(), sentence->getSchemaProps());
 }
 
 Status AlterTagValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *doNode = AlterTag::make(plan,
                                   vctx_->whichSpace().id,
-                                  name_,
-                                  schemaItems_,
-                                  schemaProp_);
+                                  std::move(name_),
+                                  std::move(schemaItems_),
+                                  std::move(schemaProp_));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status AlterEdgeValidator::validateImpl() {
-    name_ = *sentence_->name();
-    return alterSchema(sentence_->getSchemaOpts(), sentence_->getSchemaProps());
+    auto sentence = static_cast<AlterEdgeSentence*>(sentence_);
+    name_ = *sentence->name();
+    return alterSchema(sentence->getSchemaOpts(), sentence->getSchemaProps());
 }
 
 Status AlterEdgeValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *doNode = AlterEdge::make(plan,
                                    vctx_->whichSpace().id,
-                                   name_,
-                                   schemaItems_,
-                                   schemaProp_);
+                                   std::move(name_),
+                                   std::move(schemaItems_),
+                                   std::move(schemaProp_));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
