@@ -67,7 +67,7 @@ folly::Future<Status> DropSpaceExecutor::execute() {
     auto *dsNode = asNode<DropSpace>(node());
     return qctx()->getMetaClient()->dropSpace(dsNode->getSpaceName(), dsNode->getIfExists())
             .via(runner())
-            .then([this](StatusOr<bool> resp) {
+            .then([](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();

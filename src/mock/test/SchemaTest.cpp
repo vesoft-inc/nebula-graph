@@ -80,7 +80,11 @@ TEST_F(SchemaTest, TestSpace) {
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         std::vector<std::string> colNames = {"Name"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
-        std::vector<std::vector<Value>> values = {{"space_2"}, {"space_for_default"}};
+        std::vector<std::vector<Value>> values = {
+            {"space_2"},
+            {"space_for_default"},
+            {"space_set_vid_size"}
+        };
         ASSERT_TRUE(verifyValues(resp, values));
     }
     // Show Create space
@@ -115,7 +119,7 @@ TEST_F(SchemaTest, TestSpace) {
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         std::vector<std::string> colNames = {"Name"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
-        std::vector<Value> values = {"space_for_default"};
+        std::vector<std::vector<Value>> values = {{"space_for_default"}, {"space_set_vid_size"}};
         ASSERT_TRUE(verifyValues(resp, values));
     }
     // use show create space result
@@ -129,7 +133,11 @@ TEST_F(SchemaTest, TestSpace) {
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         std::vector<std::string> colNames = {"Name"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
-        std::vector<std::vector<Value>> values = {{"space_2"}, {"space_for_default"}};
+        std::vector<std::vector<Value>> values = {
+            {"space_2"},
+            {"space_for_default"},
+            {"space_set_vid_size"}
+        };
         ASSERT_TRUE(verifyValues(resp, values));
     }
 }
@@ -289,7 +297,6 @@ TEST_F(SchemaTest, TestEdge) {
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<Value> values = {"like", createEdgeStr};
         ASSERT_TRUE(verifyValues(resp, values));
-        LOG(INFO) << "createEdgeStr: " << createEdgeStr;
     }
     {
         cpp2::ExecutionResponse resp;

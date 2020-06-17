@@ -16,7 +16,7 @@ PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
 }
 
 // static
-const char* PlanNode::toString(Kind kind) {
+const char* PlanNode::toString(PlanNode::Kind kind) {
     switch (kind) {
         case PlanNode::Kind::kUnknown:
             return "Unkonwn";
@@ -56,8 +56,6 @@ const char* PlanNode::toString(Kind kind) {
             return "Dedup";
         case PlanNode::Kind::kMultiOutputs:
             return "MultiOutputs";
-        case PlanNode::Kind::kSwitchSpace:
-            return "RegisterSpaceToSession";
         case PlanNode::Kind::kCreateSpace:
             return "CreateSpace";
         case PlanNode::Kind::kCreateTag:
@@ -104,12 +102,6 @@ const char* PlanNode::toString(Kind kind) {
             return "DropSnapshot";
         case PlanNode::Kind::kShowSnapshots:
             return "ShowSnapshots";
-        case PlanNode::Kind::kInsertVertices:
-            return "InsertVertices";
-        case PlanNode::Kind::kInsertEdges:
-            return "InsertEdges";
-        case PlanNode::Kind::kDataCollect:
-            return "DataCollect";
         default:
             LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(kind);
     }

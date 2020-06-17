@@ -57,7 +57,7 @@ folly::Future<Status> DropTagExecutor::execute() {
                                                   dtNode->getName(),
                                                   dtNode->getIfExists())
             .via(runner())
-            .then([this](StatusOr<bool> resp) {
+            .then([](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();

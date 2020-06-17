@@ -16,7 +16,7 @@ folly::Future<Status> CreateSnapshotExecutor::execute() {
 
     return qctx()->getMetaClient()->createSnapshot()
             .via(runner())
-            .then([this](StatusOr<bool> resp) {
+            .then([](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();
@@ -31,7 +31,7 @@ folly::Future<Status> DropSnapshotExecutor::execute() {
     auto *dsNode = asNode<DropSnapshot>(node());
     return qctx()->getMetaClient()->dropSnapshot(dsNode->getShapshotName())
             .via(runner())
-            .then([this](StatusOr<bool> resp) {
+            .then([](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();

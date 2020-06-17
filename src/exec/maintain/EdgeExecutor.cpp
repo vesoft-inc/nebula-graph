@@ -59,7 +59,7 @@ folly::Future<Status> DropEdgeExecutor::execute() {
                                                    deNode->getName(),
                                                    deNode->getIfExists())
             .via(runner())
-            .then([this](StatusOr<bool> resp) {
+            .then([](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();
