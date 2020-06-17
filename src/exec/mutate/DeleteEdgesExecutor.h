@@ -26,7 +26,6 @@ private:
     Status prepareEdgeKeys(const EdgeType edgeType, const EdgeKeys *edgeKeys);
 
 private:
-    GraphSpaceID                                     space_;
     std::vector<storage::cpp2::EdgeKey>              edgeKeys_;
 };
 

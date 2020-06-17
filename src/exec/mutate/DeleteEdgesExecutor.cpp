@@ -27,7 +27,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
 
     return qctx()->getStorageClient()->deleteEdges(deNode->getSpace(), std::move(edgeKeys_))
         .via(runner())
-        .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
+        .then([](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
             auto completeness = resp.completeness();
             if (completeness != 100) {
                 const auto& failedCodes = resp.failedParts();
