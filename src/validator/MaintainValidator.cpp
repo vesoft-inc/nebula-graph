@@ -17,9 +17,10 @@
 namespace nebula {
 namespace graph {
 Status CreateTagValidator::validateImpl() {
+    auto sentence = static_cast<CreateTagSentence*>(sentence_);
     auto status = Status::OK();
-    name_ = *sentence_->name();
-    ifNotExist_ = sentence_->isIfNotExist();
+    name_ = *sentence->name();
+    ifNotExist_ = sentence->isIfNotExist();
     do {
         // Check the validateContext has the same name schema
         auto pro = vctx_->getSchema(tagName_);
@@ -34,7 +35,7 @@ Status CreateTagValidator::validateImpl() {
             VLOG(1) << status;
             break;
         }
-        status = SchemaUtil::validateProps(sentence_->getSchemaProps(), schema_);
+        status = SchemaUtil::validateProps(sentence->getSchemaProps(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
@@ -58,9 +59,10 @@ Status CreateTagValidator::toPlan() {
 }
 
 Status CreateEdgeValidator::validateImpl() {
+    auto sentence = static_cast<CreateEdgeSentence*>(sentence_);
     auto status = Status::OK();
-    name_ = *sentence_->name();
-    ifNotExist_ = sentence_->isIfNotExist();
+    name_ = *sentence->name();
+    ifNotExist_ = sentence->isIfNotExist();
     do {
         // Check the validateContext has the same name schema
         auto pro = vctx_->getSchema(edgeName_);
@@ -75,7 +77,7 @@ Status CreateEdgeValidator::validateImpl() {
             VLOG(1) << status;
             break;
         }
-        status = SchemaUtil::validateProps(sentence_->getSchemaProps(), schema_);
+        status = SchemaUtil::validateProps(sentence->getSchemaProps(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
@@ -258,47 +260,46 @@ Status ShowEdgesValidator::toPlan() {
 }
 
 Status ShowCreateTagValidator::validateImpl() {
-    name_ = *sentence_->name();
     return Status::OK();
 }
 
 Status ShowCreateTagValidator::toPlan() {
+    auto sentence = static_cast<ShowCreateTagSentence*>(sentence_);
     auto* plan = qctx_->plan();
     auto *doNode = ShowCreateTag::make(plan,
                                        vctx_->whichSpace().id,
-                                       name_);
+                                      *sentence->name());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status ShowCreateEdgeValidator::validateImpl() {
-    name_ = *sentence_->name();
     return Status::OK();
 }
 
 Status ShowCreateEdgeValidator::toPlan() {
+    auto sentence = static_cast<ShowCreateEdgeSentence*>(sentence_);
     auto* plan = qctx_->plan();
     auto *doNode = ShowCreateEdge::make(plan,
                                         vctx_->whichSpace().id,
-                                        name_);
+                                       *sentence->name());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status DropTagValidator::validateImpl() {
-    name_ = *sentence_->name();
-    ifExists_ = sentence_->isIfExists();
     return Status::OK();
 }
 
 Status DropTagValidator::toPlan() {
+    auto sentence = static_cast<DropTagSentence*>(sentence_);
     auto* plan = qctx_->plan();
     auto *doNode = DropTag::make(plan,
                                  vctx_->whichSpace().id,
-                                 name_,
-                                 ifExists_);
+                                *sentence->name(),
+                                 sentence->isIfExists());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -310,10 +311,10 @@ Status DropEdgeValidator::validateImpl() {
 
 Status DropEdgeValidator::toPlan() {
     auto sentence = static_cast<DropEdgeSentence*>(sentence_);
-    auto* plan = validateContext_->plan();
+    auto* plan = qctx_->plan();
     auto *doNode = DropEdge::make(plan,
-                                  validateContext_->whichSpace().id,
-                                  sentence->name(),
+                                  vctx_->whichSpace().id,
+                                 *sentence->name(),
                                   sentence->isIfExists());
     root_ = doNode;
     tail_ = root_;

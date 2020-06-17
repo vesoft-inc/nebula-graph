@@ -62,7 +62,6 @@ class DropSpaceValidator final : public Validator {
 public:
     DropSpaceValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
-        sentence_ = static_cast<DropSpaceSentence*>(sentence);
         setNoSpaceRequired();
     }
 
@@ -70,16 +69,12 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    DropSpaceSentence                       *sentence_{nullptr};
 };
 
 class ShowCreateSpaceValidator final : public Validator {
 public:
     ShowCreateSpaceValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
-        sentence_ = static_cast<ShowCreateSpaceSentence*>(sentence);
         setNoSpaceRequired();
     }
 
@@ -87,16 +82,12 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    ShowCreateSpaceSentence                   *sentence_{nullptr};
 };
 
 class CreateSnapshotValidator final : public Validator {
 public:
     CreateSnapshotValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
-        UNUSED(sentence);
         setNoSpaceRequired();
     }
 
@@ -110,7 +101,6 @@ class DropSnapshotValidator final : public Validator {
 public:
     DropSnapshotValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
-        sentence_ = static_cast<DropSnapshotSentence*>(sentence);
         setNoSpaceRequired();
     }
 
@@ -118,16 +108,12 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    DropSnapshotSentence                   *sentence_{nullptr};
 };
 
 class ShowSnapshotsValidator final : public Validator {
 public:
     ShowSnapshotsValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
-        UNUSED(sentence);
         setNoSpaceRequired();
     }
 

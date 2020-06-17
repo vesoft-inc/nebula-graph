@@ -19,7 +19,6 @@ class CreateTagValidator final : public Validator {
 public:
     CreateTagValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
-        sentence_ = static_cast<CreateTagSentence*>(sentence);
     }
 
 private:
@@ -27,7 +26,6 @@ private:
     Status toPlan() override;
 
 private:
-    CreateTagSentence               *sentence_{nullptr};
     std::string                      name_;
     meta::cpp2::Schema               schema_;
     bool                             ifNotExist_;
@@ -37,7 +35,6 @@ class CreateEdgeValidator final : public Validator {
 public:
     CreateEdgeValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
-        sentence_ = static_cast<CreateEdgeSentence*>(sentence);
     }
 
 private:
@@ -45,7 +42,6 @@ private:
     Status toPlan() override;
 
 private:
-    CreateEdgeSentence               *sentence_{nullptr};
     std::string                       name_;
     meta::cpp2::Schema                schema_;
     bool                              ifNotExist_;
@@ -55,7 +51,6 @@ class DescTagValidator final : public Validator {
 public:
     DescTagValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
-        sentence_ = static_cast<DescribeTagSentence*>(sentence);
     }
 
 private:
@@ -68,24 +63,18 @@ class ShowCreateTagValidator final : public Validator {
 public:
     ShowCreateTagValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
-        sentence_ = static_cast<ShowCreateTagSentence*>(sentence);
     }
 
 private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    ShowCreateTagSentence               *sentence_{nullptr};
-    std::string                          name_;
 };
 
 class DescEdgeValidator final : public Validator {
 public:
     DescEdgeValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
-        sentence_ = static_cast<DescribeEdgeSentence*>(sentence);
     }
 
 private:
@@ -101,17 +90,12 @@ class ShowCreateEdgeValidator final : public Validator {
 public:
     ShowCreateEdgeValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
-        sentence_ = static_cast<ShowCreateEdgeSentence*>(sentence);
     }
 
 private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    ShowCreateEdgeSentence               *sentence_{nullptr};
-    std::string                           name_;
 };
 
 class AlterValidator : public Validator {
