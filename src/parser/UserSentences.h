@@ -58,6 +58,10 @@ public:
         return spaceName_.get();
     }
 
+    std::unique_ptr<std::string> moveSpaceName() {
+        return std::move(spaceName_);
+    }
+
     std::string toString() const;
 
 private:
@@ -80,8 +84,16 @@ public:
         return account_.get();
     }
 
+    std::unique_ptr<std::string> moveAccount() {
+        return std::move(account_);
+    }
+
     const std::string* getPassword() const {
         return password_.get();
+    }
+
+    std::unique_ptr<std::string> movePassword() {
+        return std::move(password_);
     }
 
     bool ifNotExists() const {
@@ -109,8 +121,16 @@ public:
         return account_.get();
     }
 
+    std::unique_ptr<std::string> moveAccount() {
+        return std::move(account_);
+    }
+
     const std::string* getPassword() const {
         return password_.get();
+    }
+
+    std::unique_ptr<std::string> movePassword() {
+        return std::move(password_);
     }
 
     std::string toString() const override;
@@ -137,6 +157,10 @@ public:
         return account_.get();
     }
 
+    std::unique_ptr<std::string> moveAccount() {
+        return std::move(account_);
+    }
+
     std::string toString() const override;
 
 private:
@@ -158,12 +182,24 @@ public:
         return account_.get();
     }
 
+    std::unique_ptr<std::string> moveAccount() {
+        return std::move(account_);
+    }
+
     const std::string* getNewPwd() const {
         return newPwd_.get();
     }
 
+    std::unique_ptr<std::string> moveNewPwd() {
+        return std::move(newPwd_);
+    }
+
     const std::string* getOldPwd() const {
         return oldPwd_.get();
+    }
+
+    std::unique_ptr<std::string> moveOldPwd() {
+        return std::move(oldPwd_);
     }
 
     std::string toString() const override;
@@ -190,8 +226,16 @@ public:
         return aclItemClause_.get();
     }
 
+    AclItemClause* mutableAclItemClause() {
+        return aclItemClause_.get();
+    }
+
     const std::string* getAccount() const {
         return account_.get();
+    }
+
+    std::unique_ptr<std::string> moveAccount() {
+        return std::move(account_);
     }
 
     std::string toString() const override;
@@ -217,8 +261,16 @@ public:
         return aclItemClause_.get();
     }
 
+    AclItemClause* mutableAclItemClause() {
+        return aclItemClause_.get();
+    }
+
     const std::string* getAccount() const {
         return account_.get();
+    }
+
+    std::unique_ptr<std::string> moveAccount() {
+        return std::move(account_);
     }
 
     std::string toString() const override;

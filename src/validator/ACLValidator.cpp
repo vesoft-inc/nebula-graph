@@ -21,8 +21,8 @@ Status CreateUserValidator::validateImpl() {
 
 Status CreateUserValidator::toPlan() {
     SINGLE_NODE_PLAN_TEMPLATE(CreateUser,
-                             *sentence_->getAccount(),
-                             *sentence_->getPassword(),
+                              std::move(*sentence_->moveAccount()),
+                              std::move(*sentence_->movePassword()),
                               sentence_->ifNotExists());
 }
 
@@ -33,7 +33,7 @@ Status DropUserValidator::validateImpl() {
 
 Status DropUserValidator::toPlan() {
     SINGLE_NODE_PLAN_TEMPLATE(DropUser,
-                             *sentence_->getAccount(),
+                              std::move(*sentence_->moveAccount()),
                               sentence_->ifExists());
 }
 
@@ -44,8 +44,8 @@ Status UpdateUserValidator::validateImpl() {
 
 Status UpdateUserValidator::toPlan() {
     SINGLE_NODE_PLAN_TEMPLATE(UpdateUser,
-                             *sentence_->getAccount(),
-                             *sentence_->getPassword());
+                              std::move(*sentence_->moveAccount()),
+                              std::move(*sentence_->movePassword()));
 }
 
 // change password
@@ -55,9 +55,9 @@ Status ChangePasswordValidator::validateImpl() {
 
 Status ChangePasswordValidator::toPlan() {
     SINGLE_NODE_PLAN_TEMPLATE(ChangePassword,
-                             *sentence_->getAccount(),
-                             *sentence_->getOldPwd(),
-                             *sentence_->getNewPwd());
+                              std::move(*sentence_->moveAccount()),
+                              std::move(*sentence_->moveOldPwd()),
+                              std::move(*sentence_->moveNewPwd()));
 }
 
 // grant role
@@ -67,8 +67,8 @@ Status GrantRoleValidator::validateImpl() {
 
 Status GrantRoleValidator::toPlan() {
     SINGLE_NODE_PLAN_TEMPLATE(GrantRole,
-                             *sentence_->getAccount(),
-                             *sentence_->getAclItemClause()->getSpaceName(),
+                              std::move(*sentence_->moveAccount()),
+                              std::move(*sentence_->mutableAclItemClause()->moveSpaceName()),
                               sentence_->getAclItemClause()->getRoleType());
 }
 
@@ -79,8 +79,8 @@ Status RevokeRoleValidator::validateImpl() {
 
 Status RevokeRoleValidator::toPlan() {
     SINGLE_NODE_PLAN_TEMPLATE(RevokeRole,
-                             *sentence_->getAccount(),
-                             *sentence_->getAclItemClause()->getSpaceName(),
+                              std::move(*sentence_->moveAccount()),
+                              std::move(*sentence_->mutableAclItemClause()->moveSpaceName()),
                               sentence_->getAclItemClause()->getRoleType());
 }
 
