@@ -28,7 +28,7 @@ class Show final : public PlanNode {
     }
 };
 
-class CreateSpace final : public CreateNode {
+class CreateSpace final : public PlanNode {
 public:
     static CreateSpace* make(ExecutionPlan* plan,
                              meta::SpaceDesc props,
@@ -47,14 +47,20 @@ public:
         return props_;
     }
 
+    bool ifNotExist() const {
+        return ifNotExist_;
+    }
+
 private:
     CreateSpace(ExecutionPlan* plan,
                 meta::SpaceDesc props,
                 bool ifNotExists)
-        : CreateNode(plan, Kind::kCreateSpace, ifNotExists), props_(std::move(props)) {}
+        : PlanNode(plan, Kind::kCreateSpace),
+          props_(std::move(props)), ifNotExist_(ifNotExists) {}
 
 private:
     meta::SpaceDesc               props_;
+    bool ifNotExist_{false};
 };
 
 class DropSpace final : public PlanNode {
