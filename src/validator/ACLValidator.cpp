@@ -14,22 +14,6 @@
 namespace nebula {
 namespace graph {
 
-static meta::cpp2::RoleType roleConv(RoleTypeClause::RoleType role) {
-    switch (role) {
-    case RoleTypeClause::RoleType::ADMIN:
-        return meta::cpp2::RoleType::ADMIN;
-    case RoleTypeClause::RoleType::DBA:
-        return meta::cpp2::RoleType::DBA;
-    case RoleTypeClause::RoleType::GOD:
-        return meta::cpp2::RoleType::GOD;
-    case RoleTypeClause::RoleType::GUEST:
-        return meta::cpp2::RoleType::GUEST;
-    case RoleTypeClause::RoleType::USER:
-        return meta::cpp2::RoleType::USER;
-    }
-    LOG(FATAL) << "Unknown role type " << static_cast<int>(role);
-}
-
 // create user
 Status CreateUserValidator::validateImpl() {
     return Status::OK();
@@ -85,7 +69,7 @@ Status GrantRoleValidator::toPlan() {
     SINGLE_NODE_PLAN_TEMPLATE(GrantRole,
                              *sentence_->getAccount(),
                              *sentence_->getAclItemClause()->getSpaceName(),
-                              roleConv(sentence_->getAclItemClause()->getRoleType()));
+                              sentence_->getAclItemClause()->getRoleType());
 }
 
 // revoke role
@@ -97,7 +81,7 @@ Status RevokeRoleValidator::toPlan() {
     SINGLE_NODE_PLAN_TEMPLATE(RevokeRole,
                              *sentence_->getAccount(),
                              *sentence_->getAclItemClause()->getSpaceName(),
-                              roleConv(sentence_->getAclItemClause()->getRoleType()));
+                              sentence_->getAclItemClause()->getRoleType());
 }
 
 }  // namespace graph
