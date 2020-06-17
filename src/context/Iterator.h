@@ -71,11 +71,11 @@ public:
         return Value::kEmpty;
     }
 
-    Value getVertex() const {
+    virtual Value getVertex() const {
         return Value();
     }
 
-    Value getEdge() const {
+    virtual Value getEdge() const {
         return Value();
     }
 
@@ -128,7 +128,7 @@ public:
     }
 
     bool valid() const override {
-        return iter_ < edges_.end();
+        return iter_ < logicalRows_.end();
     }
 
     void next() override {
@@ -139,11 +139,11 @@ public:
     }
 
     void erase() override {
-        iter_ = edges_.erase(iter_);
+        iter_ = logicalRows_.erase(iter_);
     }
 
     size_t size() const override {
-        return edges_.size();
+        return logicalRows_.size();
     }
 
     const Value& getColumn(const std::string& col) const override;
@@ -154,39 +154,83 @@ public:
     const Value& getEdgeProp(const std::string& edge,
                              const std::string& prop) const override;
 
+    Value getVertex() const override;
+
+    Value getEdge() const override;
+
 private:
     void doReset(size_t pos) override {
-        iter_ = edges_.begin() + pos;
+        iter_ = logicalRows_.begin() + pos;
     }
 
     // Maps the origin column names with its column index, each response
     // has a segment.
     // | _vid | _stats | _tag:t1:p1:p2 | _edge:e1:p1:p2 |
     // -> {_vid : 0, _stats : 1, _tag:t1:p1:p2 : 2, _edge:d1:p1:p2 : 3}
-    using ColumnIndex = std::vector<std::unordered_map<std::string, int64_t>>;
+    using ColumnIndex = std::vector<std::unordered_map<std::string, size_t>>;
+    // | _vid | _stats | _tag:t1:p1:p2 | _edge:e1:p1:p2 |
+    // -> {t1 : 2, e1 : 3}
+    using TagEdgeNameIdxMap = std::unordered_map<size_t, std::string>;
+    using TagEdgeNameIndex = std::vector<TagEdgeNameIdxMap>;
 
-    // Maps the property name with its index, each response has a segment
-    // in PropIndex.
     // _tag:t1:p1:p2  ->  {t1 : {p1 : 0, p2 : 1}}
     // _edge:e1:p1:p2  ->  {e1 : {p1 : 0, p2 : 1}}
-    using PropIdxMap = std::unordered_map<std::string, int64_t>;
-    using TagEdgePropMap = std::unordered_map<std::string, PropIdxMap>;
-    using PropIndex = std::vector<TagEdgePropMap>;
-    // Edge: <segment_id, row, column_id, edge_props>
-    using Edge = std::tuple<int64_t, const Row*, int64_t, const List*>;
+    using PropIdxMap = std::unordered_map<std::string, size_t>;
+    // {tag/edge name : [column_idx, PropIdxMap]}
+    using TagEdgePropIdxMap = std::unordered_map<std::string, std::pair<size_t, PropIdxMap>>;
+    // Maps the property name with its index, each response has a segment
+    // in PropIndex.
+    using PropIndex = std::vector<TagEdgePropIdxMap>;
+
+    // LogicalRow: <segment_id, row, edge_name, edge_props>
+    using LogicalRow = std::tuple<size_t, const Row*, std::string, const List*>;
+
+    using PropList = std::vector<std::string>;
+    // _tag:t1:p1:p2  ->  {t1 : [column_idx, {p1, p2}]}
+    // _edge:e1:p1:p2  ->  {e1 : [columns_idx, {p1, p2}]}
+    using TagEdgePropMap = std::unordered_map<std::string, std::pair<size_t, PropList>>;
+    // Maps the tag/edge with its properties, each response has a segment
+    // in PropMaps
+    using PropMaps = std::vector<TagEdgePropMap>;
+
+    inline size_t currentSeg() const {
+        auto& current = *iter_;
+        return std::get<0>(current);
+    }
+
+    inline const Row* currentRow() const {
+        auto& current = *iter_;
+        return std::get<1>(current);
+    }
+
+    inline const std::string& currentEdgeName() const {
+        auto& current = *iter_;
+        return std::get<2>(current);
+    }
+
+    inline const List* currentEdgeProps() const {
+        auto& current = *iter_;
+        return std::get<3>(current);
+    }
 
     int64_t buildIndex(const std::vector<std::string>& colNames);
 
     void buildPropIndex(const std::string& props,
+                        size_t columnId,
                         bool isEdge,
-                        TagEdgePropMap& propMap);
+                        TagEdgeNameIdxMap& tagEdgeNameIndex,
+                        TagEdgePropIdxMap& tagEdgePropIdxMap,
+                        TagEdgePropMap& tagEdgePropMap);
 
-    ColumnIndex                    colIndex_;
-    PropIndex                      tagPropIndex_;
-    PropIndex                      edgePropIndex_;
-    std::vector<const DataSet*>    segments_;
-    std::vector<Edge>              edges_;
-    std::vector<Edge>::iterator    iter_;
+    ColumnIndex                             colIndices_;
+    TagEdgeNameIndex                        tagEdgeNameIndices_;
+    PropIndex                               tagPropIndices_;
+    PropIndex                               edgePropIndices_;
+    PropMaps                                tagPropMaps_;
+    PropMaps                                edgePropMaps_;
+    std::vector<const DataSet*>             segments_;
+    std::vector<LogicalRow>                 logicalRows_;
+    std::vector<LogicalRow>::iterator       iter_;
 };
 
 class SequentialIter final : public Iterator {

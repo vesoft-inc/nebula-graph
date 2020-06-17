@@ -6,6 +6,10 @@
 
 #include "context/Iterator.h"
 
+#include "common/datatypes/Vertex.h"
+#include "common/datatypes/Edge.h"
+#include "common/interface/gen-cpp2/common_types.h"
+
 namespace nebula {
 namespace graph {
 
@@ -26,26 +30,35 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value) : Iterator(valu
                 }
                 for (auto& edge : cols[column].getList().values) {
                     DCHECK(edge.isList());
-                    edges_.emplace_back(std::make_tuple(segment, &row, column, &edge.getList()));
+                    auto& tagEdgeNameIndex = tagEdgeNameIndices_[segments_.size()];
+                    auto edgeName = tagEdgeNameIndex.find(column);
+                    DCHECK(edgeName != tagEdgeNameIndex.end());
+                    logicalRows_.emplace_back(
+                            std::make_tuple(segment, &row, edgeName->second, &edge.getList()));
                 }
             }
         }
         ++segment;
     }
-    iter_ = edges_.begin();
+    iter_ = logicalRows_.begin();
 }
 
 int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
-    std::unordered_map<std::string, int64_t> kv;
+    std::unordered_map<std::string, size_t> colIndex;
+    TagEdgeNameIdxMap tagEdgeNameIndex;
     int64_t edgeStartIndex = -1;
-    tagPropIndex_.emplace_back();
-    edgePropIndex_.emplace_back();
+    tagPropIndices_.emplace_back();
+    edgePropIndices_.emplace_back();
+    tagPropMaps_.emplace_back();
+    edgePropMaps_.emplace_back();
     for (size_t i = 0; i < colNames.size(); ++i) {
-        kv.emplace(colNames[i], i);
+        colIndex.emplace(colNames[i], i);
         if (colNames[i].find("_tag") == 0) {
-            buildPropIndex(colNames[i], false, tagPropIndex_.back());
+            buildPropIndex(colNames[i], i, false,
+                    tagEdgeNameIndex, tagPropIndices_.back(), tagPropMaps_.back());
         } else if (colNames[i].find("_edge") == 0) {
-            buildPropIndex(colNames[i], true, edgePropIndex_.back());
+            buildPropIndex(colNames[i], i, true,
+                    tagEdgeNameIndex, edgePropIndices_.back(), tagPropMaps_.back());
             if (edgeStartIndex < 0) {
                 edgeStartIndex = i;
             }
@@ -53,29 +66,42 @@ int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
             // In this case, the column name would be _vid, _stats
         }
     }
-    colIndex_.emplace_back(std::move(kv));
+    tagEdgeNameIndices_.emplace_back(std::move(tagEdgeNameIndex));
+    colIndices_.emplace_back(std::move(colIndex));
     return edgeStartIndex;
 }
 
 void GetNeighborsIter::buildPropIndex(const std::string& props,
+                                      size_t columnId,
                                       bool isEdge,
-                                      TagEdgePropMap& propMap) {
+                                      TagEdgeNameIdxMap& tagEdgeNameIndex,
+                                      TagEdgePropIdxMap& tagEdgePropIdxMap,
+                                      TagEdgePropMap& tagEdgePropMap) {
     std::vector<std::string> pieces;
     folly::split(":", props, pieces);
-    std::unordered_map<std::string, int64_t> kv;
+    PropIdxMap kv;
     DCHECK_GE(pieces.size(), 2);
     for (size_t i = 2; i < pieces.size(); ++i) {
         kv.emplace(pieces[i], i - 2);
     }
 
-    DCHECK_GT(pieces[1].size(), 1);
-    auto& name = pieces[1];
+    std::string name = pieces[1];
     if (isEdge) {
         // The first character of the tag/edge name is +/-.
         // It's not used for now.
-        propMap.emplace(name.substr(1, name.size()), std::move(kv));
+        DCHECK_GT(pieces[1].size(), 1);
+        auto edgeName = name.substr(1, name.size());
+        tagEdgePropIdxMap.emplace(std::move(edgeName), std::make_pair(columnId, std::move(kv)));
+        pieces.erase(pieces.begin(), pieces.begin() + 1);
+        auto propList = std::make_pair(columnId, std::move(pieces));
+        tagEdgePropMap.emplace(edgeName, std::move(propList));
+        tagEdgeNameIndex.emplace(columnId, edgeName);
     } else {
-        propMap.emplace(name, std::move(kv));
+        tagEdgePropIdxMap.emplace(name, std::make_pair(columnId, std::move(kv)));
+        pieces.erase(pieces.begin(), pieces.begin() + 1);
+        auto propList = std::make_pair(columnId, std::move(pieces));
+        tagEdgePropMap.emplace(std::move(name), std::move(propList));
+        tagEdgeNameIndex.emplace(columnId, name);
     }
 }
 
@@ -83,14 +109,13 @@ const Value& GetNeighborsIter::getColumn(const std::string& col) const {
     if (!valid()) {
         return Value::kNullValue;
     }
-    auto& current = *iter_;
-    auto segment = std::get<0>(current);
-    auto& index = colIndex_[segment];
+    auto segment = currentSeg();
+    auto& index = colIndices_[segment];
     auto found = index.find(col);
     if (found == index.end()) {
         return Value::kNullValue;
     }
-    auto row = std::get<1>(current);
+    auto row = currentRow();
     return row->columns[found->second];
 }
 
@@ -99,18 +124,22 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
     if (!valid()) {
         return Value::kNullValue;
     }
-    auto& current = *iter_;
-    auto segment = std::get<0>(current);
-    auto index = tagPropIndex_[segment].find(tag);
-    if (index == tagPropIndex_[segment].end()) {
+
+    auto segment = currentSeg();
+    auto index = tagPropIndices_[segment].find(tag);
+    if (index == tagPropIndices_[segment].end()) {
         return Value::kNullValue;
     }
-    auto propIndex = index->second.find(prop);
-    if (propIndex == index->second.end()) {
+    auto propIndex = index->second.second.find(prop);
+    if (propIndex == index->second.second.end()) {
         return Value::kNullValue;
     }
-    auto& list = std::get<3>(current);
-    return list->values[propIndex->second];
+    auto colId = index->second.first;
+    auto* row = currentRow();
+    DCHECK_GT(row->columns.size(), colId);
+    DCHECK(row->columns[colId].isList());
+    auto& list = row->columns[colId].getList();
+    return list.values[propIndex->second];
 }
 
 const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
@@ -118,18 +147,93 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     if (!valid()) {
         return Value::kNullValue;
     }
-    auto& current = *iter_;
-    auto segment = std::get<0>(current);
-    auto index = edgePropIndex_[segment].find(edge);
-    if (index == edgePropIndex_[segment].end()) {
+
+    if (currentEdgeName() != edge) {
         return Value::kNullValue;
     }
-    auto propIndex = index->second.find(prop);
-    if (propIndex == index->second.end()) {
+    auto segment = currentSeg();
+    auto index = edgePropIndices_[segment].find(edge);
+    if (index == edgePropIndices_[segment].end()) {
+        return kNullValue;
+    }
+    auto propIndex = index->second.second.find(prop);
+    if (propIndex == index->second.second.end()) {
         return Value::kNullValue;
     }
-    auto& list = std::get<3>(current);
+    auto* list = currentEdgeProps();
     return list->values[propIndex->second];
+}
+
+Value GetNeighborsIter::getVertex() const {
+    if (!valid()) {
+        return Value(NullType::__NULL__);
+    }
+
+    auto segment = currentSeg();
+    auto vidVal = getColumn("_vid");
+    VertexID vid;
+    if (!vidVal.isStr()) {
+        return Value(NullType::__NULL__);
+    }
+    Vertex vertex;
+    vertex.vid = std::move(vid);
+    auto& tagPropMap = tagPropMaps_[segment];
+    for (auto& tagProp : tagPropMap) {
+        auto* row = currentRow();
+        auto& tagPropNameList = tagProp.second.second;
+        auto tagColId = tagProp.second.first;
+        DCHECK_GE(row->columns.size(), tagColId);
+        DCHECK(row->columns[tagColId].isList());
+        auto& propList = row->columns[tagColId].getList();
+        DCHECK_EQ(tagPropNameList.size(), propList.values.size());
+        Tag tag;
+        tag.name = tagProp.first;
+        for (size_t i = 0; i < propList.size(); ++i) {
+            tag.props.emplace(tagPropNameList[i], propList[i]);
+        }
+        vertex.tags.emplace_back(std::move(tag));
+    }
+    return Value(std::move(vertex));
+}
+
+Value GetNeighborsIter::getEdge() const {
+    if (!valid()) {
+        return Value(NullType::__NULL__);
+    }
+
+    auto segment = currentSeg();
+    Edge edge;
+    auto& edgeName = currentEdgeName();
+    auto& src = getColumn("_vid");
+    if (!src.isStr()) {
+        return Value(NullType::__NULL__);
+    }
+    edge.src = src.getStr();
+
+    auto& dst = getEdgeProp(edgeName, _DST);
+    if (!dst.isStr()) {
+        return Value(NullType::__NULL__);
+    }
+    edge.dst = dst.getStr();
+
+    auto& rank = getEdgeProp(edgeName, _RANK);
+    if (!rank.isInt()) {
+        return Value(NullType::__NULL__);
+    }
+    edge.ranking = rank.getInt();
+
+    auto& edgePropMap = edgePropMaps_[segment];
+    auto edgeProp = edgePropMap.find(edgeName);
+    if (edgeProp == edgePropMap.end()) {
+        return Value(NullType::__NULL__);
+    }
+    auto& edgeNamePropList = edgeProp->second.second;
+    auto& propList = currentEdgeProps()->values;
+    DCHECK_EQ(edgeNamePropList.size(), propList.size());
+    for (size_t i = 0; i < propList.size(); ++i) {
+        edge.props.emplace(edgeNamePropList[i], propList[i]);
+    }
+    return Value(std::move(edge));
 }
 }  // namespace graph
 }  // namespace nebula
