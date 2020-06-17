@@ -30,8 +30,9 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value) : Iterator(valu
                 }
                 for (auto& edge : cols[column].getList().values) {
                     DCHECK(edge.isList());
-                    auto& tagEdgeNameIndex = tagEdgeNameIndices_[segments_.size()];
+                    auto& tagEdgeNameIndex = tagEdgeNameIndices_[segment];
                     auto edgeName = tagEdgeNameIndex.find(column);
+                    VLOG(1) << "col: " << column << " edge name: " << edgeName->second;
                     DCHECK(edgeName != tagEdgeNameIndex.end());
                     logicalRows_.emplace_back(
                             std::make_tuple(segment, &row, edgeName->second, &edge.getList()));
@@ -91,7 +92,7 @@ void GetNeighborsIter::buildPropIndex(const std::string& props,
         // It's not used for now.
         DCHECK_GT(pieces[1].size(), 1);
         auto edgeName = name.substr(1, name.size());
-        tagEdgePropIdxMap.emplace(std::move(edgeName), std::make_pair(columnId, std::move(kv)));
+        tagEdgePropIdxMap.emplace(edgeName, std::make_pair(columnId, std::move(kv)));
         pieces.erase(pieces.begin(), pieces.begin() + 1);
         auto propList = std::make_pair(columnId, std::move(pieces));
         tagEdgePropMap.emplace(edgeName, std::move(propList));
@@ -100,7 +101,7 @@ void GetNeighborsIter::buildPropIndex(const std::string& props,
         tagEdgePropIdxMap.emplace(name, std::make_pair(columnId, std::move(kv)));
         pieces.erase(pieces.begin(), pieces.begin() + 1);
         auto propList = std::make_pair(columnId, std::move(pieces));
-        tagEdgePropMap.emplace(std::move(name), std::move(propList));
+        tagEdgePropMap.emplace(name, std::move(propList));
         tagEdgeNameIndex.emplace(columnId, name);
     }
 }
@@ -149,15 +150,18 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     }
 
     if (currentEdgeName() != edge) {
+        VLOG(1) << "Current edge: " << currentEdgeName() << " Wanted: " << edge;
         return Value::kNullValue;
     }
     auto segment = currentSeg();
     auto index = edgePropIndices_[segment].find(edge);
     if (index == edgePropIndices_[segment].end()) {
+        VLOG(1) << "No edge found: " << edge;
         return kNullValue;
     }
     auto propIndex = index->second.second.find(prop);
     if (propIndex == index->second.second.end()) {
+        VLOG(1) << "No edge prop found: " << prop;
         return Value::kNullValue;
     }
     auto* list = currentEdgeProps();

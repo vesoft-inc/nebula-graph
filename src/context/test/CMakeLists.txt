@@ -43,5 +43,4 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_time_obj>
     LIBRARIES
         gtest
-        gtest_main
 )
