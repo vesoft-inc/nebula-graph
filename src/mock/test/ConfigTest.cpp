@@ -195,7 +195,7 @@ TEST_F(ConfigTest, ConfigTest) {
     }
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "UPDATE CONFIGS graph:k2=abc";
+        std::string query = "UPDATE CONFIGS graph:k2=\"abc\"";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
@@ -214,7 +214,7 @@ TEST_F(ConfigTest, ConfigTest) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(5, (*resp.get_data())[0].rowSize());
+        ASSERT_EQ(5, resp.get_data()->rowSize());
     }
     {
         cpp2::ExecutionResponse resp;
@@ -225,7 +225,7 @@ TEST_F(ConfigTest, ConfigTest) {
     // set and get a config of all module
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "UPDATE CONFIGS k3=vesoft";
+        std::string query = "UPDATE CONFIGS k3=\"vesoft\"";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
@@ -242,11 +242,11 @@ TEST_F(ConfigTest, ConfigTest) {
     }
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "UPDATE CONFIGS graph:k3=abc";
+        std::string query = "UPDATE CONFIGS graph:k3=\"abc\"";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
 
-        query = "UPDATE CONFIGS storage:k3=cde";
+        query = "UPDATE CONFIGS storage:k3=\"cde\"";
         code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }

@@ -37,6 +37,10 @@ public:
             : ConfigBaseExecutor("SetConfigExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
+
+private:
+    std::string                              name_;
+    Value                                    value_;
 };
 
 class GetConfigExecutor final : public ConfigBaseExecutor {
@@ -45,6 +49,9 @@ public:
             : ConfigBaseExecutor("GetConfigExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
+
+private:
+    std::string                              name_;
 };
 
 }   // namespace graph

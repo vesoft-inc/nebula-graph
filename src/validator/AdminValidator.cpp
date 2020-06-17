@@ -258,7 +258,8 @@ Status ShowCollationValidator::toPlan() {
 }
 
 Status ShowConfigsValidator::validateImpl() {
-    auto item = sentence_->configItem();
+    auto sentence = static_cast<ShowConfigsSentence*>(sentence_);
+    auto item = sentence->configItem();
     if (item != nullptr) {
         module_ = item->getModule();
     } else {
@@ -269,14 +270,15 @@ Status ShowConfigsValidator::validateImpl() {
 
 Status ShowConfigsValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = ShowConfigs::make(plan, module_);
+    auto *doNode = ShowConfigs::make(plan, nullptr, module_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status SetConfigValidator::validateImpl() {
-    auto item = sentence_->configItem();
+    auto sentence = static_cast<SetConfigSentence*>(sentence_);
+    auto item = sentence->configItem();
     if (item == nullptr) {
         return Status::Error("Empty config item");
     }
@@ -322,14 +324,19 @@ Status SetConfigValidator::validateImpl() {
 
 Status SetConfigValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = SetConfig::make(plan, module_, std::move(name_), std::move(value_));
+    auto *doNode = SetConfig::make(plan,
+                                   nullptr,
+                                   module_,
+                                   std::move(name_),
+                                   std::move(value_));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status GetConfigValidator::validateImpl() {
-    auto item = sentence_->configItem();
+    auto sentence = static_cast<GetConfigSentence*>(sentence_);
+    auto item = sentence->configItem();
     if (item == nullptr) {
         return Status::Error("Empty config item");
     }
@@ -344,7 +351,10 @@ Status GetConfigValidator::validateImpl() {
 
 Status GetConfigValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = GetConfig::make(plan, module_, std::move(name_));
+    auto *doNode = GetConfig::make(plan,
+                                   nullptr,
+                                   module_,
+                                   std::move(name_));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

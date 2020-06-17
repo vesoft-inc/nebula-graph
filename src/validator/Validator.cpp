@@ -221,7 +221,10 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kUpdateEdge:
         case PlanNode::Kind::kShowParts:
         case PlanNode::Kind::kShowCharset:
-        case PlanNode::Kind::kShowCollation: {
+        case PlanNode::Kind::kShowCollation:
+        case PlanNode::Kind::kShowConfigs:
+        case PlanNode::Kind::kSetConfig:
+        case PlanNode::Kind::kGetConfig: {
             static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
             break;
         }

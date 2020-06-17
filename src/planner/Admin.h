@@ -144,10 +144,12 @@ private:
         : SingleInputNode(plan, Kind::kShowSpaces, input) {}
 };
 
-class ShowConfigs final : public PlanNode {
+class ShowConfigs final : public SingleInputNode {
 public:
-    static ShowConfigs* make(ExecutionPlan* plan, meta::cpp2::ConfigModule module) {
-        return new ShowConfigs(plan, module);
+    static ShowConfigs* make(ExecutionPlan* plan,
+                             PlanNode* input,
+                             meta::cpp2::ConfigModule module) {
+        return new ShowConfigs(plan, input, module);
     }
 
     std::string explain() const override {
@@ -159,21 +161,24 @@ public:
     }
 
 private:
-    ShowConfigs(ExecutionPlan* plan, meta::cpp2::ConfigModule module)
-        : PlanNode(plan, Kind::kShowConfigs)
+    ShowConfigs(ExecutionPlan* plan,
+                PlanNode* input,
+                meta::cpp2::ConfigModule module)
+        : SingleInputNode(plan, Kind::kShowConfigs, input)
         , module_(module) {}
 
 private:
     meta::cpp2::ConfigModule    module_;
 };
 
-class SetConfig final : public PlanNode {
+class SetConfig final : public SingleInputNode {
 public:
     static SetConfig* make(ExecutionPlan* plan,
+                           PlanNode* input,
                            meta::cpp2::ConfigModule module,
                            std::string name,
                            Value value) {
-        return new SetConfig(plan, module, std::move(name), std::move(value));
+        return new SetConfig(plan, input, module, std::move(name), std::move(value));
     }
 
     std::string explain() const override {
@@ -194,10 +199,11 @@ public:
 
 private:
     SetConfig(ExecutionPlan* plan,
+              PlanNode* input,
               meta::cpp2::ConfigModule module,
               std::string name,
               Value value)
-        : PlanNode(plan, Kind::kSetConfig)
+        : SingleInputNode(plan, Kind::kSetConfig, input)
         , module_(module)
         , name_(std::move(name))
         , value_(std::move(value)) {}
@@ -208,12 +214,13 @@ private:
     Value                          value_;
 };
 
-class GetConfig final : public PlanNode {
+class GetConfig final : public SingleInputNode {
 public:
     static GetConfig* make(ExecutionPlan* plan,
+                           PlanNode* input,
                            meta::cpp2::ConfigModule module,
                            std::string name) {
-        return new GetConfig(plan, module, std::move(name));
+        return new GetConfig(plan, input, module, std::move(name));
     }
 
     std::string explain() const override {
@@ -229,9 +236,10 @@ public:
 
 private:
     explicit GetConfig(ExecutionPlan* plan,
+                       PlanNode* input,
                        meta::cpp2::ConfigModule module,
                        std::string name)
-        : PlanNode(plan, Kind::kGetConfig)
+        : SingleInputNode(plan, Kind::kGetConfig, input)
         , module_(module)
         , name_(std::move(name)) {}
 
@@ -428,3 +436,4 @@ private:
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_
+

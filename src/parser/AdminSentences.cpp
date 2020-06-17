@@ -32,14 +32,6 @@ std::string ShowRolesSentence::toString() const {
     return folly::stringPrintf("SHOW ROLES IN %s", name_.get()->c_str());
 }
 
-std::string ShowUsersSentence::toString() const {
-    return std::string("SHOW USERS");
-}
-
-std::string ShowRolesSentence::toString() const {
-    return folly::stringPrintf("SHOW ROLES IN %s", name_.get()->c_str());
-}
-
 std::string ShowSnapshotsSentence::toString() const {
     return std::string("SHOW SNAPSHOTS");
 }

@@ -185,6 +185,9 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
+private:
+    meta::cpp2::ConfigModule                 module_;
 };
 
 class SetConfigValidator final : public Validator {
@@ -198,6 +201,11 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
+private:
+    meta::cpp2::ConfigModule                 module_;
+    std::string                              name_;
+    Value                                    value_;
 };
 
 class GetConfigValidator final : public Validator {
@@ -206,6 +214,11 @@ public:
         : Validator(sentence, context) {
         setNoSpaceRequired();
     }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
 
 private:
     meta::cpp2::ConfigModule                 module_;

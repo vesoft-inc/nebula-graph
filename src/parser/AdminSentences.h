@@ -66,8 +66,6 @@ public:
 
     std::string toString() const override;
 
-    std::string toString() const override;
-
 private:
     std::unique_ptr<std::vector<int32_t>> list_;
 };
