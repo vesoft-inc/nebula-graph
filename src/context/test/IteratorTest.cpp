@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 #include "context/Iterator.h"
+#include "common/datatypes/Vertex.h"
+#include "common/datatypes/Edge.h"
 
 namespace nebula {
 namespace graph {
@@ -78,11 +80,14 @@ TEST(IteratorTest, Sequential) {
 
 TEST(IteratorTest, GetNeighbor) {
     DataSet ds1;
-    ds1.colNames = {"_vid", "_stats", "_tag:tag1:prop1:prop2", "_edge:+edge1:prop1:prop2"};
+    ds1.colNames = {"_vid",
+                    "_stats",
+                    "_tag:tag1:prop1:prop2",
+                    "_edge:+edge1:prop1:prop2:_dst:_rank"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         // _vid
-        row.columns.emplace_back(i);
+        row.columns.emplace_back(folly::to<std::string>(i));
         // _stats = empty
         row.columns.emplace_back(Value());
         // tag
@@ -97,6 +102,8 @@ TEST(IteratorTest, GetNeighbor) {
             for (auto k = 0; k < 2; ++k) {
                 edge.values.emplace_back(k);
             }
+            edge.values.emplace_back("2");
+            edge.values.emplace_back(j);
             edges.values.emplace_back(std::move(edge));
         }
         row.columns.emplace_back(edges);
@@ -104,11 +111,14 @@ TEST(IteratorTest, GetNeighbor) {
     }
 
     DataSet ds2;
-    ds2.colNames = {"_vid", "_stats", "_tag:tag2:prop1:prop2", "_edge:-edge2:prop1:prop2"};
-    for (auto i = 0; i < 10; ++i) {
+    ds2.colNames = {"_vid",
+                    "_stats",
+                    "_tag:tag2:prop1:prop2",
+                    "_edge:-edge2:prop1:prop2:_dst:_rank"};
+    for (auto i = 10; i < 20; ++i) {
         Row row;
         // _vid
-        row.columns.emplace_back(i);
+        row.columns.emplace_back(folly::to<std::string>(i));
         // _stats = empty
         row.columns.emplace_back(Value());
         // tag
@@ -123,6 +133,8 @@ TEST(IteratorTest, GetNeighbor) {
             for (auto k = 0; k < 2; ++k) {
                 edge.values.emplace_back(k);
             }
+            edge.values.emplace_back("2");
+            edge.values.emplace_back(j);
             edges.values.emplace_back(std::move(edge));
         }
         row.columns.emplace_back(edges);
@@ -137,8 +149,10 @@ TEST(IteratorTest, GetNeighbor) {
     {
         GetNeighborsIter iter(val);
         std::vector<Value> expected =
-            {0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
-             0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9};
+            {"0", "0", "1", "1", "2", "2", "3", "3", "4", "4",
+             "5", "5", "6", "6", "7", "7", "8", "8", "9", "9",
+             "10", "10", "11", "11", "12", "12", "13", "13", "14", "14",
+             "15", "15", "16", "16", "17", "17", "18", "18", "19", "19"};
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
             result.emplace_back(iter.getColumn("_vid"));
@@ -213,16 +227,18 @@ TEST(IteratorTest, GetNeighbor) {
     // erase
     {
         GetNeighborsIter iter(val);
+        size_t i = 0;
         while (iter.valid()) {
-            if (iter.getColumn("_vid").getInt() % 2 == 0) {
+            ++i;
+            if (i % 2 == 0) {
                 iter.erase();
             } else {
                 iter.next();
             }
         }
         std::vector<Value> expected =
-                {1, 1, 3, 3, 5, 5, 7, 7, 9, 9,
-                 1, 1, 3, 3, 5, 5, 7, 7, 9, 9};
+                {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+                "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
         std::vector<Value> result;
 
         int count = 0;
@@ -237,6 +253,74 @@ TEST(IteratorTest, GetNeighbor) {
             count--;
         }
         EXPECT_EQ(count, 10);
+    }
+    {
+        GetNeighborsIter iter(val);
+        std::vector<Value> expected;
+        Tag tag1;
+        tag1.name = "tag1";
+        tag1.props = {{"prop1", 0}, {"prop2", 1}};
+        for (size_t i = 0; i < 10; ++i) {
+            Vertex vertex;
+            vertex.vid = folly::to<std::string>(i);
+            vertex.tags.emplace_back(tag1);
+            expected.emplace_back(vertex);
+            expected.emplace_back(std::move(vertex));
+        }
+        Tag tag2;
+        tag2.name = "tag2";
+        tag2.props = {{"prop1", 0}, {"prop2", 1}};
+        for (size_t i = 10; i < 20; ++i) {
+            Vertex vertex;
+            vertex.vid = folly::to<std::string>(i);
+            vertex.tags.emplace_back(tag2);
+            expected.emplace_back(vertex);
+            expected.emplace_back(std::move(vertex));
+        }
+        std::vector<Value> result;
+        for (; iter.valid(); iter.next()) {
+            auto v = iter.getVertex();
+            result.emplace_back(std::move(v));
+        }
+        EXPECT_EQ(result.size(), 40);
+        EXPECT_EQ(result, expected);
+    }
+    {
+        GetNeighborsIter iter(val);
+        std::vector<Value> expected;
+        for (size_t i = 0; i < 10; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                EdgeRanking ranking = static_cast<int64_t>(j);
+                Edge edge;
+                edge.name = "edge1";
+                edge.type = 0;
+                edge.src = folly::to<std::string>(i);
+                edge.dst = "2";
+                edge.ranking = ranking;
+                edge.props = {{"prop1", 0}, {"prop2", 1}};
+                expected.emplace_back(std::move(edge));
+            }
+        }
+        for (size_t i = 10; i < 20; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                EdgeRanking ranking = static_cast<int64_t>(j);
+                Edge edge;
+                edge.name = "edge2";
+                edge.type = 0;
+                edge.src = folly::to<std::string>(i);
+                edge.dst = "2";
+                edge.ranking = ranking;
+                edge.props = {{"prop1", 0}, {"prop2", 1}};
+                expected.emplace_back(std::move(edge));
+            }
+        }
+        std::vector<Value> result;
+        for (; iter.valid(); iter.next()) {
+            auto e = iter.getEdge();
+            result.emplace_back(std::move(e));
+        }
+        EXPECT_EQ(result.size(), 40);
+        EXPECT_EQ(result, expected);
     }
 }
 

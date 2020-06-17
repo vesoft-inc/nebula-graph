@@ -59,7 +59,7 @@ int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
                     tagEdgeNameIndex, tagPropIndices_.back(), tagPropMaps_.back());
         } else if (colNames[i].find("_edge") == 0) {
             buildPropIndex(colNames[i], i, true,
-                    tagEdgeNameIndex, edgePropIndices_.back(), tagPropMaps_.back());
+                    tagEdgeNameIndex, edgePropIndices_.back(), edgePropMaps_.back());
             if (edgeStartIndex < 0) {
                 edgeStartIndex = i;
             }
@@ -93,13 +93,13 @@ void GetNeighborsIter::buildPropIndex(const std::string& props,
         DCHECK_GT(pieces[1].size(), 1);
         auto edgeName = name.substr(1, name.size());
         tagEdgePropIdxMap.emplace(edgeName, std::make_pair(columnId, std::move(kv)));
-        pieces.erase(pieces.begin(), pieces.begin() + 1);
+        pieces.erase(pieces.begin(), pieces.begin() + 2);
         auto propList = std::make_pair(columnId, std::move(pieces));
         tagEdgePropMap.emplace(edgeName, std::move(propList));
         tagEdgeNameIndex.emplace(columnId, edgeName);
     } else {
         tagEdgePropIdxMap.emplace(name, std::make_pair(columnId, std::move(kv)));
-        pieces.erase(pieces.begin(), pieces.begin() + 1);
+        pieces.erase(pieces.begin(), pieces.begin() + 2);
         auto propList = std::make_pair(columnId, std::move(pieces));
         tagEdgePropMap.emplace(name, std::move(propList));
         tagEdgeNameIndex.emplace(columnId, name);
@@ -157,7 +157,7 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     auto index = edgePropIndices_[segment].find(edge);
     if (index == edgePropIndices_[segment].end()) {
         VLOG(1) << "No edge found: " << edge;
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto propIndex = index->second.second.find(prop);
     if (propIndex == index->second.second.end()) {
@@ -175,12 +175,11 @@ Value GetNeighborsIter::getVertex() const {
 
     auto segment = currentSeg();
     auto vidVal = getColumn("_vid");
-    VertexID vid;
     if (!vidVal.isStr()) {
         return Value(NullType::__NULL__);
     }
     Vertex vertex;
-    vertex.vid = std::move(vid);
+    vertex.vid = vidVal.getStr();
     auto& tagPropMap = tagPropMaps_[segment];
     for (auto& tagProp : tagPropMap) {
         auto* row = currentRow();
@@ -208,6 +207,7 @@ Value GetNeighborsIter::getEdge() const {
     auto segment = currentSeg();
     Edge edge;
     auto& edgeName = currentEdgeName();
+    edge.name = edgeName;
     auto& src = getColumn("_vid");
     if (!src.isStr()) {
         return Value(NullType::__NULL__);
@@ -225,6 +225,7 @@ Value GetNeighborsIter::getEdge() const {
         return Value(NullType::__NULL__);
     }
     edge.ranking = rank.getInt();
+    edge.type = 0;
 
     auto& edgePropMap = edgePropMaps_[segment];
     auto edgeProp = edgePropMap.find(edgeName);
@@ -235,6 +236,11 @@ Value GetNeighborsIter::getEdge() const {
     auto& propList = currentEdgeProps()->values;
     DCHECK_EQ(edgeNamePropList.size(), propList.size());
     for (size_t i = 0; i < propList.size(); ++i) {
+        auto propName = edgeNamePropList[i];
+        if (propName == _SRC || propName == _DST
+                || propName == _RANK || propName == _TYPE) {
+            continue;
+        }
         edge.props.emplace(edgeNamePropList[i], propList[i]);
     }
     return Value(std::move(edge));
