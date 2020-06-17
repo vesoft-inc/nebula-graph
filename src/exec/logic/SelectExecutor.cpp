@@ -27,6 +27,7 @@ folly::Future<Status> SelectExecutor::execute() {
     auto* expr = select->condition();
     ExpressionContextImpl ctx(ectx_, nullptr);
     auto value = expr->eval(ctx);
+    DCHECK(value.isBool());
     finish(std::move(value));
     return Status::OK();
 }

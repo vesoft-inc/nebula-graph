@@ -144,6 +144,12 @@ folly::Future<Status> Scheduler::iterate(LoopExecutor *loop) {
         if (!status.ok()) return loop->error(std::move(status));
 
         auto val = qctx_->ectx()->getValue(loop->node()->varName());
+        if (!val.isBool()) {
+            std::stringstream ss;
+            ss << "Loop produces a bad condition result: " << val << " type: " << val.type();
+            LOG(ERROR) << ss.str();
+            return folly::makeFuture(Status::Error(ss.str()));
+        }
         auto cond = val.moveBool();
         if (!cond) return folly::makeFuture(Status::OK());
         return schedule(loop->loopBody()).then(task(loop, [loop, this](Status s) {
