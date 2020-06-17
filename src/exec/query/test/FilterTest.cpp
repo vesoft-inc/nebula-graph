@@ -31,8 +31,7 @@ TEST_F(FilterTest, TestGetNeighbors_src_dst) {
     EXPECT_EQ(filterResult.state().stat(), State::Stat::kSuccess);
 
     filterNode->setInputVar("filter_getNeighbor");
-    auto* project = Project::make(plan,
-            nullptr, plan->saveObject(yieldSentence->yieldColumns()));
+    auto* project = Project::make(plan, nullptr, yieldSentence->yieldColumns());
     project->setInputVar(filterNode->varName());
     project->setColNames(std::vector<std::string>{"name"});
 

@@ -824,12 +824,12 @@ class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(ExecutionPlan* plan,
                        PlanNode* input,
-                       std::vector<Expression*> exprs) {
-        return new Dedup(plan, input, exprs);
+                       std::vector<std::string> colNames) {
+        return new Dedup(plan, input, std::move(colNames));
     }
 
-    std::vector<Expression*> getExprs() const {
-        return exprs_;
+    const std::vector<std::string>& getColNames() const {
+        return colNames_;
     }
 
     std::string explain() const override;
@@ -837,13 +837,13 @@ public:
 private:
     Dedup(ExecutionPlan* plan,
           PlanNode* input,
-          std::vector<Expression*> exprs)
+          std::vector<std::string> colNames)
         : SingleInputNode(plan, Kind::kDedup, input) {
-        exprs_ = exprs;
+        colNames_ = std::move(colNames);
     }
 
 private:
-    std::vector<Expression*>     exprs_;
+    std::vector<std::string>     colNames_;
 };
 
 class DataCollect final : public SingleInputNode {

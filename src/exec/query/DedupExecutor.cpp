@@ -18,21 +18,21 @@ folly::Future<Status> DedupExecutor::execute() {
     if (iter == nullptr) {
         return finish(ExecResult::buildDefault(Value()));
     }
-    auto exprs = dedup->getExprs();
     auto result = ExecResult::buildDefault(iter->valuePtr());
+    auto &colNames = dedup->getColNames();
     ExpressionContextImpl ctx(ectx_, iter.get());
-    std::unordered_set<ColVals, ColsHasher> unique;
+    std::unordered_set<ValueRefs> unique;
     while (iter->valid()) {
-        ColVals colVals;
-        for (auto expr : exprs) {
-            auto &value = expr->eval(ctx);
-            colVals.cols.emplace_back(&value);
+        ValueRefs valRefs;
+        for (auto &colName : colNames) {
+            auto &value = iter->getColumn(colName);
+            valRefs.values.emplace_back(&value);
         }
-        if (unique.find(colVals) != unique.end()) {
+        if (unique.find(valRefs) != unique.end()) {
             iter->erase();
         } else {
             iter->next();
-            unique.emplace(std::move(colVals));
+            unique.emplace(std::move(valRefs));
         }
     }
     iter->reset();

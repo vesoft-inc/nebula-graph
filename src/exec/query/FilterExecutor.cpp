@@ -18,9 +18,6 @@ folly::Future<Status> FilterExecutor::execute() {
     auto* filter = asNode<Filter>(node());
     auto iter = ectx_->getResult(filter->inputVar()).iter();
 
-    if (iter == nullptr) {
-        return finish(ExecResult::buildDefault(Value()));
-    }
     auto result = ExecResult::buildDefault(iter->valuePtr());
     ExpressionContextImpl ctx(ectx_, iter.get());
     auto condition = filter->condition();

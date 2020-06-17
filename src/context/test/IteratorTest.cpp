@@ -610,18 +610,17 @@ TEST(IteratorTest, DedupTest) {
     auto val = std::make_shared<Value>(ds);
     SequentialIter iter(val);
     EXPECT_EQ(iter.size(), 3);
-    std::unordered_set<ColVals, ColsHasher> unique;
+    std::unordered_set<ValueRefs> unique;
     while (iter.valid()) {
-        ColVals vals;
+        ValueRefs valRefs;
         auto &value1 = iter.getColumn("col1");
-        vals.cols.emplace_back(&value1);
+        valRefs.values.emplace_back(&value1);
         auto &value2 = iter.getColumn("col2");
-        vals.cols.emplace_back(&value2);
-        if (unique.find(vals) != unique.end()) {
-            LOG(INFO) << "Erase col";
+        valRefs.values.emplace_back(&value2);
+        if (unique.find(valRefs) != unique.end()) {
             iter.erase();
         } else {
-            unique.emplace(std::move(vals));
+            unique.emplace(std::move(valRefs));
             iter.next();
         }
     }

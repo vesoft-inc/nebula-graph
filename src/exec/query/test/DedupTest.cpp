@@ -17,40 +17,10 @@ namespace graph {
 class DedupTest : public QueryTestBase {
 };
 
-TEST_F(DedupTest, TestGetNeighbors_src_dst) {
-    auto* plan = qctx_->plan();
-    auto yieldColumns = getYieldColumns(
-            "YIELD DISTINCT $^.person.age AS age, study._dst as dst");
-    auto* dedupNode = Dedup::make(plan, nullptr, getExprs(yieldColumns));
-    dedupNode->setInputVar("input_neighbor");
-    dedupNode->setOutputVar("dedup_getNeighbor");
-
-    auto defupExec = std::make_unique<DedupExecutor>(dedupNode, qctx_.get());
-    EXPECT_TRUE(defupExec->execute().get().ok());
-    auto& dedupResult = qctx_->ectx()->getResult(dedupNode->varName());
-    EXPECT_EQ(dedupResult.state().stat(), State::Stat::kSuccess);
-
-    dedupNode->setInputVar("dedup_getNeighbor");
-    auto* project = Project::make(plan, nullptr, yieldColumns);
-    project->setInputVar(dedupNode->varName());
-    project->setColNames(std::vector<std::string>{"age", "dst"});
-
-    auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
-    EXPECT_TRUE(proExe->execute().get().ok());
-    auto& proSesult = qctx_->ectx()->getResult(project->varName());
-
-    DataSet expected({"age", "dst"});
-    expected.emplace_back(Row({Value(18), Value("School1")}));
-    expected.emplace_back(Row({Value(18), Value("School2")}));
-
-    EXPECT_EQ(proSesult.value().getDataSet(), expected);
-    EXPECT_EQ(proSesult.state().stat(), State::Stat::kSuccess);
-}
-
 TEST_F(DedupTest, TestSequential) {
     auto* plan = qctx_->plan();
     auto yieldColumns = getYieldColumns("YIELD DISTINCT $-.v_dst as name");
-    auto* dedupNode = Dedup::make(plan, nullptr, getExprs(yieldColumns));
+    auto* dedupNode = Dedup::make(plan, nullptr, {"name"});
     dedupNode->setInputVar("input_sequential");
     dedupNode->setOutputVar("filter_sequential");
 
@@ -59,7 +29,6 @@ TEST_F(DedupTest, TestSequential) {
     auto& dedupResult = qctx_->ectx()->getResult(dedupNode->varName());
     EXPECT_EQ(dedupResult.state().stat(), State::Stat::kSuccess);
 
-    dedupNode->setInputVar("filter_sequential");
     auto* project = Project::make(plan, nullptr, yieldColumns);
     project->setInputVar(dedupNode->varName());
     project->setColNames(std::vector<std::string>{"name"});
@@ -75,11 +44,10 @@ TEST_F(DedupTest, TestSequential) {
     EXPECT_EQ(proSesult.state().stat(), State::Stat::kSuccess);
 }
 
-
 TEST_F(DedupTest, TestEmpty) {
     auto* plan = qctx_->plan();
-    auto yieldColumns = getYieldColumns("YIELD DISTINCT $^.person.name AS name, study._dst as dst");
-    auto* dedupNode = Dedup::make(plan, nullptr, getExprs(yieldColumns));
+    auto yieldColumns = getYieldColumns("YIELD DISTINCT $-.v_dst as name");
+    auto* dedupNode = Dedup::make(plan, nullptr, {"name"});
     dedupNode->setInputVar("empty");
     dedupNode->setOutputVar("dedup_empty");
 
@@ -88,7 +56,6 @@ TEST_F(DedupTest, TestEmpty) {
     auto& dedupResult = qctx_->ectx()->getResult(dedupNode->varName());
     EXPECT_EQ(dedupResult.state().stat(), State::Stat::kSuccess);
 
-    dedupNode->setInputVar("dedup_empty");
     auto* project = Project::make(plan, nullptr, yieldColumns);
     project->setInputVar(dedupNode->varName());
     project->setColNames(std::vector<std::string>{"name"});

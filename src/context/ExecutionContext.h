@@ -104,6 +104,10 @@ public:
         return std::move(*value_);
     }
 
+    Value copyValue() const {
+        return *value_;
+    }
+
     const State& state() const {
         return state_;
     }
