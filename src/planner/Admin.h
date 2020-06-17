@@ -140,9 +140,9 @@ public:
                             std::string password,
                             bool ifNotExists) {
         return new CreateUser(plan,
-                            std::move(username),
-                            std::move(password),
-                            ifNotExists);
+                              std::move(username),
+                              std::move(password),
+                              ifNotExists);
     }
 
     std::string explain() const override {
@@ -201,8 +201,8 @@ public:
                             std::string username,
                             std::string password) {
         return new UpdateUser(plan,
-                            std::move(username),
-                            std::move(password));
+                              std::move(username),
+                              std::move(password));
     }
 
     std::string explain() const override {
