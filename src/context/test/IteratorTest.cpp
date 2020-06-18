@@ -83,7 +83,8 @@ TEST(IteratorTest, GetNeighbor) {
     ds1.colNames = {"_vid",
                     "_stats",
                     "_tag:tag1:prop1:prop2",
-                    "_edge:+edge1:prop1:prop2:_dst:_rank"};
+                    "_edge:+edge1:prop1:prop2:_dst:_rank",
+                    "_expr"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         // _vid
@@ -107,6 +108,8 @@ TEST(IteratorTest, GetNeighbor) {
             edges.values.emplace_back(std::move(edge));
         }
         row.columns.emplace_back(edges);
+        // _expr = empty
+        row.columns.emplace_back(Value());
         ds1.rows.emplace_back(std::move(row));
     }
 
@@ -114,7 +117,8 @@ TEST(IteratorTest, GetNeighbor) {
     ds2.colNames = {"_vid",
                     "_stats",
                     "_tag:tag2:prop1:prop2",
-                    "_edge:-edge2:prop1:prop2:_dst:_rank"};
+                    "_edge:-edge2:prop1:prop2:_dst:_rank",
+                    "_expr"};
     for (auto i = 10; i < 20; ++i) {
         Row row;
         // _vid
@@ -138,6 +142,8 @@ TEST(IteratorTest, GetNeighbor) {
             edges.values.emplace_back(std::move(edge));
         }
         row.columns.emplace_back(edges);
+        // _expr = empty
+        row.columns.emplace_back(Value());
         ds2.rows.emplace_back(std::move(row));
     }
 
@@ -321,6 +327,127 @@ TEST(IteratorTest, GetNeighbor) {
         }
         EXPECT_EQ(result.size(), 40);
         EXPECT_EQ(result, expected);
+    }
+}
+
+TEST(IteratorTest, TestHead) {
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1",
+                        "_edge:+edge1:",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+
+    {
+        // no _vid
+        DataSet ds;
+        ds.colNames = {"_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
+    }
+    {
+        // no _stats
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
+    }
+    {
+        // no _expr
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
+    }
+    {
+        // no +/- before edge name
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
     }
 }
 

@@ -14,25 +14,40 @@ namespace nebula {
 namespace graph {
 
 GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value) : Iterator(value) {
-    DCHECK(value->isList());
+    if (!value->isList()) {
+        clear();
+        return;
+    }
     int64_t segment = 0;
     for (auto& val : value_->getList().values) {
-        DCHECK(val.type() == Value::Type::DATASET);
+        if (!val.isDataSet()) {
+            clear();
+            return;
+        }
         auto& ds = val.getDataSet();
         auto& colNames = ds.colNames;
-        auto edgeStartIndex = buildIndex(colNames);
+        auto buildResult = buildIndex(colNames);
+        if (!buildResult.ok()) {
+            LOG(ERROR) << "Build index error: " << buildResult.status();
+            clear();
+            return;
+        }
+        size_t edgeStartIndex = buildResult.value();
         segments_.emplace_back(&ds);
         for (auto& row : ds.rows) {
             auto& cols = row.columns;
             for (size_t column = edgeStartIndex; column < cols.size(); ++column) {
                 if (!cols[column].isList()) {
+                    // Ignore the bad value.
                     continue;
                 }
                 for (auto& edge : cols[column].getList().values) {
-                    DCHECK(edge.isList());
+                    if (!edge.isList()) {
+                        // Ignore the bad value.
+                        continue;
+                    }
                     auto& tagEdgeNameIndex = tagEdgeNameIndices_[segment];
                     auto edgeName = tagEdgeNameIndex.find(column);
-                    VLOG(1) << "col: " << column << " edge name: " << edgeName->second;
                     DCHECK(edgeName != tagEdgeNameIndex.end());
                     logicalRows_.emplace_back(
                             std::make_tuple(segment, &row, edgeName->second, &edge.getList()));
@@ -42,9 +57,17 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value) : Iterator(valu
         ++segment;
     }
     iter_ = logicalRows_.begin();
+    valid_ = true;
 }
 
-int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
+StatusOr<int64_t> GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
+    if (colNames.size() < 3
+            || colNames[0] != "_vid"
+            || colNames[1].find("_stats") != 0
+            || colNames.back().find("_expr") != 0) {
+        return Status::Error("Bad column names.");
+    }
+    Status status;
     std::unordered_map<std::string, size_t> colIndex;
     TagEdgeNameIdxMap tagEdgeNameIndex;
     int64_t edgeStartIndex = -1;
@@ -54,17 +77,24 @@ int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
     edgePropMaps_.emplace_back();
     for (size_t i = 0; i < colNames.size(); ++i) {
         colIndex.emplace(colNames[i], i);
-        if (colNames[i].find("_tag") == 0) {
-            buildPropIndex(colNames[i], i, false,
+        auto& colName = colNames[i];
+        if (colName.find("_tag") == 0) {
+            status = buildPropIndex(colName, i, false,
                     tagEdgeNameIndex, tagPropIndices_.back(), tagPropMaps_.back());
-        } else if (colNames[i].find("_edge") == 0) {
-            buildPropIndex(colNames[i], i, true,
+            if (!status.ok()) {
+                return status;
+            }
+        } else if (colName.find("_edge") == 0) {
+            status = buildPropIndex(colName, i, true,
                     tagEdgeNameIndex, edgePropIndices_.back(), edgePropMaps_.back());
+            if (!status.ok()) {
+                return status;
+            }
             if (edgeStartIndex < 0) {
                 edgeStartIndex = i;
             }
         } else {
-            // In this case, the column name would be _vid, _stats
+            // It is "_vid", "_stats", "_expr" in this situation.
         }
     }
     tagEdgeNameIndices_.emplace_back(std::move(tagEdgeNameIndex));
@@ -72,16 +102,18 @@ int64_t GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
     return edgeStartIndex;
 }
 
-void GetNeighborsIter::buildPropIndex(const std::string& props,
-                                      size_t columnId,
-                                      bool isEdge,
-                                      TagEdgeNameIdxMap& tagEdgeNameIndex,
-                                      TagEdgePropIdxMap& tagEdgePropIdxMap,
-                                      TagEdgePropMap& tagEdgePropMap) {
+Status GetNeighborsIter::buildPropIndex(const std::string& props,
+                                       size_t columnId,
+                                       bool isEdge,
+                                       TagEdgeNameIdxMap& tagEdgeNameIndex,
+                                       TagEdgePropIdxMap& tagEdgePropIdxMap,
+                                       TagEdgePropMap& tagEdgePropMap) {
     std::vector<std::string> pieces;
     folly::split(":", props, pieces);
     PropIdxMap kv;
-    DCHECK_GE(pieces.size(), 2);
+    if (pieces.size() < 2) {
+        return Status::Error("Bad column name format: %s", props.c_str());
+    }
     for (size_t i = 2; i < pieces.size(); ++i) {
         kv.emplace(pieces[i], i - 2);
     }
@@ -90,7 +122,9 @@ void GetNeighborsIter::buildPropIndex(const std::string& props,
     if (isEdge) {
         // The first character of the tag/edge name is +/-.
         // It's not used for now.
-        DCHECK_GT(pieces[1].size(), 1);
+        if (name.find("+") != 0 && name.find("-") != 0) {
+            return Status::Error("Bad edge name: %s", name.c_str());
+        }
         auto edgeName = name.substr(1, name.size());
         tagEdgePropIdxMap.emplace(edgeName, std::make_pair(columnId, std::move(kv)));
         pieces.erase(pieces.begin(), pieces.begin() + 2);
@@ -104,6 +138,8 @@ void GetNeighborsIter::buildPropIndex(const std::string& props,
         tagEdgePropMap.emplace(name, std::move(propList));
         tagEdgeNameIndex.emplace(columnId, name);
     }
+
+    return Status::OK();
 }
 
 const Value& GetNeighborsIter::getColumn(const std::string& col) const {

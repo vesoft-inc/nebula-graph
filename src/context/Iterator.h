@@ -128,18 +128,19 @@ public:
     }
 
     bool valid() const override {
-        return iter_ < logicalRows_.end();
+        return valid_ && iter_ < logicalRows_.end();
     }
 
     void next() override {
-        if (!valid()) {
-            return;
+        if (valid()) {
+            ++iter_;
         }
-        ++iter_;
     }
 
     void erase() override {
-        iter_ = logicalRows_.erase(iter_);
+        if (valid()) {
+            iter_ = logicalRows_.erase(iter_);
+        }
     }
 
     size_t size() const override {
@@ -161,6 +162,18 @@ public:
 private:
     void doReset(size_t pos) override {
         iter_ = logicalRows_.begin() + pos;
+    }
+
+    void clear() {
+        valid_ = false;
+        colIndices_.clear();
+        tagEdgeNameIndices_.clear();
+        tagPropIndices_.clear();
+        edgePropIndices_.clear();
+        tagPropMaps_.clear();
+        edgePropMaps_.clear();
+        segments_.clear();
+        logicalRows_.clear();
     }
 
     // Maps the origin column names with its column index, each response
@@ -213,15 +226,17 @@ private:
         return std::get<3>(current);
     }
 
-    int64_t buildIndex(const std::vector<std::string>& colNames);
+    StatusOr<int64_t> buildIndex(const std::vector<std::string>& colNames);
 
-    void buildPropIndex(const std::string& props,
+    Status buildPropIndex(const std::string& props,
                         size_t columnId,
                         bool isEdge,
                         TagEdgeNameIdxMap& tagEdgeNameIndex,
                         TagEdgePropIdxMap& tagEdgePropIdxMap,
                         TagEdgePropMap& tagEdgePropMap);
 
+    friend class IteratorTest_TestHead_Test;
+    bool                                    valid_{false};
     ColumnIndex                             colIndices_;
     TagEdgeNameIndex                        tagEdgeNameIndices_;
     PropIndex                               tagPropIndices_;
