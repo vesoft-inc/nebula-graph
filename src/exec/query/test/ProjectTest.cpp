@@ -45,7 +45,7 @@ std::unique_ptr<QueryContext> ProjectTest::qctx_;
 
 TEST_F(ProjectTest, Project1Col) {
     std::string input = "input_project";
-    auto* columns = new YieldColumns();
+    auto columns = std::make_unique<YieldColumns>();
     auto* column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(input),
@@ -53,7 +53,7 @@ TEST_F(ProjectTest, Project1Col) {
             new std::string("_vid"));
     columns->addColumn(column);
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(plan, nullptr, std::move(columns));
     project->setInputVar(input);
     project->setColNames(std::vector<std::string>{"_vid"});
 
@@ -76,7 +76,7 @@ TEST_F(ProjectTest, Project1Col) {
 
 TEST_F(ProjectTest, Project2Col) {
     std::string input = "input_project";
-    auto* columns = new YieldColumns();
+    auto columns = std::make_unique<YieldColumns>();
     auto* column0 = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(input),
@@ -90,7 +90,7 @@ TEST_F(ProjectTest, Project2Col) {
             new std::string("num"));
     columns->addColumn(column1);
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(plan, nullptr, std::move(columns));
     project->setInputVar(input);
     project->setColNames(std::vector<std::string>{"_vid", "num"});
 
@@ -114,7 +114,7 @@ TEST_F(ProjectTest, Project2Col) {
 
 TEST_F(ProjectTest, EmptyInput) {
     std::string input = "empty";
-    auto* columns = new YieldColumns();
+    auto columns = std::make_unique<YieldColumns>();
     auto* column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(input),
@@ -122,7 +122,7 @@ TEST_F(ProjectTest, EmptyInput) {
             new std::string("_vid"));
     columns->addColumn(column);
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(plan, nullptr, std::move(columns));
     project->setInputVar(input);
     project->setColNames(std::vector<std::string>{"_vid"});
 

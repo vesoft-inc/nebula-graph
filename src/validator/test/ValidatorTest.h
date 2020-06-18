@@ -13,6 +13,7 @@
 #include "context/QueryContext.h"
 #include "planner/ExecutionPlan.h"
 #include "context/ValidateContext.h"
+#include "validator/test/MockSchemaManager.h"
 
 namespace nebula {
 namespace graph {
@@ -20,8 +21,9 @@ class ValidatorTest : public ::testing::Test {
 public:
     void SetUp() override {
         auto session = new ClientSession(0);
-        session->setSpace("test", 0);
+        session->setSpace("test", 1);
         session_.reset(session);
+        schemaMng_ = CHECK_NOTNULL(MockSchemaManager::make_unique());
         qCtx_ = buildContext();
     }
 
@@ -49,16 +51,16 @@ protected:
         rctx->setSession(session_);
         auto qctx = std::make_unique<QueryContext>();
         qctx->setRctx(std::move(rctx));
-        qctx->setSchemaManager(schemaMng_);
+        qctx->setSchemaManager(schemaMng_.get());
         qctx->setCharsetInfo(CharsetInfo::instance());
         return qctx;
     }
 
 
 protected:
-    std::shared_ptr<ClientSession>      session_;
-    meta::SchemaManager*                schemaMng_;
-    std::unique_ptr<QueryContext>       qCtx_;
+    std::shared_ptr<ClientSession>       session_;
+    std::unique_ptr<meta::SchemaManager> schemaMng_;
+    std::unique_ptr<QueryContext>        qCtx_;
 };
 
 }  // namespace graph

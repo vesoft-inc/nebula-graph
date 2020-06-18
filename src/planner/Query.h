@@ -572,24 +572,22 @@ class Project final : public SingleInputNode {
 public:
     static Project* make(ExecutionPlan* plan,
                          PlanNode* input,
-                         YieldColumns* cols) {
-        return new Project(plan, input, cols);
+                         std::unique_ptr<YieldColumns> cols) {
+        return new Project(plan, input, std::move(cols));
     }
 
     std::string explain() const override;
 
     const YieldColumns* columns() const {
-        return cols_;
+        return cols_.get();
     }
 
 private:
-    Project(ExecutionPlan* plan, PlanNode* input, YieldColumns* cols)
-      : SingleInputNode(plan, Kind::kProject, input) {
-        cols_ = cols;
-    }
+    Project(ExecutionPlan* plan, PlanNode* input, std::unique_ptr<YieldColumns> cols)
+      : SingleInputNode(plan, Kind::kProject, input), cols_(std::move(cols)) { }
 
 private:
-    YieldColumns*               cols_{nullptr};
+    std::unique_ptr<YieldColumns>               cols_{nullptr};
 };
 
 /**

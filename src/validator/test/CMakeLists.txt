@@ -42,8 +42,8 @@ nebula_add_library(
 nebula_add_test(
     NAME validator_test
     SOURCES
-        #FetchVerticesTest.cpp  need to mock schema
-        #FetchEdgesTest.cpp
+        FetchVerticesTest.cpp
+        FetchEdgesTest.cpp
         SubGraphTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle

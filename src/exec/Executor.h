@@ -115,7 +115,7 @@ protected:
     Status finish(ExecResult &&result);
 
     // Note: will fatal when called in non single input node
-    const Value &getSingleInputValue();
+    const std::shared_ptr<Value> getSingleInputValue();
 
     // Dump some execution logging messages
     void dumpLog() const;

@@ -279,6 +279,10 @@ public:
         return yieldColumns_.get();
     }
 
+    std::unique_ptr<YieldColumns> moveYieldColumns() {
+        return std::move(yieldColumns_);
+    }
+
     bool isDistinct() const {
         return distinct_;
     }

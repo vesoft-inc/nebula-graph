@@ -20,7 +20,7 @@ public:
 TEST_F(MockSchemaManagerTest, all) {
     MockSchemaManager mock;
     mock.init();
-    auto spaceRet = mock.toGraphSpaceID("test_space");
+    auto spaceRet = mock.toGraphSpaceID("test");
     ASSERT_TRUE(spaceRet.ok());
     auto spaceId = spaceRet.value();
     ASSERT_EQ(1, spaceId);

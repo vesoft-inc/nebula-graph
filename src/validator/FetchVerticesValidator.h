@@ -46,6 +46,7 @@ private:
     std::vector<storage::cpp2::OrderBy> orderBy_{};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
     std::string filter_{};
+    bool withInput_{false};
 };
 
 }   // namespace graph

@@ -176,16 +176,16 @@ Status GetSubgraphValidator::toPlan() {
             std::move(edgeProps),
             std::move(statProps));
 
-    auto* columns = new YieldColumns();
+    auto columns = std::make_unique<YieldColumns>();
     auto* column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(gn1->varName()),
                 new std::string("_vid")),
             new std::string("_vid"));
     columns->addColumn(column);
-    auto* project = Project::make(plan, gn1, plan->saveObject(columns));
+    auto* project = Project::make(plan, gn1, std::move(columns));
     project->setOutputVar(vidsToSave);
-    project->setColNames(evalResultColNames(columns));
+    project->setColNames(evalResultColNames(project->columns()));
 
     // ++counter{0} <= steps
     auto counter = vctx_->varGen()->getVar();

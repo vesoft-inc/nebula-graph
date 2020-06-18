@@ -274,13 +274,13 @@ Status Executor::finish(nebula::Value &&value) {
     return Status::OK();
 }
 
-const Value &Executor::getSingleInputValue() {
+const std::shared_ptr<Value> Executor::getSingleInputValue() {
     const auto *current = node();
     // TODO(shylock) down-cast by the Kind
     const auto *singleInput = dynamic_cast<const SingleInputNode*>(current);
     const auto *input = CHECK_NOTNULL(singleInput)->input();
     const auto &inputVarName = DCHECK_NOTNULL(input)->varName();
-    return ectx_->getValue(inputVarName);
+    return std::make_shared<Value>(ectx_->getValue(inputVarName));
 }
 
 Status Executor::finish(ExecResult &&result) {

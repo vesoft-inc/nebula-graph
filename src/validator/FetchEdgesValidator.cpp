@@ -37,7 +37,7 @@ Status FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
     auto *plan = qctx_->plan();
     auto *doNode = GetEdges::make(plan,
-                                  plan->root(),  // previous root as input
+                                  withInput_ ? plan->root() : nullptr,  // previous root as input
                                   spaceId_,
                                   std::move(edges_),
                                   src_,
@@ -51,7 +51,8 @@ Status FetchEdgesValidator::toPlan() {
                                   std::move(filter_));
     PlanNode *current = doNode;
     if (sentence_->yieldClause() != nullptr) {
-        auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yieldColumns());
+        auto *projectNode = Project::make(
+            plan, current, sentence_->yieldClause()->moveYieldColumns());
         current = projectNode;
     }
     // Project select the properties then dedup
@@ -128,6 +129,15 @@ Status FetchEdgesValidator::prepareProperties() {
     } else {
         dedup_ = yield->isDistinct();
         for (const auto col : yield->columns()) {
+            // TODO(shylock) check recursive
+            if (col->expr()->kind() == Expression::Kind::kInputProperty ||
+                col->expr()->kind() == Expression::Kind::kVar ||
+                col->expr()->kind() == Expression::Kind::kVersionedVar ||
+                col->expr()->kind() == Expression::Kind::kVarProperty) {
+                withInput_ = true;
+            }
+
+            // TODO(shylock) check recursive
             if (col->expr()->kind() == Expression::Kind::kEdgeProperty ||
                 col->expr()->kind() == Expression::Kind::kDstProperty ||
                 col->expr()->kind() == Expression::Kind::kSrcProperty ||

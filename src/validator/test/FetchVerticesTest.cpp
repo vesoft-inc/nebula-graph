@@ -14,7 +14,7 @@ namespace graph {
 TEST_F(ValidatorTest, FetchVerticesProp) {
     {
         // TODO(shylock) mock schema
-        ASSERT_TRUE(toPlan("FETCH PROP ON tag1 \"1\""));
+        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\""));
         // check plan
         // GetVertices
         auto *plan = qCtx_->plan();
@@ -24,12 +24,17 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         ASSERT_EQ(input, nullptr);
         std::vector<nebula::Row> vertices{nebula::Row({"1"})};
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
-        ASSERT_TRUE(getVerticesNode->props().empty());
+        ASSERT_EQ(getVerticesNode->props().size(), 1);
+        auto expr = Expression::decode(getVerticesNode->props().front().get_prop());
+        const auto symbolExpr = std::unique_ptr<SymbolPropertyExpression>(
+            static_cast<SymbolPropertyExpression*>(expr.release()));
+        ASSERT_EQ(*symbolExpr->sym(), "person");
+        ASSERT_EQ(*symbolExpr->prop(), "*");
     }
     // With YIELD
     {
         // TODO(shylock) mock schema
-        ASSERT_TRUE(toPlan("FETCH PROP ON tag1 \"1\" YIELD tag1.prop1, tag1.prop2"));
+        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, person.age"));
         // check plan
         // Project
         auto *plan = qCtx_->plan();
@@ -37,29 +42,29 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         const auto *projectNode = static_cast<const Project *>(plan->root());
         auto *cols = projectNode->columns();
         ASSERT_NE(cols, nullptr);
-        std::vector<std::string> props{"prop1", "prop2"};
+        std::vector<std::string> props{"name", "age"};
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &col = cols->columns()[i];
             const auto *expr = col->expr();
-            ASSERT_EQ(expr->kind(), Expression::Kind::kVarProperty);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
             const auto *aliasPropertyExpr = static_cast<const SymbolPropertyExpression *>(expr);
-            ASSERT_EQ(*aliasPropertyExpr->sym(), "tag1");
+            ASSERT_EQ(*aliasPropertyExpr->sym(), "person");
             ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
         }
         // GetVertices
         auto *input = projectNode->input();
         ASSERT_NE(input, nullptr);
         ASSERT_EQ(input->kind(), PlanNode::Kind::kGetVertices);
-        auto *getVerticesNode = static_cast<GetVertices *>(input);
+        const auto *getVerticesNode = static_cast<const GetVertices *>(input);
         std::vector<nebula::Row> vertices{nebula::Row({"1"})};
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
         for (std::size_t i = 0; i < 2; ++i) {
             const auto &prop = getVerticesNode->props()[i];
             auto expr = Expression::decode(prop.get_prop());
             ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->kind(), Expression::Kind::kVarProperty);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
             auto aliasPropertyExpr = static_cast<SymbolPropertyExpression *>(expr.get());
-            ASSERT_EQ(*aliasPropertyExpr->sym(), "tag1");
+            ASSERT_EQ(*aliasPropertyExpr->sym(), "person");
             ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
         }
     }
@@ -78,44 +83,6 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
         ASSERT_TRUE(getVerticesNode->props().empty());
     }
-    // With * and YIELD
-    {
-        // TODO(shylock) mock schema
-        ASSERT_TRUE(toPlan("FETCH PROP ON * \"1\", \"2\" YIELD tag1.prop1, tag2.prop2"));
-        // check plan
-        // Project
-        auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
-        const auto *projectNode = static_cast<const Project *>(plan->root());
-        auto *cols = projectNode->columns();
-        ASSERT_NE(cols, nullptr);
-        std::vector<std::string> alias{"tag1", "tag2"};
-        std::vector<std::string> props{"prop1", "prop2"};
-        for (std::size_t i = 0; i < 2; ++i) {
-            const auto &col = cols->columns()[i];
-            const auto *expr = col->expr();
-            ASSERT_EQ(expr->kind(), Expression::Kind::kVarProperty);
-            const auto *aliasPropertyExpr = static_cast<const SymbolPropertyExpression *>(expr);
-            ASSERT_EQ(*aliasPropertyExpr->sym(), alias[i]);
-            ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
-        }
-        // GetVertices
-        auto *input = projectNode->input();
-        ASSERT_NE(input, nullptr);
-        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetVertices);
-        auto *getVerticesNode = static_cast<GetVertices *>(input);
-        std::vector<nebula::Row> vertices{nebula::Row({"1", "2"})};
-        ASSERT_EQ(getVerticesNode->vertices(), vertices);
-        for (std::size_t i = 0; i < 2; ++i) {
-            const auto &prop = getVerticesNode->props()[i];
-            auto expr = Expression::decode(prop.get_prop());
-            ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->kind(), Expression::Kind::kVarProperty);
-            auto aliasPropertyExpr = static_cast<SymbolPropertyExpression *>(expr.get());
-            ASSERT_EQ(*aliasPropertyExpr->sym(), alias[i]);
-            ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
-        }
-    }
 }
 
 TEST_F(ValidatorTest, FetchVerticesPropFailed) {
@@ -132,8 +99,8 @@ TEST_F(ValidatorTest, FetchVerticesPropFailed) {
     // not exist tag
     {
         auto result =
-            GQLParser().parse("FETCH PROP ON not_exist_tag \"1\" YIELD not_exist_tag.prop");
-        ASSERT_TRUE(result.ok());
+            GQLParser().parse("FETCH PROP ON not_exist_tag \"1\" YIELD not_exist_tag.prop1");
+        ASSERT_TRUE(result.ok()) << result.status();
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
         auto validateResult = validator.validate();
@@ -142,7 +109,8 @@ TEST_F(ValidatorTest, FetchVerticesPropFailed) {
 
     // not exist property
     {
-        auto result = GQLParser().parse("FETCH PROP ON tag1 \"1\" YIELD tag1.not_exist_property");
+        auto result = GQLParser().parse(
+            "FETCH PROP ON person \"1\" YIELD person.not_exist_property");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
