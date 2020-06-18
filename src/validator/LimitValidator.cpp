@@ -26,10 +26,10 @@ Status LimitValidator::validateImpl() {
 
 Status LimitValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *start = StartNode::make(plan);
-    auto *doNode = Limit::make(plan, start, offset_, count_);
-    root_ = doNode;
-    tail_ = root_;
+    auto *limitNode = Limit::make(plan, plan->root(), offset_, count_);
+    auto* project = Project::make(plan, limitNode, {});
+    root_ = project;
+    tail_ = limitNode;
     return Status::OK();
 }
 }  // namespace graph

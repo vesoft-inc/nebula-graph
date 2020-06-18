@@ -607,7 +607,7 @@ TEST(IteratorTest, EraseRange) {
     }
     // erase out of range pos
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         iter.eraseRange(5, 11);
         ASSERT_EQ(iter.size(), 10);
@@ -620,14 +620,14 @@ TEST(IteratorTest, EraseRange) {
     }
     // erase in range
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         iter.eraseRange(0, 10);
         ASSERT_EQ(iter.size(), 0);
     }
     // erase part
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         iter.eraseRange(0, 5);
         EXPECT_EQ(iter.size(), 5);
@@ -647,7 +647,7 @@ TEST(IteratorTest, Sort) {
     ds.rows.emplace_back(Row({Value("dd"), Value(20)}));
     // sort one col ASC
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
         factors.emplace_back(std::make_pair("col1", OrderFactor::OrderType::ASCEND));
@@ -670,7 +670,7 @@ TEST(IteratorTest, Sort) {
 
     // sort two cols, first col ASC, second col DES
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
         factors.emplace_back(std::make_pair("col1", OrderFactor::OrderType::ASCEND));

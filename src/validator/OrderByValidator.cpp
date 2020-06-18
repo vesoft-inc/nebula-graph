@@ -18,21 +18,35 @@ Status OrderByValidator::validateImpl() {
 }
 
 Status OrderByValidator::toPlan() {
-    LOG(INFO) << "OrderByValidator::toPlan";
+    auto* plan = qctx_->plan();
+    if (plan->root() == nullptr) {
+        return Status::Error("No input node");
+    }
+    auto inputColNames = plan->root()->colNames();
     std::vector<std::pair<std::string, OrderFactor::OrderType>> nameType;
     for (auto &factor : factors_) {
         if (factor->expr()->kind() != Expression::Kind::kInputProperty) {
             return Status::Error("Wrong expression");
         }
         auto expr = static_cast<InputPropertyExpression*>(factor->expr());
-        nameType.emplace_back(std::make_pair(*expr->sym(), factor->orderType()));
+        auto name = *expr->prop();
+        nameType.emplace_back(std::make_pair(name, factor->orderType()));
+        // Check factor in input node's colNames
+        auto find = std::find_if(inputColNames.begin(), inputColNames.end(),
+                [&name] (const auto& colName) {
+                    return colName == name;
+                });
+        if (find == inputColNames.end()) {
+            LOG(ERROR) << "Order BY on factor `" << name <<"` is not exist";
+            return Status::Error("Order BY on factor `%s` is not exist", name.c_str());
+        }
     }
 
-    auto* plan = qctx_->plan();
     auto *sortNode = Sort::make(plan, plan->root(), std::move(nameType));
-    sortNode->setInputVar(plan->root()->varName());
-    root_ = sortNode;
-    tail_ = root_;
+    auto* project = Project::make(plan, sortNode, {});
+    root_ = project;
+    tail_ = sortNode;
+    plan->setRoot(root_);
     return Status::OK();
 }
 }  // namespace graph

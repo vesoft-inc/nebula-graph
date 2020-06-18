@@ -156,10 +156,6 @@ public:
         return;
     }
 
-    const Value& operator*() override {
-        return value_;
-    }
-
     size_t size() const override {
         return 1;
     }
@@ -223,10 +219,6 @@ public:
             std::pair<std::string, OrderFactor::OrderType>>&) override {
         LOG(FATAL) << "GetNeighborsIter not sorted ";
         return;
-    }
-
-    const Value& operator*() override {
-        return value_;
     }
 
     size_t size() const override {
@@ -424,10 +416,6 @@ public:
         };
         std::sort(rows_.begin(), rows_.end(), comparator);
         reset();
-    }
-
-    const Value& operator*() override {
-        return value_;
     }
 
     size_t size() const override {
