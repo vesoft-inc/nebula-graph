@@ -466,6 +466,9 @@ public:
     std::string toString() const override;
     meta::cpp2::AdminJobOp getType() const;
     const std::vector<std::string> &getParas() const;
+    std::vector<std::string> moveParas() {
+        return std::move(paras_);
+    }
 
 private:
     meta::cpp2::AdminJobOp   op_;

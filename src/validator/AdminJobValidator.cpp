@@ -16,7 +16,7 @@ Status AdminJobValidator::validateImpl() {
 
 Status AdminJobValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = SubmitJob::make(plan, sentence_->getType(), sentence_->getParas());
+    auto *doNode = SubmitJob::make(plan, sentence_->getType(), sentence_->moveParas());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
