@@ -10,11 +10,11 @@
 namespace nebula {
 namespace graph {
 TEST(IteratorTest, Default) {
-    Value constant(1);
+    auto constant = std::make_shared<Value>(1);
     DefaultIter iter(constant);
     EXPECT_EQ(iter.size(), 1);
     for (; iter.valid(); iter.next()) {
-        EXPECT_EQ(*iter, constant);
+        EXPECT_EQ(*iter, *constant);
     }
 }
 
@@ -28,7 +28,7 @@ TEST(IteratorTest, Sequential) {
         ds.rows.emplace_back(std::move(row));
     }
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         EXPECT_EQ(iter.size(), 10);
         auto i = 0;
@@ -39,7 +39,7 @@ TEST(IteratorTest, Sequential) {
         }
     }
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         auto copyIter1 = iter.copy();
         auto copyIter2 = copyIter1->copy();
@@ -53,7 +53,7 @@ TEST(IteratorTest, Sequential) {
     }
     // erase
     {
-        Value val(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(ds));
         SequentialIter iter(val);
         EXPECT_EQ(iter.size(), 10);
         while (iter.valid()) {
@@ -63,10 +63,16 @@ TEST(IteratorTest, Sequential) {
                 iter.next();
             }
         }
-        iter.reset();
-        for (; iter.valid(); iter.next()) {
+        int32_t count = 0;
+        for (iter.reset(); iter.valid(); iter.next()) {
             EXPECT_NE(iter.getColumn("col1").getInt() % 2, 0);
+            count++;
         }
+
+        for (iter.reset(1); iter.valid(); iter.next()) {
+            count--;
+        }
+        EXPECT_EQ(count, 1);
     }
 }
 
@@ -126,7 +132,7 @@ TEST(IteratorTest, GetNeighbor) {
     List datasets;
     datasets.values.emplace_back(std::move(ds1));
     datasets.values.emplace_back(std::move(ds2));
-    Value val(std::move(datasets));
+    auto val = std::make_shared<Value>(std::move(datasets));
 
     {
         GetNeighborsIter iter(val);
@@ -218,13 +224,21 @@ TEST(IteratorTest, GetNeighbor) {
                 {1, 1, 3, 3, 5, 5, 7, 7, 9, 9,
                  1, 1, 3, 3, 5, 5, 7, 7, 9, 9};
         std::vector<Value> result;
-        iter.reset();
-        for (; iter.valid(); iter.next()) {
+
+        int count = 0;
+        for (iter.reset(); iter.valid(); iter.next()) {
             result.emplace_back(iter.getColumn("_vid"));
+            count++;
         }
         EXPECT_EQ(result.size(), 20);
         EXPECT_EQ(expected, result);
+
+        for (iter.reset(10); iter.valid(); iter.next()) {
+            count--;
+        }
+        EXPECT_EQ(count, 10);
     }
 }
+
 }  // namespace graph
 }  // namespace nebula
