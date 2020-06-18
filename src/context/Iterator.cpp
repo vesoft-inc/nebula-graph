@@ -8,10 +8,11 @@
 
 namespace nebula {
 namespace graph {
-GetNeighborsIter::GetNeighborsIter(const Value& value) : Iterator(value) {
-    DCHECK(value.type() == Value::Type::LIST);
+
+GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value) : Iterator(value) {
+    DCHECK(value->isList());
     int64_t segment = 0;
-    for (auto& val : value_.getList().values) {
+    for (auto& val : value_->getList().values) {
         DCHECK(val.type() == Value::Type::DATASET);
         auto& ds = val.getDataSet();
         auto& colNames = ds.colNames;
@@ -72,14 +73,14 @@ GetNeighborsIter::buildPropIndex(const std::string& props) {
 
 const Value& GetNeighborsIter::getColumn(const std::string& col) const {
     if (!valid()) {
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto& current = *iter_;
     auto segment = std::get<0>(current);
     auto& index = colIndex_[segment];
     auto found = index.find(col);
     if (found == index.end()) {
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto row = std::get<1>(current);
     return row->columns[found->second];
@@ -88,17 +89,17 @@ const Value& GetNeighborsIter::getColumn(const std::string& col) const {
 const Value& GetNeighborsIter::getTagProp(const std::string& tag,
                                           const std::string& prop) const {
     if (!valid()) {
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto& current = *iter_;
     auto segment = std::get<0>(current);
     auto index = tagPropIndex_[segment].find(tag);
     if (index == tagPropIndex_[segment].end()) {
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto propIndex = index->second.find(prop);
     if (propIndex == index->second.end()) {
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto& list = std::get<3>(current);
     return list->values[propIndex->second];
@@ -107,17 +108,17 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
 const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
                                            const std::string& prop) const {
     if (!valid()) {
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto& current = *iter_;
     auto segment = std::get<0>(current);
     auto index = edgePropIndex_[segment].find(edge);
     if (index == edgePropIndex_[segment].end()) {
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto propIndex = index->second.find(prop);
     if (propIndex == index->second.end()) {
-        return kNullValue;
+        return Value::kNullValue;
     }
     auto& list = std::get<3>(current);
     return list->values[propIndex->second];
