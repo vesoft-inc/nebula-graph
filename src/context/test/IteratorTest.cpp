@@ -449,6 +449,34 @@ TEST(IteratorTest, TestHead) {
         GetNeighborsIter iter(std::move(val));
         EXPECT_FALSE(iter.valid_);
     }
+    // no prop
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+    // no prop
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
 }
 
 }  // namespace graph

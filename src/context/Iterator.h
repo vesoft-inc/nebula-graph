@@ -229,11 +229,11 @@ private:
     StatusOr<int64_t> buildIndex(const std::vector<std::string>& colNames);
 
     Status buildPropIndex(const std::string& props,
-                        size_t columnId,
-                        bool isEdge,
-                        TagEdgeNameIdxMap& tagEdgeNameIndex,
-                        TagEdgePropIdxMap& tagEdgePropIdxMap,
-                        TagEdgePropMap& tagEdgePropMap);
+                          size_t columnId,
+                          bool isEdge,
+                          TagEdgeNameIdxMap& tagEdgeNameIndex,
+                          TagEdgePropIdxMap& tagEdgePropIdxMap,
+                          TagEdgePropMap& tagEdgePropMap);
 
     friend class IteratorTest_TestHead_Test;
     bool                                    valid_{false};

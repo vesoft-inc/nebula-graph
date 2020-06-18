@@ -36,7 +36,7 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value) : Iterator(valu
         segments_.emplace_back(&ds);
         for (auto& row : ds.rows) {
             auto& cols = row.columns;
-            for (size_t column = edgeStartIndex; column < cols.size(); ++column) {
+            for (size_t column = edgeStartIndex; column < cols.size() - 1; ++column) {
                 if (!cols[column].isList()) {
                     // Ignore the bad value.
                     continue;
@@ -114,8 +114,11 @@ Status GetNeighborsIter::buildPropIndex(const std::string& props,
     if (pieces.size() < 2) {
         return Status::Error("Bad column name format: %s", props.c_str());
     }
-    for (size_t i = 2; i < pieces.size(); ++i) {
-        kv.emplace(pieces[i], i - 2);
+
+    if (pieces.size() > 2) {
+        for (size_t i = 2; i < pieces.size(); ++i) {
+            kv.emplace(pieces[i], i - 2);
+        }
     }
 
     std::string name = pieces[1];
