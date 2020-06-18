@@ -269,6 +269,14 @@ Status ShowConfigsValidator::validateImpl() {
 }
 
 Status ShowConfigsValidator::toPlan() {
+    auto sentence = static_cast<ShowConfigsSentence*>(sentence_);
+    meta::cpp2::ConfigModule module;
+    auto item = sentence->configItem();
+    if (item != nullptr) {
+        module = item->getModule();
+    } else {
+        module = meta::cpp2::ConfigModule::ALL;
+    }
     auto* plan = qctx_->plan();
     auto *doNode = ShowConfigs::make(plan, nullptr, module_);
     root_ = doNode;
