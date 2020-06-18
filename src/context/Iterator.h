@@ -7,6 +7,8 @@
 #ifndef CONTEXT_ITERATOR_H_
 #define CONTEXT_ITERATOR_H_
 
+#include <memory>
+
 #include "common/datatypes/Value.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/DataSet.h"
@@ -16,7 +18,7 @@ namespace graph {
 
 class Iterator {
 public:
-    explicit Iterator(const Value& value) : value_(value) {}
+    explicit Iterator(std::shared_ptr<Value> value) : value_(value) {}
 
     virtual ~Iterator() = default;
 
@@ -39,39 +41,45 @@ public:
         next();
     }
 
-    virtual const Value& operator*() = 0;
+    virtual const Value& value() const {
+        return *value_;
+    }
+
+    const Value& operator*() const {
+        return value();
+    }
 
     virtual size_t size() const = 0;
 
     // The derived class should rewrite get prop if the Value is kind of dataset.
     virtual const Value& getColumn(const std::string& col) const {
         UNUSED(col);
-        return kEmpty;
+        return Value::kEmpty;
     }
 
     virtual const Value& getTagProp(const std::string& tag,
                                     const std::string& prop) const {
         UNUSED(tag);
         UNUSED(prop);
-        return kEmpty;
+        return Value::kEmpty;
     }
 
     virtual const Value& getEdgeProp(const std::string& edge,
                                      const std::string& prop) const {
         UNUSED(edge);
         UNUSED(prop);
-        return kEmpty;
+        return Value::kEmpty;
     }
 
 protected:
     virtual void doReset(size_t pos) = 0;
 
-    const Value& value_;
+    std::shared_ptr<Value> value_;
 };
 
 class DefaultIter final : public Iterator {
 public:
-    explicit DefaultIter(const Value& value) : Iterator(value) {}
+    explicit DefaultIter(std::shared_ptr<Value> value) : Iterator(value) {}
 
     std::unique_ptr<Iterator> copy() const override {
         return std::make_unique<DefaultIter>(*this);
@@ -89,10 +97,6 @@ public:
         counter_--;
     }
 
-    const Value& operator*() override {
-        return value_;
-    }
-
     size_t size() const override {
         return 1;
     }
@@ -107,7 +111,7 @@ private:
 
 class GetNeighborsIter final : public Iterator {
 public:
-    explicit GetNeighborsIter(const Value& value);
+    explicit GetNeighborsIter(std::shared_ptr<Value> value);
 
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<GetNeighborsIter>(*this);
@@ -128,10 +132,6 @@ public:
 
     void erase() override {
         iter_ = edges_.erase(iter_);
-    }
-
-    const Value& operator*() override {
-        return value_;
     }
 
     size_t size() const override {
@@ -172,9 +172,9 @@ private:
 
 class SequentialIter final : public Iterator {
 public:
-    explicit SequentialIter(const Value& value) : Iterator(value) {
-        DCHECK(value.type() == Value::Type::DATASET);
-        auto& ds = value.getDataSet();
+    explicit SequentialIter(std::shared_ptr<Value> value) : Iterator(value) {
+        DCHECK(value->isDataSet());
+        auto& ds = value->getDataSet();
         for (auto& row : ds.rows) {
             rows_.emplace_back(&row);
         }
@@ -205,22 +205,18 @@ public:
         iter_ = rows_.erase(iter_);
     }
 
-    const Value& operator*() override {
-        return value_;
-    }
-
     size_t size() const override {
         return rows_.size();
     }
 
     const Value& getColumn(const std::string& col) const override {
         if (!valid()) {
-            return kNullValue;
+            return Value::kNullValue;
         }
         auto row = *iter_;
         auto index = colIndex_.find(col);
         if (index == colIndex_.end()) {
-            return kNullValue;
+            return Value::kNullValue;
         } else {
             DCHECK_LT(index->second, row->columns.size());
             return row->columns[index->second];
