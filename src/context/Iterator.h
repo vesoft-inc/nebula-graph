@@ -7,15 +7,18 @@
 #ifndef CONTEXT_ITERATOR_H_
 #define CONTEXT_ITERATOR_H_
 
+#include <memory>
+
 #include "common/datatypes/Value.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/DataSet.h"
 
 namespace nebula {
 namespace graph {
+
 class Iterator {
 public:
-    explicit Iterator(const Value& value) : value_(value) {}
+    explicit Iterator(std::shared_ptr<Value> value) : value_(value) {}
 
     virtual ~Iterator() = default;
 
@@ -27,43 +30,56 @@ public:
 
     virtual void erase() = 0;
 
-    virtual void reset() = 0;
+    // Reset iterator position to `pos' from begin. Must be sure that the `pos' position
+    // is lower than `size()' before resetting
+    void reset(size_t pos = 0) {
+        DCHECK((pos == 0 && size() == 0) || (pos < size()));
+        doReset(pos);
+    }
 
     void operator++() {
         next();
     }
 
-    virtual const Value& operator*() = 0;
+    virtual const Value& value() const {
+        return *value_;
+    }
+
+    const Value& operator*() const {
+        return value();
+    }
 
     virtual size_t size() const = 0;
 
     // The derived class should rewrite get prop if the Value is kind of dataset.
     virtual const Value& getColumn(const std::string& col) const {
         UNUSED(col);
-        return kEmpty;
+        return Value::kEmpty;
     }
 
     virtual const Value& getTagProp(const std::string& tag,
                                     const std::string& prop) const {
         UNUSED(tag);
         UNUSED(prop);
-        return kEmpty;
+        return Value::kEmpty;
     }
 
     virtual const Value& getEdgeProp(const std::string& edge,
                                      const std::string& prop) const {
         UNUSED(edge);
         UNUSED(prop);
-        return kEmpty;
+        return Value::kEmpty;
     }
 
 protected:
-    const Value& value_;
+    virtual void doReset(size_t pos) = 0;
+
+    std::shared_ptr<Value> value_;
 };
 
 class DefaultIter final : public Iterator {
 public:
-    explicit DefaultIter(const Value& value) : Iterator(value) {}
+    explicit DefaultIter(std::shared_ptr<Value> value) : Iterator(value) {}
 
     std::unique_ptr<Iterator> copy() const override {
         return std::make_unique<DefaultIter>(*this);
@@ -81,25 +97,21 @@ public:
         counter_--;
     }
 
-    void reset() override {
-        counter_ = 0;
-    }
-
-    const Value& operator*() override {
-        return value_;
-    }
-
     size_t size() const override {
         return 1;
     }
 
 private:
+    void doReset(size_t pos) override {
+        counter_ = pos;
+    }
+
     int64_t counter_{0};
 };
 
 class GetNeighborsIter final : public Iterator {
 public:
-    explicit GetNeighborsIter(const Value& value);
+    explicit GetNeighborsIter(std::shared_ptr<Value> value);
 
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<GetNeighborsIter>(*this);
@@ -122,14 +134,6 @@ public:
         iter_ = edges_.erase(iter_);
     }
 
-    void reset() override {
-        iter_ = edges_.begin();
-    }
-
-    const Value& operator*() override {
-        return value_;
-    }
-
     size_t size() const override {
         return edges_.size();
     }
@@ -143,6 +147,10 @@ public:
                              const std::string& prop) const override;
 
 private:
+    void doReset(size_t pos) override {
+        iter_ = edges_.begin() + pos;
+    }
+
     int64_t buildIndex(const std::vector<std::string>& colNames);
 
     std::pair<std::string, std::unordered_map<std::string, int64_t>>
@@ -153,11 +161,8 @@ private:
     using PropIdxMap = std::unordered_map<std::string, int64_t>;
     using TagEdgePropMap = std::unordered_map<std::string, PropIdxMap>;
     using PropIndex = std::vector<TagEdgePropMap>;
-    using Edge = std::tuple<int64_t, /* segment id */
-                           const Row*,
-                           int64_t, /* column id */
-                           const List* /* edge props */
-                          >;
+    // Edge: <segment_id, row, column_id, edge_props>
+    using Edge = std::tuple<int64_t, const Row*, int64_t, const List*>;
     PropIndex                      tagPropIndex_;
     PropIndex                      edgePropIndex_;
     std::vector<const DataSet*>    segments_;
@@ -167,9 +172,9 @@ private:
 
 class SequentialIter final : public Iterator {
 public:
-    explicit SequentialIter(const Value& value) : Iterator(value) {
-        DCHECK(value.type() == Value::Type::DATASET);
-        auto& ds = value.getDataSet();
+    explicit SequentialIter(std::shared_ptr<Value> value) : Iterator(value) {
+        DCHECK(value->isDataSet());
+        auto& ds = value->getDataSet();
         for (auto& row : ds.rows) {
             rows_.emplace_back(&row);
         }
@@ -200,26 +205,18 @@ public:
         iter_ = rows_.erase(iter_);
     }
 
-    void reset() override {
-        iter_ = rows_.begin();
-    }
-
-    const Value& operator*() override {
-        return value_;
-    }
-
     size_t size() const override {
         return rows_.size();
     }
 
     const Value& getColumn(const std::string& col) const override {
         if (!valid()) {
-            return kNullValue;
+            return Value::kNullValue;
         }
         auto row = *iter_;
         auto index = colIndex_.find(col);
         if (index == colIndex_.end()) {
-            return kNullValue;
+            return Value::kNullValue;
         } else {
             DCHECK_LT(index->second, row->columns.size());
             return row->columns[index->second];
@@ -227,12 +224,15 @@ public:
     }
 
 private:
+    void doReset(size_t pos) override {
+        iter_ = rows_.begin() + pos;
+    }
+
     std::vector<const Row*>                      rows_;
     std::vector<const Row*>::iterator            iter_;
     std::unordered_map<std::string, int64_t>     colIndex_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_ITERATOR_H_
-
-
