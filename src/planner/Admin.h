@@ -59,8 +59,8 @@ private:
           props_(std::move(props)), ifNotExist_(ifNotExists) {}
 
 private:
-    meta::SpaceDesc               props_;
-    bool ifNotExist_{false};
+    meta::SpaceDesc     props_;
+    bool                ifNotExist_{false};
 };
 
 class DropSpace final : public PlanNode {
@@ -164,7 +164,7 @@ public:
     }
 
 private:
-    CreateUser(ExecutionPlan* plan, std::string username, std::string password,  bool ifNotExists)
+    CreateUser(ExecutionPlan* plan, std::string username, std::string password, bool ifNotExists)
         : CreateNode(plan, Kind::kCreateUser, ifNotExists),
           username_(std::move(username)),
           password_(std::move(password)) {}
@@ -279,13 +279,13 @@ private:
 class RevokeRole final : public PlanNode {
 public:
     static RevokeRole* make(ExecutionPlan* plan,
-                           std::string username,
-                           std::string spaceName,
-                           meta::cpp2::RoleType role) {
+                            std::string username,
+                            std::string spaceName,
+                            meta::cpp2::RoleType role) {
         return new RevokeRole(plan,
-                            std::move(username),
-                            std::move(spaceName),
-                            role);
+                              std::move(username),
+                              std::move(spaceName),
+                              role);
     }
 
     std::string explain() const override {
