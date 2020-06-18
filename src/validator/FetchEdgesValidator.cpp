@@ -40,10 +40,10 @@ Status FetchEdgesValidator::toPlan() {
                                   withInput_ ? plan->root() : nullptr,  // previous root as input
                                   spaceId_,
                                   std::move(edges_),
-                                  src_,
+                                  std::move(src_),
                                   edgeType_,
-                                  ranking_,
-                                  dst_,
+                                  std::move(ranking_),
+                                  std::move(dst_),
                                   std::move(props_),
                                   dedup_,
                                   limit_,
@@ -85,9 +85,9 @@ Status FetchEdgesValidator::check() {
 Status FetchEdgesValidator::prepareEdges() {
     // from ref, eval in execute
     if (sentence_->isRef()) {
-        src_ = sentence_->ref()->srcid();
-        ranking_ = sentence_->ref()->rank();
-        dst_ = sentence_->ref()->dstid();
+        src_ = sentence_->ref()->moveSrcId();
+        ranking_ = sentence_->ref()->moveRank();
+        dst_ = sentence_->ref()->moveDstId();
         return Status::OK();
     }
 

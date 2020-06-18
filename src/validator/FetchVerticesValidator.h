@@ -36,7 +36,7 @@ private:
     FetchVerticesSentence* sentence_{nullptr};
     GraphSpaceID spaceId_{0};
     std::vector<nebula::Row> vertices_;
-    Expression* src_{nullptr};
+    std::unique_ptr<Expression> src_{nullptr};
     std::string tagName_;
     // none if not specified tag
     folly::Optional<TagID> tagId_;

@@ -41,7 +41,7 @@ Status FetchVerticesValidator::toPlan() {
                                      withInput_ ? plan->root() : nullptr,  // previous root as input
                                      spaceId_,
                                      std::move(vertices_),
-                                     src_,
+                                     std::move(src_),
                                      std::move(props_),
                                      dedup_,
                                      std::move(orderBy_),
@@ -90,7 +90,7 @@ Status FetchVerticesValidator::check() {
 Status FetchVerticesValidator::prepareVertices() {
     // from ref, eval when execute
     if (sentence_->isRef()) {
-        src_ = sentence_->ref();
+        src_ = sentence_->moveRef();
         return Status::OK();
     }
 

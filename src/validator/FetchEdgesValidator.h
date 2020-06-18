@@ -36,9 +36,9 @@ private:
     FetchEdgesSentence* sentence_{nullptr};
     GraphSpaceID spaceId_;
     std::vector<nebula::Row> edges_;
-    Expression* src_{nullptr};
-    Expression* ranking_{nullptr};
-    Expression* dst_{nullptr};
+    std::unique_ptr<Expression> src_{nullptr};
+    std::unique_ptr<Expression> ranking_{nullptr};
+    std::unique_ptr<Expression> dst_{nullptr};
     std::string edgeTypeName_;
     EdgeType edgeType_{0};
     std::shared_ptr<const meta::SchemaProviderIf> schema_;
