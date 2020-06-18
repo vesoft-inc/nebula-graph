@@ -47,10 +47,7 @@ protected:
         }
 
         std::vector<PlanNode::Kind> result;
-        std::queue<const PlanNode *> queue;
-        std::unordered_set<int64_t> visited;
-        queue.emplace(root);
-        bfsTraverse(&queue, &visited, &result);
+        bfsTraverse(root, result);
         if (result == expected) {
             return ::testing::AssertionSuccess();
         } else {
@@ -68,78 +65,79 @@ protected:
         return ss.str();
     }
 
-    void bfsTraverse(std::queue<const PlanNode*>* queue,
-                     std::unordered_set<int64_t>* visited,
-                     std::vector<PlanNode::Kind>* result) const {
-        if (queue->empty()) return;
-        auto node = queue->front();
-        queue->pop();
-        if (visited->find(node->id()) != visited->end()) {
-            bfsTraverse(queue, visited, result);
-            return;
-        }
-        visited->emplace(node->id());
-        result->emplace_back(node->kind());
+    void bfsTraverse(const PlanNode* root, std::vector<PlanNode::Kind>& result) const {
+        std::queue<const PlanNode*> queue;
+        std::unordered_set<int64_t> visited;
+        queue.emplace(root);
 
-        switch (node->kind()) {
-            case PlanNode::Kind::kUnknown:
-                ASSERT_TRUE(false) << "Unknown Plan Node.";
-            case PlanNode::Kind::kStart: {
-                break;
+        while (!queue.empty()) {
+            auto node = queue.front();
+            queue.pop();
+            if (visited.find(node->id()) != visited.end()) {
+                continue;
             }
-            case PlanNode::Kind::kGetNeighbors:
-            case PlanNode::Kind::kGetVertices:
-            case PlanNode::Kind::kGetEdges:
-            case PlanNode::Kind::kReadIndex:
-            case PlanNode::Kind::kFilter:
-            case PlanNode::Kind::kProject:
-            case PlanNode::Kind::kSort:
-            case PlanNode::Kind::kLimit:
-            case PlanNode::Kind::kAggregate:
-            case PlanNode::Kind::kSwitchSpace:
-            case PlanNode::Kind::kMultiOutputs:
-            case PlanNode::Kind::kDedup: {
-                auto* current = static_cast<const SingleInputNode*>(node);
-                queue->emplace(current->input());
-                break;
-            }
-            case PlanNode::Kind::kCreateSpace:
-            case PlanNode::Kind::kCreateTag:
-            case PlanNode::Kind::kCreateEdge:
-            case PlanNode::Kind::kDescSpace:
-            case PlanNode::Kind::kDescTag:
-            case PlanNode::Kind::kDescEdge:
-            case PlanNode::Kind::kInsertVertices:
-            case PlanNode::Kind::kInsertEdges: {
-                // TODO: DDLs and DMLs are kind of single input node.
-            }
-            case PlanNode::Kind::kUnion:
-            case PlanNode::Kind::kIntersect:
-            case PlanNode::Kind::kMinus: {
-                auto* current = static_cast<const BiInputNode*>(node);
-                queue->emplace(current->left());
-                queue->emplace(current->right());
-                break;
-            }
-            case PlanNode::Kind::kSelect: {
-                auto* current = static_cast<const Select*>(node);
-                queue->emplace(current->input());
-                queue->emplace(current->then());
-                if (current->otherwise() != nullptr) {
-                    queue->emplace(current->otherwise());
+            visited.emplace(node->id());
+            result.emplace_back(node->kind());
+
+            switch (node->kind()) {
+                case PlanNode::Kind::kUnknown:
+                    ASSERT_TRUE(false) << "Unknown Plan Node.";
+                case PlanNode::Kind::kStart: {
+                    break;
                 }
-                break;
+                case PlanNode::Kind::kGetNeighbors:
+                case PlanNode::Kind::kGetVertices:
+                case PlanNode::Kind::kGetEdges:
+                case PlanNode::Kind::kReadIndex:
+                case PlanNode::Kind::kFilter:
+                case PlanNode::Kind::kProject:
+                case PlanNode::Kind::kSort:
+                case PlanNode::Kind::kLimit:
+                case PlanNode::Kind::kAggregate:
+                case PlanNode::Kind::kSwitchSpace:
+                case PlanNode::Kind::kMultiOutputs:
+                case PlanNode::Kind::kDedup: {
+                    auto* current = static_cast<const SingleInputNode*>(node);
+                    queue.emplace(current->input());
+                    break;
+                }
+                case PlanNode::Kind::kCreateSpace:
+                case PlanNode::Kind::kCreateTag:
+                case PlanNode::Kind::kCreateEdge:
+                case PlanNode::Kind::kDescSpace:
+                case PlanNode::Kind::kDescTag:
+                case PlanNode::Kind::kDescEdge:
+                case PlanNode::Kind::kInsertVertices:
+                case PlanNode::Kind::kInsertEdges: {
+                    // TODO: DDLs and DMLs are kind of single input node.
+                }
+                case PlanNode::Kind::kUnion:
+                case PlanNode::Kind::kIntersect:
+                case PlanNode::Kind::kMinus: {
+                    auto* current = static_cast<const BiInputNode*>(node);
+                    queue.emplace(current->left());
+                    queue.emplace(current->right());
+                    break;
+                }
+                case PlanNode::Kind::kSelector: {
+                    auto* current = static_cast<const Selector*>(node);
+                    queue.emplace(current->input());
+                    queue.emplace(current->then());
+                    if (current->otherwise() != nullptr) {
+                        queue.emplace(current->otherwise());
+                    }
+                    break;
+                }
+                case PlanNode::Kind::kLoop: {
+                    auto* current = static_cast<const Loop*>(node);
+                    queue.emplace(current->input());
+                    queue.emplace(current->body());
+                    break;
+                }
+                default:
+                    LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(node->kind());
             }
-            case PlanNode::Kind::kLoop: {
-                auto* current = static_cast<const Loop*>(node);
-                queue->emplace(current->input());
-                queue->emplace(current->body());
-                break;
-            }
-            default:
-                LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(node->kind());
         }
-        bfsTraverse(queue, visited, result);
     }
 
 protected:
