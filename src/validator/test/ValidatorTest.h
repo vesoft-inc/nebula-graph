@@ -46,33 +46,30 @@ protected:
         }
 
         std::vector<PlanNode::Kind> result;
-        result.emplace_back(root->kind());
         bfsTraverse(root, result);
         if (result == expected) {
             return ::testing::AssertionSuccess();
         } else {
             return ::testing::AssertionFailure()
                         << "\n"
-                        << "     Result: " << printPlan(result) << "\n"
-                        << "     Expected: " << printPlan(expected);
+                        << "     Result: " << result << "\n"
+                        << "     Expected: " << expected;
         }
     }
 
-    std::string printPlan(const std::vector<PlanNode::Kind>& plan) const {
-        std::stringstream ss;
-        ss << "[";
-        for (auto& kind : plan) {
-            ss << kind << ", ";
-        }
-        ss << "]";
-        return ss.str();
-    }
-
-    void bfsTraverse(const PlanNode* root, std::vector<PlanNode::Kind>& result) const;
+    static void bfsTraverse(const PlanNode* root, std::vector<PlanNode::Kind>& result);
 
     static std::shared_ptr<ClientSession>      session_;
     static meta::SchemaManager*                schemaMng_;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
+    std::vector<const char*> kinds;
+    kinds.reserve(plan.size());
+    std::transform(plan.cbegin(), plan.cend(), std::back_inserter(kinds), PlanNode::toString);
+    os << "[" << folly::join(", ", kinds) << "]";
+    return os;
+}
 
 }  // namespace graph
 }  // namespace nebula

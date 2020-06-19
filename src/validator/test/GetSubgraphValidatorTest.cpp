@@ -23,7 +23,11 @@ TEST_F(ValidatorTest, Subgraph) {
         ASSERT_NE(plan, nullptr);
         using PK = nebula::graph::PlanNode::Kind;
         std::vector<PlanNode::Kind> expected = {
-            PK::kLoop, PK::kStart, PK::kProject, PK::kGetNeighbors, PK::kStart
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
         };
         ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
