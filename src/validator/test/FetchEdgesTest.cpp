@@ -31,12 +31,14 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
             "2",
         })};
         ASSERT_EQ(getEdgesNode->edges(), edges);
+
+        ASSERT_TRUE(getEdgesNode->exprs().empty());
+
         ASSERT_EQ(getEdgesNode->props().size(), 1);
-        auto expr = Expression::decode(getEdgesNode->props().front().get_prop());
-        const auto symbolExpr = std::unique_ptr<SymbolPropertyExpression>(
-            static_cast<SymbolPropertyExpression*>(expr.release()));
-        ASSERT_EQ(*symbolExpr->sym(), "like");
-        ASSERT_EQ(*symbolExpr->prop(), "*");
+        auto edgeTypeInPlan = getEdgesNode->props().front().get_type();
+        ASSERT_EQ(edgeType, edgeTypeInPlan);
+        const auto &props = getEdgesNode->props().front().get_props();
+        ASSERT_TRUE(props.empty());
     }
     // With YIELD
     {
@@ -68,8 +70,8 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         std::vector<nebula::Row> edges{nebula::Row({"1", edgeType, 0, "2"})};
         ASSERT_EQ(getEdgesNode->edges(), edges);
         for (std::size_t i = 0; i < 2; ++i) {
-            const auto &prop = getEdgesNode->props()[i];
-            auto expr = Expression::decode(prop.get_prop());
+            const auto &exprAlias = getEdgesNode->exprs()[i];
+            auto expr = Expression::decode(exprAlias.get_expr());
             ASSERT_NE(expr, nullptr);
             ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
             auto aliasPropertyExpr = reinterpret_cast<SymbolPropertyExpression *>(expr.get());

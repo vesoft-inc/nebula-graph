@@ -148,17 +148,15 @@ Status FetchVerticesValidator::prepareProperties() {
                 col->expr()->kind() == Expression::Kind::kEdgeType ||
                 col->expr()->kind() == Expression::Kind::kEdgeRank ||
                 col->expr()->kind() == Expression::Kind::kEdgeDst) {
-                if (tagId_.hasValue()) {   // check properties when specified TAG
-                    auto *expr = static_cast<SymbolPropertyExpression *>(col->expr());
-                    if (*expr->sym() != tagName_) {
-                        return Status::Error("Mismatched tag name");
-                    }
-                    // Check is prop name in schema
-                    if (schema_->getFieldIndex(*expr->prop()) < 0) {
-                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
-                        return Status::Error("Unknown column `%s' in schema",
-                                             expr->prop()->c_str());
-                    }
+                auto *expr = static_cast<SymbolPropertyExpression *>(col->expr());
+                if (*expr->sym() != tagName_) {
+                    return Status::Error("Mismatched tag name");
+                }
+                // Check is prop name in schema
+                if (schema_->getFieldIndex(*expr->prop()) < 0) {
+                    LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
+                    return Status::Error("Unknown column `%s' in schema",
+                                            expr->prop()->c_str());
                 }
                 propsName.emplace_back(*expr->prop());
 

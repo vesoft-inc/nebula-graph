@@ -125,7 +125,7 @@ Status FetchEdgesValidator::prepareProperties() {
         std::vector<std::string> propsName;
         propsName.reserve(yield->columns().size());
         dedup_ = yield->isDistinct();
-        expr_.reserve(yield->columns().size());
+        exprs_.reserve(yield->columns().size());
         for (const auto col : yield->columns()) {
             // TODO(shylock) check recursive
             if (col->expr()->kind() == Expression::Kind::kInputProperty ||
@@ -155,7 +155,7 @@ Status FetchEdgesValidator::prepareProperties() {
                 propsName.emplace_back(*expr->prop());
                 storage::cpp2::Expr exprAlias;
                 if (col->alias()) {
-                    exprAlias.set_alias(y);
+                    exprAlias.set_alias(*col->alias());
                 }
                 exprAlias.set_expr(col->expr()->encode());
                 exprs_.emplace_back(std::move(exprAlias));

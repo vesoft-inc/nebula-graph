@@ -21,14 +21,19 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         const auto *getVerticesNode = static_cast<const GetVertices *>(plan->root());
         auto *input = getVerticesNode->input();
         ASSERT_EQ(input, nullptr);
+
         std::vector<nebula::Row> vertices{nebula::Row({"1"})};
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
+
+        ASSERT_TRUE(getVerticesNode->exprs().empty());
+
         ASSERT_EQ(getVerticesNode->props().size(), 1);
-        auto expr = Expression::decode(getVerticesNode->props().front().get_prop());
-        const auto symbolExpr = std::unique_ptr<SymbolPropertyExpression>(
-            static_cast<SymbolPropertyExpression*>(expr.release()));
-        ASSERT_EQ(*symbolExpr->sym(), "person");
-        ASSERT_EQ(*symbolExpr->prop(), "*");
+        auto tagId = getVerticesNode->props().front().get_tag();
+        auto expectedTagIdResult = schemaMng_->toTagID(1, "person");
+        ASSERT_TRUE(expectedTagIdResult.ok());
+        ASSERT_EQ(expectedTagIdResult.value(), tagId);
+        const auto &props = getVerticesNode->props().front().get_props();
+        ASSERT_TRUE(props.empty());
     }
     // With YIELD
     {
@@ -57,8 +62,8 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         std::vector<nebula::Row> vertices{nebula::Row({"1"})};
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
         for (std::size_t i = 0; i < 2; ++i) {
-            const auto &prop = getVerticesNode->props()[i];
-            auto expr = Expression::decode(prop.get_prop());
+            const auto &exprAlias = getVerticesNode->exprs()[i];
+            auto expr = Expression::decode(exprAlias.get_expr());
             ASSERT_NE(expr, nullptr);
             ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
             auto aliasPropertyExpr = static_cast<SymbolPropertyExpression *>(expr.get());

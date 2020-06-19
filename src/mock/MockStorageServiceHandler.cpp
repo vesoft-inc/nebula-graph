@@ -31,14 +31,10 @@ MockStorageServiceHandler::future_getNeighbors(const storage::cpp2::GetNeighbors
 
 folly::Future<storage::cpp2::GetPropResponse>
 MockStorageServiceHandler::future_getProps(const storage::cpp2::GetPropRequest& req) {
-    storage::cpp2::GetPropResponse resp;
-    auto status = storageCache_->getProps(req);
-    if (!status.ok()) {
-        GENERATE_ERROR_COMMON();
-        return resp;
-    }
-    resp.set_props(std::move(status).value());
-    return resp;
+    UNUSED(req);
+    folly::Promise<storage::cpp2::GetPropResponse> promise;
+    auto future = promise.getFuture();
+    return future;
 }
 
 folly::Future<storage::cpp2::ExecResponse>

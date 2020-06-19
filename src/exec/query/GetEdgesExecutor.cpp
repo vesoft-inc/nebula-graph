@@ -58,7 +58,9 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     return client
         ->getProps(ge->space(),
                    std::move(edges),
-                   ge->props(),
+                   nullptr,
+                   &ge->props(),
+                   ge->exprs().empty() ? nullptr : &ge->exprs(),
                    ge->dedup(),
                    ge->orderBy(),
                    ge->limit(),

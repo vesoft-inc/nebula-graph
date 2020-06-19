@@ -60,7 +60,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     return storageClient
         ->getProps(gv->space(),
                    std::move(vertices),
-                   gv->props(),
+                   &gv->props(),
+                   nullptr,
+                   gv->exprs().empty() ? nullptr : &gv->exprs(),
                    gv->dedup(),
                    gv->orderBy(),
                    gv->limit(),
