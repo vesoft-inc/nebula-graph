@@ -328,6 +328,64 @@ TEST(IteratorTest, GetNeighbor) {
         EXPECT_EQ(result.size(), 40);
         EXPECT_EQ(result, expected);
     }
+    {
+        GetNeighborsIter iter(val);
+        std::vector<Value> expected;
+        Tag tag1;
+        tag1.name = "tag1";
+        tag1.props = {{"prop1", 0}, {"prop2", 1}};
+        for (size_t i = 0; i < 10; ++i) {
+            Vertex vertex;
+            vertex.vid = folly::to<std::string>(i);
+            vertex.tags.emplace_back(tag1);
+            expected.emplace_back(std::move(vertex));
+        }
+        Tag tag2;
+        tag2.name = "tag2";
+        tag2.props = {{"prop1", 0}, {"prop2", 1}};
+        for (size_t i = 10; i < 20; ++i) {
+            Vertex vertex;
+            vertex.vid = folly::to<std::string>(i);
+            vertex.tags.emplace_back(tag2);
+            expected.emplace_back(std::move(vertex));
+        }
+        List result = iter.getVertices();
+        EXPECT_EQ(result.values.size(), 20);
+        EXPECT_EQ(result.values, expected);
+    }
+    {
+        GetNeighborsIter iter(val);
+        std::vector<Value> expected;
+        for (size_t i = 0; i < 10; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                EdgeRanking ranking = static_cast<int64_t>(j);
+                Edge edge;
+                edge.name = "edge1";
+                edge.type = 0;
+                edge.src = folly::to<std::string>(i);
+                edge.dst = "2";
+                edge.ranking = ranking;
+                edge.props = {{"prop1", 0}, {"prop2", 1}};
+                expected.emplace_back(std::move(edge));
+            }
+        }
+        for (size_t i = 10; i < 20; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                EdgeRanking ranking = static_cast<int64_t>(j);
+                Edge edge;
+                edge.name = "edge2";
+                edge.type = 0;
+                edge.src = folly::to<std::string>(i);
+                edge.dst = "2";
+                edge.ranking = ranking;
+                edge.props = {{"prop1", 0}, {"prop2", 1}};
+                expected.emplace_back(std::move(edge));
+            }
+        }
+        List result = iter.getEdges();
+        EXPECT_EQ(result.values.size(), 40);
+        EXPECT_EQ(result.values, expected);
+    }
 }
 
 TEST(IteratorTest, TestHead) {

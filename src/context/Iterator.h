@@ -18,7 +18,14 @@ namespace graph {
 
 class Iterator {
 public:
-    explicit Iterator(std::shared_ptr<Value> value) : value_(value) {}
+    enum class Kind : uint8_t {
+        kDefault,
+        kGetNeighbors,
+        kSequential,
+    };
+
+    explicit Iterator(std::shared_ptr<Value> value, Kind kind)
+        : value_(value), kind_(kind) {}
 
     virtual ~Iterator() = default;
 
@@ -83,11 +90,14 @@ protected:
     virtual void doReset(size_t pos) = 0;
 
     std::shared_ptr<Value> value_;
+
+    Kind                   kind_;
 };
 
 class DefaultIter final : public Iterator {
 public:
-    explicit DefaultIter(std::shared_ptr<Value> value) : Iterator(value) {}
+    explicit DefaultIter(std::shared_ptr<Value> value)
+        : Iterator(value, Kind::kDefault) {}
 
     std::unique_ptr<Iterator> copy() const override {
         return std::make_unique<DefaultIter>(*this);
@@ -158,6 +168,34 @@ public:
     Value getVertex() const override;
 
     Value getEdge() const override;
+
+    // getVertices and getEdges arg batch interface use for subgraph
+    List getVertices() {
+        List vertices;
+        std::unordered_set<Value> vids_;
+        for (; valid(); next()) {
+            auto vid = getColumn("_vid");
+            if (vid.isNull()) {
+                continue;
+            }
+            auto found = vids_.find(vid);
+            if (found == vids_.end()) {
+                vertices.values.emplace_back(getVertex());
+                vids_.emplace(std::move(vid));
+            }
+        }
+        reset();
+        return vertices;
+    }
+
+    List getEdges() {
+        List edges;
+        for (; valid(); next()) {
+            edges.values.emplace_back(getEdge());
+        }
+        reset();
+        return edges;
+    }
 
 private:
     void doReset(size_t pos) override {
@@ -250,7 +288,8 @@ private:
 
 class SequentialIter final : public Iterator {
 public:
-    explicit SequentialIter(std::shared_ptr<Value> value) : Iterator(value) {
+    explicit SequentialIter(std::shared_ptr<Value> value)
+        : Iterator(value, Kind::kSequential) {
         DCHECK(value->isDataSet());
         auto& ds = value->getDataSet();
         for (auto& row : ds.rows) {

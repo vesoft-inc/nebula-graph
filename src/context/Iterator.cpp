@@ -13,7 +13,8 @@
 namespace nebula {
 namespace graph {
 
-GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value) : Iterator(value) {
+GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
+    : Iterator(value, Kind::kGetNeighbors) {
     if (!value->isList()) {
         clear();
         return;
