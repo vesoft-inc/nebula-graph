@@ -171,17 +171,18 @@ public:
 
     // getVertices and getEdges arg batch interface use for subgraph
     List getVertices() {
+        DCHECK(iter_ == logicalRows_.begin());
         List vertices;
-        std::unordered_set<Value> vids_;
+        std::unordered_set<Value> vids;
         for (; valid(); next()) {
             auto vid = getColumn("_vid");
             if (vid.isNull()) {
                 continue;
             }
-            auto found = vids_.find(vid);
-            if (found == vids_.end()) {
+            auto found = vids.find(vid);
+            if (found == vids.end()) {
                 vertices.values.emplace_back(getVertex());
-                vids_.emplace(std::move(vid));
+                vids.emplace(std::move(vid));
             }
         }
         reset();
@@ -189,6 +190,7 @@ public:
     }
 
     List getEdges() {
+        DCHECK(iter_ == logicalRows_.begin());
         List edges;
         for (; valid(); next()) {
             edges.values.emplace_back(getEdge());
