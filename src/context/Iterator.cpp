@@ -116,6 +116,7 @@ Status GetNeighborsIter::buildPropIndex(const std::string& props,
         return Status::Error("Bad column name format: %s", props.c_str());
     }
 
+    // if size == 2, it is the tag defined without props.
     if (pieces.size() > 2) {
         for (size_t i = 2; i < pieces.size(); ++i) {
             kv.emplace(pieces[i], i - 2);
@@ -210,13 +211,13 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
 
 Value GetNeighborsIter::getVertex() const {
     if (!valid()) {
-        return Value(NullType::__NULL__);
+        return Value::kNullValue;
     }
 
     auto segment = currentSeg();
     auto vidVal = getColumn("_vid");
     if (!vidVal.isStr()) {
-        return Value(NullType::__NULL__);
+        return Value::kNullValue;
     }
     Vertex vertex;
     vertex.vid = vidVal.getStr();
@@ -241,7 +242,7 @@ Value GetNeighborsIter::getVertex() const {
 
 Value GetNeighborsIter::getEdge() const {
     if (!valid()) {
-        return Value(NullType::__NULL__);
+        return Value::kNullValue;
     }
 
     auto segment = currentSeg();
@@ -250,19 +251,19 @@ Value GetNeighborsIter::getEdge() const {
     edge.name = edgeName;
     auto& src = getColumn("_vid");
     if (!src.isStr()) {
-        return Value(NullType::__NULL__);
+        return Value::kNullBadType;
     }
     edge.src = src.getStr();
 
     auto& dst = getEdgeProp(edgeName, _DST);
     if (!dst.isStr()) {
-        return Value(NullType::__NULL__);
+        return Value::kNullBadType;
     }
     edge.dst = dst.getStr();
 
     auto& rank = getEdgeProp(edgeName, _RANK);
     if (!rank.isInt()) {
-        return Value(NullType::__NULL__);
+        return Value::kNullBadType;
     }
     edge.ranking = rank.getInt();
     edge.type = 0;
@@ -270,7 +271,7 @@ Value GetNeighborsIter::getEdge() const {
     auto& edgePropMap = edgePropMaps_[segment];
     auto edgeProp = edgePropMap.find(edgeName);
     if (edgeProp == edgePropMap.end()) {
-        return Value(NullType::__NULL__);
+        return Value::kNullValue;
     }
     auto& edgeNamePropList = edgeProp->second.second;
     auto& propList = currentEdgeProps()->values;
