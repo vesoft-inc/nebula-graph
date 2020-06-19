@@ -43,6 +43,7 @@ Status FetchVerticesValidator::toPlan() {
                                      std::move(vertices_),
                                      std::move(src_),
                                      std::move(props_),
+                                     std::move(exprs_),
                                      dedup_,
                                      std::move(orderBy_),
                                      limit_,
@@ -117,15 +118,18 @@ Status FetchVerticesValidator::prepareProperties() {
         props_.clear();
         if (!sentence_->isAllTagProps()) {
             // for one tag all properties
-            EdgePropertyExpression expr(new std::string(*sentence_->tag()),
-                                        new std::string("*"));
-            storage::cpp2::PropExp p;
-            p.set_alias(""/*TODO(shylock) maybe extra*/);
-            p.set_prop(expr.encode());
-            props_.emplace_back(std::move(p));
+            storage::cpp2::VertexProp prop;
+            prop.set_tag(tagId_.value());
+            // empty for all
+            props_.emplace_back(std::move(prop));
         }
     } else {
+        CHECK(!sentence_->isAllTagProps()) << "Not supported yield for *.";
         dedup_ = yield->isDistinct();
+        storage::cpp2::VertexProp prop;
+        prop.set_tag(tagId_.value());
+        std::vector<std::string> propsName;
+        propsName.reserve(yield->columns().size());
         for (const auto col : yield->columns()) {
             // TODO(shylock) check recursive
             if (col->expr()->kind() == Expression::Kind::kInputProperty ||
@@ -156,15 +160,20 @@ Status FetchVerticesValidator::prepareProperties() {
                                              expr->prop()->c_str());
                     }
                 }
-                storage::cpp2::PropExp p;
-                p.set_alias(""/*TODO(shylock) Maybe extra*/);
-                p.set_prop(col->expr()->encode());
-                props_.emplace_back(std::move(p));
+                propsName.emplace_back(*expr->prop());
+
+                storage::cpp2::Expr exprAlias;
+                if (col->alias()) {
+                    exprAlias.set_alias(*col->alias());
+                }
+                exprAlias.set_expr(col->expr()->encode());
+                exprs_.emplace_back(exprAlias);
             } else {
                 LOG(ERROR) << "Unsupported expression " << col->expr()->kind();
                 return Status::NotSupported("Unsupported expression");
             }
         }
+        prop.set_props(std::move(propsName));
     }
 
     return Status::OK();

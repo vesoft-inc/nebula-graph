@@ -45,6 +45,7 @@ Status FetchEdgesValidator::toPlan() {
                                   std::move(ranking_),
                                   std::move(dst_),
                                   std::move(props_),
+                                  std::move(exprs_),
                                   dedup_,
                                   limit_,
                                   std::move(orderBy_),
@@ -117,17 +118,14 @@ Status FetchEdgesValidator::prepareEdges() {
 
 Status FetchEdgesValidator::prepareProperties() {
     auto *yield = sentence_->yieldClause();
-    if (yield == nullptr) {
-        // "edge.*"
-        props_.clear();
-        EdgePropertyExpression expr(new std::string(*sentence_->edge()),
-                                    new std::string("*"));
-        storage::cpp2::PropExp p;
-        p.set_alias(""/*TODO(shylock) Maybe extra*/);
-        p.set_prop(expr.encode());
-        props_.emplace_back(std::move(p));
-    } else {
+    storage::cpp2::EdgeProp prop;
+    prop.set_type(edgeType_);
+    // empty for all properties
+    if (yield != nullptr) {
+        std::vector<std::string> propsName;
+        propsName.reserve(yield->columns().size());
         dedup_ = yield->isDistinct();
+        expr_.reserve(yield->columns().size());
         for (const auto col : yield->columns()) {
             // TODO(shylock) check recursive
             if (col->expr()->kind() == Expression::Kind::kInputProperty ||
@@ -154,18 +152,23 @@ Status FetchEdgesValidator::prepareProperties() {
                     LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
                     return Status::Error("Unknown column `%s' in schema", expr->prop()->c_str());
                 }
-                storage::cpp2::PropExp p;
-                p.set_alias(""/*TODO(shylock) Maybe extra*/);
-                p.set_prop(col->expr()->encode());
-                props_.emplace_back(std::move(p));
+                propsName.emplace_back(*expr->prop());
+                storage::cpp2::Expr exprAlias;
+                if (col->alias()) {
+                    exprAlias.set_alias(y);
+                }
+                exprAlias.set_expr(col->expr()->encode());
+                exprs_.emplace_back(std::move(exprAlias));
             } else {
                 LOG(ERROR) << "Unsupported expression " << col->expr()->kind();
                 return Status::NotSupported("Unsupported expression %d",
                                             static_cast<int>(col->expr()->kind()));
             }
         }
+        prop.set_props(std::move(propsName));
     }
 
+    props_.emplace_back(std::move(prop));
     return Status::OK();
 }
 

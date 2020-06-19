@@ -42,7 +42,8 @@ private:
     std::string edgeTypeName_;
     EdgeType edgeType_{0};
     std::shared_ptr<const meta::SchemaProviderIf> schema_;
-    std::vector<storage::cpp2::PropExp> props_;
+    std::vector<storage::cpp2::EdgeProp> props_;
+    std::vector<storage::cpp2::Expr>     exprs_;
     bool dedup_{false};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
     std::vector<storage::cpp2::OrderBy> orderBy_{};
