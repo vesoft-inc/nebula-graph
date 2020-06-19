@@ -200,10 +200,12 @@ public:
                               Expression* src,
                               std::vector<EdgeType> edgeTypes,
                               storage::cpp2::EdgeDirection edgeDirection,
-                              std::vector<storage::cpp2::PropExp> vertexProps,
-                              std::vector<storage::cpp2::PropExp> edgeProps,
+                              std::vector<storage::cpp2::VertexProp> vertexProps,
+                              std::vector<storage::cpp2::EdgeProp> edgeProps,
                               std::vector<storage::cpp2::StatProp> statProps,
+                              std::vector<storage::cpp2::Expr> exprs,
                               bool dedup = false,
+                              bool random = false,
                               std::vector<storage::cpp2::OrderBy> orderBy = {},
                               int64_t limit = std::numeric_limits<int64_t>::max(),
                               std::string filter = "") {
@@ -217,7 +219,9 @@ public:
                 std::move(vertexProps),
                 std::move(edgeProps),
                 std::move(statProps),
+                std::move(exprs),
                 dedup,
+                random,
                 std::move(orderBy),
                 limit,
                 std::move(filter));
@@ -237,16 +241,24 @@ public:
         return edgeTypes_;
     }
 
-    const std::vector<storage::cpp2::PropExp>& vertexProps() const {
+    const std::vector<storage::cpp2::VertexProp>& vertexProps() const {
         return vertexProps_;
     }
 
-    const std::vector<storage::cpp2::PropExp>& edgeProps() const {
+    const std::vector<storage::cpp2::EdgeProp>& edgeProps() const {
         return edgeProps_;
     }
 
     const std::vector<storage::cpp2::StatProp>& statProps() const {
         return statProps_;
+    }
+
+    const std::vector<storage::cpp2::Expr>& exprs() const {
+        return exprs_;
+    }
+
+    bool random() const {
+        return random_;
     }
 
 private:
@@ -256,10 +268,12 @@ private:
                  Expression* src,
                  std::vector<EdgeType> edgeTypes,
                  storage::cpp2::EdgeDirection edgeDirection,
-                 std::vector<storage::cpp2::PropExp> vertexProps,
-                 std::vector<storage::cpp2::PropExp> edgeProps,
+                 std::vector<storage::cpp2::VertexProp> vertexProps,
+                 std::vector<storage::cpp2::EdgeProp> edgeProps,
                  std::vector<storage::cpp2::StatProp> statProps,
+                 std::vector<storage::cpp2::Expr>  exprs,
                  bool dedup,
+                 bool random,
                  std::vector<storage::cpp2::OrderBy> orderBy,
                  int64_t limit,
                  std::string filter)
@@ -276,16 +290,20 @@ private:
         edgeDirection_ = edgeDirection;
         vertexProps_ = std::move(vertexProps);
         edgeProps_ = std::move(edgeProps);
+        exprs_ = std::move(exprs);
         statProps_ = std::move(statProps);
+        random_ = random;
     }
 
 private:
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
     storage::cpp2::EdgeDirection                 edgeDirection_;
-    std::vector<storage::cpp2::PropExp>          vertexProps_;
-    std::vector<storage::cpp2::PropExp>          edgeProps_;
+    std::vector<storage::cpp2::VertexProp>       vertexProps_;
+    std::vector<storage::cpp2::EdgeProp>         edgeProps_;
     std::vector<storage::cpp2::StatProp>         statProps_;
+    std::vector<storage::cpp2::Expr>             exprs_;
+    bool                                         random_;
 };
 
 /**
@@ -328,8 +346,12 @@ public:
         return src_.get();
     }
 
-    const std::vector<storage::cpp2::PropExp>& props() const {
+    const std::vector<storage::cpp2::VertexProp>& props() const {
         return props_;
+    }
+
+    const std::vector<storage::cpp2::Expr>& exprs() const {
+        return exprs_;
     }
 
 private:
@@ -426,8 +448,12 @@ public:
         return dst_.get();
     }
 
-    const std::vector<storage::cpp2::PropExp>& props() const {
+    const std::vector<storage::cpp2::EdgeProp>& props() const {
         return props_;
+    }
+
+    const std::vector<storage::cpp2::Expr>& exprs() const {
+        return exprs_;
     }
 
 private:
