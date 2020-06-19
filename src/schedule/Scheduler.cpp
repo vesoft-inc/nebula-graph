@@ -147,8 +147,7 @@ folly::Future<Status> Scheduler::iterate(LoopExecutor *loop) {
         if (!val.isBool()) {
             std::stringstream ss;
             ss << "Loop produces a bad condition result: " << val << " type: " << val.type();
-            LOG(ERROR) << ss.str();
-            return folly::makeFuture(Status::Error(ss.str()));
+            return loop->error(Status::Error(ss.str()));
         }
         auto cond = val.moveBool();
         if (!cond) return folly::makeFuture(Status::OK());
