@@ -39,9 +39,10 @@ std::unique_ptr<QueryContext> GetNeighborsTest::qctx_;
 TEST_F(GetNeighborsTest, BuildRequestDataSet) {
     auto* plan = qctx_->plan();
     std::vector<EdgeType> edgeTypes;
-    std::vector<storage::cpp2::PropExp> vertexProps;
-    std::vector<storage::cpp2::PropExp> edgeProps;
+    std::vector<storage::cpp2::VertexProp> vertexProps;
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
     std::vector<storage::cpp2::StatProp> statProps;
+    std::vector<storage::cpp2::Expr> exprs;
     auto* vids = new InputPropertyExpression(new std::string("id"));
     auto* gn = GetNeighbors::make(
             plan,
@@ -52,7 +53,8 @@ TEST_F(GetNeighborsTest, BuildRequestDataSet) {
             storage::cpp2::EdgeDirection::BOTH,
             std::move(vertexProps),
             std::move(edgeProps),
-            std::move(statProps));
+            std::move(statProps),
+            std::move(exprs));
     gn->setInputVar("input_gn");
 
     auto gnExe = std::make_unique<GetNeighborsExecutor>(gn, qctx_.get());
