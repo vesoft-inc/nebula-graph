@@ -13,7 +13,6 @@ namespace graph {
 
 TEST_F(ValidatorTest, FetchVerticesProp) {
     {
-        // TODO(shylock) mock schema
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\""));
         // check plan
         // GetVertices
@@ -33,7 +32,6 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     }
     // With YIELD
     {
-        // TODO(shylock) mock schema
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, person.age"));
         // check plan
         // Project
@@ -70,7 +68,6 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     }
     // ON *
     {
-        // TODO(shylock) mock schema
         ASSERT_TRUE(toPlan("FETCH PROP ON * \"1\""));
         // check plan
         // GetVertices

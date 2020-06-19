@@ -13,7 +13,6 @@ namespace graph {
 
 TEST_F(ValidatorTest, FetchEdgesProp) {
     {
-        // TODO(shylock) mock schema
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\""));
         // check plan
         // GetEdgess
@@ -41,7 +40,6 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
     }
     // With YIELD
     {
-        // TODO(shylock) mock schema
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end"));
         // check plan
         // Project
