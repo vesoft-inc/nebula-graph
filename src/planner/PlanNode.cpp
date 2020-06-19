@@ -46,8 +46,8 @@ const char* PlanNode::toString(Kind kind) {
             return "Limit";
         case PlanNode::Kind::kAggregate:
             return "Aggregate";
-        case PlanNode::Kind::kSelector:
-            return "Selector";
+        case PlanNode::Kind::kSelect:
+            return "Select";
         case PlanNode::Kind::kLoop:
             return "Loop";
         case PlanNode::Kind::kSwitchSpace:
@@ -73,7 +73,7 @@ const char* PlanNode::toString(Kind kind) {
         case PlanNode::Kind::kInsertEdges:
             return "InsertEdges";
         default:
-            LOG(FATAL) << "Unkown PlanNode: " << static_cast<int64_t>(kind);
+            LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(kind);
     }
 }
 

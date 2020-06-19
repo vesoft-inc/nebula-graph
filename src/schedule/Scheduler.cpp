@@ -22,8 +22,7 @@ Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id(
 Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
 
 folly::Future<Status> Scheduler::schedule() {
-    std::unordered_map<int64_t, Executor *> cache;
-    auto executor = Executor::makeExecutor(qctx_->plan()->root(), qctx_, &cache);
+    auto executor = Executor::makeExecutor(qctx_->plan()->root(), qctx_);
     analyze(executor);
     return schedule(executor);
 }
@@ -39,7 +38,7 @@ void Scheduler::analyze(Executor *executor) {
             }
             break;
         }
-        case PlanNode::Kind::kSelector: {
+        case PlanNode::Kind::kSelect: {
             auto sel = static_cast<SelectExecutor *>(executor);
             analyze(sel->thenBody());
             analyze(sel->elseBody());
@@ -61,7 +60,7 @@ void Scheduler::analyze(Executor *executor) {
 
 folly::Future<Status> Scheduler::schedule(Executor *executor) {
     switch (executor->node()->kind()) {
-        case PlanNode::Kind::kSelector: {
+        case PlanNode::Kind::kSelect: {
             auto sel = static_cast<SelectExecutor *>(executor);
             return schedule(sel->depends())
                 .then(task(sel,
@@ -144,6 +143,11 @@ folly::Future<Status> Scheduler::iterate(LoopExecutor *loop) {
         if (!status.ok()) return loop->error(std::move(status));
 
         auto val = qctx_->ectx()->getValue(loop->node()->varName());
+        if (!val.isBool()) {
+            std::stringstream ss;
+            ss << "Loop produces a bad condition result: " << val << " type: " << val.type();
+            return loop->error(Status::Error(ss.str()));
+        }
         auto cond = val.moveBool();
         if (!cond) return folly::makeFuture(Status::OK());
         return schedule(loop->loopBody()).then(task(loop, [loop, this](Status s) {
