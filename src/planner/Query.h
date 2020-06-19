@@ -865,6 +865,14 @@ public:
         return new DataCollect(plan, input, collectKind, std::move(vars));
     }
 
+    CollectKind collectKind() const {
+        return collectKind_;
+    }
+
+    const std::vector<std::string>& vars() const {
+        return vars_;
+    }
+
 private:
     DataCollect(ExecutionPlan* plan,
                 PlanNode* input,
