@@ -21,10 +21,9 @@ Status CreateUserValidator::validateImpl() {
 
 Status CreateUserValidator::toPlan() {
     auto sentence = static_cast<CreateUserSentence*>(sentence_);
-    SINGLE_NODE_PLAN_TEMPLATE(CreateUser,
-                              std::move(*sentence->moveAccount()),
-                              std::move(*sentence->movePassword()),
-                              sentence->ifNotExists());
+    return genSingleNodePlan<CreateUser>(std::move(*sentence->moveAccount()),
+                                         std::move(*sentence->movePassword()),
+                                         sentence->ifNotExists());
 }
 
 // drop user
@@ -34,9 +33,8 @@ Status DropUserValidator::validateImpl() {
 
 Status DropUserValidator::toPlan() {
     auto sentence = static_cast<DropUserSentence*>(sentence_);
-    SINGLE_NODE_PLAN_TEMPLATE(DropUser,
-                              std::move(*sentence->moveAccount()),
-                              sentence->ifExists());
+    return genSingleNodePlan<DropUser>(std::move(*sentence->moveAccount()),
+                                       sentence->ifExists());
 }
 
 // update user
@@ -46,9 +44,8 @@ Status UpdateUserValidator::validateImpl() {
 
 Status UpdateUserValidator::toPlan() {
     auto sentence = static_cast<AlterUserSentence*>(sentence_);
-    SINGLE_NODE_PLAN_TEMPLATE(UpdateUser,
-                              std::move(*sentence->moveAccount()),
-                              std::move(*sentence->movePassword()));
+    return genSingleNodePlan<UpdateUser>(std::move(*sentence->moveAccount()),
+                                         std::move(*sentence->movePassword()));
 }
 
 // change password
@@ -58,10 +55,9 @@ Status ChangePasswordValidator::validateImpl() {
 
 Status ChangePasswordValidator::toPlan() {
     auto sentence = static_cast<ChangePasswordSentence*>(sentence_);
-    SINGLE_NODE_PLAN_TEMPLATE(ChangePassword,
-                              std::move(*sentence->moveAccount()),
-                              std::move(*sentence->moveOldPwd()),
-                              std::move(*sentence->moveNewPwd()));
+    return genSingleNodePlan<ChangePassword>(std::move(*sentence->moveAccount()),
+                                             std::move(*sentence->moveOldPwd()),
+                                             std::move(*sentence->moveNewPwd()));
 }
 
 // grant role
@@ -71,10 +67,10 @@ Status GrantRoleValidator::validateImpl() {
 
 Status GrantRoleValidator::toPlan() {
     auto sentence = static_cast<GrantSentence*>(sentence_);
-    SINGLE_NODE_PLAN_TEMPLATE(GrantRole,
-                              std::move(*sentence->moveAccount()),
-                              std::move(*sentence->mutableAclItemClause()->moveSpaceName()),
-                              sentence->getAclItemClause()->getRoleType());
+    return genSingleNodePlan<GrantRole>(std::move(*sentence->moveAccount()),
+                                        std::move(
+                                            *sentence->mutableAclItemClause()->moveSpaceName()),
+                                        sentence->getAclItemClause()->getRoleType());
 }
 
 // revoke role
@@ -84,10 +80,10 @@ Status RevokeRoleValidator::validateImpl() {
 
 Status RevokeRoleValidator::toPlan() {
     auto sentence = static_cast<RevokeSentence*>(sentence_);
-    SINGLE_NODE_PLAN_TEMPLATE(RevokeRole,
-                              std::move(*sentence->moveAccount()),
-                              std::move(*sentence->mutableAclItemClause()->moveSpaceName()),
-                              sentence->getAclItemClause()->getRoleType());
+    return genSingleNodePlan<RevokeRole>(std::move(*sentence->moveAccount()),
+                                         std::move(
+                                             *sentence->mutableAclItemClause()->moveSpaceName()),
+                                         sentence->getAclItemClause()->getRoleType());
 }
 
 }  // namespace graph

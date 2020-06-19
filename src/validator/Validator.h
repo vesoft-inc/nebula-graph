@@ -74,6 +74,16 @@ protected:
 
     std::vector<std::string> evalResultColNames(const YieldColumns* cols) const;
 
+    // use for simple Plan only contain one node
+    template <typename Node, typename... Args>
+    Status genSingleNodePlan(Args... args) {
+        auto* plan = qctx_->plan();
+        auto *doNode = Node::make(plan, std::forward<Args>(args)...);
+        root_ = doNode;
+        tail_ = root_;
+        return Status::OK();
+    }
+
 protected:
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
@@ -87,13 +97,6 @@ protected:
     // Admin sentences do not requires a space to be chosen.
     bool                            noSpaceRequired_{false};
 };
-
-#define SINGLE_NODE_PLAN_TEMPLATE(Node, ...) \
-    auto* plan = qctx_->plan(); \
-    auto *doNode = Node::make(plan, __VA_ARGS__); \
-    root_ = doNode; \
-    tail_ = root_; \
-    return Status::OK();
 
 }  // namespace graph
 }  // namespace nebula
