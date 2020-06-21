@@ -22,15 +22,25 @@ private:
 
     Status toPlan() override;
 
-    Status validateStep();
+    Status validateStep(const StepClause* step);
 
-    Status validateFrom();
+    Status validateFrom(const FromClause* from);
 
-    Status validateOver();
+    Status validateOver(const OverClause* over);
 
-    Status validateWhere();
+    Status validateWhere(const WhereClause* where);
 
-    Status validateYield();
+    Status validateYield(const YieldClause* yield);
+
+private:
+    Expression*                     src_{nullptr};
+    std::vector<Value>              starts_;
+    bool                            isOverAll_{false};
+    std::vector<EdgeType>           edgeTypes_;
+    storage::cpp2::EdgeDirection    direction_;
+    Expression*                     filter_{nullptr};
+    std::unordered_map<TagID, std::vector<std::string>>     vertexProps_;
+    std::unordered_map<EdgeType, std::vector<std::string>>  edgeProps_;
 };
 }  // namespace graph
 }  // namespace nebula

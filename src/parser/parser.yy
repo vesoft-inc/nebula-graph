@@ -709,25 +709,13 @@ over_edges
 
 over_clause
     : KW_OVER MUL {
-        auto edges = new OverEdges();
-        auto s = new std::string("*");
-        auto edge = new OverEdge(s, nullptr);
-        edges->addEdge(edge);
-        $$ = new OverClause(edges);
+        $$ = new OverClause(true);
     }
     | KW_OVER MUL KW_REVERSELY {
-        auto edges = new OverEdges();
-        auto s = new std::string("*");
-        auto edge = new OverEdge(s, nullptr);
-        edges->addEdge(edge);
-        $$ = new OverClause(edges, OverClause::Direction::kBackward);
+        $$ = new OverClause(true, OverClause::Direction::kBackward);
     }
     | KW_OVER MUL KW_BIDIRECT {
-        auto edges = new OverEdges();
-        auto s = new std::string("*");
-        auto edge = new OverEdge(s, nullptr);
-        edges->addEdge(edge);
-        $$ = new OverClause(edges, OverClause::Direction::kBidirect);
+        $$ = new OverClause(true, OverClause::Direction::kBidirect);
     }
     | KW_OVER over_edges {
         $$ = new OverClause($2);
