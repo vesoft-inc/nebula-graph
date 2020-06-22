@@ -717,7 +717,7 @@ private:
 
 class BinarySelect : public SingleInputNode {
 public:
-    const Expression* condition() const {
+    Expression* condition() const {
         return condition_;
     }
 
@@ -728,14 +728,14 @@ protected:
     Expression*  condition_{nullptr};
 };
 
-class Selector : public BinarySelect {
+class Select : public BinarySelect {
 public:
-    static Selector* make(ExecutionPlan* plan,
+    static Select* make(ExecutionPlan* plan,
                           PlanNode* input,
                           PlanNode* ifBranch,
                           PlanNode* elseBranch,
                           Expression* condition) {
-        return new Selector(plan, input, ifBranch, elseBranch, condition);
+        return new Select(plan, input, ifBranch, elseBranch, condition);
     }
 
     void setIf(PlanNode* ifBranch) {
@@ -757,12 +757,12 @@ public:
     }
 
 private:
-    Selector(ExecutionPlan* plan,
-             PlanNode* input,
-             PlanNode* ifBranch,
-             PlanNode* elseBranch,
-             Expression* condition)
-        : BinarySelect(plan, Kind::kSelector, input, condition) {
+    Select(ExecutionPlan* plan,
+           PlanNode* input,
+           PlanNode* ifBranch,
+           PlanNode* elseBranch,
+           Expression* condition)
+        : BinarySelect(plan, Kind::kSelect, input, condition) {
         if_ = ifBranch;
         else_ = elseBranch;
     }

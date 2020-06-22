@@ -55,9 +55,7 @@ class QueryContext;
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
     // Create executor according to plan node
-    static Executor *makeExecutor(const PlanNode *node,
-                                  QueryContext *qctx,
-                                  std::unordered_map<int64_t, Executor *> *cache);
+    static Executor *makeExecutor(const PlanNode *node, QueryContext *qctx);
 
     virtual ~Executor() {}
 
@@ -102,6 +100,10 @@ public:
     folly::Future<Status> error(Status status) const;
 
 protected:
+    static Executor *makeExecutor(const PlanNode *node,
+                                  QueryContext *qctx,
+                                  std::unordered_map<int64_t, Executor *> *visited);
+
     // Only allow derived executor to construct
     Executor(const std::string &name, const PlanNode *node, QueryContext *qctx);
 
