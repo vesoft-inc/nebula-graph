@@ -190,12 +190,13 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
         return Value::kNullValue;
     }
 
-    if (currentEdgeName() != edge) {
+    auto currentEdge = currentEdgeName();
+    if (edge != "*" && currentEdge != edge) {
         VLOG(1) << "Current edge: " << currentEdgeName() << " Wanted: " << edge;
         return Value::kNullValue;
     }
     auto segment = currentSeg();
-    auto index = edgePropIndices_[segment].find(edge);
+    auto index = edgePropIndices_[segment].find(currentEdge);
     if (index == edgePropIndices_[segment].end()) {
         VLOG(1) << "No edge found: " << edge;
         return Value::kNullValue;
