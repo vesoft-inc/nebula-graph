@@ -115,6 +115,36 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
             ASSERT_EQ(*aliasPropertyExpr->prop(), storagePropNames[i]);
         }
     }
+    // With YIELD
+    {
+        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name + person.age"));
+        // check plan
+        // Project
+        auto *plan = qCtx_->plan();
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
+        const auto *projectNode = static_cast<const Project *>(plan->root());
+        auto *cols = projectNode->columns();
+        ASSERT_NE(cols, nullptr);
+        std::vector<std::string> props{"name", "age"};
+        const auto &col = cols->columns().front();
+        const auto *expr = col->expr();
+        ASSERT_EQ(expr->kind(), Expression::Kind::kAdd);
+        // GetVertices
+        auto *input = projectNode->input();
+        ASSERT_NE(input, nullptr);
+        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetVertices);
+        const auto *getVerticesNode = static_cast<const GetVertices *>(input);
+        std::vector<nebula::Row> vertices{nebula::Row({"1"})};
+        ASSERT_EQ(getVerticesNode->vertices(), vertices);
+        const auto &exprAlias = getVerticesNode->exprs().front();
+        auto expr1 = Expression::decode(exprAlias.get_expr());
+        ASSERT_NE(expr1, nullptr);
+        ASSERT_EQ(expr1->kind(), Expression::Kind::kAdd);
+        const auto prop = getVerticesNode->props().front();
+        for (std::size_t i = 0; i < props.size(); ++i) {
+            ASSERT_EQ(props[i], prop.get_props()[i]);
+        }
+    }
     // ON *
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON * \"1\""));

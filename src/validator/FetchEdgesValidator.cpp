@@ -130,17 +130,21 @@ Status FetchEdgesValidator::prepareProperties() {
         for (const auto col : yield->columns()) {
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
-            if (col->expr()->hasStorage()) {
-                auto *expr = static_cast<SymbolPropertyExpression *>(col->expr());
-                if (*expr->sym() != edgeTypeName_) {
-                    return Status::Error("Mismatched edge type name");
+            const auto storageExprs = col->expr()->findAllStorage();
+            if (!storageExprs.empty()) {
+                for (const auto &storageExpr : storageExprs) {
+                    const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
+                    if (*expr->sym() != edgeTypeName_) {
+                        return Status::Error("Mismatched edge type name");
+                    }
+                    // Check is prop name in schema
+                    if (schema_->getFieldIndex(*expr->prop()) < 0) {
+                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
+                        return Status::Error("Unknown column `%s' in schema",
+                                             expr->prop()->c_str());
+                    }
+                    propsName.emplace_back(*expr->prop());
                 }
-                // Check is prop name in schema
-                if (schema_->getFieldIndex(*expr->prop()) < 0) {
-                    LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
-                    return Status::Error("Unknown column `%s' in schema", expr->prop()->c_str());
-                }
-                propsName.emplace_back(*expr->prop());
                 storage::cpp2::Expr exprAlias;
                 if (col->alias()) {
                     exprAlias.set_alias(*col->alias());

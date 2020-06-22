@@ -124,6 +124,38 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
             ASSERT_EQ(*aliasPropertyExpr->prop(), storagePropNames[i]);
         }
     }
+    // With YIELD combine properties
+    {
+        ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end"));
+        // check plan
+        // Project
+        auto *plan = qCtx_->plan();
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
+        const auto *projectNode = static_cast<const Project *>(plan->root());
+        auto *cols = projectNode->columns();
+        ASSERT_NE(cols, nullptr);
+        const auto *expr = cols->columns().front()->expr();
+        ASSERT_EQ(expr->kind(), Expression::Kind::kRelGT);
+        // GetEdges
+        auto *input = projectNode->input();
+        ASSERT_NE(input, nullptr);
+        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetEdges);
+        const auto *getEdgesNode = static_cast<const GetEdges *>(input);
+        auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
+        ASSERT_TRUE(edgeTypeResult.ok());
+        auto edgeType = edgeTypeResult.value();
+        std::vector<nebula::Row> edges{nebula::Row({"1", edgeType, 0, "2"})};
+        ASSERT_EQ(getEdgesNode->edges(), edges);
+        const auto &exprAlias = getEdgesNode->exprs().front();
+        auto expr1 = Expression::decode(exprAlias.get_expr());
+        ASSERT_NE(expr1, nullptr);
+        ASSERT_EQ(expr1->kind(), Expression::Kind::kRelGT);
+        const auto &props = getEdgesNode->props();
+        std::array<std::string, 2> expectedProps{"start", "end"};
+        for (std::size_t i = 0; i < expectedProps.size(); ++i) {
+            ASSERT_EQ(expectedProps[i], props.front().get_props()[i]);
+        }
+    }
 }
 
 TEST_F(ValidatorTest, FetchEdgesPropFailed) {
