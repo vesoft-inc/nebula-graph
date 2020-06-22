@@ -32,6 +32,8 @@ private:
 
     Status validateYield(const YieldClause* yield);
 
+    Status deduceProps(Expression* expr);
+
 private:
     Expression*                     src_{nullptr};
     std::vector<Value>              starts_;
@@ -39,7 +41,8 @@ private:
     std::vector<EdgeType>           edgeTypes_;
     storage::cpp2::EdgeDirection    direction_;
     Expression*                     filter_{nullptr};
-    std::unordered_map<TagID, std::vector<std::string>>     vertexProps_;
+    std::unordered_map<TagID, std::vector<std::string>>     srcTagProps_;
+    std::unordered_map<TagID, std::vector<std::string>>     dstTagProps_;
     std::unordered_map<EdgeType, std::vector<std::string>>  edgeProps_;
 };
 }  // namespace graph

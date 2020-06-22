@@ -110,6 +110,8 @@ Status Validator::validate() {
         return status;
     }
 
+    space_ = vctx_->whichSpace();
+
     status = validateImpl();
     if (!status.ok()) {
         return status;

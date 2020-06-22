@@ -97,13 +97,12 @@ Status GoValidator::validateOver(const OverClause* over) {
     }
     auto edges = over->edges();
     auto* schemaMng = qctx_->schemaMng();
-    auto space = vctx_->whichSpace();
     for (auto* edge : edges) {
         auto edgeName = *edge->edge();
-        auto edgeType = schemaMng->toEdgeType(space.id, edgeName);
+        auto edgeType = schemaMng->toEdgeType(space_.id, edgeName);
         if (!edgeType.ok()) {
             return Status::Error("%s not found in space [%s].",
-                    edgeName.c_str(), space.name.c_str());
+                    edgeName.c_str(), space_.name.c_str());
         }
         edgeTypes_.emplace_back(edgeType.value());
     }
@@ -126,120 +125,111 @@ Status GoValidator::validateYield(const YieldClause* yield) {
     }
 
     auto cols = yield->columns();
-    UNUSED(cols);
+    for (auto* col : cols) {
+        auto status = deduceProps(col->expr());
+        if (!status.ok()) {
+            return status;
+        }
+    }
     return Status::OK();
 }
-/*
-Status deduceProps(Expression* expr) {
+
+Status GoValidator::deduceProps(Expression* expr) {
     switch (expr->kind()) {
-        case Expression::Kind::kConstant:
-            os << "Constant";
+        case Expression::Kind::kConstant: {
             break;
+        }
         case Expression::Kind::kAdd:
         case Expression::Kind::kMinus:
         case Expression::Kind::kMultiply:
         case Expression::Kind::kDivision:
-        case Expression::Kind::kMod: {
-            auto left = deduceProps(expr->left());
-            if (!left.ok()) {
-                return left;
+        case Expression::Kind::kMod:
+        case Expression::Kind::kRelEQ:
+        case Expression::Kind::kRelNE:
+        case Expression::Kind::kRelLT:
+        case Expression::Kind::kRelLE:
+        case Expression::Kind::kRelGT:
+        case Expression::Kind::kRelGE:
+        case Expression::Kind::kLogicalAnd:
+        case Expression::Kind::kLogicalOr:
+        case Expression::Kind::kLogicalXor: {
+            auto biExpr = static_cast<BinaryExpression*>(expr);
+            auto leftStatus = deduceProps(biExpr->left());
+            if (!leftStatus.ok()) {
+                return leftStatus;
             }
-            auto
+            auto rightStatus = deduceProps(biExpr->right());
+            if (!rightStatus.ok()) {
+                return rightStatus;
+            }
+            break;
         }
         case Expression::Kind::kUnaryPlus:
-            os << "UnaryPlus";
-            break;
         case Expression::Kind::kUnaryNegate:
-            os << "UnaryNegate";
+        case Expression::Kind::kUnaryNot: {
+            auto unaryExpr = static_cast<UnaryExpression*>(expr);
+            auto status = deduceProps(unaryExpr->operand());
+            if (status.ok()) {
+                return status;
+            }
             break;
-        case Expression::Kind::kUnaryNot:
-            os << "UnaryNot";
+        }
+        case Expression::Kind::kFunctionCall: {
+            // TODO:
             break;
-        case Expression::Kind::kUnaryIncr:
-            os << "AutoIncrement";
+        }
+        case Expression::Kind::kDstProperty: {
+            auto* tagPropExpr = static_cast<SymbolPropertyExpression*>(expr);
+            auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
+            if (!status.ok()) {
+                return status.status();
+            }
+            auto& props = dstTagProps_[status.value()];
+            props.emplace_back(*tagPropExpr->prop());
             break;
-        case Expression::Kind::kUnaryDecr:
-            os << "AutoDecrement";
+        }
+        case Expression::Kind::kSrcProperty: {
+            auto* tagPropExpr = static_cast<SymbolPropertyExpression*>(expr);
+            auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
+            if (!status.ok()) {
+                return status.status();
+            }
+            auto& props = srcTagProps_[status.value()];
+            props.emplace_back(*tagPropExpr->prop());
             break;
-        case Expression::Kind::kRelEQ:
-            os << "Equal";
-            break;
-        case Expression::Kind::kRelNE:
-            os << "NotEuqal";
-            break;
-        case Expression::Kind::kRelLT:
-            os << "LessThan";
-            break;
-        case Expression::Kind::kRelLE:
-            os << "LessEqual";
-            break;
-        case Expression::Kind::kRelGT:
-            os << "GreaterThan";
-            break;
-        case Expression::Kind::kRelGE:
-            os << "GreaterEqual";
-            break;
-        case Expression::Kind::kRelIn:
-            os << "In";
-            break;
-        case Expression::Kind::kLogicalAnd:
-            os << "LogicalAnd";
-            break;
-        case Expression::Kind::kLogicalOr:
-            os << "LogicalOr";
-            break;
-        case Expression::Kind::kLogicalXor:
-            os << "LogicalXor";
-            break;
-        case Expression::Kind::kTypeCasting:
-            os << "TypeCasting";
-            break;
-        case Expression::Kind::kFunctionCall:
-            os << "FunctionCall";
-            break;
-        case Expression::Kind::kSymProperty:
-            os << "SymbolProp";
-            break;
+        }
         case Expression::Kind::kEdgeProperty:
-            os << "EdgeProp";
-            break;
-        case Expression::Kind::kInputProperty:
-            os << "InputProp";
-            break;
-        case Expression::Kind::kVarProperty:
-            os << "VarProp";
-            break;
-        case Expression::Kind::kDstProperty:
-            os << "DstProp";
-            break;
-        case Expression::Kind::kSrcProperty:
-            os << "SrcProp";
-            break;
         case Expression::Kind::kEdgeSrc:
-            os << "EdgeSrc";
-            break;
         case Expression::Kind::kEdgeType:
-            os << "EdgeType";
-            break;
         case Expression::Kind::kEdgeRank:
-            os << "EdgeRank";
+        case Expression::Kind::kEdgeDst: {
+            auto* edgePropExpr = static_cast<SymbolPropertyExpression*>(expr);
+            auto status = qctx_->schemaMng()->toEdgeType(space_.id, *edgePropExpr->sym());
+            if (!status.ok()) {
+                return status.status();
+            }
+            auto& props = edgeProps_[status.value()];
+            props.emplace_back(*edgePropExpr->prop());
             break;
-        case Expression::Kind::kEdgeDst:
-            os << "EdgeDst";
-            break;
+        }
         case Expression::Kind::kUUID:
-            os << "UUID";
-            break;
         case Expression::Kind::kVar:
-            os << "Variable";
-            break;
         case Expression::Kind::kVersionedVar:
-            os << "VersionedVariable";
-            break;
+        case Expression::Kind::kVarProperty:
+        case Expression::Kind::kInputProperty:
+        case Expression::Kind::kSymProperty:
+        case Expression::Kind::kTypeCasting:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr:
+        case Expression::Kind::kRelIn: {
+            // TODO:
+            std::stringstream ss;
+            ss << "Not support " << expr->kind();
+            return Status::Error(ss.str());
+        }
     }
-    return Status::OK()
+    return Status::OK();
 }
-*/
 
 Status GoValidator::toPlan() {
     return Status::OK();

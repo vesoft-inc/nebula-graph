@@ -712,19 +712,19 @@ over_clause
         $$ = new OverClause(true);
     }
     | KW_OVER MUL KW_REVERSELY {
-        $$ = new OverClause(true, OverClause::Direction::kBackward);
+        $$ = new OverClause(true, storage::cpp2::EdgeDirection::IN_EDGE);
     }
     | KW_OVER MUL KW_BIDIRECT {
-        $$ = new OverClause(true, OverClause::Direction::kBidirect);
+        $$ = new OverClause(true, storage::cpp2::EdgeDirection::BOTH);
     }
     | KW_OVER over_edges {
         $$ = new OverClause($2);
     }
     | KW_OVER over_edges KW_REVERSELY {
-        $$ = new OverClause($2, OverClause::Direction::kBackward);
+        $$ = new OverClause($2, storage::cpp2::EdgeDirection::IN_EDGE);
     }
     | KW_OVER over_edges KW_BIDIRECT {
-        $$ = new OverClause($2, OverClause::Direction::kBidirect);
+        $$ = new OverClause($2, storage::cpp2::EdgeDirection::BOTH);
     }
     ;
 

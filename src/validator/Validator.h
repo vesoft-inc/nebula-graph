@@ -75,6 +75,7 @@ protected:
     std::vector<std::string> evalResultColNames(const YieldColumns* cols) const;
 
 protected:
+    SpaceDescription                space_;
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
     ValidateContext*                vctx_{nullptr};
