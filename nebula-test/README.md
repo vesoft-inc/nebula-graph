@@ -1,16 +1,13 @@
 # nebula-test 使用文档
 
-![nebula-testing](https://github.com/vesoft-inc-private/nebula-test/workflows/nebula-testing/badge.svg)
-
 - 安装pytest以及相关工具
   - pip3 install -r requirements.txt
 - 设置环境变量
   - 设置结果输出目录
     - export NEBULA_TEST_LOGS_DIR=xxx
 - 运行测试程序
-  - 进入 nebula-test 目录
-  - python3 ./nebula-test-run.py --address=192.168.8.23:3699 query/stateless/*.py
-  - 运行benchmark:  python3 ./nebula-test-run.py --address=192.168.8.24:3699 --user=root --password=nebula --benchmark-enable  bench/
+  - 进入Nebula编译目录
+  - ./ntr  query/stateless/
 - 测试如何编写
   - 例子：query/stateless/test_simple_query.py
   - 其中每一个功能 test case 都是一个类，而这个类必须继承 NebulaTestSuite.

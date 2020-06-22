@@ -9,10 +9,10 @@ import sys
 from typing import Pattern, Set
 
 import pytest
-from graph import ttypes
-from nebula.Client import AuthException, ExecutionException, GraphClient
-from nebula.ConnectionPool import ConnectionPool
-
+from nebula2.graph import ttypes
+from nebula2.ConnectionPool import ConnectionPool
+from nebula2.Client import AuthException, ExecutionException, GraphClient
+from nebula2.Common import *
 
 class NebulaTestSuite(object):
     @classmethod
