@@ -44,26 +44,11 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end"));
         // check plan
-        // Project
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
-        const auto *projectNode = static_cast<const Project *>(plan->root());
-        auto *cols = projectNode->columns();
-        ASSERT_NE(cols, nullptr);
-        std::vector<std::string> propNames{"start", "end"};
-        for (std::size_t i = 0; i < 2; ++i) {
-            const auto &col = cols->columns()[i];
-            const auto *expr = col->expr();
-            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
-            const auto *aliasPropertyExpr = static_cast<const SymbolPropertyExpression *>(expr);
-            ASSERT_EQ(*aliasPropertyExpr->sym(), "like");
-            ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
-        }
         // GetEdges
-        auto *input = projectNode->input();
-        ASSERT_NE(input, nullptr);
-        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetEdges);
-        const auto *getEdgesNode = static_cast<const GetEdges *>(input);
+        std::vector<std::string> propNames{"start", "end"};
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetEdges);
+        const auto *getEdgesNode = static_cast<const GetEdges *>(plan->root());
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
@@ -128,19 +113,10 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end"));
         // check plan
-        // Project
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
-        const auto *projectNode = static_cast<const Project *>(plan->root());
-        auto *cols = projectNode->columns();
-        ASSERT_NE(cols, nullptr);
-        const auto *expr = cols->columns().front()->expr();
-        ASSERT_EQ(expr->kind(), Expression::Kind::kRelGT);
         // GetEdges
-        auto *input = projectNode->input();
-        ASSERT_NE(input, nullptr);
-        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetEdges);
-        const auto *getEdgesNode = static_cast<const GetEdges *>(input);
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetEdges);
+        const auto *getEdgesNode = static_cast<const GetEdges *>(plan->root());
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();

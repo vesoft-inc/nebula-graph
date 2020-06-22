@@ -39,26 +39,11 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, person.age"));
         // check plan
-        // Project
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
-        const auto *projectNode = static_cast<const Project *>(plan->root());
-        auto *cols = projectNode->columns();
-        ASSERT_NE(cols, nullptr);
-        std::vector<std::string> props{"name", "age"};
-        for (std::size_t i = 0; i < 2; ++i) {
-            const auto &col = cols->columns()[i];
-            const auto *expr = col->expr();
-            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
-            const auto *aliasPropertyExpr = static_cast<const SymbolPropertyExpression *>(expr);
-            ASSERT_EQ(*aliasPropertyExpr->sym(), "person");
-            ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
-        }
         // GetVertices
-        auto *input = projectNode->input();
-        ASSERT_NE(input, nullptr);
-        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetVertices);
-        const auto *getVerticesNode = static_cast<const GetVertices *>(input);
+        std::vector<std::string> props{"name", "age"};
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetVertices);
+        const auto *getVerticesNode = static_cast<const GetVertices *>(plan->root());
         std::vector<nebula::Row> vertices{nebula::Row({"1"})};
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
         for (std::size_t i = 0; i < 2; ++i) {
@@ -119,21 +104,11 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name + person.age"));
         // check plan
-        // Project
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
-        const auto *projectNode = static_cast<const Project *>(plan->root());
-        auto *cols = projectNode->columns();
-        ASSERT_NE(cols, nullptr);
-        std::vector<std::string> props{"name", "age"};
-        const auto &col = cols->columns().front();
-        const auto *expr = col->expr();
-        ASSERT_EQ(expr->kind(), Expression::Kind::kAdd);
         // GetVertices
-        auto *input = projectNode->input();
-        ASSERT_NE(input, nullptr);
-        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetVertices);
-        const auto *getVerticesNode = static_cast<const GetVertices *>(input);
+        std::vector<std::string> props{"name", "age"};
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetVertices);
+        const auto *getVerticesNode = static_cast<const GetVertices *>(plan->root());
         std::vector<nebula::Row> vertices{nebula::Row({"1"})};
         ASSERT_EQ(getVerticesNode->vertices(), vertices);
         const auto &exprAlias = getVerticesNode->exprs().front();

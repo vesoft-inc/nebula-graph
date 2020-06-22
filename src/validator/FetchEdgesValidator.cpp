@@ -51,7 +51,7 @@ Status FetchEdgesValidator::toPlan() {
                                   std::move(orderBy_),
                                   std::move(filter_));
     PlanNode *current = doNode;
-    if (sentence_->yieldClause() != nullptr) {
+    if (withProject_) {
         auto *projectNode = Project::make(
             plan, current, sentence_->yieldClause()->moveYieldColumns());
         current = projectNode;
@@ -151,6 +151,10 @@ Status FetchEdgesValidator::prepareProperties() {
                 }
                 exprAlias.set_expr(col->expr()->encode());
                 exprs_.emplace_back(std::move(exprAlias));
+            } else {
+                // Need project to evaluate the expression not push down to storage
+                // And combine the result from storage
+                withProject_ = true;
             }
         }
         prop.set_props(std::move(propsName));
