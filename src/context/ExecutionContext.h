@@ -35,7 +35,7 @@ public:
     };
 
     State() = default;
-    State(Stat stat, std::string msg) {
+    explicit State(Stat stat, std::string msg = "") {
         stat_ = stat;
         msg_ = std::move(msg);
     }
@@ -69,6 +69,13 @@ public:
 
     static ExecResult buildSequential(Value&& val, State&& stat) {
         ExecResult result(std::move(val), std::move(stat));
+        auto iter = std::make_unique<SequentialIter>(result.valuePtr());
+        result.setIter(std::move(iter));
+        return result;
+    }
+
+    static ExecResult buildSequential(std::shared_ptr<Value> val, State&& stat) {
+        ExecResult result(val, std::move(stat));
         auto iter = std::make_unique<SequentialIter>(result.valuePtr());
         result.setIter(std::move(iter));
         return result;
@@ -111,6 +118,8 @@ private:
 
     ExecResult(Value&& val, State stat)
         : value_(std::make_shared<Value>(std::move(val))), state_(stat) {}
+
+    ExecResult(std::shared_ptr<Value> val, State stat) : value_(val), state_(stat) {}
 
 private:
     std::shared_ptr<Value>          value_;
