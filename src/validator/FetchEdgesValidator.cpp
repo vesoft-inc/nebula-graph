@@ -128,14 +128,9 @@ Status FetchEdgesValidator::prepareProperties() {
         dedup_ = yield->isDistinct();
         exprs_.reserve(yield->columns().size());
         for (const auto col : yield->columns()) {
-            // TODO(shylock) check recursive
-            if (col->expr()->kind() == Expression::Kind::kEdgeProperty ||
-                col->expr()->kind() == Expression::Kind::kDstProperty ||
-                col->expr()->kind() == Expression::Kind::kSrcProperty ||
-                col->expr()->kind() == Expression::Kind::kEdgeSrc ||
-                col->expr()->kind() == Expression::Kind::kEdgeType ||
-                col->expr()->kind() == Expression::Kind::kEdgeRank ||
-                col->expr()->kind() == Expression::Kind::kEdgeDst) {
+            // The properties from storage directly push down only
+            // The other will be computed in Project Executor
+            if (col->expr()->hasStorage()) {
                 auto *expr = static_cast<SymbolPropertyExpression *>(col->expr());
                 if (*expr->sym() != edgeTypeName_) {
                     return Status::Error("Mismatched edge type name");
@@ -152,10 +147,6 @@ Status FetchEdgesValidator::prepareProperties() {
                 }
                 exprAlias.set_expr(col->expr()->encode());
                 exprs_.emplace_back(std::move(exprAlias));
-            } else {
-                LOG(ERROR) << "Unsupported expression " << col->expr()->kind();
-                return Status::NotSupported("Unsupported expression %d",
-                                            static_cast<int>(col->expr()->kind()));
             }
         }
         prop.set_props(std::move(propsName));

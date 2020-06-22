@@ -71,6 +71,50 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
             ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
         }
     }
+    // With YIELD const expression
+    {
+        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, 1 > 1, person.age"));
+        // check plan
+        // Project
+        auto *plan = qCtx_->plan();
+        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
+        const auto *projectNode = static_cast<const Project *>(plan->root());
+        auto *cols = projectNode->columns();
+        ASSERT_NE(cols, nullptr);
+        std::vector<std::string> props{"name", "__dummy", "age"};
+        std::array<Expression::Kind, 3> exprKinds{
+            Expression::Kind::kEdgeProperty,
+            Expression::Kind::kRelGT,
+            Expression::Kind::kEdgeProperty
+        };
+        for (std::size_t i = 0; i < 3; ++i) {
+            const auto &col = cols->columns()[i];
+            const auto *expr = col->expr();
+            ASSERT_EQ(expr->kind(), exprKinds[i]);
+            if (expr->kind() == Expression::Kind::kEdgeProperty) {
+                const auto *aliasPropertyExpr = static_cast<const SymbolPropertyExpression *>(expr);
+                ASSERT_EQ(*aliasPropertyExpr->sym(), "person");
+                ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
+            }
+        }
+        // GetVertices
+        std::array<std::string, 2> storagePropNames {"name", "age"};
+        auto *input = projectNode->input();
+        ASSERT_NE(input, nullptr);
+        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetVertices);
+        const auto *getVerticesNode = static_cast<const GetVertices *>(input);
+        std::vector<nebula::Row> vertices{nebula::Row({"1"})};
+        ASSERT_EQ(getVerticesNode->vertices(), vertices);
+        for (std::size_t i = 0; i < 2; ++i) {
+            const auto &exprAlias = getVerticesNode->exprs()[i];
+            auto expr = Expression::decode(exprAlias.get_expr());
+            ASSERT_NE(expr, nullptr);
+            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
+            auto aliasPropertyExpr = static_cast<SymbolPropertyExpression *>(expr.get());
+            ASSERT_EQ(*aliasPropertyExpr->sym(), "person");
+            ASSERT_EQ(*aliasPropertyExpr->prop(), storagePropNames[i]);
+        }
+    }
     // ON *
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON * \"1\""));
