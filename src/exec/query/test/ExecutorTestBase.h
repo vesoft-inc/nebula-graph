@@ -13,12 +13,19 @@
 
 #include "common/datatypes/DataSet.h"
 #include "context/Iterator.h"
+#include "context/QueryContext.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
 class ExecutorTestBase : public ::testing::Test {
 public:
+    void SetUp() override {
+        qctx_ = std::make_unique<QueryContext>();
+        plan_ = qctx_->plan();
+    }
+
     static DataSet iterateDataSet(const std::vector<std::string>& colNames, Iterator* iter) {
         DataSet ds;
         ds.colNames = colNames;
@@ -51,6 +58,10 @@ public:
         std::sort(r.rows.begin(), r.rows.end(), comp);
         return l.rows == r.rows;
     }
+
+protected:
+    std::unique_ptr<QueryContext> qctx_;
+    ExecutionPlan* plan_;
 };
 
 }   // namespace graph

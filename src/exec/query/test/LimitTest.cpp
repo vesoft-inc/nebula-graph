@@ -6,23 +6,32 @@
 
 #include "exec/query/LimitExecutor.h"
 
-#include "context/QueryContext.h"
 #include "exec/query/test/ExecutorTestBase.h"
-#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
 class LimitExecutorTest : public ExecutorTestBase {
 public:
-    void SetUp() override {
-        qctx_ = std::make_unique<QueryContext>();
-        plan_ = qctx_->plan();
-    }
+    void test(const DataSet& inputDS, const DataSet& expected, int32_t offset, int32_t count) {
+        auto input = StartNode::make(plan_);
+        auto limitNode = Limit::make(plan_, input, offset, count);
+        limitNode->setInputVar(input->varName());
 
-protected:
-    std::unique_ptr<QueryContext> qctx_;
-    ExecutionPlan* plan_;
+        auto limit = Executor::makeExecutor(limitNode, qctx_.get());
+        // Must save the values after constructing executors
+        auto res = ExecResult::buildSequential(Value(inputDS), State(State::Stat::kSuccess));
+        qctx_->ectx()->setResult(input->varName(), std::move(res));
+        auto future = limit->execute();
+        EXPECT_TRUE(std::move(future).get().ok());
+
+        auto& result = qctx_->ectx()->getResult(limitNode->varName());
+        EXPECT_TRUE(result.value().isDataSet());
+
+        auto iter = result.iter();
+        auto resDS = iterateDataSet(inputDS.colNames, iter.get());
+        EXPECT_TRUE(diffDataSet(resDS, expected));
+    }
 };
 
 TEST_F(LimitExecutorTest, TestLimitSuccess) {
@@ -35,17 +44,6 @@ TEST_F(LimitExecutorTest, TestLimitSuccess) {
         Row({Value(3), Value("row3")}),
     };
 
-    auto input = StartNode::make(plan_);
-    auto limitNode = Limit::make(plan_, input, 1, 2);
-    limitNode->setInputVar(input->varName());
-
-    auto limit = Executor::makeExecutor(limitNode, qctx_.get());
-    // Must save the values after constructing executors
-    auto res = ExecResult::buildSequential(Value(ids), State(State::Stat::kSuccess));
-    qctx_->ectx()->setResult(input->varName(), std::move(res));
-    auto future = limit->execute();
-    EXPECT_TRUE(std::move(future).get().ok());
-
     DataSet expected;
     expected.colNames = colNames;
     expected.rows = {
@@ -53,12 +51,7 @@ TEST_F(LimitExecutorTest, TestLimitSuccess) {
         Row({Value(3), Value("row3")}),
     };
 
-    auto& result = qctx_->ectx()->getResult(limitNode->varName());
-    EXPECT_TRUE(result.value().isDataSet());
-
-    auto iter = result.iter();
-    auto resDS = iterateDataSet(colNames, iter.get());
-    EXPECT_TRUE(diffDataSet(resDS, expected));
+    test(ids, expected, 1, 2);
 }
 
 TEST_F(LimitExecutorTest, TestGreaterOffset) {
@@ -71,27 +64,11 @@ TEST_F(LimitExecutorTest, TestGreaterOffset) {
         Row({Value(3), Value("row3")}),
     };
 
-    auto input = StartNode::make(plan_);
-    auto limitNode = Limit::make(plan_, input, 4, 2);
-    limitNode->setInputVar(input->varName());
-
-    auto limit = Executor::makeExecutor(limitNode, qctx_.get());
-    // Must save the values after constructing executors
-    auto res = ExecResult::buildSequential(Value(ids), State(State::Stat::kSuccess));
-    qctx_->ectx()->setResult(input->varName(), std::move(res));
-    auto future = limit->execute();
-    EXPECT_TRUE(std::move(future).get().ok());
-
     DataSet expected;
     expected.colNames = colNames;
     expected.rows = {};
 
-    auto& result = qctx_->ectx()->getResult(limitNode->varName());
-    EXPECT_TRUE(result.value().isDataSet());
-
-    auto iter = result.iter();
-    auto resDS = iterateDataSet(colNames, iter.get());
-    EXPECT_TRUE(diffDataSet(resDS, expected));
+    test(ids, expected, 4, 2);
 }
 
 TEST_F(LimitExecutorTest, TestGreaterCount) {
@@ -104,17 +81,6 @@ TEST_F(LimitExecutorTest, TestGreaterCount) {
         Row({Value(3), Value("row3")}),
     };
 
-    auto input = StartNode::make(plan_);
-    auto limitNode = Limit::make(plan_, input, 1, 4);
-    limitNode->setInputVar(input->varName());
-
-    auto limit = Executor::makeExecutor(limitNode, qctx_.get());
-    // Must save the values after constructing executors
-    auto res = ExecResult::buildSequential(Value(ids), State(State::Stat::kSuccess));
-    qctx_->ectx()->setResult(input->varName(), std::move(res));
-    auto future = limit->execute();
-    EXPECT_TRUE(std::move(future).get().ok());
-
     DataSet expected;
     expected.colNames = colNames;
     expected.rows = {
@@ -122,12 +88,7 @@ TEST_F(LimitExecutorTest, TestGreaterCount) {
         Row({Value(3), Value("row3")}),
     };
 
-    auto& result = qctx_->ectx()->getResult(limitNode->varName());
-    EXPECT_TRUE(result.value().isDataSet());
-
-    auto iter = result.iter();
-    auto resDS = iterateDataSet(colNames, iter.get());
-    EXPECT_TRUE(diffDataSet(resDS, expected));
+    test(ids, expected, 1, 4);
 }
 
 }   // namespace graph
