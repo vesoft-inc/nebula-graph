@@ -34,6 +34,9 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 }
 
 Status GetNeighborsExecutor::buildRequestDataSet() {
+    // clear the members
+    reqDs_.rows.clear();
+
     auto& inputVar = gn_->inputVar();
     auto& inputResult = ectx_->getResult(inputVar);
     auto iter = inputResult.iter();
