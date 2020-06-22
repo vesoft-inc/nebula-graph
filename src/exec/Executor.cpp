@@ -37,6 +37,7 @@
 #include "exec/query/ReadIndexExecutor.h"
 #include "exec/query/SortExecutor.h"
 #include "exec/query/UnionExecutor.h"
+#include "exec/query/DataCollectExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Maintain.h"
 #include "planner/Mutate.h"
@@ -234,6 +235,13 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         case PlanNode::Kind::kInsertEdges: {
             auto insertE = asNode<InsertEdges>(node);
             exec = new InsertEdgesExecutor(insertE, qctx);
+            break;
+        }
+        case PlanNode::Kind::kDataCollect: {
+            auto dc = asNode<DataCollect>(node);
+            auto input = makeExecutor(dc->input(), qctx, visited);
+            exec = new DataCollectExecutor(dc, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kUnknown:
