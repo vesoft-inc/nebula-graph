@@ -92,6 +92,7 @@ Status FetchVerticesValidator::prepareVertices() {
     // from ref, eval when execute
     if (sentence_->isRef()) {
         src_ = sentence_->moveRef();
+        withInput_ = true;
         return Status::OK();
     }
 
@@ -131,14 +132,6 @@ Status FetchVerticesValidator::prepareProperties() {
         std::vector<std::string> propsName;
         propsName.reserve(yield->columns().size());
         for (const auto col : yield->columns()) {
-            // TODO(shylock) check recursive
-            if (col->expr()->kind() == Expression::Kind::kInputProperty ||
-                col->expr()->kind() == Expression::Kind::kVar ||
-                col->expr()->kind() == Expression::Kind::kVersionedVar ||
-                col->expr()->kind() == Expression::Kind::kVarProperty) {
-                withInput_ = true;
-            }
-
             // The properties from storage directly
             // TODO(shylock) check recursive
             if (col->expr()->kind() == Expression::Kind::kEdgeProperty ||

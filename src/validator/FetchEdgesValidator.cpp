@@ -89,6 +89,7 @@ Status FetchEdgesValidator::prepareEdges() {
         src_ = sentence_->ref()->moveSrcId();
         ranking_ = sentence_->ref()->moveRank();
         dst_ = sentence_->ref()->moveDstId();
+        withInput_ = true;
         return Status::OK();
     }
 
@@ -127,14 +128,6 @@ Status FetchEdgesValidator::prepareProperties() {
         dedup_ = yield->isDistinct();
         exprs_.reserve(yield->columns().size());
         for (const auto col : yield->columns()) {
-            // TODO(shylock) check recursive
-            if (col->expr()->kind() == Expression::Kind::kInputProperty ||
-                col->expr()->kind() == Expression::Kind::kVar ||
-                col->expr()->kind() == Expression::Kind::kVersionedVar ||
-                col->expr()->kind() == Expression::Kind::kVarProperty) {
-                withInput_ = true;
-            }
-
             // TODO(shylock) check recursive
             if (col->expr()->kind() == Expression::Kind::kEdgeProperty ||
                 col->expr()->kind() == Expression::Kind::kDstProperty ||
