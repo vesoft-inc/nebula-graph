@@ -79,6 +79,9 @@ const Value& ExpressionContextImpl::getInputProp(const std::string& prop) const 
 }
 
 void ExpressionContextImpl::setVar(const std::string& var, Value val) {
+    if (ectx_ == nullptr) {
+        LOG(ERROR) << "Execution context was not provided.";
+    }
     ectx_->setValue(var, std::move(val));
 }
 }  // namespace graph

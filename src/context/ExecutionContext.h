@@ -146,6 +146,11 @@ public:
     // Only keep the last several versoins of the Value
     void truncHistory(const std::string& name, size_t numVersionsToKeep);
 
+    bool exist(const std::string& name) const {
+        auto it = valueMap_.find(name);
+        return it != valueMap_.end();
+    }
+
 private:
     // name -> Value with multiple versions
     std::unordered_map<std::string, std::vector<ExecResult>>     valueMap_;
