@@ -44,6 +44,9 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
     auto* src = gn_->src();
     for (; iter->valid(); iter->next()) {
         auto val = Expression::eval(src, ctx);
+        if (!val.isStr()) {
+            continue;
+        }
         Row row;
         row.emplace_back(std::move(val));
         reqDs_.rows.emplace_back(std::move(row));
@@ -53,6 +56,10 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
 }
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
+    if (reqDs_.rows.empty()) {
+        LOG(INFO) << "Empty input.";
+        return folly::makeFuture(Status::OK());
+    }
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     return storageClient
         ->getNeighbors(gn_->space(),
