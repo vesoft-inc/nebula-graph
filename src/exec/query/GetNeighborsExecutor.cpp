@@ -8,13 +8,12 @@
 
 #include <sstream>
 
-// common
 #include "common/clients/storage/GraphStorageClient.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/Vertex.h"
-// graph
+
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -32,24 +31,23 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     const GetNeighbors* gn = asNode<GetNeighbors>(node());
-    Expression* srcExpr = gn->src();
-    Value value = srcExpr->eval();
-    // TODO(yee): compute starting point
-    UNUSED(value);
-
     std::vector<std::string> colNames;
 
-    GraphStorageClient* storageClient = ectx()->getStorageClient();
+    GraphStorageClient* storageClient = qctx_->getStorageClient();
+    // TODO:
+    std::vector<Row> vertices;
     return storageClient
         ->getNeighbors(gn->space(),
                        std::move(colNames),
-                       gn->vertices(),
+                       vertices,
                        gn->edgeTypes(),
                        gn->edgeDirection(),
                        &gn->statProps(),
                        nullptr,   // FIXME
                        nullptr,
+                       nullptr,
                        gn->dedup(),
+                       gn->random(),
                        gn->orderBy(),
                        gn->limit(),
                        gn->filter())
@@ -86,8 +84,8 @@ Status GetNeighborsExecutor::handleResponse(const std::vector<GetNeighborsRespon
             continue;
         }
 
-        // Store response results to ExecutionContext
-        return finish({*dataset});
+        // Store response results to QueryContext
+        // return finish({*dataset});
     }
     return Status::Error("Invalid result of neighbors");
 }

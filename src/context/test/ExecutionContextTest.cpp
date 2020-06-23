@@ -4,23 +4,24 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "common/base/Base.h"
+#include "context/ExecutionContext.h"
+
 #include <gtest/gtest.h>
-#include "context/QueryContext.h"
+#include "common/base/Base.h"
 
 namespace nebula {
+namespace graph {
 
-TEST(QueryContext, ReadWriteTest) {
-    QueryContext ctx;
+TEST(ExecutionContext, ReadWriteTest) {
+    ExecutionContext ctx;
     ctx.setValue("v1", 10);
     ctx.setValue("v2", "Hello world");
     EXPECT_EQ(Value(10), ctx.getValue("v1"));
     EXPECT_EQ(Value("Hello world"), ctx.getValue("v2"));
 }
 
-
-TEST(QueryContext, HistoryTest) {
-    QueryContext ctx;
+TEST(ExecutionContext, HistoryTest) {
+    ExecutionContext ctx;
     ctx.setValue("v1", 10);
     ctx.setValue("v1", "Hello world");
     ctx.setValue("v1", 3.14);
@@ -29,10 +30,10 @@ TEST(QueryContext, HistoryTest) {
     ASSERT_EQ(4, ctx.numVersions("v1"));
     const auto& hist1 = ctx.getHistory("v1");
     auto it = hist1.begin();
-    EXPECT_EQ(Value(true), *it++);
-    EXPECT_EQ(Value(3.14), *it++);
-    EXPECT_EQ(Value("Hello world"), *it++);
-    EXPECT_EQ(Value(10), *it++);
+    EXPECT_EQ(Value(10), (it++)->value());
+    EXPECT_EQ(Value("Hello world"), (it++)->value());
+    EXPECT_EQ(Value(3.14), (it++)->value());
+    EXPECT_EQ(Value(true), (it++)->value());
     EXPECT_TRUE(it == hist1.end());
 
     ctx.truncHistory("v1", 5);
@@ -43,18 +44,20 @@ TEST(QueryContext, HistoryTest) {
 
     const auto& hist2 = ctx.getHistory("v1");
     auto it2 = hist2.begin();
-    EXPECT_EQ(Value(true), *it2++);
-    EXPECT_EQ(Value(3.14), *it2++);
+    EXPECT_EQ(Value(3.14), (it2++)->value());
+    EXPECT_EQ(Value(true), (it2++)->value());
     EXPECT_TRUE(it2 == hist2.end());
 }
 
-}  // namespace nebula
-
-
-int main(int argc, char** argv) {
-    testing::InitGoogleTest(&argc, argv);
-    folly::init(&argc, &argv, true);
-    google::SetStderrLogging(google::INFO);
-
-    return RUN_ALL_TESTS();
+TEST(ExecutionContextTest, TestExecResult) {
+    DataSet ds;
+    auto expected = ExecResult::buildDefault(Value(ds));
+    ExecutionContext ctx;
+    ctx.setResult("ds", std::move(expected));
+    auto& result = ctx.getResult("ds");
+    EXPECT_TRUE(result.value().isDataSet());
+    EXPECT_TRUE(result.iter()->value().isDataSet());
 }
+
+}   // namespace graph
+}   // namespace nebula

@@ -15,7 +15,6 @@ nebula_add_library(
 
 nebula_add_library(
     query_engine_obj OBJECT
-    ExecutionContext.cpp
     QueryEngine.cpp
     QueryInstance.cpp
 )
@@ -25,3 +24,5 @@ nebula_add_library(
     ClientSession.cpp
     SessionManager.cpp
 )
+
+nebula_add_subdirectory(test)

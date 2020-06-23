@@ -5,6 +5,7 @@
  */
 
 #include "validator/Validator.h"
+
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "validator/GoValidator.h"
@@ -21,9 +22,9 @@
 
 namespace nebula {
 namespace graph {
-std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, ValidateContext* context) {
-    CHECK(!!sentence);
-    CHECK(!!context);
+std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
+    CHECK_NOTNULL(sentence);
+    CHECK_NOTNULL(context);
     auto kind = sentence->kind();
     switch (kind) {
         case Sentence::Kind::kSequential:
@@ -63,21 +64,20 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, Validate
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     switch (node->kind()) {
-        case PlanNode::Kind::kEnd:
         case PlanNode::Kind::kFilter:
         case PlanNode::Kind::kProject:
         case PlanNode::Kind::kSort:
         case PlanNode::Kind::kLimit:
         case PlanNode::Kind::kAggregate:
-        case PlanNode::Kind::kSelector:
+        case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:
         case PlanNode::Kind::kSwitchSpace: {
             static_cast<SingleInputNode*>(node)->setInput(appended);
             break;
         }
         default: {
-            return Status::Error(
-                    "%ld not support to append an input.", static_cast<int64_t>(node->kind()));
+            return Status::Error("%s not support to append an input.",
+                                 PlanNode::toString(node->kind()));
         }
     }
     return Status::OK();
@@ -86,7 +86,7 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
 Status Validator::validate() {
     Status status;
 
-    if (!validateContext_) {
+    if (!vctx_) {
         VLOG(1) << "Validate context was not given.";
         return Status::Error("Validate context was not given.");
     }
@@ -116,7 +116,30 @@ Status Validator::validate() {
 }
 
 bool Validator::spaceChosen() {
-    return validateContext_->spaceChosen();
+    return vctx_->spaceChosen();
+}
+
+std::vector<std::string> Validator::evalResultColNames(const YieldColumns* cols) const {
+    std::vector<std::string> colNames;
+    for (auto& col : cols->columns()) {
+        if (col->alias() != nullptr) {
+            colNames.emplace_back(*col->alias());
+        } else {
+            switch (col->expr()->kind()) {
+                case Expression::Kind::kInputProperty: {
+                    auto expr = static_cast<InputPropertyExpression*>(col->expr());
+                    colNames.emplace_back(*expr->sym());
+                    break;
+                }
+                default: {
+                    colNames.emplace_back(col->expr()->toString());
+                    break;
+                }
+            }
+        }
+    }
+
+    return colNames;
 }
 }  // namespace graph
 }  // namespace nebula

@@ -363,6 +363,9 @@ base_expression
         $$ = new ConstantExpression(*$1);
         delete $1;
     }
+    | KW_NULL {
+        $$ = new ConstantExpression(NullType::__NULL__);
+    }
     | input_ref_expression {
         $$ = $1;
     }
@@ -418,8 +421,7 @@ var_ref_expression
 
 alias_ref_expression
     : name_label DOT name_label {
-        $$ = new AliasPropertyExpression(
-                Expression::Kind::kAliasProperty, new std::string(""), $1, $3);
+        $$ = new EdgePropertyExpression($1, $3);
     }
     | name_label DOT TYPE_PROP {
         $$ = new EdgeTypeExpression($1);
@@ -459,11 +461,15 @@ opt_argument_list
 argument_list
     : expression {
         $$ = new ArgumentList();
-        $$->addArgument($1);
+        std::unique_ptr<Expression> arg;
+        arg.reset($1);
+        $$->addArgument(std::move(arg));
     }
     | argument_list COMMA expression {
         $$ = $1;
-        $$->addArgument($3);
+        std::unique_ptr<Expression> arg;
+        arg.reset($3);
+        $$->addArgument(std::move(arg));
     }
     ;
 
@@ -643,11 +649,9 @@ vid_list
     }
     ;
 
+/* The difference from 1.0 is that 2.0 only supports vid of type STRING */
 vid
-    : unary_integer {
-        $$ = new ConstantExpression($1);
-    }
-    | function_call_expression {
+    : function_call_expression {
         $$ = $1;
     }
     | uuid_expression {
@@ -1801,6 +1805,10 @@ space_opt_item
     | KW_REPLICA_FACTOR ASSIGN INTEGER {
         ifOutOfRange($3, @3);
         $$ = new SpaceOptItem(SpaceOptItem::REPLICA_FACTOR, $3);
+    }
+    | KW_VID_SIZE ASSIGN INTEGER {
+        ifOutOfRange($3, @3);
+        $$ = new SpaceOptItem(SpaceOptItem::VID_SIZE, $3);
     }
     | KW_CHARSET ASSIGN name_label {
         // Currently support utf8, it is an alias for utf8mb4
