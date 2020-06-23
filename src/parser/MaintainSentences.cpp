@@ -127,17 +127,19 @@ std::string AlterSchemaOptItem::toString() const {
             break;
     }
     buf += " (";
-    auto colSpecs = columns_->columnSpecs();
-    for (auto &col : colSpecs) {
+    if (columns_ != nullptr) {
+      auto colSpecs = columns_->columnSpecs();
+      for (auto &col : colSpecs) {
         buf += *col->name();
         buf += " ";
         std::stringstream ss;
         ss << col->type();
         buf += ss.str();
         buf += ",";
-    }
-    if (!colSpecs.empty()) {
-       buf.resize(buf.size() - 1);
+      }
+      if (!colSpecs.empty()) {
+        buf.resize(buf.size() - 1);
+      }
     }
     buf += ")";
     return buf;

@@ -179,7 +179,7 @@ def startNebula(nebula_test_dir):
     metad_command = formatNebulaCommand("metad", metad_ports[0], metad_ports)
     storaged_command = formatNebulaCommand("storaged", metad_ports[0], storaged_ports)
 
-    pids = []
+    pids = {}
     for command in [graphd_command, metad_command, storaged_command]:
         print("will exec:" + command)
         p = subprocess.Popen([command], shell=True, stdout=subprocess.PIPE)
@@ -192,13 +192,17 @@ def startNebula(nebula_test_dir):
     for pf in glob.glob(nebula_test_dir+'/pids/*.pid'):
         with open(pf) as f:
             pid = int(f.readline())
-            pids.append(pid)
+            pids[f.name] = pid
 
     return graphd_ports[0],pids
 
 def stopNebula(pids, test_dir):
     for p in pids:
-        os.kill(p, signal.SIGTERM)
+        try:
+            os.kill(pids[p], signal.SIGTERM)
+        except OSError as err:
+            print("nebula stop " + p + " failed: " + str(err))
+
     time.sleep(3)
     shutil.rmtree(test_dir)
 
