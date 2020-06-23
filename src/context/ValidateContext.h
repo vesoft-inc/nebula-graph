@@ -50,6 +50,19 @@ public:
         return spaces_.back();
     }
 
+    const ColsDef& getVar(const std::string& var) const {
+        static const ColsDef kEmptyCols;
+        if (!existVar(var)) {
+            return kEmptyCols;
+        }
+        return vars_.at(var);
+    }
+
+    bool existVar(const std::string& var) const {
+        auto found = vars_.find(var);
+        return found != vars_.end();
+    }
+
     AnnoVarGenerator* varGen() const {
         return varGen_.get();
     }

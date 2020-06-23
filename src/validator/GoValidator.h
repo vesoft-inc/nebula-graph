@@ -32,7 +32,8 @@ private:
 
     Status validateYield(const YieldClause* yield);
 
-    Status deduceProps(Expression* expr);
+    Status deduceProps(const Expression* expr);
+    bool evaluableExpr(const Expression* expr) const;
 
 private:
     Expression*                     src_{nullptr};
@@ -44,6 +45,7 @@ private:
     std::unordered_map<TagID, std::vector<std::string>>     srcTagProps_;
     std::unordered_map<TagID, std::vector<std::string>>     dstTagProps_;
     std::unordered_map<EdgeType, std::vector<std::string>>  edgeProps_;
+    std::vector<std::string>                                colNames_;
 };
 }  // namespace graph
 }  // namespace nebula

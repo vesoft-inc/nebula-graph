@@ -72,7 +72,10 @@ protected:
      */
     virtual Status toPlan() = 0;
 
-    std::vector<std::string> evalResultColNames(const YieldColumns* cols) const;
+    std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
+    std::string deduceColName(const YieldColumn* col) const;
+    StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
+    bool isBadNull(const Value& val) const;
 
 protected:
     SpaceDescription                space_;

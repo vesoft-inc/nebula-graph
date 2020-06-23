@@ -50,6 +50,7 @@ Status GoValidator::validateStep(const StepClause* step) {
     }
     auto steps = step->steps();
     if (steps > 1) {
+        // TODO
         return Status::Error("Not support n steps yet.");
     }
     return Status::OK();
@@ -67,14 +68,21 @@ Status GoValidator::validateFrom(const FromClause* from) {
                     "Only input and variable expression is acceptable"
                     "when starts are evaluated at runtime..");
         } else {
-            // TODO: validate if the column name is available.
+            auto status = deduceProps(src);
+            if (!status.ok()) {
+                return status;
+            }
             src_ = src;
+            // TODO: validate if a str
         }
     } else {
         auto vidList = from->vidList();
         ExpressionContextImpl ctx(qctx_->ectx(), nullptr);
-        // TODO: the exprs should be a evaluated one in validate phase.
         for (auto* expr : vidList) {
+            if (!evaluableExpr(expr)) {
+                return Status::Error("`%s' is not an evaluable expression.",
+                        expr->toString().c_str());
+            }
             auto vid = expr->eval(ctx);
             if (!vid.isStr()) {
                 return Status::Error("Vid should be a string.");
@@ -115,7 +123,19 @@ Status GoValidator::validateWhere(const WhereClause* where) {
     }
 
     filter_ = where->filter();
-    // TODO: validate filter.
+    auto status = deduceProps(filter_);
+    if (!status.ok()) {
+        return status;
+    }
+    auto typeStatus = deduceExprType(filter_);
+    if (!typeStatus.ok()) {
+        return typeStatus.status();
+    }
+
+    auto type = typeStatus.value();
+    if (type != Value::Type::BOOL || type != Value::Type::NULLVALUE) {
+        return Status::Error("Filter only accept bool/null value.");
+    }
     return Status::OK();
 }
 
@@ -125,16 +145,26 @@ Status GoValidator::validateYield(const YieldClause* yield) {
     }
 
     auto cols = yield->columns();
-    for (auto* col : cols) {
+    for (auto col : cols) {
         auto status = deduceProps(col->expr());
         if (!status.ok()) {
             return status;
         }
+
+        auto colName = deduceColName(col);
+        colNames_.emplace_back(colName);
+
+        auto typeStatus = deduceExprType(col->expr());
+        if (!typeStatus.ok()) {
+            return typeStatus.status();
+        }
+        auto type = typeStatus.value();
+        outputs_.emplace_back(colName, type);
     }
     return Status::OK();
 }
 
-Status GoValidator::deduceProps(Expression* expr) {
+Status GoValidator::deduceProps(const Expression* expr) {
     switch (expr->kind()) {
         case Expression::Kind::kConstant: {
             break;
@@ -153,7 +183,7 @@ Status GoValidator::deduceProps(Expression* expr) {
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
-            auto biExpr = static_cast<BinaryExpression*>(expr);
+            auto biExpr = static_cast<const BinaryExpression*>(expr);
             auto leftStatus = deduceProps(biExpr->left());
             if (!leftStatus.ok()) {
                 return leftStatus;
@@ -167,7 +197,7 @@ Status GoValidator::deduceProps(Expression* expr) {
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
         case Expression::Kind::kUnaryNot: {
-            auto unaryExpr = static_cast<UnaryExpression*>(expr);
+            auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceProps(unaryExpr->operand());
             if (status.ok()) {
                 return status;
@@ -175,11 +205,17 @@ Status GoValidator::deduceProps(Expression* expr) {
             break;
         }
         case Expression::Kind::kFunctionCall: {
-            // TODO:
+            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
+            for (auto& arg : funcExpr->args()->args()) {
+                auto status = deduceProps(arg.get());
+                if (!status.ok()) {
+                    return status;
+                }
+            }
             break;
         }
         case Expression::Kind::kDstProperty: {
-            auto* tagPropExpr = static_cast<SymbolPropertyExpression*>(expr);
+            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             if (!status.ok()) {
                 return status.status();
@@ -189,7 +225,7 @@ Status GoValidator::deduceProps(Expression* expr) {
             break;
         }
         case Expression::Kind::kSrcProperty: {
-            auto* tagPropExpr = static_cast<SymbolPropertyExpression*>(expr);
+            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             if (!status.ok()) {
                 return status.status();
@@ -203,7 +239,7 @@ Status GoValidator::deduceProps(Expression* expr) {
         case Expression::Kind::kEdgeType:
         case Expression::Kind::kEdgeRank:
         case Expression::Kind::kEdgeDst: {
-            auto* edgePropExpr = static_cast<SymbolPropertyExpression*>(expr);
+            auto* edgePropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toEdgeType(space_.id, *edgePropExpr->sym());
             if (!status.ok()) {
                 return status.status();
@@ -229,6 +265,69 @@ Status GoValidator::deduceProps(Expression* expr) {
         }
     }
     return Status::OK();
+}
+
+bool GoValidator::evaluableExpr(const Expression* expr) const {
+    switch (expr->kind()) {
+        case Expression::Kind::kConstant: {
+            return true;
+        }
+        case Expression::Kind::kAdd:
+        case Expression::Kind::kMinus:
+        case Expression::Kind::kMultiply:
+        case Expression::Kind::kDivision:
+        case Expression::Kind::kMod:
+        case Expression::Kind::kRelEQ:
+        case Expression::Kind::kRelNE:
+        case Expression::Kind::kRelLT:
+        case Expression::Kind::kRelLE:
+        case Expression::Kind::kRelGT:
+        case Expression::Kind::kRelGE:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kLogicalAnd:
+        case Expression::Kind::kLogicalOr:
+        case Expression::Kind::kLogicalXor: {
+            auto biExpr = static_cast<const BinaryExpression*>(expr);
+            return evaluableExpr(biExpr->left()) && evaluableExpr(biExpr->right());
+        }
+        case Expression::Kind::kUnaryPlus:
+        case Expression::Kind::kUnaryNegate:
+        case Expression::Kind::kUnaryNot: {
+            auto unaryExpr = static_cast<const UnaryExpression*>(expr);
+            return evaluableExpr(unaryExpr->operand());
+        }
+        case Expression::Kind::kFunctionCall: {
+            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
+            for (auto& arg : funcExpr->args()->args()) {
+                if (!evaluableExpr(arg.get())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kTypeCasting: {
+            auto castExpr = static_cast<const TypeCastingExpression*>(expr);
+            return evaluableExpr(castExpr->operand());
+        }
+        case Expression::Kind::kDstProperty:
+        case Expression::Kind::kSrcProperty:
+        case Expression::Kind::kEdgeProperty:
+        case Expression::Kind::kEdgeSrc:
+        case Expression::Kind::kEdgeType:
+        case Expression::Kind::kEdgeRank:
+        case Expression::Kind::kEdgeDst:
+        case Expression::Kind::kUUID:
+        case Expression::Kind::kVar:
+        case Expression::Kind::kVersionedVar:
+        case Expression::Kind::kVarProperty:
+        case Expression::Kind::kInputProperty:
+        case Expression::Kind::kSymProperty:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
+            return false;
+        }
+    }
+    return false;
 }
 
 Status GoValidator::toPlan() {
