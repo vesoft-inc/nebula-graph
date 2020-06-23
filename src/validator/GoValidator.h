@@ -33,15 +33,14 @@ private:
     Status validateYield(const YieldClause* yield);
 
     Status deduceProps(const Expression* expr);
-    bool evaluableExpr(const Expression* expr) const;
 
 private:
-    Expression*                     src_{nullptr};
-    std::vector<Value>              starts_;
-    bool                            isOverAll_{false};
-    std::vector<EdgeType>           edgeTypes_;
-    storage::cpp2::EdgeDirection    direction_;
-    Expression*                     filter_{nullptr};
+    Expression*                                             src_{nullptr};
+    std::vector<Value>                                      starts_;
+    bool                                                    isOverAll_{false};
+    std::vector<EdgeType>                                   edgeTypes_;
+    storage::cpp2::EdgeDirection                            direction_;
+    Expression*                                             filter_{nullptr};
     std::unordered_map<TagID, std::vector<std::string>>     srcTagProps_;
     std::unordered_map<TagID, std::vector<std::string>>     dstTagProps_;
     std::unordered_map<EdgeType, std::vector<std::string>>  edgeProps_;

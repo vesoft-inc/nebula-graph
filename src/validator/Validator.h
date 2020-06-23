@@ -76,6 +76,7 @@ protected:
     std::string deduceColName(const YieldColumn* col) const;
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
     bool isBadNull(const Value& val) const;
+    bool evaluableExpr(const Expression* expr) const;
 
 protected:
     SpaceDescription                space_;

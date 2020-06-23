@@ -276,69 +276,6 @@ Status GoValidator::deduceProps(const Expression* expr) {
     return Status::OK();
 }
 
-bool GoValidator::evaluableExpr(const Expression* expr) const {
-    switch (expr->kind()) {
-        case Expression::Kind::kConstant: {
-            return true;
-        }
-        case Expression::Kind::kAdd:
-        case Expression::Kind::kMinus:
-        case Expression::Kind::kMultiply:
-        case Expression::Kind::kDivision:
-        case Expression::Kind::kMod:
-        case Expression::Kind::kRelEQ:
-        case Expression::Kind::kRelNE:
-        case Expression::Kind::kRelLT:
-        case Expression::Kind::kRelLE:
-        case Expression::Kind::kRelGT:
-        case Expression::Kind::kRelGE:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kLogicalAnd:
-        case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
-            auto biExpr = static_cast<const BinaryExpression*>(expr);
-            return evaluableExpr(biExpr->left()) && evaluableExpr(biExpr->right());
-        }
-        case Expression::Kind::kUnaryPlus:
-        case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
-            auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            return evaluableExpr(unaryExpr->operand());
-        }
-        case Expression::Kind::kFunctionCall: {
-            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
-            for (auto& arg : funcExpr->args()->args()) {
-                if (!evaluableExpr(arg.get())) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        case Expression::Kind::kTypeCasting: {
-            auto castExpr = static_cast<const TypeCastingExpression*>(expr);
-            return evaluableExpr(castExpr->operand());
-        }
-        case Expression::Kind::kDstProperty:
-        case Expression::Kind::kSrcProperty:
-        case Expression::Kind::kEdgeProperty:
-        case Expression::Kind::kEdgeSrc:
-        case Expression::Kind::kEdgeType:
-        case Expression::Kind::kEdgeRank:
-        case Expression::Kind::kEdgeDst:
-        case Expression::Kind::kUUID:
-        case Expression::Kind::kVar:
-        case Expression::Kind::kVersionedVar:
-        case Expression::Kind::kVarProperty:
-        case Expression::Kind::kInputProperty:
-        case Expression::Kind::kSymProperty:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr: {
-            return false;
-        }
-    }
-    return false;
-}
-
 Status GoValidator::toPlan() {
     return Status::OK();
 }
