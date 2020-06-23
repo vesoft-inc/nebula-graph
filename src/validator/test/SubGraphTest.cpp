@@ -21,11 +21,20 @@ TEST_F(ValidatorTest, Subgraph) {
         ASTValidator validator(sentences.get(), context.get());
         auto validateResult = validator.validate();
         ASSERT_TRUE(validateResult.ok()) << validateResult;
-        // TODO: Check the plan.
         auto plan = context->plan();
         ASSERT_NE(plan, nullptr);
+        using PK = nebula::graph::PlanNode::Kind;
+        std::vector<PlanNode::Kind> expected = {
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
 }
+
 
 }  // namespace graph
 }  // namespace nebula

@@ -45,6 +45,7 @@ nebula_add_test(
     SOURCES
         FetchVerticesTest.cpp
         FetchEdgesTest.cpp
+        ValidatorTest.cpp
         SubGraphTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle

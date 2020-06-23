@@ -4,9 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#include "planner/Query.h"
 #include "validator/FetchVerticesValidator.h"
 #include "validator/test/ValidatorTest.h"
-#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -14,125 +14,131 @@ namespace graph {
 TEST_F(ValidatorTest, FetchVerticesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\""));
-        // check plan
-        // GetVertices
+
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetVertices);
-        const auto *getVerticesNode = static_cast<const GetVertices *>(plan->root());
-        auto *input = getVerticesNode->input();
-        ASSERT_EQ(input, nullptr);
-
-        std::vector<nebula::Row> vertices{nebula::Row({"1"})};
-        ASSERT_EQ(getVerticesNode->vertices(), vertices);
-
-        ASSERT_TRUE(getVerticesNode->exprs().empty());
-
-        ASSERT_EQ(getVerticesNode->props().size(), 1);
-        auto tagId = getVerticesNode->props().front().get_tag();
-        auto expectedTagIdResult = schemaMng_->toTagID(1, "person");
-        ASSERT_TRUE(expectedTagIdResult.ok());
-        ASSERT_EQ(expectedTagIdResult.value(), tagId);
-        const auto &props = getVerticesNode->props().front().get_props();
-        ASSERT_TRUE(props.empty());
+        auto tagIdResult = schemaMng_->toTagID(1, "person");
+        ASSERT_TRUE(tagIdResult.ok());
+        auto tagId = tagIdResult.value();
+        storage::cpp2::VertexProp prop;
+        prop.set_tag(tagId);
+        auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
+                                     nullptr,
+                                     1,
+                                     std::vector<Row>{Row({"1"})},
+                                     nullptr,
+                                     std::vector<storage::cpp2::VertexProp>{std::move(prop)},
+                                     {});
+        auto result = Eq(plan->root(), gv);
+        ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, person.age"));
-        // check plan
+
         auto *plan = qCtx_->plan();
-        // GetVertices
-        std::vector<std::string> props{"name", "age"};
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetVertices);
-        const auto *getVerticesNode = static_cast<const GetVertices *>(plan->root());
-        std::vector<nebula::Row> vertices{nebula::Row({"1"})};
-        ASSERT_EQ(getVerticesNode->vertices(), vertices);
-        for (std::size_t i = 0; i < 2; ++i) {
-            const auto &exprAlias = getVerticesNode->exprs()[i];
-            auto expr = Expression::decode(exprAlias.get_expr());
-            ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
-            auto aliasPropertyExpr = static_cast<SymbolPropertyExpression *>(expr.get());
-            ASSERT_EQ(*aliasPropertyExpr->sym(), "person");
-            ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
-        }
+        auto tagIdResult = schemaMng_->toTagID(1, "person");
+        ASSERT_TRUE(tagIdResult.ok());
+        auto tagId = tagIdResult.value();
+        storage::cpp2::VertexProp prop;
+        prop.set_tag(tagId);
+        prop.set_props(std::vector<std::string>{"name", "age"});
+        storage::cpp2::Expr expr1;
+        expr1.set_expr(
+            EdgePropertyExpression(new std::string("person"), new std::string("name")).encode());
+        storage::cpp2::Expr expr2;
+        expr2.set_expr(
+            EdgePropertyExpression(new std::string("person"), new std::string("age")).encode());
+        auto *gv =
+            GetVertices::make(expectedQueryCtx_->plan(),
+                              nullptr,
+                              1,
+                              std::vector<Row>{Row({"1"})},
+                              nullptr,
+                              std::vector<storage::cpp2::VertexProp>{std::move(prop)},
+                              std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
+        auto result = Eq(plan->root(), gv);
+        ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD const expression
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, 1 > 1, person.age"));
-        // check plan
-        // Project
+
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
-        const auto *projectNode = static_cast<const Project *>(plan->root());
-        auto *cols = projectNode->columns();
-        ASSERT_NE(cols, nullptr);
-        std::vector<std::string> props{"name", "__dummy", "age"};
-        std::array<Expression::Kind, 3> exprKinds{
-            Expression::Kind::kEdgeProperty,
-            Expression::Kind::kRelGT,
-            Expression::Kind::kEdgeProperty
-        };
-        for (std::size_t i = 0; i < 3; ++i) {
-            const auto &col = cols->columns()[i];
-            const auto *expr = col->expr();
-            ASSERT_EQ(expr->kind(), exprKinds[i]);
-            if (expr->kind() == Expression::Kind::kEdgeProperty) {
-                const auto *aliasPropertyExpr = static_cast<const SymbolPropertyExpression *>(expr);
-                ASSERT_EQ(*aliasPropertyExpr->sym(), "person");
-                ASSERT_EQ(*aliasPropertyExpr->prop(), props[i]);
-            }
-        }
-        // GetVertices
-        std::array<std::string, 2> storagePropNames {"name", "age"};
-        auto *input = projectNode->input();
-        ASSERT_NE(input, nullptr);
-        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetVertices);
-        const auto *getVerticesNode = static_cast<const GetVertices *>(input);
-        std::vector<nebula::Row> vertices{nebula::Row({"1"})};
-        ASSERT_EQ(getVerticesNode->vertices(), vertices);
-        for (std::size_t i = 0; i < 2; ++i) {
-            const auto &exprAlias = getVerticesNode->exprs()[i];
-            auto expr = Expression::decode(exprAlias.get_expr());
-            ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
-            auto aliasPropertyExpr = static_cast<SymbolPropertyExpression *>(expr.get());
-            ASSERT_EQ(*aliasPropertyExpr->sym(), "person");
-            ASSERT_EQ(*aliasPropertyExpr->prop(), storagePropNames[i]);
-        }
+
+        // get vertices
+        auto tagIdResult = schemaMng_->toTagID(1, "person");
+        ASSERT_TRUE(tagIdResult.ok());
+        auto tagId = tagIdResult.value();
+        storage::cpp2::VertexProp prop;
+        prop.set_tag(tagId);
+        prop.set_props(std::vector<std::string>{"name", "age"});
+        storage::cpp2::Expr expr1;
+        expr1.set_expr(
+            EdgePropertyExpression(new std::string("person"), new std::string("name")).encode());
+        storage::cpp2::Expr expr2;
+        expr2.set_expr(
+            EdgePropertyExpression(new std::string("person"), new std::string("age")).encode());
+        auto *gv =
+            GetVertices::make(expectedQueryCtx_->plan(),
+                              nullptr,
+                              1,
+                              std::vector<Row>{Row({"1"})},
+                              nullptr,
+                              std::vector<storage::cpp2::VertexProp>{std::move(prop)},
+                              std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
+
+        // project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("person"), new std::string("name"))));
+        yieldColumns->addColumn(new YieldColumn(new RelationalExpression(
+            Expression::Kind::kRelGT, new ConstantExpression(1), new ConstantExpression(1))));
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("person"), new std::string("age"))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), gv, std::move(yieldColumns));
+
+        auto result = Eq(plan->root(), project);
+        ASSERT_TRUE(result.ok()) << result;
     }
-    // With YIELD
+    // With YIELD combine properties
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name + person.age"));
-        // check plan
+
         auto *plan = qCtx_->plan();
-        // GetVertices
-        std::vector<std::string> props{"name", "age"};
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetVertices);
-        const auto *getVerticesNode = static_cast<const GetVertices *>(plan->root());
-        std::vector<nebula::Row> vertices{nebula::Row({"1"})};
-        ASSERT_EQ(getVerticesNode->vertices(), vertices);
-        const auto &exprAlias = getVerticesNode->exprs().front();
-        auto expr1 = Expression::decode(exprAlias.get_expr());
-        ASSERT_NE(expr1, nullptr);
-        ASSERT_EQ(expr1->kind(), Expression::Kind::kAdd);
-        const auto prop = getVerticesNode->props().front();
-        for (std::size_t i = 0; i < props.size(); ++i) {
-            ASSERT_EQ(props[i], prop.get_props()[i]);
-        }
+        auto tagIdResult = schemaMng_->toTagID(1, "person");
+        ASSERT_TRUE(tagIdResult.ok());
+        auto tagId = tagIdResult.value();
+        storage::cpp2::VertexProp prop;
+        prop.set_tag(tagId);
+        prop.set_props(std::vector<std::string>{"name", "age"});
+        storage::cpp2::Expr expr1;
+        expr1.set_expr(
+            ArithmeticExpression(
+                Expression::Kind::kAdd,
+                new EdgePropertyExpression(new std::string("person"), new std::string("name")),
+                new EdgePropertyExpression(new std::string("person"), new std::string("age")))
+                .encode());
+
+        auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
+                                     nullptr,
+                                     1,
+                                     std::vector<Row>{Row({"1"})},
+                                     nullptr,
+                                     std::vector<storage::cpp2::VertexProp>{std::move(prop)},
+                                     std::vector<storage::cpp2::Expr>{std::move(expr1)});
+        auto result = Eq(plan->root(), gv);
+        ASSERT_TRUE(result.ok()) << result;
     }
     // ON *
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON * \"1\""));
-        // check plan
-        // GetVertices
+
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetVertices);
-        const auto *getVerticesNode = static_cast<const GetVertices *>(plan->root());
-        auto *input = getVerticesNode->input();
-        ASSERT_EQ(input, nullptr);
-        std::vector<nebula::Row> vertices{nebula::Row({"1"})};
-        ASSERT_EQ(getVerticesNode->vertices(), vertices);
-        ASSERT_TRUE(getVerticesNode->props().empty());
+
+        auto *gv = GetVertices::make(
+            expectedQueryCtx_->plan(), nullptr, 1, std::vector<Row>{Row({"1"})}, nullptr, {}, {});
+        auto result = Eq(plan->root(), gv);
+        ASSERT_TRUE(result.ok()) << result;
     }
 }
 
@@ -160,8 +166,8 @@ TEST_F(ValidatorTest, FetchVerticesPropFailed) {
 
     // not exist property
     {
-        auto result = GQLParser().parse(
-            "FETCH PROP ON person \"1\" YIELD person.not_exist_property");
+        auto result =
+            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person.not_exist_property");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());

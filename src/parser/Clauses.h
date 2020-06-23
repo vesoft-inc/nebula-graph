@@ -227,7 +227,7 @@ public:
         funName_.reset(fun);
     }
 
-    std::string getFunName() {
+    std::string getFunName() const {
         if (funName_ == nullptr) {
             return "";
         }
@@ -242,6 +242,10 @@ private:
     std::unique_ptr<std::string>                funName_{nullptr};
 };
 
+bool operator==(const YieldColumn &l, const YieldColumn &r);
+inline bool operator!=(const YieldColumn &l, const YieldColumn &r) {
+    return !(l == r);
+}
 
 class YieldColumns final {
 public:

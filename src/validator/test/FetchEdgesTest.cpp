@@ -4,9 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#include "planner/Query.h"
 #include "validator/FetchEdgesValidator.h"
 #include "validator/test/ValidatorTest.h"
-#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -14,13 +14,8 @@ namespace graph {
 TEST_F(ValidatorTest, FetchEdgesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\""));
-        // check plan
-        // GetEdgess
+
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetEdges);
-        const auto *getEdgesNode = static_cast<const GetEdges *>(plan->root());
-        auto *input = getEdgesNode->input();
-        ASSERT_EQ(input, nullptr);
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
@@ -30,107 +25,164 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
             0,
             "2",
         })};
-        ASSERT_EQ(getEdgesNode->edges(), edges);
-
-        ASSERT_TRUE(getEdgesNode->exprs().empty());
-
-        ASSERT_EQ(getEdgesNode->props().size(), 1);
-        auto edgeTypeInPlan = getEdgesNode->props().front().get_type();
-        ASSERT_EQ(edgeType, edgeTypeInPlan);
-        const auto &props = getEdgesNode->props().front().get_props();
-        ASSERT_TRUE(props.empty());
+        storage::cpp2::EdgeProp prop;
+        prop.set_type(edgeType);
+        std::vector<storage::cpp2::EdgeProp> props;
+        props.emplace_back(std::move(prop));
+        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+                                  nullptr,
+                                  1,
+                                  std::move(edges),
+                                  nullptr,
+                                  edgeType,
+                                  nullptr,
+                                  nullptr,
+                                  std::move(props),
+                                  {});
+        expectedQueryCtx_->plan()->setRoot(ge);
+        auto result = Eq(plan->root(), ge);
+        ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end"));
-        // check plan
+
         auto *plan = qCtx_->plan();
-        // GetEdges
-        std::vector<std::string> propNames{"start", "end"};
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetEdges);
-        const auto *getEdgesNode = static_cast<const GetEdges *>(plan->root());
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
-        std::vector<nebula::Row> edges{nebula::Row({"1", edgeType, 0, "2"})};
-        ASSERT_EQ(getEdgesNode->edges(), edges);
-        for (std::size_t i = 0; i < 2; ++i) {
-            const auto &exprAlias = getEdgesNode->exprs()[i];
-            auto expr = Expression::decode(exprAlias.get_expr());
-            ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
-            auto aliasPropertyExpr = reinterpret_cast<SymbolPropertyExpression *>(expr.get());
-            ASSERT_EQ(*aliasPropertyExpr->sym(), "like");
-            ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
-        }
+        std::vector<nebula::Row> edges{nebula::Row({
+            "1",
+            edgeType,
+            0,
+            "2",
+        })};
+        storage::cpp2::EdgeProp prop;
+        prop.set_type(edgeType);
+        std::vector<std::string> propsName{"start", "end"};
+        prop.set_props(std::move(propsName));
+        std::vector<storage::cpp2::EdgeProp> props;
+        props.emplace_back(std::move(prop));
+        std::vector<storage::cpp2::Expr> exprs;
+        storage::cpp2::Expr expr1;
+        expr1.set_expr(
+            EdgePropertyExpression(new std::string("like"), new std::string("start")).encode());
+        storage::cpp2::Expr expr2;
+        expr2.set_expr(
+            EdgePropertyExpression(new std::string("like"), new std::string("end")).encode());
+        exprs.emplace_back(std::move(expr1));
+        exprs.emplace_back(std::move(expr2));
+        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+                                  nullptr,
+                                  1,
+                                  std::move(edges),
+                                  nullptr,
+                                  edgeType,
+                                  nullptr,
+                                  nullptr,
+                                  std::move(props),
+                                  std::move(exprs));
+        expectedQueryCtx_->plan()->setRoot(ge);
+        auto result = Eq(plan->root(), ge);
+        ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD const expression
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, 1 + 1, like.end"));
-        // check plan
-        // Project
+
         auto *plan = qCtx_->plan();
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kProject);
-        const auto *projectNode = static_cast<const Project *>(plan->root());
-        auto *cols = projectNode->columns();
-        ASSERT_NE(cols, nullptr);
-        std::vector<std::string> propNames{"start", "__dummy", "end"};
-        std::array<Expression::Kind, 3> exprKinds{Expression::Kind::kEdgeProperty,
-                                                  Expression::Kind::kAdd,
-                                                  Expression::Kind::kEdgeProperty};
-        for (std::size_t i = 0; i < 3; ++i) {
-            const auto &col = cols->columns()[i];
-            const auto *expr = col->expr();
-            ASSERT_EQ(expr->kind(), exprKinds[i]);
-            if (expr->kind() == Expression::Kind::kEdgeProperty) {
-                const auto *aliasPropertyExpr = static_cast<const SymbolPropertyExpression *>(expr);
-                ASSERT_EQ(*aliasPropertyExpr->sym(), "like");
-                ASSERT_EQ(*aliasPropertyExpr->prop(), propNames[i]);
-            }
-        }
+
         // GetEdges
-        std::vector<std::string> storagePropNames{"start", "end"};
-        auto *input = projectNode->input();
-        ASSERT_NE(input, nullptr);
-        ASSERT_EQ(input->kind(), PlanNode::Kind::kGetEdges);
-        const auto *getEdgesNode = static_cast<const GetEdges *>(input);
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
-        std::vector<nebula::Row> edges{nebula::Row({"1", edgeType, 0, "2"})};
-        ASSERT_EQ(getEdgesNode->edges(), edges);
-        for (std::size_t i = 0; i < 2; ++i) {
-            const auto &exprAlias = getEdgesNode->exprs()[i];
-            auto expr = Expression::decode(exprAlias.get_expr());
-            ASSERT_NE(expr, nullptr);
-            ASSERT_EQ(expr->kind(), Expression::Kind::kEdgeProperty);
-            auto aliasPropertyExpr = reinterpret_cast<SymbolPropertyExpression *>(expr.get());
-            ASSERT_EQ(*aliasPropertyExpr->sym(), "like");
-            ASSERT_EQ(*aliasPropertyExpr->prop(), storagePropNames[i]);
-        }
+        std::vector<nebula::Row> edges{nebula::Row({
+            "1",
+            edgeType,
+            0,
+            "2",
+        })};
+        storage::cpp2::EdgeProp prop;
+        prop.set_type(edgeType);
+        std::vector<std::string> propsName{"start", "end"};
+        prop.set_props(std::move(propsName));
+        std::vector<storage::cpp2::EdgeProp> props;
+        props.emplace_back(std::move(prop));
+        std::vector<storage::cpp2::Expr> exprs;
+        storage::cpp2::Expr expr1;
+        expr1.set_expr(
+            EdgePropertyExpression(new std::string("like"), new std::string("start")).encode());
+        storage::cpp2::Expr expr2;
+        expr2.set_expr(
+            EdgePropertyExpression(new std::string("like"), new std::string("end")).encode());
+        exprs.emplace_back(std::move(expr1));
+        exprs.emplace_back(std::move(expr2));
+        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+                                  nullptr,
+                                  1,
+                                  std::move(edges),
+                                  nullptr,
+                                  edgeType,
+                                  nullptr,
+                                  nullptr,
+                                  std::move(props),
+                                  std::move(exprs));
+
+        // Project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
+        yieldColumns->addColumn(new YieldColumn(new ArithmeticExpression(
+            Expression::Kind::kAdd, new ConstantExpression(1), new ConstantExpression(1))));
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), ge, std::move(yieldColumns));
+        expectedQueryCtx_->plan()->setRoot(project);
+        auto result = Eq(plan->root(), project);
+        ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD combine properties
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end"));
-        // check plan
+
         auto *plan = qCtx_->plan();
-        // GetEdges
-        ASSERT_EQ(plan->root()->kind(), PlanNode::Kind::kGetEdges);
-        const auto *getEdgesNode = static_cast<const GetEdges *>(plan->root());
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
-        std::vector<nebula::Row> edges{nebula::Row({"1", edgeType, 0, "2"})};
-        ASSERT_EQ(getEdgesNode->edges(), edges);
-        const auto &exprAlias = getEdgesNode->exprs().front();
-        auto expr1 = Expression::decode(exprAlias.get_expr());
-        ASSERT_NE(expr1, nullptr);
-        ASSERT_EQ(expr1->kind(), Expression::Kind::kRelGT);
-        const auto &props = getEdgesNode->props();
-        std::array<std::string, 2> expectedProps{"start", "end"};
-        for (std::size_t i = 0; i < expectedProps.size(); ++i) {
-            ASSERT_EQ(expectedProps[i], props.front().get_props()[i]);
-        }
+        std::vector<nebula::Row> edges{nebula::Row({
+            "1",
+            edgeType,
+            0,
+            "2",
+        })};
+        storage::cpp2::EdgeProp prop;
+        prop.set_type(edgeType);
+        std::vector<std::string> propsName{"start", "end"};
+        prop.set_props(std::move(propsName));
+        std::vector<storage::cpp2::EdgeProp> props;
+        props.emplace_back(std::move(prop));
+        std::vector<storage::cpp2::Expr> exprs;
+        storage::cpp2::Expr expr1;
+        expr1.set_expr(
+            RelationalExpression(
+                Expression::Kind::kRelGT,
+                new EdgePropertyExpression(new std::string("like"), new std::string("start")),
+                new EdgePropertyExpression(new std::string("like"), new std::string("end")))
+                .encode());
+        exprs.emplace_back(std::move(expr1));
+        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+                                  nullptr,
+                                  1,
+                                  std::move(edges),
+                                  nullptr,
+                                  edgeType,
+                                  nullptr,
+                                  nullptr,
+                                  std::move(props),
+                                  std::move(exprs));
+        expectedQueryCtx_->plan()->setRoot(ge);
+        auto result = Eq(plan->root(), ge);
+        ASSERT_TRUE(result.ok()) << result;
     }
 }
 
