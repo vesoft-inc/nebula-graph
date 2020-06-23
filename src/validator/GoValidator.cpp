@@ -72,8 +72,17 @@ Status GoValidator::validateFrom(const FromClause* from) {
             if (!status.ok()) {
                 return status;
             }
+            auto type = deduceExprType(src);
+            if (!type.ok()) {
+                return type.status();
+            }
+            if (type.value() != Value::Type::STRING) {
+                std::stringstream ss;
+                ss << "`" << src->toString() << "', the srcs should be type of string, "
+                    << "but was`" << type.value() << "'";
+                return Status::Error(ss.str());
+            }
             src_ = src;
-            // TODO: validate if a str
         }
     } else {
         auto vidList = from->vidList();
