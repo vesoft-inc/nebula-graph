@@ -34,6 +34,18 @@ private:
 
     Status deduceProps(const Expression* expr);
 
+    Status buildOneStepPlan();
+
+    Status buildNStepsPlan();
+
+    std::string buildInput();
+
+    std::vector<EdgeType> buildEdgeTypes();
+
+    std::vector<storage::cpp2::VertexProp> buildVertexProps();
+
+    std::vector<storage::cpp2::EdgeProp> buildEdgeProps();
+
 private:
     int64_t                                                 steps_;
     Expression*                                             src_{nullptr};
@@ -48,6 +60,7 @@ private:
     std::vector<std::string>                                inputProps_;
     std::unordered_map<std::string, std::vector<std::string>>  varProps_;
     std::vector<std::string>                                colNames_;
+    YieldColumns*                                           yields_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

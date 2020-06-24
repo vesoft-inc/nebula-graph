@@ -272,13 +272,17 @@ private:
 
 class YieldClause final {
 public:
-    explicit YieldClause(YieldColumns *fields, bool distinct = false) {
-        yieldColumns_.reset(fields);
+    explicit YieldClause(YieldColumns *yields, bool distinct = false) {
+        yieldColumns_.reset(yields);
         distinct_ = distinct;
     }
 
     std::vector<YieldColumn*> columns() const {
         return yieldColumns_->columns();
+    }
+
+    YieldColumns* yields() const {
+        return yieldColumns_.get();
     }
 
     bool isDistinct() const {
@@ -290,9 +294,6 @@ public:
 private:
     std::unique_ptr<YieldColumns>               yieldColumns_;
     bool                                        distinct_;
-    // this member will hold the reference
-    // which is expand by *
-    std::unique_ptr<YieldColumns>               yieldColHolder_;
 };
 
 class GroupClause final {
