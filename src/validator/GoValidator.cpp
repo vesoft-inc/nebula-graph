@@ -4,10 +4,13 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "common/base/Base.h"
 #include "validator/GoValidator.h"
-#include "parser/TraverseSentences.h"
+
+#include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+
+#include "parser/TraverseSentences.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -39,6 +42,13 @@ Status GoValidator::validateImpl() {
         if (!status.ok()) {
             break;
         }
+
+        if ((!inputProps_.empty() && !varProps_.empty())
+                || varProps_.size() > 1) {
+            status = Status::Error(
+                    "Only support single input in a go sentence.");
+            break;
+        }
     } while (false);
 
     return status;
@@ -49,10 +59,10 @@ Status GoValidator::validateStep(const StepClause* step) {
         return Status::Error("Step clause nullptr.");
     }
     auto steps = step->steps();
-    if (steps > 1) {
-        // TODO
-        return Status::Error("Not support n steps yet.");
+    if (steps <= 0) {
+        return Status::Error("Only accpet positive number steps.");
     }
+    steps_ = steps;
     return Status::OK();
 }
 
@@ -63,10 +73,10 @@ Status GoValidator::validateFrom(const FromClause* from) {
     if (from->isRef()) {
         auto* src = from->ref();
         if (src->kind() != Expression::Kind::kInputProperty
-                || src->kind() != Expression::Kind::kVarProperty) {
+                && src->kind() != Expression::Kind::kVarProperty) {
             return Status::Error(
-                    "Only input and variable expression is acceptable"
-                    "when starts are evaluated at runtime..");
+                    "`%s', Only input and variable expression is acceptable"
+                    " when starts are evaluated at runtime.", src->toString().c_str());
         } else {
             auto status = deduceProps(src);
             if (!status.ok()) {
@@ -132,18 +142,23 @@ Status GoValidator::validateWhere(const WhereClause* where) {
     }
 
     filter_ = where->filter();
-    auto status = deduceProps(filter_);
-    if (!status.ok()) {
-        return status;
-    }
+
     auto typeStatus = deduceExprType(filter_);
     if (!typeStatus.ok()) {
         return typeStatus.status();
     }
 
     auto type = typeStatus.value();
-    if (type != Value::Type::BOOL || type != Value::Type::NULLVALUE) {
-        return Status::Error("Filter only accept bool/null value.");
+    if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE) {
+        std::stringstream ss;
+        ss << "`" << filter_->toString() << "', Filter only accpet bool/null value, "
+            << "but was `" << type << "'";
+        return Status::Error(ss.str());
+    }
+
+    auto status = deduceProps(filter_);
+    if (!status.ok()) {
+        return status;
     }
     return Status::OK();
 }
@@ -155,11 +170,6 @@ Status GoValidator::validateYield(const YieldClause* yield) {
 
     auto cols = yield->columns();
     for (auto col : cols) {
-        auto status = deduceProps(col->expr());
-        if (!status.ok()) {
-            return status;
-        }
-
         auto colName = deduceColName(col);
         colNames_.emplace_back(colName);
 
@@ -169,6 +179,11 @@ Status GoValidator::validateYield(const YieldClause* yield) {
         }
         auto type = typeStatus.value();
         outputs_.emplace_back(colName, type);
+
+        auto status = deduceProps(col->expr());
+        if (!status.ok()) {
+            return status;
+        }
     }
     return Status::OK();
 }
@@ -257,11 +272,23 @@ Status GoValidator::deduceProps(const Expression* expr) {
             props.emplace_back(*edgePropExpr->prop());
             break;
         }
+        case Expression::Kind::kInputProperty: {
+            auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* prop = inputPropExpr->prop();
+            inputProps_.emplace_back(*prop);
+            break;
+        }
+        case Expression::Kind::kVarProperty: {
+            auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* var = varPropExpr->sym();
+            auto* prop = varPropExpr->prop();
+            auto& props = varProps_[*var];
+            props.emplace_back(*prop);
+            break;
+        }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
-        case Expression::Kind::kVarProperty:
-        case Expression::Kind::kInputProperty:
         case Expression::Kind::kSymProperty:
         case Expression::Kind::kTypeCasting:
         case Expression::Kind::kUnaryIncr:
@@ -277,6 +304,24 @@ Status GoValidator::deduceProps(const Expression* expr) {
 }
 
 Status GoValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    std::vector<EdgeType> edgeTypes;
+    std::vector<storage::cpp2::VertexProp> vertexProps;
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
+    std::vector<storage::cpp2::StatProp> statProps;
+    std::vector<storage::cpp2::Expr> exprs;
+    auto* gn1 = GetNeighbors::make(
+            plan,
+            nullptr,
+            space_.id,
+            nullptr,
+            std::move(edgeTypes),
+            storage::cpp2::EdgeDirection::BOTH,
+            std::move(vertexProps),
+            std::move(edgeProps),
+            std::move(statProps),
+            std::move(exprs));
+    root_ = tail_ = gn1;
     return Status::OK();
 }
 }  // namespace graph

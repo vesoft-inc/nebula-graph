@@ -35,6 +35,7 @@ private:
     Status deduceProps(const Expression* expr);
 
 private:
+    int64_t                                                 steps_;
     Expression*                                             src_{nullptr};
     std::vector<Value>                                      starts_;
     bool                                                    isOverAll_{false};
@@ -44,6 +45,8 @@ private:
     std::unordered_map<TagID, std::vector<std::string>>     srcTagProps_;
     std::unordered_map<TagID, std::vector<std::string>>     dstTagProps_;
     std::unordered_map<EdgeType, std::vector<std::string>>  edgeProps_;
+    std::vector<std::string>                                inputProps_;
+    std::unordered_map<std::string, std::vector<std::string>>  varProps_;
     std::vector<std::string>                                colNames_;
 };
 }  // namespace graph
