@@ -100,7 +100,7 @@ find_package(${NEBULA_STORAGE_PACKAGE} REQUIRED)
 message(STATUS ">>>>> The nebula-storage repo has been configured successfully <<<<<")
 message(STATUS "")
 
-add_subdirectory(nebula-test)
+add_subdirectory(tests)
 
 include(LinkerConfig)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++")
