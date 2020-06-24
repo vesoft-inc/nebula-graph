@@ -124,6 +124,10 @@ public:
 
     virtual ~ExecutionContext() = default;
 
+    void initVar(const std::string& name) {
+        valueMap_[name];
+    }
+
     // Get the latest version of the value
     const Value& getValue(const std::string& name) const;
 

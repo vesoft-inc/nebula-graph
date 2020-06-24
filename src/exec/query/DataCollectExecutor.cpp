@@ -12,6 +12,13 @@ namespace nebula {
 namespace graph {
 folly::Future<Status> DataCollectExecutor::execute() {
     dumpLog();
+    return doCollect().ensure([this] () {
+        result_ = Value::kEmpty;
+        colNames_.clear();
+    });
+}
+
+folly::Future<Status> DataCollectExecutor::doCollect() {
     auto* dc = asNode<DataCollect>(node());
     colNames_ = dc->colNames();
     auto vars = dc->vars();

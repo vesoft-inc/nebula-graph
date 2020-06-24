@@ -19,6 +19,8 @@ public:
     folly::Future<Status> execute() override;
 
 private:
+    folly::Future<Status> doCollect();
+
     Status collectSubgraph(const std::vector<std::string>& vars);
 
     std::vector<std::string>    colNames_;
