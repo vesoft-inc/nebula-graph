@@ -158,7 +158,7 @@ Status GetSubgraphValidator::toPlan() {
     std::vector<storage::cpp2::Expr> exprs;
     auto vidsToSave = vctx_->varGen()->getVar();
     DataSet ds;
-    ds.colNames.emplace_back("_vid");
+    ds.colNames.emplace_back(_VID);
     for (auto& vid : starts_) {
         Row row;
         row.columns.emplace_back(vid);
@@ -182,8 +182,8 @@ Status GetSubgraphValidator::toPlan() {
     auto* column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(gn1->varName()),
-                new std::string("_vid")),
-            new std::string("_vid"));
+                new std::string(_VID)),
+            new std::string(_VID));
     columns->addColumn(column);
     auto* project = Project::make(plan, gn1, plan->saveObject(columns));
     project->setOutputVar(vidsToSave);
@@ -227,7 +227,7 @@ Status GetSubgraphValidator::toPlan() {
     column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(gn2->varGenerated()),
-                new std::string("_vid")),
+                new std::string(_VID)),
             new std::string(listOfVids));
     column->setFunction(new std::string("collect"));
     columns->addColumn(column);

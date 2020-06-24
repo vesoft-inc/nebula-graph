@@ -80,7 +80,7 @@ TEST(IteratorTest, Sequential) {
 
 TEST(IteratorTest, GetNeighbor) {
     DataSet ds1;
-    ds1.colNames = {"_vid",
+    ds1.colNames = {_VID,
                     "_stats",
                     "_tag:tag1:prop1:prop2",
                     "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -114,7 +114,7 @@ TEST(IteratorTest, GetNeighbor) {
     }
 
     DataSet ds2;
-    ds2.colNames = {"_vid",
+    ds2.colNames = {_VID,
                     "_stats",
                     "_tag:tag2:prop1:prop2",
                     "_edge:-edge2:prop1:prop2:_dst:_rank",
@@ -161,7 +161,7 @@ TEST(IteratorTest, GetNeighbor) {
              "15", "15", "16", "16", "17", "17", "18", "18", "19", "19"};
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
-            result.emplace_back(iter.getColumn("_vid"));
+            result.emplace_back(iter.getColumn(_VID));
         }
         EXPECT_EQ(expected, result);
     }
@@ -249,7 +249,7 @@ TEST(IteratorTest, GetNeighbor) {
 
         int count = 0;
         for (iter.reset(); iter.valid(); iter.next()) {
-            result.emplace_back(iter.getColumn("_vid"));
+            result.emplace_back(iter.getColumn(_VID));
             count++;
         }
         EXPECT_EQ(result.size(), 20);
@@ -391,7 +391,7 @@ TEST(IteratorTest, GetNeighbor) {
 TEST(IteratorTest, TestHead) {
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -405,7 +405,7 @@ TEST(IteratorTest, TestHead) {
 
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
                         "_expr"};
@@ -417,7 +417,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_expr"};
@@ -429,7 +429,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_tag:tag1:",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -442,7 +442,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_tag:tag1:prop1",
                         "_edge:+edge1:",
@@ -470,7 +470,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no _stats
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
                         "_expr"};
@@ -483,7 +483,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no _expr
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank"};
@@ -496,7 +496,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no +/- before edge name
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:edge1:prop1:prop2:_dst:_rank",
@@ -510,7 +510,7 @@ TEST(IteratorTest, TestHead) {
     // no prop
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_tag:tag1:",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -524,7 +524,7 @@ TEST(IteratorTest, TestHead) {
     // no prop
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {_VID,
                         "_stats",
                         "_tag:tag1",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",

@@ -19,7 +19,7 @@ protected:
 
         {
             DataSet ds;
-            ds.colNames = {"_vid", "col2"};
+            ds.colNames = {_VID, "col2"};
             for (auto i = 0; i < 10; ++i) {
                 Row row;
                 row.columns.emplace_back(i);
@@ -31,7 +31,7 @@ protected:
         }
         {
             DataSet ds;
-            ds.colNames = {"_vid", "col2"};
+            ds.colNames = {_VID, "col2"};
             qctx_->ectx()->setResult("empty",
                         ExecResult::buildSequential(Value(std::move(ds)), State()));
         }
@@ -49,13 +49,13 @@ TEST_F(ProjectTest, Project1Col) {
     auto* column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(input),
-                new std::string("_vid")),
-            new std::string("_vid"));
+                new std::string(_VID)),
+            new std::string(_VID));
     columns->addColumn(column);
     auto* plan = qctx_->plan();
     auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
     project->setInputVar(input);
-    project->setColNames(std::vector<std::string>{"_vid"});
+    project->setColNames(std::vector<std::string>{_VID});
 
     auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
     auto future = proExe->execute();
@@ -64,7 +64,7 @@ TEST_F(ProjectTest, Project1Col) {
     auto& result = qctx_->ectx()->getResult(project->varName());
 
     DataSet expected;
-    expected.colNames = {"_vid"};
+    expected.colNames = {_VID};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         row.columns.emplace_back(i);
@@ -80,8 +80,8 @@ TEST_F(ProjectTest, Project2Col) {
     auto* column0 = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(input),
-                new std::string("_vid")),
-            new std::string("_vid"));
+                new std::string(_VID)),
+            new std::string(_VID));
     columns->addColumn(column0);
     auto* column1 = new YieldColumn(
             new VariablePropertyExpression(
@@ -92,7 +92,7 @@ TEST_F(ProjectTest, Project2Col) {
     auto* plan = qctx_->plan();
     auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
     project->setInputVar(input);
-    project->setColNames(std::vector<std::string>{"_vid", "num"});
+    project->setColNames(std::vector<std::string>{_VID, "num"});
 
     auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
     auto future = proExe->execute();
@@ -101,7 +101,7 @@ TEST_F(ProjectTest, Project2Col) {
     auto& result = qctx_->ectx()->getResult(project->varName());
 
     DataSet expected;
-    expected.colNames = {"_vid", "num"};
+    expected.colNames = {_VID, "num"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         row.columns.emplace_back(i);
@@ -118,13 +118,13 @@ TEST_F(ProjectTest, EmptyInput) {
     auto* column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(input),
-                new std::string("_vid")),
-            new std::string("_vid"));
+                new std::string(_VID)),
+            new std::string(_VID));
     columns->addColumn(column);
     auto* plan = qctx_->plan();
     auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
     project->setInputVar(input);
-    project->setColNames(std::vector<std::string>{"_vid"});
+    project->setColNames(std::vector<std::string>{_VID});
 
     auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
     auto future = proExe->execute();
@@ -133,7 +133,7 @@ TEST_F(ProjectTest, EmptyInput) {
     auto& result = qctx_->ectx()->getResult(project->varName());
 
     DataSet expected;
-    expected.colNames.emplace_back("_vid");
+    expected.colNames.emplace_back(_VID);
     EXPECT_EQ(result.value().getDataSet(), expected);
     EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
 }

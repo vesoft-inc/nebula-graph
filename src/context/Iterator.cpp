@@ -63,7 +63,7 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
 
 StatusOr<int64_t> GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
     if (colNames.size() < 3
-            || colNames[0] != "_vid"
+            || colNames[0] != _VID
             || colNames[1].find("_stats") != 0
             || colNames.back().find("_expr") != 0) {
         return Status::Error("Bad column names.");
@@ -215,7 +215,7 @@ Value GetNeighborsIter::getVertex() const {
     }
 
     auto segment = currentSeg();
-    auto vidVal = getColumn("_vid");
+    auto vidVal = getColumn(_VID);
     if (!vidVal.isStr()) {
         return Value::kNullValue;
     }
@@ -249,7 +249,7 @@ Value GetNeighborsIter::getEdge() const {
     Edge edge;
     auto& edgeName = currentEdgeName();
     edge.name = edgeName;
-    auto& src = getColumn("_vid");
+    auto& src = getColumn(_VID);
     if (!src.isStr()) {
         return Value::kNullBadType;
     }

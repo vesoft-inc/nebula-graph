@@ -175,7 +175,7 @@ public:
         List vertices;
         std::unordered_set<Value> vids;
         for (; valid(); next()) {
-            auto vid = getColumn("_vid");
+            auto vid = getColumn(_VID);
             if (vid.isNull()) {
                 continue;
             }
