@@ -31,9 +31,11 @@ public:
     }
 
     void SetUp() override {
+        qctx_ = buildContext();
     }
 
     void TearDown() override {
+        qctx_.reset();
     }
 
     std::unique_ptr<QueryContext> buildContext();
@@ -42,13 +44,9 @@ public:
         auto result = GQLParser().parse(query);
         if (!result.ok()) return std::move(result).status();
         auto sentences = std::move(result).value();
-        auto context = buildContext();
-        ASTValidator validator(sentences.get(), context.get());
-        auto validateResult = validator.validate();
-        if (!validateResult.ok()) {
-            return validateResult;
-        }
-        return context->plan();
+        ASTValidator validator(sentences.get(), qctx_.get());
+        NG_RETURN_IF_ERROR(validator.validate());
+        return qctx_->plan();
     }
 
     bool testFirstSentence(const std::string& err) const {
@@ -58,6 +56,7 @@ public:
 protected:
     static std::shared_ptr<ClientSession>      session_;
     static meta::SchemaManager*                schemaMng_;
+    std::unique_ptr<QueryContext>              qctx_;
 };
 
 std::shared_ptr<ClientSession> ValidatorTest::session_;
@@ -76,15 +75,9 @@ std::unique_ptr<QueryContext> ValidatorTest::buildContext() {
 
 TEST_F(ValidatorTest, Subgraph) {
     {
-        std::string query = "GET SUBGRAPH 3 STEPS FROM \"1\"";
-        auto result = GQLParser().parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-        auto sentences = std::move(result).value();
-        auto context = buildContext();
-        ASTValidator validator(sentences.get(), context.get());
-        auto validateResult = validator.validate();
-        ASSERT_TRUE(validateResult.ok()) << validateResult;
-        auto plan = context->plan();
+        auto status = validate("GET SUBGRAPH 3 STEPS FROM \"1\"");
+        ASSERT_TRUE(status.ok());
+        auto plan = std::move(status).value();
         ASSERT_NE(plan, nullptr);
         using PK = nebula::graph::PlanNode::Kind;
         std::vector<PlanNode::Kind> expected = {
