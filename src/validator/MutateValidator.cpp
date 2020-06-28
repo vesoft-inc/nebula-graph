@@ -31,6 +31,7 @@ Status InsertVerticesValidator::validateImpl() {
 }
 
 Status InsertVerticesValidator::toPlan() {
+<<<<<<< HEAD
     auto* plan = qctx_->plan();
     auto *doNode = InsertVertices::make(plan,
                                         nullptr,
@@ -38,36 +39,57 @@ Status InsertVerticesValidator::toPlan() {
                                         vertices_,
                                         tagPropNames_,
                                         overwritable_);
+=======
+    auto *plan = qctx_->plan();
+    InsertVertices* doNode = nullptr;
+    if (plan->empty()) {
+        auto *start = StartNode::make(plan);
+        doNode = InsertVertices::make(plan,
+                                      start,
+                                      std::move(vertices_),
+                                      std::move(tagPropNames_),
+                                      overwritable_);
+    } else {
+        doNode = InsertVertices::make(plan,
+                                      plan->root(),
+                                      std::move(vertices_),
+                                      std::move(tagPropNames_),
+                                      overwritable_);
+    }
+>>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status InsertVerticesValidator::check() {
-    auto spaceId = vctx_->whichSpace().id;
-    rows_ = sentence_->rows();
+    auto sentence = static_cast<InsertVerticesSentence*>(sentence_);
+    rows_ = sentence->rows();
     if (rows_.empty()) {
         return Status::Error("VALUES cannot be empty");
     }
 
-    auto tagItems = sentence_->tagItems();
-    overwritable_ = sentence_->overwritable();
+    auto tagItems = sentence->tagItems();
+    overwritable_ = sentence->overwritable();
 
     schemas_.reserve(tagItems.size());
 
     for (auto& item : tagItems) {
         auto *tagName = item->tagName();
-        auto tagStatus = qctx_->schemaMng()->toTagID(spaceId, *tagName);
-        if (!tagStatus.ok()) {
-            LOG(ERROR) << "No schema found for " << *tagName;
-            return Status::Error("No schema found for `%s'", tagName->c_str());
-        }
-
-        auto tagId = tagStatus.value();
-        auto schema = qctx_->schemaMng()->getTagSchema(spaceId, tagId);
+        // Firstly get from the validateContext
+        auto schema = vctx_->getSchema(*tagName);
         if (schema == nullptr) {
-            LOG(ERROR) << "No schema found for " << *tagName;
-            return Status::Error("No schema found for `%s'", tagName->c_str());
+            // Secondly get from the cache
+            auto spaceId = qctx_->rctx()->session()->space();
+            if (spaceId < 0) {
+                LOG(ERROR) << "Space was not chosen";
+                return Status::Error("Space was not chosen");
+            }
+            schema = qctx_->schemaMng()->getTagSchema(spaceId, *tagName);
+            if (schema == nullptr) {
+                LOG(ERROR) << "No schema found for " << *tagName;
+                return Status::Error("No schema found for `%s'", tagName->c_str());
+            }
         }
 
         std::vector<std::string> names;
@@ -81,8 +103,8 @@ Status InsertVerticesValidator::check() {
             propSize_++;
             names.emplace_back(*it);
         }
-        tagPropNames_[tagId] = names;
-        schemas_.emplace_back(tagId, schema);
+        tagPropNames_[*tagName] = names;
+        schemas_.emplace_back(*tagName, schema);
     }
     return Status::OK();
 }
@@ -108,9 +130,9 @@ Status InsertVerticesValidator::prepareVertices() {
         std::vector<storage::cpp2::NewTag> tags(schemas_.size());
         int32_t handleValueNum = 0;
         for (auto count = 0u; count < schemas_.size(); count++) {
-            auto tagId = schemas_[count].first;
+            auto name = schemas_[count].first;
             auto schema = schemas_[count].second;
-            auto &propNames = tagPropNames_[tagId];
+            auto &propNames = tagPropNames_[name];
             std::vector<Value> props;
             props.reserve(propNames.size());
             for (auto index = 0u; index < propNames.size(); index++) {
@@ -123,7 +145,7 @@ Status InsertVerticesValidator::prepareVertices() {
                 handleValueNum++;
             }
             auto &tag = tags[count];
-            tag.set_tag_id(tagId);
+            tag.set_tag_name(name);
             tag.set_props(std::move(props));
         }
 
@@ -157,6 +179,7 @@ Status InsertEdgesValidator::validateImpl() {
 }
 
 Status InsertEdgesValidator::toPlan() {
+<<<<<<< HEAD
     auto* plan = qctx_->plan();
     auto *doNode = InsertEdges::make(plan,
                                      nullptr,
@@ -164,28 +187,53 @@ Status InsertEdgesValidator::toPlan() {
                                      edges_,
                                      propNames_,
                                      overwritable_);
+=======
+    auto *plan = qctx_->plan();
+    InsertEdges* doNode = nullptr;
+    if (plan->empty()) {
+        auto *start = StartNode::make(plan);
+        doNode = InsertEdges::make(plan,
+                                   start,
+                                   std::move(edges_),
+                                   std::move(propNames_),
+                                   overwritable_);
+    } else {
+        doNode = InsertEdges::make(plan,
+                                   plan->root(),
+                                   std::move(edges_),
+                                   std::move(propNames_),
+                                   overwritable_);
+    }
+>>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status InsertEdgesValidator::check() {
-    auto spaceId = vctx_->whichSpace().id;
-    overwritable_ = sentence_->overwritable();
-    auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId, *sentence_->edge());
-    if (!edgeStatus.ok()) {
-        return edgeStatus.status();
-    }
-    edgeType_ = edgeStatus.value();
-    auto props = sentence_->properties();
-    rows_ = sentence_->rows();
+    auto sentence = static_cast<InsertEdgesSentence*>(sentence_);
+    overwritable_ = sentence->overwritable();
+    edgeName_ = *sentence->edge();
 
-    schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId, edgeType_);
+    // Firstly get from the validateContext
+    schema_ = vctx_->getSchema(edgeName_);
     if (schema_ == nullptr) {
-        LOG(ERROR) << "No schema found for " << sentence_->edge();
-        return Status::Error("No schema found for `%s'", sentence_->edge()->c_str());
+        // Secondly get from the cache
+        auto spaceId = qctx_->rctx()->session()->space();
+        if (spaceId < 0) {
+            LOG(ERROR) << "Space was not chosen";
+            return Status::Error("Space was not chosen");
+        }
+
+        schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId, edgeName_);
+        if (schema_ == nullptr) {
+            LOG(ERROR) << "No schema found for " << edgeName_;
+            return Status::Error("No schema found for `%s'", edgeName_.c_str());
+        }
     }
 
+    auto props = sentence->properties();
+    rows_ = sentence->rows();
     // Check prop name is in schema
     for (auto *it : props) {
         if (schema_->getFieldIndex(*it) < 0) {
@@ -235,19 +283,19 @@ Status InsertEdgesValidator::prepareEdges() {;
 
         // outbound
         storage::cpp2::NewEdge edge;
-        edge.key.set_src(srcId);
-        edge.key.set_dst(dstId);
-        edge.key.set_ranking(rank);
-        edge.key.set_edge_type(edgeType_);
+        edge.set_src(srcId);
+        edge.set_dst(dstId);
+        edge.set_ranking(rank);
+        edge.set_edge_name(edgeName_);
         edge.set_props(std::move(props));
-        edge.__isset.key = true;
         edge.__isset.props = true;
         edges_.emplace_back(edge);
 
         // inbound
-        edge.key.set_src(dstId);
-        edge.key.set_dst(srcId);
-        edge.key.set_edge_type(-edgeType_);
+        edge.set_src(dstId);
+        edge.set_dst(srcId);
+        edge.set_reversely(true);
+        edge.set_edge_name(edgeName_);
         edges_.emplace_back(std::move(edge));
     }
 

@@ -58,7 +58,11 @@ private:
                 PlanNode* input,
                 meta::SpaceDesc props,
                 bool ifNotExists)
+<<<<<<< HEAD
     : SingleInputNode(plan, Kind::kCreateSpace, input) {
+=======
+        : SingleInputNode(plan, Kind::kCreateSpace, input) {
+>>>>>>> Support DML,DDL to use inputNode
         props_ = std::move(props);
         ifNotExists_ = ifNotExists;
     }
@@ -96,7 +100,11 @@ private:
     DescSpace(ExecutionPlan* plan,
               PlanNode* input,
               std::string spaceName)
+<<<<<<< HEAD
     : SingleInputNode(plan, Kind::kDescSpace, input) {
+=======
+        : SingleInputNode(plan, Kind::kDescSpace, input) {
+>>>>>>> Support DML,DDL to use inputNode
         spaceName_ = std::move(spaceName);
     }
 

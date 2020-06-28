@@ -80,8 +80,12 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kDescTag:
         case PlanNode::Kind::kDescEdge:
         case PlanNode::Kind::kInsertVertices:
+<<<<<<< HEAD
         case PlanNode::Kind::kInsertEdges:
         case PlanNode::Kind::kGetNeighbors: {
+=======
+        case PlanNode::Kind::kInsertEdges: {
+>>>>>>> Support DML,DDL to use inputNode
             static_cast<SingleInputNode*>(node)->setInput(appended);
             break;
         }

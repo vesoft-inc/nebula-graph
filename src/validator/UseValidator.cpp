@@ -13,13 +13,17 @@ namespace graph {
 Status UseValidator::validateImpl() {
     auto useSentence = static_cast<UseSentence*>(sentence_);
     auto* spaceName = useSentence->space();
-    auto ret = qctx_->schemaMng()->toGraphSpaceID(*spaceName);
-    if (!ret.ok()) {
-        LOG(ERROR) << "Unkown space: " << *spaceName;
-        return ret.status();
+    // firstly get from validate context
+    if (!vctx_->hasSpace(*spaceName)) {
+        // secondly get from cache
+        auto ret = qctx_->schemaMng()->toGraphSpaceID(*spaceName);
+        if (!ret.ok()) {
+            LOG(ERROR) << "Unknown space: " << *spaceName;
+            return ret.status();
+        }
     }
 
-    vctx_->switchToSpace(*spaceName, ret.value());
+    vctx_->switchToSpace(*spaceName);
     return Status::OK();
 }
 
@@ -28,7 +32,7 @@ Status UseValidator::toPlan() {
     // The input will be set by father validator later.
     auto plan = qctx_->plan();
     auto *start = StartNode::make(plan);
-    auto reg = SwitchSpace::make(plan, start, space.name, space.id);
+    auto reg = SwitchSpace::make(plan, start, space);
     root_ = reg;
     tail_ = root_;
     return Status::OK();

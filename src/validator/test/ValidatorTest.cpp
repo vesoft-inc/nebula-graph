@@ -7,6 +7,7 @@
 #include "common/base/Base.h"
 
 #include "validator/test/ValidatorTestBase.h"
+<<<<<<< HEAD
 #include "validator/test/MockSchemaManager.h"
 #include "parser/GQLParser.h"
 #include "validator/ASTValidator.h"
@@ -18,6 +19,8 @@
 #include "planner/Maintain.h"
 #include "planner/Mutate.h"
 #include "planner/Query.h"
+=======
+>>>>>>> Support DML,DDL to use inputNode
 
 namespace nebula {
 namespace graph {
@@ -25,6 +28,7 @@ namespace graph {
 using PK = nebula::graph::PlanNode::Kind;
 
 class ValidatorTest : public ValidatorTestBase {
+<<<<<<< HEAD
 public:
     static void SetUpTestCase() {
         auto sessionId = 0;
@@ -74,10 +78,24 @@ std::unique_ptr<QueryContext> ValidatorTest::buildContext() {
     qctx->setSchemaManager(schemaMng_.get());
     qctx->setCharsetInfo(CharsetInfo::instance());
     return qctx;
+=======
+};
+
+std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
+    std::vector<const char*> kinds;
+    kinds.reserve(plan.size());
+    std::transform(plan.cbegin(), plan.cend(), std::back_inserter(kinds), PlanNode::toString);
+    os << "[" << folly::join(", ", kinds) << "]";
+    return os;
+>>>>>>> Support DML,DDL to use inputNode
 }
 
+using PK = nebula::graph::PlanNode::Kind;
+class ValidatorTest : public ValidatorTestBase {
+};
 
 TEST_F(ValidatorTest, Subgraph) {
+<<<<<<< HEAD
     {
         auto status = validate("GET SUBGRAPH 3 STEPS FROM \"1\"");
         ASSERT_TRUE(status.ok());
@@ -93,6 +111,16 @@ TEST_F(ValidatorTest, Subgraph) {
         };
         ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
+=======
+    std::vector<PlanNode::Kind> expected = {
+        PK::kLoop,
+        PK::kStart,
+        PK::kProject,
+        PK::kGetNeighbors,
+        PK::kStart,
+    };
+    ASSERT_TRUE(checkResult("GET SUBGRAPH 3 STEPS FROM \"1\"", expected));
+>>>>>>> Support DML,DDL to use inputNode
 }
 
 TEST_F(ValidatorTest, TestFirstSentence) {
@@ -124,6 +152,7 @@ TEST_F(ValidatorTest, TestFirstSentence) {
         ASSERT_TRUE(testFirstSentence(status));
     }
 }
+<<<<<<< HEAD
 
 TEST_F(ValidatorTest, TestSpace) {
     {
@@ -299,5 +328,7 @@ TEST_F(ValidatorTest, GoInvalid) {
         EXPECT_FALSE(status.ok()) << status.status();
     }
 }
+=======
+>>>>>>> Support DML,DDL to use inputNode
 }  // namespace graph
 }  // namespace nebula

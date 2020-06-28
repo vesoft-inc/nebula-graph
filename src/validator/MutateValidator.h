@@ -16,8 +16,7 @@ namespace graph {
 class InsertVerticesValidator final : public Validator {
 public:
     InsertVerticesValidator(Sentence* sentence, QueryContext* context)
-    : Validator(sentence, context) {
-        sentence_ = static_cast<InsertVerticesSentence*>(sentence);
+        : Validator(sentence, context) {
     }
 
 private:
@@ -31,20 +30,18 @@ private:
 
 private:
     using TagSchema = std::shared_ptr<const meta::SchemaProviderIf>;
-    InsertVerticesSentence                                *sentence_{nullptr};
-    std::vector<VertexRowItem*>                            rows_;
-    std::unordered_map<TagID, std::vector<std::string>>    tagPropNames_;
-    std::vector<std::pair<TagID, TagSchema>>               schemas_;
-    uint16_t                                               propSize_{0};
-    bool                                                   overwritable_{false};
-    std::vector<storage::cpp2::NewVertex>                  vertices_;
+    std::vector<VertexRowItem*>                                 rows_;
+    std::unordered_map<std::string, std::vector<std::string>>   tagPropNames_;
+    std::vector<std::pair<std::string, TagSchema>>              schemas_;
+    uint16_t                                                    propSize_{0};
+    bool                                                        overwritable_{false};
+    std::vector<storage::cpp2::NewVertex>                       vertices_;
 };
 
 class InsertEdgesValidator final : public Validator {
 public:
     InsertEdgesValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
-        sentence_ = static_cast<InsertEdgesSentence*>(sentence);
+        : Validator(sentence, context) {
     }
 
 private:
@@ -57,9 +54,8 @@ private:
     Status prepareEdges();
 
 private:
-    InsertEdgesSentence                              *sentence_{nullptr};
     bool                                              overwritable_{true};
-    EdgeType                                          edgeType_{0};
+    std::string                                       edgeName_;
     std::shared_ptr<const meta::SchemaProviderIf>     schema_;
     std::vector<std::string>                          propNames_;
     std::vector<EdgeRowItem*>                         rows_;

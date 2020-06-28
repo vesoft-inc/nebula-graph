@@ -56,6 +56,10 @@ public:
         return root_;
     }
 
+    bool empty() const {
+        return objPool_->empty();
+    }
+
     folly::Future<Status> execute();
 
 private:

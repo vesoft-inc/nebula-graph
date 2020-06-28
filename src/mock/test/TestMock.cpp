@@ -173,7 +173,7 @@ TEST_F(MockServerTest, TestStorage) {
     std::vector<Value> props;
     props.emplace_back("hello");
     storage::cpp2::NewTag tag;
-    tag.set_tag_id(3);
+    tag.set_tag_name("tag_2");
     tag.set_props(std::move(props));
     std::vector<storage::cpp2::NewTag> tags;
     tags.emplace_back(tag);
@@ -184,8 +184,8 @@ TEST_F(MockServerTest, TestStorage) {
     std::vector<storage::cpp2::NewVertex> vertices;
     vertices.emplace_back(std::move(vertex));
 
-    std::unordered_map<TagID, std::vector<std::string>> propNames;
-    propNames[3] = {"col"};
+    std::unordered_map<std::string, std::vector<std::string>> propNames;
+    propNames["tag_2"] = {"col_2"};
     auto resp = storageClient->addVertices(space, vertices, propNames, false).get();
     ASSERT_TRUE(resp.succeeded());
 }

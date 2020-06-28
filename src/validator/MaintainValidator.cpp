@@ -21,6 +21,13 @@ Status CreateTagValidator::validateImpl() {
     tagName_ = *sentence_->name();
     ifNotExist_ = sentence_->isIfNotExist();
     do {
+        // Check the validateContext has the same name schema
+        auto pro = vctx_->getSchema(tagName_);
+        if (pro != nullptr) {
+            status = Status::Error("Has the same name schema of `%s'", tagName_.c_str());
+            break;
+        }
+
         status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
@@ -32,10 +39,16 @@ Status CreateTagValidator::validateImpl() {
             break;
         }
     } while (false);
+    // Save the schema in validateContext
+    if (status.ok()) {
+        auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
+        vctx_->addSchema(tagName_, schemaPro);
+    }
     return status;
 }
 
 Status CreateTagValidator::toPlan() {
+<<<<<<< HEAD
     auto* plan = qctx_->plan();
     auto *doNode = CreateTag::make(plan,
                                    nullptr,
@@ -43,6 +56,18 @@ Status CreateTagValidator::toPlan() {
                                    tagName_,
                                    schema_,
                                    ifNotExist_);
+=======
+    auto *plan = qctx_->plan();
+    CreateTag* doNode = nullptr;
+    if (plan->empty()) {
+        auto *start = StartNode::make(plan);
+        doNode = CreateTag::make(plan,
+                start, std::move(tagName_), std::move(schema_), ifNotExist_);
+    } else {
+        doNode = CreateTag::make(plan,
+                plan->root(), std::move(tagName_), std::move(schema_), ifNotExist_);
+    }
+>>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -53,6 +78,13 @@ Status CreateEdgeValidator::validateImpl() {
     edgeName_ = *sentence_->name();
     ifNotExist_ = sentence_->isIfNotExist();
     do {
+        // Check the validateContext has the same name schema
+        auto pro = vctx_->getSchema(edgeName_);
+        if (pro != nullptr) {
+            status = Status::Error("Has the same name schema of `%s'", edgeName_.c_str());
+            break;
+        }
+
         status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
@@ -64,10 +96,17 @@ Status CreateEdgeValidator::validateImpl() {
             break;
         }
     } while (false);
+
+    // Save the schema in validateContext
+    if (status.ok()) {
+        auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
+        vctx_->addSchema(edgeName_, schemaPro);
+    }
     return status;
 }
 
 Status CreateEdgeValidator::toPlan() {
+<<<<<<< HEAD
     auto* plan = qctx_->plan();
     auto *doNode = CreateEdge::make(plan,
                                     nullptr,
@@ -75,38 +114,74 @@ Status CreateEdgeValidator::toPlan() {
                                     edgeName_,
                                     schema_,
                                     ifNotExist_);
+=======
+    auto *plan = qctx_->plan();
+    CreateEdge* doNode = nullptr;
+    if (plan->empty()) {
+        auto *start = StartNode::make(plan);
+        doNode = CreateEdge::make(plan,
+                start, std::move(edgeName_), std::move(schema_), ifNotExist_);
+    } else {
+        doNode = CreateEdge::make(plan,
+                plan->root(), std::move(edgeName_), std::move(schema_), ifNotExist_);
+    }
+>>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status DescTagValidator::validateImpl() {
-    tagName_ = *sentence_->name();
     return Status::OK();
 }
 
 Status DescTagValidator::toPlan() {
+<<<<<<< HEAD
     auto* plan = qctx_->plan();
     auto *doNode = DescTag::make(plan,
                                  nullptr,
                                  vctx_->whichSpace().id,
                                  tagName_);
+=======
+    auto sentence = static_cast<DescribeTagSentence*>(sentence_);
+    auto name = *sentence->name();
+    auto *plan = qctx_->plan();
+    DescTag* doNode = nullptr;
+    if (plan->empty()) {
+        auto *start = StartNode::make(plan);
+        doNode = DescTag::make(plan, start, std::move(name));
+    } else {
+        doNode = DescTag::make(plan, plan->root(), std::move(name));
+    }
+>>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status DescEdgeValidator::validateImpl() {
-    edgeName_ = *sentence_->name();
     return Status::OK();
 }
 
 Status DescEdgeValidator::toPlan() {
+<<<<<<< HEAD
     auto* plan = qctx_->plan();
     auto *doNode = DescEdge::make(plan,
                                   nullptr,
                                   vctx_->whichSpace().id,
                                   edgeName_);
+=======
+    auto sentence = static_cast<DescribeEdgeSentence*>(sentence_);
+    auto name = *sentence->name();
+    auto *plan = qctx_->plan();
+    DescEdge* doNode = nullptr;
+    if (plan->empty()) {
+        auto *start = StartNode::make(plan);
+        doNode = DescEdge::make(plan, start, std::move(name));
+    } else {
+        doNode = DescEdge::make(plan, plan->root(), std::move(name));
+    }
+>>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

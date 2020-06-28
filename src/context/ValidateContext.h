@@ -20,22 +20,22 @@ namespace graph {
 using ColDef = std::pair<std::string, Value::Type>;
 using ColsDef = std::vector<ColDef>;
 
-struct SpaceDescription {
-    std::string name;
-    GraphSpaceID id;
-};
-
 class ValidateContext final {
 public:
     ValidateContext() {
         varGen_ = std::make_unique<AnnoVarGenerator>();
     }
 
-    void switchToSpace(std::string spaceName, GraphSpaceID spaceId) {
-        SpaceDescription space;
-        space.name = std::move(spaceName);
-        space.id = spaceId;
-        spaces_.emplace_back(std::move(space));
+    void switchToSpace(std::string spaceName) {
+        spaces_.emplace_back(std::move(spaceName));
+    }
+
+    void addSpace(const std::string &spaceName) {
+        createSpaces_.emplace(spaceName);
+    }
+
+    bool hasSpace(const std::string &spaceName) const {
+        return createSpaces_.find(spaceName) != createSpaces_.end();
     }
 
     void registerVariable(std::string var, ColsDef cols) {
@@ -46,7 +46,7 @@ public:
         return !spaces_.empty();
     }
 
-    const SpaceDescription& whichSpace() const {
+    const std::string& whichSpace() const {
         return spaces_.back();
     }
 
@@ -66,12 +66,29 @@ public:
         return varGen_.get();
     }
 
+    void addSchema(const std::string& name,
+                   const std::shared_ptr<const meta::NebulaSchemaProvider> &schema) {
+        schemas_.emplace(name, schema);
+    }
+
+    std::shared_ptr<const meta::NebulaSchemaProvider> getSchema(const std::string &name) const {
+        auto find = schemas_.find(name);
+        if (find == schemas_.end()) {
+            return std::shared_ptr<const meta::NebulaSchemaProvider>();
+        }
+        return find->second;
+    }
+
 private:
     // spaces_ is the trace of space switch
-    std::vector<SpaceDescription>                       spaces_;
+    std::vector<std::string>                            spaces_;
     // vars_ saves all named variable
     std::unordered_map<std::string, ColsDef>            vars_;
     std::unique_ptr<AnnoVarGenerator>                   varGen_;
+    using Schemas = std::unordered_map<std::string,
+          std::shared_ptr<const meta::NebulaSchemaProvider>>;
+    Schemas                                             schemas_;
+    std::unordered_set<std::string>                     createSpaces_;
 };
 }  // namespace graph
 }  // namespace nebula

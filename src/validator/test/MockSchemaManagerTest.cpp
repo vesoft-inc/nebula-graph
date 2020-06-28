@@ -23,7 +23,7 @@ TEST_F(MockSchemaManagerTest, all) {
     auto spaceRet = mock.toGraphSpaceID("test_space");
     ASSERT_TRUE(spaceRet.ok());
     auto spaceId = spaceRet.value();
-    ASSERT_EQ(1, spaceId);
+    ASSERT_EQ(100, spaceId);
 
     auto tagRet = mock.toTagID(spaceId, "person");
     ASSERT_TRUE(tagRet.ok()) << tagRet.status();
@@ -47,6 +47,12 @@ TEST_F(MockSchemaManagerTest, all) {
     ASSERT_TRUE(tagSchema != nullptr);
 
     auto edgeSchema = mock.getEdgeSchema(spaceId, edgeType);
+    ASSERT_TRUE(edgeSchema != nullptr);
+
+    tagSchema = mock.getTagSchema(spaceId, "person");
+    ASSERT_TRUE(tagSchema != nullptr);
+
+    edgeSchema = mock.getEdgeSchema(spaceId, "like");
     ASSERT_TRUE(edgeSchema != nullptr);
 }
 }  // namespace graph
