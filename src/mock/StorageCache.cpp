@@ -10,6 +10,7 @@ DECLARE_int32(heartbeat_interval_secs);
 
 namespace nebula {
 namespace graph {
+
 StorageCache::StorageCache(uint16_t metaPort) {
     FLAGS_heartbeat_interval_secs = 1;
     auto threadPool = std::make_shared<folly::IOThreadPoolExecutor>(1);
@@ -45,8 +46,7 @@ Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
         for (auto &vertex : part.second) {
             auto vId = vertex.get_id();
             auto findV = spaceDataInfo->vertices.find(vId);
-            std::unordered_map<TagID,
-                               std::unordered_map<std::string, Value>> *vertexInfo = nullptr;
+            std::unordered_map<TagID, PropertyInfo> *vertexInfo = nullptr;
             if (findV != spaceDataInfo->vertices.end()) {
                 vertexInfo = &findV->second;
             } else {
@@ -60,12 +60,15 @@ Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
                 if (propValues.size() != propNames[tagId].size()) {
                     return Status::Error("Wrong size");
                 }
-                auto ret = getTagWholeValue(spaceId, tagId, propValues, propNames[tagId]);
-                if (!ret.ok()) {
-                    LOG(ERROR) << ret.status();
-                    return ret.status();
+
+                std::unordered_map<std::string, int32_t> propIndexes;
+                for (auto i = 0u; i < propValues.size(); i++) {
+                    propIndexes[propNames[tagId][i]] = i;
                 }
-                (*vertexInfo)[tagId] = std::move(ret).value();
+
+                (*vertexInfo)[tagId].propNames = propNames[tagId];
+                (*vertexInfo)[tagId].propValues = std::move(propValues);
+                (*vertexInfo)[tagId].propIndexes = std::move(propIndexes);
             }
         }
     }
@@ -97,6 +100,7 @@ Status StorageCache::addEdges(const storage::cpp2::AddEdgesRequest& req) {
             edgeKey.set_dst(edge.key.get_dst());
 =======
             auto key = edge.get_key();
+<<<<<<< HEAD
             storage::cpp2::EdgeKey edgeKey;
             edgeKey.set_src(key.get_src());
             edgeKey.set_edge_type(key.get_edge_type());
@@ -117,13 +121,28 @@ Status StorageCache::addEdges(const storage::cpp2::AddEdgesRequest& req) {
             if (!ret.ok()) {
                 LOG(ERROR) << ret.status();
                 return ret.status();
+=======
+            auto edgeKey = getEdgeKey(key.get_src(),
+                    key.get_edge_type(), key.get_ranking(), key.get_dst());
+            PropertyInfo propertyInfo;
+            propertyInfo.propNames = propNames;
+            for (auto i = 0u; i < propertyInfo.propNames.size(); i++) {
+                propertyInfo.propIndexes[propertyInfo.propNames[i]] = i;
             }
-            spaceDataInfo->edges[edgeKey] = std::move(ret).value();
+            propertyInfo.propValues = edge.get_props();
+            if (propertyInfo.propValues.size() != propertyInfo.propNames.size()) {
+                LOG(ERROR) << "Wrong size, propValues.size : " << propertyInfo.propValues.size()
+                           << ", propNames.size : " << propertyInfo.propNames.size();
+                return Status::Error("Wrong size");
+>>>>>>> rebase upstream
+            }
+            spaceDataInfo->edges[edgeKey] = std::move(propertyInfo);
         }
     }
     return Status::OK();
 }
 
+<<<<<<< HEAD
 StatusOr<std::unordered_map<std::string, Value>>
 StorageCache::getTagWholeValue(const GraphSpaceID spaceId,
                                const TagID tagId,
@@ -207,36 +226,38 @@ StorageCache::getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> 
 }
 
 StatusOr<DataSet> StorageCache::updateVertex(const storage::cpp2::UpdateVertexRequest &req) {
+=======
+StatusOr<std::vector<DataSet>>
+StorageCache::getProps(const storage::cpp2::GetPropRequest&) {
+    return {};
+#if 0
+    folly::RWSpinLock::ReadHolder holder(lock_);
+    std::vector<storage::cpp2::VertexPropData> data;
+>>>>>>> rebase upstream
     auto spaceId = req.get_space_id();
-    auto &vertex = req.get_vertex_id();
-    auto tagId = req.get_tag_id();
-    auto updatedProps = req.get_updated_props();
-    bool insertable = false;
-    if (req.__isset.insertable) {
-        insertable = *req.get_insertable();
-    }
-    std::vector<std::string> returnProps;
-    if (req.__isset.return_props) {
-        returnProps = *req.get_return_props();
-    }
-    std::string condition;
-    if (req.__isset.condition) {
-        condition = *req.get_condition();
-    }
     auto findIt = cache_.find(spaceId);
     if (findIt == cache_.end()) {
         return Status::Error("SpaceID `%d' not found", spaceId);
     }
+<<<<<<< HEAD
     auto &verticesInfo = findIt->second;
     auto findVertex = verticesInfo.vertices.find(vertex);
 
     if (findVertex == verticesInfo.vertices.end() && !insertable) {
         return Status::Error("Vertex `%s' not found", vertex.c_str());
 >>>>>>> add update executor and test
+=======
+    auto vertices = findIt->second.vertices;
+    auto parts = req.get_parts();
+    std::vector<storage::cpp2::VertexProp> props;
+    if (req.__isset.vertex_props) {
+        props = req.get_vertex_props();
+>>>>>>> rebase upstream
     }
     return getPropertyInfo(schema, props, names);
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 StatusOr<std::unordered_map<std::string, Value>>
 StorageCache::getEdgeWholeValue(const GraphSpaceID spaceId,
@@ -402,31 +423,27 @@ StatusOr<DataSet> StorageCache::updateEdge(const storage::cpp2::UpdateEdgeReques
             auto propFind = edgeInfo.find(prop);
             if (propFind == edgeInfo.end()) {
                 return Status::Error("Prop `%s' not found", prop.c_str());
+=======
+    for (auto &part : parts) {
+        for (auto &vId : part.second) {
+            auto vFindIt = vertices.find(vId);
+            if (vFindIt == vertices.end()) {
+                return Status::Error("VertexId `%s' not found", vId.c_str());
+>>>>>>> rebase upstream
             }
-
-            // TODO(Laura): get value expr value
-            // propFind.second = value;
+            storage::cpp2::VertexPropData vertex;
+            vertex.set_id(vId);
+            vertex.set_props(vFindIt.second);
+            vertex.set_names();
         }
     }
-
-    // insert
-    if (insertable) {
-        std::vector<std::string> names;
-        std::vector<Value> values;
-        for (auto &updatedProp : updatedProps) {
-            names.emplace_back(updatedProp.get_name());
-            values.emplace_back(updatedProp.get_value());
-        }
-
-        auto ret = getEdgeWholeValue(spaceId, edgeKey.get_edge_type(), values, names);
-        if (!ret.ok()) {
-            LOG(ERROR) << ret.status();
-            return ret.status();
-        }
-        spaceInfo.edges[edgeKey] = std::move(ret).value();
-    }
+<<<<<<< HEAD
     return dataSet;
 >>>>>>> add update executor and test
+=======
+#endif
+>>>>>>> rebase upstream
 }
 }  // namespace graph
 }  // namespace nebula
+

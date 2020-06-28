@@ -81,35 +81,17 @@ MockStorageServiceHandler::future_deleteVertices(const storage::cpp2::DeleteVert
 
 folly::Future<storage::cpp2::UpdateResponse>
 MockStorageServiceHandler::future_updateVertex(const storage::cpp2::UpdateVertexRequest& req) {
+    UNUSED(req);
     folly::Promise<storage::cpp2::UpdateResponse> promise;
     auto future = promise.getFuture();
-    storage::cpp2::UpdateResponse resp;
-    auto status = storageCache_->updateVertex(req);
-    if (!status.ok()) {
-        LOG(ERROR) << status.status();
-        GENERATE_ERROR_COMMON();
-    } else {
-        resp.set_props(std::move(status).value());
-    }
-
-    promise.setValue(std::move(resp));
     return future;
 }
 
 folly::Future<storage::cpp2::UpdateResponse>
 MockStorageServiceHandler::future_updateEdge(const storage::cpp2::UpdateEdgeRequest& req) {
+    UNUSED(req);
     folly::Promise<storage::cpp2::UpdateResponse> promise;
     auto future = promise.getFuture();
-    storage::cpp2::UpdateResponse resp;
-    auto status = storageCache_->updateEdge(req);
-    if (!status.ok()) {
-        LOG(ERROR) << status.status();
-        GENERATE_ERROR_COMMON();
-    } else {
-        resp.set_props(std::move(status).value());
-    }
-
-    promise.setValue(std::move(resp));
     return future;
 }
 

@@ -78,13 +78,15 @@ TEST_F(SchemaTest, TestSpace) {
         rows.emplace_back(row);
         expect.rows = rows;
         ASSERT_TRUE(resp.__isset.data);
-<<<<<<< HEAD
         ASSERT_EQ(expect, *resp.get_data());
+<<<<<<< HEAD
 =======
         ASSERT_TRUE(resp.get_data());
         // ASSERT_EQ(expect, (*resp.get_data())[0]);
 >>>>>>> address yixinglu's comment
 >>>>>>> address yixinglu's comment
+=======
+>>>>>>> rebase upstream
     }
     {
         cpp2::ExecutionResponse resp;
@@ -185,6 +187,7 @@ TEST_F(SchemaTest, TestTag) {
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
 <<<<<<< HEAD
+<<<<<<< HEAD
         std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<std::vector<Value>> values = {
@@ -259,6 +262,8 @@ TEST_F(SchemaTest, TestTag) {
         ASSERT_TRUE(verifyValues(resp, values));
 =======
 <<<<<<< HEAD
+=======
+>>>>>>> rebase upstream
         DataSet expect;
         expect.colNames = {"Field", "Type", "Null", "Default"};
         std::vector<Row> rows;
@@ -276,10 +281,13 @@ TEST_F(SchemaTest, TestTag) {
         expect.rows = std::move(rows);
         ASSERT_TRUE(resp.__isset.data);
         ASSERT_EQ(expect, *resp.get_data());
+<<<<<<< HEAD
 =======
         ASSERT_TRUE(resp.get_data());
 >>>>>>> address yixinglu's comment
 >>>>>>> address yixinglu's comment
+=======
+>>>>>>> rebase upstream
     }
     {
         cpp2::ExecutionResponse resp;
@@ -304,6 +312,7 @@ TEST_F(SchemaTest, TestEdge) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
+<<<<<<< HEAD
 <<<<<<< HEAD
         std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
@@ -375,6 +384,8 @@ TEST_F(SchemaTest, TestEdge) {
         ASSERT_TRUE(verifyValues(resp, values));
 =======
 <<<<<<< HEAD
+=======
+>>>>>>> rebase upstream
         DataSet expect;
         expect.colNames = {"Field", "Type", "Null", "Default"};
         std::vector<Row> rows;
@@ -387,10 +398,13 @@ TEST_F(SchemaTest, TestEdge) {
         rows.emplace_back(row);
         expect.rows = std::move(rows);
         ASSERT_EQ(expect, *resp.get_data());
+<<<<<<< HEAD
 =======
         ASSERT_TRUE(resp.get_data());
 >>>>>>> address yixinglu's comment
 >>>>>>> address yixinglu's comment
+=======
+>>>>>>> rebase upstream
     }
     {
         cpp2::ExecutionResponse resp;
@@ -535,3 +549,4 @@ TEST_F(SchemaTest, TestInsert) {
 }
 }   // namespace graph
 }   // namespace nebula
+
