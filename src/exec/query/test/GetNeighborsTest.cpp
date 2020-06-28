@@ -39,10 +39,10 @@ std::unique_ptr<QueryContext> GetNeighborsTest::qctx_;
 TEST_F(GetNeighborsTest, BuildRequestDataSet) {
     auto* plan = qctx_->plan();
     std::vector<EdgeType> edgeTypes;
-    std::vector<storage::cpp2::VertexProp> vertexProps;
-    std::vector<storage::cpp2::EdgeProp> edgeProps;
-    std::vector<storage::cpp2::StatProp> statProps;
-    std::vector<storage::cpp2::Expr> exprs;
+    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+    auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
+    auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto* vids = new InputPropertyExpression(new std::string("id"));
     auto* gn = GetNeighbors::make(
             plan,
