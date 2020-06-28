@@ -40,6 +40,8 @@ public:
         msg_ = std::move(msg);
     }
 
+    explicit State(Stat stat) : stat_(stat) {}
+
     const Stat& stat() const {
         return stat_;
     }
@@ -56,8 +58,8 @@ public:
     static const ExecResult kEmptyResult;
     static const std::vector<ExecResult> kEmptyResultList;
 
-    static ExecResult buildDefault(Value&& val) {
-        return ExecResult(std::move(val));
+    static ExecResult buildDefault(Value&& val, State&& state = State()) {
+        return ExecResult(std::move(val), std::move(state));
     }
 
     static ExecResult buildGetNeighbors(Value&& val, State&& stat) {
@@ -110,7 +112,9 @@ private:
           iter_(std::make_unique<DefaultIter>(value_)) {}
 
     ExecResult(Value&& val, State stat)
-        : value_(std::make_shared<Value>(std::move(val))), state_(stat) {}
+        : value_(std::make_shared<Value>(std::move(val))),
+          state_(stat),
+          iter_(std::make_unique<DefaultIter>(value_)) {}
 
 private:
     std::shared_ptr<Value>          value_;

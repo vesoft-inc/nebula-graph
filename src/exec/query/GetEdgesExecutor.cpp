@@ -67,7 +67,11 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                    ge->filter())
         .via(runner())
         .then([this](StorageRpcResponse<GetPropResponse> rpcResp) {
-            HANDLE_COMPLETENESS(rpcResp);
+            auto result = handleCompleteness(rpcResp);
+            if (!result.ok()) {
+                return std::move(result).status();
+            }
+            auto state = std::move(result).value();
             // Ok, merge DataSets to one
             nebula::DataSet v;
             if (!rpcResp.responses().empty()) {
@@ -83,7 +87,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                     }
                 }
             }
-            return finish(std::move(v));
+            return finish(std::move(v), std::move(state));
         });
 }
 
