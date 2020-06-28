@@ -100,7 +100,11 @@ TEST_F(ValidatorTest, TestFirstSentence) {
         ASSERT_TRUE(testFirstSentence(status));
     }
     {
-        auto status = validate("LIMIT 2, 10 | LIMIT 2");
+        auto status = validate("LIMIT 2, 10 | YIELD 2");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("LIMIT 2, 10 | YIELD 2 | YIELD 3");
         ASSERT_TRUE(testFirstSentence(status));
     }
     {
