@@ -382,7 +382,7 @@ std::string GoValidator::buildInput() {
 }
 
 std::vector<EdgeType> GoValidator::buildEdgeTypes() {
-    std::vector<EdgeType> edgeTypes;
+    std::vector<EdgeType> edgeTypes(edgeTypes_.size());
     if (direction_ == storage::cpp2::EdgeDirection::IN_EDGE) {
         std::transform(edgeTypes_.begin(), edgeTypes_.end(), edgeTypes.begin(), [] (auto& type) {
             return -type;
@@ -399,8 +399,8 @@ std::vector<EdgeType> GoValidator::buildEdgeTypes() {
 }
 
 std::vector<storage::cpp2::VertexProp> GoValidator::buildVertexProps() {
-    std::vector<storage::cpp2::VertexProp> vertexProps;
-    std::transform(srcTagProps_.begin(), dstTagProps_.end(), vertexProps.begin(), [] (auto& tag) {
+    std::vector<storage::cpp2::VertexProp> vertexProps(srcTagProps_.size());
+    std::transform(srcTagProps_.begin(), srcTagProps_.end(), vertexProps.begin(), [] (auto& tag) {
         storage::cpp2::VertexProp vp;
         vp.tag = tag.first;
         vp.props = std::move(tag.second);
@@ -410,7 +410,7 @@ std::vector<storage::cpp2::VertexProp> GoValidator::buildVertexProps() {
 }
 
 std::vector<storage::cpp2::EdgeProp> GoValidator::buildEdgeProps() {
-    std::vector<storage::cpp2::EdgeProp> edgeProps;
+    std::vector<storage::cpp2::EdgeProp> edgeProps(edgeProps_.size());
     std::transform(edgeProps_.begin(), edgeProps_.end(), edgeProps.begin(), [] (auto& edge) {
         storage::cpp2::EdgeProp ep;
         ep.type = edge.first;
