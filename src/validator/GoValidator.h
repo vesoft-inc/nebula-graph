@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "validator/Validator.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -42,9 +43,11 @@ private:
 
     std::vector<EdgeType> buildEdgeTypes();
 
-    std::vector<storage::cpp2::VertexProp> buildVertexProps();
+    GetNeighbors::VertexProps buildSrcVertexProps();
 
-    std::vector<storage::cpp2::EdgeProp> buildEdgeProps();
+    GetNeighbors::VertexProps buildDstVertexProps();
+
+    GetNeighbors::EdgeProps buildEdgeProps();
 
 private:
     int64_t                                                 steps_;

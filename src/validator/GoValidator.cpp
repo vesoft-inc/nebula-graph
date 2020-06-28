@@ -10,7 +10,6 @@
 #include "common/interface/gen-cpp2/storage_types.h"
 
 #include "parser/TraverseSentences.h"
-#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -332,8 +331,6 @@ Status GoValidator::buildOneStepPlan() {
         input = buildInput();
     }
 
-    std::vector<storage::cpp2::StatProp> statProps;
-    std::vector<storage::cpp2::Expr> exprs;
     auto* gn1 = GetNeighbors::make(
             plan,
             nullptr,
@@ -341,10 +338,10 @@ Status GoValidator::buildOneStepPlan() {
             src_,
             buildEdgeTypes(),
             storage::cpp2::EdgeDirection::BOTH,  // Not valid if edge types not empty
-            buildVertexProps(),
+            buildSrcVertexProps(),
             buildEdgeProps(),
-            std::move(statProps),
-            std::move(exprs));
+            nullptr,
+            nullptr);
     gn1->setInputVar(input);
 
     if (!dstTagProps_.empty()) {
@@ -398,25 +395,49 @@ std::vector<EdgeType> GoValidator::buildEdgeTypes() {
     return edgeTypes;
 }
 
-std::vector<storage::cpp2::VertexProp> GoValidator::buildVertexProps() {
-    std::vector<storage::cpp2::VertexProp> vertexProps(srcTagProps_.size());
-    std::transform(srcTagProps_.begin(), srcTagProps_.end(), vertexProps.begin(), [] (auto& tag) {
-        storage::cpp2::VertexProp vp;
-        vp.tag = tag.first;
-        vp.props = std::move(tag.second);
-        return vp;
-    });
+GetNeighbors::VertexProps GoValidator::buildSrcVertexProps() {
+    GetNeighbors::VertexProps vertexProps;
+    if (!srcTagProps_.empty()) {
+        vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(
+            srcTagProps_.size());
+        std::transform(srcTagProps_.begin(), srcTagProps_.end(),
+                       vertexProps->begin(), [](auto& tag) {
+                           storage::cpp2::VertexProp vp;
+                           vp.tag = tag.first;
+                           vp.props = std::move(tag.second);
+                           return vp;
+                       });
+    }
     return vertexProps;
 }
 
-std::vector<storage::cpp2::EdgeProp> GoValidator::buildEdgeProps() {
-    std::vector<storage::cpp2::EdgeProp> edgeProps(edgeProps_.size());
-    std::transform(edgeProps_.begin(), edgeProps_.end(), edgeProps.begin(), [] (auto& edge) {
-        storage::cpp2::EdgeProp ep;
-        ep.type = edge.first;
-        ep.props = std::move(edge.second);
-        return ep;
-    });
+GetNeighbors::VertexProps GoValidator::buildDstVertexProps() {
+    GetNeighbors::VertexProps vertexProps;
+    if (!dstTagProps_.empty()) {
+        vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(
+            dstTagProps_.size());
+        std::transform(dstTagProps_.begin(), dstTagProps_.end(),
+                       vertexProps->begin(), [](auto& tag) {
+                           storage::cpp2::VertexProp vp;
+                           vp.tag = tag.first;
+                           vp.props = std::move(tag.second);
+                           return vp;
+                       });
+    }
+    return vertexProps;
+}
+
+GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
+    GetNeighbors::EdgeProps edgeProps;
+    if (!edgeProps_.empty()) {
+        edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(edgeProps_.size());
+        std::transform(edgeProps_.begin(), edgeProps_.end(), edgeProps->begin(), [] (auto& edge) {
+            storage::cpp2::EdgeProp ep;
+            ep.type = edge.first;
+            ep.props = std::move(edge.second);
+            return ep;
+        });
+    }
     return edgeProps;
 }
 }  // namespace graph
