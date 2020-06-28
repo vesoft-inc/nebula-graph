@@ -49,10 +49,6 @@ public:
         return qctx_->plan();
     }
 
-    bool testFirstSentence(const std::string& err) const {
-        return err.find_first_of("SyntaxError: Could not start with the statement") == 0;
-    }
-
 protected:
     static std::shared_ptr<ClientSession>      session_;
     static meta::SchemaManager*                schemaMng_;
@@ -92,25 +88,28 @@ TEST_F(ValidatorTest, Subgraph) {
 }
 
 TEST_F(ValidatorTest, TestFirstSentence) {
+    auto testFirstSentence = [](StatusOr<ExecutionPlan*> so) -> bool {
+        if (so.ok()) return false;
+        auto status = std::move(so).status();
+        auto err = status.toString();
+        return err.find_first_of("SyntaxError: Could not start with the statement") == 0;
+    };
+
     {
         auto status = validate("LIMIT 2, 10");
-        ASSERT_TRUE(!status.ok());
-        ASSERT_TRUE(testFirstSentence(std::move(status).status().toString()));
+        ASSERT_TRUE(testFirstSentence(status));
     }
     {
         auto status = validate("LIMIT 2, 10 | LIMIT 2");
-        ASSERT_TRUE(!status.ok());
-        ASSERT_TRUE(testFirstSentence(std::move(status).status().toString()));
+        ASSERT_TRUE(testFirstSentence(status));
     }
     {
         auto status = validate("ORDER BY 1");
-        ASSERT_TRUE(!status.ok());
-        ASSERT_TRUE(testFirstSentence(std::move(status).status().toString()));
+        ASSERT_TRUE(testFirstSentence(status));
     }
     {
         auto status = validate("GROUP BY 1");
-        ASSERT_TRUE(!status.ok());
-        ASSERT_TRUE(testFirstSentence(std::move(status).status().toString()));
+        ASSERT_TRUE(testFirstSentence(status));
     }
 }
 
