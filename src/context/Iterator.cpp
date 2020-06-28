@@ -63,7 +63,7 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
 
 StatusOr<int64_t> GetNeighborsIter::buildIndex(const std::vector<std::string>& colNames) {
     if (colNames.size() < 3
-            || colNames[0] != _VID
+            || colNames[0] != kVid
             || colNames[1].find("_stats") != 0
             || colNames.back().find("_expr") != 0) {
         return Status::Error("Bad column names.");
@@ -215,7 +215,7 @@ Value GetNeighborsIter::getVertex() const {
     }
 
     auto segment = currentSeg();
-    auto vidVal = getColumn(_VID);
+    auto vidVal = getColumn(kVid);
     if (!vidVal.isStr()) {
         return Value::kNullValue;
     }
@@ -249,19 +249,19 @@ Value GetNeighborsIter::getEdge() const {
     Edge edge;
     auto& edgeName = currentEdgeName();
     edge.name = edgeName;
-    auto& src = getColumn(_VID);
+    auto& src = getColumn(kVid);
     if (!src.isStr()) {
         return Value::kNullBadType;
     }
     edge.src = src.getStr();
 
-    auto& dst = getEdgeProp(edgeName, _DST);
+    auto& dst = getEdgeProp(edgeName, kDst);
     if (!dst.isStr()) {
         return Value::kNullBadType;
     }
     edge.dst = dst.getStr();
 
-    auto& rank = getEdgeProp(edgeName, _RANK);
+    auto& rank = getEdgeProp(edgeName, kRank);
     if (!rank.isInt()) {
         return Value::kNullBadType;
     }
@@ -278,8 +278,8 @@ Value GetNeighborsIter::getEdge() const {
     DCHECK_EQ(edgeNamePropList.size(), propList.size());
     for (size_t i = 0; i < propList.size(); ++i) {
         auto propName = edgeNamePropList[i];
-        if (propName == _SRC || propName == _DST
-                || propName == _RANK || propName == _TYPE) {
+        if (propName == kSrc || propName == kDst
+                || propName == kRank || propName == kType) {
             continue;
         }
         edge.props.emplace(edgeNamePropList[i], propList[i]);
