@@ -19,6 +19,19 @@ Status SequentialValidator::validateImpl() {
     }
     auto seqSentence = static_cast<SequentialSentences*>(sentence_);
     auto sentences = seqSentence->sentences();
+
+    DCHECK(!sentences.empty());
+    auto firstSentence = sentences.front();
+    switch (firstSentence->kind()) {
+        case Sentence::Kind::kLimit:
+        case Sentence::Kind::kOrderBy:
+        case Sentence::Kind::KGroupBy:
+            return Status::SyntaxError("Could not start with the statement: %s",
+                                       firstSentence->toString().c_str());
+        default:
+            break;
+    }
+
     for (auto* sentence : sentences) {
         auto validator = makeValidator(sentence, qctx_);
         status = validator->validate();
