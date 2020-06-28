@@ -38,6 +38,23 @@ public:
 
     std::unique_ptr<QueryContext> buildContext();
 
+    StatusOr<ExecutionPlan*> validate(const std::string& query) {
+        auto result = GQLParser().parse(query);
+        if (!result.ok()) return std::move(result).status();
+        auto sentences = std::move(result).value();
+        auto context = buildContext();
+        ASTValidator validator(sentences.get(), context.get());
+        auto validateResult = validator.validate();
+        if (!validateResult.ok()) {
+            return validateResult;
+        }
+        return context->plan();
+    }
+
+    bool testFirstSentence(const std::string& err) const {
+        return err.find_first_of("SyntaxError: Could not start with the statement") == 0;
+    }
+
 protected:
     static std::shared_ptr<ClientSession>      session_;
     static meta::SchemaManager*                schemaMng_;
@@ -78,6 +95,29 @@ TEST_F(ValidatorTest, Subgraph) {
             PK::kStart,
         };
         ASSERT_TRUE(verifyPlan(plan->root(), expected));
+    }
+}
+
+TEST_F(ValidatorTest, TestFirstSentence) {
+    {
+        auto status = validate("LIMIT 2, 10");
+        ASSERT_TRUE(!status.ok());
+        ASSERT_TRUE(testFirstSentence(std::move(status).status().toString()));
+    }
+    {
+        auto status = validate("LIMIT 2, 10 | LIMIT 2");
+        ASSERT_TRUE(!status.ok());
+        ASSERT_TRUE(testFirstSentence(std::move(status).status().toString()));
+    }
+    {
+        auto status = validate("ORDER BY 1");
+        ASSERT_TRUE(!status.ok());
+        ASSERT_TRUE(testFirstSentence(std::move(status).status().toString()));
+    }
+    {
+        auto status = validate("GROUP BY 1");
+        ASSERT_TRUE(!status.ok());
+        ASSERT_TRUE(testFirstSentence(std::move(status).status().toString()));
     }
 }
 
