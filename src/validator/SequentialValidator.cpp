@@ -21,7 +21,7 @@ Status SequentialValidator::validateImpl() {
     auto sentences = seqSentence->sentences();
 
     DCHECK(!sentences.empty());
-    auto firstSentence = sentences.front();
+    auto firstSentence = getFirstSentence(sentences.front());
     switch (firstSentence->kind()) {
         case Sentence::Kind::kLimit:
         case Sentence::Kind::kOrderBy:
@@ -57,5 +57,14 @@ Status SequentialValidator::toPlan() {
     Validator::appendPlan(validators_[0]->tail(), tail_);
     return Status::OK();
 }
+
+const Sentence* SequentialValidator::getFirstSentence(const Sentence* sentence) const {
+    if (sentence->kind() != Sentence::Kind::kPipe) {
+        return sentence;
+    }
+    auto pipe = static_cast<const PipedSentence *>(sentence);
+    return getFirstSentence(pipe->left());
+}
+
 }  // namespace graph
 }  // namespace nebula
