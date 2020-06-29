@@ -13,7 +13,7 @@ namespace graph {
 
 folly::Future<Status> UnionExecutor::execute() {
     dumpLog();
-    NG_RETURN_IF_ERROR(validateInputDataSets());
+    NG_RETURN_IF_ERROR(checkInputDataSets());
     auto left = getLeftInputDataIter();
     auto right = getRightInputDataIter();
     auto result = ExecResult::buildDefault(left->valuePtr());

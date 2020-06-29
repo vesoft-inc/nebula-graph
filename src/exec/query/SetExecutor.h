@@ -18,13 +18,14 @@ class Iterator;
 namespace graph {
 
 class SetExecutor : public Executor {
+public:
+    Status checkInputDataSets();
+    std::unique_ptr<Iterator> getLeftInputDataIter() const;
+    std::unique_ptr<Iterator> getRightInputDataIter() const;
+
 protected:
     SetExecutor(const std::string &name, const PlanNode *node, QueryContext *qctx)
         : Executor(name, node, qctx) {}
-
-    Status validateInputDataSets();
-    std::unique_ptr<Iterator> getLeftInputDataIter() const;
-    std::unique_ptr<Iterator> getRightInputDataIter() const;
 };
 
 }   // namespace graph

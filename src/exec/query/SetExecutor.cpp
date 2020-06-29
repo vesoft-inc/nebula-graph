@@ -15,7 +15,7 @@
 namespace nebula {
 namespace graph {
 
-Status SetExecutor::validateInputDataSets() {
+Status SetExecutor::checkInputDataSets() {
     auto setNode = asNode<SetOp>(node());
     auto& lResult = ectx_->getResult(setNode->leftInputVar());
     auto& rResult = ectx_->getResult(setNode->rightInputVar());
@@ -33,14 +33,14 @@ Status SetExecutor::validateInputDataSets() {
     auto lds = leftData.getDataSet();
     auto rds = rightData.getDataSet();
 
-    if (UNLIKELY(!(lds.colNames == rds.colNames))) {
-        auto lcols = folly::join(",", lds.colNames.begin(), lds.colNames.end());
-        auto rcols = folly::join(",", rds.colNames.begin(), rds.colNames.end());
-        return Status::Error("The data sets to union have different columns: <%s> vs. <%s>",
-                             lcols.c_str(),
-                             rcols.c_str());
+    if (LIKELY(lds.colNames == rds.colNames)) {
+        return Status::OK();
     }
-    return Status::OK();
+
+    auto lcols = folly::join(",", lds.colNames);
+    auto rcols = folly::join(",", rds.colNames);
+    return Status::Error(
+        "Data sets have different columns: <%s> vs. <%s>", lcols.c_str(), rcols.c_str());
 }
 
 std::unique_ptr<Iterator> SetExecutor::getLeftInputDataIter() const {

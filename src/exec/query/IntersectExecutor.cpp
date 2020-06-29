@@ -6,7 +6,6 @@
 
 #include "exec/query/IntersectExecutor.h"
 
-#include <list>
 #include <unordered_set>
 
 #include "planner/PlanNode.h"
@@ -17,7 +16,7 @@ namespace graph {
 
 folly::Future<Status> IntersectExecutor::execute() {
     dumpLog();
-    NG_RETURN_IF_ERROR(validateInputDataSets());
+    NG_RETURN_IF_ERROR(checkInputDataSets());
 
     auto lIter = getLeftInputDataIter();
     auto rIter = getRightInputDataIter();
