@@ -177,12 +177,12 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
         return Value::kNullValue;
     }
     auto colId = index->second.first;
-    auto* row = currentRow();
-    DCHECK_GT(row->columns.size(), colId);
-    if (row->columns[colId].isList()) {
+    auto& row = *currentRow();
+    DCHECK_GT(row.size(), colId);
+    if (!row[colId].isList()) {
         return Value::kNullBadType;
     }
-    auto& list = row->columns[colId].getList();
+    auto& list = row[colId].getList();
     return list.values[propIndex->second];
 }
 
@@ -226,15 +226,15 @@ Value GetNeighborsIter::getVertex() const {
     vertex.vid = vidVal.getStr();
     auto& tagPropMap = tagPropMaps_[segment];
     for (auto& tagProp : tagPropMap) {
-        auto* row = currentRow();
+        auto& row = *currentRow();
         auto& tagPropNameList = tagProp.second.second;
         auto tagColId = tagProp.second.first;
-        if (!row->columns[tagColId].isList()) {
+        if (!row[tagColId].isList()) {
             // Ignore the bad value.
             continue;
         }
-        DCHECK_GE(row->columns.size(), tagColId);
-        auto& propList = row->columns[tagColId].getList();
+        DCHECK_GE(row.size(), tagColId);
+        auto& propList = row[tagColId].getList();
         DCHECK_EQ(tagPropNameList.size(), propList.values.size());
         Tag tag;
         tag.name = tagProp.first;

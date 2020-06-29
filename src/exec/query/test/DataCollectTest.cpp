@@ -26,14 +26,14 @@ protected:
             for (auto i = 0; i < 10; ++i) {
                 Row row;
                 // _vid
-                row.columns.emplace_back(folly::to<std::string>(i));
+                row.values.emplace_back(folly::to<std::string>(i));
                 // _stats = empty
-                row.columns.emplace_back(Value());
+                row.values.emplace_back(Value());
                 // tag
                 List tag;
                 tag.values.emplace_back(0);
                 tag.values.emplace_back(1);
-                row.columns.emplace_back(Value(tag));
+                row.values.emplace_back(Value(tag));
                 // edges
                 List edges;
                 for (auto j = 0; j < 2; ++j) {
@@ -45,9 +45,9 @@ protected:
                     edge.values.emplace_back(j);
                     edges.values.emplace_back(std::move(edge));
                 }
-                row.columns.emplace_back(edges);
+                row.values.emplace_back(edges);
                 // _expr = empty
-                row.columns.emplace_back(Value());
+                row.values.emplace_back(Value());
                 ds1.rows.emplace_back(std::move(row));
             }
 
@@ -60,14 +60,14 @@ protected:
             for (auto i = 10; i < 20; ++i) {
                 Row row;
                 // _vid
-                row.columns.emplace_back(folly::to<std::string>(i));
+                row.values.emplace_back(folly::to<std::string>(i));
                 // _stats = empty
-                row.columns.emplace_back(Value());
+                row.values.emplace_back(Value());
                 // tag
                 List tag;
                 tag.values.emplace_back(0);
                 tag.values.emplace_back(1);
-                row.columns.emplace_back(Value(tag));
+                row.values.emplace_back(Value(tag));
                 // edges
                 List edges;
                 for (auto j = 0; j < 2; ++j) {
@@ -79,9 +79,9 @@ protected:
                     edge.values.emplace_back(j);
                     edges.values.emplace_back(std::move(edge));
                 }
-                row.columns.emplace_back(edges);
+                row.values.emplace_back(edges);
                 // _expr = empty
-                row.columns.emplace_back(Value());
+                row.values.emplace_back(Value());
                 ds2.rows.emplace_back(std::move(row));
             }
 
@@ -124,8 +124,8 @@ TEST_F(DataCollectTest, CollectSubgraph) {
     auto iter = input.iter();
     auto* gNIter = static_cast<GetNeighborsIter*>(iter.get());
     Row row;
-    row.columns.emplace_back(gNIter->getVertices());
-    row.columns.emplace_back(gNIter->getEdges());
+    row.values.emplace_back(gNIter->getVertices());
+    row.values.emplace_back(gNIter->getEdges());
     expected.rows.emplace_back(std::move(row));
 
     EXPECT_EQ(result.value().getDataSet(), expected);

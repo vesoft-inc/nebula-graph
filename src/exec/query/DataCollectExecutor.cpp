@@ -49,8 +49,8 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
             auto iter = result.iter();
             if (iter->isGetNeighborsIter()) {
                 auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-                row.columns.emplace_back(gnIter->getVertices());
-                row.columns.emplace_back(gnIter->getEdges());
+                row.values.emplace_back(gnIter->getVertices());
+                row.values.emplace_back(gnIter->getEdges());
                 ds.rows.emplace_back(std::move(row));
             }
         }
