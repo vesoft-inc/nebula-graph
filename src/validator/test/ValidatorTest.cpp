@@ -98,13 +98,40 @@ std::unique_ptr<QueryContext> ValidatorTest::buildContext() {
     rctx->setSession(session_);
     auto qctx = std::make_unique<QueryContext>();
     qctx->setRctx(std::move(rctx));
-    qctx->setSchemaManager(schemaMng_);
+    qctx->setSchemaManager(schemaMng_.get());
     qctx->setCharsetInfo(CharsetInfo::instance());
     return qctx;
 }
 
-std::shared_ptr<ClientSession>      ValidatorTest::session_;
-meta::SchemaManager*                ValidatorTest::schemaMng_;
+TEST_F(ValidatorTest, TestFirstSentence) {
+    auto testFirstSentence = [](StatusOr<ExecutionPlan*> so) -> bool {
+        if (so.ok()) return false;
+        auto status = std::move(so).status();
+        auto err = status.toString();
+        return err.find_first_of("SyntaxError: Could not start with the statement") == 0;
+    };
+
+    {
+        auto status = validate("LIMIT 2, 10");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("LIMIT 2, 10 | YIELD 2");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("LIMIT 2, 10 | YIELD 2 | YIELD 3");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("ORDER BY 1");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("GROUP BY 1");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+}
 
 }  // namespace graph
 }  // namespace nebula

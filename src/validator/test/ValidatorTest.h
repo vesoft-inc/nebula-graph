@@ -10,6 +10,7 @@
 
 #include "parser/GQLParser.h"
 #include "validator/ASTValidator.h"
+#include "validator/test/MockSchemaManager.h"
 #include "context/QueryContext.h"
 #include "planner/ExecutionPlan.h"
 #include "context/ValidateContext.h"
@@ -23,14 +24,12 @@ namespace nebula {
 namespace graph {
 class ValidatorTest : public ::testing::Test {
 public:
-    static void SetUpTestCase() {
+    void SetUp() override {
         auto session = new ClientSession(0);
         session->setSpace("test", 0);
         session_.reset(session);
-        // TODO: Need AdHocSchemaManager here.
-    }
-
-    void SetUp() override {
+        schemaMng_ = MockSchemaManager::make_unique();
+        qCtx_ = buildContext();
     }
 
     void TearDown() override {
@@ -57,10 +56,20 @@ protected:
         }
     }
 
+    StatusOr<ExecutionPlan*> validate(const std::string& query) {
+        auto result = GQLParser().parse(query);
+        if (!result.ok()) return std::move(result).status();
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        NG_RETURN_IF_ERROR(validator.validate());
+        return qCtx_->plan();
+    }
+
     static void bfsTraverse(const PlanNode* root, std::vector<PlanNode::Kind>& result);
 
-    static std::shared_ptr<ClientSession>      session_;
-    static meta::SchemaManager*                schemaMng_;
+    std::shared_ptr<ClientSession>         session_;
+    std::unique_ptr<meta::SchemaManager>   schemaMng_;
+    std::unique_ptr<QueryContext>          qCtx_;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
