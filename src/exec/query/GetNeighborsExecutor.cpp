@@ -111,6 +111,7 @@ Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
         }
 
         VLOG(1) << "Resp row size: " << dataset->rows.size();
+        VLOG(1) << "Resp : " << *dataset;
         list.values.emplace_back(std::move(*dataset));
     }
     auto result = Value(std::move(list));
