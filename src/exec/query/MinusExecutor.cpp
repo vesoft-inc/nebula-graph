@@ -6,7 +6,10 @@
 
 #include "exec/query/MinusExecutor.h"
 
-#include "planner/PlanNode.h"
+#include <list>
+#include <unordered_set>
+
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -14,8 +17,33 @@ namespace graph {
 folly::Future<Status> MinusExecutor::execute() {
     dumpLog();
 
-    // TODO(yee):
-    return start();
+    NG_RETURN_IF_ERROR(validateInputDataSets());
+
+    auto lIter = getLeftInputDataIter();
+    auto rIter = getRightInputDataIter();
+
+    std::unordered_set<const Row *> hashSet;
+    for (; rIter->valid(); rIter->next()) {
+        auto iter = hashSet.insert(rIter->row());
+        if (UNLIKELY(!iter.second)) {
+            LOG(ERROR) << "Fail to insert row into hash table in minus executor, row: "
+                       << *rIter->row();
+        }
+    }
+
+    while (lIter->valid()) {
+        auto iter = hashSet.find(lIter->row());
+        if (iter == hashSet.end()) {
+            lIter->next();
+        } else {
+            lIter->erase();
+        }
+    }
+
+    auto result = ExecResult::buildDefault(lIter->valuePtr());
+    result.setIter(std::move(lIter));
+
+    return finish(std::move(result));
 }
 
 }   // namespace graph
