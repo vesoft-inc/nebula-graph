@@ -136,8 +136,7 @@ TEST(IteratorTest, GetNeighbor) {
         for (auto j = 0; j < 2; ++j) {
             List edge;
             for (auto k = 0; k < 2; ++k) {
-                edge.values.emplace_back("edge2_prop1");
-                edge.values.emplace_back("edge2_prop2");
+                edge.values.emplace_back(k);
             }
             edge.values.emplace_back("2");
             edge.values.emplace_back(j);
@@ -197,7 +196,7 @@ TEST(IteratorTest, GetNeighbor) {
     {
         GetNeighborsIter iter(val);
         std::vector<Value> expected;
-        expected.insert(expected.end(), 20, "edge1_prop1");
+        expected.insert(expected.end(), 20, 0);
         expected.insert(expected.end(), 20, Value(NullType::__NULL__));
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
@@ -210,7 +209,7 @@ TEST(IteratorTest, GetNeighbor) {
         GetNeighborsIter iter(val);
         std::vector<Value> expected;
         expected.insert(expected.end(), 20, Value(NullType::__NULL__));
-        expected.insert(expected.end(), 20, "edge2_prop1");
+        expected.insert(expected.end(), 20, 0);
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
             result.emplace_back(iter.getEdgeProp("edge2", "prop1"));
@@ -224,7 +223,7 @@ TEST(IteratorTest, GetNeighbor) {
         auto copyIter2 = copyIter1->copy();
         std::vector<Value> expected;
         expected.insert(expected.end(), 20, Value(NullType::__NULL__));
-        expected.insert(expected.end(), 20, "edge2_prop1");
+        expected.insert(expected.end(), 20, 0);
         std::vector<Value> result;
         for (; copyIter2->valid(); copyIter2->next()) {
             result.emplace_back(copyIter2->getEdgeProp("edge2", "prop1"));
@@ -650,3 +649,4 @@ int main(int argc, char** argv) {
 
     return RUN_ALL_TESTS();
 }
+
