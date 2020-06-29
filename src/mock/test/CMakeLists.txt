@@ -35,8 +35,6 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:common_storage_thrift_obj>
     $<TARGET_OBJECTS:common_thrift_obj>
     $<TARGET_OBJECTS:common_meta_obj>
-    $<TARGET_OBJECTS:common_ws_obj>
-    $<TARGET_OBJECTS:common_ws_common_obj>
     $<TARGET_OBJECTS:common_thread_obj>
     $<TARGET_OBJECTS:common_time_obj>
     $<TARGET_OBJECTS:common_fs_obj>
