@@ -64,6 +64,7 @@ private:
     std::unordered_map<std::string, std::vector<std::string>>  varProps_;
     std::vector<std::string>                                colNames_;
     YieldColumns*                                           yields_{nullptr};
+    bool                                                    distinct_{false};
 };
 }  // namespace graph
 }  // namespace nebula

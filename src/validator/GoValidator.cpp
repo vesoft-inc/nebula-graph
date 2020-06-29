@@ -48,6 +48,30 @@ Status GoValidator::validateImpl() {
                     "Only support single input in a go sentence.");
             break;
         }
+
+        if (!dstTagProps_.empty()) {
+            // TODO: inplement get vertex props.
+            status = Status::Error("Not support get dst yet.");
+            break;
+        }
+
+        if (isOverAll_) {
+            // TODO: implement over all.
+            status = Status::Error("Not support over all yet.");
+            break;
+        }
+
+        if (!inputProps_.empty()) {
+            // TODO: inplement get input props.
+            status = Status::Error("Not support input prop yet.");
+            break;
+        }
+
+        if (distinct_) {
+            // TODO: implement distinct_;
+            status = Status::Error("Not support distinct yet.");
+            break;
+        }
     } while (false);
 
     return status;
@@ -77,10 +101,6 @@ Status GoValidator::validateFrom(const FromClause* from) {
                     "`%s', Only input and variable expression is acceptable"
                     " when starts are evaluated at runtime.", src->toString().c_str());
         } else {
-            auto status = deduceProps(src);
-            if (!status.ok()) {
-                return status;
-            }
             auto type = deduceExprType(src);
             if (!type.ok()) {
                 return type.status();
@@ -167,6 +187,7 @@ Status GoValidator::validateYield(const YieldClause* yield) {
         return Status::Error("Yield clause nullptr.");
     }
 
+    distinct_ = yield->isDistinct();
     auto cols = yield->columns();
     for (auto col : cols) {
         auto colName = deduceColName(col);
