@@ -41,6 +41,7 @@ Status InsertVerticesValidator::toPlan() {
                                         overwritable_);
 =======
     auto *plan = qctx_->plan();
+<<<<<<< HEAD
     InsertVertices* doNode = nullptr;
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
@@ -66,6 +67,15 @@ Status InsertVerticesValidator::toPlan() {
     tail_ = root_;
 =======
 >>>>>>> address comment
+=======
+    auto doNode = InsertVertices::make(plan,
+                                       nullptr,
+                                       std::move(vertices_),
+                                       std::move(tagPropNames_),
+                                       overwritable_);
+    root_ = doNode;
+    tail_ = root_;
+>>>>>>> rebase upstream
     return Status::OK();
 }
 
@@ -196,6 +206,7 @@ Status InsertEdgesValidator::toPlan() {
                                      overwritable_);
 =======
     auto *plan = qctx_->plan();
+<<<<<<< HEAD
     InsertEdges* doNode = nullptr;
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
@@ -221,6 +232,15 @@ Status InsertEdgesValidator::toPlan() {
     tail_ = root_;
 =======
 >>>>>>> address comment
+=======
+    auto doNode = InsertEdges::make(plan,
+                                    nullptr,
+                                    std::move(edges_),
+                                    std::move(propNames_),
+                                    overwritable_);
+    root_ = doNode;
+    tail_ = root_;
+>>>>>>> rebase upstream
     return Status::OK();
 }
 

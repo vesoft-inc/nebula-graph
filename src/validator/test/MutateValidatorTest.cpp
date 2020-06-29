@@ -55,7 +55,7 @@ TEST_F(MutateValidatorTest, InsertVertexTest) {
 }
 
 TEST_F(MutateValidatorTest, InsertEdgeTest) {
-    session_->setSpace("test_space", 100);
+    session_->setSpace("test_space", 1);
     // get schema from validate context
     {
         std::vector<PlanNode::Kind> expected = {

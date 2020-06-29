@@ -39,7 +39,7 @@ class ValidatorTestBase : public ::testing::Test {
 protected:
     void SetUp() override {
         auto session = new ClientSession(0);
-        session->setSpace("test_space", 100);
+        session->setSpace("test_space", 1);
         session_.reset(session);
         schemaMng_ = std::make_unique<MockSchemaManager>();
         schemaMng_->init();

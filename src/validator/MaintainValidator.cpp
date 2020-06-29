@@ -160,6 +160,7 @@ Status DescTagValidator::toPlan() {
     auto sentence = static_cast<DescribeTagSentence*>(sentence_);
     auto name = *sentence->name();
     auto *plan = qctx_->plan();
+<<<<<<< HEAD
     DescTag* doNode = nullptr;
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
@@ -177,6 +178,11 @@ Status DescTagValidator::toPlan() {
     tail_ = root_;
 =======
 >>>>>>> address comment
+=======
+    auto doNode = DescTag::make(plan, nullptr, std::move(name));
+    root_ = doNode;
+    tail_ = root_;
+>>>>>>> rebase upstream
     return Status::OK();
 }
 
@@ -195,6 +201,7 @@ Status DescEdgeValidator::toPlan() {
     auto sentence = static_cast<DescribeEdgeSentence*>(sentence_);
     auto name = *sentence->name();
     auto *plan = qctx_->plan();
+<<<<<<< HEAD
     DescEdge* doNode = nullptr;
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
@@ -212,6 +219,11 @@ Status DescEdgeValidator::toPlan() {
     tail_ = root_;
 =======
 >>>>>>> address comment
+=======
+    auto doNode = DescEdge::make(plan, nullptr, std::move(name));
+    root_ = doNode;
+    tail_ = root_;
+>>>>>>> rebase upstream
     return Status::OK();
 }
 }  // namespace graph

@@ -29,6 +29,7 @@ using PK = nebula::graph::PlanNode::Kind;
 
 class ValidatorTest : public ValidatorTestBase {
 <<<<<<< HEAD
+<<<<<<< HEAD
 public:
     static void SetUpTestCase() {
         auto sessionId = 0;
@@ -43,15 +44,26 @@ public:
     }
 
     void SetUp() override {
+=======
+protected:
+    void SetUp() override {
+        ValidatorTestBase::SetUp();
+>>>>>>> rebase upstream
         qctx_ = buildContext();
     }
 
     void TearDown() override {
+<<<<<<< HEAD
         qctx_.reset();
     }
 
     std::unique_ptr<QueryContext> buildContext();
 
+=======
+        ValidatorTestBase::TearDown();
+        qctx_.reset();
+    }
+>>>>>>> rebase upstream
     StatusOr<ExecutionPlan*> validate(const std::string& query) {
         auto result = GQLParser().parse(query);
         if (!result.ok()) return std::move(result).status();
@@ -62,6 +74,7 @@ public:
     }
 
 protected:
+<<<<<<< HEAD
     static std::shared_ptr<ClientSession>           session_;
     static std::unique_ptr<meta::SchemaManager>     schemaMng_;
     std::unique_ptr<QueryContext>                   qctx_;
@@ -79,6 +92,9 @@ std::unique_ptr<QueryContext> ValidatorTest::buildContext() {
     qctx->setCharsetInfo(CharsetInfo::instance());
     return qctx;
 =======
+=======
+    std::unique_ptr<QueryContext>              qctx_;
+>>>>>>> rebase upstream
 };
 
 std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
@@ -91,9 +107,6 @@ std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& pl
 }
 
 using PK = nebula::graph::PlanNode::Kind;
-class ValidatorTest : public ValidatorTestBase {
-};
-
 TEST_F(ValidatorTest, Subgraph) {
 <<<<<<< HEAD
     {

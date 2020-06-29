@@ -10,7 +10,7 @@ namespace nebula {
 namespace graph {
 
 void MockSchemaManager::init() {
-    spaceNameIds_.emplace("test_space", 100);
+    spaceNameIds_.emplace("test_space", 1);
     tagNameIds_.emplace("person", 2);
     tagIdNames_.emplace(2, "person");
     edgeNameIds_.emplace("like", 3);
@@ -22,7 +22,7 @@ void MockSchemaManager::init() {
     personSchema->addField("age", meta::cpp2::PropertyType::INT8);
     Tags tagSchemas;
     tagSchemas.emplace(2, personSchema);
-    tagSchemas_.emplace(100, std::move(tagSchemas));
+    tagSchemas_.emplace(1, std::move(tagSchemas));
 
     // like {start : timestamp, end : datetime}
     std::shared_ptr<meta::NebulaSchemaProvider> likeSchema(new meta::NebulaSchemaProvider(0));
@@ -31,7 +31,7 @@ void MockSchemaManager::init() {
     likeSchema->addField("likeness", meta::cpp2::PropertyType::INT64);
     Edges edgeSchemas;
     edgeSchemas.emplace(3, likeSchema);
-    edgeSchemas_.emplace(100, std::move(edgeSchemas));
+    edgeSchemas_.emplace(1, std::move(edgeSchemas));
 }
 
 std::shared_ptr<const nebula::meta::NebulaSchemaProvider>

@@ -111,6 +111,7 @@ Status CreateSpaceValidator::toPlan() {
     auto *doNode = CreateSpace::make(plan, nullptr, spaceDesc_, ifNotExist_);
 =======
     auto *plan = qctx_->plan();
+<<<<<<< HEAD
     CreateSpace* doNode = nullptr;
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
@@ -128,6 +129,11 @@ Status CreateSpaceValidator::toPlan() {
     tail_ = root_;
 =======
 >>>>>>> address comment
+=======
+    auto doNode = CreateSpace::make(plan, nullptr, std::move(spaceDesc_), ifNotExist_);
+    root_ = doNode;
+    tail_ = root_;
+>>>>>>> rebase upstream
     return Status::OK();
 }
 
@@ -142,6 +148,7 @@ Status DescSpaceValidator::toPlan() {
 =======
     auto sentence = static_cast<DescribeSpaceSentence*>(sentence_);
     auto *plan = qctx_->plan();
+<<<<<<< HEAD
     DescSpace* doNode = nullptr;
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
@@ -159,6 +166,11 @@ Status DescSpaceValidator::toPlan() {
     tail_ = root_;
 =======
 >>>>>>> address comment
+=======
+    auto doNode = DescSpace::make(plan, nullptr, *sentence->spaceName());
+    root_ = doNode;
+    tail_ = root_;
+>>>>>>> rebase upstream
     return Status::OK();
 }
 }  // namespace graph

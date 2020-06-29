@@ -23,7 +23,7 @@ TEST_F(MockSchemaManagerTest, all) {
     auto spaceRet = mock.toGraphSpaceID("test_space");
     ASSERT_TRUE(spaceRet.ok());
     auto spaceId = spaceRet.value();
-    ASSERT_EQ(100, spaceId);
+    ASSERT_EQ(1, spaceId);
 
     auto tagRet = mock.toTagID(spaceId, "person");
     ASSERT_TRUE(tagRet.ok()) << tagRet.status();
