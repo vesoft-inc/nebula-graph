@@ -98,12 +98,12 @@ Status FetchVerticesValidator::prepareVertices() {
 
     // from constant, eval now
     // TODO(shylock) add eval() method for expression
-    std::unique_ptr<ExpressionContext> dummy = std::make_unique<ExpressionContextImpl>();
+    ExpressionContextImpl dummy = ExpressionContextImpl();
     auto vids = sentence_->vidList();
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
         // TODO(shylock) Add a new value type VID to semantic this
-        auto v = vid->eval(*dummy);
+        auto v = vid->eval(dummy);
         if (!v.isStr()) {   // string as vid
             return Status::NotSupported("Not a vertex id");
         }

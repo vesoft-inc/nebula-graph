@@ -94,19 +94,19 @@ Status FetchEdgesValidator::prepareEdges() {
     }
 
     // from constant, eval now
-    std::unique_ptr<ExpressionContext> dummy = std::make_unique<ExpressionContextImpl>();
+    ExpressionContextImpl dummy = ExpressionContextImpl();
     auto keys = sentence_->keys();
     if (keys != nullptr) {
         // row: _src, _type, _ranking, _dst
         edges_.reserve(sentence_->keys()->keys().size());
         for (const auto &key : sentence_->keys()->keys()) {
             // TODO(shylock) Add new value type EDGE_ID to semantic and simplify this
-            auto src = key->srcid()->eval(*dummy);
+            auto src = key->srcid()->eval(dummy);
             if (!src.isStr()) {   // string as vid
                 return Status::NotSupported("src is not a vertex id");
             }
             auto ranking = key->rank();
-            auto dst = key->dstid()->eval(*dummy);
+            auto dst = key->dstid()->eval(dummy);
             if (!src.isStr()) {
                 return Status::NotSupported("dst is not a vertex id");
             }
