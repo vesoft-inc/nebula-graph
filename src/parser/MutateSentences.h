@@ -366,10 +366,12 @@ public:
     UpdateBaseSentence(UpdateList *updateList,
                        WhenClause *whenClause,
                        YieldClause *yieldClause,
+                       std::string* name,
                        bool isInsertable = false) {
         updateList_.reset(updateList);
         whenClause_.reset(whenClause);
         yieldClause_.reset(yieldClause);
+        name_.reset(name);
         insertable_ = isInsertable;
     }
 
@@ -391,11 +393,16 @@ public:
         return yieldClause_.get();
     }
 
+    const std::string* getName() const {
+        return name_.get();
+    }
+
 protected:
     bool                                        insertable_{false};
     std::unique_ptr<UpdateList>                 updateList_;
     std::unique_ptr<WhenClause>                 whenClause_;
     std::unique_ptr<YieldClause>                yieldClause_;
+    std::unique_ptr<std::string>                name_;
 };
 
 class UpdateVertexSentence final : public UpdateBaseSentence {
@@ -406,10 +413,9 @@ public:
                          WhenClause *whenClause,
                          YieldClause *yieldClause,
                          bool isInsertable = false)
-        : UpdateBaseSentence(updateList, whenClause, yieldClause, isInsertable) {
+        : UpdateBaseSentence(updateList, whenClause, yieldClause, tagName, isInsertable) {
         kind_ = Kind::kUpdateVertex;
         vid_.reset(vid);
-        tagName_.reset(tagName);
     }
 
     ~UpdateVertexSentence() {}
@@ -420,10 +426,6 @@ public:
 
     Expression* getVid() const {
         return vid_.get();
-    }
-
-    std::string* getTagName() const {
-        return tagName_.get();
     }
 
     const UpdateList* updateList() const {
@@ -442,7 +444,6 @@ public:
 
 private:
     std::unique_ptr<Expression>                 vid_;
-    std::unique_ptr<std::string>                tagName_;
 };
 
 
@@ -456,12 +457,11 @@ public:
                        WhenClause *whenClause,
                        YieldClause *yieldClause,
                        bool isInsertable = false)
-        : UpdateBaseSentence(updateList, whenClause, yieldClause, isInsertable) {
+        : UpdateBaseSentence(updateList, whenClause, yieldClause, edgeName, isInsertable) {
         kind_ = Kind::kUpdateEdge;
         srcId_.reset(srcId);
         dstId_.reset(dstId);
         rank_ = rank;
-        edgeName_.reset(edgeName);
     }
 
     Expression* getSrcId() const {
@@ -476,17 +476,12 @@ public:
         return rank_;
     }
 
-    const std::string* getEdgeName() const {
-        return edgeName_.get();
-    }
-
     std::string toString() const override;
 
 private:
     std::unique_ptr<Expression>                 srcId_;
     std::unique_ptr<Expression>                 dstId_;
     int64_t                                     rank_{0L};
-    std::unique_ptr<std::string>                edgeName_;
 };
 
 

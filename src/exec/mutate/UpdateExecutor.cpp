@@ -14,7 +14,7 @@ namespace nebula {
 namespace graph {
 
 StatusOr<DataSet> UpdateBaseExecutor::handleResult(const DataSet &data) {
-    if (yieldPros_.empty() && (data.colNames.empty() || data.colNames.size() == 1)) {
+    if (yieldNames_.empty() && (data.colNames.empty() || data.colNames.size() == 1)) {
         return Status::OK();
     }
 
@@ -22,13 +22,13 @@ StatusOr<DataSet> UpdateBaseExecutor::handleResult(const DataSet &data) {
         return Status::Error("Empty return props");
     }
 
-    if (yieldPros_.size() != data.colNames.size() - 1) {
-        LOG(ERROR) << "Expect colName size is " << yieldPros_.size()
+    if (yieldNames_.size() != data.colNames.size() - 1) {
+        LOG(ERROR) << "Expect colName size is " << yieldNames_.size()
                    << ", return colName size is " << data.colNames.size() - 1;
         return Status::Error("Wrong return prop size");
     }
     DataSet result;
-    result.colNames = std::move(yieldPros_);
+    result.colNames = std::move(yieldNames_);
     for (auto &row : data.rows) {
         std::vector<Value> columns;
         for (auto i = 1u; i < row.columns.size(); i++) {
@@ -52,10 +52,16 @@ folly::Future<Status> UpdateVertexExecutor::updateVertex() {
         return vIdRet.status();
     }
     auto vertexId = std::move(vIdRet).value();
-    yieldPros_ = uvNode->getYieldProps();
-    return qctx()->getStorageClient()->updateVertex(uvNode->space(),
+    yieldNames_ = uvNode->getYieldNames();
+    auto spaceId = qctx_->rctx()->session()->space();
+    auto ret = qctx_->schemaMng()->toTagID(spaceId, uvNode->getName());
+    if (!ret.ok()) {
+        return ret.status();
+    }
+    auto tagId = ret.value();
+    return qctx()->getStorageClient()->updateVertex(spaceId,
                                                     vertexId,
-                                                    uvNode->getTagId(),
+                                                    tagId,
                                                     uvNode->getUpdatedProps(),
                                                     uvNode->getInsertable(),
                                                     uvNode->getReturnProps(),
@@ -92,13 +98,22 @@ folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
     if (!dstIdRet.ok()) {
         return dstIdRet.status();
     }
+
+    auto spaceId = qctx_->rctx()->session()->space();
+    auto ret = qctx_->schemaMng()->toEdgeType(spaceId, ueNode->getName());
+    if (!ret.ok()) {
+        return ret.status();
+    }
+    auto edgeType = ret.value();
+
     storage::cpp2::EdgeKey edgeKey;
     edgeKey.set_src(std::move(srcIdRet).value());
     edgeKey.set_ranking(ueNode->getRank());
-    edgeKey.set_edge_type(ueNode->getEdgeType());
+    edgeKey.set_edge_type(edgeType);
     edgeKey.set_dst(std::move(dstIdRet).value());
-    yieldPros_ = ueNode->getYieldProps();
-    return qctx()->getStorageClient()->updateEdge(ueNode->space(),
+    yieldNames_ = ueNode->getYieldNames();
+
+    return qctx()->getStorageClient()->updateEdge(spaceId,
                                                   edgeKey,
                                                   ueNode->getUpdatedProps(),
                                                   ueNode->getInsertable(),

@@ -81,6 +81,8 @@ public:
     virtual ~UpdateBaseValidator() {}
 
 protected:
+    Status initProps();
+
     void getCondition();
 
     void getReturnProps();
@@ -88,10 +90,11 @@ protected:
     Status getUpdateProps();
 
 protected:
-    UpdateBaseSentence                                 *sentence_{nullptr};
+    UpdateBaseSentence                                 *sentence_;
     bool                                                insertable_;
+    std::string                                         name_;
     std::vector<std::string>                            returnProps_;
-    std::vector<std::string>                            yieldProps_;
+    std::vector<std::string>                            yieldColNames_;
     std::string                                         condition_;
     std::vector<storage::cpp2::UpdatedProp>             updatedProps_;
 };
@@ -99,9 +102,13 @@ protected:
 class UpdateVertexValidator final : public UpdateBaseValidator {
 public:
     UpdateVertexValidator(Sentence* sentence, QueryContext* context)
+<<<<<<< HEAD
             : UpdateBaseValidator(sentence, context) {
         sentence_ = static_cast<UpdateVertexSentence*>(sentence);
 >>>>>>> add update executor and test
+=======
+        : UpdateBaseValidator(sentence, context) {
+>>>>>>> update
     }
 
 private:
@@ -131,17 +138,19 @@ public:
     Status toPlan() override;
 
 private:
-    UpdateVertexSentence                               *sentence_{nullptr};
     Expression*                                         vId_{nullptr};
-    TagID                                               tagId_{-1};
 };
 
 class UpdateEdgeValidator final : public UpdateBaseValidator {
 public:
     UpdateEdgeValidator(Sentence* sentence, QueryContext* context)
+<<<<<<< HEAD
             : UpdateBaseValidator(sentence, context) {
         sentence_ = static_cast<UpdateEdgeSentence*>(sentence);
 >>>>>>> add update executor and test
+=======
+        : UpdateBaseValidator(sentence, context) {
+>>>>>>> update
     }
 
 private:
@@ -166,16 +175,18 @@ private:
 =======
 >>>>>>> update expression
 private:
-    UpdateEdgeSentence                               *sentence_{nullptr};
     Expression*                                       srcId_{nullptr};
     Expression*                                       dstId_{nullptr};
     int64_t                                           rank_{0};
+<<<<<<< HEAD
     EdgeType                                          edgeType_{-1};
 <<<<<<< HEAD
     std::vector<storage::cpp2::UpdatedEdgeProp>       updatedProps_;
 >>>>>>> add update executor and test
 =======
 >>>>>>> update expression
+=======
+>>>>>>> update
 };
 }  // namespace graph
 }  // namespace nebula

@@ -500,6 +500,14 @@ Status DeleteEdgesValidator::toPlan() {
     return Status::OK();
 }
 
+Status UpdateBaseValidator::initProps() {
+    insertable_ = sentence_->getInsertable();
+    name_ = *sentence_->getName();
+    getCondition();
+    getReturnProps();
+    return getUpdateProps();
+}
+
 void UpdateBaseValidator::getCondition() {
     auto *clause = sentence_->whenClause();
     if (clause != nullptr) {
@@ -516,9 +524,9 @@ void UpdateBaseValidator::getReturnProps() {
         auto yields = clause->columns();
         for (auto *col : yields) {
             if (col->alias() == nullptr) {
-                yieldProps_.emplace_back(col->expr()->toString());
+                yieldColNames_.emplace_back(col->expr()->toString());
             } else {
-                yieldProps_.emplace_back(*col->alias());
+                yieldColNames_.emplace_back(*col->alias());
             }
             auto column = Expression::encode(*col->expr());
             returnProps_.emplace_back(std::move(column));
@@ -555,25 +563,10 @@ Status UpdateBaseValidator::getUpdateProps() {
 }
 
 Status UpdateVertexValidator::validateImpl() {
-    vId_ = sentence_->getVid();
-    insertable_ = sentence_->getInsertable();
-    getCondition();
-    getReturnProps();
-    Status status = Status::OK();
-    do {
-        status = getUpdateProps();
-        if (!status.ok()) {
-            break;
-        }
-        auto tagRet = qctx_->schemaMng()->toTagID(vctx_->whichSpace().id,
-                                             *sentence_->getTagName());
-        if (!tagRet.ok()) {
-            status = std::move(tagRet).status();
-            break;
-        }
-        tagId_ = tagRet.value();
-    } while (false);
-    return status;
+    auto sentence = static_cast<UpdateVertexSentence*>(sentence_);
+    vId_ = sentence->getVid();
+    // TODO: Check vid_ is right expression
+    return initProps();
 }
 
 Status UpdateVertexValidator::toPlan() {
@@ -581,42 +574,24 @@ Status UpdateVertexValidator::toPlan() {
     auto *start = StartNode::make(plan);
     auto *doNode = UpdateVertex::make(plan,
                                       start,
-                                      vctx_->whichSpace().id,
                                       vId_,
-                                      tagId_,
-                                      updatedProps_,
+                                      std::move(name_),
                                       insertable_,
-                                      returnProps_,
-                                      condition_,
-                                      yieldProps_);
+                                      std::move(updatedProps_),
+                                      std::move(returnProps_),
+                                      std::move(condition_),
+                                      std::move(yieldColNames_));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status UpdateEdgeValidator::validateImpl() {
-    auto spaceId = vctx_->whichSpace().id;
-    getCondition();
-    getReturnProps();
-    srcId_ = sentence_->getSrcId();
-    dstId_ = sentence_->getDstId();
-    rank_ = sentence_->getRank();
-    Status status = Status::OK();
-    do {
-        status = getUpdateProps();
-        if (!status.ok()) {
-            break;
-        }
-
-        auto edgeRet = qctx_->schemaMng()->toEdgeType(spaceId, *sentence_->getEdgeName());
-        if (!edgeRet.ok()) {
-            status = std::move(edgeRet).status();
-            break;
-        }
-        edgeType_ = edgeRet.value();
-    } while (false);
-
-    return status;
+    auto sentence = static_cast<UpdateEdgeSentence*>(sentence_);
+    srcId_ = sentence->getSrcId();
+    dstId_ = sentence->getDstId();
+    rank_ = sentence->getRank();
+    return initProps();
 }
 
 Status UpdateEdgeValidator::toPlan() {
@@ -624,16 +599,15 @@ Status UpdateEdgeValidator::toPlan() {
     auto *start = StartNode::make(plan);
     auto *doNode = UpdateEdge::make(plan,
                                     start,
-                                    vctx_->whichSpace().id,
                                     srcId_,
                                     dstId_,
-                                    edgeType_,
+                                    std::move(name_),
                                     rank_,
-                                    updatedProps_,
                                     insertable_,
-                                    returnProps_,
-                                    condition_,
-                                    yieldProps_);
+                                    std::move(updatedProps_),
+                                    std::move(returnProps_),
+                                    std::move(condition_),
+                                    std::move(yieldColNames_));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

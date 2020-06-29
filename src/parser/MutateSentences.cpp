@@ -210,6 +210,7 @@ std::string UpdateVertexSentence::toString() const {
         buf += "UPDATE ";
     }
     buf += "VERTEX ";
+    buf += "ON " + *name_ + " ";
     buf += vid_->toString();
     buf += " SET ";
     buf += updateList_->toString();
@@ -239,7 +240,7 @@ std::string UpdateEdgeSentence::toString() const {
     buf += "->";
     buf += dstId_->toString();
     buf += " AT" + std::to_string(rank_);
-    buf += " OF " + *edgeName_;
+    buf += " OF " + *name_;
     buf += " SET ";
     buf += updateList_->toString();
     if (whenClause_ != nullptr) {

@@ -26,7 +26,7 @@ protected:
     StatusOr<DataSet> handleResult(const DataSet &data);
 
 protected:
-    std::vector<std::string>         yieldPros_;
+    std::vector<std::string>         yieldNames_;
 };
 
 class UpdateVertexExecutor final : public UpdateBaseExecutor {
