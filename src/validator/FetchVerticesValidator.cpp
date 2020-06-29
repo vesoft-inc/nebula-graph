@@ -103,6 +103,7 @@ Status FetchVerticesValidator::prepareVertices() {
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
         // TODO(shylock) Add a new value type VID to semantic this
+        DCHECK(vid->isConstExpr());
         auto v = vid->eval(dummy);
         if (!v.isStr()) {   // string as vid
             return Status::NotSupported("Not a vertex id");
