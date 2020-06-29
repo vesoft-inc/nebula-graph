@@ -15,6 +15,8 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\""));
 
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
+
         auto *plan = qCtx_->plan();
         auto tagIdResult = schemaMng_->toTagID(1, "person");
         ASSERT_TRUE(tagIdResult.ok());
@@ -22,7 +24,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         storage::cpp2::VertexProp prop;
         prop.set_tag(tagId);
         auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
-                                     nullptr,
+                                     start,
                                      1,
                                      std::vector<Row>{Row({"1"})},
                                      nullptr,
@@ -34,6 +36,8 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     // With YIELD
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, person.age"));
+
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
 
         auto *plan = qCtx_->plan();
         auto tagIdResult = schemaMng_->toTagID(1, "person");
@@ -50,7 +54,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
             EdgePropertyExpression(new std::string("person"), new std::string("age")).encode());
         auto *gv =
             GetVertices::make(expectedQueryCtx_->plan(),
-                              nullptr,
+                              start,
                               1,
                               std::vector<Row>{Row({"1"})},
                               nullptr,
@@ -62,6 +66,8 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     // With YIELD const expression
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, 1 > 1, person.age"));
+
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
 
         auto *plan = qCtx_->plan();
 
@@ -80,7 +86,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
             EdgePropertyExpression(new std::string("person"), new std::string("age")).encode());
         auto *gv =
             GetVertices::make(expectedQueryCtx_->plan(),
-                              nullptr,
+                              start,
                               1,
                               std::vector<Row>{Row({"1"})},
                               nullptr,
@@ -104,6 +110,8 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name + person.age"));
 
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
+
         auto *plan = qCtx_->plan();
         auto tagIdResult = schemaMng_->toTagID(1, "person");
         ASSERT_TRUE(tagIdResult.ok());
@@ -120,7 +128,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
                 .encode());
 
         auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
-                                     nullptr,
+                                     start,
                                      1,
                                      std::vector<Row>{Row({"1"})},
                                      nullptr,
@@ -133,10 +141,12 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON * \"1\""));
 
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
+
         auto *plan = qCtx_->plan();
 
         auto *gv = GetVertices::make(
-            expectedQueryCtx_->plan(), nullptr, 1, std::vector<Row>{Row({"1"})}, nullptr, {}, {});
+            expectedQueryCtx_->plan(), start, 1, std::vector<Row>{Row({"1"})}, nullptr, {}, {});
         auto result = Eq(plan->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }

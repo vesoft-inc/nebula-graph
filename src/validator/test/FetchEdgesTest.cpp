@@ -15,6 +15,8 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\""));
 
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
+
         auto *plan = qCtx_->plan();
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
@@ -30,7 +32,7 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         std::vector<storage::cpp2::EdgeProp> props;
         props.emplace_back(std::move(prop));
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
-                                  nullptr,
+                                  start,
                                   1,
                                   std::move(edges),
                                   nullptr,
@@ -46,6 +48,8 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
     // With YIELD
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end"));
+
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
 
         auto *plan = qCtx_->plan();
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
@@ -73,7 +77,7 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         exprs.emplace_back(std::move(expr1));
         exprs.emplace_back(std::move(expr2));
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
-                                  nullptr,
+                                  start,
                                   1,
                                   std::move(edges),
                                   nullptr,
@@ -89,6 +93,8 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
     // With YIELD const expression
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, 1 + 1, like.end"));
+
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
 
         auto *plan = qCtx_->plan();
 
@@ -118,7 +124,7 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         exprs.emplace_back(std::move(expr1));
         exprs.emplace_back(std::move(expr2));
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
-                                  nullptr,
+                                  start,
                                   1,
                                   std::move(edges),
                                   nullptr,
@@ -144,6 +150,8 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
     // With YIELD combine properties
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end"));
+
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
 
         auto *plan = qCtx_->plan();
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
@@ -171,7 +179,7 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
                 .encode());
         exprs.emplace_back(std::move(expr1));
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
-                                  nullptr,
+                                  start,
                                   1,
                                   std::move(edges),
                                   nullptr,
