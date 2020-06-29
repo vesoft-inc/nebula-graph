@@ -160,7 +160,7 @@ Status GetSubgraphValidator::toPlan() {
     auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto vidsToSave = vctx_->varGen()->getVar();
     DataSet ds;
-    ds.colNames.emplace_back("_vid");
+    ds.colNames.emplace_back(_VID);
     for (auto& vid : starts_) {
         Row row;
         row.values.emplace_back(vid);
@@ -170,7 +170,7 @@ Status GetSubgraphValidator::toPlan() {
         Value(std::move(ds)), State(State::Stat::kSuccess, "")));
     auto* vids = new VariablePropertyExpression(
                      new std::string(vidsToSave),
-                     new std::string("_vid"));
+                     new std::string(_VID));
     auto* gn1 = GetNeighbors::make(
             plan,
             bodyStart,
@@ -188,8 +188,8 @@ Status GetSubgraphValidator::toPlan() {
     auto* column = new YieldColumn(
             new EdgePropertyExpression(
                 new std::string("*"),
-                new std::string("_dst")),
-            new std::string("_vid"));
+                new std::string(_DST)),
+            new std::string(_VID));
     columns->addColumn(column);
     auto* project = Project::make(plan, gn1, plan->saveObject(columns));
     project->setInputVar(gn1->varName());

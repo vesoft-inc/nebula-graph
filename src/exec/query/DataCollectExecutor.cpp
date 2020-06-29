@@ -55,7 +55,7 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
             }
         }
     }
-    result_ = Value(std::move(ds));
+    result_.setDataSet(std::move(ds));
     return Status::OK();
 }
 }  // namespace graph

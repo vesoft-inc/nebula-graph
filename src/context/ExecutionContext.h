@@ -151,8 +151,7 @@ public:
     void truncHistory(const std::string& name, size_t numVersionsToKeep);
 
     bool exist(const std::string& name) const {
-        auto it = valueMap_.find(name);
-        return it != valueMap_.end();
+        return valueMap_.find(name) != valueMap_.end();
     }
 
 private:
