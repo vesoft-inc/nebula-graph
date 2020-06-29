@@ -41,6 +41,7 @@ protected:
             return ::testing::AssertionFailure() << result.status().toString();
         }
         auto sentences = std::move(result).value();
+        qCtx_ = buildContext();
         ASTValidator validator(sentences.get(), qCtx_.get());
         auto validateResult = validator.validate();
         if (!validateResult.ok()) {
