@@ -63,13 +63,20 @@ Status CreateTagValidator::toPlan() {
         auto *start = StartNode::make(plan);
         doNode = CreateTag::make(plan,
                 start, std::move(tagName_), std::move(schema_), ifNotExist_);
+        root_ = doNode;
+        tail_ = start;
     } else {
         doNode = CreateTag::make(plan,
                 plan->root(), std::move(tagName_), std::move(schema_), ifNotExist_);
+        root_ = doNode;
+        tail_ = root_;
     }
+<<<<<<< HEAD
 >>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
+=======
+>>>>>>> address comment
     return Status::OK();
 }
 
@@ -121,13 +128,20 @@ Status CreateEdgeValidator::toPlan() {
         auto *start = StartNode::make(plan);
         doNode = CreateEdge::make(plan,
                 start, std::move(edgeName_), std::move(schema_), ifNotExist_);
+        root_ = doNode;
+        tail_ = start;
     } else {
         doNode = CreateEdge::make(plan,
                 plan->root(), std::move(edgeName_), std::move(schema_), ifNotExist_);
+        root_ = doNode;
+        tail_ = root_;
     }
+<<<<<<< HEAD
 >>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
+=======
+>>>>>>> address comment
     return Status::OK();
 }
 
@@ -150,12 +164,19 @@ Status DescTagValidator::toPlan() {
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
         doNode = DescTag::make(plan, start, std::move(name));
+        root_ = doNode;
+        tail_ = start;
     } else {
         doNode = DescTag::make(plan, plan->root(), std::move(name));
+        root_ = doNode;
+        tail_ = root_;
     }
+<<<<<<< HEAD
 >>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
+=======
+>>>>>>> address comment
     return Status::OK();
 }
 
@@ -178,12 +199,19 @@ Status DescEdgeValidator::toPlan() {
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
         doNode = DescEdge::make(plan, start, std::move(name));
+        root_ = doNode;
+        tail_ = start;
     } else {
         doNode = DescEdge::make(plan, plan->root(), std::move(name));
+        root_ = doNode;
+        tail_ = root_;
     }
+<<<<<<< HEAD
 >>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
+=======
+>>>>>>> address comment
     return Status::OK();
 }
 }  // namespace graph

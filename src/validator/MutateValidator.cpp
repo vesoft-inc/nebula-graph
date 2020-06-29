@@ -49,16 +49,23 @@ Status InsertVerticesValidator::toPlan() {
                                       std::move(vertices_),
                                       std::move(tagPropNames_),
                                       overwritable_);
+        root_ = doNode;
+        tail_ = start;
     } else {
         doNode = InsertVertices::make(plan,
                                       plan->root(),
                                       std::move(vertices_),
                                       std::move(tagPropNames_),
                                       overwritable_);
+        root_ = doNode;
+        tail_ = root_;
     }
+<<<<<<< HEAD
 >>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
+=======
+>>>>>>> address comment
     return Status::OK();
 }
 
@@ -197,16 +204,23 @@ Status InsertEdgesValidator::toPlan() {
                                    std::move(edges_),
                                    std::move(propNames_),
                                    overwritable_);
+        root_ = doNode;
+        tail_ = start;
     } else {
         doNode = InsertEdges::make(plan,
                                    plan->root(),
                                    std::move(edges_),
                                    std::move(propNames_),
                                    overwritable_);
+        root_ = doNode;
+        tail_ = root_;
     }
+<<<<<<< HEAD
 >>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
+=======
+>>>>>>> address comment
     return Status::OK();
 }
 

@@ -115,12 +115,19 @@ Status CreateSpaceValidator::toPlan() {
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
         doNode = CreateSpace::make(plan, start, std::move(spaceDesc_), ifNotExist_);
+        root_ = doNode;
+        tail_ = start;
     } else {
         doNode = CreateSpace::make(plan, plan->root(), std::move(spaceDesc_), ifNotExist_);
+        root_ = doNode;
+        tail_ = root_;
     }
+<<<<<<< HEAD
 >>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
+=======
+>>>>>>> address comment
     return Status::OK();
 }
 
@@ -139,12 +146,19 @@ Status DescSpaceValidator::toPlan() {
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
         doNode = DescSpace::make(plan, start, *sentence->spaceName());
+        root_ = doNode;
+        tail_ = start;
     } else {
         doNode = DescSpace::make(plan, plan->root(), *sentence->spaceName());
+        root_ = doNode;
+        tail_ = root_;
     }
+<<<<<<< HEAD
 >>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
+=======
+>>>>>>> address comment
     return Status::OK();
 }
 }  // namespace graph
