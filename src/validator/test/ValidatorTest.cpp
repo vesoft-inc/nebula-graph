@@ -233,5 +233,35 @@ namespace graph {
     return result;
 }
 
-}   // namespace graph
-}   // namespace nebula
+TEST_F(ValidatorTest, TestFirstSentence) {
+    auto testFirstSentence = [](StatusOr<ExecutionPlan*> so) -> bool {
+        if (so.ok()) return false;
+        auto status = std::move(so).status();
+        auto err = status.toString();
+        return err.find_first_of("SyntaxError: Could not start with the statement") == 0;
+    };
+
+    {
+        auto status = validate("LIMIT 2, 10");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("LIMIT 2, 10 | YIELD 2");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("LIMIT 2, 10 | YIELD 2 | YIELD 3");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("ORDER BY 1");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+    {
+        auto status = validate("GROUP BY 1");
+        ASSERT_TRUE(testFirstSentence(status));
+    }
+}
+
+}  // namespace graph
+}  // namespace nebula
