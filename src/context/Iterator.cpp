@@ -178,9 +178,11 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
     }
     auto colId = index->second.first;
     auto* row = currentRow();
-    DCHECK_GT(row->values.size(), colId);
-    DCHECK(row->values[colId].isList());
-    auto& list = row->values[colId].getList();
+    DCHECK_GT(row->columns.size(), colId);
+    if (row->columns[colId].isList()) {
+        return Value::kNullBadType;
+    }
+    auto& list = row->columns[colId].getList();
     return list.values[propIndex->second];
 }
 
@@ -218,7 +220,7 @@ Value GetNeighborsIter::getVertex() const {
     auto segment = currentSeg();
     auto vidVal = getColumn("_vid");
     if (!vidVal.isStr()) {
-        return Value::kNullValue;
+        return Value::kNullBadType;
     }
     Vertex vertex;
     vertex.vid = vidVal.getStr();
@@ -227,9 +229,12 @@ Value GetNeighborsIter::getVertex() const {
         auto* row = currentRow();
         auto& tagPropNameList = tagProp.second.second;
         auto tagColId = tagProp.second.first;
-        DCHECK_GE(row->values.size(), tagColId);
-        DCHECK(row->values[tagColId].isList());
-        auto& propList = row->values[tagColId].getList();
+        if (!row->columns[tagColId].isList()) {
+            // Ignore the bad value.
+            continue;
+        }
+        DCHECK_GE(row->columns.size(), tagColId);
+        auto& propList = row->columns[tagColId].getList();
         DCHECK_EQ(tagPropNameList.size(), propList.values.size());
         Tag tag;
         tag.name = tagProp.first;
