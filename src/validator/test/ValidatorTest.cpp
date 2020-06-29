@@ -155,8 +155,8 @@ TEST_F(ValidatorTest, Go) {
     {
         std::string query = "GO 3 STEPS FROM \"1\" OVER like";
         auto status = validate(query);
-        EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
+        // TODO: implement n steps and test plan.
+        EXPECT_FALSE(status.ok()) << status.status();
     }
     {
         std::string query = "GO FROM \"1\" OVER like REVERSELY";
@@ -187,8 +187,8 @@ TEST_F(ValidatorTest, Go) {
         std::string query = "GO FROM \"1\" OVER like "
                             "YIELD $$.person.name,$$.person.age";
         auto status = validate(query);
-        EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
+        // TODO: implement get dst props and test plan.
+        EXPECT_FALSE(status.ok()) << status.status();
     }
     {
         std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like";

@@ -42,6 +42,18 @@ Status GoValidator::validateImpl() {
             break;
         }
 
+        if (!inputProps_.empty() && fromType_ != kPipe) {
+            status = Status::Error("$- must be referred in FROM "
+                                    "before used in WHERE or YIELD");
+            break;
+        }
+
+        if (!varProps_.empty() && fromType_ != kVariable) {
+            status = Status::Error("A variable must be referred in FROM "
+                                    "before used in WHERE or YIELD");
+            break;
+        }
+
         if ((!inputProps_.empty() && !varProps_.empty())
                 || varProps_.size() > 1) {
             status = Status::Error(
@@ -68,7 +80,7 @@ Status GoValidator::validateImpl() {
         }
 
         if (distinct_) {
-            // TODO: implement distinct_;
+            // TODO: implement distinct;
             status = Status::Error("Not support distinct yet.");
             break;
         }
@@ -101,6 +113,7 @@ Status GoValidator::validateFrom(const FromClause* from) {
                     "`%s', Only input and variable expression is acceptable"
                     " when starts are evaluated at runtime.", src->toString().c_str());
         } else {
+            fromType_ = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
             auto type = deduceExprType(src);
             if (!type.ok()) {
                 return type.status();
@@ -376,6 +389,7 @@ Status GoValidator::buildOneStepPlan() {
 
     root_ = project;
     tail_ = gn1;
+    VLOG(1) << "root: " << root_ << "tail: " << tail_;
     return Status::OK();
 }
 
@@ -385,7 +399,7 @@ std::string GoValidator::buildInput() {
     ds.colNames.emplace_back("_vid");
     for (auto& vid : starts_) {
         Row row;
-        row.columns.emplace_back(vid);
+        row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
     qctx_->ectx()->setResult(input, ExecResult::buildSequential(

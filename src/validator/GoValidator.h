@@ -49,8 +49,15 @@ private:
 
     GetNeighbors::EdgeProps buildEdgeProps();
 
+    enum FromType {
+        kConstantExpr,
+        kVariable,
+        kPipe,
+    };
+
 private:
     int64_t                                                 steps_;
+    FromType                                                fromType_{kConstantExpr};
     Expression*                                             src_{nullptr};
     std::vector<Value>                                      starts_;
     bool                                                    isOverAll_{false};
