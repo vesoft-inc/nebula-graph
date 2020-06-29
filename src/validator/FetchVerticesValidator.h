@@ -47,7 +47,6 @@ private:
     std::vector<storage::cpp2::OrderBy> orderBy_{};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
     std::string filter_{};
-    bool withInput_{false};
     // valid when yield expression not require storage
     // So expression like these will be evaluate in Project Executor
     bool withProject_{false};

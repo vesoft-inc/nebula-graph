@@ -38,7 +38,7 @@ Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
     auto *plan = qctx_->plan();
     auto *doNode = GetVertices::make(plan,
-                                     withInput_ ? plan->root() : nullptr,  // previous root as input
+                                     plan->root(),  // previous root as input
                                      spaceId_,
                                      std::move(vertices_),
                                      std::move(src_),
@@ -92,7 +92,6 @@ Status FetchVerticesValidator::prepareVertices() {
     // from ref, eval when execute
     if (sentence_->isRef()) {
         src_ = sentence_->moveRef();
-        withInput_ = true;
         return Status::OK();
     }
 

@@ -37,7 +37,7 @@ Status FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
     auto *plan = qctx_->plan();
     auto *doNode = GetEdges::make(plan,
-                                  withInput_ ? plan->root() : nullptr,  // previous root as input
+                                  plan->root(),  // previous root as input
                                   spaceId_,
                                   std::move(edges_),
                                   std::move(src_),
@@ -89,7 +89,6 @@ Status FetchEdgesValidator::prepareEdges() {
         src_ = sentence_->ref()->moveSrcId();
         ranking_ = sentence_->ref()->moveRank();
         dst_ = sentence_->ref()->moveDstId();
-        withInput_ = true;
         return Status::OK();
     }
 
