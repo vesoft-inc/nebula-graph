@@ -31,7 +31,10 @@ folly::Future<Status> IntersectExecutor::execute() {
     }
 
     if (hashSet.empty()) {
-        return finish(ExecResult::buildSequential(Value(DataSet()), State()));
+        auto value = lIter->valuePtr();
+        DataSet ds;
+        ds.colNames = value->getDataSet().colNames;
+        return finish(ExecResult::buildSequential(Value(std::move(ds)), State()));
     }
 
     while (lIter->valid()) {
