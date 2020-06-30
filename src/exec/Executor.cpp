@@ -9,6 +9,7 @@
 #include <folly/String.h>
 #include <folly/executors/InlineExecutor.h>
 
+#include "context/ExecutionContext.h"
 #include "context/QueryContext.h"
 #include "exec/ExecutionError.h"
 #include "exec/admin/CreateSpaceExecutor.h"
@@ -37,6 +38,7 @@
 #include "exec/query/ReadIndexExecutor.h"
 #include "exec/query/SortExecutor.h"
 #include "exec/query/UnionExecutor.h"
+#include "exec/query/DataCollectExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Maintain.h"
 #include "planner/Mutate.h"
@@ -252,6 +254,13 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             exec->addDependent(input);
             break;
         }
+        case PlanNode::Kind::kDataCollect: {
+            auto dc = asNode<DataCollect>(node);
+            auto input = makeExecutor(dc->input(), qctx, visited);
+            exec = new DataCollectExecutor(dc, qctx);
+            exec->addDependent(input);
+            break;
+        }
         case PlanNode::Kind::kUnknown:
         default:
             LOG(FATAL) << "Unknown plan node kind.";
@@ -264,19 +273,17 @@ Executor *Executor::makeExecutor(const PlanNode *node,
     return qctx->objPool()->add(exec);
 }
 
-int64_t Executor::id() const {
-    return node()->id();
-}
-
 Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *qctx)
-    : name_(name), node_(node), qctx_(qctx) {
-    DCHECK(!!node_);
-    DCHECK(!!qctx_);
-
+    : id_(DCHECK_NOTNULL(node)->id()),
+      name_(name),
+      node_(DCHECK_NOTNULL(node)),
+      qctx_(DCHECK_NOTNULL(qctx)) {
     ectx_ = qctx->ectx();
     // Initialize the position in ExecutionContext for each executor before execution plan
     // starting to run. This will avoid lock something for thread safety in real execution
-    ectx_->setValue(node->varName(), nebula::Value());
+    if (!ectx_->exist(node->varName())) {
+        ectx_->initVar(node->varName());
+    }
 }
 
 folly::Future<Status> Executor::start(Status status) const {
