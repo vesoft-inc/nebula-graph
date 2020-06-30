@@ -50,6 +50,7 @@ public:
         kDescEdge,
         kInsertVertices,
         kInsertEdges,
+        kDataCollect,
         // user related
         kCreateUser,
         kDropUser,

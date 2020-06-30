@@ -11,18 +11,13 @@ namespace graph {
 
 TEST_F(ValidatorTest, Subgraph) {
     {
-        std::string query = "GET SUBGRAPH 3 STEPS FROM \"1\"";
-        auto result = GQLParser().parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-        auto sentences = std::move(result).value();
-        auto context = buildContext();
-        ASTValidator validator(sentences.get(), context.get());
-        auto validateResult = validator.validate();
-        ASSERT_TRUE(validateResult.ok()) << validateResult;
-        auto plan = context->plan();
+        auto status = validate("GET SUBGRAPH 3 STEPS FROM \"1\"");
+        ASSERT_TRUE(status.ok());
+        auto plan = std::move(status).value();
         ASSERT_NE(plan, nullptr);
         using PK = nebula::graph::PlanNode::Kind;
         std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
             PK::kLoop,
             PK::kStart,
             PK::kProject,

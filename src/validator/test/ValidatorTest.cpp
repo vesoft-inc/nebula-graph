@@ -49,7 +49,8 @@ void ValidatorTest::bfsTraverse(const PlanNode* root, std::vector<PlanNode::Kind
             case PlanNode::Kind::kAggregate:
             case PlanNode::Kind::kSwitchSpace:
             case PlanNode::Kind::kMultiOutputs:
-            case PlanNode::Kind::kDedup: {
+            case PlanNode::Kind::kDedup:
+            case PlanNode::Kind::kDataCollect: {
                 auto* current = static_cast<const SingleInputNode*>(node);
                 queue.emplace(current->input());
                 break;
