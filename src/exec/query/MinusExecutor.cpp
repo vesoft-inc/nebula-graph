@@ -30,12 +30,14 @@ folly::Future<Status> MinusExecutor::execute() {
         }
     }
 
-    while (lIter->valid()) {
-        auto iter = hashSet.find(lIter->row());
-        if (iter == hashSet.end()) {
-            lIter->next();
-        } else {
-            lIter->erase();
+    if (!hashSet.empty()) {
+        while (lIter->valid()) {
+            auto iter = hashSet.find(lIter->row());
+            if (iter == hashSet.end()) {
+                lIter->next();
+            } else {
+                lIter->erase();
+            }
         }
     }
 

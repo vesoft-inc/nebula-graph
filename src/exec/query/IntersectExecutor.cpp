@@ -30,6 +30,10 @@ folly::Future<Status> IntersectExecutor::execute() {
         }
     }
 
+    if (hashSet.empty()) {
+        return finish(ExecResult::buildSequential(Value(DataSet()), State()));
+    }
+
     while (lIter->valid()) {
         auto iter = hashSet.find(lIter->row());
         if (iter == hashSet.end()) {
