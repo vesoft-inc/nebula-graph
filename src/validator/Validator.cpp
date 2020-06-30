@@ -84,6 +84,15 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kAggregate:
         case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:
+        case PlanNode::Kind::kCreateUser:
+        case PlanNode::Kind::kDropUser:
+        case PlanNode::Kind::kUpdateUser:
+        case PlanNode::Kind::kGrantRole:
+        case PlanNode::Kind::kRevokeRole:
+        case PlanNode::Kind::kChangePassword:
+        case PlanNode::Kind::kListUserRoles:
+        case PlanNode::Kind::kListUsers:
+        case PlanNode::Kind::kListRoles:
         case PlanNode::Kind::kSwitchSpace: {
             static_cast<SingleInputNode*>(node)->setInput(appended);
             break;

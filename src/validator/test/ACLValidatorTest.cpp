@@ -49,6 +49,12 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_TRUE(toPlan(folly::stringPrintf("CREATE USER %s", user)));
         const ExecutionPlan *plan = qCtx_->plan();
 
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kCreateUser,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
+
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
         auto createUser = static_cast<const CreateUser*>(root);
@@ -60,6 +66,11 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_TRUE(toPlan(folly::stringPrintf("CREATE USER IF NOT EXISTS %s", user)));
         const ExecutionPlan *plan = qCtx_->plan();
 
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kCreateUser,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
@@ -73,6 +84,12 @@ TEST_F(ACLValidatorTest, Simple) {
                                      user,
                                      password)));
         const ExecutionPlan *plan = qCtx_->plan();
+
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kCreateUser,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
@@ -88,6 +105,12 @@ TEST_F(ACLValidatorTest, Simple) {
                                     user)));
         const ExecutionPlan *plan = qCtx_->plan();
 
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kDropUser,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
+
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kDropUser);
         auto dropUser = static_cast<const DropUser*>(root);
@@ -98,6 +121,12 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_TRUE(toPlan(folly::stringPrintf("DROP USER IF EXISTS %s",
                                     user)));
         const ExecutionPlan *plan = qCtx_->plan();
+
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kDropUser,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kDropUser);
@@ -112,6 +141,12 @@ TEST_F(ACLValidatorTest, Simple) {
                                     user, password)));
         const ExecutionPlan *plan = qCtx_->plan();
 
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kUpdateUser,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
+
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kUpdateUser);
         auto updateUser = static_cast<const UpdateUser*>(root);
@@ -124,6 +159,12 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_TRUE(toPlan(folly::stringPrintf("CHANGE PASSWORD %s FROM \"%s\" TO \"%s\"",
                                     user, password, newPassword)));
         const ExecutionPlan *plan = qCtx_->plan();
+
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kChangePassword,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kChangePassword);
@@ -139,6 +180,12 @@ TEST_F(ACLValidatorTest, Simple) {
                                      roleTypeName, space, user)));
         const ExecutionPlan *plan = qCtx_->plan();
 
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kGrantRole,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
+
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kGrantRole);
         auto grantRole = static_cast<const GrantRole*>(root);
@@ -152,6 +199,12 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_TRUE(toPlan(folly::stringPrintf("REVOKE ROLE %s ON %s FROM %s",
                                     roleTypeName, space, user)));
         const ExecutionPlan *plan = qCtx_->plan();
+
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kRevokeRole,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kRevokeRole);
