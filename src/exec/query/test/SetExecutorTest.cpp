@@ -152,6 +152,19 @@ TEST_F(SetExecutorTest, TestUnionAll) {
 
         testUnion(lds, rds, expected);
     }
+    // All empty
+    {
+        DataSet lds;
+        lds.colNames = colNames;
+
+        DataSet rds;
+        rds.colNames = colNames;
+
+        DataSet expected;
+        expected.colNames = colNames;
+
+        testUnion(lds, rds, expected);
+    }
 }
 
 TEST_F(SetExecutorTest, TestUnionDifferentColumns) {
@@ -261,7 +274,7 @@ TEST_F(SetExecutorTest, TestIntersect) {
         };
         testInterset(lds, rds, expected);
     }
-    // Right are empty
+    // Right is empty
     {
         DataSet lds;
         lds.colNames = {"col1", "col2"};
@@ -279,7 +292,7 @@ TEST_F(SetExecutorTest, TestIntersect) {
 
         testInterset(lds, rds, expected);
     }
-    // Left are empty
+    // Left is empty
     {
         DataSet lds;
         lds.colNames = {"col1", "col2"};
@@ -290,6 +303,19 @@ TEST_F(SetExecutorTest, TestIntersect) {
             Row({Value(1), Value("row1")}),
             Row({Value(3), Value("row3")}),
         };
+
+        DataSet expected;
+        expected.colNames = {"col1", "col2"};
+
+        testInterset(lds, rds, expected);
+    }
+    // All empty
+    {
+        DataSet lds;
+        lds.colNames = {"col1", "col2"};
+
+        DataSet rds;
+        rds.colNames = {"col1", "col2"};
 
         DataSet expected;
         expected.colNames = {"col1", "col2"};
@@ -354,7 +380,7 @@ TEST_F(SetExecutorTest, TestMinus) {
 
         testMinus(lds, rds, expected);
     }
-    // Left are empty
+    // Left is empty
     {
         DataSet lds;
         lds.colNames = {"col1", "col2"};
@@ -371,8 +397,7 @@ TEST_F(SetExecutorTest, TestMinus) {
 
         testMinus(lds, rds, expected);
     }
-
-    // Right are empty
+    // Right is empty
     {
         DataSet lds;
         lds.colNames = {"col1", "col2"};
@@ -392,6 +417,19 @@ TEST_F(SetExecutorTest, TestMinus) {
             Row({Value(1), Value("row1")}),
             Row({Value(2), Value("row2")}),
         };
+
+        testMinus(lds, rds, expected);
+    }
+    // All empty
+    {
+        DataSet lds;
+        lds.colNames = {"col1", "col2"};
+
+        DataSet rds;
+        rds.colNames = {"col1", "col2"};
+
+        DataSet expected;
+        expected.colNames = {"col1", "col2"};
 
         testMinus(lds, rds, expected);
     }
