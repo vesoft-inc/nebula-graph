@@ -6,7 +6,7 @@
 
 #include "exec/admin/DescSpaceExecutor.h"
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +19,7 @@ folly::Future<Status> DescSpaceExecutor::descSpace() {
     dumpLog();
 
     auto *dsNode = asNode<DescSpace>(node());
-    return ectx()->getMetaClient()->getSpace(dsNode->getSpaceName())
+    return qctx()->getMetaClient()->getSpace(dsNode->getSpaceName())
         .via(runner())
         .then([this](StatusOr<meta::cpp2::SpaceItem> resp) {
             if (!resp.ok()) {
@@ -46,7 +46,7 @@ folly::Future<Status> DescSpaceExecutor::descSpace() {
             columns.emplace_back(properties.get_vid_size());
             columns.emplace_back(properties.get_charset_name());
             columns.emplace_back(properties.get_collate_name());
-            row.columns = std::move(columns);
+            row.values = std::move(columns);
             rows.emplace_back(row);
             dataSet.rows = rows;
             finish(Value(std::move(dataSet)));

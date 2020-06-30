@@ -18,7 +18,7 @@ namespace nebula {
 namespace graph {
 class SequentialValidator final : public Validator {
 public:
-    SequentialValidator(Sentence* sentence, ValidateContext* context)
+    SequentialValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:
@@ -36,6 +36,8 @@ private:
      * be cascaded together into a complete execution plan.
      */
     Status toPlan() override;
+
+    const Sentence* getFirstSentence(const Sentence* sentence) const;
 
 private:
     std::vector<std::unique_ptr<Validator>>     validators_;

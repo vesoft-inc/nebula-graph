@@ -75,7 +75,7 @@ std::string Aggregate::explain() const {
     return "Aggregate";
 }
 
-std::string Selector::explain() const {
+std::string Select::explain() const {
     return "Selector";
 }
 
@@ -92,6 +92,10 @@ std::string SwitchSpace::explain() const {
 
 std::string Dedup::explain() const {
     return "Dedup";
+}
+
+std::string DataCollect::explain() const {
+    return "DataCollect";
 }
 }  // namespace graph
 }  // namespace nebula

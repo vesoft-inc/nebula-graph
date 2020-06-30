@@ -7,15 +7,15 @@
 #ifndef EXEC_QUERY_INTERSECTEXECUTOR_H_
 #define EXEC_QUERY_INTERSECTEXECUTOR_H_
 
-#include "exec/Executor.h"
+#include "exec/query/SetExecutor.h"
 
 namespace nebula {
 namespace graph {
 
-class IntersectExecutor : public Executor {
+class IntersectExecutor : public SetExecutor {
 public:
-    IntersectExecutor(const PlanNode *node, ExecutionContext *ectx)
-        : Executor("IntersectExecutor", node, ectx) {}
+    IntersectExecutor(const PlanNode *node, QueryContext *qctx)
+        : SetExecutor("IntersectExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };

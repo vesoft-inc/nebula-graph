@@ -22,7 +22,9 @@ nebula_add_library(
     query/ProjectExecutor.cpp
     query/SortExecutor.cpp
     query/ReadIndexExecutor.cpp
+    query/SetExecutor.cpp
     query/UnionExecutor.cpp
+    query/DataCollectExecutor.cpp
     admin/SwitchSpaceExecutor.cpp
     admin/CreateSpaceExecutor.cpp
     admin/DescSpaceExecutor.cpp
@@ -33,3 +35,6 @@ nebula_add_library(
     mutate/InsertVerticesExecutor.cpp
     mutate/InsertEdgesExecutor.cpp
 )
+
+nebula_add_subdirectory(query/test)
+nebula_add_subdirectory(logic/test)

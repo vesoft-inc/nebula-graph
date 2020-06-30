@@ -9,6 +9,8 @@
 #include <folly/String.h>
 #include <folly/executors/InlineExecutor.h>
 
+#include "context/ExecutionContext.h"
+#include "context/QueryContext.h"
 #include "exec/ExecutionError.h"
 #include "exec/admin/CreateSpaceExecutor.h"
 #include "exec/admin/DescSpaceExecutor.h"
@@ -36,12 +38,12 @@
 #include "exec/query/ReadIndexExecutor.h"
 #include "exec/query/SortExecutor.h"
 #include "exec/query/UnionExecutor.h"
+#include "exec/query/DataCollectExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Maintain.h"
 #include "planner/Mutate.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
-#include "service/ExecutionContext.h"
 #include "util/ObjectPool.h"
 
 using folly::stringPrintf;
@@ -50,11 +52,17 @@ namespace nebula {
 namespace graph {
 
 // static
+Executor *Executor::makeExecutor(const PlanNode *node, QueryContext *qctx) {
+    std::unordered_map<int64_t, Executor *> visited;
+    return makeExecutor(node, qctx, &visited);
+}
+
+// static
 Executor *Executor::makeExecutor(const PlanNode *node,
-                                 ExecutionContext *ectx,
-                                 std::unordered_map<int64_t, Executor *> *cache) {
-    auto iter = cache->find(node->id());
-    if (iter != cache->end()) {
+                                 QueryContext *qctx,
+                                 std::unordered_map<int64_t, Executor *> *visited) {
+    auto iter = visited->find(node->id());
+    if (iter != visited->end()) {
         return iter->second;
     }
 
@@ -63,171 +71,178 @@ Executor *Executor::makeExecutor(const PlanNode *node,
     switch (node->kind()) {
         case PlanNode::Kind::kMultiOutputs: {
             auto mout = asNode<MultiOutputsNode>(node);
-            auto input = makeExecutor(mout->input(), ectx, cache);
-            exec = new MultiOutputsExecutor(mout, ectx);
+            auto input = makeExecutor(mout->input(), qctx, visited);
+            exec = new MultiOutputsExecutor(mout, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kAggregate: {
             auto agg = asNode<Aggregate>(node);
-            auto input = makeExecutor(agg->input(), ectx, cache);
-            exec = new AggregateExecutor(agg, ectx);
+            auto input = makeExecutor(agg->input(), qctx, visited);
+            exec = new AggregateExecutor(agg, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kSort: {
             auto sort = asNode<Sort>(node);
-            auto input = makeExecutor(sort->input(), ectx, cache);
-            exec = new SortExecutor(sort, ectx);
+            auto input = makeExecutor(sort->input(), qctx, visited);
+            exec = new SortExecutor(sort, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kFilter: {
             auto filter = asNode<Filter>(node);
-            auto input = makeExecutor(filter->input(), ectx, cache);
-            exec = new FilterExecutor(filter, ectx);
+            auto input = makeExecutor(filter->input(), qctx, visited);
+            exec = new FilterExecutor(filter, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kGetEdges: {
             auto ge = asNode<GetEdges>(node);
-            auto input = makeExecutor(ge->input(), ectx, cache);
-            exec = new GetEdgesExecutor(ge, ectx);
+            auto input = makeExecutor(ge->input(), qctx, visited);
+            exec = new GetEdgesExecutor(ge, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kGetVertices: {
             auto gv = asNode<GetVertices>(node);
-            auto input = makeExecutor(gv->input(), ectx, cache);
-            exec = new GetVerticesExecutor(gv, ectx);
+            auto input = makeExecutor(gv->input(), qctx, visited);
+            exec = new GetVerticesExecutor(gv, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kGetNeighbors: {
             auto gn = asNode<GetNeighbors>(node);
-            auto input = makeExecutor(gn->input(), ectx, cache);
-            exec = new GetNeighborsExecutor(gn, ectx);
+            auto input = makeExecutor(gn->input(), qctx, visited);
+            exec = new GetNeighborsExecutor(gn, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kLimit: {
             auto limit = asNode<Limit>(node);
-            auto input = makeExecutor(limit->input(), ectx, cache);
-            exec = new LimitExecutor(limit, ectx);
+            auto input = makeExecutor(limit->input(), qctx, visited);
+            exec = new LimitExecutor(limit, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kProject: {
             auto project = asNode<Project>(node);
-            auto input = makeExecutor(project->input(), ectx, cache);
-            exec = new ProjectExecutor(project, ectx);
+            auto input = makeExecutor(project->input(), qctx, visited);
+            exec = new ProjectExecutor(project, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kReadIndex: {
             auto readIndex = asNode<ReadIndex>(node);
-            auto input = makeExecutor(readIndex->input(), ectx, cache);
-            exec = new ReadIndexExecutor(readIndex, ectx);
+            auto input = makeExecutor(readIndex->input(), qctx, visited);
+            exec = new ReadIndexExecutor(readIndex, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kStart: {
-            exec = new StartExecutor(node, ectx);
+            exec = new StartExecutor(node, qctx);
             break;
         }
         case PlanNode::Kind::kUnion: {
             auto uni = asNode<Union>(node);
-            auto left = makeExecutor(uni->left(), ectx, cache);
-            auto right = makeExecutor(uni->right(), ectx, cache);
-            exec = new UnionExecutor(uni, ectx);
+            auto left = makeExecutor(uni->left(), qctx, visited);
+            auto right = makeExecutor(uni->right(), qctx, visited);
+            exec = new UnionExecutor(uni, qctx);
             exec->addDependent(left)->addDependent(right);
             break;
         }
         case PlanNode::Kind::kIntersect: {
             auto intersect = asNode<Intersect>(node);
-            auto left = makeExecutor(intersect->left(), ectx, cache);
-            auto right = makeExecutor(intersect->right(), ectx, cache);
-            exec = new IntersectExecutor(intersect, ectx);
+            auto left = makeExecutor(intersect->left(), qctx, visited);
+            auto right = makeExecutor(intersect->right(), qctx, visited);
+            exec = new IntersectExecutor(intersect, qctx);
             exec->addDependent(left)->addDependent(right);
             break;
         }
         case PlanNode::Kind::kMinus: {
             auto minus = asNode<Minus>(node);
-            auto left = makeExecutor(minus->left(), ectx, cache);
-            auto right = makeExecutor(minus->right(), ectx, cache);
-            exec = new MinusExecutor(minus, ectx);
+            auto left = makeExecutor(minus->left(), qctx, visited);
+            auto right = makeExecutor(minus->right(), qctx, visited);
+            exec = new MinusExecutor(minus, qctx);
             exec->addDependent(left)->addDependent(right);
             break;
         }
         case PlanNode::Kind::kLoop: {
             auto loop = asNode<Loop>(node);
-            auto input = makeExecutor(loop->input(), ectx, cache);
-            auto body = makeExecutor(loop->body(), ectx, cache);
-            exec = new LoopExecutor(loop, ectx, body);
+            auto input = makeExecutor(loop->input(), qctx, visited);
+            auto body = makeExecutor(loop->body(), qctx, visited);
+            exec = new LoopExecutor(loop, qctx, body);
             exec->addDependent(input);
             break;
         }
-        case PlanNode::Kind::kSelector: {
-            auto select = asNode<Selector>(node);
-            auto input = makeExecutor(select->input(), ectx, cache);
-            auto then = makeExecutor(select->then(), ectx, cache);
-            auto els = makeExecutor(select->otherwise(), ectx, cache);
-            exec = new SelectExecutor(select, ectx, then, els);
+        case PlanNode::Kind::kSelect: {
+            auto select = asNode<Select>(node);
+            auto input = makeExecutor(select->input(), qctx, visited);
+            auto then = makeExecutor(select->then(), qctx, visited);
+            auto els = makeExecutor(select->otherwise(), qctx, visited);
+            exec = new SelectExecutor(select, qctx, then, els);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDedup: {
             auto dedup = asNode<Dedup>(node);
-            auto input = makeExecutor(dedup->input(), ectx, cache);
-            exec = new DedupExecutor(dedup, ectx);
+            auto input = makeExecutor(dedup->input(), qctx, visited);
+            exec = new DedupExecutor(dedup, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kSwitchSpace: {
             auto switchSpace = asNode<SwitchSpace>(node);
-            auto input = makeExecutor(switchSpace->input(), ectx, cache);
-            exec = new SwitchSpaceExecutor(switchSpace, ectx);
+            auto input = makeExecutor(switchSpace->input(), qctx, visited);
+            exec = new SwitchSpaceExecutor(switchSpace, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kCreateSpace: {
             auto createSpace = asNode<CreateSpace>(node);
-            exec = new CreateSpaceExecutor(createSpace, ectx);
+            exec = new CreateSpaceExecutor(createSpace, qctx);
             break;
         }
         case PlanNode::Kind::kDescSpace: {
             auto descSpace = asNode<DescSpace>(node);
-            exec = new DescSpaceExecutor(descSpace, ectx);
+            exec = new DescSpaceExecutor(descSpace, qctx);
             break;
         }
         case PlanNode::Kind::kCreateTag: {
             auto createTag = asNode<CreateTag>(node);
-            exec = new CreateTagExecutor(createTag, ectx);
+            exec = new CreateTagExecutor(createTag, qctx);
             break;
         }
         case PlanNode::Kind::kDescTag: {
             auto descTag = asNode<DescTag>(node);
-            exec = new DescTagExecutor(descTag, ectx);
+            exec = new DescTagExecutor(descTag, qctx);
             break;
         }
         case PlanNode::Kind::kCreateEdge: {
             auto createEdge = asNode<CreateEdge>(node);
-            exec = new CreateEdgeExecutor(createEdge, ectx);
+            exec = new CreateEdgeExecutor(createEdge, qctx);
             break;
         }
         case PlanNode::Kind::kDescEdge: {
             auto descEdge = asNode<DescEdge>(node);
-            exec = new DescEdgeExecutor(descEdge, ectx);
+            exec = new DescEdgeExecutor(descEdge, qctx);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {
             auto insertV = asNode<InsertVertices>(node);
-            exec = new InsertVerticesExecutor(insertV, ectx);
+            exec = new InsertVerticesExecutor(insertV, qctx);
             break;
         }
         case PlanNode::Kind::kInsertEdges: {
             auto insertE = asNode<InsertEdges>(node);
-            exec = new InsertEdgesExecutor(insertE, ectx);
+            exec = new InsertEdgesExecutor(insertE, qctx);
+            break;
+        }
+        case PlanNode::Kind::kDataCollect: {
+            auto dc = asNode<DataCollect>(node);
+            auto input = makeExecutor(dc->input(), qctx, visited);
+            exec = new DataCollectExecutor(dc, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kUnknown:
@@ -236,21 +251,23 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             break;
     }
 
-    DCHECK_NOTNULL(exec);
+    DCHECK(!!exec);
 
-    cache->insert({node->id(), exec});
-    return ectx->objPool()->add(exec);
+    visited->insert({node->id(), exec});
+    return qctx->objPool()->add(exec);
 }
 
-int64_t Executor::id() const {
-    return node()->id();
-}
-
-Executor::Executor(const std::string &name, const PlanNode *node, ExecutionContext *ectx)
-    : name_(name), node_(DCHECK_NOTNULL(node)), ectx_(DCHECK_NOTNULL(ectx)) {
+Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *qctx)
+    : id_(DCHECK_NOTNULL(node)->id()),
+      name_(name),
+      node_(DCHECK_NOTNULL(node)),
+      qctx_(DCHECK_NOTNULL(qctx)) {
+    ectx_ = qctx->ectx();
     // Initialize the position in ExecutionContext for each executor before execution plan
     // starting to run. This will avoid lock something for thread safety in real execution
-    ectx_->addValue(node->varName(), nebula::Value());
+    if (!ectx_->exist(node->varName())) {
+        ectx_->initVar(node->varName());
+    }
 }
 
 folly::Future<Status> Executor::start(Status status) const {
@@ -262,7 +279,12 @@ folly::Future<Status> Executor::error(Status status) const {
 }
 
 Status Executor::finish(nebula::Value &&value) {
-    ectx_->addValue(node()->varName(), std::move(value));
+    ectx_->setValue(node()->varName(), std::move(value));
+    return Status::OK();
+}
+
+Status Executor::finish(ExecResult &&result) {
+    ectx_->setResult(node()->varName(), std::move(result));
     return Status::OK();
 }
 
@@ -271,11 +293,11 @@ void Executor::dumpLog() const {
 }
 
 folly::Executor *Executor::runner() const {
-    if (!ectx() || !ectx()->rctx() || !ectx()->rctx()->runner()) {
+    if (!qctx() || !qctx()->rctx() || !qctx()->rctx()->runner()) {
         // This is just for test
         return &folly::InlineExecutor::instance();
     }
-    return ectx()->rctx()->runner();
+    return qctx()->rctx()->runner();
 }
 
 }   // namespace graph

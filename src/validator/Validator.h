@@ -10,19 +10,23 @@
 #include "common/base/Base.h"
 #include "planner/ExecutionPlan.h"
 #include "parser/Sentence.h"
-#include "validator/ValidateContext.h"
+#include "context/ValidateContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
+
 class Validator {
 public:
-    Validator(Sentence* sentence, ValidateContext* context)
-        : sentence_(sentence), validateContext_(context) {}
+    Validator(Sentence* sentence, QueryContext* qctx)
+        : sentence_(DCHECK_NOTNULL(sentence)),
+          qctx_(DCHECK_NOTNULL(qctx)),
+          vctx_(DCHECK_NOTNULL(qctx->vctx())) {}
 
     virtual ~Validator() = default;
 
     static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
-                                                    ValidateContext* context);
+                                                    QueryContext* context);
 
     static Status appendPlan(PlanNode* plan, PlanNode* appended);
 
@@ -68,13 +72,19 @@ protected:
      */
     virtual Status toPlan() = 0;
 
+    std::vector<std::string> evalResultColNames(const YieldColumns* cols) const;
+
 protected:
     Sentence*                       sentence_{nullptr};
-    ValidateContext*                validateContext_{nullptr};
+    QueryContext*                   qctx_{nullptr};
+    ValidateContext*                vctx_{nullptr};
+    // root and tail of a subplan.
     PlanNode*                       root_{nullptr};
     PlanNode*                       tail_{nullptr};
+    // The input columns and output columns of a sentence.
     ColsDef                         outputs_;
     ColsDef                         inputs_;
+    // Admin sentences do not requires a space to be chosen.
     bool                            noSpaceRequired_{false};
 };
 }  // namespace graph

@@ -8,13 +8,12 @@
 #define VALIDATOR_ASTVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
-#include "parser/SequentialSentences.h"
-#include "common/meta/SchemaManager.h"
+#include "parser/Sentence.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 
-class CharsetInfo;
+class Sentence;
 
 namespace graph {
 
@@ -22,27 +21,14 @@ class ExecutionPlan;
 
 class ASTValidator final {
 public:
-    ASTValidator(SequentialSentences* sentences,
-                 ClientSession* session,
-                 meta::SchemaManager* schemaMng,
-                 CharsetInfo* charsetInfo)
-        : sentences_(sentences)
-        , session_(session)
-        , schemaMng_(schemaMng)
-        , charsetInfo_(charsetInfo) {}
+    ASTValidator(Sentence* sentences, QueryContext* qctx)
+        : sentences_(DCHECK_NOTNULL(sentences)), qctx_(DCHECK_NOTNULL(qctx)) {}
 
-    Status validate(ExecutionPlan* plan);
-
-    const ValidateContext* context() const {
-        return validateContext_.get();
-    }
+    Status validate();
 
 private:
-    SequentialSentences*                sentences_{nullptr};
-    ClientSession*                      session_{nullptr};
-    meta::SchemaManager*                schemaMng_{nullptr};
-    std::unique_ptr<ValidateContext>    validateContext_;
-    CharsetInfo                        *charsetInfo_{nullptr};
+    Sentence*                           sentences_{nullptr};
+    QueryContext*                       qctx_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

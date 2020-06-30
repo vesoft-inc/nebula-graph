@@ -4,6 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 set(VALIDATOR_TEST_LIBS
+    $<TARGET_OBJECTS:mock_schema_obj>
     $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
@@ -12,6 +13,8 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
     $<TARGET_OBJECTS:schedule_obj>
+    $<TARGET_OBJECTS:idgenerator_obj>
+    $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_network_obj>
     $<TARGET_OBJECTS:common_fs_obj>
@@ -19,17 +22,34 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_stats_obj>
     $<TARGET_OBJECTS:common_time_obj>
     $<TARGET_OBJECTS:common_common_thrift_obj>
+    $<TARGET_OBJECTS:common_graph_thrift_obj>
     $<TARGET_OBJECTS:common_thrift_obj>
     $<TARGET_OBJECTS:common_thread_obj>
     $<TARGET_OBJECTS:common_datatypes_obj>
     $<TARGET_OBJECTS:common_base_obj>
     $<TARGET_OBJECTS:common_meta_thrift_obj>
+    $<TARGET_OBJECTS:common_meta_obj>
     $<TARGET_OBJECTS:common_charset_obj>
+    $<TARGET_OBJECTS:common_meta_client_obj>
+    $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
+    $<TARGET_OBJECTS:common_function_manager_obj>
+)
+
+nebula_add_library(
+    mock_schema_obj OBJECT
+    MockSchemaManager.cpp
 )
 
 nebula_add_test(
     NAME validator_test
     SOURCES ValidatorTest.cpp
+    OBJECTS ${VALIDATOR_TEST_LIBS}
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
+)
+
+nebula_add_test(
+    NAME mock_schema_test
+    SOURCES MockSchemaManagerTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
 )
