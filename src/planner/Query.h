@@ -194,16 +194,20 @@ protected:
  */
 class GetNeighbors final : public Explore {
 public:
+    using VertexProps = std::unique_ptr<std::vector<storage::cpp2::VertexProp>>;
+    using EdgeProps = std::unique_ptr<std::vector<storage::cpp2::EdgeProp>>;
+    using StatProps = std::unique_ptr<std::vector<storage::cpp2::StatProp>>;
+    using Exprs = std::unique_ptr<std::vector<storage::cpp2::Expr>>;
     static GetNeighbors* make(ExecutionPlan* plan,
                               PlanNode* input,
                               GraphSpaceID space,
                               Expression* src,
                               std::vector<EdgeType> edgeTypes,
                               storage::cpp2::EdgeDirection edgeDirection,
-                              std::vector<storage::cpp2::VertexProp> vertexProps,
-                              std::vector<storage::cpp2::EdgeProp> edgeProps,
-                              std::vector<storage::cpp2::StatProp> statProps,
-                              std::vector<storage::cpp2::Expr> exprs,
+                              VertexProps&& vertexProps,
+                              EdgeProps&& edgeProps,
+                              StatProps&& statProps,
+                              Exprs&& exprs,
                               bool dedup = false,
                               bool random = false,
                               std::vector<storage::cpp2::OrderBy> orderBy = {},
@@ -241,20 +245,20 @@ public:
         return edgeTypes_;
     }
 
-    const std::vector<storage::cpp2::VertexProp>& vertexProps() const {
-        return vertexProps_;
+    const std::vector<storage::cpp2::VertexProp>* vertexProps() const {
+        return vertexProps_.get();
     }
 
-    const std::vector<storage::cpp2::EdgeProp>& edgeProps() const {
-        return edgeProps_;
+    const std::vector<storage::cpp2::EdgeProp>* edgeProps() const {
+        return edgeProps_.get();
     }
 
-    const std::vector<storage::cpp2::StatProp>& statProps() const {
-        return statProps_;
+    const std::vector<storage::cpp2::StatProp>* statProps() const {
+        return statProps_.get();
     }
 
-    const std::vector<storage::cpp2::Expr>& exprs() const {
-        return exprs_;
+    const std::vector<storage::cpp2::Expr>* exprs() const {
+        return exprs_.get();
     }
 
     bool random() const {
@@ -268,10 +272,10 @@ private:
                  Expression* src,
                  std::vector<EdgeType> edgeTypes,
                  storage::cpp2::EdgeDirection edgeDirection,
-                 std::vector<storage::cpp2::VertexProp> vertexProps,
-                 std::vector<storage::cpp2::EdgeProp> edgeProps,
-                 std::vector<storage::cpp2::StatProp> statProps,
-                 std::vector<storage::cpp2::Expr>  exprs,
+                 VertexProps&& vertexProps,
+                 EdgeProps&& edgeProps,
+                 StatProps&& statProps,
+                 Exprs&&  exprs,
                  bool dedup,
                  bool random,
                  std::vector<storage::cpp2::OrderBy> orderBy,
@@ -299,10 +303,10 @@ private:
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
     storage::cpp2::EdgeDirection                 edgeDirection_;
-    std::vector<storage::cpp2::VertexProp>       vertexProps_;
-    std::vector<storage::cpp2::EdgeProp>         edgeProps_;
-    std::vector<storage::cpp2::StatProp>         statProps_;
-    std::vector<storage::cpp2::Expr>             exprs_;
+    VertexProps                                  vertexProps_;
+    EdgeProps                                    edgeProps_;
+    StatProps                                    statProps_;
+    Exprs                                        exprs_;
     bool                                         random_;
 };
 
@@ -684,7 +688,7 @@ private:
  * Do Aggregation with the given set of records,
  * such as AVG(), COUNT()...
  */
-class Aggregate : public SingleInputNode {
+class Aggregate final : public SingleInputNode {
 public:
     static Aggregate* make(ExecutionPlan* plan,
                            PlanNode* input,
@@ -721,7 +725,7 @@ protected:
     Expression*  condition_{nullptr};
 };
 
-class Select : public BinarySelect {
+class Select final : public BinarySelect {
 public:
     static Select* make(ExecutionPlan* plan,
                           PlanNode* input,
@@ -765,7 +769,7 @@ private:
     PlanNode*   else_{nullptr};
 };
 
-class Loop : public BinarySelect {
+class Loop final : public BinarySelect {
 public:
     static Loop* make(ExecutionPlan* plan,
                       PlanNode* input,
@@ -790,7 +794,7 @@ private:
     PlanNode*   body_{nullptr};
 };
 
-class SwitchSpace : public SingleInputNode {
+class SwitchSpace final : public SingleInputNode {
 public:
     static SwitchSpace* make(ExecutionPlan* plan,
                                         PlanNode* input,
@@ -824,7 +828,7 @@ private:
     GraphSpaceID    spaceId_{-1};
 };
 
-class Dedup : public SingleInputNode {
+class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(ExecutionPlan* plan,
                        PlanNode* input,
@@ -846,6 +850,44 @@ private:
 
 private:
     Expression*     expr_{nullptr};
+};
+
+class DataCollect final : public SingleInputNode {
+public:
+    enum class CollectKind : uint8_t {
+        kSubgraph,
+    };
+
+    static DataCollect* make(ExecutionPlan* plan,
+                             PlanNode* input,
+                             CollectKind collectKind,
+                             std::vector<std::string> vars) {
+        return new DataCollect(plan, input, collectKind, std::move(vars));
+    }
+
+    CollectKind collectKind() const {
+        return collectKind_;
+    }
+
+    const std::vector<std::string>& vars() const {
+        return vars_;
+    }
+
+private:
+    DataCollect(ExecutionPlan* plan,
+                PlanNode* input,
+                CollectKind collectKind,
+                std::vector<std::string> vars)
+        : SingleInputNode(plan, Kind::kDataCollect, input) {
+        collectKind_ = collectKind;
+        vars_ = std::move(vars);
+    }
+
+    std::string explain() const override;
+
+private:
+    CollectKind                 collectKind_;
+    std::vector<std::string>    vars_;
 };
 
 class ProduceSemiShortestPath : public PlanNode {

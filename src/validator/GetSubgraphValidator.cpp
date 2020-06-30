@@ -72,7 +72,8 @@ Status GetSubgraphValidator::validateFrom(FromClause* from) {
     } else {
         for (auto* expr : from->vidList()) {
             // TODO:
-            starts_.emplace_back(Expression::eval(expr, ctx));
+            auto vid = Expression::eval(expr, ctx);
+            starts_.emplace_back(std::move(vid));
         }
     }
 
@@ -152,20 +153,23 @@ Status GetSubgraphValidator::toPlan() {
     auto* bodyStart = StartNode::make(plan);
 
     std::vector<EdgeType> edgeTypes;
-    std::vector<storage::cpp2::VertexProp> vertexProps;
-    std::vector<storage::cpp2::EdgeProp> edgeProps;
-    std::vector<storage::cpp2::StatProp> statProps;
-    std::vector<storage::cpp2::Expr> exprs;
+    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+    auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
+    auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto vidsToSave = vctx_->varGen()->getVar();
     DataSet ds;
-    ds.colNames.emplace_back("_vid");
+    ds.colNames.emplace_back(kVid);
     for (auto& vid : starts_) {
         Row row;
-        row.columns.emplace_back(vid);
+        row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setValue(vidsToSave, std::move(ds));
-    auto* vids = new VariableExpression(new std::string(vidsToSave));
+    qctx_->ectx()->setResult(vidsToSave, ExecResult::buildSequential(
+        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+    auto* vids = new VariablePropertyExpression(
+                     new std::string(vidsToSave),
+                     new std::string(kVid));
     auto* gn1 = GetNeighbors::make(
             plan,
             bodyStart,
@@ -177,17 +181,19 @@ Status GetSubgraphValidator::toPlan() {
             std::move(edgeProps),
             std::move(statProps),
             std::move(exprs));
+    gn1->setInputVar(vidsToSave);
 
     auto* columns = new YieldColumns();
     auto* column = new YieldColumn(
-            new VariablePropertyExpression(
-                new std::string(gn1->varName()),
-                new std::string("_vid")),
-            new std::string("_vid"));
+            new EdgePropertyExpression(
+                new std::string("*"),
+                new std::string(kDst)),
+            new std::string(kVid));
     columns->addColumn(column);
     auto* project = Project::make(plan, gn1, plan->saveObject(columns));
+    project->setInputVar(gn1->varName());
     project->setOutputVar(vidsToSave);
-    project->setColNames(evalResultColNames(columns));
+    project->setColNames(deduceColNames(columns));
 
     // ++counter{0} <= steps
     auto counter = vctx_->varGen()->getVar();
@@ -245,7 +251,11 @@ Status GetSubgraphValidator::toPlan() {
     root_ = selector;
     tail_ = loop;
     */
-    root_ = loop;
+    std::vector<std::string> collects = {gn1->varName()};
+    auto* dc = DataCollect::make(plan, loop,
+            DataCollect::CollectKind::kSubgraph, std::move(collects));
+    dc->setColNames({"_vertices", "_edges"});
+    root_ = dc;
     tail_ = loop;
     return Status::OK();
 }
