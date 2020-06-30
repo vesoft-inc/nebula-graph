@@ -41,11 +41,19 @@ nebula_add_library(
 )
 
 nebula_add_test(
-    NAME validator_test
+    NAME get_sbugraph_validator_test
+    SOURCES
+        ValidatorTest.cpp
+        GetSubgraphValidatorTest.cpp
+    OBJECTS ${VALIDATOR_TEST_LIBS}
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
+)
+
+nebula_add_test(
+    NAME acl_validator_test
     SOURCES
         ValidatorTest.cpp
         ACLValidatorTest.cpp
-        GetSubgraphValidatorTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
 )

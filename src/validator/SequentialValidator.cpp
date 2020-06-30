@@ -54,8 +54,7 @@ Status SequentialValidator::toPlan() {
         }
     }
     tail_ = StartNode::make(plan);
-    Validator::appendPlan(validators_[0]->tail(), tail_);
-    return Status::OK();
+    return Validator::appendPlan(validators_[0]->tail(), tail_);
 }
 
 const Sentence* SequentialValidator::getFirstSentence(const Sentence* sentence) const {
