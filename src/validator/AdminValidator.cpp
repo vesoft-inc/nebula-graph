@@ -70,16 +70,12 @@ Status CreateSpaceValidator::validateImpl() {
                     spaceDesc_.collationName_));
     } else if (!spaceDesc_.charsetName_.empty()) {
         retStatusOr = charsetInfo->getDefaultCollationbyCharset(spaceDesc_.charsetName_);
-        if (!retStatusOr.ok()) {
-            return retStatusOr.status();
-        }
-        spaceDesc_.collationName_ = std::move(retStatusOr.value());
+        NG_RETURN_IF_ERROR(retStatusOr);
+        spaceDesc_.collationName_ = std::move(retStatusOr).value();
     } else if (!spaceDesc_.collationName_.empty()) {
         retStatusOr = charsetInfo->getCharsetbyCollation(spaceDesc_.collationName_);
-        if (!retStatusOr.ok()) {
-            return retStatusOr.status();
-        }
-        spaceDesc_.charsetName_ = std::move(retStatusOr.value());
+        NG_RETURN_IF_ERROR(retStatusOr);
+        spaceDesc_.charsetName_ = std::move(retStatusOr).value();
     }
 
     if (spaceDesc_.charsetName_.empty() && spaceDesc_.collationName_.empty()) {

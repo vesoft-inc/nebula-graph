@@ -14,10 +14,7 @@ namespace graph {
 Status AssignmentValidator::validateImpl() {
     auto* assignSentence = static_cast<AssignmentSentence*>(sentence_);
     validator_ = makeValidator(assignSentence->sentence(), qctx_);
-    auto status = validator_->validate();
-    if (!status.ok()) {
-        return status;
-    }
+    NG_RETURN_IF_ERROR(validator_->validate());
 
     auto outputs = validator_->outputs();
     var_ = *assignSentence->var();

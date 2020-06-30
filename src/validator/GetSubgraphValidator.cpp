@@ -19,33 +19,11 @@ namespace graph {
 Status GetSubgraphValidator::validateImpl() {
     Status status;
     auto* gsSentence = static_cast<GetSubgraphSentence*>(sentence_);
-    do {
-        status = validateStep(gsSentence->step());
-        if (!status.ok()) {
-            break;
-        }
-
-        status = validateFrom(gsSentence->from());
-        if (!status.ok()) {
-            return status;
-        }
-
-        status = validateInBound(gsSentence->in());
-        if (!status.ok()) {
-            return status;
-        }
-
-        status = validateOutBound(gsSentence->out());
-        if (!status.ok()) {
-            return status;
-        }
-
-        status = validateBothInOutBound(gsSentence->both());
-        if (!status.ok()) {
-            return status;
-        }
-    } while (false);
-
+    NG_RETURN_IF_ERROR(validateStep(gsSentence->step()));
+    NG_RETURN_IF_ERROR(validateFrom(gsSentence->from()));
+    NG_RETURN_IF_ERROR(validateInBound(gsSentence->in()));
+    NG_RETURN_IF_ERROR(validateOutBound(gsSentence->out()));
+    NG_RETURN_IF_ERROR(validateBothInOutBound(gsSentence->both()));
     return Status::OK();
 }
 
@@ -111,11 +89,8 @@ Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
-            if (!et.ok()) {
-                return et.status();
-            }
-
-            edgeTypes_.emplace_back(et.value());
+            NG_RETURN_IF_ERROR(et);
+            edgeTypes_.emplace_back(std::move(et).value());
         }
     }
 
@@ -131,11 +106,8 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
-            if (!et.ok()) {
-                return et.status();
-            }
-
-            auto v = et.value();
+            NG_RETURN_IF_ERROR(et);
+            auto v = std::move(et).value();
             edgeTypes_.emplace_back(v);
             v = -v;
             edgeTypes_.emplace_back(v);
