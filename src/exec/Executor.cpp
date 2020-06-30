@@ -229,7 +229,9 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kAlterTag: {
             auto alterTag = asNode<AlterTag>(node);
+            auto input = makeExecutor(alterTag->input(), qctx, visited);
             exec = new AlterTagExecutor(alterTag, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kCreateEdge: {
@@ -248,7 +250,9 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kAlterEdge: {
             auto alterEdge = asNode<AlterEdge>(node);
+            auto input = makeExecutor(alterEdge->input(), qctx, visited);
             exec = new AlterEdgeExecutor(alterEdge, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {

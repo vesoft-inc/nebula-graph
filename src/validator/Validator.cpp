@@ -85,7 +85,9 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kDescEdge:
         case PlanNode::Kind::kInsertVertices:
         case PlanNode::Kind::kInsertEdges:
-        case PlanNode::Kind::kGetNeighbors: {
+        case PlanNode::Kind::kGetNeighbors:
+        case PlanNode::Kind::kAlterTag:
+        case PlanNode::Kind::kAlterEdge: {
             static_cast<SingleInputNode*>(node)->setInput(appended);
             break;
         }

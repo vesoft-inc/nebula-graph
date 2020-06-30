@@ -202,6 +202,7 @@ Status AlterTagValidator::validateImpl() {
 Status AlterTagValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *doNode = AlterTag::make(plan,
+                                  nullptr,
                                   vctx_->whichSpace().id,
                                   std::move(name_),
                                   std::move(schemaItems_),
@@ -220,6 +221,7 @@ Status AlterEdgeValidator::validateImpl() {
 Status AlterEdgeValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *doNode = AlterEdge::make(plan,
+                                   nullptr,
                                    vctx_->whichSpace().id,
                                    std::move(name_),
                                    std::move(schemaItems_),

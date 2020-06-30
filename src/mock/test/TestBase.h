@@ -89,13 +89,13 @@ protected:
         }
 
         for (auto i = 0u; i < rows.size(); i++) {
-            if (rows[i].columns.size() != expected[i].size()) {
+            if (rows[i].values.size() != expected[i].size()) {
                 return TestError() << "The row[" << i << "]' size not match "
-                                   << rows[i].columns.size() << " vs. " << expected[i].size();
+                                   << rows[i].values.size() << " vs. " << expected[i].size();
             }
-            for (auto j = 0u; j < rows[i].columns.size(); j++) {
-                if (rows[i].columns[j] != expected[i][j]) {
-                    return TestError() << rows[i].columns[j] << " vs. " << expected[i][j];
+            for (auto j = 0u; j < rows[i].values.size(); j++) {
+                if (rows[i].values[j] != expected[i][j]) {
+                    return TestError() << rows[i].values[j] << " vs. " << expected[i][j];
                 }
             }
         }
