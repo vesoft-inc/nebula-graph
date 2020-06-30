@@ -695,7 +695,7 @@ private:
  * Do Aggregation with the given set of records,
  * such as AVG(), COUNT()...
  */
-class Aggregate : public SingleInputNode {
+class Aggregate final : public SingleInputNode {
 public:
     static Aggregate* make(ExecutionPlan* plan,
                            PlanNode* input,
@@ -732,7 +732,7 @@ protected:
     Expression*  condition_{nullptr};
 };
 
-class Select : public BinarySelect {
+class Select final : public BinarySelect {
 public:
     static Select* make(ExecutionPlan* plan,
                           PlanNode* input,
@@ -776,7 +776,7 @@ private:
     PlanNode*   else_{nullptr};
 };
 
-class Loop : public BinarySelect {
+class Loop final : public BinarySelect {
 public:
     static Loop* make(ExecutionPlan* plan,
                       PlanNode* input,
@@ -801,7 +801,7 @@ private:
     PlanNode*   body_{nullptr};
 };
 
-class SwitchSpace : public SingleInputNode {
+class SwitchSpace final : public SingleInputNode {
 public:
     static SwitchSpace* make(ExecutionPlan* plan,
                                         PlanNode* input,
@@ -835,7 +835,7 @@ private:
     GraphSpaceID    spaceId_{-1};
 };
 
-class Dedup : public SingleInputNode {
+class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(ExecutionPlan* plan,
                        PlanNode* input,
@@ -857,6 +857,44 @@ private:
 
 private:
     Expression*     expr_{nullptr};
+};
+
+class DataCollect final : public SingleInputNode {
+public:
+    enum class CollectKind : uint8_t {
+        kSubgraph,
+    };
+
+    static DataCollect* make(ExecutionPlan* plan,
+                             PlanNode* input,
+                             CollectKind collectKind,
+                             std::vector<std::string> vars) {
+        return new DataCollect(plan, input, collectKind, std::move(vars));
+    }
+
+    CollectKind collectKind() const {
+        return collectKind_;
+    }
+
+    const std::vector<std::string>& vars() const {
+        return vars_;
+    }
+
+private:
+    DataCollect(ExecutionPlan* plan,
+                PlanNode* input,
+                CollectKind collectKind,
+                std::vector<std::string> vars)
+        : SingleInputNode(plan, Kind::kDataCollect, input) {
+        collectKind_ = collectKind;
+        vars_ = std::move(vars);
+    }
+
+    std::string explain() const override;
+
+private:
+    CollectKind                 collectKind_;
+    std::vector<std::string>    vars_;
 };
 
 class ProduceSemiShortestPath : public PlanNode {

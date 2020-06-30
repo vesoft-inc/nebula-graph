@@ -72,7 +72,9 @@ const char* PlanNode::toString(Kind kind) {
             return "InsertVertices";
         case Kind::kInsertEdges:
             return "InsertEdges";
-            // no default so the compiler will warning when lack one enumerate
+        case PlanNode::Kind::kDataCollect:
+            return "DataCollect";
+        // no default so the compiler will warning when lack one enumerate
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
