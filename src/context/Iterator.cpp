@@ -33,25 +33,32 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
             clear();
             return;
         }
-        size_t edgeStartIndex = buildResult.value();
+        int64_t edgeStartIndex = buildResult.value();
         segments_.emplace_back(&ds);
-        for (auto& row : ds.rows) {
-            auto& cols = row.values;
-            for (size_t column = edgeStartIndex; column < cols.size() - 1; ++column) {
-                if (!cols[column].isList()) {
-                    // Ignore the bad value.
-                    continue;
-                }
-                for (auto& edge : cols[column].getList().values) {
-                    if (!edge.isList()) {
+        if (edgeStartIndex < 0) {
+            for (auto& row : ds.rows) {
+                logicalRows_.emplace_back(
+                        std::make_tuple(segment, &row, "", nullptr));
+            }
+        } else {
+            for (auto& row : ds.rows) {
+                auto& cols = row.values;
+                for (size_t column = edgeStartIndex; column < cols.size() - 1; ++column) {
+                    if (!cols[column].isList()) {
                         // Ignore the bad value.
                         continue;
                     }
-                    auto& tagEdgeNameIndex = tagEdgeNameIndices_[segment];
-                    auto edgeName = tagEdgeNameIndex.find(column);
-                    DCHECK(edgeName != tagEdgeNameIndex.end());
-                    logicalRows_.emplace_back(
-                            std::make_tuple(segment, &row, edgeName->second, &edge.getList()));
+                    for (auto& edge : cols[column].getList().values) {
+                        if (!edge.isList()) {
+                            // Ignore the bad value.
+                            continue;
+                        }
+                        auto& tagEdgeNameIndex = tagEdgeNameIndices_[segment];
+                        auto edgeName = tagEdgeNameIndex.find(column);
+                        DCHECK(edgeName != tagEdgeNameIndex.end());
+                        logicalRows_.emplace_back(
+                                std::make_tuple(segment, &row, edgeName->second, &edge.getList()));
+                    }
                 }
             }
         }

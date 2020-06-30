@@ -205,6 +205,7 @@ Status GoValidator::validateYield(const YieldClause* yield) {
     for (auto col : cols) {
         auto colName = deduceColName(col);
         colNames_.emplace_back(colName);
+        VLOG(1) << "col: " << colName;
 
         auto typeStatus = deduceExprType(col->expr());
         if (!typeStatus.ok()) {
@@ -389,7 +390,7 @@ Status GoValidator::buildOneStepPlan() {
 
     root_ = project;
     tail_ = gn1;
-    VLOG(1) << "root: " << root_ << "tail: " << tail_;
+    VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }
 
