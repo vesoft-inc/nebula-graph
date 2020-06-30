@@ -120,34 +120,6 @@ protected:
     std::vector<std::string>                 colNames_;
 };
 
-// Some template node such as Create template for the node create something(user,tag...)
-// Fit the conflict create process
-class CreateNode : public PlanNode {
-public:
-    CreateNode(ExecutionPlan* plan, Kind kind, bool ifNotExist = false)
-        : PlanNode(plan, kind), ifNotExist_(ifNotExist) {}
-
-    bool ifNotExist() const {
-        return ifNotExist_;
-    }
-
-private:
-    bool ifNotExist_{false};
-};
-
-class DropNode : public PlanNode {
-public:
-    DropNode(ExecutionPlan* plan, Kind kind, bool ifExist = false)
-        : PlanNode(plan, kind), ifExist_(ifExist) {}
-
-    bool ifExist() const {
-        return ifExist_;
-    }
-
-private:
-    bool ifExist_{false};
-};
-
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
 
 }  // namespace graph

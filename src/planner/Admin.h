@@ -8,6 +8,7 @@
 #define PLANNER_ADMIN_H_
 
 #include "planner/PlanNode.h"
+#include "planner/Query.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/clients/meta/MetaClient.h"
 
@@ -19,6 +20,36 @@
  */
 namespace nebula {
 namespace graph {
+// Some template node such as Create template for the node create something(user,tag...)
+// Fit the conflict create process
+class CreateNode : public SingleInputNode {
+protected:
+    CreateNode(ExecutionPlan* plan, Kind kind, PlanNode* input, bool ifNotExist = false)
+        : SingleInputNode(plan, kind, input), ifNotExist_(ifNotExist) {}
+
+public:
+    bool ifNotExist() const {
+        return ifNotExist_;
+    }
+
+private:
+    bool ifNotExist_{false};
+};
+
+class DropNode : public SingleInputNode {
+protected:
+    DropNode(ExecutionPlan* plan, Kind kind, PlanNode* input, bool ifExist = false)
+        : SingleInputNode(plan, kind, input), ifExist_(ifExist) {}
+
+public:
+    bool ifExist() const {
+        return ifExist_;
+    }
+
+private:
+    bool ifExist_{false};
+};
+
 // TODO: All DDLs, DMLs and DQLs could be used in a single query
 // which would make them in a single and big execution plan
 class Show final : public PlanNode {
@@ -142,10 +173,12 @@ public:
 class CreateUser final : public CreateNode {
 public:
     static CreateUser* make(ExecutionPlan* plan,
+                            PlanNode*      input,
                             std::string username,
                             std::string password,
                             bool ifNotExists) {
         return new CreateUser(plan,
+                              input,
                               std::move(username),
                               std::move(password),
                               ifNotExists);
@@ -164,8 +197,12 @@ public:
     }
 
 private:
-    CreateUser(ExecutionPlan* plan, std::string username, std::string password, bool ifNotExists)
-        : CreateNode(plan, Kind::kCreateUser, ifNotExists),
+    CreateUser(ExecutionPlan* plan,
+               PlanNode* input,
+               std::string username,
+               std::string password,
+               bool ifNotExists)
+        : CreateNode(plan, Kind::kCreateUser, input, ifNotExists),
           username_(std::move(username)),
           password_(std::move(password)) {}
 
@@ -177,9 +214,11 @@ private:
 class DropUser final : public DropNode {
 public:
     static DropUser* make(ExecutionPlan* plan,
-                            std::string username,
-                            bool ifNotExists) {
+                          PlanNode*      input,
+                          std::string username,
+                          bool ifNotExists) {
         return new DropUser(plan,
+                            input,
                             std::move(username),
                             ifNotExists);
     }
@@ -193,20 +232,22 @@ public:
     }
 
 private:
-    DropUser(ExecutionPlan* plan, std::string username, bool ifNotExists)
-        : DropNode(plan, Kind::kDropUser, ifNotExists),
+    DropUser(ExecutionPlan* plan, PlanNode* input, std::string username, bool ifNotExists)
+        : DropNode(plan, Kind::kDropUser, input, ifNotExists),
           username_(std::move(username)) {}
 
 private:
     std::string username_;
 };
 
-class UpdateUser final : public PlanNode {
+class UpdateUser final : public SingleInputNode {
 public:
     static UpdateUser* make(ExecutionPlan* plan,
+                            PlanNode*      input,
                             std::string username,
                             std::string password) {
         return new UpdateUser(plan,
+                              input,
                               std::move(username),
                               std::move(password));
     }
@@ -224,8 +265,8 @@ public:
     }
 
 private:
-    UpdateUser(ExecutionPlan* plan, std::string username, std::string password)
-        : PlanNode(plan, Kind::kUpdateUser),
+    UpdateUser(ExecutionPlan* plan, PlanNode* input, std::string username, std::string password)
+        : SingleInputNode(plan, Kind::kUpdateUser, input),
           username_(std::move(username)),
           password_(std::move(password)) {}
 
@@ -234,16 +275,18 @@ private:
     std::string password_;
 };
 
-class GrantRole final : public PlanNode {
+class GrantRole final : public SingleInputNode {
 public:
     static GrantRole* make(ExecutionPlan* plan,
+                           PlanNode*      input,
                            std::string username,
                            std::string spaceName,
                            meta::cpp2::RoleType role) {
         return new GrantRole(plan,
-                            std::move(username),
-                            std::move(spaceName),
-                            role);
+                             input,
+                             std::move(username),
+                             std::move(spaceName),
+                             role);
     }
 
     std::string explain() const override {
@@ -264,8 +307,11 @@ public:
 
 private:
     GrantRole(ExecutionPlan* plan,
-        std::string username, std::string spaceName, meta::cpp2::RoleType role)
-        : PlanNode(plan, Kind::kGrantRole),
+              PlanNode* input,
+              std::string username,
+              std::string spaceName,
+              meta::cpp2::RoleType role)
+        : SingleInputNode(plan, Kind::kGrantRole, input),
           username_(std::move(username)),
           spaceName_(std::move(spaceName)),
           role_(role) {}
@@ -276,13 +322,15 @@ private:
     meta::cpp2::RoleType role_;
 };
 
-class RevokeRole final : public PlanNode {
+class RevokeRole final : public SingleInputNode {
 public:
     static RevokeRole* make(ExecutionPlan* plan,
+                            PlanNode*      input,
                             std::string username,
                             std::string spaceName,
                             meta::cpp2::RoleType role) {
         return new RevokeRole(plan,
+                              input,
                               std::move(username),
                               std::move(spaceName),
                               role);
@@ -306,8 +354,11 @@ public:
 
 private:
     RevokeRole(ExecutionPlan* plan,
-        std::string username, std::string spaceName, meta::cpp2::RoleType role)
-        : PlanNode(plan, Kind::kRevokeRole),
+               PlanNode*      input,
+               std::string username,
+               std::string spaceName,
+               meta::cpp2::RoleType role)
+        : SingleInputNode(plan, Kind::kRevokeRole, input),
           username_(std::move(username)),
           spaceName_(std::move(spaceName)),
           role_(role) {}
@@ -318,16 +369,18 @@ private:
     meta::cpp2::RoleType role_;
 };
 
-class ChangePassword final : public PlanNode {
+class ChangePassword final : public SingleInputNode {
 public:
     static ChangePassword* make(ExecutionPlan* plan,
-                            std::string username,
-                            std::string password,
-                            std::string newPassword) {
+                                PlanNode*      input,
+                                std::string username,
+                                std::string password,
+                                std::string newPassword) {
         return new ChangePassword(plan,
-                            std::move(username),
-                            std::move(password),
-                            std::move(newPassword));
+                                  input,
+                                  std::move(username),
+                                  std::move(password),
+                                  std::move(newPassword));
     }
 
     std::string explain() const override {
@@ -347,9 +400,12 @@ public:
     }
 
 private:
-    ChangePassword(ExecutionPlan* plan, std::string username, std::string password,
-        std::string newPassword)
-        : PlanNode(plan, Kind::kChangePassword),
+    ChangePassword(ExecutionPlan* plan,
+                   PlanNode* input,
+                   std::string username,
+                   std::string password,
+                   std::string newPassword)
+        : SingleInputNode(plan, Kind::kChangePassword, input),
           username_(std::move(username)),
           password_(std::move(password)),
           newPassword_(std::move(newPassword)) {}
@@ -361,11 +417,13 @@ private:
 };
 
 
-class ListUserRoles final : public PlanNode {
+class ListUserRoles final : public SingleInputNode {
 public:
     static ListUserRoles* make(ExecutionPlan* plan,
+                               PlanNode*      input,
                                std::string username) {
         return new ListUserRoles(plan,
+                                 input,
                                  std::move(username));
     }
 
@@ -378,18 +436,18 @@ public:
     }
 
 private:
-    ListUserRoles(ExecutionPlan* plan, std::string username)
-        : PlanNode(plan, Kind::kListUserRoles),
+    ListUserRoles(ExecutionPlan* plan, PlanNode* input, std::string username)
+        : SingleInputNode(plan, Kind::kListUserRoles, input),
           username_(std::move(username)) {}
 
 private:
     std::string username_;
 };
 
-class ListUsers final : public PlanNode {
+class ListUsers final : public SingleInputNode {
 public:
-    static ListUsers* make(ExecutionPlan* plan) {
-        return new ListUsers(plan);
+    static ListUsers* make(ExecutionPlan* plan, PlanNode* input) {
+        return new ListUsers(plan, input);
     }
 
     std::string explain() const override {
@@ -397,14 +455,14 @@ public:
     }
 
 private:
-    explicit ListUsers(ExecutionPlan* plan)
-        : PlanNode(plan, Kind::kListUsers) {}
+    explicit ListUsers(ExecutionPlan* plan, PlanNode* input)
+        : SingleInputNode(plan, Kind::kListUsers, input) {}
 };
 
-class ListRoles final : public PlanNode {
+class ListRoles final : public SingleInputNode {
 public:
-    static ListRoles* make(ExecutionPlan* plan, GraphSpaceID space) {
-        return new ListRoles(plan, space);
+    static ListRoles* make(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space) {
+        return new ListRoles(plan, input, space);
     }
 
     std::string explain() const override {
@@ -416,8 +474,8 @@ public:
     }
 
 private:
-    explicit ListRoles(ExecutionPlan* plan, GraphSpaceID space)
-        : PlanNode(plan, Kind::kListRoles), space_(space) {}
+    explicit ListRoles(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
+        : SingleInputNode(plan, Kind::kListRoles, input), space_(space) {}
 
     GraphSpaceID space_{-1};
 };

@@ -20,15 +20,19 @@ public:
     }
 
 protected:
-    void getPlan(const std::string &query, const ExecutionPlan* &plan) const {
+    ::testing::AssertionResult toPlan(const std::string &query) {
         auto result = GQLParser().parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
+        if (!result.ok()) {
+            return ::testing::AssertionFailure() << result.status().toString();
+        }
         auto sentences = std::move(result).value();
+        qCtx_ = buildContext();
         ASTValidator validator(sentences.get(), qCtx_.get());
         auto validateResult = validator.validate();
-        ASSERT_TRUE(validateResult.ok()) << validateResult;
-        plan = qCtx_->plan();
-        ASSERT_NE(plan, nullptr);
+        if (!validateResult.ok()) {
+            return ::testing::AssertionFailure() << validateResult.toString();
+        }
+        return ::testing::AssertionSuccess();
     }
 
     std::unique_ptr<QueryContext> qCtx_;
@@ -42,8 +46,8 @@ TEST_F(ACLValidatorTest, Simple) {
     constexpr char space[] = "test";
     // create user
     {
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("CREATE USER %s", user), plan);
+        ASSERT_TRUE(toPlan(folly::stringPrintf("CREATE USER %s", user)));
+        const ExecutionPlan *plan = qCtx_->plan();
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
@@ -53,8 +57,9 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(createUser->password(), "");
     }
     {  // if not exists
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("CREATE USER IF NOT EXISTS %s", user), plan);
+        ASSERT_TRUE(toPlan(folly::stringPrintf("CREATE USER IF NOT EXISTS %s", user)));
+        const ExecutionPlan *plan = qCtx_->plan();
+
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
@@ -64,11 +69,10 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(createUser->password(), "");
     }
     {  // with password
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("CREATE USER %s WITH PASSWORD \"%s\"",
+        ASSERT_TRUE(toPlan(folly::stringPrintf("CREATE USER %s WITH PASSWORD \"%s\"",
                                      user,
-                                     password),
-                plan);
+                                     password)));
+        const ExecutionPlan *plan = qCtx_->plan();
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
@@ -80,10 +84,9 @@ TEST_F(ACLValidatorTest, Simple) {
 
     // drop user
     {
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("DROP USER %s",
-                                    user),
-                plan);
+        ASSERT_TRUE(toPlan(folly::stringPrintf("DROP USER %s",
+                                    user)));
+        const ExecutionPlan *plan = qCtx_->plan();
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kDropUser);
@@ -92,10 +95,9 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(dropUser->username(), user);
     }
     {  // if exits
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("DROP USER IF EXISTS %s",
-                                    user),
-                plan);
+        ASSERT_TRUE(toPlan(folly::stringPrintf("DROP USER IF EXISTS %s",
+                                    user)));
+        const ExecutionPlan *plan = qCtx_->plan();
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kDropUser);
@@ -106,10 +108,9 @@ TEST_F(ACLValidatorTest, Simple) {
 
     // update user
     {
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("ALTER USER %s WITH PASSWORD \"%s\"",
-                                    user, password),
-                plan);
+        ASSERT_TRUE(toPlan(folly::stringPrintf("ALTER USER %s WITH PASSWORD \"%s\"",
+                                    user, password)));
+        const ExecutionPlan *plan = qCtx_->plan();
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kUpdateUser);
@@ -120,10 +121,9 @@ TEST_F(ACLValidatorTest, Simple) {
 
     // change password
     {
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("CHANGE PASSWORD %s FROM \"%s\" TO \"%s\"",
-                                    user, password, newPassword),
-                plan);
+        ASSERT_TRUE(toPlan(folly::stringPrintf("CHANGE PASSWORD %s FROM \"%s\" TO \"%s\"",
+                                    user, password, newPassword)));
+        const ExecutionPlan *plan = qCtx_->plan();
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kChangePassword);
@@ -135,10 +135,9 @@ TEST_F(ACLValidatorTest, Simple) {
 
     // grant role
     {
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("GRANT ROLE %s ON %s TO %s",
-                                     roleTypeName, space, user),
-                plan);
+        ASSERT_TRUE(toPlan(folly::stringPrintf("GRANT ROLE %s ON %s TO %s",
+                                     roleTypeName, space, user)));
+        const ExecutionPlan *plan = qCtx_->plan();
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kGrantRole);
@@ -150,10 +149,9 @@ TEST_F(ACLValidatorTest, Simple) {
 
     // revoke role
     {
-        const ExecutionPlan *plan = nullptr;
-        getPlan(folly::stringPrintf("REVOKE ROLE %s ON %s FROM %s",
-                                    roleTypeName, space, user),
-                plan);
+        ASSERT_TRUE(toPlan(folly::stringPrintf("REVOKE ROLE %s ON %s FROM %s",
+                                    roleTypeName, space, user)));
+        const ExecutionPlan *plan = qCtx_->plan();
 
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kRevokeRole);

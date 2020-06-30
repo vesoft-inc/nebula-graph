@@ -78,7 +78,7 @@ protected:
     template <typename Node, typename... Args>
     Status genSingleNodePlan(Args... args) {
         auto* plan = qctx_->plan();
-        auto *doNode = Node::make(plan, std::forward<Args>(args)...);
+        auto *doNode = Node::make(plan, nullptr, std::forward<Args>(args)...);
         root_ = doNode;
         tail_ = root_;
         return Status::OK();
