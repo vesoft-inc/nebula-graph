@@ -22,6 +22,8 @@
 namespace nebula {
 namespace graph {
 
+using PK = nebula::graph::PlanNode::Kind;
+
 class ValidatorTest : public ValidatorTestBase {
 public:
     static void SetUpTestCase() {
@@ -81,7 +83,6 @@ TEST_F(ValidatorTest, Subgraph) {
         ASSERT_TRUE(status.ok());
         auto plan = std::move(status).value();
         ASSERT_NE(plan, nullptr);
-        using PK = nebula::graph::PlanNode::Kind;
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
             PK::kLoop,
@@ -150,7 +151,14 @@ TEST_F(ValidatorTest, Go) {
         std::string query = "GO FROM \"1\" OVER like";
         auto status = validate(query);
         EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
+        auto plan = std::move(status).value();
+        ASSERT_NE(plan, nullptr);
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
     {
         std::string query = "GO 3 STEPS FROM \"1\" OVER like";
@@ -162,26 +170,41 @@ TEST_F(ValidatorTest, Go) {
         std::string query = "GO FROM \"1\" OVER like REVERSELY";
         auto status = validate(query);
         EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
-    }
-    {
-        std::string query = "GO FROM \"1\" OVER like REVERSELY";
-        auto status = validate(query);
-        EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
+        auto plan = std::move(status).value();
+        ASSERT_NE(plan, nullptr);
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
     {
         std::string query = "GO FROM \"1\" OVER like YIELD like.start";
         auto status = validate(query);
         EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
+        auto plan = std::move(status).value();
+        ASSERT_NE(plan, nullptr);
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
     {
         std::string query = "GO FROM \"1\" OVER like "
                             "YIELD $^.person.name,$^.person.age";
         auto status = validate(query);
         EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
+        auto plan = std::move(status).value();
+        ASSERT_NE(plan, nullptr);
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
     {
         std::string query = "GO FROM \"1\" OVER like "
@@ -194,7 +217,14 @@ TEST_F(ValidatorTest, Go) {
         std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like";
         auto status = validate(query);
         EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
+        auto plan = std::move(status).value();
+        ASSERT_NE(plan, nullptr);
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
     {
         std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like WHERE like.likeness > 90";
@@ -213,7 +243,16 @@ TEST_F(ValidatorTest, Go) {
                             "| GO FROM $-.id OVER like";
         auto status = validate(query);
         EXPECT_TRUE(status.ok()) << status.status();
-        // TODO
+        auto plan = std::move(status).value();
+        ASSERT_NE(plan, nullptr);
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
 }
 

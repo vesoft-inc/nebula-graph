@@ -73,7 +73,6 @@ Status GetSubgraphValidator::validateFrom(FromClause* from) {
         for (auto* expr : from->vidList()) {
             // TODO:
             auto vid = Expression::eval(expr, ctx);
-            LOG(ERROR) << "starts: " << vid;
             starts_.emplace_back(std::move(vid));
         }
     }
