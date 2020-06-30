@@ -172,7 +172,7 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
                                                                          \
     auto detectVal =                                                     \
         kValues.at(left.value()) OP kValues.at(right.value());           \
-    if (isBadNull(detectVal)) {                                          \
+    if (detectVal.isBadNull()) {                                         \
         std::stringstream ss;                                            \
         ss << "`" << expr->toString() << "' is not a valid expression, " \
            << "can not apply `" << #OP << "' to `" << left.value()       \
@@ -189,26 +189,13 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
     }                                                                       \
                                                                             \
     auto detectVal = OP kValues.at(status.value());                         \
-    if (isBadNull(detectVal)) {                                             \
+    if (detectVal.isBadNull()) {                                             \
         std::stringstream ss;                                               \
         ss << "`" << expr->toString() << "' is not a valid expression, "    \
            << "can not apply `" << #OP << "' to " << status.value() << "."; \
         return Status::Error(ss.str());                                     \
     }                                                                       \
     return detectVal.type();
-
-bool Validator::isBadNull(const Value& val) const {
-    if (!val.isNull()) {
-        return false;
-    }
-    auto null = val.getNull();
-    return null == NullType::NaN
-        || null == NullType::BAD_DATA
-        || null == NullType::BAD_TYPE
-        || null == NullType::ERR_OVERFLOW
-        || null == NullType::UNKNOWN_PROP
-        || null == NullType::DIV_BY_ZERO;
-}
 
 StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
     static const std::unordered_map<Value::Type, Value> kValues = {
@@ -303,7 +290,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             }
 
             auto detectVal = kValues.at(status.value()) + 1;
-            if (isBadNull(detectVal)) {
+            if (detectVal.isBadNull()) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                     << "can not apply `++' to " << status.value() << ".";
@@ -319,7 +306,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             }
 
             auto detectVal = kValues.at(status.value()) - 1;
-            if (isBadNull(detectVal)) {
+            if (detectVal.isBadNull()) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                     << "can not apply `--' to " << status.value() << ".";

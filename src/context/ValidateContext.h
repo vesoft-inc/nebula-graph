@@ -59,8 +59,7 @@ public:
     }
 
     bool existVar(const std::string& var) const {
-        auto found = vars_.find(var);
-        return found != vars_.end();
+        return vars_.find(var) != vars_.end();
     }
 
     AnnoVarGenerator* varGen() const {

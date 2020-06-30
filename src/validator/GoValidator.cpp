@@ -205,7 +205,6 @@ Status GoValidator::validateYield(const YieldClause* yield) {
     for (auto col : cols) {
         auto colName = deduceColName(col);
         colNames_.emplace_back(colName);
-        VLOG(1) << "col: " << colName;
 
         auto typeStatus = deduceExprType(col->expr());
         if (!typeStatus.ok()) {
@@ -249,33 +248,21 @@ Status GoValidator::deduceProps(const Expression* expr) {
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
-            auto leftStatus = deduceProps(biExpr->left());
-            if (!leftStatus.ok()) {
-                return leftStatus;
-            }
-            auto rightStatus = deduceProps(biExpr->right());
-            if (!rightStatus.ok()) {
-                return rightStatus;
-            }
+            NG_RETURN_IF_ERROR(deduceProps(biExpr->left()));
+            NG_RETURN_IF_ERROR(deduceProps(biExpr->right()));
             break;
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
         case Expression::Kind::kUnaryNot: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            auto status = deduceProps(unaryExpr->operand());
-            if (status.ok()) {
-                return status;
-            }
+            NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand()));
             break;
         }
         case Expression::Kind::kFunctionCall: {
             auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
             for (auto& arg : funcExpr->args()->args()) {
-                auto status = deduceProps(arg.get());
-                if (!status.ok()) {
-                    return status;
-                }
+                NG_RETURN_IF_ERROR(deduceProps(arg.get()));
             }
             break;
         }
