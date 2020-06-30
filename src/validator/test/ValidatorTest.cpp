@@ -137,7 +137,6 @@ TEST_F(ValidatorTest, TestSpace) {
         ASSERT_TRUE(validateResult.ok()) << validateResult;
         auto plan = context->plan();
         ASSERT_NE(plan, nullptr);
-        using PK = nebula::graph::PlanNode::Kind;
         std::vector<PlanNode::Kind> expected = {
             PK::kCreateSpace,
             PK::kStart,
