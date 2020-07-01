@@ -28,6 +28,7 @@ Status LimitValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *limitNode = Limit::make(plan, plan->root(), offset_, count_);
     auto* project = Project::make(plan, limitNode, {});
+    outputs_ = inputs();
     root_ = project;
     tail_ = limitNode;
     return Status::OK();
