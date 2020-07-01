@@ -17,17 +17,19 @@ from nebula2.Common import *
 class NebulaTestSuite(object):
     @classmethod
     def set_delay(self):
-        resp = self.client.execute_query(
-            'get configs GRAPH:heartbeat_interval_secs')
-        self.check_resp_succeeded(resp)
-        assert len(resp.rows) == 1, "invalid row size: {}".format(resp.rows)
-        self.graph_delay = int(resp.rows[0].columns[4].get_str()) + 1
+        # resp = self.client.execute_query(
+        #     'get configs GRAPH:heartbeat_interval_secs')
+        # self.check_resp_succeeded(resp)
+        # assert len(resp.rows) == 1, "invalid row size: {}".format(resp.rows)
+        # self.graph_delay = int(resp.rows[0].columns[4].get_str()) + 1
+        self.graph_delay = 3
 
-        resp = self.client.execute_query(
-            'get configs STORAGE:heartbeat_interval_secs')
-        self.check_resp_succeeded(resp)
-        assert len(resp.rows) == 1, "invalid row size: {}".format(resp.rows)
-        self.storage_delay = int(resp.rows[0].columns[4].get_str()) + 1
+        # resp = self.client.execute_query(
+        #     'get configs STORAGE:heartbeat_interval_secs')
+        # self.check_resp_succeeded(resp)
+        # assert len(resp.rows) == 1, "invalid row size: {}".format(resp.rows)
+        # self.storage_delay = int(resp.rows[0].columns[4].get_str()) + 1
+        self.storage_delay = 3
         self.delay = max(self.graph_delay, self.storage_delay) * 2
 
     @classmethod
