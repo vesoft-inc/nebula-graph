@@ -111,7 +111,6 @@ std::string CreateEdgeSentence::toString() const {
     return buf;
 }
 
-
 std::string AlterSchemaOptItem::toString() const {
     std::string buf;
     buf.reserve(256);
@@ -128,23 +127,22 @@ std::string AlterSchemaOptItem::toString() const {
     }
     buf += " (";
     if (columns_ != nullptr) {
-      auto colSpecs = columns_->columnSpecs();
-      for (auto &col : colSpecs) {
-        buf += *col->name();
-        buf += " ";
-        std::stringstream ss;
-        ss << col->type();
-        buf += ss.str();
-        buf += ",";
-      }
-      if (!colSpecs.empty()) {
-        buf.resize(buf.size() - 1);
-      }
+        auto colSpecs = columns_->columnSpecs();
+        for (auto &col : colSpecs) {
+            buf += *col->name();
+            buf += " ";
+            std::stringstream ss;
+            ss << col->type();
+            buf += ss.str();
+            buf += ",";
+        }
+        if (!colSpecs.empty()) {
+            buf.resize(buf.size() - 1);
+        }
     }
     buf += ")";
     return buf;
 }
-
 
 nebula::meta::cpp2::AlterSchemaOp
 AlterSchemaOptItem::toType() {
