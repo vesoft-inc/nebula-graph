@@ -107,13 +107,7 @@ Status CreateSpaceValidator::validateImpl() {
 
 Status CreateSpaceValidator::toPlan() {
     auto *plan = qctx_->plan();
-    CreateSpace* doNode = nullptr;
-    if (plan->empty()) {
-        auto *start = StartNode::make(plan);
-        doNode = CreateSpace::make(plan, start, std::move(spaceDesc_), ifNotExist_);
-    } else {
-        doNode = CreateSpace::make(plan, plan->root(), std::move(spaceDesc_), ifNotExist_);
-    }
+    auto doNode = CreateSpace::make(plan, nullptr, std::move(spaceDesc_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -126,13 +120,7 @@ Status DescSpaceValidator::validateImpl() {
 Status DescSpaceValidator::toPlan() {
     auto sentence = static_cast<DescribeSpaceSentence*>(sentence_);
     auto *plan = qctx_->plan();
-    DescSpace* doNode = nullptr;
-    if (plan->empty()) {
-        auto *start = StartNode::make(plan);
-        doNode = DescSpace::make(plan, start, *sentence->spaceName());
-    } else {
-        doNode = DescSpace::make(plan, plan->root(), *sentence->spaceName());
-    }
+    auto doNode = DescSpace::make(plan, nullptr, *sentence->spaceName());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
