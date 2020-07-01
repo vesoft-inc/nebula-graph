@@ -16,7 +16,12 @@ folly::Future<Status> DedupExecutor::execute() {
     auto iter = ectx_->getResult(dedup->inputVar()).iter();
 
     if (iter == nullptr) {
-        return finish(ExecResult::buildDefault(Value()));
+        return Status::Error("Internal Error: iterator is nullptr");
+    }
+
+    if (iter->kind() == Iterator::Kind::kGetNeighbors ||
+            iter->kind() == Iterator::Kind::kUnion) {
+        return Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
     }
     auto result = ExecResult::buildDefault(iter->valuePtr());
     auto &colNames = dedup->getColNames();

@@ -17,56 +17,47 @@ namespace graph {
 class DedupTest : public QueryTestBase {
 };
 
+#define DEDUP_RESUTL_CHECK(inputName, outputName, sentence, expected)                          \
+    do {                                                                                       \
+        auto* plan = qctx_->plan();                                                            \
+        auto yieldSentence = getYieldSentence(sentence);                                       \
+        auto* dedupNode = Dedup::make(plan, nullptr, expected.colNames);                       \
+        dedupNode->setInputVar(inputName);                                                     \
+        dedupNode->setOutputVar(outputName);                                                   \
+        auto dedupExec = std::make_unique<DedupExecutor>(dedupNode, qctx_.get());              \
+        EXPECT_TRUE(dedupExec->execute().get().ok());                                          \
+        auto& dedupResult = qctx_->ectx()->getResult(dedupNode->varName());                    \
+        EXPECT_EQ(dedupResult.state().stat(), State::Stat::kSuccess);                          \
+                                                                                               \
+        dedupNode->setInputVar(outputName);                                                    \
+        auto* project = Project::make(plan, nullptr, yieldSentence->yieldColumns());           \
+        project->setInputVar(dedupNode->varName());                                            \
+        project->setColNames(std::vector<std::string>{"name"});                                \
+                                                                                               \
+        auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());                 \
+        EXPECT_TRUE(proExe->execute().get().ok());                                             \
+        auto& proSesult = qctx_->ectx()->getResult(project->varName());                        \
+                                                                                               \
+        EXPECT_EQ(proSesult.value().getDataSet(), expected);                                   \
+        EXPECT_EQ(proSesult.state().stat(), State::Stat::kSuccess);                            \
+    } while (false)
+
 TEST_F(DedupTest, TestSequential) {
-    auto* plan = qctx_->plan();
-    auto yieldColumns = getYieldColumns("YIELD DISTINCT $-.v_dst as name");
-    auto* dedupNode = Dedup::make(plan, nullptr, {"name"});
-    dedupNode->setInputVar("input_sequential");
-    dedupNode->setOutputVar("filter_sequential");
-
-    auto dedupExec = std::make_unique<DedupExecutor>(dedupNode, qctx_.get());
-    EXPECT_TRUE(dedupExec->execute().get().ok());
-    auto& dedupResult = qctx_->ectx()->getResult(dedupNode->varName());
-    EXPECT_EQ(dedupResult.state().stat(), State::Stat::kSuccess);
-
-    auto* project = Project::make(plan, nullptr, yieldColumns);
-    project->setInputVar(dedupNode->varName());
-    project->setColNames(std::vector<std::string>{"name"});
-
-    auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
-    EXPECT_TRUE(proExe->execute().get().ok());
-    auto& proSesult = qctx_->ectx()->getResult(project->varName());
-
     DataSet expected({"name"});
     expected.emplace_back(Row({Value("School1")}));
 
-    EXPECT_EQ(proSesult.value().getDataSet(), expected);
-    EXPECT_EQ(proSesult.state().stat(), State::Stat::kSuccess);
+    DEDUP_RESUTL_CHECK("input_sequential",
+                       "filter_sequential",
+                       "YIELD DISTINCT $-.v_dst as name",
+                       expected);
 }
 
 TEST_F(DedupTest, TestEmpty) {
-    auto* plan = qctx_->plan();
-    auto yieldColumns = getYieldColumns("YIELD DISTINCT $-.v_dst as name");
-    auto* dedupNode = Dedup::make(plan, nullptr, {"name"});
-    dedupNode->setInputVar("empty");
-    dedupNode->setOutputVar("dedup_empty");
-
-    auto dedupExec = std::make_unique<DedupExecutor>(dedupNode, qctx_.get());
-    EXPECT_TRUE(dedupExec->execute().get().ok());
-    auto& dedupResult = qctx_->ectx()->getResult(dedupNode->varName());
-    EXPECT_EQ(dedupResult.state().stat(), State::Stat::kSuccess);
-
-    auto* project = Project::make(plan, nullptr, yieldColumns);
-    project->setInputVar(dedupNode->varName());
-    project->setColNames(std::vector<std::string>{"name"});
-
-    auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
-    EXPECT_TRUE(proExe->execute().get().ok());
-    auto& proSesult = qctx_->ectx()->getResult(project->varName());
-
     DataSet expected({"name"});
-    EXPECT_EQ(proSesult.value().getDataSet(), expected);
-    EXPECT_EQ(proSesult.state().stat(), State::Stat::kSuccess);
+    DEDUP_RESUTL_CHECK("empty",
+                       "filter_sequential",
+                       "YIELD DISTINCT $-.v_dst as name",
+                       expected);
 }
 }  // namespace graph
 }  // namespace nebula

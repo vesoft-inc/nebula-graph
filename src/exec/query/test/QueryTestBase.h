@@ -26,13 +26,16 @@ protected:
                 Row row;
                 // vid
                 row.values.emplace_back("Ann");
+
                 // _stats
-                row.values.emplace_back(Value());
+                row.values.emplace_back(Value::kEmpty);
+
                 // vertices props
                 List vertices;
                 vertices.values.emplace_back("Ann");
                 vertices.values.emplace_back(18);
                 row.values.emplace_back(vertices);
+
                 // edge props
                 List edges;
                 List edge1;
@@ -46,6 +49,9 @@ protected:
                 edge2.values.emplace_back(2017);
                 edges.values.emplace_back(std::move(edge2));
                 row.values.emplace_back(edges);
+
+                // _expr
+                row.values.emplace_back(Value::kEmpty);
                 dataset.emplace_back(std::move(row));
             }
             {
@@ -53,7 +59,7 @@ protected:
                 // vid
                 row.values.emplace_back("Tom");
                 // _stats
-                row.values.emplace_back(Value());
+                row.values.emplace_back(Value::kEmpty);
                 // vertices props
                 List vertices;
                 vertices.values.emplace_back("Tom");
@@ -75,6 +81,9 @@ protected:
                 edges.values.emplace_back(std::move(edge2));
 
                 row.values.emplace_back(edges);
+
+                // _expr
+                row.values.emplace_back(Value::kEmpty);
                 dataset.emplace_back(std::move(row));
             }
             List datasetList;

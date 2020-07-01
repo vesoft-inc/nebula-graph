@@ -18,12 +18,19 @@ folly::Future<Status> FilterExecutor::execute() {
     auto* filter = asNode<Filter>(node());
     auto iter = ectx_->getResult(filter->inputVar()).iter();
 
+    if (iter == nullptr) {
+        LOG(ERROR) << "Internal Error: iterator is nullptr";
+        return Status::Error("Internal Error: iterator is nullptr");
+    }
     auto result = ExecResult::buildDefault(iter->valuePtr());
     ExpressionContextImpl ctx(ectx_, iter.get());
     auto condition = filter->condition();
     while (iter->valid()) {
         auto val = condition->eval(ctx);
-        if (val.isBool() && !val.getBool()) {
+        if (!val.isBool()) {
+            return Status::Error("Internal Error: Wrong type result");
+        }
+        if (!val.getBool()) {
             iter->erase();
         } else {
             iter->next();
