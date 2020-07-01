@@ -113,9 +113,7 @@ Status Validator::validate() {
     }
 
     if (!noSpaceRequired_) {
-        if (vctx_->spaceChosen()) {
-            space_ = vctx_->whichSpace();
-        }
+        space_ = vctx_->whichSpace();
     }
 
     status = validateImpl();

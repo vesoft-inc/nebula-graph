@@ -140,11 +140,6 @@ Status InsertEdgesValidator::validateImpl() {
     spaceId_ = vctx_->whichSpace().id;
     auto status = Status::OK();
     do {
-        if (!spaceChosen()) {
-            status = Status::Error("Please choose a graph space with `USE spaceName' firstly");
-            break;
-        }
-
         status = check();
         if (!status.ok()) {
             break;

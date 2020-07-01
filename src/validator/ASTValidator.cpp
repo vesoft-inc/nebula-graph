@@ -16,7 +16,7 @@ namespace graph {
 Status ASTValidator::validate() {
     // Check if space chosen from session. if chosen, add it to context.
     auto session = qctx_->rctx()->session();
-    if (!session->spaceName().empty()) {
+    if (session->space() > -1) {
         qctx_->vctx()->switchToSpace(session->spaceName(), session->space());
     }
 
