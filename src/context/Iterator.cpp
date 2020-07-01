@@ -296,5 +296,25 @@ Value GetNeighborsIter::getEdge() const {
     }
     return Value(std::move(edge));
 }
+
+std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
+    switch (kind) {
+        case Iterator::Kind::kDefault:
+            os << "default";
+            break;
+        case Iterator::Kind::kSequential:
+            os << "sequential";
+            break;
+        case Iterator::Kind::kGetNeighbors:
+            os << "get neighbors";
+            break;
+        case Iterator::Kind::kUnion:
+            os << "union";
+            break;
+    }
+    os << " iterator";
+    return os;
+}
+
 }  // namespace graph
 }  // namespace nebula
