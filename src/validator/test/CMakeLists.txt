@@ -44,7 +44,7 @@ nebula_add_library(
 nebula_add_test(
     NAME validator_test
     SOURCES
-        ValidatorTest.cpp
+        QueryValidatorTest.cpp
         AdminValidatorTest.cpp
         MaintainValidatorTest.cpp
         MutateValidatorTest.cpp
@@ -58,3 +58,4 @@ nebula_add_test(
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
 )
+

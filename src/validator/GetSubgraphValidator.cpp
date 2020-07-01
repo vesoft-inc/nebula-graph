@@ -80,21 +80,15 @@ Status GetSubgraphValidator::validateFrom(FromClause* from) {
     return Status::OK();
 }
 
-// TODO: The EdgeType and the spaceId need to get in executor
 Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
     if (in != nullptr) {
+        auto space = vctx_->whichSpace();
         for (auto* e : in->edges()) {
             if (e->alias() != nullptr) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto spaceId = qctx_->rctx()->session()->space();
-            if (spaceId < 0) {
-                LOG(ERROR) << "Space was not chosen";
-                return Status::Error("Space was not chosen");
-            }
-
-            auto et = qctx_->schemaMng()->toEdgeType(spaceId, *e->edge());
+            auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -109,18 +103,13 @@ Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
 
 Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
     if (out != nullptr) {
+        auto space = vctx_->whichSpace();
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto spaceId = qctx_->rctx()->session()->space();
-            if (spaceId < 0) {
-                LOG(ERROR) << "Space was not chosen";
-                return Status::Error("Space was not chosen");
-            }
-
-            auto et = qctx_->schemaMng()->toEdgeType(spaceId, *e->edge());
+            auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -134,13 +123,13 @@ Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
 
 Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
     if (out != nullptr) {
+        auto space = vctx_->whichSpace();
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
                 return Status::Error("Get Subgraph not support rename edge name.");
             }
 
-            auto spaceId = qctx_->rctx()->session()->space();
-            auto et = qctx_->schemaMng()->toEdgeType(spaceId, *e->edge());
+            auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
                 return et.status();
             }
@@ -157,6 +146,7 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
 
 Status GetSubgraphValidator::toPlan() {
     auto* plan = qctx_->plan();
+    auto& space = vctx_->whichSpace();
 
     // TODO:
     // loop -> project -> gn1 -> bodyStart
@@ -183,7 +173,7 @@ Status GetSubgraphValidator::toPlan() {
     auto* gn1 = GetNeighbors::make(
             plan,
             bodyStart,
-            qctx_->rctx()->session()->space(),
+            space.id,
             plan->saveObject(vids),
             std::move(edgeTypes),
             storage::cpp2::EdgeDirection::BOTH,  // FIXME: make direction right
@@ -271,3 +261,4 @@ Status GetSubgraphValidator::toPlan() {
 }
 }  // namespace graph
 }  // namespace nebula
+

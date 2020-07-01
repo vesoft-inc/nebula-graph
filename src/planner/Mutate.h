@@ -17,7 +17,8 @@ namespace nebula {
 namespace graph {
 class InsertVertices final : public SingleInputNode {
 public:
-    static InsertVertices* make(ExecutionPlan* plan,
+    static InsertVertices* make(
+            ExecutionPlan* plan,
             PlanNode* input,
             GraphSpaceID spaceId,
             std::vector<storage::cpp2::NewVertex> vertices,

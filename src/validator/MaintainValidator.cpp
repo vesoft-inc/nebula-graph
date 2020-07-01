@@ -24,7 +24,8 @@ Status CreateTagValidator::validateImpl() {
         // Check the validateContext has the same name schema
         auto pro = vctx_->getSchema(tagName_);
         if (pro != nullptr) {
-            status = Status::Error("Has the same name schema of `%s'", tagName_.c_str());
+            status = Status::Error("Has the same name `%s' in the SequentialSentences",
+                                    tagName_.c_str());
             break;
         }
 
@@ -64,7 +65,8 @@ Status CreateEdgeValidator::validateImpl() {
         // Check the validateContext has the same name schema
         auto pro = vctx_->getSchema(edgeName_);
         if (pro != nullptr) {
-            status = Status::Error("Has the same name schema of `%s'", edgeName_.c_str());
+            status = Status::Error("Has the same name `%s' in the SequentialSentences",
+                                    edgeName_.c_str());
             break;
         }
 
