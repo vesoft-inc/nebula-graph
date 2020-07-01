@@ -242,5 +242,39 @@ TEST_F(QueryValidatorTest, GoInvalid) {
         EXPECT_FALSE(status.ok()) << status.status();
     }
 }
+
+TEST_F(ValidatorTest, Limit) {
+    std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT 1, 3";
+    auto status = validate(query);
+    ASSERT_TRUE(status.ok()) << status.status();
+    auto plan = std::move(status).value();
+    std::vector<PlanNode::Kind> expected = {
+        PK::kProject, PK::kLimit, PK::kProject, PK::kGetNeighbors, PK::kStart
+    };
+    ASSERT_TRUE(verifyPlan(plan->root(), expected));
+}
+
+TEST_F(ValidatorTest, OrderBy) {
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
+                            " | ORDER BY $-.age";
+        auto status = validate(query);
+        ASSERT_TRUE(status.ok()) << status.status();
+        auto plan = std::move(status).value();
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
+    }
+    // not exist factor
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
+                            " | ORDER BY $-.name";
+        auto status = validate(query);
+        ASSERT_FALSE(status.ok()) << status.status();
+    }
+}
+
 }  // namespace graph
 }  // namespace nebula
+

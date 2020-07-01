@@ -15,11 +15,14 @@ folly::Future<Status> SortExecutor::execute() {
     dumpLog();
     auto* sort = asNode<Sort>(node());
     auto iter = ectx_->getResult(sort->inputVar()).iter();
-
     if (iter == nullptr) {
-        return finish(ExecResult::buildDefault(Value()));
+        return Status::Error("Internal error: nullptr iterator in sort executor");
     }
-    auto result = ExecResult::buildDefault(ectx_->getResult(sort->inputVar()).copyValue());
+    if (iter->kind() == Iterator::Kind::kGetNeighbors ||
+            iter->kind() == Iterator::Kind::kUnion) {
+        return Status::Error("Invalid iterator kind, %d", static_cast<uint8_t>(iter->kind()));
+    }
+    auto result = ExecResult::buildDefault(iter->valuePtr());
     ExpressionContextImpl ctx(ectx_, iter.get());
     iter->sort(sort->factors());
     result.setIter(std::move(iter));

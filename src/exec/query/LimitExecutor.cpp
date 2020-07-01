@@ -15,11 +15,7 @@ folly::Future<Status> LimitExecutor::execute() {
     dumpLog();
     auto* limit = asNode<Limit>(node());
     auto iter = ectx_->getResult(limit->inputVar()).iter();
-
-    if (iter == nullptr) {
-        return finish(ExecResult::buildDefault(Value()));
-    }
-    auto result = ExecResult::buildDefault(ectx_->getResult(limit->inputVar()).copyValue());
+    auto result = ExecResult::buildDefault(iter->valuePtr());
     ExpressionContextImpl ctx(ectx_, iter.get());
     auto offset = limit->offset();
     auto count = limit->count();

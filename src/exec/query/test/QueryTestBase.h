@@ -29,6 +29,9 @@ protected:
 
                 // _stats
                 row.values.emplace_back(Value::kEmpty);
+                // vertices props
+                List vertices({"Ann", 18});
+                row.values.emplace_back(std::move(vertices));
 
                 // vertices props
                 List vertices;
@@ -48,7 +51,7 @@ protected:
                 edge2.values.emplace_back(2014);
                 edge2.values.emplace_back(2017);
                 edges.values.emplace_back(std::move(edge2));
-                row.values.emplace_back(edges);
+                row.values.emplace_back(std::move(edges));
 
                 // _expr
                 row.values.emplace_back(Value::kEmpty);
@@ -61,26 +64,18 @@ protected:
                 // _stats
                 row.values.emplace_back(Value::kEmpty);
                 // vertices props
-                List vertices;
-                vertices.values.emplace_back("Tom");
-                vertices.values.emplace_back(18);
-                row.values.emplace_back(vertices);
-                // edges props
-                List edge1;
-                edge1.values.emplace_back("School1");
-                edge1.values.emplace_back(2008);
-                edge1.values.emplace_back(2012);
+                List vertices({"Tom", 18});
+                row.values.emplace_back(std::move(vertices));
 
-                List edge2;
-                edge2.values.emplace_back("School2");
-                edge2.values.emplace_back(2012);
-                edge2.values.emplace_back(2015);
+                // edges props
+                List edge1{"School1", 2008, 2012};
+
+                List edge2{"School2", 2012, 2015};
 
                 List edges;
                 edges.values.emplace_back(std::move(edge1));
                 edges.values.emplace_back(std::move(edge2));
-
-                row.values.emplace_back(edges);
+                row.values.emplace_back(std::move(edges));
 
                 // _expr
                 row.values.emplace_back(Value::kEmpty);
@@ -123,14 +118,6 @@ protected:
         auto yieldSentence = getYieldSentence(query);
         CHECK(yieldSentence);
         return yieldSentence->yieldColumns();
-    }
-
-    std::vector<Expression*> getExprs(const YieldColumns *yieldColumns) {
-        std::vector<Expression*> exprs;
-        for (auto &col : yieldColumns->columns()) {
-            exprs.emplace_back(col->expr());
-        }
-        return exprs;
     }
 
     Expression* getYieldFilter(const std::string &query) {

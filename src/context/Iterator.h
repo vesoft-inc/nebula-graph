@@ -196,6 +196,12 @@ public:
         }
     }
 
+    void clear() override {
+        valid_ = false;
+        dsIndices_.clear();
+        logicalRows_.clear();
+    }
+
     void erase() override {
         if (valid()) {
             iter_ = logicalRows_.erase(iter_);
@@ -206,13 +212,8 @@ public:
         if (first >= last || last > size() || first >= size()) {
             return;
         }
-        edges_.erase(edges_.begin() + first, edges_.begin() + last);
-        iter_ = edges_.begin();
-    }
-
-    void clear() override {
-        edges_.clear();
-        reset();
+        logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.begin() + last);
+        iter_ = logicalRows_.begin();
     }
 
     void sort(const std::vector<
@@ -274,12 +275,6 @@ public:
 private:
     void doReset(size_t pos) override {
         iter_ = logicalRows_.begin() + pos;
-    }
-
-    void clear() {
-        valid_ = false;
-        dsIndices_.clear();
-        logicalRows_.clear();
     }
 
     inline size_t currentSeg() const {
@@ -392,8 +387,8 @@ public:
             return;
         }
         auto comparator = [this, &factors] (RowRef &lhs, RowRef &rhs) {
-            const auto &lhsColumns = lhs.row->columns;
-            const auto &rhsColumns = rhs.row->columns;
+            const auto &lhsColumns = lhs.row->values;
+            const auto &rhsColumns = rhs.row->values;
             for (auto &factor : factors) {
                 auto indexFind = this->colIndex_.find(factor.first);
                 if (indexFind == colIndex_.end()) {
@@ -426,18 +421,21 @@ public:
         if (!valid()) {
             return Value::kNullValue;
         }
-        auto rowRef = *iter_;
+        auto rowRef = iter_;
         auto index = colIndex_.find(col);
         if (index == colIndex_.end()) {
             return Value::kNullValue;
         } else {
-            DCHECK_LT(index->second, row->values.size());
-            return rowRef.row->values[index->second];
+            DCHECK_LT(index->second, rowRef->row->values.size());
+            return rowRef->row->values[index->second];
         }
     }
 
     const Row* row() const override {
-        return *iter_;
+        if (!valid()) {
+            return nullptr;
+        }
+        return iter_->row;
     }
 
 protected:
@@ -480,6 +478,28 @@ public:
 
     bool valid() const override {
         return left_->valid() || right_->valid();
+    }
+
+    void eraseRange(size_t first, size_t last) override {
+        // TODO: implementation
+        UNUSED(first);
+        UNUSED(last);
+        return;
+    }
+
+    void clear() override {
+        if (left_->valid()) {
+            left_->clear();
+        } else {
+            if (right_->valid()) {
+                right_->clear();
+            }
+        }
+    }
+
+    void sort(const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors) override {
+        UNUSED(factors);
+        return;
     }
 
     void next() override {

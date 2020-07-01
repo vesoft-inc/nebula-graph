@@ -4,10 +4,10 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_VALIDATORTEST_H_
-#define VALIDATOR_VALIDATORTEST_H_
+#ifndef VALIDATOR_TEST_VALIDATORTESTBASE_H_
+#define VALIDATOR_TEST_VALIDATORTESTBASE_H_
 
-#include "common/base/Base.h"
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -85,8 +85,8 @@ protected:
     }
 
     static void bfsTraverse(const PlanNode* root, std::vector<PlanNode::Kind>& result) {
-        std::queue<const PlanNode *> queue;
-        std::unordered_set <int64_t> visited;
+        std::queue<const PlanNode*> queue;
+        std::unordered_set<int64_t> visited;
         queue.emplace(root);
 
         while (!queue.empty()) {
@@ -126,20 +126,20 @@ protected:
                 case PlanNode::Kind::kInsertVertices:
                 case PlanNode::Kind::kInsertEdges:
                 case PlanNode::Kind::kDataCollect: {
-                    auto *current = static_cast<const SingleInputNode *>(node);
+                    auto* current = static_cast<const SingleInputNode*>(node);
                     queue.emplace(current->input());
                     break;
                 }
                 case PlanNode::Kind::kUnion:
                 case PlanNode::Kind::kIntersect:
                 case PlanNode::Kind::kMinus: {
-                    auto *current = static_cast<const BiInputNode *>(node);
+                    auto* current = static_cast<const BiInputNode*>(node);
                     queue.emplace(current->left());
                     queue.emplace(current->right());
                     break;
                 }
                 case PlanNode::Kind::kSelect: {
-                    auto *current = static_cast<const Select *>(node);
+                    auto* current = static_cast<const Select*>(node);
                     queue.emplace(current->input());
                     queue.emplace(current->then());
                     if (current->otherwise() != nullptr) {
@@ -148,13 +148,13 @@ protected:
                     break;
                 }
                 case PlanNode::Kind::kLoop: {
-                    auto *current = static_cast<const Loop *>(node);
+                    auto* current = static_cast<const Loop*>(node);
                     queue.emplace(current->input());
                     queue.emplace(current->body());
                     break;
                 }
                 default:
-                    LOG(FATAL) << "Unkown PlanNode: " << static_cast<int64_t>(root->kind());
+                    LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(node->kind());
             }
         }
     }
@@ -175,5 +175,5 @@ std::unique_ptr<QueryContext> ValidatorTestBase::buildContext() {
 }
 }  // namespace graph
 }  // namespace nebula
-#endif  // VALIDATOR_VALIDATORTEST_H_
+#endif   // VALIDATOR_TEST_VALIDATORTESTBASE_H_
 
