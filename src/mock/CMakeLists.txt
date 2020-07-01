@@ -15,4 +15,9 @@ nebula_add_library(
         test/TestBase.cpp
 )
 
+nebula_add_library(
+    mock_schema_obj OBJECT
+    MockSchemaManager.cpp
+)
+
 nebula_add_subdirectory(test)

@@ -7,7 +7,7 @@
 #include "common/base/Base.h"
 
 #include "validator/test/ValidatorTestBase.h"
-#include "validator/test/MockSchemaManager.h"
+#include "mock/MockSchemaManager.h"
 #include "parser/GQLParser.h"
 #include "validator/ASTValidator.h"
 #include "context/QueryContext.h"

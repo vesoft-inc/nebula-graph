@@ -4,7 +4,7 @@
 * attached with Common Clause Condition 1.0, found in the LICENSES directory.
 */
 
-#include "validator/test/MockSchemaManager.h"
+#include "mock/MockSchemaManager.h"
 
 namespace nebula {
 namespace graph {

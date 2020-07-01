@@ -6,7 +6,7 @@
 
 #include "common/base/Base.h"
 #include <gtest/gtest.h>
-#include "MockSchemaManager.h"
+#include "mock/MockSchemaManager.h"
 
 namespace nebula {
 namespace graph {

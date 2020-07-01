@@ -4,8 +4,8 @@
 * attached with Common Clause Condition 1.0, found in the LICENSES directory.
 */
 
-#ifndef VALIDATOR_MOCKSCHEMAMANAGER_H_
-#define VALIDATOR_MOCKSCHEMAMANAGER_H_
+#ifndef MOCK_MOCKSCHEMAMANAGER_H_
+#define MOCK_MOCKSCHEMAMANAGER_H_
 
 #include "common/meta/SchemaProviderIf.h"
 #include "common/meta/SchemaManager.h"
@@ -86,4 +86,4 @@ private:
 
 }  // namespace graph
 }  // namespace nebula
-#endif  // VALIDATOR_MOCKSCHEMAMANAGER_H_
+#endif  // MOCK_MOCKSCHEMAMANAGER_H_

@@ -6,6 +6,7 @@
 
 set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:mock_obj>
+    $<TARGET_OBJECTS:mock_schema_obj>
     $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:service_obj>
     $<TARGET_OBJECTS:session_obj>
@@ -51,25 +52,11 @@ set(GRAPH_TEST_LIB
 
 nebula_add_test(
     NAME
-        mock_server_test
+        mock_test
     SOURCES
         TestMock.cpp
-    OBJECTS
-        ${GRAPH_TEST_LIB}
-    LIBRARIES
-        proxygenhttpserver
-        proxygenlib
-        ${THRIFT_LIBRARIES}
-        wangle
-        gtest
-        gtest_main
-)
-
-nebula_add_test(
-    NAME
-        schema_test
-    SOURCES
         SchemaTest.cpp
+        MockSchemaManagerTest.cpp
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES
@@ -80,4 +67,3 @@ nebula_add_test(
         gtest
         gtest_main
 )
-
