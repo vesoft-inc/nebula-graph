@@ -6,15 +6,18 @@
 
 #include <gtest/gtest.h>
 #include "context/Iterator.h"
+#include "common/datatypes/Vertex.h"
+#include "common/datatypes/Edge.h"
 
 namespace nebula {
 namespace graph {
+
 TEST(IteratorTest, Default) {
-    Value constant(1);
+    auto constant = std::make_shared<Value>(1);
     DefaultIter iter(constant);
     EXPECT_EQ(iter.size(), 1);
     for (; iter.valid(); iter.next()) {
-        EXPECT_EQ(*iter, constant);
+        EXPECT_EQ(*iter, *constant);
     }
 }
 
@@ -23,12 +26,12 @@ TEST(IteratorTest, Sequential) {
     ds.colNames = {"col1", "col2"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
-        row.columns.emplace_back(i);
-        row.columns.emplace_back(folly::to<std::string>(i));
+        row.values.emplace_back(i);
+        row.values.emplace_back(folly::to<std::string>(i));
         ds.rows.emplace_back(std::move(row));
     }
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         EXPECT_EQ(iter.size(), 10);
         auto i = 0;
@@ -39,7 +42,7 @@ TEST(IteratorTest, Sequential) {
         }
     }
     {
-        Value val(ds);
+        auto val = std::make_shared<Value>(ds);
         SequentialIter iter(val);
         auto copyIter1 = iter.copy();
         auto copyIter2 = copyIter1->copy();
@@ -53,7 +56,7 @@ TEST(IteratorTest, Sequential) {
     }
     // erase
     {
-        Value val(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(ds));
         SequentialIter iter(val);
         EXPECT_EQ(iter.size(), 10);
         while (iter.valid()) {
@@ -63,27 +66,37 @@ TEST(IteratorTest, Sequential) {
                 iter.next();
             }
         }
-        iter.reset();
-        for (; iter.valid(); iter.next()) {
+        int32_t count = 0;
+        for (iter.reset(); iter.valid(); iter.next()) {
             EXPECT_NE(iter.getColumn("col1").getInt() % 2, 0);
+            count++;
         }
+
+        for (iter.reset(1); iter.valid(); iter.next()) {
+            count--;
+        }
+        EXPECT_EQ(count, 1);
     }
 }
 
 TEST(IteratorTest, GetNeighbor) {
     DataSet ds1;
-    ds1.colNames = {"_vid", "_stats", "_tag:tag1:prop1:prop2", "_edge:edge1:prop1:prop2"};
+    ds1.colNames = {"_vid",
+                    "_stats",
+                    "_tag:tag1:prop1:prop2",
+                    "_edge:+edge1:prop1:prop2:_dst:_rank",
+                    "_expr"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         // _vid
-        row.columns.emplace_back(i);
+        row.values.emplace_back(folly::to<std::string>(i));
         // _stats = empty
-        row.columns.emplace_back(Value());
+        row.values.emplace_back(Value());
         // tag
         List tag;
         tag.values.emplace_back(0);
         tag.values.emplace_back(1);
-        row.columns.emplace_back(Value(tag));
+        row.values.emplace_back(Value(tag));
         // edges
         List edges;
         for (auto j = 0; j < 2; ++j) {
@@ -91,25 +104,33 @@ TEST(IteratorTest, GetNeighbor) {
             for (auto k = 0; k < 2; ++k) {
                 edge.values.emplace_back(k);
             }
+            edge.values.emplace_back("2");
+            edge.values.emplace_back(j);
             edges.values.emplace_back(std::move(edge));
         }
-        row.columns.emplace_back(edges);
+        row.values.emplace_back(edges);
+        // _expr = empty
+        row.values.emplace_back(Value());
         ds1.rows.emplace_back(std::move(row));
     }
 
     DataSet ds2;
-    ds2.colNames = {"_vid", "_stats", "_tag:tag2:prop1:prop2", "_edge:edge2:prop1:prop2"};
-    for (auto i = 0; i < 10; ++i) {
+    ds2.colNames = {"_vid",
+                    "_stats",
+                    "_tag:tag2:prop1:prop2",
+                    "_edge:-edge2:prop1:prop2:_dst:_rank",
+                    "_expr"};
+    for (auto i = 10; i < 20; ++i) {
         Row row;
         // _vid
-        row.columns.emplace_back(i);
+        row.values.emplace_back(folly::to<std::string>(i));
         // _stats = empty
-        row.columns.emplace_back(Value());
+        row.values.emplace_back(Value());
         // tag
         List tag;
         tag.values.emplace_back(0);
         tag.values.emplace_back(1);
-        row.columns.emplace_back(Value(tag));
+        row.values.emplace_back(Value(tag));
         // edges
         List edges;
         for (auto j = 0; j < 2; ++j) {
@@ -117,22 +138,28 @@ TEST(IteratorTest, GetNeighbor) {
             for (auto k = 0; k < 2; ++k) {
                 edge.values.emplace_back(k);
             }
+            edge.values.emplace_back("2");
+            edge.values.emplace_back(j);
             edges.values.emplace_back(std::move(edge));
         }
-        row.columns.emplace_back(edges);
+        row.values.emplace_back(edges);
+        // _expr = empty
+        row.values.emplace_back(Value());
         ds2.rows.emplace_back(std::move(row));
     }
 
     List datasets;
     datasets.values.emplace_back(std::move(ds1));
     datasets.values.emplace_back(std::move(ds2));
-    Value val(std::move(datasets));
+    auto val = std::make_shared<Value>(std::move(datasets));
 
     {
         GetNeighborsIter iter(val);
         std::vector<Value> expected =
-            {0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9,
-             0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9};
+            {"0", "0", "1", "1", "2", "2", "3", "3", "4", "4",
+             "5", "5", "6", "6", "7", "7", "8", "8", "9", "9",
+             "10", "10", "11", "11", "12", "12", "13", "13", "14", "14",
+             "15", "15", "16", "16", "17", "17", "18", "18", "19", "19"};
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
             result.emplace_back(iter.getColumn("_vid"));
@@ -207,24 +234,379 @@ TEST(IteratorTest, GetNeighbor) {
     // erase
     {
         GetNeighborsIter iter(val);
+        size_t i = 0;
         while (iter.valid()) {
-            if (iter.getColumn("_vid").getInt() % 2 == 0) {
+            ++i;
+            if (i % 2 == 0) {
                 iter.erase();
             } else {
                 iter.next();
             }
         }
         std::vector<Value> expected =
-                {1, 1, 3, 3, 5, 5, 7, 7, 9, 9,
-                 1, 1, 3, 3, 5, 5, 7, 7, 9, 9};
+                {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+                "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
         std::vector<Value> result;
-        iter.reset();
-        for (; iter.valid(); iter.next()) {
+
+        int count = 0;
+        for (iter.reset(); iter.valid(); iter.next()) {
             result.emplace_back(iter.getColumn("_vid"));
+            count++;
         }
         EXPECT_EQ(result.size(), 20);
         EXPECT_EQ(expected, result);
+
+        for (iter.reset(10); iter.valid(); iter.next()) {
+            count--;
+        }
+        EXPECT_EQ(count, 10);
+    }
+    {
+        GetNeighborsIter iter(val);
+        std::vector<Value> expected;
+        Tag tag1;
+        tag1.name = "tag1";
+        tag1.props = {{"prop1", 0}, {"prop2", 1}};
+        for (size_t i = 0; i < 10; ++i) {
+            Vertex vertex;
+            vertex.vid = folly::to<std::string>(i);
+            vertex.tags.emplace_back(tag1);
+            expected.emplace_back(vertex);
+            expected.emplace_back(std::move(vertex));
+        }
+        Tag tag2;
+        tag2.name = "tag2";
+        tag2.props = {{"prop1", 0}, {"prop2", 1}};
+        for (size_t i = 10; i < 20; ++i) {
+            Vertex vertex;
+            vertex.vid = folly::to<std::string>(i);
+            vertex.tags.emplace_back(tag2);
+            expected.emplace_back(vertex);
+            expected.emplace_back(std::move(vertex));
+        }
+        std::vector<Value> result;
+        for (; iter.valid(); iter.next()) {
+            auto v = iter.getVertex();
+            result.emplace_back(std::move(v));
+        }
+        EXPECT_EQ(result.size(), 40);
+        EXPECT_EQ(result, expected);
+    }
+    {
+        GetNeighborsIter iter(val);
+        std::vector<Value> expected;
+        for (size_t i = 0; i < 10; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                EdgeRanking ranking = static_cast<int64_t>(j);
+                Edge edge;
+                edge.name = "edge1";
+                edge.type = 0;
+                edge.src = folly::to<std::string>(i);
+                edge.dst = "2";
+                edge.ranking = ranking;
+                edge.props = {{"prop1", 0}, {"prop2", 1}};
+                expected.emplace_back(std::move(edge));
+            }
+        }
+        for (size_t i = 10; i < 20; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                EdgeRanking ranking = static_cast<int64_t>(j);
+                Edge edge;
+                edge.name = "edge2";
+                edge.type = 0;
+                edge.src = folly::to<std::string>(i);
+                edge.dst = "2";
+                edge.ranking = ranking;
+                edge.props = {{"prop1", 0}, {"prop2", 1}};
+                expected.emplace_back(std::move(edge));
+            }
+        }
+        std::vector<Value> result;
+        for (; iter.valid(); iter.next()) {
+            auto e = iter.getEdge();
+            result.emplace_back(std::move(e));
+        }
+        EXPECT_EQ(result.size(), 40);
+        EXPECT_EQ(result, expected);
+    }
+    {
+        GetNeighborsIter iter(val);
+        std::vector<Value> expected;
+        Tag tag1;
+        tag1.name = "tag1";
+        tag1.props = {{"prop1", 0}, {"prop2", 1}};
+        for (size_t i = 0; i < 10; ++i) {
+            Vertex vertex;
+            vertex.vid = folly::to<std::string>(i);
+            vertex.tags.emplace_back(tag1);
+            expected.emplace_back(std::move(vertex));
+        }
+        Tag tag2;
+        tag2.name = "tag2";
+        tag2.props = {{"prop1", 0}, {"prop2", 1}};
+        for (size_t i = 10; i < 20; ++i) {
+            Vertex vertex;
+            vertex.vid = folly::to<std::string>(i);
+            vertex.tags.emplace_back(tag2);
+            expected.emplace_back(std::move(vertex));
+        }
+        List result = iter.getVertices();
+        EXPECT_EQ(result.values.size(), 20);
+        EXPECT_EQ(result.values, expected);
+
+        result = iter.getVertices();
+        EXPECT_EQ(result.values.size(), 20);
+        EXPECT_EQ(result.values, expected);
+    }
+    {
+        GetNeighborsIter iter(val);
+        std::vector<Value> expected;
+        for (size_t i = 0; i < 10; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                EdgeRanking ranking = static_cast<int64_t>(j);
+                Edge edge;
+                edge.name = "edge1";
+                edge.type = 0;
+                edge.src = folly::to<std::string>(i);
+                edge.dst = "2";
+                edge.ranking = ranking;
+                edge.props = {{"prop1", 0}, {"prop2", 1}};
+                expected.emplace_back(std::move(edge));
+            }
+        }
+        for (size_t i = 10; i < 20; ++i) {
+            for (size_t j = 0; j < 2; ++j) {
+                EdgeRanking ranking = static_cast<int64_t>(j);
+                Edge edge;
+                edge.name = "edge2";
+                edge.type = 0;
+                edge.src = folly::to<std::string>(i);
+                edge.dst = "2";
+                edge.ranking = ranking;
+                edge.props = {{"prop1", 0}, {"prop2", 1}};
+                expected.emplace_back(std::move(edge));
+            }
+        }
+        List result = iter.getEdges();
+        EXPECT_EQ(result.values.size(), 40);
+        EXPECT_EQ(result.values, expected);
+
+        result = iter.getEdges();
+        EXPECT_EQ(result.values.size(), 40);
+        EXPECT_EQ(result.values, expected);
     }
 }
+
+TEST(IteratorTest, TestHead) {
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1",
+                        "_edge:+edge1:",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+
+    {
+        // no _vid
+        DataSet ds;
+        ds.colNames = {"_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
+    }
+    {
+        // no _stats
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
+    }
+    {
+        // no _expr
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
+    }
+    {
+        // no +/- before edge name
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
+    }
+    // no prop
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1:",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+    // no prop
+    {
+        DataSet ds;
+        ds.colNames = {"_vid",
+                        "_stats",
+                        "_tag:tag1",
+                        "_edge:+edge1:prop1:prop2:_dst:_rank",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_TRUE(iter.valid_);
+    }
+}
+
+TEST(IteratorTest, TestUnionIterator) {
+    std::vector<std::string> colNames = {"col1", "col2"};
+    DataSet lds;
+    lds.colNames = colNames;
+    lds.rows = {
+        Row({Value(1), Value("row1")}),
+        Row({Value(2), Value("row2")}),
+    };
+    auto lIter = std::make_unique<SequentialIter>(std::make_shared<Value>(lds));
+
+    DataSet rds;
+    rds.colNames = colNames;
+    rds.rows = {
+        Row({Value(3), Value("row3")}),
+    };
+    auto rIter = std::make_unique<SequentialIter>(std::make_shared<Value>(rds));
+
+    // next and valid
+    {
+        auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+        for (; lIter->valid(); lIter->next()) {
+            EXPECT_TRUE(uIter->valid());
+            for (auto &col : colNames) {
+                EXPECT_EQ(lIter->getColumn(col), uIter->getColumn(col));
+            }
+            uIter->next();
+        }
+
+        for (; rIter->valid(); rIter->next()) {
+            EXPECT_TRUE(uIter->valid());
+            for (auto &col : colNames) {
+                EXPECT_EQ(rIter->getColumn(col), uIter->getColumn(col));
+            }
+            uIter->next();
+        }
+    }
+
+    // erase
+    {
+        auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+        for (; lIter->valid(); lIter->next()) {
+            uIter->erase();
+        }
+
+        for (; rIter->valid(); rIter->next()) {
+            EXPECT_TRUE(uIter->valid());
+            for (auto &col : colNames) {
+                EXPECT_EQ(rIter->getColumn(col), uIter->getColumn(col));
+            }
+            uIter->next();
+        }
+    }
+}
+
 }  // namespace graph
 }  // namespace nebula
+
+int main(int argc, char** argv) {
+    testing::InitGoogleTest(&argc, argv);
+    folly::init(&argc, &argv, true);
+    google::SetStderrLogging(google::INFO);
+
+    return RUN_ALL_TESTS();
+}
