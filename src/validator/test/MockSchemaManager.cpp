@@ -52,20 +52,6 @@ MockSchemaManager::getTagSchema(GraphSpaceID space,
 }
 
 std::shared_ptr<const nebula::meta::NebulaSchemaProvider>
-MockSchemaManager::getTagSchema(GraphSpaceID space,
-                                const std::string &name,
-                                SchemaVer) {
-    auto ret = toTagID(space, name);
-    if (!ret.ok()) {
-        LOG(ERROR) << ret.status();
-        return std::shared_ptr<const nebula::meta::NebulaSchemaProvider>();
-    }
-
-    auto tagId = ret.value();
-    return getTagSchema(space, tagId);
-}
-
-std::shared_ptr<const nebula::meta::NebulaSchemaProvider>
 MockSchemaManager::getEdgeSchema(GraphSpaceID space,
                                   EdgeType edge,
                                   SchemaVer) {
@@ -81,20 +67,6 @@ MockSchemaManager::getEdgeSchema(GraphSpaceID space,
     }
 
     return edgeIt->second;
-}
-
-std::shared_ptr<const nebula::meta::NebulaSchemaProvider>
-MockSchemaManager::getEdgeSchema(GraphSpaceID space,
-                                 const std::string &name,
-                                 SchemaVer) {
-    auto ret = toEdgeType(space, name);
-    if (!ret.ok()) {
-        LOG(ERROR) << ret.status();
-        return std::shared_ptr<const nebula::meta::NebulaSchemaProvider>();
-    }
-
-    auto edgeType = ret.value();
-    return getEdgeSchema(space, edgeType);
 }
 
 StatusOr<GraphSpaceID> MockSchemaManager::toGraphSpaceID(folly::StringPiece spaceName) {

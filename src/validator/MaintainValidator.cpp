@@ -48,35 +48,11 @@ Status CreateTagValidator::validateImpl() {
 }
 
 Status CreateTagValidator::toPlan() {
-<<<<<<< HEAD
-    auto* plan = qctx_->plan();
-    auto *doNode = CreateTag::make(plan,
-                                   nullptr,
-                                   vctx_->whichSpace().id,
-                                   tagName_,
-                                   schema_,
-                                   ifNotExist_);
-=======
     auto *plan = qctx_->plan();
-    CreateTag* doNode = nullptr;
-    if (plan->empty()) {
-        auto *start = StartNode::make(plan);
-        doNode = CreateTag::make(plan,
-                start, std::move(tagName_), std::move(schema_), ifNotExist_);
-        root_ = doNode;
-        tail_ = start;
-    } else {
-        doNode = CreateTag::make(plan,
-                plan->root(), std::move(tagName_), std::move(schema_), ifNotExist_);
-        root_ = doNode;
-        tail_ = root_;
-    }
-<<<<<<< HEAD
->>>>>>> Support DML,DDL to use inputNode
+    auto doNode = CreateTag::make(plan,
+            plan->root(), std::move(tagName_), std::move(schema_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
-=======
->>>>>>> address comment
     return Status::OK();
 }
 
@@ -113,35 +89,11 @@ Status CreateEdgeValidator::validateImpl() {
 }
 
 Status CreateEdgeValidator::toPlan() {
-<<<<<<< HEAD
-    auto* plan = qctx_->plan();
-    auto *doNode = CreateEdge::make(plan,
-                                    nullptr,
-                                    vctx_->whichSpace().id,
-                                    edgeName_,
-                                    schema_,
-                                    ifNotExist_);
-=======
     auto *plan = qctx_->plan();
-    CreateEdge* doNode = nullptr;
-    if (plan->empty()) {
-        auto *start = StartNode::make(plan);
-        doNode = CreateEdge::make(plan,
-                start, std::move(edgeName_), std::move(schema_), ifNotExist_);
-        root_ = doNode;
-        tail_ = start;
-    } else {
-        doNode = CreateEdge::make(plan,
-                plan->root(), std::move(edgeName_), std::move(schema_), ifNotExist_);
-        root_ = doNode;
-        tail_ = root_;
-    }
-<<<<<<< HEAD
->>>>>>> Support DML,DDL to use inputNode
+    auto doNode = CreateEdge::make(plan,
+            plan->root(), std::move(edgeName_), std::move(schema_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
-=======
->>>>>>> address comment
     return Status::OK();
 }
 
@@ -150,39 +102,12 @@ Status DescTagValidator::validateImpl() {
 }
 
 Status DescTagValidator::toPlan() {
-<<<<<<< HEAD
-    auto* plan = qctx_->plan();
-    auto *doNode = DescTag::make(plan,
-                                 nullptr,
-                                 vctx_->whichSpace().id,
-                                 tagName_);
-=======
     auto sentence = static_cast<DescribeTagSentence*>(sentence_);
     auto name = *sentence->name();
     auto *plan = qctx_->plan();
-<<<<<<< HEAD
-    DescTag* doNode = nullptr;
-    if (plan->empty()) {
-        auto *start = StartNode::make(plan);
-        doNode = DescTag::make(plan, start, std::move(name));
-        root_ = doNode;
-        tail_ = start;
-    } else {
-        doNode = DescTag::make(plan, plan->root(), std::move(name));
-        root_ = doNode;
-        tail_ = root_;
-    }
-<<<<<<< HEAD
->>>>>>> Support DML,DDL to use inputNode
-    root_ = doNode;
-    tail_ = root_;
-=======
->>>>>>> address comment
-=======
     auto doNode = DescTag::make(plan, nullptr, std::move(name));
     root_ = doNode;
     tail_ = root_;
->>>>>>> rebase upstream
     return Status::OK();
 }
 
@@ -191,39 +116,12 @@ Status DescEdgeValidator::validateImpl() {
 }
 
 Status DescEdgeValidator::toPlan() {
-<<<<<<< HEAD
-    auto* plan = qctx_->plan();
-    auto *doNode = DescEdge::make(plan,
-                                  nullptr,
-                                  vctx_->whichSpace().id,
-                                  edgeName_);
-=======
     auto sentence = static_cast<DescribeEdgeSentence*>(sentence_);
     auto name = *sentence->name();
     auto *plan = qctx_->plan();
-<<<<<<< HEAD
-    DescEdge* doNode = nullptr;
-    if (plan->empty()) {
-        auto *start = StartNode::make(plan);
-        doNode = DescEdge::make(plan, start, std::move(name));
-        root_ = doNode;
-        tail_ = start;
-    } else {
-        doNode = DescEdge::make(plan, plan->root(), std::move(name));
-        root_ = doNode;
-        tail_ = root_;
-    }
-<<<<<<< HEAD
->>>>>>> Support DML,DDL to use inputNode
-    root_ = doNode;
-    tail_ = root_;
-=======
->>>>>>> address comment
-=======
     auto doNode = DescEdge::make(plan, nullptr, std::move(name));
     root_ = doNode;
     tail_ = root_;
->>>>>>> rebase upstream
     return Status::OK();
 }
 }  // namespace graph

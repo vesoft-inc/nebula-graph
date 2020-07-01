@@ -20,14 +20,34 @@ namespace graph {
 using ColDef = std::pair<std::string, Value::Type>;
 using ColsDef = std::vector<ColDef>;
 
+struct SpaceDescription {
+    std::string name;
+    GraphSpaceID id;
+};
+
 class ValidateContext final {
 public:
     ValidateContext() {
         varGen_ = std::make_unique<AnnoVarGenerator>();
     }
 
-    void switchToSpace(std::string spaceName) {
-        spaces_.emplace_back(std::move(spaceName));
+    void switchToSpace(std::string spaceName, GraphSpaceID spaceId) {
+        SpaceDescription space;
+        space.name = std::move(spaceName);
+        space.id = spaceId;
+        spaces_.emplace_back(std::move(space));
+    }
+
+    const ColsDef& getVar(const std::string& var) const {
+        static const ColsDef kEmptyCols;
+        if (!existVar(var)) {
+            return kEmptyCols;
+        }
+        return vars_.at(var);
+    }
+
+    bool existVar(const std::string& var) const {
+        return vars_.find(var) != vars_.end();
     }
 
     void addSpace(const std::string &spaceName) {
@@ -46,20 +66,8 @@ public:
         return !spaces_.empty();
     }
 
-    const std::string& whichSpace() const {
+    const SpaceDescription& whichSpace() const {
         return spaces_.back();
-    }
-
-    const ColsDef& getVar(const std::string& var) const {
-        static const ColsDef kEmptyCols;
-        if (!existVar(var)) {
-            return kEmptyCols;
-        }
-        return vars_.at(var);
-    }
-
-    bool existVar(const std::string& var) const {
-        return vars_.find(var) != vars_.end();
     }
 
     AnnoVarGenerator* varGen() const {
@@ -81,7 +89,7 @@ public:
 
 private:
     // spaces_ is the trace of space switch
-    std::vector<std::string>                            spaces_;
+    std::vector<SpaceDescription>                       spaces_;
     // vars_ saves all named variable
     std::unordered_map<std::string, ColsDef>            vars_;
     std::unique_ptr<AnnoVarGenerator>                   varGen_;

@@ -106,34 +106,16 @@ Status CreateSpaceValidator::validateImpl() {
 }
 
 Status CreateSpaceValidator::toPlan() {
-<<<<<<< HEAD
-    auto* plan = qctx_->plan();
-    auto *doNode = CreateSpace::make(plan, nullptr, spaceDesc_, ifNotExist_);
-=======
     auto *plan = qctx_->plan();
-<<<<<<< HEAD
     CreateSpace* doNode = nullptr;
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
         doNode = CreateSpace::make(plan, start, std::move(spaceDesc_), ifNotExist_);
-        root_ = doNode;
-        tail_ = start;
     } else {
         doNode = CreateSpace::make(plan, plan->root(), std::move(spaceDesc_), ifNotExist_);
-        root_ = doNode;
-        tail_ = root_;
     }
-<<<<<<< HEAD
->>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
-=======
->>>>>>> address comment
-=======
-    auto doNode = CreateSpace::make(plan, nullptr, std::move(spaceDesc_), ifNotExist_);
-    root_ = doNode;
-    tail_ = root_;
->>>>>>> rebase upstream
     return Status::OK();
 }
 
@@ -142,35 +124,17 @@ Status DescSpaceValidator::validateImpl() {
 }
 
 Status DescSpaceValidator::toPlan() {
-<<<<<<< HEAD
-    auto* plan = qctx_->plan();
-    auto *doNode = DescSpace::make(plan, nullptr, spaceName_);
-=======
     auto sentence = static_cast<DescribeSpaceSentence*>(sentence_);
     auto *plan = qctx_->plan();
-<<<<<<< HEAD
     DescSpace* doNode = nullptr;
     if (plan->empty()) {
         auto *start = StartNode::make(plan);
         doNode = DescSpace::make(plan, start, *sentence->spaceName());
-        root_ = doNode;
-        tail_ = start;
     } else {
         doNode = DescSpace::make(plan, plan->root(), *sentence->spaceName());
-        root_ = doNode;
-        tail_ = root_;
     }
-<<<<<<< HEAD
->>>>>>> Support DML,DDL to use inputNode
     root_ = doNode;
     tail_ = root_;
-=======
->>>>>>> address comment
-=======
-    auto doNode = DescSpace::make(plan, nullptr, *sentence->spaceName());
-    root_ = doNode;
-    tail_ = root_;
->>>>>>> rebase upstream
     return Status::OK();
 }
 }  // namespace graph

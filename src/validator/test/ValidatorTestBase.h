@@ -24,17 +24,6 @@
 
 namespace nebula {
 namespace graph {
-<<<<<<< HEAD
-
-std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
-    std::vector<const char*> kinds(plan.size());
-    std::transform(plan.cbegin(), plan.cend(), kinds.begin(), PlanNode::toString);
-    os << "[" << folly::join(", ", kinds) << "]";
-    return os;
-}
-
-=======
->>>>>>> Support DML,DDL to use inputNode
 class ValidatorTestBase : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -116,14 +105,6 @@ protected:
                 case PlanNode::Kind::kStart: {
                     break;
                 }
-                case PlanNode::Kind::kCreateSpace:
-                case PlanNode::Kind::kCreateTag:
-                case PlanNode::Kind::kCreateEdge:
-                case PlanNode::Kind::kDescSpace:
-                case PlanNode::Kind::kDescTag:
-                case PlanNode::Kind::kDescEdge:
-                case PlanNode::Kind::kInsertVertices:
-                case PlanNode::Kind::kInsertEdges:
                 case PlanNode::Kind::kGetNeighbors:
                 case PlanNode::Kind::kGetVertices:
                 case PlanNode::Kind::kGetEdges:
@@ -136,9 +117,7 @@ protected:
                 case PlanNode::Kind::kSwitchSpace:
                 case PlanNode::Kind::kMultiOutputs:
                 case PlanNode::Kind::kDedup:
-<<<<<<< HEAD
-                case PlanNode::Kind::kDataCollect: {
-=======
+                case PlanNode::Kind::kDataCollect:
                 case PlanNode::Kind::kCreateSpace:
                 case PlanNode::Kind::kCreateTag:
                 case PlanNode::Kind::kCreateEdge:
@@ -147,7 +126,6 @@ protected:
                 case PlanNode::Kind::kDescEdge:
                 case PlanNode::Kind::kInsertVertices:
                 case PlanNode::Kind::kInsertEdges: {
->>>>>>> Support DML,DDL to use inputNode
                     auto* current = static_cast<const SingleInputNode*>(node);
                     queue.emplace(current->input());
                     break;

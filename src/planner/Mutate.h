@@ -8,39 +8,24 @@
 #define PLANNER_MUTATE_H_
 
 #include "common/interface/gen-cpp2/storage_types.h"
-<<<<<<< HEAD
-#include "Query.h"
-=======
 #include "planner/Query.h"
->>>>>>> Support DML,DDL to use inputNode
 
 /**
  * All mutate-related nodes would put in this file.
  */
 namespace nebula {
 namespace graph {
-// TODO: All DDLs, DMLs and DQLs could be used in a single query
-// which would make them in a single and big execution plan
 class InsertVertices final : public SingleInputNode {
 public:
     static InsertVertices* make(ExecutionPlan* plan,
-<<<<<<< HEAD
-                                PlanNode* input,
-                                GraphSpaceID spaceId,
-                                std::vector<storage::cpp2::NewVertex> vertices,
-                                std::unordered_map<TagID, std::vector<std::string>> tagPropNames,
-                                bool overwritable) {
-        return new InsertVertices(plan,
-                                  input,
-                                  spaceId,
-=======
             PlanNode* input,
+            GraphSpaceID spaceId,
             std::vector<storage::cpp2::NewVertex> vertices,
-            std::unordered_map<std::string, std::vector<std::string>> tagPropNames,
+            std::unordered_map<TagID, std::vector<std::string>> tagPropNames,
             bool overwritable) {
         return new InsertVertices(plan,
                                   input,
->>>>>>> Support DML,DDL to use inputNode
+                                  spaceId,
                                   std::move(vertices),
                                   std::move(tagPropNames),
                                   overwritable);
@@ -54,7 +39,7 @@ public:
         return vertices_;
     }
 
-    const std::unordered_map<std::string, std::vector<std::string>>& getPropNames() const {
+    const std::unordered_map<TagID, std::vector<std::string>>& getPropNames() const {
         return tagPropNames_;
     }
 
@@ -62,33 +47,28 @@ public:
         return overwritable_;
     }
 
+    GraphSpaceID getSpace() const {
+        return spaceId_;
+    }
+
 private:
     InsertVertices(ExecutionPlan* plan,
                    PlanNode* input,
-<<<<<<< HEAD
                    GraphSpaceID spaceId,
-=======
->>>>>>> Support DML,DDL to use inputNode
                    std::vector<storage::cpp2::NewVertex> vertices,
-                   std::unordered_map<std::string, std::vector<std::string>> tagPropNames,
+                   std::unordered_map<TagID, std::vector<std::string>> tagPropNames,
                    bool overwritable)
-<<<<<<< HEAD
-    : SingleInputNode(plan, Kind::kInsertVertices, input)
-    , space_(spaceId)
-    , vertices_(std::move(vertices))
-    , tagPropNames_(std::move(tagPropNames))
-    , overwritable_(overwritable) {}
-=======
         : SingleInputNode(plan, Kind::kInsertVertices, input)
+        , spaceId_(spaceId)
         , vertices_(std::move(vertices))
         , tagPropNames_(std::move(tagPropNames))
         , overwritable_(overwritable) {
     }
->>>>>>> Support DML,DDL to use inputNode
 
 private:
+    GraphSpaceID                                               spaceId_{-1};
     std::vector<storage::cpp2::NewVertex>                      vertices_;
-    std::unordered_map<std::string, std::vector<std::string>>  tagPropNames_;
+    std::unordered_map<TagID, std::vector<std::string>>        tagPropNames_;
     bool                                                       overwritable_;
 };
 
@@ -96,19 +76,13 @@ class InsertEdges final : public SingleInputNode {
 public:
     static InsertEdges* make(ExecutionPlan* plan,
                              PlanNode* input,
-<<<<<<< HEAD
                              GraphSpaceID spaceId,
-=======
->>>>>>> Support DML,DDL to use inputNode
                              std::vector<storage::cpp2::NewEdge> edges,
                              std::vector<std::string> propNames,
                              bool overwritable) {
         return new InsertEdges(plan,
                                input,
-<<<<<<< HEAD
                                spaceId,
-=======
->>>>>>> Support DML,DDL to use inputNode
                                std::move(edges),
                                std::move(propNames),
                                overwritable);
@@ -130,31 +104,26 @@ public:
         return overwritable_;
     }
 
+    GraphSpaceID getSpace() const {
+        return spaceId_;
+    }
+
 private:
     InsertEdges(ExecutionPlan* plan,
                 PlanNode* input,
-<<<<<<< HEAD
                 GraphSpaceID spaceId,
                 std::vector<storage::cpp2::NewEdge> edges,
                 std::vector<std::string> propNames,
                 bool overwritable)
-    : SingleInputNode(plan, Kind::kInsertEdges, input)
-    , space_(spaceId)
-    , edges_(std::move(edges))
-    , propNames_(std::move(propNames))
-    , overwritable_(overwritable) {}
-=======
-                std::vector<storage::cpp2::NewEdge> edges,
-                std::vector<std::string> propNames,
-                bool overwritable)
         : SingleInputNode(plan, Kind::kInsertEdges, input)
+        , spaceId_(spaceId)
         , edges_(std::move(edges))
         , propNames_(std::move(propNames))
         , overwritable_(overwritable) {
     }
->>>>>>> Support DML,DDL to use inputNode
 
 private:
+    GraphSpaceID                               spaceId_{-1};
     std::vector<storage::cpp2::NewEdge>        edges_;
     std::vector<std::string>                   propNames_;
     bool                                       overwritable_;

@@ -39,12 +39,7 @@ Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
 
     std::unordered_map<TagID, std::vector<std::string>> propNames;
     for (auto &prop : req.get_prop_names()) {
-        auto tagIdRet = mgr_->toTagID(spaceId, prop.first);
-        if (!tagIdRet.ok()) {
-            return tagIdRet.status();
-        }
-        auto tagId = tagIdRet.value();
-        propNames[tagId] = prop.second;
+        propNames[prop.first] = prop.second;
     }
 
     auto &parts = req.get_parts();
@@ -62,12 +57,7 @@ Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
             }
 
             for (auto &tag : vertex.get_tags()) {
-                auto tagName = tag.get_tag_name();
-                auto tagIdRet = mgr_->toTagID(spaceId, tagName);
-                if (!tagIdRet.ok()) {
-                    return tagIdRet.status();
-                }
-                auto tagId = tagIdRet.value();
+                auto tagId = tag.get_tag_id();
                 auto propValues = tag.get_props();
                 if (propValues.size() != propNames[tagId].size()) {
                     return Status::Error("Wrong size");
@@ -101,15 +91,11 @@ Status StorageCache::addEdges(const storage::cpp2::AddEdgesRequest& req) {
     for (auto &part : parts) {
         for (auto &edge : part.second) {
             storage::cpp2::EdgeKey edgeKey;
-            edgeKey.set_src(edge.get_src());
-            auto edgeRet = mgr_->toEdgeType(spaceId, edge.get_edge_name());
-            if (!edgeRet.ok()) {
-                return edgeRet.status();
-            }
-            auto edgeType = edgeRet.value();
+            edgeKey.set_src(edge.key.get_src());
+            auto edgeType = edge.key.get_edge_type();
             edgeKey.set_edge_type(edgeType);
-            edgeKey.set_ranking(edge.get_ranking());
-            edgeKey.set_dst(edge.get_dst());
+            edgeKey.set_ranking(edge.key.get_ranking());
+            edgeKey.set_dst(edge.key.get_dst());
             auto propValues = edge.get_props();
             if (propValues.size() != propNames.size()) {
                 LOG(ERROR) << "Wrong size, propValues.size : " << propValues.size()
@@ -150,7 +136,7 @@ StorageCache::getEdgeWholeValue(const GraphSpaceID spaceId,
     if (props.size() != names.size()) {
         return Status::Error("Wrong size between props and names");
     }
-    auto schema = mgr_->getEdgeSchema(spaceId, edgeType);
+    auto schema = mgr_->getEdgeSchema(spaceId, std::abs(edgeType));
     if (schema == nullptr) {
         return Status::Error("EdgeType `%d' not exist", edgeType);
     }

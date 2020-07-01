@@ -167,13 +167,13 @@ TEST_F(MockServerTest, TestMeta) {
     sleep(FLAGS_heartbeat_interval_secs + 1);
 }
 
-TEST_F(MockServerTest, TestStorage) {
+TEST_F(MockServerTest, DISABLED_TestStorage) {
     auto storageClient = gEnv->getStorageClient();
     GraphSpaceID space = 1;
     std::vector<Value> props;
     props.emplace_back("hello");
     storage::cpp2::NewTag tag;
-    tag.set_tag_name("tag_2");
+    tag.set_tag_id(3);
     tag.set_props(std::move(props));
     std::vector<storage::cpp2::NewTag> tags;
     tags.emplace_back(tag);
@@ -184,11 +184,12 @@ TEST_F(MockServerTest, TestStorage) {
     std::vector<storage::cpp2::NewVertex> vertices;
     vertices.emplace_back(std::move(vertex));
 
-    std::unordered_map<std::string, std::vector<std::string>> propNames;
-    propNames["tag_2"] = {"col_2"};
+    std::unordered_map<TagID, std::vector<std::string>> propNames;
+    propNames[3] = {"col"};
     auto resp = storageClient->addVertices(space, vertices, propNames, false).get();
     ASSERT_TRUE(resp.succeeded());
 }
 
 }   // namespace graph
 }   // namespace nebula
+

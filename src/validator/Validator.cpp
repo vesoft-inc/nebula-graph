@@ -80,12 +80,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kDescTag:
         case PlanNode::Kind::kDescEdge:
         case PlanNode::Kind::kInsertVertices:
-<<<<<<< HEAD
         case PlanNode::Kind::kInsertEdges:
         case PlanNode::Kind::kGetNeighbors: {
-=======
-        case PlanNode::Kind::kInsertEdges: {
->>>>>>> Support DML,DDL to use inputNode
             static_cast<SingleInputNode*>(node)->setInput(appended);
             break;
         }
@@ -117,7 +113,9 @@ Status Validator::validate() {
     }
 
     if (!noSpaceRequired_) {
-        space_ = vctx_->whichSpace();
+        if (vctx_->spaceChosen()) {
+            space_ = vctx_->whichSpace();
+        }
     }
 
     status = validateImpl();
@@ -503,3 +501,4 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 
 }  // namespace graph
 }  // namespace nebula
+

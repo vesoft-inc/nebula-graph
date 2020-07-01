@@ -48,12 +48,6 @@ TEST_F(MockSchemaManagerTest, all) {
 
     auto edgeSchema = mock.getEdgeSchema(spaceId, edgeType);
     ASSERT_TRUE(edgeSchema != nullptr);
-
-    tagSchema = mock.getTagSchema(spaceId, "person");
-    ASSERT_TRUE(tagSchema != nullptr);
-
-    edgeSchema = mock.getEdgeSchema(spaceId, "like");
-    ASSERT_TRUE(edgeSchema != nullptr);
 }
 }  // namespace graph
 }  // namespace nebula

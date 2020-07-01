@@ -22,8 +22,7 @@ folly::Future<Status> InsertVerticesExecutor::insertVertices() {
     dumpLog();
 
     auto *ivNode = asNode<InsertVertices>(node());
-    auto space = qctx_->rctx()->session()->space();
-    return qctx()->getStorageClient()->addVertices(space,
+    return qctx()->getStorageClient()->addVertices(ivNode->getSpace(),
             ivNode->getVertices(), ivNode->getPropNames(), ivNode->getOverwritable())
         .via(runner())
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {

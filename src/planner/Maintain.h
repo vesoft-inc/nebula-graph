@@ -7,53 +7,22 @@
 #ifndef PLANNER_MAINTAIN_H_
 #define PLANNER_MAINTAIN_H_
 
-<<<<<<< HEAD
-#include "Query.h"
-=======
 #include "planner/Query.h"
->>>>>>> Support DML,DDL to use inputNode
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/clients/meta/MetaClient.h"
 
 namespace nebula {
 namespace graph {
 // which would make them in a single and big execution plan
-<<<<<<< HEAD
-class SchemaNode : public SingleInputNode {
-public:
-    GraphSpaceID space() const {
-        return space_;
-    }
-
-protected:
-    SchemaNode(ExecutionPlan* plan, Kind kind, PlanNode* input, const GraphSpaceID space)
-        : SingleInputNode(plan, kind, input), space_(space) {}
-
-protected:
-    GraphSpaceID        space_;
-};
-
-class CreateSchemaNode : public SchemaNode {
-=======
 class CreateSchemaNode : public SingleInputNode {
->>>>>>> Support DML,DDL to use inputNode
 protected:
     CreateSchemaNode(ExecutionPlan* plan,
                      PlanNode* input,
                      Kind kind,
-<<<<<<< HEAD
-                     PlanNode* input,
-                     GraphSpaceID space,
-                     std::string name,
-                     meta::cpp2::Schema schema,
-                     bool ifNotExists)
-        : SchemaNode(plan, kind, input, space)
-=======
                      std::string name,
                      meta::cpp2::Schema schema,
                      bool ifNotExists)
         : SingleInputNode(plan, kind, input)
->>>>>>> Support DML,DDL to use inputNode
         , name_(std::move(name))
         , schema_(std::move(schema))
         , ifNotExists_(ifNotExists) {}
@@ -81,19 +50,11 @@ class CreateTag final : public CreateSchemaNode {
 public:
     static CreateTag* make(ExecutionPlan* plan,
                            PlanNode* input,
-<<<<<<< HEAD
-                           GraphSpaceID space,
-=======
->>>>>>> Support DML,DDL to use inputNode
                            std::string tagName,
                            meta::cpp2::Schema schema,
                            bool ifNotExists) {
     return new CreateTag(plan,
                          input,
-<<<<<<< HEAD
-                         space,
-=======
->>>>>>> Support DML,DDL to use inputNode
                          std::move(tagName),
                          std::move(schema),
                          ifNotExists);
@@ -106,20 +67,6 @@ public:
 private:
     CreateTag(ExecutionPlan* plan,
               PlanNode* input,
-<<<<<<< HEAD
-              GraphSpaceID space,
-              std::string tagName,
-              meta::cpp2::Schema schema,
-              bool ifNotExists)
-    : CreateSchemaNode(plan,
-                       Kind::kCreateTag,
-                       input,
-                       space,
-                       std::move(tagName),
-                       std::move(schema),
-                       ifNotExists) {
-    }
-=======
               std::string tagName,
               meta::cpp2::Schema schema,
               bool ifNotExists)
@@ -130,26 +77,17 @@ private:
                            std::move(schema),
                            ifNotExists) {
         }
->>>>>>> Support DML,DDL to use inputNode
 };
 
 class CreateEdge final : public CreateSchemaNode {
 public:
     static CreateEdge* make(ExecutionPlan* plan,
                             PlanNode* input,
-<<<<<<< HEAD
-                            GraphSpaceID space,
-=======
->>>>>>> Support DML,DDL to use inputNode
                             std::string edgeName,
                             meta::cpp2::Schema schema,
                             bool ifNotExists) {
     return new CreateEdge(plan,
                           input,
-<<<<<<< HEAD
-                          space,
-=======
->>>>>>> Support DML,DDL to use inputNode
                           std::move(edgeName),
                           std::move(schema),
                           ifNotExists);
@@ -162,21 +100,12 @@ public:
 private:
     CreateEdge(ExecutionPlan* plan,
                PlanNode* input,
-<<<<<<< HEAD
-               GraphSpaceID space,
-=======
->>>>>>> Support DML,DDL to use inputNode
                std::string edgeName,
                meta::cpp2::Schema schema,
                bool ifNotExists)
         : CreateSchemaNode(plan,
                            input,
                            Kind::kCreateEdge,
-<<<<<<< HEAD
-                           input,
-                           space,
-=======
->>>>>>> Support DML,DDL to use inputNode
                            std::move(edgeName),
                            std::move(schema),
                            ifNotExists) {
@@ -202,19 +131,10 @@ protected:
     DescSchema(ExecutionPlan* plan,
                PlanNode* input,
                Kind kind,
-<<<<<<< HEAD
-               PlanNode* input,
-               GraphSpaceID space,
-               std::string name)
-        : SingleInputNode(plan, kind, input)
-        , space_(space)
-        , name_(std::move(name)) {}
-=======
                std::string name)
         : SingleInputNode(plan, kind, input)
         , name_(std::move(name)) {
     }
->>>>>>> Support DML,DDL to use inputNode
 
 public:
     const std::string& getName() const {
@@ -229,14 +149,8 @@ class DescTag final : public DescSchema {
 public:
     static DescTag* make(ExecutionPlan* plan,
                          PlanNode* input,
-<<<<<<< HEAD
-                         GraphSpaceID space,
-                         std::string tagName) {
-        return new DescTag(plan, input, space, std::move(tagName));
-=======
                          std::string tagName) {
         return new DescTag(plan, input, std::move(tagName));
->>>>>>> Support DML,DDL to use inputNode
     }
 
     std::string explain() const override {
@@ -246,14 +160,8 @@ public:
 private:
     DescTag(ExecutionPlan* plan,
             PlanNode* input,
-<<<<<<< HEAD
-            GraphSpaceID space,
-            std::string tagName)
-    : DescSchema(plan, Kind::kDescTag, input, space, std::move(tagName)) {
-=======
             std::string tagName)
         : DescSchema(plan, input, Kind::kDescTag, std::move(tagName)) {
->>>>>>> Support DML,DDL to use inputNode
     }
 };
 
@@ -261,14 +169,8 @@ class DescEdge final : public DescSchema {
 public:
     static DescEdge* make(ExecutionPlan* plan,
                           PlanNode* input,
-<<<<<<< HEAD
-                          GraphSpaceID space,
-                          std::string edgeName) {
-        return new DescEdge(plan, input, space, std::move(edgeName));
-=======
                           std::string edgeName) {
         return new DescEdge(plan, input, std::move(edgeName));
->>>>>>> Support DML,DDL to use inputNode
     }
 
     std::string explain() const override {
@@ -278,14 +180,8 @@ public:
 private:
     DescEdge(ExecutionPlan* plan,
              PlanNode* input,
-<<<<<<< HEAD
-             GraphSpaceID space,
-             std::string edgeName)
-    : DescSchema(plan, Kind::kDescEdge, input, space, std::move(edgeName)) {
-=======
              std::string edgeName)
         : DescSchema(plan, input, Kind::kDescEdge, std::move(edgeName)) {
->>>>>>> Support DML,DDL to use inputNode
     }
 };
 

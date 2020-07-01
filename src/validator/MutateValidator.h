@@ -30,9 +30,10 @@ private:
 
 private:
     using TagSchema = std::shared_ptr<const meta::SchemaProviderIf>;
+    GraphSpaceID                                                spaceId_{-1};
     std::vector<VertexRowItem*>                                 rows_;
-    std::unordered_map<std::string, std::vector<std::string>>   tagPropNames_;
-    std::vector<std::pair<std::string, TagSchema>>              schemas_;
+    std::unordered_map<TagID, std::vector<std::string>>         tagPropNames_;
+    std::vector<std::pair<TagID, TagSchema>>                    schemas_;
     uint16_t                                                    propSize_{0};
     bool                                                        overwritable_{false};
     std::vector<storage::cpp2::NewVertex>                       vertices_;
@@ -54,8 +55,9 @@ private:
     Status prepareEdges();
 
 private:
+    GraphSpaceID                                      spaceId_{-1};
     bool                                              overwritable_{true};
-    std::string                                       edgeName_;
+    EdgeType                                          edgeType_{-1};
     std::shared_ptr<const meta::SchemaProviderIf>     schema_;
     std::vector<std::string>                          propNames_;
     std::vector<EdgeRowItem*>                         rows_;

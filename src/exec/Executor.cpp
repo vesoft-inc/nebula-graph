@@ -252,7 +252,6 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto input = makeExecutor(insertE->input(), qctx, visited);
             exec = new InsertEdgesExecutor(insertE, qctx);
             exec->addDependent(input);
-<<<<<<< HEAD
             break;
         }
         case PlanNode::Kind::kDataCollect: {
@@ -260,8 +259,6 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto input = makeExecutor(dc->input(), qctx, visited);
             exec = new DataCollectExecutor(dc, qctx);
             exec->addDependent(input);
-=======
->>>>>>> Support DML,DDL to use inputNode
             break;
         }
         case PlanNode::Kind::kUnknown:

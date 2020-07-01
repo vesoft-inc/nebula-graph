@@ -13,18 +13,23 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> SwitchSpaceExecutor::execute() {
+    dumpLog();
+
     auto *spaceToNode = asNode<SwitchSpace>(node());
-    auto &spaceName = spaceToNode->getSpaceName();
-    auto ret = qctx_->schemaMng()->toGraphSpaceID(spaceName);
-    if (!ret.ok()) {
-        LOG(ERROR) << "Unknown space: " << spaceName;
-        return ret.status();
-    }
-    auto spaceId = ret.value();
-    qctx_->rctx()->session()->setSpace(spaceName, spaceId);
-    LOG(INFO) << "Graph space switched to `" << spaceName
-              << "', space id: " << spaceId;
-    return start();
+    auto spaceName = spaceToNode->getSpaceName();
+    return qctx()->getMetaClient()->getSpace(spaceName)
+            .via(runner())
+            .then([spaceName, this](StatusOr<meta::cpp2::SpaceItem> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                auto spaceId = resp.value().get_space_id();
+                qctx_->rctx()->session()->setSpace(spaceName, spaceId);
+                LOG(INFO) << "Graph space switched to `" << spaceName
+                          << "', space id: " << spaceId;
+                return Status::OK();
+            });
 }
 
 }   // namespace graph
