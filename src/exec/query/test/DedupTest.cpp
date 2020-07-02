@@ -25,7 +25,12 @@ class DedupTest : public QueryTestBase {
         dedupNode->setInputVar(inputName);                                                     \
         dedupNode->setOutputVar(outputName);                                                   \
         auto dedupExec = std::make_unique<DedupExecutor>(dedupNode, qctx_.get());              \
-        EXPECT_TRUE(dedupExec->execute().get().ok());                                          \
+        if (!expected.colNames.empty()) {                                                      \
+            EXPECT_TRUE(dedupExec->execute().get().ok());                                      \
+        } else {                                                                               \
+            EXPECT_FALSE(dedupExec->execute().get().ok());                                     \
+            return;                                                                            \
+        }                                                                                      \
         auto& dedupResult = qctx_->ectx()->getResult(dedupNode->varName());                    \
         EXPECT_EQ(dedupResult.state().stat(), State::Stat::kSuccess);                          \
                                                                                                \
@@ -55,6 +60,14 @@ TEST_F(DedupTest, TestSequential) {
 TEST_F(DedupTest, TestEmpty) {
     DataSet expected({"name"});
     DEDUP_RESUTL_CHECK("empty",
+                       "dedup_sequential",
+                       "YIELD DISTINCT $-.v_dst as name",
+                       expected);
+}
+
+TEST_F(DedupTest, WrongTypeIterator) {
+    DataSet expected;
+    DEDUP_RESUTL_CHECK("input_neighbor",
                        "dedup_sequential",
                        "YIELD DISTINCT $-.v_dst as name",
                        expected);

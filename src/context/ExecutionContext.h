@@ -65,8 +65,8 @@ public:
     }
 
     static ExecResult buildGetNeighbors(Value&& val) {
-        State stat;
-        return buildGetNeighbors(std::move(val), std::move(stat));
+        State state(State::Stat::kSuccess, "");
+        return buildGetNeighbors(std::move(val), std::move(state));
     }
 
     static ExecResult buildGetNeighbors(Value&& val, State&& stat) {
@@ -84,8 +84,8 @@ public:
     }
 
     static ExecResult buildSequential(Value&& val) {
-        State stat;
-        return buildSequential(std::move(val), std::move(stat));
+        State state(State::Stat::kSuccess, "");
+        return buildSequential(std::move(val), std::move(state));
     }
 
     void setIter(std::unique_ptr<Iterator> iter) {
