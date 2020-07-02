@@ -30,8 +30,8 @@ folly::Future<Status> DedupExecutor::execute() {
         if (unique.find(iter->row()) != unique.end()) {
             iter->erase();
         } else {
-            iter->next();
             unique.emplace(iter->row());
+            iter->next();
         }
     }
     iter->reset();

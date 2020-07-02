@@ -50,6 +50,8 @@ class DedupTest : public QueryTestBase {
 TEST_F(DedupTest, TestSequential) {
     DataSet expected({"name"});
     expected.emplace_back(Row({Value("School1")}));
+    expected.emplace_back(Row({Value("School1")}));
+    expected.emplace_back(Row({Value("School2")}));
 
     DEDUP_RESUTL_CHECK("input_sequential",
                        "dedup_sequential",

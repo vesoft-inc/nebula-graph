@@ -96,22 +96,13 @@ protected:
             DataSet dataset({"vid", "v_name", "v_age", "v_dst", "e_start_year", "e_end_year"});
             {
                 Row row;
-                row.values.emplace_back("Ann");
-                row.values.emplace_back("Ann");
-                row.values.emplace_back(18);
-                row.values.emplace_back("School1");
-                row.values.emplace_back(2010);
-                row.values.emplace_back(2014);
+                row.values = {"Ann", "Ann", 18, "School1", 2010, 2014};
                 dataset.emplace_back(row);
-            }
-            {
-                Row row;
-                row.values.emplace_back("Tom");
-                row.values.emplace_back("Tom");
-                row.values.emplace_back(20);
-                row.values.emplace_back("School1");
-                row.values.emplace_back(2008);
-                row.values.emplace_back(2012);
+                row.values = {"Tom", "Tom", 20, "School1", 2008, 2012};
+                dataset.emplace_back(row);
+                row.values = {"Joy", "Joy", 20, "School2", 2008, 2012};
+                dataset.emplace_back(row);
+                row.values = {"Ann", "Ann", 18, "School1", 2010, 2014};
                 dataset.emplace_back(row);
             }
             qctx_->ectx()->setResult("input_sequential",

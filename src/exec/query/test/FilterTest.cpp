@@ -56,6 +56,7 @@ TEST_F(FilterTest, TestGetNeighbors_src_dst) {
 TEST_F(FilterTest, TestSequential) {
     DataSet expected({"name"});
     expected.emplace_back(Row({Value("Ann")}));
+    expected.emplace_back(Row({Value("Ann")}));
     FILTER_RESUTL_CHECK("input_sequential",
                         "filter_sequential",
                         "YIELD $-.v_name AS name WHERE $-.e_start_year >= 2010",
