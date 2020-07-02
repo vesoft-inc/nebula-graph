@@ -57,7 +57,7 @@ folly::Future<Status> AggregateExecutor::execute() {
     for (auto& kv : result) {
         Row row;
         for (auto& f : kv.second) {
-            row.columns.emplace_back(f->getResult());
+            row.values.emplace_back(f->getResult());
         }
         ds.rows.emplace_back(std::move(row));
     }
