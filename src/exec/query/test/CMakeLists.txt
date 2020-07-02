@@ -49,36 +49,17 @@ SET(EXEC_QUERY_TEST_LIBS
 
 nebula_add_test(
     NAME
-        project_test
+        query_executors_test
     SOURCES
         ProjectTest.cpp
         GetNeighborsTest.cpp
         DataCollectTest.cpp
         SetExecutorTest.cpp
-    OBJECTS
-        ${EXEC_QUERY_TEST_OBJS}
-    LIBRARIES
-        ${EXEC_QUERY_TEST_LIBS}
-)
-
-nebula_add_test(
-    NAME
-        filter_test
-    SOURCES
         FilterTest.cpp
-    OBJECTS
-        ${EXEC_QUERY_TEST_OBJS}
-    LIBRARIES
-        ${EXEC_QUERY_TEST_LIBS}
-)
-
-nebula_add_test(
-    NAME
-        debup_test
-    SOURCES
         DedupTest.cpp
     OBJECTS
         ${EXEC_QUERY_TEST_OBJS}
     LIBRARIES
         ${EXEC_QUERY_TEST_LIBS}
 )
+

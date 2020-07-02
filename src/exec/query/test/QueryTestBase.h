@@ -16,7 +16,7 @@ namespace graph {
 
 class QueryTestBase : public testing::Test {
 protected:
-    static void SetUpTestCase() {
+    void SetUp() override {
         qctx_ = std::make_unique<QueryContext>();
 
         {
@@ -150,11 +150,9 @@ protected:
 
 
 protected:
-    static std::unique_ptr<QueryContext> qctx_;
-    std::unique_ptr<SequentialSentences> sentences_;
+    std::unique_ptr<QueryContext>         qctx_;
+    std::unique_ptr<SequentialSentences>  sentences_;
 };
-
-std::unique_ptr<QueryContext> QueryTestBase::qctx_;
 }  // namespace graph
 }  // namespace nebula
 #endif  // EXEC_QUERY_TESTQUERYBASE_H

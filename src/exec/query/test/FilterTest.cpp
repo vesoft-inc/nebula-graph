@@ -15,6 +15,10 @@ namespace nebula {
 namespace graph {
 
 class FilterTest : public QueryTestBase {
+public:
+    void SetUp() override {
+        QueryTestBase::SetUp();
+    }
 };
 
 #define FILTER_RESUTL_CHECK(inputName, outputName, sentence, expected)                         \
@@ -67,7 +71,7 @@ TEST_F(FilterTest, TestNullValue) {
     DataSet expected({"name"});
     FILTER_RESUTL_CHECK("input_sequential",
                         "filter_sequential",
-                        "YIELD $-.v_name AS name WHERE 1 / 0",
+                        "YIELD $-.v_name AS name WHERE NULL",
                         expected);
 }
 

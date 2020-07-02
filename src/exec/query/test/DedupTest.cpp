@@ -15,6 +15,10 @@ namespace nebula {
 namespace graph {
 
 class DedupTest : public QueryTestBase {
+public:
+    void SetUp() override {
+        QueryTestBase::SetUp();
+    }
 };
 
 #define DEDUP_RESUTL_CHECK(inputName, outputName, sentence, expected)                          \
