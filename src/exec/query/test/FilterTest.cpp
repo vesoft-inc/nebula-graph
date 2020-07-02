@@ -62,6 +62,13 @@ TEST_F(FilterTest, TestSequential) {
                         expected);
 }
 
+TEST_F(FilterTest, TestNullValue) {
+    DataSet expected({"name"});
+    FILTER_RESUTL_CHECK("input_sequential",
+                        "filter_sequential",
+                        "YIELD $-.v_name AS name WHERE 1 / 0",
+                        expected);
+}
 
 TEST_F(FilterTest, TestEmpty) {
     DataSet expected({"name"});
