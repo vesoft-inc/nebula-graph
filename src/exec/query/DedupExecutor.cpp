@@ -24,20 +24,14 @@ folly::Future<Status> DedupExecutor::execute() {
         return Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
     }
     auto result = ExecResult::buildDefault(iter->valuePtr());
-    auto &colNames = dedup->getColNames();
     ExpressionContextImpl ctx(ectx_, iter.get());
-    std::unordered_set<ValueRefs> unique;
+    std::unordered_set<const Row *> unique;
     while (iter->valid()) {
-        ValueRefs valRefs;
-        for (auto &colName : colNames) {
-            auto &value = iter->getColumn(colName);
-            valRefs.values.emplace_back(&value);
-        }
-        if (unique.find(valRefs) != unique.end()) {
+        if (unique.find(iter->row()) != unique.end()) {
             iter->erase();
         } else {
             iter->next();
-            unique.emplace(std::move(valRefs));
+            unique.emplace(iter->row());
         }
     }
     iter->reset();

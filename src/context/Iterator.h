@@ -428,48 +428,10 @@ private:
     std::unique_ptr<Iterator> left_;
     std::unique_ptr<Iterator> right_;
 };
-
-struct ValueRefs {
-    std::vector<const Value*> values;
-    ValueRefs() = default;
-    ValueRefs(const ValueRefs&) = default;
-    ValueRefs(ValueRefs&&) = default;
-    explicit ValueRefs(std::vector<const Value*>&& vals) {
-        values = std::move(vals);
-    }
-
-    void clear() {
-        values.clear();
-    }
-
-    bool operator==(const ValueRefs &rhs) const {
-        if (rhs.values.size() != values.size()) {
-            return false;
-        }
-
-        for (auto i = 0u;  i < values.size(); i++) {
-            if (*values[i] != *rhs.values[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-};
 }  // namespace graph
 }  // namespace nebula
 
 namespace std {
-template<>
-struct hash<nebula::graph::ValueRefs> {
-    std::size_t operator()(const nebula::graph::ValueRefs& h) const noexcept {
-        size_t seed = 0;
-        for (auto &value : h.values) {
-            seed ^= std::hash<nebula::Value>()(*value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        }
-        return seed;
-    }
-};
-
 template <>
 struct equal_to<const nebula::Row*> {
     bool operator()(const nebula::Row* lhs, const nebula::Row* rhs) const {

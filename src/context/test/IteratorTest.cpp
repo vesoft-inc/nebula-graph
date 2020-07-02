@@ -599,46 +599,6 @@ TEST(IteratorTest, TestUnionIterator) {
         }
     }
 }
-
-TEST(IteratorTest, DedupTest) {
-    DataSet ds({"col1", "col2"});
-    ds.rows.emplace_back(Row({Value(10), Value("aa")}));
-    ds.rows.emplace_back(Row({Value(20), Value("bb")}));
-    ds.rows.emplace_back(Row({Value(10), Value("aa")}));
-
-    auto val = std::make_shared<Value>(ds);
-    SequentialIter iter(val);
-    EXPECT_EQ(iter.size(), 3);
-    std::unordered_set<ValueRefs> unique;
-    while (iter.valid()) {
-        ValueRefs valRefs;
-        auto &value1 = iter.getColumn("col1");
-        valRefs.values.emplace_back(&value1);
-        auto &value2 = iter.getColumn("col2");
-        valRefs.values.emplace_back(&value2);
-        if (unique.find(valRefs) != unique.end()) {
-            iter.erase();
-        } else {
-            unique.emplace(std::move(valRefs));
-            iter.next();
-        }
-    }
-    iter.reset();
-    ASSERT_EQ(2, unique.size());
-    ASSERT_EQ(iter.size(), 2);
-
-    // Check unique result
-    ASSERT_TRUE(iter.valid());
-    ASSERT_EQ(10, iter.getColumn("col1"));
-    ASSERT_EQ("aa", iter.getColumn("col2"));
-    iter.next();
-    ASSERT_TRUE(iter.valid());
-    ASSERT_EQ(20, iter.getColumn("col1"));
-    ASSERT_EQ("bb", iter.getColumn("col2"));
-    iter.next();
-    ASSERT_FALSE(iter.valid());
-}
-
 }  // namespace graph
 }  // namespace nebula
 

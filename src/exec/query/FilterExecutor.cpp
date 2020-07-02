@@ -27,10 +27,10 @@ folly::Future<Status> FilterExecutor::execute() {
     auto condition = filter->condition();
     while (iter->valid()) {
         auto val = condition->eval(ctx);
-        if (!val.isBool()) {
+        if (!val.isBool() && !val.isNull()) {
             return Status::Error("Internal Error: Wrong type result");
         }
-        if (!val.getBool()) {
+        if (val.isNull() || !val.getBool()) {
             iter->erase();
         } else {
             iter->next();

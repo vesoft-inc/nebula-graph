@@ -21,7 +21,7 @@ class DedupTest : public QueryTestBase {
     do {                                                                                       \
         auto* plan = qctx_->plan();                                                            \
         auto yieldSentence = getYieldSentence(sentence);                                       \
-        auto* dedupNode = Dedup::make(plan, nullptr, expected.colNames);                       \
+        auto* dedupNode = Dedup::make(plan, nullptr);                                          \
         dedupNode->setInputVar(inputName);                                                     \
         dedupNode->setOutputVar(outputName);                                                   \
         auto dedupExec = std::make_unique<DedupExecutor>(dedupNode, qctx_.get());              \
@@ -47,7 +47,7 @@ TEST_F(DedupTest, TestSequential) {
     expected.emplace_back(Row({Value("School1")}));
 
     DEDUP_RESUTL_CHECK("input_sequential",
-                       "filter_sequential",
+                       "dedup_sequential",
                        "YIELD DISTINCT $-.v_dst as name",
                        expected);
 }
@@ -55,7 +55,7 @@ TEST_F(DedupTest, TestSequential) {
 TEST_F(DedupTest, TestEmpty) {
     DataSet expected({"name"});
     DEDUP_RESUTL_CHECK("empty",
-                       "filter_sequential",
+                       "dedup_sequential",
                        "YIELD DISTINCT $-.v_dst as name",
                        expected);
 }
