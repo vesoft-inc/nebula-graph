@@ -584,9 +584,9 @@ public:
 
 class YieldSentence final : public Sentence {
 public:
-    explicit YieldSentence(YieldColumns *fields) {
+    explicit YieldSentence(YieldColumns *fields, bool distinct = false) {
         DCHECK(fields != nullptr);
-        yieldClause_ = std::make_unique<YieldClause>(fields);
+        yieldClause_ = std::make_unique<YieldClause>(fields, distinct);
         kind_ = Kind::kYield;
     }
 
@@ -610,20 +610,11 @@ public:
         return yieldClause_.get();
     }
 
-    void setDistinct() {
-        distinct_ = true;
-    }
-
-    auto distinct() {
-        return distinct_;
-    }
-
     std::string toString() const override;
 
 private:
     std::unique_ptr<YieldClause>               yieldClause_;
     std::unique_ptr<WhereClause>               whereClause_;
-    bool                                       distinct_{false};
 };
 
 class GroupBySentence final : public Sentence {

@@ -798,9 +798,8 @@ yield_sentence
 		$$ = s;
     }
     | KW_YIELD KW_DISTINCT yield_columns where_clause {
-        auto *s = new YieldSentence($3);
+        auto *s = new YieldSentence($3, true);
         s->setWhereClause($4);
-        s->setDistinct();
         $$ = s;
     }
     ;
