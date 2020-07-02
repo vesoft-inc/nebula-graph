@@ -55,6 +55,7 @@ TEST_F(SortTest, sortOneColAsc) {
     expected.emplace_back(Row({19}));
     expected.emplace_back(Row({20}));
     expected.emplace_back(Row({20}));
+    expected.emplace_back(Row({Value::kNullValue}));
     std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
     factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::ASCEND));
     SORT_RESUTL_CHECK("sort_one_col_asc", false, factors, expected);
@@ -62,6 +63,7 @@ TEST_F(SortTest, sortOneColAsc) {
 
 TEST_F(SortTest, sortOneColDes) {
     DataSet expected({"age"});
+    expected.emplace_back(Row({Value::kNullValue}));
     expected.emplace_back(Row({20}));
     expected.emplace_back(Row({20}));
     expected.emplace_back(Row({19}));
@@ -77,6 +79,7 @@ TEST_F(SortTest, sortTwoColsAscAsc) {
     expected.emplace_back(Row({19, 2009}));
     expected.emplace_back(Row({20, 2008}));
     expected.emplace_back(Row({20, 2009}));
+    expected.emplace_back(Row({Value::kNullValue, 2009}));
     std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
     factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::ASCEND));
     factors.emplace_back(std::make_pair("e_start_year", OrderFactor::OrderType::ASCEND));
@@ -89,6 +92,7 @@ TEST_F(SortTest, sortTwoColsAscDes) {
     expected.emplace_back(Row({19, 2009}));
     expected.emplace_back(Row({20, 2009}));
     expected.emplace_back(Row({20, 2008}));
+    expected.emplace_back(Row({Value::kNullValue, 2009}));
     std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
     factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::ASCEND));
     factors.emplace_back(std::make_pair("e_start_year", OrderFactor::OrderType::DESCEND));
@@ -97,6 +101,7 @@ TEST_F(SortTest, sortTwoColsAscDes) {
 
 TEST_F(SortTest, sortTwoColDesDes) {
     DataSet expected({"age", "start_year"});
+    expected.emplace_back(Row({Value::kNullValue, 2009}));
     expected.emplace_back(Row({20, 2009}));
     expected.emplace_back(Row({20, 2008}));
     expected.emplace_back(Row({19, 2009}));
