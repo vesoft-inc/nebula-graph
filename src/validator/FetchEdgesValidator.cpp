@@ -53,15 +53,15 @@ Status FetchEdgesValidator::toPlan() {
     PlanNode *current = doNode;
     if (withProject_) {
         auto *projectNode = Project::make(
-            plan, current, sentence_->yieldClause()->moveYieldColumns());
+            plan, current, sentence_->yieldClause()->yields());
         projectNode->setInputVar(current->varName());
         // TODO(shylock) waiting expression toString
-        projectNode->setColNames(evalResultColNames(projectNode->columns()));
+        projectNode->setColNames(deduceColNames(projectNode->columns()));
         current = projectNode;
     }
     // Project select the properties then dedup
     if (dedup_) {
-        auto *dedupNode = Dedup::make(plan, current, nullptr);
+        auto *dedupNode = Dedup::make(plan, current);
         current = dedupNode;
     }
     root_ = current;

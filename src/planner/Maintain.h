@@ -7,37 +7,22 @@
 #ifndef PLANNER_MAINTAIN_H_
 #define PLANNER_MAINTAIN_H_
 
-#include "PlanNode.h"
+#include "planner/Query.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/clients/meta/MetaClient.h"
 
 namespace nebula {
 namespace graph {
-// TODO: All DDLs, DMLs and DQLs could be used in a single query
 // which would make them in a single and big execution plan
-class SchemaNode : public PlanNode {
-public:
-    GraphSpaceID space() const {
-        return space_;
-    }
-
-protected:
-    SchemaNode(ExecutionPlan* plan, Kind kind, const GraphSpaceID space)
-        : PlanNode(plan, kind), space_(space) {}
-
-protected:
-    GraphSpaceID        space_;
-};
-
-class CreateSchemaNode : public SchemaNode {
+class CreateSchemaNode : public SingleInputNode {
 protected:
     CreateSchemaNode(ExecutionPlan* plan,
+                     PlanNode* input,
                      Kind kind,
-                     GraphSpaceID space,
                      std::string name,
                      meta::cpp2::Schema schema,
                      bool ifNotExists)
-        : SchemaNode(plan, kind, space)
+        : SingleInputNode(plan, kind, input)
         , name_(std::move(name))
         , schema_(std::move(schema))
         , ifNotExists_(ifNotExists) {}
@@ -64,12 +49,12 @@ protected:
 class CreateTag final : public CreateSchemaNode {
 public:
     static CreateTag* make(ExecutionPlan* plan,
-                           GraphSpaceID space,
+                           PlanNode* input,
                            std::string tagName,
                            meta::cpp2::Schema schema,
                            bool ifNotExists) {
     return new CreateTag(plan,
-                         space,
+                         input,
                          std::move(tagName),
                          std::move(schema),
                          ifNotExists);
@@ -81,13 +66,13 @@ public:
 
 private:
     CreateTag(ExecutionPlan* plan,
-              GraphSpaceID space,
+              PlanNode* input,
               std::string tagName,
               meta::cpp2::Schema schema,
               bool ifNotExists)
         : CreateSchemaNode(plan,
+                           input,
                            Kind::kCreateTag,
-                           space,
                            std::move(tagName),
                            std::move(schema),
                            ifNotExists) {
@@ -97,12 +82,12 @@ private:
 class CreateEdge final : public CreateSchemaNode {
 public:
     static CreateEdge* make(ExecutionPlan* plan,
-                            GraphSpaceID space,
+                            PlanNode* input,
                             std::string edgeName,
                             meta::cpp2::Schema schema,
                             bool ifNotExists) {
     return new CreateEdge(plan,
-                          space,
+                          input,
                           std::move(edgeName),
                           std::move(schema),
                           ifNotExists);
@@ -114,63 +99,58 @@ public:
 
 private:
     CreateEdge(ExecutionPlan* plan,
-               GraphSpaceID space,
+               PlanNode* input,
                std::string edgeName,
                meta::cpp2::Schema schema,
                bool ifNotExists)
         : CreateSchemaNode(plan,
+                           input,
                            Kind::kCreateEdge,
-                           space,
                            std::move(edgeName),
                            std::move(schema),
                            ifNotExists) {
         }
 };
 
-class AlterTag final : public PlanNode {
+class AlterTag final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "AlterTag";
     }
 };
 
-class AlterEdge final : public PlanNode {
+class AlterEdge final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "AlterEdge";
     }
 };
 
-class DescSchema : public PlanNode {
+class DescSchema : public SingleInputNode {
 protected:
     DescSchema(ExecutionPlan* plan,
+               PlanNode* input,
                Kind kind,
-               GraphSpaceID space,
                std::string name)
-        : PlanNode(plan, kind)
-        , space_(space)
-        , name_(std::move(name)) {}
+        : SingleInputNode(plan, kind, input)
+        , name_(std::move(name)) {
+    }
 
 public:
     const std::string& getName() const {
         return name_;
     }
 
-    GraphSpaceID getSpaceId() const {
-        return space_;
-    }
-
 protected:
-    GraphSpaceID           space_;
     std::string            name_;
 };
 
 class DescTag final : public DescSchema {
 public:
     static DescTag* make(ExecutionPlan* plan,
-                         GraphSpaceID space,
+                         PlanNode* input,
                          std::string tagName) {
-    return new DescTag(plan, space, std::move(tagName));
+        return new DescTag(plan, input, std::move(tagName));
     }
 
     std::string explain() const override {
@@ -179,18 +159,18 @@ public:
 
 private:
     DescTag(ExecutionPlan* plan,
-            GraphSpaceID space,
+            PlanNode* input,
             std::string tagName)
-        : DescSchema(plan, Kind::kDescTag, space, std::move(tagName)) {
-        }
+        : DescSchema(plan, input, Kind::kDescTag, std::move(tagName)) {
+    }
 };
 
 class DescEdge final : public DescSchema {
 public:
     static DescEdge* make(ExecutionPlan* plan,
-                          GraphSpaceID space,
+                          PlanNode* input,
                           std::string edgeName) {
-    return new DescEdge(plan, space, std::move(edgeName));
+        return new DescEdge(plan, input, std::move(edgeName));
     }
 
     std::string explain() const override {
@@ -199,76 +179,76 @@ public:
 
 private:
     DescEdge(ExecutionPlan* plan,
-            GraphSpaceID space,
-            std::string edgeName)
-        : DescSchema(plan, Kind::kDescEdge, space, std::move(edgeName)) {
-        }
+             PlanNode* input,
+             std::string edgeName)
+        : DescSchema(plan, input, Kind::kDescEdge, std::move(edgeName)) {
+    }
 };
 
-class DropTag final : public PlanNode {
+class DropTag final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "DropTag";
     }
 };
 
-class DropEdge final : public PlanNode {
+class DropEdge final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "DropEdge";
     }
 };
 
-class CreateTagIndex final : public PlanNode {
+class CreateTagIndex final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "CreateTagIndex";
     }
 };
 
-class CreateEdgeIndex final : public PlanNode {
+class CreateEdgeIndex final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "CreateEdgeIndex";
     }
 };
 
-class DescribeTagIndex final : public PlanNode {
+class DescribeTagIndex final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "DescribeTagIndex";
     }
 };
 
-class DescribeEdgeIndex final : public PlanNode {
+class DescribeEdgeIndex final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "DescribeEdgeIndex";
     }
 };
 
-class DropTagIndex final : public PlanNode {
+class DropTagIndex final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "DropTagIndex";
     }
 };
 
-class DropEdgeIndex final : public PlanNode {
+class DropEdgeIndex final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "DropEdgeIndex";
     }
 };
 
-class BuildTagIndex final : public PlanNode {
+class BuildTagIndex final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "BuildTagIndex";
     }
 };
 
-class BuildEdgeIndex final : public PlanNode {
+class BuildEdgeIndex final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "BuildEdgeIndex";

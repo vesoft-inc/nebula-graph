@@ -16,13 +16,21 @@
 #include "validator/test/MockSchemaManager.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
+#include "parser/GQLParser.h"
+#include "validator/ASTValidator.h"
+#include "context/QueryContext.h"
+#include "planner/ExecutionPlan.h"
+#include "context/ValidateContext.h"
+#include "planner/PlanNode.h"
+#include "validator/test/MockSchemaManager.h"
 
 namespace nebula {
 namespace graph {
+
 class ValidatorTest : public ::testing::Test {
 public:
     void SetUp() override {
-        auto session = new ClientSession(0);
+        auto session = new Session(0);
         session->setSpace("test", 1);
         session_.reset(session);
         schemaMng_ = CHECK_NOTNULL(MockSchemaManager::make_unique());
@@ -75,6 +83,27 @@ protected:
 
     static Status Eq(const PlanNode *l, const PlanNode *r);
 
+    ::testing::AssertionResult checkResult(
+            const std::string& query, const std::vector<PlanNode::Kind>& expected) {
+        auto result = GQLParser().parse(query);
+        if (!result.ok()) {
+            return ::testing::AssertionFailure() << result.status();
+        }
+
+        auto sentences = std::move(result).value();
+        auto context = buildContext();
+        ASTValidator validator(sentences.get(), context.get());
+        auto validateResult = validator.validate();
+        if (!validateResult.ok()) {
+            return ::testing::AssertionFailure() << validateResult;
+        }
+        auto plan = context->plan();
+        if (plan == nullptr) {
+            return ::testing::AssertionFailure() << "plan is nullptr";
+        }
+        return verifyPlan(plan->root(), expected);
+    }
+
     static ::testing::AssertionResult verifyPlan(const PlanNode* root,
                                                  const std::vector<PlanNode::Kind>& expected) {
         if (root == nullptr) {
@@ -122,11 +151,7 @@ protected:
                 case PlanNode::Kind::kSwitchSpace:
                 case PlanNode::Kind::kMultiOutputs:
                 case PlanNode::Kind::kDedup:
-                case PlanNode::Kind::kDataCollect: {
-                    auto* current = static_cast<const SingleInputNode*>(node);
-                    queue.emplace(current->input());
-                    break;
-                }
+                case PlanNode::Kind::kDataCollect:
                 case PlanNode::Kind::kCreateSpace:
                 case PlanNode::Kind::kCreateTag:
                 case PlanNode::Kind::kCreateEdge:
@@ -135,7 +160,9 @@ protected:
                 case PlanNode::Kind::kDescEdge:
                 case PlanNode::Kind::kInsertVertices:
                 case PlanNode::Kind::kInsertEdges: {
-                    // TODO: DDLs and DMLs are kind of single input node.
+                    auto* current = static_cast<const SingleInputNode*>(node);
+                    queue.emplace(current->input());
+                    break;
                 }
                 case PlanNode::Kind::kUnion:
                 case PlanNode::Kind::kIntersect:
@@ -174,13 +201,6 @@ protected:
     std::unique_ptr<QueryContext>        expectedQueryCtx_;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
-    std::vector<const char*> kinds;
-    kinds.reserve(plan.size());
-    std::transform(plan.cbegin(), plan.cend(), std::back_inserter(kinds), PlanNode::toString);
-    os << "[" << folly::join(", ", kinds) << "]";
-    return os;
-}
-
-}  // namespace graph
-}  // namespace nebula
+std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan);
+}   // namespace graph
+}   // namespace nebula

@@ -11,6 +11,7 @@
 
 namespace nebula {
 namespace graph {
+
 TEST(IteratorTest, Default) {
     auto constant = std::make_shared<Value>(1);
     DefaultIter iter(constant);
@@ -545,6 +546,59 @@ TEST(IteratorTest, TestHead) {
     }
 }
 
+TEST(IteratorTest, TestUnionIterator) {
+    std::vector<std::string> colNames = {"col1", "col2"};
+    DataSet lds;
+    lds.colNames = colNames;
+    lds.rows = {
+        Row({Value(1), Value("row1")}),
+        Row({Value(2), Value("row2")}),
+    };
+    auto lIter = std::make_unique<SequentialIter>(std::make_shared<Value>(lds));
+
+    DataSet rds;
+    rds.colNames = colNames;
+    rds.rows = {
+        Row({Value(3), Value("row3")}),
+    };
+    auto rIter = std::make_unique<SequentialIter>(std::make_shared<Value>(rds));
+
+    // next and valid
+    {
+        auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+        for (; lIter->valid(); lIter->next()) {
+            EXPECT_TRUE(uIter->valid());
+            for (auto &col : colNames) {
+                EXPECT_EQ(lIter->getColumn(col), uIter->getColumn(col));
+            }
+            uIter->next();
+        }
+
+        for (; rIter->valid(); rIter->next()) {
+            EXPECT_TRUE(uIter->valid());
+            for (auto &col : colNames) {
+                EXPECT_EQ(rIter->getColumn(col), uIter->getColumn(col));
+            }
+            uIter->next();
+        }
+    }
+
+    // erase
+    {
+        auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+        for (; lIter->valid(); lIter->next()) {
+            uIter->erase();
+        }
+
+        for (; rIter->valid(); rIter->next()) {
+            EXPECT_TRUE(uIter->valid());
+            for (auto &col : colNames) {
+                EXPECT_EQ(rIter->getColumn(col), uIter->getColumn(col));
+            }
+            uIter->next();
+        }
+    }
+}
 }  // namespace graph
 }  // namespace nebula
 
@@ -555,3 +609,4 @@ int main(int argc, char** argv) {
 
     return RUN_ALL_TESTS();
 }
+

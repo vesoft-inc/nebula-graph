@@ -101,7 +101,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
             Expression::Kind::kRelGT, new ConstantExpression(1), new ConstantExpression(1))));
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("person"), new std::string("age"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), gv, std::move(yieldColumns));
+        auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
         // TODO(shylock) waiting expression toString
         // project->setColNames({"person.name", "1 + 1", "person.age"});
 

@@ -9,6 +9,8 @@
 
 #include <memory>
 
+#include <gtest/gtest_prod.h>
+
 #include "common/datatypes/Value.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/DataSet.h"
@@ -23,12 +25,17 @@ public:
         kGetNeighbors,
         kSequential,
         kGetProp,
+        kUnion,
     };
 
     explicit Iterator(std::shared_ptr<Value> value, Kind kind)
         : value_(value), kind_(kind) {}
 
     virtual ~Iterator() = default;
+
+    Kind kind() const {
+        return kind_;
+    }
 
     virtual std::unique_ptr<Iterator> copy() const = 0;
 
@@ -38,6 +45,8 @@ public:
 
     virtual void erase() = 0;
 
+    virtual const Row* row() const = 0;
+
     // Reset iterator position to `pos' from begin. Must be sure that the `pos' position
     // is lower than `size()' before resetting
     void reset(size_t pos = 0) {
@@ -45,12 +54,12 @@ public:
         doReset(pos);
     }
 
-    Kind kind() const {
-        return kind_;
-    }
-
     void operator++() {
         next();
+    }
+
+    virtual std::shared_ptr<Value> valuePtr() const {
+        return value_;
     }
 
     virtual const Value& value() const {
@@ -68,10 +77,7 @@ public:
     }
 
     // The derived class should rewrite get prop if the Value is kind of dataset.
-    virtual const Value& getColumn(const std::string& col) const {
-        UNUSED(col);
-        return Value::kEmpty;
-    }
+    virtual const Value& getColumn(const std::string& col) const = 0;
 
     virtual const Value& getTagProp(const std::string& tag,
                                     const std::string& prop) const {
@@ -99,7 +105,6 @@ protected:
     virtual void doReset(size_t pos) = 0;
 
     std::shared_ptr<Value> value_;
-
     Kind                   kind_;
 };
 
@@ -126,6 +131,14 @@ public:
 
     size_t size() const override {
         return 1;
+    }
+
+    const Value& getColumn(const std::string& /* col */) const override {
+        return Value::kEmpty;
+    }
+
+    const Row* row() const override {
+        return nullptr;
     }
 
 private:
@@ -208,6 +221,10 @@ public:
         return edges;
     }
 
+    const Row* row() const override {
+        return iter_->row;
+    }
+
 private:
     void doReset(size_t pos) override {
         iter_ = logicalRows_.begin() + pos;
@@ -215,86 +232,64 @@ private:
 
     void clear() {
         valid_ = false;
-        colIndices_.clear();
-        tagEdgeNameIndices_.clear();
-        tagPropIndices_.clear();
-        edgePropIndices_.clear();
-        tagPropMaps_.clear();
-        edgePropMaps_.clear();
-        segments_.clear();
+        dsIndices_.clear();
         logicalRows_.clear();
     }
 
-    // Maps the origin column names with its column index, each response
-    // has a segment.
-    // | _vid | _stats | _tag:t1:p1:p2 | _edge:e1:p1:p2 |
-    // -> {_vid : 0, _stats : 1, _tag:t1:p1:p2 : 2, _edge:d1:p1:p2 : 3}
-    using ColumnIndex = std::vector<std::unordered_map<std::string, size_t>>;
-    // | _vid | _stats | _tag:t1:p1:p2 | _edge:e1:p1:p2 |
-    // -> {t1 : 2, e1 : 3}
-    using TagEdgeNameIdxMap = std::unordered_map<size_t, std::string>;
-    using TagEdgeNameIndex = std::vector<TagEdgeNameIdxMap>;
-
-    // _tag:t1:p1:p2  ->  {t1 : {p1 : 0, p2 : 1}}
-    // _edge:e1:p1:p2  ->  {e1 : {p1 : 0, p2 : 1}}
-    using PropIdxMap = std::unordered_map<std::string, size_t>;
-    // {tag/edge name : [column_idx, PropIdxMap]}
-    using TagEdgePropIdxMap = std::unordered_map<std::string, std::pair<size_t, PropIdxMap>>;
-    // Maps the property name with its index, each response has a segment
-    // in PropIndex.
-    using PropIndex = std::vector<TagEdgePropIdxMap>;
-
-    // LogicalRow: <segment_id, row, edge_name, edge_props>
-    using LogicalRow = std::tuple<size_t, const Row*, std::string, const List*>;
-
-    using PropList = std::vector<std::string>;
-    // _tag:t1:p1:p2  ->  {t1 : [column_idx, {p1, p2}]}
-    // _edge:e1:p1:p2  ->  {e1 : [columns_idx, {p1, p2}]}
-    using TagEdgePropMap = std::unordered_map<std::string, std::pair<size_t, PropList>>;
-    // Maps the tag/edge with its properties, each response has a segment
-    // in PropMaps
-    using PropMaps = std::vector<TagEdgePropMap>;
-
     inline size_t currentSeg() const {
-        auto& current = *iter_;
-        return std::get<0>(current);
-    }
-
-    inline const Row* currentRow() const {
-        auto& current = *iter_;
-        return std::get<1>(current);
+        return iter_->dsIdx;
     }
 
     inline const std::string& currentEdgeName() const {
-        auto& current = *iter_;
-        return std::get<2>(current);
+        return iter_->edgeName;
     }
 
     inline const List* currentEdgeProps() const {
-        auto& current = *iter_;
-        return std::get<3>(current);
+        return iter_->edgeProps;
     }
 
-    StatusOr<int64_t> buildIndex(const std::vector<std::string>& colNames);
+    struct PropIndex {
+        size_t colIdx;
+        std::vector<std::string> propList;
+        std::unordered_map<std::string, size_t> propIndices;
+    };
 
+    struct DataSetIndex {
+        const DataSet* ds;
+        // | _vid | _stats | _tag:t1:p1:p2 | _edge:e1:p1:p2 |
+        // -> {_vid : 0, _stats : 1, _tag:t1:p1:p2 : 2, _edge:d1:p1:p2 : 3}
+        std::unordered_map<std::string, size_t> colIndices;
+        // | _vid | _stats | _tag:t1:p1:p2 | _edge:e1:p1:p2 |
+        // -> {2 : t1, 3 : e1}
+        std::unordered_map<size_t, std::string> tagEdgeNameIndices;
+        // _tag:t1:p1:p2  ->  {t1 : [column_idx, [p1, p2], {p1 : 0, p2 : 1}]}
+        std::unordered_map<std::string, PropIndex> tagPropsMap;
+        // _edge:e1:p1:p2  ->  {e1 : [column_idx, [p1, p2], {p1 : 0, p2 : 1}]}
+        std::unordered_map<std::string, PropIndex> edgePropsMap;
+    };
+
+    struct LogicalRow {
+        size_t dsIdx;
+        const Row* row;
+        std::string edgeName;
+        const List* edgeProps;
+    };
+
+    StatusOr<int64_t> buildIndex(DataSetIndex* dsIndex);
     Status buildPropIndex(const std::string& props,
                           size_t columnId,
                           bool isEdge,
-                          TagEdgeNameIdxMap& tagEdgeNameIndex,
-                          TagEdgePropIdxMap& tagEdgePropIdxMap,
-                          TagEdgePropMap& tagEdgePropMap);
+                          DataSetIndex* dsIndex);
+    Status processList(std::shared_ptr<Value> value);
+    StatusOr<DataSetIndex> makeDataSetIndex(const DataSet& ds, size_t idx);
+    void makeLogicalRowByEdge(int64_t edgeStartIndex, size_t idx, const DataSetIndex& dsIndex);
 
-    friend class IteratorTest_TestHead_Test;
-    bool                                    valid_{false};
-    ColumnIndex                             colIndices_;
-    TagEdgeNameIndex                        tagEdgeNameIndices_;
-    PropIndex                               tagPropIndices_;
-    PropIndex                               edgePropIndices_;
-    PropMaps                                tagPropMaps_;
-    PropMaps                                edgePropMaps_;
-    std::vector<const DataSet*>             segments_;
-    std::vector<LogicalRow>                 logicalRows_;
-    std::vector<LogicalRow>::iterator       iter_;
+    FRIEND_TEST(IteratorTest, TestHead);
+
+    bool valid_{false};
+    std::vector<LogicalRow> logicalRows_;
+    std::vector<LogicalRow>::iterator iter_;
+    std::vector<DataSetIndex> dsIndices_;
 };
 
 class SequentialIter : public Iterator {
@@ -323,10 +318,9 @@ public:
     }
 
     void next() override {
-        if (!valid()) {
-            return;
+        if (valid()) {
+            ++iter_;
         }
-        ++iter_;
     }
 
     void erase() override {
@@ -357,6 +351,11 @@ public:
     }
 
 protected:
+    const Row* row() const override {
+        return *iter_;
+    }
+
+private:
     void doReset(size_t pos) override {
         iter_ = rows_.begin() + pos;
     }
@@ -383,6 +382,93 @@ public:
     }
 };
 
+class UnionIterator final : public Iterator {
+public:
+    UnionIterator(std::unique_ptr<Iterator> left, std::unique_ptr<Iterator> right)
+        : Iterator(left->valuePtr(), Kind::kUnion),
+          left_(std::move(left)),
+          right_(std::move(right)) {}
+
+    std::unique_ptr<Iterator> copy() const override {
+        auto iter = std::make_unique<UnionIterator>(left_->copy(), right_->copy());
+        iter->reset();
+        return iter;
+    }
+
+    bool valid() const override {
+        return left_->valid() || right_->valid();
+    }
+
+    void next() override {
+        if (left_->valid()) {
+            left_->next();
+        } else {
+            if (right_->valid()) {
+                right_->next();
+            }
+        }
+    }
+
+    size_t size() const override {
+        return left_->size() + right_->size();
+    }
+
+    void erase() override {
+        if (left_->valid()) {
+            left_->erase();
+        } else {
+            if (right_->valid()) {
+                right_->erase();
+            }
+        }
+    }
+
+    const Value& getColumn(const std::string& col) const override {
+        if (left_->valid()) {
+            return left_->getColumn(col);
+        }
+        if (right_->valid()) {
+            return right_->getColumn(col);
+        }
+        return Value::kEmpty;
+    }
+
+    const Row* row() const override {
+        if (left_->valid()) return left_->row();
+        if (right_->valid()) return right_->row();
+        return nullptr;
+    }
+
+private:
+    void doReset(size_t poc) override {
+        if (poc < left_->size()) {
+            left_->reset(poc);
+            right_->reset();
+        } else {
+            right_->reset(poc - left_->size());
+        }
+    }
+
+    std::unique_ptr<Iterator> left_;
+    std::unique_ptr<Iterator> right_;
+};
 }  // namespace graph
 }  // namespace nebula
+
+namespace std {
+template <>
+struct equal_to<const nebula::Row*> {
+    bool operator()(const nebula::Row* lhs, const nebula::Row* rhs) const {
+        return *lhs == *rhs;
+    }
+};
+
+template <>
+struct hash<const nebula::Row*> {
+    size_t operator()(const nebula::Row* row) const {
+        return hash<nebula::Row>()(*row);
+    }
+};
+
+}   // namespace std
 #endif  // CONTEXT_ITERATOR_H_

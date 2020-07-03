@@ -36,7 +36,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     if (storageClient == nullptr) {
         return error(Status::Error("Invalid storage client for GetVerticesExecutor"));
     }
-    nebula::DataSet vertices({nebula::_VID});
+    nebula::DataSet vertices({kVid});
     if (!gv->vertices().empty()) {
         vertices.rows.insert(vertices.rows.end(),
                              std::make_move_iterator(gv->vertices().begin()),

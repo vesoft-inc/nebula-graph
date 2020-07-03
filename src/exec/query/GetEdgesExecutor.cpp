@@ -32,7 +32,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     }
 
     auto *ge = asNode<GetEdges>(node());
-    nebula::DataSet edges({nebula::_SRC, nebula::_TYPE, nebula::_RANK, nebula::_DST});
+    nebula::DataSet edges({kSrc, kType, kRank, kDst});
     if (!ge->edges().empty()) {
         edges.rows.insert(edges.rows.end(),
                           std::make_move_iterator(ge->edges().begin()),

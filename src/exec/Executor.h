@@ -13,6 +13,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <folly/futures/Future.h>
 
 #include "common/base/Status.h"
 #include "common/clients/storage/StorageClientBase.h"
@@ -34,14 +35,18 @@ public:
 
     virtual ~Executor() {}
 
-    // Implementation interface of operation logic
+    // Each executor inherited from this class should get input values from ExecutionContext,
+    // execute expression evaluation and save output result back to ExecutionContext after
+    // computation
     virtual folly::Future<Status> execute() = 0;
 
     QueryContext *qctx() const {
         return qctx_;
     }
 
-    int64_t id() const;
+    int64_t id() const {
+        return id_;
+    }
 
     const std::string &name() const {
         return name_;
@@ -94,9 +99,6 @@ protected:
     // Note: will fatal when called in non single input node
     const ExecResult& getSingleInput() const;
 
-    // Dump some execution logging messages
-    void dumpLog() const;
-
     // TODO(shylock) only used for storage fetch executor
     template <typename Resp>
     StatusOr<State> handleCompleteness(
@@ -116,6 +118,12 @@ protected:
         }
         return State(State::Stat::kSuccess);
     }
+
+    // Dump some execution logging messages, only for debugging
+    // TODO(yee): Remove it after implementing profile function
+    void dumpLog() const;
+
+    int64_t id_;
 
     // Executor name
     std::string name_;
