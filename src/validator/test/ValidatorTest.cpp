@@ -24,10 +24,15 @@ namespace graph {
 class ValidatorTest : public ::testing::Test {
 public:
     static void SetUpTestCase() {
-        auto session = Session::create(0);
-        session->setSpace("test", 0);
-        session_ = session;
-        // TODO: Need AdHocSchemaManager here.
+        auto sessionId = 0;
+        auto session = Session::create(sessionId);
+        auto spaceName = "test_space";
+        auto spaceId = 1;
+        session->setSpace(spaceName, spaceId);
+        session_.reset(session);
+        auto* sm = new MockSchemaManager();
+        sm->init();
+        schemaMng_.reset(sm);
     }
 
     void SetUp() override {
@@ -140,7 +145,8 @@ protected:
 
 protected:
     static std::shared_ptr<Session>      session_;
-    static meta::SchemaManager*                schemaMng_;
+    static meta::SchemaManager*          schemaMng_;
+    std::unique_ptr<QueryContext>        qctx_;
 };
 
 std::shared_ptr<Session> ValidatorTest::session_;
