@@ -247,12 +247,12 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
     DataSet dataSet({"Field", "Type", "Null", "Default"});
     for (auto &col : schema.get_columns()) {
         Row row;
-        row.columns.emplace_back(Value(col.get_name()));
-        row.columns.emplace_back(typeToString(col));
+        row.values.emplace_back(Value(col.get_name()));
+        row.values.emplace_back(typeToString(col));
         auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
-        row.columns.emplace_back(nullable ? "YES" : "NO");
+        row.values.emplace_back(nullable ? "YES" : "NO");
         auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
-        row.columns.emplace_back(std::move(defaultValue));
+        row.values.emplace_back(std::move(defaultValue));
         dataSet.emplace_back(std::move(row));
     }
     return dataSet;
@@ -285,9 +285,7 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
 
         if (col.__isset.default_value) {
             auto value = col.get_default_value();
-            auto valueRet = value->toString();
-            CHECK(valueRet.ok());
-            auto &toStr = valueRet.value();
+            auto toStr = value->toString();
             if (value->isNumeric() || value->isBool()) {
                 createStr += " DEFAULT " + toStr;
             } else {

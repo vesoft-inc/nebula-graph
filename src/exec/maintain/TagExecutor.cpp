@@ -16,7 +16,8 @@ folly::Future<Status> CreateTagExecutor::execute() {
     dumpLog();
 
     auto *ctNode = asNode<CreateTag>(node());
-    return qctx()->getMetaClient()->createTagSchema(ctNode->space(),
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->createTagSchema(spaceId,
             ctNode->getName(), ctNode->getSchema(), ctNode->getIfNotExists())
             .via(runner())
             .then([](StatusOr<bool> resp) {
@@ -32,7 +33,8 @@ folly::Future<Status> DescTagExecutor::execute() {
     dumpLog();
 
     auto *dtNode = asNode<DescTag>(node());
-    return qctx()->getMetaClient()->getTagSchema(dtNode->getSpaceId(), dtNode->getName())
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->getTagSchema(spaceId, dtNode->getName())
             .via(runner())
             .then([this](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {
@@ -53,7 +55,8 @@ folly::Future<Status> DropTagExecutor::execute() {
     dumpLog();
 
     auto *dtNode = asNode<DropTag>(node());
-    return qctx()->getMetaClient()->dropTagSchema(dtNode->getSpaceId(),
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->dropTagSchema(spaceId,
                                                   dtNode->getName(),
                                                   dtNode->getIfExists())
             .via(runner())
@@ -69,8 +72,8 @@ folly::Future<Status> DropTagExecutor::execute() {
 folly::Future<Status> ShowTagsExecutor::execute() {
     dumpLog();
 
-    auto *stNode = asNode<ShowTags>(node());
-    return qctx()->getMetaClient()->listTagSchemas(stNode->getSpaceId())
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->listTagSchemas(spaceId)
             .via(runner())
             .then([this](StatusOr<std::vector<meta::cpp2::TagItem>> resp) {
                 if (!resp.ok()) {
@@ -87,7 +90,7 @@ folly::Future<Status> ShowTagsExecutor::execute() {
                 }
                 for (auto &name : orderTagNames) {
                     Row row;
-                    row.columns.emplace_back(name);
+                    row.values.emplace_back(name);
                     dataSet.rows.emplace_back(std::move(row));
                 }
                 finish(dataSet);
@@ -99,7 +102,8 @@ folly::Future<Status> ShowCreateTagExecutor::execute() {
     dumpLog();
 
     auto *sctNode = asNode<ShowCreateTag>(node());
-    return qctx()->getMetaClient()->getTagSchema(sctNode->getSpaceId(), sctNode->getName())
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->getTagSchema(spaceId, sctNode->getName())
             .via(runner())
             .then([this, sctNode](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {

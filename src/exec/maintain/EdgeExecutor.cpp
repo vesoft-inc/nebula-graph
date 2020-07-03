@@ -16,7 +16,8 @@ folly::Future<Status> CreateEdgeExecutor::execute() {
     dumpLog();
 
     auto *ceNode = asNode<CreateEdge>(node());
-    return qctx()->getMetaClient()->createEdgeSchema(ceNode->space(),
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->createEdgeSchema(spaceId,
             ceNode->getName(), ceNode->getSchema(), ceNode->getIfNotExists())
             .via(runner())
             .then([](StatusOr<bool> resp) {
@@ -33,7 +34,8 @@ folly::Future<Status> DescEdgeExecutor::execute() {
     dumpLog();
 
     auto *deNode = asNode<DescEdge>(node());
-    return qctx()->getMetaClient()->getEdgeSchema(deNode->getSpaceId(), deNode->getName())
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->getEdgeSchema(spaceId, deNode->getName())
             .via(runner())
             .then([this](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {
@@ -55,7 +57,8 @@ folly::Future<Status> DropEdgeExecutor::execute() {
     dumpLog();
 
     auto *deNode = asNode<DropEdge>(node());
-    return qctx()->getMetaClient()->dropEdgeSchema(deNode->getSpaceId(),
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->dropEdgeSchema(spaceId,
                                                    deNode->getName(),
                                                    deNode->getIfExists())
             .via(runner())
@@ -71,8 +74,8 @@ folly::Future<Status> DropEdgeExecutor::execute() {
 folly::Future<Status> ShowEdgesExecutor::execute() {
     dumpLog();
 
-    auto *seNode = asNode<ShowEdges>(node());
-    return qctx()->getMetaClient()->listEdgeSchemas(seNode->getSpaceId())
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->listEdgeSchemas(spaceId)
             .via(runner())
             .then([this](StatusOr<std::vector<meta::cpp2::EdgeItem>> resp) {
                 if (!resp.ok()) {
@@ -89,7 +92,7 @@ folly::Future<Status> ShowEdgesExecutor::execute() {
                 }
                 for (auto &name : orderEdgeNames) {
                     Row row;
-                    row.columns.emplace_back(name);
+                    row.values.emplace_back(name);
                     dataSet.rows.emplace_back(std::move(row));
                 }
                 finish(dataSet);
@@ -101,7 +104,8 @@ folly::Future<Status> ShowCreateEdgeExecutor::execute() {
     dumpLog();
 
     auto *sceNode = asNode<ShowCreateEdge>(node());
-    return qctx()->getMetaClient()->getEdgeSchema(sceNode->getSpaceId(), sceNode->getName())
+    auto spaceId = qctx()->rctx()->session()->space();
+    return qctx()->getMetaClient()->getEdgeSchema(spaceId, sceNode->getName())
             .via(runner())
             .then([this, sceNode](StatusOr<meta::cpp2::Schema> resp) {
                 if (!resp.ok()) {

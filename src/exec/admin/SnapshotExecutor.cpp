@@ -56,10 +56,10 @@ folly::Future<Status> ShowSnapshotsExecutor::execute() {
 
                 for (auto &snapshot : snapshots) {
                     Row row;
-                    row.columns.emplace_back(snapshot.name);
-                    row.columns.emplace_back(
+                    row.values.emplace_back(snapshot.name);
+                    row.values.emplace_back(
                             meta::cpp2::_SnapshotStatus_VALUES_TO_NAMES.at(snapshot.status));
-                    row.columns.emplace_back(snapshot.hosts);
+                    row.values.emplace_back(snapshot.hosts);
                     dataSet.rows.emplace_back(std::move(row));
                 }
                 finish(std::move(dataSet));

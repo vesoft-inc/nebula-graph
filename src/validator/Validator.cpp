@@ -118,7 +118,19 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kInsertEdges:
         case PlanNode::Kind::kGetNeighbors:
         case PlanNode::Kind::kAlterTag:
-        case PlanNode::Kind::kAlterEdge: {
+        case PlanNode::Kind::kAlterEdge:
+        case PlanNode::Kind::kShowCreateSpace:
+        case PlanNode::Kind::kShowCreateTag:
+        case PlanNode::Kind::kShowCreateEdge:
+        case PlanNode::Kind::kDropSpace:
+        case PlanNode::Kind::kDropTag:
+        case PlanNode::Kind::kDropEdge:
+        case PlanNode::Kind::kShowSpaces:
+        case PlanNode::Kind::kShowTags:
+        case PlanNode::Kind::kShowEdges:
+        case PlanNode::Kind::kCreateSnapshot:
+        case PlanNode::Kind::kDropSnapshot:
+        case PlanNode::Kind::kShowSnapshots: {
             static_cast<SingleDependencyNode*>(node)->setDep(appended);
             break;
         }

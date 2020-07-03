@@ -63,7 +63,7 @@ TEST_F(SnapshotTest, TestAll) {
         std::vector<std::string> colNames = {"Name", "Status", "Hosts"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
         ASSERT_EQ(1, snapshots->rows.size());
-        snapshotName.append(snapshots->rows[0].columns[0].getStr());
+        snapshotName.append(snapshots->rows[0].values[0].getStr());
     }
     {
         cpp2::ExecutionResponse resp;

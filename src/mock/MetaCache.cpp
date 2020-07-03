@@ -47,6 +47,7 @@ StatusOr<meta::cpp2::SpaceItem> MetaCache::getSpace(const meta::cpp2::GetSpaceRe
     folly::RWSpinLock::ReadHolder holder(lock_);
     auto findIter = spaces_.find(req.get_space_name());
     if (findIter == spaces_.end()) {
+        LOG(ERROR) << "Space " << req.get_space_name().c_str() << " not found";
         return Status::Error("Space `%s' not found", req.get_space_name().c_str());
     }
     VLOG(1) << "space name: " << findIter->second.get_properties().get_space_name()

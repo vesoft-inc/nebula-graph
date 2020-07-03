@@ -81,15 +81,15 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
 private:
-    DescribeEdgeSentence               *sentence_{nullptr};
     std::string                         name_;
 };
 
 class ShowCreateEdgeValidator final : public Validator {
 public:
     ShowCreateEdgeValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
     }
 
 private:
@@ -138,7 +138,7 @@ private:
 class ShowTagsValidator final : public Validator {
 public:
     ShowTagsValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {}
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -172,7 +172,7 @@ private:
 class DropEdgeValidator final : public Validator {
 public:
     DropEdgeValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
     }
 
 private:

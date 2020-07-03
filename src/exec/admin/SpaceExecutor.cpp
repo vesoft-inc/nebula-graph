@@ -48,13 +48,13 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 auto &spaceItem = resp.value();
                 auto &properties = spaceItem.get_properties();
                 Row row;
-                row.columns.emplace_back(spaceItem.get_space_id());
-                row.columns.emplace_back(properties.get_space_name());
-                row.columns.emplace_back(properties.get_partition_num());
-                row.columns.emplace_back(properties.get_replica_factor());
-                row.columns.emplace_back(properties.get_vid_size());
-                row.columns.emplace_back(properties.get_charset_name());
-                row.columns.emplace_back(properties.get_collate_name());
+                row.values.emplace_back(spaceItem.get_space_id());
+                row.values.emplace_back(properties.get_space_name());
+                row.values.emplace_back(properties.get_partition_num());
+                row.values.emplace_back(properties.get_replica_factor());
+                row.values.emplace_back(properties.get_vid_size());
+                row.values.emplace_back(properties.get_charset_name());
+                row.values.emplace_back(properties.get_collate_name());
                 dataSet.rows.emplace_back(std::move(row));
                 finish(Value(std::move(dataSet)));
                 return Status::OK();
@@ -96,7 +96,7 @@ folly::Future<Status> ShowSpacesExecutor::execute() {
                 }
                 for (auto &name : orderSpaceNames) {
                     Row row;
-                    row.columns.emplace_back(name);
+                    row.values.emplace_back(name);
                     dataSet.rows.emplace_back(std::move(row));
                 }
                 finish(std::move(dataSet));
@@ -118,10 +118,10 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                 auto properties = resp.value().get_properties();
                 DataSet dataSet({"Space", "Create Space"});
                 Row row;
-                row.columns.emplace_back(properties.get_space_name());
+                row.values.emplace_back(properties.get_space_name());
                 auto fmt = "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
                            "vid_size = %d, charset = %s, collate = %s)";
-                row.columns.emplace_back(
+                row.values.emplace_back(
                         folly::stringPrintf(fmt,
                                             properties.get_space_name().c_str(),
                                             properties.get_partition_num(),

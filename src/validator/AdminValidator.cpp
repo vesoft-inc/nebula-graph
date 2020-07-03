@@ -18,10 +18,7 @@ namespace nebula {
 namespace graph {
 Status CreateSpaceValidator::validateImpl() {
     auto sentence = static_cast<CreateSpaceSentence*>(sentence_);
-<<<<<<< HEAD
     ifNotExist_ = sentence->isIfNotExist();
-=======
->>>>>>> rebase upstream
     auto status = Status::OK();
     spaceDesc_ = meta::SpaceDesc();
     spaceDesc_.spaceName_ = std::move(*(sentence->spaceName()));
@@ -103,18 +100,14 @@ Status CreateSpaceValidator::validateImpl() {
                     spaceDesc_.collationName_));
     }
 
-<<<<<<< HEAD
     // add to validate context
     vctx_->addSpace(spaceDesc_.spaceName_);
-=======
-    ifNotExist_ = sentence->isIfNotExist();
->>>>>>> rebase upstream
     return status;
 }
 
 Status CreateSpaceValidator::toPlan() {
     auto *plan = qctx_->plan();
-    auto doNode = CreateSpace::make(plan, nullptr, std::move(spaceDesc_), ifNotExist_);
+    auto *doNode = CreateSpace::make(plan, nullptr, std::move(spaceDesc_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -125,15 +118,9 @@ Status DescSpaceValidator::validateImpl() {
 }
 
 Status DescSpaceValidator::toPlan() {
-<<<<<<< HEAD
     auto sentence = static_cast<DescribeSpaceSentence*>(sentence_);
     auto *plan = qctx_->plan();
-    auto doNode = DescSpace::make(plan, nullptr, *sentence->spaceName());
-=======
-    auto* plan = qctx_->plan();
-    auto sentence = static_cast<DescribeSpaceSentence*>(sentence_);
     auto *doNode = DescSpace::make(plan, nullptr, *sentence->spaceName());
->>>>>>> rebase upstream
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -145,7 +132,7 @@ Status ShowSpacesValidator::validateImpl() {
 
 Status ShowSpacesValidator::toPlan() {
     auto *plan = qctx_->plan();
-    auto *doNode = ShowSpaces::make(plan);
+    auto *doNode = ShowSpaces::make(plan, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -158,7 +145,7 @@ Status DropSpaceValidator::validateImpl() {
 Status DropSpaceValidator::toPlan() {
     auto *plan = qctx_->plan();
     auto sentence = static_cast<DropSpaceSentence*>(sentence_);
-    auto *doNode = DropSpace::make(plan, *sentence->spaceName(), sentence->isIfExists());
+    auto *doNode = DropSpace::make(plan, nullptr, *sentence->spaceName(), sentence->isIfExists());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -171,7 +158,8 @@ Status ShowCreateSpaceValidator::validateImpl() {
 Status ShowCreateSpaceValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto sentence = static_cast<ShowCreateSpaceSentence*>(sentence_);
-    auto *doNode = ShowCreateSpace::make(plan, *sentence->spaceName());
+    auto spaceName = *sentence->spaceName();
+    auto *doNode = ShowCreateSpace::make(plan, nullptr, std::move(spaceName));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -183,7 +171,7 @@ Status CreateSnapshotValidator::validateImpl() {
 
 Status CreateSnapshotValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = CreateSnapshot::make(plan);
+    auto *doNode = CreateSnapshot::make(plan, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -196,7 +184,7 @@ Status DropSnapshotValidator::validateImpl() {
 Status DropSnapshotValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto sentence = static_cast<DropSnapshotSentence*>(sentence_);
-    auto *doNode = DropSnapshot::make(plan, *sentence->name());
+    auto *doNode = DropSnapshot::make(plan, nullptr, *sentence->name());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -208,7 +196,7 @@ Status ShowSnapshotsValidator::validateImpl() {
 
 Status ShowSnapshotsValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = ShowSnapshots::make(plan);
+    auto *doNode = ShowSnapshots::make(plan, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

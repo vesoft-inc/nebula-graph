@@ -23,14 +23,14 @@ Status CreateTagValidator::validateImpl() {
     ifNotExist_ = sentence->isIfNotExist();
     do {
         // Check the validateContext has the same name schema
-        auto pro = vctx_->getSchema(tagName_);
+        auto pro = vctx_->getSchema(name_);
         if (pro != nullptr) {
             status = Status::Error("Has the same name `%s' in the SequentialSentences",
-                                    tagName_.c_str());
+                                    name_.c_str());
             break;
         }
 
-        status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
+        status = SchemaUtil::validateColumns(sentence->columnSpecs(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
@@ -44,7 +44,7 @@ Status CreateTagValidator::validateImpl() {
     // Save the schema in validateContext
     if (status.ok()) {
         auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
-        vctx_->addSchema(tagName_, schemaPro);
+        vctx_->addSchema(name_, schemaPro);
     }
     return status;
 }
@@ -52,7 +52,7 @@ Status CreateTagValidator::validateImpl() {
 Status CreateTagValidator::toPlan() {
     auto *plan = qctx_->plan();
     auto doNode = CreateTag::make(plan,
-            plan->root(), std::move(tagName_), std::move(schema_), ifNotExist_);
+            plan->root(), std::move(name_), std::move(schema_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -65,14 +65,14 @@ Status CreateEdgeValidator::validateImpl() {
     ifNotExist_ = sentence->isIfNotExist();
     do {
         // Check the validateContext has the same name schema
-        auto pro = vctx_->getSchema(edgeName_);
+        auto pro = vctx_->getSchema(name_);
         if (pro != nullptr) {
             status = Status::Error("Has the same name `%s' in the SequentialSentences",
-                                    edgeName_.c_str());
+                                    name_.c_str());
             break;
         }
 
-        status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
+        status = SchemaUtil::validateColumns(sentence->columnSpecs(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
@@ -87,7 +87,7 @@ Status CreateEdgeValidator::validateImpl() {
     // Save the schema in validateContext
     if (status.ok()) {
         auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
-        vctx_->addSchema(edgeName_, schemaPro);
+        vctx_->addSchema(name_, schemaPro);
     }
     return status;
 }
@@ -95,7 +95,7 @@ Status CreateEdgeValidator::validateImpl() {
 Status CreateEdgeValidator::toPlan() {
     auto *plan = qctx_->plan();
     auto doNode = CreateEdge::make(plan,
-            plan->root(), std::move(edgeName_), std::move(schema_), ifNotExist_);
+            plan->root(), std::move(name_), std::move(schema_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -239,8 +239,7 @@ Status ShowTagsValidator::validateImpl() {
 
 Status ShowTagsValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = ShowTags::make(plan,
-                                  vctx_->whichSpace().id);
+    auto *doNode = ShowTags::make(plan, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -252,8 +251,7 @@ Status ShowEdgesValidator::validateImpl() {
 
 Status ShowEdgesValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = ShowEdges::make(plan,
-                                   vctx_->whichSpace().id);
+    auto *doNode = ShowEdges::make(plan, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -267,7 +265,7 @@ Status ShowCreateTagValidator::toPlan() {
     auto sentence = static_cast<ShowCreateTagSentence*>(sentence_);
     auto* plan = qctx_->plan();
     auto *doNode = ShowCreateTag::make(plan,
-                                       vctx_->whichSpace().id,
+                                       nullptr,
                                       *sentence->name());
     root_ = doNode;
     tail_ = root_;
@@ -282,7 +280,7 @@ Status ShowCreateEdgeValidator::toPlan() {
     auto sentence = static_cast<ShowCreateEdgeSentence*>(sentence_);
     auto* plan = qctx_->plan();
     auto *doNode = ShowCreateEdge::make(plan,
-                                        vctx_->whichSpace().id,
+                                        nullptr,
                                        *sentence->name());
     root_ = doNode;
     tail_ = root_;
@@ -297,7 +295,7 @@ Status DropTagValidator::toPlan() {
     auto sentence = static_cast<DropTagSentence*>(sentence_);
     auto* plan = qctx_->plan();
     auto *doNode = DropTag::make(plan,
-                                 vctx_->whichSpace().id,
+                                 nullptr,
                                 *sentence->name(),
                                  sentence->isIfExists());
     root_ = doNode;
@@ -313,7 +311,7 @@ Status DropEdgeValidator::toPlan() {
     auto sentence = static_cast<DropEdgeSentence*>(sentence_);
     auto* plan = qctx_->plan();
     auto *doNode = DropEdge::make(plan,
-                                  vctx_->whichSpace().id,
+                                  nullptr,
                                  *sentence->name(),
                                   sentence->isIfExists());
     root_ = doNode;
