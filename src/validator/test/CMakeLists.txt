@@ -9,10 +9,8 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
     $<TARGET_OBJECTS:session_obj>
-    $<TARGET_OBJECTS:query_engine_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
-    $<TARGET_OBJECTS:schedule_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:common_expression_obj>
@@ -23,6 +21,7 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_time_obj>
     $<TARGET_OBJECTS:common_common_thrift_obj>
     $<TARGET_OBJECTS:common_graph_thrift_obj>
+    $<TARGET_OBJECTS:common_storage_thrift_obj>
     $<TARGET_OBJECTS:common_thrift_obj>
     $<TARGET_OBJECTS:common_thread_obj>
     $<TARGET_OBJECTS:common_datatypes_obj>
@@ -33,6 +32,7 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_meta_client_obj>
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
+    $<TARGET_OBJECTS:common_conf_obj>
 )
 
 nebula_add_library(
@@ -42,7 +42,11 @@ nebula_add_library(
 
 nebula_add_test(
     NAME validator_test
-    SOURCES ValidatorTest.cpp
+    SOURCES
+        QueryValidatorTest.cpp
+        AdminValidatorTest.cpp
+        MaintainValidatorTest.cpp
+        MutateValidatorTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
 )
@@ -53,3 +57,4 @@ nebula_add_test(
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
 )
+

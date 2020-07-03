@@ -518,7 +518,7 @@ public:
         return new Filter(plan, input, condition);
     }
 
-    const Expression* condition() const {
+    Expression* condition() const {
         return condition_;
     }
 
@@ -797,59 +797,43 @@ private:
 class SwitchSpace final : public SingleInputNode {
 public:
     static SwitchSpace* make(ExecutionPlan* plan,
-                                        PlanNode* input,
-                                        std::string spaceName,
-                                        GraphSpaceID spaceId) {
-        return new SwitchSpace(plan, input, spaceName, spaceId);
+                             PlanNode* input,
+                             std::string spaceName) {
+        return new SwitchSpace(plan, input, spaceName);
     }
 
     const std::string& getSpaceName() const {
         return spaceName_;
     }
 
-    GraphSpaceID getSpaceId() const {
-        return spaceId_;
-    }
-
     std::string explain() const override;
 
 private:
     SwitchSpace(ExecutionPlan* plan,
-                           PlanNode* input,
-                           std::string spaceName,
-                           GraphSpaceID spaceId)
+                PlanNode* input,
+                std::string spaceName)
         : SingleInputNode(plan, Kind::kSwitchSpace, input) {
         spaceName_ = std::move(spaceName);
-        spaceId_ = spaceId;
     }
 
 private:
     std::string     spaceName_;
-    GraphSpaceID    spaceId_{-1};
 };
 
 class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(ExecutionPlan* plan,
-                       PlanNode* input,
-                       Expression* expr) {
-        return new Dedup(plan, input, expr);
-    }
-
-    void setExpr(Expression* expr) {
-        expr_ = expr;
+                       PlanNode* input) {
+        return new Dedup(plan, input);
     }
 
     std::string explain() const override;
 
 private:
-    Dedup(ExecutionPlan* plan, PlanNode* input, Expression* expr)
+    Dedup(ExecutionPlan* plan,
+          PlanNode* input)
         : SingleInputNode(plan, Kind::kDedup, input) {
-        expr_ = expr;
     }
-
-private:
-    Expression*     expr_{nullptr};
 };
 
 class DataCollect final : public SingleInputNode {
