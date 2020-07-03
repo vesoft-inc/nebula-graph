@@ -243,7 +243,7 @@ TEST_F(QueryValidatorTest, GoInvalid) {
     }
 }
 
-TEST_F(ValidatorTest, Limit) {
+TEST_F(QueryValidatorTest, Limit) {
     std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT 1, 3";
     auto status = validate(query);
     ASSERT_TRUE(status.ok()) << status.status();
@@ -254,7 +254,7 @@ TEST_F(ValidatorTest, Limit) {
     ASSERT_TRUE(verifyPlan(plan->root(), expected));
 }
 
-TEST_F(ValidatorTest, OrderBy) {
+TEST_F(QueryValidatorTest, OrderBy) {
     {
         std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
                             " | ORDER BY $-.age";

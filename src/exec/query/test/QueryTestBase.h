@@ -29,27 +29,16 @@ protected:
 
                 // _stats
                 row.values.emplace_back(Value::kEmpty);
+
                 // vertices props
                 List vertices({"Ann", 18});
                 row.values.emplace_back(std::move(vertices));
 
-                // vertices props
-                List vertices;
-                vertices.values.emplace_back("Ann");
-                vertices.values.emplace_back(18);
-                row.values.emplace_back(vertices);
-
                 // edge props
                 List edges;
-                List edge1;
-                edge1.values.emplace_back("School1");
-                edge1.values.emplace_back(2010);
-                edge1.values.emplace_back(2014);
+                List edge1({"School1", 2010, 2014});
+                List edge2({"School2", 2014, 2017});
                 edges.values.emplace_back(std::move(edge1));
-                List edge2;
-                edge2.values.emplace_back("School2");
-                edge2.values.emplace_back(2014);
-                edge2.values.emplace_back(2017);
                 edges.values.emplace_back(std::move(edge2));
                 row.values.emplace_back(std::move(edges));
 
@@ -61,16 +50,17 @@ protected:
                 Row row;
                 // vid
                 row.values.emplace_back("Tom");
+
                 // _stats
                 row.values.emplace_back(Value::kEmpty);
+
                 // vertices props
                 List vertices({"Tom", 18});
                 row.values.emplace_back(std::move(vertices));
 
                 // edges props
-                List edge1{"School1", 2008, 2012};
-
-                List edge2{"School2", 2012, 2015};
+                List edge1({"School1", 2008, 2012});
+                List edge2({"School2", 2012, 2015});
 
                 List edges;
                 edges.values.emplace_back(std::move(edge1));

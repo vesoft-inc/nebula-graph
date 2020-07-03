@@ -124,8 +124,7 @@ protected:
                 case PlanNode::Kind::kDescTag:
                 case PlanNode::Kind::kDescEdge:
                 case PlanNode::Kind::kInsertVertices:
-                case PlanNode::Kind::kInsertEdges:
-                case PlanNode::Kind::kDataCollect: {
+                case PlanNode::Kind::kInsertEdges: {
                     auto* current = static_cast<const SingleInputNode*>(node);
                     queue.emplace(current->input());
                     break;
@@ -164,16 +163,9 @@ protected:
     std::unique_ptr<MockSchemaManager>    schemaMng_;
 };
 
-std::unique_ptr<QueryContext> ValidatorTestBase::buildContext() {
-    auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
-    rctx->setSession(session_);
-    auto qctx = std::make_unique<QueryContext>();
-    qctx->setRctx(std::move(rctx));
-    qctx->setSchemaManager(schemaMng_);
-    qctx->setCharsetInfo(CharsetInfo::instance());
-    return qctx;
-}
-}  // namespace graph
-}  // namespace nebula
+std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan);
+}   // namespace graph
+}   // namespace nebula
+
 #endif   // VALIDATOR_TEST_VALIDATORTESTBASE_H_
 
