@@ -112,7 +112,7 @@ private:
         }
 };
 
-class AlterTag final : public SingleInputNode {
+class AlterSchemaNode : public SingleInputNode {
 protected:
     AlterSchemaNode(ExecutionPlan* plan,
                     Kind kind,
@@ -152,7 +152,6 @@ protected:
 };
 
 class AlterTag final : public AlterSchemaNode {
->>>>>>> Add alter executor
 public:
     static AlterTag* make(ExecutionPlan* plan,
                           PlanNode* input,
@@ -179,17 +178,17 @@ private:
              std::string name,
              std::vector<meta::cpp2::AlterSchemaItem> items,
              meta::cpp2::SchemaProp schemaProp)
-            : AlterSchemaNode(plan,
-                              Kind::kAlterTag,
-                              input,
-                              space,
-                              std::move(name),
-                              std::move(items),
-                              std::move(schemaProp)) {
+        : AlterSchemaNode(plan,
+                            Kind::kAlterTag,
+                            input,
+                            space,
+                            std::move(name),
+                            std::move(items),
+                            std::move(schemaProp)) {
     }
 };
 
-class AlterEdge final : public SingleInputNode {
+class AlterEdge final : public AlterSchemaNode {
 public:
     static AlterEdge* make(ExecutionPlan* plan,
                            PlanNode* input,
@@ -216,13 +215,13 @@ private:
               std::string name,
               std::vector<meta::cpp2::AlterSchemaItem> items,
               meta::cpp2::SchemaProp schemaProp)
-            : AlterSchemaNode(plan,
-                              Kind::kAlterEdge,
-                              input,
-                              space,
-                              std::move(name),
-                              std::move(items),
-                              std::move(schemaProp)) {
+        : AlterSchemaNode(plan,
+                            Kind::kAlterEdge,
+                            input,
+                            space,
+                            std::move(name),
+                            std::move(items),
+                            std::move(schemaProp)) {
     }
 };
 
