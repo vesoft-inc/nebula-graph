@@ -80,6 +80,21 @@ Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps
 }
 
 // static
+std::shared_ptr<const meta::NebulaSchemaProvider>
+SchemaUtil::generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema &schema) {
+    auto schemaPtr = std::make_shared<meta::NebulaSchemaProvider>(ver);
+    for (auto col : schema.get_columns()) {
+        bool hasDef = col.__isset.default_value;
+        schemaPtr->addField(col.get_name(),
+                            col.get_type(),
+                            col.__isset.type_length ? *col.get_type_length() : 0,
+                            col.__isset.nullable ? *col.get_nullable() : false,
+                            hasDef ? *col.get_default_value() : Value());
+    }
+    return schemaPtr;
+}
+
+// static
 StatusOr<nebula::Value> SchemaUtil::toSchemaValue(const meta::cpp2::PropertyType type,
                                                   const Value &v) {
     switch (type) {
@@ -237,7 +252,7 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
         auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
         columns.emplace_back(std::move(defaultValue));
         Row row;
-        row.columns = std::move(columns);
+        row.values = std::move(columns);
         rows.emplace_back(row);
     }
     dataSet.rows = std::move(rows);
@@ -278,6 +293,34 @@ std::string SchemaUtil::typeToString(const meta::cpp2::ColumnDef &col) {
             return "";
     }
     return "";
+}
+
+Value::Type SchemaUtil::propTypeToValueType(meta::cpp2::PropertyType propType) {
+    switch (propType) {
+        case meta::cpp2::PropertyType::BOOL:
+            return Value::Type::BOOL;
+        case meta::cpp2::PropertyType::INT8:
+        case meta::cpp2::PropertyType::INT16:
+        case meta::cpp2::PropertyType::INT32:
+        case meta::cpp2::PropertyType::INT64:
+        case meta::cpp2::PropertyType::TIMESTAMP:
+            return Value::Type::INT;
+        case meta::cpp2::PropertyType::VID:
+            return Value::Type::STRING;
+        case meta::cpp2::PropertyType::FLOAT:
+        case meta::cpp2::PropertyType::DOUBLE:
+            return Value::Type::FLOAT;
+        case meta::cpp2::PropertyType::STRING:
+        case meta::cpp2::PropertyType::FIXED_STRING:
+            return Value::Type::STRING;
+        case meta::cpp2::PropertyType::DATE:
+            return Value::Type::DATE;
+        case meta::cpp2::PropertyType::DATETIME:
+            return Value::Type::DATETIME;
+        case meta::cpp2::PropertyType::UNKNOWN:
+            return Value::Type::__EMPTY__;
+    }
+    return Value::Type::__EMPTY__;
 }
 }  // namespace graph
 }  // namespace nebula

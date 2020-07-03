@@ -66,7 +66,7 @@ TEST_F(SchemaTest, TestSpace) {
         std::vector<Value> columns = {Value(1), Value("space_for_default"), Value(9),
                                       Value(1), Value(8), Value("utf8"), Value("utf8_bin")};
         Row row;
-        row.columns = std::move(columns);
+        row.values = std::move(columns);
         rows.emplace_back(row);
         expect.rows = rows;
         ASSERT_TRUE(resp.__isset.data);
@@ -102,22 +102,29 @@ TEST_F(SchemaTest, TestTag) {
         std::vector<Value> columns3 = {Value("grade"), Value("fixed_string(10)"),
                                        Value("YES"), Value()};
         Row row;
-        row.columns = std::move(columns1);
+        row.values = std::move(columns1);
         rows.emplace_back(row);
-        row.columns = std::move(columns2);
+        row.values = std::move(columns2);
         rows.emplace_back(row);
-        row.columns = std::move(columns3);
+        row.values = std::move(columns3);
         rows.emplace_back(row);
         expect.rows = std::move(rows);
         ASSERT_TRUE(resp.__isset.data);
         ASSERT_EQ(expect, *resp.get_data());
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE SPACE A; USE A; "
+                            "CREATE TAG tag1(name STRING, age INT8, grade FIXED_STRING(10));";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
 }
 
 TEST_F(SchemaTest, TestEdge) {
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "CREATE EDGE schoolmate(start int, end int);";
+        std::string query = "USE space_for_default; CREATE EDGE schoolmate(start int, end int);";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
@@ -133,12 +140,19 @@ TEST_F(SchemaTest, TestEdge) {
         std::vector<Value> columns1 = {Value("start"), Value("int64"), Value("YES"), Value()};
         std::vector<Value> columns2 = {Value("end"), Value("int64"), Value("YES"), Value()};
         Row row;
-        row.columns = std::move(columns1);
+        row.values = std::move(columns1);
         rows.emplace_back(row);
-        row.columns = std::move(columns2);
+        row.values = std::move(columns2);
         rows.emplace_back(row);
         expect.rows = std::move(rows);
         ASSERT_EQ(expect, *resp.get_data());
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE SPACE B; USE B; "
+                            "CREATE EDGE edge1(name STRING, age INT8, grade FIXED_STRING(10));";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
 }
 
@@ -146,7 +160,13 @@ TEST_F(SchemaTest, TestInsert) {
     sleep(FLAGS_heartbeat_interval_secs + 1);
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "INSERT VERTEX student(name, age, grade) "
+        std::string query = "USE space_for_default;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "USE space_for_default; INSERT VERTEX student(name, age, grade) "
                             "VALUES \"Tom\":(\"Tom\", 18, \"three\");";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
@@ -155,6 +175,15 @@ TEST_F(SchemaTest, TestInsert) {
         cpp2::ExecutionResponse resp;
         std::string query = "INSERT VERTEX student(name, age, grade) "
                             "VALUES \"Lily\":(\"Lily\", 18, \"three\");";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "INSERT VERTEX student(name, age, grade) "
+                            "VALUES \"Tom\":(\"Tom\", 18, \"three\");"
+                            "INSERT VERTEX student(name, age, grade) "
+                            "VALUES \"Tom\":(\"Tom\", 18, \"three\");";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
@@ -175,6 +204,15 @@ TEST_F(SchemaTest, TestInsert) {
     {
         cpp2::ExecutionResponse resp;
         std::string query = "INSERT EDGE schoolmate(start, end) "
+                            "VALUES \"Tom\"->\"Lily\":(2009, 2011)";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "INSERT EDGE schoolmate(start, end) "
+                            "VALUES \"Tom\"->\"Lily\":(2009, 2011);"
+                            "INSERT EDGE schoolmate(start, end) "
                             "VALUES \"Tom\"->\"Lily\":(2009, 2011)";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);

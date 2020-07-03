@@ -26,14 +26,11 @@ nebula_add_library(
 )
 
 nebula_add_library(
-    graph_http_obj OBJECT
-    GraphHttpHandler.cpp
-)
-
-nebula_add_library(
     graph_auth_obj OBJECT
     PermissionManager.cpp
     PermissionCheck.cpp
     PasswordAuthenticator.cpp
     CloudAuthenticator.cpp
 )
+
+nebula_add_subdirectory(test)

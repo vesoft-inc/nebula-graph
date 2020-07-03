@@ -37,7 +37,7 @@ public:
         kSort,
         kLimit,
         kAggregate,
-        kSelector,
+        kSelect,
         kLoop,
         kSwitchSpace,
         kDedup,
@@ -50,6 +50,7 @@ public:
         kDescEdge,
         kInsertVertices,
         kInsertEdges,
+        kDataCollect,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

@@ -194,16 +194,22 @@ protected:
  */
 class GetNeighbors final : public Explore {
 public:
+    using VertexProps = std::unique_ptr<std::vector<storage::cpp2::VertexProp>>;
+    using EdgeProps = std::unique_ptr<std::vector<storage::cpp2::EdgeProp>>;
+    using StatProps = std::unique_ptr<std::vector<storage::cpp2::StatProp>>;
+    using Exprs = std::unique_ptr<std::vector<storage::cpp2::Expr>>;
     static GetNeighbors* make(ExecutionPlan* plan,
                               PlanNode* input,
                               GraphSpaceID space,
                               Expression* src,
                               std::vector<EdgeType> edgeTypes,
                               storage::cpp2::EdgeDirection edgeDirection,
-                              std::vector<storage::cpp2::PropExp> vertexProps,
-                              std::vector<storage::cpp2::PropExp> edgeProps,
-                              std::vector<storage::cpp2::StatProp> statProps,
+                              VertexProps&& vertexProps,
+                              EdgeProps&& edgeProps,
+                              StatProps&& statProps,
+                              Exprs&& exprs,
                               bool dedup = false,
+                              bool random = false,
                               std::vector<storage::cpp2::OrderBy> orderBy = {},
                               int64_t limit = std::numeric_limits<int64_t>::max(),
                               std::string filter = "") {
@@ -217,7 +223,9 @@ public:
                 std::move(vertexProps),
                 std::move(edgeProps),
                 std::move(statProps),
+                std::move(exprs),
                 dedup,
+                random,
                 std::move(orderBy),
                 limit,
                 std::move(filter));
@@ -237,16 +245,24 @@ public:
         return edgeTypes_;
     }
 
-    const std::vector<storage::cpp2::PropExp>& vertexProps() const {
-        return vertexProps_;
+    const std::vector<storage::cpp2::VertexProp>* vertexProps() const {
+        return vertexProps_.get();
     }
 
-    const std::vector<storage::cpp2::PropExp>& edgeProps() const {
-        return edgeProps_;
+    const std::vector<storage::cpp2::EdgeProp>* edgeProps() const {
+        return edgeProps_.get();
     }
 
-    const std::vector<storage::cpp2::StatProp>& statProps() const {
-        return statProps_;
+    const std::vector<storage::cpp2::StatProp>* statProps() const {
+        return statProps_.get();
+    }
+
+    const std::vector<storage::cpp2::Expr>* exprs() const {
+        return exprs_.get();
+    }
+
+    bool random() const {
+        return random_;
     }
 
 private:
@@ -256,10 +272,12 @@ private:
                  Expression* src,
                  std::vector<EdgeType> edgeTypes,
                  storage::cpp2::EdgeDirection edgeDirection,
-                 std::vector<storage::cpp2::PropExp> vertexProps,
-                 std::vector<storage::cpp2::PropExp> edgeProps,
-                 std::vector<storage::cpp2::StatProp> statProps,
+                 VertexProps&& vertexProps,
+                 EdgeProps&& edgeProps,
+                 StatProps&& statProps,
+                 Exprs&&  exprs,
                  bool dedup,
+                 bool random,
                  std::vector<storage::cpp2::OrderBy> orderBy,
                  int64_t limit,
                  std::string filter)
@@ -276,16 +294,20 @@ private:
         edgeDirection_ = edgeDirection;
         vertexProps_ = std::move(vertexProps);
         edgeProps_ = std::move(edgeProps);
+        exprs_ = std::move(exprs);
         statProps_ = std::move(statProps);
+        random_ = random;
     }
 
 private:
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
     storage::cpp2::EdgeDirection                 edgeDirection_;
-    std::vector<storage::cpp2::PropExp>          vertexProps_;
-    std::vector<storage::cpp2::PropExp>          edgeProps_;
-    std::vector<storage::cpp2::StatProp>         statProps_;
+    VertexProps                                  vertexProps_;
+    EdgeProps                                    edgeProps_;
+    StatProps                                    statProps_;
+    Exprs                                        exprs_;
+    bool                                         random_;
 };
 
 /**
@@ -298,7 +320,8 @@ public:
                              GraphSpaceID space,
                              std::vector<Row> vertices,
                              Expression* src,
-                             std::vector<std::string> props,
+                             std::vector<storage::cpp2::VertexProp> props,
+                             std::vector<storage::cpp2::Expr> exprs,
                              bool dedup = false,
                              std::vector<storage::cpp2::OrderBy> orderBy = {},
                              int64_t limit = std::numeric_limits<int64_t>::max(),
@@ -310,6 +333,7 @@ public:
                 std::move(vertices),
                 src,
                 std::move(props),
+                std::move(exprs),
                 dedup,
                 std::move(orderBy),
                 limit,
@@ -326,8 +350,12 @@ public:
         return src_;
     }
 
-    const std::vector<std::string>& props() const {
+    const std::vector<storage::cpp2::VertexProp>& props() const {
         return props_;
+    }
+
+    const std::vector<storage::cpp2::Expr>& exprs() const {
+        return exprs_;
     }
 
 private:
@@ -336,7 +364,8 @@ private:
                 GraphSpaceID space,
                 std::vector<Row> vertices,
                 Expression* src,
-                std::vector<std::string> props,
+                std::vector<storage::cpp2::VertexProp> props,
+                std::vector<storage::cpp2::Expr> exprs,
                 bool dedup,
                 std::vector<storage::cpp2::OrderBy> orderBy,
                 int64_t limit,
@@ -352,6 +381,7 @@ private:
         vertices_ = std::move(vertices);
         src_ = src;
         props_ = std::move(props);
+        exprs_ = std::move(exprs);
     }
 
 private:
@@ -360,7 +390,8 @@ private:
     // vertices may be parsing from runtime.
     Expression*                              src_{nullptr};
     // props and filter are parsing from query.
-    std::vector<std::string>                 props_;
+    std::vector<storage::cpp2::VertexProp>   props_;
+    std::vector<storage::cpp2::Expr>         exprs_;
 };
 
 /**
@@ -375,7 +406,8 @@ public:
                           Expression* src,
                           Expression* ranking,
                           Expression* dst,
-                          std::vector<std::string> props,
+                          std::vector<storage::cpp2::EdgeProp> props,
+                          std::vector<storage::cpp2::Expr> exprs,
                           bool dedup = false,
                           int64_t limit = std::numeric_limits<int64_t>::max(),
                           std::vector<storage::cpp2::OrderBy> orderBy = {},
@@ -389,6 +421,7 @@ public:
                 ranking,
                 dst,
                 std::move(props),
+                std::move(exprs),
                 dedup,
                 limit,
                 std::move(orderBy),
@@ -413,8 +446,12 @@ public:
         return dst_;
     }
 
-    const std::vector<std::string>& props() const {
+    const std::vector<storage::cpp2::EdgeProp>& props() const {
         return props_;
+    }
+
+    const std::vector<storage::cpp2::Expr>& exprs() const {
+        return exprs_;
     }
 
 private:
@@ -425,7 +462,8 @@ private:
              Expression* src,
              Expression* ranking,
              Expression* dst,
-             std::vector<std::string> props,
+             std::vector<storage::cpp2::EdgeProp> props,
+             std::vector<storage::cpp2::Expr> exprs,
              bool dedup,
              int64_t limit,
              std::vector<storage::cpp2::OrderBy> orderBy,
@@ -443,6 +481,7 @@ private:
         ranking_ = std::move(ranking);
         dst_ = std::move(dst);
         props_ = std::move(props);
+        exprs_ = std::move(exprs);
     }
 
 private:
@@ -453,7 +492,8 @@ private:
     Expression*                              ranking_{nullptr};
     Expression*                              dst_{nullptr};
     // props and filter are parsing from query.
-    std::vector<std::string>                 props_;
+    std::vector<storage::cpp2::EdgeProp>     props_;
+    std::vector<storage::cpp2::Expr>         exprs_;
 };
 
 /**
@@ -478,7 +518,7 @@ public:
         return new Filter(plan, input, condition);
     }
 
-    const Expression* condition() const {
+    Expression* condition() const {
         return condition_;
     }
 
@@ -648,7 +688,7 @@ private:
  * Do Aggregation with the given set of records,
  * such as AVG(), COUNT()...
  */
-class Aggregate : public SingleInputNode {
+class Aggregate final : public SingleInputNode {
 public:
     static Aggregate* make(ExecutionPlan* plan,
                            PlanNode* input,
@@ -674,7 +714,7 @@ private:
 
 class BinarySelect : public SingleInputNode {
 public:
-    const Expression* condition() const {
+    Expression* condition() const {
         return condition_;
     }
 
@@ -685,14 +725,14 @@ protected:
     Expression*  condition_{nullptr};
 };
 
-class Selector : public BinarySelect {
+class Select final : public BinarySelect {
 public:
-    static Selector* make(ExecutionPlan* plan,
+    static Select* make(ExecutionPlan* plan,
                           PlanNode* input,
                           PlanNode* ifBranch,
                           PlanNode* elseBranch,
                           Expression* condition) {
-        return new Selector(plan, input, ifBranch, elseBranch, condition);
+        return new Select(plan, input, ifBranch, elseBranch, condition);
     }
 
     void setIf(PlanNode* ifBranch) {
@@ -714,12 +754,12 @@ public:
     }
 
 private:
-    Selector(ExecutionPlan* plan,
-             PlanNode* input,
-             PlanNode* ifBranch,
-             PlanNode* elseBranch,
-             Expression* condition)
-        : BinarySelect(plan, Kind::kSelector, input, condition) {
+    Select(ExecutionPlan* plan,
+           PlanNode* input,
+           PlanNode* ifBranch,
+           PlanNode* elseBranch,
+           Expression* condition)
+        : BinarySelect(plan, Kind::kSelect, input, condition) {
         if_ = ifBranch;
         else_ = elseBranch;
     }
@@ -729,7 +769,7 @@ private:
     PlanNode*   else_{nullptr};
 };
 
-class Loop : public BinarySelect {
+class Loop final : public BinarySelect {
 public:
     static Loop* make(ExecutionPlan* plan,
                       PlanNode* input,
@@ -754,62 +794,84 @@ private:
     PlanNode*   body_{nullptr};
 };
 
-class SwitchSpace : public SingleInputNode {
+class SwitchSpace final : public SingleInputNode {
 public:
     static SwitchSpace* make(ExecutionPlan* plan,
-                                        PlanNode* input,
-                                        std::string spaceName,
-                                        GraphSpaceID spaceId) {
-        return new SwitchSpace(plan, input, spaceName, spaceId);
+                             PlanNode* input,
+                             std::string spaceName) {
+        return new SwitchSpace(plan, input, spaceName);
     }
 
     const std::string& getSpaceName() const {
         return spaceName_;
     }
 
-    GraphSpaceID getSpaceId() const {
-        return spaceId_;
-    }
-
     std::string explain() const override;
 
 private:
     SwitchSpace(ExecutionPlan* plan,
-                           PlanNode* input,
-                           std::string spaceName,
-                           GraphSpaceID spaceId)
+                PlanNode* input,
+                std::string spaceName)
         : SingleInputNode(plan, Kind::kSwitchSpace, input) {
         spaceName_ = std::move(spaceName);
-        spaceId_ = spaceId;
     }
 
 private:
     std::string     spaceName_;
-    GraphSpaceID    spaceId_{-1};
 };
 
-class Dedup : public SingleInputNode {
+class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(ExecutionPlan* plan,
-                       PlanNode* input,
-                       Expression* expr) {
-        return new Dedup(plan, input, expr);
-    }
-
-    void setExpr(Expression* expr) {
-        expr_ = expr;
+                       PlanNode* input) {
+        return new Dedup(plan, input);
     }
 
     std::string explain() const override;
 
 private:
-    Dedup(ExecutionPlan* plan, PlanNode* input, Expression* expr)
+    Dedup(ExecutionPlan* plan,
+          PlanNode* input)
         : SingleInputNode(plan, Kind::kDedup, input) {
-        expr_ = expr;
+    }
+};
+
+class DataCollect final : public SingleInputNode {
+public:
+    enum class CollectKind : uint8_t {
+        kSubgraph,
+    };
+
+    static DataCollect* make(ExecutionPlan* plan,
+                             PlanNode* input,
+                             CollectKind collectKind,
+                             std::vector<std::string> vars) {
+        return new DataCollect(plan, input, collectKind, std::move(vars));
+    }
+
+    CollectKind collectKind() const {
+        return collectKind_;
+    }
+
+    const std::vector<std::string>& vars() const {
+        return vars_;
     }
 
 private:
-    Expression*     expr_{nullptr};
+    DataCollect(ExecutionPlan* plan,
+                PlanNode* input,
+                CollectKind collectKind,
+                std::vector<std::string> vars)
+        : SingleInputNode(plan, Kind::kDataCollect, input) {
+        collectKind_ = collectKind;
+        vars_ = std::move(vars);
+    }
+
+    std::string explain() const override;
+
+private:
+    CollectKind                 collectKind_;
+    std::vector<std::string>    vars_;
 };
 
 class ProduceSemiShortestPath : public PlanNode {

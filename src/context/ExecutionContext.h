@@ -56,34 +56,52 @@ public:
     static const ExecResult kEmptyResult;
     static const std::vector<ExecResult> kEmptyResultList;
 
+    static ExecResult buildDefault(std::shared_ptr<Value> val) {
+        return ExecResult(val);
+    }
+
     static ExecResult buildDefault(Value&& val) {
-        return ExecResult(std::move(val));
+        return ExecResult(std::make_shared<Value>(std::move(val)));
+    }
+
+    static ExecResult buildGetNeighbors(Value&& val) {
+        State state(State::Stat::kSuccess, "");
+        return buildGetNeighbors(std::move(val), std::move(state));
     }
 
     static ExecResult buildGetNeighbors(Value&& val, State&& stat) {
-        ExecResult result(std::move(val), std::move(stat));
-        auto iter = std::make_unique<GetNeighborsIter>(result.value());
+        ExecResult result(std::make_shared<Value>(std::move(val)), std::move(stat));
+        auto iter = std::make_unique<GetNeighborsIter>(result.valuePtr());
         result.setIter(std::move(iter));
         return result;
     }
 
     static ExecResult buildSequential(Value&& val, State&& stat) {
-        ExecResult result(std::move(val), std::move(stat));
-        auto iter = std::make_unique<SequentialIter>(result.value());
+        ExecResult result(std::make_shared<Value>(std::move(val)), std::move(stat));
+        auto iter = std::make_unique<SequentialIter>(result.valuePtr());
         result.setIter(std::move(iter));
         return result;
+    }
+
+    static ExecResult buildSequential(Value&& val) {
+        State state(State::Stat::kSuccess, "");
+        return buildSequential(std::move(val), std::move(state));
     }
 
     void setIter(std::unique_ptr<Iterator> iter) {
         iter_ = std::move(iter);
     }
 
-    const Value& value() const {
+    std::shared_ptr<Value> valuePtr() const {
         return value_;
     }
 
+    const Value& value() const {
+        return *value_;
+    }
+
     Value&& moveValue() {
-        return std::move(value_);
+        return std::move(*value_);
     }
 
     const State& state() const {
@@ -95,25 +113,20 @@ public:
     }
 
 private:
-    ExecResult() {
-        value_ = Value();
-        state_ = State(State::Stat::kUnExecuted, "");
-        iter_ = std::make_unique<DefaultIter>(value_);
-    }
+    ExecResult()
+        : value_(std::make_shared<Value>()),
+          state_(State::Stat::kUnExecuted, ""),
+          iter_(std::make_unique<DefaultIter>(value_)) {}
 
-    explicit ExecResult(Value&& val) {
-        value_ = std::move(val);
-        state_ = State(State::Stat::kSuccess, "");
-        iter_ = std::make_unique<DefaultIter>(value_);
-    }
+    explicit ExecResult(std::shared_ptr<Value> val)
+        : value_(val),
+          state_(State::Stat::kSuccess, ""),
+          iter_(std::make_unique<DefaultIter>(value_)) {}
 
-    ExecResult(Value&& val, State stat) {
-        value_ = std::move(val);
-        state_ = stat;
-    }
+    ExecResult(std::shared_ptr<Value> val, State stat) : value_(val), state_(stat) {}
 
 private:
-    Value                           value_;
+    std::shared_ptr<Value>          value_;
     State                           state_;
     std::unique_ptr<Iterator>       iter_;
 };
@@ -123,6 +136,10 @@ public:
     ExecutionContext() = default;
 
     virtual ~ExecutionContext() = default;
+
+    void initVar(const std::string& name) {
+        valueMap_[name];
+    }
 
     // Get the latest version of the value
     const Value& getValue(const std::string& name) const;
@@ -145,6 +162,10 @@ public:
 
     // Only keep the last several versoins of the Value
     void truncHistory(const std::string& name, size_t numVersionsToKeep);
+
+    bool exist(const std::string& name) const {
+        return valueMap_.find(name) != valueMap_.end();
+    }
 
 private:
     // name -> Value with multiple versions

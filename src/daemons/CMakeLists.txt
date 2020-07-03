@@ -13,7 +13,7 @@ nebula_add_executable(
         $<TARGET_OBJECTS:service_obj>
         $<TARGET_OBJECTS:session_obj>
         $<TARGET_OBJECTS:query_engine_obj>
-        $<TARGET_OBJECTS:graph_http_obj>
+        $<TARGET_OBJECTS:graph_flags_obj>
         $<TARGET_OBJECTS:parser_obj>
         $<TARGET_OBJECTS:validator_obj>
         $<TARGET_OBJECTS:planner_obj>
@@ -53,6 +53,7 @@ nebula_add_executable(
         $<TARGET_OBJECTS:common_meta_thrift_obj>
         $<TARGET_OBJECTS:common_charset_obj>
         $<TARGET_OBJECTS:common_encryption_obj>
+        $<TARGET_OBJECTS:common_function_manager_obj>
     LIBRARIES
         proxygenhttpserver
         proxygenlib
