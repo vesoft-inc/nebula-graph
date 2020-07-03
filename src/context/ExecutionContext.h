@@ -46,6 +46,10 @@ public:
         return stat_;
     }
 
+    void setStat(Stat stat) {
+        stat_ = stat;
+    }
+
 private:
     Stat            stat_{Stat::kUnExecuted};
     std::string     msg_;
@@ -72,6 +76,13 @@ public:
     static ExecResult buildSequential(Value&& val, State&& stat) {
         ExecResult result(std::move(val), std::move(stat));
         auto iter = std::make_unique<SequentialIter>(result.valuePtr());
+        result.setIter(std::move(iter));
+        return result;
+    }
+
+    static ExecResult buildGetProp(Value&& val, State&& state) {
+        ExecResult result(std::move(val), std::move(state));
+        auto iter = std::make_unique<GetPropIterator>(result.valuePtr());
         result.setIter(std::move(iter));
         return result;
     }

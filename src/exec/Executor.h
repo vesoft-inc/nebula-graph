@@ -89,13 +89,10 @@ protected:
 
     // Store the result of this executor to execution context
     Status finish(nebula::Value &&value);
-    Status finish(Value &&value, State &&state) {
-        return finish(ExecResult::buildDefault(std::move(value), std::move(state)));
-    }
     Status finish(ExecResult &&result);
 
     // Note: will fatal when called in non single input node
-    const std::shared_ptr<Value> getSingleInputValue();
+    const ExecResult& getSingleInput() const;
 
     // Dump some execution logging messages
     void dumpLog() const;

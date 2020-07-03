@@ -22,6 +22,7 @@ public:
         kDefault,
         kGetNeighbors,
         kSequential,
+        kGetProp,
     };
 
     explicit Iterator(std::shared_ptr<Value> value, Kind kind)
@@ -42,6 +43,10 @@ public:
     void reset(size_t pos = 0) {
         DCHECK((pos == 0 && size() == 0) || (pos < size()));
         doReset(pos);
+    }
+
+    Kind kind() const {
+        return kind_;
     }
 
     void operator++() {
@@ -292,10 +297,10 @@ private:
     std::vector<LogicalRow>::iterator       iter_;
 };
 
-class SequentialIter final : public Iterator {
+class SequentialIter : public Iterator {
 public:
-    explicit SequentialIter(std::shared_ptr<Value> value)
-        : Iterator(value, Kind::kSequential) {
+    explicit SequentialIter(std::shared_ptr<Value> value, Kind kind = Kind::kSequential)
+        : Iterator(value, kind) {
         DCHECK(value->isDataSet());
         auto& ds = value->getDataSet();
         for (auto& row : ds.rows) {
@@ -346,7 +351,12 @@ public:
         }
     }
 
-private:
+    const Value& getEdgeProp(const std::string& edge,
+                             const std::string& prop) const override {
+        return getColumn(edge + ":" + prop);  // see the thrift for format
+    }
+
+protected:
     void doReset(size_t pos) override {
         iter_ = rows_.begin() + pos;
     }
@@ -354,6 +364,23 @@ private:
     std::vector<const Row*>                      rows_;
     std::vector<const Row*>::iterator            iter_;
     std::unordered_map<std::string, int64_t>     colIndex_;
+};
+
+class GetPropIterator : public SequentialIter {
+public:
+    explicit GetPropIterator(std::shared_ptr<Value> value)
+        : SequentialIter(value, Kind::kGetProp) {}
+
+    std::unique_ptr<Iterator> copy() const override {
+        auto copy = std::make_unique<GetPropIterator>(*this);
+        copy->reset();
+        return copy;
+    }
+
+    const Value& getEdgeProp(const std::string& edge,
+                             const std::string& prop) const override {
+        return getColumn(edge + "." + prop);
+    }
 };
 
 }  // namespace graph

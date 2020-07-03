@@ -143,6 +143,8 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
         auto *project = Project::make(expectedQueryCtx_->plan(), ge, std::move(yieldColumns));
+        // TODO(shylock) waiting expression toString
+        // project->setColNames({"like.start", "1 + 1", "like.end"});
         expectedQueryCtx_->plan()->setRoot(project);
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;

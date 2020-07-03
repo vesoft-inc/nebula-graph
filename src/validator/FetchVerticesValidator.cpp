@@ -52,6 +52,9 @@ Status FetchVerticesValidator::toPlan() {
     if (withProject_) {
         auto *projectNode = Project::make(
             plan, current, sentence_->yieldClause()->moveYieldColumns());
+        projectNode->setInputVar(current->varName());
+        // TODO(shylock) waiting expression toString
+        projectNode->setColNames(evalResultColNames(projectNode->columns()));
         current = projectNode;
     }
     // Project select properties then dedup

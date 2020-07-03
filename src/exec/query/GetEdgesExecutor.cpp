@@ -40,9 +40,9 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
         // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
-        auto valueIter = SequentialIter(getSingleInputValue());
-        auto expCtx = ExpressionContextImpl(qctx()->ectx(), &valueIter);
-        for (; valueIter.valid(); valueIter.next()) {
+        auto valueIter = getSingleInput().iter();
+        auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
+        for (; valueIter->valid(); valueIter->next()) {
             auto src = ge->src()->eval(expCtx);
             auto ranking = ge->ranking()->eval(expCtx);
             auto dst = ge->dst()->eval(expCtx);
@@ -83,11 +83,22 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                 for (std::size_t i = 1; i < rpcResp.responses().size(); ++i) {
                     auto resp = rpcResp.responses()[i];
                     if (resp.__isset.props) {
-                        v.append(std::move(*resp.get_props()));
+                        if (UNLIKELY(!v.append(std::move(*resp.get_props())))) {
+                            // it's impossible according to the interface
+                            LOG(WARNING) << "Heterogeneous props dataset";
+                            state.setStat(State::Stat::kPartialSuccess);
+                        }
                     }
                 }
             }
-            return finish(std::move(v), std::move(state));
+            for (auto &colName : v.colNames) {
+                for (auto &c : colName) {
+                    if (c == ':') {  // see the column name format in thrift
+                        c = '.';
+                    }
+                }
+            }
+            return finish(ExecResult::buildGetProp(std::move(v), std::move(state)));
         });
 }
 
