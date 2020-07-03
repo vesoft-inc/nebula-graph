@@ -38,7 +38,7 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
-    $<TARGET_OBJECTS:common_graph_auth_obj>
+    $<TARGET_OBJECTS:graph_auth_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
 )
