@@ -49,6 +49,7 @@ nebula_add_test(
         AdminValidatorTest.cpp
         MaintainValidatorTest.cpp
         MutateValidatorTest.cpp
+        GetSubgraphValidatorTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
 )
