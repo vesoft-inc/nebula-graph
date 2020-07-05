@@ -601,41 +601,139 @@ TEST(IteratorTest, TestUnionIterator) {
 }
 
 TEST(IteratorTest, EraseRange) {
-    DataSet ds({"col1", "col2"});
-    for (auto i = 0; i < 10; ++i) {
-        ds.rows.emplace_back(Row({i, folly::to<std::string>(i)}));
-    }
-    // erase out of range pos
+    // Sequential iterator
     {
-        auto val = std::make_shared<Value>(ds);
-        SequentialIter iter(val);
-        iter.eraseRange(5, 11);
-        ASSERT_EQ(iter.size(), 10);
-        auto i = 0;
-        for (; iter.valid(); iter.next()) {
-            ASSERT_EQ(iter.getColumn("col1"), i);
-            ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
-            ++i;
+        DataSet ds({"col1", "col2"});
+        for (auto i = 0; i < 10; ++i) {
+            ds.rows.emplace_back(Row({i, folly::to<std::string>(i)}));
+        }
+        // erase out of range pos
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(5, 11);
+            ASSERT_EQ(iter.size(), 5);
+            auto i = 0;
+            for (; iter.valid(); iter.next()) {
+                ASSERT_EQ(iter.getColumn("col1"), i);
+                ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+                ++i;
+            }
+        }
+        // erase in range
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(0, 10);
+            ASSERT_EQ(iter.size(), 0);
+        }
+        // erase part
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(0, 5);
+            EXPECT_EQ(iter.size(), 5);
+            auto i = 5;
+            for (; iter.valid(); iter.next()) {
+                ASSERT_EQ(iter.getColumn("col1"), i);
+                ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+                ++i;
+            }
         }
     }
-    // erase in range
+    // Union iterator
     {
-        auto val = std::make_shared<Value>(ds);
-        SequentialIter iter(val);
-        iter.eraseRange(0, 10);
-        ASSERT_EQ(iter.size(), 0);
-    }
-    // erase part
-    {
-        auto val = std::make_shared<Value>(ds);
-        SequentialIter iter(val);
-        iter.eraseRange(0, 5);
-        EXPECT_EQ(iter.size(), 5);
-        auto i = 5;
-        for (; iter.valid(); iter.next()) {
-            ASSERT_EQ(iter.getColumn("col1"), i);
-            ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
-            ++i;
+        DataSet lds({"col1", "col2"});
+        lds.emplace_back(Row({0, "row0"}));
+        lds.emplace_back(Row({1, "row1"}));
+        lds.emplace_back(Row({2, "row2"}));
+        lds.emplace_back(Row({3, "row3"}));
+
+        DataSet rds({"col1", "col2"});
+        rds.emplace_back(Row({4, "row4"}));
+        rds.emplace_back(Row({5, "row5"}));
+        rds.emplace_back(Row({6, "row6"}));
+
+        auto lIter = std::make_unique<SequentialIter>(std::make_shared<Value>(lds));
+        auto rIter = std::make_unique<SequentialIter>(std::make_shared<Value>(rds));
+        // first > left.size + right.size
+        {
+            auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+            uIter->eraseRange(8, 12);
+            ASSERT_EQ(7, uIter->size());
+        }
+        // first < last < left.size
+        {
+            auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+            uIter->eraseRange(0, 4);
+            ASSERT_EQ(3, uIter->size());
+            ASSERT_EQ(*uIter->row(), Row({4, "row4"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({5, "row5"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({6, "row6"}));
+            uIter->next();
+            ASSERT_FALSE(uIter->valid());
+        }
+        // first < left.size < last < left.size + right.size
+        {
+            auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+            uIter->eraseRange(2, 5);
+            ASSERT_EQ(4, uIter->size());
+            ASSERT_EQ(*uIter->row(), Row({0, "row0"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({1, "row1"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({5, "row5"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({6, "row6"}));
+            uIter->next();
+            ASSERT_FALSE(uIter->valid());
+        }
+        // first < left.size < left.size + right.size < last
+        {
+            auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+            uIter->eraseRange(2, 8);
+            ASSERT_EQ(2, uIter->size());
+            ASSERT_EQ(*uIter->row(), Row({0, "row0"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({1, "row1"}));
+            uIter->next();
+            ASSERT_FALSE(uIter->valid());
+        }
+        // left.size <= first < last < left.size + right.size
+        {
+            auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+            uIter->eraseRange(5, 6);
+            ASSERT_EQ(6, uIter->size());
+            ASSERT_EQ(*uIter->row(), Row({0, "row0"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({1, "row1"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({2, "row2"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({3, "row3"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({4, "row4"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({6, "row6"}));
+            uIter->next();
+            ASSERT_FALSE(uIter->valid());
+        }
+        // left.size < first < left.size + right.size < last
+        {
+            auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
+            uIter->eraseRange(4, 8);
+            ASSERT_EQ(4, uIter->size());
+            ASSERT_EQ(*uIter->row(), Row({0, "row0"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({1, "row1"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({2, "row2"}));
+            uIter->next();
+            ASSERT_EQ(*uIter->row(), Row({3, "row3"}));
+            uIter->next();
+            ASSERT_FALSE(uIter->valid());
         }
     }
 }

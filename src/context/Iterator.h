@@ -48,7 +48,7 @@ public:
 
     virtual const Row* row() const = 0;
 
-    // erase range iter, no include last
+    // erase range, no include last position, if last > size(), erase to the end position
     virtual void eraseRange(size_t first, size_t last) = 0;
 
     // Reset iterator position to `pos' from begin. Must be sure that the `pos' position
@@ -209,11 +209,15 @@ public:
     }
 
     void eraseRange(size_t first, size_t last) override {
-        if (first >= last || last > size() || first >= size()) {
+        if (first >= last || first >= size()) {
             return;
         }
-        logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.begin() + last);
-        iter_ = logicalRows_.begin();
+        if (last > size()) {
+            logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.end());
+        } else {
+            logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.begin() + last);
+        }
+        reset();
     }
 
     void sort(const std::vector<
@@ -370,11 +374,15 @@ public:
     }
 
     void eraseRange(size_t first, size_t last) override {
-        if (first >= last || last > size() || first >= size()) {
+        if (first >= last || first >= size()) {
             return;
         }
-        rows_.erase(rows_.begin() + first, rows_.begin() + last);
-        iter_ = rows_.begin();
+        if (last > size()) {
+            rows_.erase(rows_.begin() + first, rows_.end());
+        } else {
+            rows_.erase(rows_.begin() + first, rows_.begin() + last);
+        }
+        reset();
     }
 
     void clear() override {
@@ -481,9 +489,35 @@ public:
     }
 
     void eraseRange(size_t first, size_t last) override {
-        // TODO: implementation
-        UNUSED(first);
-        UNUSED(last);
+        auto lSize = left_->size();
+        auto rSize = right_->size();
+        auto sumSize = lSize + rSize;
+        if (first > lSize + rSize || first > last) {
+            // first > sumSize
+            return;
+        } else if (lSize >= last) {
+            // first < last <= lSize
+            left_->eraseRange(first, last);
+        } else if (first < lSize) {
+            if (last > lSize && last <= sumSize) {
+                // first < lSize < last <= sumSize
+                left_->eraseRange(first, lSize);
+                right_->eraseRange(0, last - lSize);
+            } else if (last > sumSize) {
+                // first < lSize < sumSize < last
+                left_->eraseRange(first, lSize);
+                right_->eraseRange(0, rSize);
+            }
+        } else if (first >= lSize) {
+            if (last <= sumSize) {
+                // lSize <= first < last <= sumSize
+                right_->eraseRange(first - lSize, last - lSize);
+            } else if (last > sumSize) {
+                // lSize <= first < sumSize < last
+                right_->eraseRange(first - lSize, rSize);
+            }
+        }
+        reset();
         return;
     }
 
