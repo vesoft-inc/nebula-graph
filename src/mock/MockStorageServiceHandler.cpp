@@ -23,35 +23,17 @@ namespace graph {
 
 folly::Future<storage::cpp2::GetNeighborsResponse>
 MockStorageServiceHandler::future_getNeighbors(const storage::cpp2::GetNeighborsRequest& req) {
+    UNUSED(req);
     folly::Promise<storage::cpp2::GetNeighborsResponse> promise;
     auto future = promise.getFuture();
-    storage::cpp2::GetNeighborsResponse resp;
-    auto status = storageCache_->getNeighbors(req);
-    if (!status.ok()) {
-        LOG(ERROR) << status.status();
-        GENERATE_ERROR_COMMON();
-    } else {
-        resp.set_vertices(std::move(status).value());
-    }
-
-    promise.setValue(std::move(resp));
     return future;
 }
 
 folly::Future<storage::cpp2::GetPropResponse>
 MockStorageServiceHandler::future_getProps(const storage::cpp2::GetPropRequest& req) {
+    UNUSED(req);
     folly::Promise<storage::cpp2::GetPropResponse> promise;
     auto future = promise.getFuture();
-    storage::cpp2::GetPropResponse resp;
-    auto status = storageCache_->getProps(req);
-    if (!status.ok()) {
-        LOG(ERROR) << status.status();
-        GENERATE_ERROR_COMMON();
-    } else {
-        resp.set_props(std::move(status).value());
-    }
-
-    promise.setValue(std::move(resp));
     return future;
 }
 
@@ -97,7 +79,7 @@ MockStorageServiceHandler::future_deleteEdges(const storage::cpp2::DeleteEdgesRe
 folly::Future<storage::cpp2::ExecResponse>
 MockStorageServiceHandler::future_deleteVertices(const storage::cpp2::DeleteVerticesRequest& req) {
     folly::Promise<storage::cpp2::ExecResponse> promise;
-    auto future = promise.getFuture();
+     auto future = promise.getFuture();
     storage::cpp2::ExecResponse resp;
     auto status = storageCache_->deleteVertices(req);
     if (!status.ok()) {
@@ -133,3 +115,4 @@ MockStorageServiceHandler::future_lookupIndex(const storage::cpp2::LookupIndexRe
 
 }  // namespace graph
 }  // namespace nebula
+

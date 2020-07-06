@@ -68,8 +68,7 @@ private:
 class DeleteVerticesValidator final : public Validator {
 public:
     DeleteVerticesValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
-        sentence_ = static_cast<DeleteVerticesSentence*>(sentence);
+        : Validator(sentence, context) {
     }
 
 private:
@@ -77,16 +76,17 @@ private:
 
     Status toPlan() override;
 
+    Status genSrc();
+
 private:
-    DeleteVerticesSentence                    *sentence_{nullptr};
+    Expression*                                src_{nullptr};
     std::vector<Expression*>                   vertices_;
 };
 
 class DeleteEdgesValidator final : public Validator {
 public:
     DeleteEdgesValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
-        sentence_ = static_cast<DeleteEdgesSentence*>(sentence);
+        : Validator(sentence, context) {
     }
 
 private:
@@ -95,7 +95,6 @@ private:
     Status toPlan() override;
 
 private:
-    DeleteEdgesSentence                         *sentence_{nullptr};
     EdgeKeys                                    *edgeKeys_;
     EdgeType                                     edgeType_;
 };

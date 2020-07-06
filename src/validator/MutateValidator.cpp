@@ -247,7 +247,38 @@ Status InsertEdgesValidator::prepareEdges() {;
 }
 
 Status DeleteVerticesValidator::validateImpl() {
-    vertices_ = sentence_->vidList()->vidList();
+    return genSrc();
+}
+
+Status DeleteVerticesValidator::genSrc() {
+    ExpressionContextImpl ctx(qctx_->ectx(), nullptr);
+    std::vector<Value> vids;
+    auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
+    vertices_ = sentence->vidList()->vidList();
+    for (auto* expr : vertices_) {
+        if (!evaluableExpr(expr)) {
+            return Status::Error("`%s' is not an evaluable expression.",
+                    expr->toString().c_str());
+        }
+        auto vid = expr->eval(ctx);
+        if (!vid.isStr() && !vid.isInt()) {
+            return Status::Error("Vid should be a string or int.");
+        }
+        vids.emplace_back(std::move(vid));
+    }
+    DataSet ds({kVid});
+    for (auto& vId : vids) {
+        Row row;
+        row.emplace_back(std::move(vId));
+        ds.emplace_back(std::move(row));
+    }
+    auto input = vctx_->varGen()->getVar();
+    qctx_->ectx()->setResult(input, ExecResult::buildSequential(
+        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+
+    auto* vExpr = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
+    qctx_->plan()->saveObject(vExpr);
+    src_ = vExpr;
     return Status::OK();
 }
 
@@ -255,16 +286,20 @@ Status DeleteVerticesValidator::toPlan() {
     auto spaceId = vctx_->whichSpace().id;
     auto plan = qctx_->plan();
     // TODO(Laura): add planNode to get the start vertices
-    auto *start = StartNode::make(plan);
+    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+    auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
+    auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto* getNeighbors = GetNeighbors::make(plan,
-                                            start,
+                                            nullptr,
                                             spaceId,
-                                            {},
+                                            src_,
                                             {},
                                             storage::cpp2::EdgeDirection::BOTH,
-                                            {},
-                                            {},
-                                            {});
+                                            std::move(vertexProps),
+                                            std::move(edgeProps),
+                                            std::move(statProps),
+                                            std::move(exprs));
 
     auto *deNode = DeleteEdges::make(plan,
                                      getNeighbors,
@@ -277,18 +312,19 @@ Status DeleteVerticesValidator::toPlan() {
                                         spaceId,
                                         vertices_);
     root_ = dvNode;
-    tail_ = start;
+    tail_ = root_;
     return Status::OK();
 }
 
 Status DeleteEdgesValidator::validateImpl() {
+    auto sentence = static_cast<DeleteEdgesSentence*>(sentence_);
     auto spaceId = vctx_->whichSpace().id;
-    auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId, *sentence_->edge());
+    auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId, *sentence->edge());
     if (!edgeStatus.ok()) {
         return edgeStatus.status();
     }
     edgeType_ = edgeStatus.value();
-    edgeKeys_ = sentence_->keys();
+    edgeKeys_ = sentence->keys();
     return Status::OK();
 }
 

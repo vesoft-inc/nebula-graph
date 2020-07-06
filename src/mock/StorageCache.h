@@ -12,9 +12,6 @@
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/clients/meta/MetaClient.h"
 #include "common/meta/ServerBasedSchemaManager.h"
-#include "common/meta/NebulaSchemaProvider.h"
-#include <thrift/lib/cpp2/protocol/Serializer.h>
-#include <thrift/lib/cpp2/protocol/CompactProtocol.h>
 
 namespace nebula {
 namespace graph {
@@ -49,10 +46,6 @@ public:
 
     Status deleteEdges(const storage::cpp2::DeleteEdgesRequest &req);
 
-    StatusOr<DataSet> getNeighbors(const storage::cpp2::GetNeighborsRequest &req);
-
-    StatusOr<DataSet> getProps(const storage::cpp2::GetPropRequest &req);
-
 private:
     StatusOr<std::unordered_map<std::string, Value>>
     getTagWholeValue(const GraphSpaceID spaceId,
@@ -71,38 +64,10 @@ private:
                     const std::vector<Value>& props,
                     const std::vector<std::string> &names);
 
-    StatusOr<DataSet> getVertices(GraphSpaceID spaceId,
-                                  const VerticesInfo &vertices,
-                                  const storage::cpp2::GetPropRequest &req);
-
-    StatusOr<DataSet> getEdges(GraphSpaceID spaceId,
-                               const EdgesInfo &edgesInfo,
-                               const storage::cpp2::GetPropRequest &req);
-
-    // Use src_id get to all edgeType
-    std::unordered_map<VertexID, std::vector<storage::cpp2::EdgeKey>>
-    getAllEdgeKeys(const std::vector<VertexID> &vertices,
-                   const EdgesInfo &edgesInfo,
-                   const storage::cpp2::EdgeDirection edgeDirection);
-
-    // Use src_id and edge type to get all edgeType
-    std::unordered_map<VertexID, std::vector<storage::cpp2::EdgeKey>>
-    getMultiEdgeKeys(const std::vector<VertexID> &vertices,
-                     const std::vector<EdgeType> &edgeTypes,
-                     const EdgesInfo &edgesInfo);
-
-    StatusOr<std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>>
-    getTagPropNames(const GraphSpaceID spaceId, const std::vector<storage::cpp2::PropExp> &props);
-
-    StatusOr<std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>>
-    getEdgePropNames(const GraphSpaceID spaceId, const std::vector<storage::cpp2::PropExp> &props);
-
-    StatusOr<DataSet> getNeighborsResult(GraphSpaceID spaceId);
-
-
->>>>>>> add test
 private:
     struct SpaceDataInfo {
+        SpaceDataInfo() = default;
+        ~SpaceDataInfo() = default;
         VerticesInfo     vertices;
         EdgesInfo        edges;
     };
