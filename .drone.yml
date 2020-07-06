@@ -12,12 +12,16 @@ steps:
 
   - name: gcc_build
     image: vesoft/nebula-dev:ubuntu1804
+    environment:
+      NEBULA_STORAGE_REPO_URL:
+        from_secret: NEBULA_STORAGE_REPO_URL
     commands:
       - ./ci/deploy.sh
       - mkdir build && cd build
-      - cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTING=on ..
+      - cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTING=on -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL ..
       - make -j $(nproc)
       - ctest -j $(nproc) --timeout 400 --output-on-failure
+      - cd tests && ./ntr -h
     depends_on:
       - lint
 
