@@ -19,6 +19,13 @@
 namespace nebula {
 namespace graph {
 
+struct RowRef {
+    explicit RowRef(const Row* in) {
+        row = in;
+    }
+    const Row* row;
+};
+
 class Iterator {
 public:
     enum class Kind : uint8_t {
@@ -60,10 +67,6 @@ public:
 
     virtual void clear() = 0;
 
-    virtual void sort(const std::vector<
-            std::pair<std::string, OrderFactor::OrderType>
-            > &factors) = 0;
-
     void operator++() {
         next();
     }
@@ -81,6 +84,10 @@ public:
     }
 
     virtual size_t size() const = 0;
+
+    bool isDefaultIter() const {
+        return kind_ == Kind::kDefault;
+    }
 
     bool isGetNeighborsIter() const {
         return kind_ == Kind::kGetNeighbors;
@@ -151,11 +158,6 @@ public:
         reset();
     }
 
-    void sort(const std::vector<
-            std::pair<std::string, OrderFactor::OrderType>>&) override {
-        return;
-    }
-
     size_t size() const override {
         return 1;
     }
@@ -218,12 +220,6 @@ public:
             logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.begin() + last);
         }
         reset();
-    }
-
-    void sort(const std::vector<
-            std::pair<std::string, OrderFactor::OrderType>>&) override {
-        LOG(FATAL) << "GetNeighborsIter not sorted ";
-        return;
     }
 
     size_t size() const override {
@@ -349,7 +345,7 @@ public:
         }
         iter_ = rows_.begin();
         for (size_t i = 0; i < ds.colNames.size(); ++i) {
-            colIndex_.emplace(ds.colNames[i], i);
+            colIndexes_.emplace(ds.colNames[i], i);
         }
     }
 
@@ -390,35 +386,16 @@ public:
         reset();
     }
 
-    void sort(const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors) override {
-        if (factors.empty()) {
-            return;
-        }
-        auto comparator = [this, &factors] (RowRef &lhs, RowRef &rhs) {
-            const auto &lhsColumns = lhs.row->values;
-            const auto &rhsColumns = rhs.row->values;
-            for (auto &factor : factors) {
-                auto indexFind = this->colIndex_.find(factor.first);
-                if (indexFind == colIndex_.end()) {
-                    LOG(ERROR) << "Column name: " << factor.first << " not exist.";
-                    continue;
-                }
-                auto index = indexFind->second;
-                auto orderType = factor.second;
-                if (lhsColumns[index] == rhsColumns[index]) {
-                    continue;
-                }
+    std::vector<RowRef>::iterator begin() {
+        return rows_.begin();
+    }
 
-                if (orderType == OrderFactor::OrderType::ASCEND) {
-                    return lhsColumns[index] < rhsColumns[index];
-                } else if (orderType == OrderFactor::OrderType::DESCEND) {
-                    return lhsColumns[index] > rhsColumns[index];
-                }
-            }
-            return false;
-        };
-        std::sort(rows_.begin(), rows_.end(), comparator);
-        reset();
+    std::vector<RowRef>::iterator end() {
+        return rows_.end();
+    }
+
+    const std::unordered_map<std::string, int64_t>& getColIndexes() const {
+        return colIndexes_;
     }
 
     size_t size() const override {
@@ -430,8 +407,8 @@ public:
             return Value::kNullValue;
         }
         auto rowRef = iter_;
-        auto index = colIndex_.find(col);
-        if (index == colIndex_.end()) {
+        auto index = colIndexes_.find(col);
+        if (index == colIndexes_.end()) {
             return Value::kNullValue;
         } else {
             DCHECK_LT(index->second, rowRef->row->values.size());
@@ -459,16 +436,9 @@ private:
     }
 
 private:
-    struct RowRef {
-        explicit RowRef(const Row* in) {
-            row = in;
-        }
-        const Row* row;
-    };
-
     std::vector<RowRef>                          rows_;
     std::vector<RowRef>::iterator                iter_;
-    std::unordered_map<std::string, int64_t>     colIndex_;
+    std::unordered_map<std::string, int64_t>     colIndexes_;
 };
 
 class UnionIterator final : public Iterator {
@@ -529,11 +499,6 @@ public:
                 right_->clear();
             }
         }
-    }
-
-    void sort(const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors) override {
-        UNUSED(factors);
-        return;
     }
 
     void next() override {

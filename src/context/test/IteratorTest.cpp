@@ -737,59 +737,6 @@ TEST(IteratorTest, EraseRange) {
         }
     }
 }
-
-TEST(IteratorTest, Sort) {
-    DataSet ds({"col1", "col2"});
-    ds.rows.emplace_back(Row({Value("dd"), Value(10)}));
-    ds.rows.emplace_back(Row({Value("aa"), Value(10)}));
-    ds.rows.emplace_back(Row({Value("dd"), Value(20)}));
-    // sort one col ASC
-    {
-        auto val = std::make_shared<Value>(ds);
-        SequentialIter iter(val);
-        std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
-        factors.emplace_back(std::make_pair("col1", OrderFactor::OrderType::ASCEND));
-        iter.sort(factors);
-        ASSERT_EQ(iter.size(), 3);
-        ASSERT_TRUE(iter.valid());
-        ASSERT_EQ(iter.getColumn("col1"), "aa");
-        ASSERT_EQ(iter.getColumn("col2"), 10);
-        iter.next();
-        ASSERT_TRUE(iter.valid());
-        ASSERT_EQ(iter.getColumn("col1"), "dd");
-        ASSERT_EQ(iter.getColumn("col2"), 10);
-        iter.next();
-        ASSERT_TRUE(iter.valid());
-        ASSERT_EQ(iter.getColumn("col1"), "dd");
-        ASSERT_EQ(iter.getColumn("col2"), 20);
-        iter.next();
-        ASSERT_FALSE(iter.valid());
-    }
-
-    // sort two cols, first col ASC, second col DES
-    {
-        auto val = std::make_shared<Value>(ds);
-        SequentialIter iter(val);
-        std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
-        factors.emplace_back(std::make_pair("col1", OrderFactor::OrderType::ASCEND));
-        factors.emplace_back(std::make_pair("col2", OrderFactor::OrderType::DESCEND));
-        iter.sort(factors);
-        ASSERT_EQ(iter.size(), 3);
-        ASSERT_TRUE(iter.valid());
-        ASSERT_EQ(iter.getColumn("col1"), "aa");
-        ASSERT_EQ(iter.getColumn("col2"), 10);
-        iter.next();
-        ASSERT_TRUE(iter.valid());
-        ASSERT_EQ(iter.getColumn("col1"), "dd");
-        ASSERT_EQ(iter.getColumn("col2"), 20);
-        iter.next();
-        ASSERT_TRUE(iter.valid());
-        ASSERT_EQ(iter.getColumn("col1"), "dd");
-        ASSERT_EQ(iter.getColumn("col2"), 10);
-        iter.next();
-        ASSERT_FALSE(iter.valid());
-    }
-}
 }  // namespace graph
 }  // namespace nebula
 

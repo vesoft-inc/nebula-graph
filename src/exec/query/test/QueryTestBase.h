@@ -83,6 +83,7 @@ protected:
             dataset.emplace_back(Row({"Joy", "Joy", Value::kNullValue, "School2", 2009, 2012}));
             dataset.emplace_back(Row({"Tom", "Tom", 20, "School2", 2008, 2012}));
             dataset.emplace_back(Row({"Kate", "Kate", 19, "School2", 2009, 2013}));
+            dataset.emplace_back(Row({"Ann", "Ann", 18, "School1", 2010, 2014}));
             dataset.emplace_back(Row({"Lily", "Lily", 20, "School2", 2009, 2012}));
             qctx_->ectx()->setResult("input_sequential",
                                      ExecResult::buildSequential(Value(dataset)));

@@ -52,6 +52,7 @@ class SortTest : public QueryTestBase {
 TEST_F(SortTest, sortOneColAsc) {
     DataSet expected({"age"});
     expected.emplace_back(Row({18}));
+    expected.emplace_back(Row({18}));
     expected.emplace_back(Row({19}));
     expected.emplace_back(Row({20}));
     expected.emplace_back(Row({20}));
@@ -68,6 +69,7 @@ TEST_F(SortTest, sortOneColDes) {
     expected.emplace_back(Row({20}));
     expected.emplace_back(Row({19}));
     expected.emplace_back(Row({18}));
+    expected.emplace_back(Row({18}));
     std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
     factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::DESCEND));
     SORT_RESUTL_CHECK("sort_one_col_des", false, factors, expected);
@@ -75,6 +77,7 @@ TEST_F(SortTest, sortOneColDes) {
 
 TEST_F(SortTest, sortTwoColsAscAsc) {
     DataSet expected({"age", "start_year"});
+    expected.emplace_back(Row({18, 2010}));
     expected.emplace_back(Row({18, 2010}));
     expected.emplace_back(Row({19, 2009}));
     expected.emplace_back(Row({20, 2008}));
@@ -88,6 +91,7 @@ TEST_F(SortTest, sortTwoColsAscAsc) {
 
 TEST_F(SortTest, sortTwoColsAscDes) {
     DataSet expected({"age", "start_year"});
+    expected.emplace_back(Row({18, 2010}));
     expected.emplace_back(Row({18, 2010}));
     expected.emplace_back(Row({19, 2009}));
     expected.emplace_back(Row({20, 2009}));
@@ -105,6 +109,7 @@ TEST_F(SortTest, sortTwoColDesDes) {
     expected.emplace_back(Row({20, 2009}));
     expected.emplace_back(Row({20, 2008}));
     expected.emplace_back(Row({19, 2009}));
+    expected.emplace_back(Row({18, 2010}));
     expected.emplace_back(Row({18, 2010}));
     std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
     factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::DESCEND));
