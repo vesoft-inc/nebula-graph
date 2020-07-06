@@ -33,6 +33,9 @@ name: clang_build
 steps:
   - name: lint
     image: vesoft/nebula-dev:ubuntu1804
+    environment:
+      NEBULA_STORAGE_REPO_URL:
+        from_secret: NEBULA_STORAGE_REPO_URL
     commands:
       - ln -snf $PWD/.linters/cpp/hooks/pre-commit.sh $PWD/.linters/cpp/pre-commit.sh
       - .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD^ HEAD)
@@ -42,7 +45,7 @@ steps:
     commands:
       - ./ci/deploy.sh
       - mkdir build && cd build
-      - cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_TESTING=on ..
+      - cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_TESTING=on -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL ..
       - make -j $(nproc)
       - ctest -j $(nproc) --timeout 400 --output-on-failure
     depends_on:
