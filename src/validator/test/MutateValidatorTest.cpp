@@ -4,13 +4,13 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "validator/test/ValidatorTest.h"
+#include "validator/test/ValidatorTestBase.h"
 
 namespace nebula {
 namespace graph {
 
 using PK = nebula::graph::PlanNode::Kind;
-class MutateValidatorTest : public ValidatorTest {
+class MutateValidatorTest : public ValidatorTestBase {
 };
 
 TEST_F(MutateValidatorTest, InsertVertexTest) {

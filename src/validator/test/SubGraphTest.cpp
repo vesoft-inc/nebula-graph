@@ -5,13 +5,15 @@
  */
 
 #include "validator/GetSubgraphValidator.h"
-#include "validator/test/ValidatorTest.h"
+#include "validator/test/ValidatorTestBase.h"
 #include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
-TEST_F(ValidatorTest, Subgraph) {
+class GetSubgraphValidatorTest : public ValidatorTestBase {};
+
+TEST_F(GetSubgraphValidatorTest, Subgraph) {
     {
         auto status = validate("GET SUBGRAPH 3 STEPS FROM \"1\"");
         ASSERT_TRUE(status.ok());

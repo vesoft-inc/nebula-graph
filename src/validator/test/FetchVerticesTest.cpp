@@ -6,12 +6,14 @@
 
 #include "planner/Query.h"
 #include "validator/FetchVerticesValidator.h"
-#include "validator/test/ValidatorTest.h"
+#include "validator/test/ValidatorTestBase.h"
 
 namespace nebula {
 namespace graph {
 
-TEST_F(ValidatorTest, FetchVerticesProp) {
+class FetchVerticesValidatorTest : public ValidatorTestBase {};
+
+TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\""));
 
@@ -102,8 +104,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("person"), new std::string("age"))));
         auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
-        // TODO(shylock) waiting expression toString
-        // project->setColNames({"person.name", "1 + 1", "person.age"});
+        project->setColNames({"person.name", "(1>1)", "person.age"});
 
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
@@ -111,10 +112,10 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     // With YIELD combine properties
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name + person.age"));
+        auto *plan = qCtx_->plan();
 
         auto *start = StartNode::make(expectedQueryCtx_->plan());
 
-        auto *plan = qCtx_->plan();
         auto tagIdResult = schemaMng_->toTagID(1, "person");
         ASSERT_TRUE(tagIdResult.ok());
         auto tagId = tagIdResult.value();
@@ -136,7 +137,18 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
                                      nullptr,
                                      std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                                      std::vector<storage::cpp2::Expr>{std::move(expr1)});
-        auto result = Eq(plan->root(), gv);
+
+        // project, TODO(shylock) could push down to storage is it supported
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new ArithmeticExpression(
+                Expression::Kind::kAdd,
+                new EdgePropertyExpression(new std::string("person"), new std::string("name")),
+                new EdgePropertyExpression(new std::string("person"), new std::string("age")))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
+        project->setColNames({"(person.name+person.age)"});
+
+        auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // ON *
@@ -154,7 +166,7 @@ TEST_F(ValidatorTest, FetchVerticesProp) {
     }
 }
 
-TEST_F(ValidatorTest, FetchVerticesPropFailed) {
+TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
     // mismatched tag
     {
         auto result = GQLParser().parse("FETCH PROP ON tag1 \"1\" YIELD tag2.prop2");

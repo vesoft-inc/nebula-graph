@@ -4,6 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#pragma once
+
 #include "common/base/Base.h"
 
 #include <gtest/gtest.h>
@@ -27,10 +29,10 @@
 namespace nebula {
 namespace graph {
 
-class ValidatorTest : public ::testing::Test {
+class ValidatorTestBase : public ::testing::Test {
 public:
     void SetUp() override {
-        auto session = new Session(0);
+        auto session = new ClientSession(0);
         session->setSpace("test", 1);
         session_.reset(session);
         schemaMng_ = CHECK_NOTNULL(MockSchemaManager::make_unique());
@@ -48,9 +50,9 @@ protected:
         if (!result.ok()) {
             return ::testing::AssertionFailure() << result.status().toString();
         }
-        auto sentences = std::move(result).value();
+        sentences_ = std::move(result).value();
         qCtx_ = buildContext();
-        ASTValidator validator(sentences.get(), qCtx_.get());
+        ASTValidator validator(sentences_.get(), qCtx_.get());
         auto validateResult = validator.validate();
         if (!validateResult.ok()) {
             return ::testing::AssertionFailure() << validateResult.toString();
@@ -197,10 +199,12 @@ protected:
     std::shared_ptr<ClientSession>       session_;
     std::unique_ptr<meta::SchemaManager> schemaMng_;
     std::unique_ptr<QueryContext>        qCtx_;
+    std::unique_ptr<SequentialSentences> sentences_;
     // used to hold the expected query plan
     std::unique_ptr<QueryContext>        expectedQueryCtx_;
 };
 
 std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan);
+
 }   // namespace graph
 }   // namespace nebula

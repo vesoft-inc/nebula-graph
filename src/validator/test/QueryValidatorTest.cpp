@@ -6,20 +6,20 @@
 
 #include "common/base/Base.h"
 
-#include "validator/test/ValidatorTest.h"
+#include "validator/test/ValidatorTestBase.h"
 
 namespace nebula {
 namespace graph {
 
-class QueryValidatorTest : public ValidatorTest {
+class QueryValidatorTest : public ValidatorTestBase {
 public:
     void SetUp() override {
-        ValidatorTest::SetUp();
+        ValidatorTestBase::SetUp();
         qctx_ = buildContext();
     }
 
     void TearDown() override {
-        ValidatorTest::TearDown();
+        ValidatorTestBase::TearDown();
         qctx_.reset();
     }
 

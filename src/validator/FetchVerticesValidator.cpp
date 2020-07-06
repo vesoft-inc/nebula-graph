@@ -139,6 +139,12 @@ Status FetchVerticesValidator::prepareProperties() {
             // The other will be computed in Project Executor
             const auto storageExprs = col->expr()->findAllStorage();
             if (!storageExprs.empty()) {
+                if (storageExprs.size() == 1 && col->expr()->isStorage()) {
+                    // only one expression it's storage property expression
+                } else {
+                    // need computation in project when storage not do it.
+                    withProject_ = true;
+                }
                 for (const auto &storageExpr : storageExprs) {
                     const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
                     if (*expr->sym() != tagName_) {

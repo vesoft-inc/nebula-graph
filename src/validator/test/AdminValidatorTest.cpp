@@ -3,13 +3,13 @@
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
-#include "validator/test/ValidatorTest.h"
+#include "validator/test/ValidatorTestBase.h"
 
 namespace nebula {
 namespace graph {
 
 using PK = nebula::graph::PlanNode::Kind;
-class AdminValidatorTest : public ValidatorTest {
+class AdminValidatorTest : public ValidatorTestBase {
 };
 
 TEST_F(AdminValidatorTest, SpaceTest) {

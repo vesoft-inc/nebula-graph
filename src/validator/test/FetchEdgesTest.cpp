@@ -6,12 +6,14 @@
 
 #include "planner/Query.h"
 #include "validator/FetchEdgesValidator.h"
-#include "validator/test/ValidatorTest.h"
+#include "validator/test/ValidatorTestBase.h"
 
 namespace nebula {
 namespace graph {
 
-TEST_F(ValidatorTest, FetchEdgesProp) {
+class FetchEdgesValidatorTest : public ValidatorTestBase {};
+
+TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\""));
 
@@ -143,8 +145,7 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
         auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
-        // TODO(shylock) waiting expression toString
-        // project->setColNames({"like.start", "1 + 1", "like.end"});
+        project->setColNames({"like.start", "(1+1)", "like.end"});
         expectedQueryCtx_->plan()->setRoot(project);
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
@@ -190,13 +191,23 @@ TEST_F(ValidatorTest, FetchEdgesProp) {
                                   nullptr,
                                   std::move(props),
                                   std::move(exprs));
-        expectedQueryCtx_->plan()->setRoot(ge);
-        auto result = Eq(plan->root(), ge);
+
+        // project, TODO(shylock) it's could push-down to storage if it supported
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new RelationalExpression(Expression::Kind::kRelGT,
+                new EdgePropertyExpression(new std::string("like"), new std::string("start")),
+                new EdgePropertyExpression(new std::string("like"), new std::string("end")))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
+        project->setColNames({"(like.start>like.end)"});
+
+        expectedQueryCtx_->plan()->setRoot(project);
+        auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
 }
 
-TEST_F(ValidatorTest, FetchEdgesPropFailed) {
+TEST_F(FetchEdgesValidatorTest, FetchEdgesPropFailed) {
     // mismatched tag
     {
         auto result = GQLParser().parse("FETCH PROP ON edge1 \"1\" YIELD edge2.prop2");
