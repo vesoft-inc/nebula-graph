@@ -48,8 +48,10 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:common_conf_obj>
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
     $<TARGET_OBJECTS:common_charset_obj>
-    $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
+    $<TARGET_OBJECTS:graph_auth_obj>
+    $<TARGET_OBJECTS:common_http_client_obj>
+    $<TARGET_OBJECTS:common_encryption_obj>
 )
 
 nebula_add_test(
