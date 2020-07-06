@@ -706,7 +706,13 @@ private:
  */
 class Aggregate final : public SingleInputNode {
 public:
-    using GroupItem = std::pair<Expression*, AggFun::Function>;
+    struct GroupItem {
+        GroupItem(Expression* e, AggFun::Function f, bool d)
+            : expr(e), func(f), distinct(d) {}
+        Expression* expr;
+        AggFun::Function func;
+        bool distinct = false;
+    };
     static Aggregate* make(ExecutionPlan* plan,
                            PlanNode* input,
                            std::vector<Expression*>&& groupKeys,

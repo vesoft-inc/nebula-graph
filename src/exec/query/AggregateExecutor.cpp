@@ -36,8 +36,8 @@ folly::Future<Status> AggregateExecutor::execute() {
         if (it == result.end()) {
             std::vector<std::unique_ptr<AggFun>> funs;
             for (auto& item : groupItems) {
-                auto fun = AggFun::aggFunMap_[item.second]();
-                auto& v = item.first->eval(ctx);
+                auto fun = AggFun::aggFunMap_[item.func](item.distinct);
+                auto& v = item.expr->eval(ctx);
                 fun->apply(v);
                 funs.emplace_back(std::move(fun));
             }
@@ -45,7 +45,7 @@ folly::Future<Status> AggregateExecutor::execute() {
         } else {
             DCHECK_EQ(it->second.size(), groupItems.size());
             for (size_t i = 0; i < groupItems.size(); ++i) {
-                auto& v = groupItems[i].first->eval(ctx);
+                auto& v = groupItems[i].expr->eval(ctx);
                 it->second[i]->apply(v);
             }
         }
