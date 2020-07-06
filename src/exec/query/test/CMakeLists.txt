@@ -48,6 +48,8 @@ SET(EXEC_QUERY_TEST_LIBS
     gtest
     gtest_main
     wangle
+    proxygenhttpserver
+    proxygenlib
 )
 
 nebula_add_test(

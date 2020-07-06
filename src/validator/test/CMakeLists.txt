@@ -36,6 +36,7 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_conf_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
+    $<TARGET_OBJECTS:common_process_obj>
 )
 
 nebula_add_library(
@@ -52,13 +53,13 @@ nebula_add_test(
         MutateValidatorTest.cpp
         GetSubgraphValidatorTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
-    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle proxygenhttpserver proxygenlib
 )
 
 nebula_add_test(
     NAME mock_schema_test
     SOURCES MockSchemaManagerTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
-    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle proxygenhttpserver proxygenlib
 )
 
