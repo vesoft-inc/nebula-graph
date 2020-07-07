@@ -1,8 +1,8 @@
 /* Copyright (c) 2020 vesoft inc. All rights reserved.
-*
-* This source code is licensed under Apache 2.0 License,
-* attached with Common Clause Condition 1.0, found in the LICENSES directory.
-*/
+ *
+ * This source code is licensed under Apache 2.0 License,
+ * attached with Common Clause Condition 1.0, found in the LICENSES directory.
+ */
 
 #include "validator/GoValidator.h"
 
@@ -55,7 +55,7 @@ Status GoValidator::validateImpl() {
         }
 
         if ((!inputProps_.empty() && !varProps_.empty())
-            || varProps_.size() > 1) {
+                || varProps_.size() > 1) {
             status = Status::Error(
                     "Only support single input in a go sentence.");
             break;
@@ -108,7 +108,7 @@ Status GoValidator::validateFrom(const FromClause* from) {
     if (from->isRef()) {
         auto* src = from->ref();
         if (src->kind() != Expression::Kind::kInputProperty
-            && src->kind() != Expression::Kind::kVarProperty) {
+                && src->kind() != Expression::Kind::kVarProperty) {
             return Status::Error(
                     "`%s', Only input and variable expression is acceptable"
                     " when starts are evaluated at runtime.", src->toString().c_str());
@@ -132,7 +132,7 @@ Status GoValidator::validateFrom(const FromClause* from) {
         for (auto* expr : vidList) {
             if (!evaluableExpr(expr)) {
                 return Status::Error("`%s' is not an evaluable expression.",
-                                     expr->toString().c_str());
+                        expr->toString().c_str());
             }
             auto vid = expr->eval(ctx);
             if (!vid.isStr()) {
@@ -161,7 +161,7 @@ Status GoValidator::validateOver(const OverClause* over) {
         auto edgeType = schemaMng->toEdgeType(space_.id, edgeName);
         if (!edgeType.ok()) {
             return Status::Error("%s not found in space [%s].",
-                                 edgeName.c_str(), space_.name.c_str());
+                    edgeName.c_str(), space_.name.c_str());
         }
         edgeTypes_.emplace_back(edgeType.value());
     }
@@ -394,8 +394,8 @@ std::string GoValidator::buildInput() {
             ExecResult::buildSequential(Value(std::move(ds))));
 
     auto* vids = new VariablePropertyExpression(
-            new std::string(input),
-            new std::string("_vid"));
+                    new std::string(input),
+                    new std::string("_vid"));
     qctx_->plan()->saveObject(vids);
     src_ = vids;
     return input;
@@ -422,14 +422,14 @@ GetNeighbors::VertexProps GoValidator::buildSrcVertexProps() {
     GetNeighbors::VertexProps vertexProps;
     if (!srcTagProps_.empty()) {
         vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(
-                srcTagProps_.size());
+            srcTagProps_.size());
         std::transform(srcTagProps_.begin(), srcTagProps_.end(),
                        vertexProps->begin(), [](auto& tag) {
-                    storage::cpp2::VertexProp vp;
-                    vp.tag = tag.first;
-                    vp.props = std::move(tag.second);
-                    return vp;
-                });
+                           storage::cpp2::VertexProp vp;
+                           vp.tag = tag.first;
+                           vp.props = std::move(tag.second);
+                           return vp;
+                       });
     }
     return vertexProps;
 }
@@ -438,14 +438,14 @@ GetNeighbors::VertexProps GoValidator::buildDstVertexProps() {
     GetNeighbors::VertexProps vertexProps;
     if (!dstTagProps_.empty()) {
         vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(
-                dstTagProps_.size());
+            dstTagProps_.size());
         std::transform(dstTagProps_.begin(), dstTagProps_.end(),
                        vertexProps->begin(), [](auto& tag) {
-                    storage::cpp2::VertexProp vp;
-                    vp.tag = tag.first;
-                    vp.props = std::move(tag.second);
-                    return vp;
-                });
+                           storage::cpp2::VertexProp vp;
+                           vp.tag = tag.first;
+                           vp.props = std::move(tag.second);
+                           return vp;
+                       });
     }
     return vertexProps;
 }
@@ -465,3 +465,4 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
 }
 }  // namespace graph
 }  // namespace nebula
+
