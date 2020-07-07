@@ -18,7 +18,7 @@ folly::Future<Status> SortExecutor::execute() {
     if (iter == nullptr) {
         return Status::Error("Internal error: nullptr iterator in sort executor");
     }
-    if (iter->isGetNeighborsIter() || iter->isUnionIter()) {
+    if (iter->isGetNeighborsIter()) {
         std::string errMsg = "Internal error: "
                              "Sort executor does not supported GetNeighborsIter and UnionIter";
         LOG(ERROR) << errMsg;

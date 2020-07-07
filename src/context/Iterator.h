@@ -32,7 +32,6 @@ public:
         kDefault,
         kGetNeighbors,
         kSequential,
-        kUnion,
     };
 
     explicit Iterator(std::shared_ptr<Value> value, Kind kind)
@@ -349,6 +348,23 @@ public:
         }
     }
 
+    explicit SequentialIter(std::unique_ptr<Iterator> left, std::unique_ptr<Iterator> right)
+        : Iterator(nullptr, Kind::kSequential) {
+        DCHECK(left->isSequentialIter());
+        DCHECK(right->isSequentialIter());
+        auto lIter = static_cast<SequentialIter*>(left.get());
+        auto rIter = static_cast<SequentialIter*>(right.get());
+        rows_.insert(rows_.end(),
+                     std::make_move_iterator(lIter->begin()),
+                     std::make_move_iterator(lIter->end()));
+
+        rows_.insert(rows_.end(),
+                     std::make_move_iterator(rIter->begin()),
+                     std::make_move_iterator(rIter->end()));
+        iter_ = rows_.begin();
+        colIndexes_ = lIter->getColIndexes();
+    }
+
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<SequentialIter>(*this);
         copy->reset();
@@ -440,123 +456,8 @@ private:
     std::vector<RowRef>::iterator                iter_;
     std::unordered_map<std::string, int64_t>     colIndexes_;
 };
-
-class UnionIterator final : public Iterator {
-public:
-    UnionIterator(std::unique_ptr<Iterator> left, std::unique_ptr<Iterator> right)
-        : Iterator(left->valuePtr(), Kind::kUnion),
-          left_(std::move(left)),
-          right_(std::move(right)) {}
-
-    std::unique_ptr<Iterator> copy() const override {
-        auto iter = std::make_unique<UnionIterator>(left_->copy(), right_->copy());
-        iter->reset();
-        return iter;
-    }
-
-    bool valid() const override {
-        return left_->valid() || right_->valid();
-    }
-
-    void eraseRange(size_t first, size_t last) override {
-        auto lSize = left_->size();
-        auto rSize = right_->size();
-        auto sumSize = lSize + rSize;
-        if (first > lSize + rSize || first > last) {
-            // first > sumSize
-            return;
-        } else if (lSize >= last) {
-            // first < last <= lSize
-            left_->eraseRange(first, last);
-        } else if (first < lSize) {
-            if (last > lSize && last <= sumSize) {
-                // first < lSize < last <= sumSize
-                left_->eraseRange(first, lSize);
-                right_->eraseRange(0, last - lSize);
-            } else if (last > sumSize) {
-                // first < lSize < sumSize < last
-                left_->eraseRange(first, lSize);
-                right_->eraseRange(0, rSize);
-            }
-        } else if (first >= lSize) {
-            if (last <= sumSize) {
-                // lSize <= first < last <= sumSize
-                right_->eraseRange(first - lSize, last - lSize);
-            } else if (last > sumSize) {
-                // lSize <= first < sumSize < last
-                right_->eraseRange(first - lSize, rSize);
-            }
-        }
-        reset();
-        return;
-    }
-
-    void clear() override {
-        if (left_->valid()) {
-            left_->clear();
-        } else {
-            if (right_->valid()) {
-                right_->clear();
-            }
-        }
-    }
-
-    void next() override {
-        if (left_->valid()) {
-            left_->next();
-        } else {
-            if (right_->valid()) {
-                right_->next();
-            }
-        }
-    }
-
-    size_t size() const override {
-        return left_->size() + right_->size();
-    }
-
-    void erase() override {
-        if (left_->valid()) {
-            left_->erase();
-        } else {
-            if (right_->valid()) {
-                right_->erase();
-            }
-        }
-    }
-
-    const Value& getColumn(const std::string& col) const override {
-        if (left_->valid()) {
-            return left_->getColumn(col);
-        }
-        if (right_->valid()) {
-            return right_->getColumn(col);
-        }
-        return Value::kEmpty;
-    }
-
-    const Row* row() const override {
-        if (left_->valid()) return left_->row();
-        if (right_->valid()) return right_->row();
-        return nullptr;
-    }
-
-private:
-    void doReset(size_t poc) override {
-        if (poc < left_->size()) {
-            left_->reset(poc);
-            right_->reset();
-        } else {
-            right_->reset(poc - left_->size());
-        }
-    }
-
-    std::unique_ptr<Iterator> left_;
-    std::unique_ptr<Iterator> right_;
-};
 }  // namespace graph
 }  // namespace nebula
-
 namespace std {
 template <>
 struct equal_to<const nebula::Row*> {

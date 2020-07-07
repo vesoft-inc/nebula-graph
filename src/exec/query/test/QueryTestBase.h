@@ -18,7 +18,7 @@ class QueryTestBase : public testing::Test {
 protected:
     void SetUp() override {
         qctx_ = std::make_unique<QueryContext>();
-
+        // GetNeighbors
         {
             DataSet dataset({"_vid", "_stats", "_tag:person:name:age",
                              "_edge:+study:_dst:start_year:end_year", "_expr"});
@@ -76,7 +76,7 @@ protected:
             qctx_->ectx()->setResult("input_neighbor",
                                      ExecResult::buildGetNeighbors(Value(datasetList)));
         }
-
+        // sequential
         {
             DataSet dataset({"vid", "v_name", "v_age", "v_dst", "e_start_year", "e_end_year"});
             dataset.emplace_back(Row({"Ann", "Ann", 18, "School1", 2010, 2014}));
@@ -88,6 +88,30 @@ protected:
             qctx_->ectx()->setResult("input_sequential",
                                      ExecResult::buildSequential(Value(dataset)));
         }
+        // sequential init by two sequentialIters
+        {
+            DataSet lds({"vid", "v_name", "v_age", "v_dst", "e_start_year", "e_end_year"});
+            lds.emplace_back(Row({"Ann", "Ann", 18, "School1", 2010, 2014}));
+            lds.emplace_back(Row({"Joy", "Joy", Value::kNullValue, "School2", 2009, 2012}));
+            lds.emplace_back(Row({"Tom", "Tom", 20, "School2", 2008, 2012}));
+            lds.emplace_back(Row({"Kate", "Kate", 19, "School2", 2009, 2013}));
+            qctx_->ectx()->setResult("left_sequential",
+                                     ExecResult::buildSequential(Value(lds)));
+
+            DataSet rds({"vid", "v_name", "v_age", "v_dst", "e_start_year", "e_end_year"});
+            rds.emplace_back(Row({"Ann", "Ann", 18, "School1", 2010, 2014}));
+            rds.emplace_back(Row({"Lily", "Lily", 20, "School2", 2009, 2012}));
+            qctx_->ectx()->setResult("right_sequential",
+                                     ExecResult::buildSequential(Value(rds)));
+
+            auto lIter = qctx_->ectx()->getResult("left_sequential").iter();
+            auto rIter = qctx_->ectx()->getResult("right_sequential").iter();
+            auto result = ExecResult::buildDefault(lIter->valuePtr());
+            auto iter = std::make_unique<SequentialIter>(std::move(lIter), std::move(rIter));
+            result.setIter(std::move(iter));
+            qctx_->ectx()->setResult("union_sequential", std::move(result));
+        }
+        // empty
         {
             DataSet dataset({"_vid", "_stats", "_tag:person:name:age",
                              "_edge:+study:_dst:start_year:end_year", "_expr"});

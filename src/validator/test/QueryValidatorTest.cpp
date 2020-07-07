@@ -244,14 +244,22 @@ TEST_F(QueryValidatorTest, GoInvalid) {
 }
 
 TEST_F(QueryValidatorTest, Limit) {
-    std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT 1, 3";
-    auto status = validate(query);
-    ASSERT_TRUE(status.ok()) << status.status();
-    auto plan = std::move(status).value();
-    std::vector<PlanNode::Kind> expected = {
-        PK::kProject, PK::kLimit, PK::kProject, PK::kGetNeighbors, PK::kStart
-    };
-    ASSERT_TRUE(verifyPlan(plan->root(), expected));
+    // Syntax error
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT -1, 3";
+        auto status = validate(query);
+        ASSERT_FALSE(status.ok()) << status.status();
+    }
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT 1, 3";
+        auto status = validate(query);
+        ASSERT_TRUE(status.ok()) << status.status();
+        auto plan = std::move(status).value();
+        std::vector<PlanNode::Kind> expected = {
+                PK::kDataCollect, PK::kLimit, PK::kProject, PK::kGetNeighbors, PK::kStart
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expected));
+    }
 }
 
 TEST_F(QueryValidatorTest, OrderBy) {
@@ -262,7 +270,7 @@ TEST_F(QueryValidatorTest, OrderBy) {
         ASSERT_TRUE(status.ok()) << status.status();
         auto plan = std::move(status).value();
         std::vector<PlanNode::Kind> expected = {
-            PK::kProject, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
+            PK::kDataCollect, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
         };
         ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }

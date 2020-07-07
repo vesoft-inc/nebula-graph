@@ -465,4 +465,3 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
 }
 }  // namespace graph
 }  // namespace nebula
-
