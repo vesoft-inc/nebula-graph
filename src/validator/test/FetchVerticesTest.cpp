@@ -151,6 +151,49 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
+    // With YIELD distinct
+    {
+        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD distinct person.name, person.age"));
+
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
+
+        auto *plan = qCtx_->plan();
+        auto tagIdResult = schemaMng_->toTagID(1, "person");
+        ASSERT_TRUE(tagIdResult.ok());
+        auto tagId = tagIdResult.value();
+        storage::cpp2::VertexProp prop;
+        prop.set_tag(tagId);
+        prop.set_props(std::vector<std::string>{"name", "age"});
+        storage::cpp2::Expr expr1;
+        expr1.set_expr(
+            EdgePropertyExpression(new std::string("person"), new std::string("name")).encode());
+        storage::cpp2::Expr expr2;
+        expr2.set_expr(
+            EdgePropertyExpression(new std::string("person"), new std::string("age")).encode());
+        auto *gv =
+            GetVertices::make(expectedQueryCtx_->plan(),
+                              start,
+                              1,
+                              std::vector<Row>{Row({"1"})},
+                              nullptr,
+                              std::vector<storage::cpp2::VertexProp>{std::move(prop)},
+                              std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
+
+        // dedup
+        auto *dedup = Dedup::make(expectedQueryCtx_->plan(), gv);
+
+        // project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("person"), new std::string("name"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("person"), new std::string("age"))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), dedup, yieldColumns.get());
+        project->setColNames({"person.name", "person.age"});
+
+        auto result = Eq(plan->root(), project);
+        ASSERT_TRUE(result.ok()) << result;
+    }
     // ON *
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON * \"1\""));

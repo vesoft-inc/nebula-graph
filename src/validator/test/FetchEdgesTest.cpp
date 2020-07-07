@@ -205,6 +205,64 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
+    // With YIELD distinct
+    {
+        ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD distinct like.start, like.end"));
+
+        auto *start = StartNode::make(expectedQueryCtx_->plan());
+
+        auto *plan = qCtx_->plan();
+        auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
+        ASSERT_TRUE(edgeTypeResult.ok());
+        auto edgeType = edgeTypeResult.value();
+        std::vector<nebula::Row> edges{nebula::Row({
+            "1",
+            edgeType,
+            0,
+            "2",
+        })};
+        storage::cpp2::EdgeProp prop;
+        prop.set_type(edgeType);
+        std::vector<std::string> propsName{"start", "end"};
+        prop.set_props(std::move(propsName));
+        std::vector<storage::cpp2::EdgeProp> props;
+        props.emplace_back(std::move(prop));
+        std::vector<storage::cpp2::Expr> exprs;
+        storage::cpp2::Expr expr1;
+        expr1.set_expr(
+            EdgePropertyExpression(new std::string("like"), new std::string("start")).encode());
+        storage::cpp2::Expr expr2;
+        expr2.set_expr(
+            EdgePropertyExpression(new std::string("like"), new std::string("end")).encode());
+        exprs.emplace_back(std::move(expr1));
+        exprs.emplace_back(std::move(expr2));
+        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+                                  start,
+                                  1,
+                                  std::move(edges),
+                                  nullptr,
+                                  edgeType,
+                                  nullptr,
+                                  nullptr,
+                                  std::move(props),
+                                  std::move(exprs));
+
+        // dedup
+        auto *dedup = Dedup::make(expectedQueryCtx_->plan(), ge);
+
+        // project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+                new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
+        yieldColumns->addColumn(new YieldColumn(
+                new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), dedup, yieldColumns.get());
+        project->setColNames({"like.start", "like.end"});
+
+        expectedQueryCtx_->plan()->setRoot(project);
+        auto result = Eq(plan->root(), project);
+        ASSERT_TRUE(result.ok()) << result;
+    }
 }
 
 TEST_F(FetchEdgesValidatorTest, FetchEdgesPropFailed) {

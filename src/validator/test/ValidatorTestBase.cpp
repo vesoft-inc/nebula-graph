@@ -42,6 +42,7 @@ namespace graph {
         case PlanNode::Kind::kUnknown:
             return Status::Error("Unknow node");
         case PlanNode::Kind::kStart:
+        case PlanNode::Kind::kDedup:
             return Status::OK();
         case PlanNode::Kind::kGetNeighbors:
         case PlanNode::Kind::kReadIndex:
@@ -51,7 +52,6 @@ namespace graph {
         case PlanNode::Kind::kAggregate:
         case PlanNode::Kind::kSwitchSpace:
         case PlanNode::Kind::kMultiOutputs:
-        case PlanNode::Kind::kDedup:
         case PlanNode::Kind::kCreateSpace:
         case PlanNode::Kind::kCreateTag:
         case PlanNode::Kind::kCreateEdge:

@@ -62,7 +62,16 @@ Status FetchEdgesValidator::toPlan() {
     // Project select the properties then dedup
     if (dedup_) {
         auto *dedupNode = Dedup::make(plan, current);
+        dedupNode->setInputVar(current->varName());
         current = dedupNode;
+
+        // project to extand dedup iterator
+        auto *projectNode = Project::make(
+            plan, current, sentence_->yieldClause()->yields());
+        projectNode->setInputVar(current->varName());
+        // TODO(shylock) waiting expression toString
+        projectNode->setColNames(deduceColNames(projectNode->columns()));
+        current = projectNode;
     }
     root_ = current;
     tail_ = doNode;
