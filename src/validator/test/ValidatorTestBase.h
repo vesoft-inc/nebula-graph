@@ -32,9 +32,8 @@ namespace graph {
 class ValidatorTestBase : public ::testing::Test {
 public:
     void SetUp() override {
-        auto session = new ClientSession(0);
-        session->setSpace("test", 1);
-        session_.reset(session);
+        session_ = Session::create(0);
+        session_->setSpace("test_space", 1);
         schemaMng_ = CHECK_NOTNULL(MockSchemaManager::make_unique());
         qCtx_ = buildContext();
         expectedQueryCtx_ = buildContext();
@@ -196,12 +195,12 @@ protected:
     }
 
 protected:
-    std::shared_ptr<ClientSession>       session_;
-    std::unique_ptr<meta::SchemaManager> schemaMng_;
-    std::unique_ptr<QueryContext>        qCtx_;
-    std::unique_ptr<SequentialSentences> sentences_;
+    std::shared_ptr<Session>              session_;
+    std::unique_ptr<MockSchemaManager>    schemaMng_;
+    std::unique_ptr<QueryContext>         qCtx_;
+    std::unique_ptr<SequentialSentences>  sentences_;
     // used to hold the expected query plan
-    std::unique_ptr<QueryContext>        expectedQueryCtx_;
+    std::unique_ptr<QueryContext>         expectedQueryCtx_;
 };
 
 std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan);
