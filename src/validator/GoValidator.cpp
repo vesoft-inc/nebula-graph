@@ -353,17 +353,11 @@ Status GoValidator::buildOneStepPlan() {
         input = buildInput();
     }
 
-    auto* gn1 = GetNeighbors::make(
-            plan,
-            nullptr,
-            space_.id,
-            src_,
-            buildEdgeTypes(),
-            storage::cpp2::EdgeDirection::BOTH,  // Not valid if edge types not empty
-            buildSrcVertexProps(),
-            buildEdgeProps(),
-            nullptr,
-            nullptr);
+    auto* gn1 = GetNeighbors::make(plan, nullptr, space_.id);
+    gn1->setSrc(src_);
+    gn1->setEdgeTypes(buildEdgeTypes());
+    gn1->setVertexProps(buildSrcVertexProps());
+    gn1->setEdgeProps(buildEdgeProps());
     gn1->setInputVar(input);
 
     if (!dstTagProps_.empty()) {

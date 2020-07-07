@@ -11,7 +11,6 @@
 #include "common/expression/ConstantExpression.h"
 
 #include "parser/TraverseSentences.h"
-#include "planner/Query.h"
 #include "context/ExpressionContextImpl.h"
 
 namespace nebula {
@@ -71,7 +70,6 @@ Status GetSubgraphValidator::validateFrom(FromClause* from) {
         srcRef_ = from->ref();
     } else {
         for (auto* expr : from->vidList()) {
-            // TODO:
             auto vid = Expression::eval(expr, ctx);
             starts_.emplace_back(std::move(vid));
         }
@@ -259,6 +257,103 @@ Status GetSubgraphValidator::toPlan() {
     tail_ = loop;
     return Status::OK();
 }
+
+Status GetSubgraphValidator::buildSubGraphPlan(storage::cpp2::EdgeDirection direction) {
+    auto* plan = qctx_->plan();
+    auto& space = vctx_->whichSpace();
+
+    // loop -> project -> gn1 -> bodyStart
+    auto* bodyStart = StartNode::make(plan);
+
+    std::string vids;
+    PlanNode* projectStartVid = nullptr;
+    if (!starts_.empty() && src_ == nullptr) {
+        vids = buildLiteralInput();
+    } else {
+        projectStartVid = buildRuntimeInput();
+        vids = projectStartVid->varName();
+    }
+    auto* gn1 = GetNeighbors::make(plan, bodyStart, space.id);
+    gn1->setSrc(src_);
+    if (edgeTypes_.empty()) {
+        gn1->setEdgeDirection(direction);
+    } else {
+        gn1->setEdgeTypes(edgeTypes_);
+    }
+    gn1->setVertexProps(buildAllVertexProps());
+    gn1->setEdgeProps(buildAllEdgeProps());
+    gn1->setInputVar(vids);
+
+    auto* columns = new YieldColumns();
+    auto* column = new YieldColumn(
+        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
+        new std::string(kVid));
+    columns->addColumn(column);
+    auto* project = Project::make(plan, gn1, plan->saveObject(columns));
+    project->setInputVar(gn1->varName());
+    project->setOutputVar(vids);
+    project->setColNames(deduceColNames(columns));
+
+    auto* loop = Loop::make(plan, projectStartVid, project, buildNStepLoopCondition(steps_));
+    std::vector<std::string> collects = {gn1->varName()};
+    auto* dc = DataCollect::make(plan, loop,
+            DataCollect::CollectKind::kSubgraph, std::move(collects));
+    dc->setColNames({"_vertices", "_edges"});
+    root_ = dc;
+    if (projectStartVid != nullptr) {
+        tail_ = projectStartVid;
+    } else {
+        tail_ = loop;
+    }
+    return Status::OK();
+}
+
+std::string GetSubgraphValidator::buildLiteralInput() {
+    auto input = vctx_->varGen()->getVar();
+    DataSet ds;
+    ds.colNames.emplace_back(kVid);
+    for (auto& vid : starts_) {
+        Row row;
+        row.values.emplace_back(vid);
+        ds.rows.emplace_back(std::move(row));
+    }
+    qctx_->ectx()->setResult(input, ExecResult::buildSequential(
+        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+
+    auto* vids = new VariablePropertyExpression(new std::string(input),
+                                                new std::string());
+    qctx_->plan()->saveObject(vids);
+    src_ = vids;
+    return input;
+}
+
+PlanNode* GetSubgraphValidator::buildRuntimeInput() {
+    auto* columns = new YieldColumns();
+    auto encode = srcRef_->encode();
+    auto decode = Expression::decode(encode);
+    auto* column = new YieldColumn(decode.release(), new std::string(kVid));
+    columns->addColumn(column);
+    auto plan = qctx_->plan();
+    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    return project;
+}
+
+Expression* GetSubgraphValidator::buildNStepLoopCondition(int64_t steps) const {
+    // ++counter{0} <= steps
+    auto counter = vctx_->varGen()->getVar();
+    qctx_->ectx()->setValue(counter, 0);
+    auto* condition = new RelationalExpression(
+                Expression::Kind::kRelLE,
+                new UnaryExpression(
+                        Expression::Kind::kUnaryIncr,
+                        new VersionedVariableExpression(
+                                new std::string(counter),
+                                new ConstantExpression(0))),
+                new ConstantExpression(static_cast<int32_t>(steps)));
+    qctx_->plan()->saveObject(condition);
+    return condition;
+}
+
 }  // namespace graph
 }  // namespace nebula
 
