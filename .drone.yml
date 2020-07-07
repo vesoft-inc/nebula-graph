@@ -17,6 +17,7 @@ steps:
         from_secret: NEBULA_STORAGE_REPO_URL
     commands:
       - ./ci/deploy.sh
+      - pip3 install -r tests/requirements.txt
       - mkdir build && cd build
       - cmake -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Debug -DENABLE_TESTING=on -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL ..
       - make -j $(nproc)
@@ -44,9 +45,11 @@ steps:
         from_secret: NEBULA_STORAGE_REPO_URL
     commands:
       - ./ci/deploy.sh
+      - pip3 install -r tests/requirements.txt
       - mkdir build && cd build
       - cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DENABLE_ASAN=on -DENABLE_TESTING=on -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL ..
       - make -j $(nproc)
       - ctest -j $(nproc) --timeout 400 --output-on-failure
+      - cd tests && ./ntr -h
     depends_on:
       - lint
