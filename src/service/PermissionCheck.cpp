@@ -57,6 +57,9 @@ bool PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kDropSnapshot :
         case Sentence::Kind::kBalance :
         case Sentence::Kind::kAdminJob :
+        case Sentence::Kind::kShowConfigs :
+        case Sentence::Kind::kSetConfig :
+        case Sentence::Kind::kGetConfig :
         case Sentence::Kind::kIngest :
         case Sentence::Kind::kShowConfigs :
         case Sentence::Kind::kSetConfig :
