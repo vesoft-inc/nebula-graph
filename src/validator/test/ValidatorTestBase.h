@@ -187,8 +187,13 @@ protected:
                 case PlanNode::Kind::kDropSnapshot:
                 case PlanNode::Kind::kShowSnapshots:
                 case PlanNode::Kind::kDataJoin:
+<<<<<<< HEAD
                 case PlanNode::Kind::kDeleteVertices:
                 case PlanNode::Kind::kDeleteEdges: {
+=======
+                case PlanNode::Kind::kUpdateVertex:
+                case PlanNode::Kind::kUpdateEdge: {
+>>>>>>> rebase upstream
                     auto* current = static_cast<const SingleInputNode*>(node);
                     queue.emplace(current->dep());
                     break;

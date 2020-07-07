@@ -110,5 +110,37 @@ TEST_F(MutateValidatorTest, DeleteEdgeTest) {
         ASSERT_FALSE(checkResult(cmd));
     }
 }
+
+TEST_F(MutateValidatorTest, UpdateVertexTest) {
+    // not exist tag
+    {
+        auto cmd = "UPDATE VERTEX ON student \"Tom\" SET count = 1";
+        ASSERT_FALSE(checkResult(cmd, {}));
+    }
+    // succeed
+    {
+        auto cmd = "UPDATE VERTEX ON person \"Tom\""
+                   "SET age = person.age + 1 "
+                   "WHEN person.age == 18 "
+                   "YIELD person.name AS name, person.age AS age";
+        ASSERT_TRUE(checkResult(cmd, {PK::kUpdateVertex, PK::kStart}));
+    }
+}
+
+TEST_F(MutateValidatorTest, UpdateEdgeTest) {
+    // not exist edge
+    {
+        auto cmd = "UPDATE EDGE ON study \"Tom\"->\"Lily\" SET count = 1";
+        ASSERT_FALSE(checkResult(cmd, {}));
+    }
+    // succeed
+    {
+        auto cmd = "UPDATE EDGE ON like \"Tom\"->\"Lily\""
+                   "SET end = like.end + 1 "
+                   "WHEN like.start >= 2010 "
+                   "YIELD like.start AS start, like.end AS end";
+        ASSERT_TRUE(checkResult(cmd, {PK::kUpdateEdge, PK::kStart}));
+    }
+}
 }  // namespace graph
 }  // namespace nebula

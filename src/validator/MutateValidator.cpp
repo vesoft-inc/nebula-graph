@@ -501,6 +501,7 @@ Status DeleteEdgesValidator::toPlan() {
 }
 
 Status UpdateBaseValidator::initProps() {
+    spaceId_ = vctx_->whichSpace().id;
     insertable_ = sentence_->getInsertable();
     name_ = *sentence_->getName();
     getCondition();
@@ -544,19 +545,15 @@ Status UpdateBaseValidator::getUpdateProps() {
             LOG(ERROR) << "field is nullptr";
             return Status::SyntaxError("Empty edge update item field name");
         }
-        auto fieldExpr = item->getFieldExpr();
-        // TODO(Laura): get tagName and prop name from AliasPropertyExpression
-        if (fieldExpr == nullptr) {
-            LOG(ERROR) << "fieldExpr is nullptr";
+        auto valueExpr = item->value();
+        if (valueExpr == nullptr) {
+            LOG(ERROR) << "valueExpr is nullptr";
             return Status::SyntaxError("Empty edge update item field value");
         }
 
-        if (fieldExpr->kind() != Expression::Kind::kEdgeProperty) {
-            LOG(ERROR) << "fieldExpr type is not kEdgeProperty";
-            return Status::SyntaxError("Empty edge update item field value");
-        }
+        // TODO: check expression is ConstantExpression or has EdgePropertyExpression
         updatedProp.set_name(*field);
-        updatedProp.set_value(Expression::encode(*fieldExpr));
+        updatedProp.set_value(Expression::encode(*valueExpr));
         updatedProps_.emplace_back(std::move(updatedProp));
     }
     return status;
@@ -565,8 +562,13 @@ Status UpdateBaseValidator::getUpdateProps() {
 Status UpdateVertexValidator::validateImpl() {
     auto sentence = static_cast<UpdateVertexSentence*>(sentence_);
     vId_ = sentence->getVid();
-    // TODO: Check vid_ is right expression
-    return initProps();
+    NG_RETURN_IF_ERROR(initProps());
+    auto ret = qctx_->schemaMng()->toTagID(spaceId_, name_);
+    if (!ret.ok()) {
+        LOG(ERROR) << "No schema found for " << name_;
+        return Status::Error("No schema found for `%s'", name_.c_str());
+    }
+    return Status::OK();
 }
 
 Status UpdateVertexValidator::toPlan() {
@@ -591,7 +593,13 @@ Status UpdateEdgeValidator::validateImpl() {
     srcId_ = sentence->getSrcId();
     dstId_ = sentence->getDstId();
     rank_ = sentence->getRank();
-    return initProps();
+    NG_RETURN_IF_ERROR(initProps());
+    auto ret = qctx_->schemaMng()->toEdgeType(spaceId_, name_);
+    if (!ret.ok()) {
+        LOG(ERROR) << "No schema found for " << name_;
+        return Status::Error("No schema found for `%s'", name_.c_str());
+    }
+    return Status::OK();
 }
 
 Status UpdateEdgeValidator::toPlan() {

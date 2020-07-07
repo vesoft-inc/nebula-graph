@@ -160,7 +160,9 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kDropSnapshot:
         case PlanNode::Kind::kShowSnapshots:
         case PlanNode::Kind::kDeleteVertices:
-        case PlanNode::Kind::kDeleteEdges: {
+        case PlanNode::Kind::kDeleteEdges:
+        case PlanNode::Kind::kUpdateVertex:
+        case PlanNode::Kind::kUpdateEdge: {
             static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
             break;
         }

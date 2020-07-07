@@ -31,8 +31,8 @@ StatusOr<DataSet> UpdateBaseExecutor::handleResult(const DataSet &data) {
     result.colNames = std::move(yieldNames_);
     for (auto &row : data.rows) {
         std::vector<Value> columns;
-        for (auto i = 1u; i < row.columns.size(); i++) {
-            columns.emplace_back(std::move(row.columns[i]));
+        for (auto i = 1u; i < row.values.size(); i++) {
+            columns.emplace_back(std::move(row.values[i]));
         }
         result.rows.emplace_back(std::move(columns));
     }
@@ -69,9 +69,28 @@ folly::Future<Status> UpdateVertexExecutor::updateVertex() {
         .via(runner())
         .then([this](StatusOr<storage::cpp2::UpdateResponse> resp) {
             if (!resp.ok()) {
+                LOG(ERROR) << resp.status();
                 return resp.status();
             }
             auto value = std::move(resp).value();
+            for (auto& code : value.get_result().get_failed_parts()) {
+                switch (code.get_code()) {
+                    case nebula::storage::cpp2::ErrorCode::E_INVALID_FILTER:
+                        return Status::Error("Maybe invalid tag or property in WHEN clause!");
+                    case nebula::storage::cpp2::ErrorCode::E_INVALID_UPDATER:
+                        return Status::Error("Maybe invalid tag or property in SET/YIELD clause!");
+                    // case nebula::storage::cpp2::ErrorCode::E_FILTER_OUT:
+                    //    break;
+                    default:
+                        std::string errMsg =
+                            folly::stringPrintf("Maybe vertex does not exist, "
+                                                "part: %d, error code: %d!",
+                                                code.get_part_id(),
+                                                static_cast<int32_t>(code.get_code()));
+                        LOG(ERROR) << errMsg;
+                        return Status::Error(std::move(errMsg));;
+                }
+            }
             if (value.__isset.props) {
                 auto status = handleResult(*value.get_props());
                 if (!status.ok()) {
@@ -125,6 +144,25 @@ folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
                     return resp.status();
                 }
                 auto value = std::move(resp).value();
+                for (auto& code : value.get_result().get_failed_parts()) {
+                    switch (code.get_code()) {
+                        case nebula::storage::cpp2::ErrorCode::E_INVALID_FILTER:
+                            return Status::Error("Maybe invalid edge or property in WHEN clause!");
+                        case nebula::storage::cpp2::ErrorCode::E_INVALID_UPDATER:
+                            return Status::Error(
+                                    "Maybe invalid edge or property in SET/YIELD clause!");
+                        // case nebula::storage::cpp2::ErrorCode::E_FILTER_OUT:
+                        //    break;
+                        default:
+                            std::string errMsg =
+                                folly::stringPrintf("Maybe edge does not exist, "
+                                                    "part: %d, error code: %d!",
+                                                    code.get_part_id(),
+                                                    static_cast<int32_t>(code.get_code()));
+                            LOG(ERROR) << errMsg;
+                            return Status::Error(std::move(errMsg));;
+                    }
+                }
                 if (value.__isset.props) {
                     auto status = handleResult(*value.get_props());
                     if (!status.ok()) {

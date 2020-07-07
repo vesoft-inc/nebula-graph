@@ -18,7 +18,7 @@ public:
     UpdateBaseExecutor(const std::string &execName,
                        const PlanNode *node,
                        QueryContext *ectx)
-            : Executor(execName, node, ectx) {}
+        : Executor(execName, node, ectx) {}
 
     virtual ~UpdateBaseExecutor() {}
 
@@ -43,7 +43,7 @@ private:
 class UpdateEdgeExecutor final : public UpdateBaseExecutor {
 public:
     UpdateEdgeExecutor(const PlanNode *node, QueryContext *ectx)
-            : UpdateBaseExecutor("UpdateEdgeExecutor", node, ectx) {}
+        : UpdateBaseExecutor("UpdateEdgeExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
 

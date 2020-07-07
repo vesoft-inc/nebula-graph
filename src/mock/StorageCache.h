@@ -16,7 +16,6 @@
 namespace nebula {
 namespace graph {
 
-<<<<<<< HEAD
 struct EdgeHasher {
     std::size_t operator()(const storage::cpp2::EdgeKey& k) const {
         std::size_t hash_val = 0;
@@ -29,18 +28,10 @@ struct EdgeHasher {
 };
 
 using VerticesInfo = std::unordered_map<VertexID,
-<<<<<<< HEAD
                      std::unordered_map<TagID, std::unordered_map<std::string, Value>>>;
 using EdgesInfo = std::unordered_map<storage::cpp2::EdgeKey,
                                      std::unordered_map<std::string, Value>, EdgeHasher>;
-=======
-      std::unordered_map<TagID, std::unordered_map<std::string, Value>>>;
-using EdgesInfo = std::unordered_map<storage::cpp2::EdgeKey,
-      std::unordered_map<std::string, Value>, EdgeHasher>;
->>>>>>> add update executor and test
 
-=======
->>>>>>> rebase upstream
 class StorageCache final {
 public:
     explicit StorageCache(uint16_t metaPort);
@@ -51,8 +42,6 @@ public:
 
     Status addEdges(const storage::cpp2::AddEdgesRequest& req);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 private:
     StatusOr<std::unordered_map<std::string, Value>>
     getTagWholeValue(const GraphSpaceID spaceId,
@@ -75,57 +64,8 @@ private:
     struct SpaceDataInfo {
         SpaceDataInfo() = default;
         ~SpaceDataInfo() = default;
-=======
-    StatusOr<DataSet> getProps(const storage::cpp2::GetPropRequest &req);
-=======
-    StatusOr<std::vector<DataSet>> getProps(const storage::cpp2::GetPropRequest&);
-
-private:
-    std::string getEdgeKey(VertexID srcId,
-                           EdgeType type,
-                           EdgeRanking rank,
-                           VertexID dstId) {
-        std::string key;
-        key.reserve(srcId.size() + sizeof(EdgeType) + sizeof(EdgeRanking) + dstId.size());
-        key.append(srcId.data(), srcId.size())
-           .append(reinterpret_cast<const char*>(&type), sizeof(EdgeType))
-           .append(reinterpret_cast<const char*>(&rank), sizeof(EdgeRanking))
-           .append(dstId.data(), dstId.size());
-        return key;
-    }
-
-    std::string srcEdgePrefix(VertexID srcId,
-                              EdgeType type) {
-        std::string key;
-        key.reserve(srcId.size() + sizeof(EdgeType));
-        key.append(srcId.data(), srcId.size())
-           .append(reinterpret_cast<const char*>(&type), sizeof(EdgeType));
-        return key;
-    }
->>>>>>> rebase upstream
-
-    std::vector<std::string> getTagPropNamesFromCache(const GraphSpaceID spaceId,
-                                                      const TagID tagId);
-
-    std::vector<std::string> getEdgePropNamesFromCache(const GraphSpaceID spaceId,
-                                                       const EdgeType edgeType);
-
-private:
-    struct PropertyInfo {
-        std::vector<std::string>                   propNames;
-        std::vector<Value>                         propValues;
-        std::unordered_map<std::string, int32_t>   propIndexes;
-    };
-
-    struct SpaceDataInfo {
-<<<<<<< HEAD
->>>>>>> add update executor and test
         VerticesInfo     vertices;
         EdgesInfo        edges;
-=======
-        std::unordered_map<VertexID, std::unordered_map<TagID, PropertyInfo>>        vertices;
-        std::unordered_map<std::string, PropertyInfo>                                edges;
->>>>>>> rebase upstream
     };
 
     std::unordered_map<GraphSpaceID, SpaceDataInfo>   cache_;

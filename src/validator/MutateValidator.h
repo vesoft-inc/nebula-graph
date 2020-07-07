@@ -74,7 +74,7 @@ public:
 class UpdateBaseValidator : public Validator {
 public:
     explicit UpdateBaseValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         sentence_ = static_cast<UpdateBaseSentence*>(sentence);
     }
 
@@ -91,7 +91,8 @@ protected:
 
 protected:
     UpdateBaseSentence                                 *sentence_;
-    bool                                                insertable_;
+    bool                                                insertable_{false};
+    GraphSpaceID                                        spaceId_{-1};
     std::string                                         name_;
     std::vector<std::string>                            returnProps_;
     std::vector<std::string>                            yieldColNames_;
