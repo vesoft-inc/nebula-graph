@@ -353,6 +353,7 @@ public:
     }
 
 protected:
+    // Notice: We only use this interface when return results to client.
     friend class DataCollectExecutor;
     Row&& moveRow() {
         return std::move(*const_cast<Row*>(*iter_));
