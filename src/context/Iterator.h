@@ -133,10 +133,12 @@ public:
     }
 
     const Value& getColumn(const std::string& /* col */) const override {
+        DLOG(FATAL) << "Unused default iterator";
         return Value::kEmpty;
     }
 
     const Row* row() const override {
+        DLOG(FATAL) << "Unused default iterator";
         return nullptr;
     }
 
