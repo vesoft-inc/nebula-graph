@@ -19,9 +19,9 @@ folly::Future<Status> DedupExecutor::execute() {
         return Status::Error("Internal Error: iterator is nullptr");
     }
 
-    if (UNLIKELY(iter->kind() == Iterator::Kind::kGetNeighbors)) {
+    if (UNLIKELY(iter->isGetNeighborsIter())) {
         auto e = Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
-        LOG(INFO) << e;
+        LOG(ERROR) << e;
         return e;
     }
     ResultBuilder builder;

@@ -9,204 +9,201 @@
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
+#include "validator/AdminValidator.h"
+#include "validator/AssignmentValidator.h"
+#include "validator/GetSubgraphValidator.h"
 #include "validator/GoValidator.h"
+#include "validator/LimitValidator.h"
+#include "validator/MaintainValidator.h"
+#include "validator/MutateValidator.h"
+#include "validator/OrderByValidator.h"
 #include "validator/PipeValidator.h"
 #include "validator/ReportError.h"
 #include "validator/SequentialValidator.h"
-#include "validator/AssignmentValidator.h"
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
-#include "validator/GetSubgraphValidator.h"
-#include "validator/AdminValidator.h"
-#include "validator/MaintainValidator.h"
-#include "validator/MutateValidator.h"
-#include "validator/LimitValidator.h"
-#include "validator/OrderByValidator.h"
 #include "validator/YieldValidator.h"
 
 namespace nebula {
-    namespace graph {
+namespace graph {
 
-    Validator::Validator(Sentence* sentence, QueryContext* qctx)
-        : sentence_(DCHECK_NOTNULL(sentence)),
-          qctx_(DCHECK_NOTNULL(qctx)),
-          vctx_(DCHECK_NOTNULL(qctx->vctx())) {}
+Validator::Validator(Sentence* sentence, QueryContext* qctx)
+    : sentence_(DCHECK_NOTNULL(sentence)),
+      qctx_(DCHECK_NOTNULL(qctx)),
+      vctx_(DCHECK_NOTNULL(qctx->vctx())) {}
 
-    std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
-        CHECK_NOTNULL(sentence);
-        CHECK_NOTNULL(context);
-        auto kind = sentence->kind();
-        switch (kind) {
-            case Sentence::Kind::kSequential:
-                return std::make_unique<SequentialValidator>(sentence, context);
-            case Sentence::Kind::kGo:
-                return std::make_unique<GoValidator>(sentence, context);
-            case Sentence::Kind::kPipe:
-                return std::make_unique<PipeValidator>(sentence, context);
-            case Sentence::Kind::kAssignment:
-                return std::make_unique<AssignmentValidator>(sentence, context);
-            case Sentence::Kind::kSet:
-                return std::make_unique<SetValidator>(sentence, context);
-            case Sentence::Kind::kUse:
-                return std::make_unique<UseValidator>(sentence, context);
-            case Sentence::Kind::kGetSubgraph:
-                return std::make_unique<GetSubgraphValidator>(sentence, context);
-            case Sentence::Kind::kLimit:
-                return std::make_unique<LimitValidator>(sentence, context);
-            case Sentence::Kind::kOrderBy:
-                return std::make_unique<OrderByValidator>(sentence, context);
-            case Sentence::Kind::kCreateSpace:
-                return std::make_unique<CreateSpaceValidator>(sentence, context);
-            case Sentence::Kind::kCreateTag:
-                return std::make_unique<CreateTagValidator>(sentence, context);
-            case Sentence::Kind::kCreateEdge:
-                return std::make_unique<CreateEdgeValidator>(sentence, context);
-            case Sentence::Kind::kDescribeSpace:
-                return std::make_unique<DescSpaceValidator>(sentence, context);
-            case Sentence::Kind::kDescribeTag:
-                return std::make_unique<DescTagValidator>(sentence, context);
-            case Sentence::Kind::kDescribeEdge:
-                return std::make_unique<DescEdgeValidator>(sentence, context);
-            case Sentence::Kind::kAlterTag:
-                return std::make_unique<AlterTagValidator>(sentence, context);
-            case Sentence::Kind::kAlterEdge:
-                return std::make_unique<AlterEdgeValidator>(sentence, context);
-            case Sentence::Kind::kInsertVertices:
-                return std::make_unique<InsertVerticesValidator>(sentence, context);
-            case Sentence::Kind::kInsertEdges:
-                return std::make_unique<InsertEdgesValidator>(sentence, context);
-            case Sentence::Kind::kYield:
-                return std::make_unique<YieldValidator>(sentence, context);
-            default:
-                return std::make_unique<ReportError>(sentence, context);
+std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
+    auto kind = sentence->kind();
+    switch (kind) {
+        case Sentence::Kind::kSequential:
+            return std::make_unique<SequentialValidator>(sentence, context);
+        case Sentence::Kind::kGo:
+            return std::make_unique<GoValidator>(sentence, context);
+        case Sentence::Kind::kPipe:
+            return std::make_unique<PipeValidator>(sentence, context);
+        case Sentence::Kind::kAssignment:
+            return std::make_unique<AssignmentValidator>(sentence, context);
+        case Sentence::Kind::kSet:
+            return std::make_unique<SetValidator>(sentence, context);
+        case Sentence::Kind::kUse:
+            return std::make_unique<UseValidator>(sentence, context);
+        case Sentence::Kind::kGetSubgraph:
+            return std::make_unique<GetSubgraphValidator>(sentence, context);
+        case Sentence::Kind::kLimit:
+            return std::make_unique<LimitValidator>(sentence, context);
+        case Sentence::Kind::kOrderBy:
+            return std::make_unique<OrderByValidator>(sentence, context);
+        case Sentence::Kind::kCreateSpace:
+            return std::make_unique<CreateSpaceValidator>(sentence, context);
+        case Sentence::Kind::kCreateTag:
+            return std::make_unique<CreateTagValidator>(sentence, context);
+        case Sentence::Kind::kCreateEdge:
+            return std::make_unique<CreateEdgeValidator>(sentence, context);
+        case Sentence::Kind::kDescribeSpace:
+            return std::make_unique<DescSpaceValidator>(sentence, context);
+        case Sentence::Kind::kDescribeTag:
+            return std::make_unique<DescTagValidator>(sentence, context);
+        case Sentence::Kind::kDescribeEdge:
+            return std::make_unique<DescEdgeValidator>(sentence, context);
+        case Sentence::Kind::kAlterTag:
+            return std::make_unique<AlterTagValidator>(sentence, context);
+        case Sentence::Kind::kAlterEdge:
+            return std::make_unique<AlterEdgeValidator>(sentence, context);
+        case Sentence::Kind::kInsertVertices:
+            return std::make_unique<InsertVerticesValidator>(sentence, context);
+        case Sentence::Kind::kInsertEdges:
+            return std::make_unique<InsertEdgesValidator>(sentence, context);
+        case Sentence::Kind::kYield:
+            return std::make_unique<YieldValidator>(sentence, context);
+        default:
+            return std::make_unique<ReportError>(sentence, context);
+    }
+}
+
+Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
+    switch (DCHECK_NOTNULL(node)->kind()) {
+        case PlanNode::Kind::kFilter:
+        case PlanNode::Kind::kProject:
+        case PlanNode::Kind::kSort:
+        case PlanNode::Kind::kLimit:
+        case PlanNode::Kind::kAggregate:
+        case PlanNode::Kind::kSelect:
+        case PlanNode::Kind::kLoop:
+        case PlanNode::Kind::kMultiOutputs:
+        case PlanNode::Kind::kSwitchSpace:
+        case PlanNode::Kind::kCreateSpace:
+        case PlanNode::Kind::kCreateTag:
+        case PlanNode::Kind::kCreateEdge:
+        case PlanNode::Kind::kDescSpace:
+        case PlanNode::Kind::kDescTag:
+        case PlanNode::Kind::kDescEdge:
+        case PlanNode::Kind::kInsertVertices:
+        case PlanNode::Kind::kInsertEdges:
+        case PlanNode::Kind::kGetNeighbors:
+        case PlanNode::Kind::kAlterTag:
+        case PlanNode::Kind::kAlterEdge: {
+            static_cast<SingleInputNode*>(node)->setInput(appended);
+            break;
+        }
+        default: {
+            return Status::Error("%s not support to append an input.",
+                                 PlanNode::toString(node->kind()));
+        }
+    }
+    return Status::OK();
+}
+
+Status Validator::appendPlan(PlanNode* tail) {
+    return appendPlan(tail_, DCHECK_NOTNULL(tail));
+}
+
+Status Validator::validate() {
+    if (!vctx_) {
+        VLOG(1) << "Validate context was not given.";
+        return Status::Error("Validate context was not given.");
+    }
+
+    if (!sentence_) {
+        VLOG(1) << "Sentence was not given";
+        return Status::Error("Sentence was not given");
+    }
+
+    if (!noSpaceRequired_ && !spaceChosen()) {
+        VLOG(1) << "Space was not chosen.";
+        return Status::Error("Space was not chosen.");
+    }
+
+    if (!noSpaceRequired_) {
+        space_ = vctx_->whichSpace();
+    }
+
+    NG_RETURN_IF_ERROR(validateImpl());
+    NG_RETURN_IF_ERROR(toPlan());
+
+    return Status::OK();
+}
+
+bool Validator::spaceChosen() {
+    return vctx_->spaceChosen();
+}
+
+std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) const {
+    std::vector<std::string> colNames;
+    for (auto col : cols->columns()) {
+        auto status = deduceColName(col, &colNames);
+        if (UNLIKELY(!status.ok())) {
+            LOG(ERROR) << status;
         }
     }
 
-    Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
-        switch (DCHECK_NOTNULL(node)->kind()) {
-            case PlanNode::Kind::kFilter:
-            case PlanNode::Kind::kProject:
-            case PlanNode::Kind::kSort:
-            case PlanNode::Kind::kLimit:
-            case PlanNode::Kind::kAggregate:
-            case PlanNode::Kind::kSelect:
-            case PlanNode::Kind::kLoop:
-            case PlanNode::Kind::kMultiOutputs:
-            case PlanNode::Kind::kSwitchSpace:
-            case PlanNode::Kind::kCreateSpace:
-            case PlanNode::Kind::kCreateTag:
-            case PlanNode::Kind::kCreateEdge:
-            case PlanNode::Kind::kDescSpace:
-            case PlanNode::Kind::kDescTag:
-            case PlanNode::Kind::kDescEdge:
-            case PlanNode::Kind::kInsertVertices:
-            case PlanNode::Kind::kInsertEdges:
-            case PlanNode::Kind::kGetNeighbors:
-            case PlanNode::Kind::kAlterTag:
-            case PlanNode::Kind::kAlterEdge: {
-                static_cast<SingleInputNode*>(node)->setInput(appended);
-                break;
-            }
-            default: {
-                return Status::Error("%s not support to append an input.",
-                                     PlanNode::toString(node->kind()));
-            }
-        }
+    return colNames;
+}
+
+Status Validator::deduceColName(const YieldColumn* col, std::vector<std::string>* columns) const {
+    if (col->alias() != nullptr) {
+        columns->emplace_back(*col->alias());
         return Status::OK();
     }
 
-    Status Validator::appendPlan(PlanNode* tail) {
-        return appendPlan(tail_, DCHECK_NOTNULL(tail));
-    }
-
-    Status Validator::validate() {
-        if (!vctx_) {
-            VLOG(1) << "Validate context was not given.";
-            return Status::Error("Validate context was not given.");
-        }
-
-        if (!sentence_) {
-            VLOG(1) << "Sentence was not given";
-            return Status::Error("Sentence was not given");
-        }
-
-        if (!noSpaceRequired_ && !spaceChosen()) {
-            VLOG(1) << "Space was not chosen.";
-            return Status::Error("Space was not chosen.");
-        }
-
-        if (!noSpaceRequired_) {
-            space_ = vctx_->whichSpace();
-        }
-
-        NG_RETURN_IF_ERROR(validateImpl());
-        NG_RETURN_IF_ERROR(toPlan());
-
-        return Status::OK();
-    }
-
-    bool Validator::spaceChosen() {
-        return vctx_->spaceChosen();
-    }
-
-    std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) const {
-        std::vector<std::string> colNames;
-        for (auto col : cols->columns()) {
-            auto status = deduceColName(col, &colNames);
-            if (UNLIKELY(!status.ok())) {
-                LOG(ERROR) << status;
-            }
-        }
-
-        return colNames;
-    }
-
-    Status Validator::deduceColName(const YieldColumn* col,
-                                    std::vector<std::string>* columns) const {
-        if (col->alias() != nullptr) {
-            columns->emplace_back(*col->alias());
-            return Status::OK();
-        }
-
-        switch (col->expr()->kind()) {
-            case Expression::Kind::kInputProperty: {
-                auto expr = static_cast<InputPropertyExpression*>(col->expr());
-                auto& prop = *expr->prop();
-                if (prop != "*") {
-                    columns->emplace_back(prop);
-                    break;
-                }
-                if (inputs_.empty()) {
-                    return Status::SyntaxError("no inputs for `$-.*'");
-                }
-                for (auto& in : inputs_) {
-                    columns->emplace_back(in.first);
-                }
+    switch (col->expr()->kind()) {
+        case Expression::Kind::kInputProperty: {
+            auto expr = static_cast<InputPropertyExpression*>(col->expr());
+            auto& prop = *expr->prop();
+            if (prop != "*") {
+                columns->emplace_back(prop);
                 break;
             }
-            case Expression::Kind::kVarProperty: {
-                auto expr = static_cast<const VariablePropertyExpression*>(col->expr());
-                auto& prop = *expr->prop();
-                if (prop != "*") {
-                    columns->emplace_back(expr->toString());
-                    break;
-                }
-                auto& sym = *expr->sym();
-                if (!vctx_->existVar(sym)) {
-                    return Status::SyntaxError("variable %s not exists.", sym.c_str());
-                }
-                for (auto& colDef : vctx_->getVar(sym)) {
-                    columns->emplace_back(colDef.first);
-                }
-                break;
+            if (inputs_.empty()) {
+                return Status::SyntaxError("no inputs for `$-.*'");
             }
-            default: {
-                columns->emplace_back(col->expr()->toString());
-                break;
+            for (auto& in : inputs_) {
+                columns->emplace_back(in.first);
             }
+            break;
         }
-        return Status::OK();
+        case Expression::Kind::kVarProperty: {
+            auto expr = static_cast<const VariablePropertyExpression*>(col->expr());
+            auto& prop = *expr->prop();
+            if (prop != "*") {
+                columns->emplace_back(expr->toString());
+                break;
+            }
+            auto& sym = *expr->sym();
+            if (!vctx_->existVar(sym)) {
+                return Status::SyntaxError("variable %s not exists.", sym.c_str());
+            }
+            for (auto& colDef : vctx_->getVar(sym)) {
+                columns->emplace_back(colDef.first);
+            }
+            break;
+        }
+        default: {
+            columns->emplace_back(col->expr()->toString());
+            break;
+        }
     }
+    return Status::OK();
+}
 
 #define DETECT_BIEXPR_TYPE(OP)                                           \
     auto biExpr = static_cast<const BinaryExpression*>(expr);            \
@@ -645,4 +642,4 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 }   // namespace graph
-}  // namespace nebula
+}   // namespace nebula

@@ -182,15 +182,14 @@ TEST_F(QueryValidatorTest, Limit) {
     // Syntax error
     {
         std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT -1, 3";
-        auto status = validate(query);
-        ASSERT_FALSE(status.ok()) << status.status();
+        EXPECT_FALSE(checkResult(query));
     }
     {
         std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT 1, 3";
         std::vector<PlanNode::Kind> expected = {
                 PK::kDataCollect, PK::kLimit, PK::kProject, PK::kGetNeighbors, PK::kStart
         };
-        ASSERT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
 }
 
@@ -201,14 +200,13 @@ TEST_F(QueryValidatorTest, OrderBy) {
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
         };
-        ASSERT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
     // not exist factor
     {
         std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
                             " | ORDER BY $-.name";
-        auto status = validate(query);
-        ASSERT_FALSE(status.ok()) << status.status();
+        EXPECT_FALSE(checkResult(query));
     }
 }
 
@@ -219,7 +217,7 @@ TEST_F(QueryValidatorTest, OrderByAndLimt) {
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect, PK::kLimit, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
         };
-        ASSERT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
 }
 
@@ -229,10 +227,6 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
       std::string query =
           "GO FROM \"1\" OVER like YIELD like.start AS start UNION ALL GO FROM \"2\" "
           "OVER like YIELD like.start AS start";
-      auto status = validate(query);
-      ASSERT_TRUE(status.ok()) << status.status();
-      auto plan = std::move(status).value();
-      ASSERT_NE(plan, nullptr);
       std::vector<PlanNode::Kind> expected = {
           PK::kDataCollect,
           PK::kUnion,
@@ -243,17 +237,13 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kMultiOutputs,
           PK::kStart,
       };
-      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+      EXPECT_TRUE(checkResult(query, expected));
   }
   // UNION DISTINCT twice
   {
       std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start UNION GO FROM \"2\" "
                           "OVER like YIELD like.start AS start UNION GO FROM \"3\" OVER like YIELD "
                           "like.start AS start";
-      auto status = validate(query);
-      ASSERT_TRUE(status.ok()) << status.status();
-      auto plan = std::move(status).value();
-      ASSERT_NE(plan, nullptr);
       std::vector<PlanNode::Kind> expected = {
           PK::kDataCollect,
           PK::kDedup,
@@ -270,17 +260,13 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kStart,
           PK::kMultiOutputs,
       };
-      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+      EXPECT_TRUE(checkResult(query, expected));
   }
   // UNION DISTINCT
   {
       std::string query =
           "GO FROM \"1\" OVER like YIELD like.start AS start UNION DISTINCT GO FROM \"2\" "
           "OVER like YIELD like.start AS start";
-      auto status = validate(query);
-      EXPECT_TRUE(status.ok()) << status.status();
-      auto plan = std::move(status).value();
-      ASSERT_NE(plan, nullptr);
       std::vector<PlanNode::Kind> expected = {
           PK::kDataCollect,
           PK::kDedup,
@@ -292,23 +278,18 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kMultiOutputs,
           PK::kStart,
       };
-      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+      EXPECT_TRUE(checkResult(query, expected));
   }
   // INVALID UNION ALL
   {
       std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start, $^.person.name AS "
                           "name UNION GO FROM \"2\" OVER like YIELD like.start AS start";
-      auto status = validate(query);
-      ASSERT_FALSE(status.ok()) << status.status();
+      EXPECT_FALSE(checkResult(query));
   }
   // INTERSECT
   {
       std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start INTERSECT GO FROM "
                           "\"2\" OVER like YIELD like.start AS start";
-      auto status = validate(query);
-      EXPECT_TRUE(status.ok()) << status.status();
-      auto plan = std::move(status).value();
-      ASSERT_NE(plan, nullptr);
       std::vector<PlanNode::Kind> expected = {
           PK::kDataCollect,
           PK::kIntersect,
@@ -319,16 +300,12 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kMultiOutputs,
           PK::kStart,
       };
-      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+      EXPECT_TRUE(checkResult(query, expected));
   }
   // MINUS
   {
       std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start MINUS GO FROM "
                           "\"2\" OVER like YIELD like.start AS start";
-      auto status = validate(query);
-      EXPECT_TRUE(status.ok()) << status.status();
-      auto plan = std::move(status).value();
-      ASSERT_NE(plan, nullptr);
       std::vector<PlanNode::Kind> expected = {
           PK::kDataCollect,
           PK::kMinus,
@@ -339,7 +316,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kMultiOutputs,
           PK::kStart,
       };
-      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+      EXPECT_TRUE(checkResult(query, expected));
   }
 }
 }  // namespace graph

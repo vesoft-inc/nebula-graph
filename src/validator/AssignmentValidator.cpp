@@ -11,6 +11,7 @@
 
 namespace nebula {
 namespace graph {
+
 Status AssignmentValidator::validateImpl() {
     auto* assignSentence = static_cast<AssignmentSentence*>(sentence_);
     validator_ = makeValidator(assignSentence->sentence(), qctx_);
@@ -27,5 +28,6 @@ Status AssignmentValidator::toPlan() {
     tail_ = validator_->tail();
     return Status::OK();
 }
+
 }   // namespace graph
-}  // namespace nebula
+}   // namespace nebula

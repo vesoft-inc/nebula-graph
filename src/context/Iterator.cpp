@@ -308,9 +308,6 @@ std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
         case Iterator::Kind::kGetNeighbors:
             os << "get neighbors";
             break;
-        case Iterator::Kind::kUnion:
-            os << "union";
-            break;
     }
     os << " iterator";
     return os;

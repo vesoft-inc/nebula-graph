@@ -15,78 +15,78 @@ class YieldValidatorTest : public ValidatorTestBase {
 public:
     void SetUp() override {
         ValidatorTestBase::SetUp();
-        expected = {PlanNode::Kind::kProject, PlanNode::Kind::kStart};
+        expected_ = {PlanNode::Kind::kProject, PlanNode::Kind::kStart};
     }
 
 protected:
-    std::vector<PlanNode::Kind> expected;
+    std::vector<PlanNode::Kind> expected_;
 };
 
 TEST_F(YieldValidatorTest, Base) {
     {
         std::string query = "YIELD 1";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     // {
     //     std::string query = "YIELD 1+1, '1+1', (int)3.14, (string)(1+1), (string)true";
-    //     EXPECT_TRUE(checkResult(query, expected));
+    //     EXPECT_TRUE(checkResult(query, expected_));
     // }
     {
         std::string query = "YIELD \"Hello\", hash(\"Hello\")";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
 }
 
 TEST_F(YieldValidatorTest, HashCall) {
     {
         std::string query = "YIELD hash(\"Boris\")";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         std::string query = "YIELD hash(123)";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         std::string query = "YIELD hash(123 + 456)";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         std::string query = "YIELD hash(123.0)";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         std::string query = "YIELD hash(!0)";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
 }
 
 TEST_F(YieldValidatorTest, Logic) {
     {
         std::string query = "YIELD NOT 0 || 0 AND 0 XOR 0";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         std::string query = "YIELD !0 OR 0 && 0 XOR 1";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         std::string query = "YIELD (NOT 0 || 0) AND 0 XOR 1";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     // {
     //     std::string query = "YIELD 2.5 % 1.2 ^ 1.6";
-    //     EXPECT_TRUE(checkResult(query, expected));
+    //     EXPECT_TRUE(checkResult(query, expected_));
     // }
     // {
     //     std::string query = "YIELD (5 % 3) ^ 1";
-    //     EXPECT_TRUE(checkResult(query, expected));
+    //     EXPECT_TRUE(checkResult(query, expected_));
     // }
 }
 
 TEST_F(YieldValidatorTest, InCall) {
     {
         std::string query = "YIELD udf_is_in(1,0,1,2), 123";
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
 }
 
@@ -96,72 +96,86 @@ TEST_F(YieldValidatorTest, YieldPipe) {
     {
         auto fmt = go + "| YIELD $-.start";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         auto fmt = go + "| YIELD $-.start WHERE 1 == 1";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         auto fmt = go + "| YIELD $-.start WHERE $-.start > 2005";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         auto fmt = go + "| YIELD $-.*";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         auto fmt = go + "| YIELD $-.* WHERE $-.start > 2005";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         auto fmt = go + "| YIELD $-.*, hash(123) as hash WHERE $-.start > 2005";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected, {"name", "start", "hash"}));
+        EXPECT_TRUE(checkResult(query, expected_, {"name", "start", "hash"}));
+    }
+    {
+        auto fmt = go + "| YIELD DISTINCT $-.*, hash(123) as hash WHERE $-.start > 2005";
+        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        expected_ = {
+            PlanNode::Kind::kDataCollect,
+            PlanNode::Kind::kDedup,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kFilter,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected_, {"name", "start", "hash"}));
     }
 }
 
@@ -171,65 +185,86 @@ TEST_F(YieldValidatorTest, YieldVar) {
     {
         auto fmt = var + "YIELD $var.name";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected, {"$var.name"}));
+        EXPECT_TRUE(checkResult(query, expected_, {"$var.name"}));
     }
     {
         auto fmt = var + "YIELD $var.name WHERE 1 == 1";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected, {"$var.name"}));
+        EXPECT_TRUE(checkResult(query, expected_, {"$var.name"}));
     }
     {
         auto fmt = var + "YIELD $var.name WHERE $var.start > 2005";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         auto fmt = var + "YIELD $var.*";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected, {"name", "start"}));
+        EXPECT_TRUE(checkResult(query, expected_, {"name", "start"}));
     }
     {
         auto fmt = var + "YIELD $var.* WHERE $var.start > 2005";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected, {"name", "start"}));
+        EXPECT_TRUE(checkResult(query, expected_, {"name", "start"}));
     }
     {
         auto fmt = var + "YIELD $var.*, hash(123) as hash WHERE $var.start > 2005";
         auto query = folly::stringPrintf(fmt.c_str(), "1");
-        EXPECT_TRUE(checkResult(query, expected, {"name", "start", "hash"}));
+        expected_ = {
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kFilter,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected_, {"name", "start", "hash"}));
+    }
+    {
+        auto fmt = var + "YIELD DISTINCT $var.*, hash(123) as hash WHERE $var.start > 2005";
+        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        expected_ = {
+            PlanNode::Kind::kDataCollect,
+            PlanNode::Kind::kDedup,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kFilter,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected_, {"name", "start", "hash"}));
     }
 }
 
@@ -320,39 +355,39 @@ TEST_F(YieldValidatorTest, AggCall) {
                     "like.likeness AS like"
                     "| YIELD AVG($-.age), SUM($-.like), COUNT(*), 1+1";
         auto query = folly::stringPrintf(fmt, "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     // Yield field has not input
     {
         auto *fmt = "GO FROM \"%s\" OVER like "
                     "| YIELD COUNT(*)";
         auto query = folly::stringPrintf(fmt, "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     // Yield field has not input
     {
         auto *fmt = "GO FROM \"%s\" OVER like "
                     "| YIELD 1";
         auto query = folly::stringPrintf(fmt, "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
     // Test var
     {
@@ -361,13 +396,13 @@ TEST_F(YieldValidatorTest, AggCall) {
                     "like.likeness AS like;"
                     "YIELD AVG($var.age), SUM($var.like), COUNT(*)";
         auto query = folly::stringPrintf(fmt, "1");
-        expected = {
+        expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
-        EXPECT_TRUE(checkResult(query, expected));
+        EXPECT_TRUE(checkResult(query, expected_));
     }
 }
 
