@@ -89,6 +89,7 @@ void SequentialValidator::ifBuildDataCollectForRoot(PlanNode* root) {
         case PlanNode::Kind::kMinus: {
             auto* dc = DataCollect::make(qctx_->plan(), root,
                 DataCollect::CollectKind::kRowBasedMove, {root->varName()});
+            dc->setColNames(root->colNames());
             root_ = dc;
             break;
         }
