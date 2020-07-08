@@ -16,8 +16,7 @@ protected:
     GetPropExecutor(const std::string &name, const PlanNode *node, QueryContext *qctx)
         : Executor(name, node, qctx) {}
 
-    template <typename Resp>
-    Status handleResp(storage::StorageRpcResponse<Resp> &&rpcResp) {
+    Status handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp) {
         auto result = handleCompleteness(rpcResp);
         if (!result.ok()) {
             return std::move(result).status();
