@@ -24,21 +24,15 @@ protected:
         auto state = std::move(result).value();
         // Ok, merge DataSets to one
         nebula::DataSet v;
-        if (!rpcResp.responses().empty()) {
-            if (rpcResp.responses().front().__isset.props) {
-                v = std::move(*rpcResp.responses().front().get_props());
-            }
-        }
-        if (rpcResp.responses().size() > 1) {
-            for (std::size_t i = 1; i < rpcResp.responses().size(); ++i) {
-                auto resp = rpcResp.responses()[i];
-                if (resp.__isset.props) {
-                    if (UNLIKELY(!v.append(std::move(*resp.get_props())))) {
-                        // it's impossible according to the interface
-                        LOG(WARNING) << "Heterogeneous props dataset";
-                        state = Result::State::kPartialSuccess;
-                    }
+        for (auto &resp : rpcResp.responses()) {
+            if (resp.__isset.props) {
+                if (UNLIKELY(!v.append(std::move(*resp.get_props())))) {
+                    // it's impossible according to the interface
+                    LOG(WARNING) << "Heterogeneous props dataset";
+                    state = Result::State::kPartialSuccess;
                 }
+            } else {
+                state = Result::State::kPartialSuccess;
             }
         }
         for (auto &colName : v.colNames) {
@@ -49,8 +43,8 @@ protected:
             }
         }
         return finish(ResultBuilder()
-                      .iter(Iterator::Kind::kSequential)
                       .value(std::move(v))
+                      .iter(Iterator::Kind::kSequential)
                       .state(state)
                       .finish());
     }
