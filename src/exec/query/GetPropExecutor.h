@@ -36,7 +36,7 @@ protected:
                     if (UNLIKELY(!v.append(std::move(*resp.get_props())))) {
                         // it's impossible according to the interface
                         LOG(WARNING) << "Heterogeneous props dataset";
-                        state.setState(StateDesc::State::kPartialSuccess);
+                        state = Result::State::kPartialSuccess;
                     }
                 }
             }
@@ -48,7 +48,11 @@ protected:
                 }
             }
         }
-        return finish(ExecResult::buildSequential(std::move(v), std::move(state)));
+        return finish(ResultBuilder()
+                      .iter(Iterator::Kind::kSequential)
+                      .value(std::move(v))
+                      .state(state)
+                      .finish());
     }
 };
 

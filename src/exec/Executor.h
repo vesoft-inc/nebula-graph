@@ -94,14 +94,15 @@ protected:
 
     // Store the result of this executor to execution context
     Status finish(nebula::Value &&value);
-    Status finish(ExecResult &&result);
+    Status finish(Result &&result);
 
     // Note: will fatal when called in non single input node
-    const ExecResult& getSingleInput() const;
+    const Result& getSingleInput() const;
 
     // TODO(shylock) only used for storage fetch executor, will modify other executors to use it
     template <typename Resp>
-    StatusOr<StateDesc> handleCompleteness(const storage::StorageRpcResponse<Resp> &rpcResp) const {
+    StatusOr<Result::State>
+    handleCompleteness(const storage::StorageRpcResponse<Resp> &rpcResp) const {
         auto completeness = rpcResp.completeness();
         if (completeness != 100) {
             const auto &failedCodes = rpcResp.failedParts();
@@ -114,9 +115,9 @@ protected:
                 LOG(ERROR) << "Get data from storage failed in executor " << name_;
                 return Status::Error(" Get data from storage failed in executor.");
             }
-            return StateDesc(StateDesc::State::kPartialSuccess);
+            return Result::State::kPartialSuccess;
         }
-        return StateDesc(StateDesc::State::kSuccess);
+        return Result::State::kSuccess;
     }
 
     // Dump some execution logging messages, only for debugging

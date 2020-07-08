@@ -314,13 +314,13 @@ Status Executor::finish(nebula::Value &&value) {
     return Status::OK();
 }
 
-const ExecResult& Executor::getSingleInput() const {
+const Result& Executor::getSingleInput() const {
     // TODO(shylock) down-cast by the kind
     const auto &inputVar = CHECK_NOTNULL(dynamic_cast<const SingleInputNode*>(node()))->inputVar();
     return ectx_->getResult(inputVar);
 }
 
-Status Executor::finish(ExecResult &&result) {
+Status Executor::finish(Result &&result) {
     ectx_->setResult(node()->varName(), std::move(result));
     return Status::OK();
 }
