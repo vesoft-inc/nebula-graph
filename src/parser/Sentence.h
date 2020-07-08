@@ -54,7 +54,6 @@ public:
         kUpdateVertex,
         kInsertEdges,
         kUpdateEdge,
-        kShow,
         kShowHosts,
         kShowSpaces,
         kShowParts,
