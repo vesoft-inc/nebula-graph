@@ -27,12 +27,12 @@ folly::Future<Status> ProjectExecutor::execute() {
         Row row;
         for (auto& col : columns) {
             Value val = col->expr()->eval(ctx);
+            VLOG(3) << "Project: " << val;
             row.values.emplace_back(std::move(val));
         }
         ds.rows.emplace_back(std::move(row));
     }
-    return finish(ExecResult::buildSequential(
-        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+    return finish(ExecResult::buildSequential(Value(std::move(ds))));
 }
 
 }  // namespace graph

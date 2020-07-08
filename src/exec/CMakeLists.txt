@@ -22,6 +22,7 @@ nebula_add_library(
     query/ProjectExecutor.cpp
     query/SortExecutor.cpp
     query/ReadIndexExecutor.cpp
+    query/SetExecutor.cpp
     query/UnionExecutor.cpp
     query/DataCollectExecutor.cpp
     admin/SwitchSpaceExecutor.cpp
@@ -31,6 +32,7 @@ nebula_add_library(
     maintain/CreateEdgeExecutor.cpp
     maintain/DescTagExecutor.cpp
     maintain/DescEdgeExecutor.cpp
+    maintain/AlterSchemaExecutor.cpp
     mutate/InsertVerticesExecutor.cpp
     mutate/InsertEdgesExecutor.cpp
 )

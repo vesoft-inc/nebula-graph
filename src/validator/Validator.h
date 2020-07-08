@@ -28,7 +28,7 @@ public:
     static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
                                                     QueryContext* context);
 
-    static Status appendPlan(PlanNode* plan, PlanNode* appended);
+    MUST_USE_RESULT Status appendPlan(PlanNode* tail);
 
     Status validate();
 
@@ -36,19 +36,19 @@ public:
         inputs_ = std::move(inputs);
     }
 
-    auto root() const {
+    PlanNode* root() const {
         return root_;
     }
 
-    auto tail() const {
+    PlanNode* tail() const {
         return tail_;
     }
 
-    auto outputs() const {
+    ColsDef outputs() const {
         return outputs_;
     }
 
-    auto inputs() const {
+    ColsDef inputs() const {
         return inputs_;
     }
 
@@ -72,9 +72,18 @@ protected:
      */
     virtual Status toPlan() = 0;
 
-    std::vector<std::string> evalResultColNames(const YieldColumns* cols) const;
+    std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
+
+    std::string deduceColName(const YieldColumn* col) const;
+
+    StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
+
+    bool evaluableExpr(const Expression* expr) const;
+
+    static Status appendPlan(PlanNode* plan, PlanNode* appended);
 
 protected:
+    SpaceDescription                space_;
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
     ValidateContext*                vctx_{nullptr};

@@ -11,6 +11,7 @@
 
 namespace nebula {
 namespace graph {
+
 TEST(IteratorTest, Default) {
     auto constant = std::make_shared<Value>(1);
     DefaultIter iter(constant);
@@ -545,6 +546,48 @@ TEST(IteratorTest, TestHead) {
     }
 }
 
+TEST(IteratorTest, EraseRange) {
+    // Sequential iterator
+    {
+        DataSet ds({"col1", "col2"});
+        for (auto i = 0; i < 10; ++i) {
+            ds.rows.emplace_back(Row({i, folly::to<std::string>(i)}));
+        }
+        // erase out of range pos
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(5, 11);
+            ASSERT_EQ(iter.size(), 5);
+            auto i = 0;
+            for (; iter.valid(); iter.next()) {
+                ASSERT_EQ(iter.getColumn("col1"), i);
+                ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+                ++i;
+            }
+        }
+        // erase in range
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(0, 10);
+            ASSERT_EQ(iter.size(), 0);
+        }
+        // erase part
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(0, 5);
+            EXPECT_EQ(iter.size(), 5);
+            auto i = 5;
+            for (; iter.valid(); iter.next()) {
+                ASSERT_EQ(iter.getColumn("col1"), i);
+                ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+                ++i;
+            }
+        }
+    }
+}
 }  // namespace graph
 }  // namespace nebula
 
@@ -555,3 +598,4 @@ int main(int argc, char** argv) {
 
     return RUN_ALL_TESTS();
 }
+

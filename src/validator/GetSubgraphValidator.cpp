@@ -73,7 +73,6 @@ Status GetSubgraphValidator::validateFrom(FromClause* from) {
         for (auto* expr : from->vidList()) {
             // TODO:
             auto vid = Expression::eval(expr, ctx);
-            LOG(ERROR) << "starts: " << vid;
             starts_.emplace_back(std::move(vid));
         }
     }
@@ -166,11 +165,10 @@ Status GetSubgraphValidator::toPlan() {
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(vidsToSave, ExecResult::buildSequential(
-        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+    qctx_->ectx()->setResult(vidsToSave, ExecResult::buildSequential(Value(std::move(ds))));
     auto* vids = new VariablePropertyExpression(
                      new std::string(vidsToSave),
-                     new std::string(_VID));
+                     new std::string(kVid));
     auto* gn1 = GetNeighbors::make(
             plan,
             bodyStart,
@@ -188,13 +186,13 @@ Status GetSubgraphValidator::toPlan() {
     auto* column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string("*"),
-                new std::string(kVid)),
+                new std::string(kDst)),
             new std::string(kVid));
     columns->addColumn(column);
     auto* project = Project::make(plan, gn1, plan->saveObject(columns));
     project->setInputVar(gn1->varName());
     project->setOutputVar(vidsToSave);
-    project->setColNames(evalResultColNames(columns));
+    project->setColNames(deduceColNames(columns));
 
     // ++counter{0} <= steps
     auto counter = vctx_->varGen()->getVar();
@@ -262,3 +260,4 @@ Status GetSubgraphValidator::toPlan() {
 }
 }  // namespace graph
 }  // namespace nebula
+

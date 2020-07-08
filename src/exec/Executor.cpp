@@ -9,6 +9,7 @@
 #include <folly/String.h>
 #include <folly/executors/InlineExecutor.h>
 
+#include "context/ExecutionContext.h"
 #include "context/QueryContext.h"
 #include "exec/ExecutionError.h"
 #include "exec/admin/CreateSpaceExecutor.h"
@@ -22,6 +23,7 @@
 #include "exec/maintain/CreateTagExecutor.h"
 #include "exec/maintain/DescEdgeExecutor.h"
 #include "exec/maintain/DescTagExecutor.h"
+#include "exec/maintain/AlterSchemaExecutor.h"
 #include "exec/mutate/InsertEdgesExecutor.h"
 #include "exec/mutate/InsertVerticesExecutor.h"
 #include "exec/query/AggregateExecutor.h"
@@ -199,42 +201,72 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kCreateSpace: {
             auto createSpace = asNode<CreateSpace>(node);
+            auto input = makeExecutor(createSpace->input(), qctx, visited);
             exec = new CreateSpaceExecutor(createSpace, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDescSpace: {
             auto descSpace = asNode<DescSpace>(node);
+            auto input = makeExecutor(descSpace->input(), qctx, visited);
             exec = new DescSpaceExecutor(descSpace, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kCreateTag: {
             auto createTag = asNode<CreateTag>(node);
+            auto input = makeExecutor(createTag->input(), qctx, visited);
             exec = new CreateTagExecutor(createTag, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDescTag: {
             auto descTag = asNode<DescTag>(node);
+            auto input = makeExecutor(descTag->input(), qctx, visited);
             exec = new DescTagExecutor(descTag, qctx);
+            exec->addDependent(input);
+            break;
+        }
+        case PlanNode::Kind::kAlterTag: {
+            auto alterTag = asNode<AlterTag>(node);
+            auto input = makeExecutor(alterTag->input(), qctx, visited);
+            exec = new AlterTagExecutor(alterTag, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kCreateEdge: {
             auto createEdge = asNode<CreateEdge>(node);
+            auto input = makeExecutor(createEdge->input(), qctx, visited);
             exec = new CreateEdgeExecutor(createEdge, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDescEdge: {
             auto descEdge = asNode<DescEdge>(node);
+            auto input = makeExecutor(descEdge->input(), qctx, visited);
             exec = new DescEdgeExecutor(descEdge, qctx);
+            exec->addDependent(input);
+            break;
+        }
+        case PlanNode::Kind::kAlterEdge: {
+            auto alterEdge = asNode<AlterEdge>(node);
+            auto input = makeExecutor(alterEdge->input(), qctx, visited);
+            exec = new AlterEdgeExecutor(alterEdge, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {
             auto insertV = asNode<InsertVertices>(node);
+            auto input = makeExecutor(insertV->input(), qctx, visited);
             exec = new InsertVerticesExecutor(insertV, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kInsertEdges: {
             auto insertE = asNode<InsertEdges>(node);
+            auto input = makeExecutor(insertE->input(), qctx, visited);
             exec = new InsertEdgesExecutor(insertE, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDataCollect: {
@@ -246,7 +278,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kUnknown:
         default:
-            LOG(FATAL) << "Unknown plan node kind.";
+            LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
             break;
     }
 
@@ -256,16 +288,12 @@ Executor *Executor::makeExecutor(const PlanNode *node,
     return qctx->objPool()->add(exec);
 }
 
-int64_t Executor::id() const {
-    return node()->id();
-}
-
 Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *qctx)
-    : name_(name), node_(node), qctx_(qctx) {
-    DCHECK(!!node_);
-    DCHECK(!!qctx_);
-
-    ectx_ = qctx_->ectx();
+    : id_(DCHECK_NOTNULL(node)->id()),
+      name_(name),
+      node_(DCHECK_NOTNULL(node)),
+      qctx_(DCHECK_NOTNULL(qctx)) {
+    ectx_ = qctx->ectx();
     // Initialize the position in ExecutionContext for each executor before execution plan
     // starting to run. This will avoid lock something for thread safety in real execution
     if (!ectx_->exist(node->varName())) {

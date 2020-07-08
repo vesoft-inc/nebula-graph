@@ -9,17 +9,18 @@
 #include "context/QueryContext.h"
 #include "planner/Query.h"
 #include "exec/query/ProjectExecutor.h"
+#include "exec/query/test/QueryTestBase.h"
 
 namespace nebula {
 namespace graph {
-class ProjectTest : public testing::Test {
+class ProjectTest : public QueryTestBase {
 protected:
     static void SetUpTestCase() {
         qctx_ = std::make_unique<QueryContext>();
 
         {
             DataSet ds;
-            ds.colNames = {kVid, "col2"};
+            ds.colNames = {"vid", "col2"};
             for (auto i = 0; i < 10; ++i) {
                 Row row;
                 row.values.emplace_back(i);
@@ -27,13 +28,13 @@ protected:
                 ds.rows.emplace_back(std::move(row));
             }
             qctx_->ectx()->setResult("input_project",
-                        ExecResult::buildSequential(Value(std::move(ds)), State()));
+                        ExecResult::buildSequential(Value(std::move(ds))));
         }
         {
             DataSet ds;
-            ds.colNames = {kVid, "col2"};
+            ds.colNames = {"vid", "col2"};
             qctx_->ectx()->setResult("empty",
-                        ExecResult::buildSequential(Value(std::move(ds)), State()));
+                        ExecResult::buildSequential(Value(std::move(ds))));
         }
     }
 
@@ -45,17 +46,12 @@ std::unique_ptr<QueryContext> ProjectTest::qctx_;
 
 TEST_F(ProjectTest, Project1Col) {
     std::string input = "input_project";
-    auto* columns = new YieldColumns();
-    auto* column = new YieldColumn(
-            new VariablePropertyExpression(
-                new std::string(input),
-                new std::string(kVid)),
-            new std::string(kVid));
-    columns->addColumn(column);
+    auto yieldColumns = getYieldColumns("YIELD $input_project.vid AS vid");
+
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(plan, nullptr, yieldColumns);
     project->setInputVar(input);
-    project->setColNames(std::vector<std::string>{kVid});
+    project->setColNames(std::vector<std::string>{"vid"});
 
     auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
     auto future = proExe->execute();
@@ -64,35 +60,24 @@ TEST_F(ProjectTest, Project1Col) {
     auto& result = qctx_->ectx()->getResult(project->varName());
 
     DataSet expected;
-    expected.colNames = {kVid};
+    expected.colNames = {"vid"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         row.values.emplace_back(i);
         expected.rows.emplace_back(std::move(row));
     }
     EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    EXPECT_EQ(result.state().state(), StateDesc::State::kSuccess);
 }
 
 TEST_F(ProjectTest, Project2Col) {
     std::string input = "input_project";
-    auto* columns = new YieldColumns();
-    auto* column0 = new YieldColumn(
-            new VariablePropertyExpression(
-                new std::string(input),
-                new std::string(kVid)),
-            new std::string(kVid));
-    columns->addColumn(column0);
-    auto* column1 = new YieldColumn(
-            new VariablePropertyExpression(
-                new std::string(input),
-                new std::string("col2")),
-            new std::string("num"));
-    columns->addColumn(column1);
+    auto yieldColumns = getYieldColumns(
+            "YIELD $input_project.vid AS vid, $input_project.col2 AS num");
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(plan, nullptr, yieldColumns);
     project->setInputVar(input);
-    project->setColNames(std::vector<std::string>{kVid, "num"});
+    project->setColNames(std::vector<std::string>{"vid", "num"});
 
     auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
     auto future = proExe->execute();
@@ -101,7 +86,7 @@ TEST_F(ProjectTest, Project2Col) {
     auto& result = qctx_->ectx()->getResult(project->varName());
 
     DataSet expected;
-    expected.colNames = {kVid, "num"};
+    expected.colNames = {"vid", "num"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         row.values.emplace_back(i);
@@ -109,22 +94,16 @@ TEST_F(ProjectTest, Project2Col) {
         expected.rows.emplace_back(std::move(row));
     }
     EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    EXPECT_EQ(result.state().state(), StateDesc::State::kSuccess);
 }
 
 TEST_F(ProjectTest, EmptyInput) {
     std::string input = "empty";
-    auto* columns = new YieldColumns();
-    auto* column = new YieldColumn(
-            new VariablePropertyExpression(
-                new std::string(input),
-                new std::string(kVid)),
-            new std::string(kVid));
-    columns->addColumn(column);
+    auto yieldColumns = getYieldColumns("YIELD $input_project.vid AS vid");
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(plan, nullptr, yieldColumns);
     project->setInputVar(input);
-    project->setColNames(std::vector<std::string>{kVid});
+    project->setColNames(std::vector<std::string>{"vid"});
 
     auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());
     auto future = proExe->execute();
@@ -133,9 +112,10 @@ TEST_F(ProjectTest, EmptyInput) {
     auto& result = qctx_->ectx()->getResult(project->varName());
 
     DataSet expected;
-    expected.colNames.emplace_back(kVid);
+    expected.colNames.emplace_back("vid");
     EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    EXPECT_EQ(result.state().state(), StateDesc::State::kSuccess);
 }
+
 }  // namespace graph
 }  // namespace nebula

@@ -518,7 +518,7 @@ public:
         return new Filter(plan, input, condition);
     }
 
-    const Expression* condition() const {
+    Expression* condition() const {
         return condition_;
     }
 
@@ -630,24 +630,26 @@ class Sort final : public SingleInputNode {
 public:
     static Sort* make(ExecutionPlan* plan,
                       PlanNode* input,
-                      OrderFactors* factors) {
-        return new Sort(plan, input, factors);
+                      std::vector<std::pair<std::string, OrderFactor::OrderType>> factors) {
+        return new Sort(plan, input, std::move(factors));
     }
 
-    const OrderFactors* factors() {
+    const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors() const {
         return factors_;
     }
 
     std::string explain() const override;
 
 private:
-    Sort(ExecutionPlan* plan, PlanNode* input, OrderFactors* factors)
-      : SingleInputNode(plan, Kind::kSort, input) {
-        factors_ = factors;
+    Sort(ExecutionPlan* plan,
+         PlanNode* input,
+         std::vector<std::pair<std::string, OrderFactor::OrderType>> factors)
+        : SingleInputNode(plan, Kind::kSort, input) {
+        factors_ = std::move(factors);
     }
 
 private:
-    OrderFactors*   factors_{nullptr};
+    std::vector<std::pair<std::string, OrderFactor::OrderType>>   factors_;
 };
 
 /**
@@ -797,65 +799,50 @@ private:
 class SwitchSpace final : public SingleInputNode {
 public:
     static SwitchSpace* make(ExecutionPlan* plan,
-                                        PlanNode* input,
-                                        std::string spaceName,
-                                        GraphSpaceID spaceId) {
-        return new SwitchSpace(plan, input, spaceName, spaceId);
+                             PlanNode* input,
+                             std::string spaceName) {
+        return new SwitchSpace(plan, input, spaceName);
     }
 
     const std::string& getSpaceName() const {
         return spaceName_;
     }
 
-    GraphSpaceID getSpaceId() const {
-        return spaceId_;
-    }
-
     std::string explain() const override;
 
 private:
     SwitchSpace(ExecutionPlan* plan,
-                           PlanNode* input,
-                           std::string spaceName,
-                           GraphSpaceID spaceId)
+                PlanNode* input,
+                std::string spaceName)
         : SingleInputNode(plan, Kind::kSwitchSpace, input) {
         spaceName_ = std::move(spaceName);
-        spaceId_ = spaceId;
     }
 
 private:
     std::string     spaceName_;
-    GraphSpaceID    spaceId_{-1};
 };
 
 class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(ExecutionPlan* plan,
-                       PlanNode* input,
-                       Expression* expr) {
-        return new Dedup(plan, input, expr);
-    }
-
-    void setExpr(Expression* expr) {
-        expr_ = expr;
+                       PlanNode* input) {
+        return new Dedup(plan, input);
     }
 
     std::string explain() const override;
 
 private:
-    Dedup(ExecutionPlan* plan, PlanNode* input, Expression* expr)
+    Dedup(ExecutionPlan* plan,
+          PlanNode* input)
         : SingleInputNode(plan, Kind::kDedup, input) {
-        expr_ = expr;
     }
-
-private:
-    Expression*     expr_{nullptr};
 };
 
 class DataCollect final : public SingleInputNode {
 public:
     enum class CollectKind : uint8_t {
         kSubgraph,
+        kRowBasedMove,
     };
 
     static DataCollect* make(ExecutionPlan* plan,

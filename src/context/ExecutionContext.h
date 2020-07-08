@@ -26,26 +26,26 @@ namespace graph {
  * planner, the optimizer, and the executor.
  *
  **************************************************************************/
-class State final {
+class StateDesc final {
 public:
-    enum class Stat : uint8_t {
+    enum class State : uint8_t {
         kUnExecuted,
         kPartialSuccess,
         kSuccess
     };
 
-    State() = default;
-    State(Stat stat, std::string msg) {
-        stat_ = stat;
+    StateDesc() = default;
+    StateDesc(State state, std::string msg) {
+        state_ = state;
         msg_ = std::move(msg);
     }
 
-    const Stat& stat() const {
-        return stat_;
+    const State& state() const {
+        return state_;
     }
 
 private:
-    Stat            stat_{Stat::kUnExecuted};
+    State           state_{State::kUnExecuted};
     std::string     msg_;
 };
 
@@ -56,22 +56,36 @@ public:
     static const ExecResult kEmptyResult;
     static const std::vector<ExecResult> kEmptyResultList;
 
-    static ExecResult buildDefault(Value&& val) {
-        return ExecResult(std::move(val));
+    static ExecResult buildDefault(std::shared_ptr<Value> val) {
+        return ExecResult(val);
     }
 
-    static ExecResult buildGetNeighbors(Value&& val, State&& stat) {
-        ExecResult result(std::move(val), std::move(stat));
+    static ExecResult buildDefault(Value&& val) {
+        return ExecResult(std::make_shared<Value>(std::move(val)));
+    }
+
+    static ExecResult buildGetNeighbors(Value&& val) {
+        StateDesc stateDesc(StateDesc::State::kSuccess, "");
+        return buildGetNeighbors(std::move(val), std::move(stateDesc));
+    }
+
+    static ExecResult buildGetNeighbors(Value&& val, StateDesc&& stateDesc) {
+        ExecResult result(std::make_shared<Value>(std::move(val)), std::move(stateDesc));
         auto iter = std::make_unique<GetNeighborsIter>(result.valuePtr());
         result.setIter(std::move(iter));
         return result;
     }
 
-    static ExecResult buildSequential(Value&& val, State&& stat) {
-        ExecResult result(std::move(val), std::move(stat));
+    static ExecResult buildSequential(Value&& val, StateDesc&& stateDesc) {
+        ExecResult result(std::make_shared<Value>(std::move(val)), std::move(stateDesc));
         auto iter = std::make_unique<SequentialIter>(result.valuePtr());
         result.setIter(std::move(iter));
         return result;
+    }
+
+    static ExecResult buildSequential(Value&& val) {
+        StateDesc stateDesc(StateDesc::State::kSuccess, "");
+        return buildSequential(std::move(val), std::move(stateDesc));
     }
 
     void setIter(std::unique_ptr<Iterator> iter) {
@@ -90,8 +104,8 @@ public:
         return std::move(*value_);
     }
 
-    const State& state() const {
-        return state_;
+    const StateDesc& state() const {
+        return stateDesc_;
     }
 
     std::unique_ptr<Iterator> iter() const {
@@ -101,20 +115,20 @@ public:
 private:
     ExecResult()
         : value_(std::make_shared<Value>()),
-          state_(State::Stat::kUnExecuted, ""),
+          stateDesc_(StateDesc::State::kUnExecuted, ""),
           iter_(std::make_unique<DefaultIter>(value_)) {}
 
-    explicit ExecResult(Value&& val)
-        : value_(std::make_shared<Value>(std::move(val))),
-          state_(State::Stat::kSuccess, ""),
+    explicit ExecResult(std::shared_ptr<Value> val)
+        : value_(val),
+          stateDesc_(StateDesc::State::kSuccess, ""),
           iter_(std::make_unique<DefaultIter>(value_)) {}
 
-    ExecResult(Value&& val, State stat)
-        : value_(std::make_shared<Value>(std::move(val))), state_(stat) {}
+    ExecResult(std::shared_ptr<Value> val, StateDesc stateDesc)
+        : value_(val), stateDesc_(stateDesc) {}
 
 private:
     std::shared_ptr<Value>          value_;
-    State                           state_;
+    StateDesc                       stateDesc_;
     std::unique_ptr<Iterator>       iter_;
 };
 
@@ -161,3 +175,4 @@ private:
 }  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_EXECUTIONCONTEXT_H_
+
