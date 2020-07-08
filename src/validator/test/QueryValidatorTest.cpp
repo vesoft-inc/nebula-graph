@@ -310,7 +310,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
       };
       ASSERT_TRUE(verifyPlan(plan->root(), expected));
   }
-  // UNION ALL twice
+  // UNION DISTINCT twice
   {
       std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start UNION GO FROM \"2\" "
                           "OVER like YIELD like.start AS start UNION GO FROM \"3\" OVER like YIELD "
