@@ -10,6 +10,7 @@
 #include "common/function/AggregateFunction.h"
 
 #include "context/ExpressionContextImpl.h"
+#include "context/Result.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
 
@@ -29,6 +30,7 @@ folly::Future<Status> AggregateExecutor::execute() {
     for (; iter->valid(); iter->next()) {
         List list;
         for (auto& key : groupKeys) {
+            ctx.setIter(iter.get());
             list.values.emplace_back(key->eval(ctx));
         }
 
@@ -61,8 +63,7 @@ folly::Future<Status> AggregateExecutor::execute() {
         }
         ds.rows.emplace_back(std::move(row));
     }
-    return finish(ExecResult::buildSequential(
-                Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+    return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
 }   // namespace graph

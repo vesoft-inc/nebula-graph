@@ -57,8 +57,7 @@ class AggregateTest : public testing::Test {
         row.values.emplace_back(Value::kNullValue);
         ds.rows.emplace_back(std::move(row));
 
-        qctx_->ectx()->setResult(
-            *input_, ExecResult::buildSequential(Value(ds), State()));
+        qctx_->ectx()->setResult(*input_, ResultBuilder().value(Value(ds)).finish());
     }
 
 protected:
@@ -102,7 +101,7 @@ struct RowCmp {
     EXPECT_TRUE(status.ok());                                               \
     auto& result = qctx_->ectx()->getResult(agg->varName());                \
     EXPECT_EQ(result.value().getDataSet(), expected);                       \
-    EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
 
 #define TEST_AGG_2(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
@@ -126,7 +125,7 @@ struct RowCmp {
     DataSet sortedDs = result.value().getDataSet();                         \
     std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());        \
     EXPECT_EQ(sortedDs, expected);                                          \
-    EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
 
 #define TEST_AGG_3(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
@@ -155,7 +154,7 @@ struct RowCmp {
     DataSet sortedDs = result.value().getDataSet();                         \
     std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());        \
     EXPECT_EQ(sortedDs, expected);                                          \
-    EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
 
 #define TEST_AGG_4(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
@@ -175,7 +174,7 @@ struct RowCmp {
     EXPECT_TRUE(status.ok());                                               \
     auto& result = qctx_->ectx()->getResult(agg->varName());                \
     EXPECT_EQ(result.value().getDataSet(), expected);                       \
-    EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
 
 
 TEST_F(AggregateTest, Group) {
@@ -336,7 +335,7 @@ TEST_F(AggregateTest, Collect) {
         std::vector<Value> expectedVals = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         std::sort(vals.begin(), vals.end());
         EXPECT_EQ(vals, expectedVals);
-        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+        EXPECT_EQ(result.state(), Result::State::kSuccess);
     }
     {
         // ===================
@@ -434,7 +433,7 @@ TEST_F(AggregateTest, Collect) {
         auto resultList = result.value().getDataSet().rows[0].values[0].getList();
         std::sort(resultList.values.begin(), resultList.values.end());
         EXPECT_EQ(resultList, expected.rows[0].values[0].getList());
-        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+        EXPECT_EQ(result.state(), Result::State::kSuccess);
     }
     {
         // ========
@@ -506,7 +505,7 @@ TEST_F(AggregateTest, Collect) {
         std::vector<Value> expectedVals = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         std::sort(vals.begin(), vals.end());
         EXPECT_EQ(vals, expectedVals);
-        EXPECT_EQ(result.state().stat(), State::Stat::kSuccess);
+        EXPECT_EQ(result.state(), Result::State::kSuccess);
     }
     {
         // ===================
