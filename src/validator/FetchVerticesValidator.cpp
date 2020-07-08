@@ -63,13 +63,8 @@ Status FetchVerticesValidator::toPlan() {
         dedupNode->setInputVar(current->varName());
         current = dedupNode;
 
-        // project to extand dedup iterator
-        auto *projectNode = Project::make(
-            plan, current, sentence_->yieldClause()->yields());
-        projectNode->setInputVar(current->varName());
-        // TODO(shylock) waiting expression toString
-        projectNode->setColNames(deduceColNames(projectNode->columns()));
-        current = projectNode;
+        // the framework will add data collect to collect the result
+        // if the result if required
     }
     root_ = current;
     tail_ = doNode;

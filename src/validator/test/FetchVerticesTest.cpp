@@ -182,16 +182,11 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // dedup
         auto *dedup = Dedup::make(expectedQueryCtx_->plan(), gv);
 
-        // project
-        auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(
-            new EdgePropertyExpression(new std::string("person"), new std::string("name"))));
-        yieldColumns->addColumn(new YieldColumn(
-            new EdgePropertyExpression(new std::string("person"), new std::string("age"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), dedup, yieldColumns.get());
-        project->setColNames({"person.name", "person.age"});
+        // data collect
+        auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(), dedup,
+            DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
 
-        auto result = Eq(plan->root(), project);
+        auto result = Eq(plan->root(), dataCollect);
         ASSERT_TRUE(result.ok()) << result;
     }
     // ON *

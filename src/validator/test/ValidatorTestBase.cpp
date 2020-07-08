@@ -65,8 +65,17 @@ namespace graph {
         case PlanNode::Kind::kMinus:
         case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:
-        case PlanNode::Kind::kDataCollect:
             LOG(FATAL) << "Unimplemented";
+        case PlanNode::Kind::kDataCollect: {
+            const auto *lDC = static_cast<const DataCollect*>(l);
+            const auto *rDC = static_cast<const DataCollect*>(r);
+            if (lDC->collectKind() != rDC->collectKind()) {
+                return Status::Error(
+                    "%s.collectKind_ != %s.collectKind_",
+                    l->nodeLabel().c_str(), r->nodeLabel().c_str());
+            }
+            return Status::OK();
+        }
         case PlanNode::Kind::kGetVertices: {
             const auto *lGV = static_cast<const GetVertices *>(l);
             const auto *rGV = static_cast<const GetVertices *>(r);

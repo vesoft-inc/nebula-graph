@@ -250,17 +250,12 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         // dedup
         auto *dedup = Dedup::make(expectedQueryCtx_->plan(), ge);
 
-        // project
-        auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(
-                new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
-        yieldColumns->addColumn(new YieldColumn(
-                new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), dedup, yieldColumns.get());
-        project->setColNames({"like.start", "like.end"});
+        // data collect
+        auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(), dedup,
+            DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
 
-        expectedQueryCtx_->plan()->setRoot(project);
-        auto result = Eq(plan->root(), project);
+        expectedQueryCtx_->plan()->setRoot(dataCollect);
+        auto result = Eq(plan->root(), dataCollect);
         ASSERT_TRUE(result.ok()) << result;
     }
 }

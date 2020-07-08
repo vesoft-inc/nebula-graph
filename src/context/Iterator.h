@@ -77,7 +77,7 @@ public:
     }
 
     bool isSequentialIter() const {
-        return kind_ == Kind::kSequential;
+        return kind_ == Kind::kSequential || kind_ == Kind::kGetProp;
     }
 
     // The derived class should rewrite get prop if the Value is kind of dataset.
