@@ -21,13 +21,18 @@ Status LimitValidator::validateImpl() {
         return Status::SyntaxError("count `%ld' is illegal", count_);
     }
 
+    outputs_ = inputs();
     return Status::OK();
 }
 
 Status LimitValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *limitNode = Limit::make(plan, plan->root(), offset_, count_);
-    outputs_ = inputs();
+    std::vector<std::string> colNames;
+    for (auto &col : outputs_) {
+        colNames.emplace_back(col.first);
+    }
+    limitNode->setColNames(std::move(colNames));
     root_ = limitNode;
     tail_ = root_;
     return Status::OK();

@@ -36,9 +36,9 @@ folly::Future<Status> SortExecutor::execute() {
             }
             indexes.emplace_back(std::make_pair(indexFind->second, factor.second));
         }
-        auto comparator = [&indexes] (RowRef &lhs, RowRef &rhs) {
-            const auto &lhsColumns = lhs.row->values;
-            const auto &rhsColumns = rhs.row->values;
+        auto comparator = [&indexes] (const Row* lhs, const Row *rhs) {
+            const auto &lhsColumns = lhs->values;
+            const auto &rhsColumns = rhs->values;
             for (auto &item : indexes) {
                 auto index = item.first;
                 auto orderType = item.second;

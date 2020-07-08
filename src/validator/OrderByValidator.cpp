@@ -20,7 +20,6 @@ Status OrderByValidator::validateImpl() {
         }
         auto expr = static_cast<InputPropertyExpression*>(factor->expr());
         auto name = *expr->prop();
-        colOrderTypes_.emplace_back(std::make_pair(name, factor->orderType()));
         // Check factor in input node's colNames
         auto find = std::find_if(inputColNames.begin(), inputColNames.end(),
                                  [&name] (const auto& colDef) {
@@ -30,20 +29,21 @@ Status OrderByValidator::validateImpl() {
             LOG(ERROR) << "Order BY on factor `" << name <<"` is not exist";
             return Status::Error("Order BY on factor `%s` is not exist", name.c_str());
         }
-        auto typeStatus = deduceExprType(expr);
-        if (!typeStatus.ok()) {
-            return typeStatus.status();
-        }
-        auto type = typeStatus.value();
-        outputs_.emplace_back(name, type);
+        colOrderTypes_.emplace_back(std::make_pair(name, factor->orderType()));
     }
 
+    outputs_ = inputs();
     return Status::OK();
 }
 
 Status OrderByValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *sortNode = Sort::make(plan, plan->root(), std::move(colOrderTypes_));
+    std::vector<std::string> colNames;
+    for (auto &col : outputs_) {
+        colNames.emplace_back(col.first);
+    }
+    sortNode->setColNames(std::move(colNames));
     root_ = sortNode;
     tail_ = root_;
     return Status::OK();

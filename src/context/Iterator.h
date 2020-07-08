@@ -19,13 +19,6 @@
 namespace nebula {
 namespace graph {
 
-struct RowRef {
-    explicit RowRef(const Row* in) {
-        row = in;
-    }
-    const Row* row;
-};
-
 class Iterator {
 public:
     enum class Kind : uint8_t {
@@ -339,8 +332,7 @@ public:
         DCHECK(value->isDataSet());
         auto& ds = value->getDataSet();
         for (auto& row : ds.rows) {
-            RowRef rowRef(&row);
-            rows_.emplace_back(std::move(rowRef));
+            rows_.emplace_back(&row);
         }
         iter_ = rows_.begin();
         for (size_t i = 0; i < ds.colNames.size(); ++i) {
@@ -402,11 +394,11 @@ public:
         reset();
     }
 
-    std::vector<RowRef>::iterator begin() {
+    std::vector<const Row*>::iterator begin() {
         return rows_.begin();
     }
 
-    std::vector<RowRef>::iterator end() {
+    std::vector<const Row*>::iterator end() {
         return rows_.end();
     }
 
@@ -422,12 +414,13 @@ public:
         if (!valid()) {
             return Value::kNullValue;
         }
+        auto row = *iter_;
         auto index = colIndexes_.find(col);
         if (index == colIndexes_.end()) {
             return Value::kNullValue;
         } else {
-            DCHECK_LT(index->second, iter_->row->values.size());
-            return iter_->row->values[index->second];
+            DCHECK_LT(index->second, row->values.size());
+            return row->values[index->second];
         }
     }
 
@@ -435,7 +428,7 @@ public:
         if (!valid()) {
             return nullptr;
         }
-        return iter_->row;
+        return *iter_;
     }
 
 protected:
@@ -451,8 +444,8 @@ private:
     }
 
 private:
-    std::vector<RowRef>                          rows_;
-    std::vector<RowRef>::iterator                iter_;
+    std::vector<const Row*>                      rows_;
+    std::vector<const Row*>::iterator            iter_;
     std::unordered_map<std::string, int64_t>     colIndexes_;
 };
 }  // namespace graph
