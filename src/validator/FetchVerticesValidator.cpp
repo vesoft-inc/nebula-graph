@@ -169,7 +169,7 @@ Status FetchVerticesValidator::prepareProperties() {
                     exprAlias.set_alias(*col->alias());
                 }
                 exprAlias.set_expr(col->expr()->encode());
-                exprs_.emplace_back(exprAlias);
+                exprs_.emplace_back(std::move(exprAlias));
             } else {
                 // Need project to evaluate the expression not push down to storage
                 // And combine the result from storage
