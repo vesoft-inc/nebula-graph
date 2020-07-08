@@ -48,6 +48,8 @@ Status FetchVerticesValidator::toPlan() {
                                      std::move(orderBy_),
                                      limit_,
                                      std::move(filter_));
+    // the framework need to set the input var
+
     PlanNode *current = doNode;
     if (withProject_) {
         auto *projectNode = Project::make(

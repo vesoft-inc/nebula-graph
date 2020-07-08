@@ -315,15 +315,9 @@ Status Executor::finish(nebula::Value &&value) {
 }
 
 const ExecResult& Executor::getSingleInput() const {
-    const auto *current = node();
-    // TODO(shylock) down-cast by the Kind
-    const auto *singleInput = dynamic_cast<const SingleInputNode*>(current);
-    const auto *input = CHECK_NOTNULL(singleInput)->input();
-    if (input == nullptr) {
-        return ExecResult::kEmptyResult;
-    }
-    const auto &inputVarName = DCHECK_NOTNULL(input)->varName();
-    return ectx_->getResult(inputVarName);
+    // TODO(shylock) down-cast by the kind
+    const auto &inputVar = CHECK_NOTNULL(dynamic_cast<const SingleInputNode*>(node()))->inputVar();
+    return ectx_->getResult(inputVar);
 }
 
 Status Executor::finish(ExecResult &&result) {
