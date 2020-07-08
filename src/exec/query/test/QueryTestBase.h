@@ -20,7 +20,7 @@ protected:
         qctx_ = std::make_unique<QueryContext>();
         // GetNeighbors
         {
-            DataSet dataset({"_vid", "_stats", "_tag:person:name:age",
+            DataSet dataset({kVid, "_stats", "_tag:person:name:age",
                              "_edge:+study:_dst:start_year:end_year", "_expr"});
             {
                 Row row;
@@ -113,7 +113,7 @@ protected:
         }
         // empty
         {
-            DataSet dataset({"_vid", "_stats", "_tag:person:name:age",
+            DataSet dataset({kVid, "_stats", "_tag:person:name:age",
                              "_edge:+study:_dst:start_year:end_year", "_expr"});
             qctx_->ectx()->setResult("empty",
                                      ExecResult::buildSequential(Value(dataset)));
