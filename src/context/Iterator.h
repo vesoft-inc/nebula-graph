@@ -348,7 +348,7 @@ public:
         }
     }
 
-    explicit SequentialIter(std::unique_ptr<Iterator> left, std::unique_ptr<Iterator> right)
+    SequentialIter(std::unique_ptr<Iterator> left, std::unique_ptr<Iterator> right)
         : Iterator(nullptr, Kind::kSequential) {
         DCHECK(left->isSequentialIter());
         DCHECK(right->isSequentialIter());
@@ -422,13 +422,12 @@ public:
         if (!valid()) {
             return Value::kNullValue;
         }
-        auto rowRef = iter_;
         auto index = colIndexes_.find(col);
         if (index == colIndexes_.end()) {
             return Value::kNullValue;
         } else {
-            DCHECK_LT(index->second, rowRef->row->values.size());
-            return rowRef->row->values[index->second];
+            DCHECK_LT(index->second, iter_->row->values.size());
+            return iter_->row->values[index->second];
         }
     }
 

@@ -67,7 +67,7 @@ TEST_F(LimitTest, getNeighborOutRange1) {
 
 TEST_F(LimitTest, getNeighborOutRange2) {
     DataSet expected({"name", "start"});
-    LIMIT_RESUTL_CHECK("limit_out_neighbor1", 5, 2, expected);
+    LIMIT_RESUTL_CHECK("limit_out_neighbor1", 4, 2, expected);
 }
 }  // namespace graph
 }  // namespace nebula

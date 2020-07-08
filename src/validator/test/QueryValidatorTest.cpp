@@ -252,13 +252,10 @@ TEST_F(QueryValidatorTest, Limit) {
     }
     {
         std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT 1, 3";
-        auto status = validate(query);
-        ASSERT_TRUE(status.ok()) << status.status();
-        auto plan = std::move(status).value();
         std::vector<PlanNode::Kind> expected = {
                 PK::kDataCollect, PK::kLimit, PK::kProject, PK::kGetNeighbors, PK::kStart
         };
-        ASSERT_TRUE(verifyPlan(plan->root(), expected));
+        ASSERT_TRUE(checkResult(query, expected));
     }
 }
 
@@ -266,13 +263,10 @@ TEST_F(QueryValidatorTest, OrderBy) {
     {
         std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
                             " | ORDER BY $-.age";
-        auto status = validate(query);
-        ASSERT_TRUE(status.ok()) << status.status();
-        auto plan = std::move(status).value();
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
         };
-        ASSERT_TRUE(verifyPlan(plan->root(), expected));
+        ASSERT_TRUE(checkResult(query, expected));
     }
     // not exist factor
     {
@@ -280,6 +274,17 @@ TEST_F(QueryValidatorTest, OrderBy) {
                             " | ORDER BY $-.name";
         auto status = validate(query);
         ASSERT_FALSE(status.ok()) << status.status();
+    }
+}
+
+TEST_F(QueryValidatorTest, OrderByAndLimt) {
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
+                            " | ORDER BY $-.age | LIMIT 1";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect, PK::kLimit, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
+        };
+        ASSERT_TRUE(checkResult(query, expected));
     }
 }
 

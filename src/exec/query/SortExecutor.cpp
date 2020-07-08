@@ -15,12 +15,11 @@ folly::Future<Status> SortExecutor::execute() {
     dumpLog();
     auto* sort = asNode<Sort>(node());
     auto iter = ectx_->getResult(sort->inputVar()).iter();
-    if (iter == nullptr) {
+    if (UNLIKELY(iter == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in sort executor");
     }
-    if (iter->isGetNeighborsIter()) {
-        std::string errMsg = "Internal error: "
-                             "Sort executor does not supported GetNeighborsIter and UnionIter";
+    if (UNLIKELY(iter->isGetNeighborsIter())) {
+        std::string errMsg = "Internal error: Sort executor does not supported GetNeighborsIter";
         LOG(ERROR) << errMsg;
         return Status::Error(errMsg);
     }
@@ -58,7 +57,6 @@ folly::Future<Status> SortExecutor::execute() {
         std::sort(seqIter->begin(), seqIter->end(), comparator);
     }
     auto result = ExecResult::buildDefault(iter->valuePtr());
-    ExpressionContextImpl ctx(ectx_, iter.get());
     result.setIter(std::move(iter));
     return finish(std::move(result));
 }
