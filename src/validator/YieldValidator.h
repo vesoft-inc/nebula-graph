@@ -32,8 +32,8 @@ public:
     Status toPlan() override;
 
 private:
-    Status validate(const YieldClause *clause);
-    Status validate(const WhereClause *clause);
+    Status validateYield(const YieldClause *clause);
+    Status validateWhere(const WhereClause *clause);
     Status checkVarProps() const;
     Status checkInputProps() const;
     Status checkColumnRefAggFun(const YieldClause *clause) const;

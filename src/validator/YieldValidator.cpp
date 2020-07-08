@@ -20,8 +20,8 @@ YieldValidator::YieldValidator(Sentence *sentence, QueryContext *qctx)
 
 Status YieldValidator::validateImpl() {
     auto yield = static_cast<YieldSentence *>(sentence_);
-    NG_RETURN_IF_ERROR(validate(yield->yield()));
-    NG_RETURN_IF_ERROR(validate(yield->where()));
+    NG_RETURN_IF_ERROR(validateYield(yield->yield()));
+    NG_RETURN_IF_ERROR(validateWhere(yield->where()));
 
     if (!srcTagProps_.empty() || !dstTagProps_.empty() || !edgeProps_.empty()) {
         return Status::SyntaxError("Only support input and variable in yield sentence.");
@@ -96,7 +96,7 @@ Status YieldValidator::checkVarProps() const {
     return Status::OK();
 }
 
-Status YieldValidator::validate(const YieldClause *clause) {
+Status YieldValidator::validateYield(const YieldClause *clause) {
     auto columns = clause->columns();
     for (auto column : columns) {
         auto expr = column->expr();
@@ -110,7 +110,7 @@ Status YieldValidator::validate(const YieldClause *clause) {
     return Status::OK();
 }
 
-Status YieldValidator::validate(const WhereClause *clause) {
+Status YieldValidator::validateWhere(const WhereClause *clause) {
     Expression *filter = nullptr;
     if (clause != nullptr) {
         filter = clause->filter();
