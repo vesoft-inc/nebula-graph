@@ -96,9 +96,6 @@ protected:
     Status finish(nebula::Value &&value);
     Status finish(Result &&result);
 
-    // Note: will fatal when called in non single input node
-    const Result& getSingleInput() const;
-
     // TODO(shylock) only used for storage fetch executor, will modify other executors to use it
     template <typename Resp>
     StatusOr<Result::State>

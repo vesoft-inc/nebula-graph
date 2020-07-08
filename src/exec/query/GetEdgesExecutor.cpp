@@ -40,7 +40,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
         // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
-        auto valueIter = getSingleInput().iter();
+        auto valueIter = ectx_->getResult(ge->inputVar()).iter();
         auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
         for (; valueIter->valid(); valueIter->next()) {
             auto src = ge->src()->eval(expCtx);
