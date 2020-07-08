@@ -68,7 +68,11 @@ const char* PlanNode::toString(Kind kind) {
             return "DescTag";
         case Kind::kDescEdge:
             return "DescEdge";
-        case Kind::kInsertVertices:
+        case PlanNode::Kind::kAlterTag:
+            return "AlterTag";
+        case PlanNode::Kind::kAlterEdge:
+            return "AlterEdge";
+        case PlanNode::Kind::kInsertVertices:
             return "InsertVertices";
         case Kind::kInsertEdges:
             return "InsertEdges";

@@ -65,6 +65,8 @@ namespace graph {
         case PlanNode::Kind::kMinus:
         case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:
+        case PlanNode::Kind::kAlterEdge:
+        case PlanNode::Kind::kAlterTag:
             LOG(FATAL) << "Unimplemented";
         case PlanNode::Kind::kDataCollect: {
             const auto *lDC = static_cast<const DataCollect*>(l);
