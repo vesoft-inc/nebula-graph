@@ -74,7 +74,7 @@ protected:
 
     std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
 
-    Status deduceColName(const YieldColumn* col, std::vector<std::string>* columns) const;
+    std::string deduceColName(const YieldColumn* col) const;
 
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
 

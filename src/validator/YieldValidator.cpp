@@ -20,7 +20,7 @@ YieldValidator::YieldValidator(Sentence *sentence, QueryContext *qctx)
 
 Status YieldValidator::validateImpl() {
     auto yield = static_cast<YieldSentence *>(sentence_);
-    NG_RETURN_IF_ERROR(validateYield(yield->yield()));
+    NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
 
     if (!srcTagProps_.empty() || !dstTagProps_.empty() || !edgeProps_.empty()) {
@@ -63,11 +63,11 @@ Status YieldValidator::checkColumnRefAggFun(const YieldClause *clause) const {
 }
 
 Status YieldValidator::checkInputProps() const {
+    if (inputs_.empty() && !inputProps_.empty()) {
+        return Status::SyntaxError("no inputs for yield columns.");
+    }
     for (auto &prop : inputProps_) {
-        if (prop == "*") {
-            if (!inputs_.empty()) continue;
-            return Status::SyntaxError("no inputs for `$-.*'");
-        }
+        DCHECK_NE(prop, "*");
         auto iter = std::find_if(
             inputs_.cbegin(), inputs_.cend(), [&](auto &in) { return prop == in.first; });
         if (iter == inputs_.cend()) {
@@ -83,9 +83,9 @@ Status YieldValidator::checkVarProps() const {
         if (!vctx_->existVar(var)) {
             return Status::SyntaxError("variable `%s' not exist.", var.c_str());
         }
-        auto props = vctx_->getVar(var);
+        auto &props = vctx_->getVar(var);
         for (auto &prop : pair.second) {
-            if (prop == "*") continue;
+            DCHECK_NE(prop, "*");
             auto iter = std::find_if(
                 props.cbegin(), props.cend(), [&](auto &in) { return in.first == prop; });
             if (iter == props.cend()) {
@@ -96,11 +96,55 @@ Status YieldValidator::checkVarProps() const {
     return Status::OK();
 }
 
-Status YieldValidator::validateYield(const YieldClause *clause) {
+Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
     auto columns = clause->columns();
     for (auto column : columns) {
         auto expr = column->expr();
-        NG_RETURN_IF_ERROR(deduceProps(expr));
+        bool unfolded = false;
+        switch (DCHECK_NOTNULL(expr)->kind()) {
+            case Expression::Kind::kInputProperty: {
+                auto ipe = static_cast<const InputPropertyExpression *>(expr);
+                // Get all props of input expression could NOT be a part of another expression. So
+                // it's always a root of expression.
+                if (*ipe->prop() == "*") {
+                    for (auto &colDef : inputs_) {
+                        outputs_.emplace_back(colDef);
+                        inputProps_.emplace_back(colDef.first);
+                    }
+                    unfolded = true;
+                }
+                break;
+            }
+            case Expression::Kind::kVarProperty: {
+                auto vpe = static_cast<const VariablePropertyExpression *>(expr);
+                // Get all props of variable expression is same as above input property expression.
+                if (*vpe->prop() == "*") {
+                    auto var = vpe->sym();
+                    if (!vctx_->existVar(*var)) {
+                        return Status::Error("variable `%s' not exists.", var->c_str());
+                    }
+                    auto &varColDefs = vctx_->getVar(*var);
+                    auto &propsVec = varProps_[*var];
+                    for (auto &colDef : varColDefs) {
+                        outputs_.emplace_back(colDef);
+                        propsVec.emplace_back(colDef.first);
+                    }
+                    unfolded = true;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+
+        if (!unfolded) {
+            auto status = deduceExprType(expr);
+            NG_RETURN_IF_ERROR(status);
+            auto type = std::move(status).value();
+            auto name = deduceColName(column);
+            outputs_.emplace_back(name, type);
+            NG_RETURN_IF_ERROR(deduceProps(expr));
+        }
 
         auto fun = column->getFunName();
         if (!fun.empty()) {
@@ -121,11 +165,69 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
     return Status::OK();
 }
 
+YieldColumns *YieldValidator::getYieldColumns(YieldColumns *yieldColumns,
+                                              ObjectPool *objPool,
+                                              size_t numColumns) {
+    auto oldColumns = yieldColumns->columns();
+    DCHECK_LE(oldColumns.size(), numColumns);
+    if (oldColumns.size() == numColumns) {
+        return yieldColumns;
+    }
+
+    // There are some unfolded expressions, need to rebuild project expressions
+    auto newColumns = objPool->add(new YieldColumns);
+    for (auto &column : oldColumns) {
+        auto expr = column->expr();
+        bool unfolded = false;
+        switch (expr->kind()) {
+            case Expression::Kind::kInputProperty: {
+                auto ipe = static_cast<const InputPropertyExpression *>(expr);
+                if (*ipe->prop() == "*") {
+                    for (auto &colDef : inputs_) {
+                        newColumns->addColumn(new YieldColumn(
+                            new InputPropertyExpression(new std::string(colDef.first))));
+                    }
+                    unfolded = true;
+                }
+                break;
+            }
+            case Expression::Kind::kVarProperty: {
+                auto vpe = static_cast<const VariablePropertyExpression *>(expr);
+                if (*vpe->prop() == "*") {
+                    auto sym = vpe->sym();
+                    CHECK(vctx_->existVar(*sym));
+                    auto &varColDefs = vctx_->getVar(*sym);
+                    for (auto &colDef : varColDefs) {
+                        newColumns->addColumn(new YieldColumn(new VariablePropertyExpression(
+                            new std::string(*sym), new std::string(colDef.first))));
+                    }
+                    unfolded = true;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+        if (!unfolded) {
+            auto newExpr = Expression::decode(column->expr()->encode());
+            std::string *alias = nullptr;
+            if (column->alias() != nullptr) {
+                alias = new std::string(*column->alias());
+            }
+            newColumns->addColumn(new YieldColumn(newExpr.release(), alias));
+        }
+    }
+    return newColumns;
+}
+
 Status YieldValidator::toPlan() {
     auto yield = static_cast<const YieldSentence *>(sentence_);
     auto plan = qctx_->plan();
-    auto yieldColumns = yield->yield()->yields();
-    auto outputColumns = deduceColNames(yieldColumns);
+
+    std::vector<std::string> outputColumns(outputs_.size());
+    std::transform(outputs_.cbegin(), outputs_.cend(), outputColumns.begin(), [](auto &colDef) {
+        return colDef.first;
+    });
 
     Filter *filter = nullptr;
     if (yield->where()) {
@@ -133,6 +235,7 @@ Status YieldValidator::toPlan() {
         filter->setColNames(outputColumns);
     }
 
+    auto yieldColumns = getYieldColumns(yield->yieldColumns(), plan->objPool(), outputs_.size());
     auto project = Project::make(plan, filter, yieldColumns);
     project->setColNames(outputColumns);
     if (filter != nullptr) {

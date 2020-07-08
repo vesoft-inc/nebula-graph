@@ -150,59 +150,25 @@ bool Validator::spaceChosen() {
 std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) const {
     std::vector<std::string> colNames;
     for (auto col : cols->columns()) {
-        auto status = deduceColName(col, &colNames);
-        if (UNLIKELY(!status.ok())) {
-            LOG(ERROR) << status;
-        }
+        colNames.emplace_back(deduceColName(col));
     }
-
     return colNames;
 }
 
-Status Validator::deduceColName(const YieldColumn* col, std::vector<std::string>* columns) const {
+std::string Validator::deduceColName(const YieldColumn* col) const {
     if (col->alias() != nullptr) {
-        columns->emplace_back(*col->alias());
-        return Status::OK();
+        return *col->alias();
     }
 
     switch (col->expr()->kind()) {
         case Expression::Kind::kInputProperty: {
             auto expr = static_cast<InputPropertyExpression*>(col->expr());
-            auto& prop = *expr->prop();
-            if (prop != "*") {
-                columns->emplace_back(prop);
-                break;
-            }
-            if (inputs_.empty()) {
-                return Status::SyntaxError("no inputs for `$-.*'");
-            }
-            for (auto& in : inputs_) {
-                columns->emplace_back(in.first);
-            }
-            break;
-        }
-        case Expression::Kind::kVarProperty: {
-            auto expr = static_cast<const VariablePropertyExpression*>(col->expr());
-            auto& prop = *expr->prop();
-            if (prop != "*") {
-                columns->emplace_back(expr->toString());
-                break;
-            }
-            auto& sym = *expr->sym();
-            if (!vctx_->existVar(sym)) {
-                return Status::SyntaxError("variable %s not exists.", sym.c_str());
-            }
-            for (auto& colDef : vctx_->getVar(sym)) {
-                columns->emplace_back(colDef.first);
-            }
-            break;
+            return *expr->prop();
         }
         default: {
-            columns->emplace_back(col->expr()->toString());
-            break;
+            return col->expr()->toString();
         }
     }
-    return Status::OK();
 }
 
 #define DETECT_BIEXPR_TYPE(OP)                                           \
@@ -478,7 +444,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             return Value::Type::DATASET;
         }
     }
-    return Status::Error("Unkown expression kind: %ld", static_cast<int64_t>(expr->kind()));
+    return Status::Error("Unknown expression kind: %ld", static_cast<int64_t>(expr->kind()));
 }
 
 Status Validator::deduceProps(const Expression* expr) {

@@ -16,8 +16,10 @@ namespace nebula {
 
 class Sentence;
 class YieldClause;
+class YieldColumns;
 class WhereClause;
 class Expression;
+class ObjectPool;
 
 namespace graph {
 
@@ -32,11 +34,14 @@ public:
     Status toPlan() override;
 
 private:
-    Status validateYield(const YieldClause *clause);
+    Status validateYieldAndBuildOutputs(const YieldClause *clause);
     Status validateWhere(const WhereClause *clause);
     Status checkVarProps() const;
     Status checkInputProps() const;
     Status checkColumnRefAggFun(const YieldClause *clause) const;
+    YieldColumns *getYieldColumns(YieldColumns *yieldColumns,
+                                  ObjectPool *objPool,
+                                  size_t numColumns);
 
     bool hasAggFun_{false};
 };

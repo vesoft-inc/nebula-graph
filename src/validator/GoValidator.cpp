@@ -202,11 +202,8 @@ Status GoValidator::validateYield(const YieldClause* yield) {
 
     distinct_ = yield->isDistinct();
     auto cols = yield->columns();
-    std::vector<std::string> columns;
     for (auto col : cols) {
-        columns.clear();
-        NG_RETURN_IF_ERROR(deduceColName(col, &columns));
-        auto &colName = columns.back();
+        auto colName = deduceColName(col);
         colNames_.emplace_back(colName);
 
         auto typeStatus = deduceExprType(col->expr());
