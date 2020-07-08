@@ -93,13 +93,6 @@ public:
         return buildSequential(std::move(val), std::move(stateDesc));
     }
 
-    static ExecResult buildGetProp(Value&& val, StateDesc&& state) {
-        ExecResult result(std::make_shared<Value>(std::move(val)), std::move(state));
-        auto iter = std::make_unique<GetPropIterator>(result.valuePtr());
-        result.setIter(std::move(iter));
-        return result;
-    }
-
     void setIter(std::unique_ptr<Iterator> iter) {
         iter_ = std::move(iter);
     }

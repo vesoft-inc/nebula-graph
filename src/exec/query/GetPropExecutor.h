@@ -48,7 +48,7 @@ protected:
                 }
             }
         }
-        return finish(ExecResult::buildGetProp(std::move(v), std::move(state)));
+        return finish(ExecResult::buildSequential(std::move(v), std::move(state)));
     }
 };
 

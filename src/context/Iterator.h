@@ -25,7 +25,6 @@ public:
         kDefault,
         kGetNeighbors,
         kSequential,
-        kGetProp,
     };
 
     explicit Iterator(std::shared_ptr<Value> value, Kind kind)
@@ -87,7 +86,7 @@ public:
     }
 
     bool isSequentialIter() const {
-        return kind_ == Kind::kSequential || kind_ == Kind::kGetProp;
+        return kind_ == Kind::kSequential;
     }
 
     // The derived class should rewrite get prop if the Value is kind of dataset.
@@ -427,7 +426,7 @@ public:
 
     const Value& getEdgeProp(const std::string& edge,
                              const std::string& prop) const override {
-        return getColumn(edge + ":" + prop);  // see the thrift for format
+        return getColumn(edge + "." + prop);
     }
 
 protected:
@@ -454,23 +453,6 @@ private:
     std::vector<const Row*>                      rows_;
     std::vector<const Row*>::iterator            iter_;
     std::unordered_map<std::string, int64_t>     colIndexes_;
-};
-
-class GetPropIterator : public SequentialIter {
-public:
-    explicit GetPropIterator(std::shared_ptr<Value> value)
-        : SequentialIter(value, Kind::kGetProp) {}
-
-    std::unique_ptr<Iterator> copy() const override {
-        auto copy = std::make_unique<GetPropIterator>(*this);
-        copy->reset();
-        return copy;
-    }
-
-    const Value& getEdgeProp(const std::string& edge,
-                             const std::string& prop) const override {
-        return getColumn(edge + "." + prop);
-    }
 };
 
 }  // namespace graph
