@@ -327,8 +327,8 @@ private:
 
 class SequentialIter : public Iterator {
 public:
-    explicit SequentialIter(std::shared_ptr<Value> value, Kind kind = Kind::kSequential)
-        : Iterator(value, kind) {
+    explicit SequentialIter(std::shared_ptr<Value> value)
+        : Iterator(value, Kind::kSequential) {
         DCHECK(value->isDataSet());
         auto& ds = value->getDataSet();
         for (auto& row : ds.rows) {
