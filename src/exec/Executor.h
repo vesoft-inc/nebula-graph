@@ -111,7 +111,8 @@ protected:
                            << it->first;
             }
             if (completeness == 0) {
-                return Status::Error("%s failed.", name_.c_str());
+                LOG(ERROR) << "Get data from storage failed in executor " << name_;
+                return Status::Error(" Get data from storage failed in executor.");
             }
             return StateDesc(StateDesc::State::kPartialSuccess);
         }
