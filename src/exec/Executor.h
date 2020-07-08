@@ -99,7 +99,7 @@ protected:
     // Note: will fatal when called in non single input node
     const ExecResult& getSingleInput() const;
 
-    // TODO(shylock) only used for storage fetch executor
+    // TODO(shylock) only used for storage fetch executor, will modify other executors to use it
     template <typename Resp>
     StatusOr<StateDesc> handleCompleteness(const storage::StorageRpcResponse<Resp> &rpcResp) const {
         auto completeness = rpcResp.completeness();
