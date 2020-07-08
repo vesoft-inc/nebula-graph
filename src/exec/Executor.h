@@ -101,7 +101,7 @@ protected:
 
     // TODO(shylock) only used for storage fetch executor
     template <typename Resp>
-    StatusOr<State> handleCompleteness(const storage::StorageRpcResponse<Resp> &rpcResp) const {
+    StatusOr<StateDesc> handleCompleteness(const storage::StorageRpcResponse<Resp> &rpcResp) const {
         auto completeness = rpcResp.completeness();
         if (completeness != 100) {
             const auto &failedCodes = rpcResp.failedParts();
@@ -113,9 +113,9 @@ protected:
             if (completeness == 0) {
                 return Status::Error("%s failed.", name_.c_str());
             }
-            return State(State::Stat::kPartialSuccess);
+            return StateDesc(StateDesc::State::kPartialSuccess);
         }
-        return State(State::Stat::kSuccess);
+        return StateDesc(StateDesc::State::kSuccess);
     }
 
     // Dump some execution logging messages, only for debugging

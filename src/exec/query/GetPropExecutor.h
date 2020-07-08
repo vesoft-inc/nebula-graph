@@ -37,7 +37,7 @@ protected:
                     if (UNLIKELY(!v.append(std::move(*resp.get_props())))) {
                         // it's impossible according to the interface
                         LOG(WARNING) << "Heterogeneous props dataset";
-                        state.setStat(State::Stat::kPartialSuccess);
+                        state.setState(StateDesc::State::kPartialSuccess);
                     }
                 }
             }
