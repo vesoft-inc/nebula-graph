@@ -57,6 +57,14 @@ public:
 
     folly::Future<Status> execute() override;
 };
+
+class AlterEdgeExecutor final : public Executor {
+public:
+    AlterEdgeExecutor(const PlanNode *node, QueryContext *qctx)
+            : Executor("AlterEdgeExecutor", node, qctx) {}
+
+    folly::Future<Status> execute() override;
+};
 }   // namespace graph
 }   // namespace nebula
 

@@ -473,7 +473,6 @@ StatusOr<std::vector<meta::cpp2::Snapshot>> MetaCache::listSnapshots() {
         snapshots.emplace_back(snapshot.second);
     }
     return snapshots;
->>>>>>> add snapshot executor
 }
 }  // namespace graph
 }  // namespace nebula

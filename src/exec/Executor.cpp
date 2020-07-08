@@ -19,13 +19,6 @@
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
 #include "exec/logic/StartExecutor.h"
-#include "exec/maintain/CreateEdgeExecutor.h"
-#include "exec/maintain/CreateTagExecutor.h"
-#include "exec/maintain/DescEdgeExecutor.h"
-#include "exec/maintain/DescTagExecutor.h"
-#include "exec/maintain/AlterSchemaExecutor.h"
-#include "exec/maintain/ShowSchemaExecutor.h"
-#include "exec/maintain/DropSchemaExecutor.h"
 #include "exec/maintain/EdgeExecutor.h"
 #include "exec/maintain/TagExecutor.h"
 #include "exec/mutate/InsertEdgesExecutor.h"
@@ -219,17 +212,23 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kShowSpaces: {
             auto showSpaces = asNode<ShowSpaces>(node);
+            auto input = makeExecutor(showSpaces->input(), qctx, visited);
             exec = new ShowSpacesExecutor(showSpaces, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDropSpace: {
             auto dropSpace = asNode<DropSpace>(node);
+            auto input = makeExecutor(dropSpace->input(), qctx, visited);
             exec = new DropSpaceExecutor(dropSpace, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kShowCreateSpace: {
             auto showCreateSpace = asNode<ShowCreateSpace>(node);
+            auto input = makeExecutor(showCreateSpace->input(), qctx, visited);
             exec = new ShowCreateSpaceExecutor(showCreateSpace, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kCreateTag: {
@@ -273,34 +272,47 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             exec = new AlterEdgeExecutor(alterEdge, qctx);
             exec->addDependent(dep);
             break;
+        }
         case PlanNode::Kind::kShowTags: {
             auto showTags = asNode<ShowTags>(node);
+            auto input = makeExecutor(showTags->input(), qctx, visited);
             exec = new ShowTagsExecutor(showTags, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kShowEdges: {
             auto showEdges = asNode<ShowEdges>(node);
+            auto input = makeExecutor(showEdges->input(), qctx, visited);
             exec = new ShowEdgesExecutor(showEdges, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDropTag: {
             auto dropTag = asNode<DropTag>(node);
+            auto input = makeExecutor(dropTag->input(), qctx, visited);
             exec = new DropTagExecutor(dropTag, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDropEdge: {
             auto dropEdge = asNode<DropEdge>(node);
+            auto input = makeExecutor(dropEdge->input(), qctx, visited);
             exec = new DropEdgeExecutor(dropEdge, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kShowCreateTag: {
             auto showCreateTag = asNode<ShowCreateTag>(node);
+            auto input = makeExecutor(showCreateTag->input(), qctx, visited);
             exec = new ShowCreateTagExecutor(showCreateTag, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kShowCreateEdge: {
             auto showCreateEdge = asNode<ShowCreateEdge>(node);
+            auto input = makeExecutor(showCreateEdge->input(), qctx, visited);
             exec = new ShowCreateEdgeExecutor(showCreateEdge, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kInsertVertices: {
@@ -326,17 +338,23 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kCreateSnapshot: {
             auto createSnapshot = asNode<CreateSnapshot>(node);
+            auto input = makeExecutor(createSnapshot->input(), qctx, visited);
             exec = new CreateSnapshotExecutor(createSnapshot, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDropSnapshot: {
             auto dropSnapshot = asNode<DropSnapshot>(node);
+            auto input = makeExecutor(dropSnapshot->input(), qctx, visited);
             exec = new DropSnapshotExecutor(dropSnapshot, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kShowSnapshots: {
             auto showSnapshots = asNode<ShowSnapshots>(node);
+            auto input = makeExecutor(showSnapshots->input(), qctx, visited);
             exec = new ShowSnapshotsExecutor(showSnapshots, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kUnknown:

@@ -119,5 +119,23 @@ folly::Future<Status> ShowCreateTagExecutor::execute() {
                 return Status::OK();
             });
 }
+
+folly::Future<Status> AlterTagExecutor::execute() {
+    dumpLog();
+
+    auto *aeNode = asNode<AlterTag>(node());
+    return qctx()->getMetaClient()->alterTagSchema(aeNode->space(),
+                                                   aeNode->getName(),
+                                                   aeNode->getSchemaItems(),
+                                                   aeNode->getSchemaProp())
+            .via(runner())
+            .then([](StatusOr<TagID> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                return Status::OK();
+            });
+}
 }   // namespace graph
 }   // namespace nebula

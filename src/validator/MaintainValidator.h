@@ -62,7 +62,7 @@ private:
 class ShowCreateTagValidator final : public Validator {
 public:
     ShowCreateTagValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
     }
 
 private:
@@ -89,8 +89,7 @@ private:
 class ShowCreateEdgeValidator final : public Validator {
 public:
     ShowCreateEdgeValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
-    }
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -116,7 +115,7 @@ protected:
 class AlterTagValidator final : public AlterValidator {
 public:
     AlterTagValidator(Sentence* sentence, QueryContext* context)
-        : AlterValidator(sentence, context) {
+        : AlterValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -127,7 +126,7 @@ private:
 class AlterEdgeValidator final : public AlterValidator {
 public:
     AlterEdgeValidator(Sentence* sentence, QueryContext* context)
-        : AlterValidator(sentence, context) {
+        : AlterValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -160,8 +159,7 @@ private:
 class DropTagValidator final : public Validator {
 public:
     DropTagValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
-    }
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -172,15 +170,13 @@ private:
 class DropEdgeValidator final : public Validator {
 public:
     DropEdgeValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
-    }
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;
 
     Status toPlan() override;
 };
-
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_MAINTAINVALIDATOR_H_

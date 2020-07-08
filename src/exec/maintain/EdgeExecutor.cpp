@@ -121,5 +121,23 @@ folly::Future<Status> ShowCreateEdgeExecutor::execute() {
                 return Status::OK();
             });
 }
+
+folly::Future<Status> AlterEdgeExecutor::execute() {
+    dumpLog();
+
+    auto *aeNode = asNode<AlterEdge>(node());
+    return qctx()->getMetaClient()->alterEdgeSchema(aeNode->space(),
+                                                    aeNode->getName(),
+                                                    aeNode->getSchemaItems(),
+                                                    aeNode->getSchemaProp())
+            .via(runner())
+            .then([](StatusOr<EdgeType> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << resp.status();
+                    return resp.status();
+                }
+                return Status::OK();
+            });
+}
 }   // namespace graph
 }   // namespace nebula

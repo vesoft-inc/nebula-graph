@@ -55,6 +55,13 @@ public:
     folly::Future<Status> execute() override;
 };
 
+class AlterTagExecutor final : public Executor {
+public:
+    AlterTagExecutor(const PlanNode *node, QueryContext *qctx)
+            : Executor("AlterTagExecutor", node, qctx) {}
+
+    folly::Future<Status> execute() override;
+};
 }   // namespace graph
 }   // namespace nebula
 
