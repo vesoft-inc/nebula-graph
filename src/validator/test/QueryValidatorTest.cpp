@@ -242,5 +242,170 @@ TEST_F(QueryValidatorTest, GoInvalid) {
         EXPECT_FALSE(status.ok()) << status.status();
     }
 }
+
+TEST_F(QueryValidatorTest, Limit) {
+    // Syntax error
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT -1, 3";
+        auto status = validate(query);
+        ASSERT_FALSE(status.ok()) << status.status();
+    }
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD like._dst AS like | LIMIT 1, 3";
+        std::vector<PlanNode::Kind> expected = {
+                PK::kDataCollect, PK::kLimit, PK::kProject, PK::kGetNeighbors, PK::kStart
+        };
+        ASSERT_TRUE(checkResult(query, expected));
+    }
+}
+
+TEST_F(QueryValidatorTest, OrderBy) {
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
+                            " | ORDER BY $-.age";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
+        };
+        ASSERT_TRUE(checkResult(query, expected));
+    }
+    // not exist factor
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
+                            " | ORDER BY $-.name";
+        auto status = validate(query);
+        ASSERT_FALSE(status.ok()) << status.status();
+    }
+}
+
+TEST_F(QueryValidatorTest, OrderByAndLimt) {
+    {
+        std::string query = "GO FROM \"Ann\" OVER like YIELD $^.person.age AS age"
+                            " | ORDER BY $-.age | LIMIT 1";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect, PK::kLimit, PK::kSort, PK::kProject, PK::kGetNeighbors, PK::kStart
+        };
+        ASSERT_TRUE(checkResult(query, expected));
+    }
+}
+
+TEST_F(QueryValidatorTest, TestSetValidator) {
+  // UNION ALL
+  {
+      std::string query =
+          "GO FROM \"1\" OVER like YIELD like.start AS start UNION ALL GO FROM \"2\" "
+          "OVER like YIELD like.start AS start";
+      auto status = validate(query);
+      ASSERT_TRUE(status.ok()) << status.status();
+      auto plan = std::move(status).value();
+      ASSERT_NE(plan, nullptr);
+      std::vector<PlanNode::Kind> expected = {
+          PK::kDataCollect,
+          PK::kUnion,
+          PK::kProject,
+          PK::kProject,
+          PK::kGetNeighbors,
+          PK::kGetNeighbors,
+          PK::kMultiOutputs,
+          PK::kStart,
+      };
+      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+  }
+  // UNION DISTINCT twice
+  {
+      std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start UNION GO FROM \"2\" "
+                          "OVER like YIELD like.start AS start UNION GO FROM \"3\" OVER like YIELD "
+                          "like.start AS start";
+      auto status = validate(query);
+      ASSERT_TRUE(status.ok()) << status.status();
+      auto plan = std::move(status).value();
+      ASSERT_NE(plan, nullptr);
+      std::vector<PlanNode::Kind> expected = {
+          PK::kDataCollect,
+          PK::kDedup,
+          PK::kUnion,
+          PK::kDedup,
+          PK::kProject,
+          PK::kUnion,
+          PK::kGetNeighbors,
+          PK::kProject,
+          PK::kProject,
+          PK::kMultiOutputs,
+          PK::kGetNeighbors,
+          PK::kGetNeighbors,
+          PK::kStart,
+          PK::kMultiOutputs,
+      };
+      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+  }
+  // UNION DISTINCT
+  {
+      std::string query =
+          "GO FROM \"1\" OVER like YIELD like.start AS start UNION DISTINCT GO FROM \"2\" "
+          "OVER like YIELD like.start AS start";
+      auto status = validate(query);
+      EXPECT_TRUE(status.ok()) << status.status();
+      auto plan = std::move(status).value();
+      ASSERT_NE(plan, nullptr);
+      std::vector<PlanNode::Kind> expected = {
+          PK::kDataCollect,
+          PK::kDedup,
+          PK::kUnion,
+          PK::kProject,
+          PK::kProject,
+          PK::kGetNeighbors,
+          PK::kGetNeighbors,
+          PK::kMultiOutputs,
+          PK::kStart,
+      };
+      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+  }
+  // INVALID UNION ALL
+  {
+      std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start, $^.person.name AS "
+                          "name UNION GO FROM \"2\" OVER like YIELD like.start AS start";
+      auto status = validate(query);
+      ASSERT_FALSE(status.ok()) << status.status();
+  }
+  // INTERSECT
+  {
+      std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start INTERSECT GO FROM "
+                          "\"2\" OVER like YIELD like.start AS start";
+      auto status = validate(query);
+      EXPECT_TRUE(status.ok()) << status.status();
+      auto plan = std::move(status).value();
+      ASSERT_NE(plan, nullptr);
+      std::vector<PlanNode::Kind> expected = {
+          PK::kDataCollect,
+          PK::kIntersect,
+          PK::kProject,
+          PK::kProject,
+          PK::kGetNeighbors,
+          PK::kGetNeighbors,
+          PK::kMultiOutputs,
+          PK::kStart,
+      };
+      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+  }
+  // MINUS
+  {
+      std::string query = "GO FROM \"1\" OVER like YIELD like.start AS start MINUS GO FROM "
+                          "\"2\" OVER like YIELD like.start AS start";
+      auto status = validate(query);
+      EXPECT_TRUE(status.ok()) << status.status();
+      auto plan = std::move(status).value();
+      ASSERT_NE(plan, nullptr);
+      std::vector<PlanNode::Kind> expected = {
+          PK::kDataCollect,
+          PK::kMinus,
+          PK::kProject,
+          PK::kProject,
+          PK::kGetNeighbors,
+          PK::kGetNeighbors,
+          PK::kMultiOutputs,
+          PK::kStart,
+      };
+      ASSERT_TRUE(verifyPlan(plan->root(), expected));
+  }
+}
 }  // namespace graph
 }  // namespace nebula
