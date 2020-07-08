@@ -65,7 +65,8 @@ Status FetchEdgesValidator::toPlan() {
         dedupNode->setInputVar(current->varName());
         current = dedupNode;
 
-        // the framework will add data collect to collect the resutl
+        // the framework will add data collect to collect the result
+        // if the result if required
     }
     root_ = current;
     tail_ = doNode;
