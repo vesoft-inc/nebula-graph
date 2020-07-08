@@ -267,12 +267,13 @@ Status GoValidator::buildOneStepPlan() {
 
     auto* project = Project::make(plan, projectInput, yields_);
     project->setInputVar(projectInput->varName());
-    project->setColNames(std::move(colNames_));
+    project->setColNames(std::vector<std::string>(colNames_));
 
     Dedup* dedupNode = nullptr;
     if (distinct_) {
         dedupNode = Dedup::make(plan, project);
         dedupNode->setInputVar(project->varName());
+        dedupNode->setColNames(std::move(colNames_));
         root_ = dedupNode;
     } else {
         root_ = project;

@@ -137,6 +137,7 @@ TEST_F(QueryValidatorTest, Go) {
         auto plan = std::move(status).value();
         ASSERT_NE(plan, nullptr);
         std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
             PK::kDedup,
             PK::kProject,
             PK::kFilter,
