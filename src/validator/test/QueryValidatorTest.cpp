@@ -130,8 +130,8 @@ TEST_F(QueryValidatorTest, Go) {
         ASSERT_TRUE(verifyPlan(plan->root(), expected));
     }
     {
-        std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like"
-                            "WHERE $^.person.age > 20 YIELD distinct $^.person.name ";
+        std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like WHERE $^.person.age > 20"
+                            "YIELD distinct $^.person.name ";
         auto status = validate(query);
         EXPECT_TRUE(status.ok()) << status.status();
         auto plan = std::move(status).value();
