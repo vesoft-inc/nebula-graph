@@ -80,8 +80,8 @@ public:
     folly::Future<Status> error(Status status) const;
 
 protected:
-    static Executor *makeExecutor(const PlanNode *                         node,
-                                  QueryContext *                           qctx,
+    static Executor *makeExecutor(const PlanNode                          *node,
+                                  QueryContext                            *qctx,
                                   std::unordered_map<int64_t, Executor *> *visited);
 
     // Only allow derived executor to construct

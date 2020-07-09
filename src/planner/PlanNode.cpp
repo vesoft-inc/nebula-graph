@@ -18,41 +18,41 @@ PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
 // static
 const char* PlanNode::toString(Kind kind) {
     switch (kind) {
-        case PlanNode::Kind::kUnknown:
+        case Kind::kUnknown:
             return "Unkonwn";
-        case PlanNode::Kind::kStart:
+        case Kind::kStart:
             return "Start";
-        case PlanNode::Kind::kGetNeighbors:
+        case Kind::kGetNeighbors:
             return "GetNeighbors";
-        case PlanNode::Kind::kGetVertices:
+        case Kind::kGetVertices:
             return "GetVertices";
-        case PlanNode::Kind::kGetEdges:
+        case Kind::kGetEdges:
             return "GetEdges";
-        case PlanNode::Kind::kReadIndex:
+        case Kind::kReadIndex:
             return "ReadIndex";
-        case PlanNode::Kind::kFilter:
+        case Kind::kFilter:
             return "Filter";
-        case PlanNode::Kind::kUnion:
+        case Kind::kUnion:
             return "Union";
-        case PlanNode::Kind::kIntersect:
+        case Kind::kIntersect:
             return "Intersect";
-        case PlanNode::Kind::kMinus:
+        case Kind::kMinus:
             return "Minus";
-        case PlanNode::Kind::kProject:
+        case Kind::kProject:
             return "Project";
-        case PlanNode::Kind::kSort:
+        case Kind::kSort:
             return "Sort";
-        case PlanNode::Kind::kLimit:
+        case Kind::kLimit:
             return "Limit";
-        case PlanNode::Kind::kAggregate:
+        case Kind::kAggregate:
             return "Aggregate";
-        case PlanNode::Kind::kSelect:
+        case Kind::kSelect:
             return "Select";
-        case PlanNode::Kind::kLoop:
+        case Kind::kLoop:
             return "Loop";
-        case PlanNode::Kind::kDedup:
+        case Kind::kDedup:
             return "Dedup";
-        case PlanNode::Kind::kMultiOutputs:
+        case Kind::kMultiOutputs:
             return "MultiOutputs";
         case Kind::kSwitchSpace:
             return "RegisterSpaceToSession";
@@ -68,15 +68,15 @@ const char* PlanNode::toString(Kind kind) {
             return "DescTag";
         case Kind::kDescEdge:
             return "DescEdge";
-        case PlanNode::Kind::kAlterTag:
+        case Kind::kAlterTag:
             return "AlterTag";
-        case PlanNode::Kind::kAlterEdge:
+        case Kind::kAlterEdge:
             return "AlterEdge";
-        case PlanNode::Kind::kInsertVertices:
+        case Kind::kInsertVertices:
             return "InsertVertices";
         case Kind::kInsertEdges:
             return "InsertEdges";
-        case PlanNode::Kind::kDataCollect:
+        case Kind::kDataCollect:
             return "DataCollect";
         // no default so the compiler will warning when lack one enumerate
     }
