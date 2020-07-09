@@ -241,5 +241,40 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
     }
 }
 
+TEST_F(FetchVerticesValidatorTest, FetchVerticesInputFailed) {
+    // mismatched varirable
+    {
+        auto result = GQLParser().parse("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
+                                        "FETCH PROP ON person $b.name");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+
+    // mismatched varirable property
+    {
+        auto result = GQLParser().parse("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
+                                        "FETCH PROP ON person $a.not_exist_property");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+
+    // mismatched input property
+    {
+        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person.name AS name | "
+                                        "FETCH PROP ON person $-.not_exist_property");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+}
+
 }   // namespace graph
 }   // namespace nebula

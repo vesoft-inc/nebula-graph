@@ -96,9 +96,18 @@ Status FetchEdgesValidator::prepareEdges() {
     // from ref, eval in execute
     if (sentence_->isRef()) {
         src_ = sentence_->ref()->moveSrcId();
+        auto status = checkRef(src_.get(), Value::Type::STRING);
+        if (!status.ok()) {
+            return status;
+        }
         ranking_ = sentence_->ref()->moveRank();
+        status = checkRef(ranking_.get(), Value::Type::INT);
+        if (!status.ok()) {
+            return status;
+        }
         dst_ = sentence_->ref()->moveDstId();
-        return Status::OK();
+        status = checkRef(dst_.get(), Value::Type::STRING);
+        return status;
     }
 
     // from constant, eval now

@@ -101,7 +101,7 @@ Status FetchVerticesValidator::prepareVertices() {
     // from ref, eval when execute
     if (sentence_->isRef()) {
         src_ = sentence_->moveRef();
-        return Status::OK();
+        return checkRef(src_.get(), Value::Type::STRING);
     }
 
     // from constant, eval now

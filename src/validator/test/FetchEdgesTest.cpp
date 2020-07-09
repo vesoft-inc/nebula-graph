@@ -266,7 +266,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
 TEST_F(FetchEdgesValidatorTest, FetchEdgesPropFailed) {
     // mismatched tag
     {
-        auto result = GQLParser().parse("FETCH PROP ON edge1 \"1\" YIELD edge2.prop2");
+        auto result = GQLParser().parse("FETCH PROP ON edge1 \"1\"->\"2\" YIELD edge2.prop2");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -276,8 +276,8 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesPropFailed) {
 
     // notexist edge
     {
-        auto result =
-            GQLParser().parse("FETCH PROP ON not_exist_edge \"1\" YIELD not_exist_edge.prop1");
+        auto result = GQLParser().parse("FETCH PROP ON not_exist_edge \"1\"->\"2\" "
+                                        "YIELD not_exist_edge.prop1");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -287,7 +287,49 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesPropFailed) {
 
     // notexist edge property
     {
-        auto result = GQLParser().parse("FETCH PROP ON like \"1\" YIELD like.not_exist_prop");
+        auto result = GQLParser().parse("FETCH PROP ON like \"1\"->\"2\" "
+                                        "YIELD like.not_exist_prop");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+}
+
+TEST_F(FetchEdgesValidatorTest, FetchEdgesInputFailed) {
+    // mismatched variable
+    {
+        auto result = GQLParser().parse(
+            "$a = FETCH PROP ON like \"1\"->\"2\" "
+            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
+            "FETCH PROP ON like $b.src->$b.dst@$b.rank");
+        ASSERT_TRUE(result.ok()) << result.status();
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+
+    // mismatched variable property
+    {
+        auto result = GQLParser().parse(
+            "$a = FETCH PROP ON like \"1\"->\"2\" "
+            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
+            "FETCH PROP ON like $b.src->$b.dst@$b.not_exist_property");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+
+    // mismatched input property
+    {
+        auto result = GQLParser().parse(
+            "FETCH PROP ON like \"1\"->\"2\" "
+            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank | "
+            "FETCH PROP ON like $-.src->$-.dst@$-.not_exist_property");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
