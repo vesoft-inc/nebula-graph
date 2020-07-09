@@ -50,9 +50,7 @@ Status YieldValidator::checkColumnRefAggFun(const YieldClause *clause) const {
     for (auto column : yield->columns()) {
         auto expr = column->expr();
         auto fun = column->getFunName();
-        if ((expr->kind() == Expression::Kind::kInputProperty ||
-             expr->kind() == Expression::Kind::kVarProperty) &&
-            fun.empty()) {
+        if (!evaluableExpr(expr) && fun.empty()) {
             return Status::SyntaxError(
                 "Input columns without aggregation are not supported in YIELD statement "
                 "without GROUP BY, near `%s'",
@@ -99,52 +97,49 @@ Status YieldValidator::checkVarProps() const {
 Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
     auto columns = clause->columns();
     for (auto column : columns) {
-        auto expr = column->expr();
-        bool unfolded = false;
-        switch (DCHECK_NOTNULL(expr)->kind()) {
-            case Expression::Kind::kInputProperty: {
-                auto ipe = static_cast<const InputPropertyExpression *>(expr);
-                // Get all props of input expression could NOT be a part of another expression. So
-                // it's always a root of expression.
-                if (*ipe->prop() == "*") {
-                    for (auto &colDef : inputs_) {
-                        outputs_.emplace_back(colDef);
-                        inputProps_.emplace_back(colDef.first);
-                    }
-                    unfolded = true;
+        auto expr = DCHECK_NOTNULL(column->expr());
+        if (expr->kind() == Expression::Kind::kInputProperty) {
+            auto ipe = static_cast<const InputPropertyExpression *>(expr);
+            // Get all props of input expression could NOT be a part of another expression. So
+            // it's always a root of expression.
+            if (*ipe->prop() == "*") {
+                for (auto &colDef : inputs_) {
+                    outputs_.emplace_back(colDef);
+                    inputProps_.emplace_back(colDef.first);
                 }
-                break;
-            }
-            case Expression::Kind::kVarProperty: {
-                auto vpe = static_cast<const VariablePropertyExpression *>(expr);
-                // Get all props of variable expression is same as above input property expression.
-                if (*vpe->prop() == "*") {
-                    auto var = vpe->sym();
-                    if (!vctx_->existVar(*var)) {
-                        return Status::Error("variable `%s' not exists.", var->c_str());
-                    }
-                    auto &varColDefs = vctx_->getVar(*var);
-                    auto &propsVec = varProps_[*var];
-                    for (auto &colDef : varColDefs) {
-                        outputs_.emplace_back(colDef);
-                        propsVec.emplace_back(colDef.first);
-                    }
-                    unfolded = true;
+                if (!column->getFunName().empty()) {
+                    return Status::SyntaxError("could not apply aggregation function on `$-.*'");
                 }
-                break;
+                continue;
             }
-            default:
-                break;
+        } else if (expr->kind() == Expression::Kind::kVarProperty) {
+            auto vpe = static_cast<const VariablePropertyExpression *>(expr);
+            // Get all props of variable expression is same as above input property expression.
+            if (*vpe->prop() == "*") {
+                auto var = DCHECK_NOTNULL(vpe->sym());
+                if (!vctx_->existVar(*var)) {
+                    return Status::Error("variable `%s' not exists.", var->c_str());
+                }
+                auto &varColDefs = vctx_->getVar(*var);
+                auto &propsVec = varProps_[*var];
+                for (auto &colDef : varColDefs) {
+                    outputs_.emplace_back(colDef);
+                    propsVec.emplace_back(colDef.first);
+                }
+                if (!column->getFunName().empty()) {
+                    return Status::SyntaxError("could not apply aggregation function on `$%s.*'",
+                                               var->c_str());
+                }
+                continue;
+            }
         }
 
-        if (!unfolded) {
-            auto status = deduceExprType(expr);
-            NG_RETURN_IF_ERROR(status);
-            auto type = std::move(status).value();
-            auto name = deduceColName(column);
-            outputs_.emplace_back(name, type);
-            NG_RETURN_IF_ERROR(deduceProps(expr));
-        }
+        auto status = deduceExprType(expr);
+        NG_RETURN_IF_ERROR(status);
+        auto type = std::move(status).value();
+        auto name = deduceColName(column);
+        outputs_.emplace_back(name, type);
+        NG_RETURN_IF_ERROR(deduceProps(expr));
 
         auto fun = column->getFunName();
         if (!fun.empty()) {
@@ -178,44 +173,35 @@ YieldColumns *YieldValidator::getYieldColumns(YieldColumns *yieldColumns,
     auto newColumns = objPool->add(new YieldColumns);
     for (auto &column : oldColumns) {
         auto expr = column->expr();
-        bool unfolded = false;
-        switch (expr->kind()) {
-            case Expression::Kind::kInputProperty: {
-                auto ipe = static_cast<const InputPropertyExpression *>(expr);
-                if (*ipe->prop() == "*") {
-                    for (auto &colDef : inputs_) {
-                        newColumns->addColumn(new YieldColumn(
-                            new InputPropertyExpression(new std::string(colDef.first))));
-                    }
-                    unfolded = true;
+        if (expr->kind() == Expression::Kind::kInputProperty) {
+            auto ipe = static_cast<const InputPropertyExpression *>(expr);
+            if (*ipe->prop() == "*") {
+                for (auto &colDef : inputs_) {
+                    newColumns->addColumn(new YieldColumn(
+                        new InputPropertyExpression(new std::string(colDef.first))));
                 }
-                break;
+                continue;
             }
-            case Expression::Kind::kVarProperty: {
-                auto vpe = static_cast<const VariablePropertyExpression *>(expr);
-                if (*vpe->prop() == "*") {
-                    auto sym = vpe->sym();
-                    CHECK(vctx_->existVar(*sym));
-                    auto &varColDefs = vctx_->getVar(*sym);
-                    for (auto &colDef : varColDefs) {
-                        newColumns->addColumn(new YieldColumn(new VariablePropertyExpression(
-                            new std::string(*sym), new std::string(colDef.first))));
-                    }
-                    unfolded = true;
+        } else if (expr->kind() == Expression::Kind::kVarProperty) {
+            auto vpe = static_cast<const VariablePropertyExpression *>(expr);
+            if (*vpe->prop() == "*") {
+                auto sym = vpe->sym();
+                CHECK(vctx_->existVar(*sym));
+                auto &varColDefs = vctx_->getVar(*sym);
+                for (auto &colDef : varColDefs) {
+                    newColumns->addColumn(new YieldColumn(new VariablePropertyExpression(
+                        new std::string(*sym), new std::string(colDef.first))));
                 }
-                break;
+                continue;
             }
-            default:
-                break;
         }
-        if (!unfolded) {
-            auto newExpr = Expression::decode(column->expr()->encode());
-            std::string *alias = nullptr;
-            if (column->alias() != nullptr) {
-                alias = new std::string(*column->alias());
-            }
-            newColumns->addColumn(new YieldColumn(newExpr.release(), alias));
+
+        auto newExpr = Expression::decode(column->expr()->encode());
+        std::string *alias = nullptr;
+        if (column->alias() != nullptr) {
+            alias = new std::string(*column->alias());
         }
+        newColumns->addColumn(new YieldColumn(newExpr.release(), alias));
     }
     return newColumns;
 }
@@ -224,34 +210,43 @@ Status YieldValidator::toPlan() {
     auto yield = static_cast<const YieldSentence *>(sentence_);
     auto plan = qctx_->plan();
 
+    Filter *filter = nullptr;
+    if (yield->where()) {
+        filter = Filter::make(plan, nullptr, yield->where()->filter());
+        std::vector<std::string> colNames(inputs_.size());
+        std::transform(
+            inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &in) { return in.first; });
+        filter->setColNames(std::move(colNames));
+    }
+
+    SingleInputNode *dedupDep = nullptr;
+    if (!hasAggFun_) {
+        auto yieldColumns =
+            getYieldColumns(yield->yieldColumns(), plan->objPool(), outputs_.size());
+        dedupDep = Project::make(plan, filter, yieldColumns);
+    } else {
+        dedupDep = Aggregate::make(plan, filter, yield->yieldColumns());
+    }
+
     std::vector<std::string> outputColumns(outputs_.size());
     std::transform(outputs_.cbegin(), outputs_.cend(), outputColumns.begin(), [](auto &colDef) {
         return colDef.first;
     });
-
-    Filter *filter = nullptr;
-    if (yield->where()) {
-        filter = Filter::make(plan, nullptr, yield->where()->filter());
-        filter->setColNames(outputColumns);
-    }
-
-    auto yieldColumns = getYieldColumns(yield->yieldColumns(), plan->objPool(), outputs_.size());
-    auto project = Project::make(plan, filter, yieldColumns);
-    project->setColNames(outputColumns);
+    dedupDep->setColNames(std::move(outputColumns));
     if (filter != nullptr) {
-        project->setInputVar(filter->varName());
+        dedupDep->setInputVar(filter->varName());
         tail_ = filter;
     } else {
-        tail_ = project;
+        tail_ = dedupDep;
     }
 
     if (yield->yield()->isDistinct()) {
-        auto dedup = Dedup::make(plan, project);
-        dedup->setColNames(outputColumns);
-        dedup->setInputVar(project->varName());
+        auto dedup = Dedup::make(plan, dedupDep);
+        dedup->setColNames(dedupDep->colNames());
+        dedup->setInputVar(dedupDep->varName());
         root_ = dedup;
     } else {
-        root_ = project;
+        root_ = dedupDep;
     }
 
     return Status::OK();

@@ -62,7 +62,12 @@ TEST_F(YieldValidatorTest, DISABLED_HashCall) {
     }
 }
 
-TEST_F(YieldValidatorTest, DISABLED_Logic) {
+TEST_F(YieldValidatorTest, Logic) {
+    {
+        std::string query = "YIELD NOT FALSE || !FALSE";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+#if 0
     {
         std::string query = "YIELD NOT 0 || 0 AND 0 XOR 0";
         EXPECT_TRUE(checkResult(query, expected_));
@@ -75,7 +80,6 @@ TEST_F(YieldValidatorTest, DISABLED_Logic) {
         std::string query = "YIELD (NOT 0 || 0) AND 0 XOR 1";
         EXPECT_TRUE(checkResult(query, expected_));
     }
-#if 0
     {
         std::string query = "YIELD 2.5 % 1.2 ^ 1.6";
         EXPECT_TRUE(checkResult(query, expected_));
@@ -95,11 +99,10 @@ TEST_F(YieldValidatorTest, DISABLED_InCall) {
 }
 
 TEST_F(YieldValidatorTest, YieldPipe) {
-    std::string go = "GO FROM \"%s\" OVER like YIELD "
+    std::string go = "GO FROM \"1\" OVER like YIELD "
                      "$^.person.name as name, like.start as start";
     {
-        auto fmt = go + "| YIELD $-.start";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = go + "| YIELD $-.start";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
@@ -109,20 +112,7 @@ TEST_F(YieldValidatorTest, YieldPipe) {
         EXPECT_TRUE(checkResult(query, expected_));
     }
     {
-        auto fmt = go + "| YIELD $-.start WHERE 1 == 1";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
-        expected_ = {
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kFilter,
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetNeighbors,
-            PlanNode::Kind::kStart,
-        };
-        EXPECT_TRUE(checkResult(query, expected_));
-    }
-    {
-        auto fmt = go + "| YIELD $-.start WHERE $-.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = go + "| YIELD $-.start WHERE 1 == 1";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
@@ -133,8 +123,18 @@ TEST_F(YieldValidatorTest, YieldPipe) {
         EXPECT_TRUE(checkResult(query, expected_));
     }
     {
-        auto fmt = go + "| YIELD $-.*";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = go + "| YIELD $-.start WHERE $-.start > 2005";
+        expected_ = {
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kFilter,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        auto query = go + "| YIELD $-.*";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
@@ -144,8 +144,7 @@ TEST_F(YieldValidatorTest, YieldPipe) {
         EXPECT_TRUE(checkResult(query, expected_));
     }
     {
-        auto fmt = go + "| YIELD $-.* WHERE $-.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = go + "| YIELD $-.* WHERE $-.start > 2005";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
@@ -157,8 +156,7 @@ TEST_F(YieldValidatorTest, YieldPipe) {
     }
 #if 0
     {
-        auto fmt = go + "| YIELD $-.*, hash(123) as hash WHERE $-.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = go + "| YIELD $-.*, hash(123) as hash WHERE $-.start > 2005";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
@@ -169,8 +167,7 @@ TEST_F(YieldValidatorTest, YieldPipe) {
         EXPECT_TRUE(checkResult(query, expected_, {"name", "start", "hash"}));
     }
     {
-        auto fmt = go + "| YIELD DISTINCT $-.*, hash(123) as hash WHERE $-.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = go + "| YIELD DISTINCT $-.*, hash(123) as hash WHERE $-.start > 2005";
         expected_ = {
             PlanNode::Kind::kDataCollect,
             PlanNode::Kind::kDedup,
@@ -183,24 +180,21 @@ TEST_F(YieldValidatorTest, YieldPipe) {
         EXPECT_TRUE(checkResult(query, expected_, {"name", "start", "hash"}));
     }
     {
-        auto fmt = go + "| YIELD DISTINCT hash($-.*) as hash WHERE $-.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = go + "| YIELD DISTINCT hash($-.*) as hash WHERE $-.start > 2005";
         EXPECT_FALSE(checkResult(query));
     }
 #endif
     {
-        auto fmt = go + "| YIELD DISTINCT 1 + $-.* AS e WHERE $-.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = go + "| YIELD DISTINCT 1 + $-.* AS e WHERE $-.start > 2005";
         EXPECT_FALSE(checkResult(query));
     }
 }
 
 TEST_F(YieldValidatorTest, YieldVar) {
-    std::string var = " $var = GO FROM \"%s\" OVER like YIELD "
+    std::string var = " $var = GO FROM \"1\" OVER like YIELD "
                       "$^.person.name as name, like.start as start;";
     {
-        auto fmt = var + "YIELD $var.name";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.name";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
@@ -210,8 +204,7 @@ TEST_F(YieldValidatorTest, YieldVar) {
         EXPECT_TRUE(checkResult(query, expected_, {"$var.name"}));
     }
     {
-        auto fmt = var + "YIELD $var.name WHERE 1 == 1";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.name WHERE 1 == 1";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
@@ -222,8 +215,7 @@ TEST_F(YieldValidatorTest, YieldVar) {
         EXPECT_TRUE(checkResult(query, expected_, {"$var.name"}));
     }
     {
-        auto fmt = var + "YIELD $var.name WHERE $var.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.name WHERE $var.start > 2005";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
@@ -234,8 +226,7 @@ TEST_F(YieldValidatorTest, YieldVar) {
         EXPECT_TRUE(checkResult(query, expected_));
     }
     {
-        auto fmt = var + "YIELD $var.*";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.*";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
@@ -245,8 +236,7 @@ TEST_F(YieldValidatorTest, YieldVar) {
         EXPECT_TRUE(checkResult(query, expected_, {"name", "start"}));
     }
     {
-        auto fmt = var + "YIELD $var.* WHERE $var.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.* WHERE $var.start > 2005";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
@@ -258,8 +248,7 @@ TEST_F(YieldValidatorTest, YieldVar) {
     }
 #if 0
     {
-        auto fmt = var + "YIELD $var.*, hash(123) as hash WHERE $var.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.*, hash(123) as hash WHERE $var.start > 2005";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kFilter,
@@ -271,14 +260,12 @@ TEST_F(YieldValidatorTest, YieldVar) {
     }
 #endif
     {
-        auto fmt = var + "YIELD 2 + $var.* AS e WHERE $var.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD 2 + $var.* AS e WHERE $var.start > 2005";
         EXPECT_FALSE(checkResult(query));
     }
 #if 0
     {
-        auto fmt = var + "YIELD DISTINCT $var.*, hash(123) as hash WHERE $var.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD DISTINCT $var.*, hash(123) as hash WHERE $var.start > 2005";
         expected_ = {
             PlanNode::Kind::kDataCollect,
             PlanNode::Kind::kDedup,
@@ -299,52 +286,45 @@ TEST_F(YieldValidatorTest, Error) {
         auto query = "yield $-";
         EXPECT_FALSE(checkResult(query));
     }
-    std::string var = " $var = GO FROM \"%s\" OVER like YIELD "
+    std::string var = " $var = GO FROM \"1\" OVER like YIELD "
                       "$^.person.name AS name, like.start AS start;";
     {
         // Not support reference input and variable
-        auto fmt = var + "YIELD $var.name WHERE $-.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.name WHERE $-.start > 2005";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()), "Not support both input and variable.");
     }
     {
         // Not support reference two different variable
-        auto fmt = var + "YIELD $var.name WHERE $var1.start > 2005";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.name WHERE $var1.start > 2005";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()), "Only one variable allowed to use.");
     }
     {
         // Reference a non-existed prop is meaningless.
-        auto fmt = var + "YIELD $var.abc";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $var.abc";
         EXPECT_FALSE(checkResult(query));
     }
     {
         // Reference a non-existed prop is meaningless.
-        std::string fmt = "GO FROM \"%s\" OVER like | YIELD $-.abc;";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = "GO FROM \"%s\" OVER like | YIELD $-.abc;";
         EXPECT_FALSE(checkResult(query));
     }
     {
         // Reference properties in single yield sentence is meaningless.
-        auto fmt = var + "YIELD $$.person.name";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $$.person.name";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
                   "SyntaxError: Only support input and variable in yield sentence.");
     }
     {
-        auto fmt = var + "YIELD $^.person.name";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD $^.person.name";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
                   "SyntaxError: Only support input and variable in yield sentence.");
     }
     {
-        auto fmt = var + "YIELD like.start";
-        auto query = folly::stringPrintf(fmt.c_str(), "1");
+        auto query = var + "YIELD like.start";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
                   "SyntaxError: Only support input and variable in yield sentence.");
@@ -365,11 +345,10 @@ TEST_F(YieldValidatorTest, AggCall) {
         EXPECT_TRUE(checkResult(query));
     }
     {
-        auto *fmt = "GO FROM \"%s\" OVER like "
-                    "YIELD $^.person.age AS age, "
-                    "like.likeness AS like"
-                    "| YIELD COUNT(*), $-.age";
-        auto query = folly::stringPrintf(fmt, "1");
+        auto query = "GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like"
+                     "| YIELD COUNT(*), $-.age";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
                   "SyntaxError: Input columns without aggregation are not supported in YIELD "
@@ -377,13 +356,67 @@ TEST_F(YieldValidatorTest, AggCall) {
     }
     // Test input
     {
-        auto *fmt = "GO FROM \"%s\" OVER like "
-                    "YIELD $^.person.age AS age, "
-                    "like.likeness AS like"
-                    "| YIELD AVG($-.age), SUM($-.like), COUNT(*), 1+1";
-        auto query = folly::stringPrintf(fmt, "1");
+        auto query = "GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like"
+                     "| YIELD AVG($-.age), SUM($-.like), COUNT(*), 1+1";
         expected_ = {
+            PlanNode::Kind::kAggregate,
             PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        auto query = "GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like"
+                     "| YIELD AVG($-.age + 1), SUM($-.like), COUNT(*)";
+        expected_ = {
+            PlanNode::Kind::kAggregate,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        auto query = "GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like"
+                     "| YIELD DISTINCT AVG($-.age + 1), SUM($-.like), COUNT(*)";
+        expected_ = {
+            PlanNode::Kind::kDataCollect,
+            PlanNode::Kind::kDedup,
+            PlanNode::Kind::kAggregate,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        auto query = "GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like"
+                     "| YIELD AVG($-.age), SUM($-.like), COUNT(*), $-.age + 1";
+        EXPECT_FALSE(checkResult(query));
+    }
+    {
+        auto query = "GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like"
+                     "| YIELD AVG($-.*)";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "SyntaxError: could not apply aggregation function on `$-.*'");
+    }
+    // Yield field has not input
+    {
+        auto query = "GO FROM \"1\" OVER like | YIELD COUNT(*)";
+        expected_ = {
+            PlanNode::Kind::kAggregate,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
@@ -392,22 +425,7 @@ TEST_F(YieldValidatorTest, AggCall) {
     }
     // Yield field has not input
     {
-        auto *fmt = "GO FROM \"%s\" OVER like "
-                    "| YIELD COUNT(*)";
-        auto query = folly::stringPrintf(fmt, "1");
-        expected_ = {
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetNeighbors,
-            PlanNode::Kind::kStart,
-        };
-        EXPECT_TRUE(checkResult(query, expected_));
-    }
-    // Yield field has not input
-    {
-        auto *fmt = "GO FROM \"%s\" OVER like "
-                    "| YIELD 1";
-        auto query = folly::stringPrintf(fmt, "1");
+        auto query = "GO FROM \"1\" OVER like | YIELD 1";
         expected_ = {
             PlanNode::Kind::kProject,
             PlanNode::Kind::kProject,
@@ -418,18 +436,61 @@ TEST_F(YieldValidatorTest, AggCall) {
     }
     // Test var
     {
-        auto *fmt = "$var = GO FROM \"%s\" OVER like "
-                    "YIELD $^.person.age AS age, "
-                    "like.likeness AS like;"
-                    "YIELD AVG($var.age), SUM($var.like), COUNT(*)";
-        auto query = folly::stringPrintf(fmt, "1");
+        auto query = "$var = GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like;"
+                     "YIELD AVG($var.age), SUM($var.like), COUNT(*)";
         expected_ = {
-            PlanNode::Kind::kProject,
+            PlanNode::Kind::kAggregate,
             PlanNode::Kind::kProject,
             PlanNode::Kind::kGetNeighbors,
             PlanNode::Kind::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        auto query = "$var = GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like;"
+                     "YIELD AVG($var.age), SUM($var.like), COUNT(*), $var.age + 1";
+        EXPECT_FALSE(checkResult(query));
+    }
+    {
+        auto query = "$var = GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like;"
+                     "YIELD AVG($var.age + 1), SUM($var.like), COUNT(*)";
+        expected_ = {
+            PlanNode::Kind::kAggregate,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query));
+    }
+    {
+        auto query = "$var = GO FROM \"1\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like;"
+                     "YIELD DISTINCT AVG($var.age + 1), SUM($var.like), COUNT(*)";
+        expected_ = {
+            PlanNode::Kind::kDataCollect,
+            PlanNode::Kind::kDedup,
+            PlanNode::Kind::kAggregate,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetNeighbors,
+            PlanNode::Kind::kStart,
+        };
+        EXPECT_TRUE(checkResult(query));
+    }
+    {
+        auto query = "$var = GO FROM \"%s\" OVER like "
+                     "YIELD $^.person.age AS age, "
+                     "like.likeness AS like;"
+                     "YIELD AVG($var.*)";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "SyntaxError: could not apply aggregation function on `$var.*'");
     }
 }
 

@@ -24,6 +24,7 @@ Status PipeValidator::validateImpl() {
     rValidator_->setInputs(lValidator_->outputs());
     NG_RETURN_IF_ERROR(rValidator_->validate());
 
+    outputs_ = rValidator_->outputs();
     return Status::OK();
 }
 
