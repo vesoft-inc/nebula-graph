@@ -66,7 +66,7 @@ Status FetchVerticesValidator::toPlan() {
         current = dedupNode;
 
         // the framework will add data collect to collect the result
-        // if the result if required
+        // if the result is required
     }
     root_ = current;
     tail_ = doNode;
