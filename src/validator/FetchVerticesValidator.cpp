@@ -38,7 +38,7 @@ Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
     auto *plan = qctx_->plan();
     auto *doNode = GetVertices::make(plan,
-                                     plan->root(),  // previous root as input
+                                     nullptr,
                                      spaceId_,
                                      std::move(vertices_),
                                      std::move(src_),
