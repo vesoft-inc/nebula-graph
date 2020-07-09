@@ -101,7 +101,12 @@ Status FetchEdgesValidator::prepareEdges() {
             return status;
         }
         ranking_ = sentence_->ref()->moveRank();
-        status = checkRef(ranking_.get(), Value::Type::INT);
+        if (ranking_ == nullptr) {
+            // Default zero if ranking not specified
+            ranking_ = std::make_unique<ConstantExpression>(0);
+        } else {
+            status = checkRef(ranking_.get(), Value::Type::INT);
+        }
         if (!status.ok()) {
             return status;
         }
