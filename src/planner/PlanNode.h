@@ -46,13 +46,25 @@ public:
         kCreateTag,
         kCreateEdge,
         kDescSpace,
+        kShowCreateSpace,
         kDescTag,
         kDescEdge,
         kAlterTag,
         kAlterEdge,
+        kShowSpaces,
+        kShowTags,
+        kShowEdges,
+        kShowCreateTag,
+        kShowCreateEdge,
+        kDropSpace,
+        kDropTag,
+        kDropEdge,
         kInsertVertices,
         kInsertEdges,
         kDataCollect,
+        kCreateSnapshot,
+        kDropSnapshot,
+        kShowSnapshots,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
@@ -97,8 +109,8 @@ public:
         plan_ = plan;
     }
 
-    void setColNames(const std::vector<std::string>& cols) {
-        colNames_ = cols;
+    void setColNames(std::vector<std::string>&& cols) {
+        colNames_ = std::move(cols);
     }
 
     static const char* toString(Kind kind);
