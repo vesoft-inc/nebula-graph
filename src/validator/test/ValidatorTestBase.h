@@ -11,20 +11,64 @@
 
 #include <gtest/gtest.h>
 
+#include "common/base/Base.h"
+
 #include "planner/Query.h"
+#include "parser/GQLParser.h"
+#include "validator/ASTValidator.h"
+#include "context/QueryContext.h"
+#include "planner/ExecutionPlan.h"
+#include "context/ValidateContext.h"
+#include "planner/PlanNode.h"
+#include "validator/test/MockSchemaManager.h"
 
 namespace nebula {
 namespace graph {
-
-std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
-    std::vector<const char*> kinds(plan.size());
-    std::transform(plan.cbegin(), plan.cend(), kinds.begin(), PlanNode::toString);
-    os << "[" << folly::join(", ", kinds) << "]";
-    return os;
-}
-
 class ValidatorTestBase : public ::testing::Test {
 protected:
+    void SetUp() override {
+        session_ = Session::create(0);
+        session_->setSpace("test_space", 1);
+        schemaMng_ = std::make_unique<MockSchemaManager>();
+        schemaMng_->init();
+    }
+
+    void TearDown() override {
+        session_.reset();
+        schemaMng_.reset();
+    }
+
+    std::unique_ptr<QueryContext> buildContext() {
+        auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
+        rctx->setSession(session_);
+        auto qctx = std::make_unique<QueryContext>();
+        qctx->setRctx(std::move(rctx));
+        qctx->setSchemaManager(schemaMng_.get());
+        qctx->setCharsetInfo(CharsetInfo::instance());
+        return qctx;
+    }
+
+    ::testing::AssertionResult checkResult(
+            const std::string& query, const std::vector<PlanNode::Kind>& expected) {
+        auto result = GQLParser().parse(query);
+        if (!result.ok()) {
+            return ::testing::AssertionFailure() << result.status();
+        }
+
+        auto sentences = std::move(result).value();
+        auto context = buildContext();
+        ASTValidator validator(sentences.get(), context.get());
+        auto validateResult = validator.validate();
+        if (!validateResult.ok()) {
+            return ::testing::AssertionFailure() << validateResult;
+        }
+        auto plan = context->plan();
+        if (plan == nullptr) {
+            return ::testing::AssertionFailure() << "plan is nullptr";
+        }
+        return verifyPlan(plan->root(), expected);
+    }
+
     static ::testing::AssertionResult verifyPlan(const PlanNode* root,
                                                  const std::vector<PlanNode::Kind>& expected) {
         if (root == nullptr) {
@@ -60,14 +104,6 @@ protected:
                 case PlanNode::Kind::kStart: {
                     break;
                 }
-                case PlanNode::Kind::kCreateSpace:
-                case PlanNode::Kind::kCreateTag:
-                case PlanNode::Kind::kCreateEdge:
-                case PlanNode::Kind::kDescSpace:
-                case PlanNode::Kind::kDescTag:
-                case PlanNode::Kind::kDescEdge:
-                case PlanNode::Kind::kInsertVertices:
-                case PlanNode::Kind::kInsertEdges:
                 case PlanNode::Kind::kGetNeighbors:
                 case PlanNode::Kind::kGetVertices:
                 case PlanNode::Kind::kGetEdges:
@@ -80,7 +116,15 @@ protected:
                 case PlanNode::Kind::kSwitchSpace:
                 case PlanNode::Kind::kMultiOutputs:
                 case PlanNode::Kind::kDedup:
-                case PlanNode::Kind::kDataCollect: {
+                case PlanNode::Kind::kDataCollect:
+                case PlanNode::Kind::kCreateSpace:
+                case PlanNode::Kind::kCreateTag:
+                case PlanNode::Kind::kCreateEdge:
+                case PlanNode::Kind::kDescSpace:
+                case PlanNode::Kind::kDescTag:
+                case PlanNode::Kind::kDescEdge:
+                case PlanNode::Kind::kInsertVertices:
+                case PlanNode::Kind::kInsertEdges: {
                     auto* current = static_cast<const SingleInputNode*>(node);
                     queue.emplace(current->input());
                     break;
@@ -113,9 +157,15 @@ protected:
             }
         }
     }
+
+protected:
+    std::shared_ptr<Session>              session_;
+    std::unique_ptr<MockSchemaManager>    schemaMng_;
 };
 
+std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan);
 }   // namespace graph
 }   // namespace nebula
 
 #endif   // VALIDATOR_TEST_VALIDATORTESTBASE_H_
+

@@ -20,6 +20,8 @@
 #include "validator/AdminValidator.h"
 #include "validator/MaintainValidator.h"
 #include "validator/MutateValidator.h"
+#include "validator/LimitValidator.h"
+#include "validator/OrderByValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -42,6 +44,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<UseValidator>(sentence, context);
         case Sentence::Kind::kGetSubgraph:
             return std::make_unique<GetSubgraphValidator>(sentence, context);
+        case Sentence::Kind::kLimit:
+            return std::make_unique<LimitValidator>(sentence, context);
+        case Sentence::Kind::kOrderBy:
+            return std::make_unique<OrderByValidator>(sentence, context);
         case Sentence::Kind::kCreateSpace:
             return std::make_unique<CreateSpaceValidator>(sentence, context);
         case Sentence::Kind::kCreateTag:
@@ -54,6 +60,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescTagValidator>(sentence, context);
         case Sentence::Kind::kDescribeEdge:
             return std::make_unique<DescEdgeValidator>(sentence, context);
+        case Sentence::Kind::kAlterTag:
+            return std::make_unique<AlterTagValidator>(sentence, context);
+        case Sentence::Kind::kAlterEdge:
+            return std::make_unique<AlterEdgeValidator>(sentence, context);
         case Sentence::Kind::kInsertVertices:
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
@@ -64,7 +74,7 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
 }
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
-    switch (node->kind()) {
+    switch (DCHECK_NOTNULL(node)->kind()) {
         case PlanNode::Kind::kFilter:
         case PlanNode::Kind::kProject:
         case PlanNode::Kind::kSort:
@@ -72,6 +82,7 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kAggregate:
         case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:
+        case PlanNode::Kind::kMultiOutputs:
         case PlanNode::Kind::kSwitchSpace:
         case PlanNode::Kind::kCreateSpace:
         case PlanNode::Kind::kCreateTag:
@@ -81,7 +92,9 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kDescEdge:
         case PlanNode::Kind::kInsertVertices:
         case PlanNode::Kind::kInsertEdges:
-        case PlanNode::Kind::kGetNeighbors: {
+        case PlanNode::Kind::kGetNeighbors:
+        case PlanNode::Kind::kAlterTag:
+        case PlanNode::Kind::kAlterEdge: {
             static_cast<SingleInputNode*>(node)->setInput(appended);
             break;
         }
@@ -93,9 +106,11 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     return Status::OK();
 }
 
-Status Validator::validate() {
-    Status status;
+Status Validator::appendPlan(PlanNode* tail) {
+    return appendPlan(tail_, DCHECK_NOTNULL(tail));
+}
 
+Status Validator::validate() {
     if (!vctx_) {
         VLOG(1) << "Validate context was not given.";
         return Status::Error("Validate context was not given.");
@@ -108,23 +123,15 @@ Status Validator::validate() {
 
     if (!noSpaceRequired_ && !spaceChosen()) {
         VLOG(1) << "Space was not chosen.";
-        status = Status::Error("Space was not chosen.");
-        return status;
+        return Status::Error("Space was not chosen.");
     }
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
     }
 
-    status = validateImpl();
-    if (!status.ok()) {
-        return status;
-    }
-
-    status = toPlan();
-    if (!status.ok()) {
-        return status;
-    }
+    NG_RETURN_IF_ERROR(validateImpl());
+    NG_RETURN_IF_ERROR(toPlan());
 
     return Status::OK();
 }

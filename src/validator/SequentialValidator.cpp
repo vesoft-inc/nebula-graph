@@ -6,6 +6,8 @@
 
 #include "common/base/Base.h"
 #include "validator/SequentialValidator.h"
+#include "service/GraphFlags.h"
+#include "service/PermissionCheck.h"
 #include "planner/Query.h"
 
 namespace nebula {
@@ -33,11 +35,18 @@ Status SequentialValidator::validateImpl() {
     }
 
     for (auto* sentence : sentences) {
-        auto validator = makeValidator(sentence, qctx_);
-        status = validator->validate();
-        if (!status.ok()) {
-            return status;
+        if (FLAGS_enable_authorize) {
+            auto *session = qctx_->rctx()->session();
+            /**
+             * Skip special operations check at here. they are :
+             * kUse, kDescribeSpace, kRevoke and kGrant.
+             */
+            if (!PermissionCheck::permissionCheck(DCHECK_NOTNULL(session), sentence)) {
+                return Status::PermissionError("Permission denied");
+            }
         }
+        auto validator = makeValidator(sentence, qctx_);
+        NG_RETURN_IF_ERROR(validator->validate());
         validators_.emplace_back(std::move(validator));
     }
 
@@ -47,14 +56,12 @@ Status SequentialValidator::validateImpl() {
 Status SequentialValidator::toPlan() {
     auto* plan = qctx_->plan();
     root_ = validators_.back()->root();
-    for (decltype(validators_.size()) i = 0; i < (validators_.size() - 1); ++i) {
-        auto status = Validator::appendPlan(validators_[i + 1]->tail(), validators_[i]->root());
-        if (!status.ok()) {
-            return status;
-        }
+    ifBuildDataCollectForRoot(root_);
+    for (auto iter = validators_.begin(); iter < validators_.end() - 1; ++iter) {
+        NG_RETURN_IF_ERROR((iter + 1)->get()->appendPlan(iter->get()->root()));
     }
     tail_ = StartNode::make(plan);
-    Validator::appendPlan(validators_[0]->tail(), tail_);
+    NG_RETURN_IF_ERROR(validators_.front()->appendPlan(tail_));
     return Status::OK();
 }
 
@@ -66,5 +73,23 @@ const Sentence* SequentialValidator::getFirstSentence(const Sentence* sentence) 
     return getFirstSentence(pipe->left());
 }
 
+void SequentialValidator::ifBuildDataCollectForRoot(PlanNode* root) {
+    switch (root->kind()) {
+        case PlanNode::Kind::kSort:
+        case PlanNode::Kind::kLimit:
+        case PlanNode::Kind::kDedup:
+        case PlanNode::Kind::kUnion:
+        case PlanNode::Kind::kIntersect:
+        case PlanNode::Kind::kMinus: {
+            auto* dc = DataCollect::make(qctx_->plan(), root,
+                DataCollect::CollectKind::kRowBasedMove, {root->varName()});
+            dc->setColNames(root->colNames());
+            root_ = dc;
+            break;
+        }
+        default:
+            break;
+    }
+}
 }  // namespace graph
 }  // namespace nebula

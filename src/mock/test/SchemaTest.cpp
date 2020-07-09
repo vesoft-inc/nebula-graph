@@ -112,12 +112,19 @@ TEST_F(SchemaTest, TestTag) {
         ASSERT_TRUE(resp.__isset.data);
         ASSERT_EQ(expect, *resp.get_data());
     }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE SPACE A; USE A; "
+                            "CREATE TAG tag1(name STRING, age INT8, grade FIXED_STRING(10));";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
 }
 
 TEST_F(SchemaTest, TestEdge) {
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "CREATE EDGE schoolmate(start int, end int);";
+        std::string query = "USE space_for_default; CREATE EDGE schoolmate(start int, end int);";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
     }
@@ -140,13 +147,96 @@ TEST_F(SchemaTest, TestEdge) {
         expect.rows = std::move(rows);
         ASSERT_EQ(expect, *resp.get_data());
     }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE SPACE B; USE B; "
+                            "CREATE EDGE edge1(name STRING, age INT8, grade FIXED_STRING(10));";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+}
+
+TEST_F(SchemaTest, TestAlterTag) {
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE TAG alterTag(col1 STRING, col2 INT8, "
+                            "col3 DOUBLE, col4 FIXED_STRING(10));";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "ALTER TAG alterTag "
+                            "ADD (col5 TIMESTAMP, col6 DATE NOT NULL), "
+                            "CHANGE (col2 INT8 DEFAULT 10), "
+                            "DROP (col4)";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DESC TAG alterTag;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        ASSERT_TRUE(resp.__isset.data);
+        std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {
+                {Value("col1"), Value("string"), Value("YES"), Value()},
+                {Value("col2"), Value("int8"), Value("YES"), Value(10)},
+                {Value("col3"), Value("double"), Value("YES"), Value()},
+                {Value("col5"), Value("timestamp"), Value("YES"), Value()},
+                {Value("col6"), Value("date"), Value("NO"), Value()}};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
+}
+
+TEST_F(SchemaTest, TestAlterEdge) {
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "CREATE EDGE alterEdge(col1 STRING, col2 INT8, "
+                            "col3 DOUBLE, col4 FIXED_STRING(10));";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        }
+        {
+        cpp2::ExecutionResponse resp;
+        std::string query = "ALTER EDGE alterEdge "
+                            "ADD (col5 TIMESTAMP, col6 DATE NOT NULL), "
+                            "CHANGE (col2 INT8 DEFAULT 10), "
+                            "DROP (col4)";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "DESC EDGE alterEdge;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+        ASSERT_TRUE(resp.__isset.data);
+        std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
+        ASSERT_TRUE(verifyColNames(resp, colNames));
+        std::vector<std::vector<Value>> values = {
+                {Value("col1"), Value("string"), Value("YES"), Value()},
+                {Value("col2"), Value("int8"), Value("YES"), Value(10)},
+                {Value("col3"), Value("double"), Value("YES"), Value()},
+                {Value("col5"), Value("timestamp"), Value("YES"), Value()},
+                {Value("col6"), Value("date"), Value("NO"), Value()}};
+        ASSERT_TRUE(verifyValues(resp, values));
+    }
 }
 
 TEST_F(SchemaTest, TestInsert) {
     sleep(FLAGS_heartbeat_interval_secs + 1);
     {
         cpp2::ExecutionResponse resp;
-        std::string query = "INSERT VERTEX student(name, age, grade) "
+        std::string query = "USE space_for_default;";
+        auto code = client_->execute(query, resp);
+        ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
+    }
+    {
+        cpp2::ExecutionResponse resp;
+        std::string query = "USE space_for_default; INSERT VERTEX student(name, age, grade) "
                             "VALUES \"Tom\":(\"Tom\", 18, \"three\");";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
