@@ -44,13 +44,13 @@ Status GoValidator::validateImpl() {
 
         if (!inputProps_.empty() && fromType_ != kPipe) {
             status = Status::Error("$- must be referred in FROM "
-                                    "before used in WHERE or YIELD");
+                                   "before used in WHERE or YIELD");
             break;
         }
 
         if (!varProps_.empty() && fromType_ != kVariable) {
             status = Status::Error("A variable must be referred in FROM "
-                                    "before used in WHERE or YIELD");
+                                   "before used in WHERE or YIELD");
             break;
         }
 
@@ -121,7 +121,7 @@ Status GoValidator::validateFrom(const FromClause* from) {
             if (type.value() != Value::Type::STRING) {
                 std::stringstream ss;
                 ss << "`" << src->toString() << "', the srcs should be type of string, "
-                    << "but was`" << type.value() << "'";
+                   << "but was`" << type.value() << "'";
                 return Status::Error(ss.str());
             }
             src_ = src;
@@ -184,7 +184,7 @@ Status GoValidator::validateWhere(const WhereClause* where) {
     if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE) {
         std::stringstream ss;
         ss << "`" << filter_->toString() << "', Filter only accpet bool/null value, "
-            << "but was `" << type << "'";
+           << "but was `" << type << "'";
         return Status::Error(ss.str());
     }
 
@@ -384,18 +384,17 @@ Status GoValidator::buildOneStepPlan() {
 std::string GoValidator::buildInput() {
     auto input = vctx_->varGen()->getVar();
     DataSet ds;
-    ds.colNames.emplace_back("_vid");
+    ds.colNames.emplace_back(kVid);
     for (auto& vid : starts_) {
         Row row;
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(input,
-            ExecResult::buildSequential(Value(std::move(ds))));
+    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
 
     auto* vids = new VariablePropertyExpression(
                     new std::string(input),
-                    new std::string("_vid"));
+                    new std::string(kVid));
     qctx_->plan()->saveObject(vids);
     src_ = vids;
     return input;

@@ -19,11 +19,12 @@ folly::Future<Status> DedupExecutor::execute() {
         return Status::Error("Internal Error: iterator is nullptr");
     }
 
-    if (iter->kind() == Iterator::Kind::kGetNeighbors) {
+    if (iter->isGetNeighborsIter()) {
         LOG(INFO) << "Invalid iterator kind: " << static_cast<uint16_t>(iter->kind());
         return Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
     }
-    auto result = ExecResult::buildDefault(iter->valuePtr());
+    ResultBuilder builder;
+    builder.value(iter->valuePtr());
     ExpressionContextImpl ctx(ectx_, iter.get());
     std::unordered_set<const Row *> unique;
     while (iter->valid()) {
@@ -35,8 +36,8 @@ folly::Future<Status> DedupExecutor::execute() {
         }
     }
     iter->reset();
-    result.setIter(std::move(iter));
-    return finish(std::move(result));
+    builder.iter(std::move(iter));
+    return finish(builder.finish());
 }
 
 }   // namespace graph
