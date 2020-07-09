@@ -102,6 +102,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "DropSnapshot";
         case PlanNode::Kind::kShowSnapshots:
             return "ShowSnapshots";
+        case PlanNode::Kind::kDataJoin:
+            return "DataJoin";
         default:
             LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(kind);
     }

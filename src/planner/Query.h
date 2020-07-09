@@ -908,6 +908,43 @@ private:
     std::vector<std::string>    vars_;
 };
 
+/**
+ * An implementation of left join which join two given variable.
+ */
+class DataJoin final : public SingleInputNode {
+public:
+    static DataJoin* make(ExecutionPlan* plan,
+                          PlanNode* input,
+                          std::pair<std::string, std::string> vars,
+                          std::vector<Expression*> hashKeys,
+                          std::vector<Expression*> probeKeys,
+                          YieldColumns* cols) {
+        return new DataJoin(plan, input, std::move(vars), std::move(hashKeys),
+                            std::move(probeKeys), cols);
+    }
+
+    std::string explain() const override {
+        return "DataJoin";
+    }
+
+private:
+    DataJoin(ExecutionPlan* plan, PlanNode* input,
+            std::pair<std::string, std::string> vars,
+            std::vector<Expression*> hashKeys, std::vector<Expression*> probeKeys,
+            YieldColumns* cols)
+        : SingleInputNode(plan, Kind::kDataJoin, input),
+        vars_(std::move(vars)),
+        hashKeys_(std::move(hashKeys)),
+        probeKeys_(std::move(probeKeys)),
+        cols_(cols) {}
+
+private:
+    std::pair<std::string, std::string>     vars_;
+    std::vector<Expression*>                hashKeys_;
+    std::vector<Expression*>                probeKeys_;
+    YieldColumns*                           cols_{nullptr};
+};
+
 class ProduceSemiShortestPath : public PlanNode {
 };
 
