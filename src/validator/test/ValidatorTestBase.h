@@ -34,7 +34,7 @@ public:
     void SetUp() override {
         session_ = Session::create(0);
         session_->setSpace("test_space", 1);
-        schemaMng_ = CHECK_NOTNULL(MockSchemaManager::make_unique());
+        schemaMng_ = CHECK_NOTNULL(MockSchemaManager::makeUnique());
         qCtx_ = buildContext();
         expectedQueryCtx_ = buildContext();
     }

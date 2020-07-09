@@ -19,7 +19,7 @@ public:
     MockSchemaManager() = default;
     ~MockSchemaManager() = default;
 
-    static std::unique_ptr<MockSchemaManager> make_unique() {
+    static std::unique_ptr<MockSchemaManager> makeUnique() {
         auto instance = std::make_unique<MockSchemaManager>();
         instance->init();
         return instance;
