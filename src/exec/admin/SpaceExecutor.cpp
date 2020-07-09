@@ -40,7 +40,7 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 DataSet dataSet;
                 dataSet.colNames = {"ID",
                                     "Name",
-                                    "Partition number",
+                                    "Partition Number",
                                     "Replica Factor",
                                     "Vid Size",
                                     "Charset",
