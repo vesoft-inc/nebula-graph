@@ -59,7 +59,7 @@ TEST_F(SchemaTest, TestSpace) {
         std::string query = "DESC SPACE space_for_default;";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
-        std::vector<std::string> colNames = {"ID", "Name", "Partition number", "Replica Factor",
+        std::vector<std::string> colNames = {"ID", "Name", "Partition Number", "Replica Factor",
                                              "Vid Size", "Charset", "Collate"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<Value> values = {1, "space_for_default", 9,
