@@ -43,21 +43,26 @@ Status FetchVerticesValidator::toPlan() {
                                      std::move(orderBy_),
                                      limit_,
                                      std::move(filter_));
+    PlanNode *current = doNode;
     // the framework need to set the input var
 
-    PlanNode *current = doNode;
+    const auto *yield = sentence_->yieldClause();
+    std::vector<std::string> colNames;
+    if (yield != nullptr) {
+        colNames = deduceColNames(yield->yields());
+    }
     if (withProject_) {
         auto *projectNode = Project::make(
             plan, current, sentence_->yieldClause()->yields());
         projectNode->setInputVar(current->varName());
-        // TODO(shylock) waiting expression toString
-        projectNode->setColNames(deduceColNames(projectNode->columns()));
+        projectNode->setColNames(colNames);
         current = projectNode;
     }
     // Project select properties then dedup
     if (dedup_) {
         auto *dedupNode = Dedup::make(plan, current);
         dedupNode->setInputVar(current->varName());
+        dedupNode->setColNames(colNames);
         current = dedupNode;
 
         // the framework will add data collect to collect the result

@@ -247,12 +247,15 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   std::move(props),
                                   std::move(exprs));
 
+        std::vector<std::string> colNames{"like.start", "like.end"};
         // dedup
         auto *dedup = Dedup::make(expectedQueryCtx_->plan(), ge);
+        dedup->setColNames(colNames);
 
         // data collect
         auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(), dedup,
             DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
+        dataCollect->setColNames(colNames);
 
         expectedQueryCtx_->plan()->setRoot(dataCollect);
         auto result = Eq(plan->root(), dataCollect);

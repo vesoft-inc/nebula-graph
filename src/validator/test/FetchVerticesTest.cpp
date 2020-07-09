@@ -179,12 +179,15 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
 
+        std::vector<std::string> colNames{"person.name", "person.age"};
         // dedup
         auto *dedup = Dedup::make(expectedQueryCtx_->plan(), gv);
+        dedup->setColNames(colNames);
 
         // data collect
         auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(), dedup,
             DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
+        dataCollect->setColNames(colNames);
 
         auto result = Eq(plan->root(), dataCollect);
         ASSERT_TRUE(result.ok()) << result;
