@@ -12,12 +12,7 @@ namespace nebula {
 namespace graph {
 
 Status FetchVerticesValidator::validateImpl() {
-    auto status = Status::OK();
-    if (!spaceChosen()) {
-        return Status::Error("Please choose a graph space with `USE spaceName' firstly");
-    }
-
-    status = check();
+    auto status = check();
     if (!status.ok()) {
         return status;
     }
