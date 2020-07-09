@@ -57,16 +57,16 @@ protected:
             return TestError() << "query failed: "
                                << cpp2::_ErrorCode_VALUES_TO_NAMES.at(resp.get_error_code());
         }
-        bool hasData = resp.__isset.data;
-        if (!hasData && expected.empty()) {
+        bool emptyData = resp.__isset.data ? resp.get_data()->colNames.empty() : true;
+        if (emptyData && expected.empty()) {
             return TestOK();
         }
 
-        if (!hasData) {
+        if (emptyData) {
             return TestError() << "data is empty";
         }
 
-        auto colNames = resp.get_data()->colNames;
+        const auto &colNames = resp.get_data()->colNames;
 
         if (colNames.size() != expected.size()) {
             return TestError() << "ColNames' count not match: "
@@ -74,8 +74,8 @@ protected:
         }
         for (auto i = 0u; i < colNames.size(); i++) {
             if (colNames[i] != expected[i]) {
-                return TestError() << "wrong size, result size: " << colNames.size()
-                                   << ", expect size: " << expected.size();
+                return TestError() << "resp colName: " << colNames[i]
+                                   << ", expect colName: " << expected[i];
             }
         }
         return TestOK();
@@ -95,16 +95,16 @@ protected:
                                << cpp2::_ErrorCode_VALUES_TO_NAMES.at(resp.get_error_code());
         }
 
-        bool hasData = resp.__isset.data;
-        if (!hasData && expected.empty()) {
+        bool emptyData = resp.__isset.data ? resp.get_data()->rows.empty() : true;
+        if (emptyData && expected.empty()) {
             return TestOK();
         }
 
-        if (!hasData) {
+        if (emptyData) {
             return TestError() << "data is empty";
         }
 
-        auto rows = resp.get_data()->rows;
+        const auto &rows = resp.get_data()->rows;
 
         if (rows.size() != expected.size()) {
             return TestError() << "rows' count not match: "

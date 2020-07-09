@@ -16,7 +16,7 @@ PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
 }
 
 // static
-const char* PlanNode::toString(Kind kind) {
+const char* PlanNode::toString(PlanNode::Kind kind) {
     switch (kind) {
         case Kind::kUnknown:
             return "Unkonwn";
@@ -78,6 +78,30 @@ const char* PlanNode::toString(Kind kind) {
             return "InsertEdges";
         case Kind::kDataCollect:
             return "DataCollect";
+        case PlanNode::Kind::kShowCreateSpace:
+            return "ShowCreateSpace";
+        case PlanNode::Kind::kShowCreateTag:
+            return "ShowCreateTag";
+        case PlanNode::Kind::kShowCreateEdge:
+            return "ShowCreateEdge";
+        case PlanNode::Kind::kDropSpace:
+            return "DropSpace";
+        case PlanNode::Kind::kDropTag:
+            return "DropTag";
+        case PlanNode::Kind::kDropEdge:
+            return "DropEdge";
+        case PlanNode::Kind::kShowSpaces:
+            return "kShowSpaces";
+        case PlanNode::Kind::kShowTags:
+            return "kShowTags";
+        case PlanNode::Kind::kShowEdges:
+            return "kShowEdges";
+        case PlanNode::Kind::kCreateSnapshot:
+            return "CreateSnapshot";
+        case PlanNode::Kind::kDropSnapshot:
+            return "DropSnapshot";
+        case PlanNode::Kind::kShowSnapshots:
+            return "ShowSnapshots";
         // no default so the compiler will warning when lack one enumerate
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);

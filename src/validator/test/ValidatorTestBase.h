@@ -160,9 +160,21 @@ protected:
                 case PlanNode::Kind::kDescTag:
                 case PlanNode::Kind::kDescEdge:
                 case PlanNode::Kind::kInsertVertices:
-                case PlanNode::Kind::kInsertEdges: {
+                case PlanNode::Kind::kInsertEdges:
+                case PlanNode::Kind::kShowCreateSpace:
+                case PlanNode::Kind::kShowCreateTag:
+                case PlanNode::Kind::kShowCreateEdge:
+                case PlanNode::Kind::kDropSpace:
+                case PlanNode::Kind::kDropTag:
+                case PlanNode::Kind::kDropEdge:
+                case PlanNode::Kind::kShowSpaces:
+                case PlanNode::Kind::kShowTags:
+                case PlanNode::Kind::kShowEdges:
+                case PlanNode::Kind::kCreateSnapshot:
+                case PlanNode::Kind::kDropSnapshot:
+                case PlanNode::Kind::kShowSnapshots: {
                     auto* current = static_cast<const SingleInputNode*>(node);
-                    queue.emplace(current->input());
+                    queue.emplace(current->dep());
                     break;
                 }
                 case PlanNode::Kind::kUnion:
@@ -175,7 +187,7 @@ protected:
                 }
                 case PlanNode::Kind::kSelect: {
                     auto* current = static_cast<const Select*>(node);
-                    queue.emplace(current->input());
+                    queue.emplace(current->dep());
                     queue.emplace(current->then());
                     if (current->otherwise() != nullptr) {
                         queue.emplace(current->otherwise());
@@ -184,7 +196,7 @@ protected:
                 }
                 case PlanNode::Kind::kLoop: {
                     auto* current = static_cast<const Loop*>(node);
-                    queue.emplace(current->input());
+                    queue.emplace(current->dep());
                     queue.emplace(current->body());
                     break;
                 }

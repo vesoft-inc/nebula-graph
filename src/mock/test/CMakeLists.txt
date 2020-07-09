@@ -85,3 +85,19 @@ nebula_add_test(
         proxygenlib
         wangle
 )
+
+nebula_add_test(
+    NAME
+        snapshot_test
+    SOURCES
+        SnapshotTest.cpp
+    OBJECTS
+        ${GRAPH_TEST_LIB}
+    LIBRARIES
+        proxygenhttpserver
+        proxygenlib
+        ${THRIFT_LIBRARIES}
+        wangle
+        gtest
+        gtest_main
+)

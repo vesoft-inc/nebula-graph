@@ -67,6 +67,18 @@ namespace graph {
         case PlanNode::Kind::kLoop:
         case PlanNode::Kind::kAlterEdge:
         case PlanNode::Kind::kAlterTag:
+        case PlanNode::Kind::kShowCreateSpace:
+        case PlanNode::Kind::kShowCreateTag:
+        case PlanNode::Kind::kShowCreateEdge:
+        case PlanNode::Kind::kDropSpace:
+        case PlanNode::Kind::kDropTag:
+        case PlanNode::Kind::kDropEdge:
+        case PlanNode::Kind::kShowSpaces:
+        case PlanNode::Kind::kShowTags:
+        case PlanNode::Kind::kShowEdges:
+        case PlanNode::Kind::kCreateSnapshot:
+        case PlanNode::Kind::kDropSnapshot:
+        case PlanNode::Kind::kShowSnapshots:
             LOG(FATAL) << "Unimplemented";
         case PlanNode::Kind::kDataCollect: {
             const auto *lDC = static_cast<const DataCollect*>(l);
@@ -218,12 +230,12 @@ namespace graph {
         return result;
     }
 
-    const auto *lSingle = dynamic_cast<const SingleInputNode *>(l);
-    const auto *rSingle = dynamic_cast<const SingleInputNode *>(r);
+    const auto *lSingle = dynamic_cast<const SingleDependencyNode *>(l);
+    const auto *rSingle = dynamic_cast<const SingleDependencyNode *>(r);
     if (lSingle != nullptr) {
-        const auto *lInput = lSingle->input();
-        const auto *rInput = CHECK_NOTNULL(rSingle)->input();
-        return Eq(lInput, rInput);
+        const auto *lDep = lSingle->dep();
+        const auto *rDep = CHECK_NOTNULL(rSingle)->dep();
+        return Eq(lDep, rDep);
     }
 
     const auto *lBi = dynamic_cast<const BiInputNode *>(l);
