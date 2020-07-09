@@ -257,10 +257,9 @@ Status GoValidator::buildOneStepPlan() {
         return Status::Error("Not support get dst yet.");
     }
 
-    Filter* filterNode = nullptr;
     PlanNode *projectInput = gn1;
     if (filter_ != nullptr) {
-        filterNode = Filter::make(plan, gn1, filter_);
+        Filter *filterNode = Filter::make(plan, gn1, filter_);
         filterNode->setInputVar(gn1->varName());
         projectInput = filterNode;
     }
@@ -269,9 +268,8 @@ Status GoValidator::buildOneStepPlan() {
     project->setInputVar(projectInput->varName());
     project->setColNames(std::vector<std::string>(colNames_));
 
-    Dedup* dedupNode = nullptr;
     if (distinct_) {
-        dedupNode = Dedup::make(plan, project);
+        Dedup *dedupNode = Dedup::make(plan, project);
         dedupNode->setInputVar(project->varName());
         dedupNode->setColNames(std::move(colNames_));
         root_ = dedupNode;
