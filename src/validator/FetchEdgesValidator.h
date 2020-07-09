@@ -51,6 +51,8 @@ private:
     // valid when yield expression not require storage
     // So expression like these will be evaluate in Project Executor
     bool withProject_{false};
+    // outputs
+    std::vector<std::string> colNames_;
 };
 
 }   // namespace graph

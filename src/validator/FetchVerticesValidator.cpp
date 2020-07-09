@@ -3,10 +3,9 @@
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
-
 #include "validator/FetchVerticesValidator.h"
-#include <memory>
 #include "planner/Query.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -46,23 +45,17 @@ Status FetchVerticesValidator::toPlan() {
     PlanNode *current = doNode;
     // the framework need to set the input var
 
-    const auto *yield = sentence_->yieldClause();
-    std::vector<std::string> colNames;
-    if (yield != nullptr) {
-        colNames = deduceColNames(yield->yields());
-    }
     if (withProject_) {
-        auto *projectNode = Project::make(
-            plan, current, sentence_->yieldClause()->yields());
+        auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yields());
         projectNode->setInputVar(current->varName());
-        projectNode->setColNames(colNames);
+        projectNode->setColNames(colNames_);
         current = projectNode;
     }
     // Project select properties then dedup
     if (dedup_) {
         auto *dedupNode = Dedup::make(plan, current);
         dedupNode->setInputVar(current->varName());
-        dedupNode->setColNames(colNames);
+        dedupNode->setColNames(colNames_);
         current = dedupNode;
 
         // the framework will add data collect to collect the result
@@ -132,6 +125,42 @@ Status FetchVerticesValidator::prepareProperties() {
             prop.set_tag(tagId_.value());
             // empty for all
             props_.emplace_back(std::move(prop));
+            // outputs
+            // TODO(shylock) let storage output the vid
+            // outputs_.emplace_back(edgeTypeName_ + "." + kVid, Value::Type::STRING);
+            // colNames_.emplace_back(edgeTypeName_ + "." + kVid);
+            for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
+                outputs_.emplace_back(schema_->getFieldName(i),
+                                      SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
+                colNames_.emplace_back(schema_->getFieldName(i));
+            }
+        } else {
+            // all schema properties
+            const auto allTagsResult = qctx_->schemaMng()->getAllVerTagSchema(spaceId_);
+            if (!allTagsResult.ok()) {
+                return std::move(allTagsResult).status();
+            }
+            const auto allTags = std::move(allTagsResult).value();
+            std::vector<std::pair<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>>
+                allTagsSchema;
+            allTagsSchema.reserve(allTags.size());
+            for (const auto &tag : allTags) {
+                allTagsSchema.emplace_back(tag.first, tag.second.back());
+            }
+            std::sort(allTagsSchema.begin(), allTagsSchema.end(), [](const auto &a, const auto &b) {
+                return a.first < b.first;
+            });
+            // TODO(shylock) let storage output the vid
+            // outputs_.emplace_back(edgeTypeName_ + "." + kVid, Value::Type::STRING);
+            // colNames_.emplace_back(edgeTypeName_ + "." + kVid);
+            for (const auto &tagSchema : allTagsSchema) {
+                for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
+                    outputs_.emplace_back(
+                        tagSchema.second->getFieldName(i),
+                        SchemaUtil::propTypeToValueType(tagSchema.second->getFieldType(i)));
+                    colNames_.emplace_back(tagSchema.second->getFieldName(i));
+                }
+            }
         }
     } else {
         CHECK(!sentence_->isAllTagProps()) << "Not supported yield for *.";
@@ -160,7 +189,7 @@ Status FetchVerticesValidator::prepareProperties() {
                     if (schema_->getFieldIndex(*expr->prop()) < 0) {
                         LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
                         return Status::Error("Unknown column `%s' in schema",
-                                                expr->prop()->c_str());
+                                             expr->prop()->c_str());
                     }
                     propsName.emplace_back(*expr->prop());
                 }
@@ -178,6 +207,18 @@ Status FetchVerticesValidator::prepareProperties() {
         }
         prop.set_props(std::move(propsName));
         props_.emplace_back(std::move(prop));
+
+        // outputs
+        colNames_ = deduceColNames(yield->yields());
+        // TODO(shylock) deduce EdgePropertyExpression mistake.
+        // outputs_.reserve(colNames_.size());
+        // for (std::size_t i = 0; i < colNames_.size(); ++i) {
+        // auto typeResult = deduceExprType(yield->columns()[i]->expr());
+        // if (!typeResult.ok()) {
+        // return std::move(typeResult).status();
+        // }
+        // outputs_.emplace_back(colNames_[i], typeResult.value());
+        // }
     }
 
     return Status::OK();

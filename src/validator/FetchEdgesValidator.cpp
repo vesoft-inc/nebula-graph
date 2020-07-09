@@ -6,6 +6,7 @@
 
 #include "validator/FetchEdgesValidator.h"
 #include "planner/Query.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -48,23 +49,17 @@ Status FetchEdgesValidator::toPlan() {
     PlanNode *current = doNode;
     // the framework need to set the input var
 
-    const auto *yield = sentence_->yieldClause();
-    std::vector<std::string> colNames;
-    if (yield != nullptr) {
-        colNames = deduceColNames(yield->yields());
-    }
     if (withProject_) {
-        auto *projectNode = Project::make(
-            plan, current, sentence_->yieldClause()->yields());
+        auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yields());
         projectNode->setInputVar(current->varName());
-        projectNode->setColNames(colNames);
+        projectNode->setColNames(colNames_);
         current = projectNode;
     }
     // Project select the properties then dedup
     if (dedup_) {
         auto *dedupNode = Dedup::make(plan, current);
         dedupNode->setInputVar(current->varName());
-        dedupNode->setColNames(colNames);
+        dedupNode->setColNames(colNames_);
         current = dedupNode;
 
         // the framework will add data collect to collect the result
@@ -188,6 +183,32 @@ Status FetchEdgesValidator::prepareProperties() {
             }
         }
         prop.set_props(std::move(propsName));
+
+        // outpus
+        colNames_ = deduceColNames(yield->yields());
+        outputs_.reserve(colNames_.size());
+        for (std::size_t i = 0; i < colNames_.size(); ++i) {
+            auto typeResult = deduceExprType(yield->columns()[i]->expr());
+            if (!typeResult.ok()) {
+                return std::move(typeResult).status();
+            }
+            outputs_.emplace_back(colNames_[i], typeResult.value());
+        }
+    } else {
+        // no yield
+        outputs_.emplace_back(edgeTypeName_ + "." + kSrc, Value::Type::STRING);
+        colNames_.emplace_back(edgeTypeName_ + "." + kSrc);
+        outputs_.emplace_back(edgeTypeName_ + "." + kType, Value::Type::INT);
+        colNames_.emplace_back(edgeTypeName_ + "." + kType);
+        outputs_.emplace_back(edgeTypeName_ + "." + kRank, Value::Type::INT);
+        colNames_.emplace_back(edgeTypeName_ + "." + kRank);
+        outputs_.emplace_back(edgeTypeName_ + "." + kDst, Value::Type::STRING);
+        colNames_.emplace_back(edgeTypeName_ + "." + kDst);
+        for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
+            outputs_.emplace_back(schema_->getFieldName(i),
+                                  SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
+            colNames_.emplace_back(schema_->getFieldName(i));
+        }
     }
 
     props_.emplace_back(std::move(prop));
