@@ -981,31 +981,54 @@ public:
                           std::pair<std::string, std::string> vars,
                           std::vector<Expression*> hashKeys,
                           std::vector<Expression*> probeKeys,
-                          YieldColumns* cols) {
+                          YieldColumns* lhsCols,
+                          YieldColumns* rhsCols) {
         return new DataJoin(plan, input, std::move(vars), std::move(hashKeys),
-                            std::move(probeKeys), cols);
+                            std::move(probeKeys), lhsCols, rhsCols);
     }
 
     std::string explain() const override {
         return "DataJoin";
     }
 
+    const std::pair<std::string, std::string>& vars() const {
+        return vars_;
+    }
+
+    const std::vector<Expression*>& hashKeys() const {
+        return hashKeys_;
+    }
+
+    const std::vector<Expression*>& probeKeys() const {
+        return probeKeys_;
+    }
+
+    const YieldColumns* lhsCols() const {
+        return lhsCols_;
+    }
+
+    const YieldColumns* rhsCols() const {
+        return rhsCols_;
+    }
+
 private:
     DataJoin(ExecutionPlan* plan, PlanNode* input,
             std::pair<std::string, std::string> vars,
             std::vector<Expression*> hashKeys, std::vector<Expression*> probeKeys,
-            YieldColumns* cols)
+            YieldColumns* lhsCols, YieldColumns* rhsCols)
         : SingleInputNode(plan, Kind::kDataJoin, input),
         vars_(std::move(vars)),
         hashKeys_(std::move(hashKeys)),
         probeKeys_(std::move(probeKeys)),
-        cols_(cols) {}
+        lhsCols_(lhsCols),
+        rhsCols_(rhsCols) {}
 
 private:
     std::pair<std::string, std::string>     vars_;
     std::vector<Expression*>                hashKeys_;
     std::vector<Expression*>                probeKeys_;
-    YieldColumns*                           cols_{nullptr};
+    YieldColumns*                           lhsCols_{nullptr};
+    YieldColumns*                           rhsCols_{nullptr};
 };
 
 class ProduceSemiShortestPath : public PlanNode {
