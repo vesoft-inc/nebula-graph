@@ -23,8 +23,8 @@ StorageCache::StorageCache(uint16_t metaPort) {
     metaClient_ = std::make_unique<meta::MetaClient>(threadPool,
                                                      std::move(hostStatus).value(), options);
     metaClient_->waitForMetadReady();
-
-    mgr_ = meta::SchemaManager::create(metaClient_.get());
+    mgr_ = std::make_unique<meta::ServerBasedSchemaManager>();
+    mgr_->init(metaClient_.get());
 }
 
 Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
