@@ -165,7 +165,10 @@ Status GetSubgraphValidator::toPlan() {
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(vidsToSave, ExecResult::buildSequential(Value(std::move(ds))));
+
+    ResultBuilder builder;
+    builder.value(Value(std::move(ds))).iter(Iterator::Kind::kSequential);
+    qctx_->ectx()->setResult(vidsToSave, builder.finish());
     auto* vids = new VariablePropertyExpression(
                      new std::string(vidsToSave),
                      new std::string(kVid));
@@ -184,7 +187,7 @@ Status GetSubgraphValidator::toPlan() {
 
     auto* columns = new YieldColumns();
     auto* column = new YieldColumn(
-            new EdgePropertyExpression(
+            new VariablePropertyExpression(
                 new std::string("*"),
                 new std::string(kDst)),
             new std::string(kVid));
@@ -232,7 +235,7 @@ Status GetSubgraphValidator::toPlan() {
     column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(gn2->varGenerated()),
-                new std::string("_vid")),
+                new std::string(kVid)),
             new std::string(listOfVids));
     column->setFunction(new std::string("collect"));
     columns->addColumn(column);
@@ -260,4 +263,3 @@ Status GetSubgraphValidator::toPlan() {
 }
 }  // namespace graph
 }  // namespace nebula
-

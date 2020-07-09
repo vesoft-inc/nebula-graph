@@ -18,7 +18,7 @@ protected:
         qctx_ = std::make_unique<QueryContext>();
         {
             DataSet ds1;
-            ds1.colNames = {"_vid",
+            ds1.colNames = {kVid,
                             "_stats",
                             "_tag:tag1:prop1:prop2",
                             "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -52,7 +52,7 @@ protected:
             }
 
             DataSet ds2;
-            ds2.colNames = {"_vid",
+            ds2.colNames = {kVid,
                             "_stats",
                             "_tag:tag2:prop1:prop2",
                             "_edge:-edge2:prop1:prop2:_dst:_rank",
@@ -89,8 +89,9 @@ protected:
             datasets.values.emplace_back(std::move(ds1));
             datasets.values.emplace_back(std::move(ds2));
 
-            qctx_->ectx()->setResult("input_datasets",
-                        ExecResult::buildGetNeighbors(Value(std::move(datasets))));
+            ResultBuilder builder;
+            builder.value(Value(std::move(datasets))).iter(Iterator::Kind::kGetNeighbors);
+            qctx_->ectx()->setResult("input_datasets", builder.finish());
         }
         {
             DataSet ds;
@@ -102,17 +103,20 @@ protected:
                 ds.rows.emplace_back(std::move(row));
             }
             qctx_->ectx()->setResult("input_sequential",
-                        ExecResult::buildSequential(Value(std::move(ds))));
+                                     ResultBuilder().value(Value(std::move(ds))).finish());
         }
         {
             DataSet ds;
-            ds.colNames = {"_vid",
+            ds.colNames = {kVid,
                             "_stats",
                             "_tag:tag1:prop1:prop2",
                             "_edge:+edge1:prop1:prop2:_dst:_rank",
                             "_expr"};
             qctx_->ectx()->setResult("empty_get_neighbors",
-                        ExecResult::buildGetNeighbors(Value(std::move(ds))));
+                                     ResultBuilder()
+                                         .value(Value(std::move(ds)))
+                                         .iter(Iterator::Kind::kGetNeighbors)
+                                         .finish());
         }
     }
 
@@ -145,7 +149,7 @@ TEST_F(DataCollectTest, CollectSubgraph) {
     expected.rows.emplace_back(std::move(row));
 
     EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state().state(), StateDesc::State::kSuccess);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
 }
 
 TEST_F(DataCollectTest, RowBasedMove) {
@@ -165,7 +169,7 @@ TEST_F(DataCollectTest, RowBasedMove) {
     auto& result = qctx_->ectx()->getResult(dc->varName());
 
     EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state().state(), StateDesc::State::kSuccess);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
 }
 
 TEST_F(DataCollectTest, EmptyResult) {
@@ -187,7 +191,7 @@ TEST_F(DataCollectTest, EmptyResult) {
     row.values.emplace_back(Value(List()));
     expected.rows.emplace_back(std::move(row));
     EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state().state(), StateDesc::State::kSuccess);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
 }
 }  // namespace graph
 }  // namespace nebula
