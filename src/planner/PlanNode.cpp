@@ -78,29 +78,29 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "InsertEdges";
         case Kind::kDataCollect:
             return "DataCollect";
-        case PlanNode::Kind::kShowCreateSpace:
+        case Kind::kShowCreateSpace:
             return "ShowCreateSpace";
-        case PlanNode::Kind::kShowCreateTag:
+        case Kind::kShowCreateTag:
             return "ShowCreateTag";
-        case PlanNode::Kind::kShowCreateEdge:
+        case Kind::kShowCreateEdge:
             return "ShowCreateEdge";
-        case PlanNode::Kind::kDropSpace:
+        case Kind::kDropSpace:
             return "DropSpace";
-        case PlanNode::Kind::kDropTag:
+        case Kind::kDropTag:
             return "DropTag";
-        case PlanNode::Kind::kDropEdge:
+        case Kind::kDropEdge:
             return "DropEdge";
-        case PlanNode::Kind::kShowSpaces:
+        case Kind::kShowSpaces:
             return "kShowSpaces";
-        case PlanNode::Kind::kShowTags:
+        case Kind::kShowTags:
             return "kShowTags";
-        case PlanNode::Kind::kShowEdges:
+        case Kind::kShowEdges:
             return "kShowEdges";
-        case PlanNode::Kind::kCreateSnapshot:
+        case Kind::kCreateSnapshot:
             return "CreateSnapshot";
-        case PlanNode::Kind::kDropSnapshot:
+        case Kind::kDropSnapshot:
             return "DropSnapshot";
-        case PlanNode::Kind::kShowSnapshots:
+        case Kind::kShowSnapshots:
             return "ShowSnapshots";
         // no default so the compiler will warning when lack one enumerate
     }
