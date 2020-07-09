@@ -25,6 +25,7 @@ Status AssignmentValidator::validateImpl() {
 
 Status AssignmentValidator::toPlan() {
     root_ = validator_->root();
+    root_->setOutputVar(var_);
     tail_ = validator_->tail();
     return Status::OK();
 }

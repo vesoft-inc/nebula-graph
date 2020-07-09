@@ -64,7 +64,7 @@ TEST_F(YieldValidatorTest, DISABLED_HashCall) {
 
 TEST_F(YieldValidatorTest, Logic) {
     {
-        std::string query = "YIELD NOT FALSE || !FALSE";
+        std::string query = "YIELD NOT TRUE || !FALSE";
         EXPECT_TRUE(checkResult(query, expected_));
     }
 #if 0
