@@ -29,6 +29,7 @@ Status PipeValidator::validateImpl() {
         return status;
     }
 
+    outputs_ = rValidator_->outputs();
     return Status::OK();
 }
 

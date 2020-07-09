@@ -16,7 +16,7 @@ TEST_F(MaintainValidatorTest, SpaceTest) {
     std::vector<PlanNode::Kind> expected = {
         PK::kDescSpace, PK::kCreateSpace, PK::kStart
     };
-    ASSERT_TRUE(checkResult("CREATE SPACE TEST; DESC SPACE TEST;", expected));
+    ASSERT_TRUE(checkResult("CREATE SPACE TEST; DESC SPACE TEST;", expected, false));
 }
 
 TEST_F(MaintainValidatorTest, TagTest) {
@@ -24,7 +24,7 @@ TEST_F(MaintainValidatorTest, TagTest) {
         std::vector<PlanNode::Kind> expected = {
             PK::kDescTag, PK::kCreateTag, PK::kStart
         };
-        ASSERT_TRUE(checkResult("CREATE TAG TEST(); DESC TAG TEST;", expected));
+        ASSERT_TRUE(checkResult("CREATE TAG TEST(); DESC TAG TEST;", expected, false));
     }
     // the same name schema
     {
@@ -37,7 +37,7 @@ TEST_F(MaintainValidatorTest, EdgeTest) {
         std::vector<PlanNode::Kind> expected = {
             PK::kDescEdge, PK::kCreateEdge, PK::kStart
         };
-        ASSERT_TRUE(checkResult("CREATE EDGE TEST(); DESC EDGE TEST;", expected));
+        ASSERT_TRUE(checkResult("CREATE EDGE TEST(); DESC EDGE TEST;", expected, false));
     }
     // the same name schema
     {

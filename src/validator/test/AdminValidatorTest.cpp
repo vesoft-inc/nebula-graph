@@ -17,13 +17,13 @@ TEST_F(AdminValidatorTest, SpaceTest) {
         std::vector<PlanNode::Kind> expected = {
             PK::kDescSpace, PK::kCreateSpace, PK::kStart
         };
-        ASSERT_TRUE(checkResult("CREATE SPACE TEST; DESC SPACE TEST;", expected));
+        ASSERT_TRUE(checkResult("CREATE SPACE TEST; DESC SPACE TEST;", expected, false));
     }
     {
         std::vector<PlanNode::Kind> expected = {
             PK::kSwitchSpace, PK::kCreateSpace, PK::kStart
         };
-        ASSERT_TRUE(checkResult("CREATE SPACE TEST; USE TEST;", expected));
+        ASSERT_TRUE(checkResult("CREATE SPACE TEST; USE TEST;", expected, false));
     }
 }
 }  // namespace graph

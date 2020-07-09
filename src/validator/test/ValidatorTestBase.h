@@ -48,8 +48,9 @@ protected:
         return qctx;
     }
 
-    ::testing::AssertionResult checkResult(
-            const std::string& query, const std::vector<PlanNode::Kind>& expected) {
+    ::testing::AssertionResult checkResult(const std::string& query,
+                                           const std::vector<PlanNode::Kind>& expected,
+                                           const bool needCheckColNames = true) {
         auto result = GQLParser().parse(query);
         if (!result.ok()) {
             return ::testing::AssertionFailure() << result.status();
@@ -64,7 +65,11 @@ protected:
         }
         auto plan = context->plan();
         if (plan == nullptr) {
-            return ::testing::AssertionFailure() << "plan is nullptr";
+            return ::testing::AssertionFailure() << " plan is nullptr";
+        }
+
+        if (needCheckColNames && plan->root()->colNames().empty()) {
+            return ::testing::AssertionFailure() << " colNames is empty";
         }
         return verifyPlan(plan->root(), expected);
     }
