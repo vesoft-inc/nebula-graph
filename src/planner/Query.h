@@ -720,11 +720,11 @@ public:
         return new Aggregate(plan, input, std::move(groupKeys), std::move(groupItems));
     }
 
-    std::vector<Expression*> groupKeys() const {
+    const std::vector<Expression*>& groupKeys() const {
         return groupKeys_;
     }
 
-    std::vector<GroupItem> groupItems() const {
+    const std::vector<GroupItem>& groupItems() const {
         return groupItems_;
     }
 
