@@ -5,7 +5,6 @@
  */
 
 #include "common/base/Base.h"
-
 #include "context/QueryContext.h"
 #include "context/ValidateContext.h"
 #include "parser/GQLParser.h"
@@ -257,5 +256,12 @@ namespace graph {
     return result;
 }
 
-}  // namespace graph
-}  // namespace nebula
+std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan) {
+    std::vector<const char*> kinds(plan.size());
+    std::transform(plan.cbegin(), plan.cend(), kinds.begin(), PlanNode::toString);
+    os << "[" << folly::join(", ", kinds) << "]";
+    return os;
+}
+
+}   // namespace graph
+}   // namespace nebula

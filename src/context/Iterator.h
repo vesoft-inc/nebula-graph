@@ -455,6 +455,8 @@ private:
     std::unordered_map<std::string, int64_t>     colIndexes_;
 };
 
+std::ostream& operator<<(std::ostream& os, Iterator::Kind kind);
+
 }  // namespace graph
 }  // namespace nebula
 namespace std {
