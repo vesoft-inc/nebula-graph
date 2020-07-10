@@ -112,11 +112,12 @@ Status FetchEdgesValidator::prepareEdges() {
 
     // from constant, eval now
     ExpressionContextImpl dummy = ExpressionContextImpl();
-    auto keys = sentence_->keys();
-    if (keys != nullptr) {
+    auto keysPointer = sentence_->keys();
+    if (keysPointer != nullptr) {
+        auto keys = keysPointer->keys();
         // row: _src, _type, _ranking, _dst
-        edges_.reserve(sentence_->keys()->keys().size());
-        for (const auto &key : sentence_->keys()->keys()) {
+        edges_.reserve(keys.size());
+        for (const auto &key : keys) {
             DCHECK(key->srcid()->isConstExpr());
             // TODO(shylock) Add new value type EDGE_ID to semantic and simplify this
             auto src = key->srcid()->eval(dummy);
