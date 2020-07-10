@@ -16,7 +16,6 @@ namespace nebula {
 namespace graph {
 
 class ExecutionContext;
-class QueryInstance;
 class ResultBuilder;
 
 // An executor will produce a result.
@@ -49,7 +48,6 @@ public:
 
 private:
     friend class ResultBuilder;
-    friend class QueryInstance;
     friend class ExecutionContext;
 
     Value&& moveValue() {
