@@ -36,11 +36,7 @@ protected:
             }
         }
         for (auto &colName : v.colNames) {
-            for (auto &c : colName) {
-                if (c == ':') {
-                    c = '.';
-                }
-            }
+            std::replace(colName.begin(), colName.end(), ':', '.');
         }
         return finish(ResultBuilder()
                       .value(std::move(v))
