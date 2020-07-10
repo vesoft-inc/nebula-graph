@@ -54,7 +54,7 @@ folly::Future<Status> AggregateExecutor::execute() {
     }
 
     DataSet ds;
-    ds.colNames = std::move(agg->colNames());
+    ds.colNames = agg->colNames();
     ds.rows.reserve(result.size());
     for (auto& kv : result) {
         Row row;
