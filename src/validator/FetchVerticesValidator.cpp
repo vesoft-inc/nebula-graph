@@ -127,8 +127,8 @@ Status FetchVerticesValidator::prepareProperties() {
             props_.emplace_back(std::move(prop));
             // outputs
             // TODO(shylock) let storage output the vid
-            // outputs_.emplace_back(edgeTypeName_ + "." + kVid, Value::Type::STRING);
-            // colNames_.emplace_back(edgeTypeName_ + "." + kVid);
+            // outputs_.emplace_back(kVid, Value::Type::STRING);
+            // colNames_.emplace_back(kVid);
             for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
                 outputs_.emplace_back(schema_->getFieldName(i),
                                       SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
@@ -151,8 +151,8 @@ Status FetchVerticesValidator::prepareProperties() {
                 return a.first < b.first;
             });
             // TODO(shylock) let storage output the vid
-            // outputs_.emplace_back(edgeTypeName_ + "." + kVid, Value::Type::STRING);
-            // colNames_.emplace_back(edgeTypeName_ + "." + kVid);
+            // outputs_.emplace_back(kVid, Value::Type::STRING);
+            // colNames_.emplace_back(kVid);
             for (const auto &tagSchema : allTagsSchema) {
                 for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
                     outputs_.emplace_back(
