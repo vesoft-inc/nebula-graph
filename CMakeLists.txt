@@ -76,6 +76,7 @@ add_dependent_project(
     common
     ${NEBULA_COMMON_REPO_URL}
     ${NEBULA_COMMON_REPO_TAG}
+    ""
 )
 find_package(${NEBULA_COMMON_PACKAGE} REQUIRED)
 message(STATUS ">>>>> The nebula-common repo has been configured successfully <<<<<")

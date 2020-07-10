@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 #
 
-macro(add_dependent_project base name repo tag)
+macro(add_dependent_project base name repo tag options)
 
 # Clone or update the repo
 if(EXISTS ${base}/${name}/.git)
@@ -52,6 +52,7 @@ execute_process(
         -DENABLE_CCACHE=${ENABLE_CCACHE}
         -DENABLE_ASAN=${ENABLE_ASAN}
         -DENABLE_UBSAN=${ENABLE_UBSAN}
+        ${options}
         .
     WORKING_DIRECTORY ${base}/${name}
     RESULT_VARIABLE cmake_result
