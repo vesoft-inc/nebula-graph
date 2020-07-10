@@ -32,7 +32,7 @@ class TestBugUpdateFilterOut(NebulaTestSuite):
         # data
         resp = self.execute('INSERT VERTEX {}(id, name) VALUE {}:(0, "shylock")'.format(TestBugUpdateFilterOut.tag, TestBugUpdateFilterOut.vertex))
         self.check_resp_succeeded(resp)
-        resp = self.execute('INSERT EDGE {}(id, name) VALUE {}->2333:(0, "shylock")'.format(TestBugUpdateFilterOut.edge_type, TestBugUpdateFilterOut.vertex))
+        resp = self.execute('INSERT EDGE {}(id, name) VALUE {}->"2333":(0, "shylock")'.format(TestBugUpdateFilterOut.edge_type, TestBugUpdateFilterOut.vertex))
         self.check_resp_succeeded(resp)
 
     # https://github.com/vesoft-inc/nebula/issues/1888
@@ -47,10 +47,10 @@ class TestBugUpdateFilterOut(NebulaTestSuite):
         self.check_result(resp.rows, expect)
 
         # update edge filter out
-        resp = self.execute('{} EDGE {}->2333 OF {} SET name = "hg" WHEN {}.id > 0'.format(
+        resp = self.execute('{} EDGE {}->"2333" OF {} SET name = "hg" WHEN {}.id > 0'.format(
             sentence, TestBugUpdateFilterOut.vertex, TestBugUpdateFilterOut.edge_type, TestBugUpdateFilterOut.edge_type))
         self.check_resp_succeeded(resp)
-        resp = self.execute_query('FETCH PROP ON {} {}->2333'.format(TestBugUpdateFilterOut.edge_type, TestBugUpdateFilterOut.vertex))
+        resp = self.execute_query('FETCH PROP ON {} {}->"2333"'.format(TestBugUpdateFilterOut.edge_type, TestBugUpdateFilterOut.vertex))
         self.check_resp_succeeded(resp)
         expect = [[TestBugUpdateFilterOut.vertex, 2333, 0, 0, 'shylock']]
         self.check_result(resp.rows, expect)

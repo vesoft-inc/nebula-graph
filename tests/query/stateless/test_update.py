@@ -37,7 +37,7 @@ class TestUpdate(NebulaTestSuite):
 
     def test_update_vertex(self):
         # insert
-        cmd = 'INSERT VERTEX person(name, age), student() VALUES 100:("AA", 10);'
+        cmd = 'INSERT VERTEX person(name, age), student() VALUES "100":("AA", 10);'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
@@ -163,12 +163,12 @@ class TestUpdate(NebulaTestSuite):
 
     def test_update_edge(self):
         # insert
-        cmd = 'INSERT EDGE study(start) VALUES 100->101:(3600);'
+        cmd = 'INSERT EDGE study(start) VALUES "100"->"101":(3600);'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        cmd = 'FETCH PROP ON study 100->101;'
+        cmd = 'FETCH PROP ON study "100"->"101";'
         resp = self.execute_query(cmd)
 
         expect_result = [[100, 101, 0, 3600, 1577844000, ""]]
@@ -176,12 +176,12 @@ class TestUpdate(NebulaTestSuite):
         self.check_out_of_order_result(resp.rows, expect_result)
 
         # filter false
-        cmd = 'UPDATE EDGE 100->101 OF study SET start = 100 WHEN study.name == "aa";'
+        cmd = 'UPDATE EDGE "100"->"101" OF study SET start = 100 WHEN study.name == "aa";'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        cmd = 'FETCH PROP ON study 100->101;'
+        cmd = 'FETCH PROP ON study "100"->"101";'
         resp = self.execute_query(cmd)
 
         expect_result = [[100, 101, 0, 3600, 1577844000, ""]]
@@ -189,12 +189,12 @@ class TestUpdate(NebulaTestSuite):
         self.check_out_of_order_result(resp.rows, expect_result)
 
         # filter true
-        cmd = 'UPDATE EDGE 100->101 OF study SET start = 100, end = 100 WHEN study.name == "";'
+        cmd = 'UPDATE EDGE "100"->"101" OF study SET start = 100, end = 100 WHEN study.name == "";'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        cmd = 'FETCH PROP ON study 100->101;'
+        cmd = 'FETCH PROP ON study "100"->"101";'
         resp = self.execute_query(cmd)
 
         expect_result = [[100, 101, 0, 100, 100, ""]]
@@ -202,7 +202,7 @@ class TestUpdate(NebulaTestSuite):
         self.check_out_of_order_result(resp.rows, expect_result)
 
         # set YIELD
-        cmd = 'UPDATE EDGE 100->101 OF study SET start = 200, end = 200' \
+        cmd = 'UPDATE EDGE "100"->"101" OF study SET start = 200, end = 200' \
               'YIELD study.start as start, study.end as end'
         resp = self.execute_query(cmd)
         self.check_resp_succeeded(resp)
@@ -211,12 +211,12 @@ class TestUpdate(NebulaTestSuite):
 
     def test_upsert_edge(self):
         # update
-        cmd = 'UPSERT EDGE 100->101 OF study SET start = 3600, name = "dd";'
+        cmd = 'UPSERT EDGE "100"->"101" OF study SET start = 3600, name = "dd";'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        cmd = 'FETCH PROP ON study 100->101;'
+        cmd = 'FETCH PROP ON study "100"->"101";'
         resp = self.execute_query(cmd)
 
         expect_result = [[100, 101, 0, 3600, 200, "dd"]]
@@ -224,12 +224,12 @@ class TestUpdate(NebulaTestSuite):
         self.check_out_of_order_result(resp.rows, expect_result)
 
         # insert success: end and name has default
-        cmd = 'UPSERT EDGE 200->201 OF study SET start = 3600;'
+        cmd = 'UPSERT EDGE "200"->"201" OF study SET start = 3600;'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        cmd = 'FETCH PROP ON study 200->201;'
+        cmd = 'FETCH PROP ON study "200"->"201";'
         resp = self.execute_query(cmd)
 
         expect_result = [[200, 201, 0, 3600, 1577844000, ""]]
@@ -237,13 +237,13 @@ class TestUpdate(NebulaTestSuite):
         self.check_out_of_order_result(resp.rows, expect_result)
 
         # insert success: all field
-        cmd = 'UPSERT EDGE 202->203 OF study SET name = "aa", start = 8, ' \
+        cmd = 'UPSERT EDGE "202"->"203" OF study SET name = "aa", start = 8, ' \
               'end = study.end + 1'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        cmd = 'FETCH PROP ON study 202->203;'
+        cmd = 'FETCH PROP ON study "202"->"203";'
         resp = self.execute_query(cmd)
 
         expect_result = [[202, 203, 0, 8, 1577844001, "aa"]]
@@ -251,13 +251,13 @@ class TestUpdate(NebulaTestSuite):
         self.check_out_of_order_result(resp.rows, expect_result)
 
         # success: oder update, use default value from start
-        cmd = 'UPSERT EDGE 204->205 OF study SET name = "bb", start = study.end - 1000, ' \
+        cmd = 'UPSERT EDGE "204"->"205" OF study SET name = "bb", start = study.end - 1000, ' \
               'end = 60000;'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        cmd = 'FETCH PROP ON study 204->205;'
+        cmd = 'FETCH PROP ON study "204"->"205";'
         resp = self.execute_query(cmd)
 
         expect_result = [[204, 205, 0, 1577843000, 60000, "bb"]]
@@ -265,12 +265,12 @@ class TestUpdate(NebulaTestSuite):
         self.check_out_of_order_result(resp.rows, expect_result)
 
         # success: oder update, use the update value from start
-        cmd = 'UPSERT EDGE 206->207 OF study SET end = 60000, start = study.end - 1000'
+        cmd = 'UPSERT EDGE "206"->"207" OF study SET end = 60000, start = study.end - 1000'
         resp = self.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        cmd = 'FETCH PROP ON study 206->207;'
+        cmd = 'FETCH PROP ON study "206"->"207";'
         resp = self.execute_query(cmd)
 
         expect_result = [[206, 207, 0, 59000, 60000, ""]]
@@ -278,7 +278,7 @@ class TestUpdate(NebulaTestSuite):
         self.check_out_of_order_result(resp.rows, expect_result)
 
         # insert failed: start without default value
-        cmd = 'UPSERT EDGE 208->209 OF study SET name = "hh"'
+        cmd = 'UPSERT EDGE "208"->"209" OF study SET name = "hh"'
         resp = self.execute(cmd)
         self.check_resp_failed(resp)
 

@@ -19,7 +19,7 @@ class TestQuery(PrepareData):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
-        cmd = 'FETCH PROP ON is_teacher 2002->1004'
+        cmd = 'FETCH PROP ON is_teacher "2002"->"1004"'
         resp = self.execute_query(cmd)
         expect_result = [[2002, 1004, 0, 2018, 2019]]
         print(cmd)
@@ -41,7 +41,7 @@ class TestQuery(PrepareData):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
-        cmd = 'FETCH PROP ON is_teacher 2002->1004'
+        cmd = 'FETCH PROP ON is_teacher "2002"->"1004"'
         resp = self.execute_query(cmd)
         expect_result = [[2002, 1004, 0, 2018, 2019, 0]]
         print(cmd)
@@ -60,11 +60,11 @@ class TestQuery(PrepareData):
 
     def test_alter_prop_type(self):
         resp = self.execute('INSERT VERTEX person(name, age, gender, birthplace) VALUES\
-                                1004:("Lisa", 8, "female", "Washington")')
+                                "1004":("Lisa", 8, "female", "Washington")')
         self.check_resp_succeeded(resp)
 
         resp = self.execute('INSERT EDGE is_teacher(start_year, end_year, years) VALUES\
-                                2002->1004:(2018, 2019, 1)')
+                                "2002"->"1004":(2018, 2019, 1)')
         self.check_resp_succeeded(resp)
 
         cmd = 'FETCH PROP ON person 1004'
@@ -74,7 +74,7 @@ class TestQuery(PrepareData):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
-        cmd = 'FETCH PROP ON is_teacher 2002->1004'
+        cmd = 'FETCH PROP ON is_teacher "2002"->"1004"'
         resp = self.execute_query(cmd)
         expect_result = [[2002, 1004, 0, 2018, 2019, 1]]
         print(cmd)
@@ -106,7 +106,7 @@ class TestQuery(PrepareData):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
-        cmd = 'FETCH PROP ON is_teacher 2002->1004'
+        cmd = 'FETCH PROP ON is_teacher "2002"->"1004"'
         resp = self.execute_query(cmd)
         expect_result = [[2002, 1004, 0, 2018, 2019, '']]
         print(cmd)
@@ -139,7 +139,7 @@ class TestQuery(PrepareData):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
-        cmd = 'FETCH PROP ON is_teacher 2002->1004'
+        cmd = 'FETCH PROP ON is_teacher "2002"->"1004"'
         resp = self.execute_query(cmd)
         expect_result = [[2002, 1004, 0, 2018, 2019]]
         print(cmd)

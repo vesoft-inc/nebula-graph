@@ -36,14 +36,14 @@ class TestSimpleQuery(NebulaTestSuite):
     def test_over_all(self):
         time.sleep(self.delay)       
         resp = self.execute(
-            'INSERT VERTEX person(name, age) VALUES 1:(\'Bob\', 10)')
+            'INSERT VERTEX person(name, age) VALUES "1":(\'Bob\', 10)')
         self.check_resp_succeeded(resp)
 
         resp = self.execute(
-            'INSERT VERTEX person(name, age) VALUES 2:(\'Lily\', 9)')
+            'INSERT VERTEX person(name, age) VALUES "2":(\'Lily\', 9)')
         self.check_resp_succeeded(resp)
 
-        resp = self.execute('INSERT EDGE like(likeness) VALUES 1->2:(80.0)')
+        resp = self.execute('INSERT EDGE like(likeness) VALUES "1"->"2":(80.0)')
         self.check_resp_succeeded(resp)
 
         resp = self.execute_query('GO FROM 1 OVER * YIELD $$.person.name, '

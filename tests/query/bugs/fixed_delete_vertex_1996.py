@@ -30,7 +30,7 @@ class TestSimpleQuery(NebulaTestSuite):
 
     def test_issue1996(self):
         time.sleep(self.delay)       
-        resp = self.execute('INSERT VERTEX person(name, age) VALUES 101:("Tony Parker", 36)')
+        resp = self.execute('INSERT VERTEX person(name, age) VALUES "101":("Tony Parker", 36)')
         self.check_resp_succeeded(resp)
         resp = self.execute('DELETE VERTEX 101')
         self.check_resp_succeeded(resp)

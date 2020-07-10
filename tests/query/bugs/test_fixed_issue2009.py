@@ -45,7 +45,7 @@ class TestBugUpdateFilterOut(NebulaTestSuite):
         resp = self.execute('INSERT VERTEX {}() VALUE {}:()'.format(
             TestBugUpdateFilterOut.tag, TestBugUpdateFilterOut.vertex))
         self.check_resp_succeeded(resp)
-        resp = self.execute('INSERT EDGE {}() VALUE {}->2333:()'.format(
+        resp = self.execute('INSERT EDGE {}() VALUE {}->"2333":()'.format(
             TestBugUpdateFilterOut.edge_type, TestBugUpdateFilterOut.vertex))
         self.check_resp_succeeded(resp)
         # fetch
@@ -57,7 +57,7 @@ class TestBugUpdateFilterOut(NebulaTestSuite):
         ]
         self.check_result(resp.rows, expect)
 
-        resp = self.execute_query('FETCH PROP ON {} {}->2333'.format(
+        resp = self.execute_query('FETCH PROP ON {} {}->"2333"'.format(
             TestBugUpdateFilterOut.edge_type, TestBugUpdateFilterOut.vertex))
         self.check_resp_succeeded(resp)
         expect = [

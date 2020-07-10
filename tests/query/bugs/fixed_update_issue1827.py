@@ -26,11 +26,11 @@ class TestBugUpdate(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         time.sleep(self.delay)
         resp = self.execute(
-            'INSERT VERTEX player(name, age) VALUES 100:(\"burning\", 20)')
+            'INSERT VERTEX player(name, age) VALUES "100":(\"burning\", 20)')
         self.check_resp_succeeded(resp)
         resp = self.execute(
-            'INSERT VERTEX player(name, age) VALUES 101:(\"longdd\", 31)')
-        resp = self.execute('INSERT EDGE teammate(years) VALUES 100->101:(8)')
+            'INSERT VERTEX player(name, age) VALUES "101":(\"longdd\", 31)')
+        resp = self.execute('INSERT EDGE teammate(years) VALUES "100"->"101":(8)')
         self.check_resp_succeeded(resp)
 
         self.close_nebula_clients()
@@ -41,7 +41,7 @@ class TestBugUpdate(NebulaTestSuite):
 
         self.close_nebula_clients()
         self.create_nebula_clients()
-        resp = self.execute("USE issue1827_update;UPDATE EDGE 100 -> 101@0 OF teammate SET years = 7;")
+        resp = self.execute("USE issue1827_update;UPDATE EDGE "100" -> "101"@0 OF teammate SET years = 7;")
         self.check_resp_succeeded(resp)
 
     @classmethod

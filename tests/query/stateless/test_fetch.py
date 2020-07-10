@@ -36,7 +36,7 @@ class TestFetchQuery(PrepareData):
 
     def test_fetch_edge(self):
         # fetch edge
-        cmd = 'FETCH PROP ON is_colleagues 2001 -> 2002'
+        cmd = 'FETCH PROP ON is_colleagues "2001" -> "2002"'
         resp = self.execute_query(cmd)
         self.check_resp_succeeded(resp)
         expect_result = [[2001, 2002, 0, 2015, 0]]

@@ -31,7 +31,7 @@ class TestPR1983(NebulaTestSuite):
     def test_unreasonable_error_message(self):
         time.sleep(self.delay)       
         resp = self.execute(
-            'INSERT VERTEX person(name, age) VALUES 1:(\'Bob\', 10)')
+            'INSERT VERTEX person(name, age) VALUES "1":(\'Bob\', 10)')
         self.check_resp_succeeded(resp)
 
         resp = self.execute_query('GO FROM 1 OVER *')
