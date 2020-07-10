@@ -325,7 +325,7 @@ private:
     std::vector<DataSetIndex> dsIndices_;
 };
 
-class SequentialIter : public Iterator {
+class SequentialIter final : public Iterator {
 public:
     explicit SequentialIter(std::shared_ptr<Value> value)
         : Iterator(value, Kind::kSequential) {
