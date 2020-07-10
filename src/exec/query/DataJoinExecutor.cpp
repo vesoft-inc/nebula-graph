@@ -17,8 +17,12 @@ folly::Future<Status> DataJoinExecutor::execute() {
 
     auto map = buildHashTable(dataJoin->hashKeys(), dataJoin->lhsCols()->columns(),
                               dataJoin->vars().first);
-    auto result = probe(map, dataJoin->probeKeys(), dataJoin->rhsCols()->columns(),
+    DataSet result;
+    if (!map.empty()) {
+        result = probe(map, dataJoin->probeKeys(), dataJoin->rhsCols()->columns(),
                         dataJoin->vars().second);
+    }
+    result.colNames = dataJoin->colNames();
     return finish(ResultBuilder().value(Value(std::move(result))).finish());
 }
 
@@ -38,7 +42,8 @@ std::unordered_map<List, std::vector<Value>> DataJoinExecutor::buildHashTable(
             list.values.emplace_back(std::move(val));
         }
 
-        std::vector<Value> values(cols.size());
+        std::vector<Value> values;
+        values.reserve(cols.size());
         for (auto& col : cols) {
             Value val = col->expr()->eval(ctx);
             values.emplace_back(std::move(val));
