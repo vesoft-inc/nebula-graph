@@ -25,8 +25,11 @@ public:
 protected:
     StatusOr<DataSet> handleResult(const DataSet &data);
 
+    Status handleErrorCode(nebula::storage::cpp2::ErrorCode code, PartitionID partId);
+
 protected:
     std::vector<std::string>         yieldNames_;
+    std::string                      name_;
 };
 
 class UpdateVertexExecutor final : public UpdateBaseExecutor {

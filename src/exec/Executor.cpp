@@ -387,14 +387,14 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kUpdateVertex: {
             auto updateV = asNode<UpdateVertex>(node);
-            auto input = makeExecutor(updateV->input(), qctx, visited);
+            auto input = makeExecutor(updateV->dep(), qctx, visited);
             exec = new UpdateVertexExecutor(updateV, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kUpdateEdge: {
             auto updateE = asNode<UpdateEdge>(node);
-            auto input = makeExecutor(updateE->input(), qctx, visited);
+            auto input = makeExecutor(updateE->dep(), qctx, visited);
             exec = new UpdateEdgeExecutor(updateE, qctx);
             exec->addDependent(input);
             break;

@@ -187,13 +187,10 @@ protected:
                 case PlanNode::Kind::kDropSnapshot:
                 case PlanNode::Kind::kShowSnapshots:
                 case PlanNode::Kind::kDataJoin:
-<<<<<<< HEAD
                 case PlanNode::Kind::kDeleteVertices:
-                case PlanNode::Kind::kDeleteEdges: {
-=======
+                case PlanNode::Kind::kDeleteEdges:
                 case PlanNode::Kind::kUpdateVertex:
                 case PlanNode::Kind::kUpdateEdge: {
->>>>>>> rebase upstream
                     auto* current = static_cast<const SingleInputNode*>(node);
                     queue.emplace(current->dep());
                     break;
@@ -242,3 +239,8 @@ std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& pl
 }   // namespace nebula
 
 #endif   // VALIDATOR_TEST_VALIDATORTESTBASE_H_
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> rebase upstream

@@ -218,7 +218,7 @@ class UpdateVertex final : public UpdateBase {
 public:
     static UpdateVertex* make(ExecutionPlan* plan,
                               PlanNode* input,
-                              Expression* vId,
+                              std::string vId,
                               std::string name,
                               bool insertable,
                               std::vector<storage::cpp2::UpdatedProp> updatedProps,
@@ -227,7 +227,7 @@ public:
                               std::vector<std::string> yieldNames) {
         return new UpdateVertex(plan,
                                 input,
-                                vId,
+                                std::move(vId),
                                 std::move(name),
                                 insertable,
                                 std::move(updatedProps),
@@ -240,14 +240,14 @@ public:
         return "UpdateVertex";
     }
 
-    Expression* getVertex() const {
+    std::string getVId() const {
         return vId_;
     }
 
 private:
     UpdateVertex(ExecutionPlan* plan,
                  PlanNode* input,
-                 Expression* vId,
+                 std::string vId,
                  std::string name,
                  bool insertable,
                  std::vector<storage::cpp2::UpdatedProp> updatedProps,
@@ -263,18 +263,18 @@ private:
                      std::move(returnProps),
                      std::move(condition),
                      std::move(yieldNames))
-        , vId_(vId) {}
+        , vId_(std::move(vId)) {}
 
 private:
-    Expression*                                         vId_{nullptr};
+    std::string                                     vId_;
 };
 
 class UpdateEdge final : public UpdateBase {
 public:
     static UpdateEdge* make(ExecutionPlan* plan,
                             PlanNode* input,
-                            Expression* srcId,
-                            Expression* dstId,
+                            std::string srcId,
+                            std::string dstId,
                             std::string name,
                             int64_t rank,
                             bool insertable,
@@ -284,8 +284,8 @@ public:
                             std::vector<std::string> yieldNames) {
         return new UpdateEdge(plan,
                               input,
-                              srcId,
-                              dstId,
+                              std::move(srcId),
+                              std::move(dstId),
                               std::move(name),
                               rank,
                               insertable,
@@ -299,11 +299,11 @@ public:
         return "UpdateEdge";
     }
 
-    Expression* getSrcId() const {
+    const std::string& getSrcId() const {
         return srcId_;
     }
 
-    Expression* getDstId() const {
+    const std::string getDstId() const {
         return dstId_;
     }
 
@@ -318,8 +318,8 @@ public:
 private:
     UpdateEdge(ExecutionPlan* plan,
                PlanNode* input,
-               Expression* srcId,
-               Expression* dstId,
+               std::string srcId,
+               std::string dstId,
                std::string name,
                int64_t rank,
                bool insertable,
@@ -337,13 +337,13 @@ private:
                      std::move(condition),
                      std::move(yieldNames))
 
-        , srcId_(srcId)
-        , dstId_(dstId)
+        , srcId_(std::move(srcId))
+        , dstId_(std::move(dstId))
         , rank_(rank) {}
 
 private:
-    Expression*                                         srcId_{nullptr};
-    Expression*                                         dstId_{nullptr};
+    std::string                                         srcId_;
+    std::string                                         dstId_;
     int64_t                                             rank_;
 };
 

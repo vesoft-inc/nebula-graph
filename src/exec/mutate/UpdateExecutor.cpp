@@ -39,6 +39,33 @@ StatusOr<DataSet> UpdateBaseExecutor::handleResult(const DataSet &data) {
     return result;
 }
 
+Status UpdateBaseExecutor::handleErrorCode(nebula::storage::cpp2::ErrorCode code,
+                                           PartitionID partId) {
+    switch (code) {
+        case storage::cpp2::ErrorCode::E_INVALID_FIELD_VALUE:
+            return Status::Error(
+                    "Invalid field value: may be the filed without default value or wrong schema");
+        case storage::cpp2::ErrorCode::E_INVALID_FILTER:
+            return Status::Error("Invalid filter");
+        case storage::cpp2::ErrorCode::E_INVALID_UPDATER:
+            return Status::Error("Invalid Update col or yield col");
+        case storage::cpp2::ErrorCode::E_TAG_NOT_FOUND:
+            return Status::Error("Tag `%s' not found.", name_.c_str());
+        case storage::cpp2::ErrorCode::E_EDGE_NOT_FOUND:
+            return Status::Error("Edge `%s' not found.", name_.c_str());
+        case storage::cpp2::ErrorCode::E_INVALID_DATA:
+            return Status::Error("Invalid data, may be wrong value type");
+        case storage::cpp2::ErrorCode::E_FILTER_OUT:
+            return Status::OK();
+        default:
+            std::string errMsg = folly::stringPrintf("Unknown error, part: %d, error code: %d.",
+                                                      partId, static_cast<int32_t>(code));
+            LOG(ERROR) << errMsg;
+            return Status::Error(std::move(errMsg));;
+    }
+    return Status::OK();
+}
+
 folly::Future<Status> UpdateVertexExecutor::execute() {
     return updateVertex().ensure([this]() { UNUSED(this); });
 }
@@ -46,12 +73,7 @@ folly::Future<Status> UpdateVertexExecutor::execute() {
 folly::Future<Status> UpdateVertexExecutor::updateVertex() {
     dumpLog();
     auto *uvNode = asNode<UpdateVertex>(node());
-    // TODO: need to handle the vid from pipe or var
-    auto vIdRet = SchemaUtil::toVertexID(uvNode->getVertex());
-    if (!vIdRet.ok()) {
-        return vIdRet.status();
-    }
-    auto vertexId = std::move(vIdRet).value();
+    name_ = uvNode->getName();
     yieldNames_ = uvNode->getYieldNames();
     auto spaceId = qctx_->rctx()->session()->space();
     auto ret = qctx_->schemaMng()->toTagID(spaceId, uvNode->getName());
@@ -60,7 +82,7 @@ folly::Future<Status> UpdateVertexExecutor::updateVertex() {
     }
     auto tagId = ret.value();
     return qctx()->getStorageClient()->updateVertex(spaceId,
-                                                    vertexId,
+                                                    uvNode->getVId(),
                                                     tagId,
                                                     uvNode->getUpdatedProps(),
                                                     uvNode->getInsertable(),
@@ -74,29 +96,17 @@ folly::Future<Status> UpdateVertexExecutor::updateVertex() {
             }
             auto value = std::move(resp).value();
             for (auto& code : value.get_result().get_failed_parts()) {
-                switch (code.get_code()) {
-                    case nebula::storage::cpp2::ErrorCode::E_INVALID_FILTER:
-                        return Status::Error("Maybe invalid tag or property in WHEN clause!");
-                    case nebula::storage::cpp2::ErrorCode::E_INVALID_UPDATER:
-                        return Status::Error("Maybe invalid tag or property in SET/YIELD clause!");
-                    // case nebula::storage::cpp2::ErrorCode::E_FILTER_OUT:
-                    //    break;
-                    default:
-                        std::string errMsg =
-                            folly::stringPrintf("Maybe vertex does not exist, "
-                                                "part: %d, error code: %d!",
-                                                code.get_part_id(),
-                                                static_cast<int32_t>(code.get_code()));
-                        LOG(ERROR) << errMsg;
-                        return Status::Error(std::move(errMsg));;
-                }
+                NG_RETURN_IF_ERROR(handleErrorCode(code.get_code(), code.get_part_id()));
             }
             if (value.__isset.props) {
                 auto status = handleResult(*value.get_props());
                 if (!status.ok()) {
                     return status.status();
                 }
-                finish(std::move(status).value());
+                return finish(ResultBuilder()
+                                  .value(std::move(status).value())
+                                  .iter(Iterator::Kind::kDefault)
+                                  .finish());
             }
             return Status::OK();
         });
@@ -109,27 +119,19 @@ folly::Future<Status> UpdateEdgeExecutor::execute() {
 folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
     dumpLog();
     auto *ueNode = asNode<UpdateEdge>(node());
-    auto srcIdRet = SchemaUtil::toVertexID(ueNode->getSrcId());
-    if (!srcIdRet.ok()) {
-        return srcIdRet.status();
-    }
-    auto dstIdRet = SchemaUtil::toVertexID(ueNode->getDstId());
-    if (!dstIdRet.ok()) {
-        return dstIdRet.status();
-    }
-
     auto spaceId = qctx_->rctx()->session()->space();
-    auto ret = qctx_->schemaMng()->toEdgeType(spaceId, ueNode->getName());
+    name_ = ueNode->getName();
+    auto ret = qctx_->schemaMng()->toEdgeType(spaceId, name_);
     if (!ret.ok()) {
         return ret.status();
     }
     auto edgeType = ret.value();
 
     storage::cpp2::EdgeKey edgeKey;
-    edgeKey.set_src(std::move(srcIdRet).value());
+    edgeKey.set_src(ueNode->getSrcId());
     edgeKey.set_ranking(ueNode->getRank());
     edgeKey.set_edge_type(edgeType);
-    edgeKey.set_dst(std::move(dstIdRet).value());
+    edgeKey.set_dst(ueNode->getDstId());
     yieldNames_ = ueNode->getYieldNames();
 
     return qctx()->getStorageClient()->updateEdge(spaceId,
@@ -145,30 +147,17 @@ folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
                 }
                 auto value = std::move(resp).value();
                 for (auto& code : value.get_result().get_failed_parts()) {
-                    switch (code.get_code()) {
-                        case nebula::storage::cpp2::ErrorCode::E_INVALID_FILTER:
-                            return Status::Error("Maybe invalid edge or property in WHEN clause!");
-                        case nebula::storage::cpp2::ErrorCode::E_INVALID_UPDATER:
-                            return Status::Error(
-                                    "Maybe invalid edge or property in SET/YIELD clause!");
-                        // case nebula::storage::cpp2::ErrorCode::E_FILTER_OUT:
-                        //    break;
-                        default:
-                            std::string errMsg =
-                                folly::stringPrintf("Maybe edge does not exist, "
-                                                    "part: %d, error code: %d!",
-                                                    code.get_part_id(),
-                                                    static_cast<int32_t>(code.get_code()));
-                            LOG(ERROR) << errMsg;
-                            return Status::Error(std::move(errMsg));;
-                    }
+                    NG_RETURN_IF_ERROR(handleErrorCode(code.get_code(), code.get_part_id()));
                 }
                 if (value.__isset.props) {
                     auto status = handleResult(*value.get_props());
                     if (!status.ok()) {
                         return status.status();
                     }
-                    finish(std::move(status).value());
+                    return finish(ResultBuilder()
+                                    .value(std::move(status).value())
+                                    .iter(Iterator::Kind::kDefault)
+                                    .finish());
                 }
                 return Status::OK();
             });

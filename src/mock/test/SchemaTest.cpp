@@ -59,34 +59,12 @@ TEST_F(SchemaTest, TestSpace) {
         std::string query = "DESC SPACE space_for_default;";
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
-<<<<<<< HEAD
         std::vector<std::string> colNames = {"ID", "Name", "Partition Number", "Replica Factor",
                                              "Vid Size", "Charset", "Collate"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<Value> values = {1, "space_for_default", 9,
                                      1, 8, "utf8", "utf8_bin"};
         ASSERT_TRUE(verifyValues(resp, values));
-=======
-        DataSet expect;
-        expect.colNames = {"ID", "Name", "Partition number", "Replica Factor",
-                           "Vid Size", "Charset", "Collate"};
-        std::vector<Row> rows;
-        std::vector<Value> columns = {Value(1), Value("space_for_default"), Value(9),
-                                      Value(1), Value(8), Value("utf8"), Value("utf8_bin")};
-        Row row;
-        row.values = std::move(columns);
-        rows.emplace_back(row);
-        expect.rows = rows;
-        ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(expect, *resp.get_data());
-<<<<<<< HEAD
-=======
-        ASSERT_TRUE(resp.get_data());
-        // ASSERT_EQ(expect, (*resp.get_data())[0]);
->>>>>>> address yixinglu's comment
->>>>>>> address yixinglu's comment
-=======
->>>>>>> rebase upstream
     }
     {
         cpp2::ExecutionResponse resp;
@@ -186,8 +164,6 @@ TEST_F(SchemaTest, TestTag) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-<<<<<<< HEAD
-<<<<<<< HEAD
         std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<std::vector<Value>> values = {
@@ -260,34 +236,6 @@ TEST_F(SchemaTest, TestTag) {
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<std::vector<Value>> values = {{"person"}, {"student"}};
         ASSERT_TRUE(verifyValues(resp, values));
-=======
-<<<<<<< HEAD
-=======
->>>>>>> rebase upstream
-        DataSet expect;
-        expect.colNames = {"Field", "Type", "Null", "Default"};
-        std::vector<Row> rows;
-        std::vector<Value> columns1 = {Value("name"), Value("string"), Value("YES"), Value()};
-        std::vector<Value> columns2 = {Value("age"), Value("int8"), Value("YES"), Value()};
-        std::vector<Value> columns3 = {Value("grade"), Value("fixed_string(10)"),
-                                       Value("YES"), Value()};
-        Row row;
-        row.values = std::move(columns1);
-        rows.emplace_back(row);
-        row.values = std::move(columns2);
-        rows.emplace_back(row);
-        row.values = std::move(columns3);
-        rows.emplace_back(row);
-        expect.rows = std::move(rows);
-        ASSERT_TRUE(resp.__isset.data);
-        ASSERT_EQ(expect, *resp.get_data());
-<<<<<<< HEAD
-=======
-        ASSERT_TRUE(resp.get_data());
->>>>>>> address yixinglu's comment
->>>>>>> address yixinglu's comment
-=======
->>>>>>> rebase upstream
     }
     {
         cpp2::ExecutionResponse resp;
@@ -312,8 +260,6 @@ TEST_F(SchemaTest, TestEdge) {
         auto code = client_->execute(query, resp);
         ASSERT_EQ(cpp2::ErrorCode::SUCCEEDED, code);
         ASSERT_TRUE(resp.__isset.data);
-<<<<<<< HEAD
-<<<<<<< HEAD
         std::vector<std::string> colNames = {"Field", "Type", "Null", "Default"};
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<std::vector<Value>> values = {
@@ -382,29 +328,6 @@ TEST_F(SchemaTest, TestEdge) {
         ASSERT_TRUE(verifyColNames(resp, colNames));
         std::vector<std::vector<Value>> values = {{"like"}, {"schoolmate"}};
         ASSERT_TRUE(verifyValues(resp, values));
-=======
-<<<<<<< HEAD
-=======
->>>>>>> rebase upstream
-        DataSet expect;
-        expect.colNames = {"Field", "Type", "Null", "Default"};
-        std::vector<Row> rows;
-        std::vector<Value> columns1 = {Value("start"), Value("int64"), Value("YES"), Value()};
-        std::vector<Value> columns2 = {Value("end"), Value("int64"), Value("YES"), Value()};
-        Row row;
-        row.values = std::move(columns1);
-        rows.emplace_back(row);
-        row.values = std::move(columns2);
-        rows.emplace_back(row);
-        expect.rows = std::move(rows);
-        ASSERT_EQ(expect, *resp.get_data());
-<<<<<<< HEAD
-=======
-        ASSERT_TRUE(resp.get_data());
->>>>>>> address yixinglu's comment
->>>>>>> address yixinglu's comment
-=======
->>>>>>> rebase upstream
     }
     {
         cpp2::ExecutionResponse resp;

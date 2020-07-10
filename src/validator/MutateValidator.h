@@ -139,7 +139,7 @@ public:
     Status toPlan() override;
 
 private:
-    Expression*                                         vId_{nullptr};
+    std::string                                        vId_;
 };
 
 class UpdateEdgeValidator final : public UpdateBaseValidator {
@@ -176,6 +176,7 @@ private:
 =======
 >>>>>>> update expression
 private:
+<<<<<<< HEAD
     Expression*                                       srcId_{nullptr};
     Expression*                                       dstId_{nullptr};
     int64_t                                           rank_{0};
@@ -188,6 +189,11 @@ private:
 >>>>>>> update expression
 =======
 >>>>>>> update
+=======
+    std::string                                       srcId_;
+    std::string                                       dstId_;
+    EdgeRanking                                       rank_{0};
+>>>>>>> rebase upstream
 };
 }  // namespace graph
 }  // namespace nebula

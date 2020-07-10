@@ -551,7 +551,9 @@ Status UpdateBaseValidator::getUpdateProps() {
             return Status::SyntaxError("Empty edge update item field value");
         }
 
-        // TODO: check expression is ConstantExpression or has EdgePropertyExpression
+        // TODO: check expression is ConstantExpression or SymbolPropertyExpression,
+        // and need to modify SymbolPropertyExpression to SourcePropertyExpression
+        // or EdgePropertyExpression
         updatedProp.set_name(*field);
         updatedProp.set_value(Expression::encode(*valueExpr));
         updatedProps_.emplace_back(std::move(updatedProp));
@@ -561,7 +563,12 @@ Status UpdateBaseValidator::getUpdateProps() {
 
 Status UpdateVertexValidator::validateImpl() {
     auto sentence = static_cast<UpdateVertexSentence*>(sentence_);
-    vId_ = sentence->getVid();
+    auto idRet = SchemaUtil::toVertexID(sentence->getVid());
+    if (!idRet.ok()) {
+        LOG(ERROR) << idRet.status();
+        return idRet.status();
+    }
+    vId_ = std::move(idRet).value();
     NG_RETURN_IF_ERROR(initProps());
     auto ret = qctx_->schemaMng()->toTagID(spaceId_, name_);
     if (!ret.ok()) {
@@ -590,8 +597,18 @@ Status UpdateVertexValidator::toPlan() {
 
 Status UpdateEdgeValidator::validateImpl() {
     auto sentence = static_cast<UpdateEdgeSentence*>(sentence_);
-    srcId_ = sentence->getSrcId();
-    dstId_ = sentence->getDstId();
+    auto srcIdRet = SchemaUtil::toVertexID(sentence->getSrcId());
+    if (!srcIdRet.ok()) {
+        LOG(ERROR) << srcIdRet.status();
+        return srcIdRet.status();
+    }
+    srcId_ = std::move(srcIdRet).value();
+    auto dstIdRet = SchemaUtil::toVertexID(sentence->getDstId());
+    if (!dstIdRet.ok()) {
+        LOG(ERROR) << dstIdRet.status();
+        return dstIdRet.status();
+    }
+    dstId_ = std::move(dstIdRet).value();
     rank_ = sentence->getRank();
     NG_RETURN_IF_ERROR(initProps());
     auto ret = qctx_->schemaMng()->toEdgeType(spaceId_, name_);
@@ -607,8 +624,8 @@ Status UpdateEdgeValidator::toPlan() {
     auto *start = StartNode::make(plan);
     auto *doNode = UpdateEdge::make(plan,
                                     start,
-                                    srcId_,
-                                    dstId_,
+                                    std::move(srcId_),
+                                    std::move(dstId_),
                                     std::move(name_),
                                     rank_,
                                     insertable_,
