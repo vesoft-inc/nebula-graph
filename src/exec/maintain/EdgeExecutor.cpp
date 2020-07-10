@@ -123,7 +123,7 @@ folly::Future<Status> ShowCreateEdgeExecutor::execute() {
                 return ret.status();
             }
             return finish(ResultBuilder()
-                              .value(Value(std::move(ret).value()))
+                              .value(std::move(ret).value())
                               .iter(Iterator::Kind::kDefault)
                               .finish());
         });
