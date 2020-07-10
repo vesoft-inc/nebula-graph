@@ -13,41 +13,33 @@ macro(add_dependent_project)
         ${ARGN}
     )
 
+    set(CLONE_DIR ${dep_proj_args_BASE}/${dep_proj_args_NAME})
     # Clone or update the repo
-    if(EXISTS ${dep_proj_args_BASE}/${dep_proj_args_NAME}/.git)
+    if(EXISTS ${CLONE_DIR}/.git)
         message(STATUS "Updating from the repo \"" ${dep_proj_args_REPO} "\"")
         execute_process(
             COMMAND ${GIT_EXECUTABLE} pull --depth=1
-            WORKING_DIRECTORY ${dep_proj_args_BASE}/${dep_proj_args_NAME}
+            WORKING_DIRECTORY ${CLONE_DIR}
             RESULT_VARIABLE clone_result
         )
     else()
         message(STATUS "Cloning from the repo \"" ${dep_proj_args_REPO} "\"")
         execute_process(
-            COMMAND
-            ${GIT_EXECUTABLE} clone
+            COMMAND ${GIT_EXECUTABLE} clone
                 --depth 1
                 --progress
                 --single-branch
                 --branch ${dep_proj_args_TAG}
                 ${dep_proj_args_REPO}
-                ${dep_proj_args_BASE}/${dep_proj_args_NAME}
+                ${CLONE_DIR}
             RESULT_VARIABLE clone_result
         )
     endif()
 
     if(NOT ${clone_result} EQUAL 0)
-        message(
-            FATAL_ERROR
-            "Cannot clone the repo from \""
-            ${dep_proj_args_REPO}
-            "\" (branch \""
-            ${dep_proj_args_TAG}
-            "\"): \""
-            ${clone_result}
-            "\"")
+        message(FATAL_ERROR "Cannot clone the repo from \"${dep_proj_args_REPO}\" (branch \"${dep_proj_args_TAG}\"): \"${clone_result}\"")
     else()
-        message(STATUS "Updated the repo from \"" ${dep_proj_args_REPO} "\" (branch \"" ${dep_proj_args_TAG} "\")")
+        message(STATUS "Updated the repo from \"${dep_proj_args_REPO}\" (branch \"${dep_proj_args_TAG}\")")
     endif()
 
     # Configure the repo
@@ -67,7 +59,7 @@ macro(add_dependent_project)
             -DENABLE_UBSAN=${ENABLE_UBSAN}
             ${dep_proj_args_ARGN}
             .
-        WORKING_DIRECTORY ${dep_proj_args_BASE}/${dep_proj_args_NAME}
+        WORKING_DIRECTORY ${CLONE_DIR}
         RESULT_VARIABLE cmake_result
     )
     if(NOT ${cmake_result} EQUAL 0)
@@ -78,7 +70,7 @@ macro(add_dependent_project)
     add_custom_target(
         ${dep_proj_args_NAME}_project ALL
         COMMAND make -j
-        WORKING_DIRECTORY ${dep_proj_args_BASE}/${dep_proj_args_NAME}
+        WORKING_DIRECTORY ${CLONE_DIR}
     )
 
 endmacro()
