@@ -117,25 +117,17 @@ TEST_F(QueryValidatorTest, Go) {
     }
     {
         std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like WHERE like.likeness > 90";
-        auto status = validate(query);
-        EXPECT_TRUE(status.ok()) << status.status();
-        auto plan = std::move(status).value();
-        ASSERT_NE(plan, nullptr);
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
             PK::kFilter,
             PK::kGetNeighbors,
             PK::kStart,
         };
-        ASSERT_TRUE(verifyPlan(plan->root(), expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
     {
         std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like WHERE $^.person.age > 20"
                             "YIELD distinct $^.person.name ";
-        auto status = validate(query);
-        EXPECT_TRUE(status.ok()) << status.status();
-        auto plan = std::move(status).value();
-        ASSERT_NE(plan, nullptr);
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
             PK::kDedup,
@@ -144,21 +136,17 @@ TEST_F(QueryValidatorTest, Go) {
             PK::kGetNeighbors,
             PK::kStart,
         };
-        ASSERT_TRUE(verifyPlan(plan->root(), expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
     {
         std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like WHERE $^.person.name == \"me\"";
-        auto status = validate(query);
-        EXPECT_TRUE(status.ok()) << status.status();
-        auto plan = std::move(status).value();
-        ASSERT_NE(plan, nullptr);
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
             PK::kFilter,
             PK::kGetNeighbors,
             PK::kStart,
         };
-        ASSERT_TRUE(verifyPlan(plan->root(), expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
     {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id"
