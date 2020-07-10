@@ -27,9 +27,6 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     dumpLog();
 
     GraphStorageClient *client = qctx()->getStorageClient();
-    if (client == nullptr) {
-        return error(Status::Error("Invalid storage client for GetEdgesExecutor"));
-    }
 
     auto *ge = asNode<GetEdges>(node());
     nebula::DataSet edges({kSrc, kType, kRank, kDst});
@@ -55,7 +52,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             }));
         }
     }
-    return client
+    return DCHECK_NOTNULL(client)
         ->getProps(ge->space(),
                    std::move(edges),
                    nullptr,

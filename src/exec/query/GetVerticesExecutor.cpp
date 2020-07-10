@@ -33,9 +33,6 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     auto *gv = asNode<GetVertices>(node());
 
     GraphStorageClient *storageClient = qctx()->getStorageClient();
-    if (storageClient == nullptr) {
-        return error(Status::Error("Invalid storage client for GetVerticesExecutor"));
-    }
     nebula::DataSet vertices({kVid});
     if (!gv->vertices().empty()) {
         vertices.rows.insert(vertices.rows.end(),
@@ -57,7 +54,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
             }));
         }
     }
-    return storageClient
+    return DCHECK_NOTNULL(storageClient)
         ->getProps(gv->space(),
                    std::move(vertices),
                    &gv->props(),
