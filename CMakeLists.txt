@@ -35,7 +35,13 @@ set(NEBULA_HOME ${CMAKE_CURRENT_SOURCE_DIR})
 add_definitions(-DNEBULA_HOME=${NEBULA_HOME})
 
 # To include customized FindXXX.cmake modules
-set(CMAKE_MODULE_PATH "${NEBULA_HOME}/modules/common/" "${NEBULA_HOME}/cmake" "${NEBULA_HOME}/modules/common/cmake" ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH
+  "${NEBULA_HOME}/cmake"
+  "${NEBULA_HOME}/modules/common/"
+  "${NEBULA_HOME}/modules/common/cmake"
+  "${NEBULA_HOME}/modules/storage/"
+  "${NEBULA_HOME}/modules/storage/cmake"
+  ${CMAKE_MODULE_PATH})
 
 find_package(Git)
 if (GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")

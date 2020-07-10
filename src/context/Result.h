@@ -15,6 +15,8 @@
 namespace nebula {
 namespace graph {
 
+class ExecutionContext;
+class QueryInstance;
 class ResultBuilder;
 
 // An executor will produce a result.
@@ -37,10 +39,6 @@ public:
         return *core_.value;
     }
 
-    Value&& moveValue() {
-        return std::move(*core_.value);
-    }
-
     State state() const {
         return core_.state;
     }
@@ -51,6 +49,12 @@ public:
 
 private:
     friend class ResultBuilder;
+    friend class QueryInstance;
+    friend class ExecutionContext;
+
+    Value&& moveValue() {
+        return std::move(*core_.value);
+    }
 
     struct Core {
         State state;
