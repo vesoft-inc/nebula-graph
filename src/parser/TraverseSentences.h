@@ -60,10 +60,6 @@ public:
         return yieldClause_.get();
     }
 
-    YieldClause* yieldClause() {
-        return yieldClause_.get();
-    }
-
     std::string toString() const override;
 
 private:
