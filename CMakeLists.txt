@@ -72,11 +72,10 @@ include(AddDependentProject)
 message(STATUS "")
 message(STATUS ">>>>> Configuring the nebula-common repo <<<<<")
 add_dependent_project(
-    ${NEBULA_HOME}/modules
-    common
-    ${NEBULA_COMMON_REPO_URL}
-    ${NEBULA_COMMON_REPO_TAG}
-    ""
+    BASE ${NEBULA_HOME}/modules
+    NAME common
+    REPO ${NEBULA_COMMON_REPO_URL}
+    TAG  ${NEBULA_COMMON_REPO_TAG}
 )
 find_package(${NEBULA_COMMON_PACKAGE} REQUIRED)
 message(STATUS ">>>>> The nebula-common repo has been configured successfully <<<<<")
