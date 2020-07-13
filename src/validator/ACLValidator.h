@@ -50,6 +50,19 @@ private:
     Status toPlan() override;
 };
 
+class ShowUsersValidator final : public Validator {
+public:
+    ShowUsersValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
 class ChangePasswordValidator final : public Validator {
 public:
     ChangePasswordValidator(Sentence* sentence, QueryContext* context)
@@ -79,6 +92,19 @@ private:
 class RevokeRoleValidator final : public Validator {
 public:
     RevokeRoleValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowRolesInSpaceValidator final : public Validator {
+public:
+    ShowRolesInSpaceValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         setNoSpaceRequired();
     }

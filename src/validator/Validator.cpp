@@ -100,12 +100,16 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DropUserValidator>(sentence, context);
         case Sentence::Kind::kAlterUser:
             return std::make_unique<UpdateUserValidator>(sentence, context);
+        case Sentence::Kind::kShowUsers:
+            return std::make_unique<ShowUsersValidator>(sentence, context);
         case Sentence::Kind::kChangePassword:
             return std::make_unique<ChangePasswordValidator>(sentence, context);
         case Sentence::Kind::kGrant:
             return std::make_unique<GrantRoleValidator>(sentence, context);
         case Sentence::Kind::kRevoke:
             return std::make_unique<RevokeRoleValidator>(sentence, context);
+        case Sentence::Kind::kShowRoles:
+            return std::make_unique<ShowRolesInSpaceValidator>(sentence, context);
         case Sentence::Kind::kCreateSnapshot:
             return std::make_unique<CreateSnapshotValidator>(sentence, context);
         case Sentence::Kind::kDropSnapshot:

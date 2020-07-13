@@ -48,6 +48,15 @@ Status UpdateUserValidator::toPlan() {
                                          std::move(*sentence->movePassword()));
 }
 
+// show users
+Status ShowUsersValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowUsersValidator::toPlan() {
+    return genSingleNodePlan<ListUsers>();
+}
+
 // change password
 Status ChangePasswordValidator::validateImpl() {
     return Status::OK();
@@ -84,6 +93,19 @@ Status RevokeRoleValidator::toPlan() {
                                          std::move(
                                              *sentence->mutableAclItemClause()->moveSpaceName()),
                                          sentence->getAclItemClause()->getRoleType());
+}
+
+// show roles in space
+Status ShowRolesInSpaceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowRolesInSpaceValidator::toPlan() {
+    auto sentence = static_cast<ShowRolesSentence*>(sentence_);
+    auto spaceIdResult = qctx_->schemaMng()->toGraphSpaceID(*sentence->name());
+    NG_RETURN_IF_ERROR(spaceIdResult);
+    auto spaceId = spaceIdResult.value();
+    return genSingleNodePlan<ListRoles>(spaceId);
 }
 
 }  // namespace graph

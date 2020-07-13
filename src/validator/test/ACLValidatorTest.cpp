@@ -43,7 +43,7 @@ TEST_F(ACLValidatorTest, Simple) {
     constexpr char password[] = "123456";
     constexpr char newPassword[] = "654321";
     constexpr char roleTypeName[] = "ADMIN";
-    constexpr char space[] = "test";
+    constexpr char space[] = "test_space";
     // create user
     {
         ASSERT_TRUE(toPlan(folly::stringPrintf("CREATE USER %s", user)));
@@ -154,6 +154,18 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(updateUser->password(), password);
     }
 
+    // show users
+    {
+        ASSERT_TRUE(toPlan("SHOW USERS"));
+        const ExecutionPlan *plan = qCtx_->plan();
+
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kListUsers,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
+    }
+
     // change password
     {
         ASSERT_TRUE(toPlan(folly::stringPrintf("CHANGE PASSWORD %s FROM \"%s\" TO \"%s\"",
@@ -212,6 +224,24 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(revokeRole->username(), user);
         ASSERT_EQ(revokeRole->spaceName(), space);
         ASSERT_EQ(revokeRole->role(), meta::cpp2::RoleType::ADMIN);
+    }
+
+    // show roles in space
+    {
+        ASSERT_TRUE(toPlan(folly::stringPrintf("SHOW ROLES IN %s",
+                                    space)));
+        const ExecutionPlan *plan = qCtx_->plan();
+
+        std::vector<PlanNode::Kind> expectedTop {
+            PlanNode::Kind::kListRoles,
+            PlanNode::Kind::kStart,
+        };
+        ASSERT_TRUE(verifyPlan(plan->root(), expectedTop));
+
+        auto root = plan->root();
+        ASSERT_EQ(root->kind(), PlanNode::Kind::kListRoles);
+        auto showRoles = static_cast<const ListRoles*>(root);
+        ASSERT_EQ(showRoles->space(), 1);
     }
 }
 
