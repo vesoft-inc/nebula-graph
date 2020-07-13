@@ -68,9 +68,49 @@ TEST_F(QueryValidatorTest, Go) {
         EXPECT_TRUE(checkResult(query, expected));
     }
     {
-        std::string query = "GO 3 STEPS FROM \"1\" OVER like";
-        // TODO: implement n steps and test plan.
-        EXPECT_FALSE(checkResult(query));
+        std::string query = "GO 2 STEPS FROM \"1\" OVER like";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 3 STEPS FROM \"1\",\"2\",\"3\" OVER like WHERE like.likeness > 90";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query =
+            "GO 3 steps FROM \"1\",\"2\",\"3\" OVER like WHERE $^.person.age > 20"
+            "YIELD distinct $^.person.name";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kDedup,
+            PK::kProject,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
     }
     {
         std::string query = "GO FROM \"1\" OVER like REVERSELY";
