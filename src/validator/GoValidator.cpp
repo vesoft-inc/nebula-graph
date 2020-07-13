@@ -34,9 +34,12 @@ Status GoValidator::validateImpl() {
         return Status::Error("Only support single input in a go sentence.");
     }
 
+    NG_RETURN_IF_ERROR(buildColumns());
+
     if (!dstTagProps_.empty()) {
         // TODO: inplement get vertex props.
-        return Status::Error("Not support get dst yet.");
+        status = Status::Error("Not support get dst yet.");
+        break;
     }
 
     if (isOverAll_) {
@@ -467,9 +470,10 @@ void GoValidator::extractPropExprs(const Expression* expr) {
             if (found == propExprColMap_.end()) {
                 auto encode = expr->encode();
                 auto newExpr = Expression::decode(encode);
-                auto col = new YieldColumn(newExpr.release(), new std::string(""));
+                auto col = new YieldColumn(
+                    newExpr.release(), new std::string(annoColGen_->getCol()));
                 propExprColMap_.emplace(expr, col);
-                destPropCols_->addColumn(col);
+                dstPropCols_->addColumn(col);
             }
             break;
         }
@@ -483,7 +487,8 @@ void GoValidator::extractPropExprs(const Expression* expr) {
             if (found == propExprColMap_.end()) {
                 auto encode = expr->encode();
                 auto newExpr = Expression::decode(encode);
-                auto col = new YieldColumn(newExpr.release(), new std::string(""));
+                auto col = new YieldColumn(
+                    newExpr.release(), new std::string(annoColGen_->getCol()));
                 propExprColMap_.emplace(expr, col);
                 srcAndEdgePropCols_->addColumn(col);
             }
@@ -599,6 +604,47 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
         }
     }
     return nullptr;
+}
+
+Status GoValidator::buildColumns() {
+    if (dstTagProps_.empty() && inputProps_.empty() && varProps_.empty()) {
+        return Status::OK();
+    }
+
+    if (!srcTagProps_.empty() || !edgeProps_.empty()) {
+        srcAndEdgePropCols_ = std::make_unique<YieldColumns>();
+    }
+
+    if (!dstTagProps_.empty()) {
+        dstPropCols_ = std::make_unique<YieldColumns>();
+    }
+
+    if (!inputProps_.empty() || !varProps_.empty()) {
+        inputPropCols_ = std::make_unique<YieldColumns>();
+    }
+
+    extractPropExprs(filter_);
+    newFilter_ = Expression::decode(filter_->encode());
+    auto rewriteFilter = rewriteToInputProp(newFilter_.get());
+    if (rewriteFilter != nullptr) {
+        newFilter_ = std::move(rewriteFilter);
+    }
+
+    newYieldCols_ = std::make_unique<YieldColumns>();
+    for (auto* yield : yields_->columns()) {
+        extractPropExprs(yield->expr());
+        auto newCol = Expression::decode(yield->expr()->encode());
+        auto rewriteCol = rewriteToInputProp(newCol.get());
+        if (rewriteCol != nullptr) {
+            newYieldCols_->addColumn(new YieldColumn(
+                rewriteCol.release(), new std::string(*(yield->alias()))));
+        } else {
+            newYieldCols_->addColumn(new YieldColumn(
+                newCol.release(), new std::string(*(yield->alias()))));
+        }
+    }
+
+    return Status::OK();
 }
 
 }  // namespace graph

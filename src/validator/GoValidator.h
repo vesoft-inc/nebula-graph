@@ -10,6 +10,7 @@
 #include "common/base/Base.h"
 #include "validator/Validator.h"
 #include "planner/Query.h"
+#include "util/AnnoColGenerator.h"
 
 namespace nebula {
 namespace graph {
@@ -63,6 +64,8 @@ private:
 
     std::unique_ptr<Expression> rewriteToInputProp(Expression* expr);
 
+    Status buildColumns();
+
 private:
     int64_t                                                 steps_;
     FromType                                                fromType_{kConstantExpr};
@@ -76,9 +79,12 @@ private:
     YieldColumns*                                           yields_{nullptr};
     bool                                                    distinct_{false};
     std::unique_ptr<YieldColumns>                           srcAndEdgePropCols_;
-    std::unique_ptr<YieldColumns>                           destPropCols_;
+    std::unique_ptr<YieldColumns>                           dstPropCols_;
     std::unique_ptr<YieldColumns>                           inputPropCols_;
     std::unordered_map<const Expression*, YieldColumn*>     propExprColMap_;
+    std::unique_ptr<AnnoColGenerator>                       annoColGen_;
+    std::unique_ptr<Expression>                             newFilter_;
+    std::unique_ptr<YieldColumns>                           newYieldCols_;
 };
 }  // namespace graph
 }  // namespace nebula

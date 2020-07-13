@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef UTIL_ANNOVARGENERATOR_H_
-#define UTIL_ANNOVARGENERATOR_H_
+#ifndef UTIL_ANNOCOLGENERATOR_H_
+#define UTIL_ANNOCOLGENERATOR_H_
 
 #include "common/base/Base.h"
 
@@ -16,14 +16,14 @@ namespace graph {
 /**
  * An utility to generate an anonymous variable.
  */
-class AnnoVarGenerator final {
+class AnnoColGenerator final {
 public:
-    AnnoVarGenerator() {
+    AnnoColGenerator() {
         idGen_ = std::make_unique<IdGenerator>();
     }
 
-    std::string getVar() const {
-        return folly::stringPrintf("UNAMED_VAR_%ld", idGen_->id());
+    std::string getCol() const {
+        return folly::stringPrintf("UNAMED_COL_%ld", idGen_->id());
     }
 
 private:
