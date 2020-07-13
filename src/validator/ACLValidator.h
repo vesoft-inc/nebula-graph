@@ -5,16 +5,15 @@
  */
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
 #include "parser/UserSentences.h"
+#include "validator/Validator.h"
 
 namespace nebula {
 namespace graph {
 
 class CreateUserValidator final : public Validator {
 public:
-    CreateUserValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+    CreateUserValidator(Sentence* sentence, QueryContext* context) : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -26,8 +25,7 @@ private:
 
 class DropUserValidator final : public Validator {
 public:
-    DropUserValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+    DropUserValidator(Sentence* sentence, QueryContext* context) : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -39,8 +37,7 @@ private:
 
 class UpdateUserValidator final : public Validator {
 public:
-    UpdateUserValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+    UpdateUserValidator(Sentence* sentence, QueryContext* context) : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -52,8 +49,7 @@ private:
 
 class ShowUsersValidator final : public Validator {
 public:
-    ShowUsersValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
+    ShowUsersValidator(Sentence* sentence, QueryContext* context) : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -66,7 +62,7 @@ private:
 class ChangePasswordValidator final : public Validator {
 public:
     ChangePasswordValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -78,8 +74,7 @@ private:
 
 class GrantRoleValidator final : public Validator {
 public:
-    GrantRoleValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+    GrantRoleValidator(Sentence* sentence, QueryContext* context) : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -91,8 +86,7 @@ private:
 
 class RevokeRoleValidator final : public Validator {
 public:
-    RevokeRoleValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+    RevokeRoleValidator(Sentence* sentence, QueryContext* context) : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -105,7 +99,7 @@ private:
 class ShowRolesInSpaceValidator final : public Validator {
 public:
     ShowRolesInSpaceValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -115,5 +109,5 @@ private:
     Status toPlan() override;
 };
 
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula
