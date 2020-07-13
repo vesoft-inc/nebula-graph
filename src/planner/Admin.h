@@ -22,10 +22,10 @@ namespace graph {
 
 // Some template node such as Create template for the node create something(user,tag...)
 // Fit the conflict create process
-class CreateNode : public SingleInputNode {
+class CreateNode : public SingleDependencyNode {
 protected:
     CreateNode(ExecutionPlan* plan, Kind kind, PlanNode* input, bool ifNotExist = false)
-        : SingleInputNode(plan, kind, input), ifNotExist_(ifNotExist) {}
+        : SingleDependencyNode(plan, kind, input), ifNotExist_(ifNotExist) {}
 
 public:
     bool ifNotExist() const {
@@ -36,10 +36,10 @@ private:
     bool ifNotExist_{false};
 };
 
-class DropNode : public SingleInputNode {
+class DropNode : public SingleDependencyNode {
 protected:
     DropNode(ExecutionPlan* plan, Kind kind, PlanNode* input, bool ifExist = false)
-        : SingleInputNode(plan, kind, input), ifExist_(ifExist) {}
+        : SingleDependencyNode(plan, kind, input), ifExist_(ifExist) {}
 
 public:
     bool ifExist() const {
@@ -352,7 +352,7 @@ private:
     std::string username_;
 };
 
-class UpdateUser final : public SingleInputNode {
+class UpdateUser final : public SingleDependencyNode {
 public:
     static UpdateUser* make(ExecutionPlan* plan,
                             PlanNode*      input,
@@ -378,7 +378,7 @@ public:
 
 private:
     UpdateUser(ExecutionPlan* plan, PlanNode* input, std::string username, std::string password)
-        : SingleInputNode(plan, Kind::kUpdateUser, input),
+        : SingleDependencyNode(plan, Kind::kUpdateUser, input),
           username_(std::move(username)),
           password_(std::move(password)) {}
 
@@ -387,7 +387,7 @@ private:
     std::string password_;
 };
 
-class GrantRole final : public SingleInputNode {
+class GrantRole final : public SingleDependencyNode {
 public:
     static GrantRole* make(ExecutionPlan* plan,
                            PlanNode*      input,
@@ -423,7 +423,7 @@ private:
               std::string username,
               std::string spaceName,
               meta::cpp2::RoleType role)
-        : SingleInputNode(plan, Kind::kGrantRole, input),
+        : SingleDependencyNode(plan, Kind::kGrantRole, input),
           username_(std::move(username)),
           spaceName_(std::move(spaceName)),
           role_(role) {}
@@ -434,7 +434,7 @@ private:
     meta::cpp2::RoleType role_;
 };
 
-class RevokeRole final : public SingleInputNode {
+class RevokeRole final : public SingleDependencyNode {
 public:
     static RevokeRole* make(ExecutionPlan* plan,
                             PlanNode*      input,
@@ -470,7 +470,7 @@ private:
                std::string username,
                std::string spaceName,
                meta::cpp2::RoleType role)
-        : SingleInputNode(plan, Kind::kRevokeRole, input),
+        : SingleDependencyNode(plan, Kind::kRevokeRole, input),
           username_(std::move(username)),
           spaceName_(std::move(spaceName)),
           role_(role) {}
@@ -481,7 +481,7 @@ private:
     meta::cpp2::RoleType role_;
 };
 
-class ChangePassword final : public SingleInputNode {
+class ChangePassword final : public SingleDependencyNode {
 public:
     static ChangePassword* make(ExecutionPlan* plan,
                                 PlanNode*      input,
@@ -517,7 +517,7 @@ private:
                    std::string username,
                    std::string password,
                    std::string newPassword)
-        : SingleInputNode(plan, Kind::kChangePassword, input),
+        : SingleDependencyNode(plan, Kind::kChangePassword, input),
           username_(std::move(username)),
           password_(std::move(password)),
           newPassword_(std::move(newPassword)) {}
@@ -529,7 +529,7 @@ private:
 };
 
 
-class ListUserRoles final : public SingleInputNode {
+class ListUserRoles final : public SingleDependencyNode {
 public:
     static ListUserRoles* make(ExecutionPlan* plan,
                                PlanNode*      input,
@@ -549,14 +549,14 @@ public:
 
 private:
     ListUserRoles(ExecutionPlan* plan, PlanNode* input, std::string username)
-        : SingleInputNode(plan, Kind::kListUserRoles, input),
+        : SingleDependencyNode(plan, Kind::kListUserRoles, input),
           username_(std::move(username)) {}
 
 private:
     std::string username_;
 };
 
-class ListUsers final : public SingleInputNode {
+class ListUsers final : public SingleDependencyNode {
 public:
     static ListUsers* make(ExecutionPlan* plan, PlanNode* input) {
         return new ListUsers(plan, input);
@@ -568,10 +568,10 @@ public:
 
 private:
     explicit ListUsers(ExecutionPlan* plan, PlanNode* input)
-        : SingleInputNode(plan, Kind::kListUsers, input) {}
+        : SingleDependencyNode(plan, Kind::kListUsers, input) {}
 };
 
-class ListRoles final : public SingleInputNode {
+class ListRoles final : public SingleDependencyNode {
 public:
     static ListRoles* make(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space) {
         return new ListRoles(plan, input, space);
@@ -587,7 +587,7 @@ public:
 
 private:
     explicit ListRoles(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
-        : SingleInputNode(plan, Kind::kListRoles, input), space_(space) {}
+        : SingleDependencyNode(plan, Kind::kListRoles, input), space_(space) {}
 
     GraphSpaceID space_{-1};
 };
