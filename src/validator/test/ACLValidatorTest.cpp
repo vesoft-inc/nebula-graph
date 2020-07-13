@@ -4,17 +4,17 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "validator/test/ValidatorTest.h"
+#include "validator/test/ValidatorTestBase.h"
 #include "planner/Admin.h"
 
 namespace nebula {
 namespace graph {
 
 
-class ACLValidatorTest : public ValidatorTest {
+class ACLValidatorTest : public ValidatorTestBase {
 public:
     void SetUp() override {
-        ValidatorTest::SetUp();
+        ValidatorTestBase::SetUp();
 
         qCtx_ = buildContext();
     }

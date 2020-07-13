@@ -16,7 +16,7 @@ PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
 }
 
 // static
-const char* PlanNode::toString(Kind kind) {
+const char* PlanNode::toString(PlanNode::Kind kind) {
     switch (kind) {
         case PlanNode::Kind::kUnknown:
             return "Unkonwn";
@@ -68,6 +68,10 @@ const char* PlanNode::toString(Kind kind) {
             return "DescTag";
         case PlanNode::Kind::kDescEdge:
             return "DescEdge";
+        case PlanNode::Kind::kAlterTag:
+            return "AlterTag";
+        case PlanNode::Kind::kAlterEdge:
+            return "AlterEdge";
         case PlanNode::Kind::kInsertVertices:
             return "InsertVertices";
         case PlanNode::Kind::kInsertEdges:
@@ -93,6 +97,30 @@ const char* PlanNode::toString(Kind kind) {
             return "ListUsers";
         case PlanNode::Kind::kListRoles:
             return "ListRoles";
+        case PlanNode::Kind::kShowCreateSpace:
+            return "ShowCreateSpace";
+        case PlanNode::Kind::kShowCreateTag:
+            return "ShowCreateTag";
+        case PlanNode::Kind::kShowCreateEdge:
+            return "ShowCreateEdge";
+        case PlanNode::Kind::kDropSpace:
+            return "DropSpace";
+        case PlanNode::Kind::kDropTag:
+            return "DropTag";
+        case PlanNode::Kind::kDropEdge:
+            return "DropEdge";
+        case PlanNode::Kind::kShowSpaces:
+            return "kShowSpaces";
+        case PlanNode::Kind::kShowTags:
+            return "kShowTags";
+        case PlanNode::Kind::kShowEdges:
+            return "kShowEdges";
+        case PlanNode::Kind::kCreateSnapshot:
+            return "CreateSnapshot";
+        case PlanNode::Kind::kDropSnapshot:
+            return "DropSnapshot";
+        case PlanNode::Kind::kShowSnapshots:
+            return "ShowSnapshots";
         default:
             LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(kind);
     }

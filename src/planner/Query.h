@@ -7,13 +7,14 @@
 #ifndef PLANNER_QUERY_H_
 #define PLANNER_QUERY_H_
 
-
 #include "common/base/Base.h"
+#include "common/interface/gen-cpp2/storage_types.h"
+#include "common/function/AggregateFunction.h"
+
 #include "planner/PlanNode.h"
 #include "planner/ExecutionPlan.h"
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
-#include "common/interface/gen-cpp2/storage_types.h"
 
 /**
  * All query-related nodes would be put in this file,
@@ -37,16 +38,30 @@ private:
     }
 };
 
-class SingleInputNode : public PlanNode {
+// Dependencies will cover the inputs, For example bi input require bi dependencies as least,
+// but single dependencies may don't need any inputs (I.E admin plan node)
+
+// Single dependecy without input
+// It's useful for addmin plan node
+class SingleDependencyNode : public PlanNode {
 public:
-    const PlanNode* input() const {
-        return input_;
+    const PlanNode* dep() const {
+        return dependency_;
     }
 
-    void setInput(PlanNode* input) {
-        input_ = input;
+    void setDep(PlanNode *dep) {
+        dependency_ = DCHECK_NOTNULL(dep);
     }
 
+protected:
+    SingleDependencyNode(ExecutionPlan *plan, Kind kind, const PlanNode *dep)
+        : PlanNode(plan, kind), dependency_(dep) {}
+
+    const PlanNode *dependency_;
+};
+
+class SingleInputNode : public SingleDependencyNode {
+public:
     void setInputVar(std::string inputVar) {
         inputVar_ = std::move(inputVar);
     }
@@ -56,11 +71,10 @@ public:
     }
 
 protected:
-    SingleInputNode(ExecutionPlan* plan, Kind kind, PlanNode* input)
-        : PlanNode(plan, kind), input_(input) {
+    SingleInputNode(ExecutionPlan* plan, Kind kind, const PlanNode* dep)
+        : SingleDependencyNode(plan, kind, dep) {
     }
 
-    PlanNode* input_{nullptr};
     // Datasource for this node.
     std::string inputVar_;
 };
@@ -518,7 +532,7 @@ public:
         return new Filter(plan, input, condition);
     }
 
-    const Expression* condition() const {
+    Expression* condition() const {
         return condition_;
     }
 
@@ -630,24 +644,26 @@ class Sort final : public SingleInputNode {
 public:
     static Sort* make(ExecutionPlan* plan,
                       PlanNode* input,
-                      OrderFactors* factors) {
-        return new Sort(plan, input, factors);
+                      std::vector<std::pair<std::string, OrderFactor::OrderType>> factors) {
+        return new Sort(plan, input, std::move(factors));
     }
 
-    const OrderFactors* factors() {
+    const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors() const {
         return factors_;
     }
 
     std::string explain() const override;
 
 private:
-    Sort(ExecutionPlan* plan, PlanNode* input, OrderFactors* factors)
-      : SingleInputNode(plan, Kind::kSort, input) {
-        factors_ = factors;
+    Sort(ExecutionPlan* plan,
+         PlanNode* input,
+         std::vector<std::pair<std::string, OrderFactor::OrderType>> factors)
+        : SingleInputNode(plan, Kind::kSort, input) {
+        factors_ = std::move(factors);
     }
 
 private:
-    OrderFactors*   factors_{nullptr};
+    std::vector<std::pair<std::string, OrderFactor::OrderType>>   factors_;
 };
 
 /**
@@ -690,26 +706,43 @@ private:
  */
 class Aggregate final : public SingleInputNode {
 public:
+    struct GroupItem {
+        GroupItem(Expression* e, AggFun::Function f, bool d)
+            : expr(e), func(f), distinct(d) {}
+        Expression* expr;
+        AggFun::Function func;
+        bool distinct = false;
+    };
     static Aggregate* make(ExecutionPlan* plan,
                            PlanNode* input,
-                           YieldColumns* groupCols) {
-        return new Aggregate(plan, input, groupCols);
+                           std::vector<Expression*>&& groupKeys,
+                           std::vector<GroupItem>&& groupItems) {
+        return new Aggregate(plan, input, std::move(groupKeys), std::move(groupItems));
     }
 
-    const YieldColumns* groups() const {
-        return groupCols_;
+    const std::vector<Expression*>& groupKeys() const {
+        return groupKeys_;
+    }
+
+    const std::vector<GroupItem>& groupItems() const {
+        return groupItems_;
     }
 
     std::string explain() const override;
 
 private:
-    Aggregate(ExecutionPlan* plan, PlanNode* input, YieldColumns* groupCols)
+    Aggregate(ExecutionPlan* plan,
+              PlanNode* input,
+              std::vector<Expression*>&& groupKeys,
+              std::vector<GroupItem>&& groupItems)
         : SingleInputNode(plan, Kind::kAggregate, input) {
-        groupCols_ = groupCols;
+        groupKeys_ = std::move(groupKeys);
+        groupItems_ = std::move(groupItems);
     }
 
 private:
-    YieldColumns*   groupCols_;
+    std::vector<Expression*>    groupKeys_;
+    std::vector<GroupItem>      groupItems_;
 };
 
 class BinarySelect : public SingleInputNode {
@@ -797,65 +830,50 @@ private:
 class SwitchSpace final : public SingleInputNode {
 public:
     static SwitchSpace* make(ExecutionPlan* plan,
-                                        PlanNode* input,
-                                        std::string spaceName,
-                                        GraphSpaceID spaceId) {
-        return new SwitchSpace(plan, input, spaceName, spaceId);
+                             PlanNode* input,
+                             std::string spaceName) {
+        return new SwitchSpace(plan, input, spaceName);
     }
 
     const std::string& getSpaceName() const {
         return spaceName_;
     }
 
-    GraphSpaceID getSpaceId() const {
-        return spaceId_;
-    }
-
     std::string explain() const override;
 
 private:
     SwitchSpace(ExecutionPlan* plan,
-                           PlanNode* input,
-                           std::string spaceName,
-                           GraphSpaceID spaceId)
+                PlanNode* input,
+                std::string spaceName)
         : SingleInputNode(plan, Kind::kSwitchSpace, input) {
         spaceName_ = std::move(spaceName);
-        spaceId_ = spaceId;
     }
 
 private:
     std::string     spaceName_;
-    GraphSpaceID    spaceId_{-1};
 };
 
 class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(ExecutionPlan* plan,
-                       PlanNode* input,
-                       Expression* expr) {
-        return new Dedup(plan, input, expr);
-    }
-
-    void setExpr(Expression* expr) {
-        expr_ = expr;
+                       PlanNode* input) {
+        return new Dedup(plan, input);
     }
 
     std::string explain() const override;
 
 private:
-    Dedup(ExecutionPlan* plan, PlanNode* input, Expression* expr)
+    Dedup(ExecutionPlan* plan,
+          PlanNode* input)
         : SingleInputNode(plan, Kind::kDedup, input) {
-        expr_ = expr;
     }
-
-private:
-    Expression*     expr_{nullptr};
 };
 
 class DataCollect final : public SingleInputNode {
 public:
     enum class CollectKind : uint8_t {
         kSubgraph,
+        kRowBasedMove,
     };
 
     static DataCollect* make(ExecutionPlan* plan,
