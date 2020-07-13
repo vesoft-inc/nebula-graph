@@ -74,13 +74,19 @@ public:
 private:
     Status validateImpl() override;
 
+    std::string buildVIds();
+
     Status toPlan() override;
 
-    Status genSrc();
-
 private:
-    Expression*                                src_{nullptr};
-    std::vector<Expression*>                   vertices_;
+    GraphSpaceID                                  spaceId_{-1};
+    // From ConstantExpression
+    std::vector<VertexID>                         vertices_;
+    // From InputPropertyExpression or InputPropertyExpression
+    Expression*                                   vidRef_{nullptr};
+    std::vector<EdgeType>                         edgeTypes_;
+    std::vector<std::string>                      edgeNames_;
+    std::vector<std::pair<EdgeType, EdgeKeyRef*>> edgeKeyRefs_;
 };
 
 class DeleteEdgesValidator final : public Validator {
@@ -94,9 +100,13 @@ private:
 
     Status toPlan() override;
 
+    Status checkInput();
+
 private:
-    EdgeKeys                                    *edgeKeys_;
-    EdgeType                                     edgeType_;
+    // From ConstantExpression
+    std::vector<storage::cpp2::EdgeKey>            edgeKeys_;
+    // From InputPropertyExpression or InputPropertyExpression
+    std::vector<std::pair<EdgeType, EdgeKeyRef*>>  edgeKeyRefs_;
 };
 }  // namespace graph
 }  // namespace nebula

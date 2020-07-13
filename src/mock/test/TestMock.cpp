@@ -167,110 +167,30 @@ TEST_F(MockServerTest, TestMeta) {
     sleep(FLAGS_heartbeat_interval_secs + 1);
 }
 
-TEST_F(MockServerTest, TestStorageAddVertices) {
-    auto metaClient = gEnv->getMetaClient();
+TEST_F(MockServerTest, DISABLED_TestStorage) {
     auto storageClient = gEnv->getStorageClient();
-    // create tag person
-    {
-        meta::cpp2::Schema tagSchema;
-        std::vector<meta::cpp2::ColumnDef> cols;
-
-        meta::cpp2::ColumnDef col;
-        col.set_name("name");
-        col.set_type(meta::cpp2::PropertyType::STRING);
-        col.set_default_value(nebula::Value("NULL"));
-
-        cols.emplace_back(col);
-        col.set_name("age");
-        col.set_type(meta::cpp2::PropertyType::INT8);
-        col.set_default_value(nebula::Value(18));
-        cols.emplace_back(std::move(col));
-
-        tagSchema.set_columns(std::move(cols));
-        auto status = metaClient->createTagSchema(1, "person", tagSchema, false).get();
-        ASSERT_TRUE(status.ok());
-
-        sleep(FLAGS_heartbeat_interval_secs + 1);
-    }
-
-    // add vertex
-    {
-        auto ret = metaClient->getTagIDByNameFromCache(1, "person");
-        ASSERT_TRUE(ret.ok());
-        auto tagId = ret.value();
-        GraphSpaceID space = 1;
-        std::vector<Value> props;
-        props.emplace_back("laura");
-        storage::cpp2::NewTag tag;
-        tag.set_tag_id(tagId);
-        tag.set_props(std::move(props));
-        std::vector<storage::cpp2::NewTag> tags;
-        tags.emplace_back(tag);
-
-        storage::cpp2::NewVertex vertex;
-        vertex.set_id("laura");
-        vertex.set_tags(std::move(tags));
-        std::vector<storage::cpp2::NewVertex> vertices;
-        vertices.emplace_back(std::move(vertex));
-
-        std::unordered_map<TagID, std::vector<std::string>> propNames;
-        propNames[tagId] = {"name"};
-        auto resp = storageClient->addVertices(space, vertices, propNames, false).get();
-        ASSERT_TRUE(resp.succeeded());
-    }
-}
-
-
-TEST_F(MockServerTest, TestStorageAddEdges) {
-    auto metaClient = gEnv->getMetaClient();
-    auto storageClient = gEnv->getStorageClient();
-    // Create edge classmate
-    {
-        meta::cpp2::Schema edgeSchema;
-        std::vector<meta::cpp2::ColumnDef> cols;
-
-        meta::cpp2::ColumnDef col;
-        col.set_name("start");
-        col.set_type(meta::cpp2::PropertyType::INT16);
-        col.set_default_value(nebula::Value(2010));
-
-        cols.emplace_back(col);
-        col.set_name("end");
-        col.set_type(meta::cpp2::PropertyType::INT16);
-        col.set_default_value(nebula::Value(2014));
-        cols.emplace_back(std::move(col));
-
-        edgeSchema.set_columns(std::move(cols));
-        auto status = metaClient->createEdgeSchema(1, "classmate", edgeSchema, false).get();
-        ASSERT_TRUE(status.ok());
-
-        sleep(FLAGS_heartbeat_interval_secs + 1);
-    }
-
-    auto ret = metaClient->getEdgeTypeByNameFromCache(1, "classmate");
-    ASSERT_TRUE(ret.ok());
-    auto edgeType = ret.value();
     GraphSpaceID space = 1;
-    // Add edge
-    {
-        std::vector<Value> props;
-        props.emplace_back(2012);
-        storage::cpp2::NewEdge edge;
-        storage::cpp2::EdgeKey edgeKey;
-        edgeKey.set_src("laura");
-        edgeKey.set_edge_type(edgeType);
-        edgeKey.set_ranking(1);
-        edgeKey.set_dst("laura");
-        edge.set_key(edgeKey);
-        edge.set_props(std::move(props));
-        std::vector<storage::cpp2::NewEdge> edges;
-        edges.emplace_back(std::move(edge));
+    std::vector<Value> props;
+    props.emplace_back("hello");
+    storage::cpp2::NewTag tag;
+    tag.set_tag_id(3);
+    tag.set_props(std::move(props));
+    std::vector<storage::cpp2::NewTag> tags;
+    tags.emplace_back(tag);
 
-        std::vector<std::string> propNames = {"start"};
-        auto resp = storageClient->addEdges(space, edges, propNames, false).get();
-        ASSERT_TRUE(resp.succeeded());
-    }
+    storage::cpp2::NewVertex vertex;
+    vertex.set_id("2020");
+    vertex.set_tags(std::move(tags));
+    std::vector<storage::cpp2::NewVertex> vertices;
+    vertices.emplace_back(std::move(vertex));
+
+    std::unordered_map<TagID, std::vector<std::string>> propNames;
+    propNames[3] = {"col"};
+    auto resp = storageClient->addVertices(space, vertices, propNames, false).get();
+    ASSERT_TRUE(resp.succeeded());
 }
+
 }   // namespace graph
 }   // namespace nebula
+
 

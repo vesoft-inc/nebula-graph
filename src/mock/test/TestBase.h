@@ -1,8 +1,8 @@
 /* Copyright (c) 2018 vesoft inc. All rights reserved.
- *
- * This source code is licensed under Apache 2.0 License,
- * attached with Common Clause Condition 1.0, found in the LICENSES directory.
- */
+*
+* This source code is licensed under Apache 2.0 License,
+* attached with Common Clause Condition 1.0, found in the LICENSES directory.
+*/
 
 #ifndef MOCK_TEST_TESTBASE_H_
 #define MOCK_TEST_TESTBASE_H_
@@ -27,7 +27,6 @@ protected:
     static ::testing::AssertionResult TestError() {
         return ::testing::AssertionFailure();
     }
-<<<<<<< HEAD
 
     ::testing::AssertionResult verifyColNames(const cpp2::ExecutionResponse &resp,
                                               const std::vector<std::string> &expected) {
@@ -102,8 +101,6 @@ protected:
         }
         return TestOK();
     }
-=======
->>>>>>> add delete executor
 };
 
 }   // namespace graph

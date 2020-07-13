@@ -88,15 +88,9 @@ nebula_add_test(
 
 nebula_add_test(
     NAME
-<<<<<<< HEAD
         snapshot_test
     SOURCES
         SnapshotTest.cpp
-=======
-        delete_test
-    SOURCES
-        DeleteTest.cpp
->>>>>>> add delete executor
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES

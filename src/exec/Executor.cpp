@@ -374,14 +374,14 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kDeleteVertices: {
             auto deleteV = asNode<DeleteVertices>(node);
-            auto input = makeExecutor(deleteV->input(), qctx, visited);
+            auto input = makeExecutor(deleteV->dep(), qctx, visited);
             exec = new DeleteVerticesExecutor(deleteV, qctx);
             exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kDeleteEdges: {
             auto deleteE = asNode<DeleteEdges>(node);
-            auto input = makeExecutor(deleteE->input(), qctx, visited);
+            auto input = makeExecutor(deleteE->dep(), qctx, visited);
             exec = new DeleteEdgesExecutor(deleteE, qctx);
             exec->addDependent(input);
             break;

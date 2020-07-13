@@ -1,8 +1,8 @@
 /* Copyright (c) 2020 vesoft inc. All rights reserved.
- *
- * This source code is licensed under Apache 2.0 License,
- * attached with Common Clause Condition 1.0, found in the LICENSES directory.
- */
+*
+* This source code is licensed under Apache 2.0 License,
+* attached with Common Clause Condition 1.0, found in the LICENSES directory.
+*/
 
 #ifndef EXEC_STORAGECACHE_H_
 #define EXEC_STORAGECACHE_H_
@@ -28,9 +28,9 @@ struct EdgeHasher {
 };
 
 using VerticesInfo = std::unordered_map<VertexID,
-                     std::unordered_map<TagID, std::unordered_map<std::string, Value>>>;
+std::unordered_map<TagID, std::unordered_map<std::string, Value>>>;
 using EdgesInfo = std::unordered_map<storage::cpp2::EdgeKey,
-                                     std::unordered_map<std::string, Value>, EdgeHasher>;
+std::unordered_map<std::string, Value>, EdgeHasher>;
 
 class StorageCache final {
 public:
@@ -41,10 +41,6 @@ public:
     Status addVertices(const storage::cpp2::AddVerticesRequest& req);
 
     Status addEdges(const storage::cpp2::AddEdgesRequest& req);
-
-    Status deleteVertices(const storage::cpp2::DeleteVerticesRequest &req);
-
-    Status deleteEdges(const storage::cpp2::DeleteEdgesRequest &req);
 
 private:
     StatusOr<std::unordered_map<std::string, Value>>
@@ -81,4 +77,3 @@ private:
 }  // namespace graph
 }  // namespace nebula
 #endif  // EXEC_STORAGECACHE_H_
-

@@ -1,8 +1,8 @@
 /* Copyright (c) 2020 vesoft inc. All rights reserved.
- *
- * This source code is licensed under Apache 2.0 License,
- * attached with Common Clause Condition 1.0, found in the LICENSES directory.
- */
+*
+* This source code is licensed under Apache 2.0 License,
+* attached with Common Clause Condition 1.0, found in the LICENSES directory.
+*/
 
 #include "mock/StorageCache.h"
 
@@ -47,7 +47,7 @@ Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
             auto vId = vertex.get_id();
             auto findV = spaceDataInfo->vertices.find(vId);
             std::unordered_map<TagID,
-                               std::unordered_map<std::string, Value>> *vertexInfo = nullptr;
+            std::unordered_map<std::string, Value>> *vertexInfo = nullptr;
             if (findV != spaceDataInfo->vertices.end()) {
                 vertexInfo = &findV->second;
             } else {
@@ -146,16 +146,16 @@ StatusOr<std::unordered_map<std::string, Value>>
 StorageCache::getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> schema,
                               const std::vector<Value>& props,
                               const std::vector<std::string> &names) {
-    std::unordered_map<std::string, Value> propertyInfo;
     auto number = schema->getNumFields();
     if (number == 0 && props.size() == 0) {
-        return propertyInfo;
+        return {};
     }
     if (number == 0 && props.size() != 0) {
         return Status::Error("Wrong value about empty schema");
     }
 
     std::bitset<32> indexBitSet;
+    std::unordered_map<std::string, Value> propertyInfo;
     auto index = 0u;
     for (auto &item : names) {
         auto filed = schema->field(item);
@@ -187,49 +187,5 @@ StorageCache::getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> 
 
     return propertyInfo;
 }
-
-Status StorageCache::deleteVertices(const storage::cpp2::DeleteVerticesRequest &req) {
-    folly::RWSpinLock::WriteHolder holder(lock_);
-    auto spaceId = req.get_space_id();
-    auto spaceFind = cache_.find(spaceId);
-    SpaceDataInfo *spaceDataInfo = nullptr;
-    if (spaceFind == cache_.end()) {
-        return Status::Error("Space `%d' not found", spaceId);
-    }
-    spaceDataInfo = &spaceFind->second;
-
-    auto &parts = req.get_parts();
-    for (auto &part : parts) {
-        for (auto &vId : part.second) {
-            auto findV = spaceDataInfo->vertices.find(vId);
-            if (findV != spaceDataInfo->vertices.end()) {
-                spaceDataInfo->vertices.erase(findV);
-            }
-        }
-    }
-    return Status::OK();
-}
-
-Status StorageCache::deleteEdges(const storage::cpp2::DeleteEdgesRequest &req) {
-    folly::RWSpinLock::WriteHolder holder(lock_);
-    auto spaceId = req.get_space_id();
-    auto spaceFind = cache_.find(spaceId);
-    SpaceDataInfo *spaceDataInfo = nullptr;
-    if (spaceFind == cache_.end()) {
-        return Status::Error("Space `%d' not found", spaceId);
-    }
-    spaceDataInfo = &spaceFind->second;
-    auto &parts = req.get_parts();
-    for (auto &part : parts) {
-        for (auto &edge : part.second) {
-            auto findE = spaceDataInfo->edges.find(edge);
-            if (findE != spaceDataInfo->edges.end()) {
-                spaceDataInfo->edges.erase(findE);
-            }
-        }
-    }
-    return Status::OK();
-}
 }  // namespace graph
 }  // namespace nebula
-

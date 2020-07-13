@@ -31,10 +31,8 @@ nebula_add_library(
     admin/SnapshotExecutor.cpp
     maintain/TagExecutor.cpp
     maintain/EdgeExecutor.cpp
-    mutate/InsertVerticesExecutor.cpp
-    mutate/InsertEdgesExecutor.cpp
-    mutate/DeleteVerticesExecutor.cpp
-    mutate/DeleteEdgesExecutor.cpp
+    mutate/InsertExecutor.cpp
+    mutate/DeleteExecutor.cpp
 )
 
 nebula_add_subdirectory(query/test)
