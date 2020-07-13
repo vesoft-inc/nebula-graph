@@ -84,7 +84,7 @@ if("${NEBULA_STORAGE_REPO_TAG}" STREQUAL "")
     SET(NEBULA_STORAGE_REPO_TAG "master")
 endif()
 
-SET(NEBULA_STORAGE_PACKAGE "nebula-storage")
+SET(NEBULA_COMMON_PACKAGE "nebula-storage")
 SET(nebula-storage_DIR ${CMAKE_CURRENT_SOURCE_DIR}/modules/storage)
 
 # Configure the dependent projects
@@ -96,6 +96,7 @@ add_dependent_project(
     ${NEBULA_STORAGE_REPO_URL}
     ${NEBULA_STORAGE_REPO_TAG}
 )
+find_package(${NEBULA_STORAGE_PACKAGE} REQUIRED)
 message(STATUS ">>>>> The nebula-storage repo has been configured successfully <<<<<")
 message(STATUS "")
 
