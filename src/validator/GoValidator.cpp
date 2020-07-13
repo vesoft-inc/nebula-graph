@@ -8,6 +8,7 @@
 
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "common/expression/VariableExpression.h"
 
 #include "parser/TraverseSentences.h"
 
@@ -226,9 +227,70 @@ Status GoValidator::toPlan() {
 }
 
 Status GoValidator::buildNStepsPlan() {
-    // TODO
+    auto* plan = qctx_->plan();
+    auto& space = vctx_->whichSpace();
+
     // loop -> project -> gn1 -> bodyStart
-    return Status::Error("Not support n steps yet.");
+    auto* bodyStart = StartNode::make(plan);
+
+    std::string input;
+    PlanNode* projectStartVid = nullptr;
+    if (!starts_.empty() && src_ == nullptr) {
+      input = buildInput();
+    } else {
+      projectStartVid = buildRuntimeInput();
+      input = projectStartVid->varName();
+    }
+
+    auto* gn1 = GetNeighbors::make(plan, bodyStart, space.id);
+    gn1->setSrc(src_);
+    gn1->setEdgeProps(buildNStepLoopEdgeProps());
+    gn1->setInputVar(input);
+
+    auto* columns = new YieldColumns();
+    auto* column = new YieldColumn(
+        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
+        new std::string(kVid));
+    columns->addColumn(column);
+
+    auto* project = Project::make(plan, gn1, plan->saveObject(columns));
+    project->setInputVar(gn1->varName());
+    project->setColNames(deduceColNames(columns));
+
+    auto* loop = Loop::make(plan, projectStartVid, project,
+                            buildNStepLoopCondition(steps_));
+
+    auto* gn2 = GetNeighbors::make(plan, loop, space_.id);
+    gn2->setSrc(src_);
+    gn2->setEdgeTypes(buildEdgeTypes());
+    gn2->setVertexProps(buildSrcVertexProps());
+    gn2->setEdgeProps(buildEdgeProps());
+    gn2->setInputVar(loop->varName());
+
+
+    PlanNode *projectInput = gn2;
+    if (filter_ != nullptr) {
+        Filter* filterNode = Filter::make(plan, gn2, filter_);
+        filterNode->setInputVar(gn2->varName());
+        projectInput = filterNode;
+    }
+
+    auto* project2 = Project::make(plan, projectInput, yields_);
+    project2->setInputVar(projectInput->varName());
+    project2->setColNames(std::vector<std::string>(colNames_));
+
+    if (distinct_) {
+        Dedup* dedupNode = Dedup::make(plan, project2);
+        dedupNode->setInputVar(project2->varName());
+        dedupNode->setColNames(std::move(colNames_));
+        root_ = dedupNode;
+    } else {
+        root_ = project2;
+    }
+
+    tail_ = projectStartVid == nullptr ? loop : projectStartVid;
+    VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
+    return Status::OK();
 }
 
 Status GoValidator::buildOneStepPlan() {
@@ -295,6 +357,18 @@ std::string GoValidator::buildInput() {
     return input;
 }
 
+PlanNode* GoValidator::buildRuntimeInput() {
+    auto* columns = new YieldColumns();
+    auto encode = src_->encode();
+    auto decode = Expression::decode(encode);
+    auto* column = new YieldColumn(decode.release(), new std::string(kVid));
+    columns->addColumn(column);
+    auto plan = qctx_->plan();
+    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    return project;
+}
+
+
 std::vector<EdgeType> GoValidator::buildEdgeTypes() {
     std::vector<EdgeType> edgeTypes(edgeTypes_.size());
     if (direction_ == storage::cpp2::EdgeDirection::IN_EDGE) {
@@ -357,5 +431,35 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
     }
     return edgeProps;
 }
+
+GetNeighbors::EdgeProps GoValidator::buildNStepLoopEdgeProps() {
+    GetNeighbors::EdgeProps edgeProps;
+    if (!edgeProps_.empty()) {
+        edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(edgeProps_.size());
+        std::transform(edgeProps_.begin(), edgeProps_.end(), edgeProps->begin(), [] (auto& edge) {
+            storage::cpp2::EdgeProp ep;
+            ep.type = edge.first;
+            ep.props = std::vector<std::string>({kDst});
+            return ep;
+        });
+    }
+    return edgeProps;
+}
+
+Expression* GoValidator::buildNStepLoopCondition(int64_t steps) const {
+    // ++counter{0} <- steps
+    auto counter = vctx_->varGen()->getVar();
+    qctx_->ectx()->setValue(counter, 0);
+    auto* condition = new RelationalExpression(
+        Expression::Kind::kRelLE,
+        new UnaryExpression(
+            Expression::Kind::kUnaryIncr,
+            new VersionedVariableExpression(new std::string(counter),
+                                            new ConstantExpression(0))),
+        new ConstantExpression(static_cast<int32_t>(steps)));
+    qctx_->plan()->saveObject(condition);
+    return condition;
+}
+
 }  // namespace graph
 }  // namespace nebula

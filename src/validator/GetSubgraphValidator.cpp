@@ -8,12 +8,12 @@
 
 #include "common/expression/VariableExpression.h"
 #include "common/expression/UnaryExpression.h"
-#include "common/expression/ConstantExpression.h"
 
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
 #include "context/QueryExpressionContext.h"
 #include "context/ExpressionContextImpl.h"
+#include "context/Result.h"
 
 namespace nebula {
 namespace graph {
@@ -321,9 +321,7 @@ std::string GetSubgraphValidator::buildLiteralInput() {
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(input, ExecResult::buildSequential(
-        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
-
+    qctx_->ectx()->setResult(input, ResultBuilder().value(std::move(ds)).finish());
     auto* vids = new VariablePropertyExpression(new std::string(input),
                                                 new std::string());
     qctx_->plan()->saveObject(vids);
