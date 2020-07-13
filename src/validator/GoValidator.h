@@ -59,6 +59,10 @@ private:
         kPipe,
     };
 
+    void extractPropExprs(const Expression* expr);
+
+    std::unique_ptr<Expression> rewriteToInputProp(Expression* expr);
+
 private:
     int64_t                                                 steps_;
     FromType                                                fromType_{kConstantExpr};
@@ -71,6 +75,10 @@ private:
     std::vector<std::string>                                colNames_;
     YieldColumns*                                           yields_{nullptr};
     bool                                                    distinct_{false};
+    std::unique_ptr<YieldColumns>                           srcAndEdgePropCols_;
+    std::unique_ptr<YieldColumns>                           destPropCols_;
+    std::unique_ptr<YieldColumns>                           inputPropCols_;
+    std::unordered_map<const Expression*, YieldColumn*>     propExprColMap_;
 };
 }  // namespace graph
 }  // namespace nebula
