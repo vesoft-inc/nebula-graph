@@ -1,8 +1,8 @@
 /* Copyright (c) 2020 vesoft inc. All rights reserved.
-*
-* This source code is licensed under Apache 2.0 License,
-* attached with Common Clause Condition 1.0, found in the LICENSES directory.
-*/
+ *
+ * This source code is licensed under Apache 2.0 License,
+ * attached with Common Clause Condition 1.0, found in the LICENSES directory.
+ */
 
 #include "mock/StorageCache.h"
 
@@ -47,7 +47,7 @@ Status StorageCache::addVertices(const storage::cpp2::AddVerticesRequest& req) {
             auto vId = vertex.get_id();
             auto findV = spaceDataInfo->vertices.find(vId);
             std::unordered_map<TagID,
-            std::unordered_map<std::string, Value>> *vertexInfo = nullptr;
+                               std::unordered_map<std::string, Value>> *vertexInfo = nullptr;
             if (findV != spaceDataInfo->vertices.end()) {
                 vertexInfo = &findV->second;
             } else {
