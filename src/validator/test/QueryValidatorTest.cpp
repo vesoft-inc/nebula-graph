@@ -342,5 +342,19 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
       EXPECT_TRUE(checkResult(query, expected));
   }
 }
+
+TEST_F(QueryValidatorTest, DisabledOutput) {
+    //
+    {
+        std::string query = "$a = USE test_space";
+        EXPECT_FALSE(checkResult(query));
+    }
+
+    {
+        std::string query = "USE test_space | GO FROM \"1\" OVER like";
+        EXPECT_FALSE(checkResult(query));
+    }
+}
+
 }  // namespace graph
 }  // namespace nebula

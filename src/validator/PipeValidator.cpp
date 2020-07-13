@@ -16,6 +16,10 @@ namespace graph {
 Status PipeValidator::validateImpl() {
     auto pipeSentence = static_cast<PipedSentence*>(sentence_);
     auto left = pipeSentence->left();
+    if (sentenceCantOutputNext(left)) {
+        return Status::Error("Can't output result of sentence %s",
+                             Sentence::toString(sentence_->kind()).c_str());
+    }
     lValidator_ = makeValidator(left, qctx_);
     NG_RETURN_IF_ERROR(lValidator_->validate());
 

@@ -84,6 +84,8 @@ protected:
 
     static Status appendPlan(PlanNode* plan, PlanNode* appended);
 
+    static bool sentenceCantOutputNext(const Sentence* sentence);
+
 protected:
     SpaceDescription                space_;
     Sentence*                       sentence_{nullptr};

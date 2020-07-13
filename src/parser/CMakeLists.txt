@@ -19,6 +19,7 @@ nebula_add_library(
     parser_obj OBJECT
     ${FLEX_Scanner_OUTPUTS}
     ${BISON_Parser_OUTPUTS}
+    Sentence.cpp
     Clauses.cpp
     SequentialSentences.cpp
     MaintainSentences.cpp

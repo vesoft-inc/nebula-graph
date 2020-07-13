@@ -14,6 +14,10 @@ namespace graph {
 
 Status AssignmentValidator::validateImpl() {
     auto* assignSentence = static_cast<AssignmentSentence*>(sentence_);
+    if (sentenceCantOutputNext(assignSentence->sentence())) {
+        return Status::Error("Can't output result of sentence %s.",
+                             Sentence::toString(assignSentence->sentence()->kind()).c_str());
+    }
     validator_ = makeValidator(assignSentence->sentence(), qctx_);
     NG_RETURN_IF_ERROR(validator_->validate());
 

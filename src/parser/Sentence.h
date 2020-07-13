@@ -107,6 +107,8 @@ public:
         return kind_;
     }
 
+    static std::string toString(Kind kind);
+
 protected:
     Kind                kind_{Kind::kUnknown};
 };

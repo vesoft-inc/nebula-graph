@@ -643,5 +643,89 @@ bool Validator::evaluableExpr(const Expression* expr) const {
     return false;
 }
 
+/*static*/ bool Validator::sentenceCantOutputNext(const Sentence* sentence) {
+    switch (sentence->kind()) {
+        case Sentence::Kind::kUnknown:
+        case Sentence::Kind::kSequential:
+        case Sentence::Kind::kAssignment:
+            LOG(FATAL) << "Impossible in here";
+        case Sentence::Kind::kPipe:
+        case Sentence::Kind::kGo:
+        case Sentence::Kind::kSet:
+        case Sentence::Kind::kUse:
+        case Sentence::Kind::kMatch:
+        case Sentence::Kind::kUpdateVertex:
+        case Sentence::Kind::kUpdateEdge:
+        case Sentence::Kind::kLookup:
+        case Sentence::Kind::kYield:
+        case Sentence::Kind::kOrderBy:
+        case Sentence::Kind::kFetchVertices:
+        case Sentence::Kind::kFetchEdges:
+        case Sentence::Kind::kFindPath:
+        case Sentence::Kind::kLimit:
+        case Sentence::Kind::KGroupBy:
+        case Sentence::Kind::kReturn:
+        case Sentence::Kind::kGetSubgraph:
+            return false;
+        case Sentence::Kind::kCreateSnapshot:
+        case Sentence::Kind::kDropSnapshot:
+        case Sentence::Kind::kAdmin:
+        case Sentence::Kind::kBalance:
+        case Sentence::Kind::kConfig:
+        case Sentence::Kind::kCreateUser:
+        case Sentence::Kind::kDropUser:
+        case Sentence::Kind::kAlterUser:
+        case Sentence::Kind::kGrant:
+        case Sentence::Kind::kRevoke:
+        case Sentence::Kind::kChangePassword:
+        case Sentence::Kind::kDownload:
+        case Sentence::Kind::kIngest:
+        case Sentence::Kind::kCreateSpace:
+        case Sentence::Kind::kDropSpace:
+        case Sentence::Kind::kDescribeSpace:
+        case Sentence::Kind::kShowHosts:
+        case Sentence::Kind::kShowSpaces:
+        case Sentence::Kind::kShowParts:
+        case Sentence::Kind::kShowTags:
+        case Sentence::Kind::kShowEdges:
+        case Sentence::Kind::kShowTagIndexes:
+        case Sentence::Kind::kShowEdgeIndexes:
+        case Sentence::Kind::kShowUsers:
+        case Sentence::Kind::kShowRoles:
+        case Sentence::Kind::kShowCreateSpace:
+        case Sentence::Kind::kShowCreateTag:
+        case Sentence::Kind::kShowCreateEdge:
+        case Sentence::Kind::kShowCreateTagIndex:
+        case Sentence::Kind::kShowCreateEdgeIndex:
+        case Sentence::Kind::kShowTagIndexStatus:
+        case Sentence::Kind::kShowEdgeIndexStatus:
+        case Sentence::Kind::kShowSnapshots:
+        case Sentence::Kind::kShowCharset:
+        case Sentence::Kind::kShowCollation:
+        case Sentence::Kind::kDeleteVertex:
+        case Sentence::Kind::kDeleteEdges:
+        case Sentence::Kind::kInsertEdges:
+        case Sentence::Kind::kCreateTag:
+        case Sentence::Kind::kAlterTag:
+        case Sentence::Kind::kCreateEdge:
+        case Sentence::Kind::kAlterEdge:
+        case Sentence::Kind::kDescribeTag:
+        case Sentence::Kind::kDescribeEdge:
+        case Sentence::Kind::kCreateTagIndex:
+        case Sentence::Kind::kCreateEdgeIndex:
+        case Sentence::Kind::kDropTagIndex:
+        case Sentence::Kind::kDropEdgeIndex:
+        case Sentence::Kind::kDescribeTagIndex:
+        case Sentence::Kind::kDescribeEdgeIndex:
+        case Sentence::Kind::kRebuildTagIndex:
+        case Sentence::Kind::kRebuildEdgeIndex:
+        case Sentence::Kind::kDropTag:
+        case Sentence::Kind::kDropEdge:
+        case Sentence::Kind::kInsertVertices:
+            return true;
+    }
+    LOG(FATAL) << "Impossible sentence " << static_cast<int>(sentence->kind());
+}
+
 }   // namespace graph
 }   // namespace nebula
