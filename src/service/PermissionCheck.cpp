@@ -6,6 +6,8 @@
 
 #include "service/PermissionCheck.h"
 
+#include "parser/UserSentences.h"
+
 namespace nebula {
 namespace graph {
 
@@ -31,16 +33,16 @@ namespace graph {
  */
 
 // static
-bool PermissionCheck::permissionCheck(Session *session,
-                                      Sentence* sentence,
-                                      GraphSpaceID targetSpace) {
+Status PermissionCheck::permissionCheck(const Session *session,
+                                        const QueryContext *qctx,
+                                        const Sentence* sentence) {
     if (!FLAGS_enable_authorize) {
-        return true;
+        return Status::OK();
     }
     auto kind = sentence->kind();
     switch (kind) {
         case Sentence::Kind::kUnknown : {
-            return false;
+            return Status::PermissionError();
         }
         case Sentence::Kind::kUse :
         case Sentence::Kind::kDescribeSpace : {
@@ -49,7 +51,7 @@ bool PermissionCheck::permissionCheck(Session *session,
              * Permission checking needs to be done in their executor.
              * skip the check at here.
              */
-            return true;
+            return Status::OK();
         }
         case Sentence::Kind::kCreateSpace :
         case Sentence::Kind::kDropSpace :
@@ -79,15 +81,29 @@ bool PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kAlterUser : {
             return PermissionManager::canWriteUser(session);
         }
-        case Sentence::Kind::kRevoke :
+        case Sentence::Kind::kRevoke : {
+            const auto *revokeSentence = static_cast<const RevokeSentence*>(sentence);
+            const auto *spaceName = revokeSentence->getAclItemClause()->getSpaceName();
+            const auto spaceIdResult = qctx->schemaMng()->toGraphSpaceID(*spaceName);
+            NG_RETURN_IF_ERROR(spaceIdResult);
+            auto spaceId = spaceIdResult.value();
+            const auto *user = revokeSentence->getAccount();
+            return PermissionManager::canWriteRole(session,
+                                                  revokeSentence->getAclItemClause()->getRoleType(),
+                                                   spaceId,
+                                                  *user);
+        }
         case Sentence::Kind::kGrant : {
-            /**
-             * Use grant and revoke are special operations.
-             * Because have not found the target space id and target role
-             * so permission checking needs to be done in their executor.
-             * skip the check at here.
-             */
-            return true;
+            const auto *grantSentence = static_cast<const GrantSentence*>(sentence);
+            const auto *spaceName = grantSentence->getAclItemClause()->getSpaceName();
+            const auto spaceIdResult = qctx->schemaMng()->toGraphSpaceID(*spaceName);
+            NG_RETURN_IF_ERROR(spaceIdResult);
+            auto spaceId = spaceIdResult.value();
+            const auto *user = grantSentence->getAccount();
+            return PermissionManager::canWriteRole(session,
+                                                   grantSentence->getAclItemClause()->getRoleType(),
+                                                   spaceId,
+                                                  *user);
         }
         case Sentence::Kind::kRebuildTagIndex :
         case Sentence::Kind::kRebuildEdgeIndex :
@@ -136,7 +152,7 @@ bool PermissionCheck::permissionCheck(Session *session,
              * so the permission same with canReadSchemaOrData.
              * They've been checked by "USE SPACE", so here skip the check.
              */
-            return true;
+            return Status::OK();
         }
         case Sentence::Kind::kShowCharset:
         case Sentence::Kind::kShowCollation:
@@ -144,32 +160,47 @@ bool PermissionCheck::permissionCheck(Session *session,
             /**
              * all roles can be show for above operations.
              */
-            return true;
+            return Status::OK();
         }
-        case Sentence::Kind::kShowSpaces:
-        case Sentence::Kind::kShowCreateSpace:
+        case Sentence::Kind::kShowSpaces: {
+            // do filter by permission when execute
+            return Status::OK();
+        }
+        case Sentence::Kind::kShowCreateSpace: {
+            const auto *showCreateSpaceSentence =
+                static_cast<const ShowCreateSpaceSentence*>(sentence);
+            const auto *spaceName = showCreateSpaceSentence->spaceName();
+            const auto spaceIdResult = qctx->schemaMng()->toGraphSpaceID(*spaceName);
+            NG_RETURN_IF_ERROR(spaceIdResult);
+            auto spaceId = spaceIdResult.value();
+            return PermissionManager::canReadSpace(session, spaceId);
+        }
         case Sentence::Kind::kShowRoles: {
-            /*
-             * Above operations are special operation.
-             * can not get the space id via session,
-             * Permission checking needs to be done in their executor.
-             */
-            return PermissionManager::canReadSpace(session, targetSpace);
+            const auto *showRolesSentence = static_cast<const ShowRolesSentence*>(sentence);
+            const auto *spaceName = showRolesSentence->name();
+            const auto spaceIdResult = qctx->schemaMng()->toGraphSpaceID(*spaceName);
+            NG_RETURN_IF_ERROR(spaceIdResult);
+            auto spaceId = spaceIdResult.value();
+            return PermissionManager::canReadSpace(session, spaceId);
         }
         case Sentence::Kind::kShowUsers:
         case Sentence::Kind::kShowSnapshots: {
             /**
              * Only GOD role can be show.
              */
-            return session->isGod();
+            if (session->isGod()) {
+                return Status::OK();
+            } else {
+                return Status::PermissionError();
+            }
         }
         case Sentence::Kind::kChangePassword : {
-            return true;
+            return Status::OK();
         }
         case Sentence::Kind::kSequential:
             LOG(FATAL) << "Impossible sequential sentences permission checking";
     }
-    return false;
+    return Status::PermissionError();
 }
 }  // namespace graph
 }  // namespace nebula

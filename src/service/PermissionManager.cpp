@@ -10,14 +10,14 @@ namespace nebula {
 namespace graph {
 
 // static
-bool PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
+Status PermissionManager::canReadSpace(const Session *session, GraphSpaceID spaceId) {
     if (!FLAGS_enable_authorize) {
-        return true;
+        return Status::OK();
     }
     if (session->isGod()) {
-        return true;
+        return Status::OK();
     }
-    bool havePermission = false;
+    auto havePermission = Status::PermissionError();
     auto roleResult = session->roleWithSpace(spaceId);
     if (!roleResult.ok()) {
         return havePermission;
@@ -29,7 +29,7 @@ bool PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
         case meta::cpp2::RoleType::DBA :
         case meta::cpp2::RoleType::USER :
         case meta::cpp2::RoleType::GUEST : {
-            havePermission = true;
+            havePermission = Status::OK();
             break;
         }
     }
@@ -37,15 +37,15 @@ bool PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
 }
 
 // static
-bool PermissionManager::canReadSchemaOrData(Session *session) {
+Status PermissionManager::canReadSchemaOrData(const Session *session) {
     if (session->space() == -1) {
         LOG(ERROR) << "The space name is not set";
-        return false;
+        return Status::PermissionError();
     }
     if (session->isGod()) {
-        return true;
+        return Status::OK();
     }
-    bool havePermission = false;
+    auto havePermission = Status::PermissionError();
     auto roleResult = session->roleWithSpace(session->space());
     if (!roleResult.ok()) {
         return havePermission;
@@ -57,7 +57,7 @@ bool PermissionManager::canReadSchemaOrData(Session *session) {
         case meta::cpp2::RoleType::DBA :
         case meta::cpp2::RoleType::USER :
         case meta::cpp2::RoleType::GUEST : {
-            havePermission = true;
+            havePermission = Status::OK();
             break;
         }
     }
@@ -65,20 +65,24 @@ bool PermissionManager::canReadSchemaOrData(Session *session) {
 }
 
 // static
-bool PermissionManager::canWriteSpace(Session *session) {
-    return session->isGod();
+Status PermissionManager::canWriteSpace(const Session *session) {
+    if (session->isGod()) {
+        return Status::OK();
+    } else {
+        return Status::PermissionError();
+    }
 }
 
 // static
-bool PermissionManager::canWriteSchema(Session *session) {
+Status PermissionManager::canWriteSchema(const Session *session) {
     if (session->space() == -1) {
         LOG(ERROR) << "The space name is not set";
-        return false;
+        return Status::PermissionError();
     }
     if (session->isGod()) {
-        return true;
+        return Status::OK();
     }
-    bool havePermission = false;
+    auto havePermission = Status::PermissionError();
     auto roleResult = session->roleWithSpace(session->space());
     if (!roleResult.ok()) {
         return havePermission;
@@ -88,7 +92,7 @@ bool PermissionManager::canWriteSchema(Session *session) {
         case meta::cpp2::RoleType::GOD :
         case meta::cpp2::RoleType::ADMIN :
         case meta::cpp2::RoleType::DBA : {
-            havePermission = true;
+            havePermission = Status::OK();
             break;
         }
         case meta::cpp2::RoleType::USER :
@@ -99,59 +103,63 @@ bool PermissionManager::canWriteSchema(Session *session) {
 }
 
 // static
-bool PermissionManager::canWriteUser(Session *session) {
-    return session->isGod();
+Status PermissionManager::canWriteUser(const Session *session) {
+    if (session->isGod()) {
+        return Status::OK();
+    } else {
+        return Status::PermissionError();
+    }
 }
 
-bool PermissionManager::canWriteRole(Session *session,
+Status PermissionManager::canWriteRole(const Session *session,
                                      meta::cpp2::RoleType targetRole,
                                      GraphSpaceID spaceId,
                                      const std::string& targetUser) {
     if (!FLAGS_enable_authorize) {
-        return true;
+        return Status::OK();
     }
     /**
      * Reject grant or revoke to himself.
      */
      if (session->user() == targetUser) {
-         return false;
+         return Status::PermissionError();
      }
     /*
      * Reject any user grant or revoke role to GOD
      */
     if (targetRole == meta::cpp2::RoleType::GOD) {
-        return false;
+        return Status::PermissionError();
     }
     /*
      * God user can be grant or revoke any one.
      */
     if (session->isGod()) {
-        return true;
+        return Status::OK();
     }
     /**
      * Only allow ADMIN user grant or revoke other user to DBA, USER, GUEST.
      */
     auto roleResult = session->roleWithSpace(spaceId);
     if (!roleResult.ok()) {
-        return false;
+        return Status::PermissionError();
     }
     auto role = roleResult.value();
     if (role == meta::cpp2::RoleType::ADMIN && targetRole != meta::cpp2::RoleType::ADMIN) {
-        return true;
+        return Status::OK();
     }
-    return false;
+    return Status::PermissionError();
 }
 
 // static
-bool PermissionManager::canWriteData(Session *session) {
+Status PermissionManager::canWriteData(const Session *session) {
     if (session->space() == -1) {
         LOG(ERROR) << "The space name is not set";
-        return false;
+        return Status::PermissionError();
     }
     if (session->isGod()) {
-        return true;
+        return Status::OK();
     }
-    bool havePermission = false;
+    auto havePermission = Status::PermissionError();
     auto roleResult = session->roleWithSpace(session->space());
     if (!roleResult.ok()) {
         return havePermission;
@@ -162,7 +170,7 @@ bool PermissionManager::canWriteData(Session *session) {
         case meta::cpp2::RoleType::ADMIN :
         case meta::cpp2::RoleType::DBA :
         case meta::cpp2::RoleType::USER : {
-            havePermission = true;
+            havePermission = Status::OK();
             break;
         }
         case meta::cpp2::RoleType::GUEST :

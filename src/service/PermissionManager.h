@@ -12,6 +12,7 @@
 #include "parser/AdminSentences.h"
 #include "service/GraphFlags.h"
 #include "service/Session.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,16 +20,16 @@ namespace graph {
 class PermissionManager final {
 public:
     PermissionManager() = delete;
-    static bool canReadSpace(Session *session, GraphSpaceID spaceId);
-    static bool canReadSchemaOrData(Session *session);
-    static bool canWriteSpace(Session *session);
-    static bool canWriteSchema(Session *session);
-    static bool canWriteUser(Session *session);
-    static bool canWriteRole(Session *session,
+    static Status canReadSpace(const Session *session, GraphSpaceID spaceId);
+    static Status canReadSchemaOrData(const Session *session);
+    static Status canWriteSpace(const Session *session);
+    static Status canWriteSchema(const Session *session);
+    static Status canWriteUser(const Session *session);
+    static Status canWriteRole(const Session *session,
                              meta::cpp2::RoleType targetRole,
                              GraphSpaceID spaceId,
                              const std::string& targetUser);
-    static bool canWriteData(Session *session);
+    static Status canWriteData(const Session *session);
 };
 }  // namespace graph
 }  // namespace nebula
