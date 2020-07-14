@@ -7,7 +7,7 @@
 #include "exec/query/DataJoinExecutor.h"
 
 #include "planner/Query.h"
-#include "context/ExpressionContextImpl.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -32,7 +32,7 @@ std::unordered_map<List, std::vector<Value>> DataJoinExecutor::buildHashTable(
     const std::string& var) {
     auto iter = ectx_->getResult(var).iter();
     DCHECK(!!iter);
-    ExpressionContextImpl ctx(ectx_, iter.get());
+    QueryExpressionContext ctx(ectx_, iter.get());
     std::unordered_map<List, std::vector<Value>> map;
     for (; iter->valid(); iter->next()) {
         List list;
@@ -62,7 +62,7 @@ DataSet DataJoinExecutor::probe(
     const std::string& var) {
     auto iter = ectx_->getResult(var).iter();
     DCHECK(!!iter);
-    ExpressionContextImpl ctx(ectx_, iter.get());
+    QueryExpressionContext ctx(ectx_, iter.get());
     DataSet result;
 
     for (; iter->valid(); iter->next()) {

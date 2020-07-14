@@ -21,7 +21,7 @@ folly::Future<Status> IntersectExecutor::execute() {
     auto lIter = getLeftInputDataIter();
     auto rIter = getRightInputDataIter();
 
-    std::unordered_set<const Row *> hashSet;
+    std::unordered_set<const LogicalRow *> hashSet;
     for (; rIter->valid(); rIter->next()) {
         auto res = hashSet.insert(rIter->row());
         if (UNLIKELY(!res.second)) {
@@ -40,6 +40,7 @@ folly::Future<Status> IntersectExecutor::execute() {
     }
 
     while (lIter->valid()) {
+        LOG(INFO) << std::hash<const LogicalRow*>()(lIter->row());
         auto iter = hashSet.find(lIter->row());
         if (iter == hashSet.end()) {
             lIter->erase();

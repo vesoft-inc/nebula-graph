@@ -10,6 +10,53 @@
 #include "common/datatypes/Edge.h"
 #include "common/interface/gen-cpp2/common_types.h"
 
+namespace std {
+size_t hash<nebula::graph::LogicalRow>::operator()(
+    const nebula::graph::LogicalRow& row) const {
+    switch (row.kind()) {
+        case nebula::graph::LogicalRow::Kind::kSequential:
+            return std::hash<nebula::graph::SequentialIter::LogicalRowSeq>()(
+                    static_cast<const nebula::graph::SequentialIter::LogicalRowSeq&>(row));
+        case nebula::graph::LogicalRow::Kind::kJoin:
+            return std::hash<nebula::graph::JoinIter::LogicalRowJoin>()(
+                    static_cast<const nebula::graph::JoinIter::LogicalRowJoin&>(row));
+        default:
+            LOG(FATAL) << "";
+            return 0;
+    }
+}
+
+bool equal_to<const nebula::graph::LogicalRow*>::operator()(
+    const nebula::graph::LogicalRow* lhs,
+    const nebula::graph::LogicalRow* rhs) const {
+    switch (lhs->kind()) {
+        case nebula::graph::LogicalRow::Kind::kSequential: {
+            auto* lhsRow =
+                static_cast<
+                    const nebula::graph::SequentialIter::LogicalRowSeq*>(lhs)
+                    ->row_;
+            auto* rhsRow =
+                static_cast<
+                    const nebula::graph::SequentialIter::LogicalRowSeq*>(rhs)
+                    ->row_;
+            return *lhsRow == *rhsRow;
+        }
+        case nebula::graph::LogicalRow::Kind::kJoin: {
+            auto& lhsValues =
+                static_cast<const nebula::graph::JoinIter::LogicalRowJoin*>(lhs)
+                    ->values_;
+            auto& rhsValues =
+                static_cast<const nebula::graph::JoinIter::LogicalRowJoin*>(rhs)
+                    ->values_;
+            return  lhsValues == rhsValues;
+        }
+        default:
+            LOG(FATAL) << "";
+            return false;
+    }
+}
+}  // namespace std
+
 namespace nebula {
 namespace graph {
 
@@ -52,7 +99,7 @@ StatusOr<GetNeighborsIter::DataSetIndex> GetNeighborsIter::makeDataSetIndex(cons
     int64_t edgeStartIndex = std::move(buildResult).value();
     if (edgeStartIndex < 0) {
         for (auto& row : dsIndex.ds->rows) {
-            logicalRows_.emplace_back(LogicalRow{idx, &row, "", nullptr});
+            logicalRows_.emplace_back(LogicalRowGN{idx, &row, "", nullptr});
         }
     } else {
         makeLogicalRowByEdge(edgeStartIndex, idx, dsIndex);
@@ -77,7 +124,8 @@ void GetNeighborsIter::makeLogicalRowByEdge(int64_t edgeStartIndex,
                 }
                 auto edgeName = dsIndex.tagEdgeNameIndices.find(column);
                 DCHECK(edgeName != dsIndex.tagEdgeNameIndices.end());
-                logicalRows_.emplace_back(LogicalRow{idx, &row, edgeName->second, &edge.getList()});
+                logicalRows_.emplace_back(
+                    LogicalRowGN{idx, &row, edgeName->second, &edge.getList()});
             }
         }
     }
@@ -161,7 +209,7 @@ const Value& GetNeighborsIter::getColumn(const std::string& col) const {
     if (found == index.end()) {
         return Value::kNullValue;
     }
-    return row()->values[found->second];
+    return iter_->row_->values[found->second];
 }
 
 const Value& GetNeighborsIter::getTagProp(const std::string& tag,
@@ -181,7 +229,7 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
         return Value::kNullValue;
     }
     auto colId = index->second.colIdx;
-    auto& row = *this->row();
+    auto& row = *(iter_->row_);
     DCHECK_GT(row.size(), colId);
     if (!row[colId].isList()) {
         return Value::kNullBadType;
@@ -230,7 +278,7 @@ Value GetNeighborsIter::getVertex() const {
     vertex.vid = vidVal.getStr();
     auto& tagPropMap = dsIndices_[segment].tagPropsMap;
     for (auto& tagProp : tagPropMap) {
-        auto& row = *this->row();
+        auto& row = *(iter_->row_);
         auto& tagPropNameList = tagProp.second.propList;
         auto tagColId = tagProp.second.colIdx;
         if (!row[tagColId].isList()) {
@@ -313,5 +361,27 @@ std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
     return os;
 }
 
+std::ostream& operator<<(std::ostream& os, const LogicalRow& row) {
+    switch (row.kind()) {
+        case nebula::graph::LogicalRow::Kind::kSequential:
+            os << *static_cast<const nebula::graph::SequentialIter::LogicalRowSeq&>(row).row_;
+            break;
+        case nebula::graph::LogicalRow::Kind::kJoin: {
+            auto& logicalRow = static_cast<const nebula::graph::JoinIter::LogicalRowJoin&>(row);
+            std::stringstream ss;
+            for (auto iter = logicalRow.values_.begin(); iter < logicalRow.values_.end(); ++iter) {
+                ss << **iter;
+                if (iter != logicalRow.values_.end() - 1) {
+                    ss << ",";
+                }
+            }
+            os << ss.str();
+            break;
+        }
+        default:
+            LOG(FATAL) << "";
+    }
+    return os;
+}
 }  // namespace graph
 }  // namespace nebula

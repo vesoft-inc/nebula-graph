@@ -972,7 +972,7 @@ private:
 };
 
 /**
- * An implementation of left join which join two given variable.
+ * An implementation of inner join which join two given variable.
  */
 class DataJoin final : public SingleInputNode {
 public:
