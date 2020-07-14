@@ -154,11 +154,11 @@ std::string DropSnapshotSentence::toString() const {
 std::string AdminJobSentence::toString() const {
     switch (op_) {
     case meta::cpp2::AdminJobOp::ADD:
-        return "add_job";
+        return "add job";
     case meta::cpp2::AdminJobOp::SHOW_All:
-        return "show_jobs";
+        return "show jobs";
     case meta::cpp2::AdminJobOp::SHOW:
-        return "show_job";
+        return "show job";
     case meta::cpp2::AdminJobOp::STOP:
         return "stop job";
     case meta::cpp2::AdminJobOp::RECOVER:
