@@ -24,7 +24,8 @@ folly::Future<Status> SubmitJobExecutor::execute() {
         } else if (params.front() == "flush") {
             cmd = meta::cpp2::AdminCmd::FLUSH;
         } else {
-            LOG(FATAL) << "Unknown job command " << params.front();
+            DLOG(FATAL) << "Unknown job command " << params.front();
+            return Status::Error("Unknown job command %s", params.front().c_str());
         }
     }
     return qctx()->getMetaClient()->submitJob(jobOp, cmd, sjNode->params())
@@ -37,11 +38,19 @@ folly::Future<Status> SubmitJobExecutor::execute() {
             switch (jobOp) {
             case meta::cpp2::AdminJobOp::ADD: {
                 nebula::DataSet v({"New Job Id"});
+                DCHECK(resp.value().__isset.job_id);
+                if (!resp.value().__isset.job_id) {
+                    return Status::Error("Response unexpected.");
+                }
                 v.emplace_back(nebula::Row({*DCHECK_NOTNULL(resp.value().get_job_id())}));
                 return finish(std::move(v));
             }
             case meta::cpp2::AdminJobOp::RECOVER: {
                 nebula::DataSet v({"Recovered job num"});
+                DCHECK(resp.value().__isset.recovered_job_num);
+                if (!resp.value().__isset.recovered_job_num) {
+                    return Status::Error("Response unexpected.");
+                }
                 v.emplace_back(
                     nebula::Row({*DCHECK_NOTNULL(resp.value().get_recovered_job_num())}));
                 return finish(std::move(v));
@@ -49,6 +58,14 @@ folly::Future<Status> SubmitJobExecutor::execute() {
             case meta::cpp2::AdminJobOp::SHOW: {
                 nebula::DataSet v(
                     {"Job Id(TaskId)", "Command(Dest)", "Status", "Start Time", "Stop Time"});
+                DCHECK(resp.value().__isset.job_desc);
+                if (!resp.value().__isset.job_desc) {
+                    return Status::Error("Response unexpected.");
+                }
+                DCHECK(resp.value().__isset.task_desc);
+                if (!resp.value().__isset.task_desc) {
+                    return Status::Error("Response unexpected");
+                }
                 auto &jobDesc = *resp.value().get_job_desc();
                 // job desc
                 v.emplace_back(
@@ -74,6 +91,10 @@ folly::Future<Status> SubmitJobExecutor::execute() {
             }
             case meta::cpp2::AdminJobOp::SHOW_All: {
                 nebula::DataSet v({"Job Id", "Command", "Status", "Start Time", "Stop Time"});
+                DCHECK(resp.value().__isset.job_desc);
+                if (!resp.value().__isset.job_desc) {
+                    return Status::Error("Response unexpected");
+                }
                 const auto &jobsDesc = *resp.value().get_job_desc();
                 for (const auto &jobDesc : jobsDesc) {
                     v.emplace_back(nebula::Row({
