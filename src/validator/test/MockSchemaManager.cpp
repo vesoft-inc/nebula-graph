@@ -9,13 +9,13 @@
 namespace nebula {
 namespace graph {
 
-// space: test
+// space: test_space
 // tag:
 //     person(name string, age int8)
 // edge:
 //     like(start timestamp, end timestamp)
 void MockSchemaManager::init() {
-    spaceNameIds_.emplace("test", 1);
+    spaceNameIds_.emplace("test_space", 1);
     tagNameIds_.emplace("person", 2);
     tagIdNames_.emplace(2, "person");
     edgeNameIds_.emplace("like", 3);
