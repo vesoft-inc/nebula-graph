@@ -6,18 +6,18 @@
 
 #include "common/datatypes/Value.h"
 
-#include "context/ExpressionContextImpl.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
-const Value& ExpressionContextImpl::getVar(const std::string& var) const {
+const Value& QueryExpressionContext::getVar(const std::string& var) const {
     if (ectx_ == nullptr) {
         return Value::kEmpty;
     }
     return ectx_->getValue(var);
 }
 
-const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
+const Value& QueryExpressionContext::getVersionedVar(const std::string& var,
                                                     int64_t version) const {
     if (ectx_ == nullptr) {
         return Value::kEmpty;
@@ -33,7 +33,7 @@ const Value& ExpressionContextImpl::getVersionedVar(const std::string& var,
     }
 }
 
-const Value& ExpressionContextImpl::getVarProp(const std::string& var,
+const Value& QueryExpressionContext::getVarProp(const std::string& var,
                                                const std::string& prop) const {
     UNUSED(var);
     if (iter_ != nullptr) {
@@ -43,8 +43,8 @@ const Value& ExpressionContextImpl::getVarProp(const std::string& var,
     }
 }
 
-const Value& ExpressionContextImpl::getEdgeProp(const std::string& edge,
-                                                const std::string& prop) const {
+Value QueryExpressionContext::getEdgeProp(const std::string& edge,
+                                         const std::string& prop) const {
     if (iter_ != nullptr) {
         return iter_->getEdgeProp(edge, prop);
     } else {
@@ -52,7 +52,16 @@ const Value& ExpressionContextImpl::getEdgeProp(const std::string& edge,
     }
 }
 
-const Value& ExpressionContextImpl::getSrcProp(const std::string& tag,
+Value QueryExpressionContext::getSrcProp(const std::string& tag,
+                                        const std::string& prop) const {
+    if (iter_ != nullptr) {
+        return iter_->getTagProp(tag, prop);
+    } else {
+        return Value::kEmpty;
+    }
+}
+
+const Value& QueryExpressionContext::getDstProp(const std::string& tag,
                                                const std::string& prop) const {
     if (iter_ != nullptr) {
         return iter_->getTagProp(tag, prop);
@@ -61,16 +70,7 @@ const Value& ExpressionContextImpl::getSrcProp(const std::string& tag,
     }
 }
 
-const Value& ExpressionContextImpl::getDstProp(const std::string& tag,
-                                               const std::string& prop) const {
-    if (iter_ != nullptr) {
-        return iter_->getTagProp(tag, prop);
-    } else {
-        return Value::kEmpty;
-    }
-}
-
-const Value& ExpressionContextImpl::getInputProp(const std::string& prop) const {
+const Value& QueryExpressionContext::getInputProp(const std::string& prop) const {
     if (iter_ != nullptr) {
         return iter_->getColumn(prop);
     } else {
@@ -78,7 +78,7 @@ const Value& ExpressionContextImpl::getInputProp(const std::string& prop) const 
     }
 }
 
-void ExpressionContextImpl::setVar(const std::string& var, Value val) {
+void QueryExpressionContext::setVar(const std::string& var, Value val) {
     if (ectx_ == nullptr) {
         LOG(ERROR) << "Execution context was not provided.";
         DCHECK_NOTNULL(ectx_);

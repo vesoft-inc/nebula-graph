@@ -93,7 +93,6 @@ protected:
     folly::Executor *runner() const;
 
     // Store the result of this executor to execution context
-    Status finish(nebula::Value &&value);
     Status finish(Result &&result);
 
     // TODO(shylock) only used for storage fetch executor, will modify other executors to use it

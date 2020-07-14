@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef CONTEXT_EXPRESSIONCONTEXTIMPL_H_
-#define CONTEXT_EXPRESSIONCONTEXTIMPL_H_
+#ifndef CONTEXT_QUERYEXPRESSIONCONTEXT_H_
+#define CONTEXT_QUERYEXPRESSIONCONTEXT_H_
 
 #include "common/context/ExpressionContext.h"
 
@@ -14,11 +14,10 @@
 
 namespace nebula {
 namespace graph {
-class ExpressionContextImpl final : public ExpressionContext {
-public:
-    ExpressionContextImpl() = default;
 
-    ExpressionContextImpl(ExecutionContext* ectx, Iterator* iter) {
+class QueryExpressionContext final : public ExpressionContext {
+public:
+    explicit QueryExpressionContext(ExecutionContext* ectx, Iterator* iter = nullptr) {
         ectx_ = ectx;
         iter_ = iter;
     }
@@ -35,12 +34,12 @@ public:
                             const std::string& prop) const override;
 
     // Get the specified property from the edge, such as edge_type.prop_name
-    const Value& getEdgeProp(const std::string& edge,
-                             const std::string& prop) const override;
+    Value getEdgeProp(const std::string& edge,
+                      const std::string& prop) const override;
 
     // Get the specified property from the source vertex, such as $^.prop_name
-    const Value& getSrcProp(const std::string& tag,
-                            const std::string& prop) const override;
+    Value getSrcProp(const std::string& tag,
+                     const std::string& prop) const override;
 
     // Get the specified property from the destination vertex, such as $$.prop_name
     const Value& getDstProp(const std::string& tag,
@@ -51,10 +50,15 @@ public:
 
     void setVar(const std::string&, Value val) override;
 
+    void setIter(Iterator* iter) {
+        iter_ = iter;
+    }
+
 private:
     ExecutionContext*                 ectx_;
     Iterator*                         iter_;
 };
+
 }  // namespace graph
 }  // namespace nebula
-#endif  // CONTEXT_EXPRESSIONCONTEXTIMPL_H_
+#endif  // CONTEXT_QUERYEXPRESSIONCONTEXT_H_

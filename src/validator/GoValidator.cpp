@@ -78,12 +78,6 @@ Status GoValidator::validateImpl() {
             status = Status::Error("Not support input prop yet.");
             break;
         }
-
-        if (distinct_) {
-            // TODO: implement distinct;
-            status = Status::Error("Not support distinct yet.");
-            break;
-        }
     } while (false);
 
     return status;
@@ -128,7 +122,7 @@ Status GoValidator::validateFrom(const FromClause* from) {
         }
     } else {
         auto vidList = from->vidList();
-        ExpressionContextImpl ctx(qctx_->ectx(), nullptr);
+        QueryExpressionContext ctx(qctx_->ectx(), nullptr);
         for (auto* expr : vidList) {
             if (!evaluableExpr(expr)) {
                 return Status::Error("`%s' is not an evaluable expression.",
@@ -263,11 +257,26 @@ Status GoValidator::buildOneStepPlan() {
         return Status::Error("Not support get dst yet.");
     }
 
-    auto* project = Project::make(plan, gn1, yields_);
-    project->setInputVar(gn1->varName());
-    project->setColNames(std::move(colNames_));
+    PlanNode *projectInput = gn1;
+    if (filter_ != nullptr) {
+        Filter *filterNode = Filter::make(plan, gn1, filter_);
+        filterNode->setInputVar(gn1->varName());
+        projectInput = filterNode;
+    }
 
-    root_ = project;
+    auto* project = Project::make(plan, projectInput, yields_);
+    project->setInputVar(projectInput->varName());
+    project->setColNames(std::vector<std::string>(colNames_));
+
+    if (distinct_) {
+        Dedup *dedupNode = Dedup::make(plan, project);
+        dedupNode->setInputVar(project->varName());
+        dedupNode->setColNames(std::move(colNames_));
+        root_ = dedupNode;
+    } else {
+        root_ = project;
+    }
+
     tail_ = gn1;
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();

@@ -42,7 +42,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     if (gv->src() != nullptr) {
         // Accept Table such as | $a | $b | $c |... as input which one column indicate src
         auto valueIter = ectx_->getResult(gv->inputVar()).iter();
-        auto expCtx = ExpressionContextImpl(qctx()->ectx(), valueIter.get());
+        auto expCtx = QueryExpressionContext(qctx()->ectx(), valueIter.get());
         for (; valueIter->valid(); valueIter->next()) {
             auto src = gv->src()->eval(expCtx);
             if (src.isStr()) {

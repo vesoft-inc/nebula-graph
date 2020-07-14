@@ -111,7 +111,7 @@ Status FetchEdgesValidator::prepareEdges() {
     }
 
     // from constant, eval now
-    ExpressionContextImpl dummy = ExpressionContextImpl();
+    QueryExpressionContext dummy = QueryExpressionContext(nullptr);
     auto keysPointer = sentence_->keys();
     if (keysPointer != nullptr) {
         auto keys = keysPointer->keys();

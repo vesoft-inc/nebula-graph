@@ -99,7 +99,7 @@ Status FetchVerticesValidator::prepareVertices() {
 
     // from constant, eval now
     // TODO(shylock) add eval() method for expression
-    ExpressionContextImpl dummy = ExpressionContextImpl();
+    QueryExpressionContext dummy = QueryExpressionContext(nullptr);
     auto vids = sentence_->vidList();
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
