@@ -10,6 +10,7 @@
 #include "common/base/Base.h"
 #include "parser/Sentence.h"
 #include "context/QueryContext.h"
+#include "validator/Validator.h"
 
 namespace nebula {
 
@@ -29,6 +30,7 @@ public:
 private:
     Sentence*                           sentences_{nullptr};
     QueryContext*                       qctx_{nullptr};
+    std::unique_ptr<Validator>          validator_;
 };
 }  // namespace graph
 }  // namespace nebula

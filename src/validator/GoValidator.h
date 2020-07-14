@@ -71,6 +71,7 @@ private:
     std::vector<std::string>                                colNames_;
     YieldColumns*                                           yields_{nullptr};
     bool                                                    distinct_{false};
+    std::unique_ptr<Expression>                             newSrc_;
 };
 }  // namespace graph
 }  // namespace nebula

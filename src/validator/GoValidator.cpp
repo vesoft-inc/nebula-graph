@@ -258,14 +258,14 @@ Status GoValidator::buildNStepsPlan() {
     project->setColNames(deduceColNames(columns));
 
     auto* loop = Loop::make(plan, projectStartVid, project,
-                            buildNStepLoopCondition(steps_));
+                            buildNStepLoopCondition(steps_ - 1));
 
     auto* gn2 = GetNeighbors::make(plan, loop, space_.id);
     gn2->setSrc(src_);
     gn2->setEdgeTypes(buildEdgeTypes());
     gn2->setVertexProps(buildSrcVertexProps());
     gn2->setEdgeProps(buildEdgeProps());
-    gn2->setInputVar(loop->varName());
+    gn2->setInputVar(project->varName());
 
 
     PlanNode *projectInput = gn2;
@@ -365,6 +365,9 @@ PlanNode* GoValidator::buildRuntimeInput() {
     columns->addColumn(column);
     auto plan = qctx_->plan();
     auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    project->setColNames({ kVid });
+    newSrc_ = std::make_unique<InputPropertyExpression>(new std::string(kVid));
+    src_ = newSrc_.get();
     return project;
 }
 
