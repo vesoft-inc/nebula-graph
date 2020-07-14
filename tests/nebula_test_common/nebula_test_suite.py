@@ -56,40 +56,39 @@ class NebulaTestSuite(object):
         pathlist = Path(self.data_dir).rglob('*.ngql')
         for path in pathlist:
             print("will open ", path)
-            data_file = open(path, 'r')
-            space_name = path.name.split('.')[0]
-            resp = self.execute(
-            'CREATE SPACE IF NOT EXISTS {space_name}(partition_num={partition_num}, replica_factor={replica_factor}, vid_size=30)'.format(partition_num=self.partition_num,
-                    replica_factor=self.replica_factor,
-                    space_name=space_name))
-            self.check_resp_succeeded(resp)
-            time.sleep(self.delay)
-            resp = self.execute('USE {}'.format(space_name))
-            self.check_resp_succeeded(resp)
+            with open(path, 'r') as data_file:
+                space_name = path.name.split('.')[0]
+                resp = self.execute(
+                'CREATE SPACE IF NOT EXISTS {space_name}(partition_num={partition_num}, replica_factor={replica_factor}, vid_size=30)'.format(partition_num=self.partition_num,
+                        replica_factor=self.replica_factor,
+                        space_name=space_name))
+                self.check_resp_succeeded(resp)
+                time.sleep(self.delay)
+                resp = self.execute('USE {}'.format(space_name))
+                self.check_resp_succeeded(resp)
 
-            lines = data_file.readlines()
-            ddl = False
-            ngql_statement = ""
-            for line in lines:
-                strip_line = line.strip()
-                if len(strip_line) == 0:
-                    continue
-                elif strip_line.startswith('--'):
-                    comment = strip_line[2:]
-                    print(comment)
-                    if comment == 'DDL':
-                        ddl = True
-                    elif comment == 'END':
-                        if ddl:
-                            time.sleep(self.delay)
-                            ddl = False
-                else:
-                    line = line.rstrip()
-                    ngql_statement += " " + line
-                    if line.endswith(';'):
-                        resp = self.execute(ngql_statement)
-                        self.check_resp_succeeded(resp)
-                        ngql_statement = ""
+                lines = data_file.readlines()
+                ddl = False
+                ngql_statement = ""
+                for line in lines:
+                    strip_line = line.strip()
+                    if len(strip_line) == 0:
+                        continue
+                    elif strip_line.startswith('--'):
+                        comment = strip_line[2:]
+                        if comment == 'DDL':
+                            ddl = True
+                        elif comment == 'END':
+                            if ddl:
+                                time.sleep(self.delay)
+                                ddl = False
+                    else:
+                        line = line.rstrip()
+                        ngql_statement += " " + line
+                        if line.endswith(';'):
+                            resp = self.execute(ngql_statement)
+                            self.check_resp_succeeded(resp)
+                            ngql_statement = ""
 
     @classmethod
     def drop_data(self):
