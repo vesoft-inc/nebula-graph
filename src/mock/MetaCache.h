@@ -10,7 +10,6 @@
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
 #include "common/base/ErrorOr.h"
-#include "common/thread/GenericWorker.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 
 namespace nebula {
