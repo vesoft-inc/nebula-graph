@@ -10,7 +10,6 @@
 #include "common/base/Base.h"
 #include "validator/Validator.h"
 #include "parser/Clauses.h"
-#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -34,27 +33,10 @@ private:
 
     Status validateBothInOutBound(BothInOutClause* out);
 
-    Expression* buildNStepLoopCondition(int64_t steps) const;
-
-    inline GetNeighbors::VertexProps buildAllVertexProps() const {
-        return std::make_unique<std::vector<storage::cpp2::VertexProp>>();
-    }
-
-    inline GetNeighbors::EdgeProps buildAllEdgeProps() const {
-        return std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
-    }
-
-    Status buildSubGraphPlan(storage::cpp2::EdgeDirection direction);
-
-    std::string buildLiteralInput();
-
-    PlanNode* buildRuntimeInput();
-
 private:
     uint32_t                                    steps_{1};
     std::vector<Value>                          starts_;
     Expression*                                 srcRef_{nullptr};
-    Expression*                                 src_{nullptr};
     std::vector<EdgeType>                       edgeTypes_;
 };
 }  // namespace graph
