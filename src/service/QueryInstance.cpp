@@ -12,7 +12,7 @@
 #include "exec/Executor.h"
 #include "planner/ExecutionPlan.h"
 #include "planner/PlanNode.h"
-#include "schedule/Scheduler.h"
+#include "scheduler/Scheduler.h"
 
 namespace nebula {
 namespace graph {
@@ -26,6 +26,7 @@ void QueryInstance::execute() {
         auto result = GQLParser().parse(rctx->query());
         if (!result.ok()) {
             status = std::move(result).status();
+            LOG(ERROR) << "Parser: `" << rctx->query() << "' error: " << status;
             break;
         }
 

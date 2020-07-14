@@ -9,6 +9,7 @@
 #include <folly/String.h>
 
 #include "common/interface/gen-cpp2/common_types.h"
+#include "context/ExpressionContextImpl.h"
 #include "planner/Query.h"
 
 using folly::stringPrintf;
@@ -16,20 +17,17 @@ using folly::stringPrintf;
 namespace nebula {
 namespace graph {
 
-LoopExecutor::LoopExecutor(const PlanNode *node, QueryContext* qctx, Executor *body)
+LoopExecutor::LoopExecutor(const PlanNode *node, QueryContext *qctx, Executor *body)
     : Executor("LoopExecutor", node, qctx), body_(DCHECK_NOTNULL(body)) {}
 
 folly::Future<Status> LoopExecutor::execute() {
     dumpLog();
     auto *loopNode = asNode<Loop>(node());
-    const Expression *expr = loopNode->condition();
-    // TODO(yee): eval expression result
-    UNUSED(expr);
-
-    // Update iterate variable value in execution context before loop body running
-    nebula::Value value(++iterCount_ < 2);
-    finish(std::move(value));
-    return Status::OK();
+    Expression *expr = loopNode->condition();
+    ExpressionContextImpl ctx(ectx_, nullptr);
+    auto value = expr->eval(ctx);
+    DCHECK(value.isBool());
+    return finish(ResultBuilder().value(std::move(value)).iter(Iterator::Kind::kDefault).finish());
 }
 
 }   // namespace graph

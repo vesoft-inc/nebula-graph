@@ -3,7 +3,7 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-SET(EXEC_QUERY_TEST_LIBS
+SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_network_obj>
     $<TARGET_OBJECTS:common_process_obj>
@@ -27,27 +27,47 @@ SET(EXEC_QUERY_TEST_LIBS
     $<TARGET_OBJECTS:common_conf_obj>
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
     $<TARGET_OBJECTS:common_charset_obj>
+    $<TARGET_OBJECTS:common_function_manager_obj>
+    $<TARGET_OBJECTS:common_agg_function_obj>
     $<TARGET_OBJECTS:session_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
+    $<TARGET_OBJECTS:scheduler_obj>
     $<TARGET_OBJECTS:exec_obj>
-    $<TARGET_OBJECTS:schedule_obj>
     $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
+    $<TARGET_OBJECTS:graph_auth_obj>
+    $<TARGET_OBJECTS:common_encryption_obj>
+    $<TARGET_OBJECTS:common_http_client_obj>
+)
+
+SET(EXEC_QUERY_TEST_LIBS
+    ${THRIFT_LIBRARIES}
+    gtest
+    gtest_main
+    wangle
+    proxygenhttpserver
+    proxygenlib
 )
 
 nebula_add_test(
-    NAME query_executors_test
+    NAME
+        query_executors_test
     SOURCES
         ProjectTest.cpp
+        GetNeighborsTest.cpp
+        DataCollectTest.cpp
+        SetExecutorTest.cpp
+        FilterTest.cpp
+        DedupTest.cpp
+        LimitTest.cpp
+        SortTest.cpp
+        AggregateTest.cpp
     OBJECTS
-        ${EXEC_QUERY_TEST_LIBS}
+        ${EXEC_QUERY_TEST_OBJS}
     LIBRARIES
-        ${THRIFT_LIBRARIES}
-        gtest
-        gtest_main
-        wangle
+        ${EXEC_QUERY_TEST_LIBS}
 )
