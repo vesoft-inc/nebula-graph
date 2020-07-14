@@ -236,10 +236,10 @@ Status GoValidator::buildNStepsPlan() {
     std::string input;
     PlanNode* projectStartVid = nullptr;
     if (!starts_.empty() && src_ == nullptr) {
-      input = buildInput();
+        input = buildInput();
     } else {
-      projectStartVid = buildRuntimeInput();
-      input = projectStartVid->varName();
+        projectStartVid = buildRuntimeInput();
+        input = projectStartVid->varName();
     }
 
     auto* gn1 = GetNeighbors::make(plan, bodyStart, space.id);

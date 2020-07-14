@@ -12,8 +12,6 @@
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
 #include "context/QueryExpressionContext.h"
-#include "context/ExpressionContextImpl.h"
-#include "context/Result.h"
 
 namespace nebula {
 namespace graph {
