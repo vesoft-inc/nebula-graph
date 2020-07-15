@@ -89,7 +89,8 @@ Status PermissionCheck::permissionCheck(const Session *session,
             auto spaceId = spaceIdResult.value();
             const auto *user = revokeSentence->getAccount();
             return PermissionManager::canWriteRole(session,
-                                                  revokeSentence->getAclItemClause()->getRoleType(),
+                                                   revokeSentence
+                                                       ->getAclItemClause()->getRoleType(),
                                                    spaceId,
                                                   *user);
         }
