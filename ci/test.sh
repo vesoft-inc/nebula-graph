@@ -13,8 +13,14 @@ TOOLSET_DIR=/opt/vesoft/toolset/clang/9.0.0
 
 mkdir -p $BUILD_DIR
 
+function prepare_pip3() {
+    pip3 install -U setuptools -i https://mirrors.aliyun.com/pypi/simple/
+    pip3 install -r $PROJ_DIR/tests/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+}
+
 function prepare() {
     $PROJ_DIR/ci/deploy.sh
+    prepare_pip3
 }
 
 function lint() {
@@ -28,10 +34,8 @@ function build_common() {
 }
 
 function build_storage() {
-    cmake --build $PROJ_DIR/modules/storage \
-          --target nebula-storaged \
-          --target nebula-metad \
-          -j$(nproc)
+    cmake --build $PROJ_DIR/modules/storage --target nebula-storaged -j$(nproc)
+    cmake --build $PROJ_DIR/modules/storage --target nebula-metad -j$(nproc)
 }
 
 function gcc_compile() {
@@ -73,7 +77,6 @@ function run_test() {
           --output-on-failure
 
     # CI
-    pip3 install -U setuptools && pip3 install -r $PROJ_DIR/tests/requirements.txt
     cd $BUILD_DIR/tests
     ./ntr -h
 }
@@ -81,6 +84,9 @@ function run_test() {
 case "$1" in
     prepare)
         prepare
+        ;;
+    pip)
+        prepare_pip3
         ;;
     lint)
         lint
