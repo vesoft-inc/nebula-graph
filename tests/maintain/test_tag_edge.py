@@ -14,13 +14,6 @@ class TestSchema(NebulaTestSuite):
 
     @classmethod
     def prepare(self):
-        pass
-
-    @classmethod
-    def cleanup(self):
-        pass
-
-    def test_tag(self):
         resp = self.client.execute('CREATE SPACE tag_space(partition_num=9)')
         self.check_resp_succeeded(resp)
 
@@ -28,6 +21,12 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute('USE tag_space')
         self.check_resp_succeeded(resp)
 
+    @classmethod
+    def cleanup(self):
+        resp = self.execute('DROP SPACE tag_space;DROP SPACE my_space')
+        self.check_resp_succeeded(resp)
+
+    def test_tag(self):
         # empty prop
         resp = self.client.execute('CREATE TAG tag1()')
         self.check_resp_succeeded(resp)
