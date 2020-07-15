@@ -139,9 +139,9 @@ protected:
     // TODO: Some statistics
 };
 
-#define CHECK_NODE_TYPE(kKind)                                                                     \
+#define DCHECK_NODE_TYPE(kKind)                                                                    \
     do {                                                                                           \
-        CHECK_EQ(node()->kind(), PlanNode::Kind::k##kKind);                                        \
+        DCHECK_EQ(node()->kind(), PlanNode::Kind::k##kKind);                                       \
     } while (0);
 
 }  // namespace graph

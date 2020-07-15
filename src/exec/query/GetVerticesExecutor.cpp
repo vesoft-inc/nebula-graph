@@ -27,7 +27,7 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 }
 
 folly::Future<Status> GetVerticesExecutor::getVertices() {
-    CHECK_NODE_TYPE(GetVertices)
+    DCHECK_NODE_TYPE(GetVertices)
     dumpLog();
 
     auto *gv = asNode<GetVertices>(node());
