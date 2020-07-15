@@ -8,6 +8,7 @@
 
 #include "parser/Sentence.h"
 #include "planner/Query.h"
+#include "planner/Utils.h"
 #include "util/SchemaUtil.h"
 #include "validator/AdminValidator.h"
 #include "validator/AssignmentValidator.h"
@@ -105,46 +106,11 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
 }
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
-    switch (DCHECK_NOTNULL(node)->kind()) {
-        case PlanNode::Kind::kFilter:
-        case PlanNode::Kind::kProject:
-        case PlanNode::Kind::kSort:
-        case PlanNode::Kind::kLimit:
-        case PlanNode::Kind::kAggregate:
-        case PlanNode::Kind::kSelect:
-        case PlanNode::Kind::kLoop:
-        case PlanNode::Kind::kMultiOutputs:
-        case PlanNode::Kind::kSwitchSpace:
-        case PlanNode::Kind::kCreateSpace:
-        case PlanNode::Kind::kCreateTag:
-        case PlanNode::Kind::kCreateEdge:
-        case PlanNode::Kind::kDescSpace:
-        case PlanNode::Kind::kDescTag:
-        case PlanNode::Kind::kDescEdge:
-        case PlanNode::Kind::kInsertVertices:
-        case PlanNode::Kind::kInsertEdges:
-        case PlanNode::Kind::kGetNeighbors:
-        case PlanNode::Kind::kAlterTag:
-        case PlanNode::Kind::kAlterEdge:
-        case PlanNode::Kind::kShowCreateSpace:
-        case PlanNode::Kind::kShowCreateTag:
-        case PlanNode::Kind::kShowCreateEdge:
-        case PlanNode::Kind::kDropSpace:
-        case PlanNode::Kind::kDropTag:
-        case PlanNode::Kind::kDropEdge:
-        case PlanNode::Kind::kShowSpaces:
-        case PlanNode::Kind::kShowTags:
-        case PlanNode::Kind::kShowEdges:
-        case PlanNode::Kind::kCreateSnapshot:
-        case PlanNode::Kind::kDropSnapshot:
-        case PlanNode::Kind::kShowSnapshots: {
-            static_cast<SingleDependencyNode*>(node)->setDep(appended);
-            break;
-        }
-        default: {
-            return Status::Error("%s not support to append an input.",
-                                 PlanNode::toString(node->kind()));
-        }
+    if (PlanNodeUtils::isSingleDependencyNode(node)) {
+        static_cast<SingleDependencyNode*>(node)->setDep(appended);
+    } else {
+        return Status::Error("%s not support to append an dependency.",
+                             PlanNode::toString(node->kind()));
     }
     return Status::OK();
 }
