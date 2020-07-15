@@ -202,6 +202,8 @@ Status FetchEdgesValidator::prepareProperties() {
         }
     } else {
         // no yield
+        outputs_.reserve(4 + schema_->getNumFields());
+        colNames_.reserve(4 + schema_->getNumFields());
         outputs_.emplace_back(edgeTypeName_ + "." + kSrc, Value::Type::STRING);
         colNames_.emplace_back(edgeTypeName_ + "." + kSrc);
         outputs_.emplace_back(edgeTypeName_ + "." + kType, Value::Type::INT);
