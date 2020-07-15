@@ -49,7 +49,6 @@ class NebulaTestSuite(object):
         self.prepare()
         self.check_format_str = 'result: {}, expect: {}'
         self.data_dir = pytest.cmdline.data_dir
-        self.load_data()
 
     @classmethod
     def load_data(self):
