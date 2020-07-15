@@ -363,7 +363,8 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             auto function = FunctionManager::get(*(funcExpr->name()), argList->numArgs());
             if (!function.ok()) {
                 std::stringstream ss;
-                ss << "`" << expr->toString() << "` is not a valid function expression";
+                ss << "`" << expr->toString()
+                   << "` is not a valid expression : " << function.status();
                 return Status::Error(ss.str());
             }
             std::vector<Value> parameter;
