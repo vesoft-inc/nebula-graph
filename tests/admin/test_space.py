@@ -46,7 +46,7 @@ class TestSpace(NebulaTestSuite):
         # show spaces
         resp = self.client.execute_query('SHOW SPACES')
         self.check_resp_succeeded(resp)
-        self.search_result(resp, [['default_space']])
+        self.search_result(resp, [['nba'], ['default_space']])
 
         # desc space
         resp = self.client.execute_query('DESC SPACE default_space')
@@ -187,7 +187,7 @@ class TestSpace(NebulaTestSuite):
     def test_drop_space(self):
         resp = self.client.execute_query('SHOW SPACES')
         self.check_resp_succeeded(resp)
-        expect_result = [['default_space']]
+        expect_result = [['nba'], ['default_space']]
         self.search_result(resp, expect_result)
 
         resp = self.client.execute('DROP SPACE default_space')

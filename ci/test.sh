@@ -78,9 +78,7 @@ function run_test() {
 
     # CI
     cd $BUILD_DIR/tests
-    ./ntr $PROJ_DIR/tests/admin/test_space.py
-    ./ntr $PROJ_DIR/tests/maintain/test_schema.py
-    ./ntr $PROJ_DIR/tests/maintain/test_comments.py
+    ./ntr $PROJ_DIR/tests/admin/* $PROJ_DIR/tests/maintain/* $PROJ_DIR/tests/query/stateless/test_schema.py
 }
 
 case "$1" in
