@@ -170,9 +170,11 @@ Status FetchEdgesValidator::prepareProperties() {
                     // Check is prop name in schema
                     if (schema_->getFieldIndex(*expr->prop()) < 0 &&
                         reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
-                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
-                        return Status::Error("Unknown column `%s' in schema",
-                                             expr->prop()->c_str());
+                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `"
+                            << edgeTypeName_ << "'.";
+                        return Status::Error("Unknown column `%s' in edge `%s'",
+                                             expr->prop()->c_str(),
+                                             edgeTypeName_.c_str());
                     }
                     propsName.emplace_back(*expr->prop());
                 }

@@ -187,9 +187,11 @@ Status FetchVerticesValidator::prepareProperties() {
                     }
                     // Check is prop name in schema
                     if (schema_->getFieldIndex(*expr->prop()) < 0) {
-                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
-                        return Status::Error("Unknown column `%s' in schema",
-                                             expr->prop()->c_str());
+                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in tag `"
+                            << tagName_ << "'.";
+                        return Status::Error("Unknown column `%s' in tag `%s'.",
+                                             expr->prop()->c_str(),
+                                             tagName_.c_str());
                     }
                     propsName.emplace_back(*expr->prop());
                 }
