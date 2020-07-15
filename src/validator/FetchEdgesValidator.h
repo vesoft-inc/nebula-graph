@@ -32,6 +32,8 @@ private:
 
     Status prepareProperties();
 
+    static const Expression* findInvalidYieldExpression(const Expression* root);
+
     static const std::unordered_set<std::string> reservedProperties;
 
 private:

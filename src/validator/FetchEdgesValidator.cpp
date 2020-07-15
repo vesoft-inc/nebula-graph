@@ -152,6 +152,11 @@ Status FetchEdgesValidator::prepareProperties() {
         dedup_ = yield->isDistinct();
         exprs_.reserve(yield->columns().size());
         for (const auto col : yield->columns()) {
+            const auto *invalidExpr = findInvalidYieldExpression(col->expr());
+            if (invalidExpr != nullptr) {
+                return Status::Error("Invalid yield expression `%s'.",
+                                     col->expr()->toString().c_str());
+            }
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
             const auto storageExprs = col->expr()->findAllStorage();
@@ -223,6 +228,14 @@ Status FetchEdgesValidator::prepareProperties() {
 
     props_.emplace_back(std::move(prop));
     return Status::OK();
+}
+
+/*static*/
+const Expression* FetchEdgesValidator::findInvalidYieldExpression(const Expression* root) {
+    return root->findAnyKind(Expression::Kind::kInputProperty,
+                             Expression::Kind::kVarProperty,
+                             Expression::Kind::kSrcProperty,
+                             Expression::Kind::kDstProperty);
 }
 
 }   // namespace graph

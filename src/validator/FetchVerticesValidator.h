@@ -32,6 +32,8 @@ private:
 
     Status prepareProperties();
 
+    static const Expression* findInvalidYieldExpression(const Expression* root);
+
 private:
     FetchVerticesSentence* sentence_{nullptr};
     GraphSpaceID spaceId_{0};

@@ -239,6 +239,65 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
         auto validateResult = validator.validate();
         ASSERT_FALSE(validateResult.ok());
     }
+
+    // invalid yield expression
+    {
+        auto result =
+            GQLParser().parse("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
+                              " FETCH PROP ON person \"1\" YIELD $a.name + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+    // invalid yield expression
+    {
+        auto result =
+            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person.name AS name | "
+                              " FETCH PROP ON person \"1\" YIELD $-.name + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+    {
+        auto result =
+            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._src + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+    {
+        auto result =
+            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._type");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+    {
+        auto result =
+            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._rank + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+    {
+        auto result =
+            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._dst + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
 }
 
 TEST_F(FetchVerticesValidatorTest, FetchVerticesInputFailed) {

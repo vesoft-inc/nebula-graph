@@ -295,6 +295,46 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesPropFailed) {
         auto validateResult = validator.validate();
         ASSERT_FALSE(validateResult.ok());
     }
+
+    // invalid yield expression
+    {
+        auto result = GQLParser().parse("$a = FETCH PROP ON like \"1\"->\"2\" "
+                                        "YIELD like._src AS src;"
+                                        "FETCH PROP ON like \"1\"->\"2\" YIELD $a.src + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+    {
+        auto result = GQLParser().parse("FETCH PROP ON like \"1\"->\"2\" "
+                                        "YIELD like._src AS src | "
+                                        "FETCH PROP ON like \"1\"->\"2\" YIELD $-.src + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+    {
+        auto result = GQLParser().parse("FETCH PROP ON like \"1\"->\"2\" "
+                                        "YIELD $^.like.start + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
+    {
+        auto result = GQLParser().parse("FETCH PROP ON like \"1\"->\"2\" "
+                                        "YIELD $$.like.start + 1");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
 }
 
 TEST_F(FetchEdgesValidatorTest, FetchEdgesInputFailed) {

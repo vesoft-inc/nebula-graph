@@ -170,6 +170,11 @@ Status FetchVerticesValidator::prepareProperties() {
         std::vector<std::string> propsName;
         propsName.reserve(yield->columns().size());
         for (const auto col : yield->columns()) {
+            const auto *invalidExpr = findInvalidYieldExpression(col->expr());
+            if (invalidExpr != nullptr) {
+                return Status::Error("Invalid yield expression `%s'.",
+                                     col->expr()->toString().c_str());
+            }
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
             const auto storageExprs = col->expr()->findAllStorage();
@@ -224,6 +229,16 @@ Status FetchVerticesValidator::prepareProperties() {
     }
 
     return Status::OK();
+}
+
+/*static*/
+const Expression* FetchVerticesValidator::findInvalidYieldExpression(const Expression* root) {
+    return root->findAnyKind(Expression::Kind::kInputProperty,
+                             Expression::Kind::kVarProperty,
+                             Expression::Kind::kEdgeSrc,
+                             Expression::Kind::kEdgeType,
+                             Expression::Kind::kEdgeRank,
+                             Expression::Kind::kEdgeDst);
 }
 
 }   // namespace graph
