@@ -348,8 +348,20 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             return detectVal.type();
         }
         case Expression::Kind::kFunctionCall: {
-            // TODO
-            return Status::Error("Not support function yet.");
+            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
+            ArgumentList *argList = new ArgumentList();
+            for (auto& arg : funcExpr->args()->args()) {
+                auto status = deduceExprType(arg.get());
+                if (!status.ok()) {
+                    return status.status();
+                }
+                auto detectVal = kValues.at(status.value());
+                argList->addArgument(std::make_unique<ConstantExpression>(std::move(detectVal)));
+            }
+            QueryExpressionContext ctx(nullptr, nullptr);
+            std::string name = *(funcExpr->name());
+            FunctionCallExpression functionCall(&name, argList);
+            return functionCall.eval(ctx).type();
         }
         case Expression::Kind::kTypeCasting: {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
