@@ -163,11 +163,6 @@ Status FetchEdgesValidator::prepareProperties() {
                     withProject_ = true;
                 }
                 for (const auto &storageExpr : storageExprs) {
-                    if (storageExpr->kind() == Expression::Kind::kSrcProperty ||
-                        storageExpr->kind() == Expression::Kind::kDstProperty) {
-                        return Status::Error("Invalid yield expression `%s'.",
-                                             storageExpr->toString().c_str());
-                    }
                     const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
                     if (*expr->sym() != edgeTypeName_) {
                         return Status::Error("Mismatched edge type name");

@@ -181,13 +181,6 @@ Status FetchVerticesValidator::prepareProperties() {
                     withProject_ = true;
                 }
                 for (const auto &storageExpr : storageExprs) {
-                    if (storageExpr->kind() == Expression::Kind::kEdgeSrc ||
-                        storageExpr->kind() == Expression::Kind::kEdgeType ||
-                        storageExpr->kind() == Expression::Kind::kEdgeRank ||
-                        storageExpr->kind() == Expression::Kind::kEdgeDst) {
-                        return Status::Error("Invalid yield expression `%s'.",
-                                             storageExpr->toString().c_str());
-                    }
                     const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
                     if (*expr->sym() != tagName_) {
                         return Status::Error("Mismatched tag name");
