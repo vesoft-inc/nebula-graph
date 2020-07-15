@@ -39,7 +39,7 @@ TEST_F(YieldValidatorTest, Base) {
 #endif
 }
 
-TEST_F(YieldValidatorTest, DISABLED_HashCall) {
+TEST_F(YieldValidatorTest, HashCall) {
     {
         std::string query = "YIELD hash(\"Boris\")";
         EXPECT_TRUE(checkResult(query, expected_));
@@ -58,7 +58,9 @@ TEST_F(YieldValidatorTest, DISABLED_HashCall) {
     }
     {
         std::string query = "YIELD hash(!0)";
-        EXPECT_TRUE(checkResult(query, expected_));
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "`!(0)' is not a valid expression, can not apply `!' to INT.");
     }
 }
 
@@ -91,10 +93,36 @@ TEST_F(YieldValidatorTest, Logic) {
 #endif
 }
 
-TEST_F(YieldValidatorTest, DISABLED_InCall) {
+TEST_F(YieldValidatorTest, InCall) {
     {
         std::string query = "YIELD udf_is_in(1,0,1,2), 123";
         EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD abs(-12)";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD abs(0)";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD abs(true)";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "`abs(true)' is not a valid expression, __NULL_BAD_TYPE__");
+    }
+    {
+        std::string query = "YIELD abs(\"test\")";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                    "`abs(test)' is not a valid expression, __NULL_BAD_TYPE__");
+    }
+    {
+        std::string query = "YIELD noexist(12)";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "`noexist(12)` is not a valid expression : Function `noexist' not defined");
     }
 }
 

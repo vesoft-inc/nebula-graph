@@ -350,7 +350,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         }
         case Expression::Kind::kFunctionCall: {
             auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
-            ArgumentList *argList = new ArgumentList();
+            std::unique_ptr<ArgumentList> argList = std::make_unique<ArgumentList>();
             for (auto& arg : funcExpr->args()->args()) {
                 auto status = deduceExprType(arg.get());
                 if (!status.ok()) {
@@ -364,7 +364,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             if (!function.ok()) {
                 std::stringstream ss;
                 ss << "`" << expr->toString()
-                   << "` is not a valid expression : " << function.status();
+                    << "` is not a valid expression : " << function.status();
                 return Status::Error(ss.str());
             }
             std::vector<Value> parameter;
@@ -372,6 +372,12 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 parameter.emplace_back(std::move(arg->eval(ctx)));
             }
             auto result = function.value()(parameter);
+            if (result.isBadNull()) {
+                std::stringstream ss;
+                ss << "`" << expr->toString() << "' is not a valid expression, "
+                    << result.toString();
+                return Status::Error(ss.str());
+            }
             return result.type();
         }
         case Expression::Kind::kTypeCasting: {
