@@ -37,6 +37,8 @@ private:
 
     Status buildNStepsPlan();
 
+    Status oneStep(PlanNode* input, const std::string& inputVarName);
+
     std::string buildInput();
 
     PlanNode* buildRuntimeInput();
@@ -71,7 +73,6 @@ private:
     std::vector<std::string>                                colNames_;
     YieldColumns*                                           yields_{nullptr};
     bool                                                    distinct_{false};
-    std::unique_ptr<Expression>                             newSrc_;
 };
 }  // namespace graph
 }  // namespace nebula

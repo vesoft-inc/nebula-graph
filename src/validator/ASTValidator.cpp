@@ -20,13 +20,13 @@ Status ASTValidator::validate() {
         qctx_->vctx()->switchToSpace(session->spaceName(), session->space());
     }
 
-    validator_ = Validator::makeValidator(sentences_, qctx_);
-    auto status = validator_->validate();
+    auto validator = Validator::makeValidator(sentences_, qctx_);
+    auto status = validator->validate();
     if (!status.ok()) {
         return status;
     }
 
-    auto root = validator_->root();
+    auto root = validator->root();
     if (!root) {
         return Status::Error("Get null plan from sequantial validator.");
     }

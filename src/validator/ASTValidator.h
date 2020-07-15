@@ -30,7 +30,6 @@ public:
 private:
     Sentence*                           sentences_{nullptr};
     QueryContext*                       qctx_{nullptr};
-    std::unique_ptr<Validator>          validator_;
 };
 }  // namespace graph
 }  // namespace nebula

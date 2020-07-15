@@ -226,11 +226,47 @@ Status GoValidator::toPlan() {
     }
 }
 
+Status GoValidator::oneStep(PlanNode* input, const std::string& inputVarName) {
+    auto* plan = qctx_->plan();
+
+    auto* gn = GetNeighbors::make(plan, input, space_.id);
+    gn->setSrc(src_);
+    gn->setEdgeTypes(buildEdgeTypes());
+    gn->setVertexProps(buildSrcVertexProps());
+    gn->setEdgeProps(buildEdgeProps());
+    gn->setInputVar(inputVarName);
+
+    if (!dstTagProps_.empty()) {
+        // TODO: inplement get vertex props.
+        return Status::Error("Not support get dst yet.");
+    }
+
+    PlanNode *projectInput = gn;
+    if (filter_ != nullptr) {
+        Filter* filterNode = Filter::make(plan, gn, filter_);
+        filterNode->setInputVar(gn->varName());
+        projectInput = filterNode;
+    }
+
+    auto* project = Project::make(plan, projectInput, yields_);
+    project->setInputVar(projectInput->varName());
+    project->setColNames(std::vector<std::string>(colNames_));
+
+    if (distinct_) {
+        Dedup* dedupNode = Dedup::make(plan, project);
+        dedupNode->setInputVar(project->varName());
+        dedupNode->setColNames(std::move(colNames_));
+        root_ = dedupNode;
+    } else {
+        root_ = project;
+    }
+    tail_ = gn;
+    return Status::OK();
+}
+
 Status GoValidator::buildNStepsPlan() {
     auto* plan = qctx_->plan();
-    auto& space = vctx_->whichSpace();
-
-    // loop -> project -> gn1 -> bodyStart
+    // [->project] -> loop -> project -> gn1 -> bodyStart
     auto* bodyStart = StartNode::make(plan);
 
     std::string input;
@@ -241,11 +277,10 @@ Status GoValidator::buildNStepsPlan() {
         projectStartVid = buildRuntimeInput();
         input = projectStartVid->varName();
     }
-
-    auto* gn1 = GetNeighbors::make(plan, bodyStart, space.id);
-    gn1->setSrc(src_);
-    gn1->setEdgeProps(buildNStepLoopEdgeProps());
-    gn1->setInputVar(input);
+    auto* gn = GetNeighbors::make(plan, bodyStart, space_.id);
+    gn->setSrc(src_);
+    gn->setEdgeProps(buildNStepLoopEdgeProps());
+    gn->setInputVar(input);
 
     auto* columns = new YieldColumns();
     auto* column = new YieldColumn(
@@ -253,87 +288,34 @@ Status GoValidator::buildNStepsPlan() {
         new std::string(kVid));
     columns->addColumn(column);
 
-    auto* project = Project::make(plan, gn1, plan->saveObject(columns));
-    project->setInputVar(gn1->varName());
+    auto* project = Project::make(plan, gn, plan->saveObject(columns));
+    project->setInputVar(gn->varName());
     project->setColNames(deduceColNames(columns));
 
     auto* loop = Loop::make(plan, projectStartVid, project,
                             buildNStepLoopCondition(steps_ - 1));
 
-    auto* gn2 = GetNeighbors::make(plan, loop, space_.id);
-    gn2->setSrc(src_);
-    gn2->setEdgeTypes(buildEdgeTypes());
-    gn2->setVertexProps(buildSrcVertexProps());
-    gn2->setEdgeProps(buildEdgeProps());
-    gn2->setInputVar(project->varName());
-
-
-    PlanNode *projectInput = gn2;
-    if (filter_ != nullptr) {
-        Filter* filterNode = Filter::make(plan, gn2, filter_);
-        filterNode->setInputVar(gn2->varName());
-        projectInput = filterNode;
+    auto status = oneStep(loop, project->varName());
+    if (!status.ok()) {
+        return status;
     }
-
-    auto* project2 = Project::make(plan, projectInput, yields_);
-    project2->setInputVar(projectInput->varName());
-    project2->setColNames(std::vector<std::string>(colNames_));
-
-    if (distinct_) {
-        Dedup* dedupNode = Dedup::make(plan, project2);
-        dedupNode->setInputVar(project2->varName());
-        dedupNode->setColNames(std::move(colNames_));
-        root_ = dedupNode;
-    } else {
-        root_ = project2;
-    }
-
+    // reset tail_
     tail_ = projectStartVid == nullptr ? loop : projectStartVid;
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }
 
 Status GoValidator::buildOneStepPlan() {
-    auto* plan = qctx_->plan();
-
-    std::string input;
+    std::string inputVarName;
     if (!starts_.empty() && src_ == nullptr) {
-        input = buildInput();
+        inputVarName = buildInput();
     }
 
-    auto* gn1 = GetNeighbors::make(plan, nullptr, space_.id);
-    gn1->setSrc(src_);
-    gn1->setEdgeTypes(buildEdgeTypes());
-    gn1->setVertexProps(buildSrcVertexProps());
-    gn1->setEdgeProps(buildEdgeProps());
-    gn1->setInputVar(input);
-
-    if (!dstTagProps_.empty()) {
-        // TODO: inplement get vertex props.
-        return Status::Error("Not support get dst yet.");
+    auto status = oneStep(nullptr, inputVarName);
+    if (!status.ok()) {
+        return status;
     }
 
-    PlanNode *projectInput = gn1;
-    if (filter_ != nullptr) {
-        Filter *filterNode = Filter::make(plan, gn1, filter_);
-        filterNode->setInputVar(gn1->varName());
-        projectInput = filterNode;
-    }
-
-    auto* project = Project::make(plan, projectInput, yields_);
-    project->setInputVar(projectInput->varName());
-    project->setColNames(std::vector<std::string>(colNames_));
-
-    if (distinct_) {
-        Dedup *dedupNode = Dedup::make(plan, project);
-        dedupNode->setInputVar(project->varName());
-        dedupNode->setColNames(std::move(colNames_));
-        root_ = dedupNode;
-    } else {
-        root_ = project;
-    }
-
-    tail_ = gn1;
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }
@@ -366,8 +348,7 @@ PlanNode* GoValidator::buildRuntimeInput() {
     auto plan = qctx_->plan();
     auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
     project->setColNames({ kVid });
-    newSrc_ = std::make_unique<InputPropertyExpression>(new std::string(kVid));
-    src_ = newSrc_.get();
+    src_ = plan->saveObject(new InputPropertyExpression(new std::string(kVid)));
     return project;
 }
 
@@ -450,14 +431,14 @@ GetNeighbors::EdgeProps GoValidator::buildNStepLoopEdgeProps() {
 }
 
 Expression* GoValidator::buildNStepLoopCondition(int64_t steps) const {
-    // ++counter{0} <- steps
-    auto counter = vctx_->varGen()->getVar();
-    qctx_->ectx()->setValue(counter, 0);
+    // ++loopSteps{0} <= steps
+    auto loopSteps = vctx_->varGen()->getVar();
+    qctx_->ectx()->setValue(loopSteps, 0);
     auto* condition = new RelationalExpression(
         Expression::Kind::kRelLE,
         new UnaryExpression(
             Expression::Kind::kUnaryIncr,
-            new VersionedVariableExpression(new std::string(counter),
+            new VersionedVariableExpression(new std::string(loopSteps),
                                             new ConstantExpression(0))),
         new ConstantExpression(static_cast<int32_t>(steps)));
     qctx_->plan()->saveObject(condition);
