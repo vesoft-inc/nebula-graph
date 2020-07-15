@@ -32,6 +32,8 @@ private:
 
     Status prepareProperties();
 
+    static const std::unordered_set<std::string> reservedProperties;
+
 private:
     FetchEdgesSentence* sentence_{nullptr};
     GraphSpaceID spaceId_;

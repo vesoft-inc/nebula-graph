@@ -11,6 +11,10 @@
 namespace nebula {
 namespace graph {
 
+/*static*/ const std::unordered_set<std::string> FetchEdgesValidator::reservedProperties {
+    kSrc, kType, kRank, kDst,
+};
+
 Status FetchEdgesValidator::validateImpl() {
     auto status = check();
     if (!status.ok()) {
@@ -164,7 +168,8 @@ Status FetchEdgesValidator::prepareProperties() {
                         return Status::Error("Mismatched edge type name");
                     }
                     // Check is prop name in schema
-                    if (schema_->getFieldIndex(*expr->prop()) < 0) {
+                    if (schema_->getFieldIndex(*expr->prop()) < 0 &&
+                        reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
                         LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in schema";
                         return Status::Error("Unknown column `%s' in schema",
                                              expr->prop()->c_str());
