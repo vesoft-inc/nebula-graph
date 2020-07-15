@@ -39,6 +39,7 @@ public:
         kDefault,
         kGetNeighbors,
         kSequential,
+        kJoin,
     };
 
     explicit Iterator(std::shared_ptr<Value> value, Kind kind)
@@ -101,6 +102,10 @@ public:
 
     bool isSequentialIter() const {
         return kind_ == Kind::kSequential;
+    }
+
+    bool isJoinIter() const {
+        return kind_ == Kind::kJoin;
     }
 
     // The derived class should rewrite get prop if the Value is kind of dataset.
@@ -558,6 +563,14 @@ public:
         std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
     };
 
+    JoinIter() : Iterator(nullptr, Kind::kJoin) {}
+
+    void joinIndex(const Iterator* lhs, const Iterator* rhs);
+
+    size_t buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx);
+
+    size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx);
+
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<JoinIter>(*this);
         copy->reset();
@@ -608,6 +621,11 @@ public:
         return colIndices_;
     }
 
+    const std::unordered_map<size_t, std::pair<size_t, size_t>>&
+    getColIdxIndices() const {
+        return colIdxIndices_;
+    }
+
     size_t size() const override {
         return rows_.size();
     }
@@ -645,7 +663,9 @@ private:
     std::vector<LogicalRowJoin>                                    rows_;
     std::vector<LogicalRowJoin>::iterator                          iter_;
     size_t                                                         rowSize_{0};
+    // colName -> segIdx, currentSegColIdx
     std::unordered_map<std::string, std::pair<size_t, size_t>>     colIndices_;
+    // colIdx -> segIdx, currentSegColIdx
     std::unordered_map<size_t, std::pair<size_t, size_t>>          colIdxIndices_;
 };
 

@@ -345,6 +345,51 @@ Value GetNeighborsIter::getEdge() const {
     return Value(std::move(edge));
 }
 
+void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
+    size_t nextSeg = 0;
+    if (lhs->isSequentialIter()) {
+        nextSeg = buildIndexFromSeqIter(static_cast<const SequentialIter*>(lhs), 0);
+    } else if (lhs->isJoinIter()) {
+        nextSeg = buildIndexFromJoinIter(static_cast<const JoinIter*>(lhs), 0);
+    }
+
+    if (rhs->isSequentialIter()) {
+        buildIndexFromSeqIter(static_cast<const SequentialIter*>(rhs), nextSeg);
+    } else if (rhs->isJoinIter()) {
+        buildIndexFromJoinIter(static_cast<const JoinIter*>(rhs), nextSeg);
+    }
+}
+
+size_t JoinIter::buildIndexFromSeqIter(const SequentialIter* iter,
+                                       size_t segIdx) {
+    auto colIdxStart = colIndices_.size();
+    for (auto& col : iter->getColIndices()) {
+        colIndices_.emplace(col.first, std::make_pair(segIdx, col.second));
+        colIdxIndices_.emplace(col.second + colIdxStart,
+                               std::make_pair(segIdx, col.second));
+    }
+    return segIdx + 1;
+}
+
+size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
+    auto colIdxStart = colIndices_.size();
+    size_t nextSeg = 0;
+    for (auto& col : iter->getColIndices()) {
+        size_t newSeg = col.second.first + segIdx;
+        if (newSeg > nextSeg) {
+            nextSeg = newSeg;
+        }
+        colIndices_.emplace(col.first,
+                            std::make_pair(newSeg, col.second.second));
+    }
+    for (auto& col : iter->getColIdxIndices()) {
+        colIdxIndices_.emplace(
+            col.first + colIdxStart,
+            std::make_pair(col.second.first + segIdx, col.second.second));
+    }
+    return nextSeg;
+}
+
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
     switch (kind) {
         case Iterator::Kind::kDefault:
@@ -355,6 +400,9 @@ std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
             break;
         case Iterator::Kind::kGetNeighbors:
             os << "get neighbors";
+            break;
+        case Iterator::Kind::kJoin:
+            os << "join";
             break;
     }
     os << " iterator";
