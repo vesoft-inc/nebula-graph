@@ -18,48 +18,21 @@ protected:
     static void SetUpTestCase() {
         qctx_ = std::make_unique<QueryContext>();
         {
-            DataSet ds1;
-            ds1.colNames = {kVid,
-                            "_stats",
-                            "_tag:tag1:prop1:prop2",
-                            "_edge:+edge1:prop1:prop2:_dst:_rank",
-                            "_expr"};
-            for (auto i = 0; i < 5; ++i) {
+            DataSet ds;
+            ds.colNames = {kVid, "tag_prop", "edge_prop", kDst};
+            for (auto i = 0; i < 10; ++i) {
                 Row row;
                 // _vid
-                row.values.emplace_back(folly::to<std::string>(i));
-                // _stats = empty
-                row.values.emplace_back(Value());
-                // tag
-                List tag;
-                tag.values.emplace_back(0);
-                tag.values.emplace_back(1);
-                row.values.emplace_back(Value(tag));
-                // edges
-                List edges;
-                for (auto j = 0; j < 2; ++j) {
-                    List edge;
-                    for (auto k = 0; k < 2; ++k) {
-                        // prop1, prop2
-                        edge.values.emplace_back(k);
-                    }
-                    // _dst
-                    edge.values.emplace_back(folly::to<std::string>(i + 5 + j));
-                    // _rank
-                    edge.values.emplace_back(j);
-                    edges.values.emplace_back(std::move(edge));
-                }
-                row.values.emplace_back(edges);
-                // _expr = empty
-                row.values.emplace_back(Value());
-                ds1.rows.emplace_back(std::move(row));
+                row.values.emplace_back(folly::to<std::string>(i / 2));
+                row.values.emplace_back(i);
+                row.values.emplace_back(i + 1);
+                // _dst
+                row.values.emplace_back(folly::to<std::string>(i / 2 + 5 + i % 2));
+                ds.rows.emplace_back(std::move(row));
             }
-
-            List datasets;
-            datasets.values.emplace_back(std::move(ds1));
-            ResultBuilder builder;
-            builder.value(Value(std::move(datasets))).iter(Iterator::Kind::kGetNeighbors);
-            qctx_->ectx()->setResult("var1", builder.finish());
+            qctx_->ectx()->setResult(
+                "var1",
+                ResultBuilder().value(Value(std::move(ds))).finish());
         }
         {
             DataSet ds;
@@ -70,117 +43,126 @@ protected:
                 row.values.emplace_back(folly::to<std::string>(i));
                 ds.rows.emplace_back(std::move(row));
             }
-            qctx_->ectx()->setResult("var2",
-                                     ResultBuilder().value(Value(std::move(ds))).finish());
+            qctx_->ectx()->setResult(
+                "var2", ResultBuilder().value(Value(std::move(ds))).finish());
         }
         {
             DataSet ds;
-            ds.colNames = {kVid,
-                            "_stats",
-                            "_tag:tag1:prop1:prop2",
-                            "_edge:+edge1:prop1:prop2:_dst:_rank",
-                            "_expr"};
-            qctx_->ectx()->setResult("empty_var1",
-                                     ResultBuilder()
-                                         .value(Value(std::move(ds)))
-                                         .iter(Iterator::Kind::kGetNeighbors)
-                                         .finish());
+            ds.colNames = {kVid, "tag_prop", "edge_prop", kDst};
+            qctx_->ectx()->setResult(
+                "empty_var1",
+                ResultBuilder().value(Value(std::move(ds))).finish());
         }
         {
             DataSet ds;
             ds.colNames = {"src", "dst"};
-            qctx_->ectx()->setResult("empty_var2",
-                                     ResultBuilder().value(Value(std::move(ds))).finish());
+            qctx_->ectx()->setResult(
+                "empty_var2",
+                ResultBuilder().value(Value(std::move(ds))).finish());
         }
     }
 
-protected:
+    static void testJoin(std::string left, std::string right,
+                         DataSet& expected, int64_t line);
+
+   protected:
     static std::unique_ptr<QueryContext> qctx_;
 };
 
 std::unique_ptr<QueryContext> DataJoinTest::qctx_;
 
-#define JOIN(LEFT, RIGHT)                                                     \
-    VariablePropertyExpression key(new std::string(LEFT),                     \
-                                   new std::string("dst"));                   \
-    std::vector<Expression*> hashKeys = {&key};                               \
-    VariablePropertyExpression probe(new std::string(RIGHT),                  \
-                                     new std::string("_vid"));                \
-    std::vector<Expression*> probeKeys = {&probe};                            \
-    YieldColumns lhsCols;                                                     \
-    auto* lhsCol =                                                            \
-        new YieldColumn(new VariablePropertyExpression(                       \
-                            new std::string("var2"), new std::string("src")), \
-                        new std::string("src"));                              \
-    lhsCols.addColumn(lhsCol);                                                \
-    YieldColumns rhsCols;                                                     \
-    auto* rhsCol =                                                            \
-        new YieldColumn(new EdgePropertyExpression(new std::string("*"),      \
-                                                   new std::string(kDst)),    \
-                        new std::string("dst"));                              \
-    rhsCols.addColumn(rhsCol);                                                \
-                                                                              \
-    auto* plan = qctx_->plan();                                               \
-    auto* dataJoin =                                                          \
-        DataJoin::make(plan, nullptr, {LEFT, RIGHT}, std::move(hashKeys),     \
-                       std::move(probeKeys), &lhsCols, &rhsCols);             \
-    dataJoin->setColNames(std::vector<std::string>{"src", "dst"});            \
-                                                                              \
-    auto dataJoinExe =                                                        \
-        std::make_unique<DataJoinExecutor>(dataJoin, qctx_.get());            \
-    auto future = dataJoinExe->execute();                                     \
-    auto status = std::move(future).get();                                    \
-    EXPECT_TRUE(status.ok());                                                 \
+void DataJoinTest::testJoin(std::string left, std::string right,
+                            DataSet& expected, int64_t line) {
+    VariablePropertyExpression key(new std::string(left),
+                                   new std::string("dst"));
+    std::vector<Expression*> hashKeys = {&key};
+    VariablePropertyExpression probe(new std::string(right),
+                                     new std::string("_vid"));
+    std::vector<Expression*> probeKeys = {&probe};
+
+    auto* plan = qctx_->plan();
+    auto* dataJoin =
+        DataJoin::make(plan, nullptr, {left, right}, std::move(hashKeys),
+                       std::move(probeKeys));
+    dataJoin->setColNames(std::vector<std::string>{
+        "src", "dst", kVid, "tag_prop", "edge_prop", kDst});
+
+    auto dataJoinExe =
+        std::make_unique<DataJoinExecutor>(dataJoin, qctx_.get());
+    auto future = dataJoinExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok()) << "LINE: " << line;
     auto& result = qctx_->ectx()->getResult(dataJoin->varName());
 
-TEST_F(DataJoinTest, Join) {
-    // $var1 inner join $var2 on $var2.dst = $var1._vid
-    JOIN("var2", "var1")
+    DataSet resultDs;
+    resultDs.colNames = {
+        "src", "dst", kVid, "tag_prop", "edge_prop", kDst};
+    auto iter = result.iter();
+    for (; iter->valid(); iter->next()) {
+        const auto& cols = *iter->row();
+        Row row;
+        for (size_t i = 0; i < cols.size(); ++i) {
+            Value col = cols[i];
+            row.values.emplace_back(std::move(col));
+        }
+        resultDs.rows.emplace_back(std::move(row));
+    }
 
+    EXPECT_EQ(resultDs, expected) << "LINE: " << line;
+    EXPECT_EQ(result.state(), Result::State::kSuccess) << "LINE: " << line;
+}
+
+TEST_F(DataJoinTest, Join) {
     DataSet expected;
-    expected.colNames = {"src", "dst"};
+    expected.colNames = {
+        "src", "dst", kVid, "tag_prop", "edge_prop", kDst};
     for (auto i = 11; i < 16; ++i) {
         Row row1;
         row1.values.emplace_back(folly::to<std::string>(i));
+        row1.values.emplace_back(folly::to<std::string>(i % 11));
+        row1.values.emplace_back(folly::to<std::string>(i % 11));
+        row1.values.emplace_back(i % 11 * 2);
+        row1.values.emplace_back(i % 11 * 2 + 1);
         row1.values.emplace_back(folly::to<std::string>(i - 6));
         expected.rows.emplace_back(std::move(row1));
 
         Row row2;
         row2.values.emplace_back(folly::to<std::string>(i));
+        row2.values.emplace_back(folly::to<std::string>(i % 11));
+        row2.values.emplace_back(folly::to<std::string>(i % 11));
+        row2.values.emplace_back(i % 11 * 2 + 1);
+        row2.values.emplace_back(i % 11 * 2 + 2);
         row2.values.emplace_back(folly::to<std::string>(i - 5));
         expected.rows.emplace_back(std::move(row2));
     }
 
-    EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state(), Result::State::kSuccess);
+    // $var1 inner join $var2 on $var2.dst = $var1._vid
+    testJoin("var2", "var1", expected, __LINE__);
 }
 
 TEST_F(DataJoinTest, JoinEmpty) {
     {
-        JOIN("var2", "empty_var1")
-
         DataSet expected;
-        expected.colNames = {"src", "dst"};
-        EXPECT_EQ(result.value().getDataSet(), expected);
-        EXPECT_EQ(result.state(), Result::State::kSuccess);
+        expected.colNames = {
+            "src", "dst", kVid, "tag_prop", "edge_prop", kDst};
+
+        testJoin("var2", "empty_var1", expected, __LINE__);
     }
 
     {
-        JOIN("empty_var2", "var1")
-
         DataSet expected;
-        expected.colNames = {"src", "dst"};
-        EXPECT_EQ(result.value().getDataSet(), expected);
-        EXPECT_EQ(result.state(), Result::State::kSuccess);
+        expected.colNames = {
+            "src", "dst", kVid, "tag_prop", "edge_prop", kDst};
+
+        testJoin("empty_var2", "var1", expected, __LINE__);
     }
 
     {
-        JOIN("empty_var2", "empty_var1")
-
         DataSet expected;
-        expected.colNames = {"src", "dst"};
-        EXPECT_EQ(result.value().getDataSet(), expected);
-        EXPECT_EQ(result.state(), Result::State::kSuccess);
+        expected.colNames = {
+            "src", "dst", kVid, "tag_prop", "edge_prop", kDst};
+
+        testJoin("empty_var2", "empty_var1", expected, __LINE__);
     }
 }
 }  // namespace graph

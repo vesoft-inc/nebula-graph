@@ -31,6 +31,7 @@ public:
     virtual const Value& operator[](size_t) const = 0;
     virtual size_t size() const = 0;
     virtual Kind kind() const = 0;
+    virtual std::vector<const Row*> segments() const = 0;
 };
 
 class Iterator {
@@ -345,6 +346,9 @@ private:
             return Kind::kGetNeighbors;
         }
 
+        std::vector<const Row*> segments() const override {
+            return { row_ };
+        }
         size_t dsIdx_;
         const Row* row_;
         std::string edgeName_;
@@ -388,6 +392,10 @@ public:
 
         LogicalRow::Kind kind() const override {
             return Kind::kSequential;
+        }
+
+        std::vector<const Row*> segments() const override {
+            return { row_ };
         }
 
         const Row* row_;
@@ -528,7 +536,7 @@ public:
     public:
         explicit LogicalRowJoin(
             std::vector<const Row*> values, size_t size,
-            std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
+            const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
             : values_(std::move(values)),
             size_(size),
             colIdxIndices_(colIdxIndices) {}
@@ -558,14 +566,24 @@ public:
             return Kind::kJoin;
         }
 
+        std::vector<const Row*> segments() const override {
+            return values_;
+        }
+
         std::vector<const Row*> values_;
         size_t size_;
-        std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
+        const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
     };
 
-    JoinIter() : Iterator(nullptr, Kind::kJoin) {}
+    JoinIter() : Iterator(nullptr, Kind::kJoin) {
+        iter_ = rows_.begin();
+    }
 
     void joinIndex(const Iterator* lhs, const Iterator* rhs);
+
+    void addRow(LogicalRowJoin row) {
+        rows_.emplace_back(std::move(row));
+    }
 
     size_t buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx);
 

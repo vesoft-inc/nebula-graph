@@ -8,6 +8,7 @@
 
 #include "planner/Query.h"
 #include "context/QueryExpressionContext.h"
+#include "context/Iterator.h"
 
 namespace nebula {
 namespace graph {
@@ -15,25 +16,24 @@ folly::Future<Status> DataJoinExecutor::execute() {
     dumpLog();
     auto* dataJoin = asNode<DataJoin>(node());
 
-    auto map = buildHashTable(dataJoin->hashKeys(), dataJoin->lhsCols()->columns(),
-                              dataJoin->vars().first);
-    DataSet result;
+    auto lhsIter = ectx_->getResult(dataJoin->vars().first).iter();
+    DCHECK(!!lhsIter);
+    auto map = buildHashTable(dataJoin->hashKeys(), lhsIter.get());
+
+    auto rhsIter = ectx_->getResult(dataJoin->vars().second).iter();
+    DCHECK(!!rhsIter);
+    auto resultIter = std::make_unique<JoinIter>();
+    resultIter->joinIndex(lhsIter.get(), rhsIter.get());
     if (!map.empty()) {
-        result = probe(map, dataJoin->probeKeys(), dataJoin->rhsCols()->columns(),
-                        dataJoin->vars().second);
+        probe(map, dataJoin->probeKeys(), rhsIter.get(), resultIter.get());
     }
-    result.colNames = dataJoin->colNames();
-    return finish(ResultBuilder().value(Value(std::move(result))).finish());
+    return finish(ResultBuilder().iter(std::move(std::move(resultIter))).finish());
 }
 
-std::unordered_map<List, std::vector<Value>> DataJoinExecutor::buildHashTable(
-    const std::vector<Expression*>& hashKeys,
-    const std::vector<YieldColumn*>& cols,
-    const std::string& var) {
-    auto iter = ectx_->getResult(var).iter();
-    DCHECK(!!iter);
-    QueryExpressionContext ctx(ectx_, iter.get());
-    std::unordered_map<List, std::vector<Value>> map;
+std::unordered_map<List, const LogicalRow*> DataJoinExecutor::buildHashTable(
+    const std::vector<Expression*>& hashKeys, Iterator* iter) {
+    QueryExpressionContext ctx(ectx_, iter);
+    std::unordered_map<List, const LogicalRow*> map;
     for (; iter->valid(); iter->next()) {
         List list;
         list.values.reserve(hashKeys.size());
@@ -42,28 +42,17 @@ std::unordered_map<List, std::vector<Value>> DataJoinExecutor::buildHashTable(
             list.values.emplace_back(std::move(val));
         }
 
-        std::vector<Value> values;
-        values.reserve(cols.size());
-        for (auto& col : cols) {
-            Value val = col->expr()->eval(ctx);
-            values.emplace_back(std::move(val));
-        }
-
-        map.emplace(std::move(list), std::move(values));
+        map.emplace(std::move(list), iter->row());
     }
 
     return map;
 }
 
-DataSet DataJoinExecutor::probe(
-    const std::unordered_map<List, std::vector<Value>>& map,
-    const std::vector<Expression*>& probeKeys,
-    const std::vector<YieldColumn*>& cols,
-    const std::string& var) {
-    auto iter = ectx_->getResult(var).iter();
-    DCHECK(!!iter);
-    QueryExpressionContext ctx(ectx_, iter.get());
-    DataSet result;
+void DataJoinExecutor::probe(
+    const std::unordered_map<List, const LogicalRow*>& map,
+    const std::vector<Expression*>& probeKeys, Iterator* iter,
+    JoinIter* resultIter) {
+    QueryExpressionContext ctx(ectx_, iter);
 
     for (; iter->valid(); iter->next()) {
         List list;
@@ -75,19 +64,21 @@ DataSet DataJoinExecutor::probe(
 
         auto found = map.find(list);
         if (found != map.end()) {
-            Row row;
-            row.values.reserve(found->second.size());
-            row.values.insert(row.values.begin(), found->second.begin(), found->second.end());
-            row.values.reserve(cols.size());
-            for (auto& col : cols) {
-                Value val = col->expr()->eval(ctx);
-                row.values.emplace_back(std::move(val));
-            }
-            result.rows.emplace_back(std::move(row));
+            auto lSegs = found->second->segments();
+            std::vector<const Row*> values;
+            values.insert(values.end(),
+                          std::make_move_iterator(lSegs.begin()),
+                          std::make_move_iterator(lSegs.end()));
+            auto rSegs = iter->row()->segments();
+            values.insert(values.end(),
+                          std::make_move_iterator(rSegs.begin()),
+                          std::make_move_iterator(rSegs.end()));
+            size_t size = found->second->size() + iter->row()->size();
+            JoinIter::LogicalRowJoin row(std::move(values), size,
+                                         &resultIter->getColIdxIndices());
+            resultIter->addRow(std::move(row));
         }
     }
-
-    return result;
 }
 }  // namespace graph
 }  // namespace nebula

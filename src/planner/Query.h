@@ -980,11 +980,9 @@ public:
                           PlanNode* input,
                           std::pair<std::string, std::string> vars,
                           std::vector<Expression*> hashKeys,
-                          std::vector<Expression*> probeKeys,
-                          YieldColumns* lhsCols,
-                          YieldColumns* rhsCols) {
+                          std::vector<Expression*> probeKeys) {
         return new DataJoin(plan, input, std::move(vars), std::move(hashKeys),
-                            std::move(probeKeys), lhsCols, rhsCols);
+                            std::move(probeKeys));
     }
 
     std::string explain() const override {
@@ -1003,32 +1001,19 @@ public:
         return probeKeys_;
     }
 
-    const YieldColumns* lhsCols() const {
-        return lhsCols_;
-    }
-
-    const YieldColumns* rhsCols() const {
-        return rhsCols_;
-    }
-
 private:
     DataJoin(ExecutionPlan* plan, PlanNode* input,
             std::pair<std::string, std::string> vars,
-            std::vector<Expression*> hashKeys, std::vector<Expression*> probeKeys,
-            YieldColumns* lhsCols, YieldColumns* rhsCols)
+            std::vector<Expression*> hashKeys, std::vector<Expression*> probeKeys)
         : SingleInputNode(plan, Kind::kDataJoin, input),
         vars_(std::move(vars)),
         hashKeys_(std::move(hashKeys)),
-        probeKeys_(std::move(probeKeys)),
-        lhsCols_(lhsCols),
-        rhsCols_(rhsCols) {}
+        probeKeys_(std::move(probeKeys)) {}
 
 private:
     std::pair<std::string, std::string>     vars_;
     std::vector<Expression*>                hashKeys_;
     std::vector<Expression*>                probeKeys_;
-    YieldColumns*                           lhsCols_{nullptr};
-    YieldColumns*                           rhsCols_{nullptr};
 };
 
 class ProduceSemiShortestPath : public PlanNode {

@@ -19,15 +19,12 @@ public:
     folly::Future<Status> execute() override;
 
 private:
-    std::unordered_map<List, std::vector<Value>> buildHashTable(
-        const std::vector<Expression*>& hashKeys,
-        const std::vector<YieldColumn*>& cols,
-        const std::string& var);
+    std::unordered_map<List, const LogicalRow*> buildHashTable(
+        const std::vector<Expression*>& hashKeys, Iterator* iter);
 
-    DataSet probe(const std::unordered_map<List, std::vector<Value>>& map,
-                  const std::vector<Expression*>& probeKeys,
-                  const std::vector<YieldColumn*>& cols,
-                  const std::string& var);
+    void probe(const std::unordered_map<List, const LogicalRow*>& map,
+                const std::vector<Expression*>& probeKeys, Iterator* iter,
+                JoinIter* resultIter);
 };
 }  // namespace graph
 }  // namespace nebula

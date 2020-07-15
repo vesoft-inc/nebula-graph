@@ -54,6 +54,7 @@ folly::Future<Status> SortExecutor::execute() {
         };
         std::sort(seqIter->begin(), seqIter->end(), comparator);
     }
+    // TODO: Sort the join iter.
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
 }
 
