@@ -431,6 +431,9 @@ alias_ref_expression
     | name_label DOT RANK_PROP {
         $$ = new EdgeRankExpression($1);
     }
+    | ID_PROP {
+        $$ = new VidExpression();
+    }
     ;
 
 function_call_expression

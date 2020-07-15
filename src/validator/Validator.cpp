@@ -468,6 +468,9 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kEdgeDst: {
             return Value::Type::STRING;
         }
+        case Expression::Kind::kVertexId: {
+            return Value::Type::STRING;
+        }
         case Expression::Kind::kUUID: {
             return Value::Type::STRING;
         }
@@ -549,6 +552,10 @@ Status Validator::deduceProps(const Expression* expr) {
             props.emplace_back(*edgePropExpr->prop());
             break;
         }
+        case Expression::Kind::kVertexId: {
+            // TODO
+            LOG(FATAL) << "Unimplemented";
+        }
         case Expression::Kind::kInputProperty: {
             auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto* prop = inputPropExpr->prop();
@@ -629,6 +636,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kEdgeType:
         case Expression::Kind::kEdgeRank:
         case Expression::Kind::kEdgeDst:
+        case Expression::Kind::kVertexId:
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:

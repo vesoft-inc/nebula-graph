@@ -370,7 +370,7 @@ RECOVER                     ([Rr][Ee][Cc][Oo][Vv][Ee][Rr])
 
 "<-"                        { return TokenType::L_ARROW; }
 "->"                        { return TokenType::R_ARROW; }
-"_id"                       { return TokenType::ID_PROP; }
+"_vid"                      { return TokenType::ID_PROP; }
 "_type"                     { return TokenType::TYPE_PROP; }
 "_src"                      { return TokenType::SRC_ID_PROP; }
 "_dst"                      { return TokenType::DST_ID_PROP; }
