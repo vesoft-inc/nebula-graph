@@ -4,38 +4,36 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "common/base/Base.h"
-
 #include "service/QueryInstance.h"
+
+#include "common/base/Base.h"
 
 #include "exec/ExecutionError.h"
 #include "exec/Executor.h"
 #include "planner/ExecutionPlan.h"
 #include "planner/PlanNode.h"
+#include "scheduler/Scheduler.h"
 
 namespace nebula {
 namespace graph {
 
 void QueryInstance::execute() {
-    auto *rctx = ectx()->rctx();
+    auto *rctx = qctx()->rctx();
     VLOG(1) << "Parsing query: " << rctx->query();
 
     Status status;
-    plan_ = std::make_unique<ExecutionPlan>(ectx());
     do {
         auto result = GQLParser().parse(rctx->query());
         if (!result.ok()) {
             status = std::move(result).status();
-            LOG(ERROR) << status;
+            LOG(ERROR) << "Parser: `" << rctx->query() << "' error: " << status;
             break;
         }
 
         sentences_ = std::move(result).value();
-        validator_ = std::make_unique<ASTValidator>(
-            sentences_.get(), rctx->session(), ectx()->schemaManager(), ectx_->getCharsetInfo());
-        status = validator_->validate(plan_.get());
+        validator_ = std::make_unique<ASTValidator>(sentences_.get(), qctx());
+        status = validator_->validate();
         if (!status.ok()) {
-            LOG(ERROR) << status;
             break;
         }
 
@@ -43,11 +41,12 @@ void QueryInstance::execute() {
     } while (false);
 
     if (!status.ok()) {
+        LOG(ERROR) << status;
         onError(std::move(status));
         return;
     }
 
-    plan_->execute()
+    scheduler_->schedule()
         .then([this](Status s) {
             if (s.ok()) {
                 this->onFinish();
@@ -60,17 +59,22 @@ void QueryInstance::execute() {
 }
 
 void QueryInstance::onFinish() {
-    auto *rctx = ectx()->rctx();
+    auto *rctx = qctx()->rctx();
     // executor_->setupResponse(rctx->resp());
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().set_latency_in_us(latency);
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
-    auto value = ectx()->getValue(plan_->root()->varName());
-    if (!value.empty()) {
-        std::vector<DataSet> data;
-        data.emplace_back(value.moveDataSet());
-        rctx->resp().set_data(std::move(data));
+    auto&& value = qctx()->ectx()->moveValue(qctx()->plan()->root()->varName());
+    if (value.type() == Value::Type::DATASET) {
+        auto result = value.moveDataSet();
+        if (!result.colNames.empty()) {
+            rctx->resp().set_data(std::move(result));
+        } else {
+            LOG(ERROR) << "Empty column name list";
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
+            rctx->resp().set_error_msg("Internal error: empty column name list");
+        }
     }
     rctx->finish();
 
@@ -82,7 +86,7 @@ void QueryInstance::onFinish() {
 }
 
 void QueryInstance::onError(Status status) {
-    auto *rctx = ectx()->rctx();
+    auto *rctx = qctx()->rctx();
     if (status.isSyntaxError()) {
         rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);
     } else if (status.isStatementEmpty()) {
@@ -92,7 +96,7 @@ void QueryInstance::onError(Status status) {
     }
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
-    // rctx->resp().set_error_msg(status.toString());
+    rctx->resp().set_error_msg(status.toString());
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().set_latency_in_us(latency);
     rctx->finish();

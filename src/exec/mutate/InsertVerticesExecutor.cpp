@@ -5,10 +5,11 @@
  */
 
 #include "exec/mutate/InsertVerticesExecutor.h"
-#include "planner/Mutate.h"
-#include "service/ExecutionContext.h"
+
 #include "common/clients/storage/GraphStorageClient.h"
 
+#include "planner/Mutate.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -21,8 +22,12 @@ folly::Future<Status> InsertVerticesExecutor::insertVertices() {
     dumpLog();
 
     auto *ivNode = asNode<InsertVertices>(node());
-    return ectx()->getStorageClient()->addVertices(ivNode->space(),
-            ivNode->getVertices(), ivNode->getPropNames(), ivNode->getOverwritable())
+    return qctx()
+        ->getStorageClient()
+        ->addVertices(ivNode->getSpace(),
+                      ivNode->getVertices(),
+                      ivNode->getPropNames(),
+                      ivNode->getOverwritable())
         .via(runner())
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
             auto completeness = resp.completeness();
@@ -36,8 +41,7 @@ folly::Future<Status> InsertVerticesExecutor::insertVertices() {
                 return Status::Error("Insert vertices not complete, completeness: %d",
                                       completeness);
             }
-            finish(Value());
-            return Status::OK();
+            return finish(ResultBuilder().value(Value()).iter(Iterator::Kind::kDefault).finish());
         });
 }
 }   // namespace graph

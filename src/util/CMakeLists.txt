@@ -8,3 +8,10 @@ nebula_add_library(
     util_obj OBJECT
     SchemaUtil.cpp
 )
+
+nebula_add_library(
+    idgenerator_obj OBJECT
+    IdGenerator.cpp
+)
+
+nebula_add_subdirectory(test)

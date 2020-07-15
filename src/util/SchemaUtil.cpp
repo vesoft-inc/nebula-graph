@@ -5,7 +5,8 @@
 */
 
 #include "common/base/Base.h"
-#include "SchemaUtil.h"
+#include "util/SchemaUtil.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -76,6 +77,21 @@ Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps
     }
 
     return Status::OK();
+}
+
+// static
+std::shared_ptr<const meta::NebulaSchemaProvider>
+SchemaUtil::generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema &schema) {
+    auto schemaPtr = std::make_shared<meta::NebulaSchemaProvider>(ver);
+    for (auto col : schema.get_columns()) {
+        bool hasDef = col.__isset.default_value;
+        schemaPtr->addField(col.get_name(),
+                            col.get_type(),
+                            col.__isset.type_length ? *col.get_type_length() : 0,
+                            col.__isset.nullable ? *col.get_nullable() : false,
+                            hasDef ? *col.get_default_value() : Value());
+    }
+    return schemaPtr;
 }
 
 // static
@@ -179,6 +195,10 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
     }
 
     auto  ttlColName = ret.value();
+    if (ttlColName.empty()) {
+        schema.schema_prop.set_ttl_col("");
+        return Status::OK();
+    }
     // Check the legality of the ttl column name
     for (auto& col : schema.columns) {
         if (col.name == ttlColName) {
@@ -197,7 +217,8 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 
 // static
 StatusOr<VertexID> SchemaUtil::toVertexID(Expression *expr) {
-    auto vertexId = expr->eval();
+    QueryExpressionContext ctx(nullptr, nullptr);
+    auto vertexId = expr->eval(ctx);
     if (vertexId.type() != Value::Type::STRING) {
         LOG(ERROR) << "Wrong vertex id type";
         return Status::Error("Wrong vertex id type");
@@ -210,10 +231,11 @@ StatusOr<std::vector<Value>>
 SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
     std::vector<Value> values;
     values.reserve(exprs.size());
+    QueryExpressionContext ctx(nullptr, nullptr);
     for (auto *expr : exprs) {
-        auto value = expr->eval();
-         if (value.isNull()) {
-            LOG(ERROR) << "Wrong value type";
+        auto value = expr->eval(ctx);
+         if (value.isNull() && value.getNull() != NullType::__NULL__) {
+            LOG(ERROR) << "Wrong value type: " << value.type();;
             return Status::Error("Wrong value type");
         }
         values.emplace_back(std::move(value));
@@ -222,21 +244,76 @@ SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
 }
 
 StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
-    DataSet dataSet;
-    dataSet.colNames = {"Field", "Type", "Null", "Default"};
-    std::vector<Row> rows;
+    DataSet dataSet({"Field", "Type", "Null", "Default"});
     for (auto &col : schema.get_columns()) {
-        std::vector<Value> columns;
-        columns.emplace_back(Value(col.get_name()));
-        columns.emplace_back(typeToString(col));
-        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
-        columns.emplace_back(nullable ? "YES" : "NO");
-        columns.emplace_back(col.get_default_value());
         Row row;
-        row.columns = std::move(columns);
-        rows.emplace_back(row);
+        row.values.emplace_back(Value(col.get_name()));
+        row.values.emplace_back(typeToString(col));
+        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        row.values.emplace_back(nullable ? "YES" : "NO");
+        auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
+        row.values.emplace_back(std::move(defaultValue));
+        dataSet.emplace_back(std::move(row));
     }
-    dataSet.rows = std::move(rows);
+    return dataSet;
+}
+
+StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
+                                                 const std::string &name,
+                                                 const meta::cpp2::Schema &schema) {
+    DataSet dataSet;
+    std::string createStr;
+    createStr.resize(1024);
+    if (isTag) {
+        dataSet.colNames = {"Tag", "Create Tag"};
+        createStr = "CREATE TAG `" + name + "` (\n";
+    } else {
+        dataSet.colNames = {"Edge", "Create Edge"};
+        createStr = "CREATE EDGE `" + name + "` (\n";
+    }
+    Row row;
+    row.emplace_back(name);
+    for (auto &col : schema.get_columns()) {
+        createStr += " `" + col.get_name() + "`";
+        createStr += " " + typeToString(col);
+        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        if (!nullable) {
+            createStr += " NOT NULL";
+        } else {
+            createStr += " NULL";
+        }
+
+        if (col.__isset.default_value) {
+            auto value = col.get_default_value();
+            auto toStr = value->toString();
+            if (value->isNumeric() || value->isBool()) {
+                createStr += " DEFAULT " + toStr;
+            } else {
+                createStr += " DEFAULT \"" + toStr + "\"";
+            }
+        }
+        createStr += ",\n";
+    }
+    if (!schema.columns.empty()) {
+        createStr.resize(createStr.size() -2);
+        createStr += "\n";
+    }
+    createStr += ")";
+    auto prop = schema.get_schema_prop();
+    createStr += " ttl_duration = ";
+    if (prop.__isset.ttl_duration) {
+        createStr += folly::to<std::string>(*prop.get_ttl_duration());
+    } else {
+        createStr += "0";
+    }
+    createStr += ", ttl_col = ";
+    if (prop.__isset.ttl_col && !(prop.get_ttl_col()->empty())) {
+        createStr += "\"" + *prop.get_ttl_col() + "\"";
+    } else {
+        createStr += "\"\"";
+    }
+    row.emplace_back(std::move(createStr));
+    dataSet.rows.emplace_back(std::move(row));
     return dataSet;
 }
 
@@ -274,6 +351,34 @@ std::string SchemaUtil::typeToString(const meta::cpp2::ColumnDef &col) {
             return "";
     }
     return "";
+}
+
+Value::Type SchemaUtil::propTypeToValueType(meta::cpp2::PropertyType propType) {
+    switch (propType) {
+        case meta::cpp2::PropertyType::BOOL:
+            return Value::Type::BOOL;
+        case meta::cpp2::PropertyType::INT8:
+        case meta::cpp2::PropertyType::INT16:
+        case meta::cpp2::PropertyType::INT32:
+        case meta::cpp2::PropertyType::INT64:
+        case meta::cpp2::PropertyType::TIMESTAMP:
+            return Value::Type::INT;
+        case meta::cpp2::PropertyType::VID:
+            return Value::Type::STRING;
+        case meta::cpp2::PropertyType::FLOAT:
+        case meta::cpp2::PropertyType::DOUBLE:
+            return Value::Type::FLOAT;
+        case meta::cpp2::PropertyType::STRING:
+        case meta::cpp2::PropertyType::FIXED_STRING:
+            return Value::Type::STRING;
+        case meta::cpp2::PropertyType::DATE:
+            return Value::Type::DATE;
+        case meta::cpp2::PropertyType::DATETIME:
+            return Value::Type::DATETIME;
+        case meta::cpp2::PropertyType::UNKNOWN:
+            return Value::Type::__EMPTY__;
+    }
+    return Value::Type::__EMPTY__;
 }
 }  // namespace graph
 }  // namespace nebula

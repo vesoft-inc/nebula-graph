@@ -6,15 +6,19 @@
 
 #include "exec/query/UnionExecutor.h"
 
-#include "planner/PlanNode.h"
+#include "context/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> UnionExecutor::execute() {
     dumpLog();
-    // TODO(yee): implement union results of left and right inputs
-    return start();
+    NG_RETURN_IF_ERROR(checkInputDataSets());
+    auto left = getLeftInputDataIter();
+    auto right = getRightInputDataIter();
+    auto value = left->valuePtr();
+    auto iter = std::make_unique<SequentialIter>(std::move(left), std::move(right));
+    return finish(ResultBuilder().value(value).iter(std::move(iter)).finish());
 }
 
 }   // namespace graph

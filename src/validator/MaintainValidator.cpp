@@ -17,92 +17,303 @@
 namespace nebula {
 namespace graph {
 Status CreateTagValidator::validateImpl() {
+    auto sentence = static_cast<CreateTagSentence*>(sentence_);
     auto status = Status::OK();
-    tagName_ = *sentence_->name();
-    ifNotExist_ = sentence_->isIfNotExist();
+    name_ = *sentence->name();
+    ifNotExist_ = sentence->isIfNotExist();
     do {
-        status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
+        // Check the validateContext has the same name schema
+        auto pro = vctx_->getSchema(name_);
+        if (pro != nullptr) {
+            status = Status::Error("Has the same name `%s' in the SequentialSentences",
+                                    name_.c_str());
+            break;
+        }
+
+        status = SchemaUtil::validateColumns(sentence->columnSpecs(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
         }
-        status = SchemaUtil::validateProps(sentence_->getSchemaProps(), schema_);
+        status = SchemaUtil::validateProps(sentence->getSchemaProps(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
         }
     } while (false);
+    // Save the schema in validateContext
+    if (status.ok()) {
+        auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
+        vctx_->addSchema(name_, schemaPro);
+    }
     return status;
 }
 
 Status CreateTagValidator::toPlan() {
-    auto* plan = validateContext_->plan();
-    auto *doNode = CreateTag::make(plan,
-                                   validateContext_->whichSpace().id,
-                                   tagName_,
-                                   schema_,
-                                   ifNotExist_);
+    auto *plan = qctx_->plan();
+    auto doNode = CreateTag::make(plan,
+            plan->root(), std::move(name_), std::move(schema_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status CreateEdgeValidator::validateImpl() {
+    auto sentence = static_cast<CreateEdgeSentence*>(sentence_);
     auto status = Status::OK();
-    edgeName_ = *sentence_->name();
-    ifNotExist_ = sentence_->isIfNotExist();
+    name_ = *sentence->name();
+    ifNotExist_ = sentence->isIfNotExist();
     do {
-        status = SchemaUtil::validateColumns(sentence_->columnSpecs(), schema_);
+        // Check the validateContext has the same name schema
+        auto pro = vctx_->getSchema(name_);
+        if (pro != nullptr) {
+            status = Status::Error("Has the same name `%s' in the SequentialSentences",
+                                    name_.c_str());
+            break;
+        }
+
+        status = SchemaUtil::validateColumns(sentence->columnSpecs(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
         }
-        status = SchemaUtil::validateProps(sentence_->getSchemaProps(), schema_);
+        status = SchemaUtil::validateProps(sentence->getSchemaProps(), schema_);
         if (!status.ok()) {
             VLOG(1) << status;
             break;
         }
     } while (false);
+
+    // Save the schema in validateContext
+    if (status.ok()) {
+        auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
+        vctx_->addSchema(name_, schemaPro);
+    }
     return status;
 }
 
 Status CreateEdgeValidator::toPlan() {
-    auto* plan = validateContext_->plan();
-    auto *doNode = CreateEdge::make(plan,
-                                    validateContext_->whichSpace().id,
-                                    edgeName_,
-                                    schema_,
-                                    ifNotExist_);
+    auto *plan = qctx_->plan();
+    auto doNode = CreateEdge::make(plan,
+            plan->root(), std::move(name_), std::move(schema_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status DescTagValidator::validateImpl() {
-    tagName_ = *sentence_->name();
     return Status::OK();
 }
 
 Status DescTagValidator::toPlan() {
-    auto* plan = validateContext_->plan();
-    auto *doNode = DescTag::make(plan,
-                                 validateContext_->whichSpace().id,
-                                 tagName_);
+    auto sentence = static_cast<DescribeTagSentence*>(sentence_);
+    auto name = *sentence->name();
+    auto *plan = qctx_->plan();
+    auto doNode = DescTag::make(plan, nullptr, std::move(name));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
 }
 
 Status DescEdgeValidator::validateImpl() {
-    edgeName_ = *sentence_->name();
     return Status::OK();
 }
 
 Status DescEdgeValidator::toPlan() {
-    auto* plan = validateContext_->plan();
-    auto *doNode = DescEdge::make(plan,
-                                  validateContext_->whichSpace().id,
-                                  edgeName_);
+    auto sentence = static_cast<DescribeEdgeSentence*>(sentence_);
+    auto name = *sentence->name();
+    auto *plan = qctx_->plan();
+    auto doNode = DescEdge::make(plan, nullptr, std::move(name));
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem*>& schemaOpts,
+                                   const std::vector<SchemaPropItem*>& schemaProps) {
+        for (auto& schemaOpt : schemaOpts) {
+            meta::cpp2::AlterSchemaItem schemaItem;
+            auto opType = schemaOpt->toType();
+            schemaItem.set_op(opType);
+            meta::cpp2::Schema schema;
+            if (opType == meta::cpp2::AlterSchemaOp::DROP) {
+                const auto& colNames = schemaOpt->columnNames();
+                for (auto& colName : colNames) {
+                    meta::cpp2::ColumnDef column;
+                    column.name = *colName;
+                    schema.columns.emplace_back(std::move(column));
+                }
+            } else {
+                const auto& specs = schemaOpt->columnSpecs();
+                for (auto& spec : specs) {
+                    meta::cpp2::ColumnDef column;
+                    column.name = *spec->name();
+                    column.type = spec->type();
+                    if (spec->hasDefaultValue()) {
+                        column.set_default_value(spec->getDefaultValue());
+                    }
+                    if (spec->type() == meta::cpp2::PropertyType::FIXED_STRING) {
+                        column.set_type_length(spec->typeLen());
+                    }
+                    if (spec->isNull()) {
+                        column.set_nullable(true);
+                    }
+                    schema.columns.emplace_back(std::move(column));
+                }
+            }
+
+            schemaItem.set_schema(std::move(schema));
+            schemaItems_.emplace_back(std::move(schemaItem));
+        }
+
+        for (auto& schemaProp : schemaProps) {
+            auto propType = schemaProp->getPropType();
+            StatusOr<int64_t> retInt;
+            StatusOr<std::string> retStr;
+            int ttlDuration;
+            switch (propType) {
+                case SchemaPropItem::TTL_DURATION:
+                    retInt = schemaProp->getTtlDuration();
+                    if (!retInt.ok()) {
+                        return retInt.status();
+                    }
+                    ttlDuration = retInt.value();
+                    schemaProp_.set_ttl_duration(ttlDuration);
+                    break;
+                case SchemaPropItem::TTL_COL:
+                    // Check the legality of the column in meta
+                    retStr = schemaProp->getTtlCol();
+                    if (!retStr.ok()) {
+                        return retStr.status();
+                    }
+                    schemaProp_.set_ttl_col(retStr.value());
+                    break;
+                default:
+                    return Status::Error("Property type not support");
+            }
+        }
+        return Status::OK();
+}
+
+Status AlterTagValidator::validateImpl() {
+    auto sentence = static_cast<AlterTagSentence*>(sentence_);
+    name_ = *sentence->name();
+    return alterSchema(sentence->getSchemaOpts(), sentence->getSchemaProps());
+}
+
+Status AlterTagValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = AlterTag::make(plan,
+                                  nullptr,
+                                  vctx_->whichSpace().id,
+                                  std::move(name_),
+                                  std::move(schemaItems_),
+                                  std::move(schemaProp_));
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status AlterEdgeValidator::validateImpl() {
+    auto sentence = static_cast<AlterEdgeSentence*>(sentence_);
+    name_ = *sentence->name();
+    return alterSchema(sentence->getSchemaOpts(), sentence->getSchemaProps());
+}
+
+Status AlterEdgeValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = AlterEdge::make(plan,
+                                   nullptr,
+                                   vctx_->whichSpace().id,
+                                   std::move(name_),
+                                   std::move(schemaItems_),
+                                   std::move(schemaProp_));
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowTagsValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowTagsValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = ShowTags::make(plan, nullptr);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowEdgesValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowEdgesValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = ShowEdges::make(plan, nullptr);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowCreateTagValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowCreateTagValidator::toPlan() {
+    auto sentence = static_cast<ShowCreateTagSentence*>(sentence_);
+    auto* plan = qctx_->plan();
+    auto *doNode = ShowCreateTag::make(plan,
+                                       nullptr,
+                                      *sentence->name());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowCreateEdgeValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowCreateEdgeValidator::toPlan() {
+    auto sentence = static_cast<ShowCreateEdgeSentence*>(sentence_);
+    auto* plan = qctx_->plan();
+    auto *doNode = ShowCreateEdge::make(plan,
+                                        nullptr,
+                                       *sentence->name());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status DropTagValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status DropTagValidator::toPlan() {
+    auto sentence = static_cast<DropTagSentence*>(sentence_);
+    auto* plan = qctx_->plan();
+    auto *doNode = DropTag::make(plan,
+                                 nullptr,
+                                *sentence->name(),
+                                 sentence->isIfExists());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status DropEdgeValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status DropEdgeValidator::toPlan() {
+    auto sentence = static_cast<DropEdgeSentence*>(sentence_);
+    auto* plan = qctx_->plan();
+    auto *doNode = DropEdge::make(plan,
+                                  nullptr,
+                                 *sentence->name(),
+                                  sentence->isIfExists());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

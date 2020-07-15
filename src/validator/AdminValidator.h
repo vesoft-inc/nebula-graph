@@ -17,9 +17,8 @@ namespace nebula {
 namespace graph {
 class CreateSpaceValidator final : public Validator {
 public:
-    CreateSpaceValidator(Sentence* sentence, ValidateContext* context)
-            : Validator(sentence, context) {
-        sentence_ = static_cast<CreateSpaceSentence*>(sentence);
+    CreateSpaceValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -29,16 +28,14 @@ private:
     Status toPlan() override;
 
 private:
-    CreateSpaceSentence               *sentence_{nullptr};
     meta::SpaceDesc                    spaceDesc_;
     bool                               ifNotExist_;
 };
 
 class DescSpaceValidator final : public Validator {
 public:
-    DescSpaceValidator(Sentence* sentence, ValidateContext* context)
-            : Validator(sentence, context) {
-        sentence_ = static_cast<DescribeSpaceSentence*>(sentence);
+    DescSpaceValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -46,12 +43,85 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    DescribeSpaceSentence                   *sentence_{nullptr};
-    std::string                              spaceName_;
 };
 
+class ShowSpacesValidator final : public Validator {
+public:
+    ShowSpacesValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropSpaceValidator final : public Validator {
+public:
+    DropSpaceValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowCreateSpaceValidator final : public Validator {
+public:
+    ShowCreateSpaceValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class CreateSnapshotValidator final : public Validator {
+public:
+    CreateSnapshotValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropSnapshotValidator final : public Validator {
+public:
+    DropSnapshotValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowSnapshotsValidator final : public Validator {
+public:
+    ShowSnapshotsValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_ADMINVALIDATOR_H_

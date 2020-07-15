@@ -8,7 +8,7 @@
 
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
-#include "common/expression/AliasPropertyExpression.h"
+#include "common/expression/SymbolPropertyExpression.h"
 #include "common/expression/ArithmeticExpression.h"
 #include "common/expression/ConstantExpression.h"
 #include "common/expression/FunctionCallExpression.h"
@@ -54,7 +54,25 @@ public:
         kUpdateVertex,
         kInsertEdges,
         kUpdateEdge,
-        kShow,
+        kShowHosts,
+        kShowSpaces,
+        kShowParts,
+        kShowTags,
+        kShowEdges,
+        kShowTagIndexes,
+        kShowEdgeIndexes,
+        kShowUsers,
+        kShowRoles,
+        kShowCreateSpace,
+        kShowCreateTag,
+        kShowCreateEdge,
+        kShowCreateTagIndex,
+        kShowCreateEdgeIndex,
+        kShowTagIndexStatus,
+        kShowEdgeIndexStatus,
+        kShowSnapshots,
+        kShowCharset,
+        kShowCollation,
         kDeleteVertex,
         kDeleteEdges,
         kLookup,

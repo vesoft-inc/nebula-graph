@@ -7,15 +7,15 @@
 #ifndef EXEC_QUERY_MINUSEXECUTOR_H_
 #define EXEC_QUERY_MINUSEXECUTOR_H_
 
-#include "exec/Executor.h"
+#include "exec/query/SetExecutor.h"
 
 namespace nebula {
 namespace graph {
 
-class MinusExecutor : public Executor {
+class MinusExecutor : public SetExecutor {
 public:
-    MinusExecutor(const PlanNode *node, ExecutionContext *ectx)
-        : Executor("MinusExecutor", node, ectx) {}
+    MinusExecutor(const PlanNode *node, QueryContext *qctx)
+        : SetExecutor("MinusExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };

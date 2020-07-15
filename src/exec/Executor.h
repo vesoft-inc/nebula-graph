@@ -18,29 +18,33 @@
 #include "common/cpp/helpers.h"
 #include "common/datatypes/Value.h"
 
+#include "context/ExecutionContext.h"
+
 namespace nebula {
 namespace graph {
 
 class PlanNode;
-class ExecutionContext;
+class QueryContext;
 
 class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
     // Create executor according to plan node
-    static Executor *makeExecutor(const PlanNode *node,
-                                  ExecutionContext *ectx,
-                                  std::unordered_map<int64_t, Executor *> *cache);
+    static Executor *makeExecutor(const PlanNode *node, QueryContext *qctx);
 
     virtual ~Executor() {}
 
-    // Implementation interface of operation logic
+    // Each executor inherited from this class should get input values from ExecutionContext,
+    // execute expression evaluation and save output result back to ExecutionContext after
+    // computation
     virtual folly::Future<Status> execute() = 0;
 
-    ExecutionContext *ectx() const {
-        return ectx_;
+    QueryContext *qctx() const {
+        return qctx_;
     }
 
-    int64_t id() const;
+    int64_t id() const {
+        return id_;
+    }
 
     const std::string &name() const {
         return name_;
@@ -74,8 +78,12 @@ public:
     folly::Future<Status> error(Status status) const;
 
 protected:
+    static Executor *makeExecutor(const PlanNode *node,
+                                  QueryContext *qctx,
+                                  std::unordered_map<int64_t, Executor *> *visited);
+
     // Only allow derived executor to construct
-    Executor(const std::string &name, const PlanNode *node, ExecutionContext *ectx);
+    Executor(const std::string &name, const PlanNode *node, QueryContext *qctx);
 
     // Start a future chain and bind it to thread pool
     folly::Future<Status> start(Status status = Status::OK()) const;
@@ -83,17 +91,22 @@ protected:
     folly::Executor *runner() const;
 
     // Store the result of this executor to execution context
-    Status finish(nebula::Value &&value);
+    Status finish(Result &&result);
+    // Store the default result which not used for later executor
+    Status finish(Value &&value);
 
-    // Dump some execution logging messages
+    // Dump some execution logging messages, only for debugging
+    // TODO(yee): Remove it after implementing profile function
     void dumpLog() const;
 
+    int64_t id_;
     // Executor name
     std::string name_;
 
     // Relative Plan Node
     const PlanNode *node_;
 
+    QueryContext *qctx_;
     // Execution context for saving some execution data
     ExecutionContext *ectx_;
 

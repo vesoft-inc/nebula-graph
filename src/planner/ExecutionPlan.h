@@ -13,23 +13,21 @@
 #include <folly/futures/Future.h>
 
 #include "common/base/Status.h"
+#include "common/expression/Expression.h"
+
+#include "util/ObjectPool.h"
 
 namespace nebula {
-
-class ObjectPool;
-
 namespace graph {
 
-class ExecutionContext;
 class Executor;
 class IdGenerator;
 class PlanNode;
-class ExecutionContext;
 class Scheduler;
 
 class ExecutionPlan final {
 public:
-    explicit ExecutionPlan(ExecutionContext* ectx);
+    explicit ExecutionPlan(ObjectPool* objectPool);
 
     ~ExecutionPlan();
 
@@ -37,14 +35,29 @@ public:
         root_ = root;
     }
 
+    /**
+     * Save all generated plan node in object pool.
+     */
     PlanNode* addPlanNode(PlanNode* node);
+
+    /**
+     * Save all generated object in object pool.
+     */
+    template <typename T>
+    T* saveObject(T* obj) {
+        return objPool_->add(obj);
+    }
 
     int64_t id() const {
         return id_;
     }
 
-    const PlanNode* root() const {
+    PlanNode* root() const {
         return root_;
+    }
+
+    ObjectPool* objPool() const {
+        return objPool_;
     }
 
     folly::Future<Status> execute();
@@ -54,9 +67,8 @@ private:
 
     int64_t                                 id_;
     PlanNode*                               root_{nullptr};
-    ExecutionContext*                       ectx_{nullptr};
+    ObjectPool*                             objPool_{nullptr};
     std::unique_ptr<IdGenerator>            nodeIdGen_;
-    std::unique_ptr<Scheduler>              scheduler_;
 };
 
 }  // namespace graph

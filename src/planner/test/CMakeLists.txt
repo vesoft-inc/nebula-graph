@@ -38,13 +38,14 @@ nebula_add_test(
         $<TARGET_OBJECTS:query_engine_obj>
         $<TARGET_OBJECTS:session_obj>
         $<TARGET_OBJECTS:graph_flags_obj>
-        $<TARGET_OBJECTS:graph_http_obj>
         $<TARGET_OBJECTS:parser_obj>
         $<TARGET_OBJECTS:validator_obj>
         $<TARGET_OBJECTS:planner_obj>
         $<TARGET_OBJECTS:exec_obj>
-        $<TARGET_OBJECTS:schedule_obj>
+        $<TARGET_OBJECTS:scheduler_obj>
         $<TARGET_OBJECTS:util_obj>
+        $<TARGET_OBJECTS:idgenerator_obj>
+        $<TARGET_OBJECTS:context_obj>
     LIBRARIES
         gtest
         proxygenhttpserver
@@ -52,15 +53,3 @@ nebula_add_test(
         ${THRIFT_LIBRARIES}
         wangle
   )
-
-nebula_add_test(
-    NAME idgenerator_test
-    SOURCES IdGeneratorTest.cpp
-    OBJECTS
-        $<TARGET_OBJECTS:common_base_obj>
-        $<TARGET_OBJECTS:common_concurrent_obj>
-        $<TARGET_OBJECTS:common_datatypes_obj>
-        $<TARGET_OBJECTS:planner_obj>
-    LIBRARIES
-        gtest gtest_main ${THRIFT_LIBRARIES} wangle
-)

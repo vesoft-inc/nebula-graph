@@ -6,30 +6,29 @@
 
 #include "exec/logic/SelectExecutor.h"
 
+#include "context/QueryExpressionContext.h"
 #include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
 SelectExecutor::SelectExecutor(const PlanNode* node,
-                               ExecutionContext* ectx,
+                               QueryContext* qctx,
                                Executor* then,
                                Executor* els)
-    : Executor("SelectExecutor", node, ectx),
+    : Executor("SelectExecutor", node, qctx),
       then_(DCHECK_NOTNULL(then)),
       else_(DCHECK_NOTNULL(els)) {}
 
 folly::Future<Status> SelectExecutor::execute() {
     dumpLog();
 
-    auto* select = asNode<Selector>(node());
+    auto* select = asNode<Select>(node());
     auto* expr = select->condition();
-    UNUSED(expr);
-
-    finish(nebula::Value(true));
-
-    // FIXME: store expression value to execution context
-    return Status::OK();
+    QueryExpressionContext ctx(ectx_, nullptr);
+    auto value = expr->eval(ctx);
+    DCHECK(value.isBool());
+    return finish(ResultBuilder().value(std::move(value)).iter(Iterator::Kind::kDefault).finish());
 }
 
 }   // namespace graph

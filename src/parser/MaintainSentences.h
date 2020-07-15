@@ -12,6 +12,7 @@
 #include "common/base/StatusOr.h"
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 
@@ -52,7 +53,8 @@ public:
     }
 
     Value getDefaultValue() const {
-        return defaultValue_->eval();
+        graph::QueryExpressionContext ctx(nullptr, nullptr);
+        return defaultValue_->eval(ctx);
     }
 
 private:
@@ -677,6 +679,120 @@ public:
 private:
     std::unique_ptr<std::string>                indexName_;
     bool                                        isOffline_;
+};
+
+class ShowTagsSentence : public Sentence {
+public:
+    ShowTagsSentence() {
+        kind_ = Kind::kShowTags;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowEdgesSentence : public Sentence {
+public:
+    ShowEdgesSentence() {
+        kind_ = Kind::kShowEdges;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowCreateTagSentence : public Sentence {
+public:
+    explicit ShowCreateTagSentence(std::string *name) {
+        name_.reset(name);
+        kind_ = Kind::kShowCreateTag;
+    }
+
+    std::string toString() const override;
+
+    const std::string* name() const {
+        return name_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>                name_;
+};
+
+class ShowCreateEdgeSentence : public Sentence {
+public:
+    explicit ShowCreateEdgeSentence(std::string *name) {
+        name_.reset(name);
+        kind_ = Kind::kShowCreateEdge;
+    }
+
+    std::string toString() const override;
+
+    const std::string* name() const {
+        return name_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>                name_;
+};
+
+class ShowTagIndexesSentence : public Sentence {
+public:
+    ShowTagIndexesSentence() {
+        kind_ = Kind::kShowTagIndexes;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowEdgeIndexesSentence : public Sentence {
+public:
+    ShowEdgeIndexesSentence() {
+        kind_ = Kind::kShowEdgeIndexes;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowCreateTagIndexSentence : public Sentence {
+public:
+    explicit ShowCreateTagIndexSentence(std::string *name) {
+        name_.reset(name);
+        kind_ = Kind::kShowCreateTagIndex;
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>                name_;
+};
+
+class ShowCreateEdgeIndexSentence : public Sentence {
+public:
+    explicit ShowCreateEdgeIndexSentence(std::string *name) {
+        name_.reset(name);
+        kind_ = Kind::kShowCreateEdgeIndex;
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>                name_;
+};
+
+class ShowTagIndexStatusSentence : public Sentence {
+public:
+    ShowTagIndexStatusSentence() {
+        kind_ = Kind::kShowTagIndexStatus;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowEdgeIndexStatusSentence : public Sentence {
+public:
+    ShowEdgeIndexStatusSentence() {
+        kind_ = Kind::kShowEdgeIndexStatus;
+    }
+
+    std::string toString() const override;
 };
 
 }   // namespace nebula

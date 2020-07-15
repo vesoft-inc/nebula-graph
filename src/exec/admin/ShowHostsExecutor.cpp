@@ -5,9 +5,8 @@
  */
 
 #include "exec/admin/ShowHostsExecutor.h"
-
 #include "planner/Admin.h"
-#include "service/ExecutionContext.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +18,7 @@ folly::Future<Status> ShowHostsExecutor::execute() {
 folly::Future<Status> ShowHostsExecutor::showHosts() {
     static constexpr char kNoPartition[]        = "No valid partition";
     static constexpr char kPartitionDelimeter[] = ", ";
-    return ectx()
+    return qctx()
         ->getMetaClient()
         ->listHosts()
         .via(runner())

@@ -5,28 +5,30 @@
  */
 
 #include "validator/AssignmentValidator.h"
+
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
+
 Status AssignmentValidator::validateImpl() {
     auto* assignSentence = static_cast<AssignmentSentence*>(sentence_);
-    validator_ = makeValidator(assignSentence->sentence(), validateContext_);
-    auto status = validator_->validate();
-    if (!status.ok()) {
-        return status;
-    }
+    validator_ = makeValidator(assignSentence->sentence(), qctx_);
+    NG_RETURN_IF_ERROR(validator_->validate());
 
     auto outputs = validator_->outputs();
     var_ = *assignSentence->var();
-    validateContext_->registerVariable(var_, std::move(outputs));
+    vctx_->registerVariable(var_, std::move(outputs));
     return Status::OK();
 }
 
 Status AssignmentValidator::toPlan() {
-    // TODO: Set variable to the root of subquery.
+    root_ = validator_->root();
+    root_->setOutputVar(var_);
+    tail_ = validator_->tail();
     return Status::OK();
 }
-}  // namespace graph
-}  // namespace nebula
+
+}   // namespace graph
+}   // namespace nebula
