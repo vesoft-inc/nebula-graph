@@ -245,7 +245,14 @@ class NebulaTestSuite(object):
         return str(value_list)
 
     @classmethod
-    def search_result(self, rows, expect):
+    def search_result(self, resp, expect):
+        if resp.data is None and len(expect) == 0:
+            return
+
+        if resp.data is None:
+            assert False, 'resp.data is None'
+        rows = resp.data.rows
+
         msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
         assert len(rows) == len(expect), msg
         for row in rows:
@@ -263,9 +270,13 @@ class NebulaTestSuite(object):
             expect.remove(exp)
 
     @classmethod
-    def check_result(self, rows, expect, ignore_col: Set[int] = set()):
-        if rows is None and len(expect) == 0:
+    def check_result(self, resp, expect, ignore_col: Set[int] = set()):
+        if resp.data is None and len(expect) == 0:
             return
+
+        if resp.data is None:
+            assert False, 'resp.data is None'
+        rows = resp.data.rows
 
         msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
         assert len(rows) == len(expect), msg
@@ -283,21 +294,25 @@ class NebulaTestSuite(object):
                     self.row_to_string(row), expect[i], msg)
 
     @classmethod
-    def check_out_of_order_result(self, rows, expect, ignore_col: Set[int] = set()):
-        if rows is None and len(expect) == 0:
+    def check_out_of_order_result(self, resp, expect, ignore_col: Set[int] = set()):
+        if resp.data is None and len(expect) == 0:
             return
 
+        if resp.data is None:
+            assert False, 'resp.data is None'
+        rows = resp.data.rows
         sorted_rows = sorted(rows, key=str)
+        resp.data.rows = sorted_rows
         sorted_expect = sorted(expect)
-        self.check_result(sorted_rows, sorted_expect, ignore_col)
+        self.check_result(resp, sorted_expect, ignore_col)
 
     @classmethod
-    def check_empty_result(self, rows):
-        msg = 'the row was not empty {}'.format(rows)
+    def check_empty_result(self, resp):
+        msg = 'the row was not empty {}'.format(resp)
         empty = False
-        if rows is None:
+        if resp.data is None:
             empty = True
-        elif len(rows) == 0:
+        elif len(resp.data.rows) == 0:
             empty = True
         assert empty, msg
 

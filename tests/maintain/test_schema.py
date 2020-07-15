@@ -40,7 +40,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute_query('DESCRIBE TAG tag1')
         self.check_resp_succeeded(resp)
         expect_result = []
-        self.check_result(resp.data.rows, expect_result)
+        self.check_result(resp, expect_result)
 
         # alter
         resp = self.client.execute('ALTER TAG tag1 ADD (id int, name string)')
@@ -50,7 +50,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute_query('DESCRIBE TAG tag1')
         self.check_resp_succeeded(resp)
         expect_result = [['id', 'int64', 'YES', 'EMPTY'], ['name', 'string', 'YES', 'EMPTY']]
-        self.check_result(resp.data.rows, expect_result)
+        self.check_result(resp, expect_result)
 
         # create tag succeed
         resp = self.client.execute('CREATE TAG person(name string, email string DEFAULT "NULL", '
@@ -83,7 +83,7 @@ class TestSchema(NebulaTestSuite):
                          ['gender', 'string', 'YES', 'EMPTY'],
                          ['row_timestamp', 'timestamp', 'YES', 2020]]
         # timestamp has not support
-        # self.check_result(resp.data.rows, expect_result)
+        # self.check_result(resp, expect_result)
 
         # test DESC
         resp = self.client.execute_query('DESCRIBE TAG person')
@@ -94,7 +94,7 @@ class TestSchema(NebulaTestSuite):
                          ['gender', 'string', 'YES', 'EMPTY'],
                          ['row_timestamp', 'timestamp', 'YES', 2020]]
         # timestamp has not support
-        # self.check_result(resp.data.rows, expect_result)
+        # self.check_result(resp, expect_result)
 
         # test show create tag
         resp = self.client.execute_query('SHOW CREATE TAG person')
@@ -108,7 +108,7 @@ class TestSchema(NebulaTestSuite):
                          ') ttl_duration = 0, ttl_col = ""'
         # timestamp has not support
         expect_result = [['person', create_tag_str]]
-        # self.check_result(resp.data.rows, expect_result)
+        # self.check_result(resp, expect_result)
 
         # check result
         resp = self.client.execute('DROP TAG person')
@@ -135,7 +135,7 @@ class TestSchema(NebulaTestSuite):
                          ['gender', 'string', 'YES', 'EMPTY'],
                          ['row_timestamp', 'timestamp', 'YES', 100]]
         # timestamp has not support
-        # self.check_result(resp.data.rows, expect_result)
+        # self.check_result(resp, expect_result)
 
         # existent tag
         resp = self.client.execute('CREATE TAG person(id int)')
@@ -166,7 +166,7 @@ class TestSchema(NebulaTestSuite):
                          ['col1', 'int', 'YES', 'EMPTY'],
                          ['col2', 'string', 'YES', 'EMPTY']]
         # timestamp has not support
-        # self.check_result(resp.data.rows, expect_result)
+        # self.check_result(resp, expect_result)
 
         # check result
         resp = self.client.execute_query('SHOW CREATE TAG person')
@@ -181,13 +181,13 @@ class TestSchema(NebulaTestSuite):
                          ') ttl_duration = 0, ttl_col = ""';
         # timestamp has not support
         expect_result = [['person', create_tag_str]]
-        #self.check_result(resp.data.rows, expect_result)
+        #self.check_result(resp, expect_result)
 
         # show tags
         resp = self.client.execute_query('SHOW TAGS')
         self.check_resp_succeeded(resp)
         expect_result = [['tag1'], ['person'], ['person_with_default'], ['upper']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # with negative DEFAULT value
         resp = self.client.execute('CREATE TAG default_tag_neg(id int DEFAULT -10, '
@@ -244,7 +244,7 @@ class TestSchema(NebulaTestSuite):
         # 1.0 expect ['id', 'int', 'YES', 'EMPTY'], 2.0 has int8, int16, int32 and int64
         expect_result = [['id', 'int64', 'YES', 'EMPTY'],
                          ['name', 'string', 'YES', 'EMPTY']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # create edge succeeded
         resp = self.client.execute('CREATE EDGE buy(id int, time string)')
@@ -276,7 +276,7 @@ class TestSchema(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect_result = [['id', 'int64', 'YES', 'EMPTY'],
                          ['time', 'string', 'YES', 'EMPTY']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # desc nonexistent edge
         resp = self.client.execute('DESCRIBE EDGE not_exist')
@@ -287,7 +287,7 @@ class TestSchema(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect_result = [['id', 'int64', 'YES', 'EMPTY'],
                          ['time', 'string', 'YES', 'EMPTY']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # show create edge
         resp = self.client.execute_query('SHOW CREATE EDGE buy_with_default')
@@ -298,7 +298,7 @@ class TestSchema(NebulaTestSuite):
                           '  `time` timestamp NULL DEFAULT 2020\n' \
                           ') ttl_duration = 0, ttl_col = "\"'
         expect_result = [['buy_with_default', create_edge_str]]
-        # self.check_result(resp.data.rows, expect_result)
+        # self.check_result(resp, expect_result)
 
         # create edge succeed
         resp = self.client.execute('CREATE EDGE education(id int, time timestamp, school string)')
@@ -310,13 +310,13 @@ class TestSchema(NebulaTestSuite):
         expect_result = [['id', 'int64', 'YES', 'EMPTY'],
                          ['time', 'timestamp', 'YES', 'EMPTY'],
                          ['school', 'string', 'YES', 'EMPTY']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # show edges
         resp = self.client.execute_query('SHOW EDGES')
         self.check_resp_succeeded(resp)
         expect_result = [['edge1'], ['buy'], ['buy_with_default'], ['education']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # alter edge
         resp = self.client.execute('ALTER EDGE education '
@@ -335,7 +335,7 @@ class TestSchema(NebulaTestSuite):
         expect_result = [['school', 'int64', 'YES', 'EMPTY'],
                          ['col1', 'int64', 'YES', 'EMPTY'],
                          ['col2', 'string', 'YES', 'EMPTY'],]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # show create edge
         resp = self.client.execute_query('SHOW CREATE EDGE education')
@@ -346,7 +346,7 @@ class TestSchema(NebulaTestSuite):
                           ' `col2` string NULL\n' \
                           ') ttl_duration = 0, ttl_col = "\"'
         expect_result = [['education', create_edge_str]]
-        self.check_result(resp.data.rows, expect_result)
+        self.check_result(resp, expect_result)
 
         # check result from show create
         resp = self.client.execute('DROP EDGE education')
@@ -398,7 +398,7 @@ class TestSchema(NebulaTestSuite):
             resp = self.client.execute_query('DESC TAG tag10' + str(i))
             self.check_resp_succeeded(resp)
             expect_result = [['name', 'string', 'YES', 'EMPTY']]
-            self.check_result(resp.data.rows, expect_result)
+            self.check_result(resp, expect_result)
 
     def test_same_tag_in_different_space(self):
         resp = self.client.execute('CREATE SPACE my_space(partition_num=9, replica_factor=1)')
@@ -417,7 +417,7 @@ class TestSchema(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect_result = [['name', 'string', 'YES', 'EMPTY'],
                          ['kind', 'string', 'YES', 'EMPTY']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         resp = self.client.execute('CREATE TAG person(name string, interest string)')
         self.check_resp_succeeded(resp)
@@ -425,7 +425,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute_query('SHOW TAGS')
         self.check_resp_succeeded(resp)
         expect_result = [['animal'],['person']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         resp = self.client.execute('CREATE SPACE test_multi')
         self.check_resp_succeeded(resp)
@@ -436,12 +436,12 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute_query('USE test_multi; CREATE Tag test_tag(); SHOW TAGS;')
         self.check_resp_succeeded(resp)
         expect_result = [['test_tag']]
-        self.check_result(resp.data.rows, expect_result)
+        self.check_result(resp, expect_result)
 
         resp = self.client.execute_query('USE test_multi; CREATE TAG test_tag1(); USE my_space; SHOW TAGS;')
         self.check_resp_succeeded(resp)
         expect_result = [['animal'], ['person']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         resp = self.client.execute('DROP SPACE test_multi')
         self.check_resp_succeeded(resp)
@@ -453,7 +453,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute_query('DESCRIBE TAG `tag`')
         self.check_resp_succeeded(resp)
         expect_result = [['edge', 'string', 'YES', 'EMPTY']]
-        self.check_result(resp.data.rows, expect_result)
+        self.check_result(resp, expect_result)
 
     def drop_space(self):
         resp = self.client.execute_query('SHOW SPACES')
@@ -481,7 +481,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute('FETCH PROP ON t 1')
         self.check_resp_succeeded(resp)
         expect_result = [['N/A'], [-1], ['NONE']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # alter drop
         resp = self.client.execute('ALTER TAG t CHANGE (description string)')
@@ -495,7 +495,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute('FETCH PROP ON t "1"')
         self.check_resp_succeeded(resp)
         expect_result = [['N/A'], [-1], ['some one']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # insert without default prop, failed
         resp = self.client.execute('INSERT VERTEX t() VALUES "1":()')
@@ -517,7 +517,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute('FETCH PROP ON e "1"->"2"')
         self.check_resp_succeeded(resp)
         expect_result = [['N/A'], [-1], ['NONE']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # alter drop
         resp = self.client.execute('ALTER EDGE e CHANGE (description string)')
@@ -534,7 +534,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute('FETCH PROP ON e "1"->"2"')
         self.check_resp_succeeded(resp)
         expect_result = [['N/A'], [-1], ['some one']]
-        self.check_out_of_order_result(resp.data.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # insert without default prop, failed
         resp = self.client.execute('INSERT EDGE e() VALUES "1"->"2":()')

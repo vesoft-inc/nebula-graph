@@ -33,7 +33,7 @@ class TestSpace(NebulaTestSuite):
         # check result
         resp = self.client.execute_query('DESC SPACE space_with_default_options')
         expect_result = [['space_with_default_options', 100, 1, 8, 'utf8', 'utf8_bin']]
-        self.check_result(resp.data.rows, expect_result, {0})
+        self.check_result(resp, expect_result, {0})
 
         # drop space
         resp = self.client.execute('DROP SPACE space_with_default_options')
@@ -46,18 +46,17 @@ class TestSpace(NebulaTestSuite):
         # show spaces
         resp = self.client.execute_query('SHOW SPACES')
         self.check_resp_succeeded(resp)
-        self.search_result(resp.data.rows, [['default_space']])
+        self.search_result(resp, [['default_space']])
 
         # desc space
         resp = self.client.execute_query('DESC SPACE default_space')
         self.check_resp_succeeded(resp)
         expect_result = [['default_space', 9, 1, 8, 'utf8', 'utf8_bin']]
-        self.check_result(resp.data.rows, expect_result, {0})
+        self.check_result(resp, expect_result, {0})
 
         # show create space
         resp = self.client.execute_query('SHOW CREATE SPACE default_space')
         self.check_resp_succeeded(resp)
-        result = resp.data.rows[0].columns[1].get_sVal().decode('utf-8')
 
         create_space_str = 'CREATE SPACE `default_space` ('\
                            'partition_num = 9, '\
@@ -67,14 +66,14 @@ class TestSpace(NebulaTestSuite):
                            'collate = utf8_bin)';
 
         expect_result = [['default_space', create_space_str]]
-        self.check_result(resp.data.rows, expect_result)
+        self.check_result(resp, expect_result)
 
         # check result from show create
         resp = self.client.execute('DROP SPACE default_space')
         self.check_resp_succeeded(resp)
 
 
-        resp = self.client.execute(result)
+        resp = self.client.execute(create_space_str)
         self.check_resp_succeeded(resp)
 
         resp = self.client.execute_query('SHOW SPACES')
@@ -93,7 +92,7 @@ class TestSpace(NebulaTestSuite):
         resp = self.client.execute_query('DESC SPACE space_charset_collate')
         self.check_resp_succeeded(resp)
         expect_result = [['space_charset_collate', 9, 1, 8, 'utf8', 'utf8_bin']]
-        self.check_result(resp.data.rows, expect_result, {0})
+        self.check_result(resp, expect_result, {0})
 
         # drop space
         resp = self.client.execute('DROP SPACE space_charset_collate')
@@ -106,7 +105,7 @@ class TestSpace(NebulaTestSuite):
         resp = self.client.execute_query('DESC SPACE space_charset')
         self.check_resp_succeeded(resp)
         expect_result = [['space_charset', 9, 1, 8, 'utf8', 'utf8_bin']]
-        self.check_result(resp.data.rows, expect_result, {0})
+        self.check_result(resp, expect_result, {0})
 
         # drop space
         resp = self.client.execute('DROP SPACE space_charset')
@@ -119,7 +118,7 @@ class TestSpace(NebulaTestSuite):
         resp = self.client.execute_query('DESC SPACE space_collate')
         self.check_resp_succeeded(resp)
         expect_result = [['space_collate', 9, 1, 8, 'utf8', 'utf8_bin']]
-        self.check_result(resp.data.rows, expect_result, {0})
+        self.check_result(resp, expect_result, {0})
 
         # drop space
         resp = self.client.execute('DROP SPACE space_collate')
@@ -156,7 +155,7 @@ class TestSpace(NebulaTestSuite):
         resp = self.client.execute_query('DESC SPACE space_capital')
         self.check_resp_succeeded(resp)
         expect_result = [['space_capital', 9, 1, 8, 'utf8', 'utf8_bin']]
-        self.check_result(resp.data.rows, expect_result, {0})
+        self.check_result(resp, expect_result, {0})
 
         # drop space
         resp = self.client.execute('DROP SPACE space_capital')
@@ -189,7 +188,7 @@ class TestSpace(NebulaTestSuite):
         resp = self.client.execute_query('SHOW SPACES')
         self.check_resp_succeeded(resp)
         expect_result = [['default_space']]
-        self.search_result(resp.data.rows, expect_result)
+        self.search_result(resp, expect_result)
 
         resp = self.client.execute('DROP SPACE default_space')
         self.check_resp_succeeded(resp)
@@ -197,4 +196,4 @@ class TestSpace(NebulaTestSuite):
         resp = self.client.execute_query('SHOW SPACES')
         self.check_resp_succeeded(resp)
         expect_result = []
-        self.check_result(resp.data.rows, expect_result)
+        self.check_result(resp, expect_result)
