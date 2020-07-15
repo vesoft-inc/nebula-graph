@@ -23,6 +23,7 @@
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/YieldValidator.h"
+#include "common/function/FunctionManager.h"
 
 namespace nebula {
 namespace graph {
@@ -356,12 +357,21 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                     return status.status();
                 }
                 auto detectVal = kValues.at(status.value());
-                argList->addArgument(std::make_unique<ConstantExpression>(std::move(detectVal)));
+                argList->addArgument(std::make_unique<ConstantExpression>(detectVal));
             }
             QueryExpressionContext ctx(nullptr, nullptr);
-            std::string name = *(funcExpr->name());
-            FunctionCallExpression functionCall(&name, argList);
-            return functionCall.eval(ctx).type();
+            auto function = FunctionManager::get(*(funcExpr->name()), argList->numArgs());
+            if (!function.ok()) {
+                std::stringstream ss;
+                ss << "`" << expr->toString() << "` is not a valid function expression";
+                return Status::Error(ss.str());
+            }
+            std::vector<Value> parameter;
+            for (const auto& arg : argList->args()) {
+                parameter.emplace_back(std::move(arg->eval(ctx)));
+            }
+            auto result = function.value()(parameter);
+            return result.type();
         }
         case Expression::Kind::kTypeCasting: {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
