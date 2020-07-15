@@ -17,7 +17,6 @@ class BalanceValidator final : public Validator {
 public:
     BalanceValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
-        sentence_ = static_cast<BalanceSentence*>(sentence);
         setNoSpaceRequired();
     }
 
@@ -27,9 +26,6 @@ private:
     }
 
     Status toPlan() override;
-
-private:
-    BalanceSentence               *sentence_{nullptr};
 };
 
 }  // namespace graph

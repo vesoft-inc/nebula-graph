@@ -7,7 +7,7 @@
 #ifndef PLANNER_ADMIN_H_
 #define PLANNER_ADMIN_H_
 
-#include "planner/PlanNode.h"
+#include "planner/Query.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/clients/meta/MetaClient.h"
 
@@ -19,21 +19,14 @@
  */
 namespace nebula {
 namespace graph {
-// TODO: All DDLs, DMLs and DQLs could be used in a single query
-// which would make them in a single and big execution plan
-class Show final : public PlanNode {
- public:
-    std::string explain() const override {
-        return "Show";
-    }
-};
-
-class CreateSpace final : public PlanNode {
+class CreateSpace final : public SingleInputNode {
 public:
     static CreateSpace* make(ExecutionPlan* plan,
+                             PlanNode* input,
                              meta::SpaceDesc props,
                              bool ifNotExists) {
     return new CreateSpace(plan,
+                           input,
                            std::move(props),
                            ifNotExists);
     }
@@ -53,12 +46,13 @@ public:
 
 private:
     CreateSpace(ExecutionPlan* plan,
+                PlanNode* input,
                 meta::SpaceDesc props,
                 bool ifNotExists)
-        : PlanNode(plan, Kind::kCreateSpace) {
-            props_ = std::move(props);
-            ifNotExists_ = ifNotExists;
-        }
+        : SingleInputNode(plan, Kind::kCreateSpace, input) {
+        props_ = std::move(props);
+        ifNotExists_ = ifNotExists;
+    }
 
 
 private:
@@ -66,18 +60,48 @@ private:
     bool                          ifNotExists_;
 };
 
-class DropSpace final : public PlanNode {
+class DropSpace final : public SingleInputNode {
 public:
+    static DropSpace* make(ExecutionPlan* plan,
+                           PlanNode* input,
+                           std::string spaceName,
+                           bool ifExists) {
+        return new DropSpace(plan, input, std::move(spaceName), ifExists);
+    }
+
     std::string explain() const override {
         return "DropSpace";
     }
+
+    const std::string& getSpaceName() const {
+        return spaceName_;
+    }
+
+    bool getIfExists() const {
+        return ifExists_;
+    }
+
+private:
+    DropSpace(ExecutionPlan* plan,
+              PlanNode* input,
+              std::string spaceName,
+              bool ifExists)
+        : SingleInputNode(plan, Kind::kDropSpace, input) {
+        spaceName_ = std::move(spaceName);
+        ifExists_ = ifExists;
+    }
+
+private:
+    std::string           spaceName_;
+    bool                  ifExists_;
 };
 
-class DescSpace final : public PlanNode {
+class DescSpace final : public SingleInputNode {
 public:
     static DescSpace* make(ExecutionPlan* plan,
+                           PlanNode* input,
                            std::string spaceName) {
-    return new DescSpace(plan, std::move(spaceName));
+    return new DescSpace(plan, input, std::move(spaceName));
     }
 
     std::string explain() const override {
@@ -90,54 +114,142 @@ public:
 
 private:
     DescSpace(ExecutionPlan* plan,
+              PlanNode* input,
               std::string spaceName)
-        : PlanNode(plan, Kind::kDescSpace) {
-            spaceName_ = std::move(spaceName);
-        }
+        : SingleInputNode(plan, Kind::kDescSpace, input) {
+        spaceName_ = std::move(spaceName);
+    }
 
 private:
     std::string           spaceName_;
 };
 
-class Config final : public PlanNode {
+class ShowSpaces final : public SingleInputNode {
+public:
+    static ShowSpaces* make(ExecutionPlan* plan, PlanNode* input) {
+        return new ShowSpaces(plan, input);
+    }
+
+    std::string explain() const override {
+        return "ShowSpaces";
+    }
+
+private:
+    explicit ShowSpaces(ExecutionPlan* plan, PlanNode* input)
+            : SingleInputNode(plan, Kind::kShowSpaces, input) {}
+};
+
+class Config final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "Config";
     }
 };
 
-class CreateSnapshot final : public PlanNode {
+class ShowCreateSpace final : public SingleInputNode {
 public:
+    static ShowCreateSpace* make(ExecutionPlan* plan,
+                                 PlanNode* input,
+                                 std::string spaceName) {
+        return new ShowCreateSpace(plan, input, std::move(spaceName));
+    }
+
+    std::string explain() const override {
+        return "ShowCreateSpace";
+    }
+
+    const std::string& getSpaceName() const {
+        return spaceName_;
+    }
+
+private:
+    ShowCreateSpace(ExecutionPlan* plan,
+                    PlanNode* input,
+                    std::string spaceName)
+        : SingleInputNode(plan, Kind::kShowCreateSpace, input) {
+        spaceName_ = std::move(spaceName);
+    }
+
+private:
+    std::string           spaceName_;
+};
+
+class CreateSnapshot final : public SingleInputNode {
+public:
+    static CreateSnapshot* make(ExecutionPlan* plan, PlanNode* input) {
+        return new CreateSnapshot(plan, input);
+    }
+
     std::string explain() const override {
         return "CreateSnapshot";
     }
+
+private:
+    explicit CreateSnapshot(ExecutionPlan* plan, PlanNode* input)
+        : SingleInputNode(plan, Kind::kCreateSnapshot, input) {}
 };
 
-class DropSnapshot final : public PlanNode {
+class DropSnapshot final : public SingleInputNode {
 public:
+    static DropSnapshot* make(ExecutionPlan* plan,
+                              PlanNode* input,
+                              std::string snapshotName) {
+        return new DropSnapshot(plan, input, std::move(snapshotName));
+    }
+
     std::string explain() const override {
         return "DropSnapshot";
     }
+
+    const std::string& getShapshotName() const {
+        return shapshotName_;
+    }
+
+private:
+    explicit DropSnapshot(ExecutionPlan* plan,
+                          PlanNode* input,
+                          std::string snapshotName)
+        : SingleInputNode(plan, Kind::kDropSnapshot, input) {
+        shapshotName_ = std::move(snapshotName);
+    }
+
+private:
+    std::string           shapshotName_;
 };
 
-class Download final : public PlanNode {
+class ShowSnapshots final : public SingleInputNode {
+public:
+    static ShowSnapshots* make(ExecutionPlan* plan, PlanNode* input) {
+        return new ShowSnapshots(plan, input);
+    }
+
+    std::string explain() const override {
+        return "ShowSnapshots";
+    }
+
+private:
+    explicit ShowSnapshots(ExecutionPlan* plan, PlanNode* input)
+        : SingleInputNode(plan, Kind::kShowSnapshots, input) {}
+};
+
+class Download final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "Download";
     }
 };
 
-class Ingest final : public PlanNode {
+class Ingest final : public SingleInputNode {
 public:
     std::string explain() const override {
         return "Ingest";
     }
 };
 
-class BalanceLeaders final : public PlanNode {
+class BalanceLeaders final : public SingleDependencyNode {
 public:
-    static BalanceLeaders* make(ExecutionPlan* plan) {
-        return new BalanceLeaders(plan);
+    static BalanceLeaders* make(ExecutionPlan* plan, PlanNode* dep) {
+        return new BalanceLeaders(plan, dep);
     }
 
     std::string explain() const override {
@@ -145,14 +257,14 @@ public:
     }
 
 private:
-    explicit BalanceLeaders(ExecutionPlan* plan)
-        : PlanNode(plan, Kind::kBalanceLeaders) {}
+    explicit BalanceLeaders(ExecutionPlan* plan, PlanNode* dep)
+        : SingleDependencyNode(plan, Kind::kBalanceLeaders, dep) {}
 };
 
-class Balance final : public PlanNode {
+class Balance final : public SingleDependencyNode {
 public:
-    static Balance* make(ExecutionPlan* plan, std::vector<HostAddr> deleteHosts) {
-        return new Balance(plan, std::move(deleteHosts));
+    static Balance* make(ExecutionPlan* plan, PlanNode* dep, std::vector<HostAddr> deleteHosts) {
+        return new Balance(plan, dep, std::move(deleteHosts));
     }
 
     std::string explain() const override {
@@ -164,16 +276,16 @@ public:
     }
 
 private:
-    Balance(ExecutionPlan* plan, std::vector<HostAddr> deleteHosts)
-        : PlanNode(plan, Kind::kBalance), deleteHosts_(std::move(deleteHosts)) {}
+    Balance(ExecutionPlan* plan, PlanNode* dep, std::vector<HostAddr> deleteHosts)
+        : SingleDependencyNode(plan, Kind::kBalance, dep), deleteHosts_(std::move(deleteHosts)) {}
 
     std::vector<HostAddr> deleteHosts_;
 };
 
-class StopBalance final : public PlanNode {
+class StopBalance final : public SingleDependencyNode {
 public:
-    static StopBalance* make(ExecutionPlan* plan) {
-        return new StopBalance(plan);
+    static StopBalance* make(ExecutionPlan* plan, PlanNode* dep) {
+        return new StopBalance(plan, dep);
     }
 
     std::string explain() const override {
@@ -181,14 +293,14 @@ public:
     }
 
 private:
-    explicit StopBalance(ExecutionPlan* plan)
-        : PlanNode(plan, Kind::kStopBalance) {}
+    explicit StopBalance(ExecutionPlan* plan, PlanNode* dep)
+        : SingleDependencyNode(plan, Kind::kStopBalance, dep) {}
 };
 
-class ShowBalance final : public PlanNode {
+class ShowBalance final : public SingleDependencyNode {
 public:
-    static ShowBalance* make(ExecutionPlan* plan, int64_t id) {
-        return new ShowBalance(plan, id);
+    static ShowBalance* make(ExecutionPlan* plan, PlanNode* dep, int64_t id) {
+        return new ShowBalance(plan, dep, id);
     }
 
     std::string explain() const override {
@@ -200,8 +312,8 @@ public:
     }
 
 private:
-    ShowBalance(ExecutionPlan* plan, int64_t id)
-        : PlanNode(plan, Kind::kShowBalance), id_(id) {}
+    ShowBalance(ExecutionPlan* plan, PlanNode* dep, int64_t id)
+        : SingleDependencyNode(plan, Kind::kShowBalance, dep), id_(id) {}
 
     int64_t id_;
 };

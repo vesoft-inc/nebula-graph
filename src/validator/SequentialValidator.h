@@ -19,7 +19,9 @@ namespace graph {
 class SequentialValidator final : public Validator {
 public:
     SequentialValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
 
 private:
     /**
@@ -36,6 +38,10 @@ private:
      * be cascaded together into a complete execution plan.
      */
     Status toPlan() override;
+
+    const Sentence* getFirstSentence(const Sentence* sentence) const;
+
+    void ifBuildDataCollectForRoot(PlanNode* root);
 
 private:
     std::vector<std::unique_ptr<Validator>>     validators_;

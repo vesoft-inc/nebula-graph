@@ -20,7 +20,7 @@ protected:
 
     void TearDown() override;
 
-    static ::testing::AssertionResult verifyDataSetWithoutOrder(const cpp2::ExecutionResponse &resp,
+    static ::testing::AssertionResult verifyDataSetWithoutOrder(cpp2::ExecutionResponse &resp,
                                                                 DataSet &expected) {
         if (resp.get_error_code() != cpp2::ErrorCode::SUCCEEDED) {
             return ::testing::AssertionFailure() << "query failed: "
@@ -29,22 +29,100 @@ protected:
         if (!resp.__isset.data) {
             return ::testing::AssertionFailure() << "No data in response";
         }
-        const auto &data = *resp.get_data();
-        if (data.empty()) {
-            return ::testing::AssertionFailure() << "No data in response";
-        }
-        auto dataSet = data.front();
-        std::sort(dataSet.rows.begin(), dataSet.rows.end());
+        auto &data = *resp.get_data();
+        std::sort(data.rows.begin(), data.rows.end());
         std::sort(expected.rows.begin(), expected.rows.end());
-        if (dataSet != expected) {
+        if (data != expected) {
             return ::testing::AssertionFailure() << "Not match data set" << std::endl
                 << "Resp: " << std::endl
-                << dataSet
+                << data
                 << "Expected: " << std::endl
                 << expected;
         } else {
             return ::testing::AssertionSuccess();
         }
+    }
+
+    static ::testing::AssertionResult TestOK() {
+        return ::testing::AssertionSuccess();
+    }
+
+    static ::testing::AssertionResult TestError() {
+        return ::testing::AssertionFailure();
+    }
+
+    ::testing::AssertionResult verifyColNames(const cpp2::ExecutionResponse &resp,
+                                              const std::vector<std::string> &expected) {
+        if (resp.get_error_code() != cpp2::ErrorCode::SUCCEEDED) {
+            return TestError() << "query failed: "
+                               << cpp2::_ErrorCode_VALUES_TO_NAMES.at(resp.get_error_code());
+        }
+        bool emptyData = resp.__isset.data ? resp.get_data()->colNames.empty() : true;
+        if (emptyData && expected.empty()) {
+            return TestOK();
+        }
+
+        if (emptyData) {
+            return TestError() << "data is empty";
+        }
+
+        const auto &colNames = resp.get_data()->colNames;
+
+        if (colNames.size() != expected.size()) {
+            return TestError() << "ColNames' count not match: "
+                               << colNames.size() << " vs. " << expected.size();
+        }
+        for (auto i = 0u; i < colNames.size(); i++) {
+            if (colNames[i] != expected[i]) {
+                return TestError() << "resp colName: " << colNames[i]
+                                   << ", expect colName: " << expected[i];
+            }
+        }
+        return TestOK();
+    }
+
+    ::testing::AssertionResult verifyValues(const cpp2::ExecutionResponse &resp,
+                                            const std::vector<Value> &expected) {
+        std::vector<std::vector<Value>> temp;
+        temp.emplace_back(expected);
+        return verifyValues(resp, temp);
+    }
+
+    ::testing::AssertionResult verifyValues(const cpp2::ExecutionResponse &resp,
+                                            const std::vector<std::vector<Value>> &expected) {
+        if (resp.get_error_code() != cpp2::ErrorCode::SUCCEEDED) {
+            return TestError() << "query failed: "
+                               << cpp2::_ErrorCode_VALUES_TO_NAMES.at(resp.get_error_code());
+        }
+
+        bool emptyData = resp.__isset.data ? resp.get_data()->rows.empty() : true;
+        if (emptyData && expected.empty()) {
+            return TestOK();
+        }
+
+        if (emptyData) {
+            return TestError() << "data is empty";
+        }
+
+        const auto &rows = resp.get_data()->rows;
+
+        if (rows.size() != expected.size()) {
+            return TestError() << "rows' count not match: "
+                               << rows.size() << " vs. " << expected.size();
+        }
+
+        for (auto i = 0u; i < rows.size(); i++) {
+            if (rows[i].values.size() != expected[i].size()) {
+                return TestError() << "The row[" << i << "]' size not match "
+                                   << rows[i].values.size() << " vs. " << expected[i].size();
+            }
+            for (auto j = 0u; j < rows[i].values.size(); j++) {
+                if (rows[i].values[j] != expected[i][j]) {
+                    return TestError() << rows[i].values[j] << " vs. " << expected[i][j];
+                }
+            }
+        }
+        return TestOK();
     }
 };
 

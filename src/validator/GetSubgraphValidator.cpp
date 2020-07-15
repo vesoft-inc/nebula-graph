@@ -12,7 +12,7 @@
 
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
-#include "context/ExpressionContextImpl.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -66,13 +66,14 @@ Status GetSubgraphValidator::validateFrom(FromClause* from) {
         return Status::Error("From clause was not declared.");
     }
 
-    ExpressionContextImpl ctx(nullptr, nullptr);
+    QueryExpressionContext ctx(nullptr, nullptr);
     if (from->isRef()) {
         srcRef_ = from->ref();
     } else {
         for (auto* expr : from->vidList()) {
             // TODO:
-            starts_.emplace_back(Expression::eval(expr, ctx));
+            auto vid = Expression::eval(expr, ctx);
+            starts_.emplace_back(std::move(vid));
         }
     }
 
@@ -152,19 +153,25 @@ Status GetSubgraphValidator::toPlan() {
     auto* bodyStart = StartNode::make(plan);
 
     std::vector<EdgeType> edgeTypes;
-    std::vector<storage::cpp2::PropExp> vertexProps;
-    std::vector<storage::cpp2::PropExp> edgeProps;
-    std::vector<storage::cpp2::StatProp> statProps;
+    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+    auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
+    auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto vidsToSave = vctx_->varGen()->getVar();
     DataSet ds;
-    ds.colNames.emplace_back("_vid");
+    ds.colNames.emplace_back(kVid);
     for (auto& vid : starts_) {
         Row row;
-        row.columns.emplace_back(vid);
+        row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setValue(vidsToSave, std::move(ds));
-    auto* vids = new VariableExpression(new std::string(vidsToSave));
+
+    ResultBuilder builder;
+    builder.value(Value(std::move(ds))).iter(Iterator::Kind::kSequential);
+    qctx_->ectx()->setResult(vidsToSave, builder.finish());
+    auto* vids = new VariablePropertyExpression(
+                     new std::string(vidsToSave),
+                     new std::string(kVid));
     auto* gn1 = GetNeighbors::make(
             plan,
             bodyStart,
@@ -174,18 +181,21 @@ Status GetSubgraphValidator::toPlan() {
             storage::cpp2::EdgeDirection::BOTH,  // FIXME: make direction right
             std::move(vertexProps),
             std::move(edgeProps),
-            std::move(statProps));
+            std::move(statProps),
+            std::move(exprs));
+    gn1->setInputVar(vidsToSave);
 
     auto* columns = new YieldColumns();
     auto* column = new YieldColumn(
             new VariablePropertyExpression(
-                new std::string(gn1->varName()),
-                new std::string("_vid")),
-            new std::string("_vid"));
+                new std::string("*"),
+                new std::string(kDst)),
+            new std::string(kVid));
     columns->addColumn(column);
     auto* project = Project::make(plan, gn1, plan->saveObject(columns));
+    project->setInputVar(gn1->varName());
     project->setOutputVar(vidsToSave);
-    project->setColNames(evalResultColNames(columns));
+    project->setColNames(deduceColNames(columns));
 
     // ++counter{0} <= steps
     auto counter = vctx_->varGen()->getVar();
@@ -225,7 +235,7 @@ Status GetSubgraphValidator::toPlan() {
     column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(gn2->varGenerated()),
-                new std::string("_vid")),
+                new std::string(kVid)),
             new std::string(listOfVids));
     column->setFunction(new std::string("collect"));
     columns->addColumn(column);
@@ -243,7 +253,11 @@ Status GetSubgraphValidator::toPlan() {
     root_ = selector;
     tail_ = loop;
     */
-    root_ = loop;
+    std::vector<std::string> collects = {gn1->varName()};
+    auto* dc = DataCollect::make(plan, loop,
+            DataCollect::CollectKind::kSubgraph, std::move(collects));
+    dc->setColNames({"_vertices", "_edges"});
+    root_ = dc;
     tail_ = loop;
     return Status::OK();
 }

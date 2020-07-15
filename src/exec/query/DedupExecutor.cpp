@@ -5,16 +5,40 @@
  */
 
 #include "exec/query/DedupExecutor.h"
-
-#include "planner/PlanNode.h"
+#include "planner/Query.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
-
 folly::Future<Status> DedupExecutor::execute() {
     dumpLog();
-    // TODO(yee):
-    return start();
+    auto* dedup = asNode<Dedup>(node());
+    auto iter = ectx_->getResult(dedup->inputVar()).iter();
+
+    if (UNLIKELY(iter == nullptr)) {
+        return Status::Error("Internal Error: iterator is nullptr");
+    }
+
+    if (UNLIKELY(iter->isGetNeighborsIter())) {
+        auto e = Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
+        LOG(ERROR) << e;
+        return e;
+    }
+    ResultBuilder builder;
+    builder.value(iter->valuePtr());
+    QueryExpressionContext ctx(ectx_, iter.get());
+    std::unordered_set<const Row *> unique;
+    while (iter->valid()) {
+        if (unique.find(iter->row()) != unique.end()) {
+            iter->erase();
+        } else {
+            unique.emplace(iter->row());
+            iter->next();
+        }
+    }
+    iter->reset();
+    builder.iter(std::move(iter));
+    return finish(builder.finish());
 }
 
 }   // namespace graph

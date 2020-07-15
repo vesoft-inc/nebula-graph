@@ -16,7 +16,7 @@ PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
 }
 
 // static
-const char* PlanNode::toString(Kind kind) {
+const char* PlanNode::toString(PlanNode::Kind kind) {
     switch (kind) {
         case PlanNode::Kind::kUnknown:
             return "Unkonwn";
@@ -46,8 +46,8 @@ const char* PlanNode::toString(Kind kind) {
             return "Limit";
         case PlanNode::Kind::kAggregate:
             return "Aggregate";
-        case PlanNode::Kind::kSelector:
-            return "Selector";
+        case PlanNode::Kind::kSelect:
+            return "Select";
         case PlanNode::Kind::kLoop:
             return "Loop";
         case PlanNode::Kind::kSwitchSpace:
@@ -68,13 +68,51 @@ const char* PlanNode::toString(Kind kind) {
             return "DescTag";
         case PlanNode::Kind::kDescEdge:
             return "DescEdge";
+        case PlanNode::Kind::kAlterTag:
+            return "AlterTag";
+        case PlanNode::Kind::kAlterEdge:
+            return "AlterEdge";
         case PlanNode::Kind::kInsertVertices:
             return "InsertVertices";
         case PlanNode::Kind::kInsertEdges:
             return "InsertEdges";
-        default:
-            LOG(FATAL) << "Unkown PlanNode: " << static_cast<int64_t>(kind);
+        case PlanNode::Kind::kDataCollect:
+            return "DataCollect";
+        case PlanNode::Kind::kShowCreateSpace:
+            return "ShowCreateSpace";
+        case PlanNode::Kind::kShowCreateTag:
+            return "ShowCreateTag";
+        case PlanNode::Kind::kShowCreateEdge:
+            return "ShowCreateEdge";
+        case PlanNode::Kind::kDropSpace:
+            return "DropSpace";
+        case PlanNode::Kind::kDropTag:
+            return "DropTag";
+        case PlanNode::Kind::kDropEdge:
+            return "DropEdge";
+        case PlanNode::Kind::kShowSpaces:
+            return "kShowSpaces";
+        case PlanNode::Kind::kShowTags:
+            return "kShowTags";
+        case PlanNode::Kind::kShowEdges:
+            return "kShowEdges";
+        case PlanNode::Kind::kCreateSnapshot:
+            return "CreateSnapshot";
+        case PlanNode::Kind::kDropSnapshot:
+            return "DropSnapshot";
+        case PlanNode::Kind::kShowSnapshots:
+            return "ShowSnapshots";
+        case PlanNode::Kind::kBalanceLeaders:
+            return "BalanceLeaders";
+        case PlanNode::Kind::kBalance:
+            return "Balance";
+        case PlanNode::Kind::kStopBalance:
+            return "StopBalance";
+        case PlanNode::Kind::kShowBalance:
+            return "ShowBalance";
+        // no default so the compiler will warning when lack
     }
+    LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(kind);
 }
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {

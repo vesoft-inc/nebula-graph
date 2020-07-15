@@ -15,26 +15,29 @@ namespace graph {
 Status BalanceValidator::toPlan() {
     auto* plan = qctx_->plan();
     PlanNode *current = nullptr;
-    switch (sentence_->subType()) {
+    BalanceSentence *sentence = static_cast<BalanceSentence*>(sentence_);
+    switch (sentence->subType()) {
     case BalanceSentence::SubType::kLeader:
-        current = BalanceLeaders::make(plan);
+        current = BalanceLeaders::make(plan, nullptr);
         break;
     case BalanceSentence::SubType::kData:
         current = Balance::make(plan,
-                                sentence_->hostDel() == nullptr
+                                nullptr,
+                                sentence->hostDel() == nullptr
                                     ? std::vector<HostAddr>()
-                                    : sentence_->hostDel()->hosts());
+                                    : sentence->hostDel()->hosts());
         break;
     case BalanceSentence::SubType::kDataStop:
-        current = StopBalance::make(plan);
+        current = StopBalance::make(plan, nullptr);
         break;
     case BalanceSentence::SubType::kShowBalancePlan:
-        current = ShowBalance::make(plan, sentence_->balanceId());
+        current = ShowBalance::make(plan, nullptr, sentence->balanceId());
         break;
     case BalanceSentence::SubType::kUnknown:
         // fallthrough
     default:
-        return Status::NotSupported("Unknown balance kind %d", sentence_->kind());
+        DLOG(FATAL) << "Unknown balance kind " << sentence->kind();
+        return Status::NotSupported("Unknown balance kind %d", sentence->kind());
     }
     root_ = current;
     tail_ = root_;
