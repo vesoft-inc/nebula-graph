@@ -6,6 +6,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import time
+import pytest
 
 from nebula_test_common.nebula_test_suite import NebulaTestSuite
 
@@ -43,6 +44,7 @@ class TestFetchEmptyVertices(NebulaTestSuite):
         resp = self.execute('DROP SPACE empty')
         self.check_resp_succeeded(resp)
     
+    @pytest.mark.skip(reason="does not support fetch")
     def test_empty_props(self):
         # empty_tag_0
         resp = self.execute('FETCH PROP ON empty_tag_0 "1"')
@@ -62,6 +64,7 @@ class TestFetchEmptyVertices(NebulaTestSuite):
         expect_result = [['1', '2', 0]]
         self.check_result(resp, expect_result)
 
+    @pytest.mark.skip(reason="does not support fetch")
     def test_input_with_empty_props(self):
         resp = self.execute('GO FROM "1" OVER empty_edge YIELD empty_edge._dst as id'
                             '| FETCH PROP ON empty_tag_0 $-.id')
