@@ -118,11 +118,6 @@ protected:
     // TODO: Some statistics
 };
 
-#define DCHECK_NODE_TYPE(kKind)                                                                    \
-    do {                                                                                           \
-        DCHECK_EQ(node()->kind(), PlanNode::Kind::k##kKind);                                       \
-    } while (0);
-
 }  // namespace graph
 }  // namespace nebula
 

@@ -23,7 +23,6 @@ folly::Future<Status> GetEdgesExecutor::execute() {
 }
 
 folly::Future<Status> GetEdgesExecutor::getEdges() {
-    DCHECK_NODE_TYPE(GetEdges);
     dumpLog();
 
     GraphStorageClient *client = qctx()->getStorageClient();
