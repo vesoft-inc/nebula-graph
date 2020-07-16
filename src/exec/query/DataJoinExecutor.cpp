@@ -18,22 +18,30 @@ folly::Future<Status> DataJoinExecutor::execute() {
 
     auto lhsIter = ectx_->getResult(dataJoin->vars().first).iter();
     DCHECK(!!lhsIter);
-    auto map = buildHashTable(dataJoin->hashKeys(), lhsIter.get());
-
     auto rhsIter = ectx_->getResult(dataJoin->vars().second).iter();
     DCHECK(!!rhsIter);
     auto resultIter = std::make_unique<JoinIter>();
     resultIter->joinIndex(lhsIter.get(), rhsIter.get());
-    if (!map.empty()) {
-        probe(map, dataJoin->probeKeys(), rhsIter.get(), resultIter.get());
+    bucketSize_ =
+        lhsIter->size() > rhsIter->size() ? rhsIter->size() : lhsIter->size();
+    hashTable_.resize(bucketSize_);
+
+    if (!(lhsIter->size() == 0 || rhsIter->size() == 0)) {
+        if (lhsIter->size() < rhsIter->size()) {
+            buildHashTable(dataJoin->hashKeys(), lhsIter.get());
+            probe(dataJoin->probeKeys(), rhsIter.get(), resultIter.get());
+        } else {
+            exchange_ = true;
+            buildHashTable(dataJoin->probeKeys(), rhsIter.get());
+            probe(dataJoin->hashKeys(), lhsIter.get(), resultIter.get());
+        }
     }
     return finish(ResultBuilder().iter(std::move(std::move(resultIter))).finish());
 }
 
-std::unordered_map<List, const LogicalRow*> DataJoinExecutor::buildHashTable(
-    const std::vector<Expression*>& hashKeys, Iterator* iter) {
+void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
+                                      Iterator* iter) {
     QueryExpressionContext ctx(ectx_, iter);
-    std::unordered_map<List, const LogicalRow*> map;
     for (; iter->valid(); iter->next()) {
         List list;
         list.values.reserve(hashKeys.size());
@@ -42,16 +50,14 @@ std::unordered_map<List, const LogicalRow*> DataJoinExecutor::buildHashTable(
             list.values.emplace_back(std::move(val));
         }
 
-        map.emplace(std::move(list), iter->row());
+        auto hash = std::hash<List>()(list);
+        auto bucket = hash % bucketSize_;
+        hashTable_[bucket].emplace_back(std::make_pair(std::move(list), iter->row()));
     }
-
-    return map;
 }
 
-void DataJoinExecutor::probe(
-    const std::unordered_map<List, const LogicalRow*>& map,
-    const std::vector<Expression*>& probeKeys, Iterator* iter,
-    JoinIter* resultIter) {
+void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
+                             Iterator* iter, JoinIter* resultIter) {
     QueryExpressionContext ctx(ectx_, iter);
 
     for (; iter->valid(); iter->next()) {
@@ -62,21 +68,34 @@ void DataJoinExecutor::probe(
             list.values.emplace_back(std::move(val));
         }
 
-        auto found = map.find(list);
-        if (found != map.end()) {
-            auto lSegs = found->second->segments();
-            std::vector<const Row*> values;
-            values.insert(values.end(),
-                          std::make_move_iterator(lSegs.begin()),
-                          std::make_move_iterator(lSegs.end()));
-            auto rSegs = iter->row()->segments();
-            values.insert(values.end(),
-                          std::make_move_iterator(rSegs.begin()),
-                          std::make_move_iterator(rSegs.end()));
-            size_t size = found->second->size() + iter->row()->size();
-            JoinIter::LogicalRowJoin row(std::move(values), size,
-                                         &resultIter->getColIdxIndices());
-            resultIter->addRow(std::move(row));
+        auto hash = std::hash<List>()(list);
+        auto bucket = hash % bucketSize_;
+        auto rows = hashTable_[bucket];
+        for (auto& row : rows) {
+            if (row.first == list) {
+                std::vector<const Row*> values;
+                auto lSegs = row.second->segments();
+                auto rSegs = iter->row()->segments();
+                if (exchange_) {
+                    values.insert(values.end(),
+                                std::make_move_iterator(rSegs.begin()),
+                                std::make_move_iterator(rSegs.end()));
+                    values.insert(values.end(),
+                                std::make_move_iterator(lSegs.begin()),
+                                std::make_move_iterator(lSegs.end()));
+                } else {
+                    values.insert(values.end(),
+                                std::make_move_iterator(lSegs.begin()),
+                                std::make_move_iterator(lSegs.end()));
+                    values.insert(values.end(),
+                                std::make_move_iterator(rSegs.begin()),
+                                std::make_move_iterator(rSegs.end()));
+                }
+                size_t size = row.second->size() + iter->row()->size();
+                JoinIter::LogicalRowJoin newRow(std::move(values), size,
+                                            &resultIter->getColIdxIndices());
+                resultIter->addRow(std::move(newRow));
+            }
         }
     }
 }

@@ -40,7 +40,6 @@ folly::Future<Status> IntersectExecutor::execute() {
     }
 
     while (lIter->valid()) {
-        LOG(INFO) << std::hash<const LogicalRow*>()(lIter->row());
         auto iter = hashSet.find(lIter->row());
         if (iter == hashSet.end()) {
             lIter->erase();
