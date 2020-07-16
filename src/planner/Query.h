@@ -333,7 +333,7 @@ public:
                              PlanNode* input,
                              GraphSpaceID space,
                              std::vector<Row> vertices,
-                             std::unique_ptr<Expression> src,
+                             Expression* src,
                              std::vector<storage::cpp2::VertexProp> props,
                              std::vector<storage::cpp2::Expr>       exprs,
                              bool dedup = false,
@@ -345,7 +345,7 @@ public:
                 input,
                 space,
                 std::move(vertices),
-                std::move(src),
+                src,
                 std::move(props),
                 std::move(exprs),
                 dedup,
@@ -361,7 +361,7 @@ public:
     }
 
     Expression* src() const {
-        return src_.get();
+        return src_;
     }
 
     const std::vector<storage::cpp2::VertexProp>& props() const {
@@ -377,7 +377,7 @@ private:
                 PlanNode* input,
                 GraphSpaceID space,
                 std::vector<Row> vertices,
-                std::unique_ptr<Expression> src,
+                Expression* src,
                 std::vector<storage::cpp2::VertexProp> props,
                 std::vector<storage::cpp2::Expr>       exprs,
                 bool dedup,
@@ -393,7 +393,7 @@ private:
                   std::move(filter),
                   std::move(orderBy)),
           vertices_(std::move(vertices)),
-          src_(std::move(src)),
+          src_(src),
           props_(std::move(props)),
           exprs_(std::move(exprs)) { }
 
@@ -401,7 +401,7 @@ private:
     // vertices are parsing from query.
     std::vector<Row>                         vertices_;
     // vertices may be parsing from runtime.
-    std::unique_ptr<Expression>              src_{nullptr};
+    Expression*                              src_{nullptr};
     // props of the vertex
     std::vector<storage::cpp2::VertexProp>   props_;
     // expression to get
@@ -417,10 +417,10 @@ public:
                           PlanNode* input,
                           GraphSpaceID space,
                           std::vector<Row> edges,
-                          std::unique_ptr<Expression> src,
-                          EdgeType                    type,
-                          std::unique_ptr<Expression> ranking,
-                          std::unique_ptr<Expression> dst,
+                          Expression* src,
+                          EdgeType    type,
+                          Expression* ranking,
+                          Expression* dst,
                           std::vector<storage::cpp2::EdgeProp> props,
                           std::vector<storage::cpp2::Expr>     exprs,
                           bool dedup = false,
@@ -432,10 +432,10 @@ public:
                 input,
                 space,
                 std::move(edges),
-                std::move(src),
+                src,
                 type,
-                std::move(ranking),
-                std::move(dst),
+                ranking,
+                dst,
                 std::move(props),
                 std::move(exprs),
                 dedup,
@@ -451,7 +451,7 @@ public:
     }
 
     Expression* src() const {
-        return src_.get();
+        return src_;
     }
 
     EdgeType type() const {
@@ -459,11 +459,11 @@ public:
     }
 
     Expression* ranking() const {
-        return ranking_.get();
+        return ranking_;
     }
 
     Expression* dst() const {
-        return dst_.get();
+        return dst_;
     }
 
     const std::vector<storage::cpp2::EdgeProp>& props() const {
@@ -479,10 +479,10 @@ private:
              PlanNode* input,
              GraphSpaceID space,
              std::vector<Row> edges,
-             std::unique_ptr<Expression> src,
-             EdgeType                    type,
-             std::unique_ptr<Expression> ranking,
-             std::unique_ptr<Expression> dst,
+             Expression* src,
+             EdgeType    type,
+             Expression* ranking,
+             Expression* dst,
              std::vector<storage::cpp2::EdgeProp> props,
              std::vector<storage::cpp2::Expr>     exprs,
              bool dedup,
@@ -498,10 +498,10 @@ private:
                   std::move(filter),
                   std::move(orderBy)),
           edges_(std::move(edges)),
-          src_(std::move(src)),
+          src_(src),
           type_(type),
-          ranking_(std::move(ranking)),
-          dst_(std::move(dst)),
+          ranking_(ranking),
+          dst_(dst),
           props_(std::move(props)),
           exprs_(std::move(exprs)) { }
 
@@ -509,10 +509,10 @@ private:
     // edges_ are parsing from the query.
     std::vector<Row>                         edges_;
     // edges_ may be parsed from runtime.
-    std::unique_ptr<Expression>              src_{nullptr};
+    Expression*                              src_{nullptr};
     EdgeType                                 type_{0};
-    std::unique_ptr<Expression>              ranking_{nullptr};
-    std::unique_ptr<Expression>              dst_{nullptr};
+    Expression*                              ranking_{nullptr};
+    Expression*                              dst_{nullptr};
     // props of edge to get
     std::vector<storage::cpp2::EdgeProp>     props_;
     // expression to show

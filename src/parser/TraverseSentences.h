@@ -336,10 +336,6 @@ public:
         return vidRef_.get();
     }
 
-    std::unique_ptr<Expression> moveRef() {
-        return std::move(vidRef_);
-    }
-
     YieldClause* yieldClause() const {
         return yieldClause_.get();
     }
@@ -426,24 +422,12 @@ public:
         return srcid_.get();
     }
 
-    std::unique_ptr<Expression> moveSrcId() {
-        return std::move(srcid_);
-    }
-
     Expression* dstid() const {
         return dstid_.get();
     }
 
-    std::unique_ptr<Expression> moveDstId() {
-        return std::move(dstid_);
-    }
-
     Expression* rank() const {
         return rank_.get();
-    }
-
-    std::unique_ptr<Expression> moveRank() {
-        return std::move(rank_);
     }
 
     bool isInputExpr() const {

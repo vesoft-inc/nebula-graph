@@ -94,23 +94,23 @@ Status FetchEdgesValidator::check() {
 Status FetchEdgesValidator::prepareEdges() {
     // from ref, eval in execute
     if (sentence_->isRef()) {
-        src_ = sentence_->ref()->moveSrcId();
-        auto status = checkRef(src_.get(), Value::Type::STRING);
+        src_ = sentence_->ref()->srcid();
+        auto status = checkRef(src_, Value::Type::STRING);
         if (!status.ok()) {
             return status;
         }
-        ranking_ = sentence_->ref()->moveRank();
+        ranking_ = sentence_->ref()->rank();
         if (ranking_ == nullptr) {
             // Default zero if ranking not specified
-            ranking_ = std::make_unique<ConstantExpression>(0);
+            ranking_ = qctx_->objPool()->add(new ConstantExpression(0));
         } else {
-            status = checkRef(ranking_.get(), Value::Type::INT);
+            status = checkRef(ranking_, Value::Type::INT);
         }
         if (!status.ok()) {
             return status;
         }
-        dst_ = sentence_->ref()->moveDstId();
-        status = checkRef(dst_.get(), Value::Type::STRING);
+        dst_ = sentence_->ref()->dstid();
+        status = checkRef(dst_, Value::Type::STRING);
         return status;
     }
 
