@@ -95,27 +95,6 @@ protected:
     // Store the result of this executor to execution context
     Status finish(Result &&result);
 
-    // TODO(shylock) only used for storage fetch executor, will modify other executors to use it
-    template <typename Resp>
-    StatusOr<Result::State>
-    handleCompleteness(const storage::StorageRpcResponse<Resp> &rpcResp) const {
-        auto completeness = rpcResp.completeness();
-        if (completeness != 100) {
-            const auto &failedCodes = rpcResp.failedParts();
-            for (auto it = failedCodes.begin(); it != failedCodes.end(); it++) {
-                LOG(ERROR) << name_ << " failed, error "
-                           << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second) << ", part "
-                           << it->first;
-            }
-            if (completeness == 0) {
-                LOG(ERROR) << "Get data from storage failed in executor " << name_;
-                return Status::Error(" Get data from storage failed in executor.");
-            }
-            return Result::State::kPartialSuccess;
-        }
-        return Result::State::kSuccess;
-    }
-
     // Dump some execution logging messages, only for debugging
     // TODO(yee): Remove it after implementing profile function
     void dumpLog() const;
