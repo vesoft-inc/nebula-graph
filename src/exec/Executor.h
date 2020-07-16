@@ -7,8 +7,6 @@
 #ifndef EXEC_EXECUTOR_H_
 #define EXEC_EXECUTOR_H_
 
-#include <folly/futures/Future.h>
-
 #include <memory>
 #include <set>
 #include <string>
