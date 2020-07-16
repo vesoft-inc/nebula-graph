@@ -43,8 +43,8 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             auto ranking = ge->ranking()->eval(expCtx);
             auto dst = ge->dst()->eval(expCtx);
             if (!src.isStr() || !ranking.isInt() || !dst.isStr()) {
-                LOG(ERROR) << "Mismatched edge key type";
-                return Status::Error("Mismatched edge key type");
+                LOG(WARNING) << "Mismatched edge key type";
+                continue;
             }
             edges.emplace_back(Row({
                 std::move(src), ge->type(), std::move(ranking), std::move(dst)

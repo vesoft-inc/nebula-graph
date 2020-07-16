@@ -44,9 +44,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         auto expCtx = QueryExpressionContext(qctx()->ectx(), valueIter.get());
         for (; valueIter->valid(); valueIter->next()) {
             auto src = gv->src()->eval(expCtx);
-            if (src.isStr()) {
-                LOG(ERROR) << "Mismatched vid type.";
-                return Status::Error("Mismatched vid type.");
+            if (!src.isStr()) {
+                LOG(WARNING) << "Mismatched vid type.";
+                continue;
             }
             vertices.emplace_back(Row({
                 std::move(src)
