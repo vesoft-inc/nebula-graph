@@ -10,7 +10,6 @@
 #include "common/base/Base.h"
 #include "parser/Sentence.h"
 #include "context/QueryContext.h"
-#include "validator/Validator.h"
 
 namespace nebula {
 
