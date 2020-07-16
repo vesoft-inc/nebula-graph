@@ -354,7 +354,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             for (auto& arg : funcExpr->args()->args()) {
                 auto status = deduceExprType(arg.get());
                 if (!status.ok()) {
-                    return status.status();
+                    return std::move(status).status();
                 }
                 auto detectVal = kValues.at(status.value());
                 argList->addArgument(std::make_unique<ConstantExpression>(detectVal));
