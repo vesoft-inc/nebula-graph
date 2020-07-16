@@ -5,6 +5,7 @@
  */
 
 #include "exec/query/GetVerticesExecutor.h"
+#include <boost/variant/variant.hpp>
 
 #include "common/clients/storage/GraphStorageClient.h"
 
@@ -26,26 +27,47 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 }
 
 folly::Future<Status> GetVerticesExecutor::getVertices() {
+    DCHECK_NODE_TYPE(GetVertices)
     dumpLog();
 
-    // auto *gv = asNode<GetVertices>(node());
-    // Expression *srcExpr = gv->src();
-    // UNUSED(srcExpr);
+    auto *gv = asNode<GetVertices>(node());
 
-    // std::vector<VertexID> vertices;
-    // // TODO(yee): compute vertices by evaluate expression
-
-    // GraphStorageClient *storageClient_ = ectx_->getStorageClient();
-
-    // return storageClient_->getVertexProps(gv->space(), vertices, gv->props(), gv->filter())
-    //     .via(runner())
-    //     .then([this](StorageRpcResponse<VertexPropResponse> resp) {
-    //         if (!resp.succeeded()) return Status::PartNotFound();
-    //         resp.responses();
-    //         nebula::Value value;
-    //         finish(std::move(value));
-    //         return Status::OK();
-    //     });
+    GraphStorageClient *storageClient = qctx()->getStorageClient();
+    nebula::DataSet vertices({kVid});
+    if (!gv->vertices().empty()) {
+        vertices.rows.insert(vertices.rows.end(),
+                             std::make_move_iterator(gv->vertices().begin()),
+                             std::make_move_iterator(gv->vertices().end()));
+    }
+    if (gv->src() != nullptr) {
+        // Accept Table such as | $a | $b | $c |... as input which one column indicate src
+        auto valueIter = ectx_->getResult(gv->inputVar()).iter();
+        auto expCtx = QueryExpressionContext(qctx()->ectx(), valueIter.get());
+        for (; valueIter->valid(); valueIter->next()) {
+            auto src = gv->src()->eval(expCtx);
+            if (src.isStr()) {
+                LOG(ERROR) << "Mismatched vid type.";
+                return Status::Error("Mismatched vid type.");
+            }
+            vertices.emplace_back(Row({
+                std::move(src)
+            }));
+        }
+    }
+    return DCHECK_NOTNULL(storageClient)
+        ->getProps(gv->space(),
+                   std::move(vertices),
+                   &gv->props(),
+                   nullptr,
+                   gv->exprs().empty() ? nullptr : &gv->exprs(),
+                   gv->dedup(),
+                   gv->orderBy(),
+                   gv->limit(),
+                   gv->filter())
+        .via(runner())
+        .then([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+            return handleResp(std::move(rpcResp));
+        });
     return start();
 }
 

@@ -7,18 +7,20 @@
 #ifndef EXEC_EXECUTOR_H_
 #define EXEC_EXECUTOR_H_
 
+#include <folly/futures/Future.h>
+
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
-
 #include <folly/futures/Future.h>
 
 #include "common/base/Status.h"
+#include "common/clients/storage/StorageClientBase.h"
 #include "common/cpp/helpers.h"
 #include "common/datatypes/Value.h"
-
 #include "context/ExecutionContext.h"
+#include "service/GraphFlags.h"
 
 namespace nebula {
 namespace graph {
@@ -78,8 +80,8 @@ public:
     folly::Future<Status> error(Status status) const;
 
 protected:
-    static Executor *makeExecutor(const PlanNode *node,
-                                  QueryContext *qctx,
+    static Executor *makeExecutor(const PlanNode                          *node,
+                                  QueryContext                            *qctx,
                                   std::unordered_map<int64_t, Executor *> *visited);
 
     // Only allow derived executor to construct
@@ -98,6 +100,7 @@ protected:
     void dumpLog() const;
 
     int64_t id_;
+
     // Executor name
     std::string name_;
 
@@ -115,7 +118,12 @@ protected:
     // TODO: Some statistics
 };
 
-}   // namespace graph
-}   // namespace nebula
+#define DCHECK_NODE_TYPE(kKind)                                                                    \
+    do {                                                                                           \
+        DCHECK_EQ(node()->kind(), PlanNode::Kind::k##kKind);                                       \
+    } while (0);
 
-#endif   // EXEC_EXECUTOR_H_
+}  // namespace graph
+}  // namespace nebula
+
+#endif  // EXEC_EXECUTOR_H_

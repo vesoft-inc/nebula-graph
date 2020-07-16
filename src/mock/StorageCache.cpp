@@ -5,6 +5,9 @@
  */
 
 #include "mock/StorageCache.h"
+#include <gtest/gtest-printers.h>
+#include "common/expression/Expression.h"
+#include "common/expression/SymbolPropertyExpression.h"
 
 DECLARE_int32(heartbeat_interval_secs);
 
@@ -20,7 +23,6 @@ StorageCache::StorageCache(uint16_t metaPort) {
     metaClient_ = std::make_unique<meta::MetaClient>(threadPool,
                                                      std::move(hostStatus).value(), options);
     metaClient_->waitForMetadReady();
-
     mgr_ = std::make_unique<meta::ServerBasedSchemaManager>();
     mgr_->init(metaClient_.get());
 }

@@ -34,4 +34,4 @@ DECLARE_bool(enable_authorize);
 DECLARE_string(auth_type);
 DECLARE_string(cloud_http_url);
 
-#endif  // GRAPH_GRAPHFLAGS_H_
+#endif   // GRAPH_GRAPHFLAGS_H_
