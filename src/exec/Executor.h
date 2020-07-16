@@ -18,7 +18,6 @@
 #include "common/cpp/helpers.h"
 #include "common/datatypes/Value.h"
 #include "context/ExecutionContext.h"
-#include "service/GraphFlags.h"
 
 namespace nebula {
 namespace graph {
