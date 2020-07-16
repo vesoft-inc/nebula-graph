@@ -679,7 +679,6 @@ private:
 private:
     std::vector<LogicalRowJoin>                                    rows_;
     std::vector<LogicalRowJoin>::iterator                          iter_;
-    size_t                                                         rowSize_{0};
     // colName -> segIdx, currentSegColIdx
     std::unordered_map<std::string, std::pair<size_t, size_t>>     colIndices_;
     // colIdx -> segIdx, currentSegColIdx
