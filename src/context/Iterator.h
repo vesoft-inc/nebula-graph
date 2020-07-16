@@ -575,19 +575,14 @@ public:
         const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
     };
 
-    JoinIter() : Iterator(nullptr, Kind::kJoin) {
-        iter_ = rows_.begin();
-    }
+    JoinIter() : Iterator(nullptr, Kind::kJoin) {}
 
     void joinIndex(const Iterator* lhs, const Iterator* rhs);
 
     void addRow(LogicalRowJoin row) {
         rows_.emplace_back(std::move(row));
+        iter_ = rows_.begin();
     }
-
-    size_t buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx);
-
-    size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx);
 
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<JoinIter>(*this);
@@ -657,11 +652,11 @@ public:
         if (index == colIndices_.end()) {
             return Value::kNullValue;
         } else {
-            DCHECK_LT(index->second.first, row.values_.size());
-            DCHECK_LT(index->second.second,
-                      row.values_[index->second.first]->values.size());
-            return row.values_[index->second.first]
-                ->values[index->second.second];
+            auto segIdx = index->second.first;
+            auto colIdx = index->second.second;
+            DCHECK_LT(segIdx, row.values_.size());
+            DCHECK_LT(colIdx, row.values_[segIdx]->values.size());
+            return row.values_[segIdx]->values[colIdx];
         }
     }
 
@@ -676,6 +671,10 @@ private:
     void doReset(size_t pos) override {
         iter_ = rows_.begin() + pos;
     }
+
+    size_t buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx);
+
+    size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx);
 
 private:
     std::vector<LogicalRowJoin>                                    rows_;

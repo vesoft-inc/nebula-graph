@@ -375,7 +375,8 @@ size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
     auto colIdxStart = colIndices_.size();
     size_t nextSeg = 0;
     for (auto& col : iter->getColIndices()) {
-        size_t newSeg = col.second.first + segIdx;
+        auto oldSeg = col.second.first;
+        size_t newSeg = oldSeg + segIdx;
         if (newSeg > nextSeg) {
             nextSeg = newSeg;
         }
@@ -387,7 +388,7 @@ size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
             col.first + colIdxStart,
             std::make_pair(col.second.first + segIdx, col.second.second));
     }
-    return nextSeg;
+    return nextSeg + 1;
 }
 
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
