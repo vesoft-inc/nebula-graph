@@ -20,7 +20,7 @@ folly::Future<Status> CreateUserExecutor::createUser() {
 
     auto *cuNode = asNode<CreateUser>(node());
     return qctx()->getMetaClient()->createUser(
-            cuNode->username(), cuNode->password(), cuNode->ifNotExist())
+            *cuNode->username(), *cuNode->password(), cuNode->ifNotExist())
         .via(runner())
         .then([](StatusOr<bool> resp) {
             NG_RETURN_IF_ERROR(resp);

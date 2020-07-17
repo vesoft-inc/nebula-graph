@@ -284,15 +284,15 @@ public:
 // User related Node
 class CreateUser final : public CreateNode {
 public:
-    static CreateUser* make(ExecutionPlan* plan,
-                            PlanNode*      dep,
-                            std::string username,
-                            std::string password,
+    static CreateUser* make(ExecutionPlan*     plan,
+                            PlanNode*          dep,
+                            const std::string* username,
+                            const std::string* password,
                             bool ifNotExists) {
         return new CreateUser(plan,
                               dep,
-                              std::move(username),
-                              std::move(password),
+                              username,
+                              password,
                               ifNotExists);
     }
 
@@ -300,38 +300,38 @@ public:
         return "CreateUser";
     }
 
-    const std::string& username() const {
+    const std::string* username() const {
         return username_;
     }
 
-    const std::string& password() const {
+    const std::string* password() const {
         return password_;
     }
 
 private:
     CreateUser(ExecutionPlan* plan,
                PlanNode* dep,
-               std::string username,
-               std::string password,
+               const std::string* username,
+               const std::string* password,
                bool ifNotExists)
         : CreateNode(plan, Kind::kCreateUser, dep, ifNotExists),
-          username_(std::move(username)),
-          password_(std::move(password)) {}
+          username_(username),
+          password_(password) {}
 
 private:
-    std::string username_;
-    std::string password_;
+    const std::string* username_;
+    const std::string* password_;
 };
 
 class DropUser final : public DropNode {
 public:
-    static DropUser* make(ExecutionPlan* plan,
-                          PlanNode*      dep,
-                          std::string username,
+    static DropUser* make(ExecutionPlan*     plan,
+                          PlanNode*          dep,
+                          const std::string* username,
                           bool ifNotExists) {
         return new DropUser(plan,
                             dep,
-                            std::move(username),
+                            username,
                             ifNotExists);
     }
 
@@ -339,65 +339,68 @@ public:
         return "DropUser";
     }
 
-    const std::string& username() const {
+    const std::string* username() const {
         return username_;
     }
 
 private:
-    DropUser(ExecutionPlan* plan, PlanNode* dep, std::string username, bool ifNotExists)
+    DropUser(ExecutionPlan* plan, PlanNode* dep, const std::string* username, bool ifNotExists)
         : DropNode(plan, Kind::kDropUser, dep, ifNotExists),
-          username_(std::move(username)) {}
+          username_(username) {}
 
 private:
-    std::string username_;
+    const std::string* username_;
 };
 
 class UpdateUser final : public SingleDependencyNode {
 public:
-    static UpdateUser* make(ExecutionPlan* plan,
-                            PlanNode*      dep,
-                            std::string username,
-                            std::string password) {
+    static UpdateUser* make(ExecutionPlan*     plan,
+                            PlanNode*          dep,
+                            const std::string* username,
+                            const std::string* password) {
         return new UpdateUser(plan,
                               dep,
-                              std::move(username),
-                              std::move(password));
+                              username,
+                              password);
     }
 
     std::string explain() const override {
         return "UpdateUser";
     }
 
-    const std::string& username() const {
+    const std::string* username() const {
         return username_;
     }
 
-    const std::string& password() const {
+    const std::string* password() const {
         return password_;
     }
 
 private:
-    UpdateUser(ExecutionPlan* plan, PlanNode* dep, std::string username, std::string password)
+    UpdateUser(ExecutionPlan* plan,
+               PlanNode* dep,
+               const std::string* username,
+               const std::string* password)
         : SingleDependencyNode(plan, Kind::kUpdateUser, dep),
-          username_(std::move(username)),
-          password_(std::move(password)) {}
+          username_(username),
+          password_(password) {}
 
 private:
-    std::string username_;
-    std::string password_;
+    const std::string* username_;
+    const std::string* password_;
 };
 
 class GrantRole final : public SingleDependencyNode {
 public:
     static GrantRole* make(ExecutionPlan* plan,
                            PlanNode*      dep,
-                           std::string username,
-                           std::string spaceName,
+                           const std::string* username,
+                           const std::string* spaceName,
                            meta::cpp2::RoleType role) {
         return new GrantRole(plan,
                              dep,
-                             std::move(username),
-                             std::move(spaceName),
+                             username,
+                             spaceName,
                              role);
     }
 
@@ -405,11 +408,11 @@ public:
         return "GrantRole";
     }
 
-    const std::string &username() const {
+    const std::string* username() const {
         return username_;
     }
 
-    const std::string &spaceName() const {
+    const std::string* spaceName() const {
         return spaceName_;
     }
 
@@ -420,17 +423,17 @@ public:
 private:
     GrantRole(ExecutionPlan* plan,
               PlanNode* dep,
-              std::string username,
-              std::string spaceName,
+              const std::string* username,
+              const std::string* spaceName,
               meta::cpp2::RoleType role)
         : SingleDependencyNode(plan, Kind::kGrantRole, dep),
-          username_(std::move(username)),
-          spaceName_(std::move(spaceName)),
+          username_(username),
+          spaceName_(spaceName),
           role_(role) {}
 
 private:
-    std::string username_;
-    std::string spaceName_;
+    const std::string* username_;
+    const std::string* spaceName_;
     meta::cpp2::RoleType role_;
 };
 
@@ -438,13 +441,13 @@ class RevokeRole final : public SingleDependencyNode {
 public:
     static RevokeRole* make(ExecutionPlan* plan,
                             PlanNode*      dep,
-                            std::string username,
-                            std::string spaceName,
+                            const std::string* username,
+                            const std::string* spaceName,
                             meta::cpp2::RoleType role) {
         return new RevokeRole(plan,
                               dep,
-                              std::move(username),
-                              std::move(spaceName),
+                              username,
+                              spaceName,
                               role);
     }
 
@@ -452,11 +455,11 @@ public:
         return "RevokeRole";
     }
 
-    const std::string &username() const {
+    const std::string* username() const {
         return username_;
     }
 
-    const std::string &spaceName() const {
+    const std::string* spaceName() const {
         return spaceName_;
     }
 
@@ -467,93 +470,93 @@ public:
 private:
     RevokeRole(ExecutionPlan* plan,
                PlanNode*      dep,
-               std::string username,
-               std::string spaceName,
+               const std::string* username,
+               const std::string* spaceName,
                meta::cpp2::RoleType role)
         : SingleDependencyNode(plan, Kind::kRevokeRole, dep),
-          username_(std::move(username)),
-          spaceName_(std::move(spaceName)),
+          username_(username),
+          spaceName_(spaceName),
           role_(role) {}
 
 private:
-    std::string          username_;
-    std::string          spaceName_;
+    const std::string*          username_;
+    const std::string*          spaceName_;
     meta::cpp2::RoleType role_;
 };
 
 class ChangePassword final : public SingleDependencyNode {
 public:
-    static ChangePassword* make(ExecutionPlan* plan,
-                                PlanNode*      dep,
-                                std::string username,
-                                std::string password,
-                                std::string newPassword) {
+    static ChangePassword* make(ExecutionPlan*     plan,
+                                PlanNode*          dep,
+                                const std::string* username,
+                                const std::string* password,
+                                const std::string* newPassword) {
         return new ChangePassword(plan,
                                   dep,
-                                  std::move(username),
-                                  std::move(password),
-                                  std::move(newPassword));
+                                  username,
+                                  password,
+                                  newPassword);
     }
 
     std::string explain() const override {
         return "ChangePassword";
     }
 
-    const std::string& username() const {
+    const std::string* username() const {
         return username_;
     }
 
-    const std::string& password() const {
+    const std::string* password() const {
         return password_;
     }
 
-    const std::string& newPassword() const {
+    const std::string* newPassword() const {
         return newPassword_;
     }
 
 private:
     ChangePassword(ExecutionPlan* plan,
                    PlanNode* dep,
-                   std::string username,
-                   std::string password,
-                   std::string newPassword)
+                   const std::string* username,
+                   const std::string* password,
+                   const std::string* newPassword)
         : SingleDependencyNode(plan, Kind::kChangePassword, dep),
-          username_(std::move(username)),
-          password_(std::move(password)),
-          newPassword_(std::move(newPassword)) {}
+          username_(username),
+          password_(password),
+          newPassword_(newPassword) {}
 
 private:
-    std::string username_;
-    std::string password_;
-    std::string newPassword_;
+    const std::string* username_;
+    const std::string* password_;
+    const std::string* newPassword_;
 };
 
 
 class ListUserRoles final : public SingleDependencyNode {
 public:
-    static ListUserRoles* make(ExecutionPlan* plan,
-                               PlanNode*      dep,
-                               std::string username) {
+    static ListUserRoles* make(ExecutionPlan*     plan,
+                               PlanNode*          dep,
+                               const std::string* username) {
         return new ListUserRoles(plan,
                                  dep,
-                                 std::move(username));
+                                 username);
     }
 
     std::string explain() const override {
         return "ListUserRoles";
     }
 
-    const std::string& username() const {
+    const std::string* username() const {
         return username_;
     }
 
 private:
-    ListUserRoles(ExecutionPlan* plan, PlanNode* dep, std::string username)
+    ListUserRoles(ExecutionPlan* plan, PlanNode* dep, const std::string* username)
         : SingleDependencyNode(plan, Kind::kListUserRoles, dep),
-          username_(std::move(username)) {}
+          username_(username) {}
 
 private:
-    std::string username_;
+    const std::string* username_;
 };
 
 class ListUsers final : public SingleDependencyNode {

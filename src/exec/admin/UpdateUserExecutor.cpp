@@ -19,7 +19,7 @@ folly::Future<Status> UpdateUserExecutor::updateUser() {
     dumpLog();
 
     auto *uuNode = asNode<UpdateUser>(node());
-    return qctx()->getMetaClient()->alterUser(uuNode->username(), uuNode->password())
+    return qctx()->getMetaClient()->alterUser(*uuNode->username(), *uuNode->password())
         .via(runner())
         .then([](StatusOr<bool> resp) {
             NG_RETURN_IF_ERROR(resp);

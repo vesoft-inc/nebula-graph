@@ -59,8 +59,8 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
         auto createUser = static_cast<const CreateUser*>(root);
         ASSERT_FALSE(createUser->ifNotExist());
-        ASSERT_EQ(createUser->username(), user);
-        ASSERT_EQ(createUser->password(), "");
+        ASSERT_EQ(*createUser->username(), user);
+        ASSERT_EQ(*createUser->password(), "");
     }
     {  // if not exists
         ASSERT_TRUE(toPlan(folly::stringPrintf("CREATE USER IF NOT EXISTS %s", user)));
@@ -76,8 +76,8 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
         auto createUser = static_cast<const CreateUser*>(root);
         ASSERT_TRUE(createUser->ifNotExist());
-        ASSERT_EQ(createUser->username(), user);
-        ASSERT_EQ(createUser->password(), "");
+        ASSERT_EQ(*createUser->username(), user);
+        ASSERT_EQ(*createUser->password(), "");
     }
     {  // with password
         ASSERT_TRUE(toPlan(folly::stringPrintf("CREATE USER %s WITH PASSWORD \"%s\"",
@@ -95,8 +95,8 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(root->kind(), PlanNode::Kind::kCreateUser);
         auto createUser = static_cast<const CreateUser*>(root);
         ASSERT_FALSE(createUser->ifNotExist());
-        ASSERT_EQ(createUser->username(), user);
-        ASSERT_EQ(createUser->password(), password);
+        ASSERT_EQ(*createUser->username(), user);
+        ASSERT_EQ(*createUser->password(), password);
     }
 
     // drop user
@@ -115,7 +115,7 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(root->kind(), PlanNode::Kind::kDropUser);
         auto dropUser = static_cast<const DropUser*>(root);
         ASSERT_FALSE(dropUser->ifExist());
-        ASSERT_EQ(dropUser->username(), user);
+        ASSERT_EQ(*dropUser->username(), user);
     }
     {  // if exits
         ASSERT_TRUE(toPlan(folly::stringPrintf("DROP USER IF EXISTS %s",
@@ -132,7 +132,7 @@ TEST_F(ACLValidatorTest, Simple) {
         ASSERT_EQ(root->kind(), PlanNode::Kind::kDropUser);
         auto dropUser = static_cast<const DropUser*>(root);
         ASSERT_TRUE(dropUser->ifExist());
-        ASSERT_EQ(dropUser->username(), user);
+        ASSERT_EQ(*dropUser->username(), user);
     }
 
     // update user
@@ -150,8 +150,8 @@ TEST_F(ACLValidatorTest, Simple) {
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kUpdateUser);
         auto updateUser = static_cast<const UpdateUser*>(root);
-        ASSERT_EQ(updateUser->username(), user);
-        ASSERT_EQ(updateUser->password(), password);
+        ASSERT_EQ(*updateUser->username(), user);
+        ASSERT_EQ(*updateUser->password(), password);
     }
 
     // show users
@@ -181,9 +181,9 @@ TEST_F(ACLValidatorTest, Simple) {
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kChangePassword);
         auto changePassword = static_cast<const ChangePassword*>(root);
-        ASSERT_EQ(changePassword->username(), user);
-        ASSERT_EQ(changePassword->password(), password);
-        ASSERT_EQ(changePassword->newPassword(), newPassword);
+        ASSERT_EQ(*changePassword->username(), user);
+        ASSERT_EQ(*changePassword->password(), password);
+        ASSERT_EQ(*changePassword->newPassword(), newPassword);
     }
 
     // grant role
@@ -201,8 +201,8 @@ TEST_F(ACLValidatorTest, Simple) {
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kGrantRole);
         auto grantRole = static_cast<const GrantRole*>(root);
-        ASSERT_EQ(grantRole->username(), user);
-        ASSERT_EQ(grantRole->spaceName(), space);
+        ASSERT_EQ(*grantRole->username(), user);
+        ASSERT_EQ(*grantRole->spaceName(), space);
         ASSERT_EQ(grantRole->role(), meta::cpp2::RoleType::ADMIN);
     }
 
@@ -221,8 +221,8 @@ TEST_F(ACLValidatorTest, Simple) {
         auto root = plan->root();
         ASSERT_EQ(root->kind(), PlanNode::Kind::kRevokeRole);
         auto revokeRole = static_cast<const RevokeRole*>(root);
-        ASSERT_EQ(revokeRole->username(), user);
-        ASSERT_EQ(revokeRole->spaceName(), space);
+        ASSERT_EQ(*revokeRole->username(), user);
+        ASSERT_EQ(*revokeRole->spaceName(), space);
         ASSERT_EQ(revokeRole->role(), meta::cpp2::RoleType::ADMIN);
     }
 

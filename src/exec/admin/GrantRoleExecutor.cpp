@@ -19,15 +19,15 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
     dumpLog();
 
     auto *grNode = asNode<GrantRole>(node());
-    const auto &spaceName = grNode->spaceName();
-    auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(spaceName);
+    const auto *spaceName = grNode->spaceName();
+    auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(*spaceName);
     if (!spaceIdResult.ok()) {
         return std::move(spaceIdResult).status();
     }
     auto spaceId = spaceIdResult.value();
     meta::cpp2::RoleItem item;
     item.set_space_id(spaceId);  // TODO(shylock) pass space name directly
-    item.set_user_id(grNode->username());
+    item.set_user_id(*grNode->username());
     item.set_role_type(grNode->role());
     return qctx()->getMetaClient()->grantToUser(std::move(item))
         .via(runner())

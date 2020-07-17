@@ -19,7 +19,7 @@ folly::Future<Status> ListUserRolesExecutor::listUserRoles() {
     dumpLog();
 
     auto *lurNode = asNode<ListUserRoles>(node());
-    return qctx()->getMetaClient()->getUserRoles(lurNode->username())
+    return qctx()->getMetaClient()->getUserRoles(*lurNode->username())
         .via(runner())
         .then([this](StatusOr<std::vector<meta::cpp2::RoleItem>> &&resp) {
             if (!resp.ok()) {

@@ -19,7 +19,7 @@ folly::Future<Status> DropUserExecutor::dropUser() {
     dumpLog();
 
     auto *duNode = asNode<DropUser>(node());
-    return qctx()->getMetaClient()->dropUser(duNode->username(), duNode->ifExist())
+    return qctx()->getMetaClient()->dropUser(*duNode->username(), duNode->ifExist())
         .via(runner())
         .then([](StatusOr<bool> resp) {
             NG_RETURN_IF_ERROR(resp);
