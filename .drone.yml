@@ -42,6 +42,7 @@ steps:
     commands:
       - ./ci/test.sh prepare
       - ./ci/test.sh clang
+      - ./ci/test.sh ctest
       - ./ci/test.sh test
     depends_on:
       - lint

@@ -79,9 +79,6 @@ function run_ctest() {
 }
 
 function run_test() {
-    # UT
-    run_ctest
-
     # CI
     cd $BUILD_DIR/tests
     ./ntr -h
@@ -113,6 +110,7 @@ case "$1" in
     *)
         prepare
         gcc_compile
+        run_ctest
         run_test
         ;;
 esac
