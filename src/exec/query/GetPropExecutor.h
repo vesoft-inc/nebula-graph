@@ -7,6 +7,7 @@
 #pragma once
 
 #include "exec/Executor.h"
+#include "common/clients/storage/StorageClientBase.h"
 
 namespace nebula {
 namespace graph {

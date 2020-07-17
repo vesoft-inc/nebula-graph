@@ -5,9 +5,6 @@
  */
 
 #include "exec/query/GetVerticesExecutor.h"
-
-#include "common/clients/storage/GraphStorageClient.h"
-
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 

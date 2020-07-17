@@ -5,9 +5,6 @@
  */
 
 #include "exec/query/GetEdgesExecutor.h"
-
-#include "common/clients/storage/GraphStorageClient.h"
-
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 

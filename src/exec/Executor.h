@@ -14,7 +14,6 @@
 #include <folly/futures/Future.h>
 
 #include "common/base/Status.h"
-#include "common/clients/storage/StorageClientBase.h"
 #include "common/cpp/helpers.h"
 #include "common/datatypes/Value.h"
 #include "context/ExecutionContext.h"
