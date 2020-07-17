@@ -5,7 +5,6 @@
  */
 
 #include "exec/query/GetVerticesExecutor.h"
-#include <boost/variant/variant.hpp>
 
 #include "common/clients/storage/GraphStorageClient.h"
 

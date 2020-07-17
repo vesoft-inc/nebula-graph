@@ -5,9 +5,6 @@
  */
 
 #include "mock/StorageCache.h"
-#include <gtest/gtest-printers.h>
-#include "common/expression/Expression.h"
-#include "common/expression/SymbolPropertyExpression.h"
 
 DECLARE_int32(heartbeat_interval_secs);
 
