@@ -156,7 +156,6 @@ std::string YieldColumns::toString() const {
 
 bool operator==(const YieldColumn &l, const YieldColumn &r) {
     if (l.alias() == nullptr && r.alias() == nullptr) {
-        return true;
     } else if (l.alias() != nullptr && r.alias() != nullptr) {
         if (*l.alias() != *r.alias()) {
             return false;
@@ -166,7 +165,6 @@ bool operator==(const YieldColumn &l, const YieldColumn &r) {
     }
 
     if (l.expr() == nullptr && r.expr() == nullptr) {
-        return true;
     } else if (l.expr() != nullptr && r.expr() != nullptr) {
         if (*l.expr() != *r.expr()) {
             return false;
