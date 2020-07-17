@@ -10,7 +10,7 @@
 #include "service/PermissionCheck.h"
 #include "planner/Query.h"
 
-DEFINE_uint32(max_allowed_statements, 512, "Max allowed sequential sentences");
+DECLARE_uint32(max_allowed_statements);
 
 namespace nebula {
 namespace graph {

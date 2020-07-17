@@ -41,6 +41,7 @@ function build_storage() {
 function gcc_compile() {
     cd $PROJ_DIR
     cmake \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=on \
         -DCMAKE_CXX_COMPILER=$TOOLSET_DIR/bin/g++ \
         -DCMAKE_C_COMPILER=$TOOLSET_DIR/bin/gcc \
         -DCMAKE_BUILD_TYPE=Release \
@@ -56,6 +57,7 @@ function gcc_compile() {
 function clang_compile() {
     cd $PROJ_DIR
     cmake \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=on \
         -DCMAKE_CXX_COMPILER=$TOOLSET_DIR/bin/clang++ \
         -DCMAKE_C_COMPILER=$TOOLSET_DIR/bin/clang \
         -DCMAKE_BUILD_TYPE=Debug \
@@ -69,12 +71,16 @@ function clang_compile() {
     cmake --build $BUILD_DIR -j$(nproc)
 }
 
-function run_test() {
-    # UT
+function run_ctest() {
     cd $BUILD_DIR
     ctest -j$(nproc) \
           --timeout 400 \
           --output-on-failure
+}
+
+function run_test() {
+    # UT
+    run_ctest
 
     # CI
     cd $BUILD_DIR/tests
@@ -97,6 +103,9 @@ case "$1" in
         ;;
     gcc)
         gcc_compile
+        ;;
+    ctest)
+        run_ctest
         ;;
     test)
         run_test
