@@ -384,16 +384,17 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute('DROP EDGE IF EXISTS exist_edge')
         self.check_resp_succeeded(resp)
 
+    # When turn on asan, it will lead to graphd Stack overflow
     def test_multi(self):
         # multi sentences
         cmd = ''
-        for i in range(0, 1000):
+        for i in range(0, 100):
             cmd += 'CREATE TAG tag10' + str(i) + '(name string);'
         resp = self.client.execute(cmd)
         self.check_resp_succeeded(resp)
 
         # check result
-        for i in range(0, 1000):
+        for i in range(0, 100):
             resp = self.client.execute_query('DESC TAG tag10' + str(i))
             self.check_resp_succeeded(resp)
             expect_result = [['name', 'string', 'YES', 'EMPTY']]

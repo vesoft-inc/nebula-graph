@@ -44,11 +44,11 @@ class NebulaTestSuite(object):
         self.password = pytest.cmdline.password
         self.replica_factor = pytest.cmdline.replica_factor
         self.partition_num = pytest.cmdline.partition_num
+        self.check_format_str = 'result: {}, expect: {}'
+        self.data_dir = pytest.cmdline.data_dir
         self.create_nebula_clients()
         self.set_delay()
         self.prepare()
-        self.check_format_str = 'result: {}, expect: {}'
-        self.data_dir = pytest.cmdline.data_dir
 
     @classmethod
     def load_data(self):
@@ -95,7 +95,7 @@ class NebulaTestSuite(object):
 
     @classmethod
     def create_nebula_clients(self):
-        self.client_pool = ConnectionPool(self.host, self.port)
+        self.client_pool = ConnectionPool(ip = self.host, port = self.port, network_timeout = 0)
         self.client = GraphClient(self.client_pool)
         self.client.authenticate(self.user, self.password)
 
@@ -267,6 +267,13 @@ class NebulaTestSuite(object):
             assert ok, 'The returned row from nebula could not be found, row: {}, error message: {}'.format(
                 self.row_to_string(row), msg)
             expect.remove(exp)
+
+    @classmethod
+    def check_column_names(self, resp, expect):
+        for i in range(len(expect)):
+            ok = (expect[i] == bytes.decode(resp.data.column_names[i]))
+            assert ok, "different column name, expect: {} vs. result: {}".format(
+                expect[i], resp.data.column_names[i])
 
     @classmethod
     def check_result(self, resp, expect, ignore_col: Set[int] = set()):
