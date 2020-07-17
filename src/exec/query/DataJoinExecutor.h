@@ -19,15 +19,17 @@ public:
     folly::Future<Status> execute() override;
 
 private:
- void buildHashTable(const std::vector<Expression*>& hashKeys, Iterator* iter);
+    folly::Future<Status> doInnerJoin();
 
- void probe(const std::vector<Expression*>& probeKeys, Iterator* iter,
-            JoinIter* resultIter);
+    void buildHashTable(const std::vector<Expression*>& hashKeys, Iterator* iter);
+
+    void probe(const std::vector<Expression*>& probeKeys, Iterator* iter,
+                JoinIter* resultIter);
 
 private:
-    size_t                                                        bucketSize_{0};
-    bool                                                          exchange_{false};
-    std::vector<std::list<std::pair<List, const LogicalRow*>>>    hashTable_;
+    size_t                                                      bucketSize_{0};
+    bool                                                        exchange_{false};
+    std::vector<std::list<std::pair<List, const LogicalRow*>>>  hashTable_;
 };
 }  // namespace graph
 }  // namespace nebula

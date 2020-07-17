@@ -14,6 +14,15 @@ namespace nebula {
 namespace graph {
 folly::Future<Status> DataJoinExecutor::execute() {
     dumpLog();
+
+    return doInnerJoin().ensure([this]() {
+        bucketSize_ = 0;
+        exchange_ = false;
+        hashTable_.clear();
+    });
+}
+
+folly::Future<Status> DataJoinExecutor::doInnerJoin() {
     auto* dataJoin = asNode<DataJoin>(node());
 
     auto lhsIter = ectx_->getResult(dataJoin->vars().first).iter();
