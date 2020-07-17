@@ -190,7 +190,7 @@ Status GetSubgraphValidator::toPlan() {
                 new std::string(kDst)),
             new std::string(kVid));
     columns->addColumn(column);
-    auto* project = Project::make(plan, gn1, columns);
+    auto* project = Project::make(plan, gn1, plan->saveObject(columns));
     project->setInputVar(gn1->varName());
     project->setOutputVar(vidsToSave);
     project->setColNames(deduceColNames(columns));
