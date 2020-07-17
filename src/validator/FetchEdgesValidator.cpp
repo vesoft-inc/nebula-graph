@@ -7,6 +7,7 @@
 #include "validator/FetchEdgesValidator.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -122,14 +123,14 @@ Status FetchEdgesValidator::prepareEdges() {
         // row: _src, _type, _ranking, _dst
         edges_.reserve(keys.size());
         for (const auto &key : keys) {
-            DCHECK(key->srcid()->isConstExpr());
+            DCHECK(ExpressionUtils::isConstExpr(key->srcid()));
             // TODO(shylock) Add new value type EDGE_ID to semantic and simplify this
             auto src = key->srcid()->eval(dummy);
             if (!src.isStr()) {   // string as vid
                 return Status::NotSupported("src is not a vertex id");
             }
             auto ranking = key->rank();
-            DCHECK(key->dstid()->isConstExpr());
+            DCHECK(ExpressionUtils::isConstExpr(key->dstid()));
             auto dst = key->dstid()->eval(dummy);
             if (!src.isStr()) {
                 return Status::NotSupported("dst is not a vertex id");
@@ -159,9 +160,9 @@ Status FetchEdgesValidator::prepareProperties() {
             }
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
-            const auto storageExprs = col->expr()->findAllStorage();
+            const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
             if (!storageExprs.empty()) {
-                if (storageExprs.size() == 1 && col->expr()->isStorage()) {
+                if (storageExprs.size() == 1 && ExpressionUtils::isStorage(col->expr())) {
                     // only one expression it's storage property expression
                 } else {
                     // need computation in project when storage not do it.
@@ -232,10 +233,11 @@ Status FetchEdgesValidator::prepareProperties() {
 
 /*static*/
 const Expression* FetchEdgesValidator::findInvalidYieldExpression(const Expression* root) {
-    return root->findAnyKind(Expression::Kind::kInputProperty,
-                             Expression::Kind::kVarProperty,
-                             Expression::Kind::kSrcProperty,
-                             Expression::Kind::kDstProperty);
+    return ExpressionUtils::findAnyKind(root,
+                                        Expression::Kind::kInputProperty,
+                                        Expression::Kind::kVarProperty,
+                                        Expression::Kind::kSrcProperty,
+                                        Expression::Kind::kDstProperty);
 }
 
 }   // namespace graph

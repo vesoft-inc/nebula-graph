@@ -9,6 +9,7 @@
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
+#include "util/ExpressionUtils.h"
 #include "validator/AdminValidator.h"
 #include "validator/AssignmentValidator.h"
 #include "validator/GetSubgraphValidator.h"
@@ -652,7 +653,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 Status Validator::checkRef(const Expression *ref, Value::Type type) const {
-    const auto inputs = ref->findAllInputVariableProp();
+    const auto inputs = ExpressionUtils::findAllInputVariableProp(ref);
     if (inputs.size() != 1) {
         return Status::Error("Only allow one input/variable property.");
     }

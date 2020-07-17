@@ -6,6 +6,7 @@
 #include "validator/FetchVerticesValidator.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -104,7 +105,7 @@ Status FetchVerticesValidator::prepareVertices() {
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
         // TODO(shylock) Add a new value type VID to semantic this
-        DCHECK(vid->isConstExpr());
+        DCHECK(ExpressionUtils::isConstExpr(vid));
         auto v = vid->eval(dummy);
         if (!v.isStr()) {   // string as vid
             return Status::NotSupported("Not a vertex id");
@@ -177,9 +178,9 @@ Status FetchVerticesValidator::prepareProperties() {
             }
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
-            const auto storageExprs = col->expr()->findAllStorage();
+            const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
             if (!storageExprs.empty()) {
-                if (storageExprs.size() == 1 && col->expr()->isStorage()) {
+                if (storageExprs.size() == 1 && ExpressionUtils::isStorage(col->expr())) {
                     // only one expression it's storage property expression
                 } else {
                     // need computation in project when storage not do it.
@@ -233,12 +234,13 @@ Status FetchVerticesValidator::prepareProperties() {
 
 /*static*/
 const Expression* FetchVerticesValidator::findInvalidYieldExpression(const Expression* root) {
-    return root->findAnyKind(Expression::Kind::kInputProperty,
-                             Expression::Kind::kVarProperty,
-                             Expression::Kind::kEdgeSrc,
-                             Expression::Kind::kEdgeType,
-                             Expression::Kind::kEdgeRank,
-                             Expression::Kind::kEdgeDst);
+    return  ExpressionUtils::findAnyKind(root,
+                                         Expression::Kind::kInputProperty,
+                                         Expression::Kind::kVarProperty,
+                                         Expression::Kind::kEdgeSrc,
+                                         Expression::Kind::kEdgeType,
+                                         Expression::Kind::kEdgeRank,
+                                         Expression::Kind::kEdgeDst);
 }
 
 }   // namespace graph
