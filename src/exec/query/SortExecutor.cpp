@@ -31,8 +31,10 @@ folly::Future<Status> SortExecutor::execute() {
         for (auto &factor : factors) {
             auto indexFind = colIndices.find(factor.first);
             if (indexFind == colIndices.end()) {
-                LOG(ERROR) << "Column name `" << factor.first << "' is not exist.";
-                return Status::Error("Column name `%s' is not exist.", factor.first.c_str());
+                LOG(ERROR) << "Column name `" << factor.first
+                           << "' does not exist.";
+                return Status::Error("Column name `%s' does not exist.",
+                                     factor.first.c_str());
             }
             indexes.emplace_back(std::make_pair(indexFind->second, factor.second));
         }

@@ -16,9 +16,7 @@ folly::Future<Status> DataJoinExecutor::execute() {
     dumpLog();
 
     return doInnerJoin().ensure([this]() {
-        bucketSize_ = 0;
         exchange_ = false;
-        hashTable_.clear();
     });
 }
 
@@ -27,15 +25,26 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
 
     auto lhsIter = ectx_->getResult(dataJoin->vars().first).iter();
     DCHECK(!!lhsIter);
+    if (!lhsIter->isSequentialIter() && !lhsIter->isJoinIter()) {
+        std::stringstream ss;
+        ss << "Join executor does not support " << lhsIter->kind();
+        return error(Status::Error(ss.str()));
+    }
     auto rhsIter = ectx_->getResult(dataJoin->vars().second).iter();
     DCHECK(!!rhsIter);
+    if (!rhsIter->isSequentialIter() && !rhsIter->isJoinIter()) {
+        std::stringstream ss;
+        ss << "Join executor does not support " << lhsIter->kind();
+        return error(Status::Error(ss.str()));
+    }
+
     auto resultIter = std::make_unique<JoinIter>();
     resultIter->joinIndex(lhsIter.get(), rhsIter.get());
-    bucketSize_ =
+    auto bucketSize =
         lhsIter->size() > rhsIter->size() ? rhsIter->size() : lhsIter->size();
-    hashTable_.resize(bucketSize_);
+    hashTable_ = std::make_unique<HashTable>(bucketSize);
 
-    if (!(lhsIter->size() == 0 || rhsIter->size() == 0)) {
+    if (!(lhsIter->empty() || rhsIter->empty())) {
         if (lhsIter->size() < rhsIter->size()) {
             buildHashTable(dataJoin->hashKeys(), lhsIter.get());
             probe(dataJoin->probeKeys(), rhsIter.get(), resultIter.get());
@@ -45,7 +54,7 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
             probe(dataJoin->hashKeys(), lhsIter.get(), resultIter.get());
         }
     }
-    return finish(ResultBuilder().iter(std::move(std::move(resultIter))).finish());
+    return finish(ResultBuilder().iter(std::move(resultIter)).finish());
 }
 
 void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
@@ -59,16 +68,13 @@ void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
             list.values.emplace_back(std::move(val));
         }
 
-        auto hash = std::hash<List>()(list);
-        auto bucket = hash % bucketSize_;
-        hashTable_[bucket].emplace_back(std::make_pair(std::move(list), iter->row()));
+        hashTable_->add(std::move(list), iter->row());
     }
 }
 
 void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
                              Iterator* iter, JoinIter* resultIter) {
     QueryExpressionContext ctx(ectx_, iter);
-
     for (; iter->valid(); iter->next()) {
         List list;
         list.values.reserve(probeKeys.size());
@@ -77,34 +83,23 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
             list.values.emplace_back(std::move(val));
         }
 
-        auto hash = std::hash<List>()(list);
-        auto bucket = hash % bucketSize_;
-        auto rows = hashTable_[bucket];
-        for (auto& row : rows) {
-            if (row.first == list) {
-                std::vector<const Row*> values;
-                auto lSegs = row.second->segments();
-                auto rSegs = iter->row()->segments();
-                if (exchange_) {
-                    values.insert(values.end(),
-                                std::make_move_iterator(rSegs.begin()),
-                                std::make_move_iterator(rSegs.end()));
-                    values.insert(values.end(),
-                                std::make_move_iterator(lSegs.begin()),
-                                std::make_move_iterator(lSegs.end()));
-                } else {
-                    values.insert(values.end(),
-                                std::make_move_iterator(lSegs.begin()),
-                                std::make_move_iterator(lSegs.end()));
-                    values.insert(values.end(),
-                                std::make_move_iterator(rSegs.begin()),
-                                std::make_move_iterator(rSegs.end()));
-                }
-                size_t size = row.second->size() + iter->row()->size();
-                JoinIter::LogicalRowJoin newRow(std::move(values), size,
-                                            &resultIter->getColIdxIndices());
-                resultIter->addRow(std::move(newRow));
+        auto range = hashTable_->get(list);
+        for (auto i = range.first; i != range.second; ++i) {
+            auto row = i->second;
+            std::vector<const Row*> values;
+            auto lSegs = row->segments();
+            auto rSegs = iter->row()->segments();
+            if (exchange_) {
+                values.insert(values.end(), rSegs.begin(), rSegs.end());
+                values.insert(values.end(), lSegs.begin(), lSegs.end());
+            } else {
+                values.insert(values.end(), lSegs.begin(), lSegs.end());
+                values.insert(values.end(), rSegs.begin(), rSegs.end());
             }
+            size_t size = row->size() + iter->row()->size();
+            JoinIter::LogicalRowJoin newRow(std::move(values), size,
+                                        &resultIter->getColIdxIndices());
+            resultIter->addRow(std::move(newRow));
         }
     }
 }

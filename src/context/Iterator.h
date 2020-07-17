@@ -93,6 +93,10 @@ public:
 
     virtual size_t size() const = 0;
 
+    bool empty() const {
+        return size() == 0;
+    }
+
     bool isDefaultIter() const {
         return kind_ == Kind::kDefault;
     }
