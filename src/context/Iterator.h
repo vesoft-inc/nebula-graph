@@ -326,7 +326,7 @@ private:
     };
 
     class LogicalRowGN final : public LogicalRow {
-        public:
+    public:
         LogicalRowGN(size_t dsIdx, const Row* row, std::string edgeName,
                         const List* edgeProps)
             : dsIdx_(dsIdx),
@@ -353,6 +353,9 @@ private:
         std::vector<const Row*> segments() const override {
             return { row_ };
         }
+
+    private:
+        friend class GetNeighborsIter;
         size_t dsIdx_;
         const Row* row_;
         std::string edgeName_;
@@ -402,6 +405,8 @@ public:
             return { row_ };
         }
 
+    private:
+        friend class SequentialIter;
         const Row* row_;
     };
 
@@ -574,6 +579,8 @@ public:
             return values_;
         }
 
+    private:
+        friend class JoinIter;
         std::vector<const Row*> values_;
         size_t size_;
         const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
@@ -690,6 +697,7 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind);
+std::ostream& operator<<(std::ostream& os, LogicalRow::Kind kind);
 std::ostream& operator<<(std::ostream& os, const LogicalRow& row);
 }  // namespace graph
 }  // namespace nebula
@@ -697,7 +705,7 @@ namespace std {
 template <>
 struct equal_to<const nebula::Row*> {
     bool operator()(const nebula::Row* lhs, const nebula::Row* rhs) const {
-        return *lhs == *rhs;
+        return lhs == rhs ? true : !lhs && !rhs && *lhs == *rhs;
     }
 };
 
@@ -710,41 +718,15 @@ struct equal_to<const nebula::graph::LogicalRow*> {
 template <>
 struct hash<const nebula::Row*> {
     size_t operator()(const nebula::Row* row) const {
-        return hash<nebula::Row>()(*row);
+        return !row ? 0 : hash<nebula::Row>()(*row);
     }
 };
 
 template <>
 struct hash<nebula::graph::LogicalRow> {
-    size_t operator()(const nebula::graph::LogicalRow& row) const;
-};
-
-template <>
-struct hash<const nebula::graph::LogicalRow*> {
-    size_t operator()(const nebula::graph::LogicalRow* row) const {
-        return hash<nebula::graph::LogicalRow>()(*row);
-    }
-};
-
-template <>
-struct hash<nebula::graph::SequentialIter::LogicalRowSeq> {
-    size_t operator()(const nebula::graph::SequentialIter::LogicalRowSeq& row) const {
-        return std::hash<const nebula::Row*>()(row.row_);
-    }
-};
-
-template <>
-struct hash<const nebula::graph::SequentialIter::LogicalRowSeq*> {
-    size_t operator()(const nebula::graph::SequentialIter::LogicalRowSeq* row) const {
-        return std::hash<nebula::graph::SequentialIter::LogicalRowSeq>()(*row);
-    }
-};
-
-template <>
-struct hash<nebula::graph::JoinIter::LogicalRowJoin> {
-    size_t operator()(const nebula::graph::JoinIter::LogicalRowJoin& row) const {
+    size_t operator()(const nebula::graph::LogicalRow& row) const {
         size_t seed = 0;
-        for (auto& value : row.values_) {
+        for (auto& value : row.segments()) {
             seed ^= std::hash<const nebula::Row*>()(value);
         }
         return seed;
@@ -752,9 +734,9 @@ struct hash<nebula::graph::JoinIter::LogicalRowJoin> {
 };
 
 template <>
-struct hash<const nebula::graph::JoinIter::LogicalRowJoin*> {
-    size_t operator()(const nebula::graph::JoinIter::LogicalRowJoin* row) const {
-        return std::hash<nebula::graph::JoinIter::LogicalRowJoin>()(*row);
+struct hash<const nebula::graph::LogicalRow*> {
+    size_t operator()(const nebula::graph::LogicalRow* row) const {
+        return !row ? 0 : hash<nebula::graph::LogicalRow>()(*row);
     }
 };
 

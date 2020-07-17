@@ -11,49 +11,34 @@
 #include "common/interface/gen-cpp2/common_types.h"
 
 namespace std {
-size_t hash<nebula::graph::LogicalRow>::operator()(
-    const nebula::graph::LogicalRow& row) const {
-    switch (row.kind()) {
-        case nebula::graph::LogicalRow::Kind::kSequential:
-            return std::hash<nebula::graph::SequentialIter::LogicalRowSeq>()(
-                    static_cast<const nebula::graph::SequentialIter::LogicalRowSeq&>(row));
-        case nebula::graph::LogicalRow::Kind::kJoin:
-            return std::hash<nebula::graph::JoinIter::LogicalRowJoin>()(
-                    static_cast<const nebula::graph::JoinIter::LogicalRowJoin&>(row));
-        default:
-            LOG(FATAL) << "";
-            return 0;
-    }
-}
 
 bool equal_to<const nebula::graph::LogicalRow*>::operator()(
     const nebula::graph::LogicalRow* lhs,
     const nebula::graph::LogicalRow* rhs) const {
+    DCHECK_EQ(lhs->kind(), rhs->kind());
     switch (lhs->kind()) {
-        case nebula::graph::LogicalRow::Kind::kSequential: {
-            auto* lhsRow =
-                static_cast<
-                    const nebula::graph::SequentialIter::LogicalRowSeq*>(lhs)
-                    ->row_;
-            auto* rhsRow =
-                static_cast<
-                    const nebula::graph::SequentialIter::LogicalRowSeq*>(rhs)
-                    ->row_;
-            return *lhsRow == *rhsRow;
-        }
+        case nebula::graph::LogicalRow::Kind::kSequential:
         case nebula::graph::LogicalRow::Kind::kJoin: {
-            auto& lhsValues =
-                static_cast<const nebula::graph::JoinIter::LogicalRowJoin*>(lhs)
-                    ->values_;
-            auto& rhsValues =
-                static_cast<const nebula::graph::JoinIter::LogicalRowJoin*>(rhs)
-                    ->values_;
-            return  lhsValues == rhsValues;
+            auto lhsValues = lhs->segments();
+            auto rhsValues = rhs->segments();
+            if (lhsValues.size() != rhsValues.size()) {
+                return false;
+            }
+            for (size_t i = lhsValues.size(); i < lhsValues.size(); ++i) {
+                const auto* l = lhsValues[i];
+                const auto* r = rhsValues[i];
+                auto equal = l == r ? true : !l && !r && (*l == *r);
+                if (!equal) {
+                    return false;
+                }
+            }
+            break;
         }
         default:
-            LOG(FATAL) << "";
+            LOG(FATAL) << "Not support equal_to for " << lhs->kind();
             return false;
     }
+    return true;
 }
 }  // namespace std
 
@@ -410,25 +395,43 @@ std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
     return os;
 }
 
+std::ostream& operator<<(std::ostream& os, LogicalRow::Kind kind) {
+    switch (kind) {
+        case LogicalRow::Kind::kGetNeighbors:
+            os << "get neighbors row";
+            break;
+        case LogicalRow::Kind::kSequential:
+            os << "sequential row";
+            break;
+        case LogicalRow::Kind::kJoin:
+            os << "join row";
+            break;
+    }
+    return os;
+}
+
 std::ostream& operator<<(std::ostream& os, const LogicalRow& row) {
     switch (row.kind()) {
         case nebula::graph::LogicalRow::Kind::kSequential:
-            os << *static_cast<const nebula::graph::SequentialIter::LogicalRowSeq&>(row).row_;
-            break;
         case nebula::graph::LogicalRow::Kind::kJoin: {
-            auto& logicalRow = static_cast<const nebula::graph::JoinIter::LogicalRowJoin&>(row);
             std::stringstream ss;
-            for (auto iter = logicalRow.values_.begin(); iter < logicalRow.values_.end(); ++iter) {
-                ss << **iter;
-                if (iter != logicalRow.values_.end() - 1) {
+            size_t cnt;
+            for (auto* seg : row.segments()) {
+                if (seg == nullptr) {
+                    ss << "nullptr";
+                } else {
+                    ss << *seg;
+                }
+                if (cnt < row.size() - 1) {
                     ss << ",";
                 }
+                ++cnt;
             }
             os << ss.str();
             break;
         }
         default:
-            LOG(FATAL) << "";
+            LOG(FATAL) << "Not support streaming for " << row.kind();
     }
     return os;
 }

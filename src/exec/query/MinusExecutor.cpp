@@ -23,11 +23,8 @@ folly::Future<Status> MinusExecutor::execute() {
 
     std::unordered_set<const LogicalRow *> hashSet;
     for (; rIter->valid(); rIter->next()) {
-        auto iter = hashSet.insert(rIter->row());
-        if (UNLIKELY(!iter.second)) {
-            LOG(ERROR) << "Fail to insert row into hash table in minus executor, row: "
-                       << *rIter->row();
-        }
+        hashSet.insert(rIter->row());
+        // TODO: should test duplicate rows
     }
 
     if (!hashSet.empty()) {
