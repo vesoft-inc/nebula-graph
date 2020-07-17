@@ -8,6 +8,8 @@
 
 #include "validator/test/ValidatorTestBase.h"
 
+DECLARE_uint32(max_allowed_statements);
+
 namespace nebula {
 namespace graph {
 
@@ -57,7 +59,115 @@ TEST_F(QueryValidatorTest, TestFirstSentence) {
     }
 }
 
-TEST_F(QueryValidatorTest, Go) {
+TEST_F(QueryValidatorTest, GoNSteps) {
+    {
+        std::string query = "GO 2 STEPS FROM \"1\" OVER like";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 3 STEPS FROM \"1\",\"2\",\"3\" OVER like WHERE like.likeness > 90";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query =
+            "GO 3 steps FROM \"1\",\"2\",\"3\" OVER like WHERE $^.person.age > 20"
+            "YIELD distinct $^.person.name";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kDedup,
+            PK::kProject,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 2 STEPS FROM \"1\",\"2\",\"3\" OVER like WHERE $^.person.age > 20"
+                            "YIELD distinct $^.person.name ";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kDedup,
+            PK::kProject,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 1 STEPS FROM \"1\" OVER like YIELD like._dst AS "
+                            "id | GO 2 STEPS FROM $-.id OVER like";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kProject,
+            PK::kProject,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kGetNeighbors,
+            PK::kStart,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 2 STEPS FROM \"1\" OVER like YIELD like._dst AS id"
+                            "| GO 1 STEPS FROM $-.id OVER like";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "YIELD \"1\" AS id | GO FROM $-.id OVER like";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+}
+
+TEST_F(QueryValidatorTest, GoOneStep) {
     {
         std::string query = "GO FROM \"1\" OVER like";
         std::vector<PlanNode::Kind> expected = {
@@ -66,11 +176,6 @@ TEST_F(QueryValidatorTest, Go) {
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
-    }
-    {
-        std::string query = "GO 3 STEPS FROM \"1\" OVER like";
-        // TODO: implement n steps and test plan.
-        EXPECT_FALSE(checkResult(query));
     }
     {
         std::string query = "GO FROM \"1\" OVER like REVERSELY";
@@ -342,5 +447,23 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
       EXPECT_TRUE(checkResult(query, expected));
   }
 }
+
+TEST_F(QueryValidatorTest, TestMaxAllowedStatements) {
+    std::vector<std::string> stmts;
+    for (uint32_t i = 0; i < FLAGS_max_allowed_statements; i++) {
+        stmts.emplace_back(folly::stringPrintf("CREATE TAG tag_%d(name string)", i));
+    }
+    auto query = folly::join(";", stmts);
+    EXPECT_TRUE(checkResult(query));
+
+    stmts.emplace_back(
+        folly::stringPrintf("CREATE TAG tag_%d(name string)", FLAGS_max_allowed_statements));
+    query = folly::join(";", stmts);
+    auto result = checkResult(query);
+    EXPECT_FALSE(result);
+    EXPECT_EQ(std::string(result.message()),
+              "The maximum number of statements allowed has been exceeded");
+}
+
 }  // namespace graph
 }  // namespace nebula
