@@ -27,7 +27,8 @@ bool equal_to<const nebula::graph::LogicalRow*>::operator()(
             for (size_t i = lhsValues.size(); i < lhsValues.size(); ++i) {
                 const auto* l = lhsValues[i];
                 const auto* r = rhsValues[i];
-                auto equal = l == r ? true : !l && !r && (*l == *r);
+                auto equal =
+                    l == r ? true : (l != nullptr) && (r != nullptr) && (*l == *r);
                 if (!equal) {
                     return false;
                 }
@@ -415,7 +416,7 @@ std::ostream& operator<<(std::ostream& os, const LogicalRow& row) {
         case nebula::graph::LogicalRow::Kind::kSequential:
         case nebula::graph::LogicalRow::Kind::kJoin: {
             std::stringstream ss;
-            size_t cnt;
+            size_t cnt = 0;
             for (auto* seg : row.segments()) {
                 if (seg == nullptr) {
                     ss << "nullptr";

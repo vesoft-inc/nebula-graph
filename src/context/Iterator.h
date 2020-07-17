@@ -705,7 +705,9 @@ namespace std {
 template <>
 struct equal_to<const nebula::Row*> {
     bool operator()(const nebula::Row* lhs, const nebula::Row* rhs) const {
-        return lhs == rhs ? true : !lhs && !rhs && *lhs == *rhs;
+        return lhs == rhs
+                   ? true
+                   : (lhs != nullptr) && (rhs != nullptr) && (*lhs == *rhs);
     }
 };
 
@@ -740,6 +742,6 @@ struct hash<const nebula::graph::LogicalRow*> {
     }
 };
 
-}   // namespace std
+}  // namespace std
 
 #endif  // CONTEXT_ITERATOR_H_
