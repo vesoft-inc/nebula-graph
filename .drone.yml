@@ -16,6 +16,8 @@ steps:
       NEBULA_TEST_LOGS_DIR: /tmp/nebula-ci-logs
       NEBULA_STORAGE_REPO_URL:
         from_secret: NEBULA_STORAGE_REPO_URL
+      NEBULA_COMMON_REPO_URL:
+        from_secret: NEBULA_COMMON_REPO_URL
     commands:
       - ./ci/test.sh
     depends_on:
@@ -39,6 +41,8 @@ steps:
       NEBULA_TEST_LOGS_DIR: /tmp/nebula-ci-logs
       NEBULA_STORAGE_REPO_URL:
         from_secret: NEBULA_STORAGE_REPO_URL
+      NEBULA_COMMON_REPO_URL:
+        from_secret: NEBULA_COMMON_REPO_URL
     commands:
       - ./ci/test.sh prepare
       - ./ci/test.sh clang
