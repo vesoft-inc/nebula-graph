@@ -32,7 +32,11 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
     return qctx()->getMetaClient()->revokeFromUser(std::move(item))
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp, "Revoke role failed!");
+            NG_RETURN_IF_ERROR(resp);
+            if (!resp.value()) {
+                return Status::Error("Revoke role failed!");
+            }
+            return Status::OK();
         });
 }
 

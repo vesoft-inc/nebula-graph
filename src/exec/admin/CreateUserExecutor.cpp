@@ -23,7 +23,11 @@ folly::Future<Status> CreateUserExecutor::createUser() {
             cuNode->username(), cuNode->password(), cuNode->ifNotExist())
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp, "Create User failed!");
+            NG_RETURN_IF_ERROR(resp);
+            if (!resp.value()) {
+                return Status::Error("Create User failed!");
+            }
+            return Status::OK();
         });
 }
 

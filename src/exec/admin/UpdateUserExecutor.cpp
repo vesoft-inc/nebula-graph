@@ -22,7 +22,11 @@ folly::Future<Status> UpdateUserExecutor::updateUser() {
     return qctx()->getMetaClient()->alterUser(uuNode->username(), uuNode->password())
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp, "Update user failed!");
+            NG_RETURN_IF_ERROR(resp);
+            if (!resp.value()) {
+                return Status::Error("Update user failed!");
+            }
+            return Status::OK();
         });
 }
 

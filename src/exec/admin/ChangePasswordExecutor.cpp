@@ -22,8 +22,12 @@ folly::Future<Status> ChangePasswordExecutor::changePassword() {
     return qctx()->getMetaClient()->changePassword(
             cpNode->username(), cpNode->newPassword(), cpNode->password())
         .via(runner())
-        .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp, "Change password failed!");
+        .then([](StatusOr<bool> &&resp) {
+            NG_RETURN_IF_ERROR(resp);
+            if (!resp.value()) {
+                return Status::Error("Change password failed!");
+            }
+            return Status::OK();
         });
 }
 

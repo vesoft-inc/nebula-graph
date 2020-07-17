@@ -467,6 +467,15 @@ Status Executor::finish(Result &&result) {
     return Status::OK();
 }
 
+Status Executor::finish(Value &&value) {
+    ectx_->setResult(node()->varName(),
+                     ResultBuilder()
+                        .value(std::move(value))
+                        .iter(Iterator::Kind::kDefault)
+                        .finish());
+    return Status::OK();
+}
+
 void Executor::dumpLog() const {
     VLOG(4) << name() << "(" << id() << ")";
 }

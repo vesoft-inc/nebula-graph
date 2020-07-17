@@ -92,6 +92,8 @@ protected:
 
     // Store the result of this executor to execution context
     Status finish(Result &&result);
+    // Store the default resutl which not used by later executor
+    Status finish(Value &&value);
 
     // Dump some execution logging messages, only for debugging
     // TODO(yee): Remove it after implementing profile function
@@ -114,17 +116,6 @@ protected:
 
     // TODO: Some statistics
 };
-
-#define HANDLE_EXEC_RESPONSE(resp, errorMsgFmt, ...) \
-    if (!resp.ok()) { \
-        LOG(ERROR) << resp.status(); \
-        return resp.status(); \
-    } \
-    if (resp.value()) { \
-        return Status::OK(); \
-    } else { \
-        return Status::Error(errorMsgFmt, ## __VA_ARGS__); \
-    }
 
 }   // namespace graph
 }   // namespace nebula

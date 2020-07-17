@@ -32,7 +32,11 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
     return qctx()->getMetaClient()->grantToUser(std::move(item))
         .via(runner())
         .then([](StatusOr<bool> resp) {
-            HANDLE_EXEC_RESPONSE(resp, "Grant role failed!");
+            NG_RETURN_IF_ERROR(resp);
+            if (!resp.value()) {
+                return Status::Error("Grant role failed!");
+            }
+            return Status::OK();
         });
 }
 
