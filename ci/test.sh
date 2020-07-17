@@ -13,14 +13,9 @@ TOOLSET_DIR=/opt/vesoft/toolset/clang/9.0.0
 
 mkdir -p $BUILD_DIR
 
-function prepare_pip3() {
+function prepare() {
     pip3 install -U setuptools -i https://mirrors.aliyun.com/pypi/simple/
     pip3 install -r $PROJ_DIR/tests/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
-}
-
-function prepare() {
-    $PROJ_DIR/ci/deploy.sh
-    prepare_pip3
 }
 
 function lint() {
@@ -48,6 +43,7 @@ function gcc_compile() {
         -DENABLE_TESTING=on \
         -DENABLE_BUILD_STORAGE=on \
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
+        -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
         -B $BUILD_DIR
     build_common
     build_storage
@@ -65,6 +61,7 @@ function clang_compile() {
         -DENABLE_TESTING=on \
         -DENABLE_BUILD_STORAGE=on \
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
+        -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
         -B $BUILD_DIR
     build_common
     build_storage
@@ -79,19 +76,17 @@ function run_ctest() {
 }
 
 function run_test() {
-    # CI
     cd $BUILD_DIR/tests
-    ./ntr $PROJ_DIR/tests/admin/*  \
-          $PROJ_DIR/tests/maintain/*  \
-          $PROJ_DIR/tests/query/stateless/test_schema.py
+    ./ntr \
+        $PROJ_DIR/tests/admin/* \
+        $PROJ_DIR/tests/maintain/* \
+        $PROJ_DIR/tests/query/stateless/test_schema.py \
+        $PROJ_DIR/tests/query/v1/*
 }
 
 case "$1" in
     prepare)
         prepare
-        ;;
-    pip)
-        prepare_pip3
         ;;
     lint)
         lint
