@@ -37,6 +37,9 @@ NEBULA_SOURCE_DIR=os.getenv('NEBULA_SOURCE_DIR')
 if NEBULA_SOURCE_DIR is None:
     NEBULA_SOURCE_DIR = str(Path(TEST_DIR).parent)
 
+NEBULA_DATA_DIR = os.getenv('NEBULA_DATA_DIR')
+if NEBULA_DATA_DIR is None or NEBULA_DATA_DIR == "":
+    NEBULA_DATA_DIR = TEST_DIR + "/data"
 
 NEBULA_START_COMMAND_FORMAT="bin/nebula-{} --flagfile conf/nebula-{}.conf {}"
 
@@ -107,6 +110,9 @@ class NebulaTestPlugin(object):
                          dest='replica_factor',
                          default=1,
                          help='the replica_factor of Nebula\'s space')
+        parser.addoption('--data_dir',
+                        dest='data_dir',
+                        help='Data Preload Directory for Nebula')
 
     # link to pytest_configure
     # https://docs.pytest.org/en/latest/reference.html#_pytest.hookspec.pytest_configure
@@ -117,6 +123,7 @@ class NebulaTestPlugin(object):
         pytest.cmdline.password = config.getoption("password")
         pytest.cmdline.replica_factor = config.getoption("replica_factor")
         pytest.cmdline.partition_num = config.getoption("partition_num")
+        pytest.cmdline.data_dir = NEBULA_DATA_DIR
         config._metadata['graphd digest'] = DOCKER_GRAPHD_DIGESTS
         config._metadata['metad digest'] = DOCKER_METAD_DIGESTS
         config._metadata['storaged digest'] = DOCKER_STORAGED_DIGESTS
@@ -150,14 +157,14 @@ def copy_nebula_conf(nebula_test_dir):
     shutil.copy(NEBULA_SOURCE_DIR+'/modules/storage/src/daemons/_build/nebula-metad', nebula_test_dir + '/bin/')
     shutil.copy(NEBULA_SOURCE_DIR+'/conf/nebula-graphd.conf.default', nebula_test_dir+'/conf/nebula-graphd.conf')
     shutil.copy(NEBULA_SOURCE_DIR+'/modules/storage/conf/nebula-metad.conf.default', nebula_test_dir + '/conf/nebula-metad.conf')
-    shutil.copy(NEBULA_SOURCE_DIR+'/modules/storage/conf/nebula-storaged.conf.default', nebula_test_dir + '/conf/nebula-storaged.conf')        
+    shutil.copy(NEBULA_SOURCE_DIR+'/modules/storage/conf/nebula-storaged.conf.default', nebula_test_dir + '/conf/nebula-storaged.conf')
 
 def installNebula():
     test_dir = "/tmp/nebula-" + str(random.randrange(1000000, 100000000))
     os.mkdir(test_dir)
     print("created directory:" + test_dir)
     os.chdir(test_dir)
-    nebula_install_file = ['logs', 'bin', 'conf', 'data','pids', 'scripts'] 
+    nebula_install_file = ['logs', 'bin', 'conf', 'data', 'pids', 'scripts']
     for f in nebula_install_file:
         os.mkdir(test_dir+'/'+f)
     copy_nebula_conf(test_dir)
@@ -166,7 +173,7 @@ def installNebula():
 def formatNebulaCommand(name, meta_port, ports):
     param_format = "--meta_server_addrs={} --port={} --ws_http_port={} --ws_h2_port={}"
     param = param_format.format("127.0.0.1:" + str(meta_port), ports[0], ports[1], ports[2])
-    command=NEBULA_START_COMMAND_FORMAT.format(name, name, param)    
+    command=NEBULA_START_COMMAND_FORMAT.format(name, name, param)
     return command
 
 def startNebula(nebula_test_dir):
@@ -181,14 +188,14 @@ def startNebula(nebula_test_dir):
 
     pids = {}
     for command in [graphd_command, metad_command, storaged_command]:
-        print("will exec:" + command)
+        print("exec: " + command)
         p = subprocess.Popen([command], shell=True, stdout=subprocess.PIPE)
         p.wait()
         if p.returncode != 0:
             print("error: " + p.communicate()[0])
 
     #wait nebula start
-    time.sleep(5)
+    time.sleep(8)
     for pf in glob.glob(nebula_test_dir+'/pids/*.pid'):
         with open(pf) as f:
             pid = int(f.readline())
@@ -197,43 +204,47 @@ def startNebula(nebula_test_dir):
     return graphd_ports[0],pids
 
 def stopNebula(pids, test_dir):
+    print("try to stop nebula services...")
     for p in pids:
         try:
             os.kill(pids[p], signal.SIGTERM)
         except OSError as err:
             print("nebula stop " + p + " failed: " + str(err))
-
     time.sleep(3)
     shutil.rmtree(test_dir)
 
 if __name__ == "__main__":
     # If the user is just asking for --help, just print the help test and then exit.
-    executor = TestExecutor()        
+    executor = TestExecutor()
     if '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
         executor.run_tests(sys.argv[1:])
         sys.exit(0)
 
     test_dir = installNebula()
     port,pids = startNebula(test_dir)
-    os.chdir(TEST_DIR)
-    # Create the test result directory if it doesn't already exist.
-    if not os.path.exists(RESULT_DIR):
-        os.makedirs(RESULT_DIR)
+    try:
+        os.chdir(TEST_DIR)
+        # Create the test result directory if it doesn't already exist.
+        if not os.path.exists(RESULT_DIR):
+            os.makedirs(RESULT_DIR)
 
-    commandline_args = itertools.chain(
-        *[arg.split('=') for arg in sys.argv[1:]])
-    current_time = strftime("%Y-%m-%d-%H:%M:%S", localtime())
-    args = []
-    for arg, log in LOGGING_ARGS.items():
-        args.extend([arg, os.path.join(RESULT_DIR, log.format(current_time))])
+        commandline_args = itertools.chain(
+            *[arg.split('=') for arg in sys.argv[1:]])
+        current_time = strftime("%Y-%m-%d-%H:%M:%S", localtime())
+        args = []
+        for arg, log in LOGGING_ARGS.items():
+            args.extend([arg, os.path.join(RESULT_DIR, log.format(current_time))])
 
-    args.extend(list(commandline_args))
+        args.extend(list(commandline_args))
 
-    if '--address' not in args:
-        args.extend(['--address', '127.0.0.1:'+str(port)])
-    print("Running TestExecutor with args: {} ".format(args))
-    executor.run_tests(args)
-    stopNebula(pids, test_dir)
+        if '--address' not in args:
+            args.extend(['--address', '127.0.0.1:'+str(port)])
+        print("Running TestExecutor with args: {} ".format(args))
+
+        executor.run_tests(args)
+    finally:
+        stopNebula(pids, test_dir)
+
     if executor.total_executed == 0:
         sys.exit(1)
     if executor.tests_failed:
