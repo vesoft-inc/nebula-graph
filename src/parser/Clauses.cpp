@@ -105,9 +105,9 @@ std::string OverClause::toString() const {
     buf += "OVER ";
     buf += overEdges_->toString();
 
-    if (direction_ == OverClause::Direction::kBackward) {
+    if (direction_ == storage::cpp2::EdgeDirection::IN_EDGE) {
         buf += " REVERSELY";
-    } else if (direction_ == OverClause::Direction::kBidirect) {
+    } else if (direction_ == storage::cpp2::EdgeDirection::BOTH) {
         buf += " BIDIRECT";
     }
 
@@ -125,8 +125,8 @@ std::string WhereClause::toString() const {
 std::string YieldColumn::toString() const {
     std::string buf;
     buf.reserve(256);
-    if (funName_ != nullptr) {
-        buf += *funName_;
+    if (aggFunName_ != nullptr) {
+        buf += *aggFunName_;
         buf += "(";
         buf += expr_->toString();
         buf += ")";

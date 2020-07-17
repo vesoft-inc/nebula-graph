@@ -25,7 +25,6 @@ public:
     enum class Kind : uint8_t {
         kUnknown = 0,
         kStart,
-        kEnd,
         kGetNeighbors,
         kGetVertices,
         kGetEdges,
@@ -38,7 +37,7 @@ public:
         kSort,
         kLimit,
         kAggregate,
-        kSelector,
+        kSelect,
         kLoop,
         kSwitchSpace,
         kDedup,
@@ -47,10 +46,25 @@ public:
         kCreateTag,
         kCreateEdge,
         kDescSpace,
+        kShowCreateSpace,
         kDescTag,
         kDescEdge,
+        kAlterTag,
+        kAlterEdge,
+        kShowSpaces,
+        kShowTags,
+        kShowEdges,
+        kShowCreateTag,
+        kShowCreateEdge,
+        kDropSpace,
+        kDropTag,
+        kDropEdge,
         kInsertVertices,
         kInsertEdges,
+        kDataCollect,
+        kCreateSnapshot,
+        kDropSnapshot,
+        kShowSnapshots,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
@@ -82,6 +96,10 @@ public:
         return plan_;
     }
 
+    std::vector<std::string> colNames() const {
+        return colNames_;
+    }
+
     void setId(int64_t id) {
         id_ = id;
         outputVar_ = folly::stringPrintf("%s_%ld", toString(kind_), id_);
@@ -91,17 +109,22 @@ public:
         plan_ = plan;
     }
 
-protected:
+    void setColNames(std::vector<std::string>&& cols) {
+        colNames_ = std::move(cols);
+    }
+
     static const char* toString(Kind kind);
 
+protected:
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{IdGenerator::INVALID_ID};
     ExecutionPlan*                           plan_{nullptr};
     using VariableName = std::string;
-    std::unordered_set<VariableName>         availableVars_;
     VariableName                             outputVar_;
+    std::vector<std::string>                 colNames_;
 };
 
+std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLANNODE_H_

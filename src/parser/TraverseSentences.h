@@ -158,7 +158,7 @@ public:
         return right_.get();
     }
 
-    auto op() {
+    Operator op() const {
         return op_;
     }
 
@@ -166,7 +166,7 @@ public:
         distinct_ = true;
     }
 
-    auto distinct() {
+    bool distinct() const {
         return distinct_;
     }
 
@@ -584,9 +584,9 @@ public:
 
 class YieldSentence final : public Sentence {
 public:
-    explicit YieldSentence(YieldColumns *fields) {
+    explicit YieldSentence(YieldColumns *fields, bool distinct = false) {
         DCHECK(fields != nullptr);
-        yieldClause_ = std::make_unique<YieldClause>(fields);
+        yieldClause_ = std::make_unique<YieldClause>(fields, distinct);
         kind_ = Kind::kYield;
     }
 
@@ -594,15 +594,19 @@ public:
         return yieldClause_->columns();
     }
 
+    YieldColumns* yieldColumns() const {
+        return yieldClause_->yields();
+    }
+
     void setWhereClause(WhereClause *clause) {
         whereClause_.reset(clause);
     }
 
-    WhereClause* where() {
+    WhereClause* where() const {
         return whereClause_.get();
     }
 
-    YieldClause* yield() {
+    YieldClause* yield() const {
         return yieldClause_.get();
     }
 

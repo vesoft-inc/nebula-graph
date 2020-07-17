@@ -14,18 +14,19 @@
 #include "context/QueryContext.h"
 
 namespace nebula {
+
+class YieldColumns;
+
 namespace graph {
+
 class Validator {
 public:
-    Validator(Sentence* sentence, QueryContext* qctx)
-        : sentence_(sentence), qctx_(qctx), vctx_(qctx->vctx()) {}
-
     virtual ~Validator() = default;
 
     static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
                                                     QueryContext* context);
 
-    static Status appendPlan(PlanNode* plan, PlanNode* appended);
+    MUST_USE_RESULT Status appendPlan(PlanNode* tail);
 
     Status validate();
 
@@ -33,19 +34,19 @@ public:
         inputs_ = std::move(inputs);
     }
 
-    auto root() const {
+    PlanNode* root() const {
         return root_;
     }
 
-    auto tail() const {
+    PlanNode* tail() const {
         return tail_;
     }
 
-    auto outputs() const {
+    ColsDef outputs() const {
         return outputs_;
     }
 
-    auto inputs() const {
+    ColsDef inputs() const {
         return inputs_;
     }
 
@@ -54,6 +55,8 @@ public:
     }
 
 protected:
+    Validator(Sentence* sentence, QueryContext* qctx);
+
     /**
      * Check if a space is chosen for this sentence.
      */
@@ -69,16 +72,40 @@ protected:
      */
     virtual Status toPlan() = 0;
 
+    std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
+
+    std::string deduceColName(const YieldColumn* col) const;
+
+    StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
+
+    Status deduceProps(const Expression* expr);
+
+    bool evaluableExpr(const Expression* expr) const;
+
+    static Status appendPlan(PlanNode* plan, PlanNode* appended);
+
 protected:
+    SpaceDescription                space_;
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
     ValidateContext*                vctx_{nullptr};
+    // root and tail of a subplan.
     PlanNode*                       root_{nullptr};
     PlanNode*                       tail_{nullptr};
+    // The input columns and output columns of a sentence.
     ColsDef                         outputs_;
     ColsDef                         inputs_;
+    // Admin sentences do not requires a space to be chosen.
     bool                            noSpaceRequired_{false};
+
+    // properties
+    std::vector<std::string> inputProps_;
+    std::unordered_map<std::string, std::vector<std::string>> varProps_;
+    std::unordered_map<TagID, std::vector<std::string>> srcTagProps_;
+    std::unordered_map<TagID, std::vector<std::string>> dstTagProps_;
+    std::unordered_map<EdgeType, std::vector<std::string>> edgeProps_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif

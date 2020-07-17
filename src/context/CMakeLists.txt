@@ -6,9 +6,10 @@
 nebula_add_library(
     context_obj OBJECT
     QueryContext.cpp
-    ExpressionContextImpl.cpp
+    QueryExpressionContext.cpp
     ExecutionContext.cpp
     Iterator.cpp
+    Result.cpp
 )
 
 nebula_add_subdirectory(test)

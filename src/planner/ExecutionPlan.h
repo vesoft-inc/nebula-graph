@@ -52,8 +52,12 @@ public:
         return id_;
     }
 
-    const PlanNode* root() const {
+    PlanNode* root() const {
         return root_;
+    }
+
+    ObjectPool* objPool() const {
+        return objPool_;
     }
 
     folly::Future<Status> execute();
