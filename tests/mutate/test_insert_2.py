@@ -13,7 +13,7 @@ from nebula_test_common.nebula_test_suite import NebulaTestSuite
 
 class TestInsert2(NebulaTestSuite):
     '''
-        The tests use for nebula2
+        The tests for nebula2
     '''
     @classmethod
     def prepare(self):
