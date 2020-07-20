@@ -360,6 +360,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             // TODO
             return Status::Error("Not support type casting yet.");
         }
+        case Expression::Kind::kTagProperty:
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
@@ -372,26 +373,6 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             if (!schema) {
                 return Status::Error("`%s', not found tag `%s'.",
                         expr->toString().c_str(), tag->c_str());
-            }
-            auto* prop = tagPropExpr->prop();
-            auto* field = schema->field(*prop);
-            if (field == nullptr) {
-                return Status::Error("`%s', not found the property `%s'.",
-                        expr->toString().c_str(), prop->c_str());
-            }
-            return SchemaUtil::propTypeToValueType(field->type());
-        }
-        case Expression::Kind::kTagProperty: {
-            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* tagName = tagPropExpr->sym();
-            auto tagIdResult = qctx_->schemaMng()->toTagID(space_.id, *tagName);
-            if (!tagIdResult.ok()) {
-                return std::move(tagIdResult).status();
-            }
-            auto schema = qctx_->schemaMng()->getTagSchema(space_.id, tagIdResult.value());
-            if (!schema) {
-                return Status::Error("`%s', not found tag `%s'.",
-                        expr->toString().c_str(), tagName->c_str());
             }
             auto* prop = tagPropExpr->prop();
             auto* field = schema->field(*prop);
