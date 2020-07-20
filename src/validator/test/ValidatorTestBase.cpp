@@ -98,16 +98,14 @@ namespace graph {
                     "%s.vertices_ != %s.vertices_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }
             // src
-            if (lGV->src() == nullptr && rGV->src() == nullptr) {
-                // noting
-            } else if (lGV->src() != nullptr && rGV->src() != nullptr) {
+            if (lGV->src() != nullptr && rGV->src() != nullptr) {
                 if (*lGV->src() != *rGV->src()) {
                     return Status::Error(
                         "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
                 }
-            } else {
-                return Status::Error(
-                    "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+            } else if (lGV->src() != rGV->src()) {
+                    return Status::Error(
+                        "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }
             // props
             if (lGV->props() != rGV->props()) {
@@ -130,41 +128,36 @@ namespace graph {
                     "%s.vertices_ != %s.vertices_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }
             // src
-            if (lGE->src() == nullptr && rGE->src() == nullptr) {
-                // noting
-            } else if (lGE->src() != nullptr && rGE->src() != nullptr) {
+            if (lGE->src() != nullptr && rGE->src() != nullptr) {
                 if (*lGE->src() != *rGE->src()) {
                     return Status::Error(
                         "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
                 }
-            } else {
-                return Status::Error(
-                    "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+            } else if (*lGE->src() != *rGE->src()) {
+                    return Status::Error(
+                        "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }
             // dst
-            if (lGE->dst() == nullptr && rGE->dst() == nullptr) {
-                // noting
-            } else if (lGE->dst() != nullptr && rGE->dst() != nullptr) {
+            if (lGE->dst() != nullptr && rGE->dst() != nullptr) {
                 if (*lGE->dst() != *rGE->dst()) {
                     return Status::Error(
                         "%s.dst_ != %s.dst_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
                 }
-            } else {
-                return Status::Error(
-                    "%s.dst_ != %s.dst_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+            } else if (lGE->dst() != rGE->dst()) {
+                    return Status::Error(
+                        "%s.dst_ != %s.dst_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }
             // ranking
-            if (lGE->ranking() == nullptr && rGE->ranking() == nullptr) {
-                // noting
-            } else if (lGE->ranking() != nullptr && rGE->ranking() != nullptr) {
-                if (*lGE->ranking() != *rGE->ranking()) {
-                    return Status::Error("%s.ranking_ != %s.ranking_",
-                                         l->nodeLabel().c_str(),
-                                         r->nodeLabel().c_str());
+            if (lGE->ranking() != nullptr && rGE->ranking() != nullptr) {
+                if (*lGE->ranking() != *lGE->ranking()) {
+                    return Status::Error(
+                        "%s.ranking_ != %s.ranking_",
+                        l->nodeLabel().c_str(), r->nodeLabel().c_str());
                 }
-            } else {
-                return Status::Error(
-                    "%s.ranking_ != %s.ranking_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+            } else if (lGE->ranking() != rGE->ranking()) {
+                    return Status::Error(
+                        "%s.ranking_ != %s.ranking_",
+                        l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }
             // props
             if (lGE->props() != rGE->props()) {
