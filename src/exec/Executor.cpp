@@ -360,7 +360,9 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kSubmitJob: {
             auto submitJob = asNode<SubmitJob>(node);
+            auto input = makeExecutor(submitJob->dep(), qctx, visited);
             exec = new SubmitJobExecutor(submitJob, qctx);
+            exec->addDependent(input);
             break;
         }
         case PlanNode::Kind::kUnknown:

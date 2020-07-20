@@ -365,6 +365,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             // TODO
             return Status::Error("Not support type casting yet.");
         }
+        case Expression::Kind::kTagProperty:
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
@@ -526,6 +527,14 @@ Status Validator::deduceProps(const Expression* expr) {
             props.emplace_back(*tagPropExpr->prop());
             break;
         }
+        case Expression::Kind::kTagProperty: {
+            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
+            NG_RETURN_IF_ERROR(status);
+            auto& props = tagProps_[status.value()];
+            props.emplace_back(*tagPropExpr->prop());
+            break;
+        }
         case Expression::Kind::kEdgeProperty:
         case Expression::Kind::kEdgeSrc:
         case Expression::Kind::kEdgeType:
@@ -613,6 +622,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         }
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty:
+        case Expression::Kind::kTagProperty:
         case Expression::Kind::kEdgeProperty:
         case Expression::Kind::kEdgeSrc:
         case Expression::Kind::kEdgeType:
