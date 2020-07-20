@@ -190,10 +190,6 @@ public:
         return aclItemClause_.get();
     }
 
-    AclItemClause* mutableAclItemClause() {
-        return aclItemClause_.get();
-    }
-
     const std::string* getAccount() const {
         return account_.get();
     }
