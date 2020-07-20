@@ -29,6 +29,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
         auto& inputVar = dvNode->inputVar();
         auto& inputResult = ectx_->getResult(inputVar);
         auto iter = inputResult.iter();
+        vertices.reserve(iter->size());
         QueryExpressionContext ctx(ectx_, iter.get());
         for (; iter->valid(); iter->next()) {
             auto val = Expression::eval(vidRef, ctx);
@@ -36,7 +37,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
                 LOG(ERROR) << "Wrong input vid type: " << val << ", value: " << val.toString();
                 return Status::Error("Wrong input vid type");
             }
-            vertices.emplace_back(val.getStr());
+            vertices.emplace_back(val.moveStr());
         }
     }
 
@@ -68,6 +69,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
             VLOG(2) << "Empty input";
             return Status::OK();
         }
+        edgeKeys.reserve(iter->size());
         QueryExpressionContext ctx(ectx_, iter.get());
         for (; iter->valid(); iter->next()) {
             VLOG(2) <<"Row: " << *iter->row();
@@ -107,8 +109,8 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
                 edgeKeys.emplace_back(edgeKey);
 
                 // in edge
-                edgeKey.set_src(dstId.getStr());
-                edgeKey.set_dst(srcId.getStr());
+                edgeKey.set_src(dstId.moveStr());
+                edgeKey.set_dst(srcId.moveStr());
                 edgeKey.set_edge_type(-edgeKeyRef.first);
                 edgeKeys.emplace_back(edgeKey);
 
