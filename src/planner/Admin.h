@@ -258,8 +258,8 @@ public:
     static SubmitJob* make(ExecutionPlan* plan,
                            PlanNode*      dep,
                            meta::cpp2::AdminJobOp op,
-                           std::vector<std::string> params) {
-        return new SubmitJob(plan, dep, op, std::move(params));
+                           const std::vector<std::string>& params) {
+        return new SubmitJob(plan, dep, op, params);
     }
 
     std::string explain() const override {
@@ -283,16 +283,16 @@ private:
     SubmitJob(ExecutionPlan* plan,
               PlanNode* dep,
               meta::cpp2::AdminJobOp op,
-              std::vector<std::string> params)
+              const std::vector<std::string> &params)
         : SingleDependencyNode(plan, Kind::kSubmitJob, dep),
           op_(op),
-          params_(std::move(params)) {}
+          params_(params) {}
 
 
 private:
-    meta::cpp2::AdminJobOp   op_;
-    meta::cpp2::AdminCmd     cmd_;
-    std::vector<std::string> params_;
+    meta::cpp2::AdminJobOp         op_;
+    meta::cpp2::AdminCmd           cmd_;
+    const std::vector<std::string> params_;
 };
 
 }  // namespace graph
