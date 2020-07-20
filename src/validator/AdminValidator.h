@@ -185,9 +185,6 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    meta::cpp2::ConfigModule                 module_;
 };
 
 class SetConfigValidator final : public Validator {

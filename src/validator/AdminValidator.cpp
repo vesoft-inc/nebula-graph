@@ -258,13 +258,6 @@ Status ShowCollationValidator::toPlan() {
 }
 
 Status ShowConfigsValidator::validateImpl() {
-    auto sentence = static_cast<ShowConfigsSentence*>(sentence_);
-    auto item = sentence->configItem();
-    if (item != nullptr) {
-        module_ = item->getModule();
-    } else {
-        module_ = meta::cpp2::ConfigModule::ALL;
-    }
     return Status::OK();
 }
 
@@ -278,7 +271,7 @@ Status ShowConfigsValidator::toPlan() {
         module = meta::cpp2::ConfigModule::ALL;
     }
     auto* plan = qctx_->plan();
-    auto *doNode = ShowConfigs::make(plan, nullptr, module_);
+    auto *doNode = ShowConfigs::make(plan, nullptr, module);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -296,6 +289,7 @@ Status SetConfigValidator::validateImpl() {
     name_ = *item->getName();
     module_ = item->getModule();
     auto updateItems = item->getUpdateItems();
+    QueryExpressionContext ctx(nullptr, nullptr);
     if (updateItems == nullptr) {
         module_ = item->getModule();
         if (item->getName() != nullptr) {
@@ -303,12 +297,10 @@ Status SetConfigValidator::validateImpl() {
         }
 
         if (item->getValue() != nullptr) {
-            ExpressionContextImpl ctx(nullptr, nullptr);
-            value_ = item->getValue()->eval(ctx);
+            value_ = Expression::eval(item->getValue(), ctx);
         }
     } else {
         Map configs;
-        ExpressionContextImpl ctx(nullptr, nullptr);
         for (auto &updateItem : updateItems->items()) {
             std::string name;
             Value value;
@@ -317,7 +309,7 @@ Status SetConfigValidator::validateImpl() {
             }
             name = *updateItem->field();
 
-            value = updateItem->value()->eval(ctx);
+            value = Expression::eval(updateItem->value(), ctx);
 
             if (value.isNull() || (!value.isNumeric() && !value.isStr() && !value.isBool())) {
                 return Status::Error("Wrong value: %s", name.c_str());
