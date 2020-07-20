@@ -78,6 +78,7 @@ namespace graph {
         case PlanNode::Kind::kCreateSnapshot:
         case PlanNode::Kind::kDropSnapshot:
         case PlanNode::Kind::kShowSnapshots:
+        case PlanNode::Kind::kDataJoin:
             LOG(FATAL) << "Unimplemented";
         case PlanNode::Kind::kDataCollect: {
             const auto *lDC = static_cast<const DataCollect*>(l);
@@ -133,7 +134,7 @@ namespace graph {
                     return Status::Error(
                         "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
                 }
-            } else if (*lGE->src() != *rGE->src()) {
+            } else if (lGE->src() != rGE->src()) {
                     return Status::Error(
                         "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }

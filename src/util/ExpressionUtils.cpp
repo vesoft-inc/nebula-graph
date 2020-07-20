@@ -22,6 +22,7 @@ bool ExpressionUtils::traverse(const Expression* expr, Visitor visitor) {
     switch (expr->kind()) {
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty:
+        case Expression::Kind::kTagProperty:
         case Expression::Kind::kEdgeProperty:
         case Expression::Kind::kEdgeSrc:
         case Expression::Kind::kEdgeType:
