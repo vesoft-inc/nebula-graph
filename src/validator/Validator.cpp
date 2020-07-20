@@ -349,36 +349,23 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             return detectVal.type();
         }
         case Expression::Kind::kFunctionCall: {
-            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
-            std::unique_ptr<ArgumentList> argList = std::make_unique<ArgumentList>();
-            for (auto& arg : funcExpr->args()->args()) {
+            auto funcExpr = static_cast<const FunctionCallExpression *>(expr);
+            std::vector<Value::Type> argsTypeList;
+            for (auto &arg : funcExpr->args()->args()) {
                 auto status = deduceExprType(arg.get());
                 if (!status.ok()) {
                     return std::move(status).status();
                 }
-                auto detectVal = kValues.at(status.value());
-                argList->addArgument(std::make_unique<ConstantExpression>(detectVal));
+                argsTypeList.push_back(status.value());
             }
-            QueryExpressionContext ctx(nullptr, nullptr);
-            auto function = FunctionManager::get(*(funcExpr->name()), argList->numArgs());
-            if (!function.ok()) {
-                std::stringstream ss;
-                ss << "`" << expr->toString()
-                    << "` is not a valid expression : " << function.status();
-                return Status::Error(ss.str());
+            auto result =
+                FunctionManager::getReturnType(*(funcExpr->name()), argsTypeList);
+            if (!result.ok()) {
+                return Status::Error("`%s` is not a valid expression : %s",
+                                    expr->toString().c_str(),
+                                    result.status().toString().c_str());
             }
-            std::vector<Value> parameter;
-            for (const auto& arg : argList->args()) {
-                parameter.emplace_back(std::move(arg->eval(ctx)));
-            }
-            auto result = function.value()(parameter);
-            if (result.isBadNull()) {
-                std::stringstream ss;
-                ss << "`" << expr->toString() << "' is not a valid expression, "
-                    << result.toString();
-                return Status::Error(ss.str());
-            }
-            return result.type();
+            return result.value();
         }
         case Expression::Kind::kTypeCasting: {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
