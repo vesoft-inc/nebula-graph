@@ -1606,6 +1606,7 @@ admin_job_sentence
     : KW_SUBMIT KW_JOB admin_job_operation {
         auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
         sentence->addPara(*$3);
+        delete $3;
         $$ = sentence;
     }
     | KW_SHOW KW_JOBS {
