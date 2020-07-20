@@ -12,39 +12,39 @@
 namespace nebula {
 namespace graph {
 
-class HashTable final {
-public:
-    using Table = std::vector<std::multimap<List, const LogicalRow*>>;
-
-    explicit HashTable(size_t bucketSize) : bucketSize_(bucketSize) {
-        table_ =
-            std::vector<std::multimap<List, const LogicalRow*>>(bucketSize);
-    }
-
-    void add(List key, const LogicalRow* row) {
-        auto hash = std::hash<List>()(key);
-        auto bucket = hash % bucketSize_;
-        table_[bucket].emplace(std::move(key), row);
-    }
-
-    auto get(List& key) const {
-        auto hash = std::hash<List>()(key);
-        auto bucket = hash % bucketSize_;
-        return table_[bucket].equal_range(key);
-    }
-
-    void clear() {
-        bucketSize_ = 0;
-        table_.clear();
-    }
-
-private:
-    size_t  bucketSize_{0};
-    Table   table_;
-};
-
 class DataJoinExecutor final : public Executor {
 public:
+    class HashTable final {
+    public:
+        using Table = std::vector<std::multimap<List, const LogicalRow*>>;
+
+        explicit HashTable(size_t bucketSize) : bucketSize_(bucketSize) {
+            table_ =
+                std::vector<std::multimap<List, const LogicalRow*>>(bucketSize);
+        }
+
+        void add(List key, const LogicalRow* row) {
+            auto hash = std::hash<List>()(key);
+            auto bucket = hash % bucketSize_;
+            table_[bucket].emplace(std::move(key), row);
+        }
+
+        auto get(List& key) const {
+            auto hash = std::hash<List>()(key);
+            auto bucket = hash % bucketSize_;
+            return table_[bucket].equal_range(key);
+        }
+
+        void clear() {
+            bucketSize_ = 0;
+            table_.clear();
+        }
+
+    private:
+        size_t  bucketSize_{0};
+        Table   table_;
+    };
+
     DataJoinExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("DataJoinExecutor", node, qctx) {}
 
@@ -55,8 +55,8 @@ private:
 
     void buildHashTable(const std::vector<Expression*>& hashKeys, Iterator* iter);
 
-    void probe(const std::vector<Expression*>& probeKeys, Iterator* iter,
-                JoinIter* resultIter);
+    void probe(const std::vector<Expression*>& probeKeys, Iterator* probeiter,
+               JoinIter* resultIter);
 
 private:
     bool                         exchange_{false};

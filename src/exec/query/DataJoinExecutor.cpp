@@ -73,9 +73,9 @@ void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
 }
 
 void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
-                             Iterator* iter, JoinIter* resultIter) {
-    QueryExpressionContext ctx(ectx_, iter);
-    for (; iter->valid(); iter->next()) {
+                             Iterator* probeIter, JoinIter* resultIter) {
+    QueryExpressionContext ctx(ectx_, probeIter);
+    for (; probeIter->valid(); probeIter->next()) {
         List list;
         list.values.reserve(probeKeys.size());
         for (auto& col : probeKeys) {
@@ -88,7 +88,7 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
             auto row = i->second;
             std::vector<const Row*> values;
             auto lSegs = row->segments();
-            auto rSegs = iter->row()->segments();
+            auto rSegs = probeIter->row()->segments();
             if (exchange_) {
                 values.insert(values.end(), rSegs.begin(), rSegs.end());
                 values.insert(values.end(), lSegs.begin(), lSegs.end());
@@ -96,7 +96,7 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
                 values.insert(values.end(), lSegs.begin(), lSegs.end());
                 values.insert(values.end(), rSegs.begin(), rSegs.end());
             }
-            size_t size = row->size() + iter->row()->size();
+            size_t size = row->size() + probeIter->row()->size();
             JoinIter::LogicalRowJoin newRow(std::move(values), size,
                                         &resultIter->getColIdxIndices());
             resultIter->addRow(std::move(newRow));

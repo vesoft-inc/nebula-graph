@@ -389,7 +389,7 @@ public:
             if (idx < row_->size()) {
                 return row_->values[idx];
             } else {
-                return Value::kNullOverflow;
+                return Value::kEmpty;
             }
         }
 
@@ -563,7 +563,7 @@ public:
                         ->values[index->second.second];
                 }
             } else {
-                return Value::kNullOverflow;
+                return Value::kEmpty;
             }
         }
 
