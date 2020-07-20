@@ -33,13 +33,15 @@ private:
 
     Status validateYield(const YieldClause* yield);
 
-    Status deduceProps(const Expression* expr);
-
     Status buildOneStepPlan();
 
     Status buildNStepsPlan();
 
+    Status oneStep(PlanNode* input, const std::string& inputVarName);
+
     std::string buildInput();
+
+    PlanNode* buildRuntimeInput();
 
     std::vector<EdgeType> buildEdgeTypes();
 
@@ -48,6 +50,10 @@ private:
     GetNeighbors::VertexProps buildDstVertexProps();
 
     GetNeighbors::EdgeProps buildEdgeProps();
+
+    GetNeighbors::EdgeProps buildNStepLoopEdgeProps();
+
+    Expression* buildNStepLoopCondition(int64_t steps) const;
 
     enum FromType {
         kConstantExpr,
@@ -64,11 +70,6 @@ private:
     std::vector<EdgeType>                                   edgeTypes_;
     storage::cpp2::EdgeDirection                            direction_;
     Expression*                                             filter_{nullptr};
-    std::unordered_map<TagID, std::vector<std::string>>     srcTagProps_;
-    std::unordered_map<TagID, std::vector<std::string>>     dstTagProps_;
-    std::unordered_map<EdgeType, std::vector<std::string>>  edgeProps_;
-    std::vector<std::string>                                inputProps_;
-    std::unordered_map<std::string, std::vector<std::string>>  varProps_;
     std::vector<std::string>                                colNames_;
     YieldColumns*                                           yields_{nullptr};
     bool                                                    distinct_{false};

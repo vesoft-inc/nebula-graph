@@ -8,7 +8,7 @@
 
 #include "planner/Query.h"
 
-#include "context/ExpressionContextImpl.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -22,8 +22,9 @@ folly::Future<Status> FilterExecutor::execute() {
         LOG(ERROR) << "Internal Error: iterator is nullptr";
         return Status::Error("Internal Error: iterator is nullptr");
     }
-    auto result = ExecResult::buildDefault(iter->valuePtr());
-    ExpressionContextImpl ctx(ectx_, iter.get());
+    ResultBuilder builder;
+    builder.value(iter->valuePtr());
+    QueryExpressionContext ctx(ectx_, iter.get());
     auto condition = filter->condition();
     while (iter->valid()) {
         auto val = condition->eval(ctx);
@@ -39,8 +40,8 @@ folly::Future<Status> FilterExecutor::execute() {
     }
 
     iter->reset();
-    result.setIter(std::move(iter));
-    return finish(std::move(result));
+    builder.iter(std::move(iter));
+    return finish(builder.finish());
 }
 
 }   // namespace graph

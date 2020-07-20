@@ -81,7 +81,7 @@ TEST(IteratorTest, Sequential) {
 
 TEST(IteratorTest, GetNeighbor) {
     DataSet ds1;
-    ds1.colNames = {"_vid",
+    ds1.colNames = {kVid,
                     "_stats",
                     "_tag:tag1:prop1:prop2",
                     "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -115,7 +115,7 @@ TEST(IteratorTest, GetNeighbor) {
     }
 
     DataSet ds2;
-    ds2.colNames = {"_vid",
+    ds2.colNames = {kVid,
                     "_stats",
                     "_tag:tag2:prop1:prop2",
                     "_edge:-edge2:prop1:prop2:_dst:_rank",
@@ -162,7 +162,7 @@ TEST(IteratorTest, GetNeighbor) {
              "15", "15", "16", "16", "17", "17", "18", "18", "19", "19"};
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
-            result.emplace_back(iter.getColumn("_vid"));
+            result.emplace_back(iter.getColumn(kVid));
         }
         EXPECT_EQ(expected, result);
     }
@@ -250,7 +250,7 @@ TEST(IteratorTest, GetNeighbor) {
 
         int count = 0;
         for (iter.reset(); iter.valid(); iter.next()) {
-            result.emplace_back(iter.getColumn("_vid"));
+            result.emplace_back(iter.getColumn(kVid));
             count++;
         }
         EXPECT_EQ(result.size(), 20);
@@ -400,7 +400,7 @@ TEST(IteratorTest, GetNeighbor) {
 TEST(IteratorTest, TestHead) {
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -414,7 +414,7 @@ TEST(IteratorTest, TestHead) {
 
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
                         "_expr"};
@@ -426,7 +426,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_expr"};
@@ -438,7 +438,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -451,7 +451,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1",
                         "_edge:+edge1:",
@@ -479,7 +479,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no _stats
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
                         "_expr"};
@@ -492,7 +492,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no _expr
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank"};
@@ -505,7 +505,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no +/- before edge name
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:edge1:prop1:prop2:_dst:_rank",
@@ -519,7 +519,7 @@ TEST(IteratorTest, TestHead) {
     // no prop
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -533,7 +533,7 @@ TEST(IteratorTest, TestHead) {
     // no prop
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -546,56 +546,186 @@ TEST(IteratorTest, TestHead) {
     }
 }
 
-TEST(IteratorTest, TestUnionIterator) {
-    std::vector<std::string> colNames = {"col1", "col2"};
-    DataSet lds;
-    lds.colNames = colNames;
-    lds.rows = {
-        Row({Value(1), Value("row1")}),
-        Row({Value(2), Value("row2")}),
-    };
-    auto lIter = std::make_unique<SequentialIter>(std::make_shared<Value>(lds));
-
-    DataSet rds;
-    rds.colNames = colNames;
-    rds.rows = {
-        Row({Value(3), Value("row3")}),
-    };
-    auto rIter = std::make_unique<SequentialIter>(std::make_shared<Value>(rds));
-
-    // next and valid
+TEST(IteratorTest, EraseRange) {
+    // Sequential iterator
     {
-        auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
-        for (; lIter->valid(); lIter->next()) {
-            EXPECT_TRUE(uIter->valid());
-            for (auto &col : colNames) {
-                EXPECT_EQ(lIter->getColumn(col), uIter->getColumn(col));
-            }
-            uIter->next();
+        DataSet ds({"col1", "col2"});
+        for (auto i = 0; i < 10; ++i) {
+            ds.rows.emplace_back(Row({i, folly::to<std::string>(i)}));
         }
-
-        for (; rIter->valid(); rIter->next()) {
-            EXPECT_TRUE(uIter->valid());
-            for (auto &col : colNames) {
-                EXPECT_EQ(rIter->getColumn(col), uIter->getColumn(col));
+        // erase out of range pos
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(5, 11);
+            ASSERT_EQ(iter.size(), 5);
+            auto i = 0;
+            for (; iter.valid(); iter.next()) {
+                ASSERT_EQ(iter.getColumn("col1"), i);
+                ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+                ++i;
             }
-            uIter->next();
+        }
+        // erase in range
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(0, 10);
+            ASSERT_EQ(iter.size(), 0);
+        }
+        // erase part
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(0, 5);
+            EXPECT_EQ(iter.size(), 5);
+            auto i = 5;
+            for (; iter.valid(); iter.next()) {
+                ASSERT_EQ(iter.getColumn("col1"), i);
+                ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+                ++i;
+            }
         }
     }
+}
 
-    // erase
+TEST(IteratorTest, Join) {
+    DataSet ds1;
+    ds1.colNames = {kVid, "tag_prop", "edge_prop", kDst};
+    auto val1 = std::make_shared<Value>(ds1);
+    SequentialIter iter1(val1);
+
+    DataSet ds2;
+    ds2.colNames = {"src", "dst"};
+    auto val2 = std::make_shared<Value>(ds2);
+    SequentialIter iter2(val2);
+
+    Row row1;
+    row1.values = {"1", 1, 2, "2"};
+    Row row2;
+    row2.values = {"3", "4"};
+    JoinIter joinIter;
+    joinIter.joinIndex(&iter1, &iter2);
+    EXPECT_EQ(joinIter.getColIdxIndices().size(), 6);
+    EXPECT_EQ(joinIter.getColIdxIndices().size(), 6);
+    joinIter.addRow(JoinIter::LogicalRowJoin({ &row1, &row2 }, 6, &joinIter.getColIdxIndices()));
+    joinIter.addRow(JoinIter::LogicalRowJoin({ &row1, &row2 }, 6, &joinIter.getColIdxIndices()));
+
+    for (; joinIter.valid(); joinIter.next()) {
+        const auto& row = *joinIter.row();
+        EXPECT_EQ(row.size(), 6);
+        std::vector<Value> result;
+        for (size_t i = 0; i < 6; ++i) {
+            result.emplace_back(row[i]);
+        }
+        EXPECT_EQ(result, std::vector<Value>({"1", 1, 2, "2", "3", "4"}));
+    }
+
+    for (joinIter.reset(); joinIter.valid(); joinIter.next()) {
+        const auto& row = *joinIter.row();
+        EXPECT_EQ(row.size(), 6);
+        std::vector<Value> result;
+        result.emplace_back(joinIter.getColumn(kVid));
+        result.emplace_back(joinIter.getColumn("tag_prop"));
+        result.emplace_back(joinIter.getColumn("edge_prop"));
+        result.emplace_back(joinIter.getColumn(kDst));
+        result.emplace_back(joinIter.getColumn("src"));
+        result.emplace_back(joinIter.getColumn("dst"));
+        EXPECT_EQ(result, std::vector<Value>({"1", 1, 2, "2", "3", "4"}));
+    }
+
     {
-        auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
-        for (; lIter->valid(); lIter->next()) {
-            uIter->erase();
+        // The iterator and executors will not handle the duplicate columns,
+        // so the duplicate column will be covered by later one.
+        JoinIter joinIter1;
+        joinIter1.joinIndex(&iter2, &joinIter);
+        EXPECT_EQ(joinIter.getColIndices().size(), 6);
+    }
+
+    {
+        DataSet ds3;
+        ds3.colNames = {"tag_prop1", "edge_prop1"};
+        auto val3 = std::make_shared<Value>(ds3);
+        SequentialIter iter3(val3);
+
+        Row row3;
+        row3.values = {"5", "6"};
+
+        JoinIter joinIter2;
+        joinIter2.joinIndex(&iter3, &joinIter);
+        EXPECT_EQ(joinIter2.getColIndices().size(), 8);
+        EXPECT_EQ(joinIter2.getColIdxIndices().size(), 8);
+        joinIter2.addRow(JoinIter::LogicalRowJoin({ &row3, &row1, &row2}, 8,
+                                                &joinIter2.getColIdxIndices()));
+        joinIter2.addRow(JoinIter::LogicalRowJoin({ &row3, &row1, &row2}, 8,
+                                                &joinIter2.getColIdxIndices()));
+
+        for (; joinIter2.valid(); joinIter2.next()) {
+            const auto& row = *joinIter2.row();
+            EXPECT_EQ(row.size(), 8);
+            std::vector<Value> result;
+            for (size_t i = 0; i < 8; ++i) {
+                result.emplace_back(row[i]);
+            }
+            EXPECT_EQ(result, std::vector<Value>({"5", "6", "1", 1, 2, "2", "3", "4"}));
         }
 
-        for (; rIter->valid(); rIter->next()) {
-            EXPECT_TRUE(uIter->valid());
-            for (auto &col : colNames) {
-                EXPECT_EQ(rIter->getColumn(col), uIter->getColumn(col));
+        for (joinIter2.reset(); joinIter2.valid(); joinIter2.next()) {
+            const auto& row = *joinIter2.row();
+            EXPECT_EQ(row.size(), 8);
+            std::vector<Value> result;
+            result.emplace_back(joinIter2.getColumn(kVid));
+            result.emplace_back(joinIter2.getColumn("tag_prop"));
+            result.emplace_back(joinIter2.getColumn("edge_prop"));
+            result.emplace_back(joinIter2.getColumn(kDst));
+            result.emplace_back(joinIter2.getColumn("src"));
+            result.emplace_back(joinIter2.getColumn("dst"));
+            result.emplace_back(joinIter2.getColumn("tag_prop1"));
+            result.emplace_back(joinIter2.getColumn("edge_prop1"));
+            EXPECT_EQ(result, std::vector<Value>({"1", 1, 2, "2", "3", "4", "5", "6"}));
+        }
+    }
+    {
+        DataSet ds3;
+        ds3.colNames = {"tag_prop1", "edge_prop1"};
+        auto val3 = std::make_shared<Value>(ds3);
+        SequentialIter iter3(val3);
+
+        Row row3;
+        row3.values = {"5", "6"};
+
+        JoinIter joinIter2;
+        joinIter2.joinIndex(&joinIter, &iter3);
+        EXPECT_EQ(joinIter2.getColIndices().size(), 8);
+        EXPECT_EQ(joinIter2.getColIdxIndices().size(), 8);
+        joinIter2.addRow(JoinIter::LogicalRowJoin({ &row1, &row2, &row3 }, 8,
+                                                &joinIter2.getColIdxIndices()));
+        joinIter2.addRow(JoinIter::LogicalRowJoin({ &row1, &row2, &row3 }, 8,
+                                                &joinIter2.getColIdxIndices()));
+
+        for (; joinIter2.valid(); joinIter2.next()) {
+            const auto& row = *joinIter2.row();
+            EXPECT_EQ(row.size(), 8);
+            std::vector<Value> result;
+            for (size_t i = 0; i < 8; ++i) {
+                result.emplace_back(row[i]);
             }
-            uIter->next();
+            EXPECT_EQ(result, std::vector<Value>({"1", 1, 2, "2", "3", "4", "5", "6"}));
+        }
+
+        for (joinIter2.reset(); joinIter2.valid(); joinIter2.next()) {
+            const auto& row = *joinIter2.row();
+            EXPECT_EQ(row.size(), 8);
+            std::vector<Value> result;
+            result.emplace_back(joinIter2.getColumn(kVid));
+            result.emplace_back(joinIter2.getColumn("tag_prop"));
+            result.emplace_back(joinIter2.getColumn("edge_prop"));
+            result.emplace_back(joinIter2.getColumn(kDst));
+            result.emplace_back(joinIter2.getColumn("src"));
+            result.emplace_back(joinIter2.getColumn("dst"));
+            result.emplace_back(joinIter2.getColumn("tag_prop1"));
+            result.emplace_back(joinIter2.getColumn("edge_prop1"));
+            EXPECT_EQ(result, std::vector<Value>({"1", 1, 2, "2", "3", "4", "5", "6"}));
         }
     }
 }

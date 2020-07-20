@@ -6,26 +6,29 @@
 
 #include "exec/query/DedupExecutor.h"
 #include "planner/Query.h"
-#include "context/ExpressionContextImpl.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
 folly::Future<Status> DedupExecutor::execute() {
     dumpLog();
     auto* dedup = asNode<Dedup>(node());
+    DCHECK(!dedup->inputVar().empty());
     auto iter = ectx_->getResult(dedup->inputVar()).iter();
 
-    if (iter == nullptr) {
+    if (UNLIKELY(iter == nullptr)) {
         return Status::Error("Internal Error: iterator is nullptr");
     }
 
-    if (iter->kind() == Iterator::Kind::kGetNeighbors) {
-        LOG(INFO) << "Invalid iterator kind: " << static_cast<uint16_t>(iter->kind());
-        return Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
+    if (UNLIKELY(iter->isGetNeighborsIter())) {
+        auto e = Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
+        LOG(ERROR) << e;
+        return e;
     }
-    auto result = ExecResult::buildDefault(iter->valuePtr());
-    ExpressionContextImpl ctx(ectx_, iter.get());
-    std::unordered_set<const Row *> unique;
+    ResultBuilder builder;
+    builder.value(iter->valuePtr());
+    QueryExpressionContext ctx(ectx_, iter.get());
+    std::unordered_set<const LogicalRow*> unique;
     while (iter->valid()) {
         if (unique.find(iter->row()) != unique.end()) {
             iter->erase();
@@ -35,8 +38,8 @@ folly::Future<Status> DedupExecutor::execute() {
         }
     }
     iter->reset();
-    result.setIter(std::move(iter));
-    return finish(std::move(result));
+    builder.iter(std::move(iter));
+    return finish(builder.finish());
 }
 
 }   // namespace graph

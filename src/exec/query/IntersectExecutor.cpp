@@ -21,20 +21,19 @@ folly::Future<Status> IntersectExecutor::execute() {
     auto lIter = getLeftInputDataIter();
     auto rIter = getRightInputDataIter();
 
-    std::unordered_set<const Row *> hashSet;
+    std::unordered_set<const LogicalRow *> hashSet;
     for (; rIter->valid(); rIter->next()) {
-        auto res = hashSet.insert(rIter->row());
-        if (UNLIKELY(!res.second)) {
-            LOG(ERROR) << "Fail to insert row into hash table in intersect executor, row: "
-                       << *rIter->row();
-        }
+        hashSet.insert(rIter->row());
+        // TODO: should test duplicate rows
     }
 
+    ResultBuilder builder;
     if (hashSet.empty()) {
         auto value = lIter->valuePtr();
         DataSet ds;
         ds.colNames = value->getDataSet().colNames;
-        return finish(ExecResult::buildSequential(Value(std::move(ds)), State()));
+        builder.value(Value(std::move(ds))).iter(Iterator::Kind::kSequential);
+        return finish(builder.finish());
     }
 
     while (lIter->valid()) {
@@ -46,10 +45,8 @@ folly::Future<Status> IntersectExecutor::execute() {
         }
     }
 
-    auto result = ExecResult::buildDefault(lIter->valuePtr());
-    result.setIter(std::move(lIter));
-
-    return finish(std::move(result));
+    builder.value(lIter->valuePtr()).iter(std::move(lIter));
+    return finish(builder.finish());
 }
 
 }   // namespace graph

@@ -5,16 +5,33 @@
  */
 
 #include "exec/query/LimitExecutor.h"
-
-#include "planner/PlanNode.h"
+#include "context/QueryExpressionContext.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> LimitExecutor::execute() {
     dumpLog();
-    // TODO(yee): Get all neighbors by storage client
-    return start();
+    auto* limit = asNode<Limit>(node());
+    auto iter = ectx_->getResult(limit->inputVar()).iter();
+    ResultBuilder builder;
+    builder.value(iter->valuePtr());
+    QueryExpressionContext ctx(ectx_, iter.get());
+    auto offset = limit->offset();
+    auto count = limit->count();
+    auto size = iter->size();
+    if (size <= static_cast<size_t>(offset)) {
+        iter->clear();
+    } else if (size > static_cast<size_t>(offset + count)) {
+        iter->eraseRange(0, offset);
+        iter->eraseRange(count, size - offset);
+    } else if (size > static_cast<size_t>(offset) &&
+               size <= static_cast<size_t>(offset + count)) {
+        iter->eraseRange(0, offset);
+    }
+    builder.iter(std::move(iter));
+    return finish(builder.finish());
 }
 
 }   // namespace graph

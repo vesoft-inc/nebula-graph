@@ -8,11 +8,10 @@
 
 #include "common/expression/VariableExpression.h"
 #include "common/expression/UnaryExpression.h"
-#include "common/expression/ConstantExpression.h"
 
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
-#include "context/ExpressionContextImpl.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -66,12 +65,11 @@ Status GetSubgraphValidator::validateFrom(FromClause* from) {
         return Status::Error("From clause was not declared.");
     }
 
-    ExpressionContextImpl ctx(nullptr, nullptr);
+    QueryExpressionContext ctx(nullptr, nullptr);
     if (from->isRef()) {
         srcRef_ = from->ref();
     } else {
         for (auto* expr : from->vidList()) {
-            // TODO:
             auto vid = Expression::eval(expr, ctx);
             starts_.emplace_back(std::move(vid));
         }
@@ -165,8 +163,10 @@ Status GetSubgraphValidator::toPlan() {
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(vidsToSave, ExecResult::buildSequential(
-        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+
+    ResultBuilder builder;
+    builder.value(Value(std::move(ds))).iter(Iterator::Kind::kSequential);
+    qctx_->ectx()->setResult(vidsToSave, builder.finish());
     auto* vids = new VariablePropertyExpression(
                      new std::string(vidsToSave),
                      new std::string(kVid));
@@ -185,10 +185,8 @@ Status GetSubgraphValidator::toPlan() {
 
     auto* columns = new YieldColumns();
     auto* column = new YieldColumn(
-            new EdgePropertyExpression(
-                new std::string("*"),
-                new std::string(kDst)),
-            new std::string(kVid));
+        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
+        new std::string(kVid));
     columns->addColumn(column);
     auto* project = Project::make(plan, gn1, plan->saveObject(columns));
     project->setInputVar(gn1->varName());
@@ -233,7 +231,7 @@ Status GetSubgraphValidator::toPlan() {
     column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(gn2->varGenerated()),
-                new std::string("_vid")),
+                new std::string(kVid)),
             new std::string(listOfVids));
     column->setFunction(new std::string("collect"));
     columns->addColumn(column);
@@ -261,4 +259,3 @@ Status GetSubgraphValidator::toPlan() {
 }
 }  // namespace graph
 }  // namespace nebula
-

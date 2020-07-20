@@ -25,13 +25,12 @@ nebula_add_library(
     query/SetExecutor.cpp
     query/UnionExecutor.cpp
     query/DataCollectExecutor.cpp
+    query/DataJoinExecutor.cpp
     admin/SwitchSpaceExecutor.cpp
-    admin/CreateSpaceExecutor.cpp
-    admin/DescSpaceExecutor.cpp
-    maintain/CreateTagExecutor.cpp
-    maintain/CreateEdgeExecutor.cpp
-    maintain/DescTagExecutor.cpp
-    maintain/DescEdgeExecutor.cpp
+    admin/SpaceExecutor.cpp
+    admin/SnapshotExecutor.cpp
+    maintain/TagExecutor.cpp
+    maintain/EdgeExecutor.cpp
     mutate/InsertVerticesExecutor.cpp
     mutate/InsertEdgesExecutor.cpp
 )

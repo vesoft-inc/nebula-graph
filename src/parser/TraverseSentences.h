@@ -158,7 +158,7 @@ public:
         return right_.get();
     }
 
-    auto op() {
+    Operator op() const {
         return op_;
     }
 
@@ -166,7 +166,7 @@ public:
         distinct_ = true;
     }
 
-    auto distinct() {
+    bool distinct() const {
         return distinct_;
     }
 
@@ -418,11 +418,17 @@ public:
 
     StatusOr<std::string> varname() const;
 
-    std::string* srcid();
+    Expression* srcid() const {
+        return srcid_.get();
+    }
 
-    std::string* dstid();
+    Expression* dstid() const {
+        return dstid_.get();
+    }
 
-    std::string* rank();
+    Expression* rank() const {
+        return rank_.get();
+    }
 
     bool isInputExpr() const {
         return isInputExpr_;
@@ -602,11 +608,11 @@ public:
         whereClause_.reset(clause);
     }
 
-    WhereClause* where() {
+    WhereClause* where() const {
         return whereClause_.get();
     }
 
-    YieldClause* yield() {
+    YieldClause* yield() const {
         return yieldClause_.get();
     }
 

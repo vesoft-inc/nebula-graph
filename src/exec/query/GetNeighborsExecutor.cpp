@@ -28,21 +28,18 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
         return error(std::move(status));
     }
     return getNeighbors().ensure([this]() {
-        // TODO(yee): some cleanup or stats actions
-        UNUSED(this);
+        // clear the members
+        reqDs_.rows.clear();
     });
 }
 
 Status GetNeighborsExecutor::buildRequestDataSet() {
-    // clear the members
-    reqDs_.rows.clear();
-
     auto& inputVar = gn_->inputVar();
     auto& inputResult = ectx_->getResult(inputVar);
     auto iter = inputResult.iter();
-    ExpressionContextImpl ctx(ectx_, iter.get());
+    QueryExpressionContext ctx(ectx_, iter.get());
     DataSet input;
-    reqDs_.colNames = {"_vid"};
+    reqDs_.colNames = {kVid};
     reqDs_.rows.reserve(iter->size());
     auto* src = gn_->src();
     for (; iter->valid(); iter->next()) {
@@ -88,14 +85,14 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 
 Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
     auto completeness = resps.completeness();
-    if (completeness == 0) {
+    if (UNLIKELY(completeness == 0)) {
         return Status::Error("Get neighbors failed");
     }
 
-    State state(State::Stat::kSuccess, "");
-    if (completeness != 100) {
-        state = State(State::Stat::kPartialSuccess,
-                    folly::stringPrintf("Get neighbors partially failed: %d %%", completeness));
+    ResultBuilder builder;
+    if (UNLIKELY(completeness != 100)) {
+        builder.state(Result::State::kPartialSuccess)
+            .msg(folly::stringPrintf("Get neighbors partially failed: %d %%", completeness));
     }
 
     auto& responses = resps.responses();
@@ -110,12 +107,11 @@ Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
             continue;
         }
 
-        VLOG(1) << "Resp row size: " << dataset->rows.size();
-        VLOG(1) << "Resp : " << *dataset;
+        VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
         list.values.emplace_back(std::move(*dataset));
     }
-    auto result = Value(std::move(list));
-    return finish(ExecResult::buildGetNeighbors(std::move(result), std::move(state)));
+    builder.value(Value(std::move(list)));
+    return finish(builder.iter(Iterator::Kind::kGetNeighbors).finish());
 }
 
 void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseCommon& result) const {

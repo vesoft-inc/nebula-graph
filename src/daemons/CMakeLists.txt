@@ -18,7 +18,7 @@ nebula_add_executable(
         $<TARGET_OBJECTS:validator_obj>
         $<TARGET_OBJECTS:planner_obj>
         $<TARGET_OBJECTS:exec_obj>
-        $<TARGET_OBJECTS:schedule_obj>
+        $<TARGET_OBJECTS:scheduler_obj>
         $<TARGET_OBJECTS:idgenerator_obj>
         $<TARGET_OBJECTS:context_obj>
         $<TARGET_OBJECTS:graph_flags_obj>
@@ -54,6 +54,7 @@ nebula_add_executable(
         $<TARGET_OBJECTS:common_charset_obj>
         $<TARGET_OBJECTS:common_encryption_obj>
         $<TARGET_OBJECTS:common_function_manager_obj>
+        $<TARGET_OBJECTS:common_agg_function_obj>
     LIBRARIES
         proxygenhttpserver
         proxygenlib

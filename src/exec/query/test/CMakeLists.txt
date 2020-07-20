@@ -28,12 +28,13 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
     $<TARGET_OBJECTS:common_charset_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
+    $<TARGET_OBJECTS:common_agg_function_obj>
     $<TARGET_OBJECTS:session_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
-    $<TARGET_OBJECTS:schedule_obj>
+    $<TARGET_OBJECTS:scheduler_obj>
     $<TARGET_OBJECTS:exec_obj>
     $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
@@ -62,9 +63,12 @@ nebula_add_test(
         SetExecutorTest.cpp
         FilterTest.cpp
         DedupTest.cpp
+        LimitTest.cpp
+        SortTest.cpp
+        AggregateTest.cpp
+        DataJoinTest.cpp
     OBJECTS
         ${EXEC_QUERY_TEST_OBJS}
     LIBRARIES
         ${EXEC_QUERY_TEST_LIBS}
 )
-
