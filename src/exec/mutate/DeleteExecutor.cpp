@@ -29,7 +29,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
         auto& inputVar = dvNode->inputVar();
         auto& inputResult = ectx_->getResult(inputVar);
         auto iter = inputResult.iter();
-        ExpressionContextImpl ctx(ectx_, iter.get());
+        QueryExpressionContext ctx(ectx_, iter.get());
         for (; iter->valid(); iter->next()) {
             auto val = Expression::eval(vidRef, ctx);
             if (!val.isStr()) {
@@ -68,7 +68,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
             VLOG(2) << "Empty input";
             return Status::OK();
         }
-        ExpressionContextImpl ctx(ectx_, iter.get());
+        QueryExpressionContext ctx(ectx_, iter.get());
         for (; iter->valid(); iter->next()) {
             VLOG(2) <<"Row: " << *iter->row();
             for (auto &edgeKeyRef : edgeKeyRefs) {

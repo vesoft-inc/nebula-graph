@@ -78,11 +78,7 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "InsertEdges";
         case Kind::kDataCollect:
             return "DataCollect";
-<<<<<<< HEAD
         case Kind::kShowCreateSpace:
-=======
-        case PlanNode::Kind::kShowCreateSpace:
->>>>>>> support pipe
             return "ShowCreateSpace";
         case Kind::kShowCreateTag:
             return "ShowCreateTag";

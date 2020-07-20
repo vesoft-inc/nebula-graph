@@ -144,7 +144,6 @@ inline std::ostream& operator<<(std::ostream &os, Sentence::Kind kind) {
     return os << static_cast<uint32_t>(kind);
 }
 
-
 class EdgeKey final {
 public:
     EdgeKey(Expression *srcid, Expression *dstid, int64_t rank) {
@@ -197,8 +196,6 @@ private:
 
 class EdgeKeyRef final {
 public:
-    EdgeKeyRef() = default;
-
     EdgeKeyRef(
             Expression *srcid,
             Expression *dstid,
@@ -209,8 +206,6 @@ public:
         rank_.reset(rank);
         isInputExpr_ = isInputExpr;
     }
-
-    ~EdgeKeyRef() = default;
 
     StatusOr<std::string> varname() const;
 
