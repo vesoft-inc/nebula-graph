@@ -3,6 +3,7 @@ nebula_add_test(
     SOURCES
         ExpressionUtilsTest.cpp
         IdGeneratorTest.cpp
+        ObjectPoolTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:common_base_obj>
         $<TARGET_OBJECTS:common_concurrent_obj>
