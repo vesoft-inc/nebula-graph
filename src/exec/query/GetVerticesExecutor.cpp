@@ -5,10 +5,6 @@
  */
 
 #include "exec/query/GetVerticesExecutor.h"
-#include <boost/variant/variant.hpp>
-
-#include "common/clients/storage/GraphStorageClient.h"
-
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 
@@ -27,7 +23,6 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 }
 
 folly::Future<Status> GetVerticesExecutor::getVertices() {
-    DCHECK_NODE_TYPE(GetVertices)
     dumpLog();
 
     auto *gv = asNode<GetVertices>(node());
@@ -45,9 +40,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         auto expCtx = QueryExpressionContext(qctx()->ectx(), valueIter.get());
         for (; valueIter->valid(); valueIter->next()) {
             auto src = gv->src()->eval(expCtx);
-            if (src.isStr()) {
-                LOG(ERROR) << "Mismatched vid type.";
-                return Status::Error("Mismatched vid type.");
+            if (!src.isStr()) {
+                LOG(WARNING) << "Mismatched vid type.";
+                continue;
             }
             vertices.emplace_back(Row({
                 std::move(src)

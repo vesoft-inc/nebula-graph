@@ -123,8 +123,8 @@ public:
 
     static const char* toString(Kind kind);
 
-    std::string nodeLabel() const {
-        return folly::stringPrintf("%s_%ld", toString(kind_), id_);
+    const std::string& nodeLabel() const {
+        return outputVar_;
     }
 
 protected:

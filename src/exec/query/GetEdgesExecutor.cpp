@@ -5,9 +5,6 @@
  */
 
 #include "exec/query/GetEdgesExecutor.h"
-
-#include "common/clients/storage/GraphStorageClient.h"
-
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 
@@ -23,7 +20,6 @@ folly::Future<Status> GetEdgesExecutor::execute() {
 }
 
 folly::Future<Status> GetEdgesExecutor::getEdges() {
-    DCHECK_NODE_TYPE(GetEdges);
     dumpLog();
 
     GraphStorageClient *client = qctx()->getStorageClient();
@@ -44,8 +40,8 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             auto ranking = ge->ranking()->eval(expCtx);
             auto dst = ge->dst()->eval(expCtx);
             if (!src.isStr() || !ranking.isInt() || !dst.isStr()) {
-                LOG(ERROR) << "Mismatched edge key type";
-                return Status::Error("Mismatched edge key type");
+                LOG(WARNING) << "Mismatched edge key type";
+                continue;
             }
             edges.emplace_back(Row({
                 std::move(src), ge->type(), std::move(ranking), std::move(dst)
