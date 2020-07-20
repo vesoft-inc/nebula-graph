@@ -12,6 +12,7 @@ nebula_add_library(
 nebula_add_library(
     idgenerator_obj OBJECT
     IdGenerator.cpp
+    ExpressionUtils.cpp
 )
 
 nebula_add_subdirectory(test)

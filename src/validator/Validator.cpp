@@ -9,6 +9,7 @@
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
+#include "util/ExpressionUtils.h"
 #include "validator/AdminValidator.h"
 #include "validator/AssignmentValidator.h"
 #include "validator/GetSubgraphValidator.h"
@@ -18,6 +19,8 @@
 #include "validator/MutateValidator.h"
 #include "validator/OrderByValidator.h"
 #include "validator/PipeValidator.h"
+#include "validator/FetchVerticesValidator.h"
+#include "validator/FetchEdgesValidator.h"
 #include "validator/ReportError.h"
 #include "validator/SequentialValidator.h"
 #include "validator/SetValidator.h"
@@ -93,6 +96,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
             return std::make_unique<InsertEdgesValidator>(sentence, context);
+        case Sentence::Kind::kFetchVertices:
+            return std::make_unique<FetchVerticesValidator>(sentence, context);
+        case Sentence::Kind::kFetchEdges:
+            return std::make_unique<FetchEdgesValidator>(sentence, context);
         case Sentence::Kind::kCreateSnapshot:
             return std::make_unique<CreateSnapshotValidator>(sentence, context);
         case Sentence::Kind::kDropSnapshot:
@@ -115,6 +122,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kLoop:
         case PlanNode::Kind::kMultiOutputs:
         case PlanNode::Kind::kSwitchSpace:
+        case PlanNode::Kind::kGetEdges:
+        case PlanNode::Kind::kGetVertices:
         case PlanNode::Kind::kCreateSpace:
         case PlanNode::Kind::kCreateTag:
         case PlanNode::Kind::kCreateEdge:
@@ -627,5 +636,36 @@ bool Validator::evaluableExpr(const Expression* expr) const {
     return false;
 }
 
-}   // namespace graph
-}   // namespace nebula
+Status Validator::checkRef(const Expression *ref, Value::Type type) const {
+    const auto inputs = ExpressionUtils::findAllInputVariableProp(ref);
+    if (inputs.size() != 1) {
+        return Status::Error("Only allow one input/variable property.");
+    }
+    const auto *inputExpr = static_cast<const SymbolPropertyExpression*>(inputs.front());
+    ColDef col(*inputExpr->prop(), type);
+    if (inputExpr->kind() == Expression::Kind::kInputProperty) {
+        const auto find = std::find(inputs_.begin(), inputs_.end(), col);
+        if (find == inputs_.end()) {
+            return Status::Error("No input property %s", inputExpr->prop()->c_str());
+        }
+    } else if (inputExpr->kind() == Expression::Kind::kVarProperty) {
+        const auto &varName = *inputExpr->sym();
+        const auto &var = vctx_->getVar(varName);
+        if (var.empty()) {
+            return Status::Error("No variable %s", varName.c_str());
+        }
+        const auto find = std::find(var.begin(), var.end(), col);
+        if (find == var.end()) {
+            return Status::Error("No property %s in variable %s",
+                                    inputExpr->prop()->c_str(),
+                                    varName.c_str());
+        }
+    } else {
+        DLOG(FATAL) << "Unexpected expression " << inputExpr->kind();
+        return Status::Error("Unexpected expression.");
+    }
+    return Status::OK();
+}
+
+}  // namespace graph
+}  // namespace nebula
