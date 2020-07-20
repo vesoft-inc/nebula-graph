@@ -79,25 +79,25 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
         case Kind::kDataCollect:
             return "DataCollect";
         // acl
-        case PlanNode::Kind::kCreateUser:
+        case Kind::kCreateUser:
             return "CreateUser";
-        case PlanNode::Kind::kDropUser:
+        case Kind::kDropUser:
             return "DropUser";
-        case PlanNode::Kind::kUpdateUser:
+        case Kind::kUpdateUser:
             return "UpdateUser";
-        case PlanNode::Kind::kGrantRole:
+        case Kind::kGrantRole:
             return "GrantRole";
-        case PlanNode::Kind::kRevokeRole:
+        case Kind::kRevokeRole:
             return "RevokeRole";
-        case PlanNode::Kind::kChangePassword:
+        case Kind::kChangePassword:
             return "ChangePassword";
-        case PlanNode::Kind::kListUserRoles:
+        case Kind::kListUserRoles:
             return "ListUserRoles";
-        case PlanNode::Kind::kListUsers:
+        case Kind::kListUsers:
             return "ListUsers";
-        case PlanNode::Kind::kListRoles:
+        case Kind::kListRoles:
             return "ListRoles";
-        case PlanNode::Kind::kShowCreateSpace:
+        case Kind::kShowCreateSpace:
             return "ShowCreateSpace";
         case Kind::kShowCreateTag:
             return "ShowCreateTag";
