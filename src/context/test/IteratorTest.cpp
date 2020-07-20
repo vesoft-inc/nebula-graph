@@ -81,7 +81,7 @@ TEST(IteratorTest, Sequential) {
 
 TEST(IteratorTest, GetNeighbor) {
     DataSet ds1;
-    ds1.colNames = {"_vid",
+    ds1.colNames = {kVid,
                     "_stats",
                     "_tag:tag1:prop1:prop2",
                     "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -115,7 +115,7 @@ TEST(IteratorTest, GetNeighbor) {
     }
 
     DataSet ds2;
-    ds2.colNames = {"_vid",
+    ds2.colNames = {kVid,
                     "_stats",
                     "_tag:tag2:prop1:prop2",
                     "_edge:-edge2:prop1:prop2:_dst:_rank",
@@ -162,7 +162,7 @@ TEST(IteratorTest, GetNeighbor) {
              "15", "15", "16", "16", "17", "17", "18", "18", "19", "19"};
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
-            result.emplace_back(iter.getColumn("_vid"));
+            result.emplace_back(iter.getColumn(kVid));
         }
         EXPECT_EQ(expected, result);
     }
@@ -250,7 +250,7 @@ TEST(IteratorTest, GetNeighbor) {
 
         int count = 0;
         for (iter.reset(); iter.valid(); iter.next()) {
-            result.emplace_back(iter.getColumn("_vid"));
+            result.emplace_back(iter.getColumn(kVid));
             count++;
         }
         EXPECT_EQ(result.size(), 20);
@@ -400,7 +400,7 @@ TEST(IteratorTest, GetNeighbor) {
 TEST(IteratorTest, TestHead) {
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -414,7 +414,7 @@ TEST(IteratorTest, TestHead) {
 
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
                         "_expr"};
@@ -426,7 +426,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_expr"};
@@ -438,7 +438,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -451,7 +451,7 @@ TEST(IteratorTest, TestHead) {
     }
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1",
                         "_edge:+edge1:",
@@ -479,7 +479,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no _stats
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
                         "_expr"};
@@ -492,7 +492,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no _expr
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:+edge1:prop1:prop2:_dst:_rank"};
@@ -505,7 +505,7 @@ TEST(IteratorTest, TestHead) {
     {
         // no +/- before edge name
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:prop1:prop2",
                         "_edge:edge1:prop1:prop2:_dst:_rank",
@@ -519,7 +519,7 @@ TEST(IteratorTest, TestHead) {
     // no prop
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1:",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -533,7 +533,7 @@ TEST(IteratorTest, TestHead) {
     // no prop
     {
         DataSet ds;
-        ds.colNames = {"_vid",
+        ds.colNames = {kVid,
                         "_stats",
                         "_tag:tag1",
                         "_edge:+edge1:prop1:prop2:_dst:_rank",
@@ -546,56 +546,45 @@ TEST(IteratorTest, TestHead) {
     }
 }
 
-TEST(IteratorTest, TestUnionIterator) {
-    std::vector<std::string> colNames = {"col1", "col2"};
-    DataSet lds;
-    lds.colNames = colNames;
-    lds.rows = {
-        Row({Value(1), Value("row1")}),
-        Row({Value(2), Value("row2")}),
-    };
-    auto lIter = std::make_unique<SequentialIter>(std::make_shared<Value>(lds));
-
-    DataSet rds;
-    rds.colNames = colNames;
-    rds.rows = {
-        Row({Value(3), Value("row3")}),
-    };
-    auto rIter = std::make_unique<SequentialIter>(std::make_shared<Value>(rds));
-
-    // next and valid
+TEST(IteratorTest, EraseRange) {
+    // Sequential iterator
     {
-        auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
-        for (; lIter->valid(); lIter->next()) {
-            EXPECT_TRUE(uIter->valid());
-            for (auto &col : colNames) {
-                EXPECT_EQ(lIter->getColumn(col), uIter->getColumn(col));
-            }
-            uIter->next();
+        DataSet ds({"col1", "col2"});
+        for (auto i = 0; i < 10; ++i) {
+            ds.rows.emplace_back(Row({i, folly::to<std::string>(i)}));
         }
-
-        for (; rIter->valid(); rIter->next()) {
-            EXPECT_TRUE(uIter->valid());
-            for (auto &col : colNames) {
-                EXPECT_EQ(rIter->getColumn(col), uIter->getColumn(col));
+        // erase out of range pos
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(5, 11);
+            ASSERT_EQ(iter.size(), 5);
+            auto i = 0;
+            for (; iter.valid(); iter.next()) {
+                ASSERT_EQ(iter.getColumn("col1"), i);
+                ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+                ++i;
             }
-            uIter->next();
         }
-    }
-
-    // erase
-    {
-        auto uIter = std::make_unique<UnionIterator>(lIter->copy(), rIter->copy());
-        for (; lIter->valid(); lIter->next()) {
-            uIter->erase();
+        // erase in range
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(0, 10);
+            ASSERT_EQ(iter.size(), 0);
         }
-
-        for (; rIter->valid(); rIter->next()) {
-            EXPECT_TRUE(uIter->valid());
-            for (auto &col : colNames) {
-                EXPECT_EQ(rIter->getColumn(col), uIter->getColumn(col));
+        // erase part
+        {
+            auto val = std::make_shared<Value>(ds);
+            SequentialIter iter(val);
+            iter.eraseRange(0, 5);
+            EXPECT_EQ(iter.size(), 5);
+            auto i = 5;
+            for (; iter.valid(); iter.next()) {
+                ASSERT_EQ(iter.getColumn("col1"), i);
+                ASSERT_EQ(iter.getColumn("col2"), folly::to<std::string>(i));
+                ++i;
             }
-            uIter->next();
         }
     }
 }

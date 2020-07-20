@@ -9,10 +9,13 @@
 
 #include "common/base/Base.h"
 #include "common/datatypes/Value.h"
-#include "context/Iterator.h"
+#include "context/Result.h"
 
 namespace nebula {
 namespace graph {
+
+class QueryInstance;
+
 /***************************************************************************
  *
  * The context for each query request
@@ -26,111 +29,6 @@ namespace graph {
  * planner, the optimizer, and the executor.
  *
  **************************************************************************/
-class State final {
-public:
-    enum class Stat : uint8_t {
-        kUnExecuted,
-        kPartialSuccess,
-        kSuccess
-    };
-
-    State() = default;
-    State(Stat stat, std::string msg) {
-        stat_ = stat;
-        msg_ = std::move(msg);
-    }
-
-    const Stat& stat() const {
-        return stat_;
-    }
-
-private:
-    Stat            stat_{Stat::kUnExecuted};
-    std::string     msg_;
-};
-
-
-// An executor will produce a result.
-class ExecResult final {
-public:
-    static const ExecResult kEmptyResult;
-    static const std::vector<ExecResult> kEmptyResultList;
-
-    static ExecResult buildDefault(std::shared_ptr<Value> val) {
-        return ExecResult(val);
-    }
-
-    static ExecResult buildDefault(Value&& val) {
-        return ExecResult(std::make_shared<Value>(std::move(val)));
-    }
-
-    static ExecResult buildGetNeighbors(Value&& val) {
-        State state(State::Stat::kSuccess, "");
-        return buildGetNeighbors(std::move(val), std::move(state));
-    }
-
-    static ExecResult buildGetNeighbors(Value&& val, State&& stat) {
-        ExecResult result(std::make_shared<Value>(std::move(val)), std::move(stat));
-        auto iter = std::make_unique<GetNeighborsIter>(result.valuePtr());
-        result.setIter(std::move(iter));
-        return result;
-    }
-
-    static ExecResult buildSequential(Value&& val, State&& stat) {
-        ExecResult result(std::make_shared<Value>(std::move(val)), std::move(stat));
-        auto iter = std::make_unique<SequentialIter>(result.valuePtr());
-        result.setIter(std::move(iter));
-        return result;
-    }
-
-    static ExecResult buildSequential(Value&& val) {
-        State state(State::Stat::kSuccess, "");
-        return buildSequential(std::move(val), std::move(state));
-    }
-
-    void setIter(std::unique_ptr<Iterator> iter) {
-        iter_ = std::move(iter);
-    }
-
-    std::shared_ptr<Value> valuePtr() const {
-        return value_;
-    }
-
-    const Value& value() const {
-        return *value_;
-    }
-
-    Value&& moveValue() {
-        return std::move(*value_);
-    }
-
-    const State& state() const {
-        return state_;
-    }
-
-    std::unique_ptr<Iterator> iter() const {
-        return iter_->copy();
-    }
-
-private:
-    ExecResult()
-        : value_(std::make_shared<Value>()),
-          state_(State::Stat::kUnExecuted, ""),
-          iter_(std::make_unique<DefaultIter>(value_)) {}
-
-    explicit ExecResult(std::shared_ptr<Value> val)
-        : value_(val),
-          state_(State::Stat::kSuccess, ""),
-          iter_(std::make_unique<DefaultIter>(value_)) {}
-
-    ExecResult(std::shared_ptr<Value> val, State stat) : value_(val), state_(stat) {}
-
-private:
-    std::shared_ptr<Value>          value_;
-    State                           state_;
-    std::unique_ptr<Iterator>       iter_;
-};
-
 class ExecutionContext {
 public:
     ExecutionContext() = default;
@@ -144,19 +42,17 @@ public:
     // Get the latest version of the value
     const Value& getValue(const std::string& name) const;
 
-    Value moveValue(const std::string& name);
-
-    const ExecResult& getResult(const std::string& name) const;
+    const Result& getResult(const std::string& name) const;
 
     size_t numVersions(const std::string& name) const;
 
     // Return all existing history of the value. The front is the latest value
     // and the back is the oldest value
-    const std::vector<ExecResult>& getHistory(const std::string& name) const;
+    const std::vector<Result>& getHistory(const std::string& name) const;
 
     void setValue(const std::string& name, Value&& val);
 
-    void setResult(const std::string& name, ExecResult&& result);
+    void setResult(const std::string& name, Result&& result);
 
     void deleteValue(const std::string& name);
 
@@ -168,9 +64,13 @@ public:
     }
 
 private:
+    friend class QueryInstance;
+    Value moveValue(const std::string& name);
+
     // name -> Value with multiple versions
-    std::unordered_map<std::string, std::vector<ExecResult>>     valueMap_;
+    std::unordered_map<std::string, std::vector<Result>>     valueMap_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // CONTEXT_EXECUTIONCONTEXT_H_

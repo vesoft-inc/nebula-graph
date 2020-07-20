@@ -8,85 +8,48 @@
 
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "common/expression/VariableExpression.h"
 
 #include "parser/TraverseSentences.h"
 
 namespace nebula {
 namespace graph {
 Status GoValidator::validateImpl() {
-    Status status;
     auto* goSentence = static_cast<GoSentence*>(sentence_);
-    do {
-        status = validateStep(goSentence->stepClause());
-        if (!status.ok()) {
-            break;
-        }
+    NG_RETURN_IF_ERROR(validateStep(goSentence->stepClause()));
+    NG_RETURN_IF_ERROR(validateFrom(goSentence->fromClause()));
+    NG_RETURN_IF_ERROR(validateOver(goSentence->overClause()));
+    NG_RETURN_IF_ERROR(validateWhere(goSentence->whereClause()));
+    NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
 
-        status = validateFrom(goSentence->fromClause());
-        if (!status.ok()) {
-            break;
-        }
+    if (!inputProps_.empty() && fromType_ != kPipe) {
+        return Status::Error("$- must be referred in FROM before used in WHERE or YIELD");
+    }
 
-        status = validateOver(goSentence->overClause());
-        if (!status.ok()) {
-            break;
-        }
+    if (!varProps_.empty() && fromType_ != kVariable) {
+        return Status::Error("A variable must be referred in FROM before used in WHERE or YIELD");
+    }
 
-        status = validateWhere(goSentence->whereClause());
-        if (!status.ok()) {
-            break;
-        }
+    if ((!inputProps_.empty() && !varProps_.empty()) || varProps_.size() > 1) {
+        return Status::Error("Only support single input in a go sentence.");
+    }
 
-        status = validateYield(goSentence->yieldClause());
-        if (!status.ok()) {
-            break;
-        }
+    if (!dstTagProps_.empty()) {
+        // TODO: inplement get vertex props.
+        return Status::Error("Not support get dst yet.");
+    }
 
-        if (!inputProps_.empty() && fromType_ != kPipe) {
-            status = Status::Error("$- must be referred in FROM "
-                                    "before used in WHERE or YIELD");
-            break;
-        }
+    if (isOverAll_) {
+        // TODO: implement over all.
+        return Status::Error("Not support over all yet.");
+    }
 
-        if (!varProps_.empty() && fromType_ != kVariable) {
-            status = Status::Error("A variable must be referred in FROM "
-                                    "before used in WHERE or YIELD");
-            break;
-        }
+    if (!inputProps_.empty()) {
+        // TODO: inplement get input props.
+        return Status::Error("Not support input prop yet.");
+    }
 
-        if ((!inputProps_.empty() && !varProps_.empty())
-                || varProps_.size() > 1) {
-            status = Status::Error(
-                    "Only support single input in a go sentence.");
-            break;
-        }
-
-        if (!dstTagProps_.empty()) {
-            // TODO: inplement get vertex props.
-            status = Status::Error("Not support get dst yet.");
-            break;
-        }
-
-        if (isOverAll_) {
-            // TODO: implement over all.
-            status = Status::Error("Not support over all yet.");
-            break;
-        }
-
-        if (!inputProps_.empty()) {
-            // TODO: inplement get input props.
-            status = Status::Error("Not support input prop yet.");
-            break;
-        }
-
-        if (distinct_) {
-            // TODO: implement distinct;
-            status = Status::Error("Not support distinct yet.");
-            break;
-        }
-    } while (false);
-
-    return status;
+    return Status::OK();
 }
 
 Status GoValidator::validateStep(const StepClause* step) {
@@ -121,14 +84,14 @@ Status GoValidator::validateFrom(const FromClause* from) {
             if (type.value() != Value::Type::STRING) {
                 std::stringstream ss;
                 ss << "`" << src->toString() << "', the srcs should be type of string, "
-                    << "but was`" << type.value() << "'";
+                   << "but was`" << type.value() << "'";
                 return Status::Error(ss.str());
             }
             src_ = src;
         }
     } else {
         auto vidList = from->vidList();
-        ExpressionContextImpl ctx(qctx_->ectx(), nullptr);
+        QueryExpressionContext ctx(qctx_->ectx(), nullptr);
         for (auto* expr : vidList) {
             if (!evaluableExpr(expr)) {
                 return Status::Error("`%s' is not an evaluable expression.",
@@ -184,7 +147,7 @@ Status GoValidator::validateWhere(const WhereClause* where) {
     if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE) {
         std::stringstream ss;
         ss << "`" << filter_->toString() << "', Filter only accpet bool/null value, "
-            << "but was `" << type << "'";
+           << "but was `" << type << "'";
         return Status::Error(ss.str());
     }
 
@@ -207,16 +170,11 @@ Status GoValidator::validateYield(const YieldClause* yield) {
         colNames_.emplace_back(colName);
 
         auto typeStatus = deduceExprType(col->expr());
-        if (!typeStatus.ok()) {
-            return typeStatus.status();
-        }
+        NG_RETURN_IF_ERROR(typeStatus);
         auto type = typeStatus.value();
         outputs_.emplace_back(colName, type);
 
-        auto status = deduceProps(col->expr());
-        if (!status.ok()) {
-            return status;
-        }
+        NG_RETURN_IF_ERROR(deduceProps(col->expr()));
     }
     for (auto& e : edgeProps_) {
         auto found = std::find(edgeTypes_.begin(), edgeTypes_.end(), e.first);
@@ -228,109 +186,6 @@ Status GoValidator::validateYield(const YieldClause* yield) {
     return Status::OK();
 }
 
-Status GoValidator::deduceProps(const Expression* expr) {
-    switch (expr->kind()) {
-        case Expression::Kind::kConstant: {
-            break;
-        }
-        case Expression::Kind::kAdd:
-        case Expression::Kind::kMinus:
-        case Expression::Kind::kMultiply:
-        case Expression::Kind::kDivision:
-        case Expression::Kind::kMod:
-        case Expression::Kind::kRelEQ:
-        case Expression::Kind::kRelNE:
-        case Expression::Kind::kRelLT:
-        case Expression::Kind::kRelLE:
-        case Expression::Kind::kRelGT:
-        case Expression::Kind::kRelGE:
-        case Expression::Kind::kLogicalAnd:
-        case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
-            auto biExpr = static_cast<const BinaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(biExpr->left()));
-            NG_RETURN_IF_ERROR(deduceProps(biExpr->right()));
-            break;
-        }
-        case Expression::Kind::kUnaryPlus:
-        case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
-            auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand()));
-            break;
-        }
-        case Expression::Kind::kFunctionCall: {
-            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
-            for (auto& arg : funcExpr->args()->args()) {
-                NG_RETURN_IF_ERROR(deduceProps(arg.get()));
-            }
-            break;
-        }
-        case Expression::Kind::kDstProperty: {
-            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
-            if (!status.ok()) {
-                return status.status();
-            }
-            auto& props = dstTagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
-            break;
-        }
-        case Expression::Kind::kSrcProperty: {
-            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
-            if (!status.ok()) {
-                return status.status();
-            }
-            auto& props = srcTagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
-            break;
-        }
-        case Expression::Kind::kEdgeProperty:
-        case Expression::Kind::kEdgeSrc:
-        case Expression::Kind::kEdgeType:
-        case Expression::Kind::kEdgeRank:
-        case Expression::Kind::kEdgeDst: {
-            auto* edgePropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto status = qctx_->schemaMng()->toEdgeType(space_.id, *edgePropExpr->sym());
-            if (!status.ok()) {
-                return status.status();
-            }
-            auto& props = edgeProps_[status.value()];
-            props.emplace_back(*edgePropExpr->prop());
-            break;
-        }
-        case Expression::Kind::kInputProperty: {
-            auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* prop = inputPropExpr->prop();
-            inputProps_.emplace_back(*prop);
-            break;
-        }
-        case Expression::Kind::kVarProperty: {
-            auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* var = varPropExpr->sym();
-            auto* prop = varPropExpr->prop();
-            auto& props = varProps_[*var];
-            props.emplace_back(*prop);
-            break;
-        }
-        case Expression::Kind::kUUID:
-        case Expression::Kind::kVar:
-        case Expression::Kind::kVersionedVar:
-        case Expression::Kind::kSymProperty:
-        case Expression::Kind::kTypeCasting:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kRelIn: {
-            // TODO:
-            std::stringstream ss;
-            ss << "Not support " << expr->kind();
-            return Status::Error(ss.str());
-        }
-    }
-    return Status::OK();
-}
-
 Status GoValidator::toPlan() {
     if (steps_ > 1) {
         return buildNStepsPlan();
@@ -339,44 +194,96 @@ Status GoValidator::toPlan() {
     }
 }
 
-Status GoValidator::buildNStepsPlan() {
-    // TODO
-    // loop -> project -> gn1 -> bodyStart
-    return Status::Error("Not support n steps yet.");
-}
-
-Status GoValidator::buildOneStepPlan() {
+Status GoValidator::oneStep(PlanNode* input, const std::string& inputVarName) {
     auto* plan = qctx_->plan();
 
-    std::string input;
-    if (!starts_.empty() && src_ == nullptr) {
-        input = buildInput();
-    }
-
-    auto* gn1 = GetNeighbors::make(
-            plan,
-            nullptr,
-            space_.id,
-            src_,
-            buildEdgeTypes(),
-            storage::cpp2::EdgeDirection::BOTH,  // Not valid if edge types not empty
-            buildSrcVertexProps(),
-            buildEdgeProps(),
-            nullptr,
-            nullptr);
-    gn1->setInputVar(input);
+    auto* gn = GetNeighbors::make(plan, input, space_.id);
+    gn->setSrc(src_);
+    gn->setEdgeTypes(buildEdgeTypes());
+    gn->setVertexProps(buildSrcVertexProps());
+    gn->setEdgeProps(buildEdgeProps());
+    gn->setInputVar(inputVarName);
 
     if (!dstTagProps_.empty()) {
         // TODO: inplement get vertex props.
         return Status::Error("Not support get dst yet.");
     }
 
-    auto* project = Project::make(plan, gn1, yields_);
-    project->setInputVar(gn1->varName());
-    project->setColNames(std::move(colNames_));
+    PlanNode *projectInput = gn;
+    if (filter_ != nullptr) {
+        Filter* filterNode = Filter::make(plan, gn, filter_);
+        filterNode->setInputVar(gn->varName());
+        projectInput = filterNode;
+    }
 
-    root_ = project;
-    tail_ = gn1;
+    auto* project = Project::make(plan, projectInput, yields_);
+    project->setInputVar(projectInput->varName());
+    project->setColNames(std::vector<std::string>(colNames_));
+
+    if (distinct_) {
+        Dedup* dedupNode = Dedup::make(plan, project);
+        dedupNode->setInputVar(project->varName());
+        dedupNode->setColNames(std::move(colNames_));
+        root_ = dedupNode;
+    } else {
+        root_ = project;
+    }
+    tail_ = gn;
+    return Status::OK();
+}
+
+Status GoValidator::buildNStepsPlan() {
+    auto* plan = qctx_->plan();
+    // [->project] -> loop -> project -> gn1 -> bodyStart
+    auto* bodyStart = StartNode::make(plan);
+
+    std::string input;
+    PlanNode* projectStartVid = nullptr;
+    if (!starts_.empty() && src_ == nullptr) {
+        input = buildInput();
+    } else {
+        projectStartVid = buildRuntimeInput();
+        input = projectStartVid->varName();
+    }
+    auto* gn = GetNeighbors::make(plan, bodyStart, space_.id);
+    gn->setSrc(src_);
+    gn->setEdgeProps(buildNStepLoopEdgeProps());
+    gn->setInputVar(input);
+
+    auto* columns = new YieldColumns();
+    auto* column = new YieldColumn(
+        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
+        new std::string(kVid));
+    columns->addColumn(column);
+
+    auto* project = Project::make(plan, gn, plan->saveObject(columns));
+    project->setInputVar(gn->varName());
+    project->setColNames(deduceColNames(columns));
+
+    auto* loop = Loop::make(plan, projectStartVid, project,
+                            buildNStepLoopCondition(steps_ - 1));
+
+    auto status = oneStep(loop, project->varName());
+    if (!status.ok()) {
+        return status;
+    }
+    // reset tail_
+    tail_ = projectStartVid == nullptr ? loop : projectStartVid;
+    VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
+    return Status::OK();
+}
+
+Status GoValidator::buildOneStepPlan() {
+    std::string inputVarName;
+    if (!starts_.empty() && src_ == nullptr) {
+        inputVarName = buildInput();
+    }
+
+    auto status = oneStep(nullptr, inputVarName);
+    if (!status.ok()) {
+        return status;
+    }
+
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }
@@ -384,22 +291,35 @@ Status GoValidator::buildOneStepPlan() {
 std::string GoValidator::buildInput() {
     auto input = vctx_->varGen()->getVar();
     DataSet ds;
-    ds.colNames.emplace_back("_vid");
+    ds.colNames.emplace_back(kVid);
     for (auto& vid : starts_) {
         Row row;
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(input, ExecResult::buildSequential(
-        Value(std::move(ds)), State(State::Stat::kSuccess, "")));
+    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
 
     auto* vids = new VariablePropertyExpression(
                     new std::string(input),
-                    new std::string("_vid"));
+                    new std::string(kVid));
     qctx_->plan()->saveObject(vids);
     src_ = vids;
     return input;
 }
+
+PlanNode* GoValidator::buildRuntimeInput() {
+    auto* columns = new YieldColumns();
+    auto encode = src_->encode();
+    auto decode = Expression::decode(encode);
+    auto* column = new YieldColumn(decode.release(), new std::string(kVid));
+    columns->addColumn(column);
+    auto plan = qctx_->plan();
+    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    project->setColNames({ kVid });
+    src_ = plan->saveObject(new InputPropertyExpression(new std::string(kVid)));
+    return project;
+}
+
 
 std::vector<EdgeType> GoValidator::buildEdgeTypes() {
     std::vector<EdgeType> edgeTypes(edgeTypes_.size());
@@ -463,5 +383,35 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
     }
     return edgeProps;
 }
+
+GetNeighbors::EdgeProps GoValidator::buildNStepLoopEdgeProps() {
+    GetNeighbors::EdgeProps edgeProps;
+    if (!edgeProps_.empty()) {
+        edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(edgeProps_.size());
+        std::transform(edgeProps_.begin(), edgeProps_.end(), edgeProps->begin(), [] (auto& edge) {
+            storage::cpp2::EdgeProp ep;
+            ep.type = edge.first;
+            ep.props = std::vector<std::string>({kDst});
+            return ep;
+        });
+    }
+    return edgeProps;
+}
+
+Expression* GoValidator::buildNStepLoopCondition(int64_t steps) const {
+    // ++loopSteps{0} <= steps
+    auto loopSteps = vctx_->varGen()->getVar();
+    qctx_->ectx()->setValue(loopSteps, 0);
+    auto* condition = new RelationalExpression(
+        Expression::Kind::kRelLE,
+        new UnaryExpression(
+            Expression::Kind::kUnaryIncr,
+            new VersionedVariableExpression(new std::string(loopSteps),
+                                            new ConstantExpression(0))),
+        new ConstantExpression(static_cast<int32_t>(steps)));
+    qctx_->plan()->saveObject(condition);
+    return condition;
+}
+
 }  // namespace graph
 }  // namespace nebula

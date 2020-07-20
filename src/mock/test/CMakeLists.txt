@@ -15,7 +15,7 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
     $<TARGET_OBJECTS:exec_obj>
-    $<TARGET_OBJECTS:schedule_obj>
+    $<TARGET_OBJECTS:scheduler_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
@@ -49,9 +49,9 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
     $<TARGET_OBJECTS:common_charset_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
-    $<TARGET_OBJECTS:graph_auth_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
+    $<TARGET_OBJECTS:common_agg_function_obj>
 )
 
 nebula_add_test(
@@ -62,12 +62,12 @@ nebula_add_test(
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES
-        proxygenhttpserver
-        proxygenlib
         ${THRIFT_LIBRARIES}
-        wangle
         gtest
         gtest_main
+        proxygenhttpserver
+        proxygenlib
+        wangle
 )
 
 nebula_add_test(
@@ -78,6 +78,22 @@ nebula_add_test(
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES
+        ${THRIFT_LIBRARIES}
+        gtest
+        gtest_main
+        proxygenhttpserver
+        proxygenlib
+        wangle
+)
+
+nebula_add_test(
+    NAME
+        snapshot_test
+    SOURCES
+        SnapshotTest.cpp
+    OBJECTS
+        ${GRAPH_TEST_LIB}
+    LIBRARIES
         proxygenhttpserver
         proxygenlib
         ${THRIFT_LIBRARIES}
@@ -85,4 +101,3 @@ nebula_add_test(
         gtest
         gtest_main
 )
-
