@@ -215,47 +215,37 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
     }
 }
 
-#define DETECT_BIEXPR_TYPE(OP)                                           \
-    auto biExpr = static_cast<const BinaryExpression*>(expr);            \
-    auto left = deduceExprType(biExpr->left());                          \
-    if (!left.ok()) {                                                    \
-        return left;                                                     \
-    }                                                                    \
-                                                                         \
-    auto right = deduceExprType(biExpr->right());                        \
-    if (!right.ok()) {                                                   \
-        return right;                                                    \
-    }                                                                    \
-                                                                         \
-    auto detectVal =                                                     \
-        kValues.at(left.value()) OP kValues.at(right.value());           \
-    if (detectVal.isBadNull()) {                                         \
-        std::stringstream ss;                                            \
-        ss << "`" << expr->toString() << "' is not a valid expression, " \
-           << "can not apply `" << #OP << "' to `" << left.value()       \
-           << "' and `" << right.value() << "'.";                        \
-        return Status::Error(ss.str());                                  \
-    }                                                                    \
+#define DETECT_BIEXPR_TYPE(OP)                                                                     \
+    auto biExpr = static_cast<const BinaryExpression*>(expr);                                      \
+    auto left = deduceExprType(biExpr->left());                                                    \
+    NG_RETURN_IF_ERROR(left);                                                                      \
+    auto right = deduceExprType(biExpr->right());                                                  \
+    NG_RETURN_IF_ERROR(right);                                                                     \
+    auto detectVal = kConstantValues.at(left.value()) OP kConstantValues.at(right.value());        \
+    if (detectVal.isBadNull()) {                                                                   \
+        std::stringstream ss;                                                                      \
+        ss << "`" << expr->toString() << "' is not a valid expression, "                           \
+           << "can not apply `" << #OP << "' to `" << left.value() << "' and `" << right.value()   \
+           << "'.";                                                                                \
+        return Status::Error(ss.str());                                                            \
+    }                                                                                              \
     return detectVal.type();
 
-#define DETECT_UNARYEXPR_TYPE(OP)                                           \
-    auto unaryExpr = static_cast<const UnaryExpression*>(expr);             \
-    auto status = deduceExprType(unaryExpr->operand());                     \
-    if (!status.ok()) {                                                     \
-        return status.status();                                             \
-    }                                                                       \
-                                                                            \
-    auto detectVal = OP kValues.at(status.value());                         \
-    if (detectVal.isBadNull()) {                                             \
-        std::stringstream ss;                                               \
-        ss << "`" << expr->toString() << "' is not a valid expression, "    \
-           << "can not apply `" << #OP << "' to " << status.value() << "."; \
-        return Status::Error(ss.str());                                     \
-    }                                                                       \
+#define DETECT_UNARYEXPR_TYPE(OP)                                                                  \
+    auto unaryExpr = static_cast<const UnaryExpression*>(expr);                                    \
+    auto status = deduceExprType(unaryExpr->operand());                                            \
+    NG_RETURN_IF_ERROR(status);                                                                    \
+    auto detectVal = OP kConstantValues.at(status.value());                                        \
+    if (detectVal.isBadNull()) {                                                                   \
+        std::stringstream ss;                                                                      \
+        ss << "`" << expr->toString() << "' is not a valid expression, "                           \
+           << "can not apply `" << #OP << "' to " << status.value() << ".";                        \
+        return Status::Error(ss.str());                                                            \
+    }                                                                                              \
     return detectVal.type();
 
 StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
-    static const std::unordered_map<Value::Type, Value> kValues = {
+    static const std::unordered_map<Value::Type, Value> kConstantValues = {
         {Value::Type::__EMPTY__, Value()},
         {Value::Type::NULLVALUE, Value(NullType::__NULL__)},
         {Value::Type::BOOL, Value(true)},
@@ -306,16 +296,10 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         }
         case Expression::Kind::kRelIn: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
-            auto left = deduceExprType(biExpr->left());
-            if (!left.ok()) {
-                return left;
-            }
+            NG_RETURN_IF_ERROR(deduceExprType(biExpr->left()));
 
             auto right = deduceExprType(biExpr->right());
-            if (!right.ok()) {
-                return right;
-            }
-
+            NG_RETURN_IF_ERROR(right);
             if (right.value() != Value::Type::LIST) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
@@ -346,7 +330,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 return status.status();
             }
 
-            auto detectVal = kValues.at(status.value()) + 1;
+            auto detectVal = kConstantValues.at(status.value()) + 1;
             if (detectVal.isBadNull()) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
@@ -362,7 +346,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 return status.status();
             }
 
-            auto detectVal = kValues.at(status.value()) - 1;
+            auto detectVal = kConstantValues.at(status.value()) - 1;
             if (detectVal.isBadNull()) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
@@ -384,6 +368,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             // TODO
             return Status::Error("Not support type casting yet.");
         }
+        case Expression::Kind::kTagProperty:
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
@@ -545,6 +530,14 @@ Status Validator::deduceProps(const Expression* expr) {
             props.emplace_back(*tagPropExpr->prop());
             break;
         }
+        case Expression::Kind::kTagProperty: {
+            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
+            NG_RETURN_IF_ERROR(status);
+            auto& props = tagProps_[status.value()];
+            props.emplace_back(*tagPropExpr->prop());
+            break;
+        }
         case Expression::Kind::kEdgeProperty:
         case Expression::Kind::kEdgeSrc:
         case Expression::Kind::kEdgeType:
@@ -632,6 +625,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         }
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty:
+        case Expression::Kind::kTagProperty:
         case Expression::Kind::kEdgeProperty:
         case Expression::Kind::kEdgeSrc:
         case Expression::Kind::kEdgeType:
