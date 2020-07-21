@@ -376,7 +376,7 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
             std::transform(edgeProps_.begin(), edgeProps_.end(), edgeProps->begin() + size,
                     [] (auto& edge) {
                 storage::cpp2::EdgeProp ep;
-                ep.type = edge.first;
+                ep.type = -edge.first;
                 ep.props = std::move(edge.second);
                 return ep;
             });
