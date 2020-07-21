@@ -19,6 +19,7 @@
 #   NEBULA_STORAGE_REPO_URL        -- Git URL for the nebula-storage repo
 #   NEBULA_STORAGE_REPO_TAG        -- Tag/branch of the nebula-storage repo
 #   ENABLE_BUILD_STORAGE           -- Build storage repo
+#   BUILD_DEP_PROC                 -- The Processor count to build dependent repo
 #
 #   ENABLE_JEMALLOC                -- Link jemalloc into all executables
 #   ENABLE_NATIVE                  -- Build native client
@@ -55,6 +56,12 @@ if (GIT_INFO_SHA)
     add_definitions(-DGIT_INFO_SHA=${GIT_INFO_SHA})
 endif()
 
+if(NOT BUILD_DEP_PROC)
+    set(BUILD_DEP_PROC 10)
+endif()
+
+message(STATUS "BUILD_DEP_PROC = ${BUILD_DEP_PROC}")
+
 # Submodules
 if("${NEBULA_COMMON_REPO_URL}" STREQUAL "")
     SET(NEBULA_COMMON_REPO_URL "git@github.com:vesoft-inc-private/nebula-common.git")
@@ -76,6 +83,7 @@ add_dependent_project(
     NAME common
     REPO ${NEBULA_COMMON_REPO_URL}
     TAG  ${NEBULA_COMMON_REPO_TAG}
+    PROC ${BUILD_DEP_PROC}
 )
 find_package(${NEBULA_COMMON_PACKAGE} REQUIRED)
 message(STATUS ">>>>> The nebula-common repo has been configured successfully <<<<<")
@@ -104,6 +112,7 @@ if(ENABLE_BUILD_STORAGE)
              -DNEBULA_COMMON_PATH=${nebula-common_DIR} " "
              -DNEBULA_COMMON_REPO_URL=${NEBULA_COMMON_REPO_URL} " "
              -DNEBULA_COMMON_REPO_TAG=${NEBULA_COMMON_REPO_TAG}
+        PROC ${BUILD_DEP_PROC}
     )
     message(STATUS ">>>>> The nebula-storage repo has been configured successfully <<<<<")
     message(STATUS "")
