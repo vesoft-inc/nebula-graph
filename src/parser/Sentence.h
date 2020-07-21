@@ -221,6 +221,14 @@ public:
         return rank_.get();
     }
 
+    Expression* type() const {
+        return type_.get();
+    }
+
+    void setType(Expression *type) {
+        type_.reset(type);
+    }
+
     bool isInputExpr() const {
         return isInputExpr_;
     }
@@ -231,6 +239,7 @@ private:
     std::unique_ptr<Expression>             srcid_;
     std::unique_ptr<Expression>             dstid_;
     std::unique_ptr<Expression>             rank_;
+    std::unique_ptr<Expression>             type_;
     std::unordered_set<std::string>         uniqVar_;
     bool                                    isInputExpr_;
 };

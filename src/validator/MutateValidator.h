@@ -86,7 +86,7 @@ private:
     Expression*                                   vidRef_{nullptr};
     std::vector<EdgeType>                         edgeTypes_;
     std::vector<std::string>                      edgeNames_;
-    std::vector<std::pair<EdgeType, EdgeKeyRef*>> edgeKeyRefs_;
+    std::vector<EdgeKeyRef*>                      edgeKeyRefs_;
 };
 
 class DeleteEdgesValidator final : public Validator {
@@ -102,11 +102,13 @@ private:
 
     Status checkInput();
 
+    Status buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
+                           const EdgeType edgeType);
+
 private:
-    // From ConstantExpression
-    std::vector<storage::cpp2::EdgeKey>            edgeKeys_;
-    // From InputPropertyExpression or InputPropertyExpression
-    std::vector<std::pair<EdgeType, EdgeKeyRef*>>  edgeKeyRefs_;
+    // From InputPropertyExpression, ConstantExpression will covert to  InputPropertyExpression
+    std::vector<EdgeKeyRef*>                       edgeKeyRefs_;
+    std::string                                    edgeKeyVar_;
 };
 }  // namespace graph
 }  // namespace nebula

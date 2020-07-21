@@ -261,7 +261,6 @@ Status DeleteVerticesValidator::validateImpl() {
                << "but input is `" << type.value() << "'";
             return Status::Error(ss.str());
         }
-        buildVIds();
     } else {
         auto vIds = sentence->vidList()->vidList();
         for (auto vId : vIds) {
@@ -317,24 +316,28 @@ Status DeleteVerticesValidator::toPlan() {
 
     std::vector<storage::cpp2::EdgeProp> edgeProps;
     // make edgeRefs and edgeProp
-    for (auto edgeType : edgeTypes_) {
+    auto index = 0u;
+    DCHECK(edgeTypes_.size() == edgeNames_.size());
+    for (auto &name : edgeNames_) {
         auto *edgeKeyRef = new EdgeKeyRef(
-                new InputPropertyExpression(new std::string(kSrc)),
-                new InputPropertyExpression(new std::string(kDst)),
-                new InputPropertyExpression(new std::string(kRank)));
+                new EdgeSrcIdExpression(new std::string(name)),
+                new EdgeDstIdExpression(new std::string(name)),
+                new EdgeRankExpression(new std::string(name)));
+        edgeKeyRef->setType(new EdgeTypeExpression(new std::string(name)));
         qctx_->plan()->saveObject(edgeKeyRef);
-        edgeKeyRefs_.emplace_back(std::make_pair(edgeType, edgeKeyRef));
+        edgeKeyRefs_.emplace_back(edgeKeyRef);
 
         storage::cpp2::EdgeProp edgeProp;
-        edgeProp.set_type(edgeType);
+        edgeProp.set_type(edgeTypes_[index]);
         edgeProp.props.emplace_back(kSrc);
         edgeProp.props.emplace_back(kDst);
         edgeProp.props.emplace_back(kType);
         edgeProp.props.emplace_back(kRank);
         edgeProps.emplace_back(edgeProp);
 
-        edgeProp.set_type(-edgeType);
+        edgeProp.set_type(-edgeTypes_[index]);
         edgeProps.emplace_back(std::move(edgeProp));
+        index++;
     }
 
     auto vertexPropsPtr = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
@@ -353,35 +356,13 @@ Status DeleteVerticesValidator::toPlan() {
                                             std::move(exprPtr));
     getNeighbors->setInputVar(vidVar);
 
-    auto* columns = new YieldColumns();
-    for (auto &name : edgeNames_) {
-        auto* src = new YieldColumn(
-                new EdgeSrcIdExpression(new std::string(name)), new std::string(kSrc));
-        columns->addColumn(src);
-        auto* dst = new YieldColumn(
-                new EdgeDstIdExpression(new std::string(name)), new std::string(kDst));
-        columns->addColumn(dst);
-        auto* type = new YieldColumn(
-                new EdgeTypeExpression(new std::string(name)), new std::string(kType));
-        columns->addColumn(type);
-        auto* rank = new YieldColumn(
-                new EdgeRankExpression(new std::string(name)), new std::string(kRank));
-        columns->addColumn(rank);
-    }
-
-    // create project node
-    auto *project = Project::make(plan, getNeighbors, qctx_->plan()->saveObject(columns));
-    project->setInputVar(getNeighbors->varName());
-    project->setColNames({kSrc, kDst, kType, kRank});
-
     // create deleteEdges node
     auto *deNode = DeleteEdges::make(plan,
-                                     project,
+                                     getNeighbors,
                                      spaceId_,
-                                     {},
                                      std::move(edgeKeyRefs_));
 
-    deNode->setInputVar(project->varName());
+    deNode->setInputVar(getNeighbors->varName());
 
     auto *dvNode = DeleteVertices::make(plan,
                                         deNode,
@@ -403,50 +384,62 @@ Status DeleteEdgesValidator::validateImpl() {
     }
     auto edgeType = edgeStatus.value();
     if (sentence->isRef()) {
-        edgeKeyRefs_.emplace_back(std::make_pair(edgeType, sentence->edgeKeyRef()));
+        edgeKeyRefs_.emplace_back(sentence->edgeKeyRef());
+        (*edgeKeyRefs_.begin())->setType(new ConstantExpression(edgeType));
         auto status = checkInput();
         if (!status.ok()) {
             return status;
         }
     } else {
-        auto edgeKeys = sentence->edgeKeys()->keys();
-        edgeKeys_.reserve(edgeKeys.size());
-        for (auto &edgeKey : edgeKeys) {
-            storage::cpp2::EdgeKey key;
-            auto srcIdStatus = SchemaUtil::toVertexID(edgeKey->srcid());
-            if (!srcIdStatus.ok()) {
-                return srcIdStatus.status();
-            }
-            auto dstIdStatus = SchemaUtil::toVertexID(edgeKey->dstid());
-            if (!dstIdStatus.ok()) {
-                return dstIdStatus.status();
-            }
-
-            auto srcId = std::move(srcIdStatus).value();
-            auto dstId = std::move(dstIdStatus).value();
-            // out edge
-            key.set_src(srcId);
-            key.set_dst(dstId);
-            key.set_ranking(edgeKey->rank());
-            key.set_edge_type(edgeType);
-            edgeKeys_.emplace_back(key);
-
-            // in edge
-            key.set_src(std::move(srcId));
-            key.set_dst(std::move(dstId));
-            key.set_ranking(edgeKey->rank());
-            key.set_edge_type(-edgeType);
-            edgeKeys_.emplace_back(std::move(key));
-        }
+        return buildEdgeKeyRef(sentence->edgeKeys()->keys(), edgeType);
     }
 
     return Status::OK();
 }
 
+Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
+                                             const EdgeType edgeType) {
+    edgeKeyVar_ = vctx_->varGen()->getVar();
+    DataSet ds({kSrc, kType, kRank, kDst});
+    for (auto &edgeKey : edgeKeys) {
+        Row row;
+        storage::cpp2::EdgeKey key;
+        auto srcIdStatus = SchemaUtil::toVertexID(edgeKey->srcid());
+        if (!srcIdStatus.ok()) {
+            return srcIdStatus.status();
+        }
+        auto dstIdStatus = SchemaUtil::toVertexID(edgeKey->dstid());
+        if (!dstIdStatus.ok()) {
+            return dstIdStatus.status();
+        }
+
+        auto srcId = std::move(srcIdStatus).value();
+        auto dstId = std::move(dstIdStatus).value();
+        // out edge
+        row.emplace_back(std::move(srcId));
+        row.emplace_back(edgeType);
+        row.emplace_back(edgeKey->rank());
+        row.emplace_back(std::move(dstId));
+        ds.emplace_back(std::move(row));
+    }
+    qctx_->ectx()->setResult(edgeKeyVar_, ResultBuilder().value(Value(std::move(ds))).finish());
+
+    auto* srcIdExpr = new InputPropertyExpression(new std::string(kSrc));
+    auto* typeExpr = new InputPropertyExpression(new std::string(kType));
+    auto* rankExpr = new InputPropertyExpression(new std::string(kRank));
+    auto* dstIdExpr = new InputPropertyExpression(new std::string(kDst));
+    auto* edgeKeyRef = new EdgeKeyRef(srcIdExpr, dstIdExpr, rankExpr);
+    edgeKeyRef->setType(typeExpr);
+    qctx_->plan()->saveObject(edgeKeyRef);
+
+    edgeKeyRefs_.emplace_back(edgeKeyRef);
+    return Status::OK();
+}
+
 Status DeleteEdgesValidator::checkInput() {
     CHECK(!edgeKeyRefs_.empty());
-    auto edgeKeyRef = edgeKeyRefs_.begin();
-    auto type = deduceExprType(edgeKeyRef->second->srcid());
+    auto &edgeKeyRef = *edgeKeyRefs_.begin();
+    auto type = deduceExprType(edgeKeyRef->srcid());
     if (!type.ok()) {
         return type.status();
     }
@@ -457,7 +450,7 @@ Status DeleteEdgesValidator::checkInput() {
         return Status::Error(ss.str());
     }
 
-    type = deduceExprType(edgeKeyRef->second->dstid());
+    type = deduceExprType(edgeKeyRef->dstid());
     if (!type.ok()) {
         return type.status();
     }
@@ -468,7 +461,7 @@ Status DeleteEdgesValidator::checkInput() {
         return Status::Error(ss.str());
     }
 
-    type = deduceExprType(edgeKeyRef->second->rank());
+    type = deduceExprType(edgeKeyRef->rank());
     if (!type.ok()) {
         return type.status();
     }
@@ -488,8 +481,8 @@ Status DeleteEdgesValidator::toPlan() {
     auto *doNode = DeleteEdges::make(plan,
                                      start,
                                      vctx_->whichSpace().id,
-                                     std::move(edgeKeys_),
                                      edgeKeyRefs_);
+    doNode->setInputVar(edgeKeyVar_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

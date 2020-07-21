@@ -189,12 +189,10 @@ public:
     static DeleteEdges* make(ExecutionPlan* plan,
                              PlanNode* input,
                              GraphSpaceID spaceId,
-                             std::vector<storage::cpp2::EdgeKey> edgeKeys,
-                             std::vector<std::pair<EdgeType, EdgeKeyRef*>> edgeKeyRefs) {
+                             std::vector<EdgeKeyRef*> edgeKeyRefs) {
         return new DeleteEdges(plan,
                                input,
                                spaceId,
-                               std::move(edgeKeys),
                                std::move(edgeKeyRefs));
     }
 
@@ -206,11 +204,7 @@ public:
         return space_;
     }
 
-    const std::vector<storage::cpp2::EdgeKey>& getEdgeKeys() const {
-        return edgeKeys_;
-    }
-
-    const std::vector<std::pair<EdgeType, EdgeKeyRef*>>& getEdgeKeyRefs() const {
+    const std::vector<EdgeKeyRef*>& getEdgeKeyRefs() const {
         return edgeKeyRefs_;
     }
 
@@ -218,17 +212,14 @@ private:
     DeleteEdges(ExecutionPlan* plan,
                 PlanNode* input,
                 GraphSpaceID spaceId,
-                std::vector<storage::cpp2::EdgeKey> edgeKeys,
-                std::vector<std::pair<EdgeType, EdgeKeyRef*>> edgeKeyRefs)
+                std::vector<EdgeKeyRef*> edgeKeyRefs)
         : SingleInputNode(plan, Kind::kDeleteEdges, input)
         , space_(spaceId)
-        , edgeKeys_(std::move(edgeKeys))
         , edgeKeyRefs_(std::move(edgeKeyRefs)) {}
 
 private:
     GraphSpaceID                                   space_{-1};
-    std::vector<storage::cpp2::EdgeKey>            edgeKeys_;
-    std::vector<std::pair<EdgeType, EdgeKeyRef*>>  edgeKeyRefs_;
+    std::vector<EdgeKeyRef*>  edgeKeyRefs_;
 };
 }  // namespace graph
 }  // namespace nebula

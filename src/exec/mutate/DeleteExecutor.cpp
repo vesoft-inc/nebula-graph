@@ -33,6 +33,10 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
         QueryExpressionContext ctx(ectx_, iter.get());
         for (; iter->valid(); iter->next()) {
             auto val = Expression::eval(vidRef, ctx);
+            if (val.isNull() || val.empty()) {
+                VLOG(3) << "NULL or EMPTY vid";
+                continue;
+            }
             if (!val.isStr()) {
                 LOG(ERROR) << "Wrong input vid type: " << val << ", value: " << val.toString();
                 return Status::Error("Wrong input vid type");
@@ -59,8 +63,8 @@ folly::Future<Status> DeleteEdgesExecutor::execute() {
 folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
     dumpLog();
     auto *deNode = asNode<DeleteEdges>(node());
-    auto edgeKeys = deNode->getEdgeKeys();
     auto edgeKeyRefs = deNode->getEdgeKeyRefs();
+    std::vector<storage::cpp2::EdgeKey> edgeKeys;
     if (!edgeKeyRefs.empty()) {
         auto& inputVar = deNode->inputVar();
         auto& inputResult = ectx_->getResult(inputVar);
@@ -72,12 +76,11 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
         edgeKeys.reserve(iter->size());
         QueryExpressionContext ctx(ectx_, iter.get());
         for (; iter->valid(); iter->next()) {
-            VLOG(2) <<"Row: " << *iter->row();
             for (auto &edgeKeyRef : edgeKeyRefs) {
                 storage::cpp2::EdgeKey edgeKey;
-                auto srcId = Expression::eval(edgeKeyRef.second->srcid(), ctx);
-                if (srcId.isNull()) {
-                    VLOG(3) << "NULL vid";
+                auto srcId = Expression::eval(edgeKeyRef->srcid(), ctx);
+                if (srcId.isNull() || srcId.empty()) {
+                    VLOG(3) << "NULL or EMPTY vid";
                     continue;
                 }
                 if (!srcId.isStr()) {
@@ -85,36 +88,37 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
                                << ", value: " << srcId.toString();
                     return Status::Error("Wrong input srcId type");
                 }
-                auto dstId = Expression::eval(edgeKeyRef.second->dstid(), ctx);
+                auto dstId = Expression::eval(edgeKeyRef->dstid(), ctx);
                 if (!dstId.isStr()) {
                     LOG(ERROR) << "Wrong input dstId type: " << dstId
                                << ", value: " << dstId.toString();
                     return Status::Error("Wrong input dstId type");
                 }
-                auto rank = Expression::eval(edgeKeyRef.second->rank(), ctx);
+                auto rank = Expression::eval(edgeKeyRef->rank(), ctx);
                 if (!rank.isInt()) {
                     LOG(ERROR) << "Wrong input rank type: " << rank
                                << ", value: " << rank.toString();
                     return Status::Error("Wrong input rank type");
+                }
+                DCHECK(edgeKeyRef->type());
+                auto type = Expression::eval(edgeKeyRef->type(), ctx);
+                if (!type.isInt()) {
+                    LOG(ERROR) << "Wrong input edge type: " << type
+                               << ", value: " << type.toString();
+                    return Status::Error("Wrong input edge type");
                 }
 
                 // out edge
                 edgeKey.set_src(srcId.getStr());
                 edgeKey.set_dst(dstId.getStr());
                 edgeKey.set_ranking(rank.getInt());
-                edgeKey.set_edge_type(edgeKeyRef.first);
-                edgeKeys.emplace_back(edgeKey);
-
-                edgeKey.set_edge_type(-edgeKeyRef.first);
+                edgeKey.set_edge_type(type.getInt());
                 edgeKeys.emplace_back(edgeKey);
 
                 // in edge
                 edgeKey.set_src(dstId.moveStr());
                 edgeKey.set_dst(srcId.moveStr());
-                edgeKey.set_edge_type(-edgeKeyRef.first);
-                edgeKeys.emplace_back(edgeKey);
-
-                edgeKey.set_edge_type(edgeKeyRef.first);
+                edgeKey.set_edge_type(-type.getInt());
                 edgeKeys.emplace_back(std::move(edgeKey));
             }
         }
