@@ -13,6 +13,7 @@
 
 #include "context/ExecutionContext.h"
 #include "context/QueryContext.h"
+#include "planner/Logic.h"
 #include "planner/Query.h"
 
 using folly::stringPrintf;

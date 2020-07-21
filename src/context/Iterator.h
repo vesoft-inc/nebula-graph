@@ -553,11 +553,10 @@ public:
     class LogicalRowJoin final : public LogicalRow {
     public:
         explicit LogicalRowJoin(
-            std::vector<const Row*> values, size_t size,
+            std::vector<const Row*> values,
+            size_t size,
             const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
-            : values_(std::move(values)),
-            size_(size),
-            colIdxIndices_(colIdxIndices) {}
+            : values_(std::move(values)), size_(size), colIdxIndices_(colIdxIndices) {}
 
         const Value& operator[](size_t idx) const override {
             if (idx < size_) {
@@ -565,11 +564,11 @@ public:
                 if (index == colIdxIndices_->end()) {
                     return Value::kNullValue;
                 } else {
-                    DCHECK_LT(index->second.first, values_.size());
-                    DCHECK_LT(index->second.second,
-                              values_[index->second.first]->values.size());
-                    return values_[index->second.first]
-                        ->values[index->second.second];
+                    auto keyIdx = index->second.first;
+                    auto valIdx = index->second.second;
+                    DCHECK_LT(keyIdx, values_.size());
+                    DCHECK_LT(valIdx, values_[keyIdx]->values.size());
+                    return values_[keyIdx]->values[valIdx];
                 }
             } else {
                 return Value::kEmpty;
