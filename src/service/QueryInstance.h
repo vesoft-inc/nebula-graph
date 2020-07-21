@@ -10,10 +10,10 @@
 #include "common/base/Base.h"
 #include "common/base/Status.h"
 #include "common/cpp/helpers.h"
-#include "parser/GQLParser.h"
-#include "validator/ASTValidator.h"
 #include "context/QueryContext.h"
+#include "parser/GQLParser.h"
 #include "scheduler/Scheduler.h"
+#include "validator/ASTValidator.h"
 
 /**
  * QueryInstance coordinates the execution process,
@@ -53,7 +53,7 @@ public:
     }
 
 private:
-    std::unique_ptr<SequentialSentences>        sentences_;
+    std::unique_ptr<Sentence>                   sentences_;
     std::unique_ptr<QueryContext>               qctx_;
     std::unique_ptr<ASTValidator>               validator_;
     std::unique_ptr<Scheduler>                  scheduler_;

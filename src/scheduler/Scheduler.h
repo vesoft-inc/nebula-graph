@@ -37,6 +37,10 @@ public:
     explicit Scheduler(QueryContext *qctx);
     ~Scheduler() = default;
 
+    const Executor *root() const {
+        return root_;
+    }
+
     folly::Future<Status> schedule();
 
 private:
@@ -70,7 +74,9 @@ private:
 
     folly::Future<Status> iterate(LoopExecutor *loop);
 
-    QueryContext *qctx_;
+    QueryContext *qctx_{nullptr};
+    // Root executor of execution plan
+    Executor *root_{nullptr};
 
     struct MultiOutputsData {
         folly::SpinLock lock;

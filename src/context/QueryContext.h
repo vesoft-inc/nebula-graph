@@ -40,6 +40,17 @@ class QueryContext {
 public:
     using RequestContextPtr = std::unique_ptr<RequestContext<cpp2::ExecutionResponse>>;
 
+    enum class ExplainFormatType : uint8_t {
+        kRow,
+        kDot,
+    };
+
+    enum class StmtType : uint8_t {
+        kExecute,
+        kExplain,
+        kProfile,
+    };
+
     QueryContext(RequestContextPtr rctx,
                  meta::SchemaManager* sm,
                  storage::GraphStorageClient* storage,
@@ -121,6 +132,22 @@ public:
         return objPool_.get();
     }
 
+    ExplainFormatType explainFormatType() const {
+        return explainFormatType_;
+    }
+
+    void setExplainFormatType(ExplainFormatType explainFormatType) {
+        explainFormatType_ = explainFormatType;
+    }
+
+    StmtType stmtType() const {
+        return stmtType_;
+    }
+
+    void setStmtType(StmtType stmtType) {
+        stmtType_ = stmtType;
+    }
+
 private:
     RequestContextPtr                                       rctx_;
     std::unique_ptr<ValidateContext>                        vctx_;
@@ -134,6 +161,10 @@ private:
     // The Object Pool holds all internal generated objects.
     // e.g. expressions, plan nodes, executors
     std::unique_ptr<ObjectPool>                             objPool_;
+
+    // explain or profile
+    ExplainFormatType   explainFormatType_{ExplainFormatType::kRow};
+    StmtType            stmtType_{StmtType::kExecute};
 };
 
 }  // namespace graph
