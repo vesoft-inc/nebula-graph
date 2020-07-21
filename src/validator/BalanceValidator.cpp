@@ -37,7 +37,7 @@ Status BalanceValidator::toPlan() {
         // fallthrough
     default:
         DLOG(FATAL) << "Unknown balance kind " << sentence->kind();
-        return Status::NotSupported("Unknown balance kind %d", sentence->kind());
+        return Status::NotSupported("Unknown balance kind %d", static_cast<int>(sentence->kind()));
     }
     root_ = current;
     tail_ = root_;
