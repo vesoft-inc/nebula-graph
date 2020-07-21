@@ -2046,6 +2046,12 @@ TEST(Parser, TypeCast) {
     }
     {
         GQLParser parser;
+        std::string query = "YIELD (INT)  \"123\"";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok());
+    }
+    {
+        GQLParser parser;
         std::string query = "YIELD (INT)\".123\"";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok());
@@ -2102,7 +2108,7 @@ TEST(Parser, TypeCast) {
         GQLParser parser;
         std::string query = "YIELD (MAP)123";
         auto result = parser.parse(query);
-        ASSERT_TRUE(result.ok());
+        ASSERT_FALSE(result.ok());
     }
     {
         GQLParser parser;
