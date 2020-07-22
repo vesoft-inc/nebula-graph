@@ -140,11 +140,10 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
 
         // project, TODO(shylock) could push down to storage is it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(
-            new ArithmeticExpression(
-                Expression::Kind::kAdd,
-                new TagPropertyExpression(new std::string("person"), new std::string("name")),
-                new TagPropertyExpression(new std::string("person"), new std::string("age")))));
+        yieldColumns->addColumn(new YieldColumn(new ArithmeticExpression(
+            Expression::Kind::kAdd,
+            new TagPropertyExpression(new std::string("person"), new std::string("name")),
+            new TagPropertyExpression(new std::string("person"), new std::string("age")))));
         auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
         project->setColNames({"(person.name+person.age)"});
 
@@ -185,8 +184,10 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         dedup->setColNames(colNames);
 
         // data collect
-        auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(), dedup,
-            DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
+        auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(),
+                                              dedup,
+                                              DataCollect::CollectKind::kRowBasedMove,
+                                              {dedup->varName()});
         dataCollect->setColNames(colNames);
 
         auto result = Eq(plan->root(), dataCollect);
@@ -212,25 +213,23 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
     {
         const std::string query = "FETCH PROP ON person \"1\" YIELD person.name AS name"
                                   " | FETCH PROP ON person $-.name";
-        checkResult(query, {
-            PlanNode::Kind::kGetVertices,
-            PlanNode::Kind::kGetVertices,
-            PlanNode::Kind::kStart,
-        }, {
-            "person.name", "person.age"
-        });
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kStart,
+                                }));
     }
     // Variable
     {
         const std::string query = "$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
                                   "FETCH PROP ON person $a.name";
-        checkResult(query, {
-            PlanNode::Kind::kGetVertices,
-            PlanNode::Kind::kGetVertices,
-            PlanNode::Kind::kStart,
-        }, {
-            "person.name", "person.age"
-        });
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kStart,
+                                }));
     }
 
     // with project
@@ -238,29 +237,27 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
     {
         const std::string query = "FETCH PROP ON person \"1\" YIELD person.name + 1 AS name"
                                   " | FETCH PROP ON person $-.name YIELD person.name + 1";
-        checkResult(query, {
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetVertices,
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetVertices,
-            PlanNode::Kind::kStart,
-        }, {
-            "(person.name+1)"
-        });
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kStart,
+                                }));
     }
     // Variable
     {
         const std::string query = "$a = FETCH PROP ON person \"1\" YIELD person.name + 1 AS name;"
                                   "FETCH PROP ON person $a.name YIELD person.name + 1 ";
-        checkResult(query, {
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetVertices,
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetVertices,
-            PlanNode::Kind::kStart,
-        }, {
-            "(person.name+1)"
-        });
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kStart,
+                                }));
     }
 }
 
@@ -299,9 +296,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
 
     // invalid yield expression
     {
-        auto result =
-            GQLParser().parse("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
-                              " FETCH PROP ON person \"1\" YIELD $a.name + 1");
+        auto result = GQLParser().parse("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
+                                        " FETCH PROP ON person \"1\" YIELD $a.name + 1");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -310,9 +306,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
     }
     // invalid yield expression
     {
-        auto result =
-            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person.name AS name | "
-                              " FETCH PROP ON person \"1\" YIELD $-.name + 1");
+        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person.name AS name | "
+                                        " FETCH PROP ON person \"1\" YIELD $-.name + 1");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -320,8 +315,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
         ASSERT_FALSE(validateResult.ok());
     }
     {
-        auto result =
-            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._src + 1");
+        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._src + 1");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -329,8 +323,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
         ASSERT_FALSE(validateResult.ok());
     }
     {
-        auto result =
-            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._type");
+        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._type");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -338,8 +331,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
         ASSERT_FALSE(validateResult.ok());
     }
     {
-        auto result =
-            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._rank + 1");
+        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._rank + 1");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -347,8 +339,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
         ASSERT_FALSE(validateResult.ok());
     }
     {
-        auto result =
-            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._dst + 1");
+        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._dst + 1");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());

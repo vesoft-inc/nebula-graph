@@ -194,10 +194,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
 
         // project, TODO(shylock) it's could push-down to storage if it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(
-            new RelationalExpression(Expression::Kind::kRelGT,
-                new EdgePropertyExpression(new std::string("like"), new std::string("start")),
-                new EdgePropertyExpression(new std::string("like"), new std::string("end")))));
+        yieldColumns->addColumn(new YieldColumn(new RelationalExpression(
+            Expression::Kind::kRelGT,
+            new EdgePropertyExpression(new std::string("like"), new std::string("start")),
+            new EdgePropertyExpression(new std::string("like"), new std::string("end")))));
         auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
         project->setColNames({"(like.start>like.end)"});
 
@@ -253,8 +253,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         dedup->setColNames(colNames);
 
         // data collect
-        auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(), dedup,
-            DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
+        auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(),
+                                              dedup,
+                                              DataCollect::CollectKind::kRowBasedMove,
+                                              {dedup->varName()});
         dataCollect->setColNames(colNames);
 
         expectedQueryCtx_->plan()->setRoot(dataCollect);
@@ -267,74 +269,59 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
     // var
     {
         const std::string query = "$a = FETCH PROP ON like \"1\"->\"2\" "
-                            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
-                            "FETCH PROP ON like $a.src->$a.dst@$a.rank";
-        checkResult(query, {
-            PlanNode::Kind::kGetEdges,
-            PlanNode::Kind::kGetEdges,
-            PlanNode::Kind::kStart,
-        }, {
-            "like._src",
-            "like._type",
-            "like._rank",
-            "like._dst",
-            "like.start",
-            "like.end",
-            "like.endness"
-        });
+                                  "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
+                                  "FETCH PROP ON like $a.src->$a.dst@$a.rank";
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kStart,
+                                }));
     }
     // pipe
     {
         const std::string query = "FETCH PROP ON like \"1\"->\"2\" "
-                            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank"
-                            " | FETCH PROP ON like $-.src->$-.dst@$-.rank";
-        checkResult(query, {
-            PlanNode::Kind::kGetEdges,
-            PlanNode::Kind::kGetEdges,
-            PlanNode::Kind::kStart,
-        }, {
-            "like._src",
-            "like._type",
-            "like._rank",
-            "like._dst",
-            "like.start",
-            "like.end",
-            "like.endness"
-        });
+                                  "YIELD like._src AS src, like._dst AS dst, like._rank AS rank"
+                                  " | FETCH PROP ON like $-.src->$-.dst@$-.rank";
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kStart,
+                                }));
     }
 
     // with project
     // var
     {
-        const std::string query = "$a = FETCH PROP ON like \"1\"->\"2\" "
-                            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank + 1;"
-                            "FETCH PROP ON like $a.src->$a.dst@$a.rank "
-                            "YIELD like._src + 1";
-        checkResult(query, {
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetEdges,
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetEdges,
-            PlanNode::Kind::kStart,
-        }, {
-            "(like._src+1)",
-        });
+        const std::string query =
+            "$a = FETCH PROP ON like \"1\"->\"2\" "
+            "YIELD like._src AS src, like._dst AS dst, like._rank + 1 AS rank;"
+            "FETCH PROP ON like $a.src->$a.dst@$a.rank "
+            "YIELD like._src + 1";
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kStart,
+                                }));
     }
     // pipe
     {
         const std::string query = "FETCH PROP ON like \"1\"->\"2\" "
-                            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank + 1"
-                            " | FETCH PROP ON like $-.src->$-.dst@$-.rank "
-                            "YIELD like._src + 1";
-        checkResult(query, {
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetEdges,
-            PlanNode::Kind::kProject,
-            PlanNode::Kind::kGetEdges,
-            PlanNode::Kind::kStart,
-        }, {
-            "(like._src+1)",
-        });
+                                  "YIELD like._src AS src, like._dst AS dst, like._rank + 1 AS rank"
+                                  " | FETCH PROP ON like $-.src->$-.dst@$-.rank "
+                                  "YIELD like._src + 1";
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kStart,
+                                }));
     }
 }
 
@@ -415,10 +402,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesPropFailed) {
 TEST_F(FetchEdgesValidatorTest, FetchEdgesInputFailed) {
     // mismatched variable
     {
-        auto result = GQLParser().parse(
-            "$a = FETCH PROP ON like \"1\"->\"2\" "
-            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
-            "FETCH PROP ON like $b.src->$b.dst@$b.rank");
+        auto result =
+            GQLParser().parse("$a = FETCH PROP ON like \"1\"->\"2\" "
+                              "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
+                              "FETCH PROP ON like $b.src->$b.dst@$b.rank");
         ASSERT_TRUE(result.ok()) << result.status();
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -428,10 +415,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputFailed) {
 
     // mismatched variable property
     {
-        auto result = GQLParser().parse(
-            "$a = FETCH PROP ON like \"1\"->\"2\" "
-            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
-            "FETCH PROP ON like $b.src->$b.dst@$b.not_exist_property");
+        auto result =
+            GQLParser().parse("$a = FETCH PROP ON like \"1\"->\"2\" "
+                              "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
+                              "FETCH PROP ON like $b.src->$b.dst@$b.not_exist_property");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
@@ -441,10 +428,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputFailed) {
 
     // mismatched input property
     {
-        auto result = GQLParser().parse(
-            "FETCH PROP ON like \"1\"->\"2\" "
-            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank | "
-            "FETCH PROP ON like $-.src->$-.dst@$-.not_exist_property");
+        auto result =
+            GQLParser().parse("FETCH PROP ON like \"1\"->\"2\" "
+                              "YIELD like._src AS src, like._dst AS dst, like._rank AS rank | "
+                              "FETCH PROP ON like $-.src->$-.dst@$-.not_exist_property");
         ASSERT_TRUE(result.ok());
         auto sentences = std::move(result).value();
         ASTValidator validator(sentences.get(), qCtx_.get());
