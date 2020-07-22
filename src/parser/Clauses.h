@@ -203,6 +203,10 @@ public:
         return filter_.get();
     }
 
+    void setFilter(Expression* expr) {
+        filter_.reset(expr);
+    }
+
     std::string toString() const;
 
 private:
@@ -216,6 +220,10 @@ public:
     explicit YieldColumn(Expression *expr, std::string *alias = nullptr) {
         expr_.reset(expr);
         alias_.reset(alias);
+    }
+
+    void setExpr(Expression* expr) {
+        expr_.reset(expr);
     }
 
     Expression* expr() const {

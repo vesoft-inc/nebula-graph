@@ -50,10 +50,10 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         prop.set_props(std::vector<std::string>{"name", "age"});
         storage::cpp2::Expr expr1;
         expr1.set_expr(
-            EdgePropertyExpression(new std::string("person"), new std::string("name")).encode());
+            TagPropertyExpression(new std::string("person"), new std::string("name")).encode());
         storage::cpp2::Expr expr2;
         expr2.set_expr(
-            EdgePropertyExpression(new std::string("person"), new std::string("age")).encode());
+            TagPropertyExpression(new std::string("person"), new std::string("age")).encode());
         auto *gv =
             GetVertices::make(expectedQueryCtx_->plan(),
                               start,
@@ -82,10 +82,10 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         prop.set_props(std::vector<std::string>{"name", "age"});
         storage::cpp2::Expr expr1;
         expr1.set_expr(
-            EdgePropertyExpression(new std::string("person"), new std::string("name")).encode());
+            TagPropertyExpression(new std::string("person"), new std::string("name")).encode());
         storage::cpp2::Expr expr2;
         expr2.set_expr(
-            EdgePropertyExpression(new std::string("person"), new std::string("age")).encode());
+            TagPropertyExpression(new std::string("person"), new std::string("age")).encode());
         auto *gv =
             GetVertices::make(expectedQueryCtx_->plan(),
                               start,
@@ -98,11 +98,11 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new EdgePropertyExpression(new std::string("person"), new std::string("name"))));
+            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(new RelationalExpression(
             Expression::Kind::kRelGT, new ConstantExpression(1), new ConstantExpression(1))));
         yieldColumns->addColumn(new YieldColumn(
-            new EdgePropertyExpression(new std::string("person"), new std::string("age"))));
+            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
         auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
         project->setColNames({"person.name", "(1>1)", "person.age"});
 
@@ -126,8 +126,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         expr1.set_expr(
             ArithmeticExpression(
                 Expression::Kind::kAdd,
-                new EdgePropertyExpression(new std::string("person"), new std::string("name")),
-                new EdgePropertyExpression(new std::string("person"), new std::string("age")))
+                new TagPropertyExpression(new std::string("person"), new std::string("name")),
+                new TagPropertyExpression(new std::string("person"), new std::string("age")))
                 .encode());
 
         auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
@@ -143,8 +143,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         yieldColumns->addColumn(new YieldColumn(
             new ArithmeticExpression(
                 Expression::Kind::kAdd,
-                new EdgePropertyExpression(new std::string("person"), new std::string("name")),
-                new EdgePropertyExpression(new std::string("person"), new std::string("age")))));
+                new TagPropertyExpression(new std::string("person"), new std::string("name")),
+                new TagPropertyExpression(new std::string("person"), new std::string("age")))));
         auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
         project->setColNames({"(person.name+person.age)"});
 
@@ -166,10 +166,10 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         prop.set_props(std::vector<std::string>{"name", "age"});
         storage::cpp2::Expr expr1;
         expr1.set_expr(
-            EdgePropertyExpression(new std::string("person"), new std::string("name")).encode());
+            TagPropertyExpression(new std::string("person"), new std::string("name")).encode());
         storage::cpp2::Expr expr2;
         expr2.set_expr(
-            EdgePropertyExpression(new std::string("person"), new std::string("age")).encode());
+            TagPropertyExpression(new std::string("person"), new std::string("age")).encode());
         auto *gv =
             GetVertices::make(expectedQueryCtx_->plan(),
                               start,

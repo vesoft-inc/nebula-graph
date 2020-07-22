@@ -29,9 +29,9 @@ private:
 
     Status validateOver(const OverClause* over);
 
-    Status validateWhere(const WhereClause* where);
+    Status validateWhere(WhereClause* where);
 
-    Status validateYield(const YieldClause* yield);
+    Status validateYield(YieldClause* yield);
 
     Status buildOneStepPlan();
 

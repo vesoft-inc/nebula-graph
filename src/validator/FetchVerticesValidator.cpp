@@ -5,8 +5,8 @@
  */
 #include "validator/FetchVerticesValidator.h"
 #include "planner/Query.h"
-#include "util/SchemaUtil.h"
 #include "util/ExpressionUtils.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -170,7 +170,14 @@ Status FetchVerticesValidator::prepareProperties() {
         prop.set_tag(tagId_.value());
         std::vector<std::string> propsName;
         propsName.reserve(yield->columns().size());
-        for (const auto col : yield->columns()) {
+        for (auto col : yield->columns()) {
+            if (col->expr()->kind() == Expression::Kind::kSymProperty) {
+                auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
+                col->setExpr(ExpressionUtils::transSymbolPropertyExpression<TagPropertyExpression>(
+                    symbolExpr));
+            } else {
+                ExpressionUtils::transAllSymbolPropertyExpr<TagPropertyExpression>(col->expr());
+            }
             const auto *invalidExpr = findInvalidYieldExpression(col->expr());
             if (invalidExpr != nullptr) {
                 return Status::Error("Invalid yield expression `%s'.",
@@ -194,7 +201,7 @@ Status FetchVerticesValidator::prepareProperties() {
                     // Check is prop name in schema
                     if (schema_->getFieldIndex(*expr->prop()) < 0) {
                         LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in tag `"
-                            << tagName_ << "'.";
+                                   << tagName_ << "'.";
                         return Status::Error("Unknown column `%s' in tag `%s'.",
                                              expr->prop()->c_str(),
                                              tagName_.c_str());
@@ -218,29 +225,28 @@ Status FetchVerticesValidator::prepareProperties() {
 
         // outputs
         colNames_ = deduceColNames(yield->yields());
-        // TODO(shylock) deduce EdgePropertyExpression mistake.
-        // outputs_.reserve(colNames_.size());
-        // for (std::size_t i = 0; i < colNames_.size(); ++i) {
-        // auto typeResult = deduceExprType(yield->columns()[i]->expr());
-        // if (!typeResult.ok()) {
-        // return std::move(typeResult).status();
-        // }
-        // outputs_.emplace_back(colNames_[i], typeResult.value());
-        // }
+        outputs_.reserve(colNames_.size());
+        for (std::size_t i = 0; i < colNames_.size(); ++i) {
+            auto typeResult = deduceExprType(yield->columns()[i]->expr());
+            if (!typeResult.ok()) {
+                return std::move(typeResult).status();
+            }
+            outputs_.emplace_back(colNames_[i], typeResult.value());
+        }
     }
 
     return Status::OK();
 }
 
 /*static*/
-const Expression* FetchVerticesValidator::findInvalidYieldExpression(const Expression* root) {
-    return  ExpressionUtils::findAnyKind(root,
-                                         Expression::Kind::kInputProperty,
-                                         Expression::Kind::kVarProperty,
-                                         Expression::Kind::kEdgeSrc,
-                                         Expression::Kind::kEdgeType,
-                                         Expression::Kind::kEdgeRank,
-                                         Expression::Kind::kEdgeDst);
+const Expression *FetchVerticesValidator::findInvalidYieldExpression(const Expression *root) {
+    return ExpressionUtils::findAnyKind(root,
+                                        Expression::Kind::kInputProperty,
+                                        Expression::Kind::kVarProperty,
+                                        Expression::Kind::kEdgeSrc,
+                                        Expression::Kind::kEdgeType,
+                                        Expression::Kind::kEdgeRank,
+                                        Expression::Kind::kEdgeDst);
 }
 
 }   // namespace graph

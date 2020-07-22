@@ -29,13 +29,13 @@ namespace graph {
     } else {
         return Status::Error("%s.this != %s.this", l->nodeLabel().c_str(), r->nodeLabel().c_str());
     }
-    if (l->colNamesRef() != r->colNamesRef()) {
-        return Status::Error(
-            "%s.colNames_ != %s.colNames_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
-    }
     if (l->kind() != r->kind()) {
         return Status::Error(
             "%s.kind_ != %s.kind_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+    }
+    if (l->colNamesRef() != r->colNamesRef()) {
+        return Status::Error(
+            "%s.colNames_ != %s.colNames_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
     }
     switch (l->kind()) {
         case PlanNode::Kind::kUnknown:

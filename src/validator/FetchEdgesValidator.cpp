@@ -6,14 +6,17 @@
 
 #include "validator/FetchEdgesValidator.h"
 #include "planner/Query.h"
-#include "util/SchemaUtil.h"
 #include "util/ExpressionUtils.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
 
-/*static*/ const std::unordered_set<std::string> FetchEdgesValidator::reservedProperties {
-    kSrc, kType, kRank, kDst,
+/*static*/ const std::unordered_set<std::string> FetchEdgesValidator::reservedProperties{
+    kSrc,
+    kType,
+    kRank,
+    kDst,
 };
 
 Status FetchEdgesValidator::validateImpl() {
@@ -152,7 +155,14 @@ Status FetchEdgesValidator::prepareProperties() {
         propsName.reserve(yield->columns().size());
         dedup_ = yield->isDistinct();
         exprs_.reserve(yield->columns().size());
-        for (const auto col : yield->columns()) {
+        for (auto col : yield->columns()) {
+            if (col->expr()->kind() == Expression::Kind::kSymProperty) {
+                auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
+                col->setExpr(ExpressionUtils::transSymbolPropertyExpression<EdgePropertyExpression>(
+                    symbolExpr));
+            } else {
+                ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(col->expr());
+            }
             const auto *invalidExpr = findInvalidYieldExpression(col->expr());
             if (invalidExpr != nullptr) {
                 return Status::Error("Invalid yield expression `%s'.",
@@ -177,7 +187,7 @@ Status FetchEdgesValidator::prepareProperties() {
                     if (schema_->getFieldIndex(*expr->prop()) < 0 &&
                         reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
                         LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `"
-                            << edgeTypeName_ << "'.";
+                                   << edgeTypeName_ << "'.";
                         return Status::Error("Unknown column `%s' in edge `%s'",
                                              expr->prop()->c_str(),
                                              edgeTypeName_.c_str());
@@ -232,7 +242,7 @@ Status FetchEdgesValidator::prepareProperties() {
 }
 
 /*static*/
-const Expression* FetchEdgesValidator::findInvalidYieldExpression(const Expression* root) {
+const Expression *FetchEdgesValidator::findInvalidYieldExpression(const Expression *root) {
     return ExpressionUtils::findAnyKind(root,
                                         Expression::Kind::kInputProperty,
                                         Expression::Kind::kVarProperty,

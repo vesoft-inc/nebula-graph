@@ -6,7 +6,12 @@
 
 #pragma once
 
+#include "common/expression/BinaryExpression.h"
 #include "common/expression/Expression.h"
+#include "common/expression/FunctionCallExpression.h"
+#include "common/expression/SymbolPropertyExpression.h"
+#include "common/expression/TypeCastingExpression.h"
+#include "common/expression/UnaryExpression.h"
 
 namespace nebula {
 namespace graph {
@@ -17,10 +22,81 @@ public:
 
     // return true for continue, false return directly
     using Visitor = std::function<bool(const Expression*)>;
+    using MutableVisitor = std::function<bool(Expression*)>;
 
     // preorder traverse in fact for tail call optimization
     // if want to do some thing like eval, don't try it
-    static bool traverse(const Expression* expr, Visitor visitor);
+    template <typename T,
+              typename V,
+              typename = std::enable_if_t<std::is_same<std::remove_const_t<T>, Expression>::value>>
+    static bool traverse(T* expr, V visitor) {
+        if (!visitor(expr)) {
+            return false;
+        }
+        switch (expr->kind()) {
+            case Expression::Kind::kDstProperty:
+            case Expression::Kind::kSrcProperty:
+            case Expression::Kind::kTagProperty:
+            case Expression::Kind::kEdgeProperty:
+            case Expression::Kind::kEdgeSrc:
+            case Expression::Kind::kEdgeType:
+            case Expression::Kind::kEdgeRank:
+            case Expression::Kind::kEdgeDst:
+            case Expression::Kind::kInputProperty:
+            case Expression::Kind::kVarProperty:
+            case Expression::Kind::kUUID:
+            case Expression::Kind::kVar:
+            case Expression::Kind::kVersionedVar:
+            case Expression::Kind::kSymProperty:
+            case Expression::Kind::kConstant: {
+                return true;
+            }
+            case Expression::Kind::kAdd:
+            case Expression::Kind::kMinus:
+            case Expression::Kind::kMultiply:
+            case Expression::Kind::kDivision:
+            case Expression::Kind::kMod:
+            case Expression::Kind::kRelEQ:
+            case Expression::Kind::kRelNE:
+            case Expression::Kind::kRelLT:
+            case Expression::Kind::kRelLE:
+            case Expression::Kind::kRelGT:
+            case Expression::Kind::kRelGE:
+            case Expression::Kind::kLogicalAnd:
+            case Expression::Kind::kLogicalOr:
+            case Expression::Kind::kLogicalXor: {
+                auto biExpr = exprCast<BinaryExpression>(expr);
+                if (!traverse(biExpr->left(), visitor)) {
+                    return false;
+                }
+                return traverse(biExpr->right(), visitor);
+            }
+            case Expression::Kind::kRelIn:
+            case Expression::Kind::kUnaryIncr:
+            case Expression::Kind::kUnaryDecr:
+            case Expression::Kind::kUnaryPlus:
+            case Expression::Kind::kUnaryNegate:
+            case Expression::Kind::kUnaryNot: {
+                auto unaryExpr = exprCast<UnaryExpression>(expr);
+                return traverse(unaryExpr->operand(), visitor);
+            }
+            case Expression::Kind::kTypeCasting: {
+                auto typeCastingExpr = exprCast<TypeCastingExpression>(expr);
+                return traverse(typeCastingExpr->operand(), visitor);
+            }
+            case Expression::Kind::kFunctionCall: {
+                auto funcExpr = exprCast<FunctionCallExpression>(expr);
+                for (auto& arg : funcExpr->args()->args()) {
+                    if (!traverse(arg.get(), visitor)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+        DLOG(FATAL) << "Impossible expression kind " << static_cast<int>(expr->kind());
+        return false;
+    }
 
     template <typename T, typename = std::enable_if_t<std::is_same<T, Expression::Kind>::value>>
     static bool isAnyKind(const Expression* expr, T k) {
@@ -40,7 +116,7 @@ public:
                   std::is_same<Expression::Kind, std::common_type_t<Ts...>>::value>>
     static const Expression* findAnyKind(const Expression* self, Ts... ts) {
         const Expression* found = nullptr;
-        traverse(self, [pack = std::make_tuple(ts...), &found](const Expression* expr) {
+        traverse(self, [pack = std::make_tuple(ts...), &found](const Expression* expr) -> bool {
             auto bind = [expr](Ts... ts_) { return isAnyKind(expr, ts_...); };
             if (folly::apply(bind, pack)) {
                 found = expr;
@@ -58,7 +134,7 @@ public:
                   std::is_same<Expression::Kind, std::common_type_t<Ts...>>::value>>
     static std::vector<const Expression*> findAnyKindInAll(const Expression* self, Ts... ts) {
         std::vector<const Expression*> exprs;
-        traverse(self, [pack = std::make_tuple(ts...), &exprs](const Expression* expr) {
+        traverse(self, [pack = std::make_tuple(ts...), &exprs](const Expression* expr) -> bool {
             auto bind = [expr](Ts... ts_) { return isAnyKind(expr, ts_...); };
             if (folly::apply(bind, pack)) {
                 exprs.emplace_back(expr);
@@ -88,6 +164,7 @@ public:
     static const Expression* findStorage(const Expression* expr) {
         return findAnyKind(expr,
                            Expression::Kind::kSymProperty,
+                           Expression::Kind::kTagProperty,
                            Expression::Kind::kEdgeProperty,
                            Expression::Kind::kDstProperty,
                            Expression::Kind::kSrcProperty,
@@ -100,6 +177,7 @@ public:
     static std::vector<const Expression*> findAllStorage(const Expression* expr) {
         return findAnyKindInAll(expr,
                                 Expression::Kind::kSymProperty,
+                                Expression::Kind::kTagProperty,
                                 Expression::Kind::kEdgeProperty,
                                 Expression::Kind::kDstProperty,
                                 Expression::Kind::kSrcProperty,
@@ -121,6 +199,7 @@ public:
     static bool isStorage(const Expression* expr) {
         return isAnyKind(expr,
                          Expression::Kind::kSymProperty,
+                         Expression::Kind::kTagProperty,
                          Expression::Kind::kEdgeProperty,
                          Expression::Kind::kDstProperty,
                          Expression::Kind::kSrcProperty,
@@ -136,7 +215,9 @@ public:
                            Expression::Kind::kVarProperty,
                            Expression::Kind::kVar,
                            Expression::Kind::kVersionedVar,
+
                            Expression::Kind::kSymProperty,
+                           Expression::Kind::kTagProperty,
                            Expression::Kind::kEdgeProperty,
                            Expression::Kind::kDstProperty,
                            Expression::Kind::kSrcProperty,
@@ -144,6 +225,125 @@ public:
                            Expression::Kind::kEdgeType,
                            Expression::Kind::kEdgeRank,
                            Expression::Kind::kEdgeDst);
+    }
+
+    // determine the detail about symbol property expression
+    template <typename To,
+              typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
+                                          std::is_same<To, TagPropertyExpression>::value>>
+    static void transAllSymbolPropertyExpr(Expression* expr) {
+        traverse(expr, [](Expression* current) -> bool {
+            switch (current->kind()) {
+                case Expression::Kind::kDstProperty:
+                case Expression::Kind::kSrcProperty:
+                case Expression::Kind::kSymProperty:
+                case Expression::Kind::kTagProperty:
+                case Expression::Kind::kEdgeProperty:
+                case Expression::Kind::kEdgeSrc:
+                case Expression::Kind::kEdgeType:
+                case Expression::Kind::kEdgeRank:
+                case Expression::Kind::kEdgeDst:
+                case Expression::Kind::kInputProperty:
+                case Expression::Kind::kVarProperty:
+                case Expression::Kind::kUUID:
+                case Expression::Kind::kVar:
+                case Expression::Kind::kVersionedVar:
+                case Expression::Kind::kConstant: {
+                    return true;
+                }
+                case Expression::Kind::kAdd:
+                case Expression::Kind::kMinus:
+                case Expression::Kind::kMultiply:
+                case Expression::Kind::kDivision:
+                case Expression::Kind::kMod:
+                case Expression::Kind::kRelEQ:
+                case Expression::Kind::kRelNE:
+                case Expression::Kind::kRelLT:
+                case Expression::Kind::kRelLE:
+                case Expression::Kind::kRelGT:
+                case Expression::Kind::kRelGE:
+                case Expression::Kind::kLogicalAnd:
+                case Expression::Kind::kLogicalOr:
+                case Expression::Kind::kLogicalXor: {
+                    UNUSED(DCHECK_NOTNULL(dynamic_cast<BinaryExpression*>(current)));
+                    auto* biExpr = static_cast<BinaryExpression*>(current);
+                    if (biExpr->left()->kind() == Expression::Kind::kSymProperty) {
+                        auto* symbolExpr = static_cast<SymbolPropertyExpression*>(biExpr->left());
+                        biExpr->setLeft(transSymbolPropertyExpression<To>(symbolExpr));
+                    }
+                    if (biExpr->right()->kind() == Expression::Kind::kSymProperty) {
+                        auto* symbolExpr = static_cast<SymbolPropertyExpression*>(biExpr->right());
+                        biExpr->setRight(transSymbolPropertyExpression<To>(symbolExpr));
+                    }
+                    return true;
+                }
+                case Expression::Kind::kRelIn:
+                case Expression::Kind::kUnaryIncr:
+                case Expression::Kind::kUnaryDecr:
+                case Expression::Kind::kUnaryPlus:
+                case Expression::Kind::kUnaryNegate:
+                case Expression::Kind::kUnaryNot: {
+                    UNUSED(DCHECK_NOTNULL(dynamic_cast<UnaryExpression*>(current)));
+                    auto* unaryExpr = static_cast<UnaryExpression*>(current);
+                    if (unaryExpr->operand()->kind() == Expression::Kind::kSymProperty) {
+                        auto* symbolExpr =
+                            static_cast<SymbolPropertyExpression*>(unaryExpr->operand());
+                        unaryExpr->setOperand(transSymbolPropertyExpression<To>(symbolExpr));
+                    }
+                    return true;
+                }
+                case Expression::Kind::kTypeCasting: {
+                    auto* typeCastingExpr = static_cast<TypeCastingExpression*>(current);
+                    if (typeCastingExpr->operand()->kind() == Expression::Kind::kSymProperty) {
+                        auto* symbolExpr =
+                            static_cast<SymbolPropertyExpression*>(typeCastingExpr->operand());
+                        typeCastingExpr->setOperand(transSymbolPropertyExpression<To>(symbolExpr));
+                    }
+                    return true;
+                }
+                case Expression::Kind::kFunctionCall: {
+                    auto* funcExpr = static_cast<FunctionCallExpression*>(current);
+                    for (auto& arg : funcExpr->args()->args()) {
+                        if (arg->kind() == Expression::Kind::kSymProperty) {
+                            auto* symbolExpr = static_cast<SymbolPropertyExpression*>(arg.get());
+                            arg.reset(transSymbolPropertyExpression<To>(symbolExpr));
+                        }
+                    }
+                    return true;
+                }
+            }   // switch
+            DLOG(FATAL) << "Impossible expression kind " << static_cast<int>(current->kind());
+            return false;
+        });   // traverse
+    }
+
+    template <typename To,
+              typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
+                                          std::is_same<To, TagPropertyExpression>::value>>
+    static To* transSymbolPropertyExpression(SymbolPropertyExpression* expr) {
+        return new To(new std::string(std::move(*expr->sym())),
+                      new std::string(std::move(*expr->prop())));
+    }
+
+private:
+    template <typename Expr,
+              typename = std::enable_if_t<std::is_same<Expr, UnaryExpression>::value ||
+                                          std::is_same<Expr, BinaryExpression>::value ||
+                                          std::is_same<Expr, FunctionCallExpression>::value ||
+                                          std::is_same<Expr, TypeCastingExpression>::value>>
+    static Expr* exprCast(Expression* expr) {
+        UNUSED(DCHECK_NOTNULL(dynamic_cast<std::remove_const_t<Expr>*>(expr)));
+        return static_cast<std::remove_const_t<Expr>*>(expr);
+    }
+
+    template <typename Expr,
+              typename = std::enable_if_t<std::is_same<Expr, UnaryExpression>::value ||
+                                          std::is_same<Expr, BinaryExpression>::value ||
+                                          std::is_same<Expr, FunctionCallExpression>::value ||
+                                          std::is_same<Expr, TypeCastingExpression>::value>>
+    static const Expr* exprCast(const Expression* expr) {
+        UNUSED(DCHECK_NOTNULL(dynamic_cast<const Expr*>(expr)));
+        return static_cast<const Expr*>(expr);
     }
 };
 
