@@ -183,7 +183,7 @@ Status GetSubgraphValidator::toPlan() {
             std::move(exprs));
     gn1->setInputVar(vidsToSave);
 
-    auto columns = new YieldColumns();
+    auto* columns = new YieldColumns();
     auto* column = new YieldColumn(
         new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
         new std::string(kVid));
