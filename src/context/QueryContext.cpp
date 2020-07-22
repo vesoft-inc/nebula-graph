@@ -8,5 +8,13 @@
 
 namespace nebula {
 namespace graph {
-}  // namespace graph
-}  // namespace nebula
+
+void QueryContext::addProfilingData(int64_t planNodeId) {
+    auto found = planNodeIndexMap_.find(planNodeId);
+    DCHECK_NE(found, planNodeIndexMap_.end());
+    auto idx = found->second;
+    UNUSED(idx);
+}
+
+}   // namespace graph
+}   // namespace nebula

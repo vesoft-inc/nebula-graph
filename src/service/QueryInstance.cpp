@@ -10,6 +10,7 @@
 
 #include "exec/ExecutionError.h"
 #include "exec/Executor.h"
+#include "parser/ExplainSentence.h"
 #include "planner/ExecutionPlan.h"
 #include "planner/PlanNode.h"
 #include "scheduler/Scheduler.h"
@@ -44,6 +45,14 @@ void QueryInstance::execute() {
         LOG(ERROR) << status;
         onError(std::move(status));
         return;
+    }
+
+    if (sentences_->kind() == Sentence::Kind::kExplain) {
+        auto explainSentence = static_cast<const ExplainSentence *>(sentences_.get());
+        if (!explainSentence->isProfile()) {
+            onFinish();
+            return;
+        }
     }
 
     scheduler_->schedule()

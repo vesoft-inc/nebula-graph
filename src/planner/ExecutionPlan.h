@@ -14,7 +14,6 @@
 
 #include "common/base/Status.h"
 #include "common/expression/Expression.h"
-
 #include "util/ObjectPool.h"
 
 namespace nebula {

@@ -148,6 +148,8 @@ public:
         stmtType_ = stmtType;
     }
 
+    void addProfilingData(int64_t planNodeId);
+
 private:
     RequestContextPtr                                       rctx_;
     std::unique_ptr<ValidateContext>                        vctx_;
@@ -163,8 +165,11 @@ private:
     std::unique_ptr<ObjectPool>                             objPool_;
 
     // explain or profile
-    ExplainFormatType   explainFormatType_{ExplainFormatType::kRow};
-    StmtType            stmtType_{StmtType::kExecute};
+    ExplainFormatType explainFormatType_{ExplainFormatType::kRow};
+    StmtType stmtType_{StmtType::kExecute};
+    // map from plan node id to index of profiling data list
+    std::unordered_map<int64_t, size_t> planNodeIndexMap_;
+    // TODO(yee): Plan description data
 };
 
 }  // namespace graph
