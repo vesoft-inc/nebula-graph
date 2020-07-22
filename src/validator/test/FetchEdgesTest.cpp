@@ -263,6 +263,81 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     }
 }
 
+TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
+    // var
+    {
+        const std::string query = "$a = FETCH PROP ON like \"1\"->\"2\" "
+                            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
+                            "FETCH PROP ON like $a.src->$a.dst@$a.rank";
+        checkResult(query, {
+            PlanNode::Kind::kGetEdges,
+            PlanNode::Kind::kGetEdges,
+            PlanNode::Kind::kStart,
+        }, {
+            "like._src",
+            "like._type",
+            "like._rank",
+            "like._dst",
+            "like.start",
+            "like.end",
+            "like.endness"
+        });
+    }
+    // pipe
+    {
+        const std::string query = "FETCH PROP ON like \"1\"->\"2\" "
+                            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank"
+                            " | FETCH PROP ON like $-.src->$-.dst@$-.rank";
+        checkResult(query, {
+            PlanNode::Kind::kGetEdges,
+            PlanNode::Kind::kGetEdges,
+            PlanNode::Kind::kStart,
+        }, {
+            "like._src",
+            "like._type",
+            "like._rank",
+            "like._dst",
+            "like.start",
+            "like.end",
+            "like.endness"
+        });
+    }
+
+    // with project
+    // var
+    {
+        const std::string query = "$a = FETCH PROP ON like \"1\"->\"2\" "
+                            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank + 1;"
+                            "FETCH PROP ON like $a.src->$a.dst@$a.rank "
+                            "YIELD like._src + 1";
+        checkResult(query, {
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetEdges,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetEdges,
+            PlanNode::Kind::kStart,
+        }, {
+            "(like._src+1)",
+        });
+    }
+    // pipe
+    {
+        const std::string query = "FETCH PROP ON like \"1\"->\"2\" "
+                            "YIELD like._src AS src, like._dst AS dst, like._rank AS rank + 1"
+                            " | FETCH PROP ON like $-.src->$-.dst@$-.rank "
+                            "YIELD like._src + 1";
+        checkResult(query, {
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetEdges,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetEdges,
+            PlanNode::Kind::kStart,
+        }, {
+            "(like._src+1)",
+        });
+    }
+}
+
 TEST_F(FetchEdgesValidatorTest, FetchEdgesPropFailed) {
     // mismatched tag
     {

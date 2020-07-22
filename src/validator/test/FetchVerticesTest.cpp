@@ -207,6 +207,63 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
     }
 }
 
+TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
+    // pipe
+    {
+        const std::string query = "FETCH PROP ON person \"1\" YIELD person.name AS name"
+                                  " | FETCH PROP ON person $-.name";
+        checkResult(query, {
+            PlanNode::Kind::kGetVertices,
+            PlanNode::Kind::kGetVertices,
+            PlanNode::Kind::kStart,
+        }, {
+            "person.name", "person.age"
+        });
+    }
+    // Variable
+    {
+        const std::string query = "$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
+                                  "FETCH PROP ON person $a.name";
+        checkResult(query, {
+            PlanNode::Kind::kGetVertices,
+            PlanNode::Kind::kGetVertices,
+            PlanNode::Kind::kStart,
+        }, {
+            "person.name", "person.age"
+        });
+    }
+
+    // with project
+    // pipe
+    {
+        const std::string query = "FETCH PROP ON person \"1\" YIELD person.name + 1 AS name"
+                                  " | FETCH PROP ON person $-.name YIELD person.name + 1";
+        checkResult(query, {
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetVertices,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetVertices,
+            PlanNode::Kind::kStart,
+        }, {
+            "(person.name+1)"
+        });
+    }
+    // Variable
+    {
+        const std::string query = "$a = FETCH PROP ON person \"1\" YIELD person.name + 1 AS name;"
+                                  "FETCH PROP ON person $a.name YIELD person.name + 1 ";
+        checkResult(query, {
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetVertices,
+            PlanNode::Kind::kProject,
+            PlanNode::Kind::kGetVertices,
+            PlanNode::Kind::kStart,
+        }, {
+            "(person.name+1)"
+        });
+    }
+}
+
 TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
     // mismatched tag
     {
