@@ -99,14 +99,14 @@ public:
     }
 
     template <typename T, typename = std::enable_if_t<std::is_same<T, Expression::Kind>::value>>
-    static bool isAnyKind(const Expression* expr, T k) {
+    static inline bool isAnyKind(const Expression* expr, T k) {
         return expr->kind() == k;
     }
 
     template <typename T,
               typename... Ts,
               typename = std::enable_if_t<std::is_same<T, Expression::Kind>::value>>
-    static bool isAnyKind(const Expression* expr, T k, Ts... ts) {
+    static inline bool isAnyKind(const Expression* expr, T k, Ts... ts) {
         return expr->kind() == k || isAnyKind(expr, ts...);
     }
 
