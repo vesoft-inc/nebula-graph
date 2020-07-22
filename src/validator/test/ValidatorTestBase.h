@@ -23,7 +23,7 @@ namespace nebula {
 namespace graph {
 
 class ValidatorTestBase : public ::testing::Test {
-public:
+protected:
     void SetUp() override {
         session_ = Session::create(0);
         session_->setSpace("test_space", 1);
@@ -35,7 +35,6 @@ public:
     void TearDown() override {
     }
 
-protected:
     // some utils
     inline ::testing::AssertionResult toPlan(const std::string &query) {
         auto result = GQLParser().parse(query);
