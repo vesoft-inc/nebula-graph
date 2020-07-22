@@ -355,6 +355,7 @@ Status GoValidator::buildNStepsPlan() {
         }
         project = Project::make(plan, gn, plan->saveObject(columns));
         project->setInputVar(gn->varName());
+        project->setOutputVar(input);
         project->setColNames(deduceColNames(columns));
         VLOG(1) << project->varName();
     }
@@ -461,23 +462,6 @@ PlanNode* GoValidator::buildRuntimeInput() {
     return project;
 }
 
-std::vector<EdgeType> GoValidator::buildEdgeTypes() {
-    std::vector<EdgeType> edgeTypes(edgeTypes_.size());
-    if (direction_ == storage::cpp2::EdgeDirection::IN_EDGE) {
-        std::transform(edgeTypes_.begin(), edgeTypes_.end(), edgeTypes.begin(), [] (auto& type) {
-            return -type;
-        });
-    } else if (direction_ == storage::cpp2::EdgeDirection::BOTH) {
-        edgeTypes = edgeTypes_;
-        std::transform(edgeTypes_.begin(), edgeTypes_.end(), edgeTypes.begin(), [] (auto& type) {
-            return -type;
-        });
-    } else {
-        edgeTypes = edgeTypes_;
-    }
-    return edgeTypes;
-}
-
 GetNeighbors::VertexProps GoValidator::buildSrcVertexProps() {
     GetNeighbors::VertexProps vertexProps;
     if (!srcTagProps_.empty()) {
@@ -568,6 +552,7 @@ GetNeighbors::EdgeProps GoValidator::buildNStepLoopEdgeProps() {
 }
 
 Expression* GoValidator::buildNStepLoopCondition(int64_t steps) const {
+    VLOG(1) << "steps: " << steps;
     // ++loopSteps{0} <= steps
     auto loopSteps = vctx_->varGen()->getVar();
     qctx_->ectx()->setValue(loopSteps, 0);

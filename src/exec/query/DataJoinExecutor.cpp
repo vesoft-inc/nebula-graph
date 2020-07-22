@@ -23,6 +23,8 @@ folly::Future<Status> DataJoinExecutor::execute() {
 folly::Future<Status> DataJoinExecutor::doInnerJoin() {
     auto* dataJoin = asNode<DataJoin>(node());
 
+    VLOG(1) << "lhs hist: " << ectx_->getHistory(dataJoin->leftVar().first).size();
+    VLOG(1) << "rhs hist: " << ectx_->getHistory(dataJoin->rightVar().first).size();
     auto lhsIter = ectx_
                        ->getVersionedResult(dataJoin->leftVar().first,
                                             dataJoin->leftVar().second)
