@@ -17,9 +17,7 @@ namespace graph {
 class FetchVerticesValidator final : public Validator {
 public:
     FetchVerticesValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
-        sentence_ = static_cast<FetchVerticesSentence*>(sentence);
-    }
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -35,7 +33,6 @@ private:
     static const Expression* findInvalidYieldExpression(const Expression* root);
 
 private:
-    FetchVerticesSentence* sentence_{nullptr};
     GraphSpaceID spaceId_{0};
     std::vector<nebula::Row> vertices_;
     Expression* src_{nullptr};

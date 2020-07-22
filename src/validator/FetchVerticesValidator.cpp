@@ -31,6 +31,7 @@ Status FetchVerticesValidator::validateImpl() {
 
 Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
+    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     auto *plan = qctx_->plan();
     auto *doNode = GetVertices::make(plan,
                                      nullptr,
@@ -47,7 +48,7 @@ Status FetchVerticesValidator::toPlan() {
     // the framework need to set the input var
 
     if (withProject_) {
-        auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yields());
+        auto *projectNode = Project::make(plan, current, sentence->yieldClause()->yields());
         projectNode->setInputVar(current->varName());
         projectNode->setColNames(colNames_);
         current = projectNode;
@@ -68,13 +69,14 @@ Status FetchVerticesValidator::toPlan() {
 }
 
 Status FetchVerticesValidator::check() {
+    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
 
-    if (sentence_->isAllTagProps()) {
+    if (sentence->isAllTagProps()) {
         // empty for all tag
-        tagName_ = *sentence_->tag();
+        tagName_ = *sentence->tag();
     } else {
-        tagName_ = *(sentence_->tag());
+        tagName_ = *(sentence->tag());
         auto tagStatus = qctx_->schemaMng()->toTagID(spaceId_, tagName_);
         if (!tagStatus.ok()) {
             LOG(ERROR) << "No schema found for " << tagName_;
@@ -92,16 +94,17 @@ Status FetchVerticesValidator::check() {
 }
 
 Status FetchVerticesValidator::prepareVertices() {
+    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     // from ref, eval when execute
-    if (sentence_->isRef()) {
-        src_ = sentence_->ref();
+    if (sentence->isRef()) {
+        src_ = sentence->ref();
         return checkRef(src_, Value::Type::STRING);
     }
 
     // from constant, eval now
     // TODO(shylock) add eval() method for expression
     QueryExpressionContext dummy = QueryExpressionContext(nullptr);
-    auto vids = sentence_->vidList();
+    auto vids = sentence->vidList();
     vertices_.reserve(vids.size());
     for (const auto vid : vids) {
         // TODO(shylock) Add a new value type VID to semantic this
@@ -116,11 +119,12 @@ Status FetchVerticesValidator::prepareVertices() {
 }
 
 Status FetchVerticesValidator::prepareProperties() {
-    auto *yield = sentence_->yieldClause();
+    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+    auto *yield = sentence->yieldClause();
     if (yield == nullptr) {
         // empty for all tag and properties
         props_.clear();
-        if (!sentence_->isAllTagProps()) {
+        if (!sentence->isAllTagProps()) {
             // for one tag all properties
             storage::cpp2::VertexProp prop;
             prop.set_tag(tagId_.value());
@@ -164,7 +168,7 @@ Status FetchVerticesValidator::prepareProperties() {
             }
         }
     } else {
-        CHECK(!sentence_->isAllTagProps()) << "Not supported yield for *.";
+        CHECK(!sentence->isAllTagProps()) << "Not supported yield for *.";
         dedup_ = yield->isDistinct();
         storage::cpp2::VertexProp prop;
         prop.set_tag(tagId_.value());

@@ -17,9 +17,7 @@ namespace graph {
 class FetchEdgesValidator final : public Validator {
 public:
     FetchEdgesValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
-        sentence_ = static_cast<FetchEdgesSentence*>(sentence);
-    }
+        : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -37,7 +35,6 @@ private:
     static const std::unordered_set<std::string> reservedProperties;
 
 private:
-    FetchEdgesSentence* sentence_{nullptr};
     GraphSpaceID spaceId_;
     std::vector<nebula::Row> edges_;
     Expression* src_{nullptr};

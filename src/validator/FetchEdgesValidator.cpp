@@ -39,6 +39,7 @@ Status FetchEdgesValidator::validateImpl() {
 
 Status FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
+    auto *sentence = static_cast<FetchEdgesSentence*>(sentence_);
     auto *plan = qctx_->plan();
     auto *doNode = GetEdges::make(plan,
                                   nullptr,
@@ -58,7 +59,7 @@ Status FetchEdgesValidator::toPlan() {
     // the framework need to set the input var
 
     if (withProject_) {
-        auto *projectNode = Project::make(plan, current, sentence_->yieldClause()->yields());
+        auto *projectNode = Project::make(plan, current, sentence->yieldClause()->yields());
         projectNode->setInputVar(current->varName());
         projectNode->setColNames(colNames_);
         current = projectNode;
@@ -79,8 +80,9 @@ Status FetchEdgesValidator::toPlan() {
 }
 
 Status FetchEdgesValidator::check() {
+    auto *sentence = static_cast<FetchEdgesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
-    edgeTypeName_ = *sentence_->edge();
+    edgeTypeName_ = *sentence->edge();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, edgeTypeName_);
     if (!edgeStatus.ok()) {
         return edgeStatus.status();
@@ -88,22 +90,23 @@ Status FetchEdgesValidator::check() {
     edgeType_ = edgeStatus.value();
     schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
     if (schema_ == nullptr) {
-        LOG(ERROR) << "No schema found for " << sentence_->edge();
-        return Status::Error("No schema found for `%s'", sentence_->edge()->c_str());
+        LOG(ERROR) << "No schema found for " << sentence->edge();
+        return Status::Error("No schema found for `%s'", sentence->edge()->c_str());
     }
 
     return Status::OK();
 }
 
 Status FetchEdgesValidator::prepareEdges() {
+    auto *sentence = static_cast<FetchEdgesSentence*>(sentence_);
     // from ref, eval in execute
-    if (sentence_->isRef()) {
-        src_ = sentence_->ref()->srcid();
+    if (sentence->isRef()) {
+        src_ = sentence->ref()->srcid();
         auto status = checkRef(src_, Value::Type::STRING);
         if (!status.ok()) {
             return status;
         }
-        ranking_ = sentence_->ref()->rank();
+        ranking_ = sentence->ref()->rank();
         if (ranking_ == nullptr) {
             // Default zero if ranking not specified
             ranking_ = qctx_->objPool()->add(new ConstantExpression(0));
@@ -113,14 +116,14 @@ Status FetchEdgesValidator::prepareEdges() {
         if (!status.ok()) {
             return status;
         }
-        dst_ = sentence_->ref()->dstid();
+        dst_ = sentence->ref()->dstid();
         status = checkRef(dst_, Value::Type::STRING);
         return status;
     }
 
     // from constant, eval now
     QueryExpressionContext dummy = QueryExpressionContext(nullptr);
-    auto keysPointer = sentence_->keys();
+    auto keysPointer = sentence->keys();
     if (keysPointer != nullptr) {
         auto keys = keysPointer->keys();
         // row: _src, _type, _ranking, _dst
@@ -146,7 +149,8 @@ Status FetchEdgesValidator::prepareEdges() {
 }
 
 Status FetchEdgesValidator::prepareProperties() {
-    auto *yield = sentence_->yieldClause();
+    auto *sentence = static_cast<FetchEdgesSentence*>(sentence_);
+    auto *yield = sentence->yieldClause();
     storage::cpp2::EdgeProp prop;
     prop.set_type(edgeType_);
     // empty for all properties
