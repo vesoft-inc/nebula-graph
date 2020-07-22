@@ -12,6 +12,7 @@
 #include "common/charset/Charset.h"
 #include "planner/ExecutionPlan.h"
 #include "util/AnnoVarGenerator.h"
+#include "util/AnnoColGenerator.h"
 
 namespace nebula {
 namespace graph {
@@ -27,7 +28,8 @@ struct SpaceDescription {
 class ValidateContext final {
 public:
     ValidateContext() {
-        varGen_ = std::make_unique<AnnoVarGenerator>();
+        annoVarGen_ = std::make_unique<AnnoVarGenerator>();
+        annoColGen_ = std::make_unique<AnnoColGenerator>();
     }
 
     void switchToSpace(std::string spaceName, GraphSpaceID spaceId) {
@@ -69,8 +71,12 @@ public:
         return spaces_.back();
     }
 
-    AnnoVarGenerator* varGen() const {
-        return varGen_.get();
+    AnnoVarGenerator* annoVarGen() const {
+        return annoVarGen_.get();
+    }
+
+    AnnoColGenerator* annoColGen() const {
+        return annoColGen_.get();
     }
 
     void addSchema(const std::string& name,
@@ -91,7 +97,8 @@ private:
     std::vector<SpaceDescription>                       spaces_;
     // vars_ saves all named variable
     std::unordered_map<std::string, ColsDef>            vars_;
-    std::unique_ptr<AnnoVarGenerator>                   varGen_;
+    std::unique_ptr<AnnoVarGenerator>                   annoVarGen_;
+    std::unique_ptr<AnnoColGenerator>                   annoColGen_;
     using Schemas = std::unordered_map<std::string,
           std::shared_ptr<const meta::NebulaSchemaProvider>>;
     Schemas                                             schemas_;

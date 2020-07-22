@@ -75,6 +75,7 @@ void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
         list.values.reserve(hashKeys.size());
         for (auto& col : hashKeys) {
             Value val = col->eval(ctx);
+            VLOG(1) << "hash key: " << col->toString();
             list.values.emplace_back(std::move(val));
         }
 
