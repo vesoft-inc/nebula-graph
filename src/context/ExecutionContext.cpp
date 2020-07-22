@@ -8,6 +8,8 @@
 
 namespace nebula {
 namespace graph {
+constexpr int64_t ExecutionContext::kLatestVersion;
+constexpr int64_t ExecutionContext::kEldestVersion;
 
 void ExecutionContext::setValue(const std::string& name, Value&& val) {
     ResultBuilder builder;

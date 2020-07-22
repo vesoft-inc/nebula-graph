@@ -30,6 +30,7 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
                                             dataJoin->leftVar().second)
                        .iter();
     DCHECK(!!lhsIter);
+    VLOG(1) << "lhs: " << dataJoin->leftVar().first << " " << lhsIter->size();
     if (!lhsIter->isSequentialIter() && !lhsIter->isJoinIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter->kind();
@@ -40,14 +41,13 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
                                             dataJoin->rightVar().second)
                        .iter();
     DCHECK(!!rhsIter);
+    VLOG(1) << "rhs: " << dataJoin->rightVar().first << " " << rhsIter->size();
     if (!rhsIter->isSequentialIter() && !rhsIter->isJoinIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter->kind();
         return error(Status::Error(ss.str()));
     }
 
-    VLOG(1) << "lhs: " << dataJoin->leftVar().first << " " << lhsIter->size();
-    VLOG(1) << "rhs: " << dataJoin->rightVar().first << " " << rhsIter->size();
     auto resultIter = std::make_unique<JoinIter>();
     resultIter->joinIndex(lhsIter.get(), rhsIter.get());
     auto bucketSize =

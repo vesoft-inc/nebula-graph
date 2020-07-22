@@ -300,6 +300,7 @@ PlanNode* GoValidator::ifBuildJoinPipeInput(
         project->setColNames(deduceColNames(srcAndEdgePropCols_));
         VLOG(1) << project->varName();
 
+        PlanNode* joinInputHashKeyDependency = project;
         if (steps_ > 1) {
             auto* joinHashKey = new VariablePropertyExpression(
                     new std::string(project->varName()), new std::string(kVid));
@@ -307,47 +308,36 @@ PlanNode* GoValidator::ifBuildJoinPipeInput(
             auto* probeKey = new VariablePropertyExpression(
                     new std::string(projectFromJoin->varName()), new std::string(dstVidColName_));
             plan->saveObject(probeKey);
-            auto* join = DataJoin::make(plan, project, {project->varName(), 0},
-                                         {projectFromJoin->varName(), 0},
-                                         {joinHashKey}, {probeKey});
+            auto* join = DataJoin::make(
+                plan, project,
+                {project->varName(), ExecutionContext::kLatestVersion},
+                {projectFromJoin->varName(), ExecutionContext::kLatestVersion},
+                {joinHashKey}, {probeKey});
             std::vector<std::string> colNames = project->colNames();
             for (auto& col : projectFromJoin->colNames()) {
                 colNames.emplace_back(col);
             }
             join->setColNames(std::move(colNames));
             VLOG(1) << join->varName();
-
-            auto* joinHashKey1 = new VariablePropertyExpression(
-                new std::string(join->varName()),
-                new std::string(firstBeginningSrcVidColName_));
-            plan->saveObject(joinHashKey1);
-            auto* join1 = DataJoin::make(plan, join, {join->varName(), 0},
-                                         {inputVarName_, 0},
-                                         {joinHashKey1}, {srcRef_});
-            colNames = join->colNames();
-            for (auto& col : outputs_) {
-                colNames.emplace_back(col.first);
-            }
-            join1->setColNames(std::move(colNames));
-            VLOG(1) << join1->varName() << " " << joinHashKey->toString() << " "
-                    << srcRef_->toString();
-
-            inputNodeForProjectResult = join1;
-        } else {
-            auto* joinHashKey = new VariablePropertyExpression(
-                new std::string(project->varName()), new std::string(kVid));
-            auto* joinInput =
-                DataJoin::make(plan, project, {project->varName(), 0},
-                            {inputVarName_, 0}, {joinHashKey}, {src_});
-            std::vector<std::string> colNames = project->colNames();
-            for (auto& col : outputs_) {
-                colNames.emplace_back(col.first);
-            }
-            joinInput->setColNames(std::move(colNames));
-            VLOG(1) << joinInput->varName();
-
-            inputNodeForProjectResult = joinInput;
+            joinInputHashKeyDependency = join;
         }
+
+        auto* joinHashKey = new VariablePropertyExpression(
+            new std::string(joinInputHashKeyDependency->varName()),
+            new std::string(steps_ > 1 ? firstBeginningSrcVidColName_ : kVid));
+        auto* joinInput =
+            DataJoin::make(plan, joinInputHashKeyDependency,
+                           {joinInputHashKeyDependency->varName(),
+                            ExecutionContext::kLatestVersion},
+                           {inputVarName_, ExecutionContext::kLatestVersion},
+                           {joinHashKey}, {steps_ > 1 ? srcRef_ : src_});
+        std::vector<std::string> colNames = joinInputHashKeyDependency->colNames();
+        for (auto& col : outputs_) {
+            colNames.emplace_back(col.first);
+        }
+        joinInput->setColNames(std::move(colNames));
+        VLOG(1) << joinInput->varName();
+        inputNodeForProjectResult = joinInput;
     }
 
     return inputNodeForProjectResult;
@@ -365,8 +355,12 @@ Project* GoValidator::ifTraceToStartVid(Project* projectLeftVarForJoin,
         auto probeKey = new VariablePropertyExpression(
             new std::string(projectDstFromGN->varName()), new std::string(srcVidColName_));
         plan->saveObject(probeKey);
-        auto* join = DataJoin::make(plan, projectDstFromGN, {projectLeftVarForJoin->varName(), 0},
-                {projectDstFromGN->varName(), 0}, { hashKey }, { probeKey });
+        auto* join = DataJoin::make(
+            plan, projectDstFromGN,
+            {projectLeftVarForJoin->varName(),
+             ExecutionContext::kLatestVersion},
+            {projectDstFromGN->varName(), ExecutionContext::kLatestVersion},
+            {hashKey}, {probeKey});
         std::vector<std::string> colNames = projectLeftVarForJoin->colNames();
         for (auto& col : projectDstFromGN->colNames()) {
             colNames.emplace_back(col);
