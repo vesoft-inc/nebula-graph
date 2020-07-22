@@ -90,7 +90,7 @@ const Value& QueryExpressionContext::getInputProp(const std::string& prop) const
 void QueryExpressionContext::setVar(const std::string& var, Value val) {
     if (ectx_ == nullptr) {
         LOG(ERROR) << "Execution context was not provided.";
-        DCHECK_NOTNULL(ectx_);
+        DCHECK(ectx_ != nullptr);
         return;
     }
     ectx_->setValue(var, std::move(val));
