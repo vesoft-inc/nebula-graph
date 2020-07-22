@@ -65,7 +65,21 @@ const Result& ExecutionContext::getResult(const std::string& name) const {
     }
 }
 
-const std::vector<Result>& ExecutionContext::getHistory(const std::string& name) const {
+const Result& ExecutionContext::getVersionedResult(const std::string& name,
+                                                   int64_t version) const {
+    auto& result = getHistory(name);
+    auto size = result.size();
+    if (version <= 0 && static_cast<size_t>(std::abs(version)) < size) {
+        return result[size + version - 1];
+    } else if (version > 0 && static_cast<size_t>(version) <= size) {
+        return result[version - 1];
+    } else {
+        return Result::kEmptyResult;
+    }
+}
+
+const std::vector<Result>& ExecutionContext::getHistory(
+    const std::string& name) const {
     auto it = valueMap_.find(name);
     if (it != valueMap_.end()) {
         return it->second;

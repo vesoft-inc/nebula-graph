@@ -38,7 +38,8 @@ private:
 
     Status buildNStepsPlan();
 
-    Status oneStep(PlanNode* input, const std::string& inputVarName);
+    Status oneStep(PlanNode* input, const std::string& inputVarNameForGN,
+                   std::string inputVarNameForJoin);
 
     std::string buildConstantInput();
 
@@ -69,6 +70,7 @@ private:
 private:
     int64_t                                                 steps_;
     FromType                                                fromType_{kConstantExpr};
+    Expression*                                             srcRef_{nullptr};
     Expression*                                             src_{nullptr};
     std::vector<Value>                                      starts_;
     bool                                                    isOverAll_{false};

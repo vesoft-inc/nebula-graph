@@ -23,7 +23,7 @@ public:
     }
 
     std::string getVar() const {
-        return folly::stringPrintf("UNAMED_VAR_%ld", idGen_->id());
+        return folly::stringPrintf("__UNAMED_VAR_%ld", idGen_->id());
     }
 
 private:
