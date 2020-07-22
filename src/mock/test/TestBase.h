@@ -134,4 +134,3 @@ protected:
 }   // namespace nebula
 
 #endif  // MOCK_TEST_TESTBASE_H_
-

@@ -5,6 +5,7 @@
  */
 
 #include "mock/MetaCache.h"
+#include "MetaCache.h"
 #include "common/network/NetworkUtils.h"
 
 namespace nebula {
@@ -271,112 +272,12 @@ Status MetaCache::dropTagIndex(const meta::cpp2::DropEdgeIndexReq&) {
     return Status::OK();
 }
 
-Status MetaCache::regConfig(const meta::cpp2::RegConfigReq &req) {
-    folly::RWSpinLock::WriteHolder holder(lock_);
-    for (const auto& item : req.get_items()) {
-        auto module = item.get_module();
-        auto name = item.get_name();
-        auto findModule = configs_.find(module);
-        if (findModule == configs_.end()) {
-            configs_[module] = {};
-            configs_[module].emplace(name, item);
-        } else {
-            if (findModule->second.find(name) != findModule->second.end()) {
-                return Status::Error("Existed config: %s", name.c_str());
-            }
-            configs_[module].emplace(name, item);
-        }
-    }
+Status MetaCache::regConfigs(const std::vector<meta::cpp2::ConfigItem>&) {
     return Status::OK();
 }
 
-Status MetaCache::setConfig(const meta::cpp2::SetConfigReq &req) {
-    folly::RWSpinLock::WriteHolder holder(lock_);
-    auto item = req.get_item();
-    auto module = item.get_module();
-    auto name = item.get_name();
-
-    std::vector<meta::cpp2::ConfigModule> moduleList;
-    if (module == meta::cpp2::ConfigModule::ALL) {
-        moduleList.emplace_back(meta::cpp2::ConfigModule::GRAPH);
-        moduleList.emplace_back(meta::cpp2::ConfigModule::STORAGE);
-    } else {
-        moduleList.emplace_back(module);
-    }
-
-    for (auto moduleName : moduleList) {
-        auto findModule = configs_.find(moduleName);
-        if (findModule == configs_.end()) {
-            return Status::Error("Not Existed module: %s",
-                    meta::cpp2::_ConfigModule_VALUES_TO_NAMES.at(moduleName));
-        }
-        auto findName = findModule->second.find(name);
-        if (findName == findModule->second.end()) {
-            return Status::Error("Config: %s does not exist in module: %s",
-                    name.c_str(), meta::cpp2::_ConfigModule_VALUES_TO_NAMES.at(moduleName));
-        }
-        if (findName->second.get_mode() == meta::cpp2::ConfigMode::IMMUTABLE) {
-            return Status::Error("Immutatble config: %s", name.c_str());
-        }
-        findName->second.set_value(item.get_value());
-    }
+Status MetaCache::setConfig(const meta::cpp2::ConfigItem&) {
     return Status::OK();
-}
-
-StatusOr<std::vector<meta::cpp2::ConfigItem>>
-MetaCache::getConfig(const meta::cpp2::GetConfigReq &req) {
-    folly::RWSpinLock::ReadHolder holder(lock_);
-    auto module = req.get_item().get_module();
-    auto name = req.get_item().get_name();
-
-    std::vector<meta::cpp2::ConfigModule> moduleList;
-    if (module == meta::cpp2::ConfigModule::ALL) {
-        moduleList.emplace_back(meta::cpp2::ConfigModule::GRAPH);
-        moduleList.emplace_back(meta::cpp2::ConfigModule::STORAGE);
-    } else {
-        moduleList.emplace_back(module);
-    }
-
-    std::vector<meta::cpp2::ConfigItem> items;
-    for (auto moduleName : moduleList) {
-        auto findModule = configs_.find(moduleName);
-        if (findModule == configs_.end()) {
-            return Status::Error("Not Existed module: %s",
-                    meta::cpp2::_ConfigModule_VALUES_TO_NAMES.at(moduleName));
-        }
-        auto findName = findModule->second.find(name);
-        if (findName == findModule->second.end()) {
-            return Status::Error("Config: %s does not exist in module: %s",
-                    name.c_str(), meta::cpp2::_ConfigModule_VALUES_TO_NAMES.at(moduleName));
-        }
-        items.emplace_back(findName->second);
-    }
-    return items;
-}
-
-StatusOr<std::vector<meta::cpp2::ConfigItem>>
-MetaCache::listConfigs(const meta::cpp2::ListConfigsReq &req) {
-    folly::RWSpinLock::ReadHolder holder(lock_);
-    auto module = req.get_module();
-    std::vector<meta::cpp2::ConfigItem> items;
-    std::vector<meta::cpp2::ConfigModule> moduleList;
-    if (module == meta::cpp2::ConfigModule::ALL) {
-        moduleList.emplace_back(meta::cpp2::ConfigModule::GRAPH);
-        moduleList.emplace_back(meta::cpp2::ConfigModule::STORAGE);
-    } else {
-        moduleList.emplace_back(module);
-    }
-
-    for (auto moduleName : moduleList) {
-        auto findModule = configs_.find(moduleName);
-        if (findModule == configs_.end()) {
-            continue;
-        }
-        for (auto &config : findModule->second) {
-            items.emplace_back(config.second);
-        }
-    }
-    return items;
 }
 
 Status MetaCache::heartBeat(const meta::cpp2::HBReq& req) {

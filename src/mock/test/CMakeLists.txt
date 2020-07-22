@@ -21,7 +21,6 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:graph_auth_obj>
     $<TARGET_OBJECTS:common_time_function_obj>
     $<TARGET_OBJECTS:common_graph_client_obj>
-    $<TARGET_OBJECTS:common_conf_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_network_obj>
@@ -109,22 +108,6 @@ nebula_add_test(
         snapshot_test
     SOURCES
         SnapshotTest.cpp
-    OBJECTS
-        ${GRAPH_TEST_LIB}
-    LIBRARIES
-        proxygenhttpserver
-        proxygenlib
-        ${THRIFT_LIBRARIES}
-        wangle
-        gtest
-        gtest_main
-)
-
-nebula_add_test(
-    NAME
-        config_test
-    SOURCES
-        ConfigTest.cpp
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES

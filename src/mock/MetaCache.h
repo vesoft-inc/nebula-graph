@@ -58,15 +58,9 @@ public:
 
     Status dropTagIndex(const meta::cpp2::DropEdgeIndexReq &req);
 
-    Status regConfig(const meta::cpp2::RegConfigReq &req);
+    Status regConfigs(const std::vector<meta::cpp2::ConfigItem> &items);
 
-    Status setConfig(const meta::cpp2::SetConfigReq &req);
-
-    StatusOr<std::vector<meta::cpp2::ConfigItem>>
-    getConfig(const meta::cpp2::GetConfigReq &req);
-
-    StatusOr<std::vector<meta::cpp2::ConfigItem>>
-    listConfigs(const meta::cpp2::ListConfigsReq &req);
+    Status setConfig(const meta::cpp2::ConfigItem &req);
 
     Status heartBeat(const meta::cpp2::HBReq &req);
 
@@ -149,9 +143,6 @@ private:
     std::unordered_map<std::string, meta::cpp2::SpaceItem>   spaces_;
     int64_t                                                  id_{0};
     std::unordered_map<std::string, meta::cpp2::Snapshot>    snapshots_;
-    using Configs = std::map<meta::cpp2::ConfigModule,
-                             std::map<std::string, meta::cpp2::ConfigItem>>;
-    Configs                                                  configs_;
     mutable folly::RWSpinLock                                lock_;
 
 ////////////////////////////////////////////// Job /////////////////////////////////////////////////

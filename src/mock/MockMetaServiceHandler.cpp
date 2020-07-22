@@ -541,70 +541,31 @@ MockMetaServiceHandler::future_leaderBalance(const meta::cpp2::LeaderBalanceReq&
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_regConfig(const meta::cpp2::RegConfigReq& req) {
-    folly::Promise<meta::cpp2::ExecResp> promise;
-    auto future = promise.getFuture();
-    meta::cpp2::ExecResp resp;
-    auto status = MetaCache::instance().regConfig(req);
-    if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
-        promise.setValue(std::move(resp));
-        return future;
-    }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    promise.setValue(std::move(resp));
-    return future;
+MockMetaServiceHandler::future_regConfig(const meta::cpp2::RegConfigReq&) {
+    RETURN_SUCCESSED();
 }
 
 folly::Future<meta::cpp2::GetConfigResp>
-MockMetaServiceHandler::future_getConfig(const meta::cpp2::GetConfigReq& req) {
+MockMetaServiceHandler::future_getConfig(const meta::cpp2::GetConfigReq&) {
     folly::Promise<meta::cpp2::GetConfigResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::GetConfigResp resp;
-    auto status = MetaCache::instance().getConfig(req);
-    if (!status.ok()) {
-        LOG(ERROR) << status.status();
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
-        promise.setValue(std::move(resp));
-        return future;
-    }
     resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    resp.set_items(std::move(status).value());
     promise.setValue(std::move(resp));
     return future;
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_setConfig(const meta::cpp2::SetConfigReq& req) {
-    folly::Promise<meta::cpp2::ExecResp> promise;
-    auto future = promise.getFuture();
-    meta::cpp2::ExecResp resp;
-    auto status = MetaCache::instance().setConfig(req);
-    if (!status.ok()) {
-        LOG(ERROR) << status;
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
-        promise.setValue(std::move(resp));
-        return future;
-    }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    promise.setValue(std::move(resp));
-    return future;
+MockMetaServiceHandler::future_setConfig(const meta::cpp2::SetConfigReq&) {
+    RETURN_SUCCESSED();
 }
 
 folly::Future<meta::cpp2::ListConfigsResp>
-MockMetaServiceHandler::future_listConfigs(const meta::cpp2::ListConfigsReq& req) {
+MockMetaServiceHandler::future_listConfigs(const meta::cpp2::ListConfigsReq&) {
     folly::Promise<meta::cpp2::ListConfigsResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ListConfigsResp resp;
-    auto status = MetaCache::instance().listConfigs(req);
-    if (!status.ok()) {
-        LOG(ERROR) << status.status();
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
-        promise.setValue(std::move(resp));
-        return future;
-    }
     resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    resp.set_items(std::move(status).value());
     promise.setValue(std::move(resp));
     return future;
 }
