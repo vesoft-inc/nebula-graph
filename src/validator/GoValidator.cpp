@@ -265,11 +265,16 @@ Status GoValidator::buildNStepsPlan() {
 
     Project* projectFromJoin = ifTraceToStartVid(projectLeftVarForJoin, projectDstFromGN);
 
-    auto* loop = Loop::make(plan, projectLeftVarForJoin,
-                            projectFromJoin == nullptr ? projectDstFromGN : projectFromJoin,
-                            buildNStepLoopCondition(steps_ - 1));
+    auto* loop = Loop::make(
+        plan,
+        projectLeftVarForJoin == nullptr ? projectStartVid
+                                         : projectLeftVarForJoin,
+        projectFromJoin == nullptr ? projectDstFromGN : projectFromJoin,
+        buildNStepLoopCondition(steps_ - 1));
+    VLOG(1) << "loop dep: " << projectLeftVarForJoin;
 
-    auto status = oneStep(loop, projectDstFromGN->varName(), projectFromJoin);
+    auto status = oneStep(loop, projectDstFromGN->varName(),
+            projectFromJoin == nullptr ? projectDstFromGN : projectFromJoin);
     if (!status.ok()) {
         return status;
     }
