@@ -63,12 +63,10 @@ public:
         return objPool_;
     }
 
-    void fillPlanDescription(cpp2::PlanDescription* planDesc,
-                             std::unordered_map<int64_t, size_t>* nodeIdxMap) const;
+    void fillPlanDescription(cpp2::PlanDescription* planDesc) const;
 
 private:
     Executor* createExecutor();
-
 
     int64_t                                 id_;
     PlanNode*                               root_{nullptr};

@@ -24,9 +24,11 @@ public:
         start();
     }
 
-    explicit ScopedTimer(uint64_t *value)
+    template <typename T>
+    explicit ScopedTimer(T *value)
         : duration_(),
-          callback_([value](uint64_t elapsedTime) { *DCHECK_NOTNULL(value) = elapsedTime; }) {
+          callback_([value](uint64_t elapsedTime) { *value = static_cast<T>(elapsedTime); }) {
+        DCHECK(value != nullptr);
         start();
     }
 
@@ -53,6 +55,8 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#define SCOPED_TIMER(value) ::nebula::graph::ScopedTimer scopedTimer##__LINE__(&value)
+#define CONCAT_IMPL(x, y) x##y
+#define MACRO_CONCAT(x, y) CONCAT_IMPL(x, y)
+#define SCOPED_TIMER(v) ::nebula::graph::ScopedTimer MACRO_CONCAT(_SCOPED_TIMER_, __LINE__)(v)
 
 #endif   // UTIL_SCOPEDTIMER_H_

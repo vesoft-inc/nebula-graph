@@ -395,15 +395,18 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
     }
 }
 
+Executor::~Executor() {}
+
 void Executor::startProfiling() {
     profilingStats_->set_rows(0);
-    profilingStats_->set_duration(0);
+    profilingStats_->set_exec_duration_in_us(0);
+    profilingStats_->set_total_duration_in_us(0);
     totalDuration_.reset();
 }
 
 void Executor::stopProfiling() {
     auto totalDuration = totalDuration_.elapsedInUSec();
-    profilingStats_->set_duration(totalDuration);
+    profilingStats_->set_total_duration_in_us(totalDuration);
     qctx()->addProfilingData(node_->id(), *profilingStats_);
 }
 

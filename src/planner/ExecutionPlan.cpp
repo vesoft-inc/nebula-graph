@@ -33,20 +33,21 @@ PlanNode* ExecutionPlan::addPlanNode(PlanNode* node) {
     return objPool_->add(node);
 }
 
-static cpp2::PlanNodeDescription* makePlanNodeDesc(
-    const PlanNode* node,
-    cpp2::PlanDescription* planDesc,
-    std::unordered_map<int64_t, size_t>* nodeIdxMap) {
-    auto found = nodeIdxMap->find(node->id());
-    if (found != nodeIdxMap->end()) {
+static cpp2::PlanNodeDescription* makePlanNodeDesc(const PlanNode* node,
+                                                   cpp2::PlanDescription* planDesc) {
+    auto found = planDesc->node_index_map.find(node->id());
+    if (found != planDesc->node_index_map.end()) {
         return &planDesc->plan_node_descs[found->second];
     }
 
-    cpp2::PlanNodeDescription planNodeDesc;
+    planDesc->node_index_map.emplace(node->id(), planDesc->plan_node_descs.size());
+    planDesc->plan_node_descs.emplace_back(cpp2::PlanNodeDescription{});
+    auto& planNodeDesc = planDesc->plan_node_descs.back();
+
     planNodeDesc.set_id(node->id());
     planNodeDesc.set_name(PlanNode::toString(node->kind()));
     planNodeDesc.set_output_var(node->varName());
-    planNodeDesc.set_arguments({node->explain()});
+    planNodeDesc.set_description({{"description", node->explain()}});
 
     switch (node->kind()) {
         case PlanNode::Kind::kStart: {
@@ -57,46 +58,50 @@ static cpp2::PlanNodeDescription* makePlanNodeDesc(
         case PlanNode::Kind::kMinus: {
             auto bNode = static_cast<const BiInputNode*>(node);
             planNodeDesc.set_dependencies({bNode->left()->id(), bNode->right()->id()});
-            makePlanNodeDesc(bNode->left(), planDesc, nodeIdxMap);
-            makePlanNodeDesc(bNode->right(), planDesc, nodeIdxMap);
+            makePlanNodeDesc(bNode->left(), planDesc);
+            makePlanNodeDesc(bNode->right(), planDesc);
             break;
         }
         case PlanNode::Kind::kSelect: {
             auto select = static_cast<const Select*>(node);
             planNodeDesc.set_dependencies({select->dep()->id()});
-            auto then = makePlanNodeDesc(select->then(), planDesc, nodeIdxMap);
-            auto otherwise = makePlanNodeDesc(select->otherwise(), planDesc, nodeIdxMap);
-            then->set_condition(true);
-            then->get_arguments()->emplace_back(stringPrintf("Select Node Id: %ld", select->id()));
-            otherwise->set_condition(false);
-            then->get_arguments()->emplace_back(stringPrintf("Select Node Id: %ld", select->id()));
-            makePlanNodeDesc(select->dep(), planDesc, nodeIdxMap);
+            auto then = makePlanNodeDesc(select->then(), planDesc);
+            cpp2::PlanNodeBranchInfo thenInfo;
+            thenInfo.set_is_do_branch(true);
+            thenInfo.set_condition_node_id(select->id());
+            then->set_branch_info(std::move(thenInfo));
+            auto otherwise = makePlanNodeDesc(select->otherwise(), planDesc);
+            cpp2::PlanNodeBranchInfo elseInfo;
+            elseInfo.set_is_do_branch(true);
+            elseInfo.set_condition_node_id(select->id());
+            otherwise->set_branch_info(std::move(elseInfo));
+            makePlanNodeDesc(select->dep(), planDesc);
             break;
         }
         case PlanNode::Kind::kLoop: {
             auto loop = static_cast<const Loop*>(node);
             planNodeDesc.set_dependencies({loop->dep()->id()});
-            auto body = makePlanNodeDesc(loop->body(), planDesc, nodeIdxMap);
-            body->set_condition(true);
-            body->get_arguments()->emplace_back(stringPrintf("Loop Node Id: %ld", loop->id()));
-            makePlanNodeDesc(loop->dep(), planDesc, nodeIdxMap);
+            auto body = makePlanNodeDesc(loop->body(), planDesc);
+            cpp2::PlanNodeBranchInfo info;
+            info.set_is_do_branch(true);
+            info.set_condition_node_id(loop->id());
+            body->set_branch_info(std::move(info));
+            makePlanNodeDesc(loop->dep(), planDesc);
             break;
         }
         default: {
             // Other plan nodes have single dependency
             auto singleDepNode = static_cast<const SingleDependencyNode*>(node);
-            makePlanNodeDesc(singleDepNode->dep(), planDesc, nodeIdxMap);
+            makePlanNodeDesc(singleDepNode->dep(), planDesc);
             break;
         }
     }
-    nodeIdxMap->emplace(node->id(), planDesc->plan_node_descs.size());
-    planDesc->plan_node_descs.emplace_back(std::move(planNodeDesc));
-    return &planDesc->plan_node_descs.back();
+    return &planNodeDesc;
 }
 
-void ExecutionPlan::fillPlanDescription(cpp2::PlanDescription* planDesc,
-                                        std::unordered_map<int64_t, size_t>* nodeIdxMap) const {
-    makePlanNodeDesc(root_, DCHECK_NOTNULL(planDesc), DCHECK_NOTNULL(nodeIdxMap));
+void ExecutionPlan::fillPlanDescription(cpp2::PlanDescription* planDesc) const {
+    DCHECK(planDesc != nullptr);
+    makePlanNodeDesc(root_, planDesc);
 }
 
 }   // namespace graph

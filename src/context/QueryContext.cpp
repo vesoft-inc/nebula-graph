@@ -13,14 +13,15 @@ namespace graph {
 
 void QueryContext::addProfilingData(int64_t planNodeId, cpp2::ProfilingStats profilingStats) {
     if (!planDescription_) return;
-    auto found = planNodeIndexMap_.find(planNodeId);
-    DCHECK(found != planNodeIndexMap_.end());
+    auto found = planDescription_->node_index_map.find(planNodeId);
+    DCHECK(found != planDescription_->node_index_map.end());
     auto idx = found->second;
     planDescription_->plan_node_descs[idx].get_profiles()->emplace_back(std::move(profilingStats));
 }
 
 void QueryContext::fillPlanDescription() {
-    DCHECK_NOTNULL(ep_)->fillPlanDescription(planDescription_.get(), &planNodeIndexMap_);
+    DCHECK(ep_ != nullptr);
+    ep_->fillPlanDescription(planDescription_.get());
 }
 
 }   // namespace graph

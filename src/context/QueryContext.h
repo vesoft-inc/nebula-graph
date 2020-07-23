@@ -151,11 +151,10 @@ private:
     // e.g. expressions, plan nodes, executors
     std::unique_ptr<ObjectPool>                             objPool_;
 
-    // map from plan node id to index of profiling data list
-    std::unordered_map<int64_t, size_t> planNodeIndexMap_;
-    std::unique_ptr<cpp2::PlanDescription> planDescription_;
+    // plan description for explain and profile query
+    std::unique_ptr<cpp2::PlanDescription>                  planDescription_;
 };
 
-}  // namespace graph
-}  // namespace nebula
-#endif  // CONTEXT_QUERYCONTEXT_H_
+}   // namespace graph
+}   // namespace nebula
+#endif   // CONTEXT_QUERYCONTEXT_H_

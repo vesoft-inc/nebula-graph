@@ -62,11 +62,7 @@ bool QueryInstance::explainOrContinue() {
         return true;
     }
     qctx_->fillPlanDescription();
-    auto explainSentence = static_cast<const ExplainSentence *>(sentences_.get());
-    if (explainSentence->isProfile()) {
-        return true;
-    }
-    return false;
+    return static_cast<const ExplainSentence *>(sentences_.get())->isProfile();
 }
 
 void QueryInstance::onFinish() {

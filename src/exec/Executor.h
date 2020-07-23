@@ -35,7 +35,7 @@ public:
     // Create executor according to plan node
     static Executor *makeExecutor(const PlanNode *node, QueryContext *qctx);
 
-    virtual ~Executor() {}
+    virtual ~Executor();
 
     // Each executor inherited from this class should get input values from ExecutionContext,
     // execute expression evaluation and save output result back to ExecutionContext after
