@@ -53,6 +53,10 @@ public:
     }
 
 private:
+    Status validateAndOptimize();
+    // return true if continue to execute
+    bool explainOrContinue();
+
     std::unique_ptr<Sentence>                   sentences_;
     std::unique_ptr<QueryContext>               qctx_;
     std::unique_ptr<ASTValidator>               validator_;

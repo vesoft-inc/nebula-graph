@@ -19,40 +19,15 @@ namespace nebula {
 namespace graph {
 
 void QueryInstance::execute() {
-    auto *rctx = qctx()->rctx();
-    VLOG(1) << "Parsing query: " << rctx->query();
-
-    Status status;
-    do {
-        auto result = GQLParser().parse(rctx->query());
-        if (!result.ok()) {
-            status = std::move(result).status();
-            LOG(ERROR) << "Parser: `" << rctx->query() << "' error: " << status;
-            break;
-        }
-
-        sentences_ = std::move(result).value();
-        validator_ = std::make_unique<ASTValidator>(sentences_.get(), qctx());
-        status = validator_->validate();
-        if (!status.ok()) {
-            break;
-        }
-
-        // TODO: optional optimize for plan.
-    } while (false);
-
+    Status status = validateAndOptimize();
     if (!status.ok()) {
-        LOG(ERROR) << status;
         onError(std::move(status));
         return;
     }
 
-    if (sentences_->kind() == Sentence::Kind::kExplain) {
-        auto explainSentence = static_cast<const ExplainSentence *>(sentences_.get());
-        if (!explainSentence->isProfile()) {
-            onFinish();
-            return;
-        }
+    if (!explainOrContinue()) {
+        onFinish();
+        return;
     }
 
     scheduler_->schedule()
@@ -65,6 +40,33 @@ void QueryInstance::execute() {
         })
         .onError([this](const ExecutionError &e) { onError(e.status()); })
         .onError([this](const std::exception &e) { onError(Status::Error("%s", e.what())); });
+}
+
+Status QueryInstance::validateAndOptimize() {
+    auto *rctx = qctx()->rctx();
+    VLOG(1) << "Parsing query: " << rctx->query();
+    auto result = GQLParser().parse(rctx->query());
+    NG_RETURN_IF_ERROR(result);
+    sentences_ = std::move(result).value();
+
+    validator_ = std::make_unique<ASTValidator>(sentences_.get(), qctx());
+    NG_RETURN_IF_ERROR(validator_->validate());
+
+    // TODO: optional optimize for plan.
+
+    return Status::OK();
+}
+
+bool QueryInstance::explainOrContinue() {
+    if (sentences_->kind() != Sentence::Kind::kExplain) {
+        return true;
+    }
+    qctx_->fillPlanDescription();
+    auto explainSentence = static_cast<const ExplainSentence *>(sentences_.get());
+    if (explainSentence->isProfile()) {
+        return true;
+    }
+    return false;
 }
 
 void QueryInstance::onFinish() {
@@ -85,6 +87,11 @@ void QueryInstance::onFinish() {
             rctx->resp().set_error_msg("Internal error: empty column name list");
         }
     }
+
+    if (qctx()->planDescription() != nullptr) {
+        std::swap(*qctx()->planDescription(), *rctx->resp().get_plan_desc());
+    }
+
     rctx->finish();
 
     // The `QueryInstance' is the root node holding all resources during the execution.
@@ -95,6 +102,7 @@ void QueryInstance::onFinish() {
 }
 
 void QueryInstance::onError(Status status) {
+    LOG(ERROR) << status;
     auto *rctx = qctx()->rctx();
     if (status.isSyntaxError()) {
         rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);

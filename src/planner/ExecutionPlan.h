@@ -19,6 +19,10 @@
 namespace nebula {
 namespace graph {
 
+namespace cpp2 {
+class PlanDescription;
+}  // namespace cpp2
+
 class Executor;
 class IdGenerator;
 class PlanNode;
@@ -59,10 +63,12 @@ public:
         return objPool_;
     }
 
-    folly::Future<Status> execute();
+    void fillPlanDescription(cpp2::PlanDescription* planDesc,
+                             std::unordered_map<int64_t, size_t>* nodeIdxMap) const;
 
 private:
     Executor* createExecutor();
+
 
     int64_t                                 id_;
     PlanNode*                               root_{nullptr};

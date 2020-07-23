@@ -22,9 +22,9 @@ Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id(
 Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
 
 folly::Future<Status> Scheduler::schedule() {
-    root_ = Executor::makeExecutor(qctx_->plan()->root(), qctx_);
-    analyze(root_);
-    return schedule(root_);
+    auto executor = Executor::makeExecutor(qctx_->plan()->root(), qctx_);
+    analyze(executor);
+    return schedule(executor);
 }
 
 void Scheduler::analyze(Executor *executor) {

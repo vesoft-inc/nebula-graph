@@ -6,14 +6,21 @@
 
 #include "context/QueryContext.h"
 
+#include "common/interface/gen-cpp2/graph_types.h"
+
 namespace nebula {
 namespace graph {
 
-void QueryContext::addProfilingData(int64_t planNodeId) {
+void QueryContext::addProfilingData(int64_t planNodeId, cpp2::ProfilingStats profilingStats) {
+    if (!planDescription_) return;
     auto found = planNodeIndexMap_.find(planNodeId);
-    DCHECK_NE(found, planNodeIndexMap_.end());
+    DCHECK(found != planNodeIndexMap_.end());
     auto idx = found->second;
-    UNUSED(idx);
+    planDescription_->plan_node_descs[idx].get_profiles()->emplace_back(std::move(profilingStats));
+}
+
+void QueryContext::fillPlanDescription() {
+    DCHECK_NOTNULL(ep_)->fillPlanDescription(planDescription_.get(), &planNodeIndexMap_);
 }
 
 }   // namespace graph

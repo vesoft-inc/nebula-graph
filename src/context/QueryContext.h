@@ -8,20 +8,24 @@
 #define CONTEXT_QUERYCONTEXT_H_
 
 #include "common/base/Base.h"
-#include "common/datatypes/Value.h"
-#include "common/meta/SchemaManager.h"
-#include "common/cpp/helpers.h"
 #include "common/charset/Charset.h"
 #include "common/clients/meta/MetaClient.h"
 #include "common/clients/storage/GraphStorageClient.h"
+#include "common/cpp/helpers.h"
+#include "common/datatypes/Value.h"
+#include "common/meta/SchemaManager.h"
+#include "context/ExecutionContext.h"
+#include "context/ValidateContext.h"
 #include "parser/SequentialSentences.h"
 #include "service/RequestContext.h"
 #include "util/ObjectPool.h"
-#include "context/ValidateContext.h"
-#include "context/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
+
+namespace cpp2 {
+class PlanDescription;
+}   // namespace cpp2
 
 /***************************************************************************
  *
@@ -39,17 +43,6 @@ namespace graph {
 class QueryContext {
 public:
     using RequestContextPtr = std::unique_ptr<RequestContext<cpp2::ExecutionResponse>>;
-
-    enum class ExplainFormatType : uint8_t {
-        kRow,
-        kDot,
-    };
-
-    enum class StmtType : uint8_t {
-        kExecute,
-        kExplain,
-        kProfile,
-    };
 
     QueryContext(RequestContextPtr rctx,
                  meta::SchemaManager* sm,
@@ -132,23 +125,17 @@ public:
         return objPool_.get();
     }
 
-    ExplainFormatType explainFormatType() const {
-        return explainFormatType_;
+    void addProfilingData(int64_t planNodeId, cpp2::ProfilingStats profilingStats);
+
+    cpp2::PlanDescription* planDescription() const {
+        return planDescription_.get();
     }
 
-    void setExplainFormatType(ExplainFormatType explainFormatType) {
-        explainFormatType_ = explainFormatType;
+    void setPlanDescription(std::unique_ptr<cpp2::PlanDescription> planDescription) {
+        planDescription_ = std::move(planDescription);
     }
 
-    StmtType stmtType() const {
-        return stmtType_;
-    }
-
-    void setStmtType(StmtType stmtType) {
-        stmtType_ = stmtType;
-    }
-
-    void addProfilingData(int64_t planNodeId);
+    void fillPlanDescription();
 
 private:
     RequestContextPtr                                       rctx_;
@@ -164,12 +151,9 @@ private:
     // e.g. expressions, plan nodes, executors
     std::unique_ptr<ObjectPool>                             objPool_;
 
-    // explain or profile
-    ExplainFormatType explainFormatType_{ExplainFormatType::kRow};
-    StmtType stmtType_{StmtType::kExecute};
     // map from plan node id to index of profiling data list
     std::unordered_map<int64_t, size_t> planNodeIndexMap_;
-    // TODO(yee): Plan description data
+    std::unique_ptr<cpp2::PlanDescription> planDescription_;
 };
 
 }  // namespace graph

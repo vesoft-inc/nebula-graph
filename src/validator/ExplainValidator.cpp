@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include "common/base/StatusOr.h"
+#include "common/interface/gen-cpp2/graph_types.h"
 #include "parser/ExplainSentence.h"
 #include "planner/PlanNode.h"
 #include "validator/SequentialValidator.h"
@@ -16,17 +17,16 @@
 namespace nebula {
 namespace graph {
 
-using QStmtType = QueryContext::StmtType;
-using QExplainFmtType = QueryContext::ExplainFormatType;
+using ExplainFmtType = cpp2::PlanFormat;
 
 ExplainValidator::ExplainValidator(Sentence* sentence, QueryContext* context)
     : Validator(sentence, context) {
     DCHECK_EQ(sentence->kind(), Sentence::Kind::kExplain);
 }
 
-static StatusOr<QExplainFmtType> toExplainFormatType(const std::string& formatType) {
+static StatusOr<ExplainFmtType> toExplainFormatType(const std::string& formatType) {
     if (formatType.empty()) {
-        return QExplainFmtType::kRow;
+        return ExplainFmtType::ROW;
     }
 
     std::string fmtType = formatType;
@@ -35,14 +35,14 @@ static StatusOr<QExplainFmtType> toExplainFormatType(const std::string& formatTy
     });
 
     if (fmtType == "row") {
-        return QExplainFmtType::kRow;
+        return ExplainFmtType::ROW;
     }
 
     if (fmtType == "dot") {
-        return QExplainFmtType::kDot;
+        return ExplainFmtType::DOT;
     }
 
-    return Status::Error(
+    return Status::SyntaxError(
         "Invalid explain/profile format type: \"%s\", only `row' and `dot' values supported",
         formatType.c_str());
 }
@@ -50,12 +50,11 @@ static StatusOr<QExplainFmtType> toExplainFormatType(const std::string& formatTy
 Status ExplainValidator::validateImpl() {
     auto explain = static_cast<ExplainSentence*>(sentence_);
 
-    auto stmtType = explain->isProfile() ? QStmtType::kProfile : QStmtType::kExplain;
-    qctx_->setStmtType(stmtType);
-
     auto status = toExplainFormatType(explain->formatType());
     NG_RETURN_IF_ERROR(status);
-    qctx_->setExplainFormatType(std::move(status).value());
+    auto planDesc = std::make_unique<cpp2::PlanDescription>();
+    planDesc->set_format(std::move(status).value());
+    qctx_->setPlanDescription(std::move(planDesc));
 
     auto sentences = explain->seqSentences();
     validator_ = std::make_unique<SequentialValidator>(sentences, qctx_);
