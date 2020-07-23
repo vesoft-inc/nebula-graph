@@ -70,21 +70,24 @@ bool QueryInstance::explainOrContinue() {
 }
 
 void QueryInstance::onFinish() {
-    auto *rctx = qctx()->rctx();
-    // executor_->setupResponse(rctx->resp());
+    auto rctx = qctx()->rctx();
+    auto ectx = qctx()->ectx();
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().set_latency_in_us(latency);
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
-    auto&& value = qctx()->ectx()->moveValue(qctx()->plan()->root()->varName());
-    if (value.type() == Value::Type::DATASET) {
-        auto result = value.moveDataSet();
-        if (!result.colNames.empty()) {
-            rctx->resp().set_data(std::move(result));
-        } else {
-            LOG(ERROR) << "Empty column name list";
-            rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
-            rctx->resp().set_error_msg("Internal error: empty column name list");
+    auto name = qctx()->plan()->root()->varName();
+    if (ectx->exist(name)) {
+        auto &&value = ectx->moveValue(name);
+        if (value.type() == Value::Type::DATASET) {
+            auto result = value.moveDataSet();
+            if (!result.colNames.empty()) {
+                rctx->resp().set_data(std::move(result));
+            } else {
+                LOG(ERROR) << "Empty column name list";
+                rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
+                rctx->resp().set_error_msg("Internal error: empty column name list");
+            }
         }
     }
 

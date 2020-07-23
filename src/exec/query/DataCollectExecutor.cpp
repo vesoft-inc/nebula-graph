@@ -19,6 +19,8 @@ folly::Future<Status> DataCollectExecutor::execute() {
 }
 
 folly::Future<Status> DataCollectExecutor::doCollect() {
+    SCOPED_TIMER(profilingStats_->duration);
+
     auto* dc = asNode<DataCollect>(node());
     colNames_ = dc->colNames();
     auto vars = dc->vars();
@@ -45,9 +47,9 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
     for (auto& var : vars) {
         auto& hist = ectx_->getHistory(var);
         for (auto& result : hist) {
-            Row row;
             auto iter = result.iter();
             if (iter->isGetNeighborsIter()) {
+                Row row;
                 auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
                 row.values.emplace_back(gnIter->getVertices());
                 row.values.emplace_back(gnIter->getEdges());

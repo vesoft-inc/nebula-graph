@@ -9,6 +9,7 @@
 #include <folly/String.h>
 #include <folly/executors/InlineExecutor.h>
 
+#include "common/interface/gen-cpp2/graph_types.h"
 #include "context/ExecutionContext.h"
 #include "context/QueryContext.h"
 #include "exec/ExecutionError.h"
@@ -44,6 +45,7 @@
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
 #include "util/ObjectPool.h"
+#include "util/ScopedTimer.h"
 
 using folly::stringPrintf;
 
@@ -60,6 +62,8 @@ Executor *Executor::makeExecutor(const PlanNode *node, QueryContext *qctx) {
 Executor *Executor::makeExecutor(const PlanNode *node,
                                  QueryContext *qctx,
                                  std::unordered_map<int64_t, Executor *> *visited) {
+    DCHECK(qctx != nullptr);
+    DCHECK(node != nullptr);
     auto iter = visited->find(node->id());
     if (iter != visited->end()) {
         return iter->second;
@@ -382,12 +386,25 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
       name_(name),
       node_(DCHECK_NOTNULL(node)),
       qctx_(DCHECK_NOTNULL(qctx)),
-      ectx_(DCHECK_NOTNULL(qctx->ectx())) {
+      ectx_(DCHECK_NOTNULL(qctx->ectx())),
+      profilingStats_(std::make_unique<cpp2::ProfilingStats>()) {
     // Initialize the position in ExecutionContext for each executor before execution plan
     // starting to run. This will avoid lock something for thread safety in real execution
     if (!ectx_->exist(node->varName())) {
         ectx_->initVar(node->varName());
     }
+}
+
+void Executor::startProfiling() {
+    profilingStats_->set_rows(0);
+    profilingStats_->set_duration(0);
+    totalDuration_.reset();
+}
+
+void Executor::stopProfiling() {
+    auto totalDuration = totalDuration_.elapsedInUSec();
+    profilingStats_->set_duration(totalDuration);
+    qctx()->addProfilingData(node_->id(), *profilingStats_);
 }
 
 folly::Future<Status> Executor::start(Status status) const {
