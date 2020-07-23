@@ -1922,7 +1922,7 @@ host_item
     }
 
 port : INTEGER {
-        if ($$ > std::numeric_limits<uint16_t>::max()) {
+        if ($1 > std::numeric_limits<uint16_t>::max()) {
             throw nebula::GraphParser::syntax_error(@1, "Out of range:");
         }
         $$ = $1;
