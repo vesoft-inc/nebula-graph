@@ -75,7 +75,6 @@ void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
         list.values.reserve(hashKeys.size());
         for (auto& col : hashKeys) {
             Value val = col->eval(ctx);
-            VLOG(1) << "hash key: " << col->toString();
             list.values.emplace_back(std::move(val));
         }
 
@@ -92,7 +91,6 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
         list.values.reserve(probeKeys.size());
         for (auto& col : probeKeys) {
             Value val = col->eval(ctx);
-            VLOG(1) << "probe item: " << col->toString();
             list.values.emplace_back(std::move(val));
         }
 

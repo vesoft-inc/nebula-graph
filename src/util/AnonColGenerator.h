@@ -14,11 +14,11 @@
 namespace nebula {
 namespace graph {
 /**
- * An utility to generate an anonymous variable.
+ * An utility to generate an anonymous column name.
  */
-class AnnoColGenerator final {
+class AnonColGenerator final {
 public:
-    AnnoColGenerator() {
+    AnonColGenerator() {
         idGen_ = std::make_unique<IdGenerator>();
     }
 

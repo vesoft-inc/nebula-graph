@@ -9,7 +9,7 @@
 namespace nebula {
 namespace graph {
 constexpr int64_t ExecutionContext::kLatestVersion;
-constexpr int64_t ExecutionContext::kEldestVersion;
+constexpr int64_t ExecutionContext::kOldestVersion;
 
 void ExecutionContext::setValue(const std::string& name, Value&& val) {
     ResultBuilder builder;
@@ -71,12 +71,10 @@ const Result& ExecutionContext::getVersionedResult(const std::string& name,
                                                    int64_t version) const {
     auto& result = getHistory(name);
     auto size = result.size();
-    if (version <= 0 && static_cast<size_t>(std::abs(version)) < size) {
-        return result[size + version - 1];
-    } else if (version > 0 && static_cast<size_t>(version) <= size) {
-        return result[version - 1];
-    } else {
+    if (static_cast<size_t>(std::abs(version)) > size) {
         return Result::kEmptyResult;
+    } else {
+        return result[(size + version - 1) % size ];
     }
 }
 

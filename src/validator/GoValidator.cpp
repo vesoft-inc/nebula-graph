@@ -401,7 +401,7 @@ Project* GoValidator::projectDstVidsFromGN(PlanNode* gn, std::string outputVar) 
         new std::string(kVid));
     columns->addColumn(column);
 
-    srcVidColName_ = vctx_->annoColGen()->getCol();
+    srcVidColName_ = vctx_->anonColGen()->getCol();
     if (!inputProps_.empty()) {
         column =
             new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
@@ -421,7 +421,7 @@ Project* GoValidator::projectDstVidsFromGN(PlanNode* gn, std::string outputVar) 
 Project* GoValidator::ifBuildLeftVarForTraceJoin(PlanNode* projectStartVid) {
     Project* projectLeftVarForJoin = nullptr;
     auto* plan = qctx_->plan();
-    dstVidColName_ = vctx_->annoColGen()->getCol();
+    dstVidColName_ = vctx_->anonColGen()->getCol();
     if (!inputProps_.empty()) {
         auto* columns = new YieldColumns();
         auto* column =
@@ -459,7 +459,7 @@ Status GoValidator::buildOneStepPlan() {
 }
 
 std::string GoValidator::buildConstantInput() {
-    auto input = vctx_->annoVarGen()->getVar();
+    auto input = vctx_->anonVarGen()->getVar();
     DataSet ds;
     ds.colNames.emplace_back(kVid);
     for (auto& vid : starts_) {
@@ -581,7 +581,7 @@ GetNeighbors::EdgeProps GoValidator::buildNStepLoopEdgeProps() {
 Expression* GoValidator::buildNStepLoopCondition(int64_t steps) const {
     VLOG(1) << "steps: " << steps;
     // ++loopSteps{0} <= steps
-    auto loopSteps = vctx_->annoVarGen()->getVar();
+    auto loopSteps = vctx_->anonVarGen()->getVar();
     qctx_->ectx()->setValue(loopSteps, 0);
     auto* condition = new RelationalExpression(
         Expression::Kind::kRelLE,
@@ -639,7 +639,7 @@ void GoValidator::extractPropExprs(const Expression* expr) {
                 auto encode = expr->encode();
                 auto newExpr = Expression::decode(encode);
                 auto col = new YieldColumn(
-                    newExpr.release(), new std::string(vctx_->annoColGen()->getCol()));
+                    newExpr.release(), new std::string(vctx_->anonColGen()->getCol()));
                 propExprColMap_.emplace(expr->toString(), col);
                 dstPropCols_->addColumn(col);
             }
@@ -657,7 +657,7 @@ void GoValidator::extractPropExprs(const Expression* expr) {
                 auto encode = expr->encode();
                 auto newExpr = Expression::decode(encode);
                 auto col = new YieldColumn(
-                    newExpr.release(), new std::string(vctx_->annoColGen()->getCol()));
+                    newExpr.release(), new std::string(vctx_->anonColGen()->getCol()));
                 propExprColMap_.emplace(expr->toString(), col);
                 srcAndEdgePropCols_->addColumn(col);
             }

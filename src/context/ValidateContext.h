@@ -11,8 +11,8 @@
 #include "common/datatypes/Value.h"
 #include "common/charset/Charset.h"
 #include "planner/ExecutionPlan.h"
-#include "util/AnnoVarGenerator.h"
-#include "util/AnnoColGenerator.h"
+#include "util/AnonVarGenerator.h"
+#include "util/AnonColGenerator.h"
 
 namespace nebula {
 namespace graph {
@@ -28,8 +28,8 @@ struct SpaceDescription {
 class ValidateContext final {
 public:
     ValidateContext() {
-        annoVarGen_ = std::make_unique<AnnoVarGenerator>();
-        annoColGen_ = std::make_unique<AnnoColGenerator>();
+        anonVarGen_ = std::make_unique<AnonVarGenerator>();
+        anonColGen_ = std::make_unique<AnonColGenerator>();
     }
 
     void switchToSpace(std::string spaceName, GraphSpaceID spaceId) {
@@ -71,12 +71,12 @@ public:
         return spaces_.back();
     }
 
-    AnnoVarGenerator* annoVarGen() const {
-        return annoVarGen_.get();
+    AnonVarGenerator* anonVarGen() const {
+        return anonVarGen_.get();
     }
 
-    AnnoColGenerator* annoColGen() const {
-        return annoColGen_.get();
+    AnonColGenerator* anonColGen() const {
+        return anonColGen_.get();
     }
 
     void addSchema(const std::string& name,
@@ -97,8 +97,8 @@ private:
     std::vector<SpaceDescription>                       spaces_;
     // vars_ saves all named variable
     std::unordered_map<std::string, ColsDef>            vars_;
-    std::unique_ptr<AnnoVarGenerator>                   annoVarGen_;
-    std::unique_ptr<AnnoColGenerator>                   annoColGen_;
+    std::unique_ptr<AnonVarGenerator>                   anonVarGen_;
+    std::unique_ptr<AnonColGenerator>                   anonColGen_;
     using Schemas = std::unordered_map<std::string,
           std::shared_ptr<const meta::NebulaSchemaProvider>>;
     Schemas                                             schemas_;
