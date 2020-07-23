@@ -330,6 +330,7 @@ PlanNode* GoValidator::ifBuildJoinPipeInput(
         auto* joinHashKey = new VariablePropertyExpression(
             new std::string(joinInputHashKeyDependency->varName()),
             new std::string(steps_ > 1 ? firstBeginningSrcVidColName_ : kVid));
+        plan->saveObject(joinHashKey);
         auto* joinInput =
             DataJoin::make(plan, joinInputHashKeyDependency,
                            {joinInputHashKeyDependency->varName(),
