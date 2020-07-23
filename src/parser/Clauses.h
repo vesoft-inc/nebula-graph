@@ -240,10 +240,19 @@ public:
         return *aggFunName_;
     }
 
+    void setConstant(Value &&v) {
+        constant_.reset(new Value(std::move(v)));
+    }
+
+    const Value* constant() const {
+        return constant_.get();
+    }
+
     std::string toString() const;
 
 private:
     std::unique_ptr<Expression>                 expr_;
+    std::unique_ptr<Value>                      constant_;
     std::unique_ptr<std::string>                alias_;
     std::unique_ptr<std::string>                aggFunName_{nullptr};
 };

@@ -26,7 +26,7 @@ folly::Future<Status> ProjectExecutor::execute() {
     for (; iter->valid(); iter->next()) {
         Row row;
         for (auto& col : columns) {
-            Value val = col->expr()->eval(ctx);
+            Value val = col->constant() != nullptr ? *col->constant() : col->expr()->eval(ctx);
             VLOG(3) << "Project: " << val;
             row.values.emplace_back(std::move(val));
         }
