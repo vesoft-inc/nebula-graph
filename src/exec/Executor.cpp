@@ -407,7 +407,7 @@ void Executor::startProfiling() {
 void Executor::stopProfiling() {
     auto totalDuration = totalDuration_.elapsedInUSec();
     profilingStats_->set_total_duration_in_us(totalDuration);
-    qctx()->addProfilingData(node_->id(), *profilingStats_);
+    qctx()->addProfilingData(node_->id(), profilingStats_.get());
 }
 
 folly::Future<Status> Executor::start(Status status) const {

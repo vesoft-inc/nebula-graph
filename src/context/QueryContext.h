@@ -24,6 +24,7 @@ namespace nebula {
 namespace graph {
 
 namespace cpp2 {
+class ProfilingStats;
 class PlanDescription;
 }   // namespace cpp2
 
@@ -125,7 +126,7 @@ public:
         return objPool_.get();
     }
 
-    void addProfilingData(int64_t planNodeId, cpp2::ProfilingStats profilingStats);
+    void addProfilingData(int64_t planNodeId, const cpp2::ProfilingStats* profilingStats);
 
     cpp2::PlanDescription* planDescription() const {
         return planDescription_.get();

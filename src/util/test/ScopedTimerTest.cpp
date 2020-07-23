@@ -18,11 +18,20 @@ TEST(ScopedTimerTest, TestScopedTimer) {
         ::usleep(100);
     }
     EXPECT_GE(var, 99);
+
     {
         ScopedTimer st([&](uint64_t et) { var = et; });
         ::usleep(10);
     }
     EXPECT_GE(var, 9);
+
+    int64_t var2 = 0;
+    {
+      SCOPED_TIMER(&var);
+      SCOPED_TIMER(&var2);
+      ::usleep(1);
+    }
+    EXPECT_GE(var, var2);
 }
 
 }   // namespace graph

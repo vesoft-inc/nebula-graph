@@ -88,7 +88,7 @@ void QueryInstance::onFinish() {
     }
 
     if (qctx()->planDescription() != nullptr) {
-        std::swap(*qctx()->planDescription(), *rctx->resp().get_plan_desc());
+        rctx->resp().set_plan_desc(std::move(*qctx()->planDescription()));
     }
 
     rctx->finish();

@@ -58,11 +58,17 @@ Status ExplainValidator::validateImpl() {
 
     auto sentences = explain->seqSentences();
     validator_ = std::make_unique<SequentialValidator>(sentences, qctx_);
-    return validator_->validate();
+    NG_RETURN_IF_ERROR(validator_->validate());
+
+    outputs_ = validator_->outputs();
+    return Status::OK();
 }
 
 Status ExplainValidator::toPlan() {
-    return validator_->toPlan();
+    NG_RETURN_IF_ERROR(validator_->toPlan());
+    root_ = validator_->root();
+    tail_ = validator_->tail();
+    return Status::OK();
 }
 
 }   // namespace graph

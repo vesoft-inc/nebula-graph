@@ -2069,17 +2069,23 @@ seq_sentences
     ;
 
 explain_sentence
-    : KW_EXPLAIN L_BRACE seq_sentences R_BRACE {
+    : KW_EXPLAIN sentence {
+        $$ = new ExplainSentence(new SequentialSentences($2));
+    }
+    | KW_EXPLAIN KW_FORMAT ASSIGN STRING sentence {
+        $$ = new ExplainSentence(new SequentialSentences($5), false, $4);
+    }
+    | KW_EXPLAIN L_BRACE seq_sentences R_BRACE {
         $$ = new ExplainSentence($3);
     }
     | KW_EXPLAIN KW_FORMAT ASSIGN STRING L_BRACE seq_sentences R_BRACE {
         $$ = new ExplainSentence($6, false, $4);
     }
-    | KW_EXPLAIN sentence {
-        $$ = new ExplainSentence(new SequentialSentences($2));
+    | KW_PROFILE sentence {
+        $$ = new ExplainSentence(new SequentialSentences($2), true);
     }
-    | KW_EXPLAIN KW_FORMAT ASSIGN STRING sentence {
-        $$ = new ExplainSentence(new SequentialSentences($5), false, $4);
+    | KW_PROFILE KW_FORMAT ASSIGN STRING sentence {
+        $$ = new ExplainSentence(new SequentialSentences($5), true, $4);
     }
     | KW_PROFILE L_BRACE seq_sentences R_BRACE {
         $$ = new ExplainSentence($3, true);
@@ -2087,11 +2093,8 @@ explain_sentence
     | KW_PROFILE KW_FORMAT ASSIGN STRING L_BRACE seq_sentences R_BRACE {
         $$ = new ExplainSentence($6, true, $4);
     }
-    | KW_PROFILE sentence {
-        $$ = new ExplainSentence(new SequentialSentences($2), true);
-    }
-    | KW_PROFILE KW_FORMAT ASSIGN STRING sentence {
-        $$ = new ExplainSentence(new SequentialSentences($5), true, $4);
+    | explain_sentence SEMICOLON {
+        $$ = $1;
     }
     ;
 
