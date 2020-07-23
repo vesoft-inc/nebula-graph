@@ -6,15 +6,18 @@
 
 #include "exec/query/ProjectExecutor.h"
 
+#include "common/interface/gen-cpp2/graph_types.h"
 #include "context/QueryExpressionContext.h"
 #include "parser/Clauses.h"
 #include "planner/Query.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> ProjectExecutor::execute() {
     dumpLog();
+    SCOPED_TIMER(&profilingStats_->exec_duration_in_us);
     auto* project = asNode<Project>(node());
     auto columns = project->columns()->columns();
     auto iter = ectx_->getResult(project->inputVar()).iter();
