@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef UTIL_ANNOCOLGENERATOR_H_
-#define UTIL_ANNOCOLGENERATOR_H_
+#ifndef UTIL_ANONCOLGENERATOR_H_
+#define UTIL_ANONCOLGENERATOR_H_
 
 #include "common/base/Base.h"
 
@@ -31,4 +31,4 @@ private:
 };
 }  // namespace graph
 }  // namespace nebula
-#endif  // UTIL_ANNOVARGENERATOR_H_
+#endif  // UTIL_ANONCOLGENERATOR_H_
