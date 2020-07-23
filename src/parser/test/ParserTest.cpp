@@ -2058,13 +2058,37 @@ TEST(Parser, TypeCast) {
     }
     {
         GQLParser parser;
-        std::string query = "YIELD (INT)\"1.23\"";
+        std::string query = "YIELD (INT8)\".123\"";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok());
     }
     {
         GQLParser parser;
-        std::string query = "YIELD (INT)\"123abc\"";
+        std::string query = "YIELD (INT16)\".123\"";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok());
+    }
+    {
+        GQLParser parser;
+        std::string query = "YIELD (INT32)\".123\"";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok());
+    }
+    {
+        GQLParser parser;
+        std::string query = "YIELD (INT64)\"1.23\"";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok());
+    }
+    {
+        GQLParser parser;
+        std::string query = "YIELD (INT65)\"1.23\"";
+        auto result = parser.parse(query);
+        ASSERT_FALSE(result.ok());
+    }
+    {
+        GQLParser parser;
+        std::string query = "YIELD (DOUBLE)\"123abc\"";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok());
     }
