@@ -575,6 +575,7 @@ Status UpdateVertexValidator::validateImpl() {
         LOG(ERROR) << "No schema found for " << name_;
         return Status::Error("No schema found for `%s'", name_.c_str());
     }
+    tagId_ = ret.value();
     return Status::OK();
 }
 
@@ -583,8 +584,10 @@ Status UpdateVertexValidator::toPlan() {
     auto *start = StartNode::make(plan);
     auto *doNode = UpdateVertex::make(plan,
                                       start,
-                                      vId_,
+                                      spaceId_,
                                       std::move(name_),
+                                      vId_,
+                                      tagId_,
                                       insertable_,
                                       std::move(updatedProps_),
                                       std::move(returnProps_),
@@ -616,24 +619,41 @@ Status UpdateEdgeValidator::validateImpl() {
         LOG(ERROR) << "No schema found for " << name_;
         return Status::Error("No schema found for `%s'", name_.c_str());
     }
+    edgeType_ = ret.value();
     return Status::OK();
 }
 
 Status UpdateEdgeValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *start = StartNode::make(plan);
-    auto *doNode = UpdateEdge::make(plan,
-                                    start,
-                                    std::move(srcId_),
-                                    std::move(dstId_),
+    auto *outNode = UpdateEdge::make(plan,
+                                     start,
+                                     spaceId_,
+                                     name_,
+                                     srcId_,
+                                     dstId_,
+                                     edgeType_,
+                                     rank_,
+                                     insertable_,
+                                     updatedProps_,
+                                     {},
+                                     condition_,
+                                     {});
+
+    auto *inNode = UpdateEdge::make(plan,
+                                    outNode,
+                                    spaceId_,
                                     std::move(name_),
+                                    std::move(dstId_),
+                                    std::move(srcId_),
+                                    -edgeType_,
                                     rank_,
                                     insertable_,
                                     std::move(updatedProps_),
                                     std::move(returnProps_),
                                     std::move(condition_),
                                     std::move(yieldColNames_));
-    root_ = doNode;
+    root_ = inNode;
     tail_ = root_;
     return Status::OK();
 }

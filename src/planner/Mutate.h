@@ -138,6 +138,7 @@ public:
     static UpdateBase* make(Kind kind,
                             ExecutionPlan* plan,
                             PlanNode* input,
+                            GraphSpaceID spaceId,
                             std::string name,
                             bool insertable,
                             std::vector<storage::cpp2::UpdatedProp> updatedProps,
@@ -147,6 +148,7 @@ public:
         return new UpdateBase(kind,
                               plan,
                               input,
+                              spaceId,
                               std::move(name),
                               insertable,
                               std::move(updatedProps),
@@ -157,10 +159,6 @@ public:
 
     std::string explain() const override {
         return "";
-    }
-
-    const std::string& name() const {
-        return name_;
     }
 
     bool getInsertable() const {
@@ -179,18 +177,23 @@ public:
         return yieldNames_;
     }
 
-    const std::string& getName() const {
-        return name_;
+    GraphSpaceID getSpaceId() const {
+        return spaceId_;
     }
 
     const std::vector<storage::cpp2::UpdatedProp>& getUpdatedProps() const {
         return updatedProps_;
     }
 
+    const std::string& getName() const {
+        return schemaName_;
+    }
+
 protected:
     UpdateBase(Kind kind,
                ExecutionPlan* plan,
                PlanNode* input,
+               GraphSpaceID spaceId,
                std::string name,
                bool insertable,
                std::vector<storage::cpp2::UpdatedProp> updatedProps,
@@ -198,7 +201,8 @@ protected:
                std::string condition,
                std::vector<std::string> yieldNames)
         : SingleInputNode(plan, kind, input)
-        , name_(std::move(name))
+        , spaceId_(spaceId)
+        , schemaName_(std::move(name))
         , insertable_(insertable)
         , updatedProps_(std::move(updatedProps))
         , returnProps_(std::move(returnProps))
@@ -206,7 +210,8 @@ protected:
         , yieldNames_(std::move(yieldNames)) {}
 
 protected:
-    std::string                                         name_;
+    GraphSpaceID                                        spaceId_{-1};
+    std::string                                         schemaName_;
     bool                                                insertable_;
     std::vector<storage::cpp2::UpdatedProp>             updatedProps_;
     std::vector<std::string>                            returnProps_;
@@ -218,8 +223,10 @@ class UpdateVertex final : public UpdateBase {
 public:
     static UpdateVertex* make(ExecutionPlan* plan,
                               PlanNode* input,
-                              std::string vId,
+                              GraphSpaceID spaceId,
                               std::string name,
+                              std::string vId,
+                              TagID tagId,
                               bool insertable,
                               std::vector<storage::cpp2::UpdatedProp> updatedProps,
                               std::vector<std::string> returnProps,
@@ -227,8 +234,10 @@ public:
                               std::vector<std::string> yieldNames) {
         return new UpdateVertex(plan,
                                 input,
-                                std::move(vId),
+                                spaceId,
                                 std::move(name),
+                                std::move(vId),
+                                tagId,
                                 insertable,
                                 std::move(updatedProps),
                                 std::move(returnProps),
@@ -240,15 +249,21 @@ public:
         return "UpdateVertex";
     }
 
-    std::string getVId() const {
+    const std::string& getVId() const {
         return vId_;
+    }
+
+    TagID getTagId() const {
+        return tagId_;
     }
 
 private:
     UpdateVertex(ExecutionPlan* plan,
                  PlanNode* input,
-                 std::string vId,
+                 GraphSpaceID spaceId,
                  std::string name,
+                 std::string vId,
+                 TagID tagId,
                  bool insertable,
                  std::vector<storage::cpp2::UpdatedProp> updatedProps,
                  std::vector<std::string> returnProps,
@@ -257,25 +272,30 @@ private:
         : UpdateBase(Kind::kUpdateVertex,
                      plan,
                      input,
+                     spaceId,
                      std::move(name),
                      insertable,
                      std::move(updatedProps),
                      std::move(returnProps),
                      std::move(condition),
                      std::move(yieldNames))
-        , vId_(std::move(vId)) {}
+        , vId_(std::move(vId))
+        , tagId_(tagId) {}
 
 private:
     std::string                                     vId_;
+    TagID                                           tagId_{-1};
 };
 
 class UpdateEdge final : public UpdateBase {
 public:
     static UpdateEdge* make(ExecutionPlan* plan,
                             PlanNode* input,
+                            GraphSpaceID spaceId,
+                            std::string name,
                             std::string srcId,
                             std::string dstId,
-                            std::string name,
+                            EdgeType edgeType,
                             int64_t rank,
                             bool insertable,
                             std::vector<storage::cpp2::UpdatedProp> updatedProps,
@@ -284,9 +304,11 @@ public:
                             std::vector<std::string> yieldNames) {
         return new UpdateEdge(plan,
                               input,
+                              spaceId,
+                              std::move(name),
                               std::move(srcId),
                               std::move(dstId),
-                              std::move(name),
+                              edgeType,
                               rank,
                               insertable,
                               std::move(updatedProps),
@@ -303,12 +325,16 @@ public:
         return srcId_;
     }
 
-    const std::string getDstId() const {
+    const std::string& getDstId() const {
         return dstId_;
     }
 
     int64_t getRank() const {
         return rank_;
+    }
+
+    int64_t getEdgeType() const {
+        return edgeType_;
     }
 
     const std::vector<storage::cpp2::UpdatedProp>& getUpdatedProps() const {
@@ -318,9 +344,11 @@ public:
 private:
     UpdateEdge(ExecutionPlan* plan,
                PlanNode* input,
+               GraphSpaceID spaceId,
+               std::string name,
                std::string srcId,
                std::string dstId,
-               std::string name,
+               EdgeType edgeType,
                int64_t rank,
                bool insertable,
                std::vector<storage::cpp2::UpdatedProp> updatedProps,
@@ -330,6 +358,7 @@ private:
         : UpdateBase(Kind::kUpdateEdge,
                      plan,
                      input,
+                     spaceId,
                      std::move(name),
                      insertable,
                      std::move(updatedProps),
@@ -339,12 +368,14 @@ private:
 
         , srcId_(std::move(srcId))
         , dstId_(std::move(dstId))
-        , rank_(rank) {}
+        , rank_(rank)
+        , edgeType_(edgeType) {}
 
 private:
     std::string                                         srcId_;
     std::string                                         dstId_;
-    int64_t                                             rank_;
+    int64_t                                             rank_{0};
+    EdgeType                                            edgeType_{-1};
 };
 
 class DeleteVertices final : public SingleInputNode {

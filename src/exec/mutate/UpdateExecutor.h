@@ -29,7 +29,7 @@ protected:
 
 protected:
     std::vector<std::string>         yieldNames_;
-    std::string                      name_;
+    std::string                      schemaName_;
 };
 
 class UpdateVertexExecutor final : public UpdateBaseExecutor {

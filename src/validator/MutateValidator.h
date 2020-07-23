@@ -93,11 +93,11 @@ protected:
     UpdateBaseSentence                                 *sentence_;
     bool                                                insertable_{false};
     GraphSpaceID                                        spaceId_{-1};
-    std::string                                         name_;
     std::vector<std::string>                            returnProps_;
     std::vector<std::string>                            yieldColNames_;
     std::string                                         condition_;
     std::vector<storage::cpp2::UpdatedProp>             updatedProps_;
+    std::string                                         name_;
 };
 
 class UpdateVertexValidator final : public UpdateBaseValidator {
@@ -139,7 +139,8 @@ public:
     Status toPlan() override;
 
 private:
-    std::string                                        vId_;
+    std::string               vId_;
+    TagID                     tagId_{-1};
 };
 
 class UpdateEdgeValidator final : public UpdateBaseValidator {
@@ -193,7 +194,11 @@ private:
     std::string                                       srcId_;
     std::string                                       dstId_;
     EdgeRanking                                       rank_{0};
+<<<<<<< HEAD
 >>>>>>> rebase upstream
+=======
+    EdgeType                                          edgeType_{-1};
+>>>>>>> add test
 };
 }  // namespace graph
 }  // namespace nebula

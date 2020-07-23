@@ -50,9 +50,13 @@ Status UpdateBaseExecutor::handleErrorCode(nebula::storage::cpp2::ErrorCode code
         case storage::cpp2::ErrorCode::E_INVALID_UPDATER:
             return Status::Error("Invalid Update col or yield col");
         case storage::cpp2::ErrorCode::E_TAG_NOT_FOUND:
-            return Status::Error("Tag `%s' not found.", name_.c_str());
+            return Status::Error("Tag `%s' not found.", schemaName_.c_str());
+        case storage::cpp2::ErrorCode::E_TAG_PROP_NOT_FOUND:
+            return Status::Error("Tag prop not found");
         case storage::cpp2::ErrorCode::E_EDGE_NOT_FOUND:
-            return Status::Error("Edge `%s' not found.", name_.c_str());
+            return Status::Error("Edge `%s' not found", schemaName_.c_str());
+        case storage::cpp2::ErrorCode::E_EDGE_PROP_NOT_FOUND:
+            return Status::Error("Edge prop not found");
         case storage::cpp2::ErrorCode::E_INVALID_DATA:
             return Status::Error("Invalid data, may be wrong value type");
         case storage::cpp2::ErrorCode::E_FILTER_OUT:
@@ -73,17 +77,11 @@ folly::Future<Status> UpdateVertexExecutor::execute() {
 folly::Future<Status> UpdateVertexExecutor::updateVertex() {
     dumpLog();
     auto *uvNode = asNode<UpdateVertex>(node());
-    name_ = uvNode->getName();
     yieldNames_ = uvNode->getYieldNames();
-    auto spaceId = qctx_->rctx()->session()->space();
-    auto ret = qctx_->schemaMng()->toTagID(spaceId, uvNode->getName());
-    if (!ret.ok()) {
-        return ret.status();
-    }
-    auto tagId = ret.value();
-    return qctx()->getStorageClient()->updateVertex(spaceId,
+    schemaName_ = uvNode->getName();
+    return qctx()->getStorageClient()->updateVertex(uvNode->getSpaceId(),
                                                     uvNode->getVId(),
-                                                    tagId,
+                                                    uvNode->getTagId(),
                                                     uvNode->getUpdatedProps(),
                                                     uvNode->getInsertable(),
                                                     uvNode->getReturnProps(),
@@ -119,22 +117,15 @@ folly::Future<Status> UpdateEdgeExecutor::execute() {
 folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
     dumpLog();
     auto *ueNode = asNode<UpdateEdge>(node());
-    auto spaceId = qctx_->rctx()->session()->space();
-    name_ = ueNode->getName();
-    auto ret = qctx_->schemaMng()->toEdgeType(spaceId, name_);
-    if (!ret.ok()) {
-        return ret.status();
-    }
-    auto edgeType = ret.value();
-
+    schemaName_ = ueNode->getName();
     storage::cpp2::EdgeKey edgeKey;
     edgeKey.set_src(ueNode->getSrcId());
     edgeKey.set_ranking(ueNode->getRank());
-    edgeKey.set_edge_type(edgeType);
+    edgeKey.set_edge_type(ueNode->getEdgeType());
     edgeKey.set_dst(ueNode->getDstId());
     yieldNames_ = ueNode->getYieldNames();
 
-    return qctx()->getStorageClient()->updateEdge(spaceId,
+    return qctx()->getStorageClient()->updateEdge(ueNode->getSpaceId(),
                                                   edgeKey,
                                                   ueNode->getUpdatedProps(),
                                                   ueNode->getInsertable(),
