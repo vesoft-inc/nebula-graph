@@ -52,7 +52,7 @@ private:
 
     GetNeighbors::VertexProps buildSrcVertexProps();
 
-    GetNeighbors::VertexProps buildDstVertexProps();
+    std::vector<storage::cpp2::VertexProp> buildDstVertexProps();
 
     GetNeighbors::EdgeProps buildEdgeProps();
 
@@ -69,6 +69,10 @@ private:
 
     PlanNode* ifBuildJoinPipeInput(PlanNode* gn,
                                    PlanNode* projectFromJoin);
+
+    PlanNode* ifBuildProjectSrcEdgePropsForGN(PlanNode* gn);
+
+    PlanNode* ifBuildJoinDstProps(PlanNode* projectSrcDstProps);
 
     enum FromType {
         kConstantExpr,
