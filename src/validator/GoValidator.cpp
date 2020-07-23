@@ -712,11 +712,11 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
             auto biExpr = static_cast<BinaryExpression*>(expr);
             auto left = rewriteToInputProp(const_cast<Expression*>(biExpr->left()));
             if (left != nullptr) {
-                biExpr->setLeft(std::move(left));
+                biExpr->setLeft(left.release());
             }
             auto right = rewriteToInputProp(const_cast<Expression*>(biExpr->right()));
             if (right != nullptr) {
-                biExpr->setRight(std::move(right));
+                biExpr->setRight(right.release());
             }
             break;
         }
@@ -726,7 +726,7 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
             auto unaryExpr = static_cast<UnaryExpression*>(expr);
             auto rewrite = rewriteToInputProp(const_cast<Expression*>(unaryExpr->operand()));
             if (rewrite != nullptr) {
-                unaryExpr->setOperand(std::move(rewrite));
+                unaryExpr->setOperand(rewrite.release());
             }
             break;
         }
