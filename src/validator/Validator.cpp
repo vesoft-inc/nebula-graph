@@ -304,9 +304,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kUnaryPlus: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             return status.value();
         }
@@ -319,9 +317,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kUnaryIncr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             auto detectVal = kConstantValues.at(status.value()) + 1;
             if (detectVal.isBadNull()) {
@@ -335,9 +331,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             auto detectVal = kConstantValues.at(status.value()) - 1;
             if (detectVal.isBadNull()) {
@@ -353,9 +347,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             std::vector<Value::Type> argsTypeList;
             for (auto &arg : funcExpr->args()->args()) {
                 auto status = deduceExprType(arg.get());
-                if (!status.ok()) {
-                    return std::move(status).status();
-                }
+                NG_RETURN_IF_ERROR(status);
                 argsTypeList.push_back(status.value());
             }
             auto result =
@@ -369,12 +361,13 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         }
         case Expression::Kind::kTypeCasting: {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
-            auto status = deduceExprType(castExpr->operand());
-            if (!status.ok()) {
-                return status.status();
+            NG_RETURN_IF_ERROR(deduceExprType(castExpr->operand()));
+            QueryExpressionContext ctx(nullptr, nullptr);
+            auto val = const_cast<TypeCastingExpression*>(castExpr)->eval(ctx);
+            if (val == Value::kNullValue) {
+                return Status::Error("`%s` is not a valid expression ", expr->toString().c_str());
             }
-            // TODO
-            return Status::Error("Not support type casting yet.");
+            return val.type();
         }
         case Expression::Kind::kTagProperty:
         case Expression::Kind::kDstProperty:

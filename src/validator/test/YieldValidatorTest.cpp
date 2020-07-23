@@ -93,10 +93,11 @@ TEST_F(YieldValidatorTest, Logic) {
 #endif
 }
 
-TEST_F(YieldValidatorTest, InCall) {
+TEST_F(YieldValidatorTest, FuncitonCall) {
     {
-        std::string query = "YIELD udf_is_in(1,0,1,2), 123";
-        EXPECT_TRUE(checkResult(query, expected_));
+        // TODO not support udf_is_in
+        // std::string query = "YIELD udf_is_in(1,0,1,2), 123";
+        // EXPECT_TRUE(checkResult(query, expected_));
     }
     {
         std::string query = "YIELD abs(-12)";
@@ -110,13 +111,13 @@ TEST_F(YieldValidatorTest, InCall) {
         std::string query = "YIELD abs(true)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "`abs(true)' is not a valid expression, __NULL_BAD_TYPE__");
+                  "`abs(true)` is not a valid expression : parameter's type error");
     }
     {
         std::string query = "YIELD abs(\"test\")";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                    "`abs(test)' is not a valid expression, __NULL_BAD_TYPE__");
+                    "`abs(test)` is not a valid expression : parameter's type error");
     }
     {
         std::string query = "YIELD noexist(12)";
@@ -124,6 +125,50 @@ TEST_F(YieldValidatorTest, InCall) {
         EXPECT_EQ(std::string(result.message()),
                   "`noexist(12)` is not a valid expression : Function `noexist' not defined");
     }
+}
+
+TEST_F(YieldValidatorTest, TypeCastTest) {
+    {
+        std::string query = "YIELD (INT)1.23";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (INT).123";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (INT)123";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (INT)\"123\"";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (STRING)1.23";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (STRING)123";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (STRING)true";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (BOOL)123";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (BOOL)0";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    {
+        std::string query = "YIELD (BOOL)-123";
+        EXPECT_TRUE(checkResult(query, expected_));
+    }
+    // TODO (jmq) more case
 }
 
 TEST_F(YieldValidatorTest, YieldPipe) {
