@@ -102,9 +102,12 @@ private:
     std::unordered_map<std::string, YieldColumn*>           propExprColMap_;
     Expression*                                             newFilter_{nullptr};
     YieldColumns*                                           newYieldCols_{nullptr};
+    // Used for n steps to trace the path
     std::string                                             srcVidColName_;
     std::string                                             dstVidColName_;
     std::string                                             firstBeginningSrcVidColName_;
+    // Used for get dst props
+    std::string                                             joinDstVidColName_;
 };
 }  // namespace graph
 }  // namespace nebula

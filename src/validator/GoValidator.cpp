@@ -199,33 +199,33 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
     gn->setInputVar(inputVarNameForGN);
     VLOG(1) << gn->varName();
 
-    PlanNode* dependentNodeForProjectResult = gn;
+    PlanNode* dependencyForProjectResult = gn;
 
     auto* projectSrcEdgeProps = ifBuildProjectSrcEdgePropsForGN(gn);
 
     auto* joinDstProps = ifBuildJoinDstProps(projectSrcEdgeProps);
     if (joinDstProps != nullptr) {
-        dependentNodeForProjectResult = joinDstProps;
+        dependencyForProjectResult = joinDstProps;
     }
 
     auto* joinInput = ifBuildJoinPipeInput(
         projectFromJoin,
         joinDstProps == nullptr ? projectSrcEdgeProps : joinDstProps);
     if (joinInput != nullptr) {
-        dependentNodeForProjectResult = joinInput;
+        dependencyForProjectResult = joinInput;
     }
 
     if (filter_ != nullptr) {
-        auto* filterNode = Filter::make(plan, dependentNodeForProjectResult,
+        auto* filterNode = Filter::make(plan, dependencyForProjectResult,
                     newFilter_ != nullptr ? newFilter_ : filter_);
-        filterNode->setInputVar(dependentNodeForProjectResult->varName());
-        filterNode->setColNames(dependentNodeForProjectResult->colNames());
-        dependentNodeForProjectResult = filterNode;
+        filterNode->setInputVar(dependencyForProjectResult->varName());
+        filterNode->setColNames(dependencyForProjectResult->colNames());
+        dependencyForProjectResult = filterNode;
     }
     auto* projectResult =
-        Project::make(plan, dependentNodeForProjectResult,
+        Project::make(plan, dependencyForProjectResult,
         newYieldCols_ != nullptr ? newYieldCols_ : yields_);
-    projectResult->setInputVar(dependentNodeForProjectResult->varName());
+    projectResult->setInputVar(dependencyForProjectResult->varName());
     projectResult->setColNames(std::vector<std::string>(colNames_));
     if (distinct_) {
         Dedup* dedupNode = Dedup::make(plan, projectResult);
@@ -304,10 +304,11 @@ PlanNode* GoValidator::ifBuildProjectSrcEdgePropsForGN(PlanNode* gn) {
 
         VLOG(1) << "build dst cols";
         if (!dstTagProps_.empty()) {
+            joinDstVidColName_ = vctx_->anonColGen()->getCol();
             auto* dstVidCol = new YieldColumn(
                 new EdgePropertyExpression(new std::string("*"),
                                            new std::string(kDst)),
-                new std::string("dst"));
+                new std::string(joinDstVidColName_));
             srcAndEdgePropCols_->addColumn(dstVidCol);
         }
 
@@ -328,7 +329,7 @@ PlanNode* GoValidator::ifBuildJoinDstProps(PlanNode* projectSrcDstProps) {
 
         auto* vids = new VariablePropertyExpression(
             new std::string(projectSrcDstProps->varName()),
-            new std::string("dst"));
+            new std::string(joinDstVidColName_));
         plan->saveObject(vids);
         auto* getDstVertices =
             GetVertices::make(plan, projectSrcDstProps, space_.id, {}, vids,
@@ -347,7 +348,7 @@ PlanNode* GoValidator::ifBuildJoinDstProps(PlanNode* projectSrcDstProps) {
 
         auto* joinHashKey = new VariablePropertyExpression(
             new std::string(projectSrcDstProps->varName()),
-            new std::string("dst"));
+            new std::string(joinDstVidColName_));
         plan->saveObject(joinHashKey);
         auto* probeKey = new VariablePropertyExpression(
             new std::string(project->varName()), new std::string(vidColName));
@@ -356,52 +357,54 @@ PlanNode* GoValidator::ifBuildJoinDstProps(PlanNode* projectSrcDstProps) {
                 {projectSrcDstProps->varName(), ExecutionContext::kLatestVersion},
                 {project->varName(), ExecutionContext::kLatestVersion},
                 {joinHashKey}, {probeKey});
+        VLOG(1) << joinDst->varName() << " hash key: " << joinHashKey->toString()
+            << " probe key: " << probeKey->toString();
     }
 
     return joinDst;
 }
 
 PlanNode* GoValidator::ifBuildJoinPipeInput(
-    PlanNode* projectFromJoin, PlanNode* joinInputHashKeyDependency) {
+    PlanNode* projectFromJoin, PlanNode* dependencyForJoinInput) {
     PlanNode* joinInput = nullptr;
     auto* plan = qctx_->plan();
 
     if (!inputProps_.empty()) {
-        DCHECK(joinInputHashKeyDependency != nullptr);
+        DCHECK(dependencyForJoinInput != nullptr);
 
         if (steps_ > 1) {
             DCHECK(projectFromJoin != nullptr);
             auto* joinHashKey = new VariablePropertyExpression(
-                    new std::string(joinInputHashKeyDependency->varName()), new std::string(kVid));
+                    new std::string(dependencyForJoinInput->varName()), new std::string(kVid));
             plan->saveObject(joinHashKey);
             auto* probeKey = new VariablePropertyExpression(
                     new std::string(projectFromJoin->varName()), new std::string(dstVidColName_));
             plan->saveObject(probeKey);
             auto* join = DataJoin::make(
-                plan, joinInputHashKeyDependency,
-                {joinInputHashKeyDependency->varName(), ExecutionContext::kLatestVersion},
+                plan, dependencyForJoinInput,
+                {dependencyForJoinInput->varName(), ExecutionContext::kLatestVersion},
                 {projectFromJoin->varName(), ExecutionContext::kLatestVersion},
                 {joinHashKey}, {probeKey});
-            std::vector<std::string> colNames = joinInputHashKeyDependency->colNames();
+            std::vector<std::string> colNames = dependencyForJoinInput->colNames();
             for (auto& col : projectFromJoin->colNames()) {
                 colNames.emplace_back(col);
             }
             join->setColNames(std::move(colNames));
             VLOG(1) << join->varName();
-            joinInputHashKeyDependency = join;
+            dependencyForJoinInput = join;
         }
 
         auto* joinHashKey = new VariablePropertyExpression(
-            new std::string(joinInputHashKeyDependency->varName()),
+            new std::string(dependencyForJoinInput->varName()),
             new std::string(steps_ > 1 ? firstBeginningSrcVidColName_ : kVid));
         plan->saveObject(joinHashKey);
         joinInput =
-            DataJoin::make(plan, joinInputHashKeyDependency,
-                           {joinInputHashKeyDependency->varName(),
+            DataJoin::make(plan, dependencyForJoinInput,
+                           {dependencyForJoinInput->varName(),
                             ExecutionContext::kLatestVersion},
                            {inputVarName_, ExecutionContext::kLatestVersion},
                            {joinHashKey}, {steps_ > 1 ? srcRef_ : src_});
-        std::vector<std::string> colNames = joinInputHashKeyDependency->colNames();
+        std::vector<std::string> colNames = dependencyForJoinInput->colNames();
         for (auto& col : outputs_) {
             colNames.emplace_back(col.first);
         }
