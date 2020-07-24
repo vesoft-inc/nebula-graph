@@ -288,6 +288,120 @@ TEST_F(QueryValidatorTest, GoNSteps) {
         };
         EXPECT_TRUE(checkResult(query, expected));
     }
+    {
+        std::string query = "GO 1 STEPS FROM \"1\" OVER like YIELD like._dst AS "
+                            "id, $$.person.name as name | GO 1 STEPS FROM $-.id OVER like "
+                            "YIELD $-.name, like.likeness + 1, $-.id, like._dst, "
+                            "$$.person.name";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 1 STEPS FROM \"1\" OVER like YIELD like._dst AS "
+                            "id, $$.person.name as name | GO 1 STEPS FROM $-.id OVER like "
+                            "YIELD DISTINCT $-.name, like.likeness + 1, $-.id, like._dst, "
+                            "$$.person.name";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kDedup,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 1 STEPS FROM \"1\" OVER like YIELD like._dst AS "
+                            "id, $$.person.name as name | GO 2 STEPS FROM $-.id OVER like "
+                            "YIELD $-.name, like.likeness + 1, $-.id, like._dst, "
+                            "$$.person.name";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kDataJoin,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kProject,
+            PK::kProject,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kStart,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 1 STEPS FROM \"1\" OVER like YIELD like._dst AS "
+                            "id, $$.person.name as name | GO 2 STEPS FROM $-.id OVER like "
+                            "YIELD DISTINCT $-.name, like.likeness + 1, $-.id, like._dst, "
+                            "$$.person.name";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kDedup,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kDataJoin,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kProject,
+            PK::kProject,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kStart,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
 }
 
 TEST_F(QueryValidatorTest, GoOneStep) {
@@ -342,6 +456,57 @@ TEST_F(QueryValidatorTest, GoOneStep) {
                             "YIELD $$.person.name,$$.person.age";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO FROM \"1\" OVER like "
+                            "YIELD $^.person.name, like._dst, "
+                            "$$.person.name, $$.person.age + 1";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO FROM \"1\" OVER like "
+                            "WHERE like._dst == \"2\""
+                            "YIELD $^.person.name, like._dst, "
+                            "$$.person.name, $$.person.age + 1";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kFilter,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO FROM \"1\" OVER like "
+                            "WHERE like._dst == \"2\""
+                            "YIELD DISTINCT $^.person.name, like._dst, "
+                            "$$.person.name, $$.person.age + 1";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kDedup,
+            PK::kProject,
+            PK::kFilter,
             PK::kDataJoin,
             PK::kProject,
             PK::kGetVertices,
