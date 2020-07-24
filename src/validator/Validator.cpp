@@ -566,11 +566,15 @@ Status Validator::deduceProps(const Expression* expr) {
             props.emplace_back(*prop);
             break;
         }
+        case Expression::Kind::kTypeCasting: {
+            auto* typeCastExpr = static_cast<const TypeCastingExpression*>(expr);
+            NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand()));
+            break;
+        }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kTypeCasting:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
         case Expression::Kind::kRelIn: {
