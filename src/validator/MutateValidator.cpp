@@ -625,9 +625,8 @@ Status UpdateEdgeValidator::validateImpl() {
 
 Status UpdateEdgeValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *start = StartNode::make(plan);
     auto *outNode = UpdateEdge::make(plan,
-                                     start,
+                                     nullptr,
                                      spaceId_,
                                      name_,
                                      srcId_,
@@ -654,7 +653,7 @@ Status UpdateEdgeValidator::toPlan() {
                                     std::move(condition_),
                                     std::move(yieldColNames_));
     root_ = inNode;
-    tail_ = root_;
+    tail_ = outNode;
     return Status::OK();
 }
 

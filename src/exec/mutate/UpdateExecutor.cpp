@@ -19,6 +19,7 @@ StatusOr<DataSet> UpdateBaseExecutor::handleResult(const DataSet &data) {
     }
 
     if (data.colNames.empty() || data.colNames.size() == 1) {
+        LOG(ERROR) << "Empty return props";
         return Status::Error("Empty return props");
     }
 
@@ -134,6 +135,7 @@ folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
             .via(runner())
             .then([this](StatusOr<storage::cpp2::UpdateResponse> resp) {
                 if (!resp.ok()) {
+                    LOG(ERROR) << "Update edge failed: " << resp.status();
                     return resp.status();
                 }
                 auto value = std::move(resp).value();

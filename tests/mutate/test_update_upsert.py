@@ -19,11 +19,11 @@ class TestUpdateVertex(NebulaTestSuite):
                             'CREATE TAG course(name string, credits int);'
                             'CREATE TAG building(name string);'
                             'CREATE TAG student(name string, age int, gender string);'
-                            'CREATE TAG student_default(name string, age int, '
+                            'CREATE TAG student_default(name string, age int NOT NULL, '
                             'gender string DEFAULT "one", birthday int DEFAULT 2010);'
                             'CREATE EDGE like(likeness double);'
                             'CREATE EDGE select(grade int, year int);'
-                            'CREATE EDGE select_default(grade int, '
+                            'CREATE EDGE select_default(grade int NOT NULL, '
                             'year TIMESTAMP DEFAULT 1546308000)')
         self.check_resp_succeeded(resp)
         time.sleep(self.delay)
@@ -197,17 +197,30 @@ class TestUpdateVertex(NebulaTestSuite):
         #                     'SET grade = select.grade + 1, year = 2000;')
         # self.check_resp_succeeded(resp)
 
-        # filter out
+        # filter out, 2.0 storage not support update edge can use vertex
         resp = self.execute('UPDATE EDGE ON select "200" -> "101"@0 '
                             'SET grade = select.grade + 1, year = 2000 '
                             'WHEN select.grade > 1024 && $^.student.age > 15;')
+        self.check_resp_failed(resp)
+
+        # 2.0 test, filter out
+        resp = self.execute('UPDATE EDGE ON select "200" -> "101"@0 '
+                            'SET grade = select.grade + 1, year = 2000 '
+                            'WHEN select.grade > 1024')
         self.check_resp_succeeded(resp)
+
+        # set filter, 2.0 storage not support update edge can use vertex
+        resp = self.execute('UPDATE EDGE ON select "200" -> "101"@0 '
+                            'SET grade = select.grade + 1, year = 2000 '
+                            'WHEN select.grade > 4 && $^.student.age > 15;')
+        self.check_resp_failed(resp)
 
         # set filter
         resp = self.execute('UPDATE EDGE ON select "200" -> "101"@0 '
                             'SET grade = select.grade + 1, year = 2000 '
-                            'WHEN select.grade > 4 && $^.student.age > 15;')
+                            'WHEN select.grade > 4')
         self.check_resp_succeeded(resp)
+
 
         # set filter
         # resp = self.execute('UPDATE EDGE ON select uuid("Monica") -> uuid("Math")@0 '
@@ -215,12 +228,19 @@ class TestUpdateVertex(NebulaTestSuite):
         #                     'WHEN select.grade > 4 && $^.student.age > 15;')
         self.check_resp_succeeded(resp)
 
-        # set yield
-        resp = self.execute('UPDATE EDGE ON select "200" -> "101"@0 '
+        # set yield, 2.0 storage not support update edge can use vertex
+        resp = self.execute_query('UPDATE EDGE ON select "200" -> "101"@0 '
                             'SET grade = select.grade + 1, year = 2018 '
                             'YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year')
+        self.check_resp_failed(resp)
+
+
+        # set yield
+        resp = self.execute_query('UPDATE EDGE ON select "200" -> "101"@0 '
+                            'SET grade = select.grade + 1, year = 2018 '
+                            'YIELD select.grade AS Grade, select.year AS Year')
         self.check_resp_succeeded(resp)
-        expected_result = [["Monica", 8, 2018]]
+        expected_result = [[8, 2018]]
         self.check_result(resp, expected_result)
 
         # set yield
@@ -231,13 +251,19 @@ class TestUpdateVertex(NebulaTestSuite):
         # expected_result = [["Monica", 8, 2018]]
         # self.check_result(resp, expected_result)
 
-        # set filter and yield
-        resp = self.execute('UPDATE EDGE ON select "200" -> "101"@0 '
+        # set filter and yield, 2.0 storage not support update edge can use vertex
+        resp = self.execute_query('UPDATE EDGE ON select "200" -> "101"@0 '
                             'SET grade = select.grade + 1, year = 2019 '
                             'WHEN select.grade > 4 && $^.student.age > 15 '
                             'YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year')
+        self.check_resp_failed(resp)
+
+        resp = self.execute_query('UPDATE EDGE ON select "200" -> "101"@0 '
+                            'SET grade = select.grade + 1, year = 2019 '
+                            'WHEN select.grade > 4 '
+                            'YIELD select.grade AS Grade, select.year AS Year')
         self.check_resp_succeeded(resp)
-        expected_result = [["Monica", 9, 2019]]
+        expected_result = [[9, 2019]]
         self.check_result(resp, expected_result)
 
         # set filter and yield with uuid
@@ -250,13 +276,20 @@ class TestUpdateVertex(NebulaTestSuite):
         # self.check_result(resp, expected_result)
 
 
-        # set filter out and yield
-        resp = self.execute('UPDATE EDGE ON select "200" -> "101"@0 '
+        # set filter out and yield, 2.0 storage not support update edge can use vertex
+        resp = self.execute_query('UPDATE EDGE ON select "200" -> "101"@0 '
                             'SET grade = select.grade + 1, year = 2019 '
                             'WHEN select.grade > 233333333333 && $^.student.age > 15 '
                             'YIELD $^.student.name AS Name, select.grade AS Grade, select.year AS Year')
+        self.check_resp_failed(resp)
+
+        # set filter out and yield
+        resp = self.execute_query('UPDATE EDGE ON select "200" -> "101"@0 '
+                                  'SET grade = select.grade + 1, year = 2019 '
+                                  'WHEN select.grade > 233333333333'
+                                  'YIELD select.grade AS Grade, select.year AS Year')
         self.check_resp_succeeded(resp)
-        expected_result = [["Monica", 9, 2019]]
+        expected_result = [[9, 2019]]
         self.check_result(resp, expected_result)
 
         # set filter out and yield
@@ -283,7 +316,7 @@ class TestUpdateVertex(NebulaTestSuite):
 
         # make sure TagName and PropertyName must exist in all clauses
         resp = self.execute_query('UPDATE VERTEX ON nonexistentTag "101" '
-                                  'SET credits = $^.course.credits + 1, building.name = "No9" '
+                                  'SET credits = $^.course.credits + 1, name = "No9" '
                                   'WHEN $^.course.name == "Math" && $^.course.nonexistentProperty > 2 '
                                   'YIELD $^.course.name AS Name, $^.nonexistentTag.nonexistentProperty')
         self.check_resp_failed(resp)
@@ -338,7 +371,7 @@ class TestUpdateVertex(NebulaTestSuite):
         # has default value test,
         # Insertable: vertex 110 ("Ann") --> ("Ann", "one"),
         # 110 is nonexistent, gender with default value
-        resp = self.execute_query('UPDATE VERTEX ON student_default "110" '
+        resp = self.execute_query('UPSERT VERTEX ON student_default "110" '
                                   'SET name = "Ann", age = 10 '
                                   "YIELD $^.student_default.name AS Name, $^.student_default.gender AS Gender")
         self.check_resp_succeeded(resp)
@@ -346,14 +379,14 @@ class TestUpdateVertex(NebulaTestSuite):
         self.check_result(resp, expected_result)
 
         # Insertable failed, 111 is nonexistent, name and age without default value
-        resp = self.execute_query('UPDATE VERTEX ON student_default "111" '
+        resp = self.execute_query('UPSERT VERTEX ON student_default "111" '
                                   'SET name = "Tom", '
                                   'age = $^.student_default.age + 8 '
                                   "YIELD $^.student_default.name AS Name, $^.student_default.age AS Age")
         self.check_resp_failed(resp)
 
         # Insertable failed, 111 is nonexistent, name without default value
-        resp = self.execute_query('UPDATE VERTEX ON student_default "111" '
+        resp = self.execute_query('UPSERT VERTEX ON student_default "111" '
                                   'SET gender = "two", age = 10 '
                                   "YIELD $^.student_default.name AS Name, $^.student_default.gender AS Gender")
         self.check_resp_failed(resp)
@@ -361,7 +394,7 @@ class TestUpdateVertex(NebulaTestSuite):
         # Insertable: vertex 112 ("Lily") --> ("Lily", "one")
         # 112 is nonexistent, gender with default value
         # update student_default.age with string value
-        resp = self.execute_query('UPDATE VERTEX ON student_default "112" '
+        resp = self.execute_query('UPSERT VERTEX ON student_default "112" '
                                   'SET name = "Lily", age = "10"'
                                   "YIELD $^.student_default.name AS Name, $^.student_default.gender AS Gender")
         self.check_resp_failed(resp)
@@ -369,9 +402,16 @@ class TestUpdateVertex(NebulaTestSuite):
         # Insertable: vertex 113 ("Jack") --> ("Jack", "Three")
         # 113 is nonexistent, gender with default value,
         # update student_default.age with string value
-        resp = self.execute_query('UPDATE VERTEX ON student_default "113" '
+        resp = self.execute_query('UPSERT VERTEX ON student_default "113" '
                                   'SET name = "Ann", age = "10"'
                                   "YIELD $^.student_default.name AS Name, $^.student_default.gender AS Gender")
+        self.check_resp_failed(resp)
+
+        # when tag on vertex not exists, update failed
+        resp = self.execute_query('UPDATE VERTEX ON course "104" '
+                                  'SET credits = $^.course.credits + 1 '
+                                  'WHEN $^.course.name == \"CS\" && $^.course.credits > 2 '
+                                  'YIELD $^.course.name AS Name, $^.course.credits AS Credits')
         self.check_resp_failed(resp)
 
         # Insertable success, 115 is nonexistent, name and age without default value,
@@ -411,15 +451,22 @@ class TestUpdateVertex(NebulaTestSuite):
         self.check_result(resp, expected_result)
 
     def test_upsert_edge(self):
-        # resp = self.execute_query('FETCH PROP ON select 200->101@0 YIELD select.grade, select.year')
+        # resp = self.execute_query('FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year')
         # self.check_resp_succeeded(resp)
         # expected_result = [["200", "101", 0, 5, 2018]]
         # self.check_result(resp, expected_result)
 
-        # Insertable, upsert when edge exists
+        # Insertable, upsert when edge exists, 2.0 storage not support
         resp = self.execute_query('UPSERT EDGE ON select "201" -> "101"@0'
                                   'SET grade = 3, year = 2019 '
                                   'WHEN $^.student.age > 15 && $^.student.gender == "male" '
+                                  'YIELD select.grade AS Grade, select.year AS Year')
+        self.check_resp_failed(resp)
+
+        # Insertable, upsert when edge not exist
+        resp = self.execute_query('UPSERT EDGE ON select "201" -> "101"@0'
+                                  'SET grade = 3, year = 2019 '
+                                  'WHEN select.grade > 3 '
                                   'YIELD select.grade AS Grade, select.year AS Year')
         self.check_resp_succeeded(resp)
         expected_result = [[3, 2019]]
@@ -435,7 +482,7 @@ class TestUpdateVertex(NebulaTestSuite):
         # upsert when edge not exists,success
         # filter condition is always true, insert default value or update value
         resp = self.execute_query('UPSERT EDGE ON select "601" -> "101"@0'
-                                  'SET year = 2019 '
+                                  'SET year = 2019, grade = 3 '
                                   'WHEN select.grade >10 '
                                   'YIELD select.grade AS Grade, select.year AS Year')
         self.check_resp_succeeded(resp)
@@ -447,21 +494,21 @@ class TestUpdateVertex(NebulaTestSuite):
         # expected_result = [["601", "101", 0, 3, 2019]]
         # self.check_result(resp, expected_result)
 
-        # select_default's year with default value
-        resp = self.execute_query('UPSERT EDGE ON select_default "111" -> "222"@0 '
-                                  'SET grade = 3 '
-                                  'YIELD select_default.grade AS Grade, select_default.year AS Year')
-        self.check_resp_succeeded(resp)
-        expected_result = [[3, 1546308000]]
-        self.check_result(resp, expected_result)
+        # select_default's year with default value, timestamp not support
+        # resp = self.execute_query('UPSERT EDGE ON select_default "111" -> "222"@0 '
+        #                           'SET grade = 3 '
+        #                           'YIELD select_default.grade AS Grade, select_default.year AS Year')
+        # self.check_resp_succeeded(resp)
+        # expected_result = [[3, 1546308000]]
+        # self.check_result(resp, expected_result)
 
-        # select_default's year is timestamp type, set str type
-        resp = self.execute_query('UPSERT EDGE ON select_default "222" -> "333"@0 '
-                                  'SET grade = 3, year = "2020-01-10 10:00:00" '
-                                  'YIELD select_default.grade AS Grade, select_default.year AS Year')
-        self.check_resp_succeeded(resp)
-        expected_result = [[3, 1578621600]]
-        self.check_result(resp, expected_result)
+        # select_default's year is timestamp type, set str type, , timestamp not support
+        # resp = self.execute_query('UPSERT EDGE ON select_default "222" -> "333"@0 '
+        #                           'SET grade = 3, year = "2020-01-10 10:00:00" '
+        #                           'YIELD select_default.grade AS Grade, select_default.year AS Year')
+        # self.check_resp_succeeded(resp)
+        # expected_result = [[3, 1578621600]]
+        # self.check_result(resp, expected_result)
 
         # select_default's grade without default value
         resp = self.execute_query('UPSERT EDGE ON select_default "444" -> "555"@0 '
@@ -594,12 +641,12 @@ class TestUpdateVertex(NebulaTestSuite):
         resp = self.execute('UPSERT EDGE ON like "1"->"100" SET likeness = 3.0, new_field = "321"')
         self.check_resp_succeeded(resp)
 
-        resp = self.execute_query('FETCH PROP ON like "1"->"100"@0')
-        self.check_resp_succeeded(resp)
-        expected_result = [["1", "100", 0, 3.0, "321"]]
-        self.check_result(resp, expected_result)
+        # resp = self.execute_query('FETCH PROP ON like "1"->"100"@0')
+        # self.check_resp_succeeded(resp)
+        # expected_result = [["1", "100", 0, 3.0, "321"]]
+        # self.check_result(resp, expected_result)
 
-        resp = self.execute('UPSERT EDGE "1"->"101" of like SET likeness = 1.0, new_field = "111"')
+        resp = self.execute('UPSERT EDGE ON like "1"->"101" SET likeness = 1.0, new_field = "111"')
         self.check_resp_succeeded(resp)
 
         # resp = self.execute_query('FETCH PROP ON like "1"->"101"@0')
