@@ -17,6 +17,7 @@
 #include "parser/SequentialSentences.h"
 #include "parser/ColumnTypeDef.h"
 #include "common/interface/gen-cpp2/meta_types.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 
@@ -481,11 +482,10 @@ unary_expression
     | KW_NOT unary_expression {
         $$ = new UnaryExpression(Expression::Kind::kUnaryNot, $2);
     }
-/*
     | L_PAREN type_spec R_PAREN unary_expression {
-        $$ = new TypeCastingExpression($2->type, $4);
+        $$ = new TypeCastingExpression(graph::SchemaUtil::propTypeToValueType($2->type), $4);
+        delete $2;
     }
-*/
     ;
 
 type_spec
