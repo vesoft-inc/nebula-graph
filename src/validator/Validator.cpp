@@ -244,7 +244,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         {Value::Type::BOOL, Value(true)},
         {Value::Type::INT, Value(1)},
         {Value::Type::FLOAT, Value(1.0)},
-        {Value::Type::STRING, Value("a")},
+        {Value::Type::STRING, Value("123")},
         {Value::Type::DATE, Value(Date())},
         {Value::Type::DATETIME, Value(DateTime())},
         {Value::Type::VERTEX, Value(Vertex())},
@@ -362,9 +362,17 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         }
         case Expression::Kind::kTypeCasting: {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceExprType(castExpr->operand()));
+            auto result = deduceExprType(castExpr->operand());
+            NG_RETURN_IF_ERROR(result);
+
+            auto* typeCastExpr = const_cast<TypeCastingExpression*>(castExpr);
+            if (!evaluableExpr(castExpr->operand())) {
+                auto detectVal = kConstantValues.at(result.value());
+                typeCastExpr->setOperand(new ConstantExpression(detectVal));
+            }
+
             QueryExpressionContext ctx(nullptr, nullptr);
-            auto val = const_cast<TypeCastingExpression*>(castExpr)->eval(ctx);
+            auto val = typeCastExpr->eval(ctx);
             if (val == Value::kNullValue) {
                 return Status::Error("`%s` is not a valid expression ", expr->toString().c_str());
             }
