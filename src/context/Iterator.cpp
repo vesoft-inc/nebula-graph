@@ -239,6 +239,7 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     auto index = dsIndices_[segment].edgePropsMap.find(currentEdge);
     if (index == dsIndices_[segment].edgePropsMap.end()) {
         VLOG(1) << "No edge found: " << edge;
+        VLOG(1) << "Current edge: " << currentEdge;
         return Value::kNullValue;
     }
     auto propIndex = index->second.propIndices.find(prop);
