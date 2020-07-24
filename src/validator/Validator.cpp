@@ -373,7 +373,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
 
             QueryExpressionContext ctx(nullptr, nullptr);
             auto val = typeCastExpr->eval(ctx);
-            if (val == Value::kNullValue) {
+            if (val.isNull()) {
                 return Status::Error("`%s` is not a valid expression ", expr->toString().c_str());
             }
             return val.type();
