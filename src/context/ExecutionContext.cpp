@@ -71,7 +71,7 @@ const Result& ExecutionContext::getVersionedResult(const std::string& name,
                                                    int64_t version) const {
     auto& result = getHistory(name);
     auto size = result.size();
-    if (static_cast<size_t>(std::abs(version)) > size) {
+    if (static_cast<size_t>(std::abs(version)) >= size) {
         return Result::kEmptyResult;
     } else {
         return result[(size + version - 1) % size ];

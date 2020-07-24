@@ -62,7 +62,7 @@ private:
 
     Project* ifBuildLeftVarForTraceJoin(PlanNode* projectStartVid);
 
-    Project* projectDstVidsFromGN(PlanNode* gn, std::string outputVar);
+    Project* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
 
     Project* ifTraceToStartVid(Project* projectLeftVarForJoin,
                                Project* projectDstFromGN);

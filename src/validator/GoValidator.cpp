@@ -392,7 +392,7 @@ Project* GoValidator::ifTraceToStartVid(Project* projectLeftVarForJoin,
     return projectJoin;
 }
 
-Project* GoValidator::projectDstVidsFromGN(PlanNode* gn, std::string outputVar) {
+Project* GoValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
     Project* project = nullptr;
     auto* plan = qctx_->plan();
     auto* columns = new YieldColumns();
