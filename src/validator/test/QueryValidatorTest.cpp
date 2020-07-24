@@ -332,10 +332,6 @@ TEST_F(QueryValidatorTest, GoOneStep) {
                             "YIELD $^.person.name,$^.person.age";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
-            PK::kDataJoin,
-            PK::kProject,
-            PK::kGetVertices,
-            PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
         };
@@ -345,6 +341,10 @@ TEST_F(QueryValidatorTest, GoOneStep) {
         std::string query = "GO FROM \"1\" OVER like "
                             "YIELD $$.person.name,$$.person.age";
         std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
