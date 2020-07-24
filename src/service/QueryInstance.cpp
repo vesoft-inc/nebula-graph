@@ -67,6 +67,7 @@ bool QueryInstance::explainOrContinue() {
 
 void QueryInstance::onFinish() {
     auto rctx = qctx()->rctx();
+    VLOG(1) << "Finish query: " << rctx->query();
     auto ectx = qctx()->ectx();
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().set_latency_in_us(latency);

@@ -11,7 +11,7 @@ from nebula2.graph import ttypes
 from nebula_test_common.nebula_test_suite import NebulaTestSuite
 
 
-class TestYield(NebulaTestSuite):
+class TestExplain(NebulaTestSuite):
     @classmethod
     def prepare(cls):
         # cls.load_data()
@@ -59,7 +59,50 @@ class TestYield(NebulaTestSuite):
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
 
+        query = 'EXPLAIN FORMAT="dot" {YIELD 1 AS a;};'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
         query = '''EXPLAIN FORMAT="unknown" \
+            {$var = YIELD 1 AS a; YIELD $var.*;};'''
+        resp = self.execute_query(query)
+        self.check_resp_failed(resp, ttypes.ErrorCode.E_SYNTAX_ERROR)
+
+    def test_profile(self):
+        query = 'PROFILE YIELD 1 AS id;'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'PROFILE FORMAT="row" YIELD 1;'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'PROFILE FORMAT="dot" YIELD 1;'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'PROFILE FORMAT="unknown" YIELD 1;'
+        resp = self.execute_query(query)
+        self.check_resp_failed(resp, ttypes.ErrorCode.E_SYNTAX_ERROR)
+
+    def test_profile_stmts_block(self):
+        query = 'PROFILE {$var = YIELD 1 AS a; YIELD $var.*;};'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'PROFILE FORMAT="row" {$var = YIELD 1 AS a; YIELD $var.*;};'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'PROFILE FORMAT="dot" {$var = YIELD 1 AS a; YIELD $var.*;};'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'PROFILE FORMAT="dot" { YIELD 1 AS a };'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = '''PROFILE FORMAT="unknown" \
             {$var = YIELD 1 AS a; YIELD $var.*;};'''
         resp = self.execute_query(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_SYNTAX_ERROR)

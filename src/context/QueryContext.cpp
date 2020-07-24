@@ -17,7 +17,13 @@ void QueryContext::addProfilingData(int64_t planNodeId,
     auto found = planDescription_->node_index_map.find(planNodeId);
     DCHECK(found != planDescription_->node_index_map.end());
     auto idx = found->second;
-    planDescription_->plan_node_descs[idx].get_profiles()->emplace_back(*profilingStats);
+    DCHECK(profilingStats != nullptr);
+    auto& planNodeDesc = planDescription_->plan_node_descs[idx];
+    if (planNodeDesc.get_profiles() == nullptr) {
+        planNodeDesc.set_profiles({*profilingStats});
+    } else {
+        planNodeDesc.get_profiles()->emplace_back(*profilingStats);
+    }
 }
 
 void QueryContext::fillPlanDescription() {
