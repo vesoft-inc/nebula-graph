@@ -345,6 +345,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kFunctionCall: {
             auto funcExpr = static_cast<const FunctionCallExpression *>(expr);
             std::vector<Value::Type> argsTypeList;
+            argsTypeList.reserve(funcExpr->args()->numArgs());
             for (auto &arg : funcExpr->args()->args()) {
                 auto status = deduceExprType(arg.get());
                 NG_RETURN_IF_ERROR(status);
