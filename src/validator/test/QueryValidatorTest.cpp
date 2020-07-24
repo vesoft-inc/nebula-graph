@@ -332,6 +332,10 @@ TEST_F(QueryValidatorTest, GoOneStep) {
                             "YIELD $^.person.name,$^.person.age";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
         };
@@ -340,8 +344,12 @@ TEST_F(QueryValidatorTest, GoOneStep) {
     {
         std::string query = "GO FROM \"1\" OVER like "
                             "YIELD $$.person.name,$$.person.age";
-        // TODO: implement get dst props and test plan.
-        EXPECT_FALSE(checkResult(query));
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
     }
     {
         std::string query = "GO FROM \"1\",\"2\",\"3\" OVER like";
