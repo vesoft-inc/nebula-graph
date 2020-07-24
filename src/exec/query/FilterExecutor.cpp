@@ -15,7 +15,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> FilterExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
     auto* filter = asNode<Filter>(node());
     auto iter = ectx_->getResult(filter->inputVar()).iter();
 

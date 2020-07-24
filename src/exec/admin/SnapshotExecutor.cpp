@@ -13,7 +13,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> CreateSnapshotExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     return qctx()->getMetaClient()->createSnapshot()
             .via(runner())
@@ -27,7 +27,7 @@ folly::Future<Status> CreateSnapshotExecutor::execute() {
 }
 
 folly::Future<Status> DropSnapshotExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto *dsNode = asNode<DropSnapshot>(node());
     return qctx()->getMetaClient()->dropSnapshot(dsNode->getShapshotName())
@@ -42,7 +42,7 @@ folly::Future<Status> DropSnapshotExecutor::execute() {
 }
 
 folly::Future<Status> ShowSnapshotsExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     return qctx()->getMetaClient()->listSnapshots()
             .via(runner())

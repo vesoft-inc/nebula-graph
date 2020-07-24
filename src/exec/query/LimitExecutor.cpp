@@ -13,7 +13,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> LimitExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto* limit = asNode<Limit>(node());
     auto iter = ectx_->getResult(limit->inputVar()).iter();

@@ -33,6 +33,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 }
 
 Status GetNeighborsExecutor::buildRequestDataSet() {
+    SCOPED_TIMER(&execTime_);
     auto& inputVar = gn_->inputVar();
     VLOG(1) << node()->varName() << " : " << inputVar;
     auto& inputResult = ectx_->getResult(inputVar);
@@ -58,8 +59,6 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
 }
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
-    SCOPED_TIMER(&execTimes_);
-
     if (reqDs_.rows.empty()) {
         LOG(INFO) << "Empty input.";
         DataSet emptyResult;
@@ -68,6 +67,8 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                           .iter(Iterator::Kind::kGetNeighbors)
                           .finish());
     }
+
+    time::Duration getNbrTime;
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     return storageClient
         ->getNeighbors(gn_->space(),
@@ -85,9 +86,12 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                        gn_->limit(),
                        gn_->filter())
         .via(runner())
+        .ensure([getNbrTime = std::move(getNbrTime)]() {
+            VLOG(1) << "Get neighbors time: " << getNbrTime.elapsedInUSec() << "us";
+        })
         .then([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
-            auto status = handleResponse(resp);
-            return status.ok() ? start() : error(std::move(status));
+            SCOPED_TIMER(&execTime_);
+            return handleResponse(resp);
         });
 }
 

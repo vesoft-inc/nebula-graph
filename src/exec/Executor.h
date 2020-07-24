@@ -117,7 +117,7 @@ protected:
 
     // profiling data
     uint64_t numRows_{0};
-    uint64_t execTimes_{0};
+    uint64_t execTime_{0};
     time::Duration totalDuration_;
 };
 

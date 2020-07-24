@@ -13,7 +13,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> StartExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     return start();
 }

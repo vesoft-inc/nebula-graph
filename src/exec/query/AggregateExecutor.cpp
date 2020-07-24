@@ -18,7 +18,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> AggregateExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
     auto* agg = asNode<Aggregate>(node());
     auto groupKeys = agg->groupKeys();
     auto groupItems = agg->groupItems();

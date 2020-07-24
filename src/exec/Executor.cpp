@@ -398,7 +398,7 @@ Executor::~Executor() {}
 
 void Executor::startProfiling() {
     numRows_ = 0;
-    execTimes_ = 0;
+    execTime_ = 0;
     totalDuration_.reset();
 }
 
@@ -406,7 +406,7 @@ void Executor::stopProfiling() {
     cpp2::ProfilingStats stats;
     stats.set_total_duration_in_us(totalDuration_.elapsedInUSec());
     stats.set_rows(numRows_);
-    stats.set_exec_duration_in_us(execTimes_);
+    stats.set_exec_duration_in_us(execTime_);
     qctx()->addProfilingData(node_->id(), std::move(stats));
 }
 

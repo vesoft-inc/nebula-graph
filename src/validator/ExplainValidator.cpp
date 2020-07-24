@@ -60,7 +60,7 @@ Status ExplainValidator::validateImpl() {
     validator_ = std::make_unique<SequentialValidator>(sentences, qctx_);
     NG_RETURN_IF_ERROR(validator_->validate());
 
-    outputs_ = validator_->outputs();
+    outputs_ = validator_->outputCols();
     return Status::OK();
 }
 

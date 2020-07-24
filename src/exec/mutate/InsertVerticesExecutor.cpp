@@ -20,9 +20,10 @@ folly::Future<Status> InsertVerticesExecutor::execute() {
 }
 
 folly::Future<Status> InsertVerticesExecutor::insertVertices() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto *ivNode = asNode<InsertVertices>(node());
+    time::Duration addVertTime;
     return qctx()
         ->getStorageClient()
         ->addVertices(ivNode->getSpace(),
@@ -30,7 +31,11 @@ folly::Future<Status> InsertVerticesExecutor::insertVertices() {
                       ivNode->getPropNames(),
                       ivNode->getOverwritable())
         .via(runner())
+        .ensure([addVertTime = std::move(addVertTime)]() {
+            VLOG(1) << "Add vertices time: " << addVertTime.elapsedInUSec() << "us";
+        })
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
+            SCOPED_TIMER(&execTime_);
             auto completeness = resp.completeness();
             if (completeness != 100) {
                 const auto& failedCodes = resp.failedParts();

@@ -21,7 +21,7 @@ folly::Future<Status> GetEdgesExecutor::execute() {
 }
 
 folly::Future<Status> GetEdgesExecutor::getEdges() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     GraphStorageClient *client = qctx()->getStorageClient();
 
@@ -49,6 +49,8 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             }));
         }
     }
+
+    time::Duration getPropsTime;
     return DCHECK_NOTNULL(client)
         ->getProps(ge->space(),
                    std::move(edges),
@@ -60,7 +62,11 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                    ge->limit(),
                    ge->filter())
         .via(runner())
+        .ensure([getPropsTime = std::move(getPropsTime)]() {
+            VLOG(1) << "Get Props Time: " << getPropsTime.elapsedInUSec() << "us";
+        })
         .then([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+            SCOPED_TIMER(&execTime_);
             return handleResp(std::move(rpcResp));
         });
 }

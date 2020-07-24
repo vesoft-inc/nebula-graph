@@ -21,13 +21,22 @@ folly::Future<Status> InsertEdgesExecutor::execute() {
 }
 
 folly::Future<Status> InsertEdgesExecutor::insertEdges() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto *ieNode = asNode<InsertEdges>(node());
-    return qctx()->getStorageClient()->addEdges(ieNode->getSpace(),
-            ieNode->getEdges(), ieNode->getPropNames(), ieNode->getOverwritable())
+    time::Duration addEdgeTime;
+    return qctx()
+        ->getStorageClient()
+        ->addEdges(ieNode->getSpace(),
+                   ieNode->getEdges(),
+                   ieNode->getPropNames(),
+                   ieNode->getOverwritable())
         .via(runner())
+        .ensure([addEdgeTime = std::move(addEdgeTime)]() {
+            VLOG(1) << "Add edge time: " << addEdgeTime.elapsedInUSec() << "us";
+        })
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
+            SCOPED_TIMER(&execTime_);
             auto completeness = resp.completeness();
             if (completeness != 100) {
                 const auto& failedCodes = resp.failedParts();

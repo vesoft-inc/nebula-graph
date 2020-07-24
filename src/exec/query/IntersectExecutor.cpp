@@ -16,7 +16,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> IntersectExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     NG_RETURN_IF_ERROR(checkInputDataSets());
 

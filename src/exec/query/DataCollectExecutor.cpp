@@ -19,7 +19,7 @@ folly::Future<Status> DataCollectExecutor::execute() {
 }
 
 folly::Future<Status> DataCollectExecutor::doCollect() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto* dc = asNode<DataCollect>(node());
     colNames_ = dc->colNames();

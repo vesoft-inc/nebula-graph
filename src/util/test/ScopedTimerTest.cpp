@@ -11,26 +11,38 @@
 namespace nebula {
 
 TEST(ScopedTimerTest, TestScopedTimer) {
-    int64_t var = 0;
+    int64_t var, var2;
     {
+        var = 0;
         SCOPED_TIMER(&var);
         ::usleep(100);
     }
     EXPECT_GE(var, 99);
 
     {
-        ScopedTimer st([&](uint64_t et) { var = et; });
+        var = 0;
+        var2 = 0;
+        SCOPED_TIMER(&var);
+        SCOPED_TIMER(&var2);
+        ::usleep(1);
+    }
+    EXPECT_GE(var, var2);
+
+    {
+        var = 0;
+        ScopedTimer st([&](uint64_t et) { var += et; });
         ::usleep(10);
     }
     EXPECT_GE(var, 9);
 
-    int64_t var2 = 0;
     {
-      SCOPED_TIMER(&var);
-      SCOPED_TIMER(&var2);
-      ::usleep(1);
+        var = 0;
+        ScopedTimer st(&var, true);
+        st.start();
+        ::usleep(10);
+        st.stop();
+        EXPECT_GE(var, 9);
     }
-    EXPECT_GE(var, var2);
 }
 
 }   // namespace nebula

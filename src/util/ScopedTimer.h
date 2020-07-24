@@ -18,17 +18,17 @@ namespace nebula {
 // used by multi-threads at same time.
 class ScopedTimer final {
 public:
-    explicit ScopedTimer(std::function<void(uint64_t)> callback)
+    explicit ScopedTimer(std::function<void(uint64_t)> callback, bool paused = false)
         : duration_(), callback_(std::move(callback)) {
-        start();
+        if (!paused) start();
     }
 
     template <typename T>
-    explicit ScopedTimer(T *value)
+    explicit ScopedTimer(T *value, bool paused = false)
         : duration_(),
-          callback_([value](uint64_t elapsedTime) { *value = static_cast<T>(elapsedTime); }) {
+          callback_([value](uint64_t elapsedTime) { *value += static_cast<T>(elapsedTime); }) {
         DCHECK(value != nullptr);
-        start();
+        if (!paused) start();
     }
 
     ~ScopedTimer() {

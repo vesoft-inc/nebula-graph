@@ -22,7 +22,7 @@ SelectExecutor::SelectExecutor(const PlanNode* node,
       else_(DCHECK_NOTNULL(els)) {}
 
 folly::Future<Status> SelectExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto* select = asNode<Select>(node());
     auto* expr = select->condition();

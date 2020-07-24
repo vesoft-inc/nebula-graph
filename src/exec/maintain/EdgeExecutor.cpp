@@ -14,7 +14,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> CreateEdgeExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto *ceNode = asNode<CreateEdge>(node());
     auto spaceId = qctx()->rctx()->session()->space();
@@ -34,7 +34,7 @@ folly::Future<Status> CreateEdgeExecutor::execute() {
 
 
 folly::Future<Status> DescEdgeExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto *deNode = asNode<DescEdge>(node());
     auto spaceId = qctx()->rctx()->session()->space();
@@ -61,7 +61,7 @@ folly::Future<Status> DescEdgeExecutor::execute() {
 
 
 folly::Future<Status> DropEdgeExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto *deNode = asNode<DropEdge>(node());
     auto spaceId = qctx()->rctx()->session()->space();
@@ -81,7 +81,7 @@ folly::Future<Status> DropEdgeExecutor::execute() {
 }
 
 folly::Future<Status> ShowEdgesExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto spaceId = qctx()->rctx()->session()->space();
     return qctx()->getMetaClient()->listEdgeSchemas(spaceId).via(runner()).then(
@@ -112,7 +112,7 @@ folly::Future<Status> ShowEdgesExecutor::execute() {
 }
 
 folly::Future<Status> ShowCreateEdgeExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto *sceNode = asNode<ShowCreateEdge>(node());
     auto spaceId = qctx()->rctx()->session()->space();
@@ -140,7 +140,7 @@ folly::Future<Status> ShowCreateEdgeExecutor::execute() {
 }
 
 folly::Future<Status> AlterEdgeExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto *aeNode = asNode<AlterEdge>(node());
     return qctx()->getMetaClient()->alterEdgeSchema(aeNode->space(),

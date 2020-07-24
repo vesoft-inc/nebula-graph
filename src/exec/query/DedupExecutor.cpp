@@ -12,7 +12,7 @@
 namespace nebula {
 namespace graph {
 folly::Future<Status> DedupExecutor::execute() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
     auto* dedup = asNode<Dedup>(node());
     DCHECK(!dedup->inputVar().empty());
     auto iter = ectx_->getResult(dedup->inputVar()).iter();

@@ -20,7 +20,7 @@ folly::Future<Status> DataJoinExecutor::execute() {
 }
 
 folly::Future<Status> DataJoinExecutor::doInnerJoin() {
-    SCOPED_TIMER(&execTimes_);
+    SCOPED_TIMER(&execTime_);
 
     auto* dataJoin = asNode<DataJoin>(node());
 
