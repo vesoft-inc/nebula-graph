@@ -265,8 +265,7 @@ public:
                 case Expression::Kind::kLogicalAnd:
                 case Expression::Kind::kLogicalOr:
                 case Expression::Kind::kLogicalXor: {
-                    UNUSED(DCHECK_NOTNULL(dynamic_cast<BinaryExpression*>(current)));
-                    auto* biExpr = static_cast<BinaryExpression*>(current);
+                    auto* biExpr = exprCast<BinaryExpression>(current);
                     if (biExpr->left()->kind() == Expression::Kind::kSymProperty) {
                         auto* symbolExpr = static_cast<SymbolPropertyExpression*>(biExpr->left());
                         biExpr->setLeft(transSymbolPropertyExpression<To>(symbolExpr));
@@ -283,8 +282,7 @@ public:
                 case Expression::Kind::kUnaryPlus:
                 case Expression::Kind::kUnaryNegate:
                 case Expression::Kind::kUnaryNot: {
-                    UNUSED(DCHECK_NOTNULL(dynamic_cast<UnaryExpression*>(current)));
-                    auto* unaryExpr = static_cast<UnaryExpression*>(current);
+                    auto* unaryExpr = exprCast<UnaryExpression>(current);
                     if (unaryExpr->operand()->kind() == Expression::Kind::kSymProperty) {
                         auto* symbolExpr =
                             static_cast<SymbolPropertyExpression*>(unaryExpr->operand());
@@ -293,7 +291,7 @@ public:
                     return true;
                 }
                 case Expression::Kind::kTypeCasting: {
-                    auto* typeCastingExpr = static_cast<TypeCastingExpression*>(current);
+                    auto* typeCastingExpr = exprCast<TypeCastingExpression>(current);
                     if (typeCastingExpr->operand()->kind() == Expression::Kind::kSymProperty) {
                         auto* symbolExpr =
                             static_cast<SymbolPropertyExpression*>(typeCastingExpr->operand());
@@ -302,7 +300,7 @@ public:
                     return true;
                 }
                 case Expression::Kind::kFunctionCall: {
-                    auto* funcExpr = static_cast<FunctionCallExpression*>(current);
+                    auto* funcExpr = exprCast<FunctionCallExpression>(current);
                     for (auto& arg : funcExpr->args()->args()) {
                         if (arg->kind() == Expression::Kind::kSymProperty) {
                             auto* symbolExpr = static_cast<SymbolPropertyExpression*>(arg.get());
