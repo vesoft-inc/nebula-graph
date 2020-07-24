@@ -6,14 +6,12 @@
 
 #include "exec/query/DataCollectExecutor.h"
 
-#include "common/interface/gen-cpp2/graph_types.h"
 #include "planner/Query.h"
 #include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
 folly::Future<Status> DataCollectExecutor::execute() {
-    dumpLog();
     return doCollect().ensure([this] () {
         result_ = Value::kEmpty;
         colNames_.clear();
@@ -21,7 +19,7 @@ folly::Future<Status> DataCollectExecutor::execute() {
 }
 
 folly::Future<Status> DataCollectExecutor::doCollect() {
-    SCOPED_TIMER(&profilingStats_->exec_duration_in_us);
+    SCOPED_TIMER(&execTimes_);
 
     auto* dc = asNode<DataCollect>(node());
     colNames_ = dc->colNames();

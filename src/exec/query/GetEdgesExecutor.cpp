@@ -7,6 +7,7 @@
 #include "exec/query/GetEdgesExecutor.h"
 #include "planner/Query.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -20,7 +21,7 @@ folly::Future<Status> GetEdgesExecutor::execute() {
 }
 
 folly::Future<Status> GetEdgesExecutor::getEdges() {
-    dumpLog();
+    SCOPED_TIMER(&execTimes_);
 
     GraphStorageClient *client = qctx()->getStorageClient();
 

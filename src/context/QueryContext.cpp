@@ -11,18 +11,16 @@
 namespace nebula {
 namespace graph {
 
-void QueryContext::addProfilingData(int64_t planNodeId,
-                                    const cpp2::ProfilingStats* profilingStats) {
+void QueryContext::addProfilingData(int64_t planNodeId, cpp2::ProfilingStats&& profilingStats) {
     if (!planDescription_) return;
     auto found = planDescription_->node_index_map.find(planNodeId);
     DCHECK(found != planDescription_->node_index_map.end());
     auto idx = found->second;
-    DCHECK(profilingStats != nullptr);
     auto& planNodeDesc = planDescription_->plan_node_descs[idx];
     if (planNodeDesc.get_profiles() == nullptr) {
-        planNodeDesc.set_profiles({*profilingStats});
+        planNodeDesc.set_profiles({std::move(profilingStats)});
     } else {
-        planNodeDesc.get_profiles()->emplace_back(*profilingStats);
+        planNodeDesc.get_profiles()->emplace_back(std::move(profilingStats));
     }
 }
 

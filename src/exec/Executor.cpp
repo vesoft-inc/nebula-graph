@@ -386,8 +386,7 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
       name_(name),
       node_(DCHECK_NOTNULL(node)),
       qctx_(DCHECK_NOTNULL(qctx)),
-      ectx_(DCHECK_NOTNULL(qctx->ectx())),
-      profilingStats_(std::make_unique<cpp2::ProfilingStats>()) {
+      ectx_(DCHECK_NOTNULL(qctx->ectx())) {
     // Initialize the position in ExecutionContext for each executor before execution plan
     // starting to run. This will avoid lock something for thread safety in real execution
     if (!ectx_->exist(node->varName())) {
@@ -398,16 +397,17 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 Executor::~Executor() {}
 
 void Executor::startProfiling() {
-    profilingStats_->set_rows(0);
-    profilingStats_->set_exec_duration_in_us(0);
-    profilingStats_->set_total_duration_in_us(0);
+    numRows_ = 0;
+    execTimes_ = 0;
     totalDuration_.reset();
 }
 
 void Executor::stopProfiling() {
-    auto totalDuration = totalDuration_.elapsedInUSec();
-    profilingStats_->set_total_duration_in_us(totalDuration);
-    qctx()->addProfilingData(node_->id(), profilingStats_.get());
+    cpp2::ProfilingStats stats;
+    stats.set_total_duration_in_us(totalDuration_.elapsedInUSec());
+    stats.set_rows(numRows_);
+    stats.set_exec_duration_in_us(execTimes_);
+    qctx()->addProfilingData(node_->id(), std::move(stats));
 }
 
 folly::Future<Status> Executor::start(Status status) const {
@@ -421,10 +421,6 @@ folly::Future<Status> Executor::error(Status status) const {
 Status Executor::finish(Result &&result) {
     ectx_->setResult(node()->varName(), std::move(result));
     return Status::OK();
-}
-
-void Executor::dumpLog() const {
-    VLOG(4) << name() << "(" << id() << ")";
 }
 
 folly::Executor *Executor::runner() const {

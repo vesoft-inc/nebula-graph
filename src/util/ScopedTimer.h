@@ -13,7 +13,6 @@
 #include "common/time/Duration.h"
 
 namespace nebula {
-namespace graph {
 
 // This implementation is not thread-safety, please ensure that one scoped timer would NOT be
 // used by multi-threads at same time.
@@ -52,11 +51,10 @@ private:
     std::function<void(uint64_t)> callback_;
 };
 
-}   // namespace graph
 }   // namespace nebula
 
 #define CONCAT_IMPL(x, y) x##y
 #define MACRO_CONCAT(x, y) CONCAT_IMPL(x, y)
-#define SCOPED_TIMER(v) ::nebula::graph::ScopedTimer MACRO_CONCAT(_SCOPED_TIMER_, __LINE__)(v)
+#define SCOPED_TIMER(v) ::nebula::ScopedTimer MACRO_CONCAT(_SCOPED_TIMER_, __LINE__)(v)
 
 #endif   // UTIL_SCOPEDTIMER_H_

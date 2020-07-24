@@ -7,6 +7,7 @@
 #include "exec/query/GetVerticesExecutor.h"
 #include "planner/Query.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -23,7 +24,7 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 }
 
 folly::Future<Status> GetVerticesExecutor::getVertices() {
-    dumpLog();
+    SCOPED_TIMER(&execTimes_);
 
     auto *gv = asNode<GetVertices>(node());
 

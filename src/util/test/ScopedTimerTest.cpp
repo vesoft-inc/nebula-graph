@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 
 namespace nebula {
-namespace graph {
 
 TEST(ScopedTimerTest, TestScopedTimer) {
     int64_t var = 0;
@@ -34,5 +33,4 @@ TEST(ScopedTimerTest, TestScopedTimer) {
     EXPECT_GE(var, var2);
 }
 
-}   // namespace graph
 }   // namespace nebula

@@ -23,10 +23,6 @@
 namespace nebula {
 namespace graph {
 
-namespace cpp2 {
-class ProfilingStats;
-}   // namespace cpp2
-
 class PlanNode;
 class QueryContext;
 
@@ -103,10 +99,6 @@ protected:
     // Store the result of this executor to execution context
     Status finish(Result &&result);
 
-    // Dump some execution logging messages, only for debugging
-    // TODO(yee): Remove it after implementing profile function
-    void dumpLog() const;
-
     int64_t id_;
 
     // Executor name
@@ -124,8 +116,9 @@ protected:
     std::set<Executor *> successors_;
 
     // profiling data
+    uint64_t numRows_{0};
+    uint64_t execTimes_{0};
     time::Duration totalDuration_;
-    std::unique_ptr<cpp2::ProfilingStats> profilingStats_;
 };
 
 }   // namespace graph

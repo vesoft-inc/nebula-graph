@@ -11,8 +11,8 @@
 #include "common/clients/storage/GraphStorageClient.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/Vertex.h"
-
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::GetNeighborsResponse;
@@ -22,7 +22,6 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetNeighborsExecutor::execute() {
-    dumpLog();
     auto status = buildRequestDataSet();
     if (!status.ok()) {
         return error(std::move(status));
@@ -59,6 +58,8 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
 }
 
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
+    SCOPED_TIMER(&execTimes_);
+
     if (reqDs_.rows.empty()) {
         LOG(INFO) << "Empty input.";
         DataSet emptyResult;

@@ -10,6 +10,7 @@
 
 #include "planner/Mutate.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
@@ -19,7 +20,7 @@ folly::Future<Status> InsertVerticesExecutor::execute() {
 }
 
 folly::Future<Status> InsertVerticesExecutor::insertVertices() {
-    dumpLog();
+    SCOPED_TIMER(&execTimes_);
 
     auto *ivNode = asNode<InsertVertices>(node());
     return qctx()

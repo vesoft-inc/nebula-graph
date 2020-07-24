@@ -10,6 +10,7 @@
 
 #include "planner/Mutate.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 
 namespace nebula {
@@ -20,7 +21,8 @@ folly::Future<Status> InsertEdgesExecutor::execute() {
 }
 
 folly::Future<Status> InsertEdgesExecutor::insertEdges() {
-    dumpLog();
+    SCOPED_TIMER(&execTimes_);
+
     auto *ieNode = asNode<InsertEdges>(node());
     return qctx()->getStorageClient()->addEdges(ieNode->getSpace(),
             ieNode->getEdges(), ieNode->getPropNames(), ieNode->getOverwritable())

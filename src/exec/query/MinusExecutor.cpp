@@ -9,12 +9,13 @@
 #include <unordered_set>
 
 #include "planner/Query.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> MinusExecutor::execute() {
-    dumpLog();
+    SCOPED_TIMER(&execTimes_);
 
     NG_RETURN_IF_ERROR(checkInputDataSets());
 
