@@ -137,6 +137,20 @@ Status GroupByValidator::validateAll() {
 
 
 Status GroupByValidator::toPlan() {
+    auto *groupBySentence = static_cast<GroupBySentence *>(sentence_);
+
+    auto *plan = qctx_->plan();
+    PlanNode *groupBy = GroupBy::make(plan, plan->root(),
+                                      groupBySentence->groupClause()->columns());
+
+    if (!yieldCols_.empty()) {
+        PlanNode *project =
+            Project::make(plan, groupBy, groupBySentence->yieldClause()->yields());
+        root_ = project;
+    } else {
+        root_ = groupBy;
+    }
+    tail_ = groupBy;
     return Status::OK();
 }
 

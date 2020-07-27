@@ -9,27 +9,28 @@
 
 #include "common/base/Base.h"
 #include "validator/Validator.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
 class GroupByValidator final : public Validator {
-    public:
+public:
     GroupByValidator(Sentence *sentence, QueryContext *context)
         : Validator(sentence, context) {}
 
-    private:
+private:
     Status validateImpl() override;
 
     Status toPlan() override;
 
-    Status validateGroup(GroupClause *groupClause);
+    Status validateGroup(const GroupClause *groupClause);
 
-    Status validateYield(YieldClause *yieldClause);
+    Status validateYield(const YieldClause *yieldClause);
 
     Status validateAll();
 
-    private:
+private:
     std::vector<YieldColumn*>                         groupCols_;
     std::vector<YieldColumn*>                         yieldCols_;
 
