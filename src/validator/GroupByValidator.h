@@ -27,6 +27,8 @@ class GroupByValidator final : public Validator {
 
     Status validateYield(YieldClause *yieldClause);
 
+    Status validateAll();
+
     private:
     std::vector<YieldColumn*>                         groupCols_;
     std::vector<YieldColumn*>                         yieldCols_;
