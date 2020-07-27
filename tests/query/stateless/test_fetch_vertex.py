@@ -7,19 +7,17 @@
 
 from query.stateless.prepare_data import PrepareData
 
-# there is one different that now will not return vid default if yield columns not specified
-# TODO(shylock) return the vid
 class TestFetchQuery(PrepareData):
     def test_fetch_vertex_base(self):
         query = 'FETCH PROP ON player "Boris Diaw" YIELD player.name, player.age'
         resp = self.execute_query(query)
-        expect_result = [['Boris Diaw', 36]]
+        expect_result = [['Boris Diaw', 'Boris Diaw', 36]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = 'FETCH PROP ON player "Boris Diaw" YIELD player.name, player.age, player.age > 30'
         resp = self.execute_query(query)
-        expect_result = [['Boris Diaw', 36, False]]
+        expect_result = [['Boris Diaw', 'Boris Diaw', 36, False]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
@@ -27,8 +25,8 @@ class TestFetchQuery(PrepareData):
             | FETCH PROP ON player $-.id YIELD player.name, player.age'''
         resp = self.execute_query(query)
         expect_result = [
-            ['Tony Parker', 36],
-            ['Tim Duncan', 42]
+            ['Tony Parker', 'Tony Parker', 36],
+            ['Tony Parker', 'Tim Duncan', 42]
         ]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
@@ -37,8 +35,8 @@ class TestFetchQuery(PrepareData):
             FETCH PROP ON player $var.id YIELD player.name, player.age'''
         resp = self.execute_query(query)
         expect_result = [
-            ['Tony Parker', 36],
-            ['Tim Duncan', 42]
+            ['Tony Parker', 'Tony Parker', 36],
+            ['Tony Parker', 'tim duncan', 42]
         ]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
@@ -48,8 +46,8 @@ class TestFetchQuery(PrepareData):
             | ORDER BY name'''
         resp = self.execute_query(query)
         expect_result = [
-            ['Tony Parker', 36],
-            ['Tim Duncan', 42]
+            ['Tony Parker', 'Tony Parker', 36],
+            ['Tim Duncan', 'Tim Duncan', 42]
         ]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
@@ -92,13 +90,13 @@ class TestFetchQuery(PrepareData):
     def test_fetch_vertex_disctinct(self):
         query = 'FETCH PROP ON player "Boris Diaw", "Boris Diaw" YIELD DISTINCT player.name, player.age'
         resp = self.execute_query(query)
-        expect_result = [['Boris Diaw', 36]]
+        expect_result = [['Boris Diaw', 'Boris Diaw', 36]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = 'FETCH PROP ON player "Boris Diaw", "Tony Parker" YIELD DISTINCT player.name, player.age'
         resp = self.execute_query(query)
-        expect_result = [['Boris Diaw', 36], ['Tony Parker', 36]]
+        expect_result = [['Boris Diaw', 'Boris Diaw', 36], ['Tony Parker', 'Tony Parker', 36]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
@@ -147,26 +145,26 @@ class TestFetchQuery(PrepareData):
     def test_fetch_vertex_get_all(self):
         query = 'FETCH PROP ON * "Boris Diaw"'
         resp = self.execute_query(query)
-        expect_result = [['Boris Diaw', 36]]
+        expect_result = [['Boris Diaw', 'Boris Diaw', 36]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = 'FETCH PROP ON bachelor "Tim Duncan" '
         resp = self.execute_query(query)
-        expect_result = [["Tim Duncan", "psychology"]]
+        expect_result = [["Tim Duncan", "Tim Duncan", "psychology"]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = 'FETCH PROP ON * "Tim Duncan" '
         resp = self.execute_query(query)
-        expect_result = [['Tim Duncan', 42, "Tim Duncan", "psychology"]]
+        expect_result = [['Tim Duncan', 'Tim Duncan', 42, "Tim Duncan", "psychology"]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
     def test_fetch_vertex_duplicate_column_names(self):
         query = 'FETCH PROP ON player "Boris Diaw" YIELD player.name, player.name'
         resp = self.execute_query(query)
-        expect_result = [['Boris Diaw', 'Boris Diaw']]
+        expect_result = [['Boris Diaw', 'Boris Diaw', 'Boris Diaw']]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
