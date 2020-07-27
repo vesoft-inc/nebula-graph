@@ -61,10 +61,8 @@ Status FetchVerticesValidator::check() {
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
 
-    if (sentence->isAllTagProps()) {
-        // empty for all tag
-        tagName_ = *sentence->tag();
-    } else {
+    tagName_ = *sentence->tag();
+    if (!sentence->isAllTagProps()) {
         tagName_ = *(sentence->tag());
         auto tagStatus = qctx_->schemaMng()->toTagID(spaceId_, tagName_);
         NG_RETURN_IF_ERROR(tagStatus);
