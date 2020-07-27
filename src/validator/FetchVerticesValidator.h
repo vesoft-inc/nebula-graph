@@ -51,6 +51,8 @@ private:
     bool withProject_{false};
     // outputs
     std::vector<std::string> colNames_;
+    // input
+    std::string inputVar_;
 };
 
 }   // namespace graph

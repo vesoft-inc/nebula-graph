@@ -56,6 +56,8 @@ private:
     std::vector<std::string> colNames_;
     // new yield to inject reserved properties for compatible with 1.0
     YieldClause* newYield_{nullptr};
+    // input
+    std::string inputVar_;
 };
 
 }   // namespace graph

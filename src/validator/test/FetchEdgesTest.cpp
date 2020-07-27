@@ -454,6 +454,21 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputFailed) {
         auto validateResult = validator.validate();
         ASSERT_FALSE(validateResult.ok());
     }
+
+    // refer to different variables
+    {
+        auto result =
+            GQLParser().parse("$a = FETCH PROP ON like \"1\"->\"2\" "
+                              "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
+                              "$b = FETCH PROP ON like \"1\"->\"2\" "
+                              "YIELD like._src AS src, like._dst AS dst, like._rank AS rank;"
+                              "FETCH PROP ON like $a.src->$b.dst@$b.rank");
+        ASSERT_TRUE(result.ok());
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        ASSERT_FALSE(validateResult.ok());
+    }
 }
 
 }   // namespace graph

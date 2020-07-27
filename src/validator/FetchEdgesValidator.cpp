@@ -43,8 +43,9 @@ Status FetchEdgesValidator::toPlan() {
                                   limit_,
                                   std::move(orderBy_),
                                   std::move(filter_));
+    doNode->setInputVar(inputVar_);
+    // the pipe will set the input variable
     PlanNode *current = doNode;
-    // the framework need to set the input var
 
     if (withProject_) {
         auto *projectNode = Project::make(plan, current, newYield_->yields());
@@ -88,16 +89,27 @@ Status FetchEdgesValidator::prepareEdges() {
     // from ref, eval in execute
     if (sentence->isRef()) {
         src_ = sentence->ref()->srcid();
-        NG_RETURN_IF_ERROR(checkRef(src_, Value::Type::STRING));
+        auto result = checkRef(src_, Value::Type::STRING);
+        NG_RETURN_IF_ERROR(result);
+        inputVar_ = std::move(result).value();
         ranking_ = sentence->ref()->rank();
         if (ranking_ == nullptr) {
             // Default zero if ranking not specified
             ranking_ = qctx_->objPool()->add(new ConstantExpression(0));
         } else {
-            NG_RETURN_IF_ERROR(checkRef(ranking_, Value::Type::INT));
+            result = checkRef(ranking_, Value::Type::INT);
+            NG_RETURN_IF_ERROR(result);
+            if (inputVar_ != result.value()) {
+                return Status::Error("Can't refer to different variable as key at same time.");
+            }
         }
         dst_ = sentence->ref()->dstid();
-        NG_RETURN_IF_ERROR(checkRef(dst_, Value::Type::STRING));
+        result = checkRef(dst_, Value::Type::STRING);
+        NG_RETURN_IF_ERROR(result);
+        if (inputVar_ != result.value()) {
+            return Status::Error("Can't refer to different variable as key at same time.");
+        }
+        return Status::OK();
     }
 
     // from constant, eval now

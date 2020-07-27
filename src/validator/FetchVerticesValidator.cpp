@@ -33,8 +33,9 @@ Status FetchVerticesValidator::toPlan() {
                                      std::move(orderBy_),
                                      limit_,
                                      std::move(filter_));
+    doNode->setInputVar(inputVar_);
+    // pipe will set the input variable
     PlanNode *current = doNode;
-    // the framework need to set the input var
 
     if (withProject_) {
         auto *projectNode = Project::make(plan, current, sentence->yieldClause()->yields());
@@ -82,7 +83,10 @@ Status FetchVerticesValidator::prepareVertices() {
     // from ref, eval when execute
     if (sentence->isRef()) {
         src_ = sentence->ref();
-        return checkRef(src_, Value::Type::STRING);
+        auto result = checkRef(src_, Value::Type::STRING);
+        NG_RETURN_IF_ERROR(result);
+        inputVar_ = std::move(result).value();
+        return Status::OK();
     }
 
     // from constant, eval now

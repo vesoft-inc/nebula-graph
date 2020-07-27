@@ -646,7 +646,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
     return false;
 }
 
-Status Validator::checkRef(const Expression *ref, Value::Type type) const {
+StatusOr<std::string> Validator::checkRef(const Expression *ref, Value::Type type) const {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
         ColDef col(*symExpr->prop(), type);
@@ -654,6 +654,7 @@ Status Validator::checkRef(const Expression *ref, Value::Type type) const {
         if (find == inputs_.end()) {
             return Status::Error("No input property %s", symExpr->prop()->c_str());
         }
+        return std::string();
     } else if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
         ColDef col(*symExpr->prop(), type);
@@ -668,12 +669,12 @@ Status Validator::checkRef(const Expression *ref, Value::Type type) const {
                                  symExpr->prop()->c_str(),
                                  varName.c_str());
         }
+        return varName;
     } else {
         // it's guranteed by parser
         DLOG(FATAL) << "Unexpected expression " << ref->kind();
         return Status::Error("Unexpected expression.");
     }
-    return Status::OK();
 }
 
 }  // namespace graph

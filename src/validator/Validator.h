@@ -85,7 +85,8 @@ protected:
     static Status appendPlan(PlanNode* plan, PlanNode* appended);
 
     // Check the variable or input property reference
-    Status checkRef(const Expression *ref, const Value::Type type) const;
+    // return the input variable
+    StatusOr<std::string> checkRef(const Expression *ref, const Value::Type type) const;
 
 protected:
     SpaceDescription                space_;
