@@ -7,7 +7,6 @@
 
 from query.stateless.prepare_data import PrepareData
 
-# Now when yield will not add the reserved properties by default
 class TestFetchEdges(PrepareData):
     def test_fetch_edges_base(self):
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks" YIELD serve.start_year, serve.end_year'
