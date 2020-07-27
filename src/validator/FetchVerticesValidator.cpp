@@ -118,6 +118,7 @@ Status FetchVerticesValidator::prepareVertices() {
     return Status::OK();
 }
 
+// TODO(shylock) select _vid property instead of return always.
 Status FetchVerticesValidator::prepareProperties() {
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     auto *yield = sentence->yieldClause();
@@ -130,10 +131,8 @@ Status FetchVerticesValidator::prepareProperties() {
             prop.set_tag(tagId_.value());
             // empty for all
             props_.emplace_back(std::move(prop));
-            // outputs
-            // TODO(shylock) let storage output the vid
-            // outputs_.emplace_back(kVid, Value::Type::STRING);
-            // colNames_.emplace_back(kVid);
+            outputs_.emplace_back(kVid, Value::Type::STRING);
+            colNames_.emplace_back(kVid);
             for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
                 outputs_.emplace_back(schema_->getFieldName(i),
                                       SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
@@ -155,9 +154,8 @@ Status FetchVerticesValidator::prepareProperties() {
             std::sort(allTagsSchema.begin(), allTagsSchema.end(), [](const auto &a, const auto &b) {
                 return a.first < b.first;
             });
-            // TODO(shylock) let storage output the vid
-            // outputs_.emplace_back(kVid, Value::Type::STRING);
-            // colNames_.emplace_back(kVid);
+            outputs_.emplace_back(kVid, Value::Type::STRING);
+            colNames_.emplace_back(kVid);
             for (const auto &tagSchema : allTagsSchema) {
                 for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
                     outputs_.emplace_back(
@@ -195,6 +193,7 @@ Status FetchVerticesValidator::prepareProperties() {
                     // only one expression it's storage property expression
                 } else {
                     // need computation in project when storage not do it.
+                    // TODO(shylock) add vid expression to eval vid when project
                     withProject_ = true;
                 }
                 for (const auto &storageExpr : storageExprs) {

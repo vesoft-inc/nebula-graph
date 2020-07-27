@@ -113,11 +113,6 @@ namespace graph {
                 return Status::Error(
                     "%s.props_ != %s.props_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }
-            // exprs
-            if (lGV->exprs() != rGV->exprs()) {
-                return Status::Error(
-                    "%s.exprs_ != %s.exprs_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
-            }
             return Status::OK();
         }
         case PlanNode::Kind::kGetEdges: {
@@ -165,11 +160,6 @@ namespace graph {
                 return Status::Error(
                     "%s.props_ != %s.props_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
             }
-            // exprs
-            if (lGE->exprs() != rGE->exprs()) {
-                return Status::Error(
-                    "%s.exprs_ != %s.exprs_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
-            }
             return Status::OK();
         }
         case PlanNode::Kind::kProject: {
@@ -177,13 +167,13 @@ namespace graph {
             const auto *rp = static_cast<const Project *>(r);
             if (lp->columns() == nullptr && rp->columns() == nullptr) {
             } else if (lp->columns() != nullptr && rp->columns() != nullptr) {
-                if (lp->columns()->columns().size() != rp->columns()->columns().size()) {
+                auto lCols = lp->columns()->columns();
+                auto rCols = rp->columns()->columns();
+                if (lCols.size() != rCols.size()) {
                     return Status::Error("%s.columns_ != %s.columns_",
                                          l->nodeLabel().c_str(),
                                          r->nodeLabel().c_str());
                 }
-                auto lCols = lp->columns()->columns();
-                auto rCols = rp->columns()->columns();
                 for (std::size_t i = 0; i < lCols.size(); ++i) {
                     if (*lCols[i] != *rCols[i]) {
                         return Status::Error("%s.columns_ != %s.columns_",

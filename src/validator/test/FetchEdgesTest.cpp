@@ -31,6 +31,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
+        prop.set_props({kSrc, kDst, kRank, "start", "end", "likeness"});
         std::vector<storage::cpp2::EdgeProp> props;
         props.emplace_back(std::move(prop));
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
@@ -65,8 +66,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
-        std::vector<std::string> propsName{"start", "end"};
-        prop.set_props(std::move(propsName));
+        prop.set_props({kSrc, kDst, kRank, "start", "end"});
         std::vector<storage::cpp2::EdgeProp> props;
         props.emplace_back(std::move(prop));
         std::vector<storage::cpp2::Expr> exprs;
@@ -112,8 +112,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
-        std::vector<std::string> propsName{"start", "end"};
-        prop.set_props(std::move(propsName));
+        prop.set_props({kSrc, kDst, kRank, "start", "end"});
         std::vector<storage::cpp2::EdgeProp> props;
         props.emplace_back(std::move(prop));
         std::vector<storage::cpp2::Expr> exprs;
@@ -138,6 +137,9 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
 
         // Project
         auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(new EdgeSrcIdExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(new EdgeDstIdExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(new EdgeRankExpression(new std::string("like"))));
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
         yieldColumns->addColumn(new YieldColumn(new ArithmeticExpression(
@@ -145,7 +147,12 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
         auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
-        project->setColNames({"like.start", "(1+1)", "like.end"});
+        project->setColNames({std::string("like.") + kSrc,
+                              std::string("like.") + kDst,
+                              std::string("like.") + kRank,
+                              "like.start",
+                              "(1+1)",
+                              "like.end"});
         expectedQueryCtx_->plan()->setRoot(project);
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
@@ -168,8 +175,8 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
-        std::vector<std::string> propsName{"start", "end"};
-        prop.set_props(std::move(propsName));
+        std::vector<std::string> propsName;
+        prop.set_props({kSrc, kDst, kRank, "start", "end"});
         std::vector<storage::cpp2::EdgeProp> props;
         props.emplace_back(std::move(prop));
         std::vector<storage::cpp2::Expr> exprs;
@@ -194,12 +201,18 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
 
         // project, TODO(shylock) it's could push-down to storage if it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(new EdgeSrcIdExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(new EdgeDstIdExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(new EdgeRankExpression(new std::string("like"))));
         yieldColumns->addColumn(new YieldColumn(new RelationalExpression(
             Expression::Kind::kRelGT,
             new EdgePropertyExpression(new std::string("like"), new std::string("start")),
             new EdgePropertyExpression(new std::string("like"), new std::string("end")))));
         auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
-        project->setColNames({"(like.start>like.end)"});
+        project->setColNames({std::string("like.") + kSrc,
+                              std::string("like.") + kDst,
+                              std::string("like.") + kRank,
+                              "(like.start>like.end)"});
 
         expectedQueryCtx_->plan()->setRoot(project);
         auto result = Eq(plan->root(), project);
@@ -223,8 +236,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
-        std::vector<std::string> propsName{"start", "end"};
-        prop.set_props(std::move(propsName));
+        prop.set_props({kSrc, kDst, kRank, "start", "end"});
         std::vector<storage::cpp2::EdgeProp> props;
         props.emplace_back(std::move(prop));
         std::vector<storage::cpp2::Expr> exprs;
@@ -247,7 +259,11 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   std::move(props),
                                   std::move(exprs));
 
-        std::vector<std::string> colNames{"like.start", "like.end"};
+        std::vector<std::string> colNames{std::string("like.") + kSrc,
+                                          std::string("like.") + kDst,
+                                          std::string("like.") + kRank,
+                                          "like.start",
+                                          "like.end"};
         // dedup
         auto *dedup = Dedup::make(expectedQueryCtx_->plan(), ge);
         dedup->setColNames(colNames);

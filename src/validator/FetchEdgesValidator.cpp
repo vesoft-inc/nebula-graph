@@ -39,7 +39,6 @@ Status FetchEdgesValidator::validateImpl() {
 
 Status FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
-    auto *sentence = static_cast<FetchEdgesSentence*>(sentence_);
     auto *plan = qctx_->plan();
     auto *doNode = GetEdges::make(plan,
                                   nullptr,
@@ -59,7 +58,7 @@ Status FetchEdgesValidator::toPlan() {
     // the framework need to set the input var
 
     if (withProject_) {
-        auto *projectNode = Project::make(plan, current, sentence->yieldClause()->yields());
+        auto *projectNode = Project::make(plan, current, newYield_->yields());
         projectNode->setInputVar(current->varName());
         projectNode->setColNames(colNames_);
         current = projectNode;
@@ -80,7 +79,7 @@ Status FetchEdgesValidator::toPlan() {
 }
 
 Status FetchEdgesValidator::check() {
-    auto *sentence = static_cast<FetchEdgesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
     edgeTypeName_ = *sentence->edge();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, edgeTypeName_);
@@ -98,7 +97,7 @@ Status FetchEdgesValidator::check() {
 }
 
 Status FetchEdgesValidator::prepareEdges() {
-    auto *sentence = static_cast<FetchEdgesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     // from ref, eval in execute
     if (sentence->isRef()) {
         src_ = sentence->ref()->srcid();
@@ -149,17 +148,30 @@ Status FetchEdgesValidator::prepareEdges() {
 }
 
 Status FetchEdgesValidator::prepareProperties() {
-    auto *sentence = static_cast<FetchEdgesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     auto *yield = sentence->yieldClause();
     storage::cpp2::EdgeProp prop;
     prop.set_type(edgeType_);
     // empty for all properties
     if (yield != nullptr) {
-        std::vector<std::string> propsName;
-        propsName.reserve(yield->columns().size());
-        dedup_ = yield->isDistinct();
-        exprs_.reserve(yield->columns().size());
+        // insert the reserved properties expression be compatible with 1.0
+        auto *newYieldColumns = new YieldColumns();
+        newYieldColumns->addColumn(
+            new YieldColumn(new EdgeSrcIdExpression(new std::string(edgeTypeName_))));
+        newYieldColumns->addColumn(
+            new YieldColumn(new EdgeDstIdExpression(new std::string(edgeTypeName_))));
+        newYieldColumns->addColumn(
+            new YieldColumn(new EdgeRankExpression(new std::string(edgeTypeName_))));
         for (auto col : yield->columns()) {
+            newYieldColumns->addColumn(col->clone().release());
+        }
+        newYield_ = qctx_->objPool()->add(new YieldClause(newYieldColumns, yield->isDistinct()));
+
+        std::vector<std::string> propsName;
+        propsName.reserve(newYield_->columns().size());
+        dedup_ = newYield_->isDistinct();
+        exprs_.reserve(newYield_->columns().size());
+        for (auto col : newYield_->columns()) {
             if (col->expr()->kind() == Expression::Kind::kSymProperty) {
                 auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
                 col->setExpr(ExpressionUtils::transSymbolPropertyExpression<EdgePropertyExpression>(
@@ -169,7 +181,7 @@ Status FetchEdgesValidator::prepareProperties() {
             }
             const auto *invalidExpr = findInvalidYieldExpression(col->expr());
             if (invalidExpr != nullptr) {
-                return Status::Error("Invalid yield expression `%s'.",
+                return Status::Error("Invalid newYield_ expression `%s'.",
                                      col->expr()->toString().c_str());
             }
             // The properties from storage directly push down only
@@ -213,10 +225,10 @@ Status FetchEdgesValidator::prepareProperties() {
         prop.set_props(std::move(propsName));
 
         // outpus
-        colNames_ = deduceColNames(yield->yields());
+        colNames_ = deduceColNames(newYield_->yields());
         outputs_.reserve(colNames_.size());
         for (std::size_t i = 0; i < colNames_.size(); ++i) {
-            auto typeResult = deduceExprType(yield->columns()[i]->expr());
+            auto typeResult = deduceExprType(newYield_->columns()[i]->expr());
             if (!typeResult.ok()) {
                 return std::move(typeResult).status();
             }
@@ -224,21 +236,28 @@ Status FetchEdgesValidator::prepareProperties() {
         }
     } else {
         // no yield
-        outputs_.reserve(4 + schema_->getNumFields());
-        colNames_.reserve(4 + schema_->getNumFields());
+        std::vector<std::string> propNames;   // filter the type
+        propNames.reserve(3 + schema_->getNumFields());
+        outputs_.reserve(3 + schema_->getNumFields());
+        colNames_.reserve(3 + schema_->getNumFields());
+        // insert the reserved properties be compatible with 1.0
+        propNames.emplace_back(kSrc);
         outputs_.emplace_back(edgeTypeName_ + "." + kSrc, Value::Type::STRING);
         colNames_.emplace_back(edgeTypeName_ + "." + kSrc);
-        outputs_.emplace_back(edgeTypeName_ + "." + kType, Value::Type::INT);
-        colNames_.emplace_back(edgeTypeName_ + "." + kType);
-        outputs_.emplace_back(edgeTypeName_ + "." + kRank, Value::Type::INT);
-        colNames_.emplace_back(edgeTypeName_ + "." + kRank);
+        propNames.emplace_back(kDst);
         outputs_.emplace_back(edgeTypeName_ + "." + kDst, Value::Type::STRING);
         colNames_.emplace_back(edgeTypeName_ + "." + kDst);
+        propNames.emplace_back(kRank);
+        outputs_.emplace_back(edgeTypeName_ + "." + kRank, Value::Type::INT);
+        colNames_.emplace_back(edgeTypeName_ + "." + kRank);
+
         for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
+            propNames.emplace_back(schema_->getFieldName(i));
             outputs_.emplace_back(schema_->getFieldName(i),
                                   SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
             colNames_.emplace_back(schema_->getFieldName(i));
         }
+        prop.set_props(std::move(propNames));
     }
 
     props_.emplace_back(std::move(prop));
