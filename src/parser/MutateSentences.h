@@ -418,6 +418,16 @@ public:
         vid_.reset(vid);
     }
 
+    UpdateVertexSentence(Expression *vid,
+                         UpdateList *updateList,
+                         WhenClause *whenClause,
+                         YieldClause *yieldClause,
+                         bool isInsertable = false)
+        : UpdateBaseSentence(updateList, whenClause, yieldClause, nullptr, isInsertable) {
+        kind_ = Kind::kUpdateVertex;
+        vid_.reset(vid);
+    }
+
     ~UpdateVertexSentence() {}
 
     bool getInsertable() const {

@@ -117,12 +117,35 @@ TEST_F(MutateValidatorTest, UpdateVertexTest) {
         auto cmd = "UPDATE VERTEX ON student \"Tom\" SET count = 1";
         ASSERT_FALSE(checkResult(cmd, {}));
     }
-    // succeed
+    // multi tags
+    {
+        auto cmd = "UPDATE VERTEX \"Tom\" SET person.count = 1, student.age = $^.student.age + 1";
+        ASSERT_FALSE(checkResult(cmd, {}));
+    }
+    // wrong expr
+    {
+        auto cmd = "UPDATE VERTEX \"Tom\" SET person.age =person.age + 1";
+        ASSERT_FALSE(checkResult(cmd, {}));
+    }
+    // with function
+    {
+        auto cmd = "UPDATE VERTEX ON person \"Tom\" SET age =abs(age + 1)";
+        ASSERT_TRUE(checkResult(cmd, {}));
+    }
+    // 1.0 syntax succeed
+    {
+        auto cmd = "UPDATE VERTEX \"Tom\""
+                   "SET person.age = $^.person.age + 1 "
+                   "WHEN $^.person.age == 18 "
+                   "YIELD $^.person.name AS name, $^.person.age AS age";
+        ASSERT_TRUE(checkResult(cmd, {PK::kUpdateVertex, PK::kStart}));
+    }
+    // 2.0 syntax succeed
     {
         auto cmd = "UPDATE VERTEX ON person \"Tom\""
-                   "SET age = person.age + 1 "
-                   "WHEN person.age == 18 "
-                   "YIELD person.name AS name, person.age AS age";
+                   "SET age = age + 1 "
+                   "WHEN page == 18 "
+                   "YIELD name AS name, age AS age";
         ASSERT_TRUE(checkResult(cmd, {PK::kUpdateVertex, PK::kStart}));
     }
 }
@@ -133,13 +156,29 @@ TEST_F(MutateValidatorTest, UpdateEdgeTest) {
         auto cmd = "UPDATE EDGE ON study \"Tom\"->\"Lily\" SET count = 1";
         ASSERT_FALSE(checkResult(cmd, {}));
     }
-    // succeed
+    // Wrong expr "$^.peson.age"
     {
-        auto cmd = "UPDATE EDGE ON like \"Tom\"->\"Lily\""
+        auto cmd = "UPDATE EDGE \"Tom\"->\"Lily\" OF like "
+                   "SET end = like.end + 1 "
+                   "WHEN $^.peson.age >= 18 "
+                   "YIELD $^.peson.age AS age, like.end AS end";
+        ASSERT_FALSE(checkResult(cmd, {}));
+    }
+    // 1.0 syntax succeed
+    {
+        auto cmd = "UPDATE EDGE \"Tom\"->\"Lily\" OF like "
                    "SET end = like.end + 1 "
                    "WHEN like.start >= 2010 "
                    "YIELD like.start AS start, like.end AS end";
-        ASSERT_TRUE(checkResult(cmd, {PK::kUpdateEdge, PK::kStart}));
+        ASSERT_TRUE(checkResult(cmd, {PK::kUpdateEdge, PK::kUpdateEdge, PK::kStart}));
+    }
+    // 2.0 syntax succeed
+    {
+        auto cmd = "UPDATE EDGE ON like \"Tom\"->\"Lily\""
+                   "SET end = end + 1 "
+                   "WHEN start >= 2010 "
+                   "YIELD start AS start, end AS end";
+        ASSERT_TRUE(checkResult(cmd, {PK::kUpdateEdge, PK::kUpdateEdge, PK::kStart}));
     }
 }
 }  // namespace graph

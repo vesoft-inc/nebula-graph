@@ -73,9 +73,12 @@ public:
 =======
 class UpdateBaseValidator : public Validator {
 public:
-    explicit UpdateBaseValidator(Sentence* sentence, QueryContext* context)
+    explicit UpdateBaseValidator(Sentence* sentence,
+                                 QueryContext* context,
+                                 bool isEdge = false)
         : Validator(sentence, context) {
         sentence_ = static_cast<UpdateBaseSentence*>(sentence);
+        isEdge_ = isEdge;
     }
 
     virtual ~UpdateBaseValidator() {}
@@ -83,11 +86,21 @@ public:
 protected:
     Status initProps();
 
-    void getCondition();
+    Status getCondition();
 
-    void getReturnProps();
+    Status getReturnProps();
 
     Status getUpdateProps();
+
+private:
+    Status checkAndResetSymExpr(Expression* inExpr,
+                                const std::string& symName,
+                                std::string &encodeStr);
+
+    std::unique_ptr<Expression> rewriteSymExpr(Expression* expr,
+                                               const std::string &sym,
+                                               bool &hasWrongType,
+                                               bool isEdge = false);
 
 protected:
     UpdateBaseSentence                                 *sentence_;
@@ -98,6 +111,7 @@ protected:
     std::string                                         condition_;
     std::vector<storage::cpp2::UpdatedProp>             updatedProps_;
     std::string                                         name_;
+    bool                                                isEdge_{false};
 };
 
 class UpdateVertexValidator final : public UpdateBaseValidator {
@@ -147,12 +161,16 @@ class UpdateEdgeValidator final : public UpdateBaseValidator {
 public:
     UpdateEdgeValidator(Sentence* sentence, QueryContext* context)
 <<<<<<< HEAD
+<<<<<<< HEAD
             : UpdateBaseValidator(sentence, context) {
         sentence_ = static_cast<UpdateEdgeSentence*>(sentence);
 >>>>>>> add update executor and test
 =======
         : UpdateBaseValidator(sentence, context) {
 >>>>>>> update
+=======
+        : UpdateBaseValidator(sentence, context, true) {
+>>>>>>> Compatible with 1.0 syntax
     }
 
 private:

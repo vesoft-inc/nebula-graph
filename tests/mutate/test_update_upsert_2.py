@@ -14,8 +14,8 @@ from nebula_test_common.nebula_test_suite import NebulaTestSuite
 class TestUpdateVertex(NebulaTestSuite):
     @classmethod
     def prepare(self):
-        resp = self.execute('CREATE SPACE myspace_test2(partition_num=1, replica_factor=1, vid_size=20);'
-                            'USE myspace_test2;'
+        resp = self.execute('CREATE SPACE myspace_test_update(partition_num=1, replica_factor=1, vid_size=20);'
+                            'USE myspace_test_update;'
                             'CREATE TAG course(name string, credits int);'
                             'CREATE TAG building(name string);'
                             'CREATE TAG student(name string, age int, gender string);'
@@ -57,7 +57,7 @@ class TestUpdateVertex(NebulaTestSuite):
         
     @classmethod
     def cleanup(self):
-        resp = self.execute('DROP SPACE myspace_test2;')
+        resp = self.execute('DROP SPACE myspace_test_update;')
         self.check_resp_succeeded(resp)
 
     def test_update_vertex(self):
@@ -124,7 +124,7 @@ class TestUpdateVertex(NebulaTestSuite):
         # self.check_result(resp, expected_result)
 
         resp = self.execute_query('GO FROM "101" OVER select REVERSELY '
-                                  'YIELD grade, year')
+                                  'YIELD select.grade, select.year')
         self.check_resp_succeeded(resp)
         expected_result = [[6, 2000]]
         self.check_result(resp, expected_result)
@@ -269,12 +269,11 @@ class TestUpdateVertex(NebulaTestSuite):
         # has default value test,
         # Insertable: vertex 110 ("Ann") --> ("Ann", "one"),
         # 110 is nonexistent, gender with default value
+        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT VERTEX ON student_default "110" '
                                   'SET name = "Ann", age = 10 '
                                   "YIELD name AS Name, gender AS Gender")
-        self.check_resp_succeeded(resp)
-        expected_result = [["Ann", "one"]]
-        self.check_result(resp, expected_result)
+        self.check_resp_failed(resp)
 
         # Insertable failed, 111 is nonexistent, name and age without default value
         resp = self.execute_query('UPSERT VERTEX ON student_default "111" '
@@ -314,36 +313,33 @@ class TestUpdateVertex(NebulaTestSuite):
 
         # Insertable success, 115 is nonexistent, name and age without default value,
         # the filter is always true.
+        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT VERTEX ON student_default "115" '
                                   'SET name = "Kate", age = 12 '
                                   'WHEN gender == "two" ' 
                                   "YIELD name AS Name, age AS Age, gender AS gender")
-        self.check_resp_succeeded(resp)
-        expected_result = [["Kate", 12, "one"]]
-        self.check_result(resp, expected_result)
+        self.check_resp_failed(resp)
 
         # Order problem
         # Insertable success, 116 is nonexistent, name and age without default value,
         # the filter is always true.
+        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT VERTEX ON student_default "116" '
                                   'SET name = "Kate", age = birthday + 1,'
                                   'birthday = birthday + 1 '
                                   'WHEN gender == "two" '
                                   'YIELD name AS Name, age AS Age, '
                                   'gender AS gender, birthday AS birthday')
-        self.check_resp_succeeded(resp)
-        expected_result = [["Kate", 2011, "one", 2011]]
-        self.check_result(resp, expected_result)
+        self.check_resp_failed(resp)
 
         # Order problem
         # Insertable success, 117 is nonexistent, name and age without default value,
         # the filter is always true.
+        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT VERTEX ON student_default "117" '
                                   'SET birthday = birthday + 1, name = "Kate", age = birthday + 1 '
                                   'YIELD name AS Name, age AS Age, gender AS gender, birthday AS birthday')
-        self.check_resp_succeeded(resp)
-        expected_result = [["Kate", 2012, "one", 2011]]
-        self.check_result(resp, expected_result)
+        self.check_resp_failed(resp)
 
     def test_upsert_edge(self):
         # resp = self.execute_query('FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year')
@@ -418,12 +414,11 @@ class TestUpdateVertex(NebulaTestSuite):
         self.check_resp_failed(resp)
 
         # update select_default's year with edge prop value
+        # 2.0 storage need every prop has default value or null type when upsert
         resp = self.execute_query('UPSERT EDGE ON select_default "222" -> "444"@0 '
                                   'SET grade = 3, year = year + 10 '
                                   'YIELD grade AS Grade, year AS Year')
-        self.check_resp_succeeded(resp)
-        expected_result = [[3, 1546308010]]
-        self.check_result(resp, expected_result)
+        self.check_resp_failed(resp)
 
 
     def test_update_not_exist(self):
