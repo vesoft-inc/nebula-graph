@@ -5,6 +5,7 @@
  */
 
 #include "validator/GroupByValidator.h"
+#include "planner/Query.h"
 
 
 namespace nebula {

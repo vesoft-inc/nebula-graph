@@ -27,6 +27,7 @@
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/YieldValidator.h"
+#include "validator/GroupByValidator.h"
 #include "common/function/FunctionManager.h"
 
 namespace nebula {
@@ -62,6 +63,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<OrderByValidator>(sentence, context);
         case Sentence::Kind::kYield:
             return std::make_unique<YieldValidator>(sentence, context);
+        case Sentence::Kind::kGroupBy:
+            return std::make_unique<GroupByValidator>(sentence, context);
         case Sentence::Kind::kCreateSpace:
             return std::make_unique<CreateSpaceValidator>(sentence, context);
         case Sentence::Kind::kCreateTag:
@@ -132,6 +135,7 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kProject:
         case PlanNode::Kind::kSort:
         case PlanNode::Kind::kLimit:
+        case PlanNode::Kind::kGroupBy:
         case PlanNode::Kind::kAggregate:
         case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:

@@ -574,12 +574,15 @@ private:
     YieldColumns*               cols_{nullptr};
 };
 
+/*
+ * group by
+ */
 class GroupBy final : public SingleInputNode {
 public:
-  static GroupBy *make(ExecutionPlan *plan, const PlanNode *input,
-                       const std::vector<YieldColumn *> &cols) {
+    static GroupBy* make(ExecutionPlan* plan, const PlanNode* input,
+                         const std::vector<YieldColumn *>& cols) {
         return new GroupBy(plan, input, cols);
-  }
+    }
 
     std::string explain() const override;
 

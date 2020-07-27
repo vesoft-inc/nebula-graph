@@ -161,6 +161,7 @@ protected:
                 case PlanNode::Kind::kProject:
                 case PlanNode::Kind::kSort:
                 case PlanNode::Kind::kLimit:
+                case PlanNode::Kind::kGroupBy:
                 case PlanNode::Kind::kAggregate:
                 case PlanNode::Kind::kSwitchSpace:
                 case PlanNode::Kind::kMultiOutputs:
