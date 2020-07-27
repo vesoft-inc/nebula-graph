@@ -20,21 +20,10 @@ namespace graph {
 };
 
 Status FetchEdgesValidator::validateImpl() {
-    auto status = check();
-    if (!status.ok()) {
-        return status;
-    }
-
-    status = prepareEdges();
-    if (!status.ok()) {
-        return status;
-    }
-
-    status = prepareProperties();
-    if (!status.ok()) {
-        return status;
-    }
-    return status;
+    NG_RETURN_IF_ERROR(check());
+    NG_RETURN_IF_ERROR(prepareEdges());
+    NG_RETURN_IF_ERROR(prepareProperties());
+    return Status::OK();
 }
 
 Status FetchEdgesValidator::toPlan() {
@@ -83,9 +72,7 @@ Status FetchEdgesValidator::check() {
     spaceId_ = vctx_->whichSpace().id;
     edgeTypeName_ = *sentence->edge();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, edgeTypeName_);
-    if (!edgeStatus.ok()) {
-        return edgeStatus.status();
-    }
+    NG_RETURN_IF_ERROR(edgeStatus);
     edgeType_ = edgeStatus.value();
     schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
     if (schema_ == nullptr) {
@@ -101,23 +88,16 @@ Status FetchEdgesValidator::prepareEdges() {
     // from ref, eval in execute
     if (sentence->isRef()) {
         src_ = sentence->ref()->srcid();
-        auto status = checkRef(src_, Value::Type::STRING);
-        if (!status.ok()) {
-            return status;
-        }
+        NG_RETURN_IF_ERROR(checkRef(src_, Value::Type::STRING));
         ranking_ = sentence->ref()->rank();
         if (ranking_ == nullptr) {
             // Default zero if ranking not specified
             ranking_ = qctx_->objPool()->add(new ConstantExpression(0));
         } else {
-            status = checkRef(ranking_, Value::Type::INT);
-        }
-        if (!status.ok()) {
-            return status;
+            NG_RETURN_IF_ERROR(checkRef(ranking_, Value::Type::INT));
         }
         dst_ = sentence->ref()->dstid();
-        status = checkRef(dst_, Value::Type::STRING);
-        return status;
+        NG_RETURN_IF_ERROR(checkRef(dst_, Value::Type::STRING));
     }
 
     // from constant, eval now
@@ -229,9 +209,7 @@ Status FetchEdgesValidator::prepareProperties() {
         outputs_.reserve(colNames_.size());
         for (std::size_t i = 0; i < colNames_.size(); ++i) {
             auto typeResult = deduceExprType(newYield_->columns()[i]->expr());
-            if (!typeResult.ok()) {
-                return std::move(typeResult).status();
-            }
+            NG_RETURN_IF_ERROR(typeResult);
             outputs_.emplace_back(colNames_[i], typeResult.value());
         }
     } else {

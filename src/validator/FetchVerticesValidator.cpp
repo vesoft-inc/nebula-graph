@@ -12,21 +12,10 @@ namespace nebula {
 namespace graph {
 
 Status FetchVerticesValidator::validateImpl() {
-    auto status = check();
-    if (!status.ok()) {
-        return status;
-    }
-
-    status = prepareVertices();
-    if (!status.ok()) {
-        return status;
-    }
-
-    status = prepareProperties();
-    if (!status.ok()) {
-        return status;
-    }
-    return status;
+    NG_RETURN_IF_ERROR(check());
+    NG_RETURN_IF_ERROR(prepareVertices());
+    NG_RETURN_IF_ERROR(prepareProperties());
+    return Status::OK();
 }
 
 Status FetchVerticesValidator::toPlan() {
@@ -78,10 +67,7 @@ Status FetchVerticesValidator::check() {
     } else {
         tagName_ = *(sentence->tag());
         auto tagStatus = qctx_->schemaMng()->toTagID(spaceId_, tagName_);
-        if (!tagStatus.ok()) {
-            LOG(ERROR) << "No schema found for " << tagName_;
-            return Status::Error("No schema found for `%s'", tagName_.c_str());
-        }
+        NG_RETURN_IF_ERROR(tagStatus);
 
         tagId_ = tagStatus.value();
         schema_ = qctx_->schemaMng()->getTagSchema(spaceId_, tagId_.value());
@@ -141,9 +127,7 @@ Status FetchVerticesValidator::prepareProperties() {
         } else {
             // all schema properties
             const auto allTagsResult = qctx_->schemaMng()->getAllVerTagSchema(spaceId_);
-            if (!allTagsResult.ok()) {
-                return std::move(allTagsResult).status();
-            }
+            NG_RETURN_IF_ERROR(allTagsResult);
             const auto allTags = std::move(allTagsResult).value();
             std::vector<std::pair<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>>
                 allTagsSchema;
@@ -231,9 +215,7 @@ Status FetchVerticesValidator::prepareProperties() {
         outputs_.reserve(colNames_.size());
         for (std::size_t i = 0; i < colNames_.size(); ++i) {
             auto typeResult = deduceExprType(yield->columns()[i]->expr());
-            if (!typeResult.ok()) {
-                return std::move(typeResult).status();
-            }
+            NG_RETURN_IF_ERROR(typeResult);
             outputs_.emplace_back(colNames_[i], typeResult.value());
         }
     }
