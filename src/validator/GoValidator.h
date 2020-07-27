@@ -56,7 +56,7 @@ private:
 
     GetNeighbors::EdgeProps buildEdgeProps();
 
-    GetNeighbors::EdgeProps buildNStepLoopEdgeProps();
+    GetNeighbors::EdgeProps buildEdgeDst();
 
     Expression* buildNStepLoopCondition(int64_t steps) const;
 

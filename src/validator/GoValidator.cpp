@@ -261,7 +261,7 @@ Status GoValidator::buildNStepsPlan() {
 
     auto* gn = GetNeighbors::make(plan, bodyStart, space_.id);
     gn->setSrc(src_);
-    gn->setEdgeProps(buildNStepLoopEdgeProps());
+    gn->setEdgeProps(buildEdgeDst());
     gn->setInputVar(startVidsVar);
     VLOG(1) << gn->varName();
 
@@ -656,6 +656,15 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
                            });
         }
     } else if (!dstTagProps_.empty()) {
+        return buildEdgeDst();
+    }
+
+    return edgeProps;
+}
+
+GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
+    GetNeighbors::EdgeProps edgeProps;
+    if (!edgeProps_.empty() || !dstTagProps_.empty()) {
         if (direction_ == storage::cpp2::EdgeDirection::IN_EDGE) {
             edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
                 edgeTypes_.size());
@@ -694,21 +703,6 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
                             return ep;
                         });
         }
-    }
-
-    return edgeProps;
-}
-
-GetNeighbors::EdgeProps GoValidator::buildNStepLoopEdgeProps() {
-    GetNeighbors::EdgeProps edgeProps;
-    if (!edgeProps_.empty()) {
-        edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(edgeTypes_.size());
-        std::transform(edgeTypes_.begin(), edgeTypes_.end(), edgeProps->begin(), [] (auto& type) {
-            storage::cpp2::EdgeProp ep;
-            ep.type = type;
-            ep.props = {kDst};
-            return ep;
-        });
     }
     return edgeProps;
 }
