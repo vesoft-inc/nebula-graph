@@ -20,6 +20,7 @@ nebula_add_library(
     LimitValidator.cpp
     OrderByValidator.cpp
     YieldValidator.cpp
+    TraversalValidator.cpp
 )
 
 add_subdirectory(test)

@@ -8,24 +8,20 @@
 #define VALIDATOR_GOVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "validator/TraversalValidator.h"
 #include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
-class GoValidator final : public Validator {
+class GoValidator final : public TraversalValidator {
 public:
     GoValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+        : TraversalValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-    Status validateStep(const StepClause* step);
-
-    Status validateFrom(const FromClause* from);
 
     Status validateOver(const OverClause* over);
 
@@ -46,10 +42,6 @@ private:
     Status oneStep(PlanNode* dependencyForGn, const std::string& inputVarNameForGN,
                    PlanNode* projectFromJoin);
 
-    std::string buildConstantInput();
-
-    PlanNode* buildRuntimeInput();
-
     GetNeighbors::VertexProps buildSrcVertexProps();
 
     GetNeighbors::VertexProps buildDstVertexProps();
@@ -58,11 +50,7 @@ private:
 
     GetNeighbors::EdgeProps buildNStepLoopEdgeProps();
 
-    Expression* buildNStepLoopCondition(int64_t steps) const;
-
     Project* ifBuildLeftVarForTraceJoin(PlanNode* projectStartVid);
-
-    Project* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
 
     Project* ifTraceToStartVid(Project* projectLeftVarForJoin,
                                Project* projectDstFromGN);
@@ -70,18 +58,7 @@ private:
     PlanNode* ifBuildJoinPipeInput(PlanNode* gn,
                                    PlanNode* projectFromJoin);
 
-    enum FromType {
-        kConstantExpr,
-        kVariable,
-        kPipe,
-    };
-
 private:
-    int64_t                                                 steps_;
-    FromType                                                fromType_{kConstantExpr};
-    Expression*                                             srcRef_{nullptr};
-    Expression*                                             src_{nullptr};
-    std::vector<Value>                                      starts_;
     bool                                                    isOverAll_{false};
     std::vector<EdgeType>                                   edgeTypes_;
     storage::cpp2::EdgeDirection                            direction_;
@@ -98,9 +75,7 @@ private:
     std::unordered_map<std::string, YieldColumn*>           propExprColMap_;
     Expression*                                             newFilter_{nullptr};
     YieldColumns*                                           newYieldCols_{nullptr};
-    std::string                                             srcVidColName_;
     std::string                                             dstVidColName_;
-    std::string                                             firstBeginningSrcVidColName_;
 };
 }  // namespace graph
 }  // namespace nebula
