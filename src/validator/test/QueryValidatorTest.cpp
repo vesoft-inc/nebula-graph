@@ -356,6 +356,25 @@ TEST_F(QueryValidatorTest, GoNSteps) {
         EXPECT_TRUE(checkResult(query, expected));
     }
     {
+        std::string query = "$var = GO FROM \"1\" OVER like "
+                            "YIELD $^.person.name AS name, like._dst AS id;"
+                            "GO FROM $var.id OVER like "
+                            "YIELD $var.name, $^.person.name, $$.person.name";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
         std::string query = "GO 1 STEPS FROM \"1\" OVER like YIELD like._dst AS "
                             "id, $$.person.name as name | GO 2 STEPS FROM $-.id OVER like "
                             "YIELD $-.name, like.likeness + 1, $-.id, like._dst, "
