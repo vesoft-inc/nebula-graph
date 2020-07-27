@@ -574,6 +574,22 @@ private:
     YieldColumns*               cols_{nullptr};
 };
 
+class GroupBy final : public SingleInputNode {
+public:
+    static GroupBy* make(ExecutionPlan* plan, const PlanNode* input, YieldColumns* cols) {
+        return new GroupBy(plan, input, cols);
+    }
+
+    std::string explain() const override;
+
+private:
+    GroupBy(ExecutionPlan* plan, const PlanNode* input, YieldColumns* cols)
+        : SingleInputNode(plan, Kind::kGroupBy, input), cols_(cols) {}
+
+private:
+    YieldColumns* cols_{nullptr};
+};
+
 /**
  * Sort the given record set.
  */

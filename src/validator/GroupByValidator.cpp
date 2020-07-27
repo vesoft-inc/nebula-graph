@@ -19,7 +19,7 @@ Status GroupByValidator::validateImpl() {
     return Status::OK();
 }
 
-Status GroupByValidator::validateGroup(GroupClause *groupClause) {
+Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
     std::vector<YieldColumn*> groups;
     if (groupClause != nullptr) {
         groups = groupClause->columns();
@@ -42,7 +42,7 @@ Status GroupByValidator::validateGroup(GroupClause *groupClause) {
 constexpr char kCount[] = "COUNT";
 constexpr char kCountDist[] = "COUNT_DISTINCT";
 
-Status GroupByValidator::validateYield(YieldClause *yieldClause) {
+Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
     std::vector<YieldColumn*> yields;
     if (yieldClause != nullptr) {
         yields = yieldClause->columns();
@@ -74,7 +74,7 @@ Status GroupByValidator::validateAll() {
     for (auto& it : groupCols_) {
         // check input col
         if (it->expr()->kind() == Expression::Kind::kInputProperty) {
-            auto groupName = static_cast<InputPropertyExpression*>(it->exptr())->prop();
+            auto groupName = static_cast<InputPropertyExpression*>(it->expr())->prop();
             auto findIter = std::find_if(inputs_.begin(), inputs_.end(),
                                          [&groupName](const auto &pair) {
                                            return *groupName == pair.first;
@@ -98,7 +98,7 @@ Status GroupByValidator::validateAll() {
         auto alisaIter = aliases_.find(groupName);
         if (alisaIter != aliases_.end()) {
             it = alisaIter->second;
-            auto gName = static_cast<InputPorpertyExpression*>(it->expr())->prop();
+            auto gName = static_cast<InputPropertyExpression*>(it->expr())->prop();
             if (it->expr()->kind() == Expression::Kind::kInputProperty) {
                 inputGroupCols.emplace(*gName);
             }
