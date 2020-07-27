@@ -12,36 +12,36 @@ class TestFetchEdges(PrepareData):
     def test_fetch_edges_base(self):
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks" YIELD serve.start_year, serve.end_year'
         resp = self.execute_query(query)
-        expect_result = [[2003, 2005]]
+        expect_result = [['Boris Diaw', 'Hawks', 0, 2003, 2005]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks" YIELD serve.start_year > 2001, serve.end_year'
         resp = self.execute_query(query)
-        expect_result = [[True, 2005]]
+        expect_result = [['Boris Diaw', 'Hawks', 0, True, 2005]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks"@0 YIELD serve.start_year, serve.end_year'
         resp = self.execute_query(query)
-        expect_result = [[2003, 2005]]
+        expect_result = [['Boris Diaw', 'Hawks', 0, 2003, 2005]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks", "Boris Diaw"->"Suns" YIELD serve.start_year, serve.end_year'
         resp = self.execute_query(query)
-        expect_result = [[2003, 2005], [2005, 2008]]
+        expect_result = [['Boris Diaw', 'Hawks', 0, 2003, 2005], ['Boris Diaw', 'Suns', 0, 2005, 2008]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = '''GO FROM "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst
                    | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year'''
         resp = self.execute_query(query)
-        expect_result = [[2003, 2005],
-                         [2005, 2008],
-                         [2008, 2012],
-                         [2012, 2016],
-                         [2016, 2017]]
+        expect_result = [["Boris Diaw", "Hawks", 0, 2003, 2005],
+                         ["Boris Diaw", "Suns", 0, 2005, 2008],
+                         ["Boris Diaw", "Hornets", 0, 2008, 2012],
+                         ["Boris Diaw", "Spurs", 0, 2012, 2016],
+                         ["Boris Diaw", "Jazz", 0, 2016, 2017]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
@@ -93,18 +93,18 @@ class TestFetchEdges(PrepareData):
     def test_fetch_edges_distinct(self):
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks", "Boris Diaw"->"Hawks" YIELD DISTINCT serve.start_year, serve.end_year'
         resp = self.execute_query(query)
-        expect_result = [[2003, 2005]]
+        expect_result = [["Boris Diaw", "Hawks", 0, 2003, 2005]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = '''GO FROM "Boris Diaw", "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst
                    | FETCH PROP ON serve $-.src->$-.dst YIELD DISTINCT serve.start_year, serve.end_year'''
         resp = self.execute_query(query)
-        expect_result = [[2003, 2005],
-                         [2005, 2008],
-                         [2008, 2012],
-                         [2012, 2016],
-                         [2016, 2017]]
+        expect_result = [["Boris Diaw", "Hawks", 0, 2003, 2005],
+                         ["Boris Diaw", "Suns", 0, 2005, 2008],
+                         ["Boris Diaw", "Hornets", 0, 2008, 2012],
+                         ["Boris Diaw", "Spurs", 0, 2012, 2016],
+                         ["Boris Diaw", "Jazz", 0, 2016, 2017]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
@@ -167,13 +167,13 @@ class TestFetchEdges(PrepareData):
     def test_fetch_edges_not_duplicate_column(self):
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks" YIELD serve.start_year, serve.start_year'
         resp = self.execute_query(query)
-        expect_result = [[2003, 2003]]
+        expect_result = [["Boris Diaw", "Hawks", 0, 2003, 2003]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks" YIELD serve._src, serve._dst, serve._rank'
         resp = self.execute_query(query)
-        expect_result = [["Boris Diaw", "Hawks", 0]]
+        expect_result = [["Boris Diaw", "Hawks", 0, "Boris Diaw", "Hawks", 0]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp.rows, expect_result)
 
