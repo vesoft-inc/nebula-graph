@@ -611,10 +611,10 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
                            edgeProps->begin(), [this](auto& edge) {
                                storage::cpp2::EdgeProp ep;
                                ep.type = -edge.first;
-                               if (!dstTagProps_.empty()) {
-                                   edge.second.emplace_back(kDst);
-                               }
                                ep.props = std::move(edge.second);
+                               if (!dstTagProps_.empty()) {
+                                   ep.props.emplace_back(kDst);
+                               }
                                return ep;
                            });
         } else if (direction_ == storage::cpp2::EdgeDirection::BOTH) {
@@ -625,20 +625,20 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
                            edgeProps->begin(), [this](auto& edge) {
                                storage::cpp2::EdgeProp ep;
                                ep.type = edge.first;
+                               ep.props = edge.second;
                                if (!dstTagProps_.empty()) {
-                                   edge.second.emplace_back(kDst);
+                                   ep.props.emplace_back(kDst);
                                }
-                               ep.props = std::move(edge.second);
                                return ep;
                            });
             std::transform(edgeProps_.begin(), edgeProps_.end(),
                            edgeProps->begin() + size, [this](auto& edge) {
                                storage::cpp2::EdgeProp ep;
                                ep.type = -edge.first;
-                               if (!dstTagProps_.empty()) {
-                                   edge.second.emplace_back(kDst);
-                               }
                                ep.props = std::move(edge.second);
+                               if (!dstTagProps_.empty()) {
+                                   ep.props.emplace_back(kDst);
+                               }
                                return ep;
                            });
         } else {
@@ -648,10 +648,10 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
                            edgeProps->begin(), [this](auto& edge) {
                                storage::cpp2::EdgeProp ep;
                                ep.type = edge.first;
-                               if (!dstTagProps_.empty()) {
-                                   edge.second.emplace_back(kDst);
-                               }
                                ep.props = std::move(edge.second);
+                               if (!dstTagProps_.empty()) {
+                                   ep.props.emplace_back(kDst);
+                               }
                                return ep;
                            });
         }
@@ -672,6 +672,7 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
                             ep.type = -type;
+                            VLOG(1) << "edge type: " << ep.type;
                             ep.props = {kDst};
                             return ep;
                         });
@@ -682,16 +683,19 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
                             ep.type = type;
+                            VLOG(1) << "edge type: " << ep.type;
                             ep.props = {kDst};
                             return ep;
                         });
-            std::transform(edgeTypes_.begin(), edgeTypes_.end(), edgeProps->begin(),
-                        [](auto& type) {
-                            storage::cpp2::EdgeProp ep;
-                            ep.type = -type;
-                            ep.props = {kDst};
-                            return ep;
-                        });
+            std::transform(edgeTypes_.begin(), edgeTypes_.end(),
+                           edgeProps->begin() + edgeTypes_.size(),
+                           [](auto& type) {
+                               storage::cpp2::EdgeProp ep;
+                               ep.type = -type;
+                               VLOG(1) << "edge type: " << ep.type;
+                               ep.props = {kDst};
+                               return ep;
+                           });
         } else {
             edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
                 edgeTypes_.size());
@@ -699,6 +703,7 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
                             ep.type = type;
+                            VLOG(1) << "edge type: " << ep.type;
                             ep.props = {kDst};
                             return ep;
                         });
