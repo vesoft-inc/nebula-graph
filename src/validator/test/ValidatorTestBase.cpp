@@ -39,7 +39,7 @@ namespace graph {
     }
     switch (l->kind()) {
         case PlanNode::Kind::kUnknown:
-            return Status::Error("Unknow node");
+            return Status::Error("Unknown node");
         case PlanNode::Kind::kStart:
         case PlanNode::Kind::kDedup:
             return Status::OK();
