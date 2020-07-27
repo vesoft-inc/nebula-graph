@@ -99,15 +99,15 @@ public:
     }
 
     template <typename T, typename = std::enable_if_t<std::is_same<T, Expression::Kind>::value>>
-    static inline bool isAnyKind(const Expression* expr, T k) {
+    static inline bool isKindOf(const Expression* expr, T k) {
         return expr->kind() == k;
     }
 
     template <typename T,
               typename... Ts,
               typename = std::enable_if_t<std::is_same<T, Expression::Kind>::value>>
-    static inline bool isAnyKind(const Expression* expr, T k, Ts... ts) {
-        return expr->kind() == k || isAnyKind(expr, ts...);
+    static inline bool isKindOf(const Expression* expr, T k, Ts... ts) {
+        return expr->kind() == k || isKindOf(expr, ts...);
     }
 
     // null for not found
@@ -117,7 +117,7 @@ public:
     static const Expression* findAnyKind(const Expression* self, Ts... ts) {
         const Expression* found = nullptr;
         traverse(self, [pack = std::make_tuple(ts...), &found](const Expression* expr) -> bool {
-            auto bind = [expr](Ts... ts_) { return isAnyKind(expr, ts_...); };
+            auto bind = [expr](Ts... ts_) { return isKindOf(expr, ts_...); };
             if (folly::apply(bind, pack)) {
                 found = expr;
                 return false;   // Already find so return now
@@ -135,7 +135,7 @@ public:
     static std::vector<const Expression*> findAnyKindInAll(const Expression* self, Ts... ts) {
         std::vector<const Expression*> exprs;
         traverse(self, [pack = std::make_tuple(ts...), &exprs](const Expression* expr) -> bool {
-            auto bind = [expr](Ts... ts_) { return isAnyKind(expr, ts_...); };
+            auto bind = [expr](Ts... ts_) { return isKindOf(expr, ts_...); };
             if (folly::apply(bind, pack)) {
                 exprs.emplace_back(expr);
             }
@@ -197,16 +197,16 @@ public:
     }
 
     static bool isStorage(const Expression* expr) {
-        return isAnyKind(expr,
-                         Expression::Kind::kSymProperty,
-                         Expression::Kind::kTagProperty,
-                         Expression::Kind::kEdgeProperty,
-                         Expression::Kind::kDstProperty,
-                         Expression::Kind::kSrcProperty,
-                         Expression::Kind::kEdgeSrc,
-                         Expression::Kind::kEdgeType,
-                         Expression::Kind::kEdgeRank,
-                         Expression::Kind::kEdgeDst);
+        return isKindOf(expr,
+                        Expression::Kind::kSymProperty,
+                        Expression::Kind::kTagProperty,
+                        Expression::Kind::kEdgeProperty,
+                        Expression::Kind::kDstProperty,
+                        Expression::Kind::kSrcProperty,
+                        Expression::Kind::kEdgeSrc,
+                        Expression::Kind::kEdgeType,
+                        Expression::Kind::kEdgeRank,
+                        Expression::Kind::kEdgeDst);
     }
 
     static bool isConstExpr(const Expression* expr) {
@@ -228,7 +228,7 @@ public:
     }
 
     // clone expression
-    static std::unique_ptr<Expression> clone(const Expression *expr) {
+    static std::unique_ptr<Expression> clone(const Expression* expr) {
         // TODO(shylock) optimize
         if (expr == nullptr) {
             return nullptr;

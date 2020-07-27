@@ -20,18 +20,18 @@ TEST_F(ExpressionUtilsTest, CheckComponent) {
         // single node
         const auto root = std::make_unique<ConstantExpression>();
 
-        ASSERT_TRUE(ExpressionUtils::isAnyKind(root.get(), Expression::Kind::kConstant));
+        ASSERT_TRUE(ExpressionUtils::isKindOf(root.get(), Expression::Kind::kConstant));
         ASSERT_TRUE(ExpressionUtils::hasAnyKind(root.get(), Expression::Kind::kConstant));
 
-        ASSERT_TRUE(ExpressionUtils::isAnyKind(
+        ASSERT_TRUE(ExpressionUtils::isKindOf(
             root.get(), Expression::Kind::kConstant, Expression::Kind::kAdd));
         ASSERT_TRUE(ExpressionUtils::hasAnyKind(
             root.get(), Expression::Kind::kConstant, Expression::Kind::kAdd));
 
-        ASSERT_FALSE(ExpressionUtils::isAnyKind(root.get(), Expression::Kind::kAdd));
+        ASSERT_FALSE(ExpressionUtils::isKindOf(root.get(), Expression::Kind::kAdd));
         ASSERT_FALSE(ExpressionUtils::hasAnyKind(root.get(), Expression::Kind::kAdd));
 
-        ASSERT_FALSE(ExpressionUtils::isAnyKind(
+        ASSERT_FALSE(ExpressionUtils::isKindOf(
             root.get(), Expression::Kind::kDivision, Expression::Kind::kAdd));
         ASSERT_FALSE(ExpressionUtils::hasAnyKind(
             root.get(), Expression::Kind::kDstProperty, Expression::Kind::kAdd));
@@ -84,18 +84,18 @@ TEST_F(ExpressionUtilsTest, CheckComponent) {
                 Value::Type::BOOL,
                 new TypeCastingExpression(Value::Type::BOOL, new ConstantExpression())));
 
-        ASSERT_TRUE(ExpressionUtils::isAnyKind(root.get(), Expression::Kind::kTypeCasting));
+        ASSERT_TRUE(ExpressionUtils::isKindOf(root.get(), Expression::Kind::kTypeCasting));
         ASSERT_TRUE(ExpressionUtils::hasAnyKind(root.get(), Expression::Kind::kConstant));
 
-        ASSERT_TRUE(ExpressionUtils::isAnyKind(
+        ASSERT_TRUE(ExpressionUtils::isKindOf(
             root.get(), Expression::Kind::kTypeCasting, Expression::Kind::kAdd));
         ASSERT_TRUE(ExpressionUtils::hasAnyKind(
             root.get(), Expression::Kind::kTypeCasting, Expression::Kind::kAdd));
 
-        ASSERT_FALSE(ExpressionUtils::isAnyKind(root.get(), Expression::Kind::kAdd));
+        ASSERT_FALSE(ExpressionUtils::isKindOf(root.get(), Expression::Kind::kAdd));
         ASSERT_FALSE(ExpressionUtils::hasAnyKind(root.get(), Expression::Kind::kAdd));
 
-        ASSERT_FALSE(ExpressionUtils::isAnyKind(
+        ASSERT_FALSE(ExpressionUtils::isKindOf(
             root.get(), Expression::Kind::kDivision, Expression::Kind::kAdd));
         ASSERT_FALSE(ExpressionUtils::hasAnyKind(
             root.get(), Expression::Kind::kDstProperty, Expression::Kind::kAdd));
@@ -152,18 +152,18 @@ TEST_F(ExpressionUtilsTest, CheckComponent) {
                                                               new ConstantExpression(10)),
                                      new ConstantExpression(2)));
 
-        ASSERT_TRUE(ExpressionUtils::isAnyKind(root.get(), Expression::Kind::kAdd));
+        ASSERT_TRUE(ExpressionUtils::isKindOf(root.get(), Expression::Kind::kAdd));
         ASSERT_TRUE(ExpressionUtils::hasAnyKind(root.get(), Expression::Kind::kMinus));
 
-        ASSERT_TRUE(ExpressionUtils::isAnyKind(
+        ASSERT_TRUE(ExpressionUtils::isKindOf(
             root.get(), Expression::Kind::kTypeCasting, Expression::Kind::kAdd));
         ASSERT_TRUE(ExpressionUtils::hasAnyKind(
             root.get(), Expression::Kind::kSymProperty, Expression::Kind::kDivision));
 
-        ASSERT_FALSE(ExpressionUtils::isAnyKind(root.get(), Expression::Kind::kConstant));
+        ASSERT_FALSE(ExpressionUtils::isKindOf(root.get(), Expression::Kind::kConstant));
         ASSERT_FALSE(ExpressionUtils::hasAnyKind(root.get(), Expression::Kind::kFunctionCall));
 
-        ASSERT_FALSE(ExpressionUtils::isAnyKind(
+        ASSERT_FALSE(ExpressionUtils::isKindOf(
             root.get(), Expression::Kind::kDivision, Expression::Kind::kEdgeProperty));
         ASSERT_FALSE(ExpressionUtils::hasAnyKind(
             root.get(), Expression::Kind::kDstProperty, Expression::Kind::kLogicalAnd));
