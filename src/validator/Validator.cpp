@@ -647,19 +647,17 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 Status Validator::checkRef(const Expression *ref, Value::Type type) const {
-    const auto inputs = ExpressionUtils::findAllInputVariableProp(ref);
-    if (inputs.size() != 1) {
-        return Status::Error("Only allow one input/variable property.");
-    }
-    const auto *inputExpr = static_cast<const SymbolPropertyExpression*>(inputs.front());
-    ColDef col(*inputExpr->prop(), type);
-    if (inputExpr->kind() == Expression::Kind::kInputProperty) {
+    if (ref->kind() == Expression::Kind::kInputProperty) {
+        const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
+        ColDef col(*symExpr->prop(), type);
         const auto find = std::find(inputs_.begin(), inputs_.end(), col);
         if (find == inputs_.end()) {
-            return Status::Error("No input property %s", inputExpr->prop()->c_str());
+            return Status::Error("No input property %s", symExpr->prop()->c_str());
         }
-    } else if (inputExpr->kind() == Expression::Kind::kVarProperty) {
-        const auto &varName = *inputExpr->sym();
+    } else if (ref->kind() == Expression::Kind::kVarProperty) {
+        const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
+        ColDef col(*symExpr->prop(), type);
+        const auto &varName = *symExpr->sym();
         const auto &var = vctx_->getVar(varName);
         if (var.empty()) {
             return Status::Error("No variable %s", varName.c_str());
@@ -667,11 +665,12 @@ Status Validator::checkRef(const Expression *ref, Value::Type type) const {
         const auto find = std::find(var.begin(), var.end(), col);
         if (find == var.end()) {
             return Status::Error("No property %s in variable %s",
-                                    inputExpr->prop()->c_str(),
-                                    varName.c_str());
+                                 symExpr->prop()->c_str(),
+                                 varName.c_str());
         }
     } else {
-        DLOG(FATAL) << "Unexpected expression " << inputExpr->kind();
+        // it's guranteed by parser
+        DLOG(FATAL) << "Unexpected expression " << ref->kind();
         return Status::Error("Unexpected expression.");
     }
     return Status::OK();
