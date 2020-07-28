@@ -62,7 +62,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                    ge->limit(),
                    ge->filter())
         .via(runner())
-        .ensure([getPropsTime = std::move(getPropsTime)]() {
+        .ensure([getPropsTime]() {
             VLOG(1) << "Get Props Time: " << getPropsTime.elapsedInUSec() << "us";
         })
         .then([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {

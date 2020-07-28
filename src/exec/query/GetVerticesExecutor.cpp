@@ -78,7 +78,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                    gv->limit(),
                    gv->filter())
         .via(runner())
-        .ensure([getPropsTime = std::move(getPropsTime)]() {
+        .ensure([getPropsTime]() {
             VLOG(1) << "Get props time: " << getPropsTime.elapsedInUSec() << "us";
         })
         .then([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {

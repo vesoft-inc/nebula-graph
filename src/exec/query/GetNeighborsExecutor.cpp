@@ -86,7 +86,7 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                        gn_->limit(),
                        gn_->filter())
         .via(runner())
-        .ensure([getNbrTime = std::move(getNbrTime)]() {
+        .ensure([getNbrTime]() {
             VLOG(1) << "Get neighbors time: " << getNbrTime.elapsedInUSec() << "us";
         })
         .then([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {

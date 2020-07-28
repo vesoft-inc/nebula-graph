@@ -7,6 +7,8 @@
 #ifndef VALIDATOR_EXPLAINVALIDATOR_H
 #define VALIDATOR_EXPLAINVALIDATOR_H
 
+#include <memory>
+
 #include "validator/Validator.h"
 
 namespace nebula {

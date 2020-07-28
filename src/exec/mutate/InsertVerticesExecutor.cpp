@@ -31,7 +31,7 @@ folly::Future<Status> InsertVerticesExecutor::insertVertices() {
                       ivNode->getPropNames(),
                       ivNode->getOverwritable())
         .via(runner())
-        .ensure([addVertTime = std::move(addVertTime)]() {
+        .ensure([addVertTime]() {
             VLOG(1) << "Add vertices time: " << addVertTime.elapsedInUSec() << "us";
         })
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {

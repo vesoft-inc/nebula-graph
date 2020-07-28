@@ -32,7 +32,7 @@ folly::Future<Status> InsertEdgesExecutor::insertEdges() {
                    ieNode->getPropNames(),
                    ieNode->getOverwritable())
         .via(runner())
-        .ensure([addEdgeTime = std::move(addEdgeTime)]() {
+        .ensure([addEdgeTime]() {
             VLOG(1) << "Add edge time: " << addEdgeTime.elapsedInUSec() << "us";
         })
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {

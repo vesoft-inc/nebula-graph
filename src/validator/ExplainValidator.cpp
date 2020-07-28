@@ -8,6 +8,8 @@
 
 #include <algorithm>
 
+#include <folly/String.h>
+
 #include "common/base/StatusOr.h"
 #include "common/interface/gen-cpp2/graph_types.h"
 #include "parser/ExplainSentence.h"
@@ -17,16 +19,16 @@
 namespace nebula {
 namespace graph {
 
-using ExplainFmtType = cpp2::PlanFormat;
+static const std::vector<std::string> kAllowedFmtType = {"row", "dot", "dot:struct"};
 
 ExplainValidator::ExplainValidator(Sentence* sentence, QueryContext* context)
     : Validator(sentence, context) {
     DCHECK_EQ(sentence->kind(), Sentence::Kind::kExplain);
 }
 
-static StatusOr<ExplainFmtType> toExplainFormatType(const std::string& formatType) {
+static StatusOr<std::string> toExplainFormatType(const std::string& formatType) {
     if (formatType.empty()) {
-        return ExplainFmtType::ROW;
+        return kAllowedFmtType.front();
     }
 
     std::string fmtType = formatType;
@@ -34,17 +36,15 @@ static StatusOr<ExplainFmtType> toExplainFormatType(const std::string& formatTyp
         return std::tolower(c);
     });
 
-    if (fmtType == "row") {
-        return ExplainFmtType::ROW;
+    auto found = std::find(kAllowedFmtType.cbegin(), kAllowedFmtType.cend(), fmtType);
+    if (found != kAllowedFmtType.cend()) {
+        return fmtType;
     }
-
-    if (fmtType == "dot") {
-        return ExplainFmtType::DOT;
-    }
-
+    auto allowedStr = folly::join(",", kAllowedFmtType);
     return Status::SyntaxError(
-        "Invalid explain/profile format type: \"%s\", only `row' and `dot' values supported",
-        formatType.c_str());
+        "Invalid explain/profile format type: \"%s\", only following values are supported: %s",
+        fmtType.c_str(),
+        allowedStr.c_str());
 }
 
 Status ExplainValidator::validateImpl() {
