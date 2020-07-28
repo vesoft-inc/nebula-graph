@@ -291,7 +291,7 @@ Value GetNeighborsIter::getEdge() const {
 
     auto segment = currentSeg();
     Edge edge;
-    auto& edgeName = currentEdgeName();
+    auto edgeName = currentEdgeName().substr(1, std::string::npos);
     edge.name = edgeName;
     auto& src = getColumn(kVid);
     if (!src.isStr()) {
@@ -313,7 +313,7 @@ Value GetNeighborsIter::getEdge() const {
     edge.type = 0;
 
     auto& edgePropMap = dsIndices_[segment].edgePropsMap;
-    auto edgeProp = edgePropMap.find(edgeName);
+    auto edgeProp = edgePropMap.find(currentEdgeName());
     if (edgeProp == edgePropMap.end()) {
         return Value::kNullValue;
     }
