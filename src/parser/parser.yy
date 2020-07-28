@@ -206,7 +206,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <out_bound_clause> out_bound_clause
 %type <both_in_out_clause> both_in_out_clause
 
-%type <intval> checked_interger unary_integer rank port
+%type <intval> legal_integer unary_integer rank port
 
 %type <colspec> column_spec
 %type <colspeclist> column_spec_list
@@ -263,7 +263,7 @@ name_label
     | unreserved_keyword { $$ = $1; }
     ;
 
-checked_interger
+legal_integer
     : INTEGER {
         ifOutOfRange($1, @1);
         $$ = $1;
@@ -341,7 +341,7 @@ agg_function
     ;
 
 constant_expression
-    : checked_interger {
+    : legal_integer {
         $$ = new ConstantExpression($1);
     }
     | MINUS INTEGER {
@@ -621,10 +621,10 @@ go_sentence
 
 step_clause
     : %empty { $$ = new StepClause(); }
-    | checked_interger KW_STEPS {
+    | legal_integer KW_STEPS {
         $$ = new StepClause($1);
     }
-    | KW_UPTO checked_interger KW_STEPS {
+    | KW_UPTO legal_integer KW_STEPS {
         $$ = new StepClause($2, true);
     }
     ;
@@ -664,13 +664,13 @@ vid
     ;
 
 unary_integer
-    : PLUS checked_interger {
+    : PLUS legal_integer {
         $$ = $2;
     }
     | MINUS INTEGER {
         $$ = -$2;
     }
-    | checked_interger {
+    | legal_integer {
         $$ = $1;
     }
     ;
@@ -949,7 +949,7 @@ find_path_sentence
 
 find_path_upto_clause
     : %empty { $$ = new StepClause(5, true); }
-    | KW_UPTO checked_interger KW_STEPS {
+    | KW_UPTO legal_integer KW_STEPS {
         $$ = new StepClause($2, true);
     }
     ;
@@ -964,13 +964,13 @@ to_clause
     ;
 
 limit_sentence
-    : KW_LIMIT checked_interger {
+    : KW_LIMIT legal_integer {
         $$ = new LimitSentence(0, $2);
     }
-    | KW_LIMIT checked_interger COMMA checked_interger {
+    | KW_LIMIT legal_integer COMMA legal_integer {
         $$ = new LimitSentence($2, $4);
     }
-    | KW_LIMIT checked_interger KW_OFFSET checked_interger {
+    | KW_LIMIT legal_integer KW_OFFSET legal_integer {
         $$ = new LimitSentence($2, $4);
     }
     ;
@@ -1036,7 +1036,7 @@ create_schema_prop_list
     ;
 
 create_schema_prop_item
-    : KW_TTL_DURATION ASSIGN checked_interger {
+    : KW_TTL_DURATION ASSIGN legal_integer {
         $$ = new SchemaPropItem(SchemaPropItem::TTL_DURATION, $3);
     }
     | KW_TTL_COL ASSIGN STRING {
@@ -1113,7 +1113,7 @@ alter_schema_prop_list
     ;
 
 alter_schema_prop_item
-    : KW_TTL_DURATION ASSIGN checked_interger {
+    : KW_TTL_DURATION ASSIGN legal_integer {
         $$ = new SchemaPropItem(SchemaPropItem::TTL_DURATION, $3);
     }
     | KW_TTL_COL ASSIGN STRING {
@@ -1605,12 +1605,12 @@ admin_sentence
         auto sentence = new AdminSentence("show_jobs");
         $$ = sentence;
     }
-    | KW_SHOW KW_JOB checked_interger {
+    | KW_SHOW KW_JOB legal_integer {
         auto sentence = new AdminSentence("show_job");
         sentence->addPara(std::to_string($3));
         $$ = sentence;
     }
-    | KW_STOP KW_JOB checked_interger {
+    | KW_STOP KW_JOB legal_integer {
         auto sentence = new AdminSentence("stop_job");
         sentence->addPara(std::to_string($3));
         $$ = sentence;
@@ -1781,13 +1781,13 @@ space_opt_list
     ;
 
 space_opt_item
-    : KW_PARTITION_NUM ASSIGN checked_interger {
+    : KW_PARTITION_NUM ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::PARTITION_NUM, $3);
     }
-    | KW_REPLICA_FACTOR ASSIGN checked_interger {
+    | KW_REPLICA_FACTOR ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::REPLICA_FACTOR, $3);
     }
-    | KW_VID_SIZE ASSIGN checked_interger {
+    | KW_VID_SIZE ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::VID_SIZE, $3);
     }
     | KW_CHARSET ASSIGN name_label {
@@ -1930,7 +1930,7 @@ port : INTEGER {
     ;
 
 integer_list
-    : checked_interger {
+    : legal_integer {
         $$ = new std::vector<int32_t>();
         $$->emplace_back($1);
     }
@@ -1950,7 +1950,7 @@ balance_sentence
     | KW_BALANCE KW_DATA {
         $$ = new BalanceSentence(BalanceSentence::SubType::kData);
     }
-    | KW_BALANCE KW_DATA checked_interger {
+    | KW_BALANCE KW_DATA legal_integer {
         $$ = new BalanceSentence($3);
     }
     | KW_BALANCE KW_DATA KW_STOP {
