@@ -51,6 +51,7 @@ protected:
     ::testing::AssertionResult checkResult(const std::string& query,
                                            const std::vector<PlanNode::Kind>& expected = {},
                                            const std::vector<std::string> &rootColumns = {}) {
+        VLOG(1) << "query: " << query;
         auto result = GQLParser().parse(query);
         if (!result.ok()) {
             return ::testing::AssertionFailure() << result.status();
@@ -108,6 +109,7 @@ protected:
 
         while (!queue.empty()) {
             auto node = queue.front();
+            VLOG(1) << "node kind: " << node->kind();
             queue.pop();
             if (visited.find(node->id()) != visited.end()) {
                 continue;
@@ -153,7 +155,8 @@ protected:
                 case PlanNode::Kind::kShowEdges:
                 case PlanNode::Kind::kCreateSnapshot:
                 case PlanNode::Kind::kDropSnapshot:
-                case PlanNode::Kind::kShowSnapshots: {
+                case PlanNode::Kind::kShowSnapshots:
+                case PlanNode::Kind::kDataJoin: {
                     auto* current = static_cast<const SingleInputNode*>(node);
                     queue.emplace(current->dep());
                     break;
