@@ -44,19 +44,23 @@ private:
 
     GetNeighbors::VertexProps buildSrcVertexProps();
 
-    GetNeighbors::VertexProps buildDstVertexProps();
+    std::vector<storage::cpp2::VertexProp> buildDstVertexProps();
 
     GetNeighbors::EdgeProps buildEdgeProps();
 
-    GetNeighbors::EdgeProps buildNStepLoopEdgeProps();
+    GetNeighbors::EdgeProps buildEdgeDst();
 
-    Project* ifBuildLeftVarForTraceJoin(PlanNode* projectStartVid);
+    Project* buildLeftVarForTraceJoin(PlanNode* projectStartVid);
 
-    Project* ifTraceToStartVid(Project* projectLeftVarForJoin,
-                               Project* projectDstFromGN);
+    Project* traceToStartVid(Project* projectLeftVarForJoin,
+                             Project* projectDstFromGN);
 
-    PlanNode* ifBuildJoinPipeInput(PlanNode* gn,
-                                   PlanNode* projectFromJoin);
+    PlanNode* buildJoinPipeOrVariableInput(PlanNode* gn,
+                                           PlanNode* projectFromJoin);
+
+    PlanNode* buildProjectSrcEdgePropsForGN(PlanNode* gn);
+
+    PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
 
 private:
     bool                                                    isOverAll_{false};
@@ -75,7 +79,10 @@ private:
     std::unordered_map<std::string, YieldColumn*>           propExprColMap_;
     Expression*                                             newFilter_{nullptr};
     YieldColumns*                                           newYieldCols_{nullptr};
+    // Used for n steps to trace the path
     std::string                                             dstVidColName_;
+    // Used for get dst props
+    std::string                                             joinDstVidColName_;
 };
 }  // namespace graph
 }  // namespace nebula

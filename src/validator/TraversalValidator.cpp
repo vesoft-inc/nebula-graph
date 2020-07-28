@@ -47,7 +47,11 @@ Status TraversalValidator::validateFrom(const FromClause* from) {
                 return Status::Error(ss.str());
             }
             srcRef_ = src;
-            firstBeginningSrcVidColName_ = *(static_cast<SymbolPropertyExpression*>(src)->prop());
+            auto* symPropExpr = static_cast<SymbolPropertyExpression*>(src);
+            if (fromType_ == kVariable) {
+                userDefinedVarName_ = *(symPropExpr->sym());
+            }
+            firstBeginningSrcVidColName_ = *(symPropExpr->prop());
         }
     } else {
         auto vidList = from->vidList();
@@ -78,7 +82,7 @@ Project* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::strin
     columns->addColumn(column);
 
     srcVidColName_ = vctx_->anonColGen()->getCol();
-    if (!inputProps_.empty()) {
+    if (!inputProps_.empty() || !varProps_.empty()) {
         column =
             new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
                             new std::string(srcVidColName_));
@@ -121,7 +125,11 @@ PlanNode* TraversalValidator::buildRuntimeInput() {
     columns->addColumn(column);
     auto plan = qctx_->plan();
     auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    if (fromType_ == kVariable) {
+        project->setInputVar(userDefinedVarName_);
+    }
     project->setColNames({ kVid });
+    VLOG(1) << project->varName() << " input: " << project->inputVar();
     src_ = plan->saveObject(new InputPropertyExpression(new std::string(kVid)));
     return project;
 }

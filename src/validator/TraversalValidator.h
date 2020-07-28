@@ -41,6 +41,7 @@ protected:
     Expression*           src_{nullptr};
     std::vector<Value>    starts_;
     std::string           firstBeginningSrcVidColName_;
+    std::string           userDefinedVarName_;
 };
 
 }  // namespace graph
