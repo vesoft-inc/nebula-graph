@@ -37,7 +37,7 @@ protected:
     uint32_t              steps_{1};
     std::string           srcVidColName_;
     FromType              fromType_{kConstantExpr};
-    Expression*           srcRef_;
+    Expression*           srcRef_{nullptr};
     Expression*           src_{nullptr};
     std::vector<Value>    starts_;
     std::string           firstBeginningSrcVidColName_;
