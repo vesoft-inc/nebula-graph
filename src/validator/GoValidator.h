@@ -60,19 +60,19 @@ private:
 
     Expression* buildNStepLoopCondition(int64_t steps) const;
 
-    Project* ifBuildLeftVarForTraceJoin(PlanNode* projectStartVid);
+    Project* buildLeftVarForTraceJoin(PlanNode* projectStartVid);
 
     Project* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
 
-    Project* ifTraceToStartVid(Project* projectLeftVarForJoin,
-                               Project* projectDstFromGN);
+    Project* traceToStartVid(Project* projectLeftVarForJoin,
+                             Project* projectDstFromGN);
 
-    PlanNode* ifBuildJoinPipeOrVariableInput(PlanNode* gn,
-                                             PlanNode* projectFromJoin);
+    PlanNode* buildJoinPipeOrVariableInput(PlanNode* gn,
+                                           PlanNode* projectFromJoin);
 
-    PlanNode* ifBuildProjectSrcEdgePropsForGN(PlanNode* gn);
+    PlanNode* buildProjectSrcEdgePropsForGN(PlanNode* gn);
 
-    PlanNode* ifBuildJoinDstProps(PlanNode* projectSrcDstProps);
+    PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
 
     enum FromType {
         kConstantExpr,
