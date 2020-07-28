@@ -15,6 +15,7 @@
 
 namespace nebula {
 namespace graph {
+
 Status GetSubgraphValidator::validateImpl() {
     Status status;
     auto* gsSentence = static_cast<GetSubgraphSentence*>(sentence_);
