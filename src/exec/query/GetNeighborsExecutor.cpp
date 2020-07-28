@@ -35,6 +35,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 
 Status GetNeighborsExecutor::buildRequestDataSet() {
     auto& inputVar = gn_->inputVar();
+    VLOG(1) << node()->varName() << " : " << inputVar;
     auto& inputResult = ectx_->getResult(inputVar);
     auto iter = inputResult.iter();
     QueryExpressionContext ctx(ectx_, iter.get());
@@ -42,14 +43,16 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
     reqDs_.colNames = {kVid};
     reqDs_.rows.reserve(iter->size());
     auto* src = gn_->src();
+    std::unordered_set<Value> uniqueVid;
     for (; iter->valid(); iter->next()) {
         auto val = Expression::eval(src, ctx);
         if (!val.isStr()) {
             continue;
         }
-        Row row;
-        row.values.emplace_back(std::move(val));
-        reqDs_.rows.emplace_back(std::move(row));
+        auto ret = uniqueVid.emplace(val);
+        if (ret.second) {
+            reqDs_.rows.emplace_back(Row({std::move(val)}));
+        }
     }
 
     return Status::OK();
@@ -58,7 +61,11 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     if (reqDs_.rows.empty()) {
         LOG(INFO) << "Empty input.";
-        return folly::makeFuture(Status::OK());
+        DataSet emptyResult;
+        return finish(ResultBuilder()
+                          .value(Value(std::move(emptyResult)))
+                          .iter(Iterator::Kind::kGetNeighbors)
+                          .finish());
     }
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     return storageClient

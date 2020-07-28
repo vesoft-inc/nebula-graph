@@ -61,7 +61,6 @@ nebula_add_test(
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES
         gtest
-        gtest_main
         ${THRIFT_LIBRARIES}
         wangle
         proxygenhttpserver

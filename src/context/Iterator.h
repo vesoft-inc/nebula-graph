@@ -177,10 +177,12 @@ public:
     }
 
     const Value& getColumn(const std::string& /* col */) const override {
+        DLOG(FATAL) << "This method should not be invoked";
         return Value::kEmpty;
     }
 
     const LogicalRow* row() const override {
+        DLOG(FATAL) << "This method should not be invoked";
         return nullptr;
     }
 
@@ -506,9 +508,11 @@ public:
         }
     }
 
+    // TODO: We should build new iter for get props, the seq iter will
+    // not meet the requirements of match any more.
     const Value& getTagProp(const std::string& tag,
-                             const std::string& prop) const override {
-        return getColumn(tag + "." + prop);
+                            const std::string& prop) const override {
+        return getColumn(tag+ "." + prop);
     }
 
     const Value& getEdgeProp(const std::string& edge,
