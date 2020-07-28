@@ -153,8 +153,7 @@ TEST_F(DataCollectTest, CollectSubgraph) {
         if (!v.isVertex()) {
             continue;
         }
-        if (vids.find(v.getVertex().vid)  == vids.end()) {
-            vids.emplace(v.getVertex().vid);
+        if (vids.emplace(v.getVertex().vid).second) {
             vertices.emplace_back(std::move(v));
         }
     }
@@ -167,8 +166,7 @@ TEST_F(DataCollectTest, CollectSubgraph) {
                                         e.getEdge().type,
                                         e.getEdge().ranking,
                                         e.getEdge().dst);
-        if (edgeKeys.find(edgeKey) == edgeKeys.end()) {
-            edgeKeys.emplace(std::move(edgeKey));
+        if (edgeKeys.emplace(std::move(edgeKey)).second) {
             edges.emplace_back(std::move(e));
         }
     }

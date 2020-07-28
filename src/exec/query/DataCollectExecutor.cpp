@@ -59,8 +59,7 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                     if (!v.isVertex()) {
                         continue;
                     }
-                    if (vids.find(v.getVertex().vid)  == vids.end()) {
-                        vids.emplace(v.getVertex().vid);
+                    if (vids.emplace(v.getVertex().vid).second) {
                         vertices.emplace_back(std::move(v));
                     }
                 }
@@ -73,8 +72,7 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                                                    e.getEdge().type,
                                                    e.getEdge().ranking,
                                                    e.getEdge().dst);
-                    if (edgeKeys.find(edgeKey) == edgeKeys.end()) {
-                        edgeKeys.emplace(std::move(edgeKey));
+                    if (edgeKeys.emplace(std::move(edgeKey)).second) {
                         edges.emplace_back(std::move(e));
                     }
                 }
