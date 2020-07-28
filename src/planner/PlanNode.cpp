@@ -30,6 +30,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "GetEdges";
         case Kind::kReadIndex:
             return "ReadIndex";
+        case Kind::kLookup:
+            return "Lookup";
         case Kind::kFilter:
             return "Filter";
         case Kind::kUnion:

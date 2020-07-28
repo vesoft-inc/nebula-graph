@@ -24,6 +24,7 @@
 #include "validator/UseValidator.h"
 #include "validator/YieldValidator.h"
 #include "common/function/FunctionManager.h"
+#include "validator/LookupValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -100,6 +101,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DropSnapshotValidator>(sentence, context);
         case Sentence::Kind::kShowSnapshots:
             return std::make_unique<ShowSnapshotsValidator>(sentence, context);
+        case Sentence::Kind::kLookup:
+          return std::make_unique<LookupValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }

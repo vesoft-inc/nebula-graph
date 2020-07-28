@@ -20,6 +20,7 @@ nebula_add_library(
     LimitValidator.cpp
     OrderByValidator.cpp
     YieldValidator.cpp
+    LookupValidator.cpp
 )
 
 add_subdirectory(test)

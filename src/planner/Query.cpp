@@ -32,6 +32,11 @@ std::string ReadIndex::explain() const {
     return "ReadIndex";
 }
 
+std::string Lookup::explain() const {
+    // TODO:
+    return "Lookup";
+}
+
 std::string Filter::explain() const {
     // TODO:
     return "Filter";

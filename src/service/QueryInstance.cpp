@@ -10,9 +10,7 @@
 
 #include "exec/ExecutionError.h"
 #include "exec/Executor.h"
-#include "planner/ExecutionPlan.h"
 #include "planner/PlanNode.h"
-#include "scheduler/Scheduler.h"
 
 namespace nebula {
 namespace graph {
@@ -42,16 +40,16 @@ void QueryInstance::execute() {
 
     if (!status.ok()) {
         LOG(ERROR) << status;
-        onError(std::move(status));
+        onError(status);
         return;
     }
 
     scheduler_->schedule()
-        .then([this](Status s) {
+        .then([this](const Status& s) {
             if (s.ok()) {
                 this->onFinish();
             } else {
-                this->onError(std::move(s));
+                this->onError(s);
             }
         })
         .onError([this](const ExecutionError &e) { onError(e.status()); })
@@ -85,7 +83,7 @@ void QueryInstance::onFinish() {
     delete this;
 }
 
-void QueryInstance::onError(Status status) {
+void QueryInstance::onError(const Status& status) {
     auto *rctx = qctx()->rctx();
     if (status.isSyntaxError()) {
         rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);

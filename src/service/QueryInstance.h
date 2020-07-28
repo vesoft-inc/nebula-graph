@@ -46,7 +46,7 @@ public:
      * If any error occurred during the execution, `onError' should
      * be invoked with a status to indicate the reason.
      */
-    void onError(Status);
+    void onError(const Status&);
 
     QueryContext* qctx() const {
         return qctx_.get();

@@ -38,6 +38,7 @@
 #include "exec/query/SortExecutor.h"
 #include "exec/query/UnionExecutor.h"
 #include "exec/query/DataJoinExecutor.h"
+#include "exec/query/LookupExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Maintain.h"
 #include "planner/Mutate.h"
@@ -135,6 +136,13 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto readIndex = asNode<ReadIndex>(node);
             auto dep = makeExecutor(readIndex->dep(), qctx, visited);
             exec = new ReadIndexExecutor(readIndex, qctx);
+            exec->addDependent(dep);
+            break;
+        }
+        case PlanNode::Kind::kLookup: {
+            auto lookup = asNode<Lookup>(node);
+            auto dep = makeExecutor(lookup->dep(), qctx, visited);
+            exec = new LookupExecutor(lookup, qctx);
             exec->addDependent(dep);
             break;
         }
