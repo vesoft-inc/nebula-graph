@@ -213,32 +213,86 @@ class NebulaTestSuite(object):
 
             return False, 'ERROR: Type unsupported'
 
-        msg = self.check_format_str.format(col, expect)
-        if col == expect:
+    @classmethod
+    def date_to_string(self, date):
+        return '{}/{}/{}'.format(date.year, date.month, date.day)
+
+    @classmethod
+    def date_time_to_string(self, date_time):
+        zone = '+'
+        if date_time.timezone < 0:
+            zone = '-'
+        return '{}/{}/{} {}:{}:{}.{} {}{}.{}'.format(date_time.year,
+                                                     date_time.month,
+                                                     date_time.day,
+                                                     date_time.hour,
+                                                     date_time.minute,
+                                                     date_time.sec,
+                                                     date_time.microsec,
+                                                     zone,
+                                                     date_time.timezone / 3600,
+                                                     date_time.timezone % 3600)
+    @classmethod
+    def map_to_string(self, map):
+        kvStrs = []
+        if map.kvs is not None:
+            for key in map.kvs:
+                kvStrs.append('"{}":"{}"'.format(key.decode('utf-8'), self.value_to_string(map.kvs[key])))
+            return '{' + ','.join(kvStrs) + '}'
+        return ''
+
+    @classmethod
+    def check_map_and_dict(self, map, expect_dict):
+        if map.kvs is None and len(expect_dict) == 0:
             return True, ''
-        else:
+        if map.kvs is None:
+            return False, 'map is None'
+
+        msg = 'len(map.kvs)[{}] != len(expect)[{}]'.format(len(map.kvs.keys()), len(expect_dict.keys()))
+        if len(map.kvs) != len(expect_dict):
             return False, msg
+
+        sorted_kvs_keys = sorted(map.kvs.keys())
+        sorted_kvs_keys = [key.decode('utf-8') for key in sorted_kvs_keys]
+        sorted_expect_keys = sorted(expect_dict.keys())
+
+        assert sorted_kvs_keys == sorted_expect_keys, "map.kvs.keys() is not equal with expect_dict.keys()"
+        for key in map.kvs:
+            ok = False
+            msg = ""
+            ok, msg = self.check_value(map.kvs[key], expect_dict[key.decode('utf-8')])
+            if not ok:
+                return False, 'The returned map value from nebula could not be found, value: {}, expect: {}, error message: {}'.format(
+                    self.value_to_string(map.kvs[key]), expect_dict[key.decode('utf-8')], msg)
+        return True, ''
+
+    @classmethod
+    def value_to_string(self, value):
+        if value.getType() == CommonTtypes.Value.__EMPTY__:
+            return '__EMPTY__'
+        elif value.getType() == CommonTtypes.Value.NVAL:
+            return '__NULL__'
+        elif value.getType() == CommonTtypes.Value.BVAL:
+            return str(value.get_bVal())
+        elif value.getType() == CommonTtypes.Value.IVAL:
+            return str(value.get_iVal())
+        elif value.getType() == CommonTtypes.Value.FVAL:
+            return str(value.get_fVal())
+        elif value.getType() == CommonTtypes.Value.SVAL:
+            return value.get_sVal().decode('utf-8')
+        elif value.getType() == CommonTtypes.Value.DVAL:
+            return self.date_time_to_string(value.get_dVal())
+        elif value.getType() == CommonTtypes.Value.TVAL:
+            return self.date_time_to_string(value.get_tVal())
+        elif value.getType() == CommonTtypes.Value.MVAL:
+            return self.map_to_string(value.get_mVal())
+        return 'Unsupported type'
 
     @classmethod
     def row_to_string(self, row):
         value_list = []
         for col in row.values:
-            if col.getType() == CommonTtypes.Value.__EMPTY__:
-                value_list.append('__EMPTY__')
-            elif col.getType() == CommonTtypes.Value.NVAL:
-                value_list.append('__NULL__')
-            elif col.getType() == CommonTtypes.Value.BVAL:
-                value_list.append(col.get_bVal())
-            elif col.getType() == CommonTtypes.Value.IVAL:
-                value_list.append(col.get_iVal())
-            elif col.getType() == CommonTtypes.Value.FVAL:
-                value_list.append(col.get_fVal())
-            elif col.getType() == CommonTtypes.Value.SVAL:
-                value_list.append(col.get_sVal().decode('utf-8'))
-            elif col.getType() == CommonTtypes.Type.DVAL:
-                value_list.append(col.get_dVal().decode('utf-8'))
-            elif col.getType() == CommonTtypes.Type.DATETIME:
-                value_list.append(col.get_datetime())
+            value_list.append(self.value_to_string(col))
         return str(value_list)
 
     @classmethod
