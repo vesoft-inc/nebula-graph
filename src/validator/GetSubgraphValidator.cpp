@@ -142,7 +142,8 @@ Status GetSubgraphValidator::toPlan() {
             space.id,
             src_,
             std::move(edgeTypes_),
-            storage::cpp2::EdgeDirection::BOTH,  // FIXME: make direction right
+            // TODO(shylock) add syntax like `BOTH *`, `OUT *` ...
+            storage::cpp2::EdgeDirection::OUT_EDGE,  // FIXME: make direction right
             std::move(vertexProps),
             std::move(edgeProps),
             std::move(statProps),
