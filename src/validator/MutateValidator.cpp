@@ -289,7 +289,7 @@ Status DeleteVerticesValidator::validateImpl() {
 }
 
 std::string DeleteVerticesValidator::buildVIds() {
-    auto input = vctx_->varGen()->getVar();
+    auto input = vctx_->anonVarGen()->getVar();
     DataSet ds;
     ds.colNames.emplace_back(kVid);
     for (auto& vid : vertices_) {
@@ -399,7 +399,7 @@ Status DeleteEdgesValidator::validateImpl() {
 
 Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
                                              const EdgeType edgeType) {
-    edgeKeyVar_ = vctx_->varGen()->getVar();
+    edgeKeyVar_ = vctx_->anonVarGen()->getVar();
     DataSet ds({kSrc, kType, kRank, kDst});
     for (auto &edgeKey : edgeKeys) {
         Row row;
