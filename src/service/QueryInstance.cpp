@@ -7,6 +7,7 @@
 #include "service/QueryInstance.h"
 
 #include "common/base/Base.h"
+<<<<<<< HEAD
 #include "executor/ExecutionError.h"
 #include "executor/Executor.h"
 #include "parser/ExplainSentence.h"
@@ -14,6 +15,12 @@
 #include "planner/PlanNode.h"
 #include "scheduler/Scheduler.h"
 #include "validator/Validator.h"
+=======
+
+#include "exec/ExecutionError.h"
+#include "exec/Executor.h"
+#include "planner/PlanNode.h"
+>>>>>>> lookup Validator | Planner | Executor
 
 namespace nebula {
 namespace graph {
@@ -22,6 +29,8 @@ void QueryInstance::execute() {
     Status status = validateAndOptimize();
     if (!status.ok()) {
         onError(std::move(status));
+        LOG(ERROR) << status;
+        onError(status);
         return;
     }
 
@@ -31,11 +40,11 @@ void QueryInstance::execute() {
     }
 
     scheduler_->schedule()
-        .then([this](Status s) {
+        .then([this](const Status& s) {
             if (s.ok()) {
                 this->onFinish();
             } else {
-                this->onError(std::move(s));
+                this->onError(s);
             }
         })
         .onError([this](const ExecutionError &e) { onError(e.status()); })
@@ -100,8 +109,12 @@ void QueryInstance::onFinish() {
     delete this;
 }
 
+<<<<<<< HEAD
 void QueryInstance::onError(Status status) {
     LOG(ERROR) << status;
+=======
+void QueryInstance::onError(const Status& status) {
+>>>>>>> lookup Validator | Planner | Executor
     auto *rctx = qctx()->rctx();
     if (status.isSyntaxError()) {
         rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);

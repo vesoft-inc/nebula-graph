@@ -415,6 +415,113 @@ private:
 };
 
 /**
+ * Lookup through index.
+ */
+class Lookup final : public Explore {
+public:
+    using IndexQueryCtx = std::unique_ptr<std::vector<storage::cpp2::IndexQueryContext>>;
+    using IndexReturnCols = std::unique_ptr<std::vector<std::string>>;
+
+    static Lookup* make(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space) {
+        return new Lookup(plan, input, space);
+    }
+
+    static Lookup* make(ExecutionPlan* plan,
+                        PlanNode* input,
+                        GraphSpaceID space,
+                        IndexQueryCtx&& contexts,
+                        IndexReturnCols&& returnCols,
+                        bool isEdge,
+                        int32_t schemaId,
+                        bool dedup = false,
+                        std::vector<storage::cpp2::OrderBy> orderBy = {},
+                        int64_t limit = std::numeric_limits<int64_t>::max(),
+                        std::string filter = "") {
+        return new Lookup(
+            plan,
+            input,
+            space,
+            std::move(contexts),
+            std::move(returnCols),
+            isEdge,
+            schemaId,
+            dedup,
+            std::move(orderBy),
+            limit,
+            std::move(filter));
+    }
+
+    std::string explain() const override;
+
+    const std::vector<storage::cpp2::IndexQueryContext>* queryContext() const {
+        return contexts_.get();
+    }
+
+    const std::vector<std::string>* returnColumns() const {
+        return returnCols_.get();
+    }
+
+    bool isEdge() const {
+        return isEdge_;
+    }
+
+    int32_t schemaId() const {
+        return schemaId_;
+    }
+
+    void setQueryContext(IndexQueryCtx contexts) {
+        contexts_ = std::move(contexts);
+    }
+
+    void setreturnCols(IndexReturnCols cols) {
+        returnCols_ = std::move(cols);
+    }
+
+    void setIsEdge(bool isEdge) {
+        isEdge_ = isEdge;
+    }
+
+    void setSchemaId(int32_t schema) {
+        schemaId_ = schema;
+    }
+
+private:
+    Lookup(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
+    : Explore(plan, Kind::kLookup, input, space) {}
+
+    Lookup(ExecutionPlan* plan,
+           PlanNode* input,
+           GraphSpaceID space,
+           IndexQueryCtx&& contexts,
+           IndexReturnCols&& returnCols,
+           bool isEdge,
+           int32_t schemaId,
+           bool dedup,
+           std::vector<storage::cpp2::OrderBy> orderBy,
+           int64_t limit,
+           std::string filter)
+    : Explore(plan,
+              Kind::kLookup,
+              input,
+              space,
+              dedup,
+              limit,
+              std::move(filter),
+              std::move(orderBy)) {
+        contexts_ = std::move(contexts);
+        returnCols_ = std::move(returnCols);
+        isEdge_ = isEdge;
+        schemaId_ = schemaId;
+    }
+
+private:
+    IndexQueryCtx                                 contexts_;
+    IndexReturnCols                               returnCols_;
+    bool                                          isEdge_;
+    int32_t                                       schemaId_;
+};
+
+/**
  * A Filter node helps filt some records with condition.
  */
 class Filter final : public SingleInputNode {

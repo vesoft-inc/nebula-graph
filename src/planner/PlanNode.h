@@ -30,6 +30,8 @@ public:
         kGetVertices,
         kGetEdges,
         kIndexScan,
+        kReadIndex,
+        kLookup,
         kFilter,
         kUnion,
         kIntersect,

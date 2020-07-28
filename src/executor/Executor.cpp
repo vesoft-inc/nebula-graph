@@ -58,6 +58,34 @@
 #include "executor/query/ProjectExecutor.h"
 #include "executor/query/SortExecutor.h"
 #include "executor/query/UnionExecutor.h"
+#include "exec/ExecutionError.h"
+#include "exec/admin/SnapshotExecutor.h"
+#include "exec/admin/SpaceExecutor.h"
+#include "exec/admin/SwitchSpaceExecutor.h"
+#include "exec/logic/LoopExecutor.h"
+#include "exec/logic/MultiOutputsExecutor.h"
+#include "exec/logic/SelectExecutor.h"
+#include "exec/logic/StartExecutor.h"
+#include "exec/maintain/EdgeExecutor.h"
+#include "exec/maintain/TagExecutor.h"
+#include "exec/mutate/InsertEdgesExecutor.h"
+#include "exec/mutate/InsertVerticesExecutor.h"
+#include "exec/query/AggregateExecutor.h"
+#include "exec/query/DataCollectExecutor.h"
+#include "exec/query/DedupExecutor.h"
+#include "exec/query/FilterExecutor.h"
+#include "exec/query/GetEdgesExecutor.h"
+#include "exec/query/GetNeighborsExecutor.h"
+#include "exec/query/GetVerticesExecutor.h"
+#include "exec/query/IntersectExecutor.h"
+#include "exec/query/LimitExecutor.h"
+#include "exec/query/MinusExecutor.h"
+#include "exec/query/ProjectExecutor.h"
+#include "exec/query/ReadIndexExecutor.h"
+#include "exec/query/SortExecutor.h"
+#include "exec/query/UnionExecutor.h"
+#include "exec/query/DataJoinExecutor.h"
+#include "exec/query/LookupExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Logic.h"
 #include "planner/Maintain.h"
@@ -160,6 +188,13 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto dep = makeExecutor(indexScan->dep(), qctx, visited);
             exec = new IndexScanExecutor(indexScan, qctx);
             exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kLookup: {
+            auto lookup = asNode<Lookup>(node);
+            auto dep = makeExecutor(lookup->dep(), qctx, visited);
+            exec = new LookupExecutor(lookup, qctx);
+            exec->addDependent(dep);
             break;
         }
         case PlanNode::Kind::kStart: {
