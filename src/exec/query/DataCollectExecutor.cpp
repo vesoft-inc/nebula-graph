@@ -42,15 +42,44 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
 Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
+    // the subgraph not need duplicate vertices or edges, so dedup here directly
+    std::unordered_set<std::string> vids;
+    std::unordered_set<std::tuple<std::string, int64_t, int64_t, std::string>> edgeKeys;
     for (auto& var : vars) {
         auto& hist = ectx_->getHistory(var);
         for (auto& result : hist) {
             Row row;
             auto iter = result.iter();
             if (iter->isGetNeighborsIter()) {
+                List vertices;
+                List edges;
                 auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-                row.values.emplace_back(gnIter->getVertices());
-                row.values.emplace_back(gnIter->getEdges());
+                auto originVertices = gnIter->getVertices();
+                for (auto& v : originVertices.values) {
+                    if (!v.isVertex()) {
+                        continue;
+                    }
+                    if (vids.find(v.getVertex().vid)  == vids.end()) {
+                        vids.emplace(v.getVertex().vid);
+                        vertices.emplace_back(std::move(v));
+                    }
+                }
+                auto originEdges = gnIter->getEdges();
+                for (auto& e : originEdges.values) {
+                    if (!e.isEdge()) {
+                        continue;
+                    }
+                    auto edgeKey = std::make_tuple(e.getEdge().src,
+                                                   e.getEdge().type,
+                                                   e.getEdge().ranking,
+                                                   e.getEdge().dst);
+                    if (edgeKeys.find(edgeKey) == edgeKeys.end()) {
+                        edgeKeys.emplace(std::move(edgeKey));
+                        edges.emplace_back(std::move(e));
+                    }
+                }
+                row.values.emplace_back(std::move(vertices));
+                row.values.emplace_back(std::move(edges));
                 ds.rows.emplace_back(std::move(row));
             } else {
                 return Status::Error("Iterator should be kind of GetNeighborIter.");
