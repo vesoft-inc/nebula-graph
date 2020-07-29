@@ -29,23 +29,23 @@ Status FetchEdgesValidator::validateImpl() {
 Status FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
     auto *plan = qctx_->plan();
-    auto *doNode = GetEdges::make(plan,
-                                  nullptr,
-                                  spaceId_,
-                                  std::move(edges_),
-                                  std::move(src_),
-                                  edgeType_,
-                                  std::move(ranking_),
-                                  std::move(dst_),
-                                  std::move(props_),
-                                  std::move(exprs_),
-                                  dedup_,
-                                  limit_,
-                                  std::move(orderBy_),
-                                  std::move(filter_));
-    doNode->setInputVar(inputVar_);
+    auto *getEdgesNode = GetEdges::make(plan,
+                                        nullptr,
+                                        spaceId_,
+                                        std::move(edges_),
+                                        std::move(src_),
+                                        edgeType_,
+                                        std::move(ranking_),
+                                        std::move(dst_),
+                                        std::move(props_),
+                                        std::move(exprs_),
+                                        dedup_,
+                                        limit_,
+                                        std::move(orderBy_),
+                                        std::move(filter_));
+    getEdgesNode->setInputVar(inputVar_);
     // the pipe will set the input variable
-    PlanNode *current = doNode;
+    PlanNode *current = getEdgesNode;
 
     if (withProject_) {
         auto *projectNode = Project::make(plan, current, newYield_->yields());
@@ -64,7 +64,7 @@ Status FetchEdgesValidator::toPlan() {
         // if the result is required
     }
     root_ = current;
-    tail_ = doNode;
+    tail_ = getEdgesNode;
     return Status::OK();
 }
 

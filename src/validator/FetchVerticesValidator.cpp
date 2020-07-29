@@ -22,20 +22,20 @@ Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     auto *plan = qctx_->plan();
-    auto *doNode = GetVertices::make(plan,
-                                     nullptr,
-                                     spaceId_,
-                                     std::move(vertices_),
-                                     std::move(src_),
-                                     std::move(props_),
-                                     std::move(exprs_),
-                                     dedup_,
-                                     std::move(orderBy_),
-                                     limit_,
-                                     std::move(filter_));
-    doNode->setInputVar(inputVar_);
+    auto *getVerticesNode = GetVertices::make(plan,
+                                              nullptr,
+                                              spaceId_,
+                                              std::move(vertices_),
+                                              std::move(src_),
+                                              std::move(props_),
+                                              std::move(exprs_),
+                                              dedup_,
+                                              std::move(orderBy_),
+                                              limit_,
+                                              std::move(filter_));
+    getVerticesNode->setInputVar(inputVar_);
     // pipe will set the input variable
-    PlanNode *current = doNode;
+    PlanNode *current = getVerticesNode;
 
     if (withProject_) {
         auto *projectNode = Project::make(plan, current, sentence->yieldClause()->yields());
@@ -54,7 +54,7 @@ Status FetchVerticesValidator::toPlan() {
         // if the result is required
     }
     root_ = current;
-    tail_ = doNode;
+    tail_ = getVerticesNode;
     return Status::OK();
 }
 
