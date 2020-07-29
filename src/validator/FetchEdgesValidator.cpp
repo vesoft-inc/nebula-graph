@@ -251,10 +251,10 @@ Status FetchEdgesValidator::prepareProperties() {
 /*static*/
 const Expression *FetchEdgesValidator::findInvalidYieldExpression(const Expression *root) {
     return ExpressionUtils::findAnyKind(root,
-                                        Expression::Kind::kInputProperty,
-                                        Expression::Kind::kVarProperty,
-                                        Expression::Kind::kSrcProperty,
-                                        Expression::Kind::kDstProperty);
+                                        {Expression::Kind::kInputProperty,
+                                         Expression::Kind::kVarProperty,
+                                         Expression::Kind::kSrcProperty,
+                                         Expression::Kind::kDstProperty});
 }
 
 }   // namespace graph

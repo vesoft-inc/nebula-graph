@@ -223,12 +223,12 @@ Status FetchVerticesValidator::prepareProperties() {
 /*static*/
 const Expression *FetchVerticesValidator::findInvalidYieldExpression(const Expression *root) {
     return ExpressionUtils::findAnyKind(root,
-                                        Expression::Kind::kInputProperty,
-                                        Expression::Kind::kVarProperty,
-                                        Expression::Kind::kEdgeSrc,
-                                        Expression::Kind::kEdgeType,
-                                        Expression::Kind::kEdgeRank,
-                                        Expression::Kind::kEdgeDst);
+                                        {Expression::Kind::kInputProperty,
+                                         Expression::Kind::kVarProperty,
+                                         Expression::Kind::kEdgeSrc,
+                                         Expression::Kind::kEdgeType,
+                                         Expression::Kind::kEdgeRank,
+                                         Expression::Kind::kEdgeDst});
 }
 
 }   // namespace graph

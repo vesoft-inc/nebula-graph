@@ -98,27 +98,17 @@ public:
         return false;
     }
 
-    template <typename T, typename = std::enable_if_t<std::is_same<T, Expression::Kind>::value>>
-    static inline bool isKindOf(const Expression* expr, T k) {
-        return expr->kind() == k;
-    }
-
-    template <typename T,
-              typename... Ts,
-              typename = std::enable_if_t<std::is_same<T, Expression::Kind>::value>>
-    static inline bool isKindOf(const Expression* expr, T k, Ts... ts) {
-        return expr->kind() == k || isKindOf(expr, ts...);
+    static inline bool isKindOf(const Expression* expr,
+                                const std::unordered_set<Expression::Kind>& expected) {
+        return expected.find(expr->kind()) != expected.end();
     }
 
     // null for not found
-    template <typename... Ts,
-              typename = std::enable_if_t<
-                  std::is_same<Expression::Kind, std::common_type_t<Ts...>>::value>>
-    static const Expression* findAnyKind(const Expression* self, Ts... ts) {
+    static const Expression* findAnyKind(const Expression* self,
+                                         const std::unordered_set<Expression::Kind>& expected) {
         const Expression* found = nullptr;
-        traverse(self, [pack = std::make_tuple(ts...), &found](const Expression* expr) -> bool {
-            auto bind = [expr](Ts... ts_) { return isKindOf(expr, ts_...); };
-            if (folly::apply(bind, pack)) {
+        traverse(self, [&expected, &found](const Expression* expr) -> bool {
+            if (isKindOf(expr, expected)) {
                 found = expr;
                 return false;   // Already find so return now
             }
@@ -129,14 +119,12 @@ public:
 
     // Find all expression fit any kind
     // Empty for not found any one
-    template <typename... Ts,
-              typename = std::enable_if_t<
-                  std::is_same<Expression::Kind, std::common_type_t<Ts...>>::value>>
-    static std::vector<const Expression*> findAnyKindInAll(const Expression* self, Ts... ts) {
+    static std::vector<const Expression*> findAnyKindInAll(
+        const Expression* self,
+        const std::unordered_set<Expression::Kind>& expected) {
         std::vector<const Expression*> exprs;
-        traverse(self, [pack = std::make_tuple(ts...), &exprs](const Expression* expr) -> bool {
-            auto bind = [expr](Ts... ts_) { return isKindOf(expr, ts_...); };
-            if (folly::apply(bind, pack)) {
+        traverse(self, [&expected, &exprs](const Expression* expr) -> bool {
+            if (isKindOf(expr, expected)) {
                 exprs.emplace_back(expr);
             }
             return true;   // Not return always to traverse entire expression tree
@@ -144,52 +132,50 @@ public:
         return exprs;
     }
 
-    template <typename... Ts,
-              typename = std::enable_if_t<
-                  std::is_same<Expression::Kind, std::common_type_t<Ts...>>::value>>
-    static bool hasAnyKind(const Expression* expr, Ts... ts) {
-        return findAnyKind(expr, ts...) != nullptr;
+    static bool hasAnyKind(const Expression* expr,
+                           const std::unordered_set<Expression::Kind>& expected) {
+        return findAnyKind(expr, expected) != nullptr;
     }
 
     // Require data from input/variable
     static bool hasInput(const Expression* expr) {
         return hasAnyKind(expr,
-                          Expression::Kind::kInputProperty,
-                          Expression::Kind::kVarProperty,
-                          Expression::Kind::kVar,
-                          Expression::Kind::kVersionedVar);
+                          {Expression::Kind::kInputProperty,
+                           Expression::Kind::kVarProperty,
+                           Expression::Kind::kVar,
+                           Expression::Kind::kVersionedVar});
     }
 
     // require data from graph storage
     static const Expression* findStorage(const Expression* expr) {
         return findAnyKind(expr,
-                           Expression::Kind::kSymProperty,
-                           Expression::Kind::kTagProperty,
-                           Expression::Kind::kEdgeProperty,
-                           Expression::Kind::kDstProperty,
-                           Expression::Kind::kSrcProperty,
-                           Expression::Kind::kEdgeSrc,
-                           Expression::Kind::kEdgeType,
-                           Expression::Kind::kEdgeRank,
-                           Expression::Kind::kEdgeDst);
+                           {Expression::Kind::kSymProperty,
+                            Expression::Kind::kTagProperty,
+                            Expression::Kind::kEdgeProperty,
+                            Expression::Kind::kDstProperty,
+                            Expression::Kind::kSrcProperty,
+                            Expression::Kind::kEdgeSrc,
+                            Expression::Kind::kEdgeType,
+                            Expression::Kind::kEdgeRank,
+                            Expression::Kind::kEdgeDst});
     }
 
     static std::vector<const Expression*> findAllStorage(const Expression* expr) {
         return findAnyKindInAll(expr,
-                                Expression::Kind::kSymProperty,
-                                Expression::Kind::kTagProperty,
-                                Expression::Kind::kEdgeProperty,
-                                Expression::Kind::kDstProperty,
-                                Expression::Kind::kSrcProperty,
-                                Expression::Kind::kEdgeSrc,
-                                Expression::Kind::kEdgeType,
-                                Expression::Kind::kEdgeRank,
-                                Expression::Kind::kEdgeDst);
+                                {Expression::Kind::kSymProperty,
+                                 Expression::Kind::kTagProperty,
+                                 Expression::Kind::kEdgeProperty,
+                                 Expression::Kind::kDstProperty,
+                                 Expression::Kind::kSrcProperty,
+                                 Expression::Kind::kEdgeSrc,
+                                 Expression::Kind::kEdgeType,
+                                 Expression::Kind::kEdgeRank,
+                                 Expression::Kind::kEdgeDst});
     }
 
     static std::vector<const Expression*> findAllInputVariableProp(const Expression* expr) {
-        return findAnyKindInAll(
-            expr, Expression::Kind::kInputProperty, Expression::Kind::kVarProperty);
+        return findAnyKindInAll(expr,
+                                {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty});
     }
 
     static bool hasStorage(const Expression* expr) {
@@ -198,33 +184,33 @@ public:
 
     static bool isStorage(const Expression* expr) {
         return isKindOf(expr,
-                        Expression::Kind::kSymProperty,
-                        Expression::Kind::kTagProperty,
-                        Expression::Kind::kEdgeProperty,
-                        Expression::Kind::kDstProperty,
-                        Expression::Kind::kSrcProperty,
-                        Expression::Kind::kEdgeSrc,
-                        Expression::Kind::kEdgeType,
-                        Expression::Kind::kEdgeRank,
-                        Expression::Kind::kEdgeDst);
+                        {Expression::Kind::kSymProperty,
+                         Expression::Kind::kTagProperty,
+                         Expression::Kind::kEdgeProperty,
+                         Expression::Kind::kDstProperty,
+                         Expression::Kind::kSrcProperty,
+                         Expression::Kind::kEdgeSrc,
+                         Expression::Kind::kEdgeType,
+                         Expression::Kind::kEdgeRank,
+                         Expression::Kind::kEdgeDst});
     }
 
     static bool isConstExpr(const Expression* expr) {
         return !hasAnyKind(expr,
-                           Expression::Kind::kInputProperty,
-                           Expression::Kind::kVarProperty,
-                           Expression::Kind::kVar,
-                           Expression::Kind::kVersionedVar,
+                           {Expression::Kind::kInputProperty,
+                            Expression::Kind::kVarProperty,
+                            Expression::Kind::kVar,
+                            Expression::Kind::kVersionedVar,
 
-                           Expression::Kind::kSymProperty,
-                           Expression::Kind::kTagProperty,
-                           Expression::Kind::kEdgeProperty,
-                           Expression::Kind::kDstProperty,
-                           Expression::Kind::kSrcProperty,
-                           Expression::Kind::kEdgeSrc,
-                           Expression::Kind::kEdgeType,
-                           Expression::Kind::kEdgeRank,
-                           Expression::Kind::kEdgeDst);
+                            Expression::Kind::kSymProperty,
+                            Expression::Kind::kTagProperty,
+                            Expression::Kind::kEdgeProperty,
+                            Expression::Kind::kDstProperty,
+                            Expression::Kind::kSrcProperty,
+                            Expression::Kind::kEdgeSrc,
+                            Expression::Kind::kEdgeType,
+                            Expression::Kind::kEdgeRank,
+                            Expression::Kind::kEdgeDst});
     }
 
     // clone expression
