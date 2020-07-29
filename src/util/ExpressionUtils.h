@@ -65,7 +65,8 @@ public:
             case Expression::Kind::kLogicalAnd:
             case Expression::Kind::kLogicalOr:
             case Expression::Kind::kLogicalXor: {
-                auto biExpr = exprCast<BinaryExpression>(expr);
+                using ToType = keep_const_t<T, BinaryExpression>;
+                auto biExpr = static_cast<ToType*>(expr);
                 if (!traverse(biExpr->left(), visitor)) {
                     return false;
                 }
@@ -77,15 +78,18 @@ public:
             case Expression::Kind::kUnaryPlus:
             case Expression::Kind::kUnaryNegate:
             case Expression::Kind::kUnaryNot: {
-                auto unaryExpr = exprCast<UnaryExpression>(expr);
+                using ToType = keep_const_t<T, UnaryExpression>;
+                auto unaryExpr = static_cast<ToType*>(expr);
                 return traverse(unaryExpr->operand(), visitor);
             }
             case Expression::Kind::kTypeCasting: {
-                auto typeCastingExpr = exprCast<TypeCastingExpression>(expr);
+                using ToType = keep_const_t<T, TypeCastingExpression>;
+                auto typeCastingExpr = static_cast<ToType*>(expr);
                 return traverse(typeCastingExpr->operand(), visitor);
             }
             case Expression::Kind::kFunctionCall: {
-                auto funcExpr = exprCast<FunctionCallExpression>(expr);
+                using ToType = keep_const_t<T, FunctionCallExpression>;
+                auto funcExpr = static_cast<ToType*>(expr);
                 for (auto& arg : funcExpr->args()->args()) {
                     if (!traverse(arg.get(), visitor)) {
                         return false;
@@ -260,7 +264,7 @@ public:
                 case Expression::Kind::kLogicalAnd:
                 case Expression::Kind::kLogicalOr:
                 case Expression::Kind::kLogicalXor: {
-                    auto* biExpr = exprCast<BinaryExpression>(current);
+                    auto* biExpr = static_cast<BinaryExpression*>(current);
                     if (biExpr->left()->kind() == Expression::Kind::kSymProperty) {
                         auto* symbolExpr = static_cast<SymbolPropertyExpression*>(biExpr->left());
                         biExpr->setLeft(transSymbolPropertyExpression<To>(symbolExpr));
@@ -277,7 +281,7 @@ public:
                 case Expression::Kind::kUnaryPlus:
                 case Expression::Kind::kUnaryNegate:
                 case Expression::Kind::kUnaryNot: {
-                    auto* unaryExpr = exprCast<UnaryExpression>(current);
+                    auto* unaryExpr = static_cast<UnaryExpression*>(current);
                     if (unaryExpr->operand()->kind() == Expression::Kind::kSymProperty) {
                         auto* symbolExpr =
                             static_cast<SymbolPropertyExpression*>(unaryExpr->operand());
@@ -286,7 +290,7 @@ public:
                     return true;
                 }
                 case Expression::Kind::kTypeCasting: {
-                    auto* typeCastingExpr = exprCast<TypeCastingExpression>(current);
+                    auto* typeCastingExpr = static_cast<TypeCastingExpression*>(current);
                     if (typeCastingExpr->operand()->kind() == Expression::Kind::kSymProperty) {
                         auto* symbolExpr =
                             static_cast<SymbolPropertyExpression*>(typeCastingExpr->operand());
@@ -295,7 +299,7 @@ public:
                     return true;
                 }
                 case Expression::Kind::kFunctionCall: {
-                    auto* funcExpr = exprCast<FunctionCallExpression>(current);
+                    auto* funcExpr = static_cast<FunctionCallExpression*>(current);
                     for (auto& arg : funcExpr->args()->args()) {
                         if (arg->kind() == Expression::Kind::kSymProperty) {
                             auto* symbolExpr = static_cast<SymbolPropertyExpression*>(arg.get());
@@ -319,25 +323,11 @@ public:
     }
 
 private:
-    template <typename Expr,
-              typename = std::enable_if_t<std::is_same<Expr, UnaryExpression>::value ||
-                                          std::is_same<Expr, BinaryExpression>::value ||
-                                          std::is_same<Expr, FunctionCallExpression>::value ||
-                                          std::is_same<Expr, TypeCastingExpression>::value>>
-    static Expr* exprCast(Expression* expr) {
-        UNUSED(DCHECK_NOTNULL(dynamic_cast<std::remove_const_t<Expr>*>(expr)));
-        return static_cast<std::remove_const_t<Expr>*>(expr);
-    }
-
-    template <typename Expr,
-              typename = std::enable_if_t<std::is_same<Expr, UnaryExpression>::value ||
-                                          std::is_same<Expr, BinaryExpression>::value ||
-                                          std::is_same<Expr, FunctionCallExpression>::value ||
-                                          std::is_same<Expr, TypeCastingExpression>::value>>
-    static const Expr* exprCast(const Expression* expr) {
-        UNUSED(DCHECK_NOTNULL(dynamic_cast<const Expr*>(expr)));
-        return static_cast<const Expr*>(expr);
-    }
+    // keep const or non-const with T
+    template <typename T, typename To>
+    using keep_const_t = std::conditional_t<std::is_const<T>::value,
+                                            const std::remove_const_t<To>,
+                                            std::remove_const_t<To>>;
 };
 
 }   // namespace graph
