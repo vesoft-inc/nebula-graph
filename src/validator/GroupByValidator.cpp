@@ -13,7 +13,6 @@ namespace graph {
 
 Status GroupByValidator::validateImpl() {
     auto *groupBySentence = static_cast<GroupBySentence*>(sentence_);
-
     NG_RETURN_IF_ERROR(validateGroup(groupBySentence->groupClause()));
     NG_RETURN_IF_ERROR(validateYield(groupBySentence->yieldClause()));
     NG_RETURN_IF_ERROR(validateAll());
@@ -21,49 +20,67 @@ Status GroupByValidator::validateImpl() {
 }
 
 Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
-    std::vector<YieldColumn*> groups;
+    std::vector<YieldColumn*> columns;
     if (groupClause != nullptr) {
-        groups = groupClause->columns();
+        columns = groupClause->columns();
     }
 
-    if (groups.empty()) {
+    if (columns.empty()) {
         return Status::SyntaxError("Group cols is Empty");
     }
-    for (auto *col : groups) {
-        if (col->getAggFunName() != "") {
+    for (auto* col : columns) {
+        if (!col->getAggFunName().empty()) {
             return Status::SyntaxError("Use invalid group function `%s`",
-                                        col->getAggFunName().c_str());
+                                       col->getAggFunName().c_str());
         }
+
+        auto status = deduceExprType(col->exr());
+        NG_RETURN_IF_ERROR(status);
+
         NG_RETURN_IF_ERROR(deduceProps(col->expr()));
         groupCols_.emplace_back(col);
     }
     return Status::OK();
 }
 
-constexpr char kCount[] = "COUNT";
-constexpr char kCountDist[] = "COUNT_DISTINCT";
 
 Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
-    std::vector<YieldColumn*> yields;
+    std::vector<YieldColumn*> columns;
     if (yieldClause != nullptr) {
-        yields = yieldClause->columns();
+        columns = yieldClause->columns();
     }
-    if (yields.empty()) {
+    if (columns.empty()) {
         return Status::SyntaxError("Yield cols is Empty");
     }
-    for (auto* col : yields) {
-        if ((col->getAggFunName() != kCount && col->getAggFunName() != kCountDist) &&
-            col->expr()->toString() == "*") {
-            return Status::SyntaxError("Syntax error: near `*`");
+
+    for (auto* col : columns) {
+        auto fun = col->getAggFunName();
+        if (!fun.empty()) {
+            auto iter = AggFun::nameIdMap_.find(fun);
+            if (iter == AggFun::nameIdMap_.end()) {
+                return Status::Error("Unkown aggregate function `%s`", fun.c_str());
+            }
+            if (iter->second != AggFun::Function::kCount && col->expr()->toString() == "*") {
+                return Status::SemanticError("`%s` invaild, * valid in count.",
+                                             col->toString().c_str());
+            }
         }
 
-        NG_RETURN_IF_ERROR(deduceProps(col->expr()));
+        auto status = deduceExprType(col->exr());
+        NG_RETURN_IF_ERROR(status);
+        auto type = std::move(status).value();
+        auto name = deduceColName(col);
+        outputs_.emplace_back(name, type);
+
+        if (std::find(inputProps_.begin(), inputProps_.end(), "f") == inputProps_.end() && true) {
+            return Status::OK();
+        }
+
+        // NG_RETURN_IF_ERROR(deduceProps(col->expr()));
         yieldCols_.emplace_back(col);
 
         if (col->alias() != nullptr) {
-            if (col->expr()->kind() == Expression::Kind::kInputProperty) {
                 aliases_.emplace(*col->alias(), col);
-            }
         }
     }
     return Status::OK();
@@ -76,23 +93,10 @@ Status GroupByValidator::validateAll() {
         // check input col
         if (it->expr()->kind() == Expression::Kind::kInputProperty) {
             auto groupName = static_cast<InputPropertyExpression*>(it->expr())->prop();
-            auto findIter = std::find_if(inputs_.begin(), inputs_.end(),
-                                         [&groupName](const auto &pair) {
-                                           return *groupName == pair.first;
-                                         });
-
-            if (findIter == inputs_.end()) {
-                LOG(ERROR) << "Group `" << *groupName << "` isn't in output fields";
-                return Status::SyntaxError("Group `%s` isn't in output fields", groupName->c_str());
-            }
             inputGroupCols.emplace(*groupName);
             continue;
         }
 
-        // Function call
-        if (it->expr()->kind() == Expression::Kind::kFunctionCall) {
-            continue;
-        }
 
         // check alias col
         auto groupName = it->expr()->toString();
@@ -112,15 +116,7 @@ Status GroupByValidator::validateAll() {
     for (auto& it : yieldCols_) {
         if (it->expr()->kind() == Expression::Kind::kInputProperty) {
             auto yieldName = static_cast<InputPropertyExpression*>(it->expr())->prop();
-            auto findIter = std::find_if(inputs_.begin(), inputs_.end(),
-                                         [&yieldName](const auto &pair) {
-                                           return *yieldName == pair.first;
-                                         });
 
-            if (findIter == inputs_.end()) {
-                LOG(ERROR) << "Yield `" << *yieldName << "` isn't in output fields";
-                return Status::SyntaxError("Yield `%s` isn't in output fields", yieldName->c_str());
-            }
 
             // check input yield filed without agg function and not in group cols
             if (inputGroupCols.find(*yieldName) == inputGroupCols.end() &&

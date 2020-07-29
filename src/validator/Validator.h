@@ -19,6 +19,21 @@ class YieldColumns;
 
 namespace graph {
 
+struct ExpressionProps {
+    std::vector<std::string> inputProps_;
+
+    std::unordered_map<std::string, std::vector<std::string>> varProps_;
+
+    std::unordered_map<TagID, std::vector<std::string>> srcTagProps_;
+
+    std::unordered_map<TagID, std::vector<std::string>> dstTagProps_;
+
+    std::unordered_map<EdgeType, std::vector<std::string>> edgeProps_;
+
+    std::unordered_map<TagID, std::vector<std::string>> tagProps_;
+};
+
+
 class Validator {
 public:
     virtual ~Validator() = default;
@@ -84,6 +99,8 @@ protected:
 
     Status deduceProps(const Expression* expr);
 
+    Status deduceProps(const Expression* expr, ExpressionProps& exprProps);
+
     bool evaluableExpr(const Expression* expr) const;
 
     static Status checkPropNonexistOrDuplicate(const ColsDef& cols,
@@ -119,6 +136,9 @@ protected:
     std::unordered_map<TagID, std::vector<std::string>> dstTagProps_;
     std::unordered_map<EdgeType, std::vector<std::string>> edgeProps_;
     std::unordered_map<TagID, std::vector<std::string>> tagProps_;
+
+    // properties
+    ExpressionProps                 props_;
 };
 
 }  // namespace graph
