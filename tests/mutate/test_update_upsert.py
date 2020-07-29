@@ -19,7 +19,7 @@ class TestUpdateVertex(NebulaTestSuite):
                             'CREATE TAG course(name string, credits int);'
                             'CREATE TAG building(name string);'
                             'CREATE TAG student(name string, age int, gender string);'
-                            'CREATE TAG student_default(name string, age int NOT NULL, '
+                            'CREATE TAG student_default(name string NOT NULL, age int NOT NULL, '
                             'gender string DEFAULT "one", birthday int DEFAULT 2010);'
                             'CREATE EDGE like(likeness double);'
                             'CREATE EDGE select(grade int, year int);'
@@ -369,11 +369,12 @@ class TestUpdateVertex(NebulaTestSuite):
         # has default value test,
         # Insertable: vertex 110 ("Ann") --> ("Ann", "one"),
         # 110 is nonexistent, gender with default value, name and age without default value
-        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT VERTEX "110" '
                                   'SET student_default.name = "Ann", student_default.age = 10 '
                                   "YIELD $^.student_default.name AS Name, $^.student_default.gender AS Gender")
-        self.check_resp_failed(resp)
+        self.check_resp_succeeded(resp)
+        expected_result = [["Ann", "one"]]
+        self.check_result(resp, expected_result)
 
         # Insertable failed, 111 is nonexistent, name and age without default value
         resp = self.execute_query('UPSERT VERTEX "111" '
@@ -413,37 +414,40 @@ class TestUpdateVertex(NebulaTestSuite):
 
         # Insertable success, 115 is nonexistent, name and age without default value,
         # the filter is always true.
-        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT VERTEX "115" '
                                   'SET student_default.name = "Kate", student_default.age = 12 '
                                   'WHEN $^.student_default.gender == "two"' 
                                   "YIELD $^.student_default.name AS Name, $^.student_default.age AS Age, "
                                   "$^.student_default.gender AS gender")
-        self.check_resp_failed(resp)
+        self.check_resp_succeeded(resp)
+        expected_result = [["Kate", 12, "one"]]
+        self.check_result(resp, expected_result)
 
         # Order problem
         # Insertable success, 116 is nonexistent, name and age without default value,
         # the filter is always true.
-        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT VERTEX "116" '
                                   'SET student_default.name = "Kate", student_default.age = $^.student_default.birthday + 1,'
                                   'student_default.birthday = $^.student_default.birthday + 1 '
                                   'WHEN $^.student_default.gender == "two"'
                                   'YIELD $^.student_default.name AS Name, $^.student_default.age AS Age, '
                                   '$^.student_default.gender AS gender, $^.student_default.birthday AS birthday')
-        self.check_resp_failed(resp)
+        self.check_resp_succeeded(resp)
+        expected_result = [["Kate", 2011, "one", 2011]]
+        self.check_result(resp, expected_result)
 
         # Order problem
         # Insertable success, 117 is nonexistent, name and age without default value,
         # the filter is always true.
-        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT VERTEX "117" '
                                   'SET student_default.birthday = $^.student_default.birthday + 1,'
                                   'student_default.name = "Kate", '
                                   'student_default.age = $^.student_default.birthday + 1 '
                                   'YIELD $^.student_default.name AS Name, $^.student_default.age AS Age, '
                                   '$^.student_default.gender AS gender, $^.student_default.birthday AS birthday')
-        self.check_resp_failed(resp)
+        self.check_resp_succeeded(resp)
+        expected_result = [["Kate", 2012, "one", 2011]]
+        self.check_result(resp, expected_result)
 
     def test_upsert_edge(self):
         # resp = self.execute_query('FETCH PROP ON select "200"->"101"@0 YIELD select.grade, select.year')
@@ -451,7 +455,7 @@ class TestUpdateVertex(NebulaTestSuite):
         # expected_result = [["200", "101", 0, 5, 2018]]
         # self.check_result(resp, expected_result)
 
-        # Insertable, upsert when edge exists, 2.0 storage not support
+        # Insertable, upsert when edge exists, 2.0 storage not support update edge with vertex prop
         resp = self.execute_query('UPSERT EDGE ON select "201" -> "101"@0'
                                   'SET grade = 3, year = 2019 '
                                   'WHEN $^.student.age > 15 && $^.student.gender == "male" '
@@ -518,11 +522,14 @@ class TestUpdateVertex(NebulaTestSuite):
         self.check_resp_failed(resp)
 
         # update select_default's year with edge prop value, grade is not null value and without default value
-        # 2.0 storage upsert need every prop has default value or null type
         resp = self.execute_query('UPSERT EDGE ON select_default "222" -> "444"@0 '
                                   'SET grade = 3, year = select_default.year + 10 '
                                   'YIELD select_default.grade AS Grade, select_default.year AS Year')
-        self.check_resp_failed(resp)
+        self.check_resp_succeeded(resp)
+
+        # TODO: timestamp has not supported
+        # expected_result = [[3, 1546308010]]
+        # self.check_result(resp, expected_result)
 
     def test_update_not_exist(self):
         # make sure the vertex must not exist
