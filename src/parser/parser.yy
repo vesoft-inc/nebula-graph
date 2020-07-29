@@ -902,11 +902,11 @@ edge_key_ref:
     }
     |
     input_ref_expression R_ARROW input_ref_expression {
-        $$ = new EdgeKeyRef($1, $3, nullptr);
+        $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0));
     }
     |
     var_ref_expression R_ARROW var_ref_expression {
-        $$ = new EdgeKeyRef($1, $3, nullptr, false);
+        $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0), false);
     }
     ;
 
