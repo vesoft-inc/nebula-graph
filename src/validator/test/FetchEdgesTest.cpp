@@ -88,8 +88,24 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   nullptr,
                                   std::move(props),
                                   std::move(exprs));
-        expectedQueryCtx_->plan()->setRoot(ge);
-        auto result = Eq(plan->root(), ge);
+
+        // Project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(new EdgeSrcIdExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(new EdgeDstIdExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(new EdgeRankExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
+        project->setColNames({std::string("like.") + kSrc,
+                              std::string("like.") + kDst,
+                              std::string("like.") + kRank,
+                              "like.start",
+                              "like.end"});
+        expectedQueryCtx_->plan()->setRoot(project);
+        auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD const expression
@@ -264,8 +280,24 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                           std::string("like.") + kRank,
                                           "like.start",
                                           "like.end"};
+
+        // project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(new EdgeSrcIdExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(new EdgeDstIdExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(new EdgeRankExpression(new std::string("like"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
+        project->setColNames({std::string("like.") + kSrc,
+                              std::string("like.") + kDst,
+                              std::string("like.") + kRank,
+                              "like.start",
+                              "like.end"});
         // dedup
-        auto *dedup = Dedup::make(expectedQueryCtx_->plan(), ge);
+        auto *dedup = Dedup::make(expectedQueryCtx_->plan(), project);
         dedup->setColNames(colNames);
 
         // data collect
@@ -290,6 +322,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -302,6 +335,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));

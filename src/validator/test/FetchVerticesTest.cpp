@@ -62,7 +62,17 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               nullptr,
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
-        auto result = Eq(plan->root(), gv);
+
+        // project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
+        project->setColNames({"person.name", "person.age"});
+
+        auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD const expression
@@ -179,8 +189,18 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
 
         std::vector<std::string> colNames{"person.name", "person.age"};
+
+        // project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
+        auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
+        project->setColNames({"person.name", "person.age"});
+
         // dedup
-        auto *dedup = Dedup::make(expectedQueryCtx_->plan(), gv);
+        auto *dedup = Dedup::make(expectedQueryCtx_->plan(), project);
         dedup->setColNames(colNames);
 
         // data collect
@@ -216,6 +236,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -227,6 +248,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
                                 }));

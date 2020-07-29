@@ -153,6 +153,7 @@ Status FetchVerticesValidator::prepareProperties() {
         }
     } else {
         CHECK(!sentence->isAllTagProps()) << "Not supported yield for *.";
+        withProject_ = true;
         dedup_ = yield->isDistinct();
         storage::cpp2::VertexProp prop;
         prop.set_tag(tagId_.value());
@@ -174,35 +175,22 @@ Status FetchVerticesValidator::prepareProperties() {
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
             const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
-            if (!storageExprs.empty()) {
-                if (storageExprs.size() == 1 && ExpressionUtils::isStorage(col->expr())) {
-                    // only one expression it's storage property expression
-                } else {
-                    // need computation in project when storage not do it.
-                    // TODO(shylock) add vid expression to eval vid when project
-                    withProject_ = true;
+            for (const auto &storageExpr : storageExprs) {
+                const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
+                if (*expr->sym() != tagName_) {
+                    return Status::Error("Mismatched tag name");
                 }
-                for (const auto &storageExpr : storageExprs) {
-                    const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
-                    if (*expr->sym() != tagName_) {
-                        return Status::Error("Mismatched tag name");
-                    }
-                    // Check is prop name in schema
-                    if (schema_->getFieldIndex(*expr->prop()) < 0) {
-                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in tag `"
-                                   << tagName_ << "'.";
-                        return Status::Error("Unknown column `%s' in tag `%s'.",
-                                             expr->prop()->c_str(),
-                                             tagName_.c_str());
-                    }
-                    propsName.emplace_back(*expr->prop());
+                // Check is prop name in schema
+                if (schema_->getFieldIndex(*expr->prop()) < 0) {
+                    LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in tag `"
+                                << tagName_ << "'.";
+                    return Status::Error("Unknown column `%s' in tag `%s'.",
+                                            expr->prop()->c_str(),
+                                            tagName_.c_str());
                 }
-                // TODO(shylock) think about the push-down expr
-            } else {
-                // Need project to evaluate the expression not push down to storage
-                // And combine the result from storage
-                withProject_ = true;
+                propsName.emplace_back(*expr->prop());
             }
+            // TODO(shylock) think about the push-down expr
         }
         prop.set_props(std::move(propsName));
         props_.emplace_back(std::move(prop));

@@ -141,6 +141,7 @@ Status FetchEdgesValidator::prepareProperties() {
     prop.set_type(edgeType_);
     // empty for all properties
     if (yield != nullptr) {
+        withProject_ = true;
         // insert the reserved properties expression be compatible with 1.0
         auto *newYieldColumns = new YieldColumns();
         newYieldColumns->addColumn(
@@ -173,35 +174,23 @@ Status FetchEdgesValidator::prepareProperties() {
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
             const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
-            if (!storageExprs.empty()) {
-                if (storageExprs.size() == 1 && ExpressionUtils::isStorage(col->expr())) {
-                    // only one expression it's storage property expression
-                } else {
-                    // need computation in project when storage not do it.
-                    withProject_ = true;
+            for (const auto &storageExpr : storageExprs) {
+                const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
+                if (*expr->sym() != edgeTypeName_) {
+                    return Status::Error("Mismatched edge type name");
                 }
-                for (const auto &storageExpr : storageExprs) {
-                    const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
-                    if (*expr->sym() != edgeTypeName_) {
-                        return Status::Error("Mismatched edge type name");
-                    }
-                    // Check is prop name in schema
-                    if (schema_->getFieldIndex(*expr->prop()) < 0 &&
-                        reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
-                        LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `"
-                                   << edgeTypeName_ << "'.";
-                        return Status::Error("Unknown column `%s' in edge `%s'",
-                                             expr->prop()->c_str(),
-                                             edgeTypeName_.c_str());
-                    }
-                    propsName.emplace_back(*expr->prop());
+                // Check is prop name in schema
+                if (schema_->getFieldIndex(*expr->prop()) < 0 &&
+                    reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
+                    LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `"
+                                << edgeTypeName_ << "'.";
+                    return Status::Error("Unknown column `%s' in edge `%s'",
+                                            expr->prop()->c_str(),
+                                            edgeTypeName_.c_str());
                 }
-                // TODO(shylock) think about the push-down expr
-            } else {
-                // Need project to evaluate the expression not push down to storage
-                // And combine the result from storage
-                withProject_ = true;
+                propsName.emplace_back(*expr->prop());
             }
+            // TODO(shylock) think about the push-down expr
         }
         prop.set_props(std::move(propsName));
 
