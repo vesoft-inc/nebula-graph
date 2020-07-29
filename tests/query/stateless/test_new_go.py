@@ -13,6 +13,9 @@ class TestGoQuery(NebulaTestSuite):
     def prepare(self):
         self.load_data()
 
+    def cleanup():
+        pass
+
     def test_one_step(self):
         stmt = 'GO FROM "Tim Duncan" OVER serve'
         resp = self.execute_query(stmt)
@@ -84,7 +87,6 @@ class TestGoQuery(NebulaTestSuite):
                 ["Spurs"],
                 ["Spurs"],
                 ["Spurs"],
-                ["Spurs"],
                 ["Hornets"],
                 ["Trail Blazers"]
             ]
@@ -92,6 +94,24 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
+        stmt = "GO FROM 'Thunders' OVER serve REVERSELY"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ["Russell Westbrook"],
+                ["Kevin Durant"],
+                ["James Harden"],
+                ["Carmelo Anthony"],
+                ["Paul George"],
+                ["Ray Allen"]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+    @pytest.mark.skip(reason = 'need pipe support')
+    def test_step(self):
         stmt = '''GO FROM "Boris Diaw" OVER like YIELD like._dst as id \
             | ( GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve )'''
         resp = self.execute_query(stmt)
@@ -111,18 +131,26 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GO FROM 'Thunders' OVER serve REVERSELY"
+        stmt = '''GO FROM "NON EXIST VERTEX ID" OVER like YIELD like._dst as id \
+            | (GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve)'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_empty_result(resp)
+
+        stmt = '''GO FROM "Boris Diaw" OVER like, serve YIELD like._dst as id \
+            | ( GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve )'''
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names" : [],
             "rows" : [
-                ["Russell Westbrook"],
-                ["Kevin Durant"],
-                ["James Harden"],
-                ["Carmelo Anthony"],
-                ["Paul Georg"],
-                ["Ray Allen"]
+                ["Spurs"],
+                ["Spurs"],
+                ["Spurs"],
+                ["Spurs"],
+                ["Spurs"],
+                ["Hornets"],
+                ["Trail Blazers"]
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -200,11 +228,14 @@ class TestGoQuery(NebulaTestSuite):
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
-            "column_names" : [],
+            "column_names" : ["like._dst"],
             "rows" : [
-                []
+                ["Tim Duncan"],
+                ["Tony Parker"],
+                ["Manu Ginobili"]
             ]
         }
+        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
     def test_vertex_noexist(self):
@@ -226,19 +257,8 @@ class TestGoQuery(NebulaTestSuite):
         self.check_empty_result(resp)
 
     def test_empty_inputs(self):
-        stmt = 'GO FROM "NON EXIST VERTEX ID" OVER serve | GO FROM $-.serve_vid OVER serve'
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        self.check_empty_result(resp)
-
         stmt = '''GO FROM "NON EXIST VERTEX ID" OVER like YIELD like._dst as id \
             | GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        self.check_empty_result(resp)
-
-        stmt = '''GO FROM "NON EXIST VERTEX ID" OVER like YIELD like._dst as id \
-            | (GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve)'''
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         self.check_empty_result(resp)
@@ -249,69 +269,17 @@ class TestGoQuery(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_empty_result(resp)
 
-    def test_multi_edges(self):
-        stmt = "GO FROM 'Russell Westbrook' OVER serve, like"
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                ["Thunders", 0],
-                [0, "Paul George"],
-                [0, "James Harden"]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = '''GO FROM "Russell Westbrook" OVER serve, like REVERSELY \
-            YIELD serve._dst, like._dst, serve._type, like._type'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                [0, "James Harden", 0, -5],
-                [0, "Dejounte Murray", 0, -5],
-                [0, "Paul George", 0, -5],
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = 'GO FROM "Russell Westbrook" OVER serve, like REVERSELY YIELD serve._src, like._src'
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                [0, "Russell Westbrook"],
-                [0, "Russell Westbrook"],
-                [0, "Russell Westbrook"]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = 'GO FROM "Russell Westbrook" OVER serve, like REVERSELY'
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                [0, "James Harden"],
-                [0, "Dejounte Murray"],
-                [0, "Paul George"]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
+    @pytest.mark.skip(reason = 'over * not implement')
+    def test_multi_edges_over_all(self):
         stmt = 'GO FROM "Russell Westbrook" OVER * REVERSELY YIELD serve._dst, like._dst'
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names" : [],
             "rows" : [
-                [0, "James Harden"],
-                [0, "Dejounte Murray"],
-                [0, "Paul George"]
+                ['NULL', "James Harden"],
+                ['NULL', "Dejounte Murray"],
+                ['NULL', "Paul George"]
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -322,9 +290,9 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : [],
             "rows" : [
-                [0, "Russell Westbrook"],
-                [0, "Russell Westbrook"],
-                [0, "Russell Westbrook"]
+                ['NULL', "Russell Westbrook"],
+                ['NULL', "Russell Westbrook"],
+                ['NULL', "Russell Westbrook"]
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -335,26 +303,40 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : [],
             "rows" : [
-                [0, "James Harden", 0],
-                [0, "Dejounte Murray", 0],
-                [0, "Paul George", 0]
+                ['NULL', "James Harden", 'NULL'],
+                ['NULL', "Dejounte Murray", 'NULL'],
+                ['NULL', "Paul George", 'NULL']
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = '''GO FROM "Manu Ginobili" OVER like, teammate REVERSELY YIELD like.likeness, \
-            teammate.start_year, $$.player.name'''
+        stmt = 'GO FROM "Dirk Nowitzki" OVER * YIELD serve._dst, like._dst'
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names" : [],
             "rows" : [
-                [95, 0, "Tim Duncan"],
-                [95, 0, "Tony Parker"],
-                [90, 0, "Tiago Splitter"],
-                [99, 0, "Dejounte Murray"],
-                [0, 2002, "Tim Duncan"],
-                [0, 2002, "Tony Parker"]
+                ["Mavericks", 'NULL'],
+                ['NULL', "Steve Nash"],
+                ['NULL', "Jason Kidd"],
+                ['NULL', "Dwyane Wade"]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = 'GO FROM "Paul Gasol" OVER *'
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ["Grizzlies", 'NULL', 'NULL'],
+                ["Lakers", 'NULL', 'NULL'],
+                ["Bulls", 'NULL', 'NULL'],
+                ["Spurs", 'NULL', 'NULL'],
+                ["Bucks", 'NULL', 'NULL'],
+                ['NULL', "Kobe Bryant", 'NULL'],
+                ['NULL', "Marc Gasol", 'NULL']
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -366,75 +348,12 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : [],
             "rows" : [
-                [95, 0, 0, "Tim Duncan"],
-                [95, 0, 0, "Tony Parker"],
-                [90, 0, 0, "Tiago Splitter"],
-                [99, 0, 0, "Dejounte Murray"],
-                [0, 2002, 0, "Tim Duncan"],
-                [0, 2002, 0, "Tony Parker"]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = '''GO FROM "Russell Westbrook" OVER serve, like \
-            YIELD serve.start_year, like.likeness, serve._type, like._type'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                [2008, 0, 4, 0],
-                [0, 90, 0, 5],
-                [0, 90, 0, 5]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = 'GO FROM "Shaquile O\'Neal" OVER serve, like'
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                ["Magic", 0],
-                ["Lakers", 0],
-                ["Heat", 0],
-                ["Suns", 0],
-                ["Cavaliers", 0],
-                ["Celtics", 0],
-                [0, "JaVale McGee"],
-                [0, "Tim Duncan"],
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = 'GO FROM "Dirk Nowitzki" OVER * YIELD serve._dst, like._dst'
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                ["Mavericks", 0],
-                [0, "Steve Nash"],
-                [0, "Jason Kidd"],
-                [0, "Dwyane Wade"]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = 'GO FROM "Paul Gasol" OVER *'
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                ["Grizzlies", 0, 0],
-                ["Lakers", 0, 0],
-                ["Bulls", 0, 0],
-                ["Spurs", 0, 0],
-                ["Bucks", 0, 0],
-                [0, "Kobe Bryant", 0],
-                [0, "Marc Gasol", 0]
+                [95, 'NULL', 'NULL', "Tim Duncan"],
+                [95, 'NULL', 'NULL', "Tony Parker"],
+                [90, 'NULL', 'NULL', "Tiago Splitter"],
+                [99, 'NULL', 'NULL', "Dejounte Murray"],
+                ['NULL', 2002, 'NULL', "Tim Duncan"],
+                ['NULL', 2002, 'NULL', "Tony Parker"]
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -445,28 +364,10 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : [],
             "rows" : [
-                ["Trail Blazers", ""],
-                ["", "Tim Duncan"],
-                ["", "Tony Parker"],
-                ["Spurs", ""]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = '''GO FROM "Boris Diaw" OVER like, serve YIELD like._dst as id \
-            | ( GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve )'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                ["Spurs"],
-                ["Spurs"],
-                ["Spurs"],
-                ["Spurs"],
-                ["Spurs"],
-                ["Hornets"],
-                ["Trail Blazers"]
+                ["Trail Blazers", 'NULL'],
+                ['NULL', "Tim Duncan"],
+                ['NULL', "Tony Parker"],
+                ["Spurs", 'NULL']
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -485,6 +386,60 @@ class TestGoQuery(NebulaTestSuite):
                 ["Spurs"],
                 ["Hornets"],
                 ["Trail Blazers"]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+    def test_multi_edges(self):
+        stmt = "GO FROM 'Russell Westbrook' OVER serve, like"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ["Thunders", 'NULL'],
+                ['NULL', "Paul George"],
+                ['NULL', "James Harden"]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = '''GO FROM "Russell Westbrook" OVER serve, like REVERSELY \
+            YIELD serve._dst, like._dst, serve._type, like._type'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ['NULL', "James Harden", 'NULL', -5],
+                ['NULL', "Dejounte Murray", 'NULL', -5],
+                ['NULL', "Paul George", 'NULL', -5],
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = 'GO FROM "Russell Westbrook" OVER serve, like REVERSELY YIELD serve._src, like._src'
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ['NULL', "Russell Westbrook"],
+                ['NULL', "Russell Westbrook"],
+                ['NULL', "Russell Westbrook"]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = 'GO FROM "Russell Westbrook" OVER serve, like REVERSELY'
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ['NULL', "James Harden"],
+                ['NULL', "Dejounte Murray"],
+                ['NULL', "Paul George"]
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -537,6 +492,59 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
+    @pytest.mark.skip(reason = 'null object and string null sorted different')
+    def test_sort_null(self):
+        stmt = '''GO FROM "Manu Ginobili" OVER like, teammate REVERSELY YIELD like.likeness, \
+            teammate.start_year, $$.player.name'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                [95, 'NULL', "Tim Duncan"],
+                [95, 'NULL', "Tony Parker"],
+                [90, 'NULL', "Tiago Splitter"],
+                [99, 'NULL', "Dejounte Murray"],
+                ['NULL', 2002, "Tim Duncan"],
+                ['NULL', 2002, "Tony Parker"]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = '''GO FROM "Russell Westbrook" OVER serve, like \
+            YIELD serve.start_year, like.likeness, serve._type, like._type'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                [2008, 'NULL', 4, 'NULL'],
+                ['NULL', 90, 'NULL', 5],
+                ['NULL', 90, 'NULL', 5]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = 'GO FROM "Shaquile O\'Neal" OVER serve, like'
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ["Magic", 'NULL'],
+                ["Lakers",'NULL'],
+                ["Heat", 'NULL'],
+                ["Suns", 'NULL'],
+                ["Cavaliers", 'NULL'],
+                ["Celtics", 'NULL'],
+                ['NULL', "JaVale McGee"],
+                ['NULL', "Tim Duncan"],
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+    @pytest.mark.skip(reason = '$-.* over * $var.* not implement')
+    def test_all_prop(self):
         stmt = '''GO FROM 'Tim Duncan', 'Chris Paul' OVER like \
             YIELD $^.player.name AS name, like._dst AS id \
             | GO FROM $-.id OVER like \
@@ -557,6 +565,116 @@ class TestGoQuery(NebulaTestSuite):
                 ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "Chris Paul"],
                 ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "LeBron James"],
                 ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "Carmelo Anthony"]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = '''$var = GO FROM 'Tim Duncan', 'Chris Paul' OVER like \
+            YIELD $^.player.name AS name, like._dst AS id; \
+            GO FROM $var.id OVER like \
+            YIELD $var.*, $^.player.name, $$.player.name'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ["Tim Duncan", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tim Duncan", "Tony Parker", "Tony Parker", "LaMarcus Aldridge"],
+                ["Tim Duncan", "Tony Parker", "Tony Parker", "Manu Ginobili"],
+                ["Tim Duncan", "Tony Parker", "Tony Parker", "Tim Duncan"],
+                ["Chris Paul", "LeBron James", "LeBron James", "Ray Allen"],
+                ["Chris Paul", "Carmelo Anthony", "Carmelo Anthony", "Chris Paul"],
+                ["Chris Paul", "Carmelo Anthony", "Carmelo Anthony", "LeBron James"],
+                ["Chris Paul", "Carmelo Anthony", "Carmelo Anthony", "Dwyane Wade"],
+                ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "Chris Paul"],
+                ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "LeBron James"],
+                ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "Carmelo Anthony"]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = "GO FROM 'Tim Duncan' OVER * REVERSELY YIELD like._dst"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["like._dst"],
+            "rows" : [
+                ["Tony Parker"],
+                ["Manu Ginobili"],
+                ["LaMarcus Aldridge"],
+                ["Marco Belinelli"],
+                ["Danny Green"],
+                ["Aron Baynes"],
+                ["Boris Diaw"],
+                ["Tiago Splitter"],
+                ["Dejounte Murray"],
+                ["Shaquile O'Neal"],
+                ['NULL'],
+                ['NULL']
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = "GO 2 STEPS FROM 'Kobe Bryant' OVER * REVERSELY YIELD $$.player.name"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["$$.player.name"],
+            "rows" : [
+                ["Marc Gasol"],
+                ["Vince Carter"],
+                ["Yao Ming"],
+                ["Grant Hill"]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = '''GO FROM 'Manu Ginobili' OVER * REVERSELY YIELD like._dst AS id \
+            | GO FROM $-.id OVER serve'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ["Spurs"],
+                ["Spurs"],
+                ["Hornets"],
+                ["Spurs"],
+                ["Hawks"],
+                ["76ers"],
+                ["Spurs"]
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = "GO FROM 'Tim Duncan' OVER * bidirect"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["serve._dst", "like._dst", "teammate._dst"],
+            "rows" : [
+                ["Spurs", 'NULL', 'NULL'],
+                ['NULL', "Tony Parker", 'NULL'],
+                ['NULL', "Manu Ginobili", 'NULL'],
+                ['NULL', "Tony Parker", 'NULL'],
+                ['NULL', "Manu Ginobili", 'NULL'],
+                ['NULL', "LaMarcus Aldridge", 'NULL'],
+                ['NULL', "Marco Belinelli", 'NULL'],
+                ['NULL', "Danny Green", 'NULL'],
+                ['NULL', "Aron Baynes", 'NULL'],
+                ['NULL', "Boris Diaw", 'NULL'],
+                ['NULL', "Tiago Splitter", 'NULL'],
+                ['NULL', "Dejounte Murray", 'NULL'],
+                ['NULL', "Shaquile O'Neal", 'NULL'],
+                ['NULL', 'NULL', "Tony Parker"],
+                ['NULL', 'NULL', "Manu Ginobili"],
+                ['NULL', 'NULL', "LaMarcus Aldridge"],
+                ['NULL', 'NULL', "Danny Green"],
+                ['NULL', 'NULL', "Tony Parker"],
+                ['NULL', 'NULL', "Manu Ginobili"]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -608,30 +726,6 @@ class TestGoQuery(NebulaTestSuite):
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = '''$var = GO FROM 'Tim Duncan', 'Chris Paul' OVER like \
-            YIELD $^.player.name AS name, like._dst AS id; \
-            GO FROM $var.id OVER like \
-            YIELD $var.*, $^.player.name, $$.player.name'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                ["Tim Duncan", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tim Duncan", "Tony Parker", "Tony Parker", "LaMarcus Aldridge"],
-                ["Tim Duncan", "Tony Parker", "Tony Parker", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker", "Tony Parker", "Tim Duncan"],
-                ["Chris Paul", "LeBron James", "LeBron James", "Ray Allen"],
-                ["Chris Paul", "Carmelo Anthony", "Carmelo Anthony", "Chris Paul"],
-                ["Chris Paul", "Carmelo Anthony", "Carmelo Anthony", "LeBron James"],
-                ["Chris Paul", "Carmelo Anthony", "Carmelo Anthony", "Dwyane Wade"],
-                ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "Chris Paul"],
-                ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "LeBron James"],
-                ["Chris Paul", "Dwyane Wade", "Dwyane Wade", "Carmelo Anthony"]
-            ]
-        }
         self.check_out_of_order_result(resp, expected_data["rows"])
 
     def test_no_existent_prop(self):
@@ -692,6 +786,7 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
+    @pytest.mark.skip(reason = 'return not implement')
     def test_return_test(self):
         stmt = '''$A = GO FROM 'Tim Duncan' OVER like YIELD like._dst AS dst; \
             $rA = YIELD $A.* WHERE $A.dst == 123; \
@@ -809,29 +904,6 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GO FROM 'Tim Duncan' OVER * REVERSELY YIELD like._dst"
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : ["like._dst"],
-            "rows" : [
-                ["Tony Parker"],
-                ["Manu Ginobili"],
-                ["LaMarcus Aldridge"],
-                ["Marco Belinelli"],
-                ["Danny Green"],
-                ["Aron Baynes"],
-                ["Boris Diaw"],
-                ["Tiago Splitter"],
-                ["Dejounte Murray"],
-                ["Shaquile O'Neal"],
-                [0],
-                [0]
-            ]
-        }
-        self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
         stmt = "GO FROM 'Tim Duncan' OVER like REVERSELY YIELD $$.player.name"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
@@ -879,7 +951,11 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : ["like._dst"],
             "rows" : [
-                []
+                ["Tim Duncan"],
+                ["Tim Duncan"],
+                ["Tony Parker"],
+                ["Tony Parker"],
+                ["Manu Ginobili"]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -887,21 +963,6 @@ class TestGoQuery(NebulaTestSuite):
 
     def test_reversely_two_steps(self):
         stmt = "GO 2 STEPS FROM 'Kobe Bryant' OVER like REVERSELY YIELD $$.player.name"
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : ["$$.player.name"],
-            "rows" : [
-                ["Marc Gasol"],
-                ["Vince Carter"],
-                ["Yao Ming"],
-                ["Grant Hill"]
-            ]
-        }
-        self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = "GO 2 STEPS FROM 'Kobe Bryant' OVER * REVERSELY YIELD $$.player.name"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
@@ -993,24 +1054,6 @@ class TestGoQuery(NebulaTestSuite):
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = '''GO FROM 'Manu Ginobili' OVER * REVERSELY YIELD like._dst AS id \
-            | GO FROM $-.id OVER serve'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                ["Spurs"],
-                ["Spurs"],
-                ["Hornets"],
-                ["Spurs"],
-                ["Hawks"],
-                ["76ers"],
-                ["Spurs"]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
     def test_bidirect(self):
         stmt = "GO FROM 'Tim Duncan' OVER serve bidirect"
         resp = self.execute_query(stmt)
@@ -1053,53 +1096,25 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : ["serve._dst", "like._dst"],
             "rows" : [
-                ["Spurs", 0]
-                [0, "Tony Parker"],
-                [0, "Manu Ginobili"],
-                [0, "Tony Parker"],
-                [0, "Manu Ginobili"],
-                [0, "LaMarcus Aldridge"],
-                [0, "Marco Belinelli"],
-                [0, "Danny Green"],
-                [0, "Aron Baynes"],
-                [0, "Boris Diaw"],
-                [0, "Tiago Splitter"],
-                [0, "Dejounte Murray"],
-                [0, "Shaquile O'Neal"]
+                ["Spurs", 'NULL'],
+                ['NULL', "Tony Parker"],
+                ['NULL', "Manu Ginobili"],
+                ['NULL', "Tony Parker"],
+                ['NULL', "Manu Ginobili"],
+                ['NULL', "LaMarcus Aldridge"],
+                ['NULL', "Marco Belinelli"],
+                ['NULL', "Danny Green"],
+                ['NULL', "Aron Baynes"],
+                ['NULL', "Boris Diaw"],
+                ['NULL', "Tiago Splitter"],
+                ['NULL', "Dejounte Murray"],
+                ['NULL', "Shaquile O'Neal"]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GO FROM 'Tim Duncan' OVER * bidirect"
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : ["serve._dst", "like._dst", "teammate._dst"],
-            "rows" : [
-                ["Spurs", 0, 0]
-                [0, "Tony Parker", 0],
-                [0, "Manu Ginobili", 0],
-                [0, "Tony Parker", 0],
-                [0, "Manu Ginobili", 0],
-                [0, "LaMarcus Aldridge", 0],
-                [0, "Marco Belinelli", 0],
-                [0, "Danny Green", 0],
-                [0, "Aron Baynes", 0],
-                [0, "Boris Diaw", 0],
-                [0, "Tiago Splitter", 0],
-                [0, "Dejounte Murray", 0],
-                [0, "Shaquile O'Neal", 0],
-                [0, 0, "Tony Parker"],
-                [0, 0, "Manu Ginobili"],
-                [0, 0, "LaMarcus Aldridge"],
-                [0, 0, "Danny Green"],
-                [0, 0, "Tony Parker"],
-                [0, 0, "Manu Ginobili"]
-            ]
-        }
-        self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+       
 
         stmt = "GO FROM 'Tim Duncan' OVER serve bidirect YIELD $$.team.name"
         resp = self.execute_query(stmt)
@@ -1152,6 +1167,8 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
+    @pytest.mark.skip(reason = 'over * not implement')
+    def test_bidirect_over_all(self):
         stmt = '''GO FROM 'Tim Duncan' OVER * bidirect \
             YIELD $^.player.name, serve._dst, $$.team.name, like._dst, $$.player.name'''
         resp = self.execute_query(stmt)
@@ -1159,30 +1176,32 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : ["$^.player.name", "serve._dst", "$$.team.name", "like._dst", "$$.player.name"],
             "rows" : [
-                ["Tim Duncan", "Spurs", "Spurs", 0, ""],
-                ["Tim Duncan", 0, "", "Tony Parker", "Tony Parker"],
-                ["Tim Duncan", 0, "", "Manu Ginobili", "Manu Ginobili"],
-                ["Tim Duncan", 0, "", "Tony Parker", "Tony Parker"],
-                ["Tim Duncan", 0, "", "Manu Ginobili", "Manu Ginobili"],
-                ["Tim Duncan", 0, "", "LaMarcus Aldridge", "LaMarcus Aldridge"],
-                ["Tim Duncan", 0, "", "Marco Belinelli", "Marco Belinelli"],
-                ["Tim Duncan", 0, "", "Danny Green", "Danny Green"],
-                ["Tim Duncan", 0, "", "Aron Baynes", "Aron Baynes"],
-                ["Tim Duncan", 0, "", "Boris Diaw", "Boris Diaw"],
-                ["Tim Duncan", 0, "", "Tiago Splitter", "Tiago Splitter"],
-                ["Tim Duncan", 0, "", "Dejounte Murray", "Dejounte Murray"],
-                ["Tim Duncan", 0, "", "Shaquile O'Neal", "Shaquile O'Neal"],
-                ["Tim Duncan", 0, "", 0, "Tony Parker"],
-                ["Tim Duncan", 0, "", 0, "Manu Ginobili"],
-                ["Tim Duncan", 0, "", 0, "Danny Green"],
-                ["Tim Duncan", 0, "", 0, "LaMarcus Aldridge"],
-                ["Tim Duncan", 0, "", 0, "Tony Parker"],
-                ["Tim Duncan", 0, "", 0, "Manu Ginobili"]
+                ["Tim Duncan", "Spurs", "Spurs", 'NULL', ""],
+                ["Tim Duncan", 'NULL', 'NULL', "Tony Parker", "Tony Parker"],
+                ["Tim Duncan", 'NULL', 'NULL', "Manu Ginobili", "Manu Ginobili"],
+                ["Tim Duncan", 'NULL', 'NULL', "Tony Parker", "Tony Parker"],
+                ["Tim Duncan", 'NULL', 'NULL', "Manu Ginobili", "Manu Ginobili"],
+                ["Tim Duncan", 'NULL', 'NULL', "LaMarcus Aldridge", "LaMarcus Aldridge"],
+                ["Tim Duncan", 'NULL', 'NULL', "Marco Belinelli", "Marco Belinelli"],
+                ["Tim Duncan", 'NULL', 'NULL', "Danny Green", "Danny Green"],
+                ["Tim Duncan", 'NULL', 'NULL', "Aron Baynes", "Aron Baynes"],
+                ["Tim Duncan", 'NULL', 'NULL', "Boris Diaw", "Boris Diaw"],
+                ["Tim Duncan", 'NULL', 'NULL', "Tiago Splitter", "Tiago Splitter"],
+                ["Tim Duncan", 'NULL', 'NULL', "Dejounte Murray", "Dejounte Murray"],
+                ["Tim Duncan", 'NULL', 'NULL', "Shaquile O'Neal", "Shaquile O'Neal"],
+                ["Tim Duncan", 'NULL', 'NULL', 'NULL', "Tony Parker"],
+                ["Tim Duncan", 'NULL', 'NULL', 'NULL', "Manu Ginobili"],
+                ["Tim Duncan", 'NULL', 'NULL', 'NULL', "Danny Green"],
+                ["Tim Duncan", 'NULL', 'NULL', 'NULL', "LaMarcus Aldridge"],
+                ["Tim Duncan", 'NULL', 'NULL', 'NULL', "Tony Parker"],
+                ["Tim Duncan", 'NULL', 'NULL', 'NULL', "Manu Ginobili"]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
+
+    @pytest.mark.skip(reason = 'not implement')
     def test_duplicate_column_name(self):
         stmt = "GO FROM 'Tim Duncan' OVER serve YIELD serve._dst, serve._dst"
         resp = self.execute_query(stmt)
@@ -1201,7 +1220,7 @@ class TestGoQuery(NebulaTestSuite):
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
 
-
+    @pytest.mark.skip(reason = 'not implement')
     def test_contains(self):
         stmt = '''GO FROM 'Boris Diaw' OVER serve WHERE $$.team.name CONTAINS Haw\
             YIELD $^.player.name, serve.start_year, serve.end_year, $$.team.name'''
@@ -1258,6 +1277,7 @@ class TestGoQuery(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_empty_result(resp)
 
+    @pytest.mark.skip(reason = 'm to n not implement')
     def test_with_intermediate_data(self):
         # zero to zero
         stmt = "GO 0 TO 0 STEPS FROM 'Tony Parker' OVER like YIELD DISTINCT like._dst"
@@ -1490,7 +1510,6 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-
         # bidirectionally
         stmt = "GO 1 TO 2 STEPS FROM 'Spurs' OVER like BIDIRECT YIELD DISTINCT like._dst"
         resp = self.execute_query(stmt)
@@ -1675,71 +1694,6 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-    def test_error_massage(self):
-        stmt = "GO FROM 'Tim Duncan' OVER serve YIELD $$.player.name as name"
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : [],
-            "rows" : [
-                [""]
-            ]
-        }
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-    def test_zero_step(self):
-        stmt = "GO 0 STEPS FROM 'Tim Duncan' OVER serve BIDIRECT"
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        self.check_empty_result(resp)
-
-        stmt = "GO 0 STEPS FROM 'Tim Duncan' OVER serve"
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        self.check_empty_result(resp)
-
-    def test_go_cover_input(self):
-        stmt = '''GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst \
-            | GO FROM $-.src OVER like \
-            YIELD $-.src as src, like._dst as dst, $^.player.name, $$.player.name'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : ["src", "dst", "$^.player.name", "$$.player.name"],
-            "rows" : [
-                ["Tim Duncan", "Tony Parker", "Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker", "Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker", "Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker", "Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"]
-            ]
-        }
-        self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        stmt = '''$a = GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst; \
-            GO FROM $a.src OVER like YIELD $a.src as src, like._dst as dst'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : ["src", "dst"],
-            "rows" : [
-                ["Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili"]
-            ]
-        }
-        self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
         # with intermidate data pipe
         stmt = '''GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst \
             | GO 1 TO 2 STEPS FROM $-.src OVER like YIELD $-.src as src, like._dst as dst'''
@@ -1817,6 +1771,64 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
+    def test_error_massage(self):
+        stmt = "GO FROM 'Tim Duncan' OVER serve YIELD $$.player.name as name"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : [],
+            "rows" : [
+                ['NULL']
+            ]
+        }
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+    @pytest.mark.skip(reason = 'not support zero step now')
+    def test_zero_step(self):
+        stmt = "GO 0 STEPS FROM 'Tim Duncan' OVER serve BIDIRECT"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_empty_result(resp)
+
+        stmt = "GO 0 STEPS FROM 'Tim Duncan' OVER serve"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_empty_result(resp)
+
+    def test_go_cover_input(self):
+        stmt = '''GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst \
+            | GO FROM $-.src OVER like \
+            YIELD $-.src as src, like._dst as dst, $^.player.name, $$.player.name'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["src", "dst", "$^.player.name", "$$.player.name"],
+            "rows" : [
+                ["Tim Duncan", "Tony Parker", "Tim Duncan", "Tony Parker"],
+                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
+                ["Tim Duncan", "Tony Parker", "Tim Duncan", "Tony Parker"],
+                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = '''$a = GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst; \
+            GO FROM $a.src OVER like YIELD $a.src as src, like._dst as dst'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["src", "dst"],
+            "rows" : [
+                ["Tim Duncan", "Tony Parker"],
+                ["Tim Duncan", "Manu Ginobili"],
+                ["Tim Duncan", "Tony Parker"],
+                ["Tim Duncan", "Manu Ginobili"]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
         # partial neighbors input
         stmt = '''GO FROM 'Danny Green' OVER like YIELD like._src AS src, like._dst AS dst \
             | GO FROM $-.dst OVER teammate YIELD $-.src AS src, $-.dst, teammate._dst AS dst'''
@@ -1859,55 +1871,51 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : ["$-.src", "$-.dst", "like._src", "like._dst"],
             "rows" : [
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge" "Manu Ginobili", "Tim Duncan"],
-
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
                 ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
                 ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
                 ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
                 ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"]
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -1920,55 +1928,51 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : ["$a.src", "$a.dst", "like._src", "like._dst"],
             "rows" : [
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge" "Manu Ginobili", "Tim Duncan"],
-
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
                 ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
                 ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
                 ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
                 ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"]
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
