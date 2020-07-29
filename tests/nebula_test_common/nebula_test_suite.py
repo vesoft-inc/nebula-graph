@@ -257,19 +257,25 @@ class NebulaTestSuite(object):
 
         msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
         assert len(rows) == len(expect), msg
+
+        # convert expect to thrift value
+        ok, new_expect =  self.convert_expect(expect)
+        if not ok:
+            assert ok, 'convert expect failed, expect should be format like "[[]]"'
+
         for row in rows:
             ok = False
             msg = ""
-            for exp in expect:
-                for col, i in zip(row.values, range(0, len(exp))):
-                    ok, msg = self.check_value(col, exp[i])
+            for exp in new_expect:
+                for col, i in zip(row.values, range(0, len(exp.values))):
+                    ok, msg = self.check_value(col, exp.values[i])
                     if not ok:
                         break
                 if ok:
                     break
             assert ok, 'The returned row from nebula could not be found, row: {}, error message: {}'.format(
                 self.row_to_string(row), msg)
-            expect.remove(exp)
+            new_expect.remove(exp)
 
     @classmethod
     def check_column_names(self, resp, expect):
