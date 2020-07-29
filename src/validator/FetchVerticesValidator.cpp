@@ -197,12 +197,7 @@ Status FetchVerticesValidator::prepareProperties() {
                     }
                     propsName.emplace_back(*expr->prop());
                 }
-                storage::cpp2::Expr exprAlias;
-                if (col->alias()) {
-                    exprAlias.set_alias(*col->alias());
-                }
-                exprAlias.set_expr(col->expr()->encode());
-                exprs_.emplace_back(std::move(exprAlias));
+                // TODO(shylock) think about the push-down expr
             } else {
                 // Need project to evaluate the expression not push down to storage
                 // And combine the result from storage
