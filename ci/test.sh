@@ -44,6 +44,7 @@ function gcc_compile() {
         -DENABLE_BUILD_STORAGE=on \
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
         -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
+        -DMODULE_BUILDING_JOBS=$(nproc) \
         -B $BUILD_DIR
     build_common
     build_storage
@@ -62,6 +63,7 @@ function clang_compile() {
         -DENABLE_BUILD_STORAGE=on \
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
         -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
+        -DMODULE_BUILDING_JOBS=$(nproc) \
         -B $BUILD_DIR
     build_common
     build_storage
