@@ -424,7 +424,11 @@ var_ref_expression
 
 alias_ref_expression
     : name_label DOT name_label {
-        $$ = new EdgePropertyExpression($1, $3);
+        // determine the detail in later stage
+        $$ = new SymbolPropertyExpression(Expression::Kind::kSymProperty,
+                                          new std::string(""),
+                                          $1,
+                                          $3);
     }
     | name_label DOT TYPE_PROP {
         $$ = new EdgeTypeExpression($1);
@@ -904,11 +908,11 @@ edge_key_ref:
     }
     |
     input_ref_expression R_ARROW input_ref_expression {
-        $$ = new EdgeKeyRef($1, $3, nullptr);
+        $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0));
     }
     |
     var_ref_expression R_ARROW var_ref_expression {
-        $$ = new EdgeKeyRef($1, $3, nullptr, false);
+        $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0), false);
     }
     ;
 
