@@ -54,16 +54,6 @@ protected:
         return ::testing::AssertionSuccess();
     }
 
-    StatusOr<ExecutionPlan*> validate(const std::string& query) {
-        auto result = GQLParser().parse(query);
-        if (!result.ok()) return std::move(result).status();
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        NG_RETURN_IF_ERROR(validator.validate());
-        return qCtx_->plan();
-    }
-
-
     std::unique_ptr<QueryContext> buildContext() {
         auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
         rctx->setSession(session_);
