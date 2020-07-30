@@ -43,8 +43,8 @@ namespace graph {
         case PlanNode::Kind::kStart:
         case PlanNode::Kind::kDedup:
             return Status::OK();
+        case PlanNode::Kind::kIndexScan:
         case PlanNode::Kind::kGetNeighbors:
-        case PlanNode::Kind::kReadIndex:
         case PlanNode::Kind::kFilter:
         case PlanNode::Kind::kSort:
         case PlanNode::Kind::kLimit:

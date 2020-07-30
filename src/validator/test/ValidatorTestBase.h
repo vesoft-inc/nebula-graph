@@ -11,13 +11,15 @@
 
 #include <gtest/gtest.h>
 
-#include "planner/Query.h"
-#include "parser/GQLParser.h"
-#include "validator/ASTValidator.h"
+#include "common/base/Base.h"
 #include "context/QueryContext.h"
-#include "planner/ExecutionPlan.h"
 #include "context/ValidateContext.h"
+#include "parser/GQLParser.h"
+#include "planner/ExecutionPlan.h"
+#include "planner/Logic.h"
 #include "planner/PlanNode.h"
+#include "planner/Query.h"
+#include "validator/ASTValidator.h"
 #include "validator/test/MockSchemaManager.h"
 
 namespace nebula {
@@ -154,7 +156,7 @@ protected:
                 case PlanNode::Kind::kGetNeighbors:
                 case PlanNode::Kind::kGetVertices:
                 case PlanNode::Kind::kGetEdges:
-                case PlanNode::Kind::kReadIndex:
+                case PlanNode::Kind::kIndexScan:
                 case PlanNode::Kind::kFilter:
                 case PlanNode::Kind::kProject:
                 case PlanNode::Kind::kSort:
@@ -232,4 +234,4 @@ std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& pl
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // _VALIDATOR_TEST_VALIDATOR_TEST_BASE_H_
+#endif   // VALIDATOR_TEST_VALIDATORTESTBASE_H_
