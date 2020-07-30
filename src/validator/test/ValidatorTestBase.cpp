@@ -43,6 +43,8 @@ namespace graph {
         case PlanNode::Kind::kStart:
         case PlanNode::Kind::kDedup:
             return Status::OK();
+        case PlanNode::Kind::kDeleteEdges:
+        case PlanNode::Kind::kDeleteVertices:
         case PlanNode::Kind::kIndexScan:
         case PlanNode::Kind::kGetNeighbors:
         case PlanNode::Kind::kFilter:
