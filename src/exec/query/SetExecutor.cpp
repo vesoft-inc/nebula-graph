@@ -24,7 +24,7 @@ Status SetExecutor::checkInputDataSets() {
     if (UNLIKELY(lIter->kind() == Iterator::Kind::kGetNeighbors ||
                  rIter->kind() == Iterator::Kind::kGetNeighbors)) {
         std::stringstream ss;
-        ss << "Invalid iterator kind:" << lIter->kind() << " vs. " << rIter->kind();
+        ss << "Invalid iterator kind: " << lIter->kind() << " vs. " << rIter->kind();
         return Status::Error(ss.str());
     }
 

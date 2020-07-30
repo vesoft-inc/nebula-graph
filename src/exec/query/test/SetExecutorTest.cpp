@@ -195,7 +195,7 @@ TEST_F(SetExecutorTest, TestGetNeighobrsIterator) {
 
     EXPECT_FALSE(status.ok());
 
-    auto expected = "Invalid iterator kind, 1 vs. 2";
+    auto expected = "Invalid iterator kind: get neighbors iterator vs. sequential iterator";
     EXPECT_EQ(status.toString(), expected);
 }
 
@@ -221,7 +221,7 @@ TEST_F(SetExecutorTest, TestUnionDifferentColumns) {
 
     EXPECT_FALSE(status.ok());
 
-    auto expected = "Data sets have different columns: <col1> vs. <col1,col2>";
+    auto expected = "Datasets have different columns: <col1> vs. <col1,col2>";
     EXPECT_EQ(status.toString(), expected);
 }
 
