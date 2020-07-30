@@ -25,12 +25,12 @@ T_NULL_NaN = CommonTtypes.Value()
 T_NULL_NaN.set_nVal(CommonTtypes.NullType.NaN)
 T_NULL_BAD_DATA = CommonTtypes.Value()
 T_NULL_BAD_DATA.set_nVal(CommonTtypes.NullType.BAD_DATA)
-# T_NULL_BAD_TYPE = CommonTtypes.Value()
-# T_NULL_BAD_TYPE.set_nVal(CommonTtypes.NullType.BAD_TYPE)
-# T_NULL_UNKNOWN_PROP = CommonTtypes.Value()
-# T_NULL_BAD_TYPE.set_nVal(CommonTtypes.NullType.UNKNOWN_PROP)
-# T_NULL_UNKNOWN_DIV_BY_ZERO = CommonTtypes.Value()
-# T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.UNKNOWN_DIV_BY_ZERO)
+T_NULL_BAD_TYPE = CommonTtypes.Value()
+T_NULL_BAD_TYPE.set_nVal(CommonTtypes.NullType.BAD_TYPE)
+T_NULL_UNKNOWN_PROP = CommonTtypes.Value()
+T_NULL_BAD_TYPE.set_nVal(CommonTtypes.NullType.UNKNOWN_PROP)
+T_NULL_UNKNOWN_DIV_BY_ZERO = CommonTtypes.Value()
+T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.UNKNOWN_DIV_BY_ZERO)
 
 class NebulaTestSuite(object):
     @classmethod
