@@ -96,7 +96,7 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 }
 
 Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
-    auto result = handleCompleteness(resps);
+    auto result = handleCompleteness(resps, false);
     NG_RETURN_IF_ERROR(result);
     auto state = std::move(result).value();
 

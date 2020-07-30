@@ -18,7 +18,7 @@ protected:
         : StorageExecutor(name, node, qctx) {}
 
     Status handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp) {
-        auto result = handleCompleteness(rpcResp);
+        auto result = handleCompleteness(rpcResp, false);
         NG_RETURN_IF_ERROR(result);
         auto state = std::move(result).value();
         // Ok, merge DataSets to one

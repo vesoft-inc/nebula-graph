@@ -37,7 +37,7 @@ folly::Future<Status> InsertEdgesExecutor::insertEdges() {
         })
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
             SCOPED_TIMER(&execTime_);
-            auto result = handleCompleteness(resp);
+            auto result = handleCompleteness(resp, true);
             NG_RETURN_IF_ERROR(result);
             auto state = std::move(result).value();
             return finish(ResultBuilder()
