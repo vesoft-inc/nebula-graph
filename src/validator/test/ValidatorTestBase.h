@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef _VALIDATOR_TEST_VALIDATOR_TEST_BASE_H_
-#define _VALIDATOR_TEST_VALIDATOR_TEST_BASE_H_
+#ifndef VALIDATOR_TEST_VALIDATORTESTBASE_H_
+#define VALIDATOR_TEST_VALIDATORTESTBASE_H_
 
 #include "common/base/Base.h"
 
