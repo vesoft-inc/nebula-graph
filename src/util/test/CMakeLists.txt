@@ -4,6 +4,7 @@ nebula_add_test(
         ExpressionUtilsTest.cpp
         IdGeneratorTest.cpp
         ObjectPoolTest.cpp
+        ScopedTimerTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:common_base_obj>
         $<TARGET_OBJECTS:common_concurrent_obj>

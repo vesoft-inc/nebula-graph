@@ -82,9 +82,12 @@ function run_test() {
     ./ntr \
         $PROJ_DIR/tests/admin/* \
         $PROJ_DIR/tests/maintain/* \
+        $PROJ_DIR/tests/mutate/* \
         $PROJ_DIR/tests/query/stateless/test_schema.py \
-        $PROJ_DIR/tests/query/v1/* \
-        $PROJ_DIR/tests/mutate/*
+        $PROJ_DIR/tests/query/stateless/test_if_exists.py \
+        $PROJ_DIR/tests/query/stateless/test_range.py \
+        $PROJ_DIR/tests/query/stateless/test_go.py \
+        $PROJ_DIR/tests/query/v1/*
 }
 
 case "$1" in

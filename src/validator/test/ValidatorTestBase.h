@@ -222,7 +222,7 @@ protected:
     std::shared_ptr<Session>              session_;
     std::unique_ptr<MockSchemaManager>    schemaMng_;
     std::unique_ptr<QueryContext>         qCtx_;
-    std::unique_ptr<SequentialSentences>  sentences_;
+    std::unique_ptr<Sentence>             sentences_;
     // used to hold the expected query plan
     std::unique_ptr<QueryContext>         expectedQueryCtx_;
 };
