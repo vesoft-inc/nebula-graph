@@ -5,7 +5,10 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-from query.stateless.prepare_data import PrepareData
+import pytest
+
+from nebula2.graph import ttypes
+from nebula_test_common.nebula_test_suite import NebulaTestSuite
 
 class TestFetchEdges(NebulaTestSuite):
     @classmethod
