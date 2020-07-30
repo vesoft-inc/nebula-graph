@@ -4,7 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#pragma once
+#ifndef _VALIDATOR_FETCH_VERTICES_VALIDATOR_H_
+#define _VALIDATOR_FETCH_VERTICES_VALIDATOR_H_
 
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
@@ -57,3 +58,5 @@ private:
 
 }   // namespace graph
 }   // namespace nebula
+
+#endif  // _VALIDATOR_FETCH_VERTICES_VALIDATOR_H_

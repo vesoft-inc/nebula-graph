@@ -4,7 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#pragma once
+#ifndef _VALIDATOR_TEST_VALIDATOR_TEST_BASE_H_
+#define _VALIDATOR_TEST_VALIDATOR_TEST_BASE_H_
 
 #include "common/base/Base.h"
 
@@ -230,3 +231,5 @@ std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& pl
 
 }   // namespace graph
 }   // namespace nebula
+
+#endif  // _VALIDATOR_TEST_VALIDATOR_TEST_BASE_H_

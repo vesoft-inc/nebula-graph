@@ -4,7 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#pragma once
+#ifndef _UTIL_EXPRESSION_UTILS_H_
+#define _UTIL_EXPRESSION_UTILS_H_
 
 #include "common/expression/BinaryExpression.h"
 #include "common/expression/Expression.h"
@@ -332,3 +333,5 @@ private:
 
 }   // namespace graph
 }   // namespace nebula
+
+#endif  // _UTIL_EXPRESSION_UTILS_H_
