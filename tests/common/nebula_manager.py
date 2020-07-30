@@ -24,7 +24,7 @@ class NebulaManager(object):
             random.randrange(1000000, 100000000))
         self.pids = {}
 
-    def set_test_dir(self, work_dir):
+    def set_work_dir(self, work_dir):
         self.work_dir = work_dir
 
     def _copy_nebula_conf(self):
