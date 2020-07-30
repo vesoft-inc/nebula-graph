@@ -26,7 +26,16 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
     auto vidRef = dvNode->getVidRef();
     std::vector<VertexID> vertices;
     if (vidRef != nullptr) {
-        auto& inputVar = dvNode->inputVar();
+        auto inputVar = dvNode->inputVar();
+        // empty inputVar means using pipe and need to get the GetNeighbors's inputVar
+        if (inputVar.empty()) {
+            DCHECK(dvNode->dep() != nullptr);
+            auto* gn = static_cast<const SingleInputNode*>(dvNode->dep())->dep();
+            DCHECK(gn != nullptr);
+            inputVar = static_cast<const SingleInputNode*>(gn)->inputVar();
+        }
+        DCHECK(!inputVar.empty());
+        VLOG(2) << "inputVar: " << inputVar;
         auto& inputResult = ectx_->getResult(inputVar);
         auto iter = inputResult.iter();
         vertices.reserve(iter->size());
@@ -38,8 +47,9 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
                 continue;
             }
             if (!val.isStr()) {
-                LOG(ERROR) << "Wrong input vid type: " << val << ", value: " << val.toString();
-                return Status::Error("Wrong input vid type");
+                std::stringstream ss;
+                ss << "Wrong vid type `" << val.type() << "', value `" << val.toString() << "'";
+                return Status::Error(ss.str());
             }
             vertices.emplace_back(val.moveStr());
         }
@@ -84,28 +94,32 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
                     continue;
                 }
                 if (!srcId.isStr()) {
-                    LOG(ERROR) << "Wrong input srcId type: " << srcId
-                               << ", value: " << srcId.toString();
-                    return Status::Error("Wrong input srcId type");
+                    std::stringstream ss;
+                    ss << "Wrong srcId type `" << srcId.type()
+                       << "`, value `" << srcId.toString() << "'";
+                    return Status::Error(ss.str());
                 }
                 auto dstId = Expression::eval(edgeKeyRef->dstid(), ctx);
                 if (!dstId.isStr()) {
-                    LOG(ERROR) << "Wrong input dstId type: " << dstId
-                               << ", value: " << dstId.toString();
-                    return Status::Error("Wrong input dstId type");
+                    std::stringstream ss;
+                    ss << "Wrong dstId type `" << dstId.type()
+                       << "', value `" << dstId.toString() << "'";
+                    return Status::Error(ss.str());
                 }
                 auto rank = Expression::eval(edgeKeyRef->rank(), ctx);
                 if (!rank.isInt()) {
-                    LOG(ERROR) << "Wrong input rank type: " << rank
-                               << ", value: " << rank.toString();
-                    return Status::Error("Wrong input rank type");
+                    std::stringstream ss;
+                    ss << "Wrong rank type `" << rank.type()
+                       << "', value `" << rank.toString() << "'";
+                    return Status::Error(ss.str());
                 }
                 DCHECK(edgeKeyRef->type());
                 auto type = Expression::eval(edgeKeyRef->type(), ctx);
                 if (!type.isInt()) {
-                    LOG(ERROR) << "Wrong input edge type: " << type
-                               << ", value: " << type.toString();
-                    return Status::Error("Wrong input edge type");
+                    std::stringstream ss;
+                    ss << "Wrong edge type `" << type.type()
+                       << "', value `" << type.toString() << "'";
+                    return Status::Error(ss.str());
                 }
 
                 // out edge

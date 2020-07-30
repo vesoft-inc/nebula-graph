@@ -312,6 +312,8 @@ Status DeleteVerticesValidator::toPlan() {
     std::string vidVar;
     if (!vertices_.empty() && vidRef_ == nullptr) {
         vidVar = buildVIds();
+    } else if (vidRef_ != nullptr && vidRef_->kind() == Expression::Kind::kVarProperty) {
+        vidVar = *static_cast<SymbolPropertyExpression*>(vidRef_)->sym();
     }
 
     std::vector<storage::cpp2::EdgeProp> edgeProps;
@@ -439,39 +441,34 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
 Status DeleteEdgesValidator::checkInput() {
     CHECK(!edgeKeyRefs_.empty());
     auto &edgeKeyRef = *edgeKeyRefs_.begin();
-    auto type = deduceExprType(edgeKeyRef->srcid());
-    if (!type.ok()) {
-        return type.status();
-    }
-    if (type.value() != Value::Type::STRING) {
-        std::stringstream ss;
-        ss << "The srcVid should be string type or int type, "
-           << "but input is `" << type.value() << "'";
-        return Status::Error(ss.str());
+    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->srcid()));
+    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->dstid()));
+    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->rank()));
+
+    if (!srcTagProps_.empty() || !dstTagProps_.empty() || !edgeProps_.empty()) {
+        return Status::SyntaxError("Only support input and variable.");
     }
 
-    type = deduceExprType(edgeKeyRef->dstid());
-    if (!type.ok()) {
-        return type.status();
-    }
-    if (type.value() != Value::Type::STRING) {
-        std::stringstream ss;
-        ss << "The dstVid should be string type or int type, "
-           << "but input is `" << type.value() << "'";
-        return Status::Error(ss.str());
+    if (!inputProps_.empty() && !varProps_.empty()) {
+        return Status::Error("Not support both input and variable.");
     }
 
-    type = deduceExprType(edgeKeyRef->rank());
-    if (!type.ok()) {
-        return type.status();
-    }
-    if (type.value() != Value::Type::INT) {
-        std::stringstream ss;
-        ss << "The rank should be int type, "
-           << "but input is `" << type.value() << "'";
-        return Status::Error(ss.str());
+    if (!varProps_.empty() && varProps_.size() > 1) {
+        return Status::Error("Only one variable allowed to use.");
     }
 
+    auto status = deduceExprType(edgeKeyRef->srcid());
+    NG_RETURN_IF_ERROR(status);
+
+    status = deduceExprType(edgeKeyRef->dstid());
+    NG_RETURN_IF_ERROR(status);
+
+    status = deduceExprType(edgeKeyRef->rank());
+    NG_RETURN_IF_ERROR(status);
+
+    if (edgeKeyRef->srcid()->kind() == Expression::Kind::kVarProperty) {
+        edgeKeyVar_ = *static_cast<SymbolPropertyExpression*>(edgeKeyRef->srcid())->sym();
+    }
     return Status::OK();
 }
 

@@ -33,12 +33,26 @@ TEST_F(MutateValidatorTest, DeleteVertexTest) {
     // succeed
     {
         auto cmd = "DELETE VERTEX \"A\"";
-        ASSERT_TRUE(checkResult(cmd, {}));
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDeleteVertices,
+            PK::kDeleteEdges,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(checkResult(cmd, expected));
     }
     // pipe
     {
         auto cmd = "GO FROM \"C\" OVER like YIELD like._dst as dst | DELETE VERTEX $-.dst";
-        ASSERT_TRUE(checkResult(cmd, {}));
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDeleteVertices,
+            PK::kDeleteEdges,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(checkResult(cmd, expected));
     }
     // pipe wrong input
     {
@@ -51,7 +65,11 @@ TEST_F(MutateValidatorTest, DeleteEdgeTest) {
     // succeed
     {
         auto cmd = "DELETE EDGE like \"A\"->\"B\"";
-        ASSERT_TRUE(checkResult(cmd, {}));
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDeleteEdges,
+            PK::kStart,
+        };
+        ASSERT_TRUE(checkResult(cmd, expected));
     }
     // not existed edge name
     {
@@ -63,7 +81,26 @@ TEST_F(MutateValidatorTest, DeleteEdgeTest) {
         auto cmd = "GO FROM \"C\" OVER like "
                    "YIELD like._src as src, like._dst as dst, like._rank as rank "
                    "| DELETE EDGE like $-.src -> $-.dst @ $-.rank";
-        ASSERT_TRUE(checkResult(cmd, {}));
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDeleteEdges,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(checkResult(cmd, expected));
+    }
+    // var
+    {
+        auto cmd = "$var = GO FROM \"C\" OVER like "
+                   "YIELD like._src as src, like._dst as dst, like._rank as rank "
+                   "; DELETE EDGE like $var.src -> $var.dst @ $var.rank";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDeleteEdges,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        ASSERT_TRUE(checkResult(cmd, expected));
     }
     // pipe wrong input
     {
