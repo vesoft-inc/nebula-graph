@@ -11,7 +11,6 @@
 
 #include "planner/Query.h"
 #include "parser/TraverseSentences.h"
-#include "interface/gen-cpp2/storage_types.h"
 
 /**
  * All mutate-related nodes would put in this file.

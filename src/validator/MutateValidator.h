@@ -65,12 +65,52 @@ private:
     std::vector<storage::cpp2::NewEdge>               edges_;
 };
 
-<<<<<<< HEAD
 class DeleteVerticesValidator final : public Validator {
 public:
     DeleteVerticesValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
-=======
+    }
+
+private:
+    Status validateImpl() override;
+
+    std::string buildVIds();
+
+    Status toPlan() override;
+
+private:
+    GraphSpaceID                                  spaceId_{-1};
+    // From ConstantExpression
+    std::vector<VertexID>                         vertices_;
+    // From InputPropertyExpression or InputPropertyExpression
+    Expression*                                   vidRef_{nullptr};
+    std::vector<EdgeType>                         edgeTypes_;
+    std::vector<std::string>                      edgeNames_;
+    std::vector<EdgeKeyRef*>                      edgeKeyRefs_;
+};
+
+class DeleteEdgesValidator final : public Validator {
+public:
+    DeleteEdgesValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+    Status checkInput();
+
+    Status buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
+                           const EdgeType edgeType);
+
+private:
+    // From InputPropertyExpression, ConstantExpression will covert to  InputPropertyExpression
+    std::vector<EdgeKeyRef*>                       edgeKeyRefs_;
+    std::string                                    edgeKeyVar_;
+};
+
 class UpdateBaseValidator : public Validator {
 public:
     explicit UpdateBaseValidator(Sentence* sentence,
@@ -117,39 +157,12 @@ protected:
 class UpdateVertexValidator final : public UpdateBaseValidator {
 public:
     UpdateVertexValidator(Sentence* sentence, QueryContext* context)
-<<<<<<< HEAD
-            : UpdateBaseValidator(sentence, context) {
-        sentence_ = static_cast<UpdateVertexSentence*>(sentence);
->>>>>>> add update executor and test
-=======
         : UpdateBaseValidator(sentence, context) {
->>>>>>> update
     }
 
 private:
     Status validateImpl() override;
 
-<<<<<<< HEAD
-    std::string buildVIds();
-
-    Status toPlan() override;
-
-private:
-    GraphSpaceID                                  spaceId_{-1};
-    // From ConstantExpression
-    std::vector<VertexID>                         vertices_;
-    // From InputPropertyExpression or InputPropertyExpression
-    Expression*                                   vidRef_{nullptr};
-    std::vector<EdgeType>                         edgeTypes_;
-    std::vector<std::string>                      edgeNames_;
-    std::vector<EdgeKeyRef*>                      edgeKeyRefs_;
-};
-
-class DeleteEdgesValidator final : public Validator {
-public:
-    DeleteEdgesValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
-=======
     Status toPlan() override;
 
 private:
@@ -160,17 +173,7 @@ private:
 class UpdateEdgeValidator final : public UpdateBaseValidator {
 public:
     UpdateEdgeValidator(Sentence* sentence, QueryContext* context)
-<<<<<<< HEAD
-<<<<<<< HEAD
-            : UpdateBaseValidator(sentence, context) {
-        sentence_ = static_cast<UpdateEdgeSentence*>(sentence);
->>>>>>> add update executor and test
-=======
-        : UpdateBaseValidator(sentence, context) {
->>>>>>> update
-=======
         : UpdateBaseValidator(sentence, context, true) {
->>>>>>> Compatible with 1.0 syntax
     }
 
 private:
@@ -178,46 +181,13 @@ private:
 
     Status toPlan() override;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    Status checkInput();
-
-    Status buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
-                           const EdgeType edgeType);
-
 private:
-    // From InputPropertyExpression, ConstantExpression will covert to  InputPropertyExpression
-    std::vector<EdgeKeyRef*>                       edgeKeyRefs_;
-    std::string                                    edgeKeyVar_;
-=======
-    Status getUpdateProps();
-
-=======
->>>>>>> update expression
-private:
-<<<<<<< HEAD
-    Expression*                                       srcId_{nullptr};
-    Expression*                                       dstId_{nullptr};
-    int64_t                                           rank_{0};
-<<<<<<< HEAD
-    EdgeType                                          edgeType_{-1};
-<<<<<<< HEAD
-    std::vector<storage::cpp2::UpdatedEdgeProp>       updatedProps_;
->>>>>>> add update executor and test
-=======
->>>>>>> update expression
-=======
->>>>>>> update
-=======
     std::string                                       srcId_;
     std::string                                       dstId_;
     EdgeRanking                                       rank_{0};
-<<<<<<< HEAD
->>>>>>> rebase upstream
-=======
     EdgeType                                          edgeType_{-1};
->>>>>>> add test
 };
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_MUTATEVALIDATOR_H
+
