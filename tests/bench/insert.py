@@ -1,7 +1,7 @@
 import time
 import pytest
 
-from nebula_test_common.nebula_test_suite import NebulaTestSuite
+from common.nebula_test_suite import NebulaTestSuite
 from bench.data_generate import generate_insert_student_vertex, generate_insert_likeness_edge
 
 

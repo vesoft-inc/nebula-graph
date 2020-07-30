@@ -7,7 +7,7 @@
 
 import time
 
-from nebula_test_common.nebula_test_suite import NebulaTestSuite
+from common.nebula_test_suite import NebulaTestSuite
 
 
 class TestAdmin(NebulaTestSuite):

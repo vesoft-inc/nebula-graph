@@ -9,7 +9,7 @@ import time
 
 from graph import ttypes
 
-from nebula_test_common.nebula_test_suite import NebulaTestSuite
+from common.nebula_test_suite import NebulaTestSuite
 
 class TestSimpleQuery(NebulaTestSuite):
     @classmethod
