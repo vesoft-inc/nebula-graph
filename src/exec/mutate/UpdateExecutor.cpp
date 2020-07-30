@@ -8,6 +8,7 @@
 #include "planner/Mutate.h"
 #include "util/SchemaUtil.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 
 namespace nebula {
@@ -47,19 +48,27 @@ Status UpdateBaseExecutor::handleErrorCode(nebula::storage::cpp2::ErrorCode code
             return Status::Error(
                     "Invalid field value: may be the filed without default value or wrong schema");
         case storage::cpp2::ErrorCode::E_INVALID_FILTER:
-            return Status::Error("Invalid filter");
+            return Status::Error("Invalid filter.");
         case storage::cpp2::ErrorCode::E_INVALID_UPDATER:
-            return Status::Error("Invalid Update col or yield col");
+            return Status::Error("Invalid Update col or yield col.");
         case storage::cpp2::ErrorCode::E_TAG_NOT_FOUND:
             return Status::Error("Tag `%s' not found.", schemaName_.c_str());
         case storage::cpp2::ErrorCode::E_TAG_PROP_NOT_FOUND:
-            return Status::Error("Tag prop not found");
+            return Status::Error("Tag prop not found.");
         case storage::cpp2::ErrorCode::E_EDGE_NOT_FOUND:
-            return Status::Error("Edge `%s' not found", schemaName_.c_str());
+            return Status::Error("Edge `%s' not found.", schemaName_.c_str());
         case storage::cpp2::ErrorCode::E_EDGE_PROP_NOT_FOUND:
-            return Status::Error("Edge prop not found");
+            return Status::Error("Edge prop not found.");
         case storage::cpp2::ErrorCode::E_INVALID_DATA:
-            return Status::Error("Invalid data, may be wrong value type");
+            return Status::Error("Invalid data, may be wrong value type.");
+        case storage::cpp2::ErrorCode::E_NOT_NULLABLE:
+            return Status::Error("The not null field cannot be null.");
+        case storage::cpp2::ErrorCode::E_FIELD_UNSET:
+            return Status::Error("The not null field doesn't have a default value.");
+        case storage::cpp2::ErrorCode::E_OUT_OF_RANGE:
+            return Status::Error("Out of range value.");
+        case storage::cpp2::ErrorCode::E_ATOMIC_OP_FAILED:
+            return Status::Error("Atomic operation failed.");
         case storage::cpp2::ErrorCode::E_FILTER_OUT:
             return Status::OK();
         default:
@@ -72,14 +81,11 @@ Status UpdateBaseExecutor::handleErrorCode(nebula::storage::cpp2::ErrorCode code
 }
 
 folly::Future<Status> UpdateVertexExecutor::execute() {
-    return updateVertex().ensure([this]() { UNUSED(this); });
-}
-
-folly::Future<Status> UpdateVertexExecutor::updateVertex() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
     auto *uvNode = asNode<UpdateVertex>(node());
     yieldNames_ = uvNode->getYieldNames();
     schemaName_ = uvNode->getName();
+    time::Duration updateVertTime;
     return qctx()->getStorageClient()->updateVertex(uvNode->getSpaceId(),
                                                     uvNode->getVId(),
                                                     uvNode->getTagId(),
@@ -88,7 +94,11 @@ folly::Future<Status> UpdateVertexExecutor::updateVertex() {
                                                     uvNode->getReturnProps(),
                                                     uvNode->getCondition())
         .via(runner())
+        .ensure([updateVertTime]() {
+            VLOG(1) << "Update vertice time: " << updateVertTime.elapsedInUSec() << "us";
+        })
         .then([this](StatusOr<storage::cpp2::UpdateResponse> resp) {
+            SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();
                 return resp.status();
@@ -112,11 +122,7 @@ folly::Future<Status> UpdateVertexExecutor::updateVertex() {
 }
 
 folly::Future<Status> UpdateEdgeExecutor::execute() {
-    return updateEdge().ensure([this]() { UNUSED(this); });
-}
-
-folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
     auto *ueNode = asNode<UpdateEdge>(node());
     schemaName_ = ueNode->getName();
     storage::cpp2::EdgeKey edgeKey;
@@ -126,6 +132,7 @@ folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
     edgeKey.set_dst(ueNode->getDstId());
     yieldNames_ = ueNode->getYieldNames();
 
+    time::Duration updateEdgeTime;
     return qctx()->getStorageClient()->updateEdge(ueNode->getSpaceId(),
                                                   edgeKey,
                                                   ueNode->getUpdatedProps(),
@@ -133,7 +140,11 @@ folly::Future<Status> UpdateEdgeExecutor::updateEdge() {
                                                   ueNode->getReturnProps(),
                                                   ueNode->getCondition())
             .via(runner())
+            .ensure([updateEdgeTime]() {
+                VLOG(1) << "Update edge time: " << updateEdgeTime.elapsedInUSec() << "us";
+            })
             .then([this](StatusOr<storage::cpp2::UpdateResponse> resp) {
+                SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     LOG(ERROR) << "Update edge failed: " << resp.status();
                     return resp.status();

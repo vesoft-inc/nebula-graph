@@ -88,11 +88,11 @@ Status InsertVerticesValidator::prepareVertices() {
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propSize_ != row->values().size()) {
-            return Status::Error("Wrong number of value");
+            return Status::Error("Column count doesn't match value count.");
         }
-        if (row->id() == nullptr || row->id()->kind() != Expression::Kind::kConstant) {
-            LOG(ERROR) << "Wrong vid type";
-            return Status::Error("Wrong vid type");
+        if (!evaluableExpr(row->id())) {
+            LOG(ERROR) << "Wrong vid expression `" << row->id()->toString() << "\"";
+            return Status::Error("Wrong vid expression `%s'", row->id()->toString().c_str());
         }
         auto idStatus = SchemaUtil::toVertexID(row->id());
         if (!idStatus.ok()) {
@@ -207,18 +207,16 @@ Status InsertEdgesValidator::prepareEdges() {;
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propNames_.size() != row->values().size()) {
-            return Status::Error("Wrong number of value");
+            return Status::Error("Column count doesn't match value count.");
         }
-        if (row->srcid() == nullptr ||
-                row->srcid()->kind() != Expression::Kind::kConstant) {
-            LOG(ERROR) << "Wrong src vid type";
-            return Status::Error("Wrong src vid type");
+        if (!evaluableExpr(row->srcid())) {
+            LOG(ERROR) << "Wrong src vid expression `" << row->srcid()->toString() << "\"";
+            return Status::Error("Wrong src vid expression `%s'", row->srcid()->toString().c_str());
         }
 
-        if (row->dstid() == nullptr ||
-                row->dstid()->kind() != Expression::Kind::kConstant) {
-            LOG(ERROR) << "Wrong dst vid type";
-            return Status::Error("Wrong dst vid type");
+        if (!evaluableExpr(row->dstid())) {
+            LOG(ERROR) << "Wrong dst vid expression `" << row->dstid()->toString() << "\"";
+            return Status::Error("Wrong src vid expression `%s'", row->dstid()->toString().c_str());
         }
 
         auto idStatus = SchemaUtil::toVertexID(row->srcid());

@@ -38,9 +38,6 @@ public:
         : UpdateBaseExecutor("UpdateVertexExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
-
-private:
-    folly::Future<Status> updateVertex();
 };
 
 class UpdateEdgeExecutor final : public UpdateBaseExecutor {
@@ -49,9 +46,6 @@ public:
         : UpdateBaseExecutor("UpdateEdgeExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
-
-private:
-    folly::Future<Status> updateEdge();
 };
 
 }   // namespace graph
