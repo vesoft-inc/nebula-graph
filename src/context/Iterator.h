@@ -116,17 +116,15 @@ public:
     // The derived class should rewrite get prop if the Value is kind of dataset.
     virtual const Value& getColumn(const std::string& col) const = 0;
 
-    virtual const Value& getTagProp(const std::string& tag,
-                                    const std::string& prop) const {
-        UNUSED(tag);
-        UNUSED(prop);
+    virtual const Value& getTagProp(const std::string&,
+                                    const std::string&) const {
+        DLOG(FATAL) << "Shouldn't call the unimplemented method";
         return Value::kEmpty;
     }
 
-    virtual const Value& getEdgeProp(const std::string& edge,
-                                     const std::string& prop) const {
-        UNUSED(edge);
-        UNUSED(prop);
+    virtual const Value& getEdgeProp(const std::string&,
+                                     const std::string&) const {
+        DLOG(FATAL) << "Shouldn't call the unimplemented method";
         return Value::kEmpty;
     }
 
@@ -179,10 +177,12 @@ public:
     }
 
     const Value& getColumn(const std::string& /* col */) const override {
+        DLOG(FATAL) << "This method should not be invoked";
         return Value::kEmpty;
     }
 
     const LogicalRow* row() const override {
+        DLOG(FATAL) << "This method should not be invoked";
         return nullptr;
     }
 
@@ -325,14 +325,10 @@ private:
         std::unordered_map<std::string, PropIndex> edgePropsMap;
     };
 
-    class LogicalRowGN final : public LogicalRow {
+    class GetNbrLogicalRow final : public LogicalRow {
     public:
-        LogicalRowGN(size_t dsIdx, const Row* row, std::string edgeName,
-                        const List* edgeProps)
-            : dsIdx_(dsIdx),
-                row_(row),
-                edgeName_(std::move(edgeName)),
-                edgeProps_(edgeProps) {}
+        GetNbrLogicalRow(size_t dsIdx, const Row* row, std::string edgeName, const List* edgeProps)
+            : dsIdx_(dsIdx), row_(row), edgeName_(std::move(edgeName)), edgeProps_(edgeProps) {}
 
         const Value& operator[](size_t idx) const override {
             if (idx < row_->size()) {
@@ -373,17 +369,20 @@ private:
 
     FRIEND_TEST(IteratorTest, TestHead);
 
-    bool                                valid_{false};
-    std::vector<LogicalRowGN>           logicalRows_;
-    std::vector<LogicalRowGN>::iterator iter_;
-    std::vector<DataSetIndex>           dsIndices_;
+    using RowsType = std::vector<GetNbrLogicalRow>;
+    using RowsIter = typename RowsType::iterator;
+
+    bool                      valid_{false};
+    RowsType                  logicalRows_;
+    RowsIter                  iter_;
+    std::vector<DataSetIndex> dsIndices_;
 };
 
 class SequentialIter final : public Iterator {
 public:
-    class LogicalRowSeq final : public LogicalRow {
+    class SeqLogicalRow final : public LogicalRow {
     public:
-        explicit LogicalRowSeq(const Row* row) : row_(row) {}
+        explicit SeqLogicalRow(const Row* row) : row_(row) {}
 
         const Value& operator[](size_t idx) const override {
             if (idx < row_->size()) {
@@ -409,6 +408,9 @@ public:
         friend class SequentialIter;
         const Row* row_;
     };
+
+    using RowsType = std::vector<SeqLogicalRow>;
+    using RowsIter = typename RowsType::iterator;
 
     explicit SequentialIter(std::shared_ptr<Value> value)
         : Iterator(value, Kind::kSequential) {
@@ -478,11 +480,11 @@ public:
         reset();
     }
 
-    std::vector<LogicalRowSeq>::iterator begin() {
+    RowsIter begin() {
         return rows_.begin();
     }
 
-    std::vector<LogicalRowSeq>::iterator end() {
+    RowsIter end() {
         return rows_.end();
     }
 
@@ -506,6 +508,13 @@ public:
             DCHECK_LT(index->second, logicalRow.row_->values.size());
             return logicalRow.row_->values[index->second];
         }
+    }
+
+    // TODO: We should build new iter for get props, the seq iter will
+    // not meet the requirements of match any more.
+    const Value& getTagProp(const std::string& tag,
+                            const std::string& prop) const override {
+        return getColumn(tag+ "." + prop);
     }
 
     const Value& getEdgeProp(const std::string& edge,
@@ -534,21 +543,20 @@ private:
     }
 
 private:
-    std::vector<LogicalRowSeq>                   rows_;
-    std::vector<LogicalRowSeq>::iterator         iter_;
+    RowsType                                     rows_;
+    RowsIter                                     iter_;
     std::unordered_map<std::string, int64_t>     colIndices_;
 };
 
 class JoinIter final : public Iterator {
 public:
-    class LogicalRowJoin final : public LogicalRow {
+    class JoinLogicalRow final : public LogicalRow {
     public:
-        explicit LogicalRowJoin(
-            std::vector<const Row*> values, size_t size,
+        explicit JoinLogicalRow(
+            std::vector<const Row*> values,
+            size_t size,
             const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
-            : values_(std::move(values)),
-            size_(size),
-            colIdxIndices_(colIdxIndices) {}
+            : values_(std::move(values)), size_(size), colIdxIndices_(colIdxIndices) {}
 
         const Value& operator[](size_t idx) const override {
             if (idx < size_) {
@@ -556,11 +564,11 @@ public:
                 if (index == colIdxIndices_->end()) {
                     return Value::kNullValue;
                 } else {
-                    DCHECK_LT(index->second.first, values_.size());
-                    DCHECK_LT(index->second.second,
-                              values_[index->second.first]->values.size());
-                    return values_[index->second.first]
-                        ->values[index->second.second];
+                    auto keyIdx = index->second.first;
+                    auto valIdx = index->second.second;
+                    DCHECK_LT(keyIdx, values_.size());
+                    DCHECK_LT(valIdx, values_[keyIdx]->values.size());
+                    return values_[keyIdx]->values[valIdx];
                 }
             } else {
                 return Value::kEmpty;
@@ -586,11 +594,14 @@ public:
         const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
     };
 
+    using RowsType = std::vector<JoinLogicalRow>;
+    using RowsIter = typename RowsType::iterator;
+
     JoinIter() : Iterator(nullptr, Kind::kJoin) {}
 
     void joinIndex(const Iterator* lhs, const Iterator* rhs);
 
-    void addRow(LogicalRowJoin row) {
+    void addRow(JoinLogicalRow row) {
         rows_.emplace_back(std::move(row));
         iter_ = rows_.begin();
     }
@@ -632,11 +643,11 @@ public:
         reset();
     }
 
-    std::vector<LogicalRowJoin>::iterator begin() {
+    RowsIter begin() {
         return rows_.begin();
     }
 
-    std::vector<LogicalRowJoin>::iterator end() {
+    RowsIter end() {
         return rows_.end();
     }
 
@@ -688,8 +699,8 @@ private:
     size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx);
 
 private:
-    std::vector<LogicalRowJoin>                                    rows_;
-    std::vector<LogicalRowJoin>::iterator                          iter_;
+    RowsType                                                       rows_;
+    RowsIter                                                       iter_;
     // colName -> segIdx, currentSegColIdx
     std::unordered_map<std::string, std::pair<size_t, size_t>>     colIndices_;
     // colIdx -> segIdx, currentSegColIdx
@@ -699,9 +710,12 @@ private:
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind);
 std::ostream& operator<<(std::ostream& os, LogicalRow::Kind kind);
 std::ostream& operator<<(std::ostream& os, const LogicalRow& row);
+
 }  // namespace graph
 }  // namespace nebula
+
 namespace std {
+
 template <>
 struct equal_to<const nebula::Row*> {
     bool operator()(const nebula::Row* lhs, const nebula::Row* rhs) const {

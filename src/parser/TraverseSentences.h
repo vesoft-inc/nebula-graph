@@ -56,7 +56,15 @@ public:
         return whereClause_.get();
     }
 
+    WhereClause* whereClause() {
+        return whereClause_.get();
+    }
+
     const YieldClause* yieldClause() const {
+        return yieldClause_.get();
+    }
+
+    YieldClause* yieldClause() {
         return yieldClause_.get();
     }
 
@@ -351,97 +359,6 @@ private:
     std::unique_ptr<VertexIDList>   vidList_;
     std::unique_ptr<Expression>     vidRef_;
     std::unique_ptr<YieldClause>    yieldClause_;
-};
-
-class EdgeKey final {
-public:
-    EdgeKey(Expression *srcid, Expression *dstid, int64_t rank) {
-        srcid_.reset(srcid);
-        dstid_.reset(dstid);
-        rank_ = rank;
-    }
-
-    Expression* srcid() const {
-        return srcid_.get();
-    }
-
-    Expression* dstid() const {
-        return dstid_.get();
-    }
-
-    int64_t rank() {
-        return rank_;
-    }
-
-    std::string toString() const;
-
-private:
-    std::unique_ptr<Expression>     srcid_;
-    std::unique_ptr<Expression>     dstid_;
-    EdgeRanking                     rank_;
-};
-
-class EdgeKeys final {
-public:
-    EdgeKeys() = default;
-
-    void addEdgeKey(EdgeKey *key) {
-        keys_.emplace_back(key);
-    }
-
-    std::vector<EdgeKey*> keys() {
-        std::vector<EdgeKey*> result;
-        result.resize(keys_.size());
-        auto get = [](const auto&key) { return key.get(); };
-        std::transform(keys_.begin(), keys_.end(), result.begin(), get);
-        return result;
-    }
-
-    std::string toString() const;
-
-private:
-    std::vector<std::unique_ptr<EdgeKey>>   keys_;
-};
-
-class EdgeKeyRef final {
-public:
-    EdgeKeyRef(
-            Expression *srcid,
-            Expression *dstid,
-            Expression *rank,
-            bool isInputExpr = true) {
-        srcid_.reset(srcid);
-        dstid_.reset(dstid);
-        rank_.reset(rank);
-        isInputExpr_ = isInputExpr;
-    }
-
-    StatusOr<std::string> varname() const;
-
-    Expression* srcid() const {
-        return srcid_.get();
-    }
-
-    Expression* dstid() const {
-        return dstid_.get();
-    }
-
-    Expression* rank() const {
-        return rank_.get();
-    }
-
-    bool isInputExpr() const {
-        return isInputExpr_;
-    }
-
-    std::string toString() const;
-
-private:
-    std::unique_ptr<Expression>             srcid_;
-    std::unique_ptr<Expression>             dstid_;
-    std::unique_ptr<Expression>             rank_;
-    std::unordered_set<std::string>         uniqVar_;
-    bool                                    isInputExpr_;
 };
 
 class FetchEdgesSentence final : public Sentence {

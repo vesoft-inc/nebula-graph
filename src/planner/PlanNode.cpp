@@ -11,7 +11,7 @@ namespace nebula {
 namespace graph {
 
 PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
-    DCHECK_NOTNULL(plan_);
+    DCHECK(plan_ != nullptr);
     plan_->addPlanNode(this);
 }
 
@@ -28,8 +28,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "GetVertices";
         case Kind::kGetEdges:
             return "GetEdges";
-        case Kind::kReadIndex:
-            return "ReadIndex";
+        case Kind::kIndexScan:
+            return "IndexScan";
         case Kind::kFilter:
             return "Filter";
         case Kind::kUnion:
@@ -104,6 +104,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowSnapshots";
         case Kind::kDataJoin:
             return "DataJoin";
+        case Kind::kDeleteVertices:
+            return "DeleteVertices";
+        case Kind::kDeleteEdges:
+            return "DeleteEdges";
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }

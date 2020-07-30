@@ -194,7 +194,7 @@ def installNebula():
     return test_dir
 
 def formatNebulaCommand(name, meta_port, ports):
-    param_format = "--meta_server_addrs={} --port={} --ws_http_port={} --ws_h2_port={}"
+    param_format = "--meta_server_addrs={} --port={} --ws_http_port={} --ws_h2_port={} -v=4"
     param = param_format.format("127.0.0.1:" + str(meta_port), ports[0], ports[1], ports[2])
     command=NEBULA_START_COMMAND_FORMAT.format(name, name, param)
     return command
@@ -247,9 +247,9 @@ if __name__ == "__main__":
     if '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
         executor.run_tests(sys.argv[1:])
         sys.exit(0)
-
-    test_dir = installNebula()
-    port,pids = startNebula(test_dir)
+    stop_nebula = True
+    pids = []
+    test_dir = ''
     try:
         os.chdir(TEST_DIR)
         # Create the test result directory if it doesn't already exist.
@@ -266,12 +266,15 @@ if __name__ == "__main__":
         args.extend(list(commandline_args))
 
         if '--address' not in args:
+            test_dir = installNebula()
+            port,pids = startNebula(test_dir)
             args.extend(['--address', '127.0.0.1:'+str(port)])
+        else:
+            stop_nebula = False
         print("Running TestExecutor with args: {} ".format(args))
-
         executor.run_tests(args)
     finally:
-        if pytest.cmdline.stop_nebula.lower() == 'true':
+        if stop_nebula and pytest.cmdline.stop_nebula.lower() == 'true':
             stopNebula(pids, test_dir)
 
     if executor.total_executed == 0:
