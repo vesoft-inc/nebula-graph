@@ -37,18 +37,14 @@ folly::Future<Status> InsertEdgesExecutor::insertEdges() {
         })
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
             SCOPED_TIMER(&execTime_);
-            auto completeness = resp.completeness();
-            if (completeness != 100) {
-                const auto& failedCodes = resp.failedParts();
-                for (auto it = failedCodes.begin(); it != failedCodes.end(); it++) {
-                    LOG(ERROR) << "Insert edges failed, error "
-                               << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second)
-                               << ", part " << it->first;
-                }
-                return Status::Error("Insert edges not complete, completeness: %d",
-                                      completeness);
-            }
-            return finish(ResultBuilder().value(Value()).iter(Iterator::Kind::kDefault).finish());
+            auto result = handleCompleteness(resp);
+            NG_RETURN_IF_ERROR(result);
+            auto state = std::move(result).value();
+            return finish(ResultBuilder()
+                .value(Value())
+                .iter(Iterator::Kind::kDefault)
+                .state(state)
+                .finish());
         });
 }
 

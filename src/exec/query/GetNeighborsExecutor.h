@@ -15,15 +15,15 @@
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/clients/storage/GraphStorageClient.h"
 
-#include "exec/Executor.h"
+#include "exec/StorageExecutor.h"
 #include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
-class GetNeighborsExecutor final : public Executor {
+class GetNeighborsExecutor final : public StorageExecutor {
 public:
     GetNeighborsExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("GetNeighborsExecutor", node, qctx) {
+        : StorageExecutor("GetNeighborsExecutor", node, qctx) {
         gn_ = asNode<GetNeighbors>(node);
     }
 
@@ -37,8 +37,6 @@ private:
 
     using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
     Status handleResponse(RpcResponse& resps);
-
-    void checkResponseResult(const storage::cpp2::ResponseCommon &resp) const;
 
 private:
     DataSet               reqDs_;

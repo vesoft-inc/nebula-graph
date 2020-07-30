@@ -7,15 +7,15 @@
 #ifndef EXEC_MUTATE_INSERTEDGEEXECUTOR_H_
 #define EXEC_MUTATE_INSERTEDGEEXECUTOR_H_
 
-#include "exec/Executor.h"
+#include "exec/StorageExecutor.h"
 
 namespace nebula {
 namespace graph {
 
-class InsertEdgesExecutor final : public Executor {
+class InsertEdgesExecutor final : public StorageExecutor {
 public:
     InsertEdgesExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("InsertEdgesExecutor", node, qctx) {}
+        : StorageExecutor("InsertEdgesExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 

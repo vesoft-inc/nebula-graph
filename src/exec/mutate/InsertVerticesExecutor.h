@@ -7,15 +7,15 @@
 #ifndef EXEC_MUTATE_INSERTVERTICESEXECUTOR_H_
 #define EXEC_MUTATE_INSERTVERTICESEXECUTOR_H_
 
-#include "exec/Executor.h"
+#include "exec/StorageExecutor.h"
 
 namespace nebula {
 namespace graph {
 
-class InsertVerticesExecutor final : public Executor {
+class InsertVerticesExecutor final : public StorageExecutor {
 public:
     InsertVerticesExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("InsertVerticesExecutor", node, qctx) {}
+        : StorageExecutor("InsertVerticesExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 
