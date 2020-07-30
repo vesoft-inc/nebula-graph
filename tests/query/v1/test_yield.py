@@ -10,7 +10,7 @@ import time
 import pytest
 from nebula2.graph import ttypes
 
-from common.nebula_test_suite import NebulaTestSuite
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 
 class TestYield(NebulaTestSuite):

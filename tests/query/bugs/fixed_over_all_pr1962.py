@@ -11,7 +11,7 @@ import time
 
 from graph import ttypes
 
-from common.nebula_test_suite import NebulaTestSuite
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 class TestSimpleQuery(NebulaTestSuite):
     @classmethod

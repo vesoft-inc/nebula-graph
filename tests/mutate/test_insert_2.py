@@ -8,7 +8,7 @@
 import time
 import pytest
 
-from common.nebula_test_suite import NebulaTestSuite
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 
 class TestInsert2(NebulaTestSuite):

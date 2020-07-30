@@ -16,9 +16,10 @@ from pathlib import Path
 from pathlib import Path
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, TEST_DIR)
+NEBULA_HOME = TEST_DIR + '/../'
+sys.path.insert(0, NEBULA_HOME)
 
-from common.nebula_manager import NebulaManager
+from tests.common.nebula_manager import NebulaManager
 
 TEST_LOGS_DIR = os.getenv('NEBULA_TEST_LOGS_DIR')
 if TEST_LOGS_DIR is None or TEST_LOGS_DIR == "":
