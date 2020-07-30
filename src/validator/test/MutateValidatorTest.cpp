@@ -19,6 +19,16 @@ TEST_F(MutateValidatorTest, InsertVertexTest) {
         auto cmd = "INSERT VERTEX person(name, age2) VALUES \"A\":(\"a\", 19);";
         ASSERT_FALSE(checkResult(cmd, {}));
     }
+    // wrong vid expression
+    {
+        auto cmd = "INSERT VERTEX person(name, age2) VALUES hash($-,name):(\"a\", 19);";
+        ASSERT_FALSE(checkResult(cmd, {}));
+    }
+    // vid use function call
+    {
+        auto cmd = "INSERT VERTEX person(name, age) VALUES lower(\"TOM\"):(\"a\", 19);";
+        ASSERT_TRUE(checkResult(cmd, { PK::kInsertVertices, PK::kStart }));
+    }
 }
 
 TEST_F(MutateValidatorTest, InsertEdgeTest) {
@@ -26,6 +36,16 @@ TEST_F(MutateValidatorTest, InsertEdgeTest) {
     {
         auto cmd = "INSERT EDGE like(start, end2) VALUES \"A\"->\"B\":(11, 11);";
         ASSERT_FALSE(checkResult(cmd, {}));
+    }
+    // wrong vid expression
+    {
+        auto cmd = "INSERT EDGE like(start, end) VALUES hash($-,name)->\"Tom\":(2010, 2020);";
+        ASSERT_FALSE(checkResult(cmd, {}));
+    }
+    // vid use function call
+    {
+        auto cmd = "INSERT EDGE like(start, end) VALUES lower(\"Lily\")->\"Tom\":(2010, 2020);";
+        ASSERT_TRUE(checkResult(cmd, { PK::kInsertEdges, PK::kStart }));
     }
 }
 
@@ -124,12 +144,12 @@ TEST_F(MutateValidatorTest, UpdateVertexTest) {
     }
     // wrong expr
     {
-        auto cmd = "UPDATE VERTEX \"Tom\" SET person.age =person.age + 1";
+        auto cmd = "UPDATE VERTEX \"Tom\" SET person.age = person.age + 1";
         ASSERT_FALSE(checkResult(cmd, {}));
     }
     // with function
     {
-        auto cmd = "UPDATE VERTEX ON person \"Tom\" SET age =abs(age + 1)";
+        auto cmd = "UPDATE VERTEX ON person \"Tom\" SET age = abs(age + 1)";
         ASSERT_TRUE(checkResult(cmd, {}));
     }
     // 1.0 syntax succeed

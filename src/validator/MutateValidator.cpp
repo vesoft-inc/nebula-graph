@@ -216,7 +216,7 @@ Status InsertEdgesValidator::prepareEdges() {;
 
         if (!evaluableExpr(row->dstid())) {
             LOG(ERROR) << "Wrong dst vid expression `" << row->dstid()->toString() << "\"";
-            return Status::Error("Wrong src vid expression `%s'", row->dstid()->toString().c_str());
+            return Status::Error("Wrong dst vid expression `%s'", row->dstid()->toString().c_str());
         }
 
         auto idStatus = SchemaUtil::toVertexID(row->srcid());
@@ -612,7 +612,6 @@ Status UpdateBaseValidator::checkAndResetSymExpr(Expression* inExpr,
     bool hasWrongType = false;
     auto symExpr = rewriteSymExpr(inExpr, symName, hasWrongType, isEdge_);
     if (hasWrongType) {
-        LOG(ERROR) << "Has wrong expr in `" << inExpr->toString() << "'";
         return Status::Error("Has wrong expr in `%s'",
                              inExpr->toString().c_str());
     }
@@ -696,6 +695,10 @@ std::unique_ptr<Expression> UpdateBaseValidator::rewriteSymExpr(Expression* expr
                 return std::make_unique<EdgePropertyExpression>(
                         new std::string(sym), new std::string(*symExpr->prop()));
             } else {
+                if (symExpr->sym() == nullptr || !symExpr->sym()->empty()) {
+                    hasWrongType = true;
+                    return nullptr;
+                }
                 return std::make_unique<SourcePropertyExpression>(
                         new std::string(sym), new std::string(*symExpr->prop()));
             }
