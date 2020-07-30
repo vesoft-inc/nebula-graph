@@ -18,7 +18,7 @@ class TestDeleteVertices(NebulaTestSuite):
 
     @classmethod
     def cleanup(self):
-        self.drop_data()
+        pass
 
     def test_delete_one_vertex(self):
         resp = self.execute_query('GO FROM "Boris Diaw" OVER like')

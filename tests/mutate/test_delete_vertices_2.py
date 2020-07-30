@@ -18,7 +18,7 @@ class TestDeleteVertices(NebulaTestSuite):
 
     @classmethod
     def cleanup(self):
-        self.drop_data()
+        pass
 
     def test_delete_with_pipe_wrong_vid_type(self):
         resp = self.execute_query('GO FROM "Boris Diaw" OVER like YIELD like._type as id | DELETE VERTEX $-.id')

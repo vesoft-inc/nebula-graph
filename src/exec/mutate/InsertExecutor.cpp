@@ -8,6 +8,7 @@
 
 #include "planner/Mutate.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
@@ -17,15 +18,20 @@ folly::Future<Status> InsertVerticesExecutor::execute() {
 }
 
 folly::Future<Status> InsertVerticesExecutor::insertVertices() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
 
     auto *ivNode = asNode<InsertVertices>(node());
+    time::Duration addVertTime;
     return qctx()->getStorageClient()->addVertices(ivNode->getSpace(),
                                                    ivNode->getVertices(),
                                                    ivNode->getPropNames(),
                                                    ivNode->getOverwritable())
         .via(runner())
+        .ensure([addVertTime]() {
+            VLOG(1) << "Add vertices time: " << addVertTime.elapsedInUSec() << "us";
+        })
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
+            SCOPED_TIMER(&execTime_);
             return handleResponse(resp, "Insert vertices");
         });
 }
@@ -35,14 +41,20 @@ folly::Future<Status> InsertEdgesExecutor::execute() {
 }
 
 folly::Future<Status> InsertEdgesExecutor::insertEdges() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
+
     auto *ieNode = asNode<InsertEdges>(node());
+    time::Duration addEdgeTime;
     return qctx()->getStorageClient()->addEdges(ieNode->getSpace(),
                                                 ieNode->getEdges(),
                                                 ieNode->getPropNames(),
                                                 ieNode->getOverwritable())
             .via(runner())
+            .ensure([addEdgeTime]() {
+                VLOG(1) << "Add edge time: " << addEdgeTime.elapsedInUSec() << "us";
+            })
             .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
+                SCOPED_TIMER(&execTime_);
                 return handleResponse(resp, "Insert edges");
             });
 }

@@ -11,14 +11,14 @@ import pytest
 from nebula_test_common.nebula_test_suite import NebulaTestSuite
 
 
-class TestDeleteEdge2s(NebulaTestSuite):
+class TestDeleteEdges2(NebulaTestSuite):
     @classmethod
     def prepare(self):
         self.load_data()
 
     @classmethod
     def cleanup(self):
-        self.drop_data()
+        pass
 
     def test_delete_with_pipe_wrong_vid_type(self):
         resp = self.execute_query('GO FROM "Boris Diaw" OVER like YIELD like._type as id | DELETE EDGE like $-.id->$-.id')

@@ -9,19 +9,18 @@
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 #include "exec/mutate/DeleteExecutor.h"
+#include "util/ScopedTimer.h"
 
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> DeleteVerticesExecutor::execute() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
     return deleteVertices();
 }
 
 folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
-    dumpLog();
-
     auto *dvNode = asNode<DeleteVertices>(node());
     auto vidRef = dvNode->getVidRef();
     std::vector<VertexID> vertices;
@@ -59,9 +58,14 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
         return Status::OK();
     }
     auto spaceId = qctx()->rctx()->session()->space();
+    time::Duration deleteVertTime;
     return qctx()->getStorageClient()->deleteVertices(spaceId, std::move(vertices))
         .via(runner())
+        .ensure([deleteVertTime]() {
+            VLOG(1) << "Delete vertices time: " << deleteVertTime.elapsedInUSec() << "us";
+        })
         .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
+            SCOPED_TIMER(&execTime_);
             return handleResponse(resp, "Delete vertices");
         });
 }
@@ -71,12 +75,14 @@ folly::Future<Status> DeleteEdgesExecutor::execute() {
 }
 
 folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
+
     auto *deNode = asNode<DeleteEdges>(node());
     auto edgeKeyRefs = deNode->getEdgeKeyRefs();
     std::vector<storage::cpp2::EdgeKey> edgeKeys;
     if (!edgeKeyRefs.empty()) {
         auto& inputVar = deNode->inputVar();
+        DCHECK(!inputVar.empty());
         auto& inputResult = ectx_->getResult(inputVar);
         auto iter = inputResult.iter();
         if (iter->size() == 0) {
@@ -144,9 +150,14 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
     }
 
     auto spaceId = qctx()->rctx()->session()->space();
+    time::Duration deleteEdgeTime;
     return qctx()->getStorageClient()->deleteEdges(spaceId, std::move(edgeKeys))
             .via(runner())
+            .ensure([deleteEdgeTime]() {
+                VLOG(1) << "Delete edge time: " << deleteEdgeTime.elapsedInUSec() << "us";
+            })
             .then([this](storage::StorageRpcResponse<storage::cpp2::ExecResponse> resp) {
+                SCOPED_TIMER(&execTime_);
                 return handleResponse(resp, "Delete edges");
             });
 }

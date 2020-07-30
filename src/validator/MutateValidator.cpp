@@ -474,9 +474,8 @@ Status DeleteEdgesValidator::checkInput() {
 
 Status DeleteEdgesValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *start = StartNode::make(plan);
     auto *doNode = DeleteEdges::make(plan,
-                                     start,
+                                     nullptr,
                                      vctx_->whichSpace().id,
                                      edgeKeyRefs_);
     doNode->setInputVar(edgeKeyVar_);
