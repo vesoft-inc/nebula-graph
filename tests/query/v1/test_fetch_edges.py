@@ -44,7 +44,7 @@ class TestFetchEdges(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = '''GO FROM "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst
+        query = '''GO FROM "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst \
                    | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year'''
         resp = self.execute_query(query)
         expect_result = [["Boris Diaw", "Hawks", 0, 2003, 2005],
@@ -55,7 +55,7 @@ class TestFetchEdges(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = '''$a = GO FROM "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst;
+        query = '''$a = GO FROM "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst; \
                    FETCH PROP ON serve $a.src->$a.dst YIELD serve.start_year, serve.end_year'''
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
@@ -107,7 +107,7 @@ class TestFetchEdges(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = '''GO FROM "Boris Diaw", "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst
+        query = '''GO FROM "Boris Diaw", "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst \
                    | FETCH PROP ON serve $-.src->$-.dst YIELD DISTINCT serve.start_year, serve.end_year'''
         resp = self.execute_query(query)
         expect_result = [["Boris Diaw", "Hawks", 0, 2003, 2005],
@@ -118,13 +118,13 @@ class TestFetchEdges(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = '''$a = GO FROM "Boris Diaw", "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst;
+        query = '''$a = GO FROM "Boris Diaw", "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS dst; \
                    FETCH PROP ON serve $a.src->$a.dst YIELD DISTINCT serve.start_year, serve.end_year'''
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = '''GO FROM "Tim Duncan", "Tony Parker" OVER serve YIELD serve._src AS src, serve._dst AS dst
+        query = '''GO FROM "Tim Duncan", "Tony Parker" OVER serve YIELD serve._src AS src, serve._dst AS dst \
                    | FETCH PROP ON serve $-.src->$-.dst YIELD DISTINCT serve._dst as dst'''
         resp = self.execute_query(query)
         expect_result = [["Spurs"], ["Hornets"]]
@@ -132,15 +132,15 @@ class TestFetchEdges(NebulaTestSuite):
         self.check_out_of_order_result(resp, expect_result)
 
     def test_fetch_edges_empty_input(self):
-        query = '''GO FROM "not_exist_vertex" OVER serve YIELD serve._src AS src, serve._dst AS dst
+        query = '''GO FROM "not_exist_vertex" OVER serve YIELD serve._src AS src, serve._dst AS dst \
                    | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year'''
         resp = self.execute_query(query)
         expect_result = []
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = '''GO FROM "Marco Belinelli" OVER serve YIELD serve._src AS src, serve._dst AS dst, serve.start_year as start
-                   | YIELD $-.src as src, $-.dst as dst WHERE $-.start > 20000
+        query = '''GO FROM "Marco Belinelli" OVER serve YIELD serve._src AS src, serve._dst AS dst, serve.start_year as start \
+                   | YIELD $-.src as src, $-.dst as dst WHERE $-.start > 20000 \
                    | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year'''
         resp = self.execute_query(query)
         expect_result = []
@@ -187,7 +187,7 @@ class TestFetchEdges(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = '''GO FROM "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS src
+        query = '''GO FROM "Boris Diaw" OVER serve YIELD serve._src AS src, serve._dst AS src \
                    | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year'''
         resp = self.execute(query)
         self.check_resp_failed(resp);
