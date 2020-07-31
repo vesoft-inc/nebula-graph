@@ -407,21 +407,21 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto showConfigs = asNode<ShowConfigs>(node);
             auto input = makeExecutor(showConfigs->dep(), qctx, visited);
             exec = new ShowConfigsExecutor(showConfigs, qctx);
-            exec->addDependent(input);
+            exec->dependsOn(input);
             break;
         }
         case PlanNode::Kind::kSetConfig: {
             auto setConfig = asNode<SetConfig>(node);
             auto input = makeExecutor(setConfig->dep(), qctx, visited);
             exec = new SetConfigExecutor(setConfig, qctx);
-            exec->addDependent(input);
+            exec->dependsOn(input);
             break;
         }
         case PlanNode::Kind::kGetConfig: {
             auto getConfig = asNode<GetConfig>(node);
             auto input = makeExecutor(getConfig->dep(), qctx, visited);
             exec = new GetConfigExecutor(getConfig, qctx);
-            exec->addDependent(input);
+            exec->dependsOn(input);
             break;
         }
         case PlanNode::Kind::kSubmitJob: {

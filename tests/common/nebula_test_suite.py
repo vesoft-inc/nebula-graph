@@ -213,6 +213,12 @@ class NebulaTestSuite(object):
 
             return False, 'ERROR: Type unsupported'
 
+        msg = self.check_format_str.format(col, expect)
+        if col == expect:
+            return True, ''
+        else:
+            return False, msg
+
     @classmethod
     def date_to_string(self, date):
         return '{}/{}/{}'.format(date.year, date.month, date.day)
@@ -240,31 +246,6 @@ class NebulaTestSuite(object):
                 kvStrs.append('"{}":"{}"'.format(key.decode('utf-8'), self.value_to_string(map.kvs[key])))
             return '{' + ','.join(kvStrs) + '}'
         return ''
-
-    @classmethod
-    def check_map_and_dict(self, map, expect_dict):
-        if map.kvs is None and len(expect_dict) == 0:
-            return True, ''
-        if map.kvs is None:
-            return False, 'map is None'
-
-        msg = 'len(map.kvs)[{}] != len(expect)[{}]'.format(len(map.kvs.keys()), len(expect_dict.keys()))
-        if len(map.kvs) != len(expect_dict):
-            return False, msg
-
-        sorted_kvs_keys = sorted(map.kvs.keys())
-        sorted_kvs_keys = [key.decode('utf-8') for key in sorted_kvs_keys]
-        sorted_expect_keys = sorted(expect_dict.keys())
-
-        assert sorted_kvs_keys == sorted_expect_keys, "map.kvs.keys() is not equal with expect_dict.keys()"
-        for key in map.kvs:
-            ok = False
-            msg = ""
-            ok, msg = self.check_value(map.kvs[key], expect_dict[key.decode('utf-8')])
-            if not ok:
-                return False, 'The returned map value from nebula could not be found, value: {}, expect: {}, error message: {}'.format(
-                    self.value_to_string(map.kvs[key]), expect_dict[key.decode('utf-8')], msg)
-        return True, ''
 
     @classmethod
     def value_to_string(self, value):
@@ -359,6 +340,30 @@ class NebulaTestSuite(object):
             assert ok, "different column name, expect: {} vs. result: {}".format(expect[i], result)
 
     @classmethod
+    def to_value(self, col):
+        value = CommonTtypes.Value()
+        if isinstance(col, bool):
+            value.set_bVal(col)
+        elif isinstance(col, int):
+            value.set_iVal(col)
+        elif isinstance(col, float):
+            value.set_fVal(col)
+        elif isinstance(col, str):
+            value.set_sVal(col.encode('utf-8'))
+        elif isinstance(col, dict):
+            map_val = CommonTtypes.Map()
+            map_val.kvs = dict()
+            for key in col:
+                ok, temp = self.to_value(col[key])
+                if not ok:
+                    return ok, temp
+                map_val.kvs[key.encode('utf-8')] = temp
+            value.set_mVal(map_val)
+        else:
+            return False, 'Wrong val type'
+        return True, value
+
+    @classmethod
     def convert_expect(self, expect):
         result = []
         for row in expect:
@@ -370,15 +375,9 @@ class NebulaTestSuite(object):
                 if isinstance(col, CommonTtypes.Value):
                     new_row.values.append(col)
                 else:
-                    value = CommonTtypes.Value()
-                    if isinstance(col, bool):
-                        value.set_bVal(col)
-                    elif isinstance(col, int):
-                        value.set_iVal(col)
-                    elif isinstance(col, float):
-                        value.set_fVal(col)
-                    elif isinstance(col, str):
-                        value.set_sVal(col.encode('utf-8'))
+                    ok, value = self.to_value(col)
+                    if not ok:
+                        return ok, value
                     new_row.values.append(value)
             result.append(new_row)
         return True, result, ''
