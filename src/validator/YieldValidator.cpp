@@ -35,6 +35,7 @@ Status YieldValidator::validateImpl() {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
+    // TODO(yee): following check maybe not make sense
     NG_RETURN_IF_ERROR(checkInputProps());
     NG_RETURN_IF_ERROR(checkVarProps());
 
