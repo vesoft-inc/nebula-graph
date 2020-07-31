@@ -32,7 +32,7 @@ Status SetExecutor::checkInputDataSets() {
     auto rightData = rIter->valuePtr();
 
     if (UNLIKELY(!leftData || !rightData)) {
-        return Status::Error("Union invalid data, %s side input dataset is null",
+        return Status::Error("SET related executor failed, %s side input dataset is null",
                              !leftData ? "left" : "right");
     }
 

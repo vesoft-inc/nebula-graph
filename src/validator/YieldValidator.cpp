@@ -68,15 +68,7 @@ Status YieldValidator::checkInputProps() const {
     }
     for (auto &prop : inputProps_) {
         DCHECK_NE(prop, "*");
-        auto eq = [&](auto &in) { return prop == in.first; };
-        auto iter = std::find_if(inputs_.cbegin(), inputs_.cend(), eq);
-        if (iter == inputs_.cend()) {
-            return Status::SemanticError("column `%s' not exist in input", prop.c_str());
-        }
-        iter = std::find_if(iter + 1, inputs_.cend(), eq);
-        if (iter != inputs_.cend()) {
-            return Status::SemanticError("duplicate input column: %s", prop.c_str());
-        }
+        NG_RETURN_IF_ERROR(isPropNonexistOrDuplicate(inputs_, prop));
     }
     return Status::OK();
 }
@@ -90,15 +82,7 @@ Status YieldValidator::checkVarProps() const {
         auto &props = vctx_->getVar(var);
         for (auto &prop : pair.second) {
             DCHECK_NE(prop, "*");
-            auto eq = [&](auto &in) { return in.first == prop; };
-            auto iter = std::find_if(props.cbegin(), props.cend(), eq);
-            if (iter == props.cend()) {
-                return Status::SemanticError("column `%s' not exist in variable.", prop.c_str());
-            }
-            iter = std::find_if(iter + 1, props.cend(), eq);
-            if (iter != props.cend()) {
-                return Status::SemanticError("duplicate variable column: %s", prop.c_str());
-            }
+            NG_RETURN_IF_ERROR(isPropNonexistOrDuplicate(props, prop));
         }
     }
     return Status::OK();
@@ -116,10 +100,6 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     auto type = std::move(status).value();
 
     auto name = deduceColName(column);
-    auto aggFn = column->getAggFunName();
-    if (!aggFn.empty()) {
-        name = folly::stringPrintf("%s(%s)", aggFn.c_str(), name.c_str());
-    }
     outputColumnNames_.emplace_back(name);
 
     outputs_.emplace_back(name, type);

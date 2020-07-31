@@ -229,7 +229,7 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
     if (col->alias() != nullptr) {
         return *col->alias();
     } else {
-        return col->expr()->toString();
+        return col->toString();
     }
 }
 
@@ -686,7 +686,23 @@ bool Validator::evaluableExpr(const Expression* expr) const {
     return false;
 }
 
-StatusOr<std::string> Validator::checkRef(const Expression *ref, Value::Type type) const {
+// static
+Status Validator::isPropNonexistOrDuplicate(const ColsDef& cols, const std::string& prop) {
+    auto eq = [&](const ColDef& col) { return col.first == prop; };
+    auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
+    if (iter == cols.cend()) {
+        return Status::SemanticError("prop `%s' not exists", prop.c_str());
+    }
+
+    iter = std::find_if(iter + 1, cols.cend(), eq);
+    if (iter != cols.cend()) {
+        return Status::SemanticError("duplicate prop `%s'", prop.c_str());
+    }
+
+    return Status::OK();
+}
+
+StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
         ColDef col(*symExpr->prop(), type);
