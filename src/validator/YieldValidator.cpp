@@ -193,7 +193,6 @@ Status YieldValidator::toPlan() {
         dedupDep = Aggregate::make(plan, filter, {}, std::move(groupItems_));
     }
 
-    VLOG(1) << "dedup dep output columns: <" << folly::join(",", outputColumnNames_) << ">";
     dedupDep->setColNames(std::move(outputColumnNames_));
     if (filter != nullptr) {
         dedupDep->setInputVar(filter->varName());
