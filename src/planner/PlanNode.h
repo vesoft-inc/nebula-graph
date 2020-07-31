@@ -28,7 +28,7 @@ public:
         kGetNeighbors,
         kGetVertices,
         kGetEdges,
-        kReadIndex,
+        kIndexScan,
         kFilter,
         kUnion,
         kIntersect,
@@ -65,6 +65,9 @@ public:
         kCreateSnapshot,
         kDropSnapshot,
         kShowSnapshots,
+        kDataJoin,
+        kDeleteVertices,
+        kDeleteEdges,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
@@ -100,9 +103,13 @@ public:
         return colNames_;
     }
 
+    const std::vector<std::string>& colNamesRef() const {
+        return colNames_;
+    }
+
     void setId(int64_t id) {
         id_ = id;
-        outputVar_ = folly::stringPrintf("%s_%ld", toString(kind_), id_);
+        outputVar_ = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
     }
 
     void setPlan(ExecutionPlan* plan) {
@@ -113,7 +120,15 @@ public:
         colNames_ = std::move(cols);
     }
 
+    void setColNames(const std::vector<std::string>& cols) {
+        colNames_ = cols;
+    }
+
     static const char* toString(Kind kind);
+
+    const std::string& nodeLabel() const {
+        return outputVar_;
+    }
 
 protected:
     Kind                                     kind_{Kind::kUnknown};
@@ -125,6 +140,98 @@ protected:
 };
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
+
+// Dependencies will cover the inputs, For example bi input require bi dependencies as least,
+// but single dependencies may don't need any inputs (I.E admin plan node)
+// Single dependecy without input
+// It's useful for addmin plan node
+class SingleDependencyNode : public PlanNode {
+public:
+    const PlanNode* dep() const {
+        return dependency_;
+    }
+
+    void dependsOn(PlanNode *dep) {
+        dependency_ = DCHECK_NOTNULL(dep);
+    }
+
+protected:
+    SingleDependencyNode(ExecutionPlan *plan, Kind kind, const PlanNode *dep)
+        : PlanNode(plan, kind), dependency_(dep) {}
+
+    const PlanNode *dependency_;
+};
+
+class SingleInputNode : public SingleDependencyNode {
+public:
+    void setInputVar(std::string inputVar) {
+        inputVar_ = std::move(inputVar);
+    }
+
+    const std::string& inputVar() const {
+        return inputVar_;
+    }
+
+protected:
+    SingleInputNode(ExecutionPlan* plan, Kind kind, const PlanNode* dep)
+        : SingleDependencyNode(plan, kind, dep) {
+    }
+
+    // Datasource for this node.
+    std::string inputVar_;
+};
+
+class BiInputNode : public PlanNode {
+public:
+    void setLeft(PlanNode* left) {
+        left_ = left;
+    }
+
+    void setRight(PlanNode* right) {
+        right_ = right;
+    }
+
+    void setLeftVar(std::string leftVar) {
+        leftVar_ = std::move(leftVar);
+    }
+
+    void setRightVar(std::string rightVar) {
+        rightVar_ = std::move(rightVar);
+    }
+
+    const PlanNode* left() const {
+        return left_;
+    }
+
+    const PlanNode* right() const {
+        return right_;
+    }
+
+    const std::string& leftInputVar() const {
+        return leftVar_;
+    }
+
+    const std::string& rightInputVar() const {
+        return rightVar_;
+    }
+
+    std::string explain() const override {
+        return "";
+    }
+
+protected:
+    BiInputNode(ExecutionPlan* plan, Kind kind, PlanNode* left, PlanNode* right)
+        : PlanNode(plan, kind), left_(left), right_(right) {
+    }
+
+    PlanNode* left_{nullptr};
+    PlanNode* right_{nullptr};
+    // Datasource for this node.
+    std::string leftVar_;
+    std::string rightVar_;
+};
+
 }  // namespace graph
 }  // namespace nebula
+
 #endif  // PLANNER_PLANNODE_H_

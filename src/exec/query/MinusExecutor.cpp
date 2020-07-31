@@ -9,25 +9,23 @@
 #include <unordered_set>
 
 #include "planner/Query.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> MinusExecutor::execute() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
 
     NG_RETURN_IF_ERROR(checkInputDataSets());
 
     auto lIter = getLeftInputDataIter();
     auto rIter = getRightInputDataIter();
 
-    std::unordered_set<const Row *> hashSet;
+    std::unordered_set<const LogicalRow *> hashSet;
     for (; rIter->valid(); rIter->next()) {
-        auto iter = hashSet.insert(rIter->row());
-        if (UNLIKELY(!iter.second)) {
-            LOG(ERROR) << "Fail to insert row into hash table in minus executor, row: "
-                       << *rIter->row();
-        }
+        hashSet.insert(rIter->row());
+        // TODO: should test duplicate rows
     }
 
     if (!hashSet.empty()) {
