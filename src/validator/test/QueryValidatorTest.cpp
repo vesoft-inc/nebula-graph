@@ -918,22 +918,6 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
   }
 }
 
-TEST_F(QueryValidatorTest, TestGroupBy) {
-    {
-        std::string query =
-            "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
-            "| GROUP BY $-.age YIELD COUNT($-.id)";
-        std::vector<PlanNode::Kind> expected = {
-            PK::kProject,
-            PK::kGroupBy,
-            PK::kProject,
-            PK::kGetNeighbors,
-            PK::kStart
-        };
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-}
-
 TEST_F(QueryValidatorTest, TestMaxAllowedStatements) {
     std::vector<std::string> stmts;
     for (uint32_t i = 0; i < FLAGS_max_allowed_statements; i++) {

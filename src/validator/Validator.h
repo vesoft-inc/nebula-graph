@@ -19,20 +19,77 @@ class YieldColumns;
 
 namespace graph {
 
-struct ExpressionProps {
-    std::vector<std::string> inputProps_;
+class ExpressionProps final {
+public:
+    using TagIDMap =  std::unordered_map<TagID, std::set<std::string>>;
+    using EdgeTypeMap = std::unordered_map<EdgeType, std::set<std::string>>;
+    using VarMap = std::unordered_map<std::string, std::set<std::string>>;
 
-    std::unordered_map<std::string, std::vector<std::string>> varProps_;
+    void insertInput(std::string prop);
 
-    std::unordered_map<TagID, std::vector<std::string>> srcTagProps_;
+    void insertVar(const std::string& varName, std::string prop);
 
-    std::unordered_map<TagID, std::vector<std::string>> dstTagProps_;
+    void insertSrcTag(TagID tagId, std::string prop);
 
-    std::unordered_map<EdgeType, std::vector<std::string>> edgeProps_;
+    void insertDstTag(TagID tagId, std::string prop);
 
-    std::unordered_map<TagID, std::vector<std::string>> tagProps_;
+    void insertEdge(EdgeType edgeType, std::string prop);
+
+    void insertTag(TagID tagId, std::string prop);
+
+    std::set<std::string>& inputProps() {
+        return inputProps_;
+    }
+    TagIDMap& srcTagProps() {
+        return srcTagProps_;
+    }
+    TagIDMap& dstTagProps() {
+        return dstTagProps_;
+    }
+    TagIDMap& tagProps() {
+        return tagProps_;
+    }
+    EdgeTypeMap& edgeProps() {
+        return edgeProps_;
+    }
+    VarMap& varProps() {
+        return varProps_;
+    }
+
+    const TagIDMap& srcTagProps() const {
+        return srcTagProps_;
+        // return const_cast<ExpressionProps&>(*this).srcTagProps();
+    }
+    TagIDMap& dstTagProps() const {
+        return const_cast<ExpressionProps&>(*this).dstTagProps();
+    }
+    TagIDMap& tagProps() const {
+        return const_cast<ExpressionProps&>(*this).tagProps();
+    }
+    TagIDMap& edgeProps() const {
+        return const_cast<ExpressionProps&>(*this).edgeProps();
+    }
+    std::set<std::string>& inputProps() const {
+        return const_cast<ExpressionProps&>(*this).inputProps();
+    }
+    VarMap& varProps() const {
+        return const_cast<ExpressionProps&>(*this).varProps();
+    }
+
+    bool isSubsetOfInput(std::set<std::string>& props);
+
+    bool isSubsetOfVar(VarMap& props);
+
+    void unionProps(ExpressionProps& exprProps);
+
+private:
+    std::set<std::string>      inputProps_;
+    VarMap                     varProps_;
+    TagIDMap                   srcTagProps_;
+    TagIDMap                   dstTagProps_;
+    EdgeTypeMap                edgeProps_;
+    TagIDMap                   tagProps_;
 };
-
 
 class Validator {
 public:
@@ -97,7 +154,7 @@ protected:
 
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
 
-    Status deduceProps(const Expression* expr);
+    // Status deduceProps(const Expression* expr);
 
     Status deduceProps(const Expression* expr, ExpressionProps& exprProps);
 
@@ -128,17 +185,6 @@ protected:
     std::string                     inputVarName_;
     // Admin sentences do not requires a space to be chosen.
     bool                            noSpaceRequired_{false};
-
-    // properties
-    std::vector<std::string> inputProps_;
-    std::unordered_map<std::string, std::vector<std::string>> varProps_;
-    std::unordered_map<TagID, std::vector<std::string>> srcTagProps_;
-    std::unordered_map<TagID, std::vector<std::string>> dstTagProps_;
-    std::unordered_map<EdgeType, std::vector<std::string>> edgeProps_;
-    std::unordered_map<TagID, std::vector<std::string>> tagProps_;
-
-    // properties
-    ExpressionProps                 props_;
 };
 
 }  // namespace graph

@@ -545,7 +545,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                                  static_cast<int64_t>(expr->kind()));
 }
 
-Status Validator::deduceProps(const Expression* expr) {
+Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps) {
     switch (expr->kind()) {
         case Expression::Kind::kConstant: {
             break;
@@ -566,21 +566,21 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(biExpr->left()));
-            NG_RETURN_IF_ERROR(deduceProps(biExpr->right()));
+            NG_RETURN_IF_ERROR(deduceProps(biExpr->left(), exprProps));
+            NG_RETURN_IF_ERROR(deduceProps(biExpr->right(), exprProps));
             break;
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
         case Expression::Kind::kUnaryNot: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand()));
+            NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand(), exprProps));
             break;
         }
         case Expression::Kind::kFunctionCall: {
             auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
             for (auto& arg : funcExpr->args()->args()) {
-                NG_RETURN_IF_ERROR(deduceProps(arg.get()));
+                NG_RETURN_IF_ERROR(deduceProps(arg.get(), exprProps));
             }
             break;
         }
@@ -588,24 +588,21 @@ Status Validator::deduceProps(const Expression* expr) {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = dstTagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertDstTag(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kSrcProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = srcTagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertSrcTag(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kTagProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = tagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertTag(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kEdgeProperty:
@@ -616,27 +613,22 @@ Status Validator::deduceProps(const Expression* expr) {
             auto* edgePropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toEdgeType(space_.id, *edgePropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = edgeProps_[status.value()];
-            props.emplace_back(*edgePropExpr->prop());
+            exprProps.insertEdge(status.value(), *edgePropExpr->prop());
             break;
         }
         case Expression::Kind::kInputProperty: {
             auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* prop = inputPropExpr->prop();
-            inputProps_.emplace_back(*prop);
+            exprProps.insertInput(*inputPropExpr->prop());
             break;
         }
         case Expression::Kind::kVarProperty: {
             auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* var = varPropExpr->sym();
-            auto* prop = varPropExpr->prop();
-            auto& props = varProps_[*var];
-            props.emplace_back(*prop);
+            exprProps.insertVar(*varPropExpr->sym(), *varPropExpr->prop());
             break;
         }
         case Expression::Kind::kTypeCasting: {
             auto* typeCastExpr = static_cast<const TypeCastingExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand()));
+            NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand(), exprProps));
             break;
         }
         case Expression::Kind::kUUID:
@@ -785,5 +777,93 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
     }
 }
 
-}  // namespace graph
-}  // namespace nebula
+void ExpressionProps::insertVar(const std::string& varName, std::string prop) {
+    auto& props = varProps_[varName];
+    props.emplace(std::move(prop));
+}
+
+void ExpressionProps::insertInput(std::string prop) {
+    inputProps_.emplace(std::move(prop));
+}
+
+void ExpressionProps::insertSrcTag(TagID tagId, std::string prop) {
+    auto& props = srcTagProps_[tagId];
+    props.emplace(std::move(prop));
+}
+
+void ExpressionProps::insertDstTag(TagID tagId, std::string prop) {
+    auto& props = dstTagProps_[tagId];
+    props.emplace(std::move(prop));
+}
+
+void ExpressionProps::insertEdge(EdgeType edgeType, std::string prop) {
+    auto& props = edgeProps_[edgeType];
+    props.emplace(std::move(prop));
+}
+
+void ExpressionProps::insertTag(TagID tagId, std::string prop) {
+    auto& props = tagProps_[tagId];
+    props.emplace(std::move(prop));
+}
+
+bool ExpressionProps::isSubsetOfInput(std::set<std::string>& props) {
+    for (auto& prop : props) {
+        if (inputProps_.find(prop) == inputProps_.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ExpressionProps::isSubsetOfVar(VarMap& props) {
+    for (auto &iter : props) {
+        if (varProps_.find(iter.first) == varProps_.end()) {
+            return false;
+        }
+        for (auto& prop : props[iter.first]) {
+            if (varProps_[iter.first].find(prop) == varProps_[iter.first].end()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void ExpressionProps::unionProps(ExpressionProps& exprProps) {
+    if (!exprProps.inputProps().empty()) {
+        inputProps_.insert(exprProps.inputProps().begin(), exprProps.inputProps().end());
+    }
+    if (!exprProps.srcTagProps().empty()) {
+        for (auto& iter : exprProps.srcTagProps()) {
+            srcTagProps_[iter.first].insert(exprProps.srcTagProps()[iter.first].begin(),
+                                            exprProps.srcTagProps()[iter.first].end());
+        }
+    }
+    if (!exprProps.dstTagProps().empty()) {
+        for (auto& iter : exprProps.dstTagProps()) {
+            dstTagProps_[iter.first].insert(exprProps.dstTagProps()[iter.first].begin(),
+                                            exprProps.dstTagProps()[iter.first].end());
+        }
+    }
+    if (!exprProps.tagProps().empty()) {
+        for (auto& iter : exprProps.tagProps()) {
+            tagProps_[iter.first].insert(exprProps.tagProps()[iter.first].begin(),
+                                         exprProps.tagProps()[iter.first].end());
+        }
+    }
+    if (!exprProps.varProps().empty()) {
+        for (auto& iter : exprProps.varProps()) {
+            varProps_[iter.first].insert(exprProps.varProps()[iter.first].begin(),
+                                         exprProps.varProps()[iter.first].end());
+        }
+    }
+    if (!exprProps.edgeProps().empty()) {
+        for (auto& iter : exprProps.edgeProps()) {
+            edgeProps_[iter.first].insert(exprProps.edgeProps()[iter.first].begin(),
+                                          exprProps.edgeProps()[iter.first].end());
+        }
+    }
+}
+}   // namespace graph
+}   // namespace nebula
+

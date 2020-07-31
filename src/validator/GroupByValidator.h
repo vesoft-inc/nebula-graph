@@ -11,6 +11,7 @@
 #include "validator/Validator.h"
 #include "planner/Query.h"
 
+
 namespace nebula {
 namespace graph {
 
@@ -28,14 +29,18 @@ private:
 
     Status validateYield(const YieldClause *yieldClause);
 
-    Status validateAll();
-
 private:
     std::vector<YieldColumn*>                         groupCols_;
     std::vector<YieldColumn*>                         yieldCols_;
 
     // key: alias, value: input name
     std::unordered_map<std::string, YieldColumn*>     aliases_;
+    std::vector<std::string>                          outputColumnNames_;
+
+    ExpressionProps                                   groupProps_;
+
+    std::vector<Expression*>                          groupKeys_;
+    std::vector<Aggregate::GroupItem>                 groupItems_;
 };
 
 

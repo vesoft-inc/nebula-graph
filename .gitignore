@@ -39,7 +39,7 @@ modules/
 cmake-build-debug/
 cmake-build-release/
 .vscode/
-
+.clang-format
 #py
 *.egg-info
 *.pot
