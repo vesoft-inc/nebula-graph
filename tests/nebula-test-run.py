@@ -71,7 +71,6 @@ if __name__ == "__main__":
     stop_nebula = True
     error_code = 0
     try:
-        os.chdir(TEST_DIR)
         # Create the test result directory if it doesn't already exist.
         if not os.path.exists(RESULT_DIR):
             os.makedirs(RESULT_DIR)
@@ -93,6 +92,9 @@ if __name__ == "__main__":
         else:
             stop_nebula = False
         print("Running TestExecutor with args: {} ".format(args))
+
+        # Switch to your $src_dir/tests
+        os.chdir(TEST_DIR)
         error_code = executor.run_tests(args)
     finally:
         if stop_nebula and pytest.cmdline.stop_nebula.lower() == 'true':
