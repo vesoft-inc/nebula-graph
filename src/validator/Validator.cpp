@@ -615,7 +615,7 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kRelIn: {
             // TODO:
             std::stringstream ss;
-            ss << "Not support " << expr->kind();
+            ss << "Not supported expression kind for type deduction: " << expr->kind();
             return Status::SemanticError(ss.str());
         }
     }
