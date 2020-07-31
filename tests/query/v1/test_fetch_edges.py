@@ -127,7 +127,9 @@ class TestFetchEdges(NebulaTestSuite):
         query = '''GO FROM "Tim Duncan", "Tony Parker" OVER serve YIELD serve._src AS src, serve._dst AS dst \
                    | FETCH PROP ON serve $-.src->$-.dst YIELD DISTINCT serve._dst as dst'''
         resp = self.execute_query(query)
-        expect_result = [["Spurs"], ["Hornets"]]
+        expect_result = [["Tim Duncan", "Spurs", 0, "Spurs"],
+                         ["Tony Parker", "Spurs", 0, "Spurs"],
+                         ["Tony Parker", "Hornets", 0, "Hornets"]]
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
@@ -149,26 +151,52 @@ class TestFetchEdges(NebulaTestSuite):
 
 
     def test_fetch_edges_syntax_error(self):
-        query = 'FETCH PROP ON serve hash(\"Boris Diaw\")->hash(\"Spurs\") YIELD $^.serve.start_year'
+        # TODO(shylock) hash key
+        # query = 'FETCH PROP ON serve hash(\"Boris Diaw\")->hash(\"Spurs\") YIELD $^.serve.start_year'
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp);
+
+        # query = 'FETCH PROP ON serve hash(\"Boris Diaw\")->hash(\"Spurs\") YIELD $$.serve.start_year'
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp);
+
+        # query = 'FETCH PROP ON serve hash(\"Boris Diaw\")->hash(\"Spurs\") YIELD abc.start_year'
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp);
+
+        query = 'FETCH PROP ON serve "Boris Diaw"->"Spurs" YIELD $^.serve.start_year'
         resp = self.execute(query)
         self.check_resp_failed(resp);
 
-        query = 'FETCH PROP ON serve hash(\"Boris Diaw\")->hash(\"Spurs\") YIELD $$.serve.start_year'
+        query = 'FETCH PROP ON serve "Boris Diaw"->"Spurs" YIELD $$.serve.start_year'
         resp = self.execute(query)
         self.check_resp_failed(resp);
 
-        query = 'FETCH PROP ON serve hash(\"Boris Diaw\")->hash(\"Spurs\") YIELD abc.start_year'
+        query = 'FETCH PROP ON serve "Boris Diaw"->"Spurs" YIELD abc.start_year'
         resp = self.execute(query)
         self.check_resp_failed(resp);
 
     def test_fetch_edges_not_exist_edge(self):
-        query = 'FETCH PROP ON serve hash(\"Zion Williamson\")->hash(\"Spurs\") YIELD serve.start_year'
+        # TODO(shylock) hash key
+        # query = 'FETCH PROP ON serve hash(\"Zion Williamson\")->hash(\"Spurs\") YIELD serve.start_year'
+        # resp = self.execute_query(query)
+        # expect_result = []
+        # self.check_resp_succeeded(resp)
+        # self.check_out_of_order_result(resp, expect_result)
+
+        # query = 'FETCH PROP ON serve uuid(\"Zion Williamson\")->uuid(\"Spurs\") YIELD serve.start_year'
+        # resp = self.execute_query(query)
+        # expect_result = []
+        # self.check_resp_succeeded(resp)
+        # self.check_out_of_order_result(resp, expect_result)
+
+        query = 'FETCH PROP ON serve "Zion Williamson"->"Spurs" YIELD serve.start_year'
         resp = self.execute_query(query)
         expect_result = []
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = 'FETCH PROP ON serve uuid(\"Zion Williamson\")->uuid(\"Spurs\") YIELD serve.start_year'
+        query = 'FETCH PROP ON serve "Zion Williamson"->"Spurs" YIELD serve.start_year'
         resp = self.execute_query(query)
         expect_result = []
         self.check_resp_succeeded(resp)
