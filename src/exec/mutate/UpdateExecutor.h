@@ -23,7 +23,7 @@ public:
     virtual ~UpdateBaseExecutor() {}
 
 protected:
-    StatusOr<DataSet> handleResult(const DataSet &data);
+    StatusOr<DataSet> handleResult(DataSet &&data);
 
     Status handleErrorCode(nebula::storage::cpp2::ErrorCode code, PartitionID partId);
 

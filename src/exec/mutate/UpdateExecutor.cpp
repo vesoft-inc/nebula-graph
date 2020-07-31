@@ -14,12 +14,11 @@
 namespace nebula {
 namespace graph {
 
-StatusOr<DataSet> UpdateBaseExecutor::handleResult(const DataSet &data) {
-    if (yieldNames_.empty() && (data.colNames.empty() || data.colNames.size() == 1)) {
-        return Status::OK();
-    }
-
-    if (data.colNames.empty() || data.colNames.size() == 1) {
+StatusOr<DataSet> UpdateBaseExecutor::handleResult(DataSet &&data) {
+    if (data.colNames.size() <= 1) {
+        if (yieldNames_.empty()) {
+            return Status::OK();
+        }
         LOG(ERROR) << "Empty return props";
         return Status::Error("Empty return props");
     }
@@ -72,10 +71,10 @@ Status UpdateBaseExecutor::handleErrorCode(nebula::storage::cpp2::ErrorCode code
         case storage::cpp2::ErrorCode::E_FILTER_OUT:
             return Status::OK();
         default:
-            std::string errMsg = folly::stringPrintf("Unknown error, part: %d, error code: %d.",
-                                                      partId, static_cast<int32_t>(code));
-            LOG(ERROR) << errMsg;
-            return Status::Error(std::move(errMsg));;
+            auto status = Status::Error("Unknown error, part: %d, error code: %d.",
+                                         partId, static_cast<int32_t>(code));
+            LOG(ERROR) << status;
+            return status;
     }
     return Status::OK();
 }
@@ -108,7 +107,7 @@ folly::Future<Status> UpdateVertexExecutor::execute() {
                 NG_RETURN_IF_ERROR(handleErrorCode(code.get_code(), code.get_part_id()));
             }
             if (value.__isset.props) {
-                auto status = handleResult(*value.get_props());
+                auto status = handleResult(std::move(*value.get_props()));
                 if (!status.ok()) {
                     return status.status();
                 }
@@ -154,7 +153,7 @@ folly::Future<Status> UpdateEdgeExecutor::execute() {
                     NG_RETURN_IF_ERROR(handleErrorCode(code.get_code(), code.get_part_id()));
                 }
                 if (value.__isset.props) {
-                    auto status = handleResult(*value.get_props());
+                    auto status = handleResult(std::move(*value.get_props()));
                     if (!status.ok()) {
                         return status.status();
                     }

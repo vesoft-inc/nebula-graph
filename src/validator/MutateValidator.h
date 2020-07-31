@@ -111,17 +111,17 @@ private:
     std::string                                    edgeKeyVar_;
 };
 
-class UpdateBaseValidator : public Validator {
+class UpdateValidator : public Validator {
 public:
-    explicit UpdateBaseValidator(Sentence* sentence,
-                                 QueryContext* context,
-                                 bool isEdge = false)
+    explicit UpdateValidator(Sentence* sentence,
+                             QueryContext* context,
+                             bool isEdge = false)
         : Validator(sentence, context) {
         sentence_ = static_cast<UpdateBaseSentence*>(sentence);
         isEdge_ = isEdge;
     }
 
-    virtual ~UpdateBaseValidator() {}
+    virtual ~UpdateValidator() {}
 
 protected:
     Status initProps();
@@ -154,10 +154,10 @@ protected:
     bool                                                isEdge_{false};
 };
 
-class UpdateVertexValidator final : public UpdateBaseValidator {
+class UpdateVertexValidator final : public UpdateValidator {
 public:
     UpdateVertexValidator(Sentence* sentence, QueryContext* context)
-        : UpdateBaseValidator(sentence, context) {
+        : UpdateValidator(sentence, context) {
     }
 
 private:
@@ -170,10 +170,10 @@ private:
     TagID                     tagId_{-1};
 };
 
-class UpdateEdgeValidator final : public UpdateBaseValidator {
+class UpdateEdgeValidator final : public UpdateValidator {
 public:
     UpdateEdgeValidator(Sentence* sentence, QueryContext* context)
-        : UpdateBaseValidator(sentence, context, true) {
+        : UpdateValidator(sentence, context, true) {
     }
 
 private:

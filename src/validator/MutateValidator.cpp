@@ -514,7 +514,7 @@ Status DeleteEdgesValidator::toPlan() {
     return Status::OK();
 }
 
-Status UpdateBaseValidator::initProps() {
+Status UpdateValidator::initProps() {
     spaceId_ = vctx_->whichSpace().id;
     insertable_ = sentence_->getInsertable();
     if (sentence_->getName() != nullptr) {
@@ -525,7 +525,7 @@ Status UpdateBaseValidator::initProps() {
     return getReturnProps();
 }
 
-Status UpdateBaseValidator::getCondition() {
+Status UpdateValidator::getCondition() {
     auto *clause = sentence_->whenClause();
     if (clause != nullptr) {
         auto filter = clause->filter();
@@ -540,7 +540,7 @@ Status UpdateBaseValidator::getCondition() {
     return Status::OK();
 }
 
-Status UpdateBaseValidator::getReturnProps() {
+Status UpdateValidator::getReturnProps() {
     auto *clause = sentence_->yieldClause();
     if (clause != nullptr) {
         auto yields = clause->columns();
@@ -560,7 +560,7 @@ Status UpdateBaseValidator::getReturnProps() {
     return Status::OK();
 }
 
-Status UpdateBaseValidator::getUpdateProps() {
+Status UpdateValidator::getUpdateProps() {
     auto status = Status::OK();
     auto items = sentence_->updateList()->items();
     std::unordered_set<std::string> symNames;
@@ -606,9 +606,9 @@ Status UpdateBaseValidator::getUpdateProps() {
 }
 
 
-Status UpdateBaseValidator::checkAndResetSymExpr(Expression* inExpr,
-                                                 const std::string& symName,
-                                                 std::string &encodeStr) {
+Status UpdateValidator::checkAndResetSymExpr(Expression* inExpr,
+                                             const std::string& symName,
+                                             std::string &encodeStr) {
     bool hasWrongType = false;
     auto symExpr = rewriteSymExpr(inExpr, symName, hasWrongType, isEdge_);
     if (hasWrongType) {
@@ -624,10 +624,10 @@ Status UpdateBaseValidator::checkAndResetSymExpr(Expression* inExpr,
 }
 
 // rewrite the expr which has kSymProperty expr to toExpr
-std::unique_ptr<Expression> UpdateBaseValidator::rewriteSymExpr(Expression* expr,
-                                                                const std::string &sym,
-                                                                bool &hasWrongType,
-                                                                bool isEdge) {
+std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
+                                                            const std::string &sym,
+                                                            bool &hasWrongType,
+                                                            bool isEdge) {
     switch (expr->kind()) {
         case Expression::Kind::kConstant: {
             break;
@@ -756,7 +756,7 @@ Status UpdateVertexValidator::validateImpl() {
 
 Status UpdateVertexValidator::toPlan() {
     auto* plan = qctx_->plan();
-    auto *doNode = UpdateVertex::make(plan,
+    auto *update = UpdateVertex::make(plan,
                                       nullptr,
                                       spaceId_,
                                       std::move(name_),
@@ -767,7 +767,7 @@ Status UpdateVertexValidator::toPlan() {
                                       std::move(returnProps_),
                                       std::move(condition_),
                                       std::move(yieldColNames_));
-    root_ = doNode;
+    root_ = update;
     tail_ = root_;
     return Status::OK();
 }

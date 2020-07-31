@@ -134,28 +134,6 @@ private:
 
 class UpdateBase : public SingleInputNode {
 public:
-    static UpdateBase* make(Kind kind,
-                            ExecutionPlan* plan,
-                            PlanNode* input,
-                            GraphSpaceID spaceId,
-                            std::string name,
-                            bool insertable,
-                            std::vector<storage::cpp2::UpdatedProp> updatedProps,
-                            std::vector<std::string> returnProps,
-                            std::string condition,
-                            std::vector<std::string> yieldProps) {
-        return new UpdateBase(kind,
-                              plan,
-                              input,
-                              spaceId,
-                              std::move(name),
-                              insertable,
-                              std::move(updatedProps),
-                              std::move(returnProps),
-                              std::move(condition),
-                              std::move(yieldProps));
-    }
-
     std::string explain() const override {
         return "";
     }
