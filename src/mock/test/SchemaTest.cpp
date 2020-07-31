@@ -472,4 +472,3 @@ TEST_F(SchemaTest, TestInsert) {
 }
 }   // namespace graph
 }   // namespace nebula
-

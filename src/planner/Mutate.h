@@ -132,12 +132,8 @@ private:
     bool                                       overwritable_;
 };
 
-class UpdateBase : public SingleInputNode {
+class Update : public SingleInputNode {
 public:
-    std::string explain() const override {
-        return "";
-    }
-
     bool getInsertable() const {
         return insertable_;
     }
@@ -167,16 +163,16 @@ public:
     }
 
 protected:
-    UpdateBase(Kind kind,
-               ExecutionPlan* plan,
-               PlanNode* input,
-               GraphSpaceID spaceId,
-               std::string name,
-               bool insertable,
-               std::vector<storage::cpp2::UpdatedProp> updatedProps,
-               std::vector<std::string> returnProps,
-               std::string condition,
-               std::vector<std::string> yieldNames)
+    Update(Kind kind,
+           ExecutionPlan* plan,
+           PlanNode* input,
+           GraphSpaceID spaceId,
+           std::string name,
+           bool insertable,
+           std::vector<storage::cpp2::UpdatedProp> updatedProps,
+           std::vector<std::string> returnProps,
+           std::string condition,
+           std::vector<std::string> yieldNames)
         : SingleInputNode(plan, kind, input)
         , spaceId_(spaceId)
         , schemaName_(std::move(name))
@@ -196,7 +192,7 @@ protected:
     std::vector<std::string>                            yieldNames_;
 };
 
-class UpdateVertex final : public UpdateBase {
+class UpdateVertex final : public Update {
 public:
     static UpdateVertex* make(ExecutionPlan* plan,
                               PlanNode* input,
@@ -246,16 +242,16 @@ private:
                  std::vector<std::string> returnProps,
                  std::string condition,
                  std::vector<std::string> yieldNames)
-        : UpdateBase(Kind::kUpdateVertex,
-                     plan,
-                     input,
-                     spaceId,
-                     std::move(name),
-                     insertable,
-                     std::move(updatedProps),
-                     std::move(returnProps),
-                     std::move(condition),
-                     std::move(yieldNames))
+        : Update(Kind::kUpdateVertex,
+                 plan,
+                 input,
+                 spaceId,
+                 std::move(name),
+                 insertable,
+                 std::move(updatedProps),
+                 std::move(returnProps),
+                 std::move(condition),
+                 std::move(yieldNames))
         , vId_(std::move(vId))
         , tagId_(tagId) {}
 
@@ -264,7 +260,7 @@ private:
     TagID                                           tagId_{-1};
 };
 
-class UpdateEdge final : public UpdateBase {
+class UpdateEdge final : public Update {
 public:
     static UpdateEdge* make(ExecutionPlan* plan,
                             PlanNode* input,
@@ -332,16 +328,16 @@ private:
                std::vector<std::string> returnProps,
                std::string condition,
                std::vector<std::string> yieldNames)
-        : UpdateBase(Kind::kUpdateEdge,
-                     plan,
-                     input,
-                     spaceId,
-                     std::move(name),
-                     insertable,
-                     std::move(updatedProps),
-                     std::move(returnProps),
-                     std::move(condition),
-                     std::move(yieldNames))
+        : Update(Kind::kUpdateEdge,
+                 plan,
+                 input,
+                 spaceId,
+                 std::move(name),
+                 insertable,
+                 std::move(updatedProps),
+                 std::move(returnProps),
+                 std::move(condition),
+                 std::move(yieldNames))
 
         , srcId_(std::move(srcId))
         , dstId_(std::move(dstId))

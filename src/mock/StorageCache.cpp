@@ -189,4 +189,3 @@ StorageCache::getPropertyInfo(std::shared_ptr<const meta::NebulaSchemaProvider> 
 }
 }  // namespace graph
 }  // namespace nebula
-

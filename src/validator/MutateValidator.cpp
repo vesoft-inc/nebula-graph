@@ -568,7 +568,7 @@ Status UpdateValidator::getUpdateProps() {
     const std::string *symName = nullptr;
     for (auto& item : items) {
         storage::cpp2::UpdatedProp updatedProp;
-        // The syntax has guaranteed to be one of them
+        // The syntax has guaranteed it is name or expression
         if (item->getFieldName() != nullptr) {
             symName = &name_;
             fieldName = *item->getFieldName();
