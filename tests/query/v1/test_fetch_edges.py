@@ -61,18 +61,18 @@ class TestFetchEdges(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        @pytest.mark.skip(reason="TODO")
-        query = 'FETCH PROP ON serve hash("Boris Diaw")->hash("Hawks") YIELD serve.start_year, serve.end_year'
-        resp = self.execute_query(query)
-        expect_result = [[2003, 2005]]
-        self.check_resp_succeeded(resp)
-        self.check_out_of_order_result(resp, expect_result)
+        # TODO hash key
+        # query = 'FETCH PROP ON serve hash("Boris Diaw")->hash("Hawks") YIELD serve.start_year, serve.end_year'
+        # resp = self.execute_query(query)
+        # expect_result = [[2003, 2005]]
+        # self.check_resp_succeeded(resp)
+        # self.check_out_of_order_result(resp, expect_result)
 
-        @pytest.mark.skip(reason="TODO")
-        query = 'FETCH PROP ON serve uuid("Boris Diaw")->uuid("Hawks") YIELD serve.start_year, serve.end_year'
-        resp = self.execute_query(query)
-        self.check_resp_succeeded(resp)
-        self.check_out_of_order_result(resp, expect_result)
+        # TODO uuid key
+        # query = 'FETCH PROP ON serve uuid("Boris Diaw")->uuid("Hawks") YIELD serve.start_year, serve.end_year'
+        # resp = self.execute_query(query)
+        # self.check_resp_succeeded(resp)
+        # self.check_out_of_order_result(resp, expect_result)
 
     def test_fetch_edges_no_yield(self):
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks"'
@@ -86,19 +86,19 @@ class TestFetchEdges(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
-        @pytest.mark.skip(reason="TODO")
-        query = 'FETCH PROP ON serve hash("Boris Diaw")->hash("Hawks")'
-        resp = self.execute_query(query)
-        expect_result = [['Boris Diaw', 'Hawks', 0, 2003, 2005]]
-        self.check_resp_succeeded(resp)
-        self.check_out_of_order_result(resp, expect_result)
+        # TODO hash key
+        # query = 'FETCH PROP ON serve hash("Boris Diaw")->hash("Hawks")'
+        # resp = self.execute_query(query)
+        # expect_result = [['Boris Diaw', 'Hawks', 0, 2003, 2005]]
+        # self.check_resp_succeeded(resp)
+        # self.check_out_of_order_result(resp, expect_result)
 
-        @pytest.mark.skip(reason="TODO")
-        query = 'FETCH PROP ON serve uuid("Boris Diaw")->uuid("Hawks")'
-        resp = self.execute_query(query)
-        expect_result = [['Boris Diaw', 'Hawks', 0, 2003, 2005]]
-        self.check_resp_succeeded(resp)
-        self.check_out_of_order_result(resp, expect_result)
+        # TODO uuid key
+        # query = 'FETCH PROP ON serve uuid("Boris Diaw")->uuid("Hawks")'
+        # resp = self.execute_query(query)
+        # expect_result = [['Boris Diaw', 'Hawks', 0, 2003, 2005]]
+        # self.check_resp_succeeded(resp)
+        # self.check_out_of_order_result(resp, expect_result)
 
     def test_fetch_edges_distinct(self):
         query = 'FETCH PROP ON serve "Boris Diaw"->"Hawks", "Boris Diaw"->"Hawks" YIELD DISTINCT serve.start_year, serve.end_year'
