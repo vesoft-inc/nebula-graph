@@ -687,7 +687,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 // static
-Status Validator::isPropNonexistOrDuplicate(const ColsDef& cols, const std::string& prop) {
+Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols, const std::string& prop) {
     auto eq = [&](const ColDef& col) { return col.first == prop; };
     auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
     if (iter == cols.cend()) {

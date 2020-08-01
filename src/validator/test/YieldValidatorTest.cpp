@@ -98,7 +98,8 @@ TEST_F(YieldValidatorTest, FuncitonCall) {
         // TODO not support udf_is_in
         // std::string query = "YIELD udf_is_in(1,0,1,2), 123";
         // EXPECT_TRUE(checkResult(query, expected_));
-    } {
+    }
+    {
         std::string query = "YIELD abs(-12)";
         EXPECT_TRUE(checkResult(query, expected_));
     }
