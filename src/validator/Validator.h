@@ -78,6 +78,8 @@ public:
     static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
                                                     QueryContext* context);
 
+    static Status validate(Sentence* sentence, QueryContext* qctx);
+
     MUST_USE_RESULT Status appendPlan(PlanNode* tail);
 
     Status validate();

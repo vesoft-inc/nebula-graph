@@ -4,6 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#include "validator/test/ValidatorTestBase.h"
+
 #include "common/base/Base.h"
 #include "context/QueryContext.h"
 #include "context/ValidateContext.h"
@@ -14,8 +16,6 @@
 #include "planner/Mutate.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
-#include "validator/ASTValidator.h"
-#include "validator/test/ValidatorTestBase.h"
 
 namespace nebula {
 namespace graph {
@@ -213,4 +213,3 @@ int main(int argc, char** argv) {
 
     return RUN_ALL_TESTS();
 }
-
