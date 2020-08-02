@@ -4,46 +4,59 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#include "planner/Logic.h"
 #include "planner/Query.h"
+#include "util/ObjectPool.h"
 #include "validator/FetchVerticesValidator.h"
 #include "validator/test/ValidatorTestBase.h"
 
 namespace nebula {
 namespace graph {
 
-class FetchVerticesValidatorTest : public ValidatorTestBase {};
+class FetchVerticesValidatorTest : public ValidatorTestBase {
+public:
+  void SetUp() override {
+    ValidatorTestBase::SetUp();
+
+    pool_ = std::make_unique<ObjectPool>();
+  }
+
+protected:
+  std::unique_ptr<ObjectPool> pool_;
+};
 
 TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
     auto src = std::make_unique<VariablePropertyExpression>(
         new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kVid));
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\""));
+        auto plan = toPlan("FETCH PROP ON person \"1\"");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
-        auto *plan = qCtx_->plan();
         auto tagIdResult = schemaMng_->toTagID(1, "person");
         ASSERT_TRUE(tagIdResult.ok());
         auto tagId = tagIdResult.value();
         storage::cpp2::VertexProp prop;
         prop.set_tag(tagId);
-        auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
+        auto *gv = GetVertices::make(&expectedPlan,
                                      start,
                                      1,
                                      src.get(),
                                      std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                                      {});
         gv->setColNames({kVid, "person.name", "person.age"});
+        expectedPlan.setRoot(gv);
         auto result = Eq(plan->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, person.age"));
+        auto plan = toPlan("FETCH PROP ON person \"1\" YIELD person.name, person.age");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
-        auto *plan = qCtx_->plan();
         auto tagIdResult = schemaMng_->toTagID(1, "person");
         ASSERT_TRUE(tagIdResult.ok());
         auto tagId = tagIdResult.value();
@@ -57,7 +70,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         expr2.set_expr(
             TagPropertyExpression(new std::string("person"), new std::string("age")).encode());
         auto *gv =
-            GetVertices::make(expectedQueryCtx_->plan(),
+            GetVertices::make(&expectedPlan,
                               start,
                               1,
                               src.get(),
@@ -73,19 +86,19 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("age"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
+        auto *project = Project::make(&expectedPlan, gv, yieldColumns.get());
         project->setColNames({kVid, "person.name", "person.age"});
 
+        expectedPlan.setRoot(project);
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD const expression
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name, 1 > 1, person.age"));
+        auto plan = toPlan("FETCH PROP ON person \"1\" YIELD person.name, 1 > 1, person.age");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
-
-        auto *plan = qCtx_->plan();
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
         // get vertices
         auto tagIdResult = schemaMng_->toTagID(1, "person");
@@ -101,7 +114,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         expr2.set_expr(
             TagPropertyExpression(new std::string("person"), new std::string("age")).encode());
         auto *gv =
-            GetVertices::make(expectedQueryCtx_->plan(),
+            GetVertices::make(&expectedPlan,
                               start,
                               1,
                               src.get(),
@@ -119,18 +132,20 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             Expression::Kind::kRelGT, new ConstantExpression(1), new ConstantExpression(1))));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("age"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
+        auto *project = Project::make(&expectedPlan, gv, yieldColumns.get());
         project->setColNames({kVid, "person.name", "(1>1)", "person.age"});
+
+        expectedPlan.setRoot(project);
 
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD combine properties
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD person.name + person.age"));
-        auto *plan = qCtx_->plan();
+        auto plan = toPlan("FETCH PROP ON person \"1\" YIELD person.name + person.age");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
         auto tagIdResult = schemaMng_->toTagID(1, "person");
         ASSERT_TRUE(tagIdResult.ok());
@@ -146,7 +161,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                 new TagPropertyExpression(new std::string("person"), new std::string("age")))
                 .encode());
 
-        auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
+        auto *gv = GetVertices::make(&expectedPlan,
                                      start,
                                      1,
                                      src.get(),
@@ -162,19 +177,21 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             Expression::Kind::kAdd,
             new TagPropertyExpression(new std::string("person"), new std::string("name")),
             new TagPropertyExpression(new std::string("person"), new std::string("age")))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
+        auto *project = Project::make(&expectedPlan, gv, yieldColumns.get());
         project->setColNames({kVid, "(person.name+person.age)"});
+
+        expectedPlan.setRoot(project);
 
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD distinct
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\" YIELD distinct person.name, person.age"));
+        auto plan = toPlan("FETCH PROP ON person \"1\" YIELD distinct person.name, person.age");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
-        auto *plan = qCtx_->plan();
         auto tagIdResult = schemaMng_->toTagID(1, "person");
         ASSERT_TRUE(tagIdResult.ok());
         auto tagId = tagIdResult.value();
@@ -188,7 +205,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         expr2.set_expr(
             TagPropertyExpression(new std::string("person"), new std::string("age")).encode());
         auto *gv =
-            GetVertices::make(expectedQueryCtx_->plan(),
+            GetVertices::make(&expectedPlan,
                               start,
                               1,
                               src.get(),
@@ -206,34 +223,34 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("age"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
+        auto *project = Project::make(&expectedPlan, gv, yieldColumns.get());
         project->setColNames(colNames);
 
         // dedup
-        auto *dedup = Dedup::make(expectedQueryCtx_->plan(), project);
+        auto *dedup = Dedup::make(&expectedPlan, project);
         dedup->setColNames(colNames);
 
         // data collect
-        auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(),
-                                              dedup,
-                                              DataCollect::CollectKind::kRowBasedMove,
-                                              {dedup->varName()});
+        auto *dataCollect = DataCollect::make(
+            &expectedPlan, dedup, DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
         dataCollect->setColNames(colNames);
+
+        expectedPlan.setRoot(dataCollect);
 
         auto result = Eq(plan->root(), dataCollect);
         ASSERT_TRUE(result.ok()) << result;
     }
     // ON *
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON * \"1\""));
+        auto plan = toPlan("FETCH PROP ON * \"1\"");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
-
-        auto *plan = qCtx_->plan();
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
         auto *gv = GetVertices::make(
-            expectedQueryCtx_->plan(), start, 1, src.get(), {}, {});
+            &expectedPlan, start, 1, src.get(), {}, {});
         gv->setColNames({kVid, "person.name", "person.age"});
+        expectedPlan.setRoot(gv);
         auto result = Eq(plan->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
