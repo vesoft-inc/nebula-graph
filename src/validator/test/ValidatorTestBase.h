@@ -31,36 +31,24 @@ protected:
         session_ = Session::create(0);
         session_->setSpace("test_space", 1);
         schemaMng_ = CHECK_NOTNULL(MockSchemaManager::makeUnique());
-        qCtx_ = buildContext();
-        expectedQueryCtx_ = buildContext();
     }
 
-    void TearDown() override {
+    ExecutionPlan* toPlan(const std::string& query) {
+        auto qctxStatus = validate(query);
+        EXPECT_TRUE(qctxStatus);
+        qctx_ = std::move(qctxStatus).value();
+        return qctx_->plan();
     }
 
-    // some utils
-    inline ::testing::AssertionResult toPlan(const std::string &query) {
-        auto result = GQLParser().parse(query);
-        if (!result.ok()) {
-            return ::testing::AssertionFailure() << result.status().toString();
-        }
-        sentences_ = std::move(result).value();
-        qCtx_ = buildContext();
-        auto validateResult = Validator::validate(sentences_.get(), qCtx_.get());
-        if (!validateResult.ok()) {
-            return ::testing::AssertionFailure() << validateResult.toString();
-        }
-        return ::testing::AssertionSuccess();
-    }
-
-    StatusOr<ExecutionPlan*> validate(const std::string& query) {
+    StatusOr<std::unique_ptr<QueryContext>> validate(const std::string& query) {
+        VLOG(1) << "query: " << query;
         auto result = GQLParser().parse(query);
         if (!result.ok()) return std::move(result).status();
         auto sentences = std::move(result).value();
-        NG_RETURN_IF_ERROR(Validator::validate(sentences.get(), qCtx_.get()));
-        return qCtx_->plan();
+        auto qctx = buildContext();
+        NG_RETURN_IF_ERROR(Validator::validate(sentences.get(), qctx.get()));
+        return std::move(qctx);
     }
-
 
     std::unique_ptr<QueryContext> buildContext() {
         auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
@@ -79,24 +67,17 @@ protected:
     ::testing::AssertionResult checkResult(const std::string& query,
                                            const std::vector<PlanNode::Kind>& expected = {},
                                            const std::vector<std::string> &rootColumns = {}) {
-        VLOG(1) << "query: " << query;
-        auto result = GQLParser().parse(query);
-        if (!result.ok()) {
-            return ::testing::AssertionFailure() << result.status();
+        auto ctxStatus = validate(query);
+        if (!ctxStatus) {
+            return ::testing::AssertionFailure() << std::move(ctxStatus).status().toString();
         }
-
-        auto sentences = std::move(result).value();
-        auto context = buildContext();
-        auto validateResult = Validator::validate(sentences.get(), context.get());
-        if (!validateResult.ok()) {
-            return ::testing::AssertionFailure() << validateResult;
-        }
-        if (expected.empty()) {
-            return ::testing::AssertionSuccess();
-        }
+        auto context = std::move(ctxStatus).value();
         auto plan = context->plan();
         if (plan == nullptr) {
             return ::testing::AssertionFailure() << "plan is nullptr";
+        }
+        if (expected.empty()) {
+            return ::testing::AssertionSuccess();
         }
         auto assertResult = verifyPlan(plan->root(), expected);
         if (!assertResult) {
@@ -234,10 +215,8 @@ protected:
 protected:
     std::shared_ptr<Session>              session_;
     std::unique_ptr<MockSchemaManager>    schemaMng_;
-    std::unique_ptr<QueryContext>         qCtx_;
     std::unique_ptr<Sentence>             sentences_;
-    // used to hold the expected query plan
-    std::unique_ptr<QueryContext>         expectedQueryCtx_;
+    std::unique_ptr<QueryContext>         qctx_;
 };
 
 std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan);

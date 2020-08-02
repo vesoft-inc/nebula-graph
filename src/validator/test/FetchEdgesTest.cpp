@@ -11,7 +11,17 @@
 namespace nebula {
 namespace graph {
 
-class FetchEdgesValidatorTest : public ValidatorTestBase {};
+class FetchEdgesValidatorTest : public ValidatorTestBase {
+public:
+    void SetUp() override {
+        ValidatorTestBase::SetUp();
+
+        pool_ = std::make_unique<ObjectPool>();
+    }
+
+protected:
+    std::unique_ptr<ObjectPool> pool_;
+};
 
 TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     auto src = std::make_unique<VariablePropertyExpression>(
@@ -23,11 +33,11 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     auto dst = std::make_unique<VariablePropertyExpression>(
         new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kDst));
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\""));
+        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\"");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
-        auto *plan = qCtx_->plan();
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
@@ -36,7 +46,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         prop.set_props({kSrc, kDst, kRank, "start", "end", "likeness"});
         std::vector<storage::cpp2::EdgeProp> props;
         props.emplace_back(std::move(prop));
-        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+        auto *ge = GetEdges::make(&expectedPlan,
                                   start,
                                   1,
                                   src.get(),
@@ -51,17 +61,17 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                          "like.start",
                          "like.end",
                          "like.likeness"});
-        expectedQueryCtx_->plan()->setRoot(ge);
+        expectedPlan.setRoot(ge);
         auto result = Eq(plan->root(), ge);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end"));
+        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
-        auto *plan = qCtx_->plan();
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
@@ -79,7 +89,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             EdgePropertyExpression(new std::string("like"), new std::string("end")).encode());
         exprs.emplace_back(std::move(expr1));
         exprs.emplace_back(std::move(expr2));
-        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+        auto *ge = GetEdges::make(&expectedPlan,
                                   start,
                                   1,
                                   src.get(),
@@ -103,23 +113,22 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
+        auto *project = Project::make(&expectedPlan, ge, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,
                               std::string("like.") + kDst,
                               std::string("like.") + kRank,
                               "like.start",
                               "like.end"});
-        expectedQueryCtx_->plan()->setRoot(project);
+        expectedPlan.setRoot(project);
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD const expression
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, 1 + 1, like.end"));
+        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, 1 + 1, like.end");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
-
-        auto *plan = qCtx_->plan();
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
         // GetEdges
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
@@ -139,7 +148,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             EdgePropertyExpression(new std::string("like"), new std::string("end")).encode());
         exprs.emplace_back(std::move(expr1));
         exprs.emplace_back(std::move(expr2));
-        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+        auto *ge = GetEdges::make(&expectedPlan,
                                   start,
                                   1,
                                   src.get(),
@@ -166,24 +175,24 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             Expression::Kind::kAdd, new ConstantExpression(1), new ConstantExpression(1))));
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
+        auto *project = Project::make(&expectedPlan, ge, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,
                               std::string("like.") + kDst,
                               std::string("like.") + kRank,
                               "like.start",
                               "(1+1)",
                               "like.end"});
-        expectedQueryCtx_->plan()->setRoot(project);
+        expectedPlan.setRoot(project);
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD combine properties
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end"));
+        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
-        auto *plan = qCtx_->plan();
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
@@ -202,7 +211,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                 new EdgePropertyExpression(new std::string("like"), new std::string("end")))
                 .encode());
         exprs.emplace_back(std::move(expr1));
-        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+        auto *ge = GetEdges::make(&expectedPlan,
                                   start,
                                   1,
                                   src.get(),
@@ -225,23 +234,23 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             Expression::Kind::kRelGT,
             new EdgePropertyExpression(new std::string("like"), new std::string("start")),
             new EdgePropertyExpression(new std::string("like"), new std::string("end")))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
+        auto *project = Project::make(&expectedPlan, ge, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,
                               std::string("like.") + kDst,
                               std::string("like.") + kRank,
                               "(like.start>like.end)"});
 
-        expectedQueryCtx_->plan()->setRoot(project);
+        expectedPlan.setRoot(project);
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD distinct
     {
-        ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD distinct like.start, like.end"));
+        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD distinct like.start, like.end");
 
-        auto *start = StartNode::make(expectedQueryCtx_->plan());
+        ExecutionPlan expectedPlan(pool_.get());
+        auto *start = StartNode::make(&expectedPlan);
 
-        auto *plan = qCtx_->plan();
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
@@ -259,7 +268,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             EdgePropertyExpression(new std::string("like"), new std::string("end")).encode());
         exprs.emplace_back(std::move(expr1));
         exprs.emplace_back(std::move(expr2));
-        auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
+        auto *ge = GetEdges::make(&expectedPlan,
                                   start,
                                   1,
                                   src.get(),
@@ -285,24 +294,22 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
-        auto *project = Project::make(expectedQueryCtx_->plan(), ge, yieldColumns.get());
+        auto *project = Project::make(&expectedPlan, ge, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,
                               std::string("like.") + kDst,
                               std::string("like.") + kRank,
                               "like.start",
                               "like.end"});
         // dedup
-        auto *dedup = Dedup::make(expectedQueryCtx_->plan(), project);
+        auto *dedup = Dedup::make(&expectedPlan, project);
         dedup->setColNames(colNames);
 
         // data collect
-        auto *dataCollect = DataCollect::make(expectedQueryCtx_->plan(),
-                                              dedup,
-                                              DataCollect::CollectKind::kRowBasedMove,
-                                              {dedup->varName()});
+        auto *dataCollect = DataCollect::make(
+            &expectedPlan, dedup, DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
         dataCollect->setColNames(colNames);
 
-        expectedQueryCtx_->plan()->setRoot(dataCollect);
+        expectedPlan.setRoot(dataCollect);
         auto result = Eq(plan->root(), dataCollect);
         ASSERT_TRUE(result.ok()) << result;
     }
