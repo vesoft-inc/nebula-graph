@@ -19,7 +19,7 @@
 #include "planner/Logic.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
-#include "validator/ASTValidator.h"
+#include "validator/Validator.h"
 #include "validator/test/MockSchemaManager.h"
 
 namespace nebula {
@@ -46,8 +46,7 @@ protected:
         }
         sentences_ = std::move(result).value();
         qCtx_ = buildContext();
-        ASTValidator validator(sentences_.get(), qCtx_.get());
-        auto validateResult = validator.validate();
+        auto validateResult = Validator::validate(sentences_.get(), qCtx_.get());
         if (!validateResult.ok()) {
             return ::testing::AssertionFailure() << validateResult.toString();
         }
@@ -58,8 +57,7 @@ protected:
         auto result = GQLParser().parse(query);
         if (!result.ok()) return std::move(result).status();
         auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        NG_RETURN_IF_ERROR(validator.validate());
+        NG_RETURN_IF_ERROR(Validator::validate(sentences.get(), qCtx_.get()));
         return qCtx_->plan();
     }
 
@@ -89,8 +87,7 @@ protected:
 
         auto sentences = std::move(result).value();
         auto context = buildContext();
-        ASTValidator validator(sentences.get(), context.get());
-        auto validateResult = validator.validate();
+        auto validateResult = Validator::validate(sentences.get(), context.get());
         if (!validateResult.ok()) {
             return ::testing::AssertionFailure() << validateResult;
         }

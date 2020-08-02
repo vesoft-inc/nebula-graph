@@ -296,140 +296,40 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
 
 TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
     // mismatched tag
-    {
-        auto result = GQLParser().parse("FETCH PROP ON tag1 \"1\" YIELD tag2.prop2");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
+    ASSERT_FALSE(validate("FETCH PROP ON tag1 \"1\" YIELD tag2.prop2"));
 
     // not exist tag
-    {
-        auto result =
-            GQLParser().parse("FETCH PROP ON not_exist_tag \"1\" YIELD not_exist_tag.prop1");
-        ASSERT_TRUE(result.ok()) << result.status();
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
+    ASSERT_FALSE(validate("FETCH PROP ON not_exist_tag \"1\" YIELD not_exist_tag.prop1"));
 
     // not exist property
-    {
-        auto result =
-            GQLParser().parse("FETCH PROP ON person \"1\" YIELD person.not_exist_property");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD person.not_exist_property"));
 
     // invalid yield expression
-    {
-        auto result = GQLParser().parse("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
-                                        " FETCH PROP ON person \"1\" YIELD $a.name + 1");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
-    // invalid yield expression
-    {
-        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD $^.person.name");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
-    {
-        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD $$.person.name");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
-    {
-        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person.name AS name | "
-                                        " FETCH PROP ON person \"1\" YIELD $-.name + 1");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
-    {
-        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._src + 1");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
-    {
-        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._type");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
-    {
-        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._rank + 1");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
-    {
-        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person._dst + 1");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
+    ASSERT_FALSE(validate("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
+                          " FETCH PROP ON person \"1\" YIELD $a.name + 1"));
+
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD $^.person.name"));
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD $$.person.name"));
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD person.name AS name | "
+                          " FETCH PROP ON person \"1\" YIELD $-.name + 1"));
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD person._src + 1"));
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD person._type"));
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD person._rank + 1"));
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD person._dst + 1"));
 }
 
 TEST_F(FetchVerticesValidatorTest, FetchVerticesInputFailed) {
     // mismatched varirable
-    {
-        auto result = GQLParser().parse("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
-                                        "FETCH PROP ON person $b.name");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
+    ASSERT_FALSE(validate("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
+                          "FETCH PROP ON person $b.name"));
 
     // mismatched varirable property
-    {
-        auto result = GQLParser().parse("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
-                                        "FETCH PROP ON person $a.not_exist_property");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
+    ASSERT_FALSE(validate("$a = FETCH PROP ON person \"1\" YIELD person.name AS name;"
+                          "FETCH PROP ON person $a.not_exist_property"));
 
     // mismatched input property
-    {
-        auto result = GQLParser().parse("FETCH PROP ON person \"1\" YIELD person.name AS name | "
-                                        "FETCH PROP ON person $-.not_exist_property");
-        ASSERT_TRUE(result.ok());
-        auto sentences = std::move(result).value();
-        ASTValidator validator(sentences.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        ASSERT_FALSE(validateResult.ok());
-    }
+    ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD person.name AS name | "
+                          "FETCH PROP ON person $-.not_exist_property"));
 }
 
 }   // namespace graph
