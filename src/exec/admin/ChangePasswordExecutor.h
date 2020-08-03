@@ -4,7 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#pragma once
+#ifndef EXEC_ADMIN_CHANGE_PASSWORD_EXECUTOR_H_
+#define EXEC_ADMIN_CHANGE_PASSWORD_EXECUTOR_H_
 
 #include "exec/Executor.h"
 
@@ -24,3 +25,5 @@ private:
 
 }   // namespace graph
 }   // namespace nebula
+
+#endif
