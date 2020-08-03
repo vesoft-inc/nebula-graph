@@ -45,12 +45,12 @@ class TestConfigs(NebulaTestSuite):
 
         resp = self.client.execute_query('GET CONFIGS graph:v')
         self.check_resp_succeeded(resp)
-        expected_result = [['GRAPH', 'v', 'INT', 'MUTABLE', 3]]
+        expected_result = [['GRAPH', 'v', 'int', 'MUTABLE', 3]]
         self.check_result(resp, expected_result)
 
         resp = self.client.execute_query('GET CONFIGS storage:v')
         self.check_resp_succeeded(resp)
-        expected_result = [['STORAGE', 'v', 'INT', 'MUTABLE', 3]]
+        expected_result = [['STORAGE', 'v', 'int', 'MUTABLE', 3]]
         self.check_result(resp, expected_result)
 
         # show configs
@@ -59,28 +59,28 @@ class TestConfigs(NebulaTestSuite):
 
         resp = self.client.execute_query('SHOW CONFIGS graph')
         self.check_resp_succeeded(resp)
-        expected_result = [['GRAPH', 'v', 'INT', 'MUTABLE', v],
-                           ['GRAPH', 'minloglevel', 'INT', 'MUTABLE', 0],
-                           ['GRAPH', 'slow_op_threshhold_ms', 'INT', 'MUTABLE', 50],
-                           ['GRAPH', 'heartbeat_interval_secs', 'INT', 'MUTABLE', 3],
-                           ['GRAPH', 'meta_client_retry_times', 'INT', 'MUTABLE', 3]]
+        expected_result = [['GRAPH', 'v', 'int', 'MUTABLE', v],
+                           ['GRAPH', 'minloglevel', 'int', 'MUTABLE', 0],
+                           ['GRAPH', 'slow_op_threshhold_ms', 'int', 'MUTABLE', 50],
+                           ['GRAPH', 'heartbeat_interval_secs', 'int', 'MUTABLE', 3],
+                           ['GRAPH', 'meta_client_retry_times', 'int', 'MUTABLE', 3]]
         self.check_out_of_order_result(resp, expected_result)
 
         resp = self.client.execute_query('SHOW CONFIGS storage')
         self.check_resp_succeeded(resp)
-        expected_result = [['STORAGE', 'v', 'INT', 'MUTABLE', 3],
-                           ['STORAGE', 'wal_ttl', 'INT', 'MUTABLE', 14400],
-                           ['STORAGE', 'minloglevel', 'INT', 'MUTABLE', 0],
-                           ['STORAGE', 'enable_reservoir_sampling', 'BOOL', 'MUTABLE', False],
-                           ['STORAGE', 'custom_filter_interval_secs', 'INT', 'MUTABLE', 86400],
-                           ['STORAGE', 'slow_op_threshhold_ms', 'INT', 'MUTABLE', 50],
-                           ['STORAGE', 'heartbeat_interval_secs', 'INT', 'MUTABLE', 3],
-                           ['STORAGE', 'meta_client_retry_times', 'INT', 'MUTABLE', 3],
-                           ['STORAGE', 'rocksdb_db_options', 'MAP', 'MUTABLE', {}],
-                           ['STORAGE', 'max_edge_returned_per_vertex', 'INT', 'MUTABLE', 2147483647],
-                           ['STORAGE', 'rocksdb_column_family_options', 'MAP', 'MUTABLE',
+        expected_result = [['STORAGE', 'v', 'int', 'MUTABLE', 3],
+                           ['STORAGE', 'wal_ttl', 'int', 'MUTABLE', 14400],
+                           ['STORAGE', 'minloglevel', 'int', 'MUTABLE', 0],
+                           ['STORAGE', 'enable_reservoir_sampling', 'bool', 'MUTABLE', False],
+                           ['STORAGE', 'custom_filter_interval_secs', 'int', 'MUTABLE', 86400],
+                           ['STORAGE', 'slow_op_threshhold_ms', 'int', 'MUTABLE', 50],
+                           ['STORAGE', 'heartbeat_interval_secs', 'int', 'MUTABLE', 3],
+                           ['STORAGE', 'meta_client_retry_times', 'int', 'MUTABLE', 3],
+                           ['STORAGE', 'rocksdb_db_options', 'map', 'MUTABLE', {}],
+                           ['STORAGE', 'max_edge_returned_per_vertex', 'int', 'MUTABLE', 2147483647],
+                           ['STORAGE', 'rocksdb_column_family_options', 'map', 'MUTABLE',
                             {"write_buffer_size":"67108864","max_bytes_for_level_base":"268435456","max_write_buffer_number":"4"}],
-                           ['STORAGE', 'rocksdb_block_based_table_options', 'MAP', 'MUTABLE', {"block_size":"8192"}]]
+                           ['STORAGE', 'rocksdb_block_based_table_options', 'map', 'MUTABLE', {"block_size":"8192"}]]
         self.check_out_of_order_result(resp, expected_result)
 
         # set and get a config of all module
@@ -90,8 +90,8 @@ class TestConfigs(NebulaTestSuite):
         # check result
         resp = self.client.execute_query('GET CONFIGS minloglevel')
         self.check_resp_succeeded(resp)
-        expected_result = [['GRAPH', 'minloglevel', 'INT', 'MUTABLE', 2],
-                           ['STORAGE', 'minloglevel', 'INT', 'MUTABLE', 2]]
+        expected_result = [['GRAPH', 'minloglevel', 'int', 'MUTABLE', 2],
+                           ['STORAGE', 'minloglevel', 'int', 'MUTABLE', 2]]
         self.check_out_of_order_result(resp, expected_result)
 
         # update storage
@@ -101,8 +101,8 @@ class TestConfigs(NebulaTestSuite):
         # get result
         resp = self.client.execute_query('GET CONFIGS minloglevel')
         self.check_resp_succeeded(resp)
-        expected_result = [['GRAPH', 'minloglevel', 'INT', 'MUTABLE', 2],
-                           ['STORAGE', 'minloglevel', 'INT', 'MUTABLE', 3]]
+        expected_result = [['GRAPH', 'minloglevel', 'int', 'MUTABLE', 2],
+                           ['STORAGE', 'minloglevel', 'int', 'MUTABLE', 3]]
         self.check_result(resp, expected_result)
 
         # update rocksdb
@@ -118,5 +118,5 @@ class TestConfigs(NebulaTestSuite):
         resp = self.client.execute_query('GET CONFIGS storage:rocksdb_column_family_options')
         self.check_resp_succeeded(resp)
         value = {"max_bytes_for_level_base": 1024, "write_buffer_size": 1024, "max_write_buffer_number": 4}
-        expected_result = [['STORAGE', 'rocksdb_column_family_options', 'MAP', 'MUTABLE', value]]
+        expected_result = [['STORAGE', 'rocksdb_column_family_options', 'map', 'MUTABLE', value]]
         self.check_result(resp, expected_result)

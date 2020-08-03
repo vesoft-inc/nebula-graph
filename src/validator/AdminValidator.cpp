@@ -304,12 +304,12 @@ Status SetConfigValidator::validateImpl() {
         for (auto &updateItem : updateItems->items()) {
             std::string name;
             Value value;
-            if (updateItem->field() == nullptr || updateItem->value() == nullptr) {
+            if (updateItem->getFieldName() == nullptr || updateItem->value() == nullptr) {
                 return Status::Error("Empty item");
             }
-            name = *updateItem->field();
+            name = *updateItem->getFieldName();
 
-            value = Expression::eval(updateItem->value(), ctx);
+            value = Expression::eval(const_cast<Expression*>(updateItem->value()), ctx);
 
             if (value.isNull() || (!value.isNumeric() && !value.isStr() && !value.isBool())) {
                 return Status::Error("Wrong value: %s", name.c_str());

@@ -403,6 +403,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             exec = new UpdateEdgeExecutor(updateE, qctx);
             exec->dependsOn(input);
             break;
+        }
         case PlanNode::Kind::kShowConfigs: {
             auto showConfigs = asNode<ShowConfigs>(node);
             auto input = makeExecutor(showConfigs->dep(), qctx, visited);
