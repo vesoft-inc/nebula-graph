@@ -364,14 +364,22 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
 
     auto* plan = qctx_->plan();
 
+    auto* yieldDsts = plan->saveObject(new YieldColumns());
+    yieldDsts->addColumn(new YieldColumn(new EdgePropertyExpression(new std::string("*"),
+                                                                    new std::string(kDst))));
+    auto* projectDsts = Project::make(plan, projectSrcDstProps, yieldDsts);
+
+    auto* dedupVids = Dedup::make(plan, projectDsts);
+    dedupVids->setInputVar(projectDsts->varName());
+
     auto* vids = new VariablePropertyExpression(
-        new std::string(projectSrcDstProps->varName()),
+        new std::string(dedupVids->varName()),
         new std::string(joinDstVidColName_));
     plan->saveObject(vids);
     auto* getDstVertices =
-        GetVertices::make(plan, projectSrcDstProps, space_.id, {}, vids,
+        GetVertices::make(plan, dedupVids, space_.id, vids,
                             buildDstVertexProps(), {});
-    getDstVertices->setInputVar(projectSrcDstProps->varName());
+    getDstVertices->setInputVar(dedupVids->varName());
 
     auto vidColName = vctx_->anonColGen()->getCol();
     auto* vidCol = new YieldColumn(

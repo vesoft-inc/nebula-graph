@@ -14,6 +14,14 @@ namespace graph {
 class FetchEdgesValidatorTest : public ValidatorTestBase {};
 
 TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
+    auto src = std::make_unique<VariablePropertyExpression>(
+        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kSrc));
+    auto type = std::make_unique<VariablePropertyExpression>(
+        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kType));
+    auto rank = std::make_unique<VariablePropertyExpression>(
+        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kRank));
+    auto dst = std::make_unique<VariablePropertyExpression>(
+        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kDst));
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON like \"1\"->\"2\""));
 
@@ -23,12 +31,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
-        std::vector<nebula::Row> edges{nebula::Row({
-            "1",
-            edgeType,
-            0,
-            "2",
-        })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
         prop.set_props({kSrc, kDst, kRank, "start", "end", "likeness"});
@@ -37,11 +39,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
                                   start,
                                   1,
-                                  std::move(edges),
-                                  nullptr,
-                                  edgeType,
-                                  nullptr,
-                                  nullptr,
+                                  src.get(),
+                                  type.get(),
+                                  rank.get(),
+                                  dst.get(),
                                   std::move(props),
                                   {});
         expectedQueryCtx_->plan()->setRoot(ge);
@@ -58,12 +59,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
-        std::vector<nebula::Row> edges{nebula::Row({
-            "1",
-            edgeType,
-            0,
-            "2",
-        })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
         prop.set_props({kSrc, kDst, kRank, "start", "end"});
@@ -81,11 +76,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
                                   start,
                                   1,
-                                  std::move(edges),
-                                  nullptr,
-                                  edgeType,
-                                  nullptr,
-                                  nullptr,
+                                  src.get(),
+                                  type.get(),
+                                  rank.get(),
+                                  dst.get(),
                                   std::move(props),
                                   std::move(exprs));
 
@@ -120,12 +114,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
-        std::vector<nebula::Row> edges{nebula::Row({
-            "1",
-            edgeType,
-            0,
-            "2",
-        })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
         prop.set_props({kSrc, kDst, kRank, "start", "end"});
@@ -143,11 +131,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
                                   start,
                                   1,
-                                  std::move(edges),
-                                  nullptr,
-                                  edgeType,
-                                  nullptr,
-                                  nullptr,
+                                  src.get(),
+                                  type.get(),
+                                  rank.get(),
+                                  dst.get(),
                                   std::move(props),
                                   std::move(exprs));
 
@@ -183,12 +170,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
-        std::vector<nebula::Row> edges{nebula::Row({
-            "1",
-            edgeType,
-            0,
-            "2",
-        })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
         std::vector<std::string> propsName;
@@ -207,11 +188,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
                                   start,
                                   1,
-                                  std::move(edges),
-                                  nullptr,
-                                  edgeType,
-                                  nullptr,
-                                  nullptr,
+                                  src.get(),
+                                  type.get(),
+                                  rank.get(),
+                                  dst.get(),
                                   std::move(props),
                                   std::move(exprs));
 
@@ -244,12 +224,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
         ASSERT_TRUE(edgeTypeResult.ok());
         auto edgeType = edgeTypeResult.value();
-        std::vector<nebula::Row> edges{nebula::Row({
-            "1",
-            edgeType,
-            0,
-            "2",
-        })};
         storage::cpp2::EdgeProp prop;
         prop.set_type(edgeType);
         prop.set_props({kSrc, kDst, kRank, "start", "end"});
@@ -267,11 +241,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         auto *ge = GetEdges::make(expectedQueryCtx_->plan(),
                                   start,
                                   1,
-                                  std::move(edges),
-                                  nullptr,
-                                  edgeType,
-                                  nullptr,
-                                  nullptr,
+                                  src.get(),
+                                  type.get(),
+                                  rank.get(),
+                                  dst.get(),
                                   std::move(props),
                                   std::move(exprs));
 
@@ -323,6 +296,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
                                 {
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -335,6 +309,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
@@ -354,6 +329,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -368,6 +344,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,

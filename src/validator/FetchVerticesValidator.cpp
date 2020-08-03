@@ -21,19 +21,28 @@ Status FetchVerticesValidator::validateImpl() {
 Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+
+    std::string vidsVar;
+    PlanNode* projectVid = nullptr;
+    if (srcRef_ == nullptr) {
+        vidsVar = buildConstantInput();
+    } else {
+        projectVid = buildRuntimeInput();
+        vidsVar = projectVid->varName();
+    }
+
     auto *plan = qctx_->plan();
     auto *getVerticesNode = GetVertices::make(plan,
-                                              nullptr,
+                                              projectVid,
                                               spaceId_,
-                                              std::move(vertices_),
-                                              std::move(src_),
+                                              src_,
                                               std::move(props_),
                                               std::move(exprs_),
                                               dedup_,
                                               std::move(orderBy_),
                                               limit_,
                                               std::move(filter_));
-    getVerticesNode->setInputVar(inputVar_);
+    getVerticesNode->setInputVar(vidsVar);
     // pipe will set the input variable
     PlanNode *current = getVerticesNode;
 
@@ -54,7 +63,7 @@ Status FetchVerticesValidator::toPlan() {
         // if the result is required
     }
     root_ = current;
-    tail_ = getVerticesNode;
+    tail_ = projectVid == nullptr ? getVerticesNode : projectVid;
     return Status::OK();
 }
 
@@ -82,8 +91,8 @@ Status FetchVerticesValidator::prepareVertices() {
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     // from ref, eval when execute
     if (sentence->isRef()) {
-        src_ = sentence->ref();
-        auto result = checkRef(src_, Value::Type::STRING);
+        srcRef_ = sentence->ref();
+        auto result = checkRef(srcRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         inputVar_ = std::move(result).value();
         return Status::OK();
@@ -93,7 +102,7 @@ Status FetchVerticesValidator::prepareVertices() {
     // TODO(shylock) add eval() method for expression
     QueryExpressionContext dummy(nullptr);
     auto vids = sentence->vidList();
-    vertices_.reserve(vids.size());
+    srcVids_.rows.reserve(vids.size());
     for (const auto vid : vids) {
         // TODO(shylock) Add a new value type VID to semantic this
         DCHECK(ExpressionUtils::isConstExpr(vid));
@@ -101,7 +110,7 @@ Status FetchVerticesValidator::prepareVertices() {
         if (!v.isStr()) {   // string as vid
             return Status::NotSupported("Not a vertex id");
         }
-        vertices_.emplace_back(nebula::Row({std::move(v).getStr()}));
+        srcVids_.emplace_back(nebula::Row({std::move(v).getStr()}));
     }
     return Status::OK();
 }
@@ -217,6 +226,31 @@ const Expression *FetchVerticesValidator::findInvalidYieldExpression(const Expre
                                          Expression::Kind::kEdgeType,
                                          Expression::Kind::kEdgeRank,
                                          Expression::Kind::kEdgeDst});
+}
+
+std::string FetchVerticesValidator::buildConstantInput() {
+    auto input = vctx_->anonVarGen()->getVar();
+    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(srcVids_))).finish());
+
+    auto* vids = new VariablePropertyExpression(new std::string(input),
+                                                new std::string(kVid));
+    qctx_->plan()->saveObject(vids);
+    src_ = vids;
+    return input;
+}
+
+PlanNode* FetchVerticesValidator::buildRuntimeInput() {
+    auto* columns = new YieldColumns();
+    auto* column = new YieldColumn(ExpressionUtils::clone(srcRef_).release(),
+                                   new std::string(kVid));
+    columns->addColumn(column);
+    auto plan = qctx_->plan();
+    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    project->setInputVar(inputVar_);
+    project->setColNames({ kVid });
+    VLOG(1) << project->varName() << " input: " << project->inputVar();
+    src_ = plan->saveObject(new InputPropertyExpression(new std::string(kVid)));
+    return project;
 }
 
 }   // namespace graph

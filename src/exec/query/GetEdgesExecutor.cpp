@@ -27,11 +27,6 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
 
     auto *ge = asNode<GetEdges>(node());
     nebula::DataSet edges({kSrc, kType, kRank, kDst});
-    if (!ge->edges().empty()) {
-        edges.rows.insert(edges.rows.end(),
-                          std::make_move_iterator(ge->edges().begin()),
-                          std::make_move_iterator(ge->edges().end()));
-    }
     if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
         // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
         auto valueIter = ectx_->getResult(ge->inputVar()).iter();

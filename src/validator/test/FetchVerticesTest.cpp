@@ -14,6 +14,8 @@ namespace graph {
 class FetchVerticesValidatorTest : public ValidatorTestBase {};
 
 TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
+    auto src = std::make_unique<VariablePropertyExpression>(
+        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kVid));
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\""));
 
@@ -28,8 +30,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
                                      start,
                                      1,
-                                     std::vector<Row>{Row({"1"})},
-                                     nullptr,
+                                     src.get(),
                                      std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                                      {});
         auto result = Eq(plan->root(), gv);
@@ -58,8 +59,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             GetVertices::make(expectedQueryCtx_->plan(),
                               start,
                               1,
-                              std::vector<Row>{Row({"1"})},
-                              nullptr,
+                              src.get(),
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
 
@@ -100,8 +100,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             GetVertices::make(expectedQueryCtx_->plan(),
                               start,
                               1,
-                              std::vector<Row>{Row({"1"})},
-                              nullptr,
+                              src.get(),
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
 
@@ -143,8 +142,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         auto *gv = GetVertices::make(expectedQueryCtx_->plan(),
                                      start,
                                      1,
-                                     std::vector<Row>{Row({"1"})},
-                                     nullptr,
+                                     src.get(),
                                      std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                                      std::vector<storage::cpp2::Expr>{std::move(expr1)});
 
@@ -183,8 +181,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             GetVertices::make(expectedQueryCtx_->plan(),
                               start,
                               1,
-                              std::vector<Row>{Row({"1"})},
-                              nullptr,
+                              src.get(),
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
 
@@ -222,7 +219,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         auto *plan = qCtx_->plan();
 
         auto *gv = GetVertices::make(
-            expectedQueryCtx_->plan(), start, 1, std::vector<Row>{Row({"1"})}, nullptr, {}, {});
+            expectedQueryCtx_->plan(), start, 1, src.get(), {}, {});
         auto result = Eq(plan->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
@@ -237,6 +234,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                 {
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -248,6 +246,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
@@ -264,6 +263,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -276,6 +276,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,

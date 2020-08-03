@@ -28,15 +28,25 @@ Status FetchEdgesValidator::validateImpl() {
 
 Status FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
+
     auto *plan = qctx_->plan();
+
+    std::string edgeKeysVar;
+    PlanNode* projectEdgeKeys = nullptr;
+    if (srcRef_ == nullptr) {
+        edgeKeysVar = buildConstantInput();
+    } else {
+        projectEdgeKeys = buildRuntimeInput();
+        edgeKeysVar = projectEdgeKeys->varName();
+    }
+
     auto *getEdgesNode = GetEdges::make(plan,
-                                        nullptr,
+                                        projectEdgeKeys,
                                         spaceId_,
-                                        std::move(edges_),
-                                        std::move(src_),
-                                        edgeType_,
-                                        std::move(ranking_),
-                                        std::move(dst_),
+                                        src_,
+                                        type_,
+                                        rank_,
+                                        dst_,
                                         std::move(props_),
                                         std::move(exprs_),
                                         dedup_,
@@ -64,7 +74,7 @@ Status FetchEdgesValidator::toPlan() {
         // if the result is required
     }
     root_ = current;
-    tail_ = getEdgesNode;
+    tail_ = projectEdgeKeys == nullptr ? getEdgesNode : projectEdgeKeys;
     return Status::OK();
 }
 
@@ -88,20 +98,20 @@ Status FetchEdgesValidator::prepareEdges() {
     auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     // from ref, eval in execute
     if (sentence->isRef()) {
-        src_ = sentence->ref()->srcid();
-        auto result = checkRef(src_, Value::Type::STRING);
+        srcRef_ = sentence->ref()->srcid();
+        auto result = checkRef(srcRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         inputVar_ = std::move(result).value();
-        ranking_ = sentence->ref()->rank();
-        if (ranking_->kind() != Expression::Kind::kConstant) {
-            result = checkRef(ranking_, Value::Type::INT);
+        rankRef_ = sentence->ref()->rank();
+        if (rankRef_->kind() != Expression::Kind::kConstant) {
+            result = checkRef(rankRef_, Value::Type::INT);
             NG_RETURN_IF_ERROR(result);
             if (inputVar_ != result.value()) {
                 return Status::Error("Can't refer to different variable as key at same time.");
             }
         }
-        dst_ = sentence->ref()->dstid();
-        result = checkRef(dst_, Value::Type::STRING);
+        dstRef_ = sentence->ref()->dstid();
+        result = checkRef(dstRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         if (inputVar_ != result.value()) {
             return Status::Error("Can't refer to different variable as key at same time.");
@@ -115,7 +125,7 @@ Status FetchEdgesValidator::prepareEdges() {
     if (keysPointer != nullptr) {
         auto keys = keysPointer->keys();
         // row: _src, _type, _ranking, _dst
-        edges_.reserve(keys.size());
+        edgeKeys_.rows.reserve(keys.size());
         for (const auto &key : keys) {
             DCHECK(ExpressionUtils::isConstExpr(key->srcid()));
             // TODO(shylock) Add new value type EDGE_ID to semantic and simplify this
@@ -129,7 +139,7 @@ Status FetchEdgesValidator::prepareEdges() {
             if (!src.isStr()) {
                 return Status::NotSupported("dst is not a vertex id");
             }
-            edges_.emplace_back(nebula::Row(
+            edgeKeys_.emplace_back(nebula::Row(
                 {std::move(src).getStr(), edgeType_, ranking, std::move(dst).getStr()}));
         }
     }
@@ -241,6 +251,47 @@ const Expression *FetchEdgesValidator::findInvalidYieldExpression(const Expressi
                                          Expression::Kind::kVarProperty,
                                          Expression::Kind::kSrcProperty,
                                          Expression::Kind::kDstProperty});
+}
+
+std::string FetchEdgesValidator::buildConstantInput() {
+    auto input = vctx_->anonVarGen()->getVar();
+    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(edgeKeys_))).finish());
+
+    src_ = qctx_->plan()->saveObject(new VariablePropertyExpression(new std::string(input),
+                                                                    new std::string(kSrc)));
+    type_ = qctx_->plan()->saveObject(new VariablePropertyExpression(new std::string(input),
+                                                                    new std::string(kType)));
+    rank_ = qctx_->plan()->saveObject(new VariablePropertyExpression(new std::string(input),
+                                                                        new std::string(kRank)));
+    dst_ = qctx_->plan()->saveObject(new VariablePropertyExpression(new std::string(input),
+                                                                    new std::string(kDst)));
+    return input;
+}
+
+PlanNode* FetchEdgesValidator::buildRuntimeInput() {
+    auto* columns = new YieldColumns();
+    columns->addColumn(new YieldColumn(ExpressionUtils::clone(srcRef_).release(),
+                                       new std::string(kSrc)));
+    if (rankRef_->kind() != Expression::Kind::kConstant) {
+        columns->addColumn(new YieldColumn(ExpressionUtils::clone(rankRef_).release(),
+                           new std::string(kRank)));
+    }
+    columns->addColumn(new YieldColumn(ExpressionUtils::clone(dstRef_).release(),
+                                       new std::string(kDst)));
+    auto plan = qctx_->plan();
+    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    project->setInputVar(inputVar_);
+    project->setColNames({ kVid });
+    VLOG(1) << project->varName() << " input: " << project->inputVar();
+    src_ = plan->saveObject(new InputPropertyExpression(new std::string(kSrc)));
+    type_ = plan->saveObject(new ConstantExpression(edgeType_));
+    if (rankRef_->kind() != Expression::Kind::kConstant) {
+        rank_ = rankRef_;
+    } else {
+        rank_ = plan->saveObject(new InputPropertyExpression(new std::string(kRank)));
+    }
+    dst_ = plan->saveObject(new InputPropertyExpression(new std::string(kDst)));
+    return project;
 }
 
 }   // namespace graph
