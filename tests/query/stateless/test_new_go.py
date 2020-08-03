@@ -444,7 +444,7 @@ class TestGoQuery(NebulaTestSuite):
             "column_names" : [],
             "rows" : [
                 [T_NULL, "James Harden", T_NULL, 80],
-                [T_NULL, "Dejounte Murray", T_NULL, 89],
+                [T_NULL, "Dejounte Murray", T_NULL, 99],
                 [T_NULL, "Paul George", T_NULL, 95],
             ]
         }
