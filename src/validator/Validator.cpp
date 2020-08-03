@@ -9,8 +9,10 @@
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
+#include "util/ExpressionUtils.h"
 #include "validator/AdminValidator.h"
 #include "validator/AssignmentValidator.h"
+#include "validator/ExplainValidator.h"
 #include "validator/GetSubgraphValidator.h"
 #include "validator/GoValidator.h"
 #include "validator/LimitValidator.h"
@@ -18,12 +20,15 @@
 #include "validator/MutateValidator.h"
 #include "validator/OrderByValidator.h"
 #include "validator/PipeValidator.h"
+#include "validator/FetchVerticesValidator.h"
+#include "validator/FetchEdgesValidator.h"
 #include "validator/ReportError.h"
 #include "validator/SequentialValidator.h"
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/ACLValidator.h"
 #include "validator/YieldValidator.h"
+#include "common/function/FunctionManager.h"
 
 namespace nebula {
 namespace graph {
@@ -36,6 +41,8 @@ Validator::Validator(Sentence* sentence, QueryContext* qctx)
 std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
     auto kind = sentence->kind();
     switch (kind) {
+        case Sentence::Kind::kExplain:
+            return std::make_unique<ExplainValidator>(sentence, context);
         case Sentence::Kind::kSequential:
             return std::make_unique<SequentialValidator>(sentence, context);
         case Sentence::Kind::kGo:
@@ -110,12 +117,24 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<RevokeRoleValidator>(sentence, context);
         case Sentence::Kind::kShowRoles:
             return std::make_unique<ShowRolesInSpaceValidator>(sentence, context);
+        case Sentence::Kind::kFetchVertices:
+            return std::make_unique<FetchVerticesValidator>(sentence, context);
+        case Sentence::Kind::kFetchEdges:
+            return std::make_unique<FetchEdgesValidator>(sentence, context);
         case Sentence::Kind::kCreateSnapshot:
             return std::make_unique<CreateSnapshotValidator>(sentence, context);
         case Sentence::Kind::kDropSnapshot:
             return std::make_unique<DropSnapshotValidator>(sentence, context);
         case Sentence::Kind::kShowSnapshots:
             return std::make_unique<ShowSnapshotsValidator>(sentence, context);
+        case Sentence::Kind::kDeleteVertices:
+            return std::make_unique<DeleteVerticesValidator>(sentence, context);
+        case Sentence::Kind::kDeleteEdges:
+            return std::make_unique<DeleteEdgesValidator>(sentence, context);
+        case Sentence::Kind::kUpdateVertex:
+            return std::make_unique<UpdateVertexValidator>(sentence, context);
+        case Sentence::Kind::kUpdateEdge:
+            return std::make_unique<UpdateEdgeValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }
@@ -141,6 +160,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kListRoles:
         case PlanNode::Kind::kMultiOutputs:
         case PlanNode::Kind::kSwitchSpace:
+        case PlanNode::Kind::kGetEdges:
+        case PlanNode::Kind::kGetVertices:
         case PlanNode::Kind::kCreateSpace:
         case PlanNode::Kind::kCreateTag:
         case PlanNode::Kind::kCreateEdge:
@@ -163,8 +184,12 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kShowEdges:
         case PlanNode::Kind::kCreateSnapshot:
         case PlanNode::Kind::kDropSnapshot:
-        case PlanNode::Kind::kShowSnapshots: {
-            static_cast<SingleDependencyNode*>(node)->setDep(appended);
+        case PlanNode::Kind::kShowSnapshots:
+        case PlanNode::Kind::kDeleteVertices:
+        case PlanNode::Kind::kDeleteEdges:
+        case PlanNode::Kind::kUpdateVertex:
+        case PlanNode::Kind::kUpdateEdge: {
+            static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
             break;
         }
         default: {
@@ -220,16 +245,8 @@ std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) con
 std::string Validator::deduceColName(const YieldColumn* col) const {
     if (col->alias() != nullptr) {
         return *col->alias();
-    }
-
-    switch (col->expr()->kind()) {
-        case Expression::Kind::kInputProperty: {
-            auto expr = static_cast<InputPropertyExpression*>(col->expr());
-            return *expr->prop();
-        }
-        default: {
-            return col->expr()->toString();
-        }
+    } else {
+        return col->expr()->toString();
     }
 }
 
@@ -269,7 +286,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         {Value::Type::BOOL, Value(true)},
         {Value::Type::INT, Value(1)},
         {Value::Type::FLOAT, Value(1.0)},
-        {Value::Type::STRING, Value("a")},
+        {Value::Type::STRING, Value("123")},
         {Value::Type::DATE, Value(Date())},
         {Value::Type::DATETIME, Value(DateTime())},
         {Value::Type::VERTEX, Value(Vertex())},
@@ -329,9 +346,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kUnaryPlus: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             return status.value();
         }
@@ -344,9 +359,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kUnaryIncr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             auto detectVal = kConstantValues.at(status.value()) + 1;
             if (detectVal.isBadNull()) {
@@ -360,9 +373,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             auto detectVal = kConstantValues.at(status.value()) - 1;
             if (detectVal.isBadNull()) {
@@ -374,17 +385,40 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             return detectVal.type();
         }
         case Expression::Kind::kFunctionCall: {
-            // TODO
-            return Status::Error("Not support function yet.");
+            auto funcExpr = static_cast<const FunctionCallExpression *>(expr);
+            std::vector<Value::Type> argsTypeList;
+            argsTypeList.reserve(funcExpr->args()->numArgs());
+            for (auto &arg : funcExpr->args()->args()) {
+                auto status = deduceExprType(arg.get());
+                NG_RETURN_IF_ERROR(status);
+                argsTypeList.push_back(status.value());
+            }
+            auto result =
+                FunctionManager::getReturnType(*(funcExpr->name()), argsTypeList);
+            if (!result.ok()) {
+                return Status::Error("`%s` is not a valid expression : %s",
+                                    expr->toString().c_str(),
+                                    result.status().toString().c_str());
+            }
+            return result.value();
         }
         case Expression::Kind::kTypeCasting: {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
-            auto status = deduceExprType(castExpr->operand());
-            if (!status.ok()) {
-                return status.status();
+            auto result = deduceExprType(castExpr->operand());
+            NG_RETURN_IF_ERROR(result);
+
+            auto* typeCastExpr = const_cast<TypeCastingExpression*>(castExpr);
+            if (!evaluableExpr(castExpr->operand())) {
+                auto detectVal = kConstantValues.at(result.value());
+                typeCastExpr->setOperand(new ConstantExpression(detectVal));
             }
-            // TODO
-            return Status::Error("Not support type casting yet.");
+
+            QueryExpressionContext ctx(nullptr, nullptr);
+            auto val = typeCastExpr->eval(ctx);
+            if (val.isNull()) {
+                return Status::Error("`%s` is not a valid expression ", expr->toString().c_str());
+            }
+            return val.type();
         }
         case Expression::Kind::kTagProperty:
         case Expression::Kind::kDstProperty:
@@ -582,11 +616,15 @@ Status Validator::deduceProps(const Expression* expr) {
             props.emplace_back(*prop);
             break;
         }
+        case Expression::Kind::kTypeCasting: {
+            auto* typeCastExpr = static_cast<const TypeCastingExpression*>(expr);
+            NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand()));
+            break;
+        }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kTypeCasting:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
         case Expression::Kind::kRelIn: {
@@ -663,5 +701,36 @@ bool Validator::evaluableExpr(const Expression* expr) const {
     return false;
 }
 
-}   // namespace graph
-}   // namespace nebula
+StatusOr<std::string> Validator::checkRef(const Expression *ref, Value::Type type) const {
+    if (ref->kind() == Expression::Kind::kInputProperty) {
+        const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
+        ColDef col(*symExpr->prop(), type);
+        const auto find = std::find(inputs_.begin(), inputs_.end(), col);
+        if (find == inputs_.end()) {
+            return Status::Error("No input property %s", symExpr->prop()->c_str());
+        }
+        return std::string();
+    } else if (ref->kind() == Expression::Kind::kVarProperty) {
+        const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
+        ColDef col(*symExpr->prop(), type);
+        const auto &varName = *symExpr->sym();
+        const auto &var = vctx_->getVar(varName);
+        if (var.empty()) {
+            return Status::Error("No variable %s", varName.c_str());
+        }
+        const auto find = std::find(var.begin(), var.end(), col);
+        if (find == var.end()) {
+            return Status::Error("No property %s in variable %s",
+                                 symExpr->prop()->c_str(),
+                                 varName.c_str());
+        }
+        return varName;
+    } else {
+        // it's guranteed by parser
+        DLOG(FATAL) << "Unexpected expression " << ref->kind();
+        return Status::Error("Unexpected expression.");
+    }
+}
+
+}  // namespace graph
+}  // namespace nebula

@@ -6,6 +6,7 @@
 
 #include "validator/SetValidator.h"
 
+#include "planner/Logic.h"
 #include "planner/Query.h"
 
 namespace nebula {
@@ -18,8 +19,8 @@ Status SetValidator::validateImpl() {
     rValidator_ = makeValidator(setSentence->right(), qctx_);
     NG_RETURN_IF_ERROR(rValidator_->validate());
 
-    auto lCols = lValidator_->outputs();
-    auto rCols = rValidator_->outputs();
+    auto lCols = lValidator_->outputCols();
+    auto rCols = rValidator_->outputCols();
 
     if (UNLIKELY(lCols != rCols)) {
         return Status::Error("Different columns to UNION/INTERSECT/MINUS");

@@ -7,16 +7,18 @@
 %lex-param { nebula::GraphScanner& scanner }
 %parse-param { nebula::GraphScanner& scanner }
 %parse-param { std::string &errmsg }
-%parse-param { nebula::SequentialSentences** sentences }
+%parse-param { nebula::Sentence** sentences }
 
 %code requires {
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <cstddef>
+#include "parser/ExplainSentence.h"
 #include "parser/SequentialSentences.h"
 #include "parser/ColumnTypeDef.h"
 #include "common/interface/gen-cpp2/meta_types.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 
@@ -45,7 +47,9 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::ColumnTypeDef                  *type;
     nebula::Expression                     *expr;
     nebula::Sentence                       *sentence;
-    nebula::SequentialSentences            *sentences;
+    nebula::Sentence                       *sentences;
+    nebula::SequentialSentences            *seq_sentences;
+    nebula::ExplainSentence                *explain_sentence;
     nebula::ColumnSpecification            *colspec;
     nebula::ColumnSpecificationList        *colspeclist;
     nebula::ColumnNameList                 *colsnamelist;
@@ -132,6 +136,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_PASSWORD KW_CHANGE KW_ROLE KW_ROLES
 %token KW_GOD KW_ADMIN KW_DBA KW_GUEST KW_GRANT KW_REVOKE KW_ON
 %token KW_OUT KW_BOTH KW_SUBGRAPH
+%token KW_EXPLAIN KW_PROFILE KW_FORMAT
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -249,6 +254,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <sentence> set_config_sentence get_config_sentence balance_sentence
 %type <sentence> process_control_sentence return_sentence
 %type <sentence> sentence
+%type <seq_sentences> seq_sentences
+%type <explain_sentence> explain_sentence
 %type <sentences> sentences
 
 %type <boolval> opt_if_not_exists
@@ -384,6 +391,10 @@ base_expression
     | function_call_expression {
         $$ = $1;
     }
+    | name_label {
+        // need to rewrite the expression
+        $$ = new SymbolPropertyExpression(Expression::Kind::kSymProperty, new std::string(""), new std::string(""), $1);
+    }
     ;
 
 input_ref_expression
@@ -418,7 +429,11 @@ var_ref_expression
 
 alias_ref_expression
     : name_label DOT name_label {
-        $$ = new EdgePropertyExpression($1, $3);
+        // determine the detail in later stage
+        $$ = new SymbolPropertyExpression(Expression::Kind::kSymProperty,
+                                          new std::string(""),
+                                          $1,
+                                          $3);
     }
     | name_label DOT TYPE_PROP {
         $$ = new EdgeTypeExpression($1);
@@ -481,11 +496,10 @@ unary_expression
     | KW_NOT unary_expression {
         $$ = new UnaryExpression(Expression::Kind::kUnaryNot, $2);
     }
-/*
     | L_PAREN type_spec R_PAREN unary_expression {
-        $$ = new TypeCastingExpression($2->type, $4);
+        $$ = new TypeCastingExpression(graph::SchemaUtil::propTypeToValueType($2->type), $4);
+        delete $2;
     }
-*/
     ;
 
 type_spec
@@ -899,11 +913,11 @@ edge_key_ref:
     }
     |
     input_ref_expression R_ARROW input_ref_expression {
-        $$ = new EdgeKeyRef($1, $3, nullptr);
+        $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0));
     }
     |
     var_ref_expression R_ARROW var_ref_expression {
-        $$ = new EdgeKeyRef($1, $3, nullptr, false);
+        $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0), false);
     }
     ;
 
@@ -1313,6 +1327,8 @@ traverse_sentence
     | limit_sentence { $$ = $1; }
     | yield_sentence { $$ = $1; }
     | get_subgraph_sentence { $$ = $1; }
+    | delete_vertex_sentence { $$ = $1; }
+    | delete_edge_sentence { $$ = $1; }
     ;
 
 piped_sentence
@@ -1481,26 +1497,6 @@ edge_row_item
 
 rank: unary_integer { $$ = $1; };
 
-update_vertex_sentence
-    : KW_UPDATE KW_VERTEX vid KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateVertexSentence();
-        sentence->setVid($3);
-        sentence->setUpdateList($5);
-        sentence->setWhenClause($6);
-        sentence->setYieldClause($7);
-        $$ = sentence;
-    }
-    | KW_UPSERT KW_VERTEX vid KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateVertexSentence();
-        sentence->setInsertable(true);
-        sentence->setVid($3);
-        sentence->setUpdateList($5);
-        sentence->setWhenClause($6);
-        sentence->setYieldClause($7);
-        $$ = sentence;
-    }
-    ;
-
 update_list
     : update_item {
         $$ = new UpdateList();
@@ -1516,65 +1512,84 @@ update_item
     : name_label ASSIGN expression {
         $$ = new UpdateItem($1, $3);
     }
-    | alias_ref_expression ASSIGN expression {
-        $$ = new UpdateItem($1, $3);
-        delete $1;
+    | name_label DOT name_label ASSIGN expression {
+        auto symExpr = new SymbolPropertyExpression(Expression::Kind::kSymProperty, new std::string(""), $1, $3);
+        $$ = new UpdateItem(symExpr, $5);
+    }
+    ;
+
+update_vertex_sentence
+    // ======== Begin: Compatible with 1.0 =========
+    : KW_UPDATE KW_VERTEX vid KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateVertexSentence($3, $5, $6, $7);
+        $$ = sentence;
+    }
+    | KW_UPSERT KW_VERTEX vid KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateVertexSentence($3, $5, $6, $7,true);
+        $$ = sentence;
+    }
+     // ======== End: Compatible with 1.0 =========
+    | KW_UPDATE KW_VERTEX KW_ON name_label vid KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateVertexSentence($5, $4, $7, $8, $9);
+        $$ = sentence;
+    }
+    | KW_UPSERT KW_VERTEX KW_ON name_label vid KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateVertexSentence($5, $4, $7, $8, $9, true);
+        $$ = sentence;
     }
     ;
 
 update_edge_sentence
+    // ======== Begin: Compatible with 1.0 =========
     : KW_UPDATE KW_EDGE vid R_ARROW vid KW_OF name_label
       KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateEdgeSentence();
-        sentence->setSrcId($3);
-        sentence->setDstId($5);
-        sentence->setEdgeType($7);
-        sentence->setUpdateList($9);
-        sentence->setWhenClause($10);
-        sentence->setYieldClause($11);
+        auto sentence = new UpdateEdgeSentence($3, $5, 0, $7, $9, $10, $11);
         $$ = sentence;
     }
     | KW_UPSERT KW_EDGE vid R_ARROW vid KW_OF name_label
       KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateEdgeSentence();
-        sentence->setInsertable(true);
-        sentence->setSrcId($3);
-        sentence->setDstId($5);
-        sentence->setEdgeType($7);
-        sentence->setUpdateList($9);
-        sentence->setWhenClause($10);
-        sentence->setYieldClause($11);
+        auto sentence = new UpdateEdgeSentence($3, $5, 0, $7, $9, $10, $11, true);
         $$ = sentence;
     }
     | KW_UPDATE KW_EDGE vid R_ARROW vid AT rank KW_OF name_label
       KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateEdgeSentence();
-        sentence->setSrcId($3);
-        sentence->setDstId($5);
-        sentence->setRank($7);
-        sentence->setEdgeType($9);
-        sentence->setUpdateList($11);
-        sentence->setWhenClause($12);
-        sentence->setYieldClause($13);
+        auto sentence = new UpdateEdgeSentence($3, $5, $7, $9, $11, $12, $13);
         $$ = sentence;
     }
     | KW_UPSERT KW_EDGE vid R_ARROW vid AT rank KW_OF name_label
       KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateEdgeSentence();
-        sentence->setInsertable(true);
-        sentence->setSrcId($3);
-        sentence->setDstId($5);
-        sentence->setRank($7);
-        sentence->setEdgeType($9);
-        sentence->setUpdateList($11);
-        sentence->setWhenClause($12);
-        sentence->setYieldClause($13);
+        auto sentence = new UpdateEdgeSentence($3, $5, $7, $9, $11, $12, $13, true);
+        $$ = sentence;
+    }
+    // ======== End: Compatible with 1.0 =========
+    | KW_UPDATE KW_EDGE KW_ON name_label vid R_ARROW vid
+      KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateEdgeSentence($5, $7, 0, $4, $9, $10, $11);
+        $$ = sentence;
+    }
+    | KW_UPSERT KW_EDGE KW_ON name_label vid R_ARROW vid
+      KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateEdgeSentence($5, $7, 0, $4, $9, $10, $11, true);
+        $$ = sentence;
+    }
+    | KW_UPDATE KW_EDGE KW_ON name_label vid R_ARROW vid AT rank
+      KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateEdgeSentence($5, $7, $9, $4, $11, $12, $13);
+        $$ = sentence;
+    }
+    | KW_UPSERT KW_EDGE KW_ON name_label vid R_ARROW vid AT rank
+      KW_SET update_list when_clause yield_clause {
+        auto sentence = new UpdateEdgeSentence($5, $7, $9, $4, $11, $12, $13, true);
         $$ = sentence;
     }
     ;
 
 delete_vertex_sentence
     : KW_DELETE KW_VERTEX vid_list {
+        auto sentence = new DeleteVerticesSentence($3);
+        $$ = sentence;
+    }
+    | KW_DELETE KW_VERTEX vid_ref_expression {
         auto sentence = new DeleteVerticesSentence($3);
         $$ = sentence;
     }
@@ -1590,6 +1605,11 @@ download_sentence
 
 delete_edge_sentence
     : KW_DELETE KW_EDGE name_label edge_keys {
+        auto sentence = new DeleteEdgesSentence($3, $4);
+        $$ = sentence;
+    }
+
+    | KW_DELETE KW_EDGE name_label edge_key_ref {
         auto sentence = new DeleteEdgesSentence($3, $4);
         $$ = sentence;
     }
@@ -1983,8 +2003,6 @@ mutate_sentence
     | insert_edge_sentence { $$ = $1; }
     | update_vertex_sentence { $$ = $1; }
     | update_edge_sentence { $$ = $1; }
-    | delete_vertex_sentence { $$ = $1; }
-    | delete_edge_sentence { $$ = $1; }
     | download_sentence { $$ = $1; }
     | ingest_sentence { $$ = $1; }
     | admin_sentence { $$ = $1; }
@@ -2043,21 +2061,19 @@ sentence
     | process_control_sentence { $$ = $1; }
     ;
 
-sentences
+seq_sentences
     : sentence {
         $$ = new SequentialSentences($1);
-        *sentences = $$;
     }
-    | sentences SEMICOLON sentence {
+    | seq_sentences SEMICOLON sentence {
         if ($1 == nullptr) {
             $$ = new SequentialSentences($3);
-            *sentences = $$;
         } else {
-            $$ = $1;
             $1->addSentence($3);
+            $$ = $1;
         }
     }
-    | sentences SEMICOLON {
+    | seq_sentences SEMICOLON {
         $$ = $1;
     }
     | %empty {
@@ -2065,6 +2081,46 @@ sentences
     }
     ;
 
+explain_sentence
+    : KW_EXPLAIN sentence {
+        $$ = new ExplainSentence(new SequentialSentences($2));
+    }
+    | KW_EXPLAIN KW_FORMAT ASSIGN STRING sentence {
+        $$ = new ExplainSentence(new SequentialSentences($5), false, $4);
+    }
+    | KW_EXPLAIN L_BRACE seq_sentences R_BRACE {
+        $$ = new ExplainSentence($3);
+    }
+    | KW_EXPLAIN KW_FORMAT ASSIGN STRING L_BRACE seq_sentences R_BRACE {
+        $$ = new ExplainSentence($6, false, $4);
+    }
+    | KW_PROFILE sentence {
+        $$ = new ExplainSentence(new SequentialSentences($2), true);
+    }
+    | KW_PROFILE KW_FORMAT ASSIGN STRING sentence {
+        $$ = new ExplainSentence(new SequentialSentences($5), true, $4);
+    }
+    | KW_PROFILE L_BRACE seq_sentences R_BRACE {
+        $$ = new ExplainSentence($3, true);
+    }
+    | KW_PROFILE KW_FORMAT ASSIGN STRING L_BRACE seq_sentences R_BRACE {
+        $$ = new ExplainSentence($6, true, $4);
+    }
+    | explain_sentence SEMICOLON {
+        $$ = $1;
+    }
+    ;
+
+sentences
+    : seq_sentences {
+        $$ = $1;
+        *sentences = $$;
+    }
+    | explain_sentence {
+        $$ = $1;
+        *sentences = $$;
+    }
+    ;
 
 %%
 

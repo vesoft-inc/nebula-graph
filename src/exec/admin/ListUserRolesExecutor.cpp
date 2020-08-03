@@ -16,8 +16,6 @@ folly::Future<Status> ListUserRolesExecutor::execute() {
 }
 
 folly::Future<Status> ListUserRolesExecutor::listUserRoles() {
-    dumpLog();
-
     auto *lurNode = asNode<ListUserRoles>(node());
     return qctx()->getMetaClient()->getUserRoles(*lurNode->username())
         .via(runner())

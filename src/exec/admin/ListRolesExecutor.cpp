@@ -16,8 +16,6 @@ folly::Future<Status> ListRolesExecutor::execute() {
 }
 
 folly::Future<Status> ListRolesExecutor::listRoles() {
-    dumpLog();
-
     auto *lrNode = asNode<ListRoles>(node());
     return qctx()->getMetaClient()->listRoles(lrNode->space())
         .via(runner())

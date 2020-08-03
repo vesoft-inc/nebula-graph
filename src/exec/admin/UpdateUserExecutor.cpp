@@ -16,8 +16,6 @@ folly::Future<Status> UpdateUserExecutor::execute() {
 }
 
 folly::Future<Status> UpdateUserExecutor::updateUser() {
-    dumpLog();
-
     auto *uuNode = asNode<UpdateUser>(node());
     return qctx()->getMetaClient()->alterUser(*uuNode->username(), *uuNode->password())
         .via(runner())

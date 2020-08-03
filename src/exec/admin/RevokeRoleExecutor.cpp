@@ -16,8 +16,6 @@ folly::Future<Status> RevokeRoleExecutor::execute() {
 }
 
 folly::Future<Status> RevokeRoleExecutor::revokeRole() {
-    dumpLog();
-
     auto *rrNode = asNode<RevokeRole>(node());
     const auto *spaceName = rrNode->spaceName();
     auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(*spaceName);

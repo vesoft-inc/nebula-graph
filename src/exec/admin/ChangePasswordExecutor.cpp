@@ -16,8 +16,6 @@ folly::Future<Status> ChangePasswordExecutor::execute() {
 }
 
 folly::Future<Status> ChangePasswordExecutor::changePassword() {
-    dumpLog();
-
     auto *cpNode = asNode<ChangePassword>(node());
     return qctx()->getMetaClient()->changePassword(
             *cpNode->username(), *cpNode->newPassword(), *cpNode->password())

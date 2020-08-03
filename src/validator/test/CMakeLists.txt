@@ -50,6 +50,8 @@ nebula_add_test(
     NAME validator_test
     SOURCES
         ACLValidatorTest.cpp
+        FetchVerticesTest.cpp
+        FetchEdgesTest.cpp
         MockSchemaManagerTest.cpp
         QueryValidatorTest.cpp
         AdminValidatorTest.cpp
@@ -57,11 +59,12 @@ nebula_add_test(
         MutateValidatorTest.cpp
         YieldValidatorTest.cpp
         ValidatorTestBase.cpp
+        ExplainValidatorTest.cpp
     OBJECTS
         ${VALIDATOR_TEST_LIBS}
+    OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES
         gtest
-        gtest_main
         ${THRIFT_LIBRARIES}
         wangle
         proxygenhttpserver

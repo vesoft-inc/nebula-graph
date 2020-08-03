@@ -8,7 +8,7 @@
 import time
 import pytest
 
-from nebula_test_common.nebula_test_suite import NebulaTestSuite
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 
 class TestInsert2(NebulaTestSuite):
@@ -45,6 +45,10 @@ class TestInsert2(NebulaTestSuite):
         # out of range
         resp = self.execute('INSERT VERTEX course(name) VALUES "English":("English")')
         self.check_resp_succeeded(resp)
+
+    def test_insert_with_name_label(self):
+        resp = self.execute('INSERT VERTEX course(name) VALUES "English":(English)')
+        self.check_resp_failed(resp)
 
     @pytest.mark.skip(reason="does not support fetch")
     def test_insert_with_fix_string(self):

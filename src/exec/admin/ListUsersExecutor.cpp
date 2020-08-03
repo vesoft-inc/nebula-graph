@@ -16,8 +16,6 @@ folly::Future<Status> ListUsersExecutor::execute() {
 }
 
 folly::Future<Status> ListUsersExecutor::listUsers() {
-    dumpLog();
-
     return qctx()->getMetaClient()->listUsers()
         .via(runner())
         .then([this](StatusOr<std::unordered_map<std::string, std::string>> &&resp) {

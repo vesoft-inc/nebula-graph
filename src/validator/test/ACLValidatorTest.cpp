@@ -12,31 +12,6 @@ namespace graph {
 
 
 class ACLValidatorTest : public ValidatorTestBase {
-public:
-    void SetUp() override {
-        ValidatorTestBase::SetUp();
-
-        qCtx_ = buildContext();
-    }
-
-protected:
-    ::testing::AssertionResult toPlan(const std::string &query) {
-        auto result = GQLParser().parse(query);
-        if (!result.ok()) {
-            return ::testing::AssertionFailure() << result.status().toString();
-        }
-        sentences_ = std::move(result).value();
-        qCtx_ = buildContext();
-        ASTValidator validator(sentences_.get(), qCtx_.get());
-        auto validateResult = validator.validate();
-        if (!validateResult.ok()) {
-            return ::testing::AssertionFailure() << validateResult.toString();
-        }
-        return ::testing::AssertionSuccess();
-    }
-
-    std::unique_ptr<SequentialSentences> sentences_;
-    std::unique_ptr<QueryContext> qCtx_;
 };
 
 TEST_F(ACLValidatorTest, Simple) {

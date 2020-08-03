@@ -16,8 +16,6 @@ folly::Future<Status> DropUserExecutor::execute() {
 }
 
 folly::Future<Status> DropUserExecutor::dropUser() {
-    dumpLog();
-
     auto *duNode = asNode<DropUser>(node());
     return qctx()->getMetaClient()->dropUser(*duNode->username(), duNode->ifExist())
         .via(runner())

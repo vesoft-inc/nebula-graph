@@ -16,8 +16,6 @@ folly::Future<Status> GrantRoleExecutor::execute() {
 }
 
 folly::Future<Status> GrantRoleExecutor::grantRole() {
-    dumpLog();
-
     auto *grNode = asNode<GrantRole>(node());
     const auto *spaceName = grNode->spaceName();
     auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(*spaceName);
