@@ -19,6 +19,7 @@
 #include "planner/Logic.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
+#include "util/ObjectPool.h"
 #include "validator/Validator.h"
 #include "validator/test/MockSchemaManager.h"
 
@@ -31,29 +32,31 @@ protected:
         session_ = Session::create(0);
         session_->setSpace("test_space", 1);
         schemaMng_ = CHECK_NOTNULL(MockSchemaManager::makeUnique());
+        pool_ = std::make_unique<ObjectPool>();
     }
 
     ExecutionPlan* toPlan(const std::string& query) {
-        auto qctxStatus = validate(query);
-        EXPECT_TRUE(qctxStatus);
-        qctx_ = std::move(qctxStatus).value();
-        return qctx_->plan();
+        auto planStatus = validate(query);
+        EXPECT_TRUE(planStatus);
+        return std::move(planStatus).value();
     }
 
-    StatusOr<std::unique_ptr<QueryContext>> validate(const std::string& query) {
+    StatusOr<ExecutionPlan*> validate(const std::string& query) {
         VLOG(1) << "query: " << query;
         auto result = GQLParser().parse(query);
-        if (!result.ok()) return std::move(result).status();
-        auto sentences = std::move(result).value();
+        if (!result.ok()) {
+            return std::move(result).status();
+        }
+        auto sentences = pool_->add(std::move(result).value().release());
         auto qctx = buildContext();
-        NG_RETURN_IF_ERROR(Validator::validate(sentences.get(), qctx.get()));
-        return std::move(qctx);
+        NG_RETURN_IF_ERROR(Validator::validate(sentences, qctx));
+        return qctx->plan();
     }
 
-    std::unique_ptr<QueryContext> buildContext() {
+    QueryContext* buildContext() {
         auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
         rctx->setSession(session_);
-        auto qctx = std::make_unique<QueryContext>();
+        auto qctx = pool_->add(new QueryContext());
         qctx->setRctx(std::move(rctx));
         qctx->setSchemaManager(schemaMng_.get());
         qctx->setCharsetInfo(CharsetInfo::instance());
@@ -67,12 +70,11 @@ protected:
     ::testing::AssertionResult checkResult(const std::string& query,
                                            const std::vector<PlanNode::Kind>& expected = {},
                                            const std::vector<std::string> &rootColumns = {}) {
-        auto ctxStatus = validate(query);
-        if (!ctxStatus) {
-            return ::testing::AssertionFailure() << std::move(ctxStatus).status().toString();
+        auto planStatus = validate(query);
+        if (!planStatus) {
+            return ::testing::AssertionFailure() << std::move(planStatus).status().toString();
         }
-        auto context = std::move(ctxStatus).value();
-        auto plan = context->plan();
+        auto plan = std::move(planStatus).value();
         if (plan == nullptr) {
             return ::testing::AssertionFailure() << "plan is nullptr";
         }
@@ -216,7 +218,7 @@ protected:
     std::shared_ptr<Session>              session_;
     std::unique_ptr<MockSchemaManager>    schemaMng_;
     std::unique_ptr<Sentence>             sentences_;
-    std::unique_ptr<QueryContext>         qctx_;
+    std::unique_ptr<ObjectPool>           pool_;
 };
 
 std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan);

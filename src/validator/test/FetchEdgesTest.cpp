@@ -11,17 +11,7 @@
 namespace nebula {
 namespace graph {
 
-class FetchEdgesValidatorTest : public ValidatorTestBase {
-public:
-    void SetUp() override {
-        ValidatorTestBase::SetUp();
-
-        pool_ = std::make_unique<ObjectPool>();
-    }
-
-protected:
-    std::unique_ptr<ObjectPool> pool_;
-};
+class FetchEdgesValidatorTest : public ValidatorTestBase {};
 
 TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     auto src = std::make_unique<VariablePropertyExpression>(
