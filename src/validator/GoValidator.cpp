@@ -369,6 +369,7 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
         new InputPropertyExpression(new std::string(joinDstVidColName_)),
         new std::string(joinDstVidColName_)));
     auto* projectDsts = Project::make(plan, projectSrcDstProps, yieldDsts);
+    projectDsts->setInputVar(projectSrcDstProps->varName());
 
     auto* dedupVids = Dedup::make(plan, projectDsts);
     dedupVids->setInputVar(projectDsts->varName());
