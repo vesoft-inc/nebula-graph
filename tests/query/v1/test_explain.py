@@ -8,26 +8,26 @@ import time
 import pytest
 from nebula2.graph import ttypes
 
-from nebula_test_common.nebula_test_suite import NebulaTestSuite
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 
 class TestExplain(NebulaTestSuite):
     @classmethod
     def prepare(cls):
         # cls.load_data()
-        resp = cls.execute(
-            'CREATE SPACE IF NOT EXISTS mySpace(partition_num=1, vid_size=20)')
+        resp = cls.execute('CREATE SPACE IF NOT EXISTS explain_test')
         cls.check_resp_succeeded(resp)
 
         # 2.0 use space get from cache
         time.sleep(cls.delay)
 
-        resp = cls.execute('USE mySpace')
+        resp = cls.execute('USE explain_test')
         cls.check_resp_succeeded(resp)
 
     @classmethod
     def cleanup(cls):
-        pass
+        resp = cls.execute('DROP SPACE IF EXISTS explain_test')
+        cls.check_resp_succeeded(resp)
 
     def test_explain(self):
         query = 'EXPLAIN YIELD 1 AS id;'
@@ -44,7 +44,7 @@ class TestExplain(NebulaTestSuite):
 
         query = 'EXPLAIN FORMAT="unknown" YIELD 1;'
         resp = self.execute_query(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_SYNTAX_ERROR)
+        self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
 
     def test_explain_stmts_block(self):
         query = 'EXPLAIN {$var = YIELD 1 AS a; YIELD $var.*;};'
@@ -66,7 +66,7 @@ class TestExplain(NebulaTestSuite):
         query = '''EXPLAIN FORMAT="unknown" \
             {$var = YIELD 1 AS a; YIELD $var.*;};'''
         resp = self.execute_query(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_SYNTAX_ERROR)
+        self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
 
     def test_profile(self):
         query = 'PROFILE YIELD 1 AS id;'
@@ -83,7 +83,7 @@ class TestExplain(NebulaTestSuite):
 
         query = 'PROFILE FORMAT="unknown" YIELD 1;'
         resp = self.execute_query(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_SYNTAX_ERROR)
+        self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
 
     def test_profile_stmts_block(self):
         query = 'PROFILE {$var = YIELD 1 AS a; YIELD $var.*;};'
@@ -105,4 +105,4 @@ class TestExplain(NebulaTestSuite):
         query = '''PROFILE FORMAT="unknown" \
             {$var = YIELD 1 AS a; YIELD $var.*;};'''
         resp = self.execute_query(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_SYNTAX_ERROR)
+        self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
