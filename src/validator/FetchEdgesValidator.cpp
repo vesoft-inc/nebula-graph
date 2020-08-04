@@ -286,7 +286,7 @@ PlanNode* FetchEdgesValidator::buildRuntimeInput() {
     VLOG(1) << project->varName() << " input: " << project->inputVar();
     src_ = plan->makeAndSave<InputPropertyExpression>(new std::string(kSrc));
     type_ = plan->makeAndSave<ConstantExpression>(edgeType_);
-    if (rankRef_->kind() != Expression::Kind::kConstant) {
+    if (rankRef_->kind() == Expression::Kind::kConstant) {
         rank_ = rankRef_;
     } else {
         rank_ = plan->makeAndSave<InputPropertyExpression>(new std::string(kRank));
