@@ -8,7 +8,10 @@
 #include "validator/SequentialValidator.h"
 #include "service/GraphFlags.h"
 #include "service/PermissionCheck.h"
+#include "planner/Logic.h"
 #include "planner/Query.h"
+
+DECLARE_uint32(max_allowed_statements);
 
 namespace nebula {
 namespace graph {
@@ -21,6 +24,10 @@ Status SequentialValidator::validateImpl() {
     }
     auto seqSentence = static_cast<SequentialSentences*>(sentence_);
     auto sentences = seqSentence->sentences();
+
+    if (sentences.size() > static_cast<size_t>(FLAGS_max_allowed_statements)) {
+        return Status::Error("The maximum number of statements allowed has been exceeded");
+    }
 
     DCHECK(!sentences.empty());
     auto firstSentence = getFirstSentence(sentences.front());
@@ -62,6 +69,7 @@ Status SequentialValidator::toPlan() {
     }
     tail_ = StartNode::make(plan);
     NG_RETURN_IF_ERROR(validators_.front()->appendPlan(tail_));
+    VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }
 

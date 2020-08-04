@@ -134,6 +134,11 @@ std::string YieldColumn::toString() const {
         buf += expr_->toString();
     }
 
+    if (alias_ != nullptr) {
+        buf += " AS ";
+        buf += *alias_;
+    }
+
     return buf;
 }
 
@@ -142,16 +147,36 @@ std::string YieldColumns::toString() const {
     buf.reserve(256);
     for (auto &col : columns_) {
         buf += col->toString();
-        if (col->alias() != nullptr) {
-            buf += " AS ";
-            buf += *col->alias();
-        }
         buf += ",";
     }
     if (!buf.empty()) {
         buf.resize(buf.size() - 1);
     }
     return buf;
+}
+
+bool operator==(const YieldColumn &l, const YieldColumn &r) {
+    if (l.alias() != nullptr && r.alias() != nullptr) {
+        if (*l.alias() != *r.alias()) {
+            return false;
+        }
+    } else if (l.alias() != r.alias()) {
+        return false;
+    }
+
+    if (l.expr() != nullptr && r.expr() != nullptr) {
+        if (*l.expr() != *r.expr()) {
+            return false;
+        }
+    } else if (l.expr() != r.expr()) {
+        return false;
+    }
+
+    if (l.getAggFunName() != r.getAggFunName()) {
+        return false;
+    }
+
+    return true;
 }
 
 std::string YieldClause::toString() const {

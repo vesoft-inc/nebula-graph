@@ -8,19 +8,14 @@
 set -ex -o pipefail
 
 PROJ_DIR="$(cd "$(dirname "$0")" && pwd)/.."
-BUILD_DIR=$PROJ_DIR/_build
+BUILD_DIR=$PROJ_DIR/build
 TOOLSET_DIR=/opt/vesoft/toolset/clang/9.0.0
 
 mkdir -p $BUILD_DIR
 
-function prepare_pip3() {
+function prepare() {
     pip3 install -U setuptools -i https://mirrors.aliyun.com/pypi/simple/
     pip3 install -r $PROJ_DIR/tests/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
-}
-
-function prepare() {
-    $PROJ_DIR/ci/deploy.sh
-    prepare_pip3
 }
 
 function lint() {
@@ -41,12 +36,15 @@ function build_storage() {
 function gcc_compile() {
     cd $PROJ_DIR
     cmake \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=on \
         -DCMAKE_CXX_COMPILER=$TOOLSET_DIR/bin/g++ \
         -DCMAKE_C_COMPILER=$TOOLSET_DIR/bin/gcc \
         -DCMAKE_BUILD_TYPE=Release \
         -DENABLE_TESTING=on \
         -DENABLE_BUILD_STORAGE=on \
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
+        -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
+        -DMODULE_BUILDING_JOBS=$(nproc) \
         -B $BUILD_DIR
     build_common
     build_storage
@@ -56,6 +54,7 @@ function gcc_compile() {
 function clang_compile() {
     cd $PROJ_DIR
     cmake \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=on \
         -DCMAKE_CXX_COMPILER=$TOOLSET_DIR/bin/clang++ \
         -DCMAKE_C_COMPILER=$TOOLSET_DIR/bin/clang \
         -DCMAKE_BUILD_TYPE=Debug \
@@ -63,31 +62,39 @@ function clang_compile() {
         -DENABLE_TESTING=on \
         -DENABLE_BUILD_STORAGE=on \
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
+        -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
+        -DMODULE_BUILDING_JOBS=$(nproc) \
         -B $BUILD_DIR
     build_common
     build_storage
     cmake --build $BUILD_DIR -j$(nproc)
 }
 
-function run_test() {
-    # UT
+function run_ctest() {
     cd $BUILD_DIR
     ctest -j$(nproc) \
           --timeout 400 \
           --output-on-failure
+}
 
-    # CI
+function run_test() {
     cd $BUILD_DIR/tests
-    ./ntr -h
-    #./ntr $PROJ_DIR/tests/admin/* $PROJ_DIR/tests/maintain/* $PROJ_DIR/tests/query/stateless/test_schema.py
+    ./ntr \
+        $PROJ_DIR/tests/admin/* \
+        $PROJ_DIR/tests/maintain/* \
+        $PROJ_DIR/tests/mutate/* \
+        $PROJ_DIR/tests/query/stateless/test_new_go.py \
+        $PROJ_DIR/tests/query/v1/* \
+        $PROJ_DIR/tests/query/stateless/test_schema.py \
+        $PROJ_DIR/tests/query/stateless/test_if_exists.py \
+        $PROJ_DIR/tests/query/stateless/test_range.py \
+        $PROJ_DIR/tests/query/stateless/test_go.py \
+        $PROJ_DIR/tests/query/stateless/test_simple_query.py
 }
 
 case "$1" in
     prepare)
         prepare
-        ;;
-    pip)
-        prepare_pip3
         ;;
     lint)
         lint
@@ -98,12 +105,16 @@ case "$1" in
     gcc)
         gcc_compile
         ;;
+    ctest)
+        run_ctest
+        ;;
     test)
         run_test
         ;;
     *)
         prepare
         gcc_compile
+        run_ctest
         run_test
         ;;
 esac

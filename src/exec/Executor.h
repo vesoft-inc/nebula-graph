@@ -17,7 +17,7 @@
 #include "common/base/Status.h"
 #include "common/cpp/helpers.h"
 #include "common/datatypes/Value.h"
-
+#include "common/time/Duration.h"
 #include "context/ExecutionContext.h"
 
 namespace nebula {
@@ -31,12 +31,18 @@ public:
     // Create executor according to plan node
     static Executor *makeExecutor(const PlanNode *node, QueryContext *qctx);
 
-    virtual ~Executor() {}
+    virtual ~Executor();
 
     // Each executor inherited from this class should get input values from ExecutionContext,
     // execute expression evaluation and save output result back to ExecutionContext after
     // computation
     virtual folly::Future<Status> execute() = 0;
+
+    // Reset all profiling stats
+    void startProfiling();
+
+    // Finish profiling stats and save them to profiling stats container of QueryContext
+    void stopProfiling();
 
     QueryContext *qctx() const {
         return qctx_;
@@ -62,7 +68,7 @@ public:
         return successors_;
     }
 
-    Executor *addDependent(Executor *dep) {
+    Executor *dependsOn(Executor *dep) {
         depends_.emplace(dep);
         dep->successors_.emplace(this);
         return this;
@@ -95,11 +101,8 @@ protected:
     // Store the default result which not used for later executor
     Status finish(Value &&value);
 
-    // Dump some execution logging messages, only for debugging
-    // TODO(yee): Remove it after implementing profile function
-    void dumpLog() const;
-
     int64_t id_;
+
     // Executor name
     std::string name_;
 
@@ -114,7 +117,10 @@ protected:
     std::set<Executor *> depends_;
     std::set<Executor *> successors_;
 
-    // TODO: Some statistics
+    // profiling data
+    uint64_t numRows_{0};
+    uint64_t execTime_{0};
+    time::Duration totalDuration_;
 };
 
 }   // namespace graph

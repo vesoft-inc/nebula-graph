@@ -7,12 +7,14 @@
 #include "exec/query/DedupExecutor.h"
 #include "planner/Query.h"
 #include "context/QueryExpressionContext.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
 folly::Future<Status> DedupExecutor::execute() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
     auto* dedup = asNode<Dedup>(node());
+    DCHECK(!dedup->inputVar().empty());
     auto iter = ectx_->getResult(dedup->inputVar()).iter();
 
     if (UNLIKELY(iter == nullptr)) {
@@ -27,7 +29,7 @@ folly::Future<Status> DedupExecutor::execute() {
     ResultBuilder builder;
     builder.value(iter->valuePtr());
     QueryExpressionContext ctx(ectx_, iter.get());
-    std::unordered_set<const Row *> unique;
+    std::unordered_set<const LogicalRow*> unique;
     while (iter->valid()) {
         if (unique.find(iter->row()) != unique.end()) {
             iter->erase();
