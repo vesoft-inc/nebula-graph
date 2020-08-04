@@ -22,18 +22,11 @@ Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
 
-    std::string vidsVar;
-    PlanNode* projectVid = nullptr;
-    if (srcRef_ == nullptr) {
-        vidsVar = buildConstantInput();
-    } else {
-        projectVid = buildRuntimeInput();
-        vidsVar = projectVid->varName();
-    }
+    std::string vidsVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
 
     auto *plan = qctx_->plan();
     auto *getVerticesNode = GetVertices::make(plan,
-                                              projectVid,
+                                              nullptr,
                                               spaceId_,
                                               src_,
                                               std::move(props_),
@@ -63,7 +56,7 @@ Status FetchVerticesValidator::toPlan() {
         // if the result is required
     }
     root_ = current;
-    tail_ = projectVid == nullptr ? getVerticesNode : projectVid;
+    tail_ = getVerticesNode;
     return Status::OK();
 }
 
@@ -228,6 +221,7 @@ const Expression *FetchVerticesValidator::findInvalidYieldExpression(const Expre
                                          Expression::Kind::kEdgeDst});
 }
 
+// TODO(shylock) optimize dedup input when distinct given
 std::string FetchVerticesValidator::buildConstantInput() {
     auto input = vctx_->anonVarGen()->getVar();
     qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(srcVids_))).finish());
@@ -237,18 +231,9 @@ std::string FetchVerticesValidator::buildConstantInput() {
     return input;
 }
 
-PlanNode* FetchVerticesValidator::buildRuntimeInput() {
-    auto plan = qctx_->plan();
-    auto* columns = plan->makeAndSave<YieldColumns>();
-    auto* column = new YieldColumn(ExpressionUtils::clone(srcRef_).release(),
-                                   new std::string(kVid));
-    columns->addColumn(column);
-    auto* project = Project::make(plan, nullptr, columns);
-    project->setInputVar(inputVar_);
-    project->setColNames({ kVid });
-    VLOG(1) << project->varName() << " input: " << project->inputVar();
-    src_ = plan->makeAndSave<InputPropertyExpression>(new std::string(kVid));
-    return project;
+std::string FetchVerticesValidator::buildRuntimeInput() {
+    src_ = DCHECK_NOTNULL(srcRef_);
+    return inputVar_;
 }
 
 }   // namespace graph

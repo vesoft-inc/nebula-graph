@@ -31,17 +31,10 @@ Status FetchEdgesValidator::toPlan() {
 
     auto *plan = qctx_->plan();
 
-    std::string edgeKeysVar;
-    PlanNode* projectEdgeKeys = nullptr;
-    if (srcRef_ == nullptr) {
-        edgeKeysVar = buildConstantInput();
-    } else {
-        projectEdgeKeys = buildRuntimeInput();
-        edgeKeysVar = projectEdgeKeys->varName();
-    }
+    std::string edgeKeysVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
 
     auto *getEdgesNode = GetEdges::make(plan,
-                                        projectEdgeKeys,
+                                        nullptr,
                                         spaceId_,
                                         src_,
                                         type_,
@@ -74,7 +67,7 @@ Status FetchEdgesValidator::toPlan() {
         // if the result is required
     }
     root_ = current;
-    tail_ = projectEdgeKeys == nullptr ? getEdgesNode : projectEdgeKeys;
+    tail_ = getEdgesNode;
     return Status::OK();
 }
 
@@ -253,6 +246,7 @@ const Expression *FetchEdgesValidator::findInvalidYieldExpression(const Expressi
                                          Expression::Kind::kDstProperty});
 }
 
+// TODO(shylock) optimize dedup input when distinct given
 std::string FetchEdgesValidator::buildConstantInput() {
     auto plan = qctx_->plan();
     auto input = vctx_->anonVarGen()->getVar();
@@ -269,30 +263,13 @@ std::string FetchEdgesValidator::buildConstantInput() {
     return input;
 }
 
-PlanNode* FetchEdgesValidator::buildRuntimeInput() {
+std::string FetchEdgesValidator::buildRuntimeInput() {
     auto plan = qctx_->plan();
-    auto* columns = plan->makeAndSave<YieldColumns>();
-    columns->addColumn(new YieldColumn(ExpressionUtils::clone(srcRef_).release(),
-                                       new std::string(kSrc)));
-    if (rankRef_->kind() != Expression::Kind::kConstant) {
-        columns->addColumn(new YieldColumn(ExpressionUtils::clone(rankRef_).release(),
-                           new std::string(kRank)));
-    }
-    columns->addColumn(new YieldColumn(ExpressionUtils::clone(dstRef_).release(),
-                                       new std::string(kDst)));
-    auto* project = Project::make(plan, nullptr, columns);
-    project->setInputVar(inputVar_);
-    project->setColNames({ kVid });
-    VLOG(1) << project->varName() << " input: " << project->inputVar();
-    src_ = plan->makeAndSave<InputPropertyExpression>(new std::string(kSrc));
+    src_ = DCHECK_NOTNULL(srcRef_);
     type_ = plan->makeAndSave<ConstantExpression>(edgeType_);
-    if (rankRef_->kind() == Expression::Kind::kConstant) {
-        rank_ = rankRef_;
-    } else {
-        rank_ = plan->makeAndSave<InputPropertyExpression>(new std::string(kRank));
-    }
-    dst_ = plan->makeAndSave<InputPropertyExpression>(new std::string(kDst));
-    return project;
+    rank_ = DCHECK_NOTNULL(rankRef_);
+    dst_ = DCHECK_NOTNULL(dstRef_);
+    return inputVar_;
 }
 
 }   // namespace graph

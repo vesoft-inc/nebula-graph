@@ -35,7 +35,7 @@ private:
 
     // TODO(shylock) merge the code
     std::string buildConstantInput();
-    PlanNode* buildRuntimeInput();
+    std::string buildRuntimeInput();
 
     static const std::unordered_set<std::string> reservedProperties;
 

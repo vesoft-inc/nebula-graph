@@ -296,7 +296,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
                                 {
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -309,7 +308,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kGetEdges,
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
@@ -329,7 +327,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -344,7 +341,6 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,

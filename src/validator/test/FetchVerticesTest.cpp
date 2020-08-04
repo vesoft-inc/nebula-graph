@@ -234,7 +234,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                 {
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -246,7 +245,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kGetVertices,
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
@@ -263,7 +261,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -276,7 +273,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                 {
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kStart,
