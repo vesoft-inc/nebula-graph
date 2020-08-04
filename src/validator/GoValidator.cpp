@@ -364,7 +364,7 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
 
     auto* plan = qctx_->plan();
 
-    auto* yieldDsts = plan->saveObject(new YieldColumns());
+    auto* yieldDsts = plan->makeAndSave<YieldColumns>();
     yieldDsts->addColumn(new YieldColumn(
         new InputPropertyExpression(new std::string(joinDstVidColName_)),
         new std::string(joinDstVidColName_)));

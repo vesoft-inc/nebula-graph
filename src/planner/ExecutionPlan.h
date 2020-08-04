@@ -51,6 +51,11 @@ public:
         return objPool_->add(obj);
     }
 
+    template <typename T, typename... Args>
+    T* makeAndSave(Args&&... args) {
+        return objPool_->makeAndAdd<T>(std::forward<Args>(args)...);
+    }
+
     int64_t id() const {
         return id_;
     }

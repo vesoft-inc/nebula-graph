@@ -232,24 +232,22 @@ std::string FetchVerticesValidator::buildConstantInput() {
     auto input = vctx_->anonVarGen()->getVar();
     qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(srcVids_))).finish());
 
-    auto* vids = new VariablePropertyExpression(new std::string(input),
-                                                new std::string(kVid));
-    qctx_->plan()->saveObject(vids);
-    src_ = vids;
+    src_ = qctx_->plan()->makeAndSave<VariablePropertyExpression>(new std::string(input),
+                                                                  new std::string(kVid));
     return input;
 }
 
 PlanNode* FetchVerticesValidator::buildRuntimeInput() {
-    auto* columns = new YieldColumns();
+    auto plan = qctx_->plan();
+    auto* columns = plan->makeAndSave<YieldColumns>();
     auto* column = new YieldColumn(ExpressionUtils::clone(srcRef_).release(),
                                    new std::string(kVid));
     columns->addColumn(column);
-    auto plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(plan, nullptr, columns);
     project->setInputVar(inputVar_);
     project->setColNames({ kVid });
     VLOG(1) << project->varName() << " input: " << project->inputVar();
-    src_ = plan->saveObject(new InputPropertyExpression(new std::string(kVid)));
+    src_ = plan->makeAndSave<InputPropertyExpression>(new std::string(kVid));
     return project;
 }
 
