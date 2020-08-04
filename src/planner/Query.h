@@ -456,10 +456,175 @@ private:
  */
 class IndexScan final : public Explore {
 public:
-    IndexScan(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
-        : Explore(plan, Kind::kIndexScan, input, space) {}
+    struct IndexQueryCtx;
+    using IndexQueryCtxs = std::unique_ptr<std::vector<IndexQueryCtx>>;
+    using IndexReturnCols = std::unique_ptr<std::vector<std::string>>;
+
+    struct IndexQueryCtx {
+        IndexID                                     indexId_{-1};
+        std::unique_ptr<Expression>                 filter_{nullptr};
+        std::vector<storage::cpp2::IndexColumnHint> colHints_{};
+
+        IndexQueryCtx() = default;
+
+        ~IndexQueryCtx() {};
+
+        IndexQueryCtx(IndexQueryCtx&& v) noexcept
+        : indexId_(v.indexId_)
+        , filter_(std::move(v.filter_))
+        , colHints_(std::move(v.colHints_)) {}
+
+        IndexQueryCtx(const IndexQueryCtx& v)
+            : indexId_(v.indexId_)
+            , filter_(v.filter_.get())
+            , colHints_(v.colHints_) {}
+
+        IndexQueryCtx(IndexID&& indexId,
+                      std::unique_ptr<Expression>&& filter,
+                      std::vector<storage::cpp2::IndexColumnHint>&& colHints)
+        : indexId_(indexId)
+        , filter_(std::move(filter))
+        , colHints_(std::move(colHints)) {}
+
+        void setIndexId(const IndexID& indexId) {
+            indexId_ = indexId;
+        }
+
+        void setFilter(std::unique_ptr<Expression>&& filter) {
+            filter_ = std::move(filter);
+        }
+
+        void setColumnHints(std::vector<storage::cpp2::IndexColumnHint>&& colHints) {
+            colHints_ = std::move(colHints);
+        }
+
+        void addColumnHint(storage::cpp2::IndexColumnHint&& colHint) {
+            colHints_.emplace_back(std::move(colHint));
+        }
+
+        void clear() {
+            indexId_ = -1;
+            filter_.reset(nullptr);
+            colHints_.clear();
+        }
+
+        bool operator==(const IndexQueryCtx& rhs) const {
+            return indexId_ == rhs.indexId_ &&
+                   filter_ == rhs.filter_ &&
+                   colHints_ == rhs.colHints_;
+        }
+    };
+
+    static IndexScan* make(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space) {
+        return new IndexScan(plan, input, space);
+    }
+
+    static IndexScan* make(ExecutionPlan* plan,
+                           PlanNode* input,
+                           GraphSpaceID space,
+                           IndexQueryCtxs&& contexts,
+                           IndexReturnCols&& returnCols,
+                           bool isEdge,
+                           int32_t schemaId,
+                           bool dedup = false,
+                           std::vector<storage::cpp2::OrderBy> orderBy = {},
+                           int64_t limit = std::numeric_limits<int64_t>::max(),
+                           std::string filter = "") {
+        return new IndexScan(plan,
+                             input,
+                             space,
+                             std::move(contexts),
+                             std::move(returnCols),
+                             isEdge,
+                             schemaId,
+                             dedup,
+                             std::move(orderBy),
+                             limit,
+                             std::move(filter));
+    }
 
     std::string explain() const override;
+
+    const std::vector<IndexQueryCtx>* queryContext() const {
+        return contexts_.get();
+    }
+
+    std::vector<storage::cpp2::IndexQueryContext> indexQueryContexts() const {
+        std::vector<storage::cpp2::IndexQueryContext> contexts;
+        for (const auto& context : *contexts_.get()) {
+            storage::cpp2::IndexQueryContext ctx;
+            ctx.set_index_id(context.indexId_);
+            ctx.set_filter(Expression::encode(*context.filter_));
+            ctx.set_column_hints(context.colHints_);
+            contexts.emplace_back(std::move(ctx));
+        }
+        return contexts;
+    }
+
+    const std::vector<std::string>* returnColumns() const {
+        return returnCols_.get();
+    }
+
+    bool isEdge() const {
+        return isEdge_;
+    }
+
+    int32_t schemaId() const {
+        return schemaId_;
+    }
+
+    void setQueryContext(IndexQueryCtxs contexts) {
+        contexts_ = std::move(contexts);
+    }
+
+    void setReturnCols(IndexReturnCols cols) {
+        returnCols_ = std::move(cols);
+    }
+
+    void setIsEdge(bool isEdge) {
+        isEdge_ = isEdge;
+    }
+
+    void setSchemaId(int32_t schema) {
+        schemaId_ = schema;
+    }
+
+
+
+private:
+    IndexScan(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
+    : Explore(plan, Kind::kIndexScan, input, space) {}
+
+    IndexScan(ExecutionPlan* plan,
+              PlanNode* input,
+              GraphSpaceID space,
+              IndexQueryCtxs&& contexts,
+              IndexReturnCols&& returnCols,
+              bool isEdge,
+              int32_t schemaId,
+              bool dedup,
+              std::vector<storage::cpp2::OrderBy> orderBy,
+              int64_t limit,
+              std::string filter)
+    : Explore(plan,
+        Kind::kIndexScan,
+        input,
+        space,
+        dedup,
+        limit,
+        std::move(filter),
+        std::move(orderBy)) {
+        contexts_ = std::move(contexts);
+        returnCols_ = std::move(returnCols);
+        isEdge_ = isEdge;
+        schemaId_ = schemaId;
+    }
+
+private:
+    IndexQueryCtxs                                contexts_;
+    IndexReturnCols                               returnCols_;
+    bool                                          isEdge_;
+    int32_t                                       schemaId_;
 };
 
 /**
