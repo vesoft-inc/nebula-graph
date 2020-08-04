@@ -394,15 +394,15 @@ class TestGoQuery(NebulaTestSuite):
     @pytest.mark.skip(reason = 'return diffrent numbers when edge type wanted.')
     def test_edge_type(self):
         stmt = '''GO FROM "Russell Westbrook" OVER serve, like \
-            YIELD serve.start_year, like.likeness'''
+            YIELD serve.start_year, like.likeness, serve._type, like._type'''
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names" : [],
             "rows" : [
-                [2008, T_NULL],
-                [T_NULL, 90],
-                [T_NULL, 90]
+                [2008, T_NULL, 6, T_NULL],
+                [T_NULL, 90, T_NULL, 5],
+                [T_NULL, 90, T_NULL, 5]
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
