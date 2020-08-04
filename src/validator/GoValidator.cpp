@@ -365,8 +365,9 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
     auto* plan = qctx_->plan();
 
     auto* yieldDsts = plan->saveObject(new YieldColumns());
-    yieldDsts->addColumn(new YieldColumn(new EdgePropertyExpression(new std::string("*"),
-                                                                    new std::string(kDst))));
+    yieldDsts->addColumn(new YieldColumn(
+        new InputPropertyExpression(new std::string(joinDstVidColName_)),
+        new std::string(joinDstVidColName_)));
     auto* projectDsts = Project::make(plan, projectSrcDstProps, yieldDsts);
 
     auto* dedupVids = Dedup::make(plan, projectDsts);
