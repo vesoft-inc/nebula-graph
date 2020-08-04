@@ -4,7 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#pragma once
+#ifndef EXEC_ADMIN_SUBMIT_JOB_EXECUTOR_H_
+#define EXEC_ADMIN_SUBMIT_JOB_EXECUTOR_H_
 
 #include "exec/Executor.h"
 
@@ -21,3 +22,5 @@ public:
 
 }   // namespace graph
 }   // namespace nebula
+
+#endif  // EXEC_ADMIN_SUBMIT_JOB_EXECUTOR_H_
