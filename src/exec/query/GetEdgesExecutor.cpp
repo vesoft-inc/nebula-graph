@@ -27,12 +27,16 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
 
     auto *ge = asNode<GetEdges>(node());
     nebula::DataSet edges({kSrc, kType, kRank, kDst});
-    if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
+    if (ge->src() != nullptr &&
+        ge->type() != nullptr &&
+        ge->ranking() != nullptr &&
+        ge->dst() != nullptr) {
         // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
         auto valueIter = ectx_->getResult(ge->inputVar()).iter();
         auto expCtx = QueryExpressionContext(qctx()->ectx(), valueIter.get());
         for (; valueIter->valid(); valueIter->next()) {
             auto src = ge->src()->eval(expCtx);
+            auto type = ge->type()->eval(expCtx);
             auto ranking = ge->ranking()->eval(expCtx);
             auto dst = ge->dst()->eval(expCtx);
             if (!src.isStr() || !ranking.isInt() || !dst.isStr()) {
@@ -40,7 +44,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                 continue;
             }
             edges.emplace_back(Row({
-                std::move(src), ge->type(), std::move(ranking), std::move(dst)
+                std::move(src), type, ranking, std::move(dst)
             }));
         }
     }
