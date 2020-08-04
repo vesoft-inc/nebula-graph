@@ -39,7 +39,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             auto type = ge->type()->eval(expCtx);
             auto ranking = ge->ranking()->eval(expCtx);
             auto dst = ge->dst()->eval(expCtx);
-            if (!src.isStr() || !ranking.isInt() || !dst.isStr()) {
+            if (!src.isStr() || !type.isInt() || !ranking.isInt() || !dst.isStr()) {
                 LOG(WARNING) << "Mismatched edge key type";
                 continue;
             }
