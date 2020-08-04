@@ -23,136 +23,12 @@
 namespace nebula {
 namespace graph {
 
-class StartNode final : public PlanNode {
-public:
-    static StartNode* make(ExecutionPlan* plan) {
-        return new StartNode(plan);
-    }
-
-    std::string explain() const override {
-        return "Start";
-    }
-
-private:
-    explicit StartNode(ExecutionPlan* plan) : PlanNode(plan, Kind::kStart) {
-    }
-};
-
-// Dependencies will cover the inputs, For example bi input require bi dependencies as least,
-// but single dependencies may don't need any inputs (I.E admin plan node)
-
-// Single dependecy without input
-// It's useful for addmin plan node
-class SingleDependencyNode : public PlanNode {
-public:
-    const PlanNode* dep() const {
-        return dependency_;
-    }
-
-    void setDep(PlanNode *dep) {
-        dependency_ = DCHECK_NOTNULL(dep);
-    }
-
-protected:
-    SingleDependencyNode(ExecutionPlan *plan, Kind kind, const PlanNode *dep)
-        : PlanNode(plan, kind), dependency_(dep) {}
-
-    const PlanNode *dependency_;
-};
-
-class SingleInputNode : public SingleDependencyNode {
-public:
-    void setInputVar(std::string inputVar) {
-        inputVar_ = std::move(inputVar);
-    }
-
-    const std::string& inputVar() const {
-        return inputVar_;
-    }
-
-protected:
-    SingleInputNode(ExecutionPlan* plan, Kind kind, const PlanNode* dep)
-        : SingleDependencyNode(plan, kind, dep) {
-    }
-
-    // Datasource for this node.
-    std::string inputVar_;
-};
-
-class BiInputNode : public PlanNode {
-public:
-    void setLeft(PlanNode* left) {
-        left_ = left;
-    }
-
-    void setRight(PlanNode* right) {
-        right_ = right;
-    }
-
-    void setLeftVar(std::string leftVar) {
-        leftVar_ = std::move(leftVar);
-    }
-
-    void setRightVar(std::string rightVar) {
-        rightVar_ = std::move(rightVar);
-    }
-
-    const PlanNode* left() const {
-        return left_;
-    }
-
-    const PlanNode* right() const {
-        return right_;
-    }
-
-    const std::string& leftInputVar() const {
-        return leftVar_;
-    }
-
-    const std::string& rightInputVar() const {
-        return rightVar_;
-    }
-
-    std::string explain() const override {
-        return "";
-    }
-
-protected:
-    BiInputNode(ExecutionPlan* plan, Kind kind, PlanNode* left, PlanNode* right)
-        : PlanNode(plan, kind), left_(left), right_(right) {
-    }
-
-    PlanNode* left_{nullptr};
-    PlanNode* right_{nullptr};
-    // Datasource for this node.
-    std::string leftVar_;
-    std::string rightVar_;
-};
-
-/**
- * This operator is used for multi output situation.
- */
-class MultiOutputsNode final : public SingleInputNode {
-public:
-    static MultiOutputsNode* make(ExecutionPlan* plan, PlanNode* input) {
-        return new MultiOutputsNode(input, plan);
-    }
-
-    std::string explain() const override {
-        return "MultiOutputsNode";
-    }
-
-private:
-    MultiOutputsNode(PlanNode* input, ExecutionPlan* plan)
-        : SingleInputNode(plan, Kind::kMultiOutputs, input) {}
-};
-
 /**
  * Now we hava four kind of exploration nodes:
  *  GetNeighbors,
  *  GetVertices,
  *  GetEdges,
- *  ReadIndex
+ *  IndexScan
  */
 class Explore : public SingleInputNode {
 public:
@@ -578,10 +454,10 @@ private:
 /**
  * Read data through the index.
  */
-class ReadIndex final : public Explore {
+class IndexScan final : public Explore {
 public:
-    ReadIndex(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
-        : Explore(plan, Kind::kReadIndex, input, space) {}
+    IndexScan(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
+        : Explore(plan, Kind::kIndexScan, input, space) {}
 
     std::string explain() const override;
 };
@@ -808,88 +684,6 @@ private:
     std::vector<GroupItem>      groupItems_;
 };
 
-class BinarySelect : public SingleInputNode {
-public:
-    Expression* condition() const {
-        return condition_;
-    }
-
-protected:
-    BinarySelect(ExecutionPlan* plan, Kind kind, PlanNode* input, Expression* condition)
-        : SingleInputNode(plan, kind, input), condition_(condition) {}
-
-    Expression*  condition_{nullptr};
-};
-
-class Select final : public BinarySelect {
-public:
-    static Select* make(ExecutionPlan* plan,
-                          PlanNode* input,
-                          PlanNode* ifBranch,
-                          PlanNode* elseBranch,
-                          Expression* condition) {
-        return new Select(plan, input, ifBranch, elseBranch, condition);
-    }
-
-    void setIf(PlanNode* ifBranch) {
-        if_ = ifBranch;
-    }
-
-    void setElse(PlanNode* elseBranch) {
-        else_ = elseBranch;
-    }
-
-    std::string explain() const override;
-
-    const PlanNode* then() const {
-        return if_;
-    }
-
-    const PlanNode* otherwise() const {
-        return else_;
-    }
-
-private:
-    Select(ExecutionPlan* plan,
-           PlanNode* input,
-           PlanNode* ifBranch,
-           PlanNode* elseBranch,
-           Expression* condition)
-        : BinarySelect(plan, Kind::kSelect, input, condition) {
-        if_ = ifBranch;
-        else_ = elseBranch;
-    }
-
-private:
-    PlanNode*   if_{nullptr};
-    PlanNode*   else_{nullptr};
-};
-
-class Loop final : public BinarySelect {
-public:
-    static Loop* make(ExecutionPlan* plan,
-                      PlanNode* input,
-                      PlanNode* body,
-                      Expression* condition) {
-        return new Loop(plan, input, body, condition);
-    }
-
-    void setBody(PlanNode* body) {
-        body_ = body;
-    }
-
-    std::string explain() const override;
-
-    const PlanNode* body() const {
-        return body_;
-    }
-
-private:
-    Loop(ExecutionPlan* plan, PlanNode* input, PlanNode* body, Expression* condition);
-
-    PlanNode*   body_{nullptr};
-};
-
 class SwitchSpace final : public SingleInputNode {
 public:
     static SwitchSpace* make(ExecutionPlan* plan,
@@ -978,10 +772,12 @@ class DataJoin final : public SingleInputNode {
 public:
     static DataJoin* make(ExecutionPlan* plan,
                           PlanNode* input,
-                          std::pair<std::string, std::string> vars,
+                          std::pair<std::string, int64_t> leftVar,
+                          std::pair<std::string, int64_t> rightVar,
                           std::vector<Expression*> hashKeys,
                           std::vector<Expression*> probeKeys) {
-        return new DataJoin(plan, input, std::move(vars), std::move(hashKeys),
+        return new DataJoin(plan, input, std::move(leftVar),
+                            std::move(rightVar), std::move(hashKeys),
                             std::move(probeKeys));
     }
 
@@ -989,8 +785,12 @@ public:
         return "DataJoin";
     }
 
-    const std::pair<std::string, std::string>& vars() const {
-        return vars_;
+    const std::pair<std::string, int64_t>& leftVar() const {
+        return leftVar_;
+    }
+
+    const std::pair<std::string, int64_t>& rightVar() const {
+        return rightVar_;
     }
 
     const std::vector<Expression*>& hashKeys() const {
@@ -1003,15 +803,19 @@ public:
 
 private:
     DataJoin(ExecutionPlan* plan, PlanNode* input,
-            std::pair<std::string, std::string> vars,
-            std::vector<Expression*> hashKeys, std::vector<Expression*> probeKeys)
+             std::pair<std::string, int64_t> leftVar,
+             std::pair<std::string, int64_t> rightVar,
+             std::vector<Expression*> hashKeys, std::vector<Expression*> probeKeys)
         : SingleInputNode(plan, Kind::kDataJoin, input),
-        vars_(std::move(vars)),
+        leftVar_(std::move(leftVar)),
+        rightVar_(std::move(rightVar)),
         hashKeys_(std::move(hashKeys)),
         probeKeys_(std::move(probeKeys)) {}
 
 private:
-    std::pair<std::string, std::string>     vars_;
+    // var name, var version
+    std::pair<std::string, int64_t>         leftVar_;
+    std::pair<std::string, int64_t>         rightVar_;
     std::vector<Expression*>                hashKeys_;
     std::vector<Expression*>                probeKeys_;
 };

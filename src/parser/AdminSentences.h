@@ -131,23 +131,23 @@ public:
         optValue_ = val;
     }
 
-    int64_t asInt() {
+    int64_t asInt() const {
         return boost::get<int64_t>(optValue_);
     }
 
-    const std::string& asString() {
+    const std::string& asString() const {
         return boost::get<std::string>(optValue_);
     }
 
-    bool isInt() {
+    bool isInt() const {
         return optValue_.which() == 0;
     }
 
-    bool isString() {
+    bool isString() const {
         return optValue_.which() == 1;
     }
 
-    int64_t getPartitionNum() {
+    int64_t getPartitionNum() const {
         if (isInt()) {
             return asInt();
         } else {
@@ -156,7 +156,7 @@ public:
         }
     }
 
-    int64_t getReplicaFactor() {
+    int64_t getReplicaFactor() const {
         if (isInt()) {
             return asInt();
         } else {
@@ -165,7 +165,7 @@ public:
         }
     }
 
-    int32_t getVidSize() {
+    int32_t getVidSize() const {
         if (isInt()) {
             return asInt();
         } else {
@@ -174,7 +174,7 @@ public:
         }
     }
 
-    std::string getCharset() {
+    std::string getCharset() const {
         if (isString()) {
             return asString();
         } else {
@@ -183,7 +183,7 @@ public:
         }
     }
 
-    std::string getCollate() {
+    std::string getCollate() const {
         if (isString()) {
             return asString();
         } else {
@@ -192,7 +192,7 @@ public:
         }
     }
 
-    OptionType getOptType() {
+    OptionType getOptType() const {
         return optType_;
     }
 

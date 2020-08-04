@@ -39,7 +39,8 @@ TEST_F(AdminJobTest, Error) {
         cpp2::ExecutionResponse resp;
         std::string query = "SUBMIT JOB COMPACT";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        // TODO(shylock) semantic error?
+        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_SEMANTIC_ERROR);
     }
     {
         // show one not exists

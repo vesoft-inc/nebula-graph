@@ -28,8 +28,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "GetVertices";
         case Kind::kGetEdges:
             return "GetEdges";
-        case Kind::kReadIndex:
-            return "ReadIndex";
+        case Kind::kIndexScan:
+            return "IndexScan";
         case Kind::kFilter:
             return "Filter";
         case Kind::kUnion:
@@ -106,6 +106,14 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "SubmitJob";
         case Kind::kDataJoin:
             return "DataJoin";
+        case Kind::kDeleteVertices:
+            return "DeleteVertices";
+        case Kind::kDeleteEdges:
+            return "DeleteEdges";
+        case Kind::kUpdateVertex:
+            return "UpdateVertex";
+        case Kind::kUpdateEdge:
+            return "UpdateEdge";
         // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
