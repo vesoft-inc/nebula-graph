@@ -15,8 +15,6 @@ folly::Future<Status> BalanceLeadersExecutor::execute() {
 }
 
 folly::Future<Status> BalanceLeadersExecutor::balanceLeaders() {
-    dumpLog();
-
     return qctx()->getMetaClient()->balanceLeader()
         .via(runner())
         .then([](StatusOr<bool> resp) {

@@ -9,29 +9,40 @@
 #include "planner/Query.h"
 #include "context/QueryExpressionContext.h"
 #include "context/Iterator.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
 folly::Future<Status> DataJoinExecutor::execute() {
-    dumpLog();
-
     return doInnerJoin().ensure([this]() {
         exchange_ = false;
     });
 }
 
 folly::Future<Status> DataJoinExecutor::doInnerJoin() {
+    SCOPED_TIMER(&execTime_);
+
     auto* dataJoin = asNode<DataJoin>(node());
 
-    auto lhsIter = ectx_->getResult(dataJoin->vars().first).iter();
+    VLOG(1) << "lhs hist: " << ectx_->getHistory(dataJoin->leftVar().first).size();
+    VLOG(1) << "rhs hist: " << ectx_->getHistory(dataJoin->rightVar().first).size();
+    auto lhsIter = ectx_
+                       ->getVersionedResult(dataJoin->leftVar().first,
+                                            dataJoin->leftVar().second)
+                       .iter();
     DCHECK(!!lhsIter);
+    VLOG(1) << "lhs: " << dataJoin->leftVar().first << " " << lhsIter->size();
     if (!lhsIter->isSequentialIter() && !lhsIter->isJoinIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter->kind();
         return error(Status::Error(ss.str()));
     }
-    auto rhsIter = ectx_->getResult(dataJoin->vars().second).iter();
+    auto rhsIter = ectx_
+                       ->getVersionedResult(dataJoin->rightVar().first,
+                                            dataJoin->rightVar().second)
+                       .iter();
     DCHECK(!!rhsIter);
+    VLOG(1) << "rhs: " << dataJoin->rightVar().first << " " << rhsIter->size();
     if (!rhsIter->isSequentialIter() && !rhsIter->isJoinIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter->kind();
@@ -68,6 +79,7 @@ void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
             list.values.emplace_back(std::move(val));
         }
 
+        VLOG(1) << "key: " << list;
         hashTable_->add(std::move(list), iter->row());
     }
 }
@@ -83,6 +95,7 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
             list.values.emplace_back(std::move(val));
         }
 
+        VLOG(1) << "probe: " << list;
         auto range = hashTable_->get(list);
         for (auto i = range.first; i != range.second; ++i) {
             auto row = i->second;
@@ -97,8 +110,9 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
                 values.insert(values.end(), rSegs.begin(), rSegs.end());
             }
             size_t size = row->size() + probeIter->row()->size();
-            JoinIter::LogicalRowJoin newRow(std::move(values), size,
+            JoinIter::JoinLogicalRow newRow(std::move(values), size,
                                         &resultIter->getColIdxIndices());
+            VLOG(1) << node()->varName() << " : " << newRow;
             resultIter->addRow(std::move(newRow));
         }
     }

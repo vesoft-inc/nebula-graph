@@ -15,8 +15,6 @@ folly::Future<Status> ShowBalanceExecutor::execute() {
 }
 
 folly::Future<Status> ShowBalanceExecutor::showBalance() {
-    dumpLog();
-
     auto *sbNode = asNode<ShowBalance>(node());
     return qctx()->getMetaClient()->showBalance(sbNode->id())
         .via(runner())

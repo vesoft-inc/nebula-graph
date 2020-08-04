@@ -15,8 +15,6 @@ folly::Future<Status> StopBalanceExecutor::execute() {
 }
 
 folly::Future<Status> StopBalanceExecutor::stopBalance() {
-    dumpLog();
-
     return qctx()->getMetaClient()->balance({}, true)
         .via(runner())
         .then([this](StatusOr<int64_t> resp) {

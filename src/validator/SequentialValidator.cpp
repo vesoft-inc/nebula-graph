@@ -8,6 +8,7 @@
 #include "validator/SequentialValidator.h"
 #include "service/GraphFlags.h"
 #include "service/PermissionCheck.h"
+#include "planner/Logic.h"
 #include "planner/Query.h"
 
 DECLARE_uint32(max_allowed_statements);
@@ -68,6 +69,7 @@ Status SequentialValidator::toPlan() {
     }
     tail_ = StartNode::make(plan);
     NG_RETURN_IF_ERROR(validators_.front()->appendPlan(tail_));
+    VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }
 
