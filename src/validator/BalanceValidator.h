@@ -4,7 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#pragma once
+#ifndef VALIDATOR_BALANCE_VALIDATOR_H_
+#define VALIDATOR_BALANCE_VALIDATOR_H_
 
 #include "common/base/Base.h"
 #include "validator/Validator.h"
@@ -30,3 +31,5 @@ private:
 
 }  // namespace graph
 }  // namespace nebula
+
+#endif  // VALIDATOR_BALANCE_VALIDATOR_H_
