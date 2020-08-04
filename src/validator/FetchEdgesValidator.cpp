@@ -53,7 +53,7 @@ Status FetchEdgesValidator::toPlan() {
                                         limit_,
                                         std::move(orderBy_),
                                         std::move(filter_));
-    getEdgesNode->setInputVar(inputVar_);
+    getEdgesNode->setInputVar(edgeKeysVar);
     // the pipe will set the input variable
     PlanNode *current = getEdgesNode;
 
