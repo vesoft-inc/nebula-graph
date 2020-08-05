@@ -27,7 +27,7 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = [['Boris Diaw', 'Boris Diaw', 36]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = 'FETCH PROP ON player "Boris Diaw" YIELD player.name, player.age, player.age > 30'
         resp = self.execute_query(query)
@@ -35,7 +35,7 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = [['Boris Diaw', 'Boris Diaw', 36, False]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = '''GO FROM "Boris Diaw" over like YIELD like._dst as id
             | FETCH PROP ON player $-.id YIELD player.name, player.age'''
@@ -47,7 +47,7 @@ class TestFetchQuery(NebulaTestSuite):
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = '''$var = GO FROM "Boris Diaw" over like YIELD like._dst as id;
             FETCH PROP ON player $var.id YIELD player.name, player.age'''
@@ -58,7 +58,7 @@ class TestFetchQuery(NebulaTestSuite):
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = '''$var = GO FROM %ld over like YIELD like._dst as id;
             FETCH PROP ON player $var.id YIELD player.name as name, player.age
@@ -71,21 +71,21 @@ class TestFetchQuery(NebulaTestSuite):
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # TODO insert hash key
         #query = 'FETCH PROP ON player hash("Boris Diaw") YIELD player.name, player.age';
         #resp = self.execute_query(query)
         #expect_result = [['Boris Diaw', 36]]
         #self.check_resp_succeeded(resp)
-        #self.check_out_of_order_result(resp.rows, expect_result)
+        #self.check_out_of_order_result(resp, expect_result)
 
         # TODO insert uuid key
         #query = 'FETCH PROP ON player uuid("Boris Diaw") YIELD player.name, player.age';
         #resp = self.execute_query(query)
         #expect_result = [['Boris Diaw', 36]]
         #self.check_resp_succeeded(resp)
-        #self.check_out_of_order_result(resp.rows, expect_result)
+        #self.check_out_of_order_result(resp, expect_result)
 
     def test_fetch_vertex_no_yield(self):
         query = 'FETCH PROP ON player "Boris Diaw"'
@@ -94,21 +94,21 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = [['Boris Diaw', 'Boris Diaw', 36]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         # TODO insert hash key
         # query = 'FETCH PROP ON player hash("Boris Diaw")'
         # resp = self.execute_query(query)
         # expect_result = [[TODO, 'Boris Diaw', 36]]
         # self.check_resp_succeeded(resp)
-        # self.check_out_of_order_result(resp.rows, expect_result)
+        # self.check_out_of_order_result(resp, expect_result)
 
         # TODO insert uuid key
         # query = 'FETCH PROP ON player uuid("Boris Diaw")'
         # resp = self.execute_query(query)
         # expect_result = [[TODO, 'Boris Diaw', 36]]
         # self.check_resp_succeeded(resp)
-        # self.check_out_of_order_result(resp.rows, expect_result)
+        # self.check_out_of_order_result(resp, expect_result)
 
     def test_fetch_vertex_disctinct(self):
         query = 'FETCH PROP ON player "Boris Diaw", "Boris Diaw" YIELD DISTINCT player.name, player.age'
@@ -117,7 +117,7 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = [['Boris Diaw', 'Boris Diaw', 36]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = 'FETCH PROP ON player "Boris Diaw", "Tony Parker" YIELD DISTINCT player.name, player.age'
         resp = self.execute_query(query)
@@ -125,7 +125,7 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = [['Boris Diaw', 'Boris Diaw', 36], ['Tony Parker', 'Tony Parker', 36]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
     def test_fetch_vertex_syntax_error(self):
         query = 'FETCH PROP ON player "Boris Diaw" YIELD $^.player.name, player.age'
@@ -180,7 +180,7 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = [['Boris Diaw', 'Boris Diaw', 36]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = 'FETCH PROP ON bachelor "Tim Duncan" '
         resp = self.execute_query(query)
@@ -188,13 +188,13 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = [["Tim Duncan", "Tim Duncan", "psychology"]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = 'FETCH PROP ON * "Tim Duncan" '
         resp = self.execute_query(query)
         expect_result = [['Tim Duncan', 'Tim Duncan', 42, "Tim Duncan", "psychology"]]
         self.check_resp_succeeded(resp)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
     def test_fetch_vertex_duplicate_column_names(self):
         query = 'FETCH PROP ON player "Boris Diaw" YIELD player.name, player.name'
@@ -203,7 +203,7 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = [['Boris Diaw', 'Boris Diaw', 'Boris Diaw']]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = '''GO FROM "Boris Diaw" over like YIELD like._dst as id, like._dst as id
             | FETCH PROP ON player $-.id YIELD player.name, player.age'''
@@ -224,7 +224,7 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = []
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
 
         query = '''GO FROM "Marco Belinelli" over serve YIELD serve._dst as id, serve.start_year as start
             | YIELD $-.id as id WHERE $-.start > 20000"
@@ -233,4 +233,4 @@ class TestFetchQuery(NebulaTestSuite):
         expect_result = []
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp.rows, expect_result)
+        self.check_out_of_order_result(resp, expect_result)
