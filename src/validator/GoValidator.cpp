@@ -125,6 +125,7 @@ Status GoValidator::validateOver(const OverClause* over) {
             edgeTypes_.emplace_back(edgeType.value());
         }
         allEdges_ = std::move(edges);
+        isOverAll_ = true;
     } else {
         auto edges = over->edges();
         for (auto* edge : edges) {
@@ -193,6 +194,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
             outputs_.emplace_back(colName, Value::Type::STRING);
+            NG_RETURN_IF_ERROR(deduceProps(col->expr()));
         }
 
         yields_ = newCols;
