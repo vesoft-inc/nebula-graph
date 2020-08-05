@@ -129,36 +129,36 @@ class TestGroupBy(NebulaTestSuite):
         # self.check_out_of_order_result(resp, expected_data["rows"])
 
         # group has all agg fun
-        stmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like 
-                YIELD $$.player.name AS name,
-                $$.player.age AS dst_age,
-                $$.player.age AS src_age,
-                like.likeness AS likeness
-                | GROUP BY $-.name
-                YIELD $-.name AS name,
-                SUM($-.dst_age) AS sum_dst_age,
-                AVG($-.dst_age) AS avg_dst_age,
-                MAX($-.src_age) AS max_src_age,
-                MIN($-.src_age) AS min_src_age,
-                BIT_AND(1) AS bit_and,
-                BIT_OR(2) AS bit_or,
-                BIT_XOR(3) AS bit_xor,
-                COUNT($-.likeness),
-                COUNT_DISTINCT($-.likeness)'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : ["name", "sum_dst_age", "avg_dst_age", "max_src_age", "min_src_age", "bit_and",
-                              "bit_or", "bit_xor", "COUNT($-.likeness)", "COUNT_DISTINCT($-.likeness)"],
-            "rows" : [
-                ["LeBron James", 68, 34.0, 34, 34, 1, 2, 0, 2, 1],
-                ["Chris Paul", 66, 33.0, 33, 33, 1, 2, 0, 2, 1],
-                ["Dwyane Wade", 37, 37.0, 37, 37, 1, 2, 3, 1, 1],
-                ["Carmelo Anthony", 34, 34.0, 34, 34, 1, 2, 3, 1, 1]
-            ]
-        }
-        self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        # stmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
+        #         YIELD $$.player.name AS name,
+        #         $$.player.age AS dst_age,
+        #         $$.player.age AS src_age,
+        #         like.likeness AS likeness
+        #         | GROUP BY $-.name
+        #         YIELD $-.name AS name,
+        #         SUM($-.dst_age) AS sum_dst_age,
+        #         AVG($-.dst_age) AS avg_dst_age,
+        #         MAX($-.src_age) AS max_src_age,
+        #         MIN($-.src_age) AS min_src_age,
+        #         BIT_AND(1) AS bit_and,
+        #         BIT_OR(2) AS bit_or,
+        #         BIT_XOR(3) AS bit_xor,
+        #         COUNT($-.likeness),
+        #         COUNT_DISTINCT($-.likeness)'''
+        # resp = self.execute_query(stmt)
+        # self.check_resp_succeeded(resp)
+        # expected_data = {
+        #     "column_names" : ["name", "sum_dst_age", "avg_dst_age", "max_src_age", "min_src_age", "bit_and",
+        #                       "bit_or", "bit_xor", "COUNT($-.likeness)", "COUNT_DISTINCT($-.likeness)"],
+        #     "rows" : [
+        #         ["LeBron James", 68, 34.0, 34, 34, 1, 2, 0, 2, 1],
+        #         ["Chris Paul", 66, 33.0, 33, 33, 1, 2, 0, 2, 1],
+        #         ["Dwyane Wade", 37, 37.0, 37, 37, 1, 2, 3, 1, 1],
+        #         ["Carmelo Anthony", 34, 34.0, 34, 34, 1, 2, 3, 1, 1]
+        #     ]
+        # }
+        # self.check_column_names(resp, expected_data["column_names"])
+        # self.check_out_of_order_result(resp, expected_data["rows"])
 
         # group has fun col
         stmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like

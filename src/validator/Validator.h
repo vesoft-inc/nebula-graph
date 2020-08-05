@@ -58,22 +58,21 @@ public:
 
     const TagIDMap& srcTagProps() const {
         return srcTagProps_;
-        // return const_cast<ExpressionProps&>(*this).srcTagProps();
     }
-    TagIDMap& dstTagProps() const {
-        return const_cast<ExpressionProps&>(*this).dstTagProps();
+    const TagIDMap& dstTagProps() const {
+        return dstTagProps_;
     }
-    TagIDMap& tagProps() const {
-        return const_cast<ExpressionProps&>(*this).tagProps();
+    const TagIDMap& tagProps() const {
+        return tagProps_;
     }
-    TagIDMap& edgeProps() const {
-        return const_cast<ExpressionProps&>(*this).edgeProps();
+    const TagIDMap& edgeProps() const {
+        return edgeProps_;
     }
-    std::set<std::string>& inputProps() const {
-        return const_cast<ExpressionProps&>(*this).inputProps();
+    const std::set<std::string>& inputProps() const {
+        return inputProps_;
     }
-    VarMap& varProps() const {
-        return const_cast<ExpressionProps&>(*this).varProps();
+    const VarMap& varProps() const {
+        return varProps_;
     }
 
     bool isSubsetOfInput(std::set<std::string>& props);

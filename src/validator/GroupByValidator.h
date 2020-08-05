@@ -35,9 +35,10 @@ private:
 
     // key: alias, value: input name
     std::unordered_map<std::string, YieldColumn*>     aliases_;
+
     std::vector<std::string>                          outputColumnNames_;
 
-    ExpressionProps                                   groupProps_;
+    ExpressionProps                                   exprProps_;
 
     std::vector<Expression*>                          groupKeys_;
     std::vector<Aggregate::GroupItem>                 groupItems_;
