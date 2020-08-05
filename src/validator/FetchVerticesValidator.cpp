@@ -20,8 +20,6 @@ Status FetchVerticesValidator::validateImpl() {
 
 Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
-    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
-
     std::string vidsVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
 
     auto *plan = qctx_->plan();
@@ -40,7 +38,7 @@ Status FetchVerticesValidator::toPlan() {
     PlanNode *current = getVerticesNode;
 
     if (withProject_) {
-        auto *projectNode = Project::make(plan, current, sentence->yieldClause()->yields());
+        auto *projectNode = Project::make(plan, current, newYieldColumns_);
         projectNode->setInputVar(current->varName());
         projectNode->setColNames(colNames_);
         current = projectNode;
@@ -156,6 +154,13 @@ Status FetchVerticesValidator::prepareProperties() {
     } else {
         CHECK(!sentence->isAllTagProps()) << "Not supported yield for *.";
         withProject_ = true;
+        // outputs
+        auto yieldSize = yield->columns().size();
+        colNames_.reserve(yieldSize + 1);
+        outputs_.reserve(yieldSize + 1);
+        colNames_.emplace_back(kVid);
+        outputs_.emplace_back(kVid, Value::Type::STRING);  // kVid
+
         dedup_ = yield->isDistinct();
         storage::cpp2::VertexProp prop;
         prop.set_tag(tagId_.value());
@@ -192,18 +197,24 @@ Status FetchVerticesValidator::prepareProperties() {
                 }
                 propsName.emplace_back(*expr->prop());
             }
+            colNames_.emplace_back(deduceColName(col));
+            auto typeResult = deduceExprType(col->expr());
+            NG_RETURN_IF_ERROR(typeResult);
+            outputs_.emplace_back(colNames_.back(), typeResult.value());
             // TODO(shylock) think about the push-down expr
         }
         prop.set_props(std::move(propsName));
         props_.emplace_back(std::move(prop));
 
-        // outputs
-        colNames_ = deduceColNames(yield->yields());
-        outputs_.reserve(colNames_.size());
-        for (std::size_t i = 0; i < colNames_.size(); ++i) {
-            auto typeResult = deduceExprType(yield->columns()[i]->expr());
-            NG_RETURN_IF_ERROR(typeResult);
-            outputs_.emplace_back(colNames_[i], typeResult.value());
+        // insert the reserved properties expression be compatible with 1.0
+        // TODO(shylock) select kVid from storage
+        newYieldColumns_ = qctx_->objPool()->add(new YieldColumns());
+        // note eval vid by input expression
+        newYieldColumns_->addColumn(
+            new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
+                            new std::string(kVid)));
+        for (auto col : yield->columns()) {
+            newYieldColumns_->addColumn(col->clone().release());
         }
     }
 

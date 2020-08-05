@@ -160,6 +160,10 @@ Status FetchEdgesValidator::prepareProperties() {
         }
         newYield_ = qctx_->objPool()->add(new YieldClause(newYieldColumns, yield->isDistinct()));
 
+        auto newYieldSize = newYield_->columns().size();
+        colNames_.reserve(newYieldSize);
+        outputs_.reserve(newYieldSize);
+
         std::vector<std::string> propsName;
         propsName.reserve(newYield_->columns().size());
         dedup_ = newYield_->isDistinct();
@@ -195,18 +199,13 @@ Status FetchEdgesValidator::prepareProperties() {
                 }
                 propsName.emplace_back(*expr->prop());
             }
+            colNames_.emplace_back(deduceColName(col));
+            auto typeResult = deduceExprType(col->expr());
+            NG_RETURN_IF_ERROR(typeResult);
+            outputs_.emplace_back(colNames_.back(), typeResult.value());
             // TODO(shylock) think about the push-down expr
         }
         prop.set_props(std::move(propsName));
-
-        // outpus
-        colNames_ = deduceColNames(newYield_->yields());
-        outputs_.reserve(colNames_.size());
-        for (std::size_t i = 0; i < colNames_.size(); ++i) {
-            auto typeResult = deduceExprType(newYield_->columns()[i]->expr());
-            NG_RETURN_IF_ERROR(typeResult);
-            outputs_.emplace_back(colNames_[i], typeResult.value());
-        }
     } else {
         // no yield
         std::vector<std::string> propNames;   // filter the type
