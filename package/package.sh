@@ -15,8 +15,12 @@ version=""
 package_one=ON
 strip_enable="FALSE"
 usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE>"
+<<<<<<< HEAD
 project_dir="$(cd "$(dirname "$0")" && pwd)"/../
 build_dir=${project_dir}/build
+=======
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"/../
+>>>>>>> Support package
 enablesanitizer="OFF"
 static_sanitizer="OFF"
 build_type="Release"
@@ -72,7 +76,12 @@ function build {
     san=$2
     ssan=$3
     build_type=$4
+<<<<<<< HEAD
     modules_dir=${project_dir}/modules
+=======
+    build_dir=${PROJECT_DIR}/build
+    modules_dir=${PROJECT_DIR}/modules
+>>>>>>> Support package
     if [[ -d $build_dir ]]; then
         rm -rf ${build_dir}/*
     else
@@ -96,7 +105,11 @@ function build {
           -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
           -DENABLE_TESTING=OFF \
           -DENABLE_BUILD_STORAGE=ON \
+<<<<<<< HEAD
           $project_dir
+=======
+          $PROJECT_DIR
+>>>>>>> Support package
 
     if !( make -j$(nproc) ); then
         echo ">>> build nebula failed <<<"
@@ -108,6 +121,7 @@ function build {
 
 # args: <strip_enable>
 function package {
+<<<<<<< HEAD
     # The package CMakeLists.txt in ${project_dir}/package/build
     package_dir=${build_dir}/package/
     if [[ -d $package_dir ]]; then
@@ -117,6 +131,17 @@ function package {
     fi
     pushd ${package_dir}
     cmake -DNEBULA_BUILD_VERSION=${version} -DENABLE_PACK_ONE=${package_one} ${project_dir}/package/
+=======
+    # The package CMakeLists.txt in ${PROJECT_DIR}/package/build
+    package_build_dir=${PROJECT_DIR}/package/build
+    if [[ -d $package_build_dir ]]; then
+        rm -rf ${package_build_dir}/*
+    else
+        mkdir ${package_build_dir}
+    fi
+    pushd ${package_build_dir}
+    cmake -DENABLE_PACK_ONE=${package_one} ..
+>>>>>>> Support package
 
     strip_enable=$1
 
@@ -144,7 +169,7 @@ function package {
     if !( cpack -G ${pType} --verbose $args ); then
         echo ">>> package nebula failed <<<"
         exit -1
-    else
+    elif [[ "$tagetPackageName" != "" && $package_one == ON ]]; then
         # rename package file
         pkg_names=`ls | grep nebula | grep ${version}`
         outputDir=$build_dir/cpack_output

@@ -5,6 +5,12 @@
 #
 # CMakeLists.txt file contains a set of directives and instructions describing
 # the project's source files and targets (executable, library, or both).
+<<<<<<< HEAD
+=======
+#
+# The building can be controlled by defining the following variables on the
+# <cmake> command line.
+>>>>>>> Support package
 #
 # The building can be controlled by defining the following variables on the
 # <cmake> command line.
@@ -32,7 +38,6 @@
 #   ENABLE_JEMALLOC                -- Link jemalloc into all executables
 #   ENABLE_NATIVE                  -- Build native client
 #   ENABLE_TESTING                 -- Build unit test
-#   ENABLE_UPDATE_EXTERNAL_PROJ    -- Whether to update external project
 #
 # CMake version check
 cmake_minimum_required(VERSION 3.5.0)
@@ -58,6 +63,9 @@ set(CMAKE_MODULE_PATH
     "${NEBULA_HOME}/modules/common/cmake"
     ${CMAKE_MODULE_PATH})
 
+<<<<<<< HEAD
+>>>>>>> Support package
+=======
 >>>>>>> Support package
 
 add_definitions(-DNEBULA_HOME=${CMAKE_SOURCE_DIR})
@@ -258,7 +266,11 @@ add_subdirectory(tests)
 include(GetGitInfo)
 include(LinkerConfig)
 include(BuildOption)
+<<<<<<< HEAD
 option(ENABLE_UPDATE_EXTERNAL_PROJ "Whether to update external project" OFF)
+=======
+
+>>>>>>> Support package
 
 find_package(Bzip2 REQUIRED)
 find_package(DoubleConversion REQUIRED)
@@ -299,6 +311,9 @@ add_subdirectory(src)
 add_subdirectory(conf)
 add_subdirectory(scripts)
 add_subdirectory(resources)
+<<<<<<< HEAD
+>>>>>>> Support package
+=======
 >>>>>>> Support package
 
 include(CleanBuild)
