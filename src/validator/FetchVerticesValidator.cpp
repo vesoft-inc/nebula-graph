@@ -21,19 +21,21 @@ Status FetchVerticesValidator::validateImpl() {
 Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+
+    std::string vidsVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
+
     auto *plan = qctx_->plan();
     auto *getVerticesNode = GetVertices::make(plan,
                                               nullptr,
                                               spaceId_,
-                                              std::move(vertices_),
-                                              std::move(src_),
+                                              src_,
                                               std::move(props_),
                                               std::move(exprs_),
                                               dedup_,
                                               std::move(orderBy_),
                                               limit_,
                                               std::move(filter_));
-    getVerticesNode->setInputVar(inputVar_);
+    getVerticesNode->setInputVar(vidsVar);
     // pipe will set the input variable
     PlanNode *current = getVerticesNode;
 
@@ -82,8 +84,8 @@ Status FetchVerticesValidator::prepareVertices() {
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     // from ref, eval when execute
     if (sentence->isRef()) {
-        src_ = sentence->ref();
-        auto result = checkRef(src_, Value::Type::STRING);
+        srcRef_ = sentence->ref();
+        auto result = checkRef(srcRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         inputVar_ = std::move(result).value();
         return Status::OK();
@@ -93,7 +95,7 @@ Status FetchVerticesValidator::prepareVertices() {
     // TODO(shylock) add eval() method for expression
     QueryExpressionContext dummy(nullptr);
     auto vids = sentence->vidList();
-    vertices_.reserve(vids.size());
+    srcVids_.rows.reserve(vids.size());
     for (const auto vid : vids) {
         // TODO(shylock) Add a new value type VID to semantic this
         DCHECK(ExpressionUtils::isConstExpr(vid));
@@ -101,7 +103,7 @@ Status FetchVerticesValidator::prepareVertices() {
         if (!v.isStr()) {   // string as vid
             return Status::NotSupported("Not a vertex id");
         }
-        vertices_.emplace_back(nebula::Row({std::move(v).getStr()}));
+        srcVids_.emplace_back(nebula::Row({std::move(v).getStr()}));
     }
     return Status::OK();
 }
@@ -217,6 +219,21 @@ const Expression *FetchVerticesValidator::findInvalidYieldExpression(const Expre
                                          Expression::Kind::kEdgeType,
                                          Expression::Kind::kEdgeRank,
                                          Expression::Kind::kEdgeDst});
+}
+
+// TODO(shylock) optimize dedup input when distinct given
+std::string FetchVerticesValidator::buildConstantInput() {
+    auto input = vctx_->anonVarGen()->getVar();
+    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(srcVids_))).finish());
+
+    src_ = qctx_->plan()->makeAndSave<VariablePropertyExpression>(new std::string(input),
+                                                                  new std::string(kVid));
+    return input;
+}
+
+std::string FetchVerticesValidator::buildRuntimeInput() {
+    src_ = DCHECK_NOTNULL(srcRef_);
+    return inputVar_;
 }
 
 }   // namespace graph

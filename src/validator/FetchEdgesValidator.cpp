@@ -28,22 +28,25 @@ Status FetchEdgesValidator::validateImpl() {
 
 Status FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
+
     auto *plan = qctx_->plan();
+
+    std::string edgeKeysVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
+
     auto *getEdgesNode = GetEdges::make(plan,
                                         nullptr,
                                         spaceId_,
-                                        std::move(edges_),
-                                        std::move(src_),
-                                        edgeType_,
-                                        std::move(ranking_),
-                                        std::move(dst_),
+                                        src_,
+                                        type_,
+                                        rank_,
+                                        dst_,
                                         std::move(props_),
                                         std::move(exprs_),
                                         dedup_,
                                         limit_,
                                         std::move(orderBy_),
                                         std::move(filter_));
-    getEdgesNode->setInputVar(inputVar_);
+    getEdgesNode->setInputVar(edgeKeysVar);
     // the pipe will set the input variable
     PlanNode *current = getEdgesNode;
 
@@ -88,20 +91,20 @@ Status FetchEdgesValidator::prepareEdges() {
     auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     // from ref, eval in execute
     if (sentence->isRef()) {
-        src_ = sentence->ref()->srcid();
-        auto result = checkRef(src_, Value::Type::STRING);
+        srcRef_ = sentence->ref()->srcid();
+        auto result = checkRef(srcRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         inputVar_ = std::move(result).value();
-        ranking_ = sentence->ref()->rank();
-        if (ranking_->kind() != Expression::Kind::kConstant) {
-            result = checkRef(ranking_, Value::Type::INT);
+        rankRef_ = sentence->ref()->rank();
+        if (rankRef_->kind() != Expression::Kind::kConstant) {
+            result = checkRef(rankRef_, Value::Type::INT);
             NG_RETURN_IF_ERROR(result);
             if (inputVar_ != result.value()) {
                 return Status::Error("Can't refer to different variable as key at same time.");
             }
         }
-        dst_ = sentence->ref()->dstid();
-        result = checkRef(dst_, Value::Type::STRING);
+        dstRef_ = sentence->ref()->dstid();
+        result = checkRef(dstRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         if (inputVar_ != result.value()) {
             return Status::Error("Can't refer to different variable as key at same time.");
@@ -115,7 +118,7 @@ Status FetchEdgesValidator::prepareEdges() {
     if (keysPointer != nullptr) {
         auto keys = keysPointer->keys();
         // row: _src, _type, _ranking, _dst
-        edges_.reserve(keys.size());
+        edgeKeys_.rows.reserve(keys.size());
         for (const auto &key : keys) {
             DCHECK(ExpressionUtils::isConstExpr(key->srcid()));
             // TODO(shylock) Add new value type EDGE_ID to semantic and simplify this
@@ -129,7 +132,7 @@ Status FetchEdgesValidator::prepareEdges() {
             if (!src.isStr()) {
                 return Status::NotSupported("dst is not a vertex id");
             }
-            edges_.emplace_back(nebula::Row(
+            edgeKeys_.emplace_back(nebula::Row(
                 {std::move(src).getStr(), edgeType_, ranking, std::move(dst).getStr()}));
         }
     }
@@ -241,6 +244,32 @@ const Expression *FetchEdgesValidator::findInvalidYieldExpression(const Expressi
                                          Expression::Kind::kVarProperty,
                                          Expression::Kind::kSrcProperty,
                                          Expression::Kind::kDstProperty});
+}
+
+// TODO(shylock) optimize dedup input when distinct given
+std::string FetchEdgesValidator::buildConstantInput() {
+    auto plan = qctx_->plan();
+    auto input = vctx_->anonVarGen()->getVar();
+    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(edgeKeys_))).finish());
+
+    src_ = plan->makeAndSave<VariablePropertyExpression>(new std::string(input),
+                                                         new std::string(kSrc));
+    type_ = plan->makeAndSave<VariablePropertyExpression>(new std::string(input),
+                                                          new std::string(kType));
+    rank_ = plan->makeAndSave<VariablePropertyExpression>(new std::string(input),
+                                                          new std::string(kRank));
+    dst_ = plan->makeAndSave<VariablePropertyExpression>(new std::string(input),
+                                                         new std::string(kDst));
+    return input;
+}
+
+std::string FetchEdgesValidator::buildRuntimeInput() {
+    auto plan = qctx_->plan();
+    src_ = DCHECK_NOTNULL(srcRef_);
+    type_ = plan->makeAndSave<ConstantExpression>(edgeType_);
+    rank_ = DCHECK_NOTNULL(rankRef_);
+    dst_ = DCHECK_NOTNULL(dstRef_);
+    return inputVar_;
 }
 
 }   // namespace graph

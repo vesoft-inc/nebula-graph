@@ -264,7 +264,6 @@ public:
     static GetVertices* make(ExecutionPlan* plan,
                              PlanNode* input,
                              GraphSpaceID space,
-                             std::vector<Row> vertices,
                              Expression* src,
                              std::vector<storage::cpp2::VertexProp> props,
                              std::vector<storage::cpp2::Expr>       exprs,
@@ -276,7 +275,6 @@ public:
                 plan,
                 input,
                 space,
-                std::move(vertices),
                 src,
                 std::move(props),
                 std::move(exprs),
@@ -287,10 +285,6 @@ public:
     }
 
     std::string explain() const override;
-
-    const std::vector<Row>& vertices() const {
-        return vertices_;
-    }
 
     Expression* src() const {
         return src_;
@@ -308,7 +302,6 @@ private:
     GetVertices(ExecutionPlan* plan,
                 PlanNode* input,
                 GraphSpaceID space,
-                std::vector<Row> vertices,
                 Expression* src,
                 std::vector<storage::cpp2::VertexProp> props,
                 std::vector<storage::cpp2::Expr>       exprs,
@@ -324,14 +317,11 @@ private:
                   limit,
                   std::move(filter),
                   std::move(orderBy)),
-          vertices_(std::move(vertices)),
           src_(src),
           props_(std::move(props)),
           exprs_(std::move(exprs)) { }
 
 private:
-    // vertices are parsing from query.
-    std::vector<Row>                         vertices_;
     // vertices may be parsing from runtime.
     Expression*                              src_{nullptr};
     // props of the vertex
@@ -348,9 +338,8 @@ public:
     static GetEdges* make(ExecutionPlan* plan,
                           PlanNode* input,
                           GraphSpaceID space,
-                          std::vector<Row> edges,
                           Expression* src,
-                          EdgeType    type,
+                          Expression* type,
                           Expression* ranking,
                           Expression* dst,
                           std::vector<storage::cpp2::EdgeProp> props,
@@ -363,7 +352,6 @@ public:
                 plan,
                 input,
                 space,
-                std::move(edges),
                 src,
                 type,
                 ranking,
@@ -378,15 +366,11 @@ public:
 
     std::string explain() const override;
 
-    const std::vector<Row>& edges() const {
-        return edges_;
-    }
-
     Expression* src() const {
         return src_;
     }
 
-    EdgeType type() const {
+    Expression* type() const {
         return type_;
     }
 
@@ -410,9 +394,8 @@ private:
     GetEdges(ExecutionPlan* plan,
              PlanNode* input,
              GraphSpaceID space,
-             std::vector<Row> edges,
              Expression* src,
-             EdgeType    type,
+             Expression* type,
              Expression* ranking,
              Expression* dst,
              std::vector<storage::cpp2::EdgeProp> props,
@@ -429,7 +412,6 @@ private:
                   limit,
                   std::move(filter),
                   std::move(orderBy)),
-          edges_(std::move(edges)),
           src_(src),
           type_(type),
           ranking_(ranking),
@@ -438,11 +420,9 @@ private:
           exprs_(std::move(exprs)) { }
 
 private:
-    // edges_ are parsing from the query.
-    std::vector<Row>                         edges_;
     // edges_ may be parsed from runtime.
     Expression*                              src_{nullptr};
-    EdgeType                                 type_{0};
+    Expression*                              type_{nullptr};
     Expression*                              ranking_{nullptr};
     Expression*                              dst_{nullptr};
     // props of edge to get
