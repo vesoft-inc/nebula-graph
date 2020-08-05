@@ -155,13 +155,14 @@ class TestFetchQuery(NebulaTestSuite):
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expected)
 
-        query = 'GO FROM "not_exist_vertex" OVER serve | FETCH PROP ON team $-'
-        resp = self.execute_query(query)
-        expect_column_names = ['_vid', 'team.name']
-        expected = []
-        self.check_resp_succeeded(resp)
-        self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp, expected)
+        # It's not compatible to 1.0, now not support $- again
+        # query = 'GO FROM "not_exist_vertex" OVER serve | FETCH PROP ON team $-'
+        # resp = self.execute_query(query)
+        # expect_column_names = ['_vid', 'team.name']
+        # expected = []
+        # self.check_resp_succeeded(resp)
+        # self.check_column_names(resp, expect_column_names)
+        # self.check_out_of_order_result(resp, expected)
 
         query = 'FETCH PROP ON * "not_exist_vertex"'
         resp = self.execute_query(query)
