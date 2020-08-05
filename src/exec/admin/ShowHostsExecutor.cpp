@@ -67,8 +67,7 @@ folly::Future<Status> ShowHostsExecutor::showHosts() {
                 r.emplace_back(parts.str());
                 v.emplace_back(std::move(r));
             }  // row loop
-            finish(std::move(v));
-            return Status::OK();
+            return finish(std::move(v));
         });
 }
 
