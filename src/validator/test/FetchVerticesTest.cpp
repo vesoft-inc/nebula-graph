@@ -33,6 +33,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                                      src.get(),
                                      std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                                      {});
+        gv->setColNames({kVid, "person.name", "person.age"});
         auto result = Eq(plan->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
@@ -62,6 +63,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               src.get(),
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
+        gv->setColNames({kVid, "person.name", "person.age"});
 
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -105,6 +107,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               src.get(),
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
+        gv->setColNames({kVid, "person.name", "(1>1)", "person.age"});  // TODO(shylock) fix
 
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -149,6 +152,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                                      src.get(),
                                      std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                                      std::vector<storage::cpp2::Expr>{std::move(expr1)});
+        gv->setColNames({kVid, "(person.name+person.age)"});  // TODO(shylock) fix
 
         // project, TODO(shylock) could push down to storage is it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -192,6 +196,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
 
         std::vector<std::string> colNames{kVid, "person.name", "person.age"};
+        gv->setColNames(colNames);
 
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -228,6 +233,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
 
         auto *gv = GetVertices::make(
             expectedQueryCtx_->plan(), start, 1, src.get(), {}, {});
+        gv->setColNames({kVid, "person.name", "person.age"});
         auto result = Eq(plan->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }

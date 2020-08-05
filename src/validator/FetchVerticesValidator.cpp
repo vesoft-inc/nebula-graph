@@ -34,6 +34,8 @@ Status FetchVerticesValidator::toPlan() {
                                               limit_,
                                               std::move(filter_));
     getVerticesNode->setInputVar(vidsVar);
+    // TODO(shylock) split the getVertices column names with project
+    getVerticesNode->setColNames(colNames_);
     // pipe will set the input variable
     PlanNode *current = getVerticesNode;
 
@@ -124,7 +126,7 @@ Status FetchVerticesValidator::prepareProperties() {
             for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
                 outputs_.emplace_back(schema_->getFieldName(i),
                                       SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
-                colNames_.emplace_back(schema_->getFieldName(i));
+                colNames_.emplace_back(tagName_ + '.' + schema_->getFieldName(i));
             }
         } else {
             // all schema properties
@@ -143,11 +145,14 @@ Status FetchVerticesValidator::prepareProperties() {
             outputs_.emplace_back(kVid, Value::Type::STRING);
             colNames_.emplace_back(kVid);
             for (const auto &tagSchema : allTagsSchema) {
+                auto tagNameResult = qctx_->schemaMng()->toTagName(spaceId_, tagSchema.first);
+                NG_RETURN_IF_ERROR(tagNameResult);
+                auto tagName = std::move(tagNameResult).value();
                 for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
                     outputs_.emplace_back(
                         tagSchema.second->getFieldName(i),
                         SchemaUtil::propTypeToValueType(tagSchema.second->getFieldType(i)));
-                    colNames_.emplace_back(tagSchema.second->getFieldName(i));
+                    colNames_.emplace_back(tagName + "." + tagSchema.second->getFieldName(i));
                 }
             }
         }

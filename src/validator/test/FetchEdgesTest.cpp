@@ -45,6 +45,12 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   dst.get(),
                                   std::move(props),
                                   {});
+        ge->setColNames({std::string("like.") + kSrc,
+                         std::string("like.") + kDst,
+                         std::string("like.") + kRank,
+                         "like.start",
+                         "like.end",
+                         "like.likeness"});
         expectedQueryCtx_->plan()->setRoot(ge);
         auto result = Eq(plan->root(), ge);
         ASSERT_TRUE(result.ok()) << result;
@@ -82,6 +88,11 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   dst.get(),
                                   std::move(props),
                                   std::move(exprs));
+        ge->setColNames({std::string("like.") + kSrc,
+                         std::string("like.") + kDst,
+                         std::string("like.") + kRank,
+                         "like.start",
+                         "like.end"});
 
         // Project
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -137,6 +148,12 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   dst.get(),
                                   std::move(props),
                                   std::move(exprs));
+        ge->setColNames({std::string("like.") + kSrc,
+                         std::string("like.") + kDst,
+                         std::string("like.") + kRank,
+                         "like.start",
+                         "(1+1)",
+                         "like.end"});  // TODO(shylock) fix
 
         // Project
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -194,6 +211,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   dst.get(),
                                   std::move(props),
                                   std::move(exprs));
+        ge->setColNames({std::string("like.") + kSrc,
+                         std::string("like.") + kDst,
+                         std::string("like.") + kRank,
+                         "(like.start>like.end)"});  // TODO(shylock) fix
 
         // project, TODO(shylock) it's could push-down to storage if it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -253,6 +274,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                           std::string("like.") + kRank,
                                           "like.start",
                                           "like.end"};
+        ge->setColNames(colNames);
 
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();

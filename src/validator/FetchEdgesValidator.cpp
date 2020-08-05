@@ -47,6 +47,8 @@ Status FetchEdgesValidator::toPlan() {
                                         std::move(orderBy_),
                                         std::move(filter_));
     getEdgesNode->setInputVar(edgeKeysVar);
+    // TODO(shylock) split the getEdges column names with project
+    getEdgesNode->setColNames(colNames_);
     // the pipe will set the input variable
     PlanNode *current = getEdgesNode;
 
@@ -227,7 +229,7 @@ Status FetchEdgesValidator::prepareProperties() {
             propNames.emplace_back(schema_->getFieldName(i));
             outputs_.emplace_back(schema_->getFieldName(i),
                                   SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
-            colNames_.emplace_back(schema_->getFieldName(i));
+            colNames_.emplace_back(edgeTypeName_ + "." + schema_->getFieldName(i));
         }
         prop.set_props(std::move(propNames));
     }
