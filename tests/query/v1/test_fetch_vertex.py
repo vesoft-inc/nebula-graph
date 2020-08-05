@@ -56,18 +56,18 @@ class TestFetchQuery(NebulaTestSuite):
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
 
-        query = '''$var = GO FROM %ld over like YIELD like._dst as id;
+        query = '''$var = GO FROM "Boris Diaw" over like YIELD like._dst as id;
             FETCH PROP ON player $var.id YIELD player.name as name, player.age
             | ORDER BY name'''
         resp = self.execute_query(query)
         expect_column_names = ['_vid', 'name', 'player.age']
         expect_result = [
+            ['Tim Duncan', 'Tim Duncan', 42],
             ['Tony Parker', 'Tony Parker', 36],
-            ['Tim Duncan', 'Tim Duncan', 42]
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
-        self.check_out_of_order_result(resp, expect_result)
+        self.check_result(resp, expect_result)
 
         # TODO insert hash key
         #query = 'FETCH PROP ON player hash("Boris Diaw") YIELD player.name, player.age';
