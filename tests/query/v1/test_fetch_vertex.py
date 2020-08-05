@@ -52,10 +52,6 @@ class TestFetchQuery(NebulaTestSuite):
         query = '''$var = GO FROM "Boris Diaw" over like YIELD like._dst as id;
             FETCH PROP ON player $var.id YIELD player.name, player.age'''
         resp = self.execute_query(query)
-        expect_result = [
-            ['Tony Parker', 'Tony Parker', 36],
-            ['Tony Parker', 'tim duncan', 42]
-        ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
