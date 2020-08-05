@@ -12,6 +12,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> ShowHostsExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return showHosts().ensure([this]() { UNUSED(this); });
 }
 
