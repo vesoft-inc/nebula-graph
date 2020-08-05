@@ -32,7 +32,7 @@ class TestFetchQuery(NebulaTestSuite):
         query = 'FETCH PROP ON player "Boris Diaw" YIELD player.name, player.age, player.age > 30'
         resp = self.execute_query(query)
         expect_column_names = ['_vid', 'player.name', 'player.age', '(player.age>30)']
-        expect_result = [['Boris Diaw', 'Boris Diaw', 36, False]]
+        expect_result = [['Boris Diaw', 'Boris Diaw', 36, True]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
