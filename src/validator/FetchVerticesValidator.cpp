@@ -225,6 +225,8 @@ const Expression *FetchVerticesValidator::findInvalidYieldExpression(const Expre
     return ExpressionUtils::findAnyKind(root,
                                         {Expression::Kind::kInputProperty,
                                          Expression::Kind::kVarProperty,
+                                         Expression::Kind::kSrcProperty,
+                                         Expression::Kind::kDstProperty,
                                          Expression::Kind::kEdgeSrc,
                                          Expression::Kind::kEdgeType,
                                          Expression::Kind::kEdgeRank,
