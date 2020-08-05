@@ -5,10 +5,21 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-from query.stateless.prepare_data import PrepareData
+import pytest
+
+from nebula2.graph import ttypes
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 # using _vid instead VertexID for vertex id column name not compatible to 1.0
-class TestFetchQuery(PrepareData):
+class TestFetchQuery(NebulaTestSuite):
+    @classmethod
+    def prepare(self):
+        self.load_data()
+
+    @classmethod
+    def cleanup(cls):
+        pass
+
     def test_fetch_vertex_base(self):
         query = 'FETCH PROP ON player "Boris Diaw" YIELD player.name, player.age'
         resp = self.execute_query(query)
