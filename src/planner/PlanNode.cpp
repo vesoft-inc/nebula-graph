@@ -54,8 +54,6 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Loop";
         case Kind::kDedup:
             return "Dedup";
-        case Kind::kGroupBy:
-            return "GroupBy";
         case Kind::kMultiOutputs:
             return "MultiOutputs";
         case Kind::kSwitchSpace:

@@ -135,7 +135,6 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kProject:
         case PlanNode::Kind::kSort:
         case PlanNode::Kind::kLimit:
-        case PlanNode::Kind::kGroupBy:
         case PlanNode::Kind::kAggregate:
         case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:

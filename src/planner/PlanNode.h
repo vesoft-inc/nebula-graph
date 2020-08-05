@@ -40,7 +40,6 @@ public:
         kProject,
         kSort,
         kLimit,
-        kGroupBy,
         kAggregate,
         kSelect,
         kLoop,
