@@ -4,6 +4,8 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 #
 
+find_package(Git)
+
 macro(add_dependent_project)
     cmake_parse_arguments(
         DEP_PROJ                      # prefix
@@ -54,7 +56,7 @@ macro(add_dependent_project)
             -DNEBULA_OTHER_ROOT=${NEBULA_OTHER_ROOT}
             -DENABLE_JEMALLOC=${ENABLE_JEMALLOC}
             -DENABLE_NATIVE=${ENABLE_NATIVE}
-            -DENABLE_TESTING=false
+            -DENABLE_TESTING=${ENABLE_TESTING}
             -DENABLE_CCACHE=${ENABLE_CCACHE}
             -DENABLE_ASAN=${ENABLE_ASAN}
             -DENABLE_UBSAN=${ENABLE_UBSAN}

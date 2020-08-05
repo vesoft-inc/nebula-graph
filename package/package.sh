@@ -1,28 +1,43 @@
 #!/usr/bin/env bash
 #
-#  package nebula as one deb/rpm
-# ./package.sh -v <version> -s <strip_enable> the version should be match tag name
+#  Package nebula as deb/rpm package
 #
-
+# introduce the args
+#   -v: The version of package, the version should be match tag name, default value is the `commitId`
+#   -n: Package to one or multi packages, `ON` means one package, `OFF` means multi packages, default value is `ON`
+#   -s: Whether to strip the package, default value is `FALSE`
+#
+# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE>
+#
 set -ex
 
-export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:$LIBRARY_PATH
-
-NEBULA_DEP_BIN=/opt/nebula/third-party/bin
-
 version=""
+package_one=ON
 strip_enable="FALSE"
-usage="Usage: ${0} -v <version> -s <TRUE/FALSE>"
+usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE>"
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"/../
+enablesanitizer="OFF"
+static_sanitizer="OFF"
+build_type="Release"
 
-while getopts v:t:s: opt;
+while getopts v:n:s:d: opt;
 do
     case $opt in
         v)
             version=$OPTARG
             ;;
+        n)
+            package_one=$OPTARG
+            ;;
         s)
             strip_enable=$OPTARG
+            ;;
+        d)
+            enablesanitizer="ON"
+            if [ "$OPTARG" == "static" ]; then
+                static_sanitizer="ON"
+            fi
+            build_type="RelWithDebInfo"
             ;;
         ?)
             echo "Invalid option, use default arguments"
@@ -48,21 +63,40 @@ if [[ $strip_enable != TRUE ]] && [[ $strip_enable != FALSE ]]; then
     exit -1
 fi
 
-echo "current version is [ $version ], strip enable is [$strip_enable]"
+echo "current version is [ $version ], strip enable is [$strip_enable], enablesanitizer is [$enablesanitizer], static_sanitizer is [$static_sanitizer]"
 
 # args: <version>
 function build {
     version=$1
-    build_dir=$PROJECT_DIR/build
+    san=$2
+    ssan=$3
+    build_type=$4
+    build_dir=${PROJECT_DIR}/build
+    modules_dir=${PROJECT_DIR}/modules
     if [[ -d $build_dir ]]; then
         rm -rf ${build_dir}/*
     else
         mkdir ${build_dir}
     fi
 
+    if [[ -d $modules_dir ]]; then
+        rm -rf ${modules_dir}/*
+    else
+        mkdir ${modules_dir}
+    fi
+
     pushd ${build_dir}
 
-    $NEBULA_DEP_BIN/cmake -DCMAKE_C_COMPILER=$NEBULA_DEP_BIN/gcc -DCMAKE_CXX_COMPILER=$NEBULA_DEP_BIN/g++ -DCMAKE_BUILD_TYPE=Release -DNEBULA_BUILD_VERSION=${version} -DCMAKE_INSTALL_PREFIX=/usr/local/nebula -DENABLE_TESTING=OFF $PROJECT_DIR
+    cmake -DCMAKE_BUILD_TYPE=${build_type} \
+          -DNEBULA_BUILD_VERSION=${version} \
+          -DENABLE_ASAN=${san} \
+          -DENABLE_UBSAN=${san} \
+          -DENABLE_STATIC_ASAN=${ssan} \
+          -DENABLE_STATIC_UBSAN=${ssan} \
+          -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+          -DENABLE_TESTING=OFF \
+          -DENABLE_BUILD_STORAGE=ON \
+          $PROJECT_DIR
 
     if !( make -j$(nproc) ); then
         echo ">>> build nebula failed <<<"
@@ -74,8 +108,18 @@ function build {
 
 # args: <strip_enable>
 function package {
+    # The package CMakeLists.txt in ${PROJECT_DIR}/package/build
+    package_build_dir=${PROJECT_DIR}/package/build
+    if [[ -d $package_build_dir ]]; then
+        rm -rf ${package_build_dir}/*
+    else
+        mkdir ${package_build_dir}
+    fi
+    pushd ${package_build_dir}
+    cmake -DENABLE_PACK_ONE=${package_one} ..
+
     strip_enable=$1
-    pushd $PROJECT_DIR/build/
+
     args=""
     [[ $strip_enable == TRUE ]] && args="-D CPACK_STRIP_FILES=TRUE -D CPACK_RPM_SPEC_MORE_DEFINE="
 
@@ -93,15 +137,10 @@ function package {
         pType="DEB"
     fi
 
-    if [[ "$tagetPackageName" == "" ]]; then
-        echo ">>> Unsupported system <<<"
-        exit -1
-    fi
-
-    if !( $NEBULA_DEP_BIN/cpack -G ${pType} --verbose $args ); then
+    if !( cpack -G ${pType} --verbose $args ); then
         echo ">>> package nebula failed <<<"
         exit -1
-    else
+    elif [[ "$tagetPackageName" != "" && $package_one == ON ]]; then
         # rename package file
         pkgName=`ls | grep nebula-graph | grep ${version}`
         outputDir=$PROJECT_DIR/build/cpack_output
@@ -115,5 +154,5 @@ function package {
 
 
 # The main
-build $version
+build $version $enablesanitizer $static_sanitizer $build_type
 package $strip_enable

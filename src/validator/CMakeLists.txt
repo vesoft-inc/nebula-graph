@@ -26,4 +26,4 @@ nebula_add_library(
     GroupByValidator.cpp
 )
 
-add_subdirectory(test)
+nebula_add_subdirectory(test)
