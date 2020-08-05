@@ -43,7 +43,7 @@ class TestFetchQuery(NebulaTestSuite):
         expect_column_names = ['_vid', 'player.name', 'player.age']
         expect_result = [
             ['Tony Parker', 'Tony Parker', 36],
-            ['Tony Parker', 'Tim Duncan', 42]
+            ['Tim Duncan', 'Tim Duncan', 42]
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
