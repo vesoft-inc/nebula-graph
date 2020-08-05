@@ -171,6 +171,7 @@ class TestFetchQuery(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expected)
 
+    # not compatible to 1.0 * extend to all tag in space
     def test_fetch_vertex_get_all(self):
         query = 'FETCH PROP ON * "Boris Diaw"'
         resp = self.execute_query(query)
@@ -227,7 +228,7 @@ class TestFetchQuery(NebulaTestSuite):
         self.check_out_of_order_result(resp, expect_result)
 
         query = '''GO FROM "Marco Belinelli" over serve YIELD serve._dst as id, serve.start_year as start
-            | YIELD $-.id as id WHERE $-.start > 20000"
+            | YIELD $-.id as id WHERE $-.start > 20000
             | FETCH PROP ON player $-.id'''
         resp = self.execute_query(query)
         expect_result = []
