@@ -11,7 +11,7 @@ import re
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 
-class TestSpace(NebulaTestSuite):
+class TestParts(NebulaTestSuite):
 
     @classmethod
     def prepare(self):
@@ -26,7 +26,7 @@ class TestSpace(NebulaTestSuite):
                                    'USE space_show_parts;')
         self.check_resp_succeeded(resp)
 
-        # wait for leader info
+        # Wait for leader info
         time.sleep(self.delay)
 
         # All
@@ -48,3 +48,11 @@ class TestSpace(NebulaTestSuite):
         self.check_column_names(resp, expected_col_names)
         expected_result = [[re.compile(r'3'), re.compile(r'127.0.0.1:.*'), re.compile(r'127.0.0.1:.*'), re.compile(r'')]]
         self.check_result(resp, expected_result, is_regex = True)
+
+        # Not exist part id
+        resp = self.client.execute_query('SHOW PART 10')
+        self.check_resp_succeeded(resp)
+        expected_col_names = ["Partition ID", "Leader", "Peers", "Losts"]
+        self.check_column_names(resp, expected_col_names)
+        expected_result = []
+        self.check_result(resp, expected_result)
