@@ -23,7 +23,6 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
             "| GROUP BY $-.age YIELD COUNT($-.id)";
         std::vector<PlanNode::Kind> expected = {
-            PK::kProject,
             PK::kAggregate,
             PK::kProject,
             PK::kGetNeighbors,
@@ -36,7 +35,6 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             "GO FROM \"NoExist\" OVER like YIELD like._dst AS id, $^.person.age AS age "
             "| GROUP BY $-.id YIELD $-.id AS id";
         std::vector<PlanNode::Kind> expected = {
-            PK::kProject,
             PK::kAggregate,
             PK::kProject,
             PK::kGetNeighbors,
@@ -55,11 +53,11 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
                             "AVG($-.dst_age) AS avg_dst_age, "
                             "MAX($-.src_age) AS max_src_age, "
                             "MIN($-.src_age) AS min_src_age, "
+                            "STD($-.src_age) AS std_src_age, "
                             "BIT_AND(1) AS bit_and, "
                             "BIT_OR(2) AS bit_or, "
                             "BIT_XOR(3) AS bit_xor";
         std::vector<PlanNode::Kind> expected = {
-            PK::kProject,
             PK::kAggregate,
             PK::kProject,
             PK::kDataJoin,
@@ -83,7 +81,6 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
                             "$-.start_year AS start_year, "
                             "AVG($-.end_year) AS avg";
         std::vector<PlanNode::Kind> expected = {
-            PK::kProject,
             PK::kAggregate,
             PK::kProject,
             PK::kDataJoin,
@@ -108,8 +105,35 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
                             "COUNT(*) AS count, "
                             "1+1 AS cal";
         std::vector<PlanNode::Kind> expected = {
-            PK::kProject,
             PK::kAggregate,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        // group has fun col
+        std::string query = "GO FROM \"1\" OVER like "
+                            "YIELD $$.person.name as name, "
+                            "like._dst AS id, "
+                            "like.start AS start_year, "
+                            "like.end AS end_year"
+                            "| GROUP BY $-.name, abs(5) "
+                            "YIELD $-.name AS name, "
+                            "SUM(1.5) AS sum, "
+                            "COUNT(*) AS count, "
+                            "1+1 AS cal";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kAggregate,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -204,14 +228,14 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         EXPECT_EQ(std::string(result.message()),
                   "SemanticError: Yield `$-.name AS name` isn't in output fields");
     }
-    {
-        // duplicate column
-        std::string query =
-            "GO FROM \"1\" OVER like YIELD $$.person.age AS age, $^.person.age AS age"
-            "| GROUP BY $-.age YIELD $-.age, 1+1";
-        auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError:.");
-    }
+    // {
+    //     // todo(jmq) duplicate column
+    //     std::string query =
+    //         "GO FROM \"1\" OVER like YIELD $$.person.age AS age, $^.person.age AS age"
+    //         "| GROUP BY $-.age YIELD $-.age, 1+1";
+    //     auto result = checkResult(query);
+    //     EXPECT_EQ(std::string(result.message()), "SemanticError:.");
+    // }
 
     // {
     //     // todo(jmq) not support $-.*

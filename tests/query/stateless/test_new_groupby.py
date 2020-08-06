@@ -17,6 +17,7 @@ class TestGroupBy(NebulaTestSuite):
     def cleanup():
         pass
 
+
     def test_syntax_error(self):
         # Use groupby without input
         stmt = '''GO FROM 'Marco Belinelli' OVER serve YIELD $$.team.name AS name
@@ -79,6 +80,35 @@ class TestGroupBy(NebulaTestSuite):
         self.check_resp_failed(resp)
 
     def test_group_by(self):
+        stmt = '''GO FROM 'Aron Baynes', 'Tracy McGrady' OVER serve
+                YIELD $$.team.name AS name,
+                serve._dst AS id,
+                serve.start_year AS start_year,
+                serve.end_year AS end_year
+                | GROUP BY $-.name, $-.start_year
+                YIELD $-.name AS teamName,
+                $-.start_year AS start_year,
+                MAX($-.start_year),
+                MIN($-.end_year),
+                AVG($-.end_year) AS avg_end_year,
+                STD($-.end_year) AS std_end_year,
+                COUNT($-.id)'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["teamName", "start_year", "MAX($-.start_year)", "MIN($-.end_year)", "avg_end_year", "std_end_year", "COUNT($-.id)"],
+            "rows" : [
+                ["Celtics", 2017, 2017, 2019, 2019.0, 0.0, 1],
+                ["Magic", 2000, 2000, 2004, 2004.0, 0.0, 1],
+                ["Pistons", 2015, 2015, 2017, 2017.0, 0.0, 1],
+                ["Raptors", 1997, 1997, 2000, 2000.0, 0.0, 1],
+                ["Rockets", 2004, 2004, 2010, 2010.0, 0.0, 1],
+                ["Spurs", 2013, 2013, 2013, 2014.0, 1.0, 2]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
         # group one col
         stmt = '''GO FROM 'Marco Belinelli' OVER serve
                 YIELD $$.team.name AS name,
@@ -106,7 +136,7 @@ class TestGroupBy(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        # has alias col
+        # group by aliasName   not implement
         # stmt = '''GO FROM 'Aron Baynes', 'Tracy McGrady' OVER serve YIELD $$.team.name AS name,
         #         serve._dst AS id, serve.start_year AS start_year, serve.end_year AS end_year
         #         | GROUP BY teamName, start_year YIELD $-.name AS teamName, $-.start_year AS start_year,
@@ -128,7 +158,7 @@ class TestGroupBy(NebulaTestSuite):
         # self.check_column_names(resp, expected_data["column_names"])
         # self.check_out_of_order_result(resp, expected_data["rows"])
 
-        # group has all agg fun
+        # count(distinct) not implement
         # stmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
         #         YIELD $$.player.name AS name,
         #         $$.player.age AS dst_age,
@@ -160,9 +190,40 @@ class TestGroupBy(NebulaTestSuite):
         # self.check_column_names(resp, expected_data["column_names"])
         # self.check_out_of_order_result(resp, expected_data["rows"])
 
-        # group has fun col
+        # group has all agg fun
         stmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
                 YIELD $$.player.name AS name,
+                $$.player.age AS dst_age,
+                $$.player.age AS src_age,
+                like.likeness AS likeness
+                | GROUP BY $-.name
+                YIELD $-.name AS name,
+                SUM($-.dst_age) AS sum_dst_age,
+                AVG($-.dst_age) AS avg_dst_age,
+                MAX($-.src_age) AS max_src_age,
+                MIN($-.src_age) AS min_src_age,
+                BIT_AND(1) AS bit_and,
+                BIT_OR(2) AS bit_or,
+                BIT_XOR(3) AS bit_xor,
+                COUNT($-.likeness)'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["name", "sum_dst_age", "avg_dst_age", "max_src_age", "min_src_age", "bit_and",
+                              "bit_or", "bit_xor", "COUNT($-.likeness)"],
+            "rows" : [
+                ["LeBron James", 68, 34.0, 34, 34, 1, 2, 0, 2],
+                ["Chris Paul", 66, 33.0, 33, 33, 1, 2, 0, 2],
+                ["Dwyane Wade", 37, 37.0, 37, 37, 1, 2, 3, 1],
+                ["Carmelo Anthony", 34, 34.0, 34, 34, 1, 2, 3, 1]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        # group has fun col
+        stmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
+                YIELD $$.player.name AS name
                 | GROUP BY $-.name, abs(5)
                 YIELD $-.name AS name,
                 SUM(1.5) AS sum,
@@ -259,8 +320,7 @@ class TestGroupBy(NebulaTestSuite):
                 | GROUP BY $-.start_year
                 YIELD COUNT($-.id),
                 $-.start_year AS start_year,
-                AVG($-.end_year) as avg
-                '''
+                AVG($-.end_year) as avg'''
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
 
@@ -287,8 +347,8 @@ class TestGroupBy(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        # with limit
-        tmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
+        # with limit ()
+        stmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
                 YIELD $$.player.name AS name
                 | GROUP BY $-.name, abs(5)
                 YIELD $-.name AS name,

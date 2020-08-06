@@ -20,7 +20,7 @@ Status GroupByValidator::validateImpl() {
         return Status::SemanticError("Only support input and variable in GroupBy sentence.");
     }
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
-        return Status::SemanticError("Not support both input and variable.");
+        return Status::SemanticError("Not support both input and variable in GroupBy sentence.");
     }
     return Status::OK();
 }
@@ -45,9 +45,9 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
                 return Status::SemanticError("`%s` invaild, * valid in count.",
                                              col->toString().c_str());
             }
-            groupItems_.emplace_back(
-                Aggregate::GroupItem{col->expr(), AggFun::nameIdMap_[fun], false});
         }
+        // todo(jmq) count(distinct)
+        groupItems_.emplace_back(Aggregate::GroupItem{col->expr(), AggFun::nameIdMap_[fun], false});
 
         auto status = deduceExprType(col->expr());
         NG_RETURN_IF_ERROR(status);
@@ -94,9 +94,10 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
         return Status::SemanticError("Group cols is Empty");
     }
     for (auto* col : columns) {
-        // if (col->expr()->kind() != Expression::Kind::kInputProperty) {
-        //     return Status::SemanticError("Group `%s` invalid", col->expr()->toString().c_str());
-        // }
+        if (col->expr()->kind() != Expression::Kind::kInputProperty &&
+            col->expr()->kind() != Expression::Kind::kFunctionCall) {
+            return Status::SemanticError("Group `%s` invalid", col->expr()->toString().c_str());
+        }
         if (!col->getAggFunName().empty()) {
             return Status::SemanticError("Use invalid group function `%s`",
                                          col->getAggFunName().c_str());
@@ -113,16 +114,11 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
 }
 
 Status GroupByValidator::toPlan() {
-    auto *groupBySentence = static_cast<GroupBySentence *>(sentence_);
     auto *plan = qctx_->plan();
     auto *groupBy =
         Aggregate::make(plan, nullptr, std::move(groupKeys_), std::move(groupItems_));
     groupBy->setColNames(std::vector<std::string>(outputColumnNames_));
-
-    auto *project = Project::make(plan, groupBy, groupBySentence->yieldClause()->yields());
-    project->setInputVar(groupBy->varName());
-    project->setColNames(std::move(outputColumnNames_));
-    root_ = project;
+    root_ = groupBy;
     tail_ = groupBy;
     return Status::OK();
 }

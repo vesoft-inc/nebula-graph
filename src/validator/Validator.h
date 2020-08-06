@@ -153,8 +153,6 @@ protected:
 
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
 
-    // Status deduceProps(const Expression* expr);
-
     Status deduceProps(const Expression* expr, ExpressionProps& exprProps);
 
     bool evaluableExpr(const Expression* expr) const;
