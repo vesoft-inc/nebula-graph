@@ -118,6 +118,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowHosts";
         case Kind::kShowParts:
             return "ShowParts";
+        case Kind::kShowCharset:
+            return "ShowCharset";
+        case Kind::kShowCollation:
+            return "ShowCollation";
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
