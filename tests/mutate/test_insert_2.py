@@ -30,11 +30,11 @@ class TestInsert2(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
     def test_insert_out_of_range_id_size(self):
-        resp = self.execute('INSERT VERTEX person(name, age) VALUES "12345678901":("Tom", "2")')
+        resp = self.execute('INSERT VERTEX student(name, age) VALUES "12345678901":("Tom", "2")')
         self.check_resp_failed(resp)
 
     def test_insert_not_null_prop(self):
-        resp = self.execute('INSERT VERTEX person(name, age) VALUES "Tom":(NULL, 12)')
+        resp = self.execute('INSERT VERTEX student(name, age) VALUES "Tom":(NULL, 12)')
         self.check_resp_failed(resp)
 
     def test_insert_with_fix_string(self):

@@ -32,7 +32,7 @@ void MockSchemaManager::init() {
     // like {start : timestamp, end : datetime}
     std::shared_ptr<meta::NebulaSchemaProvider> likeSchema(new meta::NebulaSchemaProvider(0));
     likeSchema->addField("start", meta::cpp2::PropertyType::TIMESTAMP);
-    likeSchema->addField("end", meta::cpp2::PropertyType::DATETIME);
+    likeSchema->addField("end", meta::cpp2::PropertyType::TIMESTAMP);
     likeSchema->addField("likeness", meta::cpp2::PropertyType::INT64);
     Edges edgeSchemas;
     edgeSchemas.emplace(3, likeSchema);
