@@ -15,7 +15,8 @@ version=""
 package_one=ON
 strip_enable="FALSE"
 usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE>"
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"/../
+project_dir="$(cd "$(dirname "$0")" && pwd)"/../
+build_dir=${project_dir}/build
 enablesanitizer="OFF"
 static_sanitizer="OFF"
 build_type="Release"
@@ -71,8 +72,7 @@ function build {
     san=$2
     ssan=$3
     build_type=$4
-    build_dir=${PROJECT_DIR}/build
-    modules_dir=${PROJECT_DIR}/modules
+    modules_dir=${project_dir}/modules
     if [[ -d $build_dir ]]; then
         rm -rf ${build_dir}/*
     else
@@ -96,7 +96,7 @@ function build {
           -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
           -DENABLE_TESTING=OFF \
           -DENABLE_BUILD_STORAGE=ON \
-          $PROJECT_DIR
+          $project_dir
 
     if !( make -j$(nproc) ); then
         echo ">>> build nebula failed <<<"
@@ -108,45 +108,53 @@ function build {
 
 # args: <strip_enable>
 function package {
-    # The package CMakeLists.txt in ${PROJECT_DIR}/package/build
-    package_build_dir=${PROJECT_DIR}/package/build
-    if [[ -d $package_build_dir ]]; then
-        rm -rf ${package_build_dir}/*
+    # The package CMakeLists.txt in ${project_dir}/package/build
+    package_dir=${build_dir}/package/
+    if [[ -d $package_dir ]]; then
+        rm -rf ${package_dir}/*
     else
-        mkdir ${package_build_dir}
+        mkdir ${package_dir}
     fi
-    pushd ${package_build_dir}
-    cmake -DENABLE_PACK_ONE=${package_one} ..
+    pushd ${package_dir}
+    cmake -DNEBULA_BUILD_VERSION=${version} -DENABLE_PACK_ONE=${package_one} ${project_dir}/package/
 
     strip_enable=$1
 
     args=""
     [[ $strip_enable == TRUE ]] && args="-D CPACK_STRIP_FILES=TRUE -D CPACK_RPM_SPEC_MORE_DEFINE="
 
-    tagetPackageName=""
+    sys_ver=""
     pType="RPM"
-
     if [[ -f "/etc/redhat-release" ]]; then
-        # TODO: update minor version according to OS
-        centosMajorVersion=`cat /etc/redhat-release | tr -dc '0-9.' | cut -d \. -f1`
-        [[ "$centosMajorVersion" == "7" ]] && tagetPackageName="nebula-${version}.el7-5.x86_64.rpm"
-        [[ "$centosMajorVersion" == "6" ]] && tagetPackageName="nebula-${version}.el6-5.x86_64.rpm"
+        sys_name=`cat /etc/redhat-release | cut -d ' ' -f1`
+        if [[ ${sys_name} == "CentOS" ]]; then
+            sys_ver=`cat /etc/redhat-release | tr -dc '0-9.' | cut -d \. -f1`
+            sys_ver=.el${sys_ver}.x86
+        elif [[ ${sys_name} == "Fedora" ]]; then
+            sys_ver=`cat /etc/redhat-release | cut -d ' ' -f3`
+            sys_ver=.fc${sys_ver}.x86
+        fi
+        pType="RPM"
     elif [[ -f "/etc/lsb-release" ]]; then
-        ubuntuVersion=`cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d "=" -f 2 | sed 's/\.//'`
-        tagetPackageName="nebula-${version}.ubuntu${ubuntuVersion}.amd64.deb"
+        sys_ver=`cat /etc/lsb-release | grep DISTRIB_RELEASE | cut -d "=" -f 2 | sed 's/\.//'`
+        sys_ver=.ubuntu${sys_ver}.amd64
         pType="DEB"
     fi
 
     if !( cpack -G ${pType} --verbose $args ); then
         echo ">>> package nebula failed <<<"
         exit -1
-    elif [[ "$tagetPackageName" != "" && $package_one == ON ]]; then
+    else
         # rename package file
-        pkgName=`ls | grep nebula-graph | grep ${version}`
-        outputDir=$PROJECT_DIR/build/cpack_output
+        pkg_names=`ls | grep nebula | grep ${version}`
+        outputDir=$build_dir/cpack_output
         mkdir -p ${outputDir}
-        mv ${pkgName} ${outputDir}/${tagetPackageName}
-        echo "####### taget package file is ${outputDir}/${tagetPackageName}"
+        for pkg_name in ${pkg_names[@]};
+        do
+            new_pkg_name=${pkg_name/\-Linux/${sys_ver}}
+            mv ${pkg_name} ${outputDir}/${new_pkg_name}
+            echo "####### taget package file is ${outputDir}/${new_pkg_name}"
+        done
     fi
 
     popd
