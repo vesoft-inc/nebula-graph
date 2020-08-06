@@ -28,8 +28,8 @@ jobs:
       - name: Filter source files
         id: filter-source-files
         run: |
-          changed_files=$(git --no-pager diff --name-only $(git log --oneline -n 1 | cut -d' ' -f1,5))
-          num_source_files=$(echo $changed_files | grep '^src\|^CMakeLists.txt\|^cmake\|^.github/workflows' | wc -l)
+          diff_commits=$(git log --oneline -n 1 | cut -d' ' -f1,5)
+          num_source_files=$(git --no-pager diff --name-only $diff_commits | grep '^src\|^CMakeLists.txt\|^cmake\|^.github/workflows' | wc -l)
           echo "::set-output name=num_source_files::${num_source_files}"
 
   build:
@@ -56,7 +56,7 @@ jobs:
       image: vesoft/nebula-dev:${{ matrix.os }}
       env:
         TOOLSET_DIR: /opt/vesoft/toolset/clang/9.0.0
-        CCACHE_DIR: /tmp/ccache/nebula-common/${{ matrix.os }}-${{ matrix.compiler }}
+        CCACHE_DIR: /tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}
         CCACHE_MAXSIZE: 1G
         PYPI_MIRROR: https://mirrors.aliyun.com/pypi/simple/
       volumes:
