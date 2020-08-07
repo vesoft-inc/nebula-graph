@@ -51,7 +51,7 @@ protected:
             case storage::cpp2::ErrorCode::E_INVALID_VID:
                 return Status::Error("Invalid vid.");
             case storage::cpp2::ErrorCode::E_INVALID_FIELD_VALUE: {
-                auto error = "Invalid field value: may be the filed is not NULL "
+                std::string error = "Invalid field value: may be the filed is not NULL "
                              "or without default value or wrong schema.";
                 return Status::Error(std::move(error));
             }
