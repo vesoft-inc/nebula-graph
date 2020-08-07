@@ -407,6 +407,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             exec = new ShowHostsExecutor(showHosts, qctx);
             exec->dependsOn(input);
             break;
+        }
         case PlanNode::Kind::kShowParts: {
             auto showParts = asNode<ShowParts>(node);
             auto input = makeExecutor(showParts->dep(), qctx, visited);
