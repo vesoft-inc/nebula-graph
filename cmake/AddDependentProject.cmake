@@ -56,7 +56,7 @@ macro(add_dependent_project)
             -DNEBULA_OTHER_ROOT=${NEBULA_OTHER_ROOT}
             -DENABLE_JEMALLOC=${ENABLE_JEMALLOC}
             -DENABLE_NATIVE=${ENABLE_NATIVE}
-            -DENABLE_TESTING=${ENABLE_TESTING}
+            -DENABLE_TESTING=OFF
             -DENABLE_CCACHE=${ENABLE_CCACHE}
             -DENABLE_ASAN=${ENABLE_ASAN}
             -DENABLE_UBSAN=${ENABLE_UBSAN}

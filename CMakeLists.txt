@@ -32,6 +32,7 @@
 #   ENABLE_JEMALLOC                -- Link jemalloc into all executables
 #   ENABLE_NATIVE                  -- Build native client
 #   ENABLE_TESTING                 -- Build unit test
+#   ENABLE_UPDATE_EXTERNAL_PROJ    -- Whether to update external project
 #
 # CMake version check
 cmake_minimum_required(VERSION 3.5.0)
@@ -257,7 +258,7 @@ add_subdirectory(tests)
 include(GetGitInfo)
 include(LinkerConfig)
 include(BuildOption)
-
+option(ENABLE_UPDATE_EXTERNAL_PROJ "Whether to update external project" OFF)
 
 find_package(Bzip2 REQUIRED)
 find_package(DoubleConversion REQUIRED)
