@@ -28,7 +28,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> Explore::explain() const {
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetNeighbors::explain() const {
     auto desc = Explore::explain();
-    auto description = desc->get_description();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("edgeTypes", folly::toJson(util::toJson(edgeTypes_)), desc.get());
     addDescription("edgeDirection",
@@ -56,7 +55,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetVertices::explain() const {
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetEdges::explain() const {
     auto desc = Explore::explain();
-    auto description = desc->get_description();
     addDescription("edges", folly::toJson(util::toJson(edges_)), desc.get());
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("type", util::toJson(type_), desc.get());
