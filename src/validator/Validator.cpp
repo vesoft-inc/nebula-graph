@@ -490,7 +490,9 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kSymProperty: {
             return Status::SemanticError("SymbolPropertyExpression can not be instantiated.");
         }
-
+        case Expression::Kind::kLabel: {
+            return Status::SemanticError("LabelExpression can not be instantiated.");
+        }
         case Expression::Kind::kConstant: {
             QueryExpressionContext ctx(nullptr, nullptr);
             auto* mutableExpr = const_cast<Expression*>(expr);
@@ -634,6 +636,7 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kSymProperty:
+        case Expression::Kind::kLabel:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
         case Expression::Kind::kList:
@@ -644,7 +647,7 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kRelNotIn: {
             // TODO:
             std::stringstream ss;
-            ss << "Not supported expression kind for type deduction: " << expr->toString();
+            ss << "Not supported expression `" << expr->toString() << "' for type deduction.";
             return Status::SemanticError(ss.str());
         }
     }
@@ -709,6 +712,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kVarProperty:
         case Expression::Kind::kInputProperty:
         case Expression::Kind::kSymProperty:
+        case Expression::Kind::kLabel:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
         case Expression::Kind::kList:   // FIXME(dutor)
