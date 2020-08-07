@@ -16,33 +16,31 @@ namespace graph {
 
 std::unique_ptr<cpp2::PlanNodeDescription> CreateSchemaNode::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("name", name_);
-    description->emplace("ifNotExists", folly::to<std::string>(ifNotExists_));
-    description->emplace("schema", folly::toJson(util::toJson(schema_)));
+    addDescription("name", name_, desc.get());
+    addDescription("ifNotExists", folly::to<std::string>(ifNotExists_), desc.get());
+    addDescription("schema", folly::toJson(util::toJson(schema_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> AlterSchemaNode::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("space", folly::to<std::string>(space_));
-    description->emplace("name", name_);
-    description->emplace("schemaItems", folly::toJson(util::toJson(schemaItems_)));
-    description->emplace("schemaProp", folly::toJson(util::toJson(schemaProp_)));
+    addDescription("space", folly::to<std::string>(space_), desc.get());
+    addDescription("name", name_, desc.get());
+    addDescription("schemaItems", folly::toJson(util::toJson(schemaItems_)), desc.get());
+    addDescription("schemaProp", folly::toJson(util::toJson(schemaProp_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DescSchema::explain() const {
     auto desc = SingleInputNode::explain();
-    desc->get_description()->emplace("name", name_);
+    addDescription("name", name_, desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DropSchema::explain() const {
     auto desc = SingleInputNode::explain();
-    desc->get_description()->emplace("name", name_);
-    desc->get_description()->emplace("ifExists", folly::to<std::string>(ifExists_));
+    addDescription("name", name_, desc.get());
+    addDescription("ifExists", folly::to<std::string>(ifExists_), desc.get());
     return desc;
 }
 

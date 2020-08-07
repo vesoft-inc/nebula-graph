@@ -13,7 +13,7 @@ namespace graph {
 
 std::unique_ptr<cpp2::PlanNodeDescription> BinarySelect::explain() const {
     auto desc = SingleInputNode::explain();
-    desc->get_description()->emplace("condition", condition_ ? condition_->toString() : "");
+    AddDescription("condition", condition_ ? condition_->toString() : "", desc.get());
     return desc;
 }
 

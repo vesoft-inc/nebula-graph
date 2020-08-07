@@ -18,51 +18,52 @@ namespace graph {
 
 std::unique_ptr<cpp2::PlanNodeDescription> Explore::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("space", folly::to<std::string>(space_));
-    description->emplace("dedup", folly::to<std::string>(dedup_));
-    description->emplace("limit", folly::to<std::string>(limit_));
-    description->emplace("filter", filter_);
-    description->emplace("orderBy", folly::toJson(util::toJson(orderBy_)));
+    addDescription("space", folly::to<std::string>(space_), desc.get());
+    addDescription("dedup", folly::to<std::string>(dedup_), desc.get());
+    addDescription("limit", folly::to<std::string>(limit_), desc.get());
+    addDescription("filter", filter_, desc.get());
+    addDescription("orderBy", folly::toJson(util::toJson(orderBy_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetNeighbors::explain() const {
     auto desc = Explore::explain();
     auto description = desc->get_description();
-    description->emplace("src", src_ ? src_->toString() : "");
-    description->emplace("edgeTypes", folly::toJson(util::toJson(edgeTypes_)));
-    description->emplace("edgeDirection" ,
-                         storage::cpp2::_EdgeDirection_VALUES_TO_NAMES.at(edgeDirection_));
-    description->emplace("vertexProps",
-                         vertexProps_ ? folly::toJson(util::toJson(*vertexProps_)) : "");
-    description->emplace("edgeProps", edgeProps_ ? folly::toJson(util::toJson(*edgeProps_)) : "");
-    description->emplace("statProps", statProps_ ? folly::toJson(util::toJson(*statProps_)) : "");
-    description->emplace("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "");
-    description->emplace("random", folly::to<std::string>(random_));
+    addDescription("src", src_ ? src_->toString() : "", desc.get());
+    addDescription("edgeTypes", folly::toJson(util::toJson(edgeTypes_)), desc.get());
+    addDescription("edgeDirection",
+                   storage::cpp2::_EdgeDirection_VALUES_TO_NAMES.at(edgeDirection_),
+                   desc.get());
+    addDescription(
+        "vertexProps", vertexProps_ ? folly::toJson(util::toJson(*vertexProps_)) : "", desc.get());
+    addDescription(
+        "edgeProps", edgeProps_ ? folly::toJson(util::toJson(*edgeProps_)) : "", desc.get());
+    addDescription(
+        "statProps", statProps_ ? folly::toJson(util::toJson(*statProps_)) : "", desc.get());
+    addDescription("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "", desc.get());
+    addDescription("random", folly::to<std::string>(random_), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetVertices::explain() const {
     auto desc = Explore::explain();
-    auto description = desc->get_description();
-    description->emplace("vertices", folly::toJson(util::toJson(vertices_)));
-    description->emplace("src", src_ ? src_->toString() : "");
-    description->emplace("props", folly::toJson(util::toJson(props_)));
-    description->emplace("exprs", folly::toJson(util::toJson(exprs_)));
+    addDescription("vertices", folly::toJson(util::toJson(vertices_)), desc.get());
+    addDescription("src", src_ ? src_->toString() : "", desc.get());
+    addDescription("props", folly::toJson(util::toJson(props_)), desc.get());
+    addDescription("exprs", folly::toJson(util::toJson(exprs_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetEdges::explain() const {
     auto desc = Explore::explain();
     auto description = desc->get_description();
-    description->emplace("edges", folly::toJson(util::toJson(edges_)));
-    description->emplace("src", src_ ? src_->toString() : "");
-    description->emplace("type", util::toJson(type_));
-    description->emplace("ranking", ranking_ ? ranking_->toString() : "");
-    description->emplace("dst", dst_ ? dst_->toString() : "");
-    description->emplace("props", folly::toJson(util::toJson(props_)));
-    description->emplace("exprs", folly::toJson(util::toJson(exprs_)));
+    addDescription("edges", folly::toJson(util::toJson(edges_)), desc.get());
+    addDescription("src", src_ ? src_->toString() : "", desc.get());
+    addDescription("type", util::toJson(type_), desc.get());
+    addDescription("ranking", ranking_ ? ranking_->toString() : "", desc.get());
+    addDescription("dst", dst_ ? dst_->toString() : "", desc.get());
+    addDescription("props", folly::toJson(util::toJson(props_)), desc.get());
+    addDescription("exprs", folly::toJson(util::toJson(exprs_)), desc.get());
     return desc;
 }
 
@@ -74,37 +75,32 @@ std::unique_ptr<cpp2::PlanNodeDescription> IndexScan::explain() const {
 
 std::unique_ptr<cpp2::PlanNodeDescription> Filter::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("condition", condition_ ? condition_->toString() : "");
+    addDescription("condition", condition_ ? condition_->toString() : "", desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> Project::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("columns", cols_ ? cols_->toString() : "");
+    addDescription("columns", cols_ ? cols_->toString() : "", desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> Sort::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("factors", folly::toJson(util::toJson(factors_)));
+    addDescription("factors", folly::toJson(util::toJson(factors_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> Limit::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("offset", folly::to<std::string>(offset_));
-    description->emplace("count", folly::to<std::string>(count_));
+    addDescription("offset", folly::to<std::string>(offset_), desc.get());
+    addDescription("count", folly::to<std::string>(count_), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> Aggregate::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("groupKeys", folly::toJson(util::toJson(groupKeys_)));
+    addDescription("groupKeys", folly::toJson(util::toJson(groupKeys_)), desc.get());
     folly::dynamic itemArr = folly::dynamic::array();
     for (const auto &item : groupItems_) {
         folly::dynamic itemObj = folly::dynamic::object();
@@ -113,31 +109,28 @@ std::unique_ptr<cpp2::PlanNodeDescription> Aggregate::explain() const {
         itemObj.insert("expr", item.expr ? item.expr->toString() : "");
         itemArr.push_back(itemObj);
     }
-    description->emplace("groupItems", folly::toJson(itemArr));
+    addDescription("groupItems", folly::toJson(itemArr), desc.get());
     return desc;
 }
 std::unique_ptr<cpp2::PlanNodeDescription> SwitchSpace::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("space", spaceName_);
+    addDescription("space", spaceName_, desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DataCollect::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("vars", folly::toJson(util::toJson(vars_)));
-    description->emplace("kind", collectKind_ == CollectKind::kSubgraph ? "subgraph" : "row");
+    addDescription("vars", folly::toJson(util::toJson(vars_)), desc.get());
+    addDescription("kind", collectKind_ == CollectKind::kSubgraph ? "subgraph" : "row", desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DataJoin::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("leftVar", folly::toJson(util::toJson(leftVar_)));
-    description->emplace("rightVar", folly::toJson(util::toJson(rightVar_)));
-    description->emplace("hashKeys", folly::toJson(util::toJson(hashKeys_)));
-    description->emplace("probeKeys", folly::toJson(util::toJson(probeKeys_)));
+    addDescription("leftVar", folly::toJson(util::toJson(leftVar_)), desc.get());
+    addDescription("rightVar", folly::toJson(util::toJson(rightVar_)), desc.get());
+    addDescription("hashKeys", folly::toJson(util::toJson(hashKeys_)), desc.get());
+    addDescription("probeKeys", folly::toJson(util::toJson(probeKeys_)), desc.get());
     return desc;
 }
 

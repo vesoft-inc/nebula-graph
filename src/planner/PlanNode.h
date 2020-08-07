@@ -137,9 +137,7 @@ public:
     }
 
 protected:
-    static void addDescription(const std::string& key,
-                               const std::string& value,
-                               cpp2::PlanNodeDescription* desc);
+    static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);
 
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{IdGenerator::INVALID_ID};

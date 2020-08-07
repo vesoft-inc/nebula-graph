@@ -15,33 +15,33 @@ namespace graph {
 
 std::unique_ptr<cpp2::PlanNodeDescription> CreateSpace::explain() const {
     auto desc = SingleInputNode::explain();
-    desc->get_description()->emplace("ifNotExists", folly::to<std::string>(ifNotExists_));
-    desc->get_description()->emplace("spaceDesc", folly::toJson(util::toJson(props_)));
+    addDescription("ifNotExists", folly::to<std::string>(ifNotExists_), desc.get());
+    addDescription("spaceDesc", folly::toJson(util::toJson(props_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DropSpace::explain() const {
     auto desc = SingleInputNode::explain();
-    desc->get_description()->emplace("spaceName", spaceName_);
-    desc->get_description()->emplace("ifExists", folly::to<std::string>(ifExists_));
+    addDescription("spaceName", spaceName_, desc.get());
+    addDescription("ifExists", folly::to<std::string>(ifExists_), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DescSpace::explain() const {
     auto desc = SingleInputNode::explain();
-    desc->get_description()->emplace("spaceName", spaceName_);
+    addDescription("spaceName", spaceName_, desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> ShowCreateSpace::explain() const {
     auto desc = SingleInputNode::explain();
-    desc->get_description()->emplace("spaceName", spaceName_);
+    addDescription("spaceName", spaceName_, desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DropSnapshot::explain() const {
     auto desc = SingleInputNode::explain();
-    desc->get_description()->emplace("snapshotName", snapshotName_);
+    addDescription("snapshotName", snapshotName_, desc.get());
     return desc;
 }
 

@@ -123,15 +123,13 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
 }
 
 // static
-void PlanNode::addDescription(const std::string& key,
-                              const std::string& value,
-                              cpp2::PlanNodeDescription* desc) {
+void PlanNode::addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc) {
     if (!desc->__isset.description) {
         desc->set_description({});
     }
     cpp2::Pair kv;
-    kv.set_key(key);
-    kv.set_value(value);
+    kv.set_key(std::move(key));
+    kv.set_value(std::move(value));
     desc->get_description()->emplace_back(std::move(kv));
 }
 

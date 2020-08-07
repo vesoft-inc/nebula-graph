@@ -15,9 +15,8 @@ namespace graph {
 
 std::unique_ptr<cpp2::PlanNodeDescription> InsertVertices::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("spaceId", folly::to<std::string>(spaceId_));
-    description->emplace("overwritable", folly::to<std::string>(overwritable_));
+    addDescription("spaceId", folly::to<std::string>(spaceId_), desc.get());
+    addDescription("overwritable", folly::to<std::string>(overwritable_), desc.get());
 
     folly::dynamic tagPropsArr = folly::dynamic::array();
     for (const auto &p : tagPropNames_) {
@@ -26,66 +25,59 @@ std::unique_ptr<cpp2::PlanNodeDescription> InsertVertices::explain() const {
         obj.insert("props", util::toJson(p.second));
         tagPropsArr.push_back(obj);
     }
-    description->emplace("tagPropNames", folly::toJson(tagPropsArr));
-    description->emplace("vertices", folly::toJson(util::toJson(vertices_)));
-
+    addDescription("tagPropNames", folly::toJson(tagPropsArr), desc.get());
+    addDescription("vertices", folly::toJson(util::toJson(vertices_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> InsertEdges::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("spaceId", folly::to<std::string>(spaceId_));
-    description->emplace("overwritable", folly::to<std::string>(overwritable_));
-    description->emplace("propNames", folly::toJson(util::toJson(propNames_)));
-    description->emplace("edges", folly::toJson(util::toJson(edges_)));
+    addDescription("spaceId", folly::to<std::string>(spaceId_), desc.get());
+    addDescription("overwritable", folly::to<std::string>(overwritable_), desc.get());
+    addDescription("propNames", folly::toJson(util::toJson(propNames_)), desc.get());
+    addDescription("edges", folly::toJson(util::toJson(edges_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> Update::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("spaceId", folly::to<std::string>(spaceId_));
-    description->emplace("schemaName", schemaName_);
-    description->emplace("insertable", folly::to<std::string>(insertable_));
-    description->emplace("updatedProps", folly::toJson(util::toJson(updatedProps_)));
-    description->emplace("returnProps", folly::toJson(util::toJson(returnProps_)));
-    description->emplace("condition", condition_);
-    description->emplace("yieldNames", folly::toJson(util::toJson(yieldNames_)));
+    addDescription("spaceId", folly::to<std::string>(spaceId_), desc.get());
+    addDescription("schemaName", schemaName_, desc.get());
+    addDescription("insertable", folly::to<std::string>(insertable_), desc.get());
+    addDescription("updatedProps", folly::toJson(util::toJson(updatedProps_)), desc.get());
+    addDescription("returnProps", folly::toJson(util::toJson(returnProps_)), desc.get());
+    addDescription("condition", condition_, desc.get());
+    addDescription("yieldNames", folly::toJson(util::toJson(yieldNames_)), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> UpdateVertex::explain() const {
     auto desc = Update::explain();
-    auto description = desc->get_description();
-    description->emplace("vid", folly::to<std::string>(vId_));
-    description->emplace("tagId", folly::to<std::string>(tagId_));
+    addDescription("vid", folly::to<std::string>(vId_), desc.get());
+    addDescription("tagId", folly::to<std::string>(tagId_), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> UpdateEdge::explain() const {
     auto desc = Update::explain();
-    auto description = desc->get_description();
-    description->emplace("srcId", srcId_);
-    description->emplace("dstId", dstId_);
-    description->emplace("rank", folly::to<std::string>(rank_));
-    description->emplace("edgeType", folly::to<std::string>(edgeType_));
+    addDescription("srcId", srcId_, desc.get());
+    addDescription("dstId", dstId_, desc.get());
+    addDescription("rank", folly::to<std::string>(rank_), desc.get());
+    addDescription("edgeType", folly::to<std::string>(edgeType_), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DeleteVertices::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("space", folly::to<std::string>(space_));
-    description->emplace("vidRef", vidRef_ ? vidRef_->toString() : "");
+    addDescription("space", folly::to<std::string>(space_), desc.get());
+    addDescription("vidRef", vidRef_ ? vidRef_->toString() : "", desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> DeleteEdges::explain() const {
     auto desc = SingleInputNode::explain();
-    auto description = desc->get_description();
-    description->emplace("space", folly::to<std::string>(space_));
-    description->emplace("edgeKeyRefs", folly::toJson(util::toJson(edgeKeyRefs_)));
+    addDescription("space", folly::to<std::string>(space_), desc.get());
+    addDescription("edgeKeyRefs", folly::toJson(util::toJson(edgeKeyRefs_)), desc.get());
     return desc;
 }
 
