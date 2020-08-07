@@ -54,7 +54,7 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         auto type = std::move(status).value();
         auto name = deduceColName(col);
         outputs_.emplace_back(name, type);
-        outputColumnNames_.emplace_back(name);
+        outputColumnNames_.emplace_back(std::move(name));
         // todo(jmq) extend $-.*
 
         yieldCols_.emplace_back(col);
@@ -102,8 +102,7 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
             return Status::SemanticError("Use invalid group function `%s`",
                                          col->getAggFunName().c_str());
         }
-        auto status = deduceExprType(col->expr());
-        NG_RETURN_IF_ERROR(status);
+        NG_RETURN_IF_ERROR(deduceExprType(col->expr()));
 
         NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
         groupCols_.emplace_back(col);

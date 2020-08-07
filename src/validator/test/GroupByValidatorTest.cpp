@@ -123,7 +123,7 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
                             "like._dst AS id, "
                             "like.start AS start_year, "
                             "like.end AS end_year"
-                            "| GROUP BY $-.name, abs(5) "
+                            "| GROUP BY $-.name, $-.id "
                             "YIELD $-.name AS name, "
                             "SUM(1.5) AS sum, "
                             "COUNT(*) AS count, "
