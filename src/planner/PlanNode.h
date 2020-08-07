@@ -61,6 +61,7 @@ public:
         kDropEdge,
         kInsertVertices,
         kInsertEdges,
+        kShowHosts,
         kDataCollect,
         // user related
         kCreateUser,

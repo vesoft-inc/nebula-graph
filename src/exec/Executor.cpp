@@ -22,6 +22,7 @@
 #include "exec/admin/ListUserRolesExecutor.h"
 #include "exec/admin/ListUsersExecutor.h"
 #include "exec/admin/ListRolesExecutor.h"
+#include "exec/admin/ShowHostsExecutor.h"
 #include "exec/admin/SnapshotExecutor.h"
 #include "exec/admin/SpaceExecutor.h"
 #include "exec/admin/SwitchSpaceExecutor.h"
@@ -468,6 +469,13 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto listRoles = asNode<ListRoles>(node);
             auto input = makeExecutor(listRoles->dep(), qctx, visited);
             exec = new ListRolesExecutor(listRoles, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowHosts: {
+            auto showHosts = asNode<ShowHosts>(node);
+            auto input = makeExecutor(showHosts->dep(), qctx, visited);
+            exec = new ShowHostsExecutor(showHosts, qctx);
             exec->dependsOn(input);
             break;
         }

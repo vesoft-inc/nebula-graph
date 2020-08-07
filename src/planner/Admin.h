@@ -50,6 +50,22 @@ private:
     bool ifExist_{false};
 };
 
+class ShowHosts final : public SingleDependencyNode {
+    // TODO(shylock) meta/storage/graph enumerate
+public:
+    static ShowHosts* make(ExecutionPlan* plan, PlanNode* dep) {
+        return new ShowHosts(plan, dep);
+    }
+
+    std::string explain() const override {
+        return "ShowHosts";
+    }
+
+private:
+    explicit ShowHosts(ExecutionPlan* plan, PlanNode* dep)
+        : SingleDependencyNode(plan, Kind::kShowHosts, dep) {}
+};
+
 class CreateSpace final : public SingleInputNode {
 public:
     static CreateSpace* make(ExecutionPlan* plan,

@@ -8,7 +8,7 @@
 set -ex -o pipefail
 
 PROJ_DIR="$(cd "$(dirname "$0")" && pwd)/.."
-BUILD_DIR=$PROJ_DIR/_build
+BUILD_DIR=$PROJ_DIR/build
 TOOLSET_DIR=/opt/vesoft/toolset/clang/9.0.0
 
 mkdir -p $BUILD_DIR
@@ -83,6 +83,7 @@ function run_test() {
         $PROJ_DIR/tests/admin/* \
         $PROJ_DIR/tests/maintain/* \
         $PROJ_DIR/tests/mutate/* \
+        $PROJ_DIR/tests/query/stateless/test_new_go.py \
         $PROJ_DIR/tests/query/v1/* \
         $PROJ_DIR/tests/query/stateless/test_schema.py \
         $PROJ_DIR/tests/query/stateless/test_if_exists.py \

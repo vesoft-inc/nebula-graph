@@ -142,6 +142,7 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     switch (DCHECK_NOTNULL(node)->kind()) {
+        case PlanNode::Kind::kShowHosts:
         case PlanNode::Kind::kFilter:
         case PlanNode::Kind::kProject:
         case PlanNode::Kind::kSort:
@@ -193,8 +194,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
             break;
         }
         default: {
-            return Status::Error("%s not support to append an input.",
-                                 PlanNode::toString(node->kind()));
+            return Status::SemanticError("%s not support to append an input.",
+                                         PlanNode::toString(node->kind()));
         }
     }
     return Status::OK();
@@ -207,25 +208,34 @@ Status Validator::appendPlan(PlanNode* tail) {
 Status Validator::validate() {
     if (!vctx_) {
         VLOG(1) << "Validate context was not given.";
-        return Status::Error("Validate context was not given.");
+        return Status::SemanticError("Validate context was not given.");
     }
 
     if (!sentence_) {
         VLOG(1) << "Sentence was not given";
-        return Status::Error("Sentence was not given");
+        return Status::SemanticError("Sentence was not given");
     }
 
     if (!noSpaceRequired_ && !spaceChosen()) {
         VLOG(1) << "Space was not chosen.";
-        return Status::Error("Space was not chosen.");
+        return Status::SemanticError("Space was not chosen.");
     }
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
     }
 
-    NG_RETURN_IF_ERROR(validateImpl());
-    NG_RETURN_IF_ERROR(toPlan());
+    auto status = validateImpl();
+    if (!status.ok()) {
+        if (status.isSemanticError()) return status;
+        return Status::SemanticError(status.message());
+    }
+
+    status = toPlan();
+    if (!status.ok()) {
+        if (status.isSemanticError()) return status;
+        return Status::SemanticError(status.message());
+    }
 
     return Status::OK();
 }
@@ -246,7 +256,7 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
     if (col->alias() != nullptr) {
         return *col->alias();
     } else {
-        return col->expr()->toString();
+        return col->toString();
     }
 }
 
@@ -262,7 +272,7 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
         ss << "`" << expr->toString() << "' is not a valid expression, "                           \
            << "can not apply `" << #OP << "' to `" << left.value() << "' and `" << right.value()   \
            << "'.";                                                                                \
-        return Status::Error(ss.str());                                                            \
+        return Status::SemanticError(ss.str());                                                    \
     }                                                                                              \
     return detectVal.type();
 
@@ -275,7 +285,7 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
         std::stringstream ss;                                                                      \
         ss << "`" << expr->toString() << "' is not a valid expression, "                           \
            << "can not apply `" << #OP << "' to " << status.value() << ".";                        \
-        return Status::Error(ss.str());                                                            \
+        return Status::SemanticError(ss.str());                                                    \
     }                                                                                              \
     return detectVal.type();
 
@@ -318,7 +328,11 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kRelLT:
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGT:
-        case Expression::Kind::kRelGE: {
+        case Expression::Kind::kRelGE:
+        case Expression::Kind::kContains: {
+            auto biExpr = static_cast<const BinaryExpression*>(expr);
+            NG_RETURN_IF_ERROR(deduceExprType(biExpr->left()));
+            NG_RETURN_IF_ERROR(deduceExprType(biExpr->right()));
             // TODO: Should deduce.
             return Value::Type::BOOL;
         }
@@ -329,17 +343,18 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kLogicalOr: {
             DETECT_BIEXPR_TYPE(||)
         }
-        case Expression::Kind::kRelIn: {
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
             NG_RETURN_IF_ERROR(deduceExprType(biExpr->left()));
 
             auto right = deduceExprType(biExpr->right());
             NG_RETURN_IF_ERROR(right);
-            if (right.value() != Value::Type::LIST) {
+            if (right.value() != Value::Type::LIST) {   // FIXME(dutor)
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                     << "expected `LIST' but `" << right.value() << "' was given.";
-                return Status::Error(ss.str());
+                return Status::SemanticError(ss.str());
             }
             return Value::Type::BOOL;
         }
@@ -366,7 +381,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                     << "can not apply `++' to " << status.value() << ".";
-                return Status::Error(ss.str());
+                return Status::SemanticError(ss.str());
             }
             return detectVal.type();
         }
@@ -380,7 +395,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                     << "can not apply `--' to " << status.value() << ".";
-                return Status::Error(ss.str());
+                return Status::SemanticError(ss.str());
             }
             return detectVal.type();
         }
@@ -396,9 +411,9 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             auto result =
                 FunctionManager::getReturnType(*(funcExpr->name()), argsTypeList);
             if (!result.ok()) {
-                return Status::Error("`%s` is not a valid expression : %s",
-                                    expr->toString().c_str(),
-                                    result.status().toString().c_str());
+                return Status::SemanticError("`%s` is not a valid expression : %s",
+                                             expr->toString().c_str(),
+                                             result.status().toString().c_str());
             }
             return result.value();
         }
@@ -406,17 +421,23 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
             auto result = deduceExprType(castExpr->operand());
             NG_RETURN_IF_ERROR(result);
-
-            auto* typeCastExpr = const_cast<TypeCastingExpression*>(castExpr);
             if (!evaluableExpr(castExpr->operand())) {
-                auto detectVal = kConstantValues.at(result.value());
-                typeCastExpr->setOperand(new ConstantExpression(detectVal));
+                if (TypeCastingExpression::validateTypeCast(result.value(),
+                                                            castExpr->type())) {
+                    return castExpr->type();
+                }
+                std::stringstream out;
+                out << "Can not convert " << castExpr->operand()
+                    << " 's type : " << result.value() << " to "
+                    << castExpr->type();
+                return Status::Error(out.str());
             }
-
             QueryExpressionContext ctx(nullptr, nullptr);
+            auto* typeCastExpr = const_cast<TypeCastingExpression*>(castExpr);
             auto val = typeCastExpr->eval(ctx);
             if (val.isNull()) {
-                return Status::Error("`%s` is not a valid expression ", expr->toString().c_str());
+                return Status::SemanticError("`%s` is not a valid expression ",
+                                             expr->toString().c_str());
             }
             return val.type();
         }
@@ -431,14 +452,14 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             }
             auto schema = qctx_->schemaMng()->getTagSchema(space_.id, tagId.value());
             if (!schema) {
-                return Status::Error("`%s', not found tag `%s'.",
-                        expr->toString().c_str(), tag->c_str());
+                return Status::SemanticError(
+                    "`%s', not found tag `%s'.", expr->toString().c_str(), tag->c_str());
             }
             auto* prop = tagPropExpr->prop();
             auto* field = schema->field(*prop);
             if (field == nullptr) {
-                return Status::Error("`%s', not found the property `%s'.",
-                        expr->toString().c_str(), prop->c_str());
+                return Status::SemanticError(
+                    "`%s', not found the property `%s'.", expr->toString().c_str(), prop->c_str());
             }
             return SchemaUtil::propTypeToValueType(field->type());
         }
@@ -451,14 +472,14 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             }
             auto schema = qctx_->schemaMng()->getEdgeSchema(space_.id, edgeType.value());
             if (!schema) {
-                return Status::Error("`%s', not found edge `%s'.",
-                        expr->toString().c_str(), edge->c_str());
+                return Status::SemanticError(
+                    "`%s', not found edge `%s'.", expr->toString().c_str(), edge->c_str());
             }
             auto* prop = edgePropExpr->prop();
             auto* field = schema->field(*prop);
             if (field == nullptr) {
-                return Status::Error("`%s', not found the property `%s'.",
-                        expr->toString().c_str(), prop->c_str());
+                return Status::SemanticError(
+                    "`%s', not found the property `%s'.", expr->toString().c_str(), prop->c_str());
             }
             return SchemaUtil::propTypeToValueType(field->type());
         }
@@ -466,8 +487,8 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto* var = varPropExpr->sym();
             if (!vctx_->existVar(*var)) {
-                return Status::Error("`%s', not exist variable `%s'",
-                        expr->toString().c_str(), var->c_str());
+                return Status::SemanticError(
+                    "`%s', not exist variable `%s'", expr->toString().c_str(), var->c_str());
             }
             auto* prop = varPropExpr->prop();
             auto cols = vctx_->getVar(*var);
@@ -475,8 +496,8 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 return *prop == col.first;
             });
             if (found == cols.end()) {
-                return Status::Error("`%s', not exist prop `%s'",
-                        expr->toString().c_str(), prop->c_str());
+                return Status::SemanticError(
+                    "`%s', not exist prop `%s'", expr->toString().c_str(), prop->c_str());
             }
             return found->second;
         }
@@ -487,13 +508,13 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 return *prop == col.first;
             });
             if (found == inputs_.end()) {
-                return Status::Error("`%s', not exist prop `%s'",
-                        expr->toString().c_str(), prop->c_str());
+                return Status::SemanticError(
+                    "`%s', not exist prop `%s'", expr->toString().c_str(), prop->c_str());
             }
             return found->second;
         }
         case Expression::Kind::kSymProperty: {
-            return Status::Error("SymbolPropertyExpression can not be instantiated.");
+            return Status::SemanticError("SymbolPropertyExpression can not be instantiated.");
         }
 
         case Expression::Kind::kConstant: {
@@ -524,8 +545,21 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             // TODO: not only dataset
             return Value::Type::DATASET;
         }
+        case Expression::Kind::kList: {
+            return Value::Type::LIST;
+        }
+        case Expression::Kind::kSet: {
+            return Value::Type::SET;
+        }
+        case Expression::Kind::kMap: {
+            return Value::Type::MAP;
+        }
+        case Expression::Kind::kSubscript: {
+            return Value::Type::LIST;   // FIXME(dutor)
+        }
     }
-    return Status::Error("Unknown expression kind: %ld", static_cast<int64_t>(expr->kind()));
+    return Status::SemanticError("Unknown expression kind: %ld",
+                                 static_cast<int64_t>(expr->kind()));
 }
 
 Status Validator::deduceProps(const Expression* expr) {
@@ -544,6 +578,7 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
+        case Expression::Kind::kContains:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -627,11 +662,16 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kSymProperty:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kRelIn: {
+        case Expression::Kind::kList:
+        case Expression::Kind::kSet:
+        case Expression::Kind::kMap:
+        case Expression::Kind::kSubscript:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             // TODO:
             std::stringstream ss;
-            ss << "Not support " << expr->kind();
-            return Status::Error(ss.str());
+            ss << "Not supported expression kind for type deduction: " << expr->toString();
+            return Status::SemanticError(ss.str());
         }
     }
     return Status::OK();
@@ -654,6 +694,8 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
         case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn:
+        case Expression::Kind::kContains:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -694,14 +736,34 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kInputProperty:
         case Expression::Kind::kSymProperty:
         case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr: {
+        case Expression::Kind::kUnaryDecr:
+        case Expression::Kind::kList:   // FIXME(dutor)
+        case Expression::Kind::kSet:
+        case Expression::Kind::kMap:
+        case Expression::Kind::kSubscript: {
             return false;
         }
     }
     return false;
 }
 
-StatusOr<std::string> Validator::checkRef(const Expression *ref, Value::Type type) const {
+// static
+Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols, const std::string& prop) {
+    auto eq = [&](const ColDef& col) { return col.first == prop; };
+    auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
+    if (iter == cols.cend()) {
+        return Status::SemanticError("prop `%s' not exists", prop.c_str());
+    }
+
+    iter = std::find_if(iter + 1, cols.cend(), eq);
+    if (iter != cols.cend()) {
+        return Status::SemanticError("duplicate prop `%s'", prop.c_str());
+    }
+
+    return Status::OK();
+}
+
+StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
         ColDef col(*symExpr->prop(), type);
