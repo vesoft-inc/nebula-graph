@@ -15,13 +15,6 @@ class TestParts(NebulaTestSuite):
 
     @classmethod
     def prepare(self):
-        pass
-
-    @classmethod
-    def cleanup(self):
-        pass
-
-    def test_part(self):
         resp = self.client.execute('CREATE SPACE space_show_parts(partition_num=5); '
                                    'USE space_show_parts;')
         self.check_resp_succeeded(resp)
@@ -29,6 +22,12 @@ class TestParts(NebulaTestSuite):
         # Wait for leader info
         time.sleep(self.delay)
 
+    @classmethod
+    def cleanup(self):
+        resp = self.client.execute('DROP SPACE space_show_parts;')
+        self.check_resp_succeeded(resp)
+
+    def test_part(self):
         # All
         resp = self.client.execute_query('SHOW PARTS')
         self.check_resp_succeeded(resp)
