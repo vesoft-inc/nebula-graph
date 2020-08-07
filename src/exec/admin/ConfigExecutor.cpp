@@ -43,7 +43,6 @@ folly::Future<Status> ShowConfigsExecutor::execute() {
     return qctx()->getMetaClient()->listConfigs(scNode->getModule())
             .via(runner())
             .then([this, scNode](StatusOr<std::vector<meta::cpp2::ConfigItem>> resp) {
-                SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     auto module = meta::cpp2::_ConfigModule_VALUES_TO_NAMES.at(scNode->getModule());
                     LOG(ERROR) << "Show configs `" << module
@@ -67,7 +66,6 @@ folly::Future<Status> SetConfigExecutor::execute() {
                                               scNode->getValue())
             .via(runner())
             .then([this, scNode](StatusOr<bool> resp) {
-                SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     LOG(ERROR) << "Set config `" << scNode->getName()
                                << "' failed: " << resp.status();
@@ -87,7 +85,6 @@ folly::Future<Status> GetConfigExecutor::execute() {
                                               gcNode->getName())
             .via(runner())
             .then([this, gcNode](StatusOr<std::vector<meta::cpp2::ConfigItem>> resp) {
-                SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     LOG(ERROR) << "Get config `" << gcNode->getName()
                                << "' failed: " << resp.status();
