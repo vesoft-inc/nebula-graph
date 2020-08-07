@@ -68,22 +68,23 @@ jobs:
         with:
           fetch-depth: 1
       - name: Prepare environment
+        id: prepare
         run: |
           [ -d build/ ] && rm -rf build/* || mkdir -p build
           pip3 install -U setuptools -i $PYPI_MIRROR
           pip3 install -r tests/requirements.txt -i $PYPI_MIRROR
-          echo "::set-env name=GITHUB_PAT::$(cat /run/secrets/GITHUB_PAT)"
+          echo "::set-output name=pat::$(cat /run/secrets/GITHUB_PAT)"
       - name: Checkout common
         uses: actions/checkout@v2
         with:
           repository: ${{ github.repository_owner }}/nebula-common
-          token: ${GITHUB_PAT}
+          token: ${{ steps.prepare.outputs.pat }}
           path: modules/common
       - name: Checkout storage
         uses: actions/checkout@v2
         with:
           repository: ${{ github.repository_owner }}/nebula-storage
-          token: ${GITHUB_PAT}
+          token: ${{ steps.prepare.outputs.pat }}
           path: modules/storage
       - name: CMake
         run: |
