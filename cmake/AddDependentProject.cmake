@@ -16,8 +16,8 @@ macro(add_dependent_project)
     set(CLONE_DIR ${DEP_PROJ_BASE}/${DEP_PROJ_NAME})
     # Clone or update the repo
     if(EXISTS ${CLONE_DIR}/.git)
-        message(STATUS "Updating from the repo \"" ${DEP_PROJ_REPO} "\", update option: ${ENABLE_UPDATE}"")
-        if (ENABLE_UPDATE)
+        message(STATUS "Updating from the repo \"" ${DEP_PROJ_REPO} "\", update option: ${ENABLE_UPDATE_EXTERNAL_PROJ}")
+        if (ENABLE_UPDATE_EXTERNAL_PROJ)
             execute_process(
                 COMMAND ${GIT_EXECUTABLE} pull --depth=1
                 WORKING_DIRECTORY ${CLONE_DIR}
