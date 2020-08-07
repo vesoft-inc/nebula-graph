@@ -732,6 +732,7 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
         case Expression::Kind::kList:   // FIXME(dutor)
         case Expression::Kind::kSet:
         case Expression::Kind::kMap:
+        case Expression::Kind::kContains:
         case Expression::Kind::kSubscript: {
             hasWrongType = true;
             break;

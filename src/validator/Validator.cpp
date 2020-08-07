@@ -525,7 +525,10 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             return Value::Type::MAP;
         }
         case Expression::Kind::kSubscript: {
-            return Value::Type::LIST;   // FIXME(dutor)
+            return Value::Type::LIST;
+        }
+        case Expression::Kind::kContains: {
+            return Value::Type::BOOL;   // FIXME(dutor)
         }
     }
     return Status::SemanticError("Unknown expression kind: %ld",
@@ -635,6 +638,7 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kSet:
         case Expression::Kind::kMap:
         case Expression::Kind::kSubscript:
+        case Expression::Kind::kContains:
         case Expression::Kind::kRelIn:
         case Expression::Kind::kRelNotIn: {
             // TODO:
@@ -705,6 +709,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kSymProperty:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
+        case Expression::Kind::kContains:
         case Expression::Kind::kList:   // FIXME(dutor)
         case Expression::Kind::kSet:
         case Expression::Kind::kMap:

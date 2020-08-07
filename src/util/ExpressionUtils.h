@@ -99,7 +99,8 @@ public:
                 }
                 return true;
             }
-            case Expression::Kind::kList:   // FIXME(dutor)
+            case Expression::Kind::kContains:   // FIXME(dutor)
+            case Expression::Kind::kList:
             case Expression::Kind::kSet:
             case Expression::Kind::kMap:
             case Expression::Kind::kSubscript: {
@@ -317,7 +318,8 @@ public:
                     }
                     return true;
                 }
-                case Expression::Kind::kList:   // FIXME(dutor)
+                case Expression::Kind::kContains:   // FIXME(dutor)
+                case Expression::Kind::kList:
                 case Expression::Kind::kSet:
                 case Expression::Kind::kMap:
                 case Expression::Kind::kSubscript: {
