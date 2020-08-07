@@ -69,7 +69,9 @@ public:
         meta::TagSchemas allVerTagSchemas;
         const auto& tagSchemas = tagSchemas_[space];
         for (const auto &tagSchema : tagSchemas) {
-            allVerTagSchemas.emplace(tagSchema.first, std::vector<std::shared_ptr<const meta::NebulaSchemaProvider>>{tagSchema.second});
+            allVerTagSchemas.emplace(tagSchema.first,
+                                     std::vector<std::shared_ptr<const meta::NebulaSchemaProvider>>
+                                        {tagSchema.second});
         }
         return allVerTagSchemas;
     }
