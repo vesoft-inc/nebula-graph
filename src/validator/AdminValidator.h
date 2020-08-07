@@ -122,6 +122,20 @@ private:
 
     Status toPlan() override;
 };
+
+class ShowHostsValidator final : public Validator {
+public:
+    ShowHostsValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_ADMINVALIDATOR_H_

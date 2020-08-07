@@ -201,5 +201,18 @@ Status ShowSnapshotsValidator::toPlan() {
     tail_ = root_;
     return Status::OK();
 }
+
+Status ShowHostsValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowHostsValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *showHosts = ShowHosts::make(plan, nullptr);
+    root_ = showHosts;
+    tail_ = root_;
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula
