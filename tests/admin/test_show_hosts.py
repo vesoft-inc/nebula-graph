@@ -11,8 +11,7 @@ import re
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 
-class TestSpace(NebulaTestSuite):
-
+class TestShowHosts(NebulaTestSuite):
     @classmethod
     def prepare(self):
         pass
