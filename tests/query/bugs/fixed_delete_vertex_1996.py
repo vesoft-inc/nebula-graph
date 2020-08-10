@@ -8,8 +8,9 @@
 import re
 import sys
 import time
+import pytest
 
-from graph import ttypes
+sys.path.insert(0, pytest.cmdline.tests_dir)
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 

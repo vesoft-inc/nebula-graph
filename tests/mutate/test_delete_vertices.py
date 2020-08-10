@@ -6,7 +6,6 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import time
-import os
 import sys
 import pytest
 
