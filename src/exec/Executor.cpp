@@ -465,21 +465,13 @@ folly::Future<Status> Executor::error(Status status) const {
 }
 
 Status Executor::finish(Result &&result) {
-    auto value = result.valuePtr();
-    if (value && value->isDataSet()) {
-        numRows_ = value->getDataSet().rowSize();
-    }
+    numRows_ = result.size();
     ectx_->setResult(node()->varName(), std::move(result));
     return Status::OK();
 }
 
 Status Executor::finish(Value &&value) {
-    ectx_->setResult(node()->varName(),
-                     ResultBuilder()
-                        .value(std::move(value))
-                        .iter(Iterator::Kind::kDefault)
-                        .finish());
-    return Status::OK();
+    return finish(ResultBuilder().value(std::move(value)).iter(Iterator::Kind::kDefault).finish());
 }
 
 folly::Executor *Executor::runner() const {
