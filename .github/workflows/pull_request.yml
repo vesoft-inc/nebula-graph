@@ -123,12 +123,6 @@ jobs:
                 -B build
             ;;
           esac
-      - name: Make common
-        run: cmake --build modules/common/ -j $(nproc)
-      - name: Make storage
-        run: |
-          cmake --build modules/storage --target nebula-storaged -j$(nproc)
-          cmake --build modules/storage --target nebula-metad -j$(nproc)
       - name: Make graph
         run: cmake --build build/ -j $(nproc)
       - name: CTest

@@ -13,11 +13,9 @@
 #   NEBULA_OTHER_ROOT               -- Specify the root directory for user build
 #                                   -- Split with ":", exp: DIR:DIR
 #
-#   NEBULA_COMMON_REPO_PATH         -- Local path to the nebula-common repo
 #   NEBULA_COMMON_REPO_URL          -- Git URL for the nebula-common repo
 #   NEBULA_COMMON_REPO_TAG          -- Tag/branch of the nebula-common repo
 #
-#   NEBULA_STORAGE_REPO_PATH        -- Local path to the nebula-storage repo
 #   NEBULA_STORAGE_REPO_URL         -- Git URL for the nebula-storage repo
 #   NEBULA_STORAGE_REPO_TAG         -- Tag/branch of the nebula-storage repo
 #   ENABLE_BUILD_STORAGE            -- Build storage repo
@@ -55,10 +53,9 @@ if(NOT NEBULA_COMMON_SOURCE_DIR)
         NAME
             common
         URL
-            # TODO(dutor) Change URL when PR ready to merge
-            "git@github.com:dutor/nebula-common.git"
+            ${NEBULA_COMMON_REPO_URL}
         TAG
-            refactor-build
+            ${NEBULA_COMMON_REPO_TAG}
         UPDATE
             ${ENABLE_MODULE_UPDATE}
     )
@@ -98,10 +95,9 @@ if(ENABLE_BUILD_STORAGE)
         NAME
             storage
         URL
-            # TODO(dutor) Change URL when PR ready to merge
-            "git@github.com:dutor/nebula-storage.git"
+            ${NEBULA_STORAGE_REPO_URL}
         TAG
-            refactor-build
+            ${NEBULA_STORAGE_REPO_TAG}
         UPDATE
             ${ENABLE_MODULE_UPDATE}
     )
