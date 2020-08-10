@@ -96,12 +96,17 @@ private:
 
 class MatchReturn final {
 public:
+    MatchReturn() {
+        isAll_ = true;
+    }
+
     explicit MatchReturn(YieldColumns *columns) {
         columns_.reset(columns);
     }
 
 private:
     std::unique_ptr<YieldColumns>                   columns_;
+    bool                                            isAll_{false};
 };
 
 

@@ -147,7 +147,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
-%token PIPE OR AND XOR LT LE GT GE EQ NE PLUS MINUS MUL DIV MOD NOT NEG ASSIGN
+%token PIPE OR AND XOR LT LE GT GE EQ NE PLUS MINUS STAR DIV MOD NOT NEG ASSIGN
 %token DOT COLON SEMICOLON L_ARROW R_ARROW AT
 %token ID_PROP TYPE_PROP SRC_ID_PROP DST_ID_PROP RANK_PROP INPUT_REF DST_REF SRC_REF
 
@@ -423,7 +423,7 @@ input_ref_expression
     : INPUT_REF DOT name_label {
         $$ = new InputPropertyExpression($3);
     }
-    | INPUT_REF DOT MUL {
+    | INPUT_REF DOT STAR {
         $$ = new InputPropertyExpression(new std::string("*"));
     }
     ;
@@ -444,7 +444,7 @@ var_ref_expression
     : VARIABLE DOT name_label {
         $$ = new VariablePropertyExpression($1, $3);
     }
-    | VARIABLE DOT MUL {
+    | VARIABLE DOT STAR {
         $$ = new VariablePropertyExpression($1, new std::string("*"));
     }
     ;
@@ -547,7 +547,7 @@ type_spec
 
 multiplicative_expression
     : unary_expression { $$ = $1; }
-    | multiplicative_expression MUL unary_expression {
+    | multiplicative_expression STAR unary_expression {
         $$ = new ArithmeticExpression(Expression::Kind::kMultiply, $1, $3);
     }
     | multiplicative_expression DIV unary_expression {
@@ -796,13 +796,13 @@ over_edges
     ;
 
 over_clause
-    : KW_OVER MUL {
+    : KW_OVER STAR {
         $$ = new OverClause(true);
     }
-    | KW_OVER MUL KW_REVERSELY {
+    | KW_OVER STAR KW_REVERSELY {
         $$ = new OverClause(true, storage::cpp2::EdgeDirection::IN_EDGE);
     }
-    | KW_OVER MUL KW_BIDIRECT {
+    | KW_OVER STAR KW_BIDIRECT {
         $$ = new OverClause(true, storage::cpp2::EdgeDirection::BOTH);
     }
     | KW_OVER over_edges {
@@ -861,13 +861,13 @@ yield_column
         yield->setAggFunction($1);
         $$ = yield;
     }
-    | agg_function L_PAREN MUL R_PAREN {
+    | agg_function L_PAREN STAR R_PAREN {
         auto expr = new ConstantExpression(std::string("*"));
         auto yield = new YieldColumn(expr);
         yield->setAggFunction($1);
         $$ = yield;
     }
-    | agg_function L_PAREN MUL R_PAREN KW_AS name_label {
+    | agg_function L_PAREN STAR R_PAREN KW_AS name_label {
         auto expr = new ConstantExpression(std::string("*"));
         auto yield = new YieldColumn(expr, $6);
         yield->setAggFunction($1);
@@ -966,11 +966,11 @@ match_edge_type
     ;
 
 match_return
-    : %empty {
-        $$ = nullptr;
-    }
-    | KW_RETURN yield_columns  {
+    : KW_RETURN yield_columns  {
         $$ = new MatchReturn($2);
+    }
+    | KW_RETURN STAR  {
+        $$ = new MatchReturn();
     }
     ;
 
@@ -1032,7 +1032,7 @@ fetch_vertices_sentence
     | KW_FETCH KW_PROP KW_ON name_label vid_ref_expression yield_clause {
         $$ = new FetchVerticesSentence($4, $5, $6);
     }
-    | KW_FETCH KW_PROP KW_ON MUL vid {
+    | KW_FETCH KW_PROP KW_ON STAR vid {
         $$ = new FetchVerticesSentence($5);
     }
     ;

@@ -350,7 +350,7 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 
 "+"                         { return TokenType::PLUS; }
 "-"                         { return TokenType::MINUS; }
-"*"                         { return TokenType::MUL; }
+"*"                         { return TokenType::STAR; }
 "/"                         { return TokenType::DIV; }
 "%"                         { return TokenType::MOD; }
 "!"                         { return TokenType::NOT; }
