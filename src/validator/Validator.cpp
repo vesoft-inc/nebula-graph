@@ -725,21 +725,21 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 
 // static
 Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
-                                               const std::string& prop,
-                                               const std::string &validatorName) {
-    auto eq = [&](const ColDef& col) { return col.first == prop; };
+                                               folly::StringPiece prop,
+                                               const std::string& validatorName) {
+    auto eq = [&](const ColDef& col) { return col.first == prop.str(); };
     auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
     if (iter == cols.cend()) {
         return Status::SemanticError("%s: prop `%s' not exists",
                                       validatorName.c_str(),
-                                      prop.c_str());
+                                      prop.str().c_str());
     }
 
     iter = std::find_if(iter + 1, cols.cend(), eq);
     if (iter != cols.cend()) {
         return Status::SemanticError("%s: duplicate prop `%s'",
                                       validatorName.c_str(),
-                                      prop.c_str());
+                                      prop.str().c_str());
     }
 
     return Status::OK();
@@ -776,36 +776,36 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
     }
 }
 
-void ExpressionProps::insertVar(const std::string& varName, std::string prop) {
+void ExpressionProps::insertVar(const std::string& varName, folly::StringPiece prop) {
     auto& props = varProps_[varName];
-    props.emplace(std::move(prop));
+    props.emplace(prop);
 }
 
-void ExpressionProps::insertInput(std::string prop) {
-    inputProps_.emplace(std::move(prop));
+void ExpressionProps::insertInput(folly::StringPiece prop) {
+    inputProps_.emplace(prop);
 }
 
-void ExpressionProps::insertSrcTag(TagID tagId, std::string prop) {
+void ExpressionProps::insertSrcTag(TagID tagId, folly::StringPiece prop) {
     auto& props = srcTagProps_[tagId];
-    props.emplace(std::move(prop));
+    props.emplace(prop);
 }
 
-void ExpressionProps::insertDstTag(TagID tagId, std::string prop) {
+void ExpressionProps::insertDstTag(TagID tagId, folly::StringPiece prop) {
     auto& props = dstTagProps_[tagId];
-    props.emplace(std::move(prop));
+    props.emplace(prop);
 }
 
-void ExpressionProps::insertEdge(EdgeType edgeType, std::string prop) {
+void ExpressionProps::insertEdge(EdgeType edgeType, folly::StringPiece prop) {
     auto& props = edgeProps_[edgeType];
-    props.emplace(std::move(prop));
+    props.emplace(prop);
 }
 
-void ExpressionProps::insertTag(TagID tagId, std::string prop) {
+void ExpressionProps::insertTag(TagID tagId, folly::StringPiece prop) {
     auto& props = tagProps_[tagId];
-    props.emplace(std::move(prop));
+    props.emplace(prop);
 }
 
-bool ExpressionProps::isSubsetOfInput(std::set<std::string>& props) {
+bool ExpressionProps::isSubsetOfInput(const std::set<folly::StringPiece>& props) {
     for (auto& prop : props) {
         if (inputProps_.find(prop) == inputProps_.end()) {
             return false;
@@ -814,12 +814,12 @@ bool ExpressionProps::isSubsetOfInput(std::set<std::string>& props) {
     return true;
 }
 
-bool ExpressionProps::isSubsetOfVar(VarMap& props) {
+bool ExpressionProps::isSubsetOfVar(const VarPropMap& props) {
     for (auto &iter : props) {
         if (varProps_.find(iter.first) == varProps_.end()) {
             return false;
         }
-        for (auto& prop : props[iter.first]) {
+        for (auto& prop : iter.second) {
             if (varProps_[iter.first].find(prop) == varProps_[iter.first].end()) {
                 return false;
             }
@@ -828,38 +828,39 @@ bool ExpressionProps::isSubsetOfVar(VarMap& props) {
     return true;
 }
 
-void ExpressionProps::unionProps(ExpressionProps& exprProps) {
+void ExpressionProps::unionProps(ExpressionProps exprProps) {
     if (!exprProps.inputProps().empty()) {
-        inputProps_.insert(exprProps.inputProps().begin(), exprProps.inputProps().end());
+        inputProps_.insert(std::make_move_iterator(exprProps.inputProps().begin()),
+                           std::make_move_iterator(exprProps.inputProps().end()));
     }
     if (!exprProps.srcTagProps().empty()) {
         for (auto& iter : exprProps.srcTagProps()) {
-            srcTagProps_[iter.first].insert(exprProps.srcTagProps()[iter.first].begin(),
-                                            exprProps.srcTagProps()[iter.first].end());
+            srcTagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                            std::make_move_iterator(iter.second.end()));
         }
     }
     if (!exprProps.dstTagProps().empty()) {
         for (auto& iter : exprProps.dstTagProps()) {
-            dstTagProps_[iter.first].insert(exprProps.dstTagProps()[iter.first].begin(),
-                                            exprProps.dstTagProps()[iter.first].end());
+            dstTagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                            std::make_move_iterator(iter.second.end()));
         }
     }
     if (!exprProps.tagProps().empty()) {
         for (auto& iter : exprProps.tagProps()) {
-            tagProps_[iter.first].insert(exprProps.tagProps()[iter.first].begin(),
-                                         exprProps.tagProps()[iter.first].end());
+            tagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                         std::make_move_iterator(iter.second.end()));
         }
     }
     if (!exprProps.varProps().empty()) {
         for (auto& iter : exprProps.varProps()) {
-            varProps_[iter.first].insert(exprProps.varProps()[iter.first].begin(),
-                                         exprProps.varProps()[iter.first].end());
+            varProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                         std::make_move_iterator(iter.second.end()));
         }
     }
     if (!exprProps.edgeProps().empty()) {
         for (auto& iter : exprProps.edgeProps()) {
-            edgeProps_[iter.first].insert(exprProps.edgeProps()[iter.first].begin(),
-                                          exprProps.edgeProps()[iter.first].end());
+            edgeProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                          std::make_move_iterator(iter.second.end()));
         }
     }
 }

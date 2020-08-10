@@ -142,7 +142,7 @@ TabWidth:        4
 UseTab:          Never
 
 #Different from google style
-Standard:        Cpp14
+Standard:        Cpp11
 AccessModifierOffset: -4
 AllowAllParametersOfDeclarationOnNextLine: false
 ColumnLimit:     100

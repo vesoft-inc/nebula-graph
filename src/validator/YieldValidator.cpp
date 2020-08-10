@@ -65,7 +65,7 @@ Status YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) 
 }
 
 Status YieldValidator::checkInputProps() const {
-    auto& inputProps = exprProps_.inputProps();
+    auto& inputProps = const_cast<ExpressionProps*>(&exprProps_)->inputProps();
     if (inputs_.empty() && !inputProps.empty()) {
         return Status::SemanticError("no inputs for yield columns.");
     }
@@ -77,7 +77,7 @@ Status YieldValidator::checkInputProps() const {
 }
 
 Status YieldValidator::checkVarProps() const {
-    auto varProps = exprProps_.varProps();
+    auto& varProps = const_cast<ExpressionProps*>(&exprProps_)->varProps();
     for (auto &pair : varProps) {
         auto &var = pair.first;
         if (!vctx_->existVar(var)) {
@@ -142,7 +142,6 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
                     auto newExpr = new VariablePropertyExpression(new std::string(*var),
                                                                   new std::string(colDef.first));
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
-                    exprProps_.insertVar(*var, colDef.first);
                 }
                 if (!column->getAggFunName().empty()) {
                     return Status::SemanticError("could not apply aggregation function on `$%s.*'",

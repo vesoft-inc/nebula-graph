@@ -195,7 +195,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
             outputs_.emplace_back(colName, Value::Type::STRING);
-            NG_RETURN_IF_ERROR(deduceProps(col->expr()));
+            NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
         }
 
         yields_ = newCols;
@@ -209,7 +209,6 @@ Status GoValidator::validateYield(YieldClause* yield) {
                 ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(col->expr());
             }
 
-<<<<<<< HEAD
             if (!col->getAggFunName().empty()) {
                 return Status::Error(
                     "`%s', not support aggregate function in go sentence.",

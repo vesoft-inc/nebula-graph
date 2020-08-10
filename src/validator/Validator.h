@@ -21,73 +21,54 @@ namespace graph {
 
 class ExpressionProps final {
 public:
-    using TagIDMap =  std::unordered_map<TagID, std::set<std::string>>;
-    using EdgeTypeMap = std::unordered_map<EdgeType, std::set<std::string>>;
-    using VarMap = std::unordered_map<std::string, std::set<std::string>>;
+    using TagPropMap =  std::unordered_map<TagID, std::set<folly::StringPiece>>;
+    using EdgePropMap = std::unordered_map<EdgeType, std::set<folly::StringPiece>>;
+    using VarPropMap = std::unordered_map<std::string, std::set<folly::StringPiece>>;
 
-    void insertInput(std::string prop);
+    void insertInput(folly::StringPiece prop);
 
-    void insertVar(const std::string& varName, std::string prop);
+    void insertVar(const std::string& varName, folly::StringPiece prop);
 
-    void insertSrcTag(TagID tagId, std::string prop);
+    void insertSrcTag(TagID tagId, folly::StringPiece prop);
 
-    void insertDstTag(TagID tagId, std::string prop);
+    void insertDstTag(TagID tagId, folly::StringPiece prop);
 
-    void insertEdge(EdgeType edgeType, std::string prop);
+    void insertEdge(EdgeType edgeType, folly::StringPiece prop);
 
-    void insertTag(TagID tagId, std::string prop);
+    void insertTag(TagID tagId, folly::StringPiece prop);
 
-    std::set<std::string>& inputProps() {
+    std::set<folly::StringPiece>& inputProps() {
         return inputProps_;
     }
-    TagIDMap& srcTagProps() {
+    TagPropMap& srcTagProps() {
         return srcTagProps_;
     }
-    TagIDMap& dstTagProps() {
+    TagPropMap& dstTagProps() {
         return dstTagProps_;
     }
-    TagIDMap& tagProps() {
+    TagPropMap& tagProps() {
         return tagProps_;
     }
-    EdgeTypeMap& edgeProps() {
+    EdgePropMap& edgeProps() {
         return edgeProps_;
     }
-    VarMap& varProps() {
+    VarPropMap& varProps() {
         return varProps_;
     }
 
-    const TagIDMap& srcTagProps() const {
-        return srcTagProps_;
-    }
-    const TagIDMap& dstTagProps() const {
-        return dstTagProps_;
-    }
-    const TagIDMap& tagProps() const {
-        return tagProps_;
-    }
-    const TagIDMap& edgeProps() const {
-        return edgeProps_;
-    }
-    const std::set<std::string>& inputProps() const {
-        return inputProps_;
-    }
-    const VarMap& varProps() const {
-        return varProps_;
-    }
+    bool isSubsetOfInput(const std::set<folly::StringPiece>& props);
 
-    bool isSubsetOfInput(std::set<std::string>& props);
+    bool isSubsetOfVar(const VarPropMap& props);
 
-    bool isSubsetOfVar(VarMap& props);
-
-    void unionProps(ExpressionProps& exprProps);
+    void unionProps(ExpressionProps exprProps);
 
 private:
-    std::set<std::string>      inputProps_;
-    VarMap                     varProps_;
-    TagIDMap                   srcTagProps_;
-    TagIDMap                   dstTagProps_;
-    EdgeTypeMap                edgeProps_;
-    TagIDMap                   tagProps_;
+    std::set<folly::StringPiece>  inputProps_;
+    VarPropMap                    varProps_;
+    TagPropMap                    srcTagProps_;
+    TagPropMap                    dstTagProps_;
+    EdgePropMap                   edgeProps_;
+    TagPropMap                    tagProps_;
 };
 
 class Validator {
@@ -158,7 +139,7 @@ protected:
     bool evaluableExpr(const Expression* expr) const;
 
     static Status checkPropNonexistOrDuplicate(const ColsDef& cols,
-                                               const std::string& prop,
+                                               folly::StringPiece prop,
                                                const std::string &validatorName);
 
     static Status appendPlan(PlanNode* plan, PlanNode* appended);

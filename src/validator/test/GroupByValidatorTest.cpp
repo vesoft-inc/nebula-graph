@@ -228,14 +228,24 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         EXPECT_EQ(std::string(result.message()),
                   "SemanticError: Yield `$-.name AS name` isn't in output fields");
     }
-    // {
-    //     // todo(jmq) duplicate column
-    //     std::string query =
-    //         "GO FROM \"1\" OVER like YIELD $$.person.age AS age, $^.person.age AS age"
-    //         "| GROUP BY $-.age YIELD $-.age, 1+1";
-    //     auto result = checkResult(query);
-    //     EXPECT_EQ(std::string(result.message()), "SemanticError:.");
-    // }
+    {
+        // duplicate col
+        std::string query =
+            "GO FROM \"1\" OVER like YIELD $$.person.age AS age, $^.person.age AS age"
+            "| GROUP BY $-.age YIELD $-.age, 1+1";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "SemanticError: GroupBy sentence: duplicate prop `age'");
+    }
+    {
+        // duplicate col
+        std::string query = "GO FROM \"1\" OVER like "
+                            "YIELD $$.person.age AS age, $^.person.age AS age, like._dst AS id "
+                            "| GROUP BY $-.id YIELD $-.id, COUNT($-.age)";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()),
+                  "SemanticError: GroupBy sentence: duplicate prop `age'");
+    }
 
     // {
     //     // todo(jmq) not support $-.*
