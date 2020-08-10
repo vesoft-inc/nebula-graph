@@ -207,8 +207,7 @@ Status ShowHostsValidator::validateImpl() {
 }
 
 Status ShowHostsValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *showHosts = ShowHosts::make(plan, nullptr);
+    auto *showHosts = ShowHosts::make(qctx_->plan(), nullptr);
     root_ = showHosts;
     tail_ = root_;
     return Status::OK();
