@@ -267,16 +267,6 @@ class TestGroupBy(NebulaTestSuite):
         self.check_out_of_order_result(resp, expected_data["rows"])
 
     def test_empty_input(self):
-        stmt = '''GO FROM 'noexist' OVER serve
-                YIELD $^.player.name as name,
-                serve.start_year as start,
-                $$.team.name as name
-                | GROUP BY $-.name
-                YIELD $-.name AS name'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        self.check_empty_result(resp)
-
         stmt = '''GO FROM 'noexist' OVER like
                 YIELD $$.player.name AS name
                 | GROUP BY $-.name, abs(5)
@@ -321,6 +311,15 @@ class TestGroupBy(NebulaTestSuite):
                 YIELD COUNT($-.id),
                 $-.start_year AS start_year,
                 AVG($-.end_year) as avg'''
+        resp = self.execute_query(stmt)
+        self.check_resp_failed(resp)
+
+        stmt = '''GO FROM 'noexist' OVER serve
+                YIELD $^.player.name as name,
+                serve.start_year as start,
+                $$.team.name as name
+                | GROUP BY $-.name
+                YIELD $-.name AS name'''
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
 
