@@ -25,12 +25,12 @@ function lint() {
 }
 
 function build_common() {
-    cmake --build $PROJ_DIR/modules/common -j$(nproc)
+    cmake --build $BUILD_DIR/modules/common -j$(nproc)
 }
 
 function build_storage() {
-    cmake --build $PROJ_DIR/modules/storage --target nebula-storaged -j$(nproc)
-    cmake --build $PROJ_DIR/modules/storage --target nebula-metad -j$(nproc)
+    cmake --build $BUILD_DIR/modules/storage --target nebula-storaged -j$(nproc)
+    cmake --build $BUILD_DIR/modules/storage --target nebula-metad -j$(nproc)
 }
 
 function gcc_compile() {
@@ -44,7 +44,6 @@ function gcc_compile() {
         -DENABLE_BUILD_STORAGE=on \
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
         -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
-        -DMODULE_BUILDING_JOBS=$(nproc) \
         -B $BUILD_DIR
     build_common
     build_storage
@@ -63,7 +62,6 @@ function clang_compile() {
         -DENABLE_BUILD_STORAGE=on \
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
         -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
-        -DMODULE_BUILDING_JOBS=$(nproc) \
         -B $BUILD_DIR
     build_common
     build_storage
@@ -85,6 +83,7 @@ function run_test() {
         $PROJ_DIR/tests/mutate/* \
         $PROJ_DIR/tests/query/stateless/test_new_go.py \
         $PROJ_DIR/tests/query/v1/* \
+        $PROJ_DIR/tests/query/v2/* \
         $PROJ_DIR/tests/query/stateless/test_schema.py \
         $PROJ_DIR/tests/query/stateless/test_if_exists.py \
         $PROJ_DIR/tests/query/stateless/test_range.py \
