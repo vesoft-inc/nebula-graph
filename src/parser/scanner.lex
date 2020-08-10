@@ -559,7 +559,6 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
                             }
 "#".*                       // Skip the annotation
 "//".*                      // Skip the annotation
-"--".*                      // Skip the annotation
 "/*"                        { BEGIN(COMMENT); }
 <COMMENT>"*/"               { BEGIN(INITIAL); }
 <COMMENT>([^*]|\n)+|.

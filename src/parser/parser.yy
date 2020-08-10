@@ -100,6 +100,13 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::InBoundClause                  *in_bound_clause;
     nebula::OutBoundClause                 *out_bound_clause;
     nebula::BothInOutClause                *both_in_out_clause;
+    ExpressionList                         *expression_list;
+    MapItemList                            *map_item_list;
+    MatchPath                              *match_path;
+    MatchNode                              *match_node;
+    MatchEdge                              *match_edge;
+    MatchEdgeProp                          *match_edge_prop;
+    MatchReturn                            *match_return;
 }
 
 /* destructors */
@@ -164,6 +171,10 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> vid
 %type <expr> function_call_expression
 %type <expr> uuid_expression
+%type <expr> list_expression
+%type <expr> set_expression
+%type <expr> map_expression
+%type <expr> container_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -211,6 +222,16 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <in_bound_clause> in_bound_clause
 %type <out_bound_clause> out_bound_clause
 %type <both_in_out_clause> both_in_out_clause
+%type <expression_list> expression_list
+%type <map_item_list> map_item_list
+
+%type <match_path> match_path
+%type <match_node> match_node
+%type <match_edge> match_edge
+%type <match_edge_prop> match_edge_prop
+%type <match_return> match_return
+%type <strval> match_alias
+%type <strval> match_edge_type
 
 %type <intval> unary_integer rank port
 
@@ -603,8 +624,61 @@ logic_xor_expression
     }
     ;
 
+container_expression
+    : list_expression {
+        $$ = $1;
+    }
+    | set_expression {
+        $$ = $1;
+    }
+    | map_expression {
+        $$ = $1;
+    }
+    ;
+
+list_expression
+    : L_BRACKET expression_list R_BRACKET {
+        $$ = new ListExpression($2);
+    }
+    ;
+
+set_expression
+    : L_BRACE expression_list R_BRACE {
+        $$ = new SetExpression($2);
+    }
+    ;
+
+expression_list
+    : expression {
+        $$ = new ExpressionList();
+        $$->add($1);
+    }
+    | expression_list COMMA expression {
+        $$ = $1;
+        $$->add($3);
+    }
+    ;
+
+map_expression
+    : L_BRACE map_item_list R_BRACE {
+        $$ = new MapExpression($2);
+    }
+    ;
+
+map_item_list
+    : name_label COLON expression {
+        $$ = new MapItemList();
+        $$->add($1, $3);
+    }
+    | map_item_list COMMA name_label COLON expression {
+        $$ = $1;
+        $$->add($3, $5);
+    }
+    ;
+
 expression
     : logic_xor_expression { $$ = $1; }
+    | container_expression { $$ = $1; }
     ;
 
 go_sentence
@@ -819,7 +893,85 @@ yield_sentence
     ;
 
 match_sentence
-    : KW_MATCH { $$ = new MatchSentence; }
+    : KW_MATCH match_path where_clause match_return {
+        $$ = new MatchSentence($2, $3, $4);
+    }
+    ;
+
+match_path
+    : match_node {
+        $$ = new MatchPath($1);
+    }
+    | match_path match_edge match_node {
+        $$ = $1;
+        $$->add($2, $3);
+    }
+    ;
+
+match_node
+    : L_PAREN match_alias R_PAREN {
+        $$ = new MatchNode($2, nullptr, nullptr);
+    }
+    | L_PAREN match_alias COLON name_label R_PAREN {
+        $$ = new MatchNode($2, $4, nullptr);
+    }
+    | L_PAREN match_alias COLON name_label map_expression R_PAREN {
+        $$ = new MatchNode($2, $4, $5);
+    }
+    ;
+
+match_alias
+    : %empty {
+        $$ = nullptr;
+    }
+    | name_label {
+        $$ = $1;
+    }
+    ;
+
+match_edge
+    : MINUS match_edge_prop MINUS {
+        $$ = new MatchEdge($2, MatchDirection::kBoth);
+    }
+    | MINUS match_edge_prop R_ARROW {
+        $$ = new MatchEdge($2, MatchDirection::kOut);
+    }
+    | L_ARROW match_edge_prop MINUS {
+        $$ = new MatchEdge($2, MatchDirection::kIn);
+    }
+    | L_ARROW match_edge_prop R_ARROW {
+        $$ = new MatchEdge($2, MatchDirection::kBoth);
+    }
+    ;
+
+match_edge_prop
+    : %empty {
+        $$ = nullptr;
+    }
+    | L_BRACKET match_alias match_edge_type R_BRACKET {
+        $$ = new MatchEdgeProp($2, $3, nullptr);
+    }
+    | L_BRACKET match_alias match_edge_type map_expression R_BRACKET {
+        $$ = new MatchEdgeProp($2, $3, $4);
+    }
+    ;
+
+match_edge_type
+    : %empty {
+        $$ = nullptr;
+    }
+    | COLON name_label {
+        $$ = $2;
+    }
+    ;
+
+match_return
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_RETURN yield_columns  {
+        $$ = new MatchReturn($2);
+    }
     ;
 
 lookup_sentence
