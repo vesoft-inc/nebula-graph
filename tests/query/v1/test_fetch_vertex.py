@@ -137,8 +137,8 @@ class TestFetchQuery(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_failed(resp)
 
-        query = '''GO FROM "11" over like YIELD like._dst as id "
-            "| FETCH PROP ON player "11" YIELD $-.id'''
+        query = '''GO FROM "11" over like YIELD like._dst as id \
+                   | FETCH PROP ON player "11" YIELD $-.id'''
         resp = self.execute(query)
         self.check_resp_failed(resp)
     
