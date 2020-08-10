@@ -21,12 +21,10 @@
 #   NEBULA_STORAGE_REPO_URL         -- Git URL for the nebula-storage repo
 #   NEBULA_STORAGE_REPO_TAG         -- Tag/branch of the nebula-storage repo
 #   ENABLE_BUILD_STORAGE            -- Build storage repo
-#   MODULE_BUILDING_JOBS            -- The jobs to build dependent repo
 #
 #   ENABLE_JEMALLOC                -- Link jemalloc into all executables
 #   ENABLE_NATIVE                  -- Build native client
 #   ENABLE_TESTING                 -- Build unit test
-#   ENABLE_UPDATE_EXTERNAL_PROJ    -- Whether to update external project
 #
 # CMake version check
 cmake_minimum_required(VERSION 3.5.0)
@@ -38,16 +36,9 @@ option(ENABLE_PACK_ONE "Whether to package into one" ON)
 option(ENABLE_BUILD_STORAGE "Whether to build storage" ON)
 option(ENABLE_MODULE_UPDATE "Automatically update module" OFF)
 
-message(STATUS "ENABLE_UPDATE_EXTERNAL_PROJ: ${ENABLE_UPDATE_EXTERNAL_PROJ}")
-
 add_definitions(-DNEBULA_HOME=${CMAKE_SOURCE_DIR})
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
-
-if(NOT MODULE_BUILDING_JOBS)
-    set(MODULE_BUILDING_JOBS 10)
-endif()
-message(STATUS "MODULE_BUILDING_JOBS = ${MODULE_BUILDING_JOBS}")
 
 # Submodules
 if("${NEBULA_COMMON_REPO_URL}" STREQUAL "")
