@@ -7,6 +7,7 @@
 
 import time
 import re
+import sys
 import pytest
 
 sys.path.insert(0, pytest.cmdline.tests_dir)
