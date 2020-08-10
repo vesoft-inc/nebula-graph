@@ -61,6 +61,7 @@ public:
         kDropEdge,
         kInsertVertices,
         kInsertEdges,
+        kShowHosts,
         kDataCollect,
         kCreateSnapshot,
         kDropSnapshot,
@@ -70,6 +71,7 @@ public:
         kDeleteEdges,
         kUpdateVertex,
         kUpdateEdge,
+        kShowParts,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

@@ -63,6 +63,9 @@ public:
             case Expression::Kind::kRelLE:
             case Expression::Kind::kRelGT:
             case Expression::Kind::kRelGE:
+            case Expression::Kind::kRelIn:
+            case Expression::Kind::kRelNotIn:
+            case Expression::Kind::kContains:
             case Expression::Kind::kLogicalAnd:
             case Expression::Kind::kLogicalOr:
             case Expression::Kind::kLogicalXor: {
@@ -73,7 +76,6 @@ public:
                 }
                 return traverse(biExpr->right(), visitor);
             }
-            case Expression::Kind::kRelIn:
             case Expression::Kind::kUnaryIncr:
             case Expression::Kind::kUnaryDecr:
             case Expression::Kind::kUnaryPlus:
@@ -97,6 +99,12 @@ public:
                     }
                 }
                 return true;
+            }
+            case Expression::Kind::kList:   // FIXME(dutor)
+            case Expression::Kind::kSet:
+            case Expression::Kind::kMap:
+            case Expression::Kind::kSubscript: {
+                return false;
             }
         }
         DLOG(FATAL) << "Impossible expression kind " << static_cast<int>(expr->kind());
@@ -262,6 +270,9 @@ public:
                 case Expression::Kind::kRelLE:
                 case Expression::Kind::kRelGT:
                 case Expression::Kind::kRelGE:
+                case Expression::Kind::kRelIn:
+                case Expression::Kind::kRelNotIn:
+                case Expression::Kind::kContains:
                 case Expression::Kind::kLogicalAnd:
                 case Expression::Kind::kLogicalOr:
                 case Expression::Kind::kLogicalXor: {
@@ -276,7 +287,6 @@ public:
                     }
                     return true;
                 }
-                case Expression::Kind::kRelIn:
                 case Expression::Kind::kUnaryIncr:
                 case Expression::Kind::kUnaryDecr:
                 case Expression::Kind::kUnaryPlus:
@@ -308,6 +318,12 @@ public:
                         }
                     }
                     return true;
+                }
+                case Expression::Kind::kList:   // FIXME(dutor)
+                case Expression::Kind::kSet:
+                case Expression::Kind::kMap:
+                case Expression::Kind::kSubscript: {
+                    return false;
                 }
             }   // switch
             DLOG(FATAL) << "Impossible expression kind " << static_cast<int>(current->kind());

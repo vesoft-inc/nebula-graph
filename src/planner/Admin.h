@@ -19,6 +19,25 @@
  */
 namespace nebula {
 namespace graph {
+// TODO: All DDLs, DMLs and DQLs could be used in a single query
+// which would make them in a single and big execution plan
+
+class ShowHosts final : public SingleDependencyNode {
+    // TODO(shylock) meta/storage/graph enumerate
+public:
+    static ShowHosts* make(ExecutionPlan* plan, PlanNode* dep) {
+        return new ShowHosts(plan, dep);
+    }
+
+    std::string explain() const override {
+        return "ShowHosts";
+    }
+
+private:
+    explicit ShowHosts(ExecutionPlan* plan, PlanNode* dep)
+        : SingleDependencyNode(plan, Kind::kShowHosts, dep) {}
+};
+
 class CreateSpace final : public SingleInputNode {
 public:
     static CreateSpace* make(ExecutionPlan* plan,
@@ -251,6 +270,42 @@ public:
     std::string explain() const override {
         return "Ingest";
     }
+};
+
+class ShowParts final : public SingleInputNode {
+public:
+    static ShowParts* make(ExecutionPlan* plan,
+                           PlanNode* input,
+                           GraphSpaceID spaceId,
+                           std::vector<PartitionID> partIds) {
+        return new ShowParts(plan, input, spaceId, std::move(partIds));
+    }
+
+    std::string explain() const override {
+        return "ShowParts";
+    }
+
+    GraphSpaceID getSpaceId() const {
+        return spaceId_;
+    }
+
+    const std::vector<PartitionID>& getPartIds() const {
+        return partIds_;
+    }
+
+private:
+    explicit ShowParts(ExecutionPlan* plan,
+                       PlanNode* input,
+                       GraphSpaceID spaceId,
+                       std::vector<PartitionID> partIds)
+        : SingleInputNode(plan, Kind::kShowParts, input) {
+        spaceId_ = spaceId;
+        partIds_ = std::move(partIds);
+    }
+
+private:
+    GraphSpaceID                       spaceId_{-1};
+    std::vector<PartitionID>           partIds_;
 };
 }  // namespace graph
 }  // namespace nebula

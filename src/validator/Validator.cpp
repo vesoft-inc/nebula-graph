@@ -118,6 +118,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<UpdateVertexValidator>(sentence, context);
         case Sentence::Kind::kUpdateEdge:
             return std::make_unique<UpdateEdgeValidator>(sentence, context);
+        case Sentence::Kind::kShowParts:
+            return std::make_unique<ShowPartsValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }
@@ -125,6 +127,7 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     switch (DCHECK_NOTNULL(node)->kind()) {
+        case PlanNode::Kind::kShowHosts:
         case PlanNode::Kind::kFilter:
         case PlanNode::Kind::kProject:
         case PlanNode::Kind::kSort:
@@ -162,7 +165,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kDeleteVertices:
         case PlanNode::Kind::kDeleteEdges:
         case PlanNode::Kind::kUpdateVertex:
-        case PlanNode::Kind::kUpdateEdge: {
+        case PlanNode::Kind::kUpdateEdge:
+        case PlanNode::Kind::kShowParts: {
             static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
             break;
         }
@@ -301,7 +305,11 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kRelLT:
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGT:
-        case Expression::Kind::kRelGE: {
+        case Expression::Kind::kRelGE:
+        case Expression::Kind::kContains: {
+            auto biExpr = static_cast<const BinaryExpression*>(expr);
+            NG_RETURN_IF_ERROR(deduceExprType(biExpr->left()));
+            NG_RETURN_IF_ERROR(deduceExprType(biExpr->right()));
             // TODO: Should deduce.
             return Value::Type::BOOL;
         }
@@ -312,13 +320,14 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kLogicalOr: {
             DETECT_BIEXPR_TYPE(||)
         }
-        case Expression::Kind::kRelIn: {
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
             NG_RETURN_IF_ERROR(deduceExprType(biExpr->left()));
 
             auto right = deduceExprType(biExpr->right());
             NG_RETURN_IF_ERROR(right);
-            if (right.value() != Value::Type::LIST) {
+            if (right.value() != Value::Type::LIST) {   // FIXME(dutor)
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                     << "expected `LIST' but `" << right.value() << "' was given.";
@@ -389,14 +398,19 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
             auto result = deduceExprType(castExpr->operand());
             NG_RETURN_IF_ERROR(result);
-
-            auto* typeCastExpr = const_cast<TypeCastingExpression*>(castExpr);
             if (!evaluableExpr(castExpr->operand())) {
-                auto detectVal = kConstantValues.at(result.value());
-                typeCastExpr->setOperand(new ConstantExpression(detectVal));
+                if (TypeCastingExpression::validateTypeCast(result.value(),
+                                                            castExpr->type())) {
+                    return castExpr->type();
+                }
+                std::stringstream out;
+                out << "Can not convert " << castExpr->operand()
+                    << " 's type : " << result.value() << " to "
+                    << castExpr->type();
+                return Status::Error(out.str());
             }
-
             QueryExpressionContext ctx(nullptr, nullptr);
+            auto* typeCastExpr = const_cast<TypeCastingExpression*>(castExpr);
             auto val = typeCastExpr->eval(ctx);
             if (val.isNull()) {
                 return Status::SemanticError("`%s` is not a valid expression ",
@@ -508,6 +522,18 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             // TODO: not only dataset
             return Value::Type::DATASET;
         }
+        case Expression::Kind::kList: {
+            return Value::Type::LIST;
+        }
+        case Expression::Kind::kSet: {
+            return Value::Type::SET;
+        }
+        case Expression::Kind::kMap: {
+            return Value::Type::MAP;
+        }
+        case Expression::Kind::kSubscript: {
+            return Value::Type::LIST;   // FIXME(dutor)
+        }
     }
     return Status::SemanticError("Unknown expression kind: %ld",
                                  static_cast<int64_t>(expr->kind()));
@@ -529,6 +555,7 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
+        case Expression::Kind::kContains:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -612,7 +639,12 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kSymProperty:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kRelIn: {
+        case Expression::Kind::kList:
+        case Expression::Kind::kSet:
+        case Expression::Kind::kMap:
+        case Expression::Kind::kSubscript:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             // TODO:
             std::stringstream ss;
             ss << "Not supported expression kind for type deduction: " << expr->toString();
@@ -639,6 +671,8 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
         case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn:
+        case Expression::Kind::kContains:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -679,7 +713,11 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kInputProperty:
         case Expression::Kind::kSymProperty:
         case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr: {
+        case Expression::Kind::kUnaryDecr:
+        case Expression::Kind::kList:   // FIXME(dutor)
+        case Expression::Kind::kSet:
+        case Expression::Kind::kMap:
+        case Expression::Kind::kSubscript: {
             return false;
         }
     }
@@ -687,16 +725,22 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 // static
-Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols, const std::string& prop) {
+Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
+                                               const std::string& prop,
+                                               const std::string &validatorName) {
     auto eq = [&](const ColDef& col) { return col.first == prop; };
     auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
     if (iter == cols.cend()) {
-        return Status::SemanticError("prop `%s' not exists", prop.c_str());
+        return Status::SemanticError("%s: prop `%s' not exists",
+                                      validatorName.c_str(),
+                                      prop.c_str());
     }
 
     iter = std::find_if(iter + 1, cols.cend(), eq);
     if (iter != cols.cend()) {
-        return Status::SemanticError("duplicate prop `%s'", prop.c_str());
+        return Status::SemanticError("%s: duplicate prop `%s'",
+                                      validatorName.c_str(),
+                                      prop.c_str());
     }
 
     return Status::OK();
