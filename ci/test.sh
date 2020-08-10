@@ -78,6 +78,7 @@ function run_ctest() {
 function run_test() {
     cd $BUILD_DIR/tests
     ./ntr \
+        -n=auto --dist=loadfile \
         $PROJ_DIR/tests/admin/* \
         $PROJ_DIR/tests/maintain/* \
         $PROJ_DIR/tests/mutate/* \

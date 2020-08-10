@@ -10,10 +10,11 @@ import sys
 import time
 import string
 import random
-
 import pytest
 
-from graph import ttypes
+sys.path.insert(0, pytest.cmdline.tests_dir)
+
+from nebula2.graph import ttypes
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 

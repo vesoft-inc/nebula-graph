@@ -10,6 +10,8 @@ import sys
 import pytest
 import time
 
+sys.path.insert(0, pytest.cmdline.tests_dir)
+
 from graph import ttypes
 
 import nebula.Client

@@ -17,9 +17,9 @@ from pathlib import Path
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 NEBULA_HOME = TEST_DIR + '/../'
 sys.path.insert(0, NEBULA_HOME)
+sys.path.insert(0, TEST_DIR)
 
 from tests.common.nebula_service import NebulaService
-from tests.common.nebula_test_plugin import NebulaTestPlugin
 
 TEST_LOGS_DIR = os.getenv('NEBULA_TEST_LOGS_DIR')
 if TEST_LOGS_DIR is None or TEST_LOGS_DIR == "":
@@ -43,11 +43,11 @@ class TestExecutor(object):
         self.total_executed = 0
 
     def run_tests(self, args):
-        plugin = NebulaTestPlugin(TEST_DIR)
+        # plugin = NebulaTestPlugin(TEST_DIR)
 
         error_code = 0
         try:
-            error_code = pytest.main(args, plugins=[plugin])
+            error_code = pytest.main(args)
         except Exception:
             sys.stderr.write(
                 "Unexpected exception with pytest {0}".format(args))
@@ -57,7 +57,7 @@ class TestExecutor(object):
             for test in plugin.tests_collected:
                 print(test)
 
-        self.total_executed += len(plugin.tests_executed)
+        #self.total_executed += len(plugin.tests_executed)
         return error_code
 
 
@@ -91,6 +91,11 @@ if __name__ == "__main__":
             args.extend(['--address', '127.0.0.1:' + str(port)])
         else:
             stop_nebula = False
+        if '--tests_dir' not in args:
+            args.extend(['--tests_dir', NEBULA_HOME])
+
+        if '--data_dir' not in args:
+            args.extend(['--data_dir', TEST_DIR])
         print("Running TestExecutor with args: {} ".format(args))
 
         # Switch to your $src_dir/tests

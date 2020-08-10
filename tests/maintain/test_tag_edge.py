@@ -6,7 +6,11 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import time
+import os
+import sys
+import pytest
 
+sys.path.insert(0, pytest.cmdline.tests_dir)
 from tests.common.nebula_test_suite import NebulaTestSuite
 from tests.common.nebula_test_suite import T_EMPTY, T_NULL
 
@@ -465,7 +469,7 @@ class TestSchema(NebulaTestSuite):
         resp = self.client.execute_query('SHOW SPACES')
         self.check_resp_succeeded(resp)
         expect_result = [['tag_space']]
-        self.check_result(resp, expect_result)
+        self.search_result(resp, expect_result)
 
         # checkout current session has clear the space info
         assert resp.space_name.decode('utf-8') == ""

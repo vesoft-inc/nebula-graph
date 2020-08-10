@@ -7,7 +7,11 @@
 
 import time
 import re
+import os
+import sys
+import pytest
 
+sys.path.insert(0, pytest.cmdline.tests_dir)
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 
@@ -195,5 +199,5 @@ class TestSpace(NebulaTestSuite):
 
         resp = self.client.execute_query('SHOW SPACES')
         self.check_resp_succeeded(resp)
-        expect_result = []
-        self.check_result(resp, expect_result)
+        expect_result = [['default_space']]
+        self.search_not_exist(resp, expect_result)
