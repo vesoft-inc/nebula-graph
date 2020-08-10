@@ -46,7 +46,12 @@ macro(config_nebula_storage)
 
     add_custom_target(
         storage_project ALL
-        COMMAND +${CMAKE_COMMAND} --build ${common_build_dir}
+        COMMAND +${CMAKE_COMMAND} --build ${storage_build_dir}
+    )
+    add_custom_target(
+        clean-storage
+        COMMAND $(MAKE) clean
+        WORKING_DIRECTORY ${storage_build_dir}
     )
     message(">>>> Configuring Nebula Storage done <<<<")
 endmacro()

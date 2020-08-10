@@ -113,6 +113,15 @@ if(ENABLE_BUILD_STORAGE)
     )
 endif()
 
+add_custom_target(
+    clean-modules
+    DEPENDS clean-common
+)
+if(TARGET clean-storage)
+    add_dependencies(clean-modules clean-storage)
+endif()
+
+
 if (ENABLE_NATIVE)
     message(STATUS "ENABLE_NATIVE is ${ENABLE_NATIVE}")
     add_compile_options(-fPIC)
