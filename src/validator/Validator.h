@@ -21,32 +21,32 @@ namespace graph {
 
 class ExpressionProps final {
 public:
-    using TagPropMap =  std::unordered_map<TagID, std::set<folly::StringPiece>>;
+    using TagIDPropsMap =  std::unordered_map<TagID, std::set<folly::StringPiece>>;
     using EdgePropMap = std::unordered_map<EdgeType, std::set<folly::StringPiece>>;
     using VarPropMap = std::unordered_map<std::string, std::set<folly::StringPiece>>;
 
-    void insertInput(folly::StringPiece prop);
+    void insertInputProp(folly::StringPiece prop);
 
-    void insertVar(const std::string& varName, folly::StringPiece prop);
+    void insertVarProp(const std::string& varName, folly::StringPiece prop);
 
-    void insertSrcTag(TagID tagId, folly::StringPiece prop);
+    void insertSrcTagProp(TagID tagId, folly::StringPiece prop);
 
-    void insertDstTag(TagID tagId, folly::StringPiece prop);
+    void insertDstTagProp(TagID tagId, folly::StringPiece prop);
 
-    void insertEdge(EdgeType edgeType, folly::StringPiece prop);
+    void insertEdgeProp(EdgeType edgeType, folly::StringPiece prop);
 
-    void insertTag(TagID tagId, folly::StringPiece prop);
+    void insertTagProp(TagID tagId, folly::StringPiece prop);
 
     std::set<folly::StringPiece>& inputProps() {
         return inputProps_;
     }
-    TagPropMap& srcTagProps() {
+    TagIDPropsMap& srcTagProps() {
         return srcTagProps_;
     }
-    TagPropMap& dstTagProps() {
+    TagIDPropsMap& dstTagProps() {
         return dstTagProps_;
     }
-    TagPropMap& tagProps() {
+    TagIDPropsMap& tagProps() {
         return tagProps_;
     }
     EdgePropMap& edgeProps() {
@@ -65,10 +65,10 @@ public:
 private:
     std::set<folly::StringPiece>  inputProps_;
     VarPropMap                    varProps_;
-    TagPropMap                    srcTagProps_;
-    TagPropMap                    dstTagProps_;
+    TagIDPropsMap                 srcTagProps_;
+    TagIDPropsMap                 dstTagProps_;
     EdgePropMap                   edgeProps_;
-    TagPropMap                    tagProps_;
+    TagIDPropsMap                 tagProps_;
 };
 
 class Validator {

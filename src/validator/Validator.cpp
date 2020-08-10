@@ -587,21 +587,21 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            exprProps.insertDstTag(status.value(), *tagPropExpr->prop());
+            exprProps.insertDstTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kSrcProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            exprProps.insertSrcTag(status.value(), *tagPropExpr->prop());
+            exprProps.insertSrcTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kTagProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            exprProps.insertTag(status.value(), *tagPropExpr->prop());
+            exprProps.insertTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kEdgeProperty:
@@ -612,17 +612,17 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
             auto* edgePropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toEdgeType(space_.id, *edgePropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            exprProps.insertEdge(status.value(), *edgePropExpr->prop());
+            exprProps.insertEdgeProp(status.value(), *edgePropExpr->prop());
             break;
         }
         case Expression::Kind::kInputProperty: {
             auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            exprProps.insertInput(*inputPropExpr->prop());
+            exprProps.insertInputProp(*inputPropExpr->prop());
             break;
         }
         case Expression::Kind::kVarProperty: {
             auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            exprProps.insertVar(*varPropExpr->sym(), *varPropExpr->prop());
+            exprProps.insertVarProp(*varPropExpr->sym(), *varPropExpr->prop());
             break;
         }
         case Expression::Kind::kTypeCasting: {
@@ -776,31 +776,31 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
     }
 }
 
-void ExpressionProps::insertVar(const std::string& varName, folly::StringPiece prop) {
+void ExpressionProps::insertVarProp(const std::string& varName, folly::StringPiece prop) {
     auto& props = varProps_[varName];
     props.emplace(prop);
 }
 
-void ExpressionProps::insertInput(folly::StringPiece prop) {
+void ExpressionProps::insertInputProp(folly::StringPiece prop) {
     inputProps_.emplace(prop);
 }
 
-void ExpressionProps::insertSrcTag(TagID tagId, folly::StringPiece prop) {
+void ExpressionProps::insertSrcTagProp(TagID tagId, folly::StringPiece prop) {
     auto& props = srcTagProps_[tagId];
     props.emplace(prop);
 }
 
-void ExpressionProps::insertDstTag(TagID tagId, folly::StringPiece prop) {
+void ExpressionProps::insertDstTagProp(TagID tagId, folly::StringPiece prop) {
     auto& props = dstTagProps_[tagId];
     props.emplace(prop);
 }
 
-void ExpressionProps::insertEdge(EdgeType edgeType, folly::StringPiece prop) {
+void ExpressionProps::insertEdgeProp(EdgeType edgeType, folly::StringPiece prop) {
     auto& props = edgeProps_[edgeType];
     props.emplace(prop);
 }
 
-void ExpressionProps::insertTag(TagID tagId, folly::StringPiece prop) {
+void ExpressionProps::insertTagProp(TagID tagId, folly::StringPiece prop) {
     auto& props = tagProps_[tagId];
     props.emplace(prop);
 }

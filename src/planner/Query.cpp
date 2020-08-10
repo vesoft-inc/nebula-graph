@@ -15,6 +15,7 @@ using folly::stringPrintf;
 
 namespace nebula {
 namespace graph {
+
 std::unique_ptr<cpp2::PlanNodeDescription> Explore::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("space", folly::to<std::string>(space_), desc.get());
@@ -87,7 +88,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> Sort::explain() const {
     addDescription("factors", folly::toJson(util::toJson(factors_)), desc.get());
     return desc;
 }
-
 
 std::unique_ptr<cpp2::PlanNodeDescription> Limit::explain() const {
     auto desc = SingleInputNode::explain();
