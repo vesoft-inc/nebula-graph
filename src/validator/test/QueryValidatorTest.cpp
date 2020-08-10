@@ -759,6 +759,8 @@ TEST_F(QueryValidatorTest, GoOverAll) {
             PK::kDataJoin,
             PK::kProject,
             PK::kGetVertices,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
