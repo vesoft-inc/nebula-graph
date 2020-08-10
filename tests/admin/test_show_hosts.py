@@ -32,8 +32,8 @@ class TestShowHosts(NebulaTestSuite):
                                    re.compile(r'\d+'),
                                    re.compile(r'ONLINE|OFFLINE'),
                                    re.compile(r'\d+'),
-                                   re.compile(r'No valid partition|(\S+:\d+, ?)*\S+:\d+'),
-                                   re.compile(r'No valid partition|(\S+:\d+, ?)*\S+:\d+')]]
+                                   re.compile(r'No valid partition|(\S+:\d+, )*\S+:\d+'),
+                                   re.compile(r'No valid partition|(\S+:\d+, )*\S+:\d+')]]
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expected_column_names)
