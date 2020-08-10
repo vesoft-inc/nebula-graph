@@ -81,6 +81,7 @@ public:
         kDeleteEdges,
         kUpdateVertex,
         kUpdateEdge,
+        kShowParts,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

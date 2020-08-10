@@ -135,6 +135,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<UpdateVertexValidator>(sentence, context);
         case Sentence::Kind::kUpdateEdge:
             return std::make_unique<UpdateEdgeValidator>(sentence, context);
+        case Sentence::Kind::kShowParts:
+            return std::make_unique<ShowPartsValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }
@@ -189,7 +191,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kDeleteVertices:
         case PlanNode::Kind::kDeleteEdges:
         case PlanNode::Kind::kUpdateVertex:
-        case PlanNode::Kind::kUpdateEdge: {
+        case PlanNode::Kind::kUpdateEdge:
+        case PlanNode::Kind::kShowParts: {
             static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
             break;
         }
@@ -748,16 +751,22 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 // static
-Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols, const std::string& prop) {
+Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
+                                               const std::string& prop,
+                                               const std::string &validatorName) {
     auto eq = [&](const ColDef& col) { return col.first == prop; };
     auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
     if (iter == cols.cend()) {
-        return Status::SemanticError("prop `%s' not exists", prop.c_str());
+        return Status::SemanticError("%s: prop `%s' not exists",
+                                      validatorName.c_str(),
+                                      prop.c_str());
     }
 
     iter = std::find_if(iter + 1, cols.cend(), eq);
     if (iter != cols.cend()) {
-        return Status::SemanticError("duplicate prop `%s'", prop.c_str());
+        return Status::SemanticError("%s: duplicate prop `%s'",
+                                      validatorName.c_str(),
+                                      prop.c_str());
     }
 
     return Status::OK();
