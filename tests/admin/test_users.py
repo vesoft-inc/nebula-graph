@@ -12,11 +12,28 @@ from tests.common.nebula_test_suite import NebulaTestSuite
 class TestUsers(NebulaTestSuite):
     @classmethod
     def prepare(self):
-        pass
+        query = 'CREATE SPACE user_space(partition_num=1, replica_factor=1)'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+        time.sleep(self.delay)
 
     @classmethod
     def cleanup(self):
-        pass
+        query = 'DROP SPACE user_space'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP USER IF EXISTS user1'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP USER IF EXISTS user2'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP USER IF EXISTS user3'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
 
     def test_create_users(self):
         query = 'CREATE USER user1 WITH PASSWORD "pwd1"'
@@ -25,7 +42,7 @@ class TestUsers(NebulaTestSuite):
 
         query = 'CREATE USER user2'
         resp = self.execute(query)
-        self.check_resp_succeeded(query)
+        self.check_resp_succeeded(resp)
 
         # user exists.
         query = 'CREATE USER user1 WITH PASSWORD "pwd1" '
@@ -39,7 +56,7 @@ class TestUsers(NebulaTestSuite):
 
         query = 'SHOW USERS'
         expected_column_names = ['Account']
-        expected_result = [['root', 'user1', 'user2']]
+        expected_result = [['root'], ['user1'], ['user2']]
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expected_column_names)
@@ -74,7 +91,7 @@ class TestUsers(NebulaTestSuite):
 
         query = 'SHOW USERS'
         expected_column_names = ['Account']
-        expected_result = [['root', 'user1', 'user2']]
+        expected_result = [['root'], ['user1'], ['user2']]
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expected_column_names)
@@ -98,14 +115,9 @@ class TestUsers(NebulaTestSuite):
 
         query = 'CHANGE PASSWORD user2 FROM "pwd2" TO "newpwd"'
         resp = self.execute(query)
-        self.check_resp_failed(resp)
+        self.check_resp_succeeded(resp)
 
     def test_grant_revoke(self):
-        query = 'CREATE SPACE user_space(partition_num=1, replica_factor=1)'
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
-        time.sleep(self.delay)
-
         # must set the space if is not god role. expect fail.
         query = 'GRANT DBA TO user1'
         resp = self.execute(query)
@@ -116,9 +128,10 @@ class TestUsers(NebulaTestSuite):
         resp = self.execute(query);
         self.check_resp_failed(resp)
 
-        query = 'GRANT GOD ON user_space TO user1'
-        resp = self.execute(query)
-        self.check_resp_failed(resp)
+        # TODO(shylock) permission
+        # query = 'GRANT GOD ON user_space TO user1'
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp)
 
         # space not exists. expect fail.
         query = 'GRANT ROLE DBA ON space TO user2'
@@ -127,7 +140,7 @@ class TestUsers(NebulaTestSuite):
 
         query = 'SHOW USERS'
         expected_column_names = ['Account']
-        expected_result = [['root', 'user1', 'user2']]
+        expected_result = [['root'], ['user1'], ['user2']]
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expected_column_names)
