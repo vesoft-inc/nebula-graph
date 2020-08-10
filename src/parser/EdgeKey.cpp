@@ -12,7 +12,7 @@ namespace nebula {
 
 std::string EdgeKey::toString() const {
     return folly::stringPrintf(
-        "%s->%s@%ld,", srcid_->toString().c_str(), dstid_->toString().c_str(), rank_);
+        "%s->%s@%ld", srcid_->toString().c_str(), dstid_->toString().c_str(), rank_);
 }
 
 std::string EdgeKeys::toString() const {
@@ -20,6 +20,7 @@ std::string EdgeKeys::toString() const {
     buf.reserve(256);
     for (auto &key : keys_) {
         buf += key->toString();
+        buf += ",";
     }
     if (!buf.empty()) {
         buf.resize(buf.size() - 1);
