@@ -725,7 +725,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 
 // static
 Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
-                                               folly::StringPiece prop,
+                                               const folly::StringPiece& prop,
                                                const std::string& validatorName) {
     auto eq = [&](const ColDef& col) { return col.first == prop.str(); };
     auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
