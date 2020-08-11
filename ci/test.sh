@@ -82,6 +82,7 @@ function run_test() {
         $PROJ_DIR/tests/maintain/* \
         $PROJ_DIR/tests/mutate/* \
         $PROJ_DIR/tests/query/stateless/test_new_go.py \
+        $PROJ_DIR/tests/query/stateless/test_new_groupby.py \
         $PROJ_DIR/tests/query/v1/* \
         $PROJ_DIR/tests/query/v2/* \
         $PROJ_DIR/tests/query/stateless/test_schema.py \
