@@ -274,8 +274,6 @@ public:
         return new ShowCharset(plan, input);
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
-
 private:
     explicit ShowCharset(ExecutionPlan* plan, PlanNode* input)
         : SingleInputNode(plan, Kind::kShowCharset, input) {}
@@ -286,8 +284,6 @@ public:
     static ShowCollation* make(ExecutionPlan* plan, PlanNode* input) {
         return new ShowCollation(plan, input);
     }
-
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     explicit ShowCollation(ExecutionPlan* plan, PlanNode* input)

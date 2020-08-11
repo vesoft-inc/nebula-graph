@@ -51,13 +51,5 @@ std::unique_ptr<cpp2::PlanNodeDescription> ShowParts::explain() const {
     addDescription("partIds", folly::toJson(util::toJson(partIds_)), desc.get());
     return desc;
 }
-
-std::unique_ptr<cpp2::PlanNodeDescription> ShowCharset::explain() const {
-    return SingleInputNode::explain();
-}
-
-std::unique_ptr<cpp2::PlanNodeDescription> ShowCollation::explain() const {
-    return SingleInputNode::explain();
-}
 }   // namespace graph
 }   // namespace nebula
