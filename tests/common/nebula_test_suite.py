@@ -76,12 +76,11 @@ class NebulaTestSuite(object):
                 space_name = path.name.split('.')[0] + datetime.datetime.now().strftime('%H_%M_%S_%f')
                 self.spaces.append(space_name)
                 resp = self.execute(
-                'CREATE SPACE IF NOT EXISTS {space_name}(partition_num={partition_num}, replica_factor={replica_factor}, vid_size=30)'.format(partition_num=self.partition_num,
+                'CREATE SPACE IF NOT EXISTS {space_name}(partition_num={partition_num}, '
+                'replica_factor={replica_factor}, vid_size=30); USE {space_name};'.format(
+                        partition_num=self.partition_num,
                         replica_factor=self.replica_factor,
                         space_name=space_name))
-                self.check_resp_succeeded(resp)
-                time.sleep(self.delay)
-                resp = self.execute('USE {}'.format(space_name))
                 self.check_resp_succeeded(resp)
 
                 lines = data_file.readlines()
@@ -115,6 +114,17 @@ class NebulaTestSuite(object):
                 drop_stmt.append('DROP SPACE {}'.format(space))
             resp = self.execute(';'.join(drop_stmt))
             self.check_resp_succeeded(resp)
+
+    @classmethod
+    def use_nba(self):
+        resp = self.execute('USE nba;')
+        self.check_resp_succeeded(resp)
+
+    @classmethod
+    def use_student_space(self):
+        resp = self.execute('USE student_space;')
+        self.check_resp_succeeded(resp)
+
 
     @classmethod
     def create_nebula_clients(self):
@@ -435,4 +445,5 @@ class NebulaTestSuite(object):
             if not expect.match(resp.error_msg.decode('utf-8')):
                 assert False, msg
         else:
+            assert resp.error_msg.decode('utf-8') == expect, msg
             assert resp.error_msg.decode('utf-8') == expect, msg

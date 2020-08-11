@@ -10,10 +10,14 @@ import pytest
 
 sys.path.insert(0, pytest.cmdline.tests_dir)
 
-from tests.query.stateless.prepare_data import PrepareData
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 
-class TestGroupby(PrepareData):
+class TestGroupby(NebulaTestSuite):
+    @classmethod
+    def prepare(self):
+        self.use_student_space()
+
     def test_error(self):
         # group col without input field
         try:

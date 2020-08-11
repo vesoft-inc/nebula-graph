@@ -16,7 +16,7 @@ from tests.common.nebula_test_suite import T_EMPTY, T_NULL
 class TestGoQuery(NebulaTestSuite):
     @classmethod
     def prepare(self):
-        self.load_data()
+        self.use_nba()
 
     def cleanup():
         pass

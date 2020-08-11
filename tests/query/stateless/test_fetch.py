@@ -10,10 +10,14 @@ import pytest
 
 sys.path.insert(0, pytest.cmdline.tests_dir)
 
-from tests.query.stateless.prepare_data import PrepareData
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 
-class TestFetchQuery(PrepareData):
+class TestFetchQuery(NebulaTestSuite):
+    @classmethod
+    def prepare(self):
+        self.use_student_space()
+
     def test_fetch_vertex(self):
         # fetch *
         cmd = 'FETCH PROP ON * 2001;'
