@@ -175,6 +175,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> set_expression
 %type <expr> map_expression
 %type <expr> container_expression
+%type <expr> subscript_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -416,6 +417,18 @@ base_expression
     | name_label {
         // need to rewrite the expression
         $$ = new LabelExpression($1);
+    }
+    | container_expression {
+        $$ = $1;
+    }
+    | subscript_expression {
+        $$ = $1;
+    }
+    ;
+
+subscript_expression
+    : base_expression L_BRACKET base_expression R_BRACKET {
+        $$ = new SubscriptExpression($1, $3);
     }
     ;
 
@@ -678,7 +691,6 @@ map_item_list
 
 expression
     : logic_xor_expression { $$ = $1; }
-    | container_expression { $$ = $1; }
     ;
 
 go_sentence
@@ -931,16 +943,16 @@ match_alias
 
 match_edge
     : MINUS match_edge_prop MINUS {
-        $$ = new MatchEdge($2, MatchDirection::kBoth);
+        $$ = new MatchEdge($2, storage::cpp2::EdgeDirection::BOTH);
     }
     | MINUS match_edge_prop R_ARROW {
-        $$ = new MatchEdge($2, MatchDirection::kOut);
+        $$ = new MatchEdge($2, storage::cpp2::EdgeDirection::OUT_EDGE);
     }
     | L_ARROW match_edge_prop MINUS {
-        $$ = new MatchEdge($2, MatchDirection::kIn);
+        $$ = new MatchEdge($2, storage::cpp2::EdgeDirection::IN_EDGE);
     }
     | L_ARROW match_edge_prop R_ARROW {
-        $$ = new MatchEdge($2, MatchDirection::kBoth);
+        $$ = new MatchEdge($2, storage::cpp2::EdgeDirection::BOTH);
     }
     ;
 
