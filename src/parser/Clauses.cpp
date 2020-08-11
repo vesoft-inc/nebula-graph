@@ -13,11 +13,14 @@ namespace nebula {
 std::string StepClause::toString() const {
     std::string buf;
     buf.reserve(256);
-    if (isUpto()) {
-        buf += "UPTO ";
+    if (isMToN()) {
+        buf += std::to_string(mToN_->m);
+        buf += " TO ";
+        buf += std::to_string(mToN_->n);
+    } else {
+        buf += std::to_string(steps_);
+        buf += " STEPS";
     }
-    buf += std::to_string(steps_);
-    buf += " STEPS";
     return buf;
 }
 

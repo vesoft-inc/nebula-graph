@@ -46,11 +46,20 @@ Status GoValidator::validateStep(const StepClause* step) {
     if (step == nullptr) {
         return Status::Error("Step clause nullptr.");
     }
-    auto steps = step->steps();
-    if (steps <= 0) {
-        return Status::Error("Only accpet positive number steps.");
+    if (step->isMToN()) {
+        auto* mToN = step->mToN();
+        if (mToN->n <= mToN->m) {
+            return Status::Error("`%s', upper bound steps should be greater than lower bound.",
+                                 step->toString().c_str());
+        }
+        mToN_ = mToN;
+    } else {
+        auto steps = step->steps();
+        if (steps <= 0) {
+            return Status::Error("Only accpet positive number steps.");
+        }
+        steps_ = steps;
     }
-    steps_ = steps;
     return Status::OK();
 }
 

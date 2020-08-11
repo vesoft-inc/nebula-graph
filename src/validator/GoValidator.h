@@ -84,6 +84,7 @@ private:
 
 private:
     int64_t                                                 steps_;
+    StepClause::MToN*                                       mToN_{nullptr};
     FromType                                                fromType_{kConstantExpr};
     Expression*                                             srcRef_{nullptr};
     Expression*                                             src_{nullptr};
