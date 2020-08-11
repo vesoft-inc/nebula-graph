@@ -136,6 +136,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_GOD KW_ADMIN KW_DBA KW_GUEST KW_GRANT KW_REVOKE KW_ON
 %token KW_OUT KW_BOTH KW_SUBGRAPH
 %token KW_EXPLAIN KW_PROFILE KW_FORMAT
+%token KW_CONTAINS
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -325,6 +326,7 @@ unreserved_keyword
     | KW_ALL                { $$ = new std::string("all"); }
     | KW_SHORTEST           { $$ = new std::string("shortest"); }
     | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
+    | KW_CONTAINS           { $$ = new std::string("contains"); }
     ;
 
 agg_function
@@ -392,7 +394,7 @@ base_expression
     }
     | name_label {
         // need to rewrite the expression
-        $$ = new SymbolPropertyExpression(Expression::Kind::kSymProperty, new std::string(""), new std::string(""), $1);
+        $$ = new LabelExpression($1);
     }
     ;
 
@@ -559,6 +561,9 @@ relational_expression
     | relational_expression GE additive_expression {
         $$ = new RelationalExpression(Expression::Kind::kRelGE, $1, $3);
     }
+    | relational_expression KW_CONTAINS additive_expression {
+        $$ = new RelationalExpression(Expression::Kind::kContains, $1, $3);
+    }
     ;
 
 equality_expression
@@ -611,14 +616,13 @@ go_sentence
         go->setWhereClause($5);
         if ($6 == nullptr) {
             auto *cols = new YieldColumns();
-            for (auto e : $4->edges()) {
-                if (e->isOverAll()) {
-                    continue;
+            if (!$4->isOverAll()) {
+                for (auto e : $4->edges()) {
+                    auto *edge  = new std::string(*e->edge());
+                    auto *expr  = new EdgeDstIdExpression(edge);
+                    auto *col   = new YieldColumn(expr);
+                    cols->addColumn(col);
                 }
-                auto *edge  = new std::string(*e->edge());
-                auto *expr  = new EdgeDstIdExpression(edge);
-                auto *col   = new YieldColumn(expr);
-                cols->addColumn(col);
             }
             $6 = new YieldClause(cols);
         }
