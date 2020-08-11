@@ -274,9 +274,7 @@ public:
         return new ShowCharset(plan, input);
     }
 
-    std::string explain() const override {
-        return "ShowCharset";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     explicit ShowCharset(ExecutionPlan* plan, PlanNode* input)
@@ -289,9 +287,7 @@ public:
         return new ShowCollation(plan, input);
     }
 
-    std::string explain() const override {
-        return "ShowCollation";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     explicit ShowCollation(ExecutionPlan* plan, PlanNode* input)

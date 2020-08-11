@@ -413,6 +413,7 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto showParts = asNode<ShowParts>(node);
             auto input = makeExecutor(showParts->dep(), qctx, visited);
             exec = new ShowPartsExecutor(showParts, qctx);
+            exec->dependsOn(input);
             break;
         }
         case PlanNode::Kind::kShowCharset: {

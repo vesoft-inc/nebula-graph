@@ -52,5 +52,12 @@ std::unique_ptr<cpp2::PlanNodeDescription> ShowParts::explain() const {
     return desc;
 }
 
+std::unique_ptr<cpp2::PlanNodeDescription> ShowCharset::explain() const {
+    return SingleInputNode::explain();
+}
+
+std::unique_ptr<cpp2::PlanNodeDescription> ShowCollation::explain() const {
+    return SingleInputNode::explain();
+}
 }   // namespace graph
 }   // namespace nebula
