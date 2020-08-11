@@ -31,8 +31,9 @@ jobs:
         env:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: master
-          DEFAULT_WORKSPACE: tests
-          PYTHON_PYLINT_CONFIG_FILE: tests/.pylintrc
+          DEFAULT_WORKSPACE: ${{ github.workspace }}/tests
+          PYTHON_PYLINT_CONFIG_FILE: ${{ github.workspace }}/tests/.pylintrc
+          VALIDATE_PYTHON_FLAKE8: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Filter source files
         id: filter-source-files
