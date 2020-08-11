@@ -65,7 +65,7 @@ folly::Future<Status> SetConfigExecutor::execute() {
                                               scNode->getName(),
                                               scNode->getValue())
             .via(runner())
-            .then([this, scNode](StatusOr<bool> resp) {
+            .then([scNode](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "Set config `" << scNode->getName()
                                << "' failed: " << resp.status();

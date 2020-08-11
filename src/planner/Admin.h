@@ -152,9 +152,7 @@ public:
         return new ShowConfigs(plan, input, module);
     }
 
-    std::string explain() const override {
-        return "ShowConfigs";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     meta::cpp2::ConfigModule getModule() const {
         return module_;
@@ -181,9 +179,7 @@ public:
         return new SetConfig(plan, input, module, std::move(name), std::move(value));
     }
 
-    std::string explain() const override {
-        return "SetConfig";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     meta::cpp2::ConfigModule getModule() const {
         return module_;
@@ -223,13 +219,12 @@ public:
         return new GetConfig(plan, input, module, std::move(name));
     }
 
-    std::string explain() const override {
-        return "GetConfig";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     meta::cpp2::ConfigModule getModule() const {
         return module_;
     }
+
     const std::string& getName() const {
         return name_;
     }
