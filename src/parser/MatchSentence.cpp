@@ -8,7 +8,7 @@
 
 namespace nebula {
 
-std::string MatchEdge:toString() const {
+std::string MatchEdge::toString() const {
     std::string buf;
     buf.reserve(256);
 
