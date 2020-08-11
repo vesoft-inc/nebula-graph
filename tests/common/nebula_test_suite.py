@@ -323,7 +323,7 @@ class NebulaTestSuite(object):
 
         for row, i in zip(rows, range(0, len(new_expect))):
             if isinstance(new_expect[i], CommonTtypes.Row):
-                assert len(row.values) - len(ignore_col) == len(new_expect[i].values)
+                assert len(row.values) - len(ignore_col) == len(new_expect[i].values), '{}, {}, {}'.format(len(row.values), len(ignore_col), len(new_expect[i].values))
             else:
                 assert len(row.values) - len(ignore_col) == len(new_expect[i])
             ignored_col_count = 0
@@ -409,3 +409,13 @@ class NebulaTestSuite(object):
             msg = self.check_format_str.format(row.values[0].get_path(), path)
             assert find, msg
             rows.remove(row)
+
+    @classmethod
+    def check_error_msg(self, resp, expect):
+        self.check_resp_failed(resp)
+        msg = self.check_format_str.format(resp.error_msg, expect)
+        if isinstance(expect, Pattern):
+            if not expect.match(resp.error_msg.decode('utf-8')):
+                assert False, msg
+        else:
+            assert resp.error_msg.decode('utf-8') == expect, msg

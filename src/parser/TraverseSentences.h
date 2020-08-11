@@ -7,12 +7,12 @@
 #define PARSER_TRAVERSESENTENCES_H_
 
 #include "common/base/Base.h"
-#include "parser/Sentence.h"
 #include "parser/Clauses.h"
+#include "parser/EdgeKey.h"
 #include "parser/MutateSentences.h"
+#include "parser/Sentence.h"
 
 namespace nebula {
-
 
 class GoSentence final : public Sentence {
 public:
@@ -543,7 +543,7 @@ private:
 class GroupBySentence final : public Sentence {
 public:
     GroupBySentence() {
-        kind_ = Kind::KGroupBy;
+        kind_ = Kind::kGroupBy;
     }
 
     void setGroupClause(GroupClause *clause) {
