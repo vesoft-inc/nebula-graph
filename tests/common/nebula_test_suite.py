@@ -126,6 +126,14 @@ class NebulaTestSuite(object):
         self.client.authenticate(self.user, self.password)
 
     @classmethod
+    def switch_user(self, user, password):
+        self.user = user
+        self.password = password
+        self.client._user = self.user
+        self.client._password = self.password
+        return self.client.reconnect()
+
+    @classmethod
     def close_nebula_clients(self):
         self.client.sign_out()
         self.client_pool.close()
