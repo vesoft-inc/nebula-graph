@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_VISITOR_DEDUCEPROPSVISITOR_H_
-#define VALIDATOR_VISITOR_DEDUCEPROPSVISITOR_H_
+#ifndef VISITOR_DEDUCEPROPSVISITOR_H_
+#define VISITOR_DEDUCEPROPSVISITOR_H_
 
 #include "common/base/Status.h"
 #include "common/thrift/ThriftTypes.h"
@@ -62,4 +62,4 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // VALIDATOR_VISITOR_DEDUCEPROPSVISITOR_H_
+#endif   // VISITOR_DEDUCEPROPSVISITOR_H_

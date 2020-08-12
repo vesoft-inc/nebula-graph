@@ -84,67 +84,67 @@ void ExprVisitorImpl::visitSubscriptExpr(const SubscriptExpression *expr) {
 }
 
 void ExprVisitorImpl::visitConstantExpr(const ConstantExpression *expr) {
-    DLOG(INFO) << "Visit constant expr: " << expr->toString();
+    VLOG(1) << "Visit constant expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitEdgePropertyExpr(const EdgePropertyExpression *expr) {
-    DLOG(INFO) << "Visit edge property expr: " << expr->toString();
+    VLOG(1) << "Visit edge property expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitTagPropertyExpr(const TagPropertyExpression *expr) {
-    DLOG(INFO) << "Visit tag property expr: " << expr->toString();
+    VLOG(1) << "Visit tag property expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitInputPropertyExpr(const InputPropertyExpression *expr) {
-    DLOG(INFO) << "Visit input property expr: " << expr->toString();
+    VLOG(1) << "Visit input property expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitVariablePropertyExpr(const VariablePropertyExpression *expr) {
-    DLOG(INFO) << "Visit variable property expr: " << expr->toString();
+    VLOG(1) << "Visit variable property expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitSourcePropertyExpr(const SourcePropertyExpression *expr) {
-    DLOG(INFO) << "Visit source property expr: " << expr->toString();
+    VLOG(1) << "Visit source property expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitDestPropertyExpr(const DestPropertyExpression *expr) {
-    DLOG(INFO) << "Visit dest property expr: " << expr->toString();
+    VLOG(1) << "Visit dest property expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitEdgeSrcIdExpr(const EdgeSrcIdExpression *expr) {
-    DLOG(INFO) << "Visit edge src id expr: " << expr->toString();
+    VLOG(1) << "Visit edge src id expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitEdgeTypeExpr(const EdgeTypeExpression *expr) {
-    DLOG(INFO) << "Visit edge type expr: " << expr->toString();
+    VLOG(1) << "Visit edge type expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitEdgeRankExpr(const EdgeRankExpression *expr) {
-    DLOG(INFO) << "Visit edge rank expr: " << expr->toString();
+    VLOG(1) << "Visit edge rank expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitEdgeDstIdExpr(const EdgeDstIdExpression *expr) {
-    DLOG(INFO) << "Visit edge dst id expr: " << expr->toString();
+    VLOG(1) << "Visit edge dst id expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitUUIDExpr(const UUIDExpression *expr) {
-    DLOG(INFO) << "Visit uuid expr: " << expr->toString();
+    VLOG(1) << "Visit uuid expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitVariableExpr(const VariableExpression *expr) {
-    DLOG(INFO) << "Visit variable expr: " << expr->toString();
+    VLOG(1) << "Visit variable expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitVersionedVariableExpr(const VersionedVariableExpression *expr) {
-    DLOG(INFO) << "Visit versioned variable expr: " << expr->toString();
+    VLOG(1) << "Visit versioned variable expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitLabelExpr(const LabelExpression *expr) {
-    DLOG(INFO) << "Visit label expr: " << expr->toString();
+    VLOG(1) << "Visit label expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitSymbolPropertyExpr(const SymbolPropertyExpression *expr) {
-    DLOG(INFO) << "Visit symbol property expr: " << expr->toString();
+    VLOG(1) << "Visit symbol property expr: " << expr->toString();
 }
 
 void ExprVisitorImpl::visitBinaryExpr(const BinaryExpression *expr) {

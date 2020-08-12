@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VISITOR_FINDEXPRVISITOR_H_
-#define VISITOR_FINDEXPRVISITOR_H_
+#ifndef VISITOR_COLLECTEXPRSVISITOR_H_
+#define VISITOR_COLLECTEXPRSVISITOR_H_
 
 #include <unordered_set>
 
@@ -15,17 +15,15 @@
 namespace nebula {
 namespace graph {
 
-class FindExprVisitor final : public ExprVisitorImpl {
+class CollectExprsVisitor final : public ExprVisitorImpl {
 public:
-    explicit FindExprVisitor(const std::unordered_set<Expression::Kind>& exprs);
-
+    explicit CollectExprsVisitor(const std::unordered_set<Expression::Kind>& exprTypes);
     bool ok() const override {
-        // continue if not found
-        return !found_;
+        return true;
     }
 
-    const Expression* expr() const {
-        return expr_;
+    std::vector<const Expression*> exprs() && {
+        return std::move(exprs_);
     }
 
 private:
@@ -54,15 +52,13 @@ private:
     void visitSymbolPropertyExpr(const SymbolPropertyExpression* expr) override;
 
     void visitBinaryExpr(const BinaryExpression* expr) override;
+    void collectExpr(const Expression* expr);
 
-    void findExpr(const Expression* expr);
-
-    bool found_{false};
-    const Expression* expr_{nullptr};
-    const std::unordered_set<Expression::Kind>& exprs_;
+    const std::unordered_set<Expression::Kind>& exprTypes_;
+    std::vector<const Expression*> exprs_;
 };
 
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // VISITOR_FINDEXPRVISITOR_H_
+#endif   // VISITOR_COLLECTEXPRSVISITOR_H_

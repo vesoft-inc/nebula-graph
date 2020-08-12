@@ -9,4 +9,6 @@ nebula_add_library(
     DeducePropsVisitor.cpp
     DeduceTypeVisitor.cpp
     FindExprVisitor.cpp
+    CollectExprsVisitor.cpp
+    ResolveSymPropExprVisitor.cpp
 )

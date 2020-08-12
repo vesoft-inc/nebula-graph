@@ -316,12 +316,12 @@ void DeduceTypeVisitor::visitInputPropertyExpr(const InputPropertyExpression *ex
 }
 
 void DeduceTypeVisitor::visitSymbolPropertyExpr(const SymbolPropertyExpression *expr) {
-    status_ = Status::SemanticError("SymbolPropertyExpression can not be instantiated: %s.",
+    status_ = Status::SemanticError("SymbolPropertyExpression can not be instantiated: %s",
                                     expr->toString().c_str());
 }
 
 void DeduceTypeVisitor::visitLabelExpr(const LabelExpression *expr) {
-    status_ = Status::SemanticError("LabelExpression can not be instantiated: %s.",
+    status_ = Status::SemanticError("LabelExpression can not be instantiated: %s",
                                     expr->toString().c_str());
 }
 
