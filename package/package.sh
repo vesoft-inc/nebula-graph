@@ -15,17 +15,8 @@ version=""
 package_one=ON
 strip_enable="FALSE"
 usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE>"
-<<<<<<< HEAD
-<<<<<<< HEAD
 project_dir="$(cd "$(dirname "$0")" && pwd)"/../
 build_dir=${project_dir}/build
-=======
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"/../
->>>>>>> Support package
-=======
-project_dir="$(cd "$(dirname "$0")" && pwd)"/../
-build_dir=${project_dir}/build
->>>>>>> modify package.sh
 enablesanitizer="OFF"
 static_sanitizer="OFF"
 build_type="Release"
@@ -81,16 +72,7 @@ function build {
     san=$2
     ssan=$3
     build_type=$4
-<<<<<<< HEAD
-<<<<<<< HEAD
     modules_dir=${project_dir}/modules
-=======
-    build_dir=${PROJECT_DIR}/build
-    modules_dir=${PROJECT_DIR}/modules
->>>>>>> Support package
-=======
-    modules_dir=${project_dir}/modules
->>>>>>> modify package.sh
     if [[ -d $build_dir ]]; then
         rm -rf ${build_dir}/*
     else
@@ -114,15 +96,7 @@ function build {
           -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
           -DENABLE_TESTING=OFF \
           -DENABLE_BUILD_STORAGE=ON \
-<<<<<<< HEAD
-<<<<<<< HEAD
           $project_dir
-=======
-          $PROJECT_DIR
->>>>>>> Support package
-=======
-          $project_dir
->>>>>>> modify package.sh
 
     if !( make -j$(nproc) ); then
         echo ">>> build nebula failed <<<"
@@ -134,38 +108,15 @@ function build {
 
 # args: <strip_enable>
 function package {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> modify package.sh
     # The package CMakeLists.txt in ${project_dir}/package/build
     package_dir=${build_dir}/package/
     if [[ -d $package_dir ]]; then
         rm -rf ${package_dir}/*
-<<<<<<< HEAD
     else
         mkdir ${package_dir}
     fi
     pushd ${package_dir}
     cmake -DNEBULA_BUILD_VERSION=${version} -DENABLE_PACK_ONE=${package_one} ${project_dir}/package/
-=======
-    # The package CMakeLists.txt in ${PROJECT_DIR}/package/build
-    package_build_dir=${PROJECT_DIR}/package/build
-    if [[ -d $package_build_dir ]]; then
-        rm -rf ${package_build_dir}/*
-=======
->>>>>>> modify package.sh
-    else
-        mkdir ${package_dir}
-    fi
-<<<<<<< HEAD
-    pushd ${package_build_dir}
-    cmake -DENABLE_PACK_ONE=${package_one} ..
->>>>>>> Support package
-=======
-    pushd ${package_dir}
-    cmake -DNEBULA_BUILD_VERSION=${version} -DENABLE_PACK_ONE=${package_one} ${project_dir}/package/
->>>>>>> modify package.sh
 
     strip_enable=$1
 
@@ -213,3 +164,4 @@ function package {
 # The main
 build $version $enablesanitizer $static_sanitizer $build_type
 package $strip_enable
+
