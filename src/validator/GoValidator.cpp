@@ -47,10 +47,19 @@ Status GoValidator::validateStep(const StepClause* step) {
         return Status::Error("Step clause nullptr.");
     }
     if (step->isMToN()) {
-        auto* mToN = step->mToN();
-        if (mToN->n <= mToN->m) {
+        auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
+        mToN->m = step->mToN()->m;
+        mToN->n = step->mToN()->n;
+        if (mToN->m == 0) {
+            mToN->m = 1;
+        }
+        if (mToN->n < mToN->m) {
             return Status::Error("`%s', upper bound steps should be greater than lower bound.",
                                  step->toString().c_str());
+        }
+        if (mToN->m == mToN->n) {
+            steps_ = mToN->m;
+            return Status::OK();
         }
         mToN_ = mToN;
     } else {
@@ -423,7 +432,7 @@ Status GoValidator::buildMToNPlan() {
     PlanNode* projectSrcEdgeProps = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
         !exprProps_.dstTagProps().empty()) {
-        PlanNode* depForProject = gn;
+        PlanNode* depForProject = projectDstFromGN;
         if (projectFromJoin != nullptr) {
             depForProject = projectFromJoin;
         }
@@ -452,7 +461,9 @@ Status GoValidator::buildMToNPlan() {
     if (filter_ != nullptr) {
         auto* filterNode = Filter::make(plan, dependencyForProjectResult,
                     newFilter_ != nullptr ? newFilter_ : filter_);
-        filterNode->setInputVar(dependencyForProjectResult->varName());
+        filterNode->setInputVar(
+            dependencyForProjectResult == projectDstFromGN ?
+                gn->varName() : dependencyForProjectResult->varName());
         filterNode->setColNames(dependencyForProjectResult->colNames());
         dependencyForProjectResult = filterNode;
     }
@@ -460,7 +471,9 @@ Status GoValidator::buildMToNPlan() {
     SingleInputNode* projectResult =
         Project::make(plan, dependencyForProjectResult,
         newYieldCols_ != nullptr ? newYieldCols_ : yields_);
-    projectResult->setInputVar(dependencyForProjectResult->varName());
+    projectResult->setInputVar(
+            dependencyForProjectResult == projectDstFromGN ?
+                gn->varName() : dependencyForProjectResult->varName());
     projectResult->setColNames(std::vector<std::string>(colNames_));
 
     SingleInputNode* dedupNode = nullptr;
@@ -483,8 +496,18 @@ Status GoValidator::buildMToNPlan() {
         tail_ = loop;
     }
 
-    root_ =
-        DataCollect::make(plan, loop, DataCollect::CollectKind::kMToN, {projectResult->varName()});
+    std::vector<std::string> collectVars;
+    if (dedupNode == nullptr) {
+        collectVars = {projectResult->varName()};
+    } else {
+        collectVars = {dedupNode->varName()};
+    }
+    auto* dataCollect =
+        DataCollect::make(plan, loop, DataCollect::CollectKind::kMToN, collectVars);
+    dataCollect->setMToN(mToN_);
+    dataCollect->setDistinct(distinct_);
+    dataCollect->setColNames(projectResult->colNames());
+    root_ = dataCollect;
     return Status::OK();
 }
 

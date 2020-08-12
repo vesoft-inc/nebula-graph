@@ -721,6 +721,10 @@ public:
         mToN_ = mToN;
     }
 
+    void setDistinct(bool distinct) {
+        distinct_ = distinct;
+    }
+
     CollectKind collectKind() const {
         return collectKind_;
     }
@@ -731,6 +735,10 @@ public:
 
     StepClause::MToN* mToN() const {
         return mToN_;
+    }
+
+    bool distinct() const {
+        return distinct_;
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -748,7 +756,9 @@ private:
 private:
     CollectKind                 collectKind_;
     std::vector<std::string>    vars_;
+    // using for m to n steps
     StepClause::MToN*           mToN_{nullptr};
+    bool                        distinct_{false};
 };
 
 /**
