@@ -395,7 +395,7 @@ TEST(Scanner, Basic) {
         CHECK_SEMANTIC_TYPE("snapshot", TokenType::KW_SNAPSHOT),
         CHECK_SEMANTIC_TYPE("SNAPSHOTS", TokenType::KW_SNAPSHOTS),
         CHECK_SEMANTIC_TYPE("Snapshots", TokenType::KW_SNAPSHOTS),
-	CHECK_SEMANTIC_TYPE("snapshots", TokenType::KW_SNAPSHOTS),
+        CHECK_SEMANTIC_TYPE("snapshots", TokenType::KW_SNAPSHOTS),
         CHECK_SEMANTIC_TYPE("BIT_AND", TokenType::KW_BIT_AND),
         CHECK_SEMANTIC_TYPE("Bit_and", TokenType::KW_BIT_AND),
         CHECK_SEMANTIC_TYPE("bit_and", TokenType::KW_BIT_AND),
