@@ -638,21 +638,21 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
         case Expression::Kind::kList: {
             auto *list = static_cast<const ListExpression*>(expr);
             for (auto *item : list->items()) {
-                NG_RETURN_IF_ERROR(deduceProps(item));
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
             }
             break;
         }
         case Expression::Kind::kSet: {
             auto *set = static_cast<const SetExpression*>(expr);
             for (auto *item : set->items()) {
-                NG_RETURN_IF_ERROR(deduceProps(item));
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
             }
             break;
         }
         case Expression::Kind::kMap: {
             auto *map = static_cast<const MapExpression*>(expr);
             for (auto &item : map->items()) {
-                NG_RETURN_IF_ERROR(deduceProps(item.second));
+                NG_RETURN_IF_ERROR(deduceProps(item.second, exprProps));
             }
             break;
         }
