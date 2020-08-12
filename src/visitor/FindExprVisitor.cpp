@@ -57,7 +57,7 @@ void FindExprVisitor::visitListExpr(const ListExpression *expr) {
     findExpr(expr);
     if (found_) return;
     for (const auto &item : expr->items()) {
-        findExpr(item.get());
+        findExpr(item);
         if (found_) return;
         item->accept(this);
         if (found_) return;
@@ -68,7 +68,7 @@ void FindExprVisitor::visitSetExpr(const SetExpression *expr) {
     findExpr(expr);
     if (found_) return;
     for (const auto &item : expr->items()) {
-        findExpr(item.get());
+        findExpr(item);
         if (found_) return;
         item->accept(this);
         if (found_) return;
@@ -79,7 +79,7 @@ void FindExprVisitor::visitMapExpr(const MapExpression *expr) {
     findExpr(expr);
     if (found_) return;
     for (const auto &pair : expr->items()) {
-        findExpr(pair.second.get());
+        findExpr(pair.second);
         if (found_) return;
         pair.second->accept(this);
         if (found_) return;

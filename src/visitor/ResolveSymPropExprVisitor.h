@@ -7,7 +7,9 @@
 #ifndef VISITOR_RESOLVESYMPROPEXPRVISITOR_H_
 #define VISITOR_RESOLVESYMPROPEXPRVISITOR_H_
 
+#include <memory>
 #include <type_traits>
+#include <vector>
 
 #include "visitor/ExprVisitorImpl.h"
 
@@ -32,10 +34,12 @@ private:
     void visitListExpr(const ListExpression* expr) override;
     void visitSetExpr(const SetExpression* expr) override;
     void visitMapExpr(const MapExpression* expr) override;
-
     void visitBinaryExpr(const BinaryExpression* expr) override;
 
     Expression* createExpr(const SymbolPropertyExpression* expr);
+    std::vector<std::unique_ptr<Expression>> resolveExprList(
+        const std::vector<const Expression*>& exprs);
+    static bool isSymPropExpr(const Expression* expr);
 
     bool isTag_{false};
 };

@@ -123,13 +123,11 @@ void DeduceTypeVisitor::visitRelationalExpr(const RelationalExpression *expr) {
     if (!ok()) return;
     auto right = type_;
 
-    if (right != Value::Type::LIST &&
+    if (right != Value::Type::LIST && right != Value::Type::SET && right != Value::Type::MAP &&
         (expr->kind() == Expression::Kind::kRelIn || expr->kind() == Expression::Kind::kRelNotIn)) {
-        // FIXME(dutor)
-        std::stringstream ss;
-        ss << "`" << expr->toString() << "' is not a valid expression, "
-           << "expected `LIST' but `" << right << "' was given.";
-        status_ = Status::SemanticError(ss.str());
+        status_ = Status::SemanticError(
+            "`%s': Invalid expression for IN operator, expecting List/Set/Map",
+            expr->toString().c_str());
         return;
     }
 
