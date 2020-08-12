@@ -19,7 +19,7 @@ namespace graph {
 std::unique_ptr<cpp2::PlanNodeDescription> Explore::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("space", folly::to<std::string>(space_), desc.get());
-    addDescription("dedup", folly::to<std::string>(dedup_), desc.get());
+    addDescription("dedup", util::toJson(dedup_), desc.get());
     addDescription("limit", folly::to<std::string>(limit_), desc.get());
     addDescription("filter", filter_, desc.get());
     addDescription("orderBy", folly::toJson(util::toJson(orderBy_)), desc.get());
@@ -46,7 +46,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetNeighbors::explain() const {
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetVertices::explain() const {
     auto desc = Explore::explain();
-    addDescription("vertices", folly::toJson(util::toJson(vertices_)), desc.get());
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("props", folly::toJson(util::toJson(props_)), desc.get());
     addDescription("exprs", folly::toJson(util::toJson(exprs_)), desc.get());
@@ -55,7 +54,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetVertices::explain() const {
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetEdges::explain() const {
     auto desc = Explore::explain();
-    addDescription("edges", folly::toJson(util::toJson(edges_)), desc.get());
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("type", util::toJson(type_), desc.get());
     addDescription("ranking", ranking_ ? ranking_->toString() : "", desc.get());
