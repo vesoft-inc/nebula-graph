@@ -707,6 +707,7 @@ public:
     enum class CollectKind : uint8_t {
         kSubgraph,
         kRowBasedMove,
+        kMToN,
     };
 
     static DataCollect* make(ExecutionPlan* plan,
@@ -716,12 +717,20 @@ public:
         return new DataCollect(plan, input, collectKind, std::move(vars));
     }
 
+    void setMToN(StepClause::MToN* mToN) {
+        mToN_ = mToN;
+    }
+
     CollectKind collectKind() const {
         return collectKind_;
     }
 
     const std::vector<std::string>& vars() const {
         return vars_;
+    }
+
+    StepClause::MToN* mToN() const {
+        return mToN_;
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -739,6 +748,7 @@ private:
 private:
     CollectKind                 collectKind_;
     std::vector<std::string>    vars_;
+    StepClause::MToN*           mToN_{nullptr};
 };
 
 /**
