@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "validator/Validator.h"
+#include "validator/ExpressionProps.h"
 #include "planner/Query.h"
 
 

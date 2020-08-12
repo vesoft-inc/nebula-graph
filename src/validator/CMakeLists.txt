@@ -24,6 +24,11 @@ nebula_add_library(
     YieldValidator.cpp
     ExplainValidator.cpp
     GroupByValidator.cpp
+    ExpressionProps.cpp
+    # Expression visitor
+    visitor/ExprVisitorImpl.cpp
+    visitor/DeducePropsVisitor.cpp
+    visitor/DeduceTypeVisitor.cpp
 )
 
 add_subdirectory(test)

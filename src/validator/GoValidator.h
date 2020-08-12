@@ -8,8 +8,9 @@
 #define VALIDATOR_GOVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
 #include "planner/Query.h"
+#include "validator/ExpressionProps.h"
+#include "validator/Validator.h"
 
 namespace nebula {
 namespace graph {

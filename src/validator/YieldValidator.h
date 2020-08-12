@@ -12,6 +12,7 @@
 #include "common/base/Status.h"
 #include "planner/Query.h"
 #include "validator/Validator.h"
+#include "validator/ExpressionProps.h"
 
 namespace nebula {
 
