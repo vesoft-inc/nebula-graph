@@ -16,11 +16,11 @@ std::string MatchEdge::toString() const {
     if (direction_ == Direction::OUT_EDGE) {
         buf += '-';
         end = "->";
-    } else if (direction == Direction::IN_EDGE) {
+    } else if (direction_ == Direction::IN_EDGE) {
         buf += "<-";
         end = "-";
     } else {
-        buf += '-'
+        buf += '-';
         end = "-";
     }
 
