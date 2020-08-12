@@ -599,7 +599,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                                     PlanNode* dependencyForJoinInput) {
     auto* plan = qctx_->plan();
 
-    if (steps_ > 1) {
+    if (steps_ > 1 || mToN_ != nullptr) {
         DCHECK(projectFromJoin != nullptr);
         auto* joinHashKey = new VariablePropertyExpression(
                 new std::string(dependencyForJoinInput->varName()), new std::string(kVid));
@@ -610,7 +610,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
         auto* join = DataJoin::make(
             plan, dependencyForJoinInput,
             {dependencyForJoinInput->varName(), ExecutionContext::kLatestVersion},
-            {projectFromJoin->varName(), ExecutionContext::kLatestVersion},
+            {projectFromJoin->varName(), mToN_ != nullptr ? -1 : ExecutionContext::kLatestVersion},
             {joinHashKey}, {probeKey});
         std::vector<std::string> colNames = dependencyForJoinInput->colNames();
         for (auto& col : projectFromJoin->colNames()) {
@@ -624,7 +624,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
     DCHECK(dependencyForJoinInput != nullptr);
     auto* joinHashKey = new VariablePropertyExpression(
         new std::string(dependencyForJoinInput->varName()),
-        new std::string(steps_ > 1 ? firstBeginningSrcVidColName_ : kVid));
+        new std::string((steps_ > 1 || mToN_ != nullptr) ? firstBeginningSrcVidColName_ : kVid));
     plan->saveObject(joinHashKey);
     auto* joinInput =
         DataJoin::make(plan, dependencyForJoinInput,
@@ -632,7 +632,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                         ExecutionContext::kLatestVersion},
                         {fromType_ == kPipe ? inputVarName_ : userDefinedVarName_,
                         ExecutionContext::kLatestVersion},
-                        {joinHashKey}, {steps_ > 1 ? srcRef_ : src_});
+                        {joinHashKey}, {(steps_ > 1 || mToN_ != nullptr) ? srcRef_ : src_});
     std::vector<std::string> colNames = dependencyForJoinInput->colNames();
     for (auto& col : outputs_) {
         colNames.emplace_back(col.first);
@@ -681,6 +681,7 @@ Project* GoValidator::traceToStartVid(Project* projectLeftVarForJoin,
     columns->addColumn(column);
     auto* projectJoin = Project::make(plan, join, plan->saveObject(columns));
     projectJoin->setInputVar(join->varName());
+    projectJoin->setOutputVar(projectLeftVarForJoin->varName());
     projectJoin->setColNames(deduceColNames(columns));
     VLOG(1) << projectJoin->varName();
 
