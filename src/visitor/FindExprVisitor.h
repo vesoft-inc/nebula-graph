@@ -30,6 +30,7 @@ public:
 
 private:
     void visitTypeCastingExpr(const TypeCastingExpression* expr) override;
+    void visitUnaryExpr(const UnaryExpression* expr) override;
     void visitFunctionCallExpr(const FunctionCallExpression* expr) override;
     void visitListExpr(const ListExpression* expr) override;
     void visitSetExpr(const SetExpression* expr) override;

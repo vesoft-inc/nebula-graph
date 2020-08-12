@@ -6,7 +6,6 @@
 
 #include "visitor/FindExprVisitor.h"
 
-#include "common/expression/ArithmeticExpression.h"
 #include "common/expression/ConstantExpression.h"
 #include "common/expression/ContainerExpression.h"
 #include "common/expression/FunctionCallExpression.h"
@@ -28,6 +27,14 @@ FindExprVisitor::FindExprVisitor(const std::unordered_set<Expression::Kind> &exp
 }
 
 void FindExprVisitor::visitTypeCastingExpr(const TypeCastingExpression *expr) {
+    findExpr(expr);
+    if (found_) return;
+    findExpr(expr->operand());
+    if (found_) return;
+    expr->operand()->accept(this);
+}
+
+void FindExprVisitor::visitUnaryExpr(const UnaryExpression *expr) {
     findExpr(expr);
     if (found_) return;
     findExpr(expr->operand());
@@ -145,9 +152,14 @@ void FindExprVisitor::visitSymbolPropertyExpr(const SymbolPropertyExpression *ex
 
 void FindExprVisitor::visitBinaryExpr(const BinaryExpression *expr) {
     findExpr(expr);
-    if (!ok()) {
-        ExprVisitorImpl::visitBinaryExpr(expr);
-    }
+    if (found_) return;
+    findExpr(expr->left());
+    if (found_) return;
+    findExpr(expr->right());
+    if (found_) return;
+    expr->left()->accept(this);
+    if (found_) return;
+    expr->right()->accept(this);
 }
 
 void FindExprVisitor::findExpr(const Expression *expr) {
