@@ -99,9 +99,11 @@ std::string MatchSentence::toString() const {
     buf += "MATCH ";
     buf += path_->toString();
     if (filter_ != nullptr) {
+        buf += ' ';
         buf += filter_->toString();
     }
     if (return_ != nullptr) {
+        buf += ' ';
         buf += return_->toString();
     }
 
