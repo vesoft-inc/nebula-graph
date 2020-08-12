@@ -23,6 +23,7 @@
 #   ENABLE_JEMALLOC                -- Link jemalloc into all executables
 #   ENABLE_NATIVE                  -- Build native client
 #   ENABLE_TESTING                 -- Build unit test
+#   ENABLE_PACK_ONE                -- Package to one or multi packages
 #
 # CMake version check
 cmake_minimum_required(VERSION 3.5.0)
@@ -33,6 +34,10 @@ project("Nebula Graph" C CXX)
 option(ENABLE_PACK_ONE "Whether to package into one" ON)
 option(ENABLE_BUILD_STORAGE "Whether to build storage" OFF)
 option(ENABLE_MODULE_UPDATE "Automatically update module" OFF)
+
+message(STATUS "ENABLE_PACK_ONE         : ${ENABLE_PACK_ONE}")
+message(STATUS "ENABLE_BUILD_STORAGE    : ${ENABLE_BUILD_STORAGE}")
+message(STATUS "ENABLE_MODULE_UPDATE    : ${ENABLE_MODULE_UPDATE}")
 
 add_definitions(-DNEBULA_HOME=${CMAKE_SOURCE_DIR})
 
