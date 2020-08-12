@@ -30,9 +30,9 @@
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/YieldValidator.h"
-#include "validator/visitor/CheckExprEvaluableVisitor.h"
-#include "validator/visitor/DeducePropsVisitor.h"
-#include "validator/visitor/DeduceTypeVisitor.h"
+#include "visitor/CheckExprEvaluableVisitor.h"
+#include "visitor/DeducePropsVisitor.h"
+#include "visitor/DeduceTypeVisitor.h"
 
 namespace nebula {
 namespace graph {

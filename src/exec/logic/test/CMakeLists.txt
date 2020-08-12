@@ -34,6 +34,8 @@ SET(EXEC_LOGIC_TEST_LIBS
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
     $<TARGET_OBJECTS:validator_obj>
+    $<TARGET_OBJECTS:expr_props_obj>
+    $<TARGET_OBJECTS:visitor_obj>
     $<TARGET_OBJECTS:planner_obj>
     $<TARGET_OBJECTS:exec_obj>
     $<TARGET_OBJECTS:scheduler_obj>

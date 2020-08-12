@@ -4,32 +4,36 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_VISITOR_EXPRVISITORIMPL_H_
-#define VALIDATOR_VISITOR_EXPRVISITORIMPL_H_
+#ifndef VALIDATOR_VISITOR_FINDEXPRVISITOR_H_
+#define VALIDATOR_VISITOR_FINDEXPRVISITOR_H_
 
-#include "common/expression/ExprVisitor.h"
+#include <unordered_set>
+
+#include "common/expression/Expression.h"
+#include "visitor/ExprVisitorImpl.h"
 
 namespace nebula {
-
-class BinaryExpression;
-
 namespace graph {
 
-class ExprVisitorImpl : public ExprVisitor {
+class FindExprVisitor final : public ExprVisitorImpl {
 public:
-    virtual bool ok() const = 0;
+    explicit FindExprVisitor(const std::unordered_set<Expression::Kind>& exprs);
 
-protected:
-    void visitArithmeticExpr(const ArithmeticExpression* expr) override;
-    void visitUnaryExpr(const UnaryExpression* expr) override;
-    void visitRelationalExpr(const RelationalExpression* expr) override;
-    void visitLogicalExpr(const LogicalExpression* expr) override;
+    bool ok() const override {
+        // continue if not found
+        return !found_;
+    }
+
+    const Expression* expr() const {
+        return expr_;
+    }
+
+private:
     void visitTypeCastingExpr(const TypeCastingExpression* expr) override;
     void visitFunctionCallExpr(const FunctionCallExpression* expr) override;
     void visitListExpr(const ListExpression* expr) override;
     void visitSetExpr(const SetExpression* expr) override;
     void visitMapExpr(const MapExpression* expr) override;
-    void visitSubscriptExpr(const SubscriptExpression* expr) override;
 
     void visitConstantExpr(const ConstantExpression* expr) override;
     void visitEdgePropertyExpr(const EdgePropertyExpression* expr) override;
@@ -48,10 +52,16 @@ protected:
     void visitLabelExpr(const LabelExpression* expr) override;
     void visitSymbolPropertyExpr(const SymbolPropertyExpression* expr) override;
 
-    void visitBinaryExpr(const BinaryExpression* expr);
+    void visitBinaryExpr(const BinaryExpression* expr) override;
+
+    void findExpr(const Expression* expr);
+
+    bool found_{false};
+    const Expression* expr_{nullptr};
+    const std::unordered_set<Expression::Kind>& exprs_;
 };
 
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // VALIDATOR_VISITOR_EXPRVISITORIMPL_H_
+#endif   // VALIDATOR_VISITOR_FINDEXPRVISITOR_H_

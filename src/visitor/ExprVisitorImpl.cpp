@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "validator/visitor/ExprVisitorImpl.h"
+#include "visitor/ExprVisitorImpl.h"
 
 #include "common/expression/ArithmeticExpression.h"
 #include "common/expression/ConstantExpression.h"

@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "validator/visitor/DeducePropsVisitor.h"
+#include "visitor/DeducePropsVisitor.h"
 
 #include <sstream>
 

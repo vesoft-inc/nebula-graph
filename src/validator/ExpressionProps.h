@@ -47,21 +47,13 @@ public:
     }
 
     void insertInputProp(folly::StringPiece prop);
-
     void insertVarProp(const std::string& varName, folly::StringPiece prop);
-
     void insertSrcTagProp(TagID tagId, folly::StringPiece prop);
-
     void insertDstTagProp(TagID tagId, folly::StringPiece prop);
-
     void insertEdgeProp(EdgeType edgeType, folly::StringPiece prop);
-
     void insertTagProp(TagID tagId, folly::StringPiece prop);
-
     bool isSubsetOfInput(const std::set<folly::StringPiece>& props);
-
     bool isSubsetOfVar(const VarPropMap& props);
-
     void unionProps(ExpressionProps exprProps);
 
 private:

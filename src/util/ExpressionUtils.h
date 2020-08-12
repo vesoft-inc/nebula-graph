@@ -14,6 +14,7 @@
 #include "common/expression/TypeCastingExpression.h"
 #include "common/expression/UnaryExpression.h"
 #include "common/expression/LabelExpression.h"
+#include "visitor/FindExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -121,15 +122,9 @@ public:
     // null for not found
     static const Expression* findAnyKind(const Expression* self,
                                          const std::unordered_set<Expression::Kind>& expected) {
-        const Expression* found = nullptr;
-        traverse(self, [&expected, &found](const Expression* expr) -> bool {
-            if (isKindOf(expr, expected)) {
-                found = expr;
-                return false;   // Already find so return now
-            }
-            return true;   // Not find so continue traverse
-        });
-        return found;
+        FindExprVisitor visitor(expected);
+        self->accept(&visitor);
+        return visitor.expr();
     }
 
     // Find all expression fit any kind

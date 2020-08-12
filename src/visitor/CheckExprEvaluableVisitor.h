@@ -7,7 +7,7 @@
 #ifndef VALIDATOR_VISITOR_CHECKEXPREVALUABLEVISITOR_H_
 #define VALIDATOR_VISITOR_CHECKEXPREVALUABLEVISITOR_H_
 
-#include "validator/visitor/ExprVisitorImpl.h"
+#include "visitor/ExprVisitorImpl.h"
 
 namespace nebula {
 namespace graph {

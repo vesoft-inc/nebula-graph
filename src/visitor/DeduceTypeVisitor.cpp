@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "validator/visitor/DeduceTypeVisitor.h"
+#include "visitor/DeduceTypeVisitor.h"
 
 #include <sstream>
 #include <unordered_map>
@@ -26,7 +26,7 @@
 #include "context/QueryExpressionContext.h"
 #include "context/ValidateContext.h"
 #include "util/SchemaUtil.h"
-#include "validator/visitor/CheckExprEvaluableVisitor.h"
+#include "visitor/CheckExprEvaluableVisitor.h"
 
 namespace nebula {
 namespace graph {

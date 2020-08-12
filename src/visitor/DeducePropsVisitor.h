@@ -9,7 +9,7 @@
 
 #include "common/base/Status.h"
 #include "common/thrift/ThriftTypes.h"
-#include "validator/visitor/ExprVisitorImpl.h"
+#include "visitor/ExprVisitorImpl.h"
 
 namespace nebula {
 
