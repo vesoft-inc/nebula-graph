@@ -264,17 +264,40 @@ StatusOr<Value::Type> ExpressionTrait::accumulate(const Expression *expr) {
             return const_cast<Expression *>(expr)->eval(dummyExprCtx).type();
         }
         case Expression::Kind::kLabel:
-        case Expression::Kind::kContains:
-        case Expression::Kind::kSubscript:
-        case Expression::Kind::kList:
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
         case Expression::Kind::kSymProperty:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar: {
             std::stringstream err;
             err << "Unsupported expression `" << expr->toString() << "'";
             return Status::SemanticError(err.str());
+        }
+        case Expression::Kind::kList: {
+            auto listExpr = exprCast<ListExpression>(expr);
+            for (const auto &item : listExpr->items()) {
+                NG_RETURN_IF_ERROR(accumulate(item));
+            }
+            return Value::Type::LIST;
+        }
+        case Expression::Kind::kSet: {
+            auto setExpr = exprCast<SetExpression>(expr);
+            for (const auto &item : setExpr->items()) {
+                NG_RETURN_IF_ERROR(accumulate(item));
+            }
+            return Value::Type::SET;
+        }
+        case Expression::Kind::kMap: {
+            auto mapExpr = exprCast<MapExpression>(expr);
+            for (const auto &item : mapExpr->items()) {
+                NG_RETURN_IF_ERROR(accumulate(item.second));
+            }
+            return Value::Type::MAP;
+        }
+        case Expression::Kind::kSubscript: {
+            auto biExpr = exprCast<BinaryExpression>(expr);
+            NG_RETURN_IF_ERROR(accumulate(biExpr->left()));
+            NG_RETURN_IF_ERROR(accumulate(biExpr->right()));
+            // TODO skill null check
+            return Value::Type::NULLVALUE;
         }
         case Expression::Kind::kAdd: {
             DETECT_BIEXPR_TYPE(+);
@@ -291,6 +314,7 @@ StatusOr<Value::Type> ExpressionTrait::accumulate(const Expression *expr) {
         case Expression::Kind::kMod: {
             DETECT_BIEXPR_TYPE(%);
         }
+        case Expression::Kind::kContains:
         case Expression::Kind::kRelEQ:
         case Expression::Kind::kRelNE:
         case Expression::Kind::kRelLT:
