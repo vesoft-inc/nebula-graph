@@ -152,9 +152,9 @@ AVG                         ([Aa][Vv][Gg])
 MIN                         ([Mm][Ii][Nn])
 MAX                         ([Mm][Aa][Xx])
 STD                         ([Ss][Tt][Dd])
-BIT_AND                     ([Bb][It][Tt][_][Aa][Nn][Dd])
-BIT_OR                      ([Bb][It][Tt][_][Oo][Rr])
-BIT_XOR                     ([Bb][It][Tt][_][Xx][Oo][Rr])
+BIT_AND                     ([Bb][Ii][Tt][_][Aa][Nn][Dd])
+BIT_OR                      ([Bb][Ii][Tt][_][Oo][Rr])
+BIT_XOR                     ([Bb][Ii][Tt][_][Xx][Oo][Rr])
 IS                          ([Ii][Ss])
 NULL                        ([Nn][Uu][Ll][Ll])
 SNAPSHOT                    ([Ss][Nn][Aa][Pp][Ss][Hh][Oo][Tt])
@@ -350,7 +350,7 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 
 "+"                         { return TokenType::PLUS; }
 "-"                         { return TokenType::MINUS; }
-"*"                         { return TokenType::MUL; }
+"*"                         { return TokenType::STAR; }
 "/"                         { return TokenType::DIV; }
 "%"                         { return TokenType::MOD; }
 "!"                         { return TokenType::NOT; }
@@ -559,7 +559,6 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
                             }
 "#".*                       // Skip the annotation
 "//".*                      // Skip the annotation
-"--".*                      // Skip the annotation
 "/*"                        { BEGIN(COMMENT); }
 <COMMENT>"*/"               { BEGIN(INITIAL); }
 <COMMENT>([^*]|\n)+|.

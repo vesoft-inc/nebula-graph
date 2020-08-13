@@ -369,11 +369,11 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
 
             auto right = deduceExprType(biExpr->right());
             NG_RETURN_IF_ERROR(right);
-            if (right.value() != Value::Type::LIST) {   // FIXME(dutor)
-                std::stringstream ss;
-                ss << "`" << expr->toString() << "' is not a valid expression, "
-                    << "expected `LIST' but `" << right.value() << "' was given.";
-                return Status::SemanticError(ss.str());
+            if (right.value() != Value::Type::LIST &&
+                    right.value() != Value::Type::MAP &&
+                    right.value() != Value::Type::SET) {
+                return Status::SemanticError("`%s': Invalid expression for IN operator, "
+                                             "expecting List/Set/Map", biExpr->toString().c_str());
             }
             return Value::Type::BOOL;
         }
@@ -600,9 +600,12 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
         case Expression::Kind::kContains:
+        case Expression::Kind::kSubscript:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
+        case Expression::Kind::kLogicalXor:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
             NG_RETURN_IF_ERROR(deduceProps(biExpr->left(), exprProps));
             NG_RETURN_IF_ERROR(deduceProps(biExpr->right(), exprProps));
@@ -610,7 +613,9 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand(), exprProps));
             break;
@@ -669,19 +674,32 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
             NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand(), exprProps));
             break;
         }
+        case Expression::Kind::kList: {
+            auto *list = static_cast<const ListExpression*>(expr);
+            for (auto *item : list->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
+            }
+            break;
+        }
+        case Expression::Kind::kSet: {
+            auto *set = static_cast<const SetExpression*>(expr);
+            for (auto *item : set->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
+            }
+            break;
+        }
+        case Expression::Kind::kMap: {
+            auto *map = static_cast<const MapExpression*>(expr);
+            for (auto &item : map->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item.second, exprProps));
+            }
+            break;
+        }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kLabel:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
-        case Expression::Kind::kSubscript:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kRelNotIn: {
+        case Expression::Kind::kLabel: {
             // TODO:
             std::stringstream ss;
             ss << "Not supported expression `" << expr->toString() << "' for type deduction.";
@@ -710,6 +728,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kRelIn:
         case Expression::Kind::kRelNotIn:
         case Expression::Kind::kContains:
+        case Expression::Kind::kSubscript:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -718,7 +737,9 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             return evaluableExpr(unaryExpr->operand());
         }
@@ -735,6 +756,33 @@ bool Validator::evaluableExpr(const Expression* expr) const {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
             return evaluableExpr(castExpr->operand());
         }
+        case Expression::Kind::kList: {
+            auto *list = static_cast<const ListExpression*>(expr);
+            for (auto *item : list->items()) {
+                if (!evaluableExpr(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kSet: {
+            auto *set = static_cast<const SetExpression*>(expr);
+            for (auto *item : set->items()) {
+                if (!evaluableExpr(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kMap: {
+            auto *map = static_cast<const MapExpression*>(expr);
+            for (auto &item : map->items()) {
+                if (!evaluableExpr(item.second)) {
+                    return false;
+                }
+            }
+            return true;
+        }
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty:
         case Expression::Kind::kTagProperty:
@@ -749,13 +797,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kVarProperty:
         case Expression::Kind::kInputProperty:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kLabel:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:   // FIXME(dutor)
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
-        case Expression::Kind::kSubscript: {
+        case Expression::Kind::kLabel: {
             return false;
         }
     }
