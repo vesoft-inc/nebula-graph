@@ -1259,7 +1259,6 @@ class TestGoQuery(NebulaTestSuite):
         self.check_out_of_order_result(resp, expected_data["rows"])
         """
 
-
         stmt = '''GO FROM 'Boris Diaw' OVER serve WHERE $$.team.name CONTAINS \"Haw\"\
             YIELD $^.player.name, serve.start_year, serve.end_year, $$.team.name'''
         resp = self.execute_query(stmt)

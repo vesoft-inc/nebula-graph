@@ -64,7 +64,7 @@ Status GoValidator::validateStep(const StepClause* step) {
         mToN_ = mToN;
     } else {
         auto steps = step->steps();
-        if (steps <= 0) {
+        if (steps == 0) {
             return Status::Error("Only accpet positive number steps.");
         }
         steps_ = steps;
@@ -607,11 +607,15 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
         auto* probeKey = new VariablePropertyExpression(
                 new std::string(projectFromJoin->varName()), new std::string(dstVidColName_));
         plan->saveObject(probeKey);
-        auto* join = DataJoin::make(
-            plan, dependencyForJoinInput,
-            {dependencyForJoinInput->varName(), ExecutionContext::kLatestVersion},
-            {projectFromJoin->varName(), mToN_ != nullptr ? -1 : ExecutionContext::kLatestVersion},
-            {joinHashKey}, {probeKey});
+        auto* join =
+            DataJoin::make(plan,
+                           dependencyForJoinInput,
+                           {dependencyForJoinInput->varName(), ExecutionContext::kLatestVersion},
+                           {projectFromJoin->varName(),
+                            mToN_ != nullptr ? ExecutionContext::kPreviousOneVersion
+                                             : ExecutionContext::kLatestVersion},
+                           {joinHashKey},
+                           {probeKey});
         std::vector<std::string> colNames = dependencyForJoinInput->colNames();
         for (auto& col : projectFromJoin->colNames()) {
             colNames.emplace_back(col);
