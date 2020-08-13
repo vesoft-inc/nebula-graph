@@ -19,8 +19,8 @@ std::string StepClause::toString() const {
         buf += std::to_string(mToN_->n);
     } else {
         buf += std::to_string(steps_);
-        buf += " STEPS";
     }
+    buf += " STEPS";
     return buf;
 }
 
