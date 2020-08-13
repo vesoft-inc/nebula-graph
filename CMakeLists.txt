@@ -31,7 +31,7 @@ cmake_minimum_required(VERSION 3.5.0)
 project("Nebula Graph" C CXX)
 
 option(ENABLE_PACK_ONE "Whether to package into one" ON)
-option(ENABLE_BUILD_STORAGE "Whether to build storage" ON)
+option(ENABLE_BUILD_STORAGE "Whether to build storage" OFF)
 option(ENABLE_MODULE_UPDATE "Automatically update module" OFF)
 
 add_definitions(-DNEBULA_HOME=${CMAKE_SOURCE_DIR})
