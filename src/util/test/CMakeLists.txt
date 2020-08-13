@@ -1,7 +1,6 @@
 nebula_add_test(
     NAME utils_test
     SOURCES
-        ExpressionUtilsTest.cpp
         IdGeneratorTest.cpp
         ObjectPoolTest.cpp
         ScopedTimerTest.cpp

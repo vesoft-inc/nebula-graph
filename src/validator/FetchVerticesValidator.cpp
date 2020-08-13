@@ -61,7 +61,7 @@ Status FetchVerticesValidator::toPlan() {
 }
 
 Status FetchVerticesValidator::check() {
-    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
 
     tagName_ = *sentence->tag();
@@ -81,7 +81,7 @@ Status FetchVerticesValidator::check() {
 }
 
 Status FetchVerticesValidator::prepareVertices() {
-    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
     // from ref, eval when execute
     if (sentence->isRef()) {
         srcRef_ = sentence->ref();
@@ -98,7 +98,7 @@ Status FetchVerticesValidator::prepareVertices() {
     srcVids_.rows.reserve(vids.size());
     for (const auto vid : vids) {
         // TODO(shylock) Add a new value type VID to semantic this
-        DCHECK(ExpressionUtils::isConstExpr(vid));
+        DCHECK(ExpressionUtils::evaluableExpr(vid));
         auto v = vid->eval(dummy);
         if (!v.isStr()) {   // string as vid
             return Status::NotSupported("Not a vertex id");
@@ -110,7 +110,7 @@ Status FetchVerticesValidator::prepareVertices() {
 
 // TODO(shylock) select _vid property instead of return always.
 Status FetchVerticesValidator::prepareProperties() {
-    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
     auto *yield = sentence->yieldClause();
     if (yield == nullptr) {
         // empty for all tag and properties
@@ -164,13 +164,14 @@ Status FetchVerticesValidator::prepareProperties() {
         colNames_.reserve(yieldSize + 1);
         outputs_.reserve(yieldSize + 1);
         colNames_.emplace_back(kVid);
-        outputs_.emplace_back(kVid, Value::Type::STRING);  // kVid
+        outputs_.emplace_back(kVid, Value::Type::STRING);   // kVid
 
         dedup_ = yield->isDistinct();
         storage::cpp2::VertexProp prop;
         prop.set_tag(tagId_.value());
         std::vector<std::string> propsName;
         propsName.reserve(yield->columns().size());
+        ExpressionTrait exprTrait(this);
         for (auto col : yield->columns()) {
             if (col->expr()->kind() == Expression::Kind::kSymProperty) {
                 auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
@@ -179,64 +180,45 @@ Status FetchVerticesValidator::prepareProperties() {
             } else {
                 ExpressionUtils::transAllSymbolPropertyExpr<TagPropertyExpression>(col->expr());
             }
-            const auto *invalidExpr = findInvalidYieldExpression(col->expr());
-            if (invalidExpr != nullptr) {
-                return Status::Error("Invalid yield expression `%s'.",
-                                     col->expr()->toString().c_str());
+            auto result = exprTrait.accumulate(col->expr());
+            NG_RETURN_IF_ERROR(result);
+            auto type = result.value();
+            if (exprTrait.hasInputVarProperty()) {
+                return Status::Error("Unsupported input/variable property expression in yield.");
             }
-            // The properties from storage directly push down only
-            // The other will be computed in Project Executor
-            const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
-            for (const auto &storageExpr : storageExprs) {
-                const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
-                if (*expr->sym() != tagName_) {
-                    return Status::Error("Mismatched tag name");
-                }
-                // Check is prop name in schema
-                if (schema_->getFieldIndex(*expr->prop()) < 0) {
-                    LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in tag `"
-                                << tagName_ << "'.";
-                    return Status::Error("Unknown column `%s' in tag `%s'.",
-                                            expr->prop()->c_str(),
-                                            tagName_.c_str());
-                }
-                propsName.emplace_back(*expr->prop());
+            if (!exprTrait.edgeProps_.empty()) {
+                return Status::Error("Unsupported edge property expression in yield.");
             }
+            if (exprTrait.hasSrcDstProperty()) {
+                return Status::Error("Unsupported src/dst property expression in yield.");
+            }
+
+            if (exprTrait.tagProps_.empty()) {
+                return Status::Error("Unsupported empty tag property expression in yield.");
+            }
+            if (exprTrait.tagProps_.size() > 1) {
+                return Status::Error("Only allowed to access one tag in yield.");
+            }
+
             colNames_.emplace_back(deduceColName(col));
-            auto typeResult = deduceExprType(col->expr());
-            NG_RETURN_IF_ERROR(typeResult);
-            outputs_.emplace_back(colNames_.back(), typeResult.value());
+            outputs_.emplace_back(colNames_.back(), type);
             // TODO(shylock) think about the push-down expr
         }
-        prop.set_props(std::move(propsName));
+        prop.set_props(std::move(exprTrait.tagProps_[tagId_.value()]));
         props_.emplace_back(std::move(prop));
 
         // insert the reserved properties expression be compatible with 1.0
         // TODO(shylock) select kVid from storage
         newYieldColumns_ = qctx_->objPool()->add(new YieldColumns());
         // note eval vid by input expression
-        newYieldColumns_->addColumn(
-            new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
-                            new std::string(kVid)));
+        newYieldColumns_->addColumn(new YieldColumn(
+            new InputPropertyExpression(new std::string(kVid)), new std::string(kVid)));
         for (auto col : yield->columns()) {
             newYieldColumns_->addColumn(col->clone().release());
         }
     }
 
     return Status::OK();
-}
-
-/*static*/
-const Expression *FetchVerticesValidator::findInvalidYieldExpression(const Expression *root) {
-    return ExpressionUtils::findAnyKind(root,
-                                        {Expression::Kind::kInputProperty,
-                                         Expression::Kind::kVarProperty,
-                                         Expression::Kind::kSrcProperty,
-                                         Expression::Kind::kDstProperty,
-                                         Expression::Kind::kEdgeSrc,
-                                         Expression::Kind::kEdgeType,
-                                         Expression::Kind::kEdgeRank,
-                                         Expression::Kind::kEdgeDst});
 }
 
 // TODO(shylock) optimize dedup input when distinct given

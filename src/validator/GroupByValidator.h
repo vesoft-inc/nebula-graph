@@ -8,6 +8,7 @@
 #define VALIDATOR_GROUPBY_VALIDATOR_H_
 
 #include "common/base/Base.h"
+#include "util/ExpressionUtils.h"
 #include "validator/Validator.h"
 #include "planner/Query.h"
 
@@ -18,7 +19,7 @@ namespace graph {
 class GroupByValidator final : public Validator {
 public:
     GroupByValidator(Sentence *sentence, QueryContext *context)
-        : Validator(sentence, context) {}
+        : Validator(sentence, context), exprTrait_(this) {}
 
 private:
     Status validateImpl() override;
@@ -42,7 +43,7 @@ private:
 
     std::vector<std::string>                          outputColumnNames_;
 
-    ExpressionProps                                   exprProps_;
+    ExpressionTrait                                   exprTrait_;
 
     std::vector<Expression*>                          groupKeys_;
     std::vector<Aggregate::GroupItem>                 groupItems_;

@@ -31,8 +31,6 @@ private:
 
     Status prepareProperties();
 
-    static const Expression* findInvalidYieldExpression(const Expression* root);
-
     // TODO(shylock) merge the code
     std::string buildConstantInput();
     std::string buildRuntimeInput();

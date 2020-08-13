@@ -422,16 +422,21 @@ TEST_F(YieldValidatorTest, Error) {
     }
     std::string var = " $var = GO FROM \"1\" OVER like YIELD "
                       "$^.person.name AS name, like.start AS start;";
+    std::string var1 = " $var1 = GO FROM \"1\" OVER like YIELD "
+                      "$^.person.name AS name1, like.start AS start1;";
     {
         // Not support reference input and variable
-        auto query = var + "YIELD $var.name WHERE $-.start > 2005";
+        auto query = var +
+            "GO FROM \"1\" OVER like YIELD "
+            "$^.person.name AS name, like.start AS start"
+            "| YIELD $var.name WHERE $-.start > 2005";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
                   "SemanticError: Not support both input and variable.");
     }
     {
         // Not support reference two different variable
-        auto query = var + "YIELD $var.name WHERE $var1.start > 2005";
+        auto query = var + var1 + "YIELD $var.name WHERE $var1.start1 > 2005";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
                   "SemanticError: Only one variable allowed to use.");
@@ -463,7 +468,7 @@ TEST_F(YieldValidatorTest, Error) {
         auto query = var + "YIELD like.start";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Not supported expression `like.start' for type deduction.");
+                  "SemanticError: Unsupported expression `like.start'");
     }
 }
 
@@ -474,7 +479,7 @@ TEST_F(YieldValidatorTest, AggCall) {
         // Error would be reported when no input
         // EXPECT_EQ(std::string(result.message()), "SemanticError: column `name' not exist in
         // input");
-        EXPECT_EQ(std::string(result.message()), "SemanticError: `$-.name', not exist prop `name'");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: No input property named 'name`");
     }
     {
         std::string query = "YIELD COUNT(*), 1+1";

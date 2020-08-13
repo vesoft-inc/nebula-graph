@@ -4,6 +4,8 @@
 * attached with Common Clause Condition 1.0, found in the LICENSES directory.
 */
 
+#include "common/network/NetworkUtils.h"
+
 #include "exec/admin/PartExecutor.h"
 #include "planner/Admin.h"
 #include "context/QueryContext.h"
@@ -36,14 +38,15 @@ folly::Future<Status> ShowPartsExecutor::execute() {
                     row.values[0].setInt(item.get_part_id());
 
                     if (item.__isset.leader) {
-                        std::string leaderStr = NetworkUtils::toHostsStr({*item.get_leader()});
+                        std::string leaderStr =
+                            network::NetworkUtils::toHostsStr({*item.get_leader()});
                         row.values[1].setStr(std::move(leaderStr));
                     } else {
                         row.values[1].setStr("");
                     }
 
-                    row.values[2].setStr(NetworkUtils::toHostsStr(item.get_peers()));
-                    row.values[3].setStr(NetworkUtils::toHostsStr(item.get_losts()));
+                    row.values[2].setStr(network::NetworkUtils::toHostsStr(item.get_peers()));
+                    row.values[3].setStr(network::NetworkUtils::toHostsStr(item.get_losts()));
                     dataSet.emplace_back(std::move(row));
                 }
                 return finish(ResultBuilder()

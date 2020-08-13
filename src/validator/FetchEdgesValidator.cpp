@@ -122,14 +122,14 @@ Status FetchEdgesValidator::prepareEdges() {
         // row: _src, _type, _ranking, _dst
         edgeKeys_.rows.reserve(keys.size());
         for (const auto &key : keys) {
-            DCHECK(ExpressionUtils::isConstExpr(key->srcid()));
+            DCHECK(ExpressionUtils::evaluableExpr(key->srcid()));
             // TODO(shylock) Add new value type EDGE_ID to semantic and simplify this
             auto src = key->srcid()->eval(dummy);
             if (!src.isStr()) {   // string as vid
                 return Status::NotSupported("src is not a vertex id");
             }
             auto ranking = key->rank();
-            DCHECK(ExpressionUtils::isConstExpr(key->dstid()));
+            DCHECK(ExpressionUtils::evaluableExpr(key->dstid()));
             auto dst = key->dstid()->eval(dummy);
             if (!src.isStr()) {
                 return Status::NotSupported("dst is not a vertex id");
@@ -169,6 +169,7 @@ Status FetchEdgesValidator::prepareProperties() {
         std::vector<std::string> propsName;
         propsName.reserve(newYield_->columns().size());
         dedup_ = newYield_->isDistinct();
+        ExpressionTrait exprTrait(this);
         for (auto col : newYield_->columns()) {
             if (col->expr()->kind() == Expression::Kind::kSymProperty) {
                 auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
@@ -177,37 +178,29 @@ Status FetchEdgesValidator::prepareProperties() {
             } else {
                 ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(col->expr());
             }
-            const auto *invalidExpr = findInvalidYieldExpression(col->expr());
-            if (invalidExpr != nullptr) {
-                return Status::Error("Invalid newYield_ expression `%s'.",
-                                     col->expr()->toString().c_str());
+            auto result = exprTrait.accumulate(col->expr());
+            NG_RETURN_IF_ERROR(result);
+            auto type = result.value();
+
+            if (exprTrait.hasInputVarProperty()) {
+                return Status::Error("Unsupported input/variable property expression in yield.");
             }
-            // The properties from storage directly push down only
-            // The other will be computed in Project Executor
-            const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
-            for (const auto &storageExpr : storageExprs) {
-                const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
-                if (*expr->sym() != edgeTypeName_) {
-                    return Status::Error("Mismatched edge type name");
-                }
-                // Check is prop name in schema
-                if (schema_->getFieldIndex(*expr->prop()) < 0 &&
-                    reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
-                    LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `"
-                                << edgeTypeName_ << "'.";
-                    return Status::Error("Unknown column `%s' in edge `%s'",
-                                            expr->prop()->c_str(),
-                                            edgeTypeName_.c_str());
-                }
-                propsName.emplace_back(*expr->prop());
+            if (exprTrait.hasSrcDstProperty()) {
+                return Status::Error("Unsupported src/dst tag property expression in yield.");
             }
+
+            if (exprTrait.edgeProps_.empty()) {
+                return Status::Error("Unsupported empty edge properties in yield.");
+            }
+            if (exprTrait.edgeProps_.size() > 1) {
+                return Status::Error("Only allow to access one edge in yield.");
+            }
+
             colNames_.emplace_back(deduceColName(col));
-            auto typeResult = deduceExprType(col->expr());
-            NG_RETURN_IF_ERROR(typeResult);
-            outputs_.emplace_back(colNames_.back(), typeResult.value());
+            outputs_.emplace_back(colNames_.back(), type);
             // TODO(shylock) think about the push-down expr
         }
-        prop.set_props(std::move(propsName));
+        prop.set_props(std::move(exprTrait.edgeProps_[edgeType_]));
     } else {
         // no yield
         std::vector<std::string> propNames;   // filter the type
@@ -236,15 +229,6 @@ Status FetchEdgesValidator::prepareProperties() {
 
     props_.emplace_back(std::move(prop));
     return Status::OK();
-}
-
-/*static*/
-const Expression *FetchEdgesValidator::findInvalidYieldExpression(const Expression *root) {
-    return ExpressionUtils::findAnyKind(root,
-                                        {Expression::Kind::kInputProperty,
-                                         Expression::Kind::kVarProperty,
-                                         Expression::Kind::kSrcProperty,
-                                         Expression::Kind::kDstProperty});
 }
 
 // TODO(shylock) optimize dedup input when distinct given

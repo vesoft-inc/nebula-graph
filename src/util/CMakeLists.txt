@@ -7,6 +7,7 @@
 nebula_add_library(
     util_obj OBJECT
     SchemaUtil.cpp
+    ExpressionUtils.cpp
     ToJson.cpp
 )
 

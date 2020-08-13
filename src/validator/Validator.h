@@ -9,67 +9,16 @@
 
 #include "common/base/Base.h"
 #include "planner/ExecutionPlan.h"
-#include "parser/Sentence.h"
 #include "context/ValidateContext.h"
 #include "context/QueryContext.h"
 
 namespace nebula {
 
 class YieldColumns;
+class YieldColumn;
+class Sentence;
 
 namespace graph {
-
-class ExpressionProps final {
-public:
-    using TagIDPropsMap =  std::unordered_map<TagID, std::set<folly::StringPiece>>;
-    using EdgePropMap = std::unordered_map<EdgeType, std::set<folly::StringPiece>>;
-    using VarPropMap = std::unordered_map<std::string, std::set<folly::StringPiece>>;
-
-    void insertInputProp(folly::StringPiece prop);
-
-    void insertVarProp(const std::string& varName, folly::StringPiece prop);
-
-    void insertSrcTagProp(TagID tagId, folly::StringPiece prop);
-
-    void insertDstTagProp(TagID tagId, folly::StringPiece prop);
-
-    void insertEdgeProp(EdgeType edgeType, folly::StringPiece prop);
-
-    void insertTagProp(TagID tagId, folly::StringPiece prop);
-
-    std::set<folly::StringPiece>& inputProps() {
-        return inputProps_;
-    }
-    TagIDPropsMap& srcTagProps() {
-        return srcTagProps_;
-    }
-    TagIDPropsMap& dstTagProps() {
-        return dstTagProps_;
-    }
-    TagIDPropsMap& tagProps() {
-        return tagProps_;
-    }
-    EdgePropMap& edgeProps() {
-        return edgeProps_;
-    }
-    VarPropMap& varProps() {
-        return varProps_;
-    }
-
-    bool isSubsetOfInput(const std::set<folly::StringPiece>& props);
-
-    bool isSubsetOfVar(const VarPropMap& props);
-
-    void unionProps(ExpressionProps exprProps);
-
-private:
-    std::set<folly::StringPiece>  inputProps_;
-    VarPropMap                    varProps_;
-    TagIDPropsMap                 srcTagProps_;
-    TagIDPropsMap                 dstTagProps_;
-    EdgePropMap                   edgeProps_;
-    TagIDPropsMap                 tagProps_;
-};
 
 class Validator {
 public:
@@ -106,8 +55,24 @@ public:
         return inputs_;
     }
 
+    const ColsDef& inputColsRef() const {
+        return inputs_;
+    }
+
     void setNoSpaceRequired() {
         noSpaceRequired_ = true;
+    }
+
+    const QueryContext* qctx() const {
+        return qctx_;
+    }
+
+    const ValidateContext* vctx() const {
+        return vctx_;
+    }
+
+    const SpaceDescription& space() const {
+        return space_;
     }
 
 protected:
@@ -131,12 +96,6 @@ protected:
     std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
 
     std::string deduceColName(const YieldColumn* col) const;
-
-    StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
-
-    Status deduceProps(const Expression* expr, ExpressionProps& exprProps);
-
-    bool evaluableExpr(const Expression* expr) const;
 
     static Status checkPropNonexistOrDuplicate(const ColsDef& cols,
                                                const folly::StringPiece& prop,

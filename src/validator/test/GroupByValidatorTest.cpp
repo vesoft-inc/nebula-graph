@@ -180,7 +180,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "| GROUP BY $-.start_year YIELD COUNT($-.age)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `$-.start_year', not exist prop `start_year'");
+                  "SemanticError: No input property named 'start_year`");
     }
     {
         // group name noexist

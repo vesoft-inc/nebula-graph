@@ -16,23 +16,23 @@ namespace nebula {
 namespace graph {
 
 YieldValidator::YieldValidator(Sentence *sentence, QueryContext *qctx)
-    : Validator(sentence, qctx) {}
+    : Validator(sentence, qctx), exprTrait_(this) {}
 
 Status YieldValidator::validateImpl() {
     auto yield = static_cast<YieldSentence *>(sentence_);
     NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
 
-    if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
-        !exprProps_.edgeProps().empty()) {
+    if (!exprTrait_.srcTagProps_.empty() || !exprTrait_.dstTagProps_.empty() ||
+        !exprTrait_.edgeProps_.empty()) {
         return Status::SemanticError("Only support input and variable in yield sentence.");
     }
 
-    if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() && !exprTrait_.varProps_.empty()) {
         return Status::SemanticError("Not support both input and variable.");
     }
 
-    if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
+    if (!exprTrait_.varProps_.empty() && exprTrait_.varProps_.size() > 1) {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
@@ -52,7 +52,7 @@ Status YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) 
     for (auto column : yield->columns()) {
         auto expr = column->expr();
         auto fun = column->getAggFunName();
-        if (!evaluableExpr(expr) && fun.empty()) {
+        if (!ExpressionUtils::evaluableExpr(expr) && fun.empty()) {
             return Status::SemanticError(
                 "Input columns without aggregation are not supported in YIELD statement "
                 "without GROUP BY, near `%s'",
@@ -65,7 +65,7 @@ Status YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) 
 }
 
 Status YieldValidator::checkInputProps() const {
-    auto& inputProps = const_cast<ExpressionProps*>(&exprProps_)->inputProps();
+    auto& inputProps = exprTrait_.inputProps_;
     if (inputs_.empty() && !inputProps.empty()) {
         return Status::SemanticError("no inputs for yield columns.");
     }
@@ -77,7 +77,7 @@ Status YieldValidator::checkInputProps() const {
 }
 
 Status YieldValidator::checkVarProps() const {
-    auto& varProps = const_cast<ExpressionProps*>(&exprProps_)->varProps();
+    auto& varProps = exprTrait_.varProps_;
     for (auto &pair : varProps) {
         auto &var = pair.first;
         if (!vctx_->existVar(var)) {
@@ -97,11 +97,9 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
 
     auto expr = column->expr();
     DCHECK(expr != nullptr);
-    NG_RETURN_IF_ERROR(deduceProps(expr, exprProps_));
-
-    auto status = deduceExprType(expr);
-    NG_RETURN_IF_ERROR(status);
-    auto type = std::move(status).value();
+    auto result = exprTrait_.accumulate(expr);
+    NG_RETURN_IF_ERROR(result);
+    auto type = result.value();
 
     auto name = deduceColName(column);
     outputColumnNames_.emplace_back(name);
@@ -171,7 +169,7 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
         filter = clause->filter();
     }
     if (filter != nullptr) {
-        NG_RETURN_IF_ERROR(deduceProps(filter, exprProps_));
+        NG_RETURN_IF_ERROR(exprTrait_.accumulate(filter));
     }
     return Status::OK();
 }
@@ -205,9 +203,9 @@ Status YieldValidator::toPlan() {
         tail_ = dedupDep;
     }
 
-    if (!exprProps_.varProps().empty()) {
-        DCHECK_EQ(exprProps_.varProps().size(), 1u);
-        auto var = exprProps_.varProps().cbegin()->first;
+    if (!exprTrait_.varProps_.empty()) {
+        DCHECK_EQ(exprTrait_.varProps_.size(), 1u);
+        auto var = exprTrait_.varProps_.cbegin()->first;
         static_cast<SingleInputNode *>(tail_)->setInputVar(var);
     }
 

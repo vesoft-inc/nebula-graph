@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "common/base/Status.h"
+#include "util/ExpressionUtils.h"
 #include "planner/Query.h"
 #include "validator/Validator.h"
 
@@ -47,7 +48,7 @@ private:
     YieldColumns *columns_{nullptr};
     std::vector<std::string> outputColumnNames_;
     std::vector<Aggregate::GroupItem> groupItems_;
-    ExpressionProps  exprProps_;
+    ExpressionTrait exprTrait_;
 };
 
 }   // namespace graph

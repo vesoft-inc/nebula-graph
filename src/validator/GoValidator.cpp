@@ -13,6 +13,7 @@
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/TraverseSentences.h"
 #include "planner/Logic.h"
+#include "context/QueryExpressionContext.h"
 
 namespace nebula {
 namespace graph {
@@ -24,16 +25,16 @@ Status GoValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateWhere(goSentence->whereClause()));
     NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
 
-    if (!exprProps_.inputProps().empty() && fromType_ != kPipe) {
+    if (!exprTrait_.inputProps_.empty() && fromType_ != kPipe) {
         return Status::Error("$- must be referred in FROM before used in WHERE or YIELD");
     }
 
-    if (!exprProps_.varProps().empty() && fromType_ != kVariable) {
+    if (!exprTrait_.varProps_.empty() && fromType_ != kVariable) {
         return Status::Error("A variable must be referred in FROM before used in WHERE or YIELD");
     }
 
-    if ((!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) ||
-        exprProps_.varProps().size() > 1) {
+    if ((!exprTrait_.inputProps_.empty() && !exprTrait_.varProps_.empty()) ||
+        exprTrait_.varProps_.size() > 1) {
         return Status::Error("Only support single input in a go sentence.");
     }
 
@@ -67,7 +68,8 @@ Status GoValidator::validateFrom(const FromClause* from) {
                     " when starts are evaluated at runtime.", src->toString().c_str());
         } else {
             fromType_ = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
-            auto type = deduceExprType(src);
+            ExpressionTrait srcTrait(this);
+            auto type = srcTrait.accumulate(src);
             if (!type.ok()) {
                 return type.status();
             }
@@ -88,7 +90,7 @@ Status GoValidator::validateFrom(const FromClause* from) {
         auto vidList = from->vidList();
         QueryExpressionContext ctx(qctx_->ectx(), nullptr);
         for (auto* expr : vidList) {
-            if (!evaluableExpr(expr)) {
+            if (!ExpressionUtils::evaluableExpr(expr)) {
                 return Status::Error("`%s' is not an evaluable expression.",
                         expr->toString().c_str());
             }
@@ -158,12 +160,9 @@ Status GoValidator::validateWhere(WhereClause* where) {
         ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(filter_);
     }
 
-    auto typeStatus = deduceExprType(filter_);
-    if (!typeStatus.ok()) {
-        return typeStatus.status();
-    }
-
-    auto type = typeStatus.value();
+    auto result = exprTrait_.accumulate(filter_);
+    NG_RETURN_IF_ERROR(result);
+    auto type = result.value();
     if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE) {
         std::stringstream ss;
         ss << "`" << filter_->toString() << "', Filter only accpet bool/null value, "
@@ -171,10 +170,6 @@ Status GoValidator::validateWhere(WhereClause* where) {
         return Status::Error(ss.str());
     }
 
-    auto status = deduceProps(filter_, exprProps_);
-    if (!status.ok()) {
-        return status;
-    }
     return Status::OK();
 }
 
@@ -196,7 +191,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
             outputs_.emplace_back(colName, Value::Type::STRING);
-            NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
+            NG_RETURN_IF_ERROR(exprTrait_.accumulate(col->expr()));
         }
 
         yields_ = newCols;
@@ -218,14 +213,12 @@ Status GoValidator::validateYield(YieldClause* yield) {
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
 
-            auto typeStatus = deduceExprType(col->expr());
-            NG_RETURN_IF_ERROR(typeStatus);
-            auto type = typeStatus.value();
+            auto result = exprTrait_.accumulate(col->expr());
+            NG_RETURN_IF_ERROR(result);
+            auto type = result.value();
             outputs_.emplace_back(colName, type);
-
-            NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
         }
-        for (auto& e : exprProps_.edgeProps()) {
+        for (auto& e : exprTrait_.edgeProps_) {
             auto found = std::find(edgeTypes_.begin(), edgeTypes_.end(), e.first);
             if (found == edgeTypes_.end()) {
                 return Status::Error("Edges should be declared first in over clause.");
@@ -260,13 +253,13 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
     PlanNode* dependencyForProjectResult = gn;
 
     PlanNode* projectSrcEdgeProps = nullptr;
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
-        !exprProps_.dstTagProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() || !exprTrait_.varProps_.empty() ||
+        !exprTrait_.dstTagProps_.empty()) {
         projectSrcEdgeProps = buildProjectSrcEdgePropsForGN(gn);
     }
 
     PlanNode* joinDstProps = nullptr;
-    if (!exprProps_.dstTagProps().empty() && projectSrcEdgeProps != nullptr) {
+    if (!exprTrait_.dstTagProps_.empty() && projectSrcEdgeProps != nullptr) {
         joinDstProps = buildJoinDstProps(projectSrcEdgeProps);
     }
     if (joinDstProps != nullptr) {
@@ -274,7 +267,7 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
     }
 
     PlanNode* joinInput = nullptr;
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() || !exprTrait_.varProps_.empty()) {
         joinInput = buildJoinPipeOrVariableInput(
             projectFromJoin,
             joinDstProps == nullptr ? projectSrcEdgeProps : joinDstProps);
@@ -322,7 +315,7 @@ Status GoValidator::buildNStepsPlan() {
     }
 
     Project* projectLeftVarForJoin = nullptr;
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() || !exprTrait_.varProps_.empty()) {
         projectLeftVarForJoin = buildLeftVarForTraceJoin(projectStartVid);
     }
 
@@ -335,7 +328,7 @@ Status GoValidator::buildNStepsPlan() {
     Project* projectDstFromGN = projectDstVidsFromGN(gn, startVidsVar);
 
     Project* projectFromJoin = nullptr;
-    if ((!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) &&
+    if ((!exprTrait_.inputProps_.empty() || !exprTrait_.varProps_.empty()) &&
         projectLeftVarForJoin != nullptr && projectDstFromGN != nullptr) {
         projectFromJoin = traceToStartVid(projectLeftVarForJoin, projectDstFromGN);
     }
@@ -369,7 +362,7 @@ PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(PlanNode* gn) {
     DCHECK(gn != nullptr);
 
     auto* plan = qctx_->plan();
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() || !exprTrait_.varProps_.empty()) {
         auto* srcVidCol = new YieldColumn(
             new VariablePropertyExpression(new std::string(gn->varName()),
                                         new std::string(kVid)),
@@ -378,7 +371,7 @@ PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(PlanNode* gn) {
     }
 
     VLOG(1) << "build dst cols";
-    if (!exprProps_.dstTagProps().empty()) {
+    if (!exprTrait_.dstTagProps_.empty()) {
         joinDstVidColName_ = vctx_->anonColGen()->getCol();
         auto* dstVidCol = new YieldColumn(
             new EdgePropertyExpression(new std::string("*"),
@@ -550,7 +543,7 @@ Project* GoValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outp
     columns->addColumn(column);
 
     srcVidColName_ = vctx_->anonColGen()->getCol();
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() || !exprTrait_.varProps_.empty()) {
         column =
             new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
                             new std::string(srcVidColName_));
@@ -647,10 +640,10 @@ PlanNode* GoValidator::buildRuntimeInput() {
 
 GetNeighbors::VertexProps GoValidator::buildSrcVertexProps() {
     GetNeighbors::VertexProps vertexProps;
-    if (!exprProps_.srcTagProps().empty()) {
+    if (!exprTrait_.srcTagProps_.empty()) {
         vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>(
-            exprProps_.srcTagProps().size());
-        std::transform(exprProps_.srcTagProps().begin(), exprProps_.srcTagProps().end(),
+            exprTrait_.srcTagProps_.size());
+        std::transform(exprTrait_.srcTagProps_.begin(), exprTrait_.srcTagProps_.end(),
                        vertexProps->begin(), [](auto& tag) {
                            storage::cpp2::VertexProp vp;
                            vp.tag = tag.first;
@@ -663,9 +656,9 @@ GetNeighbors::VertexProps GoValidator::buildSrcVertexProps() {
 }
 
 std::vector<storage::cpp2::VertexProp> GoValidator::buildDstVertexProps() {
-    std::vector<storage::cpp2::VertexProp> vertexProps(exprProps_.dstTagProps().size());
-    if (!exprProps_.dstTagProps().empty()) {
-        std::transform(exprProps_.dstTagProps().begin(), exprProps_.dstTagProps().end(),
+    std::vector<storage::cpp2::VertexProp> vertexProps(exprTrait_.dstTagProps_.size());
+    if (!exprTrait_.dstTagProps_.empty()) {
+        std::transform(exprTrait_.dstTagProps_.begin(), exprTrait_.dstTagProps_.end(),
                        vertexProps.begin(), [](auto& tag) {
                            storage::cpp2::VertexProp vp;
                            vp.tag = tag.first;
@@ -679,7 +672,7 @@ std::vector<storage::cpp2::VertexProp> GoValidator::buildDstVertexProps() {
 
 GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
     GetNeighbors::EdgeProps edgeProps;
-    if (!exprProps_.edgeProps().empty()) {
+    if (!exprTrait_.edgeProps_.empty()) {
         if (direction_ == storage::cpp2::EdgeDirection::IN_EDGE) {
             edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
             buildEdgeProps(edgeProps, true);
@@ -691,7 +684,7 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
             edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
             buildEdgeProps(edgeProps, false);
         }
-    } else if (!exprProps_.dstTagProps().empty()) {
+    } else if (!exprTrait_.dstTagProps_.empty()) {
         return buildEdgeDst();
     }
 
@@ -708,13 +701,14 @@ void GoValidator::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEd
             ep.set_type(e);
         }
 
-        const auto& propsFound = exprProps_.edgeProps().find(e);
-        if (propsFound == exprProps_.edgeProps().end()) {
+        const auto& propsFound = exprTrait_.edgeProps_.find(e);
+        if (propsFound == exprTrait_.edgeProps_.end()) {
             ep.props = {kDst};
         } else {
             std::vector<std::string> props(propsFound->second.begin(),
                                            propsFound->second.end());
-            if (propsFound->second.find(kDst) == propsFound->second.end()) {
+            if (std::find(propsFound->second.begin(), propsFound->second.end(), kDst)
+                == propsFound->second.end()) {
                 props.emplace_back(kDst);
             }
             ep.set_props(std::move(props));
@@ -725,7 +719,7 @@ void GoValidator::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEd
 
 GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
     GetNeighbors::EdgeProps edgeProps;
-    if (!exprProps_.edgeProps().empty() || !exprProps_.dstTagProps().empty()) {
+    if (!exprTrait_.edgeProps_.empty() || !exprTrait_.dstTagProps_.empty()) {
         if (direction_ == storage::cpp2::EdgeDirection::IN_EDGE) {
             edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
                 edgeTypes_.size());
@@ -999,21 +993,21 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
 }
 
 Status GoValidator::buildColumns() {
-  if (exprProps_.dstTagProps().empty() && exprProps_.inputProps().empty() &&
-      exprProps_.varProps().empty()) {
+  if (exprTrait_.dstTagProps_.empty() && exprTrait_.inputProps_.empty() &&
+      exprTrait_.varProps_.empty()) {
       return Status::OK();
   }
 
-  if (!exprProps_.srcTagProps().empty() || !exprProps_.edgeProps().empty() ||
-      !exprProps_.dstTagProps().empty()) {
+  if (!exprTrait_.srcTagProps_.empty() || !exprTrait_.edgeProps_.empty() ||
+      !exprTrait_.dstTagProps_.empty()) {
       srcAndEdgePropCols_ = qctx_->plan()->saveObject(new YieldColumns());
   }
 
-    if (!exprProps_.dstTagProps().empty()) {
+    if (!exprTrait_.dstTagProps_.empty()) {
         dstPropCols_ = qctx_->plan()->saveObject(new YieldColumns());
     }
 
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() || !exprTrait_.varProps_.empty()) {
         inputPropCols_ = qctx_->plan()->saveObject(new YieldColumns());
     }
 

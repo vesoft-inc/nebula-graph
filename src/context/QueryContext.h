@@ -16,7 +16,6 @@
 #include "common/meta/SchemaManager.h"
 #include "context/ExecutionContext.h"
 #include "context/ValidateContext.h"
-#include "parser/SequentialSentences.h"
 #include "service/RequestContext.h"
 #include "util/ObjectPool.h"
 

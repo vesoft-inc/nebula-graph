@@ -18,18 +18,18 @@ Status GroupByValidator::validateImpl() {
     NG_RETURN_IF_ERROR(checkInputProps());
     NG_RETURN_IF_ERROR(checkVarProps());
 
-    if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty()) {
+    if (!exprTrait_.srcTagProps_.empty() || !exprTrait_.dstTagProps_.empty()) {
         return Status::SemanticError("Only support input and variable in GroupBy sentence.");
     }
-    if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() && !exprTrait_.varProps_.empty()) {
         return Status::SemanticError("Not support both input and variable in GroupBy sentence.");
     }
     return Status::OK();
 }
 
 Status GroupByValidator::checkInputProps() const {
-    auto& inputProps = const_cast<ExpressionProps*>(&exprProps_)->inputProps();
-    if (inputs_.empty() && !inputProps.empty()) {
+    auto& inputProps = exprTrait_.inputProps_;
+    if (inputs_.empty() && !exprTrait_.inputProps_.empty()) {
         return Status::SemanticError("no inputs for GroupBy.");
     }
     for (auto &prop : inputProps) {
@@ -40,7 +40,7 @@ Status GroupByValidator::checkInputProps() const {
 }
 
 Status GroupByValidator::checkVarProps() const {
-    auto& varProps = const_cast<ExpressionProps*>(&exprProps_)->varProps();
+    auto& varProps = exprTrait_.varProps_;
     for (auto &pair : varProps) {
         auto &var = pair.first;
         if (!vctx_->existVar(var)) {
@@ -80,9 +80,10 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         // todo(jmq) count(distinct)
         groupItems_.emplace_back(Aggregate::GroupItem{col->expr(), AggFun::nameIdMap_[fun], false});
 
-        auto status = deduceExprType(col->expr());
-        NG_RETURN_IF_ERROR(status);
-        auto type = std::move(status).value();
+        ExpressionTrait yieldExprTrait(this);
+        auto result = yieldExprTrait.accumulate(col->expr());
+        NG_RETURN_IF_ERROR(result);
+        auto type = result.value();
         auto name = deduceColName(col);
         outputs_.emplace_back(name, type);
         outputColumnNames_.emplace_back(std::move(name));
@@ -94,22 +95,20 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         }
 
         // check input yield filed without agg function and not in group cols
-        ExpressionProps yieldProps;
-        NG_RETURN_IF_ERROR(deduceProps(col->expr(), yieldProps));
         if (col->getAggFunName().empty()) {
-            if (!yieldProps.inputProps().empty()) {
-                if (!exprProps_.isSubsetOfInput(yieldProps.inputProps())) {
+            if (!yieldExprTrait.inputProps_.empty()) {
+                if (!exprTrait_.isSubsetOfInput(yieldExprTrait.inputProps_)) {
                     return Status::SemanticError("Yield `%s` isn't in output fields",
                                                  col->toString().c_str());
                 }
-            } else if (!yieldProps.varProps().empty()) {
-                if (!exprProps_.isSubsetOfVar(yieldProps.varProps())) {
+            } else if (!yieldExprTrait.varProps_.empty()) {
+                if (!exprTrait_.isSubsetOfVar(yieldExprTrait.varProps_)) {
                     return Status::SemanticError("Yield `%s` isn't in output fields",
                                                  col->toString().c_str());
                 }
             }
         }
-        exprProps_.unionProps(std::move(yieldProps));
+        exprTrait_.collect(std::move(yieldExprTrait));
     }
     return Status::OK();
 }
@@ -133,8 +132,7 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
             return Status::SemanticError("Use invalid group function `%s`",
                                          col->getAggFunName().c_str());
         }
-        NG_RETURN_IF_ERROR(deduceExprType(col->expr()));
-        NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
+        NG_RETURN_IF_ERROR(exprTrait_.accumulate(col->expr()));
 
         groupCols_.emplace_back(col);
         groupKeys_.emplace_back(col->expr());

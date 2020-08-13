@@ -5,6 +5,7 @@
  */
 #include "validator/MutateValidator.h"
 #include "util/SchemaUtil.h"
+#include "util/ExpressionUtils.h"
 #include "planner/Mutate.h"
 #include "planner/Query.h"
 
@@ -90,7 +91,7 @@ Status InsertVerticesValidator::prepareVertices() {
         if (propSize_ != row->values().size()) {
             return Status::Error("Column count doesn't match value count.");
         }
-        if (!evaluableExpr(row->id())) {
+        if (!ExpressionUtils::evaluableExpr(row->id())) {
             LOG(ERROR) << "Wrong vid expression `" << row->id()->toString() << "\"";
             return Status::Error("Wrong vid expression `%s'", row->id()->toString().c_str());
         }
@@ -102,7 +103,7 @@ Status InsertVerticesValidator::prepareVertices() {
 
         // check value expr
         for (auto &value : row->values()) {
-            if (!evaluableExpr(value)) {
+            if (!ExpressionUtils::evaluableExpr(value)) {
                 LOG(ERROR) << "Insert wrong value: `" << value->toString() << "'.";
                 return Status::Error("Insert wrong value: `%s'.", value->toString().c_str());
             }
@@ -209,12 +210,12 @@ Status InsertEdgesValidator::prepareEdges() {;
         if (propNames_.size() != row->values().size()) {
             return Status::Error("Column count doesn't match value count.");
         }
-        if (!evaluableExpr(row->srcid())) {
+        if (!ExpressionUtils::evaluableExpr(row->srcid())) {
             LOG(ERROR) << "Wrong src vid expression `" << row->srcid()->toString() << "\"";
             return Status::Error("Wrong src vid expression `%s'", row->srcid()->toString().c_str());
         }
 
-        if (!evaluableExpr(row->dstid())) {
+        if (!ExpressionUtils::evaluableExpr(row->dstid())) {
             LOG(ERROR) << "Wrong dst vid expression `" << row->dstid()->toString() << "\"";
             return Status::Error("Wrong dst vid expression `%s'", row->dstid()->toString().c_str());
         }
@@ -234,7 +235,7 @@ Status InsertEdgesValidator::prepareEdges() {;
 
         // check value expr
         for (auto &value : row->values()) {
-            if (!evaluableExpr(value)) {
+            if (!ExpressionUtils::evaluableExpr(value)) {
                 LOG(ERROR) << "Insert wrong value: `" << value->toString() << "'.";
                 return Status::Error("Insert wrong value: `%s'.", value->toString().c_str());
             }
@@ -280,11 +281,10 @@ Status DeleteVerticesValidator::validateImpl() {
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
     if (sentence->isRef()) {
+        ExpressionTrait inputTrait(this);
         vidRef_ = sentence->vidRef();
-        auto type = deduceExprType(vidRef_);
-        if (!type.ok()) {
-            return type.status();
-        }
+        auto type = inputTrait.accumulate(vidRef_);
+        NG_RETURN_IF_ERROR(type);
         if (type.value() != Value::Type::STRING) {
             std::stringstream ss;
             ss << "The vid should be string type, "
@@ -471,31 +471,25 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
 Status DeleteEdgesValidator::checkInput() {
     CHECK(!edgeKeyRefs_.empty());
     auto &edgeKeyRef = *edgeKeyRefs_.begin();
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->srcid(), exprProps_));
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->dstid(), exprProps_));
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->rank(), exprProps_));
+    auto srcIdResult = exprTrait_.accumulate(edgeKeyRef->srcid());
+    NG_RETURN_IF_ERROR(srcIdResult);
+    auto dstIdResult = exprTrait_.accumulate(edgeKeyRef->dstid());
+    NG_RETURN_IF_ERROR(dstIdResult);
+    auto rankResult = exprTrait_.accumulate(edgeKeyRef->rank());
+    NG_RETURN_IF_ERROR(rankResult);
 
-    if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
-        !exprProps_.edgeProps().empty()) {
+    if (!exprTrait_.srcTagProps_.empty() || !exprTrait_.dstTagProps_.empty() ||
+        !exprTrait_.edgeProps_.empty()) {
         return Status::SyntaxError("Only support input and variable.");
     }
 
-    if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
+    if (!exprTrait_.inputProps_.empty() && !exprTrait_.varProps_.empty()) {
         return Status::Error("Not support both input and variable.");
     }
 
-    if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
+    if (!exprTrait_.varProps_.empty() && exprTrait_.varProps_.size() > 1) {
         return Status::Error("Only one variable allowed to use.");
     }
-
-    auto status = deduceExprType(edgeKeyRef->srcid());
-    NG_RETURN_IF_ERROR(status);
-
-    status = deduceExprType(edgeKeyRef->dstid());
-    NG_RETURN_IF_ERROR(status);
-
-    status = deduceExprType(edgeKeyRef->rank());
-    NG_RETURN_IF_ERROR(status);
 
     if (edgeKeyRef->srcid()->kind() == Expression::Kind::kVarProperty) {
         edgeKeyVar_ = *static_cast<SymbolPropertyExpression*>(edgeKeyRef->srcid())->sym();

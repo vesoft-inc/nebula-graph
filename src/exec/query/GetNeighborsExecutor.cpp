@@ -12,6 +12,7 @@
 #include "common/datatypes/List.h"
 #include "common/datatypes/Vertex.h"
 #include "context/QueryContext.h"
+#include "context/QueryExpressionContext.h"
 #include "util/ScopedTimer.h"
 
 using nebula::storage::StorageRpcResponse;
