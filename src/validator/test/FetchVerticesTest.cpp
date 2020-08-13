@@ -17,7 +17,7 @@ class FetchVerticesValidatorTest : public ValidatorTestBase {};
 
 TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
     auto src = std::make_unique<VariablePropertyExpression>(
-        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kVid));
+        new std::string("_VARNAME_"), new std::string(kVid));
     {
         auto plan = toPlan("FETCH PROP ON person \"1\"");
 
