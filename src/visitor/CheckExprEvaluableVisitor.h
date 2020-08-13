@@ -19,7 +19,7 @@ public:
     }
 
 private:
-    void visitConstantExpr(const ConstantExpression*) override {
+    void visitConstantExpr(ConstantExpression*) override {
         isEvaluable_ = true;
     }
 

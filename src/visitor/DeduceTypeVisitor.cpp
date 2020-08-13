@@ -86,7 +86,7 @@ DeduceTypeVisitor::DeduceTypeVisitor(QueryContext *qctx,
     DCHECK(vctx != nullptr);
 }
 
-void DeduceTypeVisitor::visitArithmeticExpr(const ArithmeticExpression *expr) {
+void DeduceTypeVisitor::visitArithmeticExpr(ArithmeticExpression *expr) {
     switch (expr->kind()) {
         case Expression::Kind::kAdd: {
             DETECT_BIEXPR_TYPE(+);
@@ -116,7 +116,7 @@ void DeduceTypeVisitor::visitArithmeticExpr(const ArithmeticExpression *expr) {
     }
 }
 
-void DeduceTypeVisitor::visitRelationalExpr(const RelationalExpression *expr) {
+void DeduceTypeVisitor::visitRelationalExpr(RelationalExpression *expr) {
     expr->left()->accept(this);
     if (!ok()) return;
     expr->right()->accept(this);
@@ -134,7 +134,7 @@ void DeduceTypeVisitor::visitRelationalExpr(const RelationalExpression *expr) {
     type_ = Value::Type::BOOL;
 }
 
-void DeduceTypeVisitor::visitLogicalExpr(const LogicalExpression *expr) {
+void DeduceTypeVisitor::visitLogicalExpr(LogicalExpression *expr) {
     switch (expr->kind()) {
         case Expression::Kind::kLogicalAnd: {
             DETECT_BIEXPR_TYPE(&&);
@@ -152,7 +152,7 @@ void DeduceTypeVisitor::visitLogicalExpr(const LogicalExpression *expr) {
     }
 }
 
-void DeduceTypeVisitor::visitUnaryExpr(const UnaryExpression *expr) {
+void DeduceTypeVisitor::visitUnaryExpr(UnaryExpression *expr) {
     expr->operand()->accept(this);
     if (!ok()) return;
     switch (expr->kind()) {
@@ -197,7 +197,7 @@ void DeduceTypeVisitor::visitUnaryExpr(const UnaryExpression *expr) {
     }
 }
 
-void DeduceTypeVisitor::visitFunctionCallExpr(const FunctionCallExpression *expr) {
+void DeduceTypeVisitor::visitFunctionCallExpr(FunctionCallExpression *expr) {
     std::vector<Value::Type> argsTypeList;
     argsTypeList.reserve(expr->args()->numArgs());
     for (auto &arg : expr->args()->args()) {
@@ -216,7 +216,7 @@ void DeduceTypeVisitor::visitFunctionCallExpr(const FunctionCallExpression *expr
     status_ = Status::OK();
 }
 
-void DeduceTypeVisitor::visitTypeCastingExpr(const TypeCastingExpression *expr) {
+void DeduceTypeVisitor::visitTypeCastingExpr(TypeCastingExpression *expr) {
     expr->operand()->accept(this);
     if (!ok()) return;
 
@@ -246,19 +246,19 @@ void DeduceTypeVisitor::visitTypeCastingExpr(const TypeCastingExpression *expr) 
     status_ = Status::OK();
 }
 
-void DeduceTypeVisitor::visitTagPropertyExpr(const TagPropertyExpression *expr) {
+void DeduceTypeVisitor::visitTagPropertyExpr(TagPropertyExpression *expr) {
     visitTagPropExpr(expr);
 }
 
-void DeduceTypeVisitor::visitSourcePropertyExpr(const SourcePropertyExpression *expr) {
+void DeduceTypeVisitor::visitSourcePropertyExpr(SourcePropertyExpression *expr) {
     visitTagPropExpr(expr);
 }
 
-void DeduceTypeVisitor::visitDestPropertyExpr(const DestPropertyExpression *expr) {
+void DeduceTypeVisitor::visitDestPropertyExpr(DestPropertyExpression *expr) {
     visitTagPropExpr(expr);
 }
 
-void DeduceTypeVisitor::visitEdgePropertyExpr(const EdgePropertyExpression *expr) {
+void DeduceTypeVisitor::visitEdgePropertyExpr(EdgePropertyExpression *expr) {
     auto *edge = expr->sym();
     auto edgeType = qctx_->schemaMng()->toEdgeType(space_, *edge);
     if (!edgeType.ok()) {
@@ -282,7 +282,7 @@ void DeduceTypeVisitor::visitEdgePropertyExpr(const EdgePropertyExpression *expr
     type_ = SchemaUtil::propTypeToValueType(field->type());
 }
 
-void DeduceTypeVisitor::visitVariablePropertyExpr(const VariablePropertyExpression *expr) {
+void DeduceTypeVisitor::visitVariablePropertyExpr(VariablePropertyExpression *expr) {
     auto *var = expr->sym();
     if (!vctx_->existVar(*var)) {
         status_ = Status::SemanticError(
@@ -301,7 +301,7 @@ void DeduceTypeVisitor::visitVariablePropertyExpr(const VariablePropertyExpressi
     type_ = found->second;
 }
 
-void DeduceTypeVisitor::visitInputPropertyExpr(const InputPropertyExpression *expr) {
+void DeduceTypeVisitor::visitInputPropertyExpr(InputPropertyExpression *expr) {
     auto *prop = expr->prop();
     auto found = std::find_if(
         inputs_.cbegin(), inputs_.cend(), [&prop](auto &col) { return *prop == col.first; });
@@ -313,69 +313,69 @@ void DeduceTypeVisitor::visitInputPropertyExpr(const InputPropertyExpression *ex
     type_ = found->second;
 }
 
-void DeduceTypeVisitor::visitSymbolPropertyExpr(const SymbolPropertyExpression *expr) {
+void DeduceTypeVisitor::visitSymbolPropertyExpr(SymbolPropertyExpression *expr) {
     status_ = Status::SemanticError("SymbolPropertyExpression can not be instantiated: %s",
                                     expr->toString().c_str());
 }
 
-void DeduceTypeVisitor::visitLabelExpr(const LabelExpression *expr) {
+void DeduceTypeVisitor::visitLabelExpr(LabelExpression *expr) {
     status_ = Status::SemanticError("LabelExpression can not be instantiated: %s",
                                     expr->toString().c_str());
 }
 
-void DeduceTypeVisitor::visitConstantExpr(const ConstantExpression *expr) {
+void DeduceTypeVisitor::visitConstantExpr(ConstantExpression *expr) {
     QueryExpressionContext ctx(nullptr, nullptr);
     auto *mutableExpr = const_cast<ConstantExpression *>(expr);
     type_ = mutableExpr->eval(ctx).type();
 }
 
-void DeduceTypeVisitor::visitEdgeSrcIdExpr(const EdgeSrcIdExpression *) {
+void DeduceTypeVisitor::visitEdgeSrcIdExpr(EdgeSrcIdExpression *) {
     type_ = Value::Type::STRING;
 }
 
-void DeduceTypeVisitor::visitEdgeTypeExpr(const EdgeTypeExpression *) {
+void DeduceTypeVisitor::visitEdgeTypeExpr(EdgeTypeExpression *) {
     type_ = Value::Type::INT;
 }
 
-void DeduceTypeVisitor::visitEdgeRankExpr(const EdgeRankExpression *) {
+void DeduceTypeVisitor::visitEdgeRankExpr(EdgeRankExpression *) {
     type_ = Value::Type::INT;
 }
 
-void DeduceTypeVisitor::visitEdgeDstIdExpr(const EdgeDstIdExpression *) {
+void DeduceTypeVisitor::visitEdgeDstIdExpr(EdgeDstIdExpression *) {
     type_ = Value::Type::STRING;
 }
 
-void DeduceTypeVisitor::visitUUIDExpr(const UUIDExpression *) {
+void DeduceTypeVisitor::visitUUIDExpr(UUIDExpression *) {
     type_ = Value::Type::STRING;
 }
 
-void DeduceTypeVisitor::visitVariableExpr(const VariableExpression *) {
+void DeduceTypeVisitor::visitVariableExpr(VariableExpression *) {
     // TODO: not only dataset
     type_ = Value::Type::DATASET;
 }
 
-void DeduceTypeVisitor::visitVersionedVariableExpr(const VersionedVariableExpression *) {
+void DeduceTypeVisitor::visitVersionedVariableExpr(VersionedVariableExpression *) {
     // TODO: not only dataset
     type_ = Value::Type::DATASET;
 }
 
-void DeduceTypeVisitor::visitListExpr(const ListExpression *) {
+void DeduceTypeVisitor::visitListExpr(ListExpression *) {
     type_ = Value::Type::LIST;
 }
 
-void DeduceTypeVisitor::visitSetExpr(const SetExpression *) {
+void DeduceTypeVisitor::visitSetExpr(SetExpression *) {
     type_ = Value::Type::SET;
 }
 
-void DeduceTypeVisitor::visitMapExpr(const MapExpression *) {
+void DeduceTypeVisitor::visitMapExpr(MapExpression *) {
     type_ = Value::Type::MAP;
 }
 
-void DeduceTypeVisitor::visitSubscriptExpr(const SubscriptExpression *) {
+void DeduceTypeVisitor::visitSubscriptExpr(SubscriptExpression *) {
     type_ = Value::Type::LIST;   // FIXME(dutor)
 }
 
-void DeduceTypeVisitor::visitTagPropExpr(const SymbolPropertyExpression *expr) {
+void DeduceTypeVisitor::visitTagPropExpr(SymbolPropertyExpression *expr) {
     auto *tag = expr->sym();
     auto tagId = qctx_->schemaMng()->toTagID(space_, *tag);
     if (!tagId.ok()) {

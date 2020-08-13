@@ -34,7 +34,7 @@ public:
     static const Expression* findAnyKind(const Expression* self,
                                          const std::unordered_set<Expression::Kind>& expected) {
         FindExprVisitor visitor(expected);
-        self->accept(&visitor);
+        const_cast<Expression*>(self)->accept(&visitor);
         return visitor.expr();
     }
 
@@ -44,7 +44,7 @@ public:
         const Expression* self,
         const std::unordered_set<Expression::Kind>& expected) {
         CollectExprsVisitor visitor(expected);
-        self->accept(&visitor);
+        const_cast<Expression*>(self)->accept(&visitor);
         return std::move(visitor).exprs();
     }
 

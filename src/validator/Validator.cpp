@@ -285,7 +285,7 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
 
 StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
     DeduceTypeVisitor visitor(qctx_, vctx_, inputs_, space_.id);
-    expr->accept(&visitor);
+    const_cast<Expression*>(expr)->accept(&visitor);
     if (!visitor.ok()) {
         return std::move(visitor).status();
     }
@@ -294,13 +294,13 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
 
 Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps) {
     DeducePropsVisitor visitor(qctx_, space_.id, &exprProps);
-    expr->accept(&visitor);
+    const_cast<Expression*>(expr)->accept(&visitor);
     return std::move(visitor).status();
 }
 
 bool Validator::evaluableExpr(const Expression* expr) const {
     CheckExprEvaluableVisitor visitor;
-    expr->accept(&visitor);
+    const_cast<Expression*>(expr)->accept(&visitor);
     return visitor.ok();
 }
 

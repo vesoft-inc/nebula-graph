@@ -26,11 +26,11 @@ DeducePropsVisitor::DeducePropsVisitor(QueryContext *qctx,
     DCHECK(exprProps != nullptr);
 }
 
-void DeducePropsVisitor::visitEdgePropertyExpr(const EdgePropertyExpression *expr) {
+void DeducePropsVisitor::visitEdgePropertyExpr(EdgePropertyExpression *expr) {
     visitEdgeSymPropExpr(expr);
 }
 
-void DeducePropsVisitor::visitTagPropertyExpr(const TagPropertyExpression *expr) {
+void DeducePropsVisitor::visitTagPropertyExpr(TagPropertyExpression *expr) {
     auto status = qctx_->schemaMng()->toTagID(space_, *expr->sym());
     if (!status.ok()) {
         status_ = std::move(status).status();
@@ -39,15 +39,15 @@ void DeducePropsVisitor::visitTagPropertyExpr(const TagPropertyExpression *expr)
     exprProps_->insertTagProp(status.value(), *expr->prop());
 }
 
-void DeducePropsVisitor::visitInputPropertyExpr(const InputPropertyExpression *expr) {
+void DeducePropsVisitor::visitInputPropertyExpr(InputPropertyExpression *expr) {
     exprProps_->insertInputProp(*expr->prop());
 }
 
-void DeducePropsVisitor::visitVariablePropertyExpr(const VariablePropertyExpression *expr) {
+void DeducePropsVisitor::visitVariablePropertyExpr(VariablePropertyExpression *expr) {
     exprProps_->insertVarProp(*expr->sym(), *expr->prop());
 }
 
-void DeducePropsVisitor::visitDestPropertyExpr(const DestPropertyExpression *expr) {
+void DeducePropsVisitor::visitDestPropertyExpr(DestPropertyExpression *expr) {
     auto status = qctx_->schemaMng()->toTagID(space_, *expr->sym());
     if (!status.ok()) {
         status_ = std::move(status).status();
@@ -56,7 +56,7 @@ void DeducePropsVisitor::visitDestPropertyExpr(const DestPropertyExpression *exp
     exprProps_->insertDstTagProp(std::move(status).value(), *expr->prop());
 }
 
-void DeducePropsVisitor::visitSourcePropertyExpr(const SourcePropertyExpression *expr) {
+void DeducePropsVisitor::visitSourcePropertyExpr(SourcePropertyExpression *expr) {
     auto status = qctx_->schemaMng()->toTagID(space_, *expr->sym());
     if (!status.ok()) {
         status_ = std::move(status).status();
@@ -65,43 +65,43 @@ void DeducePropsVisitor::visitSourcePropertyExpr(const SourcePropertyExpression 
     exprProps_->insertSrcTagProp(std::move(status).value(), *expr->prop());
 }
 
-void DeducePropsVisitor::visitEdgeSrcIdExpr(const EdgeSrcIdExpression *expr) {
+void DeducePropsVisitor::visitEdgeSrcIdExpr(EdgeSrcIdExpression *expr) {
     visitEdgeSymPropExpr(expr);
 }
 
-void DeducePropsVisitor::visitEdgeTypeExpr(const EdgeTypeExpression *expr) {
+void DeducePropsVisitor::visitEdgeTypeExpr(EdgeTypeExpression *expr) {
     visitEdgeSymPropExpr(expr);
 }
 
-void DeducePropsVisitor::visitEdgeRankExpr(const EdgeRankExpression *expr) {
+void DeducePropsVisitor::visitEdgeRankExpr(EdgeRankExpression *expr) {
     visitEdgeSymPropExpr(expr);
 }
 
-void DeducePropsVisitor::visitEdgeDstIdExpr(const EdgeDstIdExpression *expr) {
+void DeducePropsVisitor::visitEdgeDstIdExpr(EdgeDstIdExpression *expr) {
     visitEdgeSymPropExpr(expr);
 }
 
-void DeducePropsVisitor::visitUUIDExpr(const UUIDExpression *expr) {
+void DeducePropsVisitor::visitUUIDExpr(UUIDExpression *expr) {
     reportError(expr);
 }
 
-void DeducePropsVisitor::visitVariableExpr(const VariableExpression *expr) {
+void DeducePropsVisitor::visitVariableExpr(VariableExpression *expr) {
     reportError(expr);
 }
 
-void DeducePropsVisitor::visitVersionedVariableExpr(const VersionedVariableExpression *expr) {
+void DeducePropsVisitor::visitVersionedVariableExpr(VersionedVariableExpression *expr) {
     reportError(expr);
 }
 
-void DeducePropsVisitor::visitLabelExpr(const LabelExpression *expr) {
+void DeducePropsVisitor::visitLabelExpr(LabelExpression *expr) {
     reportError(expr);
 }
 
-void DeducePropsVisitor::visitSymbolPropertyExpr(const SymbolPropertyExpression *expr) {
+void DeducePropsVisitor::visitSymbolPropertyExpr(SymbolPropertyExpression *expr) {
     reportError(expr);
 }
 
-void DeducePropsVisitor::visitEdgeSymPropExpr(const SymbolPropertyExpression *expr) {
+void DeducePropsVisitor::visitEdgeSymPropExpr(SymbolPropertyExpression *expr) {
     auto status = qctx_->schemaMng()->toEdgeType(space_, *expr->sym());
     if (!status.ok()) {
         status_ = std::move(status).status();

@@ -33,23 +33,23 @@ public:
     }
 
 private:
-    void visitEdgePropertyExpr(const EdgePropertyExpression* expr) override;
-    void visitTagPropertyExpr(const TagPropertyExpression* expr) override;
-    void visitInputPropertyExpr(const InputPropertyExpression* expr) override;
-    void visitVariablePropertyExpr(const VariablePropertyExpression* expr) override;
-    void visitSourcePropertyExpr(const SourcePropertyExpression* expr) override;
-    void visitDestPropertyExpr(const DestPropertyExpression* expr) override;
-    void visitEdgeSrcIdExpr(const EdgeSrcIdExpression* expr) override;
-    void visitEdgeTypeExpr(const EdgeTypeExpression* expr) override;
-    void visitEdgeRankExpr(const EdgeRankExpression* expr) override;
-    void visitEdgeDstIdExpr(const EdgeDstIdExpression* expr) override;
-    void visitUUIDExpr(const UUIDExpression* expr) override;
-    void visitVariableExpr(const VariableExpression* expr) override;
-    void visitVersionedVariableExpr(const VersionedVariableExpression* expr) override;
-    void visitLabelExpr(const LabelExpression* expr) override;
-    void visitSymbolPropertyExpr(const SymbolPropertyExpression* expr) override;
+    void visitEdgePropertyExpr(EdgePropertyExpression* expr) override;
+    void visitTagPropertyExpr(TagPropertyExpression* expr) override;
+    void visitInputPropertyExpr(InputPropertyExpression* expr) override;
+    void visitVariablePropertyExpr(VariablePropertyExpression* expr) override;
+    void visitSourcePropertyExpr(SourcePropertyExpression* expr) override;
+    void visitDestPropertyExpr(DestPropertyExpression* expr) override;
+    void visitEdgeSrcIdExpr(EdgeSrcIdExpression* expr) override;
+    void visitEdgeTypeExpr(EdgeTypeExpression* expr) override;
+    void visitEdgeRankExpr(EdgeRankExpression* expr) override;
+    void visitEdgeDstIdExpr(EdgeDstIdExpression* expr) override;
+    void visitUUIDExpr(UUIDExpression* expr) override;
+    void visitVariableExpr(VariableExpression* expr) override;
+    void visitVersionedVariableExpr(VersionedVariableExpression* expr) override;
+    void visitLabelExpr(LabelExpression* expr) override;
+    void visitSymbolPropertyExpr(SymbolPropertyExpression* expr) override;
 
-    void visitEdgeSymPropExpr(const SymbolPropertyExpression* expr);
+    void visitEdgeSymPropExpr(SymbolPropertyExpression* expr);
 
     void reportError(const Expression* expr);
 

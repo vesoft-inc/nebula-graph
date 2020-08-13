@@ -24,109 +24,109 @@ namespace graph {
 CollectExprsVisitor::CollectExprsVisitor(const std::unordered_set<Expression::Kind> &exprTypes)
     : exprTypes_(exprTypes) {}
 
-void CollectExprsVisitor::visitTypeCastingExpr(const TypeCastingExpression *expr) {
+void CollectExprsVisitor::visitTypeCastingExpr(TypeCastingExpression *expr) {
     collectExpr(expr);
     expr->operand()->accept(this);
 }
 
-void CollectExprsVisitor::visitUnaryExpr(const UnaryExpression *expr) {
+void CollectExprsVisitor::visitUnaryExpr(UnaryExpression *expr) {
     collectExpr(expr);
     expr->operand()->accept(this);
 }
 
-void CollectExprsVisitor::visitFunctionCallExpr(const FunctionCallExpression *expr) {
+void CollectExprsVisitor::visitFunctionCallExpr(FunctionCallExpression *expr) {
     collectExpr(expr);
     for (const auto &arg : expr->args()->args()) {
         arg->accept(this);
     }
 }
 
-void CollectExprsVisitor::visitListExpr(const ListExpression *expr) {
+void CollectExprsVisitor::visitListExpr(ListExpression *expr) {
     collectExpr(expr);
-    for (const auto &item : expr->items()) {
-        item->accept(this);
+    for (auto item : expr->items()) {
+        const_cast<Expression *>(item)->accept(this);
     }
 }
 
-void CollectExprsVisitor::visitSetExpr(const SetExpression *expr) {
+void CollectExprsVisitor::visitSetExpr(SetExpression *expr) {
     collectExpr(expr);
-    for (const auto &item : expr->items()) {
-        item->accept(this);
+    for (auto item : expr->items()) {
+        const_cast<Expression *>(item)->accept(this);
     }
 }
 
-void CollectExprsVisitor::visitMapExpr(const MapExpression *expr) {
+void CollectExprsVisitor::visitMapExpr(MapExpression *expr) {
     collectExpr(expr);
     for (const auto &pair : expr->items()) {
-        pair.second->accept(this);
+        const_cast<Expression *>(pair.second)->accept(this);
     }
 }
 
-void CollectExprsVisitor::visitConstantExpr(const ConstantExpression *expr) {
+void CollectExprsVisitor::visitConstantExpr(ConstantExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitEdgePropertyExpr(const EdgePropertyExpression *expr) {
+void CollectExprsVisitor::visitEdgePropertyExpr(EdgePropertyExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitTagPropertyExpr(const TagPropertyExpression *expr) {
+void CollectExprsVisitor::visitTagPropertyExpr(TagPropertyExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitInputPropertyExpr(const InputPropertyExpression *expr) {
+void CollectExprsVisitor::visitInputPropertyExpr(InputPropertyExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitVariablePropertyExpr(const VariablePropertyExpression *expr) {
+void CollectExprsVisitor::visitVariablePropertyExpr(VariablePropertyExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitSourcePropertyExpr(const SourcePropertyExpression *expr) {
+void CollectExprsVisitor::visitSourcePropertyExpr(SourcePropertyExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitDestPropertyExpr(const DestPropertyExpression *expr) {
+void CollectExprsVisitor::visitDestPropertyExpr(DestPropertyExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitEdgeSrcIdExpr(const EdgeSrcIdExpression *expr) {
+void CollectExprsVisitor::visitEdgeSrcIdExpr(EdgeSrcIdExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitEdgeTypeExpr(const EdgeTypeExpression *expr) {
+void CollectExprsVisitor::visitEdgeTypeExpr(EdgeTypeExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitEdgeRankExpr(const EdgeRankExpression *expr) {
+void CollectExprsVisitor::visitEdgeRankExpr(EdgeRankExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitEdgeDstIdExpr(const EdgeDstIdExpression *expr) {
+void CollectExprsVisitor::visitEdgeDstIdExpr(EdgeDstIdExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitUUIDExpr(const UUIDExpression *expr) {
+void CollectExprsVisitor::visitUUIDExpr(UUIDExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitVariableExpr(const VariableExpression *expr) {
+void CollectExprsVisitor::visitVariableExpr(VariableExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitVersionedVariableExpr(const VersionedVariableExpression *expr) {
+void CollectExprsVisitor::visitVersionedVariableExpr(VersionedVariableExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitLabelExpr(const LabelExpression *expr) {
+void CollectExprsVisitor::visitLabelExpr(LabelExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitSymbolPropertyExpr(const SymbolPropertyExpression *expr) {
+void CollectExprsVisitor::visitSymbolPropertyExpr(SymbolPropertyExpression *expr) {
     collectExpr(expr);
 }
 
-void CollectExprsVisitor::visitBinaryExpr(const BinaryExpression *expr) {
+void CollectExprsVisitor::visitBinaryExpr(BinaryExpression *expr) {
     collectExpr(expr);
     expr->left()->accept(this);
     expr->right()->accept(this);

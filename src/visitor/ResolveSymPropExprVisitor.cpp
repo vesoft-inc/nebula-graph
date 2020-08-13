@@ -19,28 +19,26 @@ namespace graph {
 
 ResolveSymPropExprVisitor::ResolveSymPropExprVisitor(bool isTag) : isTag_(isTag) {}
 
-void ResolveSymPropExprVisitor::visitTypeCastingExpr(const TypeCastingExpression* expr) {
+void ResolveSymPropExprVisitor::visitTypeCastingExpr(TypeCastingExpression* expr) {
     if (isSymPropExpr(expr->operand())) {
-        auto newExpr = const_cast<TypeCastingExpression*>(expr);
         auto operand = static_cast<const SymbolPropertyExpression*>(expr->operand());
-        newExpr->setOperand(createExpr(operand));
+        expr->setOperand(createExpr(operand));
     } else {
         expr->operand()->accept(this);
     }
 }
 
-void ResolveSymPropExprVisitor::visitUnaryExpr(const UnaryExpression* expr) {
+void ResolveSymPropExprVisitor::visitUnaryExpr(UnaryExpression* expr) {
     if (isSymPropExpr(expr->operand())) {
-        auto newExpr = const_cast<UnaryExpression*>(expr);
         auto operand = static_cast<const SymbolPropertyExpression*>(expr->operand());
-        newExpr->setOperand(createExpr(operand));
+        expr->setOperand(createExpr(operand));
     } else {
         expr->operand()->accept(this);
     }
 }
 
-void ResolveSymPropExprVisitor::visitFunctionCallExpr(const FunctionCallExpression* expr) {
-    for (auto& arg : const_cast<FunctionCallExpression*>(expr)->args()->args()) {
+void ResolveSymPropExprVisitor::visitFunctionCallExpr(FunctionCallExpression* expr) {
+    for (auto& arg : expr->args()->args()) {
         if (isSymPropExpr(arg.get())) {
             auto newArg = static_cast<const SymbolPropertyExpression*>(arg.get());
             arg.reset(createExpr(newArg));
@@ -50,27 +48,28 @@ void ResolveSymPropExprVisitor::visitFunctionCallExpr(const FunctionCallExpressi
     }
 }
 
-void ResolveSymPropExprVisitor::visitListExpr(const ListExpression* expr) {
+void ResolveSymPropExprVisitor::visitListExpr(ListExpression* expr) {
     auto newItems = resolveExprList(expr->items());
     if (!newItems.empty()) {
         const_cast<ListExpression*>(expr)->setItems(std::move(newItems));
     }
 }
 
-void ResolveSymPropExprVisitor::visitSetExpr(const SetExpression* expr) {
+void ResolveSymPropExprVisitor::visitSetExpr(SetExpression* expr) {
     auto newItems = resolveExprList(expr->items());
     if (!newItems.empty()) {
         const_cast<SetExpression*>(expr)->setItems(std::move(newItems));
     }
 }
 
-void ResolveSymPropExprVisitor::visitMapExpr(const MapExpression* expr) {
+void ResolveSymPropExprVisitor::visitMapExpr(MapExpression* expr) {
     auto items = expr->items();
     auto found = std::find_if(
         items.cbegin(), items.cend(), [](auto& pair) { return isSymPropExpr(pair.second); });
     if (found == items.cend()) {
-        std::for_each(
-            items.cbegin(), items.cend(), [this](auto& pair) { pair.second->accept(this); });
+        std::for_each(items.cbegin(), items.cend(), [this](auto& pair) {
+            const_cast<Expression*>(pair.second)->accept(this);
+        });
         return;
     }
 
@@ -91,18 +90,16 @@ void ResolveSymPropExprVisitor::visitMapExpr(const MapExpression* expr) {
     const_cast<MapExpression*>(expr)->setItems(std::move(newItems));
 }
 
-void ResolveSymPropExprVisitor::visitBinaryExpr(const BinaryExpression* expr) {
+void ResolveSymPropExprVisitor::visitBinaryExpr(BinaryExpression* expr) {
     if (isSymPropExpr(expr->left())) {
-        auto newExpr = const_cast<BinaryExpression*>(expr);
         auto left = static_cast<const SymbolPropertyExpression*>(expr->left());
-        newExpr->setLeft(createExpr(left));
+        expr->setLeft(createExpr(left));
     } else {
         expr->left()->accept(this);
     }
     if (isSymPropExpr(expr->right())) {
-        auto newExpr = const_cast<BinaryExpression*>(expr);
         auto right = static_cast<const SymbolPropertyExpression*>(expr->right());
-        newExpr->setRight(createExpr(right));
+        expr->setRight(createExpr(right));
     } else {
         expr->right()->accept(this);
     }
@@ -114,7 +111,9 @@ std::vector<std::unique_ptr<Expression>> ResolveSymPropExprVisitor::resolveExprL
 
     auto found = std::find_if(exprs.cbegin(), exprs.cend(), isSymPropExpr);
     if (found == exprs.cend()) {
-        std::for_each(exprs.cbegin(), exprs.cend(), [this](auto expr) { expr->accept(this); });
+        std::for_each(exprs.cbegin(), exprs.cend(), [this](auto expr) {
+            const_cast<Expression*>(expr)->accept(this);
+        });
         return newExprs;
     }
 

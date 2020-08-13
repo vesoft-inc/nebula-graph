@@ -26,7 +26,7 @@ FindExprVisitor::FindExprVisitor(const std::unordered_set<Expression::Kind> &exp
     DCHECK(!exprs.empty());
 }
 
-void FindExprVisitor::visitTypeCastingExpr(const TypeCastingExpression *expr) {
+void FindExprVisitor::visitTypeCastingExpr(TypeCastingExpression *expr) {
     findExpr(expr);
     if (found_) return;
     findExpr(expr->operand());
@@ -34,7 +34,7 @@ void FindExprVisitor::visitTypeCastingExpr(const TypeCastingExpression *expr) {
     expr->operand()->accept(this);
 }
 
-void FindExprVisitor::visitUnaryExpr(const UnaryExpression *expr) {
+void FindExprVisitor::visitUnaryExpr(UnaryExpression *expr) {
     findExpr(expr);
     if (found_) return;
     findExpr(expr->operand());
@@ -42,7 +42,7 @@ void FindExprVisitor::visitUnaryExpr(const UnaryExpression *expr) {
     expr->operand()->accept(this);
 }
 
-void FindExprVisitor::visitFunctionCallExpr(const FunctionCallExpression *expr) {
+void FindExprVisitor::visitFunctionCallExpr(FunctionCallExpression *expr) {
     findExpr(expr);
     if (found_) return;
     for (const auto &arg : expr->args()->args()) {
@@ -53,104 +53,104 @@ void FindExprVisitor::visitFunctionCallExpr(const FunctionCallExpression *expr) 
     }
 }
 
-void FindExprVisitor::visitListExpr(const ListExpression *expr) {
+void FindExprVisitor::visitListExpr(ListExpression *expr) {
     findExpr(expr);
     if (found_) return;
     for (const auto &item : expr->items()) {
         findExpr(item);
         if (found_) return;
-        item->accept(this);
+        const_cast<Expression *>(item)->accept(this);
         if (found_) return;
     }
 }
 
-void FindExprVisitor::visitSetExpr(const SetExpression *expr) {
+void FindExprVisitor::visitSetExpr(SetExpression *expr) {
     findExpr(expr);
     if (found_) return;
     for (const auto &item : expr->items()) {
         findExpr(item);
         if (found_) return;
-        item->accept(this);
+        const_cast<Expression *>(item)->accept(this);
         if (found_) return;
     }
 }
 
-void FindExprVisitor::visitMapExpr(const MapExpression *expr) {
+void FindExprVisitor::visitMapExpr(MapExpression *expr) {
     findExpr(expr);
     if (found_) return;
     for (const auto &pair : expr->items()) {
         findExpr(pair.second);
         if (found_) return;
-        pair.second->accept(this);
+        const_cast<Expression *>(pair.second)->accept(this);
         if (found_) return;
     }
 }
 
-void FindExprVisitor::visitConstantExpr(const ConstantExpression *expr) {
+void FindExprVisitor::visitConstantExpr(ConstantExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitEdgePropertyExpr(const EdgePropertyExpression *expr) {
+void FindExprVisitor::visitEdgePropertyExpr(EdgePropertyExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitTagPropertyExpr(const TagPropertyExpression *expr) {
+void FindExprVisitor::visitTagPropertyExpr(TagPropertyExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitInputPropertyExpr(const InputPropertyExpression *expr) {
+void FindExprVisitor::visitInputPropertyExpr(InputPropertyExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitVariablePropertyExpr(const VariablePropertyExpression *expr) {
+void FindExprVisitor::visitVariablePropertyExpr(VariablePropertyExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitSourcePropertyExpr(const SourcePropertyExpression *expr) {
+void FindExprVisitor::visitSourcePropertyExpr(SourcePropertyExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitDestPropertyExpr(const DestPropertyExpression *expr) {
+void FindExprVisitor::visitDestPropertyExpr(DestPropertyExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitEdgeSrcIdExpr(const EdgeSrcIdExpression *expr) {
+void FindExprVisitor::visitEdgeSrcIdExpr(EdgeSrcIdExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitEdgeTypeExpr(const EdgeTypeExpression *expr) {
+void FindExprVisitor::visitEdgeTypeExpr(EdgeTypeExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitEdgeRankExpr(const EdgeRankExpression *expr) {
+void FindExprVisitor::visitEdgeRankExpr(EdgeRankExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitEdgeDstIdExpr(const EdgeDstIdExpression *expr) {
+void FindExprVisitor::visitEdgeDstIdExpr(EdgeDstIdExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitUUIDExpr(const UUIDExpression *expr) {
+void FindExprVisitor::visitUUIDExpr(UUIDExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitVariableExpr(const VariableExpression *expr) {
+void FindExprVisitor::visitVariableExpr(VariableExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitVersionedVariableExpr(const VersionedVariableExpression *expr) {
+void FindExprVisitor::visitVersionedVariableExpr(VersionedVariableExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitLabelExpr(const LabelExpression *expr) {
+void FindExprVisitor::visitLabelExpr(LabelExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitSymbolPropertyExpr(const SymbolPropertyExpression *expr) {
+void FindExprVisitor::visitSymbolPropertyExpr(SymbolPropertyExpression *expr) {
     findExpr(expr);
 }
 
-void FindExprVisitor::visitBinaryExpr(const BinaryExpression *expr) {
+void FindExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
     findExpr(expr);
     if (found_) return;
     findExpr(expr->left());

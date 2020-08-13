@@ -28,13 +28,13 @@ public:
     }
 
 private:
-    void visitTypeCastingExpr(const TypeCastingExpression* expr) override;
-    void visitUnaryExpr(const UnaryExpression* expr) override;
-    void visitFunctionCallExpr(const FunctionCallExpression* expr) override;
-    void visitListExpr(const ListExpression* expr) override;
-    void visitSetExpr(const SetExpression* expr) override;
-    void visitMapExpr(const MapExpression* expr) override;
-    void visitBinaryExpr(const BinaryExpression* expr) override;
+    void visitTypeCastingExpr(TypeCastingExpression* expr) override;
+    void visitUnaryExpr(UnaryExpression* expr) override;
+    void visitFunctionCallExpr(FunctionCallExpression* expr) override;
+    void visitListExpr(ListExpression* expr) override;
+    void visitSetExpr(SetExpression* expr) override;
+    void visitMapExpr(MapExpression* expr) override;
+    void visitBinaryExpr(BinaryExpression* expr) override;
 
     Expression* createExpr(const SymbolPropertyExpression* expr);
     std::vector<std::unique_ptr<Expression>> resolveExprList(
