@@ -14,14 +14,14 @@ namespace graph {
 class FetchEdgesValidatorTest : public ValidatorTestBase {};
 
 TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
-    auto src = std::make_unique<VariablePropertyExpression>(
-        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kSrc));
-    auto type = std::make_unique<VariablePropertyExpression>(
-        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kType));
-    auto rank = std::make_unique<VariablePropertyExpression>(
-        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kRank));
-    auto dst = std::make_unique<VariablePropertyExpression>(
-        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kDst));
+    auto src = std::make_unique<VariablePropertyExpression>(new std::string("_VAR1_"),
+                                                            new std::string(kSrc));
+    auto type = std::make_unique<VariablePropertyExpression>(new std::string("_VAR2_"),
+                                                             new std::string(kType));
+    auto rank = std::make_unique<VariablePropertyExpression>(new std::string("_VAR3_"),
+                                                             new std::string(kRank));
+    auto dst = std::make_unique<VariablePropertyExpression>(new std::string("_VAR4_"),
+                                                            new std::string(kDst));
     {
         auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\"");
 

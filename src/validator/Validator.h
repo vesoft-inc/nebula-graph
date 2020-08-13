@@ -80,9 +80,9 @@ public:
 
     static Status validate(Sentence* sentence, QueryContext* qctx);
 
-    MUST_USE_RESULT Status appendPlan(PlanNode* tail);
-
     Status validate();
+
+    MUST_USE_RESULT Status appendPlan(PlanNode* tail);
 
     void setInputVarName(std::string name) {
         inputVarName_ = std::move(name);
