@@ -109,11 +109,9 @@ public:
             case Iterator::Kind::kGetNeighbors:
                 return iter(std::make_unique<GetNeighborsIter>(core_.value));
             case Iterator::Kind::kJoin:
-                return iter(std::make_unique<JoinIter>());
+                LOG(FATAL) << "Invalid Iterator kind Join.";
         }
-        LOG(FATAL) << "Invalid Iterator kind" << static_cast<uint8_t>(kind);
-        // TODO
-        return iter(std::make_unique<DefaultIter>(core_.value));
+        LOG(FATAL) << "Invalid Iterator kind " << static_cast<uint8_t>(kind);
     }
 
     ResultBuilder& state(Result::State state) {
