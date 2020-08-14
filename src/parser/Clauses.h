@@ -9,6 +9,7 @@
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 class StepClause final {
@@ -129,8 +130,6 @@ public:
         alias_.reset(alias);
     }
 
-    bool isOverAll() const { return *edge_ == "*"; }
-
     std::string *edge() const { return edge_.get(); }
 
     std::string *alias() const { return alias_.get(); }
@@ -173,6 +172,7 @@ public:
                storage::cpp2::EdgeDirection direction = storage::cpp2::EdgeDirection::OUT_EDGE) {
         isOverAll_ = isOverAll;
         direction_ = direction;
+        overEdges_ = std::make_unique<OverEdges>();
     }
 
     std::vector<OverEdge *> edges() const { return overEdges_->edges(); }
@@ -203,6 +203,10 @@ public:
         return filter_.get();
     }
 
+    void setFilter(Expression* expr) {
+        filter_.reset(expr);
+    }
+
     std::string toString() const;
 
 private:
@@ -218,8 +222,28 @@ public:
         alias_.reset(alias);
     }
 
+    std::unique_ptr<YieldColumn> clone() const {
+        auto col = std::make_unique<YieldColumn>(
+            graph::ExpressionUtils::clone(expr_.get()).release());
+        if (alias_ != nullptr) {
+            col->setAlias(new std::string(*alias_));
+        }
+        if (aggFunName_ != nullptr) {
+            col->setAggFunction(new std::string(*aggFunName_));
+        }
+        return col;
+    }
+
+    void setExpr(Expression* expr) {
+        expr_.reset(expr);
+    }
+
     Expression* expr() const {
         return expr_.get();
+    }
+
+    void setAlias(std::string* alias) {
+        alias_.reset(alias);
     }
 
     std::string* alias() const {

@@ -11,8 +11,8 @@
 #include "common/clients/storage/GraphStorageClient.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/Vertex.h"
-
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::GetNeighborsResponse;
@@ -22,7 +22,6 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetNeighborsExecutor::execute() {
-    dumpLog();
     auto status = buildRequestDataSet();
     if (!status.ok()) {
         return error(std::move(status));
@@ -34,6 +33,7 @@ folly::Future<Status> GetNeighborsExecutor::execute() {
 }
 
 Status GetNeighborsExecutor::buildRequestDataSet() {
+    SCOPED_TIMER(&execTime_);
     auto& inputVar = gn_->inputVar();
     VLOG(1) << node()->varName() << " : " << inputVar;
     auto& inputResult = ectx_->getResult(inputVar);
@@ -43,16 +43,17 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
     reqDs_.colNames = {kVid};
     reqDs_.rows.reserve(iter->size());
     auto* src = gn_->src();
+    std::unordered_set<Value> uniqueVid;
     for (; iter->valid(); iter->next()) {
         auto val = Expression::eval(src, ctx);
         if (!val.isStr()) {
             continue;
         }
-        Row row;
-        row.values.emplace_back(std::move(val));
-        reqDs_.rows.emplace_back(std::move(row));
+        auto ret = uniqueVid.emplace(val);
+        if (ret.second) {
+            reqDs_.rows.emplace_back(Row({std::move(val)}));
+        }
     }
-
     return Status::OK();
 }
 
@@ -65,6 +66,8 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                           .iter(Iterator::Kind::kGetNeighbors)
                           .finish());
     }
+
+    time::Duration getNbrTime;
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     return storageClient
         ->getNeighbors(gn_->space(),
@@ -82,9 +85,12 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
                        gn_->limit(),
                        gn_->filter())
         .via(runner())
+        .ensure([getNbrTime]() {
+            VLOG(1) << "Get neighbors time: " << getNbrTime.elapsedInUSec() << "us";
+        })
         .then([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
-            auto status = handleResponse(resp);
-            return status.ok() ? start() : error(std::move(status));
+            SCOPED_TIMER(&execTime_);
+            return handleResponse(resp);
         });
 }
 

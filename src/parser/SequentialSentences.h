@@ -13,13 +13,10 @@
 #include "parser/MutateSentences.h"
 #include "parser/AdminSentences.h"
 #include "parser/UserSentences.h"
+#include "parser/MatchSentence.h"
 #include "parser/ProcessControlSentences.h"
 
 namespace nebula {
-
-namespace graph {
-class SequentialExecutor;
-}
 
 class SequentialSentences final : public Sentence {
 public:
@@ -43,7 +40,6 @@ public:
     std::string toString() const override;
 
 private:
-    friend class nebula::graph::SequentialExecutor;
     std::vector<std::unique_ptr<Sentence>>      sentences_;
 };
 

@@ -7,6 +7,7 @@
 #include "exec/query/GetEdgesExecutor.h"
 #include "planner/Query.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -20,34 +21,40 @@ folly::Future<Status> GetEdgesExecutor::execute() {
 }
 
 folly::Future<Status> GetEdgesExecutor::getEdges() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
 
     GraphStorageClient *client = qctx()->getStorageClient();
 
     auto *ge = asNode<GetEdges>(node());
     nebula::DataSet edges({kSrc, kType, kRank, kDst});
-    if (!ge->edges().empty()) {
-        edges.rows.insert(edges.rows.end(),
-                          std::make_move_iterator(ge->edges().begin()),
-                          std::make_move_iterator(ge->edges().end()));
-    }
-    if (ge->src() != nullptr && ge->ranking() != nullptr && ge->dst() != nullptr) {
+    if (ge->src() != nullptr &&
+        ge->type() != nullptr &&
+        ge->ranking() != nullptr &&
+        ge->dst() != nullptr) {
         // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
         auto valueIter = ectx_->getResult(ge->inputVar()).iter();
         auto expCtx = QueryExpressionContext(qctx()->ectx(), valueIter.get());
         for (; valueIter->valid(); valueIter->next()) {
             auto src = ge->src()->eval(expCtx);
+            auto type = ge->type()->eval(expCtx);
             auto ranking = ge->ranking()->eval(expCtx);
             auto dst = ge->dst()->eval(expCtx);
-            if (!src.isStr() || !ranking.isInt() || !dst.isStr()) {
+            if (!src.isStr() || !type.isInt() || !ranking.isInt() || !dst.isStr()) {
                 LOG(WARNING) << "Mismatched edge key type";
                 continue;
             }
             edges.emplace_back(Row({
-                std::move(src), ge->type(), std::move(ranking), std::move(dst)
+                std::move(src), type, ranking, std::move(dst)
             }));
         }
     }
+
+    if (edges.rows.empty()) {
+        // TODO: add test for empty input.
+        return finish(ResultBuilder().value(Value(DataSet(ge->colNames()))).finish());
+    }
+
+    time::Duration getPropsTime;
     return DCHECK_NOTNULL(client)
         ->getProps(ge->space(),
                    std::move(edges),
@@ -59,7 +66,11 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                    ge->limit(),
                    ge->filter())
         .via(runner())
+        .ensure([getPropsTime]() {
+            VLOG(1) << "Get Props Time: " << getPropsTime.elapsedInUSec() << "us";
+        })
         .then([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+            SCOPED_TIMER(&execTime_);
             return handleResp(std::move(rpcResp));
         });
 }

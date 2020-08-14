@@ -6,9 +6,9 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import time
-import pytest
 
-from nebula_test_common.nebula_test_suite import NebulaTestSuite
+import pytest
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 
 class TestFetchEmptyVertices(NebulaTestSuite):
@@ -16,10 +16,10 @@ class TestFetchEmptyVertices(NebulaTestSuite):
     def prepare(self):
         resp = self.execute('CREATE SPACE empty(partition_num=1, replica_factor=1)')
         self.check_resp_succeeded(resp)
-    
+
         # 2.0 use space get from cache
         time.sleep(self.delay)
-    
+
         resp = self.execute('USE empty')
         self.check_resp_succeeded(resp)
 
@@ -38,43 +38,42 @@ class TestFetchEmptyVertices(NebulaTestSuite):
                             'INSERT VERTEX empty_tag_1() values "1":(), "2":();'
                             'INSERT EDGE empty_edge() values "1"->"2":();')
         self.check_resp_succeeded(resp)
-    
+
     @classmethod
     def cleanup(self):
         resp = self.execute('DROP SPACE empty')
         self.check_resp_succeeded(resp)
-    
-    @pytest.mark.skip(reason="does not support fetch")
+
     def test_empty_props(self):
         # empty_tag_0
-        resp = self.execute('FETCH PROP ON empty_tag_0 "1"')
+        resp = self.execute_query('FETCH PROP ON empty_tag_0 "1"')
         self.check_resp_succeeded(resp)
         expect_result = [['1']]
         self.check_result(resp, expect_result)
 
         # *
-        resp = self.execute('FETCH PROP ON * "1"')
+        resp = self.execute_query('FETCH PROP ON * "1"')
         self.check_resp_succeeded(resp)
         expect_result = [['1']]
         self.check_result(resp, expect_result)
 
         # edge
-        resp = self.execute('FETCH PROP ON empty_edge "1"->"2"')
+        resp = self.execute_query('FETCH PROP ON empty_edge "1"->"2"')
         self.check_resp_succeeded(resp)
         expect_result = [['1', '2', 0]]
         self.check_result(resp, expect_result)
 
-    @pytest.mark.skip(reason="does not support fetch")
     def test_input_with_empty_props(self):
-        resp = self.execute('GO FROM "1" OVER empty_edge YIELD empty_edge._dst as id'
-                            '| FETCH PROP ON empty_tag_0 $-.id')
+        resp = self.execute_query('GO FROM "1" OVER empty_edge '
+                                  'YIELD empty_edge._dst as id'
+                                  '| FETCH PROP ON empty_tag_0 $-.id')
         self.check_resp_succeeded(resp)
         expect_result = [['2']]
         self.check_result(resp, expect_result)
 
-        resp = self.execute('GO FROM 1 OVER empty_edge YIELD empty_edge._src as src, empty_edge._dst as dst'
-                            '| FETCH PROP ON empty_edge $-.src->$-.dst')
+        resp = self.execute_query('GO FROM "1" OVER empty_edge '
+                                  'YIELD empty_edge._src as src, empty_edge._dst as dst'
+                                  '| FETCH PROP ON empty_edge $-.src->$-.dst')
         self.check_resp_succeeded(resp)
         expect_result = [['1', '2', 0]]
         self.check_result(resp, expect_result)
-

@@ -152,9 +152,9 @@ AVG                         ([Aa][Vv][Gg])
 MIN                         ([Mm][Ii][Nn])
 MAX                         ([Mm][Aa][Xx])
 STD                         ([Ss][Tt][Dd])
-BIT_AND                     ([Bb][It][Tt][_][Aa][Nn][Dd])
-BIT_OR                      ([Bb][It][Tt][_][Oo][Rr])
-BIT_XOR                     ([Bb][It][Tt][_][Xx][Oo][Rr])
+BIT_AND                     ([Bb][Ii][Tt][_][Aa][Nn][Dd])
+BIT_OR                      ([Bb][Ii][Tt][_][Oo][Rr])
+BIT_XOR                     ([Bb][Ii][Tt][_][Xx][Oo][Rr])
 IS                          ([Ii][Ss])
 NULL                        ([Nn][Uu][Ll][Ll])
 SNAPSHOT                    ([Ss][Nn][Aa][Pp][Ss][Hh][Oo][Tt])
@@ -167,6 +167,7 @@ DBA                         ([Dd][Bb][Aa])
 OUT                         ([Oo][Uu][Tt])
 BOTH                        ([Bb][Oo][Tt][Hh])
 SUBGRAPH                    ([Ss][Uu][Bb][Gg][Rr][Aa][Pp][Hh])
+CONTAINS                    ([Cc][Oo][Nn][Tt][Aa][Ii][Nn][Ss])
 
 LABEL                       ([a-zA-Z][_a-zA-Z0-9]*)
 DEC                         ([0-9])
@@ -177,6 +178,10 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 JOBS                        ([Jj][Oo][Bb][Ss])
 JOB                         ([Jj][Oo][Bb])
 RECOVER                     ([Rr][Ee][Cc][Oo][Vv][Ee][Rr])
+
+EXPLAIN                     ([Ee][Xx][Pp][Ll][Aa][Ii][Nn])
+PROFILE                     ([Pp][Rr][Oo][Ff][Ii][Ll][Ee])
+FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 
 %%
 
@@ -268,7 +273,9 @@ RECOVER                     ([Rr][Ee][Cc][Oo][Vv][Ee][Rr])
 {IS}                        { return TokenType::KW_IS; }
 {NULL}                      { return TokenType::KW_NULL; }
 {RECOVER}                   { return TokenType::KW_RECOVER; }
-
+{EXPLAIN}                   { return TokenType::KW_EXPLAIN; }
+{PROFILE}                   { return TokenType::KW_PROFILE; }
+{FORMAT}                    { return TokenType::KW_FORMAT; }
 
  /* Unreserved keyword */
 {HOSTS}                     { return TokenType::KW_HOSTS; }
@@ -329,6 +336,7 @@ RECOVER                     ([Rr][Ee][Cc][Oo][Vv][Ee][Rr])
 {OUT}                       { return TokenType::KW_OUT; }
 {BOTH}                      { return TokenType::KW_BOTH; }
 {SUBGRAPH}                  { return TokenType::KW_SUBGRAPH; }
+{CONTAINS}                  { return TokenType::KW_CONTAINS; }
 
 
 {TRUE}                      { yylval->boolval = true; return TokenType::BOOL; }
@@ -342,7 +350,7 @@ RECOVER                     ([Rr][Ee][Cc][Oo][Vv][Ee][Rr])
 
 "+"                         { return TokenType::PLUS; }
 "-"                         { return TokenType::MINUS; }
-"*"                         { return TokenType::MUL; }
+"*"                         { return TokenType::STAR; }
 "/"                         { return TokenType::DIV; }
 "%"                         { return TokenType::MOD; }
 "!"                         { return TokenType::NOT; }
@@ -551,7 +559,6 @@ RECOVER                     ([Rr][Ee][Cc][Oo][Vv][Ee][Rr])
                             }
 "#".*                       // Skip the annotation
 "//".*                      // Skip the annotation
-"--".*                      // Skip the annotation
 "/*"                        { BEGIN(COMMENT); }
 <COMMENT>"*/"               { BEGIN(INITIAL); }
 <COMMENT>([^*]|\n)+|.

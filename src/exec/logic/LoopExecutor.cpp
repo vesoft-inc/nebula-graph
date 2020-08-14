@@ -10,7 +10,9 @@
 
 #include "common/interface/gen-cpp2/common_types.h"
 #include "context/QueryExpressionContext.h"
+#include "planner/Logic.h"
 #include "planner/Query.h"
+#include "util/ScopedTimer.h"
 
 using folly::stringPrintf;
 
@@ -21,7 +23,8 @@ LoopExecutor::LoopExecutor(const PlanNode *node, QueryContext *qctx, Executor *b
     : Executor("LoopExecutor", node, qctx), body_(DCHECK_NOTNULL(body)) {}
 
 folly::Future<Status> LoopExecutor::execute() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
+
     auto *loopNode = asNode<Loop>(node());
     Expression *expr = loopNode->condition();
     QueryExpressionContext ctx(ectx_, nullptr);

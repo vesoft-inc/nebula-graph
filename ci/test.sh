@@ -8,7 +8,7 @@
 set -ex -o pipefail
 
 PROJ_DIR="$(cd "$(dirname "$0")" && pwd)/.."
-BUILD_DIR=$PROJ_DIR/_build
+BUILD_DIR=$PROJ_DIR/build
 TOOLSET_DIR=/opt/vesoft/toolset/clang/9.0.0
 
 mkdir -p $BUILD_DIR
@@ -25,12 +25,12 @@ function lint() {
 }
 
 function build_common() {
-    cmake --build $PROJ_DIR/modules/common -j$(nproc)
+    cmake --build $BUILD_DIR/modules/common -j$(nproc)
 }
 
 function build_storage() {
-    cmake --build $PROJ_DIR/modules/storage --target nebula-storaged -j$(nproc)
-    cmake --build $PROJ_DIR/modules/storage --target nebula-metad -j$(nproc)
+    cmake --build $BUILD_DIR/modules/storage --target nebula-storaged -j$(nproc)
+    cmake --build $BUILD_DIR/modules/storage --target nebula-metad -j$(nproc)
 }
 
 function gcc_compile() {
@@ -80,9 +80,16 @@ function run_test() {
     ./ntr \
         $PROJ_DIR/tests/admin/* \
         $PROJ_DIR/tests/maintain/* \
-        $PROJ_DIR/tests/query/stateless/test_schema.py \
+        $PROJ_DIR/tests/mutate/* \
+        $PROJ_DIR/tests/query/stateless/test_new_go.py \
+        $PROJ_DIR/tests/query/stateless/test_new_groupby.py \
         $PROJ_DIR/tests/query/v1/* \
-        $PROJ_DIR/tests/mutate/*
+        $PROJ_DIR/tests/query/v2/* \
+        $PROJ_DIR/tests/query/stateless/test_schema.py \
+        $PROJ_DIR/tests/query/stateless/test_if_exists.py \
+        $PROJ_DIR/tests/query/stateless/test_range.py \
+        $PROJ_DIR/tests/query/stateless/test_go.py \
+        $PROJ_DIR/tests/query/stateless/test_simple_query.py
 }
 
 case "$1" in
