@@ -13,13 +13,13 @@
 #include "context/ExecutionContext.h"
 #include "context/QueryContext.h"
 #include "exec/ExecutionError.h"
-#include "exec/admin/SubmitJobExecutor.h"
+#include "exec/admin/CharsetExecutor.h"
+#include "exec/admin/PartExecutor.h"
 #include "exec/admin/ShowHostsExecutor.h"
 #include "exec/admin/SnapshotExecutor.h"
 #include "exec/admin/SpaceExecutor.h"
+#include "exec/admin/SubmitJobExecutor.h"
 #include "exec/admin/SwitchSpaceExecutor.h"
-#include "exec/admin/PartExecutor.h"
-#include "exec/admin/CharsetExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
@@ -465,18 +465,20 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 
 Executor::~Executor() {}
 
-void Executor::startProfiling() {
+Status Executor::open() {
     numRows_ = 0;
     execTime_ = 0;
     totalDuration_.reset();
+    return Status::OK();
 }
 
-void Executor::stopProfiling() {
+Status Executor::close() {
     cpp2::ProfilingStats stats;
     stats.set_total_duration_in_us(totalDuration_.elapsedInUSec());
     stats.set_rows(numRows_);
     stats.set_exec_duration_in_us(execTime_);
     qctx()->addProfilingData(node_->id(), std::move(stats));
+    return Status::OK();
 }
 
 folly::Future<Status> Executor::start(Status status) const {
