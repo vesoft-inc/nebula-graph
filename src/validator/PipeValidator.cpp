@@ -17,14 +17,17 @@ Status PipeValidator::validateImpl() {
     auto pipeSentence = static_cast<PipedSentence*>(sentence_);
     auto left = pipeSentence->left();
     lValidator_ = makeValidator(left, qctx_);
+    lValidator_->setInputCols(std::move(inputs_));
+    lValidator_->setInputVarName(inputVarName_);
     NG_RETURN_IF_ERROR(lValidator_->validate());
 
     auto right = pipeSentence->right();
     rValidator_ = makeValidator(right, qctx_);
-    rValidator_->setInputs(lValidator_->outputs());
+    rValidator_->setInputCols(lValidator_->outputCols());
+    rValidator_->setInputVarName(lValidator_->root()->varName());
     NG_RETURN_IF_ERROR(rValidator_->validate());
 
-    outputs_ = rValidator_->outputs();
+    outputs_ = rValidator_->outputCols();
     return Status::OK();
 }
 
@@ -33,7 +36,10 @@ Status PipeValidator::toPlan() {
     tail_ = lValidator_->tail();
     NG_RETURN_IF_ERROR(rValidator_->appendPlan(lValidator_->root()));
     auto node = static_cast<SingleInputNode*>(rValidator_->tail());
-    node->setInputVar(lValidator_->root()->varName());
+    if (node->inputVar().empty()) {
+        // If the input variable was not set, set it dynamically.
+        node->setInputVar(lValidator_->root()->varName());
+    }
     return Status::OK();
 }
 

@@ -9,8 +9,10 @@
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
+#include "util/ExpressionUtils.h"
 #include "validator/AdminValidator.h"
 #include "validator/AssignmentValidator.h"
+#include "validator/ExplainValidator.h"
 #include "validator/GetSubgraphValidator.h"
 #include "validator/GoValidator.h"
 #include "validator/LimitValidator.h"
@@ -18,11 +20,15 @@
 #include "validator/MutateValidator.h"
 #include "validator/OrderByValidator.h"
 #include "validator/PipeValidator.h"
+#include "validator/FetchVerticesValidator.h"
+#include "validator/FetchEdgesValidator.h"
 #include "validator/ReportError.h"
 #include "validator/SequentialValidator.h"
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/YieldValidator.h"
+#include "validator/GroupByValidator.h"
+#include "common/function/FunctionManager.h"
 
 namespace nebula {
 namespace graph {
@@ -35,6 +41,8 @@ Validator::Validator(Sentence* sentence, QueryContext* qctx)
 std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
     auto kind = sentence->kind();
     switch (kind) {
+        case Sentence::Kind::kExplain:
+            return std::make_unique<ExplainValidator>(sentence, context);
         case Sentence::Kind::kSequential:
             return std::make_unique<SequentialValidator>(sentence, context);
         case Sentence::Kind::kGo:
@@ -55,6 +63,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<OrderByValidator>(sentence, context);
         case Sentence::Kind::kYield:
             return std::make_unique<YieldValidator>(sentence, context);
+        case Sentence::Kind::kGroupBy:
+            return std::make_unique<GroupByValidator>(sentence, context);
         case Sentence::Kind::kCreateSpace:
             return std::make_unique<CreateSpaceValidator>(sentence, context);
         case Sentence::Kind::kCreateTag:
@@ -93,12 +103,26 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
             return std::make_unique<InsertEdgesValidator>(sentence, context);
+        case Sentence::Kind::kFetchVertices:
+            return std::make_unique<FetchVerticesValidator>(sentence, context);
+        case Sentence::Kind::kFetchEdges:
+            return std::make_unique<FetchEdgesValidator>(sentence, context);
         case Sentence::Kind::kCreateSnapshot:
             return std::make_unique<CreateSnapshotValidator>(sentence, context);
         case Sentence::Kind::kDropSnapshot:
             return std::make_unique<DropSnapshotValidator>(sentence, context);
         case Sentence::Kind::kShowSnapshots:
             return std::make_unique<ShowSnapshotsValidator>(sentence, context);
+        case Sentence::Kind::kDeleteVertices:
+            return std::make_unique<DeleteVerticesValidator>(sentence, context);
+        case Sentence::Kind::kDeleteEdges:
+            return std::make_unique<DeleteEdgesValidator>(sentence, context);
+        case Sentence::Kind::kUpdateVertex:
+            return std::make_unique<UpdateVertexValidator>(sentence, context);
+        case Sentence::Kind::kUpdateEdge:
+            return std::make_unique<UpdateEdgeValidator>(sentence, context);
+        case Sentence::Kind::kShowParts:
+            return std::make_unique<ShowPartsValidator>(sentence, context);
         default:
             return std::make_unique<ReportError>(sentence, context);
     }
@@ -106,6 +130,7 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     switch (DCHECK_NOTNULL(node)->kind()) {
+        case PlanNode::Kind::kShowHosts:
         case PlanNode::Kind::kFilter:
         case PlanNode::Kind::kProject:
         case PlanNode::Kind::kSort:
@@ -115,6 +140,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kLoop:
         case PlanNode::Kind::kMultiOutputs:
         case PlanNode::Kind::kSwitchSpace:
+        case PlanNode::Kind::kGetEdges:
+        case PlanNode::Kind::kGetVertices:
         case PlanNode::Kind::kCreateSpace:
         case PlanNode::Kind::kCreateTag:
         case PlanNode::Kind::kCreateEdge:
@@ -137,13 +164,18 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kShowEdges:
         case PlanNode::Kind::kCreateSnapshot:
         case PlanNode::Kind::kDropSnapshot:
-        case PlanNode::Kind::kShowSnapshots: {
-            static_cast<SingleDependencyNode*>(node)->setDep(appended);
+        case PlanNode::Kind::kShowSnapshots:
+        case PlanNode::Kind::kDeleteVertices:
+        case PlanNode::Kind::kDeleteEdges:
+        case PlanNode::Kind::kUpdateVertex:
+        case PlanNode::Kind::kUpdateEdge:
+        case PlanNode::Kind::kShowParts: {
+            static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
             break;
         }
         default: {
-            return Status::Error("%s not support to append an input.",
-                                 PlanNode::toString(node->kind()));
+            return Status::SemanticError("%s not support to append an input.",
+                                         PlanNode::toString(node->kind()));
         }
     }
     return Status::OK();
@@ -156,25 +188,34 @@ Status Validator::appendPlan(PlanNode* tail) {
 Status Validator::validate() {
     if (!vctx_) {
         VLOG(1) << "Validate context was not given.";
-        return Status::Error("Validate context was not given.");
+        return Status::SemanticError("Validate context was not given.");
     }
 
     if (!sentence_) {
         VLOG(1) << "Sentence was not given";
-        return Status::Error("Sentence was not given");
+        return Status::SemanticError("Sentence was not given");
     }
 
     if (!noSpaceRequired_ && !spaceChosen()) {
         VLOG(1) << "Space was not chosen.";
-        return Status::Error("Space was not chosen.");
+        return Status::SemanticError("Space was not chosen.");
     }
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
     }
 
-    NG_RETURN_IF_ERROR(validateImpl());
-    NG_RETURN_IF_ERROR(toPlan());
+    auto status = validateImpl();
+    if (!status.ok()) {
+        if (status.isSemanticError()) return status;
+        return Status::SemanticError(status.message());
+    }
+
+    status = toPlan();
+    if (!status.ok()) {
+        if (status.isSemanticError()) return status;
+        return Status::SemanticError(status.message());
+    }
 
     return Status::OK();
 }
@@ -194,16 +235,8 @@ std::vector<std::string> Validator::deduceColNames(const YieldColumns* cols) con
 std::string Validator::deduceColName(const YieldColumn* col) const {
     if (col->alias() != nullptr) {
         return *col->alias();
-    }
-
-    switch (col->expr()->kind()) {
-        case Expression::Kind::kInputProperty: {
-            auto expr = static_cast<InputPropertyExpression*>(col->expr());
-            return *expr->prop();
-        }
-        default: {
-            return col->expr()->toString();
-        }
+    } else {
+        return col->toString();
     }
 }
 
@@ -219,7 +252,7 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
         ss << "`" << expr->toString() << "' is not a valid expression, "                           \
            << "can not apply `" << #OP << "' to `" << left.value() << "' and `" << right.value()   \
            << "'.";                                                                                \
-        return Status::Error(ss.str());                                                            \
+        return Status::SemanticError(ss.str());                                                    \
     }                                                                                              \
     return detectVal.type();
 
@@ -232,7 +265,7 @@ std::string Validator::deduceColName(const YieldColumn* col) const {
         std::stringstream ss;                                                                      \
         ss << "`" << expr->toString() << "' is not a valid expression, "                           \
            << "can not apply `" << #OP << "' to " << status.value() << ".";                        \
-        return Status::Error(ss.str());                                                            \
+        return Status::SemanticError(ss.str());                                                    \
     }                                                                                              \
     return detectVal.type();
 
@@ -243,7 +276,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         {Value::Type::BOOL, Value(true)},
         {Value::Type::INT, Value(1)},
         {Value::Type::FLOAT, Value(1.0)},
-        {Value::Type::STRING, Value("a")},
+        {Value::Type::STRING, Value("123")},
         {Value::Type::DATE, Value(Date())},
         {Value::Type::DATETIME, Value(DateTime())},
         {Value::Type::VERTEX, Value(Vertex())},
@@ -275,7 +308,11 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kRelLT:
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGT:
-        case Expression::Kind::kRelGE: {
+        case Expression::Kind::kRelGE:
+        case Expression::Kind::kContains: {
+            auto biExpr = static_cast<const BinaryExpression*>(expr);
+            NG_RETURN_IF_ERROR(deduceExprType(biExpr->left()));
+            NG_RETURN_IF_ERROR(deduceExprType(biExpr->right()));
             // TODO: Should deduce.
             return Value::Type::BOOL;
         }
@@ -286,26 +323,25 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kLogicalOr: {
             DETECT_BIEXPR_TYPE(||)
         }
-        case Expression::Kind::kRelIn: {
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
             NG_RETURN_IF_ERROR(deduceExprType(biExpr->left()));
 
             auto right = deduceExprType(biExpr->right());
             NG_RETURN_IF_ERROR(right);
-            if (right.value() != Value::Type::LIST) {
-                std::stringstream ss;
-                ss << "`" << expr->toString() << "' is not a valid expression, "
-                    << "expected `LIST' but `" << right.value() << "' was given.";
-                return Status::Error(ss.str());
+            if (right.value() != Value::Type::LIST &&
+                    right.value() != Value::Type::MAP &&
+                    right.value() != Value::Type::SET) {
+                return Status::SemanticError("`%s': Invalid expression for IN operator, "
+                                             "expecting List/Set/Map", biExpr->toString().c_str());
             }
             return Value::Type::BOOL;
         }
         case Expression::Kind::kUnaryPlus: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             return status.value();
         }
@@ -318,47 +354,72 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kUnaryIncr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             auto detectVal = kConstantValues.at(status.value()) + 1;
             if (detectVal.isBadNull()) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                     << "can not apply `++' to " << status.value() << ".";
-                return Status::Error(ss.str());
+                return Status::SemanticError(ss.str());
             }
             return detectVal.type();
         }
         case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             auto status = deduceExprType(unaryExpr->operand());
-            if (!status.ok()) {
-                return status.status();
-            }
+            NG_RETURN_IF_ERROR(status);
 
             auto detectVal = kConstantValues.at(status.value()) - 1;
             if (detectVal.isBadNull()) {
                 std::stringstream ss;
                 ss << "`" << expr->toString() << "' is not a valid expression, "
                     << "can not apply `--' to " << status.value() << ".";
-                return Status::Error(ss.str());
+                return Status::SemanticError(ss.str());
             }
             return detectVal.type();
         }
         case Expression::Kind::kFunctionCall: {
-            // TODO
-            return Status::Error("Not support function yet.");
+            auto funcExpr = static_cast<const FunctionCallExpression *>(expr);
+            std::vector<Value::Type> argsTypeList;
+            argsTypeList.reserve(funcExpr->args()->numArgs());
+            for (auto &arg : funcExpr->args()->args()) {
+                auto status = deduceExprType(arg.get());
+                NG_RETURN_IF_ERROR(status);
+                argsTypeList.push_back(status.value());
+            }
+            auto result =
+                FunctionManager::getReturnType(*(funcExpr->name()), argsTypeList);
+            if (!result.ok()) {
+                return Status::SemanticError("`%s` is not a valid expression : %s",
+                                             expr->toString().c_str(),
+                                             result.status().toString().c_str());
+            }
+            return result.value();
         }
         case Expression::Kind::kTypeCasting: {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
-            auto status = deduceExprType(castExpr->operand());
-            if (!status.ok()) {
-                return status.status();
+            auto result = deduceExprType(castExpr->operand());
+            NG_RETURN_IF_ERROR(result);
+            if (!evaluableExpr(castExpr->operand())) {
+                if (TypeCastingExpression::validateTypeCast(result.value(),
+                                                            castExpr->type())) {
+                    return castExpr->type();
+                }
+                std::stringstream out;
+                out << "Can not convert " << castExpr->operand()
+                    << " 's type : " << result.value() << " to "
+                    << castExpr->type();
+                return Status::Error(out.str());
             }
-            // TODO
-            return Status::Error("Not support type casting yet.");
+            QueryExpressionContext ctx(nullptr, nullptr);
+            auto* typeCastExpr = const_cast<TypeCastingExpression*>(castExpr);
+            auto val = typeCastExpr->eval(ctx);
+            if (val.isNull()) {
+                return Status::SemanticError("`%s` is not a valid expression ",
+                                             expr->toString().c_str());
+            }
+            return val.type();
         }
         case Expression::Kind::kTagProperty:
         case Expression::Kind::kDstProperty:
@@ -371,14 +432,14 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             }
             auto schema = qctx_->schemaMng()->getTagSchema(space_.id, tagId.value());
             if (!schema) {
-                return Status::Error("`%s', not found tag `%s'.",
-                        expr->toString().c_str(), tag->c_str());
+                return Status::SemanticError(
+                    "`%s', not found tag `%s'.", expr->toString().c_str(), tag->c_str());
             }
             auto* prop = tagPropExpr->prop();
             auto* field = schema->field(*prop);
             if (field == nullptr) {
-                return Status::Error("`%s', not found the property `%s'.",
-                        expr->toString().c_str(), prop->c_str());
+                return Status::SemanticError(
+                    "`%s', not found the property `%s'.", expr->toString().c_str(), prop->c_str());
             }
             return SchemaUtil::propTypeToValueType(field->type());
         }
@@ -391,14 +452,14 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             }
             auto schema = qctx_->schemaMng()->getEdgeSchema(space_.id, edgeType.value());
             if (!schema) {
-                return Status::Error("`%s', not found edge `%s'.",
-                        expr->toString().c_str(), edge->c_str());
+                return Status::SemanticError(
+                    "`%s', not found edge `%s'.", expr->toString().c_str(), edge->c_str());
             }
             auto* prop = edgePropExpr->prop();
             auto* field = schema->field(*prop);
             if (field == nullptr) {
-                return Status::Error("`%s', not found the property `%s'.",
-                        expr->toString().c_str(), prop->c_str());
+                return Status::SemanticError(
+                    "`%s', not found the property `%s'.", expr->toString().c_str(), prop->c_str());
             }
             return SchemaUtil::propTypeToValueType(field->type());
         }
@@ -406,8 +467,8 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto* var = varPropExpr->sym();
             if (!vctx_->existVar(*var)) {
-                return Status::Error("`%s', not exist variable `%s'",
-                        expr->toString().c_str(), var->c_str());
+                return Status::SemanticError(
+                    "`%s', not exist variable `%s'", expr->toString().c_str(), var->c_str());
             }
             auto* prop = varPropExpr->prop();
             auto cols = vctx_->getVar(*var);
@@ -415,8 +476,8 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 return *prop == col.first;
             });
             if (found == cols.end()) {
-                return Status::Error("`%s', not exist prop `%s'",
-                        expr->toString().c_str(), prop->c_str());
+                return Status::SemanticError(
+                    "`%s', not exist prop `%s'", expr->toString().c_str(), prop->c_str());
             }
             return found->second;
         }
@@ -427,15 +488,17 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                 return *prop == col.first;
             });
             if (found == inputs_.end()) {
-                return Status::Error("`%s', not exist prop `%s'",
-                        expr->toString().c_str(), prop->c_str());
+                return Status::SemanticError(
+                    "`%s', not exist prop `%s'", expr->toString().c_str(), prop->c_str());
             }
             return found->second;
         }
         case Expression::Kind::kSymProperty: {
-            return Status::Error("SymbolPropertyExpression can not be instantiated.");
+            return Status::SemanticError("SymbolPropertyExpression can not be instantiated.");
         }
-
+        case Expression::Kind::kLabel: {
+            return Status::SemanticError("LabelExpression can not be instantiated.");
+        }
         case Expression::Kind::kConstant: {
             QueryExpressionContext ctx(nullptr, nullptr);
             auto* mutableExpr = const_cast<Expression*>(expr);
@@ -464,11 +527,24 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             // TODO: not only dataset
             return Value::Type::DATASET;
         }
+        case Expression::Kind::kList: {
+            return Value::Type::LIST;
+        }
+        case Expression::Kind::kSet: {
+            return Value::Type::SET;
+        }
+        case Expression::Kind::kMap: {
+            return Value::Type::MAP;
+        }
+        case Expression::Kind::kSubscript: {
+            return Value::Type::LIST;   // FIXME(dutor)
+        }
     }
-    return Status::Error("Unknown expression kind: %ld", static_cast<int64_t>(expr->kind()));
+    return Status::SemanticError("Unknown expression kind: %ld",
+                                 static_cast<int64_t>(expr->kind()));
 }
 
-Status Validator::deduceProps(const Expression* expr) {
+Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps) {
     switch (expr->kind()) {
         case Expression::Kind::kConstant: {
             break;
@@ -484,25 +560,31 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
+        case Expression::Kind::kContains:
+        case Expression::Kind::kSubscript:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
+        case Expression::Kind::kLogicalXor:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(biExpr->left()));
-            NG_RETURN_IF_ERROR(deduceProps(biExpr->right()));
+            NG_RETURN_IF_ERROR(deduceProps(biExpr->left(), exprProps));
+            NG_RETURN_IF_ERROR(deduceProps(biExpr->right(), exprProps));
             break;
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand()));
+            NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand(), exprProps));
             break;
         }
         case Expression::Kind::kFunctionCall: {
             auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
             for (auto& arg : funcExpr->args()->args()) {
-                NG_RETURN_IF_ERROR(deduceProps(arg.get()));
+                NG_RETURN_IF_ERROR(deduceProps(arg.get(), exprProps));
             }
             break;
         }
@@ -510,24 +592,21 @@ Status Validator::deduceProps(const Expression* expr) {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = dstTagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertDstTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kSrcProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = srcTagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertSrcTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kTagProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = tagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kEdgeProperty:
@@ -538,36 +617,54 @@ Status Validator::deduceProps(const Expression* expr) {
             auto* edgePropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toEdgeType(space_.id, *edgePropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = edgeProps_[status.value()];
-            props.emplace_back(*edgePropExpr->prop());
+            exprProps.insertEdgeProp(status.value(), *edgePropExpr->prop());
             break;
         }
         case Expression::Kind::kInputProperty: {
             auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* prop = inputPropExpr->prop();
-            inputProps_.emplace_back(*prop);
+            exprProps.insertInputProp(*inputPropExpr->prop());
             break;
         }
         case Expression::Kind::kVarProperty: {
             auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* var = varPropExpr->sym();
-            auto* prop = varPropExpr->prop();
-            auto& props = varProps_[*var];
-            props.emplace_back(*prop);
+            exprProps.insertVarProp(*varPropExpr->sym(), *varPropExpr->prop());
+            break;
+        }
+        case Expression::Kind::kTypeCasting: {
+            auto* typeCastExpr = static_cast<const TypeCastingExpression*>(expr);
+            NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand(), exprProps));
+            break;
+        }
+        case Expression::Kind::kList: {
+            auto *list = static_cast<const ListExpression*>(expr);
+            for (auto *item : list->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
+            }
+            break;
+        }
+        case Expression::Kind::kSet: {
+            auto *set = static_cast<const SetExpression*>(expr);
+            for (auto *item : set->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
+            }
+            break;
+        }
+        case Expression::Kind::kMap: {
+            auto *map = static_cast<const MapExpression*>(expr);
+            for (auto &item : map->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item.second, exprProps));
+            }
             break;
         }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kTypeCasting:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kRelIn: {
+        case Expression::Kind::kLabel: {
             // TODO:
             std::stringstream ss;
-            ss << "Not support " << expr->kind();
-            return Status::Error(ss.str());
+            ss << "Not supported expression `" << expr->toString() << "' for type deduction.";
+            return Status::SemanticError(ss.str());
         }
     }
     return Status::OK();
@@ -590,6 +687,9 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
         case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn:
+        case Expression::Kind::kContains:
+        case Expression::Kind::kSubscript:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -598,7 +698,9 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             return evaluableExpr(unaryExpr->operand());
         }
@@ -615,6 +717,33 @@ bool Validator::evaluableExpr(const Expression* expr) const {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
             return evaluableExpr(castExpr->operand());
         }
+        case Expression::Kind::kList: {
+            auto *list = static_cast<const ListExpression*>(expr);
+            for (auto *item : list->items()) {
+                if (!evaluableExpr(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kSet: {
+            auto *set = static_cast<const SetExpression*>(expr);
+            for (auto *item : set->items()) {
+                if (!evaluableExpr(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kMap: {
+            auto *map = static_cast<const MapExpression*>(expr);
+            for (auto &item : map->items()) {
+                if (!evaluableExpr(item.second)) {
+                    return false;
+                }
+            }
+            return true;
+        }
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty:
         case Expression::Kind::kTagProperty:
@@ -629,13 +758,154 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kVarProperty:
         case Expression::Kind::kInputProperty:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr: {
+        case Expression::Kind::kLabel: {
             return false;
         }
     }
     return false;
 }
 
+// static
+Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
+                                               const folly::StringPiece& prop,
+                                               const std::string& validatorName) {
+    auto eq = [&](const ColDef& col) { return col.first == prop.str(); };
+    auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
+    if (iter == cols.cend()) {
+        return Status::SemanticError("%s: prop `%s' not exists",
+                                      validatorName.c_str(),
+                                      prop.str().c_str());
+    }
+
+    iter = std::find_if(iter + 1, cols.cend(), eq);
+    if (iter != cols.cend()) {
+        return Status::SemanticError("%s: duplicate prop `%s'",
+                                      validatorName.c_str(),
+                                      prop.str().c_str());
+    }
+
+    return Status::OK();
+}
+
+StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
+    if (ref->kind() == Expression::Kind::kInputProperty) {
+        const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
+        ColDef col(*symExpr->prop(), type);
+        const auto find = std::find(inputs_.begin(), inputs_.end(), col);
+        if (find == inputs_.end()) {
+            return Status::Error("No input property %s", symExpr->prop()->c_str());
+        }
+        return std::string();
+    } else if (ref->kind() == Expression::Kind::kVarProperty) {
+        const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
+        ColDef col(*symExpr->prop(), type);
+        const auto &varName = *symExpr->sym();
+        const auto &var = vctx_->getVar(varName);
+        if (var.empty()) {
+            return Status::Error("No variable %s", varName.c_str());
+        }
+        const auto find = std::find(var.begin(), var.end(), col);
+        if (find == var.end()) {
+            return Status::Error("No property %s in variable %s",
+                                 symExpr->prop()->c_str(),
+                                 varName.c_str());
+        }
+        return varName;
+    } else {
+        // it's guranteed by parser
+        DLOG(FATAL) << "Unexpected expression " << ref->kind();
+        return Status::Error("Unexpected expression.");
+    }
+}
+
+void ExpressionProps::insertVarProp(const std::string& varName, folly::StringPiece prop) {
+    auto& props = varProps_[varName];
+    props.emplace(prop);
+}
+
+void ExpressionProps::insertInputProp(folly::StringPiece prop) {
+    inputProps_.emplace(prop);
+}
+
+void ExpressionProps::insertSrcTagProp(TagID tagId, folly::StringPiece prop) {
+    auto& props = srcTagProps_[tagId];
+    props.emplace(prop);
+}
+
+void ExpressionProps::insertDstTagProp(TagID tagId, folly::StringPiece prop) {
+    auto& props = dstTagProps_[tagId];
+    props.emplace(prop);
+}
+
+void ExpressionProps::insertEdgeProp(EdgeType edgeType, folly::StringPiece prop) {
+    auto& props = edgeProps_[edgeType];
+    props.emplace(prop);
+}
+
+void ExpressionProps::insertTagProp(TagID tagId, folly::StringPiece prop) {
+    auto& props = tagProps_[tagId];
+    props.emplace(prop);
+}
+
+bool ExpressionProps::isSubsetOfInput(const std::set<folly::StringPiece>& props) {
+    for (auto& prop : props) {
+        if (inputProps_.find(prop) == inputProps_.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ExpressionProps::isSubsetOfVar(const VarPropMap& props) {
+    for (auto &iter : props) {
+        if (varProps_.find(iter.first) == varProps_.end()) {
+            return false;
+        }
+        for (auto& prop : iter.second) {
+            if (varProps_[iter.first].find(prop) == varProps_[iter.first].end()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void ExpressionProps::unionProps(ExpressionProps exprProps) {
+    if (!exprProps.inputProps().empty()) {
+        inputProps_.insert(std::make_move_iterator(exprProps.inputProps().begin()),
+                           std::make_move_iterator(exprProps.inputProps().end()));
+    }
+    if (!exprProps.srcTagProps().empty()) {
+        for (auto& iter : exprProps.srcTagProps()) {
+            srcTagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                            std::make_move_iterator(iter.second.end()));
+        }
+    }
+    if (!exprProps.dstTagProps().empty()) {
+        for (auto& iter : exprProps.dstTagProps()) {
+            dstTagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                            std::make_move_iterator(iter.second.end()));
+        }
+    }
+    if (!exprProps.tagProps().empty()) {
+        for (auto& iter : exprProps.tagProps()) {
+            tagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                         std::make_move_iterator(iter.second.end()));
+        }
+    }
+    if (!exprProps.varProps().empty()) {
+        for (auto& iter : exprProps.varProps()) {
+            varProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                         std::make_move_iterator(iter.second.end()));
+        }
+    }
+    if (!exprProps.edgeProps().empty()) {
+        for (auto& iter : exprProps.edgeProps()) {
+            edgeProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                          std::make_move_iterator(iter.second.end()));
+        }
+    }
+}
 }   // namespace graph
 }   // namespace nebula
+

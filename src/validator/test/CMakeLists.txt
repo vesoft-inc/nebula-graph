@@ -19,6 +19,7 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
+    $<TARGET_OBJECTS:common_time_function_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_network_obj>
     $<TARGET_OBJECTS:common_fs_obj>
@@ -49,6 +50,8 @@ set(VALIDATOR_TEST_LIBS
 nebula_add_test(
     NAME validator_test
     SOURCES
+        FetchVerticesTest.cpp
+        FetchEdgesTest.cpp
         MockSchemaManagerTest.cpp
         ValidatorTestBase.cpp
         QueryValidatorTest.cpp
@@ -56,10 +59,11 @@ nebula_add_test(
         MaintainValidatorTest.cpp
         MutateValidatorTest.cpp
         YieldValidatorTest.cpp
+        ExplainValidatorTest.cpp
+        GroupByValidatorTest.cpp
     OBJECTS ${VALIDATOR_TEST_LIBS}
     LIBRARIES
         gtest
-        gtest_main
         ${THRIFT_LIBRARIES}
         wangle
         proxygenhttpserver

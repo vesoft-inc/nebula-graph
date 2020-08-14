@@ -5,10 +5,14 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-from query.stateless.prepare_data import PrepareData
+from tests.query.stateless.prepare_data import PrepareData
 
 
-class TestGroupby(PrepareData):
+class TestGroupby(NebulaTestSuite):
+    @classmethod
+    def prepare(self):
+        self.use_student_space()
+
     def test_error(self):
         # group col without input field
         try:

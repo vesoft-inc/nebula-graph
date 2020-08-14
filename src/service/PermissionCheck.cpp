@@ -95,7 +95,7 @@ bool PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kUpdateVertex :
         case Sentence::Kind::kInsertEdges :
         case Sentence::Kind::kUpdateEdge :
-        case Sentence::Kind::kDeleteVertex :
+        case Sentence::Kind::kDeleteVertices :
         case Sentence::Kind::kDeleteEdges : {
             return PermissionManager::canWriteData(session);
         }
@@ -116,7 +116,7 @@ bool PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kFindPath :
         case Sentence::Kind::kGetSubgraph:
         case Sentence::Kind::kLimit :
-        case Sentence::Kind::KGroupBy :
+        case Sentence::Kind::kGroupBy :
         case Sentence::Kind::kReturn : {
             return PermissionManager::canReadSchemaOrData(session);
         }
@@ -166,6 +166,7 @@ bool PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kChangePassword : {
             return true;
         }
+        case Sentence::Kind::kExplain:
         case Sentence::Kind::kSequential:
             LOG(FATAL) << "Impossible sequential sentences permission checking";
     }
@@ -173,4 +174,3 @@ bool PermissionCheck::permissionCheck(Session *session,
 }
 }  // namespace graph
 }  // namespace nebula
-
