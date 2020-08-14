@@ -28,6 +28,7 @@
 #include "validator/UseValidator.h"
 #include "validator/ACLValidator.h"
 #include "validator/YieldValidator.h"
+#include "validator/GroupByValidator.h"
 #include "common/function/FunctionManager.h"
 
 namespace nebula {
@@ -63,6 +64,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<OrderByValidator>(sentence, context);
         case Sentence::Kind::kYield:
             return std::make_unique<YieldValidator>(sentence, context);
+        case Sentence::Kind::kGroupBy:
+            return std::make_unique<GroupByValidator>(sentence, context);
         case Sentence::Kind::kCreateSpace:
             return std::make_unique<CreateSpaceValidator>(sentence, context);
         case Sentence::Kind::kCreateTag:
@@ -353,11 +356,11 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
 
             auto right = deduceExprType(biExpr->right());
             NG_RETURN_IF_ERROR(right);
-            if (right.value() != Value::Type::LIST) {   // FIXME(dutor)
-                std::stringstream ss;
-                ss << "`" << expr->toString() << "' is not a valid expression, "
-                    << "expected `LIST' but `" << right.value() << "' was given.";
-                return Status::SemanticError(ss.str());
+            if (right.value() != Value::Type::LIST &&
+                    right.value() != Value::Type::MAP &&
+                    right.value() != Value::Type::SET) {
+                return Status::SemanticError("`%s': Invalid expression for IN operator, "
+                                             "expecting List/Set/Map", biExpr->toString().c_str());
             }
             return Value::Type::BOOL;
         }
@@ -519,7 +522,9 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kSymProperty: {
             return Status::SemanticError("SymbolPropertyExpression can not be instantiated.");
         }
-
+        case Expression::Kind::kLabel: {
+            return Status::SemanticError("LabelExpression can not be instantiated.");
+        }
         case Expression::Kind::kConstant: {
             QueryExpressionContext ctx(nullptr, nullptr);
             auto* mutableExpr = const_cast<Expression*>(expr);
@@ -565,7 +570,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
                                  static_cast<int64_t>(expr->kind()));
 }
 
-Status Validator::deduceProps(const Expression* expr) {
+Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps) {
     switch (expr->kind()) {
         case Expression::Kind::kConstant: {
             break;
@@ -582,25 +587,30 @@ Status Validator::deduceProps(const Expression* expr) {
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
         case Expression::Kind::kContains:
+        case Expression::Kind::kSubscript:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
+        case Expression::Kind::kLogicalXor:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(biExpr->left()));
-            NG_RETURN_IF_ERROR(deduceProps(biExpr->right()));
+            NG_RETURN_IF_ERROR(deduceProps(biExpr->left(), exprProps));
+            NG_RETURN_IF_ERROR(deduceProps(biExpr->right(), exprProps));
             break;
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand()));
+            NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand(), exprProps));
             break;
         }
         case Expression::Kind::kFunctionCall: {
             auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
             for (auto& arg : funcExpr->args()->args()) {
-                NG_RETURN_IF_ERROR(deduceProps(arg.get()));
+                NG_RETURN_IF_ERROR(deduceProps(arg.get(), exprProps));
             }
             break;
         }
@@ -608,24 +618,21 @@ Status Validator::deduceProps(const Expression* expr) {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = dstTagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertDstTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kSrcProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = srcTagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertSrcTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kTagProperty: {
             auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = tagProps_[status.value()];
-            props.emplace_back(*tagPropExpr->prop());
+            exprProps.insertTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kEdgeProperty:
@@ -636,44 +643,53 @@ Status Validator::deduceProps(const Expression* expr) {
             auto* edgePropExpr = static_cast<const SymbolPropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toEdgeType(space_.id, *edgePropExpr->sym());
             NG_RETURN_IF_ERROR(status);
-            auto& props = edgeProps_[status.value()];
-            props.emplace_back(*edgePropExpr->prop());
+            exprProps.insertEdgeProp(status.value(), *edgePropExpr->prop());
             break;
         }
         case Expression::Kind::kInputProperty: {
             auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* prop = inputPropExpr->prop();
-            inputProps_.emplace_back(*prop);
+            exprProps.insertInputProp(*inputPropExpr->prop());
             break;
         }
         case Expression::Kind::kVarProperty: {
             auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
-            auto* var = varPropExpr->sym();
-            auto* prop = varPropExpr->prop();
-            auto& props = varProps_[*var];
-            props.emplace_back(*prop);
+            exprProps.insertVarProp(*varPropExpr->sym(), *varPropExpr->prop());
             break;
         }
         case Expression::Kind::kTypeCasting: {
             auto* typeCastExpr = static_cast<const TypeCastingExpression*>(expr);
-            NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand()));
+            NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand(), exprProps));
+            break;
+        }
+        case Expression::Kind::kList: {
+            auto *list = static_cast<const ListExpression*>(expr);
+            for (auto *item : list->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
+            }
+            break;
+        }
+        case Expression::Kind::kSet: {
+            auto *set = static_cast<const SetExpression*>(expr);
+            for (auto *item : set->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
+            }
+            break;
+        }
+        case Expression::Kind::kMap: {
+            auto *map = static_cast<const MapExpression*>(expr);
+            for (auto &item : map->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item.second, exprProps));
+            }
             break;
         }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
-        case Expression::Kind::kSubscript:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kRelNotIn: {
+        case Expression::Kind::kLabel: {
             // TODO:
             std::stringstream ss;
-            ss << "Not supported expression kind for type deduction: " << expr->toString();
+            ss << "Not supported expression `" << expr->toString() << "' for type deduction.";
             return Status::SemanticError(ss.str());
         }
     }
@@ -699,6 +715,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kRelIn:
         case Expression::Kind::kRelNotIn:
         case Expression::Kind::kContains:
+        case Expression::Kind::kSubscript:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -707,7 +724,9 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             return evaluableExpr(unaryExpr->operand());
         }
@@ -724,6 +743,33 @@ bool Validator::evaluableExpr(const Expression* expr) const {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
             return evaluableExpr(castExpr->operand());
         }
+        case Expression::Kind::kList: {
+            auto *list = static_cast<const ListExpression*>(expr);
+            for (auto *item : list->items()) {
+                if (!evaluableExpr(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kSet: {
+            auto *set = static_cast<const SetExpression*>(expr);
+            for (auto *item : set->items()) {
+                if (!evaluableExpr(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kMap: {
+            auto *map = static_cast<const MapExpression*>(expr);
+            for (auto &item : map->items()) {
+                if (!evaluableExpr(item.second)) {
+                    return false;
+                }
+            }
+            return true;
+        }
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty:
         case Expression::Kind::kTagProperty:
@@ -738,12 +784,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kVarProperty:
         case Expression::Kind::kInputProperty:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:   // FIXME(dutor)
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
-        case Expression::Kind::kSubscript: {
+        case Expression::Kind::kLabel: {
             return false;
         }
     }
@@ -752,21 +793,21 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 
 // static
 Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
-                                               const std::string& prop,
-                                               const std::string &validatorName) {
-    auto eq = [&](const ColDef& col) { return col.first == prop; };
+                                               const folly::StringPiece& prop,
+                                               const std::string& validatorName) {
+    auto eq = [&](const ColDef& col) { return col.first == prop.str(); };
     auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
     if (iter == cols.cend()) {
         return Status::SemanticError("%s: prop `%s' not exists",
                                       validatorName.c_str(),
-                                      prop.c_str());
+                                      prop.str().c_str());
     }
 
     iter = std::find_if(iter + 1, cols.cend(), eq);
     if (iter != cols.cend()) {
         return Status::SemanticError("%s: duplicate prop `%s'",
                                       validatorName.c_str(),
-                                      prop.c_str());
+                                      prop.str().c_str());
     }
 
     return Status::OK();
@@ -803,5 +844,94 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
     }
 }
 
-}  // namespace graph
-}  // namespace nebula
+void ExpressionProps::insertVarProp(const std::string& varName, folly::StringPiece prop) {
+    auto& props = varProps_[varName];
+    props.emplace(prop);
+}
+
+void ExpressionProps::insertInputProp(folly::StringPiece prop) {
+    inputProps_.emplace(prop);
+}
+
+void ExpressionProps::insertSrcTagProp(TagID tagId, folly::StringPiece prop) {
+    auto& props = srcTagProps_[tagId];
+    props.emplace(prop);
+}
+
+void ExpressionProps::insertDstTagProp(TagID tagId, folly::StringPiece prop) {
+    auto& props = dstTagProps_[tagId];
+    props.emplace(prop);
+}
+
+void ExpressionProps::insertEdgeProp(EdgeType edgeType, folly::StringPiece prop) {
+    auto& props = edgeProps_[edgeType];
+    props.emplace(prop);
+}
+
+void ExpressionProps::insertTagProp(TagID tagId, folly::StringPiece prop) {
+    auto& props = tagProps_[tagId];
+    props.emplace(prop);
+}
+
+bool ExpressionProps::isSubsetOfInput(const std::set<folly::StringPiece>& props) {
+    for (auto& prop : props) {
+        if (inputProps_.find(prop) == inputProps_.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ExpressionProps::isSubsetOfVar(const VarPropMap& props) {
+    for (auto &iter : props) {
+        if (varProps_.find(iter.first) == varProps_.end()) {
+            return false;
+        }
+        for (auto& prop : iter.second) {
+            if (varProps_[iter.first].find(prop) == varProps_[iter.first].end()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void ExpressionProps::unionProps(ExpressionProps exprProps) {
+    if (!exprProps.inputProps().empty()) {
+        inputProps_.insert(std::make_move_iterator(exprProps.inputProps().begin()),
+                           std::make_move_iterator(exprProps.inputProps().end()));
+    }
+    if (!exprProps.srcTagProps().empty()) {
+        for (auto& iter : exprProps.srcTagProps()) {
+            srcTagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                            std::make_move_iterator(iter.second.end()));
+        }
+    }
+    if (!exprProps.dstTagProps().empty()) {
+        for (auto& iter : exprProps.dstTagProps()) {
+            dstTagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                            std::make_move_iterator(iter.second.end()));
+        }
+    }
+    if (!exprProps.tagProps().empty()) {
+        for (auto& iter : exprProps.tagProps()) {
+            tagProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                         std::make_move_iterator(iter.second.end()));
+        }
+    }
+    if (!exprProps.varProps().empty()) {
+        for (auto& iter : exprProps.varProps()) {
+            varProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                         std::make_move_iterator(iter.second.end()));
+        }
+    }
+    if (!exprProps.edgeProps().empty()) {
+        for (auto& iter : exprProps.edgeProps()) {
+            edgeProps_[iter.first].insert(std::make_move_iterator(iter.second.begin()),
+                                          std::make_move_iterator(iter.second.end()));
+        }
+    }
+}
+}   // namespace graph
+}   // namespace nebula
+

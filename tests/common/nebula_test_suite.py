@@ -4,16 +4,14 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-import math
-import sys
+
 import time
 from pathlib import Path
 from typing import Pattern, Set
 
 import pytest
-from nebula2.Client import AuthException, ExecutionException, GraphClient
+from nebula2.Client import GraphClient
 from nebula2.common import ttypes as CommonTtypes
-from nebula2.Common import *
 from nebula2.ConnectionPool import ConnectionPool
 from nebula2.graph import ttypes
 
@@ -323,7 +321,7 @@ class NebulaTestSuite(object):
 
         for row, i in zip(rows, range(0, len(new_expect))):
             if isinstance(new_expect[i], CommonTtypes.Row):
-                assert len(row.values) - len(ignore_col) == len(new_expect[i].values)
+                assert len(row.values) - len(ignore_col) == len(new_expect[i].values), '{}, {}, {}'.format(len(row.values), len(ignore_col), len(new_expect[i].values))
             else:
                 assert len(row.values) - len(ignore_col) == len(new_expect[i])
             ignored_col_count = 0
@@ -409,3 +407,13 @@ class NebulaTestSuite(object):
             msg = self.check_format_str.format(row.values[0].get_path(), path)
             assert find, msg
             rows.remove(row)
+
+    @classmethod
+    def check_error_msg(self, resp, expect):
+        self.check_resp_failed(resp)
+        msg = self.check_format_str.format(resp.error_msg, expect)
+        if isinstance(expect, Pattern):
+            if not expect.match(resp.error_msg.decode('utf-8')):
+                assert False, msg
+        else:
+            assert resp.error_msg.decode('utf-8') == expect, msg

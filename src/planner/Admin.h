@@ -57,10 +57,6 @@ public:
         return new ShowHosts(plan, dep);
     }
 
-    std::string explain() const override {
-        return "ShowHosts";
-    }
-
 private:
     explicit ShowHosts(ExecutionPlan* plan, PlanNode* dep)
         : SingleDependencyNode(plan, Kind::kShowHosts, dep) {}
@@ -78,9 +74,7 @@ public:
                            ifNotExists);
     }
 
-    std::string explain() const override {
-        return "CreateSpace";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 public:
     const meta::SpaceDesc& getSpaceDesc() const {
@@ -88,7 +82,7 @@ public:
     }
 
     bool getIfNotExists() const {
-        return ifNotExist_;
+        return ifNotExists_;
     }
 
 private:
@@ -96,12 +90,14 @@ private:
                 PlanNode* input,
                 meta::SpaceDesc props,
                 bool ifNotExists)
-        : SingleInputNode(plan, Kind::kCreateSpace, input),
-          props_(std::move(props)), ifNotExist_(ifNotExists) {}
+        : SingleInputNode(plan, Kind::kCreateSpace, input) {
+        props_ = std::move(props);
+        ifNotExists_ = ifNotExists;
+    }
 
 private:
     meta::SpaceDesc     props_;
-    bool                ifNotExist_{false};
+    bool                ifNotExists_{false};
 };
 
 class DropSpace final : public SingleInputNode {
@@ -113,9 +109,7 @@ public:
         return new DropSpace(plan, input, std::move(spaceName), ifExists);
     }
 
-    std::string explain() const override {
-        return "DropSpace";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     const std::string& getSpaceName() const {
         return spaceName_;
@@ -148,9 +142,7 @@ public:
     return new DescSpace(plan, input, std::move(spaceName));
     }
 
-    std::string explain() const override {
-        return "DescSpace";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     const std::string& getSpaceName() const {
         return spaceName_;
@@ -174,10 +166,6 @@ public:
         return new ShowSpaces(plan, input);
     }
 
-    std::string explain() const override {
-        return "ShowSpaces";
-    }
-
 private:
     explicit ShowSpaces(ExecutionPlan* plan, PlanNode* input)
             : SingleInputNode(plan, Kind::kShowSpaces, input) {}
@@ -185,9 +173,6 @@ private:
 
 class Config final : public SingleInputNode {
 public:
-    std::string explain() const override {
-        return "Config";
-    }
 };
 
 class ShowCreateSpace final : public SingleInputNode {
@@ -198,9 +183,7 @@ public:
         return new ShowCreateSpace(plan, input, std::move(spaceName));
     }
 
-    std::string explain() const override {
-        return "ShowCreateSpace";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     const std::string& getSpaceName() const {
         return spaceName_;
@@ -220,19 +203,12 @@ private:
 
 class Balance final : public SingleInputNode {
 public:
-    std::string explain() const override {
-        return "Balance";
-    }
 };
 
 class CreateSnapshot final : public SingleInputNode {
 public:
     static CreateSnapshot* make(ExecutionPlan* plan, PlanNode* input) {
         return new CreateSnapshot(plan, input);
-    }
-
-    std::string explain() const override {
-        return "CreateSnapshot";
     }
 
 private:
@@ -248,12 +224,10 @@ public:
         return new DropSnapshot(plan, input, std::move(snapshotName));
     }
 
-    std::string explain() const override {
-        return "DropSnapshot";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     const std::string& getShapshotName() const {
-        return shapshotName_;
+        return snapshotName_;
     }
 
 private:
@@ -261,21 +235,17 @@ private:
                           PlanNode* input,
                           std::string snapshotName)
         : SingleInputNode(plan, Kind::kDropSnapshot, input) {
-        shapshotName_ = std::move(snapshotName);
+        snapshotName_ = std::move(snapshotName);
     }
 
 private:
-    std::string           shapshotName_;
+    std::string           snapshotName_;
 };
 
 class ShowSnapshots final : public SingleInputNode {
 public:
     static ShowSnapshots* make(ExecutionPlan* plan, PlanNode* input) {
         return new ShowSnapshots(plan, input);
-    }
-
-    std::string explain() const override {
-        return "ShowSnapshots";
     }
 
 private:
@@ -285,16 +255,10 @@ private:
 
 class Download final : public SingleInputNode {
 public:
-    std::string explain() const override {
-        return "Download";
-    }
 };
 
 class Ingest final : public SingleInputNode {
 public:
-    std::string explain() const override {
-        return "Ingest";
-    }
 };
 
 // User related Node
@@ -312,8 +276,8 @@ public:
                               ifNotExists);
     }
 
-    std::string explain() const override {
-        return "CreateUser";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
     const std::string* username() const {
@@ -351,8 +315,8 @@ public:
                             ifNotExists);
     }
 
-    std::string explain() const override {
-        return "DropUser";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
     const std::string* username() const {
@@ -380,8 +344,8 @@ public:
                               password);
     }
 
-    std::string explain() const override {
-        return "UpdateUser";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
     const std::string* username() const {
@@ -420,8 +384,8 @@ public:
                              role);
     }
 
-    std::string explain() const override {
-        return "GrantRole";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
     const std::string* username() const {
@@ -467,8 +431,8 @@ public:
                               role);
     }
 
-    std::string explain() const override {
-        return "RevokeRole";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
     const std::string* username() const {
@@ -514,8 +478,8 @@ public:
                                   newPassword);
     }
 
-    std::string explain() const override {
-        return "ChangePassword";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
     const std::string* username() const {
@@ -558,8 +522,8 @@ public:
                                  username);
     }
 
-    std::string explain() const override {
-        return "ListUserRoles";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
     const std::string* username() const {
@@ -581,8 +545,8 @@ public:
         return new ListUsers(plan, dep);
     }
 
-    std::string explain() const override {
-        return "ListUsers";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
 private:
@@ -596,8 +560,8 @@ public:
         return new ListRoles(plan, dep, space);
     }
 
-    std::string explain() const override {
-        return "ListRoles";
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        return nullptr;
     }
 
     GraphSpaceID space() const {
@@ -620,9 +584,7 @@ public:
         return new ShowParts(plan, input, spaceId, std::move(partIds));
     }
 
-    std::string explain() const override {
-        return "ShowParts";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     GraphSpaceID getSpaceId() const {
         return spaceId_;
@@ -646,6 +608,7 @@ private:
     GraphSpaceID                       spaceId_{-1};
     std::vector<PartitionID>           partIds_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_
