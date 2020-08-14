@@ -152,9 +152,9 @@ AVG                         ([Aa][Vv][Gg])
 MIN                         ([Mm][Ii][Nn])
 MAX                         ([Mm][Aa][Xx])
 STD                         ([Ss][Tt][Dd])
-BIT_AND                     ([Bb][It][Tt][_][Aa][Nn][Dd])
-BIT_OR                      ([Bb][It][Tt][_][Oo][Rr])
-BIT_XOR                     ([Bb][It][Tt][_][Xx][Oo][Rr])
+BIT_AND                     ([Bb][Ii][Tt][_][Aa][Nn][Dd])
+BIT_OR                      ([Bb][Ii][Tt][_][Oo][Rr])
+BIT_XOR                     ([Bb][Ii][Tt][_][Xx][Oo][Rr])
 IS                          ([Ii][Ss])
 NULL                        ([Nn][Uu][Ll][Ll])
 SNAPSHOT                    ([Ss][Nn][Aa][Pp][Ss][Hh][Oo][Tt])
@@ -167,6 +167,7 @@ DBA                         ([Dd][Bb][Aa])
 OUT                         ([Oo][Uu][Tt])
 BOTH                        ([Bb][Oo][Tt][Hh])
 SUBGRAPH                    ([Ss][Uu][Bb][Gg][Rr][Aa][Pp][Hh])
+CONTAINS                    ([Cc][Oo][Nn][Tt][Aa][Ii][Nn][Ss])
 
 LABEL                       ([a-zA-Z][_a-zA-Z0-9]*)
 DEC                         ([0-9])
@@ -335,6 +336,7 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 {OUT}                       { return TokenType::KW_OUT; }
 {BOTH}                      { return TokenType::KW_BOTH; }
 {SUBGRAPH}                  { return TokenType::KW_SUBGRAPH; }
+{CONTAINS}                  { return TokenType::KW_CONTAINS; }
 
 
 {TRUE}                      { yylval->boolval = true; return TokenType::BOOL; }
@@ -348,7 +350,7 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 
 "+"                         { return TokenType::PLUS; }
 "-"                         { return TokenType::MINUS; }
-"*"                         { return TokenType::MUL; }
+"*"                         { return TokenType::STAR; }
 "/"                         { return TokenType::DIV; }
 "%"                         { return TokenType::MOD; }
 "!"                         { return TokenType::NOT; }
@@ -557,7 +559,6 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
                             }
 "#".*                       // Skip the annotation
 "//".*                      // Skip the annotation
-"--".*                      // Skip the annotation
 "/*"                        { BEGIN(COMMENT); }
 <COMMENT>"*/"               { BEGIN(INITIAL); }
 <COMMENT>([^*]|\n)+|.

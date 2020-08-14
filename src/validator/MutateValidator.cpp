@@ -471,19 +471,20 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
 Status DeleteEdgesValidator::checkInput() {
     CHECK(!edgeKeyRefs_.empty());
     auto &edgeKeyRef = *edgeKeyRefs_.begin();
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->srcid()));
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->dstid()));
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->rank()));
+    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->srcid(), exprProps_));
+    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->dstid(), exprProps_));
+    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->rank(), exprProps_));
 
-    if (!srcTagProps_.empty() || !dstTagProps_.empty() || !edgeProps_.empty()) {
+    if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
+        !exprProps_.edgeProps().empty()) {
         return Status::SyntaxError("Only support input and variable.");
     }
 
-    if (!inputProps_.empty() && !varProps_.empty()) {
+    if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
         return Status::Error("Not support both input and variable.");
     }
 
-    if (!varProps_.empty() && varProps_.size() > 1) {
+    if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
         return Status::Error("Only one variable allowed to use.");
     }
 
@@ -584,7 +585,7 @@ Status UpdateValidator::getUpdateProps() {
         auto valueExpr = item->value();
         if (valueExpr == nullptr) {
             LOG(ERROR) << "valueExpr is nullptr";
-            return Status::SyntaxError("Empty update item field value");
+            return Status::SyntaxError("Empty update item field value.");
         }
         auto encodeStr = valueExpr->encode();
         auto copyValueExpr = Expression::decode(encodeStr);
@@ -644,6 +645,8 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
         case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn:
+        case Expression::Kind::kContains:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -695,12 +698,18 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
                 return std::make_unique<EdgePropertyExpression>(
                         new std::string(sym), new std::string(*symExpr->prop()));
             } else {
-                if (symExpr->sym() == nullptr || !symExpr->sym()->empty()) {
-                    hasWrongType = true;
-                    return nullptr;
-                }
+                hasWrongType = true;
+                return nullptr;
+            }
+        }
+        case Expression::Kind::kLabel: {
+            auto labelExpr = static_cast<LabelExpression*>(expr);
+            if (isEdge) {
+                return std::make_unique<EdgePropertyExpression>(
+                        new std::string(sym), new std::string(*labelExpr->name()));
+            } else {
                 return std::make_unique<SourcePropertyExpression>(
-                        new std::string(sym), new std::string(*symExpr->prop()));
+                        new std::string(sym), new std::string(*labelExpr->name()));
             }
         }
         case Expression::Kind::kSrcProperty: {
@@ -727,7 +736,11 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
         case Expression::Kind::kVarProperty:
         case Expression::Kind::kInputProperty:
         case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr: {
+        case Expression::Kind::kUnaryDecr:
+        case Expression::Kind::kList:   // FIXME(dutor)
+        case Expression::Kind::kSet:
+        case Expression::Kind::kMap:
+        case Expression::Kind::kSubscript: {
             hasWrongType = true;
             break;
         }

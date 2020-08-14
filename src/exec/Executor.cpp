@@ -17,17 +17,19 @@
 #include "exec/admin/BalanceExecutor.h"
 #include "exec/admin/StopBalanceExecutor.h"
 #include "exec/admin/ShowBalanceExecutor.h"
+#include "exec/admin/ShowHostsExecutor.h"
 #include "exec/admin/SnapshotExecutor.h"
 #include "exec/admin/SpaceExecutor.h"
 #include "exec/admin/SwitchSpaceExecutor.h"
+#include "exec/admin/PartExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
 #include "exec/logic/StartExecutor.h"
 #include "exec/maintain/EdgeExecutor.h"
 #include "exec/maintain/TagExecutor.h"
-#include "exec/mutate/InsertExecutor.h"
 #include "exec/mutate/DeleteExecutor.h"
+#include "exec/mutate/InsertExecutor.h"
 #include "exec/mutate/UpdateExecutor.h"
 #include "exec/query/AggregateExecutor.h"
 #include "exec/query/DataCollectExecutor.h"
@@ -405,22 +407,44 @@ Executor *Executor::makeExecutor(const PlanNode *node,
         }
         case PlanNode::Kind::kBalanceLeaders: {
             auto balanceLeaders = asNode<BalanceLeaders>(node);
+            auto dep = makeExecutor(balanceLeaders->dep(), qctx, visited);
             exec = new BalanceLeadersExecutor(balanceLeaders, qctx);
+            exec->dependsOn(dep);
             break;
         }
         case PlanNode::Kind::kBalance: {
             auto balance = asNode<Balance>(node);
+            auto dep = makeExecutor(balance->dep(), qctx, visited);
             exec = new BalanceExecutor(balance, qctx);
+            exec->dependsOn(dep);
             break;
         }
         case PlanNode::Kind::kStopBalance: {
             auto stopBalance = asNode<Balance>(node);
+            auto dep = makeExecutor(stopBalance->dep(), qctx, visited);
             exec = new StopBalanceExecutor(stopBalance, qctx);
+            exec->dependsOn(dep);
             break;
         }
         case PlanNode::Kind::kShowBalance: {
             auto showBalance = asNode<ShowBalance>(node);
+            auto dep = makeExecutor(showBalance->dep(), qctx, visited);
             exec = new ShowBalanceExecutor(showBalance, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kShowHosts: {
+            auto showHosts = asNode<ShowHosts>(node);
+            auto input = makeExecutor(showHosts->dep(), qctx, visited);
+            exec = new ShowHostsExecutor(showHosts, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowParts: {
+            auto showParts = asNode<ShowParts>(node);
+            auto input = makeExecutor(showParts->dep(), qctx, visited);
+            exec = new ShowPartsExecutor(showParts, qctx);
+            exec->dependsOn(input);
             break;
         }
         case PlanNode::Kind::kUnknown:
@@ -473,17 +497,13 @@ folly::Future<Status> Executor::error(Status status) const {
 }
 
 Status Executor::finish(Result &&result) {
+    numRows_ = result.size();
     ectx_->setResult(node()->varName(), std::move(result));
     return Status::OK();
 }
 
 Status Executor::finish(Value &&value) {
-    ectx_->setResult(node()->varName(),
-                     ResultBuilder()
-                        .value(std::move(value))
-                        .iter(Iterator::Kind::kDefault)
-                        .finish());
-    return Status::OK();
+    return finish(ResultBuilder().value(std::move(value)).iter(Iterator::Kind::kDefault).finish());
 }
 
 folly::Executor *Executor::runner() const {

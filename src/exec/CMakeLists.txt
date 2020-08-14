@@ -31,8 +31,10 @@ nebula_add_library(
     admin/StopBalanceExecutor.cpp
     admin/BalanceLeadersExecutor.cpp
     admin/ShowBalanceExecutor.cpp
+    admin/ShowHostsExecutor.cpp
     admin/SpaceExecutor.cpp
     admin/SnapshotExecutor.cpp
+    admin/PartExecutor.cpp
     maintain/TagExecutor.cpp
     maintain/EdgeExecutor.cpp
     mutate/InsertExecutor.cpp

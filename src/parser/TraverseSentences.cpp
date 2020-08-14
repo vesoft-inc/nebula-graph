@@ -36,9 +36,6 @@ std::string GoSentence::toString() const {
     return buf;
 }
 
-std::string MatchSentence::toString() const {
-    return "MATCH sentence";
-}
 
 std::string LookupSentence::toString() const {
     std::string buf;
@@ -141,41 +138,6 @@ std::string FetchVerticesSentence::toString() const {
     if (yieldClause_ != nullptr) {
         buf += " ";
         buf += yieldClause_->toString();
-    }
-    return buf;
-}
-
-std::string EdgeKey::toString() const {
-    return folly::stringPrintf("%s->%s@%ld,",
-            srcid_->toString().c_str(), dstid_->toString().c_str(), rank_);
-}
-
-std::string EdgeKeys::toString() const {
-    std::string buf;
-    buf.reserve(256);
-    for (auto &key : keys_) {
-        buf += key->toString();
-    }
-    if (!buf.empty()) {
-        buf.resize(buf.size() - 1);
-    }
-
-    return buf;
-}
-
-std::string EdgeKeyRef::toString() const {
-    std::string buf;
-    buf.reserve(256);
-    if (srcid_ != nullptr) {
-        buf += srcid_->toString();
-    }
-    if (dstid_ != nullptr) {
-        buf += "->";
-        buf += dstid_->toString();
-    }
-    if (rank_ != nullptr) {
-        buf += "@";
-        buf += rank_->toString();
     }
     return buf;
 }
