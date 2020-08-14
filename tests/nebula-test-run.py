@@ -20,7 +20,7 @@ sys.path.insert(0, NEBULA_HOME)
 sys.path.insert(0, TEST_DIR)
 
 from tests.common.nebula_service import NebulaService
-from tests.common.load_test_data import load_all_test_data
+from tests.common.load_test_data import LoadGlobalData
 
 TEST_LOGS_DIR = os.getenv('NEBULA_TEST_LOGS_DIR')
 if TEST_LOGS_DIR is None or TEST_LOGS_DIR == "":
@@ -91,12 +91,20 @@ if __name__ == "__main__":
             if args[args.index('--debug_log') + 1].lower() == 'false':
                 debug_log = False
 
+        nebula_ip = ''
+        nebula_port = 0
         if '--address' not in args:
             nebula_svc.install()
             port = nebula_svc.start(debug_log)
             args.extend(['--address', '127.0.0.1:' + str(port)])
+            nebula_ip = '127.0.0.1'
+            nebula_port = port
         else:
             stop_nebula = False
+            addr = args[args.index('--address') + 1].split(':')
+            nebula_ip = addr[0]
+            nebula_port = int(addr[1])
+
         if '--tests_dir' not in args:
             args.extend(['--tests_dir', NEBULA_HOME])
 
@@ -105,11 +113,13 @@ if __name__ == "__main__":
         print("Running TestExecutor with args: {} ".format(args))
 
         # load nba data
-        load_all_test_data(TEST_DIR, '127.0.0.1', port)
+        load_data = LoadGlobalData(TEST_DIR, nebula_ip, nebula_port)
+        load_data.load_all_test_data()
 
         # Switch to your $src_dir/tests
         os.chdir(TEST_DIR)
         error_code = executor.run_tests(args)
+        load_data.drop_data()
     finally:
         if stop_nebula and pytest.cmdline.stop_nebula.lower() == 'true':
             nebula_svc.stop(pytest.cmdline.rm_dir.lower() == 'true')
