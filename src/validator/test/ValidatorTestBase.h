@@ -162,6 +162,7 @@ protected:
                 case PlanNode::Kind::kListUserRoles:
                 case PlanNode::Kind::kListUsers:
                 case PlanNode::Kind::kListRoles:
+                case PlanNode::Kind::kShowHosts:
                 case PlanNode::Kind::kGetNeighbors:
                 case PlanNode::Kind::kGetVertices:
                 case PlanNode::Kind::kGetEdges:

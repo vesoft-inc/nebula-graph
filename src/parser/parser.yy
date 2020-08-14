@@ -235,7 +235,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <strval> match_alias
 %type <strval> match_edge_type
 
-%type <intval> unary_integer rank port
+%type <intval> legal_integer unary_integer rank port
 
 %type <colspec> column_spec
 %type <colspeclist> column_spec_list
@@ -292,6 +292,13 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 name_label
     : LABEL { $$ = $1; }
     | unreserved_keyword { $$ = $1; }
+    ;
+
+legal_integer
+    : INTEGER {
+        ifOutOfRange($1, @1);
+        $$ = $1;
+    }
     ;
 
 unreserved_keyword
@@ -366,8 +373,7 @@ agg_function
     ;
 
 constant_expression
-    : INTEGER {
-        ifOutOfRange($1, @1);
+    : legal_integer {
         $$ = new ConstantExpression($1);
     }
     | MINUS INTEGER {
@@ -720,12 +726,10 @@ go_sentence
 
 step_clause
     : %empty { $$ = new StepClause(); }
-    | INTEGER KW_STEPS {
-        ifOutOfRange($1, @1);
+    | legal_integer KW_STEPS {
         $$ = new StepClause($1);
     }
-    | KW_UPTO INTEGER KW_STEPS {
-        ifOutOfRange($2, @2);
+    | KW_UPTO legal_integer KW_STEPS {
         $$ = new StepClause($2, true);
     }
     ;
@@ -765,15 +769,13 @@ vid
     ;
 
 unary_integer
-    : PLUS INTEGER {
-        ifOutOfRange($2, @2);
+    : PLUS legal_integer {
         $$ = $2;
     }
     | MINUS INTEGER {
         $$ = -$2;
     }
-    | INTEGER {
-        ifOutOfRange($1, @1);
+    | legal_integer {
         $$ = $1;
     }
     ;
@@ -1130,8 +1132,7 @@ find_path_sentence
 
 find_path_upto_clause
     : %empty { $$ = new StepClause(5, true); }
-    | KW_UPTO INTEGER KW_STEPS {
-        ifOutOfRange($2, @2);
+    | KW_UPTO legal_integer KW_STEPS {
         $$ = new StepClause($2, true);
     }
     ;
@@ -1146,18 +1147,13 @@ to_clause
     ;
 
 limit_sentence
-    : KW_LIMIT INTEGER {
-        ifOutOfRange($2, @2);
+    : KW_LIMIT legal_integer {
         $$ = new LimitSentence(0, $2);
     }
-    | KW_LIMIT INTEGER COMMA INTEGER {
-        ifOutOfRange($2, @2);
-        ifOutOfRange($4, @2);
+    | KW_LIMIT legal_integer COMMA legal_integer {
         $$ = new LimitSentence($2, $4);
     }
-    | KW_LIMIT INTEGER KW_OFFSET INTEGER {
-        ifOutOfRange($2, @2);
-        ifOutOfRange($4, @4);
+    | KW_LIMIT legal_integer KW_OFFSET legal_integer {
         $$ = new LimitSentence($2, $4);
     }
     ;
@@ -1223,8 +1219,7 @@ create_schema_prop_list
     ;
 
 create_schema_prop_item
-    : KW_TTL_DURATION ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    : KW_TTL_DURATION ASSIGN legal_integer {
         $$ = new SchemaPropItem(SchemaPropItem::TTL_DURATION, $3);
     }
     | KW_TTL_COL ASSIGN STRING {
@@ -1301,8 +1296,7 @@ alter_schema_prop_list
     ;
 
 alter_schema_prop_item
-    : KW_TTL_DURATION ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    : KW_TTL_DURATION ASSIGN legal_integer {
         $$ = new SchemaPropItem(SchemaPropItem::TTL_DURATION, $3);
     }
     | KW_TTL_COL ASSIGN STRING {
@@ -1800,12 +1794,12 @@ admin_sentence
         auto sentence = new AdminSentence("show_jobs");
         $$ = sentence;
     }
-    | KW_SHOW KW_JOB INTEGER {
+    | KW_SHOW KW_JOB legal_integer {
         auto sentence = new AdminSentence("show_job");
         sentence->addPara(std::to_string($3));
         $$ = sentence;
     }
-    | KW_STOP KW_JOB INTEGER {
+    | KW_STOP KW_JOB legal_integer {
         auto sentence = new AdminSentence("stop_job");
         sentence->addPara(std::to_string($3));
         $$ = sentence;
@@ -1976,16 +1970,13 @@ space_opt_list
     ;
 
 space_opt_item
-    : KW_PARTITION_NUM ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    : KW_PARTITION_NUM ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::PARTITION_NUM, $3);
     }
-    | KW_REPLICA_FACTOR ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    | KW_REPLICA_FACTOR ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::REPLICA_FACTOR, $3);
     }
-    | KW_VID_SIZE ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    | KW_VID_SIZE ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::VID_SIZE, $3);
     }
     | KW_CHARSET ASSIGN name_label {
@@ -2119,10 +2110,16 @@ host_item
         $$->port = $3;
     }
 
-port : INTEGER { $$ = $1; }
+port : INTEGER {
+        if ($1 > std::numeric_limits<uint16_t>::max()) {
+            throw nebula::GraphParser::syntax_error(@1, "Out of range:");
+        }
+        $$ = $1;
+    }
+    ;
 
 integer_list
-    : INTEGER {
+    : legal_integer {
         $$ = new std::vector<int32_t>();
         $$->emplace_back($1);
     }
@@ -2142,8 +2139,7 @@ balance_sentence
     | KW_BALANCE KW_DATA {
         $$ = new BalanceSentence(BalanceSentence::SubType::kData);
     }
-    | KW_BALANCE KW_DATA INTEGER {
-        ifOutOfRange($3, @3);
+    | KW_BALANCE KW_DATA legal_integer {
         $$ = new BalanceSentence($3);
     }
     | KW_BALANCE KW_DATA KW_STOP {
