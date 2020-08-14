@@ -9,7 +9,8 @@
   - 进入Nebula编译目录下的 tests 目录
   - ./ntr  query/stateless/
   - 可以通过 --rm_dir=false 取消删除创建的临时目录 /tmp/nebula-XXXXXXXX
-  - 可以通过 --stop_nebula=false 取消停止 nebula 服务 /tmp/nebula-XXXXXXXX
+  - 可以通过 --stop_nebula=false 取消停止 nebula 服务
+  - 可以通过 --address=ip:port 连接自己的服务
 - 测试如何编写
   - 例子：query/stateless/test_simple_query.py
   - 其中每一个功能 test case 都是一个类，而这个类必须继承 NebulaTestSuite.
@@ -25,9 +26,9 @@
     - check_resp_failed(resp)
       - 和check_resp_succeeded相反
     - search_result(col, rows, expect)
-      - 用来检测返回的行是否和期望一致，这里行可以是乱序，并且列值支持正则
+      - 用来检测返回的行是否和期望一致，这里行可以是乱序，并且列值支持正则, 使用正则的时候，需要设置下 is_regex=True, 并且所有列都要用正则
     - check_result(rows, expect)
-      - 用来检测返回的行和期望一致，这里是行是按照严格顺序，并且列值支持正则
+      - 用来检测返回的行和期望一致，这里是行是按照严格顺序，并且列值支持正则, 需要设置下 is_regex=True, 并且所有列都要用正则
     - check_out_of_order_result
       - 用来检测返回的行是否和期望一致，行可以是乱序，不支持正则
     - check_empty_result
@@ -42,3 +43,5 @@
       - storaged和meta同步的时间间隔
     - delay
       - 上面两个值之间的最大值
+- 运行 pylint
+    在 nebula 的源码目录执行: `pylint -j4 --rcfile=tests/.pylintrc tests`

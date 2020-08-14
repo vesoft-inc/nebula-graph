@@ -4,21 +4,22 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef VALIDATOR_TEST_VALIDATORTESTBASE_H_
-#define VALIDATOR_TEST_VALIDATORTESTBASE_H_
+#ifndef _VALIDATOR_TEST_VALIDATOR_TEST_BASE_H_
+#define _VALIDATOR_TEST_VALIDATOR_TEST_BASE_H_
 
-#include <vector>
+#include "common/base/Base.h"
 
 #include <gtest/gtest.h>
 
 #include "common/base/Base.h"
-#include "planner/Query.h"
-#include "parser/GQLParser.h"
-#include "validator/ASTValidator.h"
 #include "context/QueryContext.h"
-#include "planner/ExecutionPlan.h"
 #include "context/ValidateContext.h"
+#include "parser/GQLParser.h"
+#include "planner/ExecutionPlan.h"
+#include "planner/Logic.h"
 #include "planner/PlanNode.h"
+#include "planner/Query.h"
+#include "validator/ASTValidator.h"
 #include "validator/test/MockSchemaManager.h"
 
 namespace nebula {
@@ -29,14 +30,39 @@ protected:
     void SetUp() override {
         session_ = Session::create(0);
         session_->setSpace("test_space", 1);
-        schemaMng_ = std::make_unique<MockSchemaManager>();
-        schemaMng_->init();
+        schemaMng_ = CHECK_NOTNULL(MockSchemaManager::makeUnique());
+        qCtx_ = buildContext();
+        expectedQueryCtx_ = buildContext();
     }
 
     void TearDown() override {
-        session_.reset();
-        schemaMng_.reset();
     }
+
+    // some utils
+    inline ::testing::AssertionResult toPlan(const std::string &query) {
+        auto result = GQLParser().parse(query);
+        if (!result.ok()) {
+            return ::testing::AssertionFailure() << result.status().toString();
+        }
+        sentences_ = std::move(result).value();
+        qCtx_ = buildContext();
+        ASTValidator validator(sentences_.get(), qCtx_.get());
+        auto validateResult = validator.validate();
+        if (!validateResult.ok()) {
+            return ::testing::AssertionFailure() << validateResult.toString();
+        }
+        return ::testing::AssertionSuccess();
+    }
+
+    StatusOr<ExecutionPlan*> validate(const std::string& query) {
+        auto result = GQLParser().parse(query);
+        if (!result.ok()) return std::move(result).status();
+        auto sentences = std::move(result).value();
+        ASTValidator validator(sentences.get(), qCtx_.get());
+        NG_RETURN_IF_ERROR(validator.validate());
+        return qCtx_->plan();
+    }
+
 
     std::unique_ptr<QueryContext> buildContext() {
         auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
@@ -47,6 +73,10 @@ protected:
         qctx->setCharsetInfo(CharsetInfo::instance());
         return qctx;
     }
+
+    static Status EqSelf(const PlanNode* l, const PlanNode* r);
+
+    static Status Eq(const PlanNode *l, const PlanNode *r);
 
     ::testing::AssertionResult checkResult(const std::string& query,
                                            const std::vector<PlanNode::Kind>& expected = {},
@@ -123,10 +153,11 @@ protected:
                 case PlanNode::Kind::kStart: {
                     break;
                 }
+                case PlanNode::Kind::kShowHosts:
                 case PlanNode::Kind::kGetNeighbors:
                 case PlanNode::Kind::kGetVertices:
                 case PlanNode::Kind::kGetEdges:
-                case PlanNode::Kind::kReadIndex:
+                case PlanNode::Kind::kIndexScan:
                 case PlanNode::Kind::kFilter:
                 case PlanNode::Kind::kProject:
                 case PlanNode::Kind::kSort:
@@ -156,7 +187,11 @@ protected:
                 case PlanNode::Kind::kCreateSnapshot:
                 case PlanNode::Kind::kDropSnapshot:
                 case PlanNode::Kind::kShowSnapshots:
-                case PlanNode::Kind::kDataJoin: {
+                case PlanNode::Kind::kDataJoin:
+                case PlanNode::Kind::kDeleteVertices:
+                case PlanNode::Kind::kDeleteEdges:
+                case PlanNode::Kind::kUpdateVertex:
+                case PlanNode::Kind::kUpdateEdge: {
                     auto* current = static_cast<const SingleInputNode*>(node);
                     queue.emplace(current->dep());
                     break;
@@ -193,6 +228,10 @@ protected:
 protected:
     std::shared_ptr<Session>              session_;
     std::unique_ptr<MockSchemaManager>    schemaMng_;
+    std::unique_ptr<QueryContext>         qCtx_;
+    std::unique_ptr<Sentence>             sentences_;
+    // used to hold the expected query plan
+    std::unique_ptr<QueryContext>         expectedQueryCtx_;
 };
 
 std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& plan);
@@ -201,4 +240,3 @@ std::ostream& operator<<(std::ostream& os, const std::vector<PlanNode::Kind>& pl
 }   // namespace nebula
 
 #endif   // VALIDATOR_TEST_VALIDATORTESTBASE_H_
-

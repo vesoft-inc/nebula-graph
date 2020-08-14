@@ -6,12 +6,12 @@
 
 #include "validator/GetSubgraphValidator.h"
 
-#include "common/expression/VariableExpression.h"
 #include "common/expression/UnaryExpression.h"
-
-#include "parser/TraverseSentences.h"
-#include "planner/Query.h"
+#include "common/expression/VariableExpression.h"
 #include "context/QueryExpressionContext.h"
+#include "parser/TraverseSentences.h"
+#include "planner/Logic.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -147,7 +147,8 @@ Status GetSubgraphValidator::toPlan() {
             std::move(vertexProps),
             std::move(edgeProps),
             std::move(statProps),
-            std::move(exprs));
+            std::move(exprs),
+            true /*subgraph not need duplicate*/);
     gn1->setInputVar(startVidsVar);
 
     auto *projectVids = projectDstVidsFromGN(gn1, startVidsVar);

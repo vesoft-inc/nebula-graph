@@ -20,139 +20,16 @@
  * All query-related nodes would be put in this file,
  * and they are derived from PlanNode.
  */
+
 namespace nebula {
 namespace graph {
-
-class StartNode final : public PlanNode {
-public:
-    static StartNode* make(ExecutionPlan* plan) {
-        return new StartNode(plan);
-    }
-
-    std::string explain() const override {
-        return "Start";
-    }
-
-private:
-    explicit StartNode(ExecutionPlan* plan) : PlanNode(plan, Kind::kStart) {
-    }
-};
-
-// Dependencies will cover the inputs, For example bi input require bi dependencies as least,
-// but single dependencies may don't need any inputs (I.E admin plan node)
-
-// Single dependecy without input
-// It's useful for addmin plan node
-class SingleDependencyNode : public PlanNode {
-public:
-    const PlanNode* dep() const {
-        return dependency_;
-    }
-
-    void setDep(PlanNode *dep) {
-        dependency_ = DCHECK_NOTNULL(dep);
-    }
-
-protected:
-    SingleDependencyNode(ExecutionPlan *plan, Kind kind, const PlanNode *dep)
-        : PlanNode(plan, kind), dependency_(dep) {}
-
-    const PlanNode *dependency_;
-};
-
-class SingleInputNode : public SingleDependencyNode {
-public:
-    void setInputVar(std::string inputVar) {
-        inputVar_ = std::move(inputVar);
-    }
-
-    const std::string& inputVar() const {
-        return inputVar_;
-    }
-
-protected:
-    SingleInputNode(ExecutionPlan* plan, Kind kind, const PlanNode* dep)
-        : SingleDependencyNode(plan, kind, dep) {
-    }
-
-    // Datasource for this node.
-    std::string inputVar_;
-};
-
-class BiInputNode : public PlanNode {
-public:
-    void setLeft(PlanNode* left) {
-        left_ = left;
-    }
-
-    void setRight(PlanNode* right) {
-        right_ = right;
-    }
-
-    void setLeftVar(std::string leftVar) {
-        leftVar_ = std::move(leftVar);
-    }
-
-    void setRightVar(std::string rightVar) {
-        rightVar_ = std::move(rightVar);
-    }
-
-    const PlanNode* left() const {
-        return left_;
-    }
-
-    const PlanNode* right() const {
-        return right_;
-    }
-
-    const std::string& leftInputVar() const {
-        return leftVar_;
-    }
-
-    const std::string& rightInputVar() const {
-        return rightVar_;
-    }
-
-    std::string explain() const override {
-        return "";
-    }
-
-protected:
-    BiInputNode(ExecutionPlan* plan, Kind kind, PlanNode* left, PlanNode* right)
-        : PlanNode(plan, kind), left_(left), right_(right) {
-    }
-
-    PlanNode* left_{nullptr};
-    PlanNode* right_{nullptr};
-    // Datasource for this node.
-    std::string leftVar_;
-    std::string rightVar_;
-};
-
-/**
- * This operator is used for multi output situation.
- */
-class MultiOutputsNode final : public SingleInputNode {
-public:
-    static MultiOutputsNode* make(ExecutionPlan* plan, PlanNode* input) {
-        return new MultiOutputsNode(input, plan);
-    }
-
-    std::string explain() const override {
-        return "MultiOutputsNode";
-    }
-
-private:
-    MultiOutputsNode(PlanNode* input, ExecutionPlan* plan)
-        : SingleInputNode(plan, Kind::kMultiOutputs, input) {}
-};
 
 /**
  * Now we hava four kind of exploration nodes:
  *  GetNeighbors,
  *  GetVertices,
  *  GetEdges,
- *  ReadIndex
+ *  IndexScan
  */
 class Explore : public SingleInputNode {
 public:
@@ -192,6 +69,8 @@ public:
         orderBy_ = std::move(orderBy);
     }
 
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+
 protected:
     Explore(ExecutionPlan* plan,
             Kind kind,
@@ -212,7 +91,7 @@ protected:
         : SingleInputNode(plan, kind, input), space_(space) {}
 
 protected:
-    GraphSpaceID        space_;
+    GraphSpaceID space_;
     bool dedup_{false};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
     std::string filter_;
@@ -266,7 +145,7 @@ public:
                 std::move(filter));
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
@@ -372,7 +251,7 @@ private:
 private:
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
-    storage::cpp2::EdgeDirection                 edgeDirection_;
+    storage::cpp2::EdgeDirection edgeDirection_{storage::cpp2::EdgeDirection::OUT_EDGE};
     VertexProps                                  vertexProps_;
     EdgeProps                                    edgeProps_;
     StatProps                                    statProps_;
@@ -388,7 +267,6 @@ public:
     static GetVertices* make(ExecutionPlan* plan,
                              PlanNode* input,
                              GraphSpaceID space,
-                             std::vector<Row> vertices,
                              Expression* src,
                              std::vector<storage::cpp2::VertexProp> props,
                              std::vector<storage::cpp2::Expr>       exprs,
@@ -400,7 +278,6 @@ public:
                 plan,
                 input,
                 space,
-                std::move(vertices),
                 src,
                 std::move(props),
                 std::move(exprs),
@@ -410,11 +287,7 @@ public:
                 std::move(filter));
     }
 
-    std::string explain() const override;
-
-    const std::vector<Row>& vertices() const {
-        return vertices_;
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
@@ -432,7 +305,6 @@ private:
     GetVertices(ExecutionPlan* plan,
                 PlanNode* input,
                 GraphSpaceID space,
-                std::vector<Row> vertices,
                 Expression* src,
                 std::vector<storage::cpp2::VertexProp> props,
                 std::vector<storage::cpp2::Expr>       exprs,
@@ -448,14 +320,11 @@ private:
                   limit,
                   std::move(filter),
                   std::move(orderBy)),
-          vertices_(std::move(vertices)),
           src_(src),
           props_(std::move(props)),
           exprs_(std::move(exprs)) { }
 
 private:
-    // vertices are parsing from query.
-    std::vector<Row>                         vertices_;
     // vertices may be parsing from runtime.
     Expression*                              src_{nullptr};
     // props of the vertex
@@ -472,9 +341,8 @@ public:
     static GetEdges* make(ExecutionPlan* plan,
                           PlanNode* input,
                           GraphSpaceID space,
-                          std::vector<Row> edges,
                           Expression* src,
-                          EdgeType    type,
+                          Expression* type,
                           Expression* ranking,
                           Expression* dst,
                           std::vector<storage::cpp2::EdgeProp> props,
@@ -487,7 +355,6 @@ public:
                 plan,
                 input,
                 space,
-                std::move(edges),
                 src,
                 type,
                 ranking,
@@ -500,17 +367,13 @@ public:
                 std::move(filter));
     }
 
-    std::string explain() const override;
-
-    const std::vector<Row>& edges() const {
-        return edges_;
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
     }
 
-    EdgeType type() const {
+    Expression* type() const {
         return type_;
     }
 
@@ -534,9 +397,8 @@ private:
     GetEdges(ExecutionPlan* plan,
              PlanNode* input,
              GraphSpaceID space,
-             std::vector<Row> edges,
              Expression* src,
-             EdgeType    type,
+             Expression* type,
              Expression* ranking,
              Expression* dst,
              std::vector<storage::cpp2::EdgeProp> props,
@@ -553,7 +415,6 @@ private:
                   limit,
                   std::move(filter),
                   std::move(orderBy)),
-          edges_(std::move(edges)),
           src_(src),
           type_(type),
           ranking_(ranking),
@@ -562,11 +423,9 @@ private:
           exprs_(std::move(exprs)) { }
 
 private:
-    // edges_ are parsing from the query.
-    std::vector<Row>                         edges_;
     // edges_ may be parsed from runtime.
     Expression*                              src_{nullptr};
-    EdgeType                                 type_{0};
+    Expression*                              type_{nullptr};
     Expression*                              ranking_{nullptr};
     Expression*                              dst_{nullptr};
     // props of edge to get
@@ -578,12 +437,12 @@ private:
 /**
  * Read data through the index.
  */
-class ReadIndex final : public Explore {
+class IndexScan final : public Explore {
 public:
-    ReadIndex(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
-        : Explore(plan, Kind::kReadIndex, input, space) {}
+    IndexScan(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
+        : Explore(plan, Kind::kIndexScan, input, space) {}
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 };
 
 /**
@@ -601,7 +460,7 @@ public:
         return condition_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     Filter(ExecutionPlan* plan, PlanNode* input, Expression* condition)
@@ -636,8 +495,6 @@ public:
         return new Union(plan, left, right);
     }
 
-    std::string explain() const override;
-
 private:
     Union(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
         : SetOp(plan, Kind::kUnion, left, right) {}
@@ -651,8 +508,6 @@ public:
     static Intersect* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
         return new Intersect(plan, left, right);
     }
-
-    std::string explain() const override;
 
 private:
     Intersect(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
@@ -668,7 +523,6 @@ public:
         return new Minus(plan, left, right);
     }
 
-    std::string explain() const override;
 
 private:
     Minus(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
@@ -686,7 +540,7 @@ public:
         return new Project(plan, input, cols);
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     const YieldColumns* columns() const {
         return cols_;
@@ -715,7 +569,7 @@ public:
         return factors_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     Sort(ExecutionPlan* plan,
@@ -749,7 +603,7 @@ public:
         return count_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     Limit(ExecutionPlan* plan, PlanNode* input, int64_t offset, int64_t count)
@@ -791,7 +645,7 @@ public:
         return groupItems_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     Aggregate(ExecutionPlan* plan,
@@ -808,88 +662,6 @@ private:
     std::vector<GroupItem>      groupItems_;
 };
 
-class BinarySelect : public SingleInputNode {
-public:
-    Expression* condition() const {
-        return condition_;
-    }
-
-protected:
-    BinarySelect(ExecutionPlan* plan, Kind kind, PlanNode* input, Expression* condition)
-        : SingleInputNode(plan, kind, input), condition_(condition) {}
-
-    Expression*  condition_{nullptr};
-};
-
-class Select final : public BinarySelect {
-public:
-    static Select* make(ExecutionPlan* plan,
-                          PlanNode* input,
-                          PlanNode* ifBranch,
-                          PlanNode* elseBranch,
-                          Expression* condition) {
-        return new Select(plan, input, ifBranch, elseBranch, condition);
-    }
-
-    void setIf(PlanNode* ifBranch) {
-        if_ = ifBranch;
-    }
-
-    void setElse(PlanNode* elseBranch) {
-        else_ = elseBranch;
-    }
-
-    std::string explain() const override;
-
-    const PlanNode* then() const {
-        return if_;
-    }
-
-    const PlanNode* otherwise() const {
-        return else_;
-    }
-
-private:
-    Select(ExecutionPlan* plan,
-           PlanNode* input,
-           PlanNode* ifBranch,
-           PlanNode* elseBranch,
-           Expression* condition)
-        : BinarySelect(plan, Kind::kSelect, input, condition) {
-        if_ = ifBranch;
-        else_ = elseBranch;
-    }
-
-private:
-    PlanNode*   if_{nullptr};
-    PlanNode*   else_{nullptr};
-};
-
-class Loop final : public BinarySelect {
-public:
-    static Loop* make(ExecutionPlan* plan,
-                      PlanNode* input,
-                      PlanNode* body,
-                      Expression* condition) {
-        return new Loop(plan, input, body, condition);
-    }
-
-    void setBody(PlanNode* body) {
-        body_ = body;
-    }
-
-    std::string explain() const override;
-
-    const PlanNode* body() const {
-        return body_;
-    }
-
-private:
-    Loop(ExecutionPlan* plan, PlanNode* input, PlanNode* body, Expression* condition);
-
-    PlanNode*   body_{nullptr};
-};
-
 class SwitchSpace final : public SingleInputNode {
 public:
     static SwitchSpace* make(ExecutionPlan* plan,
@@ -902,7 +674,7 @@ public:
         return spaceName_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     SwitchSpace(ExecutionPlan* plan,
@@ -922,8 +694,6 @@ public:
                        PlanNode* input) {
         return new Dedup(plan, input);
     }
-
-    std::string explain() const override;
 
 private:
     Dedup(ExecutionPlan* plan,
@@ -954,6 +724,8 @@ public:
         return vars_;
     }
 
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+
 private:
     DataCollect(ExecutionPlan* plan,
                 PlanNode* input,
@@ -963,8 +735,6 @@ private:
         collectKind_ = collectKind;
         vars_ = std::move(vars);
     }
-
-    std::string explain() const override;
 
 private:
     CollectKind                 collectKind_;
@@ -987,10 +757,6 @@ public:
                             std::move(probeKeys));
     }
 
-    std::string explain() const override {
-        return "DataJoin";
-    }
-
     const std::pair<std::string, int64_t>& leftVar() const {
         return leftVar_;
     }
@@ -1006,6 +772,8 @@ public:
     const std::vector<Expression*>& probeKeys() const {
         return probeKeys_;
     }
+
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     DataJoin(ExecutionPlan* plan, PlanNode* input,
@@ -1027,10 +795,13 @@ private:
 };
 
 class ProduceSemiShortestPath : public PlanNode {
+public:
 };
 
 class ConjunctPath : public PlanNode {
+public:
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_QUERY_H_

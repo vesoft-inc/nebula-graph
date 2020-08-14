@@ -71,7 +71,6 @@ Status TraversalValidator::validateFrom(const FromClause* from) {
     return Status::OK();
 }
 
-
 Project* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
     Project* project = nullptr;
     auto* plan = qctx_->plan();
@@ -82,7 +81,7 @@ Project* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::strin
     columns->addColumn(column);
 
     srcVidColName_ = vctx_->anonColGen()->getCol();
-    if (!inputProps_.empty() || !varProps_.empty()) {
+    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
         column =
             new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
                             new std::string(srcVidColName_));
@@ -97,7 +96,6 @@ Project* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::strin
 
     return project;
 }
-
 
 std::string TraversalValidator::buildConstantInput() {
     auto input = vctx_->anonVarGen()->getVar();

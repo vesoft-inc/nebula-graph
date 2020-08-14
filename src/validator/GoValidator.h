@@ -25,9 +25,9 @@ private:
 
     Status validateOver(const OverClause* over);
 
-    Status validateWhere(const WhereClause* where);
+    Status validateWhere(WhereClause* where);
 
-    Status validateYield(const YieldClause* yield);
+    Status validateYield(YieldClause* yield);
 
     void extractPropExprs(const Expression* expr);
 
@@ -49,6 +49,8 @@ private:
     GetNeighbors::EdgeProps buildEdgeProps();
 
     GetNeighbors::EdgeProps buildEdgeDst();
+
+    void buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEdge);
 
     Project* buildLeftVarForTraceJoin(PlanNode* projectStartVid);
 
@@ -83,6 +85,7 @@ private:
     std::string                                             dstVidColName_;
     // Used for get dst props
     std::string                                             joinDstVidColName_;
+    std::vector<std::string>                                allEdges_;
 };
 }  // namespace graph
 }  // namespace nebula

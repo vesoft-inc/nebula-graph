@@ -7,6 +7,7 @@
 #include "exec/query/GetVerticesExecutor.h"
 #include "planner/Query.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 using nebula::storage::GraphStorageClient;
 using nebula::storage::StorageRpcResponse;
@@ -23,24 +24,12 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 }
 
 folly::Future<Status> GetVerticesExecutor::getVertices() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
 
     auto *gv = asNode<GetVertices>(node());
 
     GraphStorageClient *storageClient = qctx()->getStorageClient();
     nebula::DataSet vertices({kVid});
-    std::unordered_set<Value> uniqueVid;
-    if (!gv->vertices().empty()) {
-        for (auto& v : gv->vertices()) {
-            auto ret = uniqueVid.emplace(v.values.front());
-            if (ret.second) {
-                vertices.emplace_back(std::move(v));
-            }
-        }
-        vertices.rows.insert(vertices.rows.end(),
-                             std::make_move_iterator(gv->vertices().begin()),
-                             std::make_move_iterator(gv->vertices().end()));
-    }
     if (gv->src() != nullptr) {
         // Accept Table such as | $a | $b | $c |... as input which one column indicate src
         auto valueIter = ectx_->getResult(gv->inputVar()).iter();
@@ -53,18 +42,16 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                 LOG(WARNING) << "Mismatched vid type: " << src.type();
                 continue;
             }
-            auto ret = uniqueVid.emplace(src);
-            if (ret.second) {
-                vertices.emplace_back(Row({std::move(src)}));
-            }
+            vertices.emplace_back(Row({std::move(src)}));
         }
     }
 
     if (vertices.rows.empty()) {
         // TODO: add test for empty input.
-        return finish(ResultBuilder().value(Value(DataSet())).finish());
+        return finish(ResultBuilder().value(Value(DataSet(gv->colNames()))).finish());
     }
 
+    time::Duration getPropsTime;
     return DCHECK_NOTNULL(storageClient)
         ->getProps(gv->space(),
                    std::move(vertices),
@@ -76,10 +63,13 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
                    gv->limit(),
                    gv->filter())
         .via(runner())
+        .ensure([getPropsTime]() {
+            VLOG(1) << "Get props time: " << getPropsTime.elapsedInUSec() << "us";
+        })
         .then([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+            SCOPED_TIMER(&execTime_);
             return handleResp(std::move(rpcResp));
         });
-    return start();
 }
 
 }   // namespace graph

@@ -1,12 +1,8 @@
-import re
-import sys
 import time
 
 import pytest
 
-from graph import ttypes
-
-from nebula_test_common.nebula_test_suite import NebulaTestSuite
+from tests.common.nebula_test_suite import NebulaTestSuite
 
 @pytest.mark.parametrize('sentence', ['UPDATE', 'UPSERT'])
 class TestBugUpdateFilterOut(NebulaTestSuite):

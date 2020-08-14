@@ -85,7 +85,7 @@ StatusOr<GetNeighborsIter::DataSetIndex> GetNeighborsIter::makeDataSetIndex(cons
     int64_t edgeStartIndex = std::move(buildResult).value();
     if (edgeStartIndex < 0) {
         for (auto& row : dsIndex.ds->rows) {
-            logicalRows_.emplace_back(LogicalRowGN{idx, &row, "", nullptr});
+            logicalRows_.emplace_back(GetNbrLogicalRow{idx, &row, "", nullptr});
         }
     } else {
         makeLogicalRowByEdge(edgeStartIndex, idx, dsIndex);
@@ -111,7 +111,7 @@ void GetNeighborsIter::makeLogicalRowByEdge(int64_t edgeStartIndex,
                 auto edgeName = dsIndex.tagEdgeNameIndices.find(column);
                 DCHECK(edgeName != dsIndex.tagEdgeNameIndices.end());
                 logicalRows_.emplace_back(
-                    LogicalRowGN{idx, &row, edgeName->second, &edge.getList()});
+                    GetNbrLogicalRow{idx, &row, edgeName->second, &edge.getList()});
             }
         }
     }
@@ -169,8 +169,8 @@ Status GetNeighborsIter::buildPropIndex(const std::string& props,
     std::move(pieces.begin() + 2, pieces.end(), propIdx.propList.begin());
     std::string name = pieces[1];
     if (isEdge) {
-        // The first character of the tag/edge name is +/-.
-        if (UNLIKELY(name.find("+") != 0 && name.find("-") != 0)) {
+        // The first character of the edge name is +/-.
+        if (UNLIKELY(name.empty() || (name[0] != '+' && name[0] != '-'))) {
             return Status::Error("Bad edge name: %s", name.c_str());
         }
         dsIndex->tagEdgeNameIndices.emplace(columnId, name);

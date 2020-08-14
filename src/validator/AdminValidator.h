@@ -48,7 +48,7 @@ private:
 class ShowSpacesValidator final : public Validator {
 public:
     ShowSpacesValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -61,7 +61,7 @@ private:
 class DropSpaceValidator final : public Validator {
 public:
     DropSpaceValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -74,7 +74,7 @@ private:
 class ShowCreateSpaceValidator final : public Validator {
 public:
     ShowCreateSpaceValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -87,7 +87,7 @@ private:
 class CreateSnapshotValidator final : public Validator {
 public:
     CreateSnapshotValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -100,7 +100,7 @@ private:
 class DropSnapshotValidator final : public Validator {
 public:
     DropSnapshotValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 
@@ -113,6 +113,19 @@ private:
 class ShowSnapshotsValidator final : public Validator {
 public:
     ShowSnapshotsValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowHostsValidator final : public Validator {
+public:
+    ShowHostsValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         setNoSpaceRequired();
     }
@@ -122,6 +135,19 @@ private:
 
     Status toPlan() override;
 };
+
+class ShowPartsValidator final : public Validator {
+public:
+    ShowPartsValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_ADMINVALIDATOR_H_
