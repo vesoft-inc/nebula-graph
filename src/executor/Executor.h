@@ -39,11 +39,11 @@ public:
     // computation
     virtual folly::Future<Status> execute() = 0;
 
-    // Reset all profiling stats
-    void startProfiling();
+    // Prepare or initialize executor before each execution
+    virtual Status open();
 
-    // Finish profiling stats and save them to profiling stats container of QueryContext
-    void stopProfiling();
+    // Cleanup or reset executor some states after each execution
+    virtual Status close();
 
     QueryContext *qctx() const {
         return qctx_;
