@@ -24,6 +24,7 @@ nebula_add_library(
     OrderByValidator.cpp
     YieldValidator.cpp
     ExplainValidator.cpp
+    GroupByValidator.cpp
 )
 
 add_subdirectory(test)

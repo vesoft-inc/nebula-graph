@@ -28,8 +28,10 @@ nebula_add_library(
     query/DataJoinExecutor.cpp
     admin/SwitchSpaceExecutor.cpp
     admin/SubmitJobExecutor.cpp
+    admin/ShowHostsExecutor.cpp
     admin/SpaceExecutor.cpp
     admin/SnapshotExecutor.cpp
+    admin/PartExecutor.cpp
     maintain/TagExecutor.cpp
     maintain/EdgeExecutor.cpp
     mutate/InsertExecutor.cpp

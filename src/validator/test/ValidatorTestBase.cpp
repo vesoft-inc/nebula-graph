@@ -43,48 +43,6 @@ namespace graph {
         case PlanNode::Kind::kStart:
         case PlanNode::Kind::kDedup:
             return Status::OK();
-        case PlanNode::Kind::kSubmitJob:
-        case PlanNode::Kind::kDeleteEdges:
-        case PlanNode::Kind::kDeleteVertices:
-        case PlanNode::Kind::kIndexScan:
-        case PlanNode::Kind::kGetNeighbors:
-        case PlanNode::Kind::kFilter:
-        case PlanNode::Kind::kSort:
-        case PlanNode::Kind::kLimit:
-        case PlanNode::Kind::kAggregate:
-        case PlanNode::Kind::kSwitchSpace:
-        case PlanNode::Kind::kMultiOutputs:
-        case PlanNode::Kind::kCreateSpace:
-        case PlanNode::Kind::kCreateTag:
-        case PlanNode::Kind::kCreateEdge:
-        case PlanNode::Kind::kDescSpace:
-        case PlanNode::Kind::kDescTag:
-        case PlanNode::Kind::kDescEdge:
-        case PlanNode::Kind::kInsertVertices:
-        case PlanNode::Kind::kInsertEdges:
-        case PlanNode::Kind::kUnion:
-        case PlanNode::Kind::kIntersect:
-        case PlanNode::Kind::kMinus:
-        case PlanNode::Kind::kSelect:
-        case PlanNode::Kind::kLoop:
-        case PlanNode::Kind::kAlterEdge:
-        case PlanNode::Kind::kAlterTag:
-        case PlanNode::Kind::kShowCreateSpace:
-        case PlanNode::Kind::kShowCreateTag:
-        case PlanNode::Kind::kShowCreateEdge:
-        case PlanNode::Kind::kDropSpace:
-        case PlanNode::Kind::kDropTag:
-        case PlanNode::Kind::kDropEdge:
-        case PlanNode::Kind::kShowSpaces:
-        case PlanNode::Kind::kShowTags:
-        case PlanNode::Kind::kShowEdges:
-        case PlanNode::Kind::kCreateSnapshot:
-        case PlanNode::Kind::kDropSnapshot:
-        case PlanNode::Kind::kShowSnapshots:
-        case PlanNode::Kind::kDataJoin:
-        case PlanNode::Kind::kUpdateVertex:
-        case PlanNode::Kind::kUpdateEdge:
-            LOG(FATAL) << "Unimplemented";
         case PlanNode::Kind::kDataCollect: {
             const auto *lDC = static_cast<const DataCollect*>(l);
             const auto *rDC = static_cast<const DataCollect*>(r);
@@ -98,14 +56,10 @@ namespace graph {
         case PlanNode::Kind::kGetVertices: {
             const auto *lGV = static_cast<const GetVertices *>(l);
             const auto *rGV = static_cast<const GetVertices *>(r);
-            // vertices
-            if (lGV->vertices() != rGV->vertices()) {
-                return Status::Error(
-                    "%s.vertices_ != %s.vertices_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
-            }
             // src
             if (lGV->src() != nullptr && rGV->src() != nullptr) {
-                if (*lGV->src() != *rGV->src()) {
+                // TODO(shylock) check more about the anno variable
+                if (lGV->src()->kind() != rGV->src()->kind()) {
                     return Status::Error(
                         "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
                 }
@@ -123,14 +77,10 @@ namespace graph {
         case PlanNode::Kind::kGetEdges: {
             const auto *lGE = static_cast<const GetEdges *>(l);
             const auto *rGE = static_cast<const GetEdges *>(r);
-            // vertices
-            if (lGE->edges() != rGE->edges()) {
-                return Status::Error(
-                    "%s.vertices_ != %s.vertices_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
-            }
             // src
             if (lGE->src() != nullptr && rGE->src() != nullptr) {
-                if (*lGE->src() != *rGE->src()) {
+                // TODO(shylock) check more about the anno variable
+                if (lGE->src()->kind() != rGE->src()->kind()) {
                     return Status::Error(
                         "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
                 }
@@ -140,7 +90,7 @@ namespace graph {
             }
             // dst
             if (lGE->dst() != nullptr && rGE->dst() != nullptr) {
-                if (*lGE->dst() != *rGE->dst()) {
+                if (lGE->dst()->kind() != rGE->dst()->kind()) {
                     return Status::Error(
                         "%s.dst_ != %s.dst_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
                 }
@@ -150,7 +100,7 @@ namespace graph {
             }
             // ranking
             if (lGE->ranking() != nullptr && rGE->ranking() != nullptr) {
-                if (*lGE->ranking() != *lGE->ranking()) {
+                if (lGE->ranking()->kind() != lGE->ranking()->kind()) {
                     return Status::Error(
                         "%s.ranking_ != %s.ranking_",
                         l->nodeLabel().c_str(), r->nodeLabel().c_str());
@@ -192,8 +142,9 @@ namespace graph {
             }
             return Status::OK();
         }
+        default:
+            LOG(FATAL) << "Unknow plan node kind " << static_cast<int>(l->kind());
     }
-    LOG(FATAL) << "Unknow plan node kind " << static_cast<int>(l->kind());
 }
 
 // only traversal the plan by inputs, only `select` or `loop` make ring
