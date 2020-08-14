@@ -15,8 +15,8 @@ namespace nebula {
 class StepClause final {
 public:
     struct MToN {
-        uint32_t m;
-        uint32_t n;
+        uint32_t mSteps;
+        uint32_t nSteps;
     };
 
     explicit StepClause(uint32_t steps = 1) {
@@ -25,8 +25,8 @@ public:
 
     StepClause(uint32_t m, uint32_t n) {
         mToN_ = std::make_unique<MToN>();
-        mToN_->m = m;
-        mToN_->n = n;
+        mToN_->mSteps = m;
+        mToN_->nSteps = n;
     }
 
     uint32_t steps() const {

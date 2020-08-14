@@ -14,9 +14,9 @@ std::string StepClause::toString() const {
     std::string buf;
     buf.reserve(256);
     if (isMToN()) {
-        buf += std::to_string(mToN_->m);
+        buf += std::to_string(mToN_->mSteps);
         buf += " TO ";
-        buf += std::to_string(mToN_->n);
+        buf += std::to_string(mToN_->nSteps);
     } else {
         buf += std::to_string(steps_);
     }

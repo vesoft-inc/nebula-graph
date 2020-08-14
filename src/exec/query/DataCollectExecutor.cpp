@@ -122,8 +122,8 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
     std::vector<std::unique_ptr<Iterator>> itersHolder;
     for (auto& var : vars) {
         auto& hist = ectx_->getHistory(var);
-        DCHECK_GE(mToN->m, 1);
-        for (auto i = mToN->m - 1; i < mToN->n; ++i) {
+        DCHECK_GE(mToN->mSteps, 1);
+        for (auto i = mToN->mSteps - 1; i < mToN->nSteps; ++i) {
             auto iter = hist[i].iter();
             if (iter->isSequentialIter()) {
                 auto* seqIter = static_cast<SequentialIter*>(iter.get());

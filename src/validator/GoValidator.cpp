@@ -48,17 +48,17 @@ Status GoValidator::validateStep(const StepClause* step) {
     }
     if (step->isMToN()) {
         auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
-        mToN->m = step->mToN()->m;
-        mToN->n = step->mToN()->n;
-        if (mToN->m == 0) {
-            mToN->m = 1;
+        mToN->mSteps = step->mToN()->mSteps;
+        mToN->nSteps = step->mToN()->nSteps;
+        if (mToN->mSteps == 0) {
+            mToN->mSteps = 1;
         }
-        if (mToN->n < mToN->m) {
+        if (mToN->nSteps < mToN->mSteps) {
             return Status::Error("`%s', upper bound steps should be greater than lower bound.",
                                  step->toString().c_str());
         }
-        if (mToN->m == mToN->n) {
-            steps_ = mToN->m;
+        if (mToN->mSteps == mToN->nSteps) {
+            steps_ = mToN->mSteps;
             return Status::OK();
         }
         mToN_ = mToN;
@@ -488,7 +488,7 @@ Status GoValidator::buildMToNPlan() {
         projectLeftVarForJoin == nullptr ? projectStartVid
                                          : projectLeftVarForJoin,  // dep
         dedupNode == nullptr ? projectResult : dedupNode,  // body
-        buildNStepLoopCondition(mToN_->n));
+        buildNStepLoopCondition(mToN_->nSteps));
 
     if (projectStartVid != nullptr) {
         tail_ = projectStartVid;
