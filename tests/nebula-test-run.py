@@ -105,9 +105,6 @@ if __name__ == "__main__":
             nebula_ip = addr[0]
             nebula_port = int(addr[1])
 
-        if '--tests_dir' not in args:
-            args.extend(['--tests_dir', NEBULA_HOME])
-
         if '--data_dir' not in args:
             args.extend(['--data_dir', TEST_DIR])
         print("Running TestExecutor with args: {} ".format(args))

@@ -1,9 +1,6 @@
-import re
-import sys
 import time
-import pytest
 
-sys.path.insert(0, pytest.cmdline.tests_dir)
+import pytest
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 

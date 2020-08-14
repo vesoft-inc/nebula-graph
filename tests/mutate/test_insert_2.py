@@ -6,12 +6,10 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import time
-import sys
 import pytest
 
-sys.path.insert(0, pytest.cmdline.tests_dir)
-
 from tests.common.nebula_test_suite import NebulaTestSuite, T_NULL
+
 
 class TestInsert2(NebulaTestSuite):
     '''

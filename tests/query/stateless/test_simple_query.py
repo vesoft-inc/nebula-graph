@@ -10,8 +10,6 @@ import sys
 import time
 import pytest
 
-sys.path.insert(0, pytest.cmdline.tests_dir)
-
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 

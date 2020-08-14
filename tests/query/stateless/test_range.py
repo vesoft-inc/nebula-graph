@@ -10,9 +10,8 @@ import sys
 import time
 import string
 import random
-import pytest
 
-sys.path.insert(0, pytest.cmdline.tests_dir)
+import pytest
 
 from nebula2.graph import ttypes
 

@@ -8,9 +8,6 @@
 import re
 import sys
 import time
-import pytest
-
-sys.path.insert(0, pytest.cmdline.tests_dir)
 
 from graph import ttypes
 

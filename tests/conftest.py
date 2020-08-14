@@ -76,11 +76,6 @@ def pytest_addoption(parser):
                         default='true',
                         help='Remove the temp test dir')
 
-    parser.addoption('--tests_dir',
-                        dest='tests_dir',
-                        default='',
-                        help='The tests dir')
-
     parser.addoption('--debug_log',
                          dest='debug_log',
                          default='true',
@@ -98,9 +93,7 @@ def pytest_configure(config):
         pytest.cmdline.data_dir = data_dir
     pytest.cmdline.stop_nebula = config.getoption("stop_nebula")
     pytest.cmdline.rm_dir = config.getoption("rm_dir")
-    pytest.cmdline.tests_dir = config.getoption("tests_dir")
     pytest.cmdline.debug_log = config.getoption("debug_log")
     config._metadata['graphd digest'] = DOCKER_GRAPHD_DIGESTS
     config._metadata['metad digest'] = DOCKER_METAD_DIGESTS
     config._metadata['storaged digest'] = DOCKER_STORAGED_DIGESTS
-

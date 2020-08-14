@@ -5,13 +5,9 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-import sys
-import pytest
-
-sys.path.insert(0, pytest.cmdline.tests_dir)
-
 from tests.common.nebula_test_suite import NebulaTestSuite
 from tests.common.nebula_test_suite import T_EMPTY, T_NULL
+import pytest
 
 class TestGoQuery(NebulaTestSuite):
     @classmethod
