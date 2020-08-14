@@ -8,6 +8,7 @@
 #include "validator/SequentialValidator.h"
 #include "service/GraphFlags.h"
 #include "service/PermissionCheck.h"
+#include "planner/Logic.h"
 #include "planner/Query.h"
 
 DECLARE_uint32(max_allowed_statements);
@@ -33,7 +34,7 @@ Status SequentialValidator::validateImpl() {
     switch (firstSentence->kind()) {
         case Sentence::Kind::kLimit:
         case Sentence::Kind::kOrderBy:
-        case Sentence::Kind::KGroupBy:
+        case Sentence::Kind::kGroupBy:
             return Status::SyntaxError("Could not start with the statement: %s",
                                        firstSentence->toString().c_str());
         default:

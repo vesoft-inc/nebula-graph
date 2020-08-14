@@ -17,7 +17,7 @@ TEST(IteratorTest, Default) {
     DefaultIter iter(constant);
     EXPECT_EQ(iter.size(), 1);
     for (; iter.valid(); iter.next()) {
-        EXPECT_EQ(*iter, *constant);
+        EXPECT_EQ(*iter.valuePtr(), *constant);
     }
 }
 
@@ -546,6 +546,19 @@ TEST(IteratorTest, TestHead) {
         GetNeighborsIter iter(std::move(val));
         EXPECT_TRUE(iter.valid_);
     }
+    {
+        DataSet ds;
+        ds.colNames = {kVid,
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:::",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
+    }
 }
 
 TEST(IteratorTest, EraseRange) {
@@ -610,8 +623,8 @@ TEST(IteratorTest, Join) {
     joinIter.joinIndex(&iter1, &iter2);
     EXPECT_EQ(joinIter.getColIdxIndices().size(), 6);
     EXPECT_EQ(joinIter.getColIdxIndices().size(), 6);
-    joinIter.addRow(JoinIter::LogicalRowJoin({ &row1, &row2 }, 6, &joinIter.getColIdxIndices()));
-    joinIter.addRow(JoinIter::LogicalRowJoin({ &row1, &row2 }, 6, &joinIter.getColIdxIndices()));
+    joinIter.addRow(JoinIter::JoinLogicalRow({ &row1, &row2 }, 6, &joinIter.getColIdxIndices()));
+    joinIter.addRow(JoinIter::JoinLogicalRow({ &row1, &row2 }, 6, &joinIter.getColIdxIndices()));
 
     for (; joinIter.valid(); joinIter.next()) {
         const auto& row = *joinIter.row();
@@ -657,9 +670,9 @@ TEST(IteratorTest, Join) {
         joinIter2.joinIndex(&iter3, &joinIter);
         EXPECT_EQ(joinIter2.getColIndices().size(), 8);
         EXPECT_EQ(joinIter2.getColIdxIndices().size(), 8);
-        joinIter2.addRow(JoinIter::LogicalRowJoin({ &row3, &row1, &row2}, 8,
+        joinIter2.addRow(JoinIter::JoinLogicalRow({ &row3, &row1, &row2}, 8,
                                                 &joinIter2.getColIdxIndices()));
-        joinIter2.addRow(JoinIter::LogicalRowJoin({ &row3, &row1, &row2}, 8,
+        joinIter2.addRow(JoinIter::JoinLogicalRow({ &row3, &row1, &row2}, 8,
                                                 &joinIter2.getColIdxIndices()));
 
         for (; joinIter2.valid(); joinIter2.next()) {
@@ -700,9 +713,9 @@ TEST(IteratorTest, Join) {
         joinIter2.joinIndex(&joinIter, &iter3);
         EXPECT_EQ(joinIter2.getColIndices().size(), 8);
         EXPECT_EQ(joinIter2.getColIdxIndices().size(), 8);
-        joinIter2.addRow(JoinIter::LogicalRowJoin({ &row1, &row2, &row3 }, 8,
+        joinIter2.addRow(JoinIter::JoinLogicalRow({ &row1, &row2, &row3 }, 8,
                                                 &joinIter2.getColIdxIndices()));
-        joinIter2.addRow(JoinIter::LogicalRowJoin({ &row1, &row2, &row3 }, 8,
+        joinIter2.addRow(JoinIter::JoinLogicalRow({ &row1, &row2, &row3 }, 8,
                                                 &joinIter2.getColIdxIndices()));
 
         for (; joinIter2.valid(); joinIter2.next()) {
@@ -741,4 +754,3 @@ int main(int argc, char** argv) {
 
     return RUN_ALL_TESTS();
 }
-

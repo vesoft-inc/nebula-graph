@@ -7,7 +7,9 @@
 #include "exec/logic/SelectExecutor.h"
 
 #include "context/QueryExpressionContext.h"
+#include "planner/Logic.h"
 #include "planner/Query.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
@@ -21,7 +23,7 @@ SelectExecutor::SelectExecutor(const PlanNode* node,
       else_(DCHECK_NOTNULL(els)) {}
 
 folly::Future<Status> SelectExecutor::execute() {
-    dumpLog();
+    SCOPED_TIMER(&execTime_);
 
     auto* select = asNode<Select>(node());
     auto* expr = select->condition();

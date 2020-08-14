@@ -14,11 +14,14 @@
 
 #include "common/base/Status.h"
 #include "common/expression/Expression.h"
-
 #include "util/ObjectPool.h"
 
 namespace nebula {
 namespace graph {
+
+namespace cpp2 {
+class PlanDescription;
+}  // namespace cpp2
 
 class Executor;
 class IdGenerator;
@@ -48,6 +51,12 @@ public:
         return objPool_->add(obj);
     }
 
+    // follow the flavor like std::make_unique, combine the object creation and ownership holding
+    template <typename T, typename... Args>
+    T* makeAndSave(Args&&... args) {
+        return objPool_->makeAndAdd<T>(std::forward<Args>(args)...);
+    }
+
     int64_t id() const {
         return id_;
     }
@@ -60,7 +69,7 @@ public:
         return objPool_;
     }
 
-    folly::Future<Status> execute();
+    void fillPlanDescription(cpp2::PlanDescription* planDesc) const;
 
 private:
     Executor* createExecutor();

@@ -17,6 +17,7 @@
 #include "common/expression/TypeCastingExpression.h"
 #include "common/expression/UnaryExpression.h"
 #include "common/expression/UUIDExpression.h"
+#include "common/expression/LabelExpression.h"
 
 namespace nebula {
 
@@ -27,6 +28,7 @@ public:
 
     enum class Kind : uint32_t {
         kUnknown,
+        kExplain,
         kSequential,
         kGo,
         kSet,
@@ -73,7 +75,7 @@ public:
         kShowSnapshots,
         kShowCharset,
         kShowCollation,
-        kDeleteVertex,
+        kDeleteVertices,
         kDeleteEdges,
         kLookup,
         kCreateSpace,
@@ -95,7 +97,7 @@ public:
         kBalance,
         kFindPath,
         kLimit,
-        KGroupBy,
+        kGroupBy,
         kReturn,
         kCreateSnapshot,
         kDropSnapshot,
@@ -108,6 +110,9 @@ public:
     }
 
 protected:
+    Sentence() = default;
+    explicit Sentence(Kind kind) : kind_(kind) {}
+
     Kind                kind_{Kind::kUnknown};
 };
 
