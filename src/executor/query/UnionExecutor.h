@@ -4,10 +4,10 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_QUERY_UNIONEXECUTOR_H_
-#define EXEC_QUERY_UNIONEXECUTOR_H_
+#ifndef EXECUTOR_QUERY_UNIONEXECUTOR_H_
+#define EXECUTOR_QUERY_UNIONEXECUTOR_H_
 
-#include "exec/query/SetExecutor.h"
+#include "executor/query/SetExecutor.h"
 
 namespace nebula {
 namespace graph {
@@ -23,4 +23,4 @@ public:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_QUERY_UNIONEXECUTOR_H_
+#endif   // EXECUTOR_QUERY_UNIONEXECUTOR_H_

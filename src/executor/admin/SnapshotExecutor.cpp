@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/admin/SnapshotExecutor.h"
+#include "executor/admin/SnapshotExecutor.h"
 #include "planner/Admin.h"
 #include "context/QueryContext.h"
 #include "util/ScopedTimer.h"

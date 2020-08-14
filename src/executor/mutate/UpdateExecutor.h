@@ -4,11 +4,11 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_MUTATE_UPDATEEXECUTOR_H_
-#define EXEC_MUTATE_UPDATEEXECUTOR_H_
+#ifndef EXECUTOR_MUTATE_UPDATEEXECUTOR_H_
+#define EXECUTOR_MUTATE_UPDATEEXECUTOR_H_
 
 #include "common/base/StatusOr.h"
-#include "exec/mutate/MutateExecutor.h"
+#include "executor/mutate/MutateExecutor.h"
 
 namespace nebula {
 namespace graph {
@@ -48,4 +48,4 @@ public:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_MUTATE_UPDATEEXECUTOR_H_
+#endif   // EXECUTOR_MUTATE_UPDATEEXECUTOR_H_

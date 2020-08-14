@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/DataJoinExecutor.h"
+#include "executor/query/DataJoinExecutor.h"
 
 #include "planner/Query.h"
 #include "context/QueryExpressionContext.h"

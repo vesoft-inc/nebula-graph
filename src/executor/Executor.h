@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_EXECUTOR_H_
-#define EXEC_EXECUTOR_H_
+#ifndef EXECUTOR_EXECUTOR_H_
+#define EXECUTOR_EXECUTOR_H_
 
 #include <memory>
 #include <set>
@@ -127,4 +127,4 @@ protected:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_EXECUTOR_H_
+#endif   // EXECUTOR_EXECUTOR_H_

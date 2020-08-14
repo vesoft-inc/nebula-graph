@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/logic/MultiOutputsExecutor.h"
+#include "executor/logic/MultiOutputsExecutor.h"
 
 #include "planner/Query.h"
 #include "util/ScopedTimer.h"

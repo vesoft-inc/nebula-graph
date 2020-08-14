@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/SetExecutor.h"
+#include "executor/query/SetExecutor.h"
 
 #include <sstream>
 

@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/logic/LoopExecutor.h"
+#include "executor/logic/LoopExecutor.h"
 
 #include <folly/String.h>
 

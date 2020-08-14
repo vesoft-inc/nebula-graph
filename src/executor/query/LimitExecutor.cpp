@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/LimitExecutor.h"
+#include "executor/query/LimitExecutor.h"
 #include "context/QueryExpressionContext.h"
 #include "planner/Query.h"
 #include "util/ScopedTimer.h"

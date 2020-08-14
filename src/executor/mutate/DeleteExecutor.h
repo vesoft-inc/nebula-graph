@@ -4,10 +4,10 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_MUTATE_DELETEVERTICESEXECUTOR_H_
-#define EXEC_MUTATE_DELETEVERTICESEXECUTOR_H_
+#ifndef EXECUTOR_MUTATE_DELETEVERTICESEXECUTOR_H_
+#define EXECUTOR_MUTATE_DELETEVERTICESEXECUTOR_H_
 
-#include "exec/mutate/MutateExecutor.h"
+#include "executor/mutate/MutateExecutor.h"
 
 namespace nebula {
 namespace graph {
@@ -37,4 +37,4 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_MUTATE_DELETEVERTICESEXECUTOR_H_
+#endif   // EXECUTOR_MUTATE_DELETEVERTICESEXECUTOR_H_

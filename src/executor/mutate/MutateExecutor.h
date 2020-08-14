@@ -4,13 +4,13 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_MUTATE_MUTATEEXECUTOR_H_
-#define EXEC_MUTATE_MUTATEEXECUTOR_H_
+#ifndef EXECUTOR_MUTATE_MUTATEEXECUTOR_H_
+#define EXECUTOR_MUTATE_MUTATEEXECUTOR_H_
 
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/clients/storage/GraphStorageClient.h"
 
-#include "exec/Executor.h"
+#include "executor/Executor.h"
 
 namespace nebula {
 namespace graph {
@@ -91,4 +91,4 @@ protected:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_MUTATE_MUTATEEXECUTOR_H_
+#endif   // EXECUTOR_MUTATE_MUTATEEXECUTOR_H_

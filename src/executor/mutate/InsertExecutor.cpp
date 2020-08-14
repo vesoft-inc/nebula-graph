@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/mutate/InsertExecutor.h"
+#include "executor/mutate/InsertExecutor.h"
 
 #include "planner/Mutate.h"
 #include "context/QueryContext.h"

@@ -8,9 +8,9 @@
 
 #include "common/expression/VariableExpression.h"
 #include "context/QueryContext.h"
-#include "exec/logic/LoopExecutor.h"
-#include "exec/logic/SelectExecutor.h"
-#include "exec/logic/StartExecutor.h"
+#include "executor/logic/LoopExecutor.h"
+#include "executor/logic/SelectExecutor.h"
+#include "executor/logic/StartExecutor.h"
 #include "planner/Logic.h"
 #include "planner/Query.h"
 

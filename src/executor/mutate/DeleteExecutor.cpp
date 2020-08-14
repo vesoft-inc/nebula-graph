@@ -8,7 +8,7 @@
 #include "planner/Mutate.h"
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
-#include "exec/mutate/DeleteExecutor.h"
+#include "executor/mutate/DeleteExecutor.h"
 #include "util/ScopedTimer.h"
 
 

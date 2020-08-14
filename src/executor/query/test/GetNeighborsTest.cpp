@@ -8,7 +8,7 @@
 
 #include "context/QueryContext.h"
 #include "planner/Query.h"
-#include "exec/query/GetNeighborsExecutor.h"
+#include "executor/query/GetNeighborsExecutor.h"
 
 namespace nebula {
 namespace graph {

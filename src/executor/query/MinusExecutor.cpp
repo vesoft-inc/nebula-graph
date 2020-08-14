@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/MinusExecutor.h"
+#include "executor/query/MinusExecutor.h"
 
 #include <unordered_set>
 

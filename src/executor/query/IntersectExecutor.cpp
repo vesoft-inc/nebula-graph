@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/IntersectExecutor.h"
+#include "executor/query/IntersectExecutor.h"
 
 #include <unordered_set>
 

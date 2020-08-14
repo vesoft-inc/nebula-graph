@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/GetVerticesExecutor.h"
+#include "executor/query/GetVerticesExecutor.h"
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 #include "util/ScopedTimer.h"

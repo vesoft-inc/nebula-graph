@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/DedupExecutor.h"
+#include "executor/query/DedupExecutor.h"
 #include "planner/Query.h"
 #include "context/QueryExpressionContext.h"
 #include "util/ScopedTimer.h"

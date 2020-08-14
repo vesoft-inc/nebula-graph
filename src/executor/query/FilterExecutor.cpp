@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/FilterExecutor.h"
+#include "executor/query/FilterExecutor.h"
 
 #include "planner/Query.h"
 

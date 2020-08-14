@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/admin/SwitchSpaceExecutor.h"
+#include "executor/admin/SwitchSpaceExecutor.h"
 
 #include "planner/Query.h"
 #include "context/QueryContext.h"

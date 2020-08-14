@@ -4,15 +4,15 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H_
-#define EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H_
+#ifndef EXECUTOR_QUERY_MULTIOUTPUTSEXECUTOR_H_
+#define EXECUTOR_QUERY_MULTIOUTPUTSEXECUTOR_H_
 
 #include <unordered_map>
 
 #include <folly/SpinLock.h>
 #include <folly/futures/SharedPromise.h>
 
-#include "exec/Executor.h"
+#include "executor/Executor.h"
 
 namespace nebula {
 namespace graph {
@@ -28,4 +28,4 @@ public:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_QUERY_MULTIOUTPUTSEXECUTOR_H_
+#endif   // EXECUTOR_QUERY_MULTIOUTPUTSEXECUTOR_H_

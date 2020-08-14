@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/UnionExecutor.h"
+#include "executor/query/UnionExecutor.h"
 
 #include <memory>
 

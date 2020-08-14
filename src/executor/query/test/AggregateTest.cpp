@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "context/QueryContext.h"
-#include "exec/query/AggregateExecutor.h"
+#include "executor/query/AggregateExecutor.h"
 #include "planner/Query.h"
 
 namespace nebula {

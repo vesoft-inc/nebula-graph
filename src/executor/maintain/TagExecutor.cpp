@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/maintain/TagExecutor.h"
+#include "executor/maintain/TagExecutor.h"
 #include "context/QueryContext.h"
 #include "planner/Maintain.h"
 #include "util/SchemaUtil.h"

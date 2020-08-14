@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_EXECUTIONERROR_H_
-#define EXEC_EXECUTIONERROR_H_
+#ifndef EXECUTOR_EXECUTIONERROR_H_
+#define EXECUTOR_EXECUTIONERROR_H_
 
 #include <stdexcept>
 
@@ -31,4 +31,4 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXEC_EXECUTIONERROR_H_
+#endif   // EXECUTOR_EXECUTIONERROR_H_

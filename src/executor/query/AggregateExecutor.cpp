@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/AggregateExecutor.h"
+#include "executor/query/AggregateExecutor.h"
 
 #include "common/datatypes/List.h"
 #include "common/function/AggregateFunction.h"

@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/ProjectExecutor.h"
+#include "executor/query/ProjectExecutor.h"
 
 #include "context/QueryExpressionContext.h"
 #include "parser/Clauses.h"

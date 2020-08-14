@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/query/IndexScanExecutor.h"
+#include "executor/query/IndexScanExecutor.h"
 
 #include "planner/PlanNode.h"
 #include "util/ScopedTimer.h"
