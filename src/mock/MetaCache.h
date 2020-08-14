@@ -160,6 +160,28 @@ private:
         int64_t                         startTime_;
         int64_t                         stopTime_;
     };
+
+    ErrorOr<meta::cpp2::ErrorCode, std::unordered_map<int64_t, JobDesc>::iterator>
+    checkJobId(const meta::cpp2::AdminJobReq& req) {
+        const auto &params = req.get_paras();
+        if (params.empty()) {
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        int64_t jobId;
+        try {
+            jobId = folly::to<int64_t>(params.front());
+        } catch (std::exception &e) {
+            LOG(ERROR) << e.what();
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        const auto job = jobs_.find(jobId);
+        if (job == jobs_.end()) {
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        return job;
+    }
+
+
     mutable folly::RWSpinLock                          jobLock_;
     // jobId => jobs
     std::unordered_map<int64_t, JobDesc>               jobs_;

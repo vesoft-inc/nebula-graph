@@ -323,23 +323,6 @@ std::unordered_map<PartitionID, std::vector<HostAddr>> MetaCache::getParts() {
     return parts;
 }
 
-#define JOB_CHECK_ID() \
-    const auto &params = req.get_paras(); \
-    if (params.empty()) { \
-        return meta::cpp2::ErrorCode::E_INVALID_PARM; \
-    } \
-    int64_t jobId; \
-    try { \
-        jobId = folly::to<int64_t>(params.front()); \
-    } catch (std::exception &e) { \
-        LOG(ERROR) << e.what(); \
-        return meta::cpp2::ErrorCode::E_INVALID_PARM; \
-    } \
-    const auto job = jobs_.find(jobId); \
-    if (job == jobs_.end()) { \
-        return meta::cpp2::ErrorCode::E_INVALID_PARM; \
-    }
-
 ErrorOr<meta::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
 MetaCache::runAdminJob(const meta::cpp2::AdminJobReq& req) {
     meta::cpp2::AdminJobResult result;
@@ -384,7 +367,11 @@ MetaCache::runAdminJob(const meta::cpp2::AdminJobReq& req) {
         }
         case meta::cpp2::AdminJobOp::SHOW: {
             folly::RWSpinLock::ReadHolder rh(jobLock_);
-            JOB_CHECK_ID();
+            auto ret = checkJobId(req);
+            if (!ok(ret)) {
+                return error(ret);
+            }
+            auto job = value(ret);
             result.set_job_id(job->first);
             std::vector<meta::cpp2::JobDesc> jobsDesc;
             meta::cpp2::JobDesc jobDesc;
@@ -432,7 +419,11 @@ MetaCache::runAdminJob(const meta::cpp2::AdminJobReq& req) {
         }
         case meta::cpp2::AdminJobOp::STOP: {
             folly::RWSpinLock::WriteHolder wh(jobLock_);
-            JOB_CHECK_ID();
+            auto ret = checkJobId(req);
+            if (!ok(ret)) {
+                return error(ret);
+            }
+            auto job = value(ret);
             if (job->second.status_ != meta::cpp2::JobStatus::QUEUE &&
                 job->second.status_ != meta::cpp2::JobStatus::RUNNING) {
                 return meta::cpp2::ErrorCode::E_CONFLICT;
