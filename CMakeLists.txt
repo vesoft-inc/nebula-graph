@@ -117,8 +117,8 @@ if(ENABLE_BUILD_STORAGE)
     config_nebula_storage(
         SOURCE_DIR ${CMAKE_SOURCE_DIR}/modules/storage
         BUILD_DIR ${CMAKE_BINARY_DIR}/modules/storage
-        COMMON_SOURCE_DIR ${CMAKE_SOURCE_DIR}/modules/common
-        COMMON_BUILD_DIR ${CMAKE_BINARY_DIR}/modules/common
+        COMMON_SOURCE_DIR ${nebula_common_source_dir}
+        COMMON_BUILD_DIR ${nebula_common_build_dir}
     )
 endif()
 
