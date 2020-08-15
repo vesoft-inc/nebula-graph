@@ -42,6 +42,10 @@ class TestExplain(NebulaTestSuite):
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
 
+        query = 'EXPLAIN FORMAT="dot:struct" YIELD 1;'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
         query = 'EXPLAIN FORMAT="unknown" YIELD 1;'
         resp = self.execute_query(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
@@ -56,6 +60,10 @@ class TestExplain(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         query = 'EXPLAIN FORMAT="dot" {$var = YIELD 1 AS a; YIELD $var.*;};'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'EXPLAIN FORMAT="dot:struct" {$var = YIELD 1 AS a; YIELD $var.*;};'
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
 
@@ -81,6 +89,10 @@ class TestExplain(NebulaTestSuite):
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
 
+        query = 'PROFILE FORMAT="dot:struct" YIELD 1;'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
         query = 'PROFILE FORMAT="unknown" YIELD 1;'
         resp = self.execute_query(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
@@ -95,6 +107,10 @@ class TestExplain(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         query = 'PROFILE FORMAT="dot" {$var = YIELD 1 AS a; YIELD $var.*;};'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'PROFILE FORMAT="dot:struct" {$var = YIELD 1 AS a; YIELD $var.*;};'
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
 
