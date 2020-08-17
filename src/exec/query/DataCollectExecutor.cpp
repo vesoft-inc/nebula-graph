@@ -33,6 +33,10 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
             NG_RETURN_IF_ERROR(rowBasedMove(vars));
             break;
         }
+        case DataCollect::CollectKind::kMToN: {
+            NG_RETURN_IF_ERROR(collectMToN(vars, dc->mToN(), dc->distinct()));
+            break;
+        }
         default:
             LOG(FATAL) << "Unknown data collect type: " << static_cast<int64_t>(dc->collectKind());
     }
@@ -44,16 +48,40 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
 Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
+    // the subgraph not need duplicate vertices or edges, so dedup here directly
+    std::unordered_set<std::string> vids;
+    std::unordered_set<std::tuple<std::string, int64_t, int64_t, std::string>> edgeKeys;
     for (auto& var : vars) {
         auto& hist = ectx_->getHistory(var);
         for (auto& result : hist) {
             auto iter = result.iter();
             if (iter->isGetNeighborsIter()) {
-                Row row;
+                List vertices;
+                List edges;
                 auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-                row.values.emplace_back(gnIter->getVertices());
-                row.values.emplace_back(gnIter->getEdges());
-                ds.rows.emplace_back(std::move(row));
+                auto originVertices = gnIter->getVertices();
+                for (auto& v : originVertices.values) {
+                    if (!v.isVertex()) {
+                        continue;
+                    }
+                    if (vids.emplace(v.getVertex().vid).second) {
+                        vertices.emplace_back(std::move(v));
+                    }
+                }
+                auto originEdges = gnIter->getEdges();
+                for (auto& e : originEdges.values) {
+                    if (!e.isEdge()) {
+                        continue;
+                    }
+                    auto edgeKey = std::make_tuple(e.getEdge().src,
+                                                   e.getEdge().type,
+                                                   e.getEdge().ranking,
+                                                   e.getEdge().dst);
+                    if (edgeKeys.emplace(std::move(edgeKey)).second) {
+                        edges.emplace_back(std::move(e));
+                    }
+                }
+                ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
             } else {
                 return Status::Error("Iterator should be kind of GetNeighborIter.");
             }
@@ -77,6 +105,38 @@ Status DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {
             }
         } else {
             return Status::Error("Iterator should be kind of SequentialIter.");
+        }
+    }
+    result_.setDataSet(std::move(ds));
+    return Status::OK();
+}
+
+Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
+                                        StepClause::MToN* mToN,
+                                        bool distinct) {
+    DataSet ds;
+    ds.colNames = std::move(colNames_);
+    DCHECK(!ds.colNames.empty());
+    std::unordered_set<const LogicalRow*> unique;
+    // itersHolder keep life cycle of iters util this method return.
+    std::vector<std::unique_ptr<Iterator>> itersHolder;
+    for (auto& var : vars) {
+        auto& hist = ectx_->getHistory(var);
+        DCHECK_GE(mToN->mSteps, 1);
+        for (auto i = mToN->mSteps - 1; i < mToN->nSteps; ++i) {
+            auto iter = hist[i].iter();
+            if (iter->isSequentialIter()) {
+                auto* seqIter = static_cast<SequentialIter*>(iter.get());
+                for (; seqIter->valid(); seqIter->next()) {
+                    if (distinct && !unique.emplace(seqIter->row()).second) {
+                            continue;
+                    }
+                    ds.rows.emplace_back(seqIter->moveRow());
+                }
+            } else {
+                return Status::Error("Iterator should be kind of SequentialIter.");
+            }
+            itersHolder.emplace_back(std::move(iter));
         }
     }
     result_.setDataSet(std::move(ds));

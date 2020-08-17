@@ -5,6 +5,7 @@
 
 set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:parser_obj>
+    $<TARGET_OBJECTS:common_time_function_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_network_obj>
     $<TARGET_OBJECTS:common_fs_obj>
@@ -19,6 +20,7 @@ set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:common_function_manager_obj>
     $<TARGET_OBJECTS:common_meta_thrift_obj>
     $<TARGET_OBJECTS:common_graph_thrift_obj>
+    $<TARGET_OBJECTS:common_storage_thrift_obj>
     $<TARGET_OBJECTS:common_meta_obj>
     $<TARGET_OBJECTS:common_meta_client_obj>
     $<TARGET_OBJECTS:common_conf_obj>

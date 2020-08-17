@@ -5,7 +5,10 @@
  */
 
 #include "planner/PlanNode.h"
+
+#include "common/interface/gen-cpp2/graph_types.h"
 #include "planner/ExecutionPlan.h"
+#include "util/ToJson.h"
 
 namespace nebula {
 namespace graph {
@@ -114,13 +117,61 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "UpdateEdge";
         case Kind::kShowHosts:
             return "ShowHosts";
+        case Kind::kShowParts:
+            return "ShowParts";
+        case Kind::kShowCharset:
+            return "ShowCharset";
+        case Kind::kShowCollation:
+            return "ShowCollation";
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
+}
+
+// static
+void PlanNode::addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc) {
+    if (!desc->__isset.description) {
+        desc->set_description({});
+    }
+    cpp2::Pair kv;
+    kv.set_key(std::move(key));
+    kv.set_value(std::move(value));
+    desc->get_description()->emplace_back(std::move(kv));
+}
+
+std::unique_ptr<cpp2::PlanNodeDescription> PlanNode::explain() const {
+    auto desc = std::make_unique<cpp2::PlanNodeDescription>();
+    desc->set_id(id_);
+    desc->set_name(toString(kind_));
+    desc->set_output_var(outputVar_);
+    addDescription("colNames", folly::toJson(util::toJson(colNames_)), desc.get());
+    return desc;
 }
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {
     os << PlanNode::toString(kind);
     return os;
+}
+
+std::unique_ptr<cpp2::PlanNodeDescription> SingleDependencyNode::explain() const {
+    auto desc = PlanNode::explain();
+    DCHECK(!desc->__isset.dependencies);
+    desc->set_dependencies({dependency_->id()});
+    return desc;
+}
+
+std::unique_ptr<cpp2::PlanNodeDescription> SingleInputNode::explain() const {
+    auto desc = SingleDependencyNode::explain();
+    addDescription("inputVar", inputVar_, desc.get());
+    return desc;
+}
+
+std::unique_ptr<cpp2::PlanNodeDescription> BiInputNode::explain() const {
+    auto desc = PlanNode::explain();
+    DCHECK(!desc->__isset.dependencies);
+    desc->set_dependencies({left_->id(), right_->id()});
+    addDescription("leftVar", leftVar_, desc.get());
+    addDescription("rightVar", rightVar_, desc.get());
+    return desc;
 }
 
 }   // namespace graph

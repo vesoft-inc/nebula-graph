@@ -15,7 +15,7 @@ namespace std {
 bool equal_to<const nebula::graph::LogicalRow*>::operator()(
     const nebula::graph::LogicalRow* lhs,
     const nebula::graph::LogicalRow* rhs) const {
-    DCHECK_EQ(lhs->kind(), rhs->kind());
+    DCHECK_EQ(lhs->kind(), rhs->kind()) << lhs->kind() << " vs. " << rhs->kind();
     switch (lhs->kind()) {
         case nebula::graph::LogicalRow::Kind::kSequential:
         case nebula::graph::LogicalRow::Kind::kJoin: {
@@ -169,8 +169,8 @@ Status GetNeighborsIter::buildPropIndex(const std::string& props,
     std::move(pieces.begin() + 2, pieces.end(), propIdx.propList.begin());
     std::string name = pieces[1];
     if (isEdge) {
-        // The first character of the tag/edge name is +/-.
-        if (UNLIKELY(name.find("+") != 0 && name.find("-") != 0)) {
+        // The first character of the edge name is +/-.
+        if (UNLIKELY(name.empty() || (name[0] != '+' && name[0] != '-'))) {
             return Status::Error("Bad edge name: %s", name.c_str());
         }
         dsIndex->tagEdgeNameIndices.emplace(columnId, name);

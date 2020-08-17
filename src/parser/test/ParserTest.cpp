@@ -75,12 +75,6 @@ TEST(Parser, Go) {
     }
     {
         GQLParser parser;
-        std::string query = "GO UPTO 2 STEPS FROM \"1\" OVER friend";
-        auto result = parser.parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        GQLParser parser;
         std::string query = "GO FROM \"1\" OVER friend";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
@@ -1535,12 +1529,6 @@ TEST(Parser, Annotation) {
     }
     {
         GQLParser parser;
-        std::string query = "-- test comment....";
-        auto result = parser.parse(query);
-        ASSERT_TRUE(result.status().isStatementEmpty());
-    }
-    {
-        GQLParser parser;
         std::string query = "/* test comment....*/";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.status().isStatementEmpty());
@@ -1548,12 +1536,6 @@ TEST(Parser, Annotation) {
     {
         GQLParser parser;
         std::string query = "CREATE TAG TAG1(space string) // test....";
-        auto result = parser.parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        GQLParser parser;
-        std::string query = "CREATE TAG TAG1(space string) -- test....";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
@@ -1812,13 +1794,6 @@ TEST(Parser, BalanceOperation) {
 }
 
 TEST(Parser, CrashByFuzzer) {
-    {
-        GQLParser parser;
-        std::string query = ";MATCH";
-        auto result = parser.parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-
     {
         GQLParser parser;
         std::string query = ";YIELD\nI41( ,1)GEGE.INGEST";
@@ -2214,6 +2189,99 @@ TEST(Parser, TypeCast) {
         std::string query = "YIELD (INT)true";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok());
+    }
+}
+
+TEST(Parser, Match) {
+    {
+        GQLParser parser;
+        std::string query = "MATCH () -- () RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH () <-- () RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH () --> () RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH () <--> () RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) --> (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a:person) --> (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (:person {name: 'Tom'}) --> (:person {name: 'Jerry'}) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) -[]- (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) -[]-> (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) <-[]- (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) -[m]- (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) <-[m:like]-> (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) <-[m:like{likeness: 99}]-> (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) -[m]- (b) WHERE a.name == 'Tom' RETURN a";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a) -[m]- (b) RETURN a as Person";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
     }
 }
 

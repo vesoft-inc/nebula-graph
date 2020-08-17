@@ -7,16 +7,17 @@ on:
       - master
       - 'v[0-9]+.*'
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   lint:
     name: lint
     if: ${{ contains(github.event.pull_request.labels.*.name, 'ready-for-testing') }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
     outputs:
-      num_source_files: ${{ steps.filter-source-files.outputs.num_source_files }}
+      has_source_files: ${{ steps.filter-source-files.outputs.has_source_files }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -25,21 +26,27 @@ jobs:
         run: |
           ln -snf $PWD/.linters/cpp/hooks/pre-commit.sh $PWD/.linters/cpp/pre-commit.sh
           .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD^ HEAD)
+      - name: Pylint
+        uses: docker://github/super-linter:v3
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: master
+          DEFAULT_WORKSPACE: ${{ github.workspace }}/tests
+          PYTHON_PYLINT_CONFIG_FILE: ${{ github.workspace }}/tests/.pylintrc
+          VALIDATE_PYTHON_FLAKE8: false
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Filter source files
         id: filter-source-files
         run: |
           diff_commits=$(git log --oneline -n 1 | cut -d' ' -f1,5)
-          num_source_files=$(git --no-pager diff --name-only $diff_commits | grep '^src\|^CMakeLists.txt\|^cmake\|^.github/workflows' | wc -l)
-          echo "::set-output name=num_source_files::${num_source_files}"
+          source_files=$(git --no-pager diff --name-only $diff_commits | grep '^src\|^tests\|^CMakeLists.txt\|^cmake\|^.github/workflows')
+          echo "::set-output name=has_source_files::$([[ "$source_files" == "" ]] && echo 0 || echo 1)"
 
   build:
     name: build
     needs: lint
-    if: ${{ needs.lint.outputs.num_source_files != 0 }}
+    if: ${{ needs.lint.outputs.has_source_files != 0 }}
     runs-on: self-hosted
-    defaults:
-      run:
-        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -99,7 +106,6 @@ jobs:
                   -DCMAKE_BUILD_TYPE=Release \
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
-                  -DMODULE_BUILDING_JOBS=$(nproc) \
                   -B build
               ;;
             ubuntu1804)
@@ -110,7 +116,6 @@ jobs:
                   -DCMAKE_BUILD_TYPE=Debug \
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
-                  -DMODULE_BUILDING_JOBS=$(nproc) \
                   -B build
               ;;
             esac
@@ -124,16 +129,9 @@ jobs:
                 -DENABLE_ASAN=on \
                 -DENABLE_TESTING=on \
                 -DENABLE_BUILD_STORAGE=on \
-                -DMODULE_BUILDING_JOBS=$(nproc) \
                 -B build
             ;;
           esac
-      - name: Make common
-        run: cmake --build modules/common/ -j $(nproc)
-      - name: Make storage
-        run: |
-          cmake --build modules/storage --target nebula-storaged -j$(nproc)
-          cmake --build modules/storage --target nebula-metad -j$(nproc)
       - name: Make graph
         run: cmake --build build/ -j $(nproc)
       - name: CTest

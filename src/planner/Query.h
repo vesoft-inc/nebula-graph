@@ -20,6 +20,7 @@
  * All query-related nodes would be put in this file,
  * and they are derived from PlanNode.
  */
+
 namespace nebula {
 namespace graph {
 
@@ -68,6 +69,8 @@ public:
         orderBy_ = std::move(orderBy);
     }
 
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+
 protected:
     Explore(ExecutionPlan* plan,
             Kind kind,
@@ -88,7 +91,7 @@ protected:
         : SingleInputNode(plan, kind, input), space_(space) {}
 
 protected:
-    GraphSpaceID        space_;
+    GraphSpaceID space_;
     bool dedup_{false};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
     std::string filter_;
@@ -142,7 +145,7 @@ public:
                 std::move(filter));
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
@@ -248,7 +251,7 @@ private:
 private:
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
-    storage::cpp2::EdgeDirection                 edgeDirection_;
+    storage::cpp2::EdgeDirection edgeDirection_{storage::cpp2::EdgeDirection::OUT_EDGE};
     VertexProps                                  vertexProps_;
     EdgeProps                                    edgeProps_;
     StatProps                                    statProps_;
@@ -264,7 +267,6 @@ public:
     static GetVertices* make(ExecutionPlan* plan,
                              PlanNode* input,
                              GraphSpaceID space,
-                             std::vector<Row> vertices,
                              Expression* src,
                              std::vector<storage::cpp2::VertexProp> props,
                              std::vector<storage::cpp2::Expr>       exprs,
@@ -276,7 +278,6 @@ public:
                 plan,
                 input,
                 space,
-                std::move(vertices),
                 src,
                 std::move(props),
                 std::move(exprs),
@@ -286,11 +287,7 @@ public:
                 std::move(filter));
     }
 
-    std::string explain() const override;
-
-    const std::vector<Row>& vertices() const {
-        return vertices_;
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
@@ -308,7 +305,6 @@ private:
     GetVertices(ExecutionPlan* plan,
                 PlanNode* input,
                 GraphSpaceID space,
-                std::vector<Row> vertices,
                 Expression* src,
                 std::vector<storage::cpp2::VertexProp> props,
                 std::vector<storage::cpp2::Expr>       exprs,
@@ -324,14 +320,11 @@ private:
                   limit,
                   std::move(filter),
                   std::move(orderBy)),
-          vertices_(std::move(vertices)),
           src_(src),
           props_(std::move(props)),
           exprs_(std::move(exprs)) { }
 
 private:
-    // vertices are parsing from query.
-    std::vector<Row>                         vertices_;
     // vertices may be parsing from runtime.
     Expression*                              src_{nullptr};
     // props of the vertex
@@ -348,9 +341,8 @@ public:
     static GetEdges* make(ExecutionPlan* plan,
                           PlanNode* input,
                           GraphSpaceID space,
-                          std::vector<Row> edges,
                           Expression* src,
-                          EdgeType    type,
+                          Expression* type,
                           Expression* ranking,
                           Expression* dst,
                           std::vector<storage::cpp2::EdgeProp> props,
@@ -363,7 +355,6 @@ public:
                 plan,
                 input,
                 space,
-                std::move(edges),
                 src,
                 type,
                 ranking,
@@ -376,17 +367,13 @@ public:
                 std::move(filter));
     }
 
-    std::string explain() const override;
-
-    const std::vector<Row>& edges() const {
-        return edges_;
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
     }
 
-    EdgeType type() const {
+    Expression* type() const {
         return type_;
     }
 
@@ -410,9 +397,8 @@ private:
     GetEdges(ExecutionPlan* plan,
              PlanNode* input,
              GraphSpaceID space,
-             std::vector<Row> edges,
              Expression* src,
-             EdgeType    type,
+             Expression* type,
              Expression* ranking,
              Expression* dst,
              std::vector<storage::cpp2::EdgeProp> props,
@@ -429,7 +415,6 @@ private:
                   limit,
                   std::move(filter),
                   std::move(orderBy)),
-          edges_(std::move(edges)),
           src_(src),
           type_(type),
           ranking_(ranking),
@@ -438,11 +423,9 @@ private:
           exprs_(std::move(exprs)) { }
 
 private:
-    // edges_ are parsing from the query.
-    std::vector<Row>                         edges_;
     // edges_ may be parsed from runtime.
     Expression*                              src_{nullptr};
-    EdgeType                                 type_{0};
+    Expression*                              type_{nullptr};
     Expression*                              ranking_{nullptr};
     Expression*                              dst_{nullptr};
     // props of edge to get
@@ -459,7 +442,7 @@ public:
     IndexScan(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
         : Explore(plan, Kind::kIndexScan, input, space) {}
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 };
 
 /**
@@ -477,7 +460,7 @@ public:
         return condition_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     Filter(ExecutionPlan* plan, PlanNode* input, Expression* condition)
@@ -512,8 +495,6 @@ public:
         return new Union(plan, left, right);
     }
 
-    std::string explain() const override;
-
 private:
     Union(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
         : SetOp(plan, Kind::kUnion, left, right) {}
@@ -527,8 +508,6 @@ public:
     static Intersect* make(ExecutionPlan* plan, PlanNode* left, PlanNode* right) {
         return new Intersect(plan, left, right);
     }
-
-    std::string explain() const override;
 
 private:
     Intersect(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
@@ -544,7 +523,6 @@ public:
         return new Minus(plan, left, right);
     }
 
-    std::string explain() const override;
 
 private:
     Minus(ExecutionPlan* plan, PlanNode* left, PlanNode* right)
@@ -562,7 +540,7 @@ public:
         return new Project(plan, input, cols);
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     const YieldColumns* columns() const {
         return cols_;
@@ -591,7 +569,7 @@ public:
         return factors_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     Sort(ExecutionPlan* plan,
@@ -625,7 +603,7 @@ public:
         return count_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     Limit(ExecutionPlan* plan, PlanNode* input, int64_t offset, int64_t count)
@@ -667,7 +645,7 @@ public:
         return groupItems_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     Aggregate(ExecutionPlan* plan,
@@ -696,7 +674,7 @@ public:
         return spaceName_;
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     SwitchSpace(ExecutionPlan* plan,
@@ -717,8 +695,6 @@ public:
         return new Dedup(plan, input);
     }
 
-    std::string explain() const override;
-
 private:
     Dedup(ExecutionPlan* plan,
           PlanNode* input)
@@ -731,6 +707,7 @@ public:
     enum class CollectKind : uint8_t {
         kSubgraph,
         kRowBasedMove,
+        kMToN,
     };
 
     static DataCollect* make(ExecutionPlan* plan,
@@ -740,6 +717,14 @@ public:
         return new DataCollect(plan, input, collectKind, std::move(vars));
     }
 
+    void setMToN(StepClause::MToN* mToN) {
+        mToN_ = mToN;
+    }
+
+    void setDistinct(bool distinct) {
+        distinct_ = distinct;
+    }
+
     CollectKind collectKind() const {
         return collectKind_;
     }
@@ -747,6 +732,16 @@ public:
     const std::vector<std::string>& vars() const {
         return vars_;
     }
+
+    StepClause::MToN* mToN() const {
+        return mToN_;
+    }
+
+    bool distinct() const {
+        return distinct_;
+    }
+
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     DataCollect(ExecutionPlan* plan,
@@ -758,11 +753,12 @@ private:
         vars_ = std::move(vars);
     }
 
-    std::string explain() const override;
-
 private:
     CollectKind                 collectKind_;
     std::vector<std::string>    vars_;
+    // using for m to n steps
+    StepClause::MToN*           mToN_{nullptr};
+    bool                        distinct_{false};
 };
 
 /**
@@ -781,10 +777,6 @@ public:
                             std::move(probeKeys));
     }
 
-    std::string explain() const override {
-        return "DataJoin";
-    }
-
     const std::pair<std::string, int64_t>& leftVar() const {
         return leftVar_;
     }
@@ -800,6 +792,8 @@ public:
     const std::vector<Expression*>& probeKeys() const {
         return probeKeys_;
     }
+
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
     DataJoin(ExecutionPlan* plan, PlanNode* input,
@@ -821,10 +815,13 @@ private:
 };
 
 class ProduceSemiShortestPath : public PlanNode {
+public:
 };
 
 class ConjunctPath : public PlanNode {
+public:
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_QUERY_H_

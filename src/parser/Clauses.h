@@ -14,24 +14,38 @@
 namespace nebula {
 class StepClause final {
 public:
-    explicit StepClause(uint64_t steps = 1, bool isUpto = false) {
+    struct MToN {
+        uint32_t mSteps;
+        uint32_t nSteps;
+    };
+
+    explicit StepClause(uint32_t steps = 1) {
         steps_ = steps;
-        isUpto_ = isUpto;
+    }
+
+    StepClause(uint32_t m, uint32_t n) {
+        mToN_ = std::make_unique<MToN>();
+        mToN_->mSteps = m;
+        mToN_->nSteps = n;
     }
 
     uint32_t steps() const {
         return steps_;
     }
 
-    bool isUpto() const {
-        return isUpto_;
+    MToN* mToN() const {
+        return mToN_.get();
+    }
+
+    bool isMToN() const {
+        return mToN_ != nullptr;
     }
 
     std::string toString() const;
 
 private:
     uint32_t                                    steps_{1};
-    bool                                        isUpto_{false};
+    std::unique_ptr<MToN>                       mToN_;
 };
 
 
@@ -130,8 +144,6 @@ public:
         alias_.reset(alias);
     }
 
-    bool isOverAll() const { return *edge_ == "*"; }
-
     std::string *edge() const { return edge_.get(); }
 
     std::string *alias() const { return alias_.get(); }
@@ -174,6 +186,7 @@ public:
                storage::cpp2::EdgeDirection direction = storage::cpp2::EdgeDirection::OUT_EDGE) {
         isOverAll_ = isOverAll;
         direction_ = direction;
+        overEdges_ = std::make_unique<OverEdges>();
     }
 
     std::vector<OverEdge *> edges() const { return overEdges_->edges(); }

@@ -14,6 +14,10 @@
 namespace nebula {
 namespace graph {
 
+namespace cpp2 {
+class PlanNodeDescription;
+}   // namespace cpp2
+
 class ExecutionPlan;
 
 /**
@@ -71,16 +75,17 @@ public:
         kDeleteEdges,
         kUpdateVertex,
         kUpdateEdge,
+        kShowParts,
+        kShowCharset,
+        kShowCollation,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
 
     virtual ~PlanNode() = default;
 
-    /**
-     * To explain how a query would be executed
-     */
-    virtual std::string explain() const = 0;
+    // Describe plan node
+    virtual std::unique_ptr<cpp2::PlanNodeDescription> explain() const;
 
     Kind kind() const {
         return kind_;
@@ -134,6 +139,8 @@ public:
     }
 
 protected:
+    static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);
+
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{IdGenerator::INVALID_ID};
     ExecutionPlan*                           plan_{nullptr};
@@ -147,7 +154,7 @@ std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
 // Dependencies will cover the inputs, For example bi input require bi dependencies as least,
 // but single dependencies may don't need any inputs (I.E admin plan node)
 // Single dependecy without input
-// It's useful for addmin plan node
+// It's useful for admin plan node
 class SingleDependencyNode : public PlanNode {
 public:
     const PlanNode* dep() const {
@@ -162,6 +169,8 @@ protected:
     SingleDependencyNode(ExecutionPlan *plan, Kind kind, const PlanNode *dep)
         : PlanNode(plan, kind), dependency_(dep) {}
 
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+
     const PlanNode *dependency_;
 };
 
@@ -174,6 +183,8 @@ public:
     const std::string& inputVar() const {
         return inputVar_;
     }
+
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
     SingleInputNode(ExecutionPlan* plan, Kind kind, const PlanNode* dep)
@@ -218,9 +229,7 @@ public:
         return rightVar_;
     }
 
-    std::string explain() const override {
-        return "";
-    }
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
     BiInputNode(ExecutionPlan* plan, Kind kind, PlanNode* left, PlanNode* right)

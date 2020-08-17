@@ -100,6 +100,13 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::InBoundClause                  *in_bound_clause;
     nebula::OutBoundClause                 *out_bound_clause;
     nebula::BothInOutClause                *both_in_out_clause;
+    ExpressionList                         *expression_list;
+    MapItemList                            *map_item_list;
+    MatchPath                              *match_path;
+    MatchNode                              *match_node;
+    MatchEdge                              *match_edge;
+    MatchEdgeProp                          *match_edge_prop;
+    MatchReturn                            *match_return;
 }
 
 /* destructors */
@@ -140,7 +147,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
-%token PIPE OR AND XOR LT LE GT GE EQ NE PLUS MINUS MUL DIV MOD NOT NEG ASSIGN
+%token PIPE OR AND XOR LT LE GT GE EQ NE PLUS MINUS STAR DIV MOD NOT NEG ASSIGN
 %token DOT COLON SEMICOLON L_ARROW R_ARROW AT
 %token ID_PROP TYPE_PROP SRC_ID_PROP DST_ID_PROP RANK_PROP INPUT_REF DST_REF SRC_REF
 
@@ -164,6 +171,11 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> vid
 %type <expr> function_call_expression
 %type <expr> uuid_expression
+%type <expr> list_expression
+%type <expr> set_expression
+%type <expr> map_expression
+%type <expr> container_expression
+%type <expr> subscript_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -211,8 +223,18 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <in_bound_clause> in_bound_clause
 %type <out_bound_clause> out_bound_clause
 %type <both_in_out_clause> both_in_out_clause
+%type <expression_list> expression_list
+%type <map_item_list> map_item_list
 
-%type <intval> unary_integer rank port
+%type <match_path> match_path
+%type <match_node> match_node
+%type <match_edge> match_edge
+%type <match_edge_prop> match_edge_prop
+%type <match_return> match_return
+%type <strval> match_alias
+%type <strval> match_edge_type
+
+%type <intval> legal_integer unary_integer rank port
 
 %type <colspec> column_spec
 %type <colspeclist> column_spec_list
@@ -269,6 +291,13 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 name_label
     : LABEL { $$ = $1; }
     | unreserved_keyword { $$ = $1; }
+    ;
+
+legal_integer
+    : INTEGER {
+        ifOutOfRange($1, @1);
+        $$ = $1;
+    }
     ;
 
 unreserved_keyword
@@ -343,8 +372,7 @@ agg_function
     ;
 
 constant_expression
-    : INTEGER {
-        ifOutOfRange($1, @1);
+    : legal_integer {
         $$ = new ConstantExpression($1);
     }
     | MINUS INTEGER {
@@ -394,7 +422,19 @@ base_expression
     }
     | name_label {
         // need to rewrite the expression
-        $$ = new SymbolPropertyExpression(Expression::Kind::kSymProperty, new std::string(""), new std::string(""), $1);
+        $$ = new LabelExpression($1);
+    }
+    | container_expression {
+        $$ = $1;
+    }
+    | subscript_expression {
+        $$ = $1;
+    }
+    ;
+
+subscript_expression
+    : base_expression L_BRACKET base_expression R_BRACKET {
+        $$ = new SubscriptExpression($1, $3);
     }
     ;
 
@@ -402,7 +442,7 @@ input_ref_expression
     : INPUT_REF DOT name_label {
         $$ = new InputPropertyExpression($3);
     }
-    | INPUT_REF DOT MUL {
+    | INPUT_REF DOT STAR {
         $$ = new InputPropertyExpression(new std::string("*"));
     }
     ;
@@ -423,7 +463,7 @@ var_ref_expression
     : VARIABLE DOT name_label {
         $$ = new VariablePropertyExpression($1, $3);
     }
-    | VARIABLE DOT MUL {
+    | VARIABLE DOT STAR {
         $$ = new VariablePropertyExpression($1, new std::string("*"));
     }
     ;
@@ -526,7 +566,7 @@ type_spec
 
 multiplicative_expression
     : unary_expression { $$ = $1; }
-    | multiplicative_expression MUL unary_expression {
+    | multiplicative_expression STAR unary_expression {
         $$ = new ArithmeticExpression(Expression::Kind::kMultiply, $1, $3);
     }
     | multiplicative_expression DIV unary_expression {
@@ -603,6 +643,58 @@ logic_xor_expression
     }
     ;
 
+container_expression
+    : list_expression {
+        $$ = $1;
+    }
+    | set_expression {
+        $$ = $1;
+    }
+    | map_expression {
+        $$ = $1;
+    }
+    ;
+
+list_expression
+    : L_BRACKET expression_list R_BRACKET {
+        $$ = new ListExpression($2);
+    }
+    ;
+
+set_expression
+    : L_BRACE expression_list R_BRACE {
+        $$ = new SetExpression($2);
+    }
+    ;
+
+expression_list
+    : expression {
+        $$ = new ExpressionList();
+        $$->add($1);
+    }
+    | expression_list COMMA expression {
+        $$ = $1;
+        $$->add($3);
+    }
+    ;
+
+map_expression
+    : L_BRACE map_item_list R_BRACE {
+        $$ = new MapExpression($2);
+    }
+    ;
+
+map_item_list
+    : name_label COLON expression {
+        $$ = new MapItemList();
+        $$->add($1, $3);
+    }
+    | map_item_list COMMA name_label COLON expression {
+        $$ = $1;
+        $$->add($3, $5);
+    }
+    ;
+
 expression
     : logic_xor_expression { $$ = $1; }
     ;
@@ -616,14 +708,13 @@ go_sentence
         go->setWhereClause($5);
         if ($6 == nullptr) {
             auto *cols = new YieldColumns();
-            for (auto e : $4->edges()) {
-                if (e->isOverAll()) {
-                    continue;
+            if (!$4->isOverAll()) {
+                for (auto e : $4->edges()) {
+                    auto *edge  = new std::string(*e->edge());
+                    auto *expr  = new EdgeDstIdExpression(edge);
+                    auto *col   = new YieldColumn(expr);
+                    cols->addColumn(col);
                 }
-                auto *edge  = new std::string(*e->edge());
-                auto *expr  = new EdgeDstIdExpression(edge);
-                auto *col   = new YieldColumn(expr);
-                cols->addColumn(col);
             }
             $6 = new YieldClause(cols);
         }
@@ -634,13 +725,11 @@ go_sentence
 
 step_clause
     : %empty { $$ = new StepClause(); }
-    | INTEGER KW_STEPS {
-        ifOutOfRange($1, @1);
+    | legal_integer KW_STEPS {
         $$ = new StepClause($1);
     }
-    | KW_UPTO INTEGER KW_STEPS {
-        ifOutOfRange($2, @2);
-        $$ = new StepClause($2, true);
+    | legal_integer KW_TO legal_integer KW_STEPS {
+        $$ = new StepClause($1, $3);
     }
     ;
 
@@ -679,15 +768,13 @@ vid
     ;
 
 unary_integer
-    : PLUS INTEGER {
-        ifOutOfRange($2, @2);
+    : PLUS legal_integer {
         $$ = $2;
     }
     | MINUS INTEGER {
         $$ = -$2;
     }
-    | INTEGER {
-        ifOutOfRange($1, @1);
+    | legal_integer {
         $$ = $1;
     }
     ;
@@ -723,13 +810,13 @@ over_edges
     ;
 
 over_clause
-    : KW_OVER MUL {
+    : KW_OVER STAR {
         $$ = new OverClause(true);
     }
-    | KW_OVER MUL KW_REVERSELY {
+    | KW_OVER STAR KW_REVERSELY {
         $$ = new OverClause(true, storage::cpp2::EdgeDirection::IN_EDGE);
     }
-    | KW_OVER MUL KW_BIDIRECT {
+    | KW_OVER STAR KW_BIDIRECT {
         $$ = new OverClause(true, storage::cpp2::EdgeDirection::BOTH);
     }
     | KW_OVER over_edges {
@@ -788,13 +875,13 @@ yield_column
         yield->setAggFunction($1);
         $$ = yield;
     }
-    | agg_function L_PAREN MUL R_PAREN {
+    | agg_function L_PAREN STAR R_PAREN {
         auto expr = new ConstantExpression(std::string("*"));
         auto yield = new YieldColumn(expr);
         yield->setAggFunction($1);
         $$ = yield;
     }
-    | agg_function L_PAREN MUL R_PAREN KW_AS name_label {
+    | agg_function L_PAREN STAR R_PAREN KW_AS name_label {
         auto expr = new ConstantExpression(std::string("*"));
         auto yield = new YieldColumn(expr, $6);
         yield->setAggFunction($1);
@@ -820,7 +907,85 @@ yield_sentence
     ;
 
 match_sentence
-    : KW_MATCH { $$ = new MatchSentence; }
+    : KW_MATCH match_path where_clause match_return {
+        $$ = new MatchSentence($2, $3, $4);
+    }
+    ;
+
+match_path
+    : match_node {
+        $$ = new MatchPath($1);
+    }
+    | match_path match_edge match_node {
+        $$ = $1;
+        $$->add($2, $3);
+    }
+    ;
+
+match_node
+    : L_PAREN match_alias R_PAREN {
+        $$ = new MatchNode($2, nullptr, nullptr);
+    }
+    | L_PAREN match_alias COLON name_label R_PAREN {
+        $$ = new MatchNode($2, $4, nullptr);
+    }
+    | L_PAREN match_alias COLON name_label map_expression R_PAREN {
+        $$ = new MatchNode($2, $4, $5);
+    }
+    ;
+
+match_alias
+    : %empty {
+        $$ = nullptr;
+    }
+    | name_label {
+        $$ = $1;
+    }
+    ;
+
+match_edge
+    : MINUS match_edge_prop MINUS {
+        $$ = new MatchEdge($2, storage::cpp2::EdgeDirection::BOTH);
+    }
+    | MINUS match_edge_prop R_ARROW {
+        $$ = new MatchEdge($2, storage::cpp2::EdgeDirection::OUT_EDGE);
+    }
+    | L_ARROW match_edge_prop MINUS {
+        $$ = new MatchEdge($2, storage::cpp2::EdgeDirection::IN_EDGE);
+    }
+    | L_ARROW match_edge_prop R_ARROW {
+        $$ = new MatchEdge($2, storage::cpp2::EdgeDirection::BOTH);
+    }
+    ;
+
+match_edge_prop
+    : %empty {
+        $$ = nullptr;
+    }
+    | L_BRACKET match_alias match_edge_type R_BRACKET {
+        $$ = new MatchEdgeProp($2, $3, nullptr);
+    }
+    | L_BRACKET match_alias match_edge_type map_expression R_BRACKET {
+        $$ = new MatchEdgeProp($2, $3, $4);
+    }
+    ;
+
+match_edge_type
+    : %empty {
+        $$ = nullptr;
+    }
+    | COLON name_label {
+        $$ = $2;
+    }
+    ;
+
+match_return
+    : KW_RETURN yield_columns  {
+        $$ = new MatchReturn($2);
+    }
+    | KW_RETURN STAR  {
+        $$ = new MatchReturn();
+    }
     ;
 
 lookup_sentence
@@ -881,7 +1046,7 @@ fetch_vertices_sentence
     | KW_FETCH KW_PROP KW_ON name_label vid_ref_expression yield_clause {
         $$ = new FetchVerticesSentence($4, $5, $6);
     }
-    | KW_FETCH KW_PROP KW_ON MUL vid {
+    | KW_FETCH KW_PROP KW_ON STAR vid {
         $$ = new FetchVerticesSentence($5);
     }
     ;
@@ -966,8 +1131,7 @@ find_path_sentence
 
 find_path_upto_clause
     : %empty { $$ = new StepClause(5, true); }
-    | KW_UPTO INTEGER KW_STEPS {
-        ifOutOfRange($2, @2);
+    | KW_UPTO legal_integer KW_STEPS {
         $$ = new StepClause($2, true);
     }
     ;
@@ -982,18 +1146,13 @@ to_clause
     ;
 
 limit_sentence
-    : KW_LIMIT INTEGER {
-        ifOutOfRange($2, @2);
+    : KW_LIMIT legal_integer {
         $$ = new LimitSentence(0, $2);
     }
-    | KW_LIMIT INTEGER COMMA INTEGER {
-        ifOutOfRange($2, @2);
-        ifOutOfRange($4, @2);
+    | KW_LIMIT legal_integer COMMA legal_integer {
         $$ = new LimitSentence($2, $4);
     }
-    | KW_LIMIT INTEGER KW_OFFSET INTEGER {
-        ifOutOfRange($2, @2);
-        ifOutOfRange($4, @4);
+    | KW_LIMIT legal_integer KW_OFFSET legal_integer {
         $$ = new LimitSentence($2, $4);
     }
     ;
@@ -1059,8 +1218,7 @@ create_schema_prop_list
     ;
 
 create_schema_prop_item
-    : KW_TTL_DURATION ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    : KW_TTL_DURATION ASSIGN legal_integer {
         $$ = new SchemaPropItem(SchemaPropItem::TTL_DURATION, $3);
     }
     | KW_TTL_COL ASSIGN STRING {
@@ -1137,8 +1295,7 @@ alter_schema_prop_list
     ;
 
 alter_schema_prop_item
-    : KW_TTL_DURATION ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    : KW_TTL_DURATION ASSIGN legal_integer {
         $$ = new SchemaPropItem(SchemaPropItem::TTL_DURATION, $3);
     }
     | KW_TTL_COL ASSIGN STRING {
@@ -1636,12 +1793,12 @@ admin_sentence
         auto sentence = new AdminSentence("show_jobs");
         $$ = sentence;
     }
-    | KW_SHOW KW_JOB INTEGER {
+    | KW_SHOW KW_JOB legal_integer {
         auto sentence = new AdminSentence("show_job");
         sentence->addPara(std::to_string($3));
         $$ = sentence;
     }
-    | KW_STOP KW_JOB INTEGER {
+    | KW_STOP KW_JOB legal_integer {
         auto sentence = new AdminSentence("stop_job");
         sentence->addPara(std::to_string($3));
         $$ = sentence;
@@ -1812,16 +1969,13 @@ space_opt_list
     ;
 
 space_opt_item
-    : KW_PARTITION_NUM ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    : KW_PARTITION_NUM ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::PARTITION_NUM, $3);
     }
-    | KW_REPLICA_FACTOR ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    | KW_REPLICA_FACTOR ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::REPLICA_FACTOR, $3);
     }
-    | KW_VID_SIZE ASSIGN INTEGER {
-        ifOutOfRange($3, @3);
+    | KW_VID_SIZE ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::VID_SIZE, $3);
     }
     | KW_CHARSET ASSIGN name_label {
@@ -1955,10 +2109,16 @@ host_item
         $$->port = $3;
     }
 
-port : INTEGER { $$ = $1; }
+port : INTEGER {
+        if ($1 > std::numeric_limits<uint16_t>::max()) {
+            throw nebula::GraphParser::syntax_error(@1, "Out of range:");
+        }
+        $$ = $1;
+    }
+    ;
 
 integer_list
-    : INTEGER {
+    : legal_integer {
         $$ = new std::vector<int32_t>();
         $$->emplace_back($1);
     }
@@ -1978,8 +2138,7 @@ balance_sentence
     | KW_BALANCE KW_DATA {
         $$ = new BalanceSentence(BalanceSentence::SubType::kData);
     }
-    | KW_BALANCE KW_DATA INTEGER {
-        ifOutOfRange($3, @3);
+    | KW_BALANCE KW_DATA legal_integer {
         $$ = new BalanceSentence($3);
     }
     | KW_BALANCE KW_DATA KW_STOP {
