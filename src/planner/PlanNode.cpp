@@ -8,6 +8,7 @@
 
 #include "common/interface/gen-cpp2/graph_types.h"
 #include "planner/ExecutionPlan.h"
+#include "util/ToJson.h"
 
 namespace nebula {
 namespace graph {
@@ -137,6 +138,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowHosts";
         case Kind::kShowParts:
             return "ShowParts";
+        case Kind::kShowCharset:
+            return "ShowCharset";
+        case Kind::kShowCollation:
+            return "ShowCollation";
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
@@ -157,6 +162,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> PlanNode::explain() const {
     desc->set_id(id_);
     desc->set_name(toString(kind_));
     desc->set_output_var(outputVar_);
+    addDescription("colNames", folly::toJson(util::toJson(colNames_)), desc.get());
     return desc;
 }
 
@@ -174,7 +180,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> SingleDependencyNode::explain() const
 
 std::unique_ptr<cpp2::PlanNodeDescription> SingleInputNode::explain() const {
     auto desc = SingleDependencyNode::explain();
-    DCHECK(!desc->__isset.description);
     addDescription("inputVar", inputVar_, desc.get());
     return desc;
 }
@@ -183,7 +188,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> BiInputNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(!desc->__isset.dependencies);
     desc->set_dependencies({left_->id(), right_->id()});
-    DCHECK(!desc->__isset.description);
     addDescription("leftVar", leftVar_, desc.get());
     addDescription("rightVar", rightVar_, desc.get());
     return desc;
