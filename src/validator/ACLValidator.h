@@ -4,6 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#ifndef VALIDATOR_ACLVALIDATOR_H_
+#define VALIDATOR_ACLVALIDATOR_H_
+
 #include "common/base/Base.h"
 #include "parser/UserSentences.h"
 #include "validator/Validator.h"
@@ -111,3 +114,5 @@ private:
 
 }   // namespace graph
 }   // namespace nebula
+
+#endif  // VALIDATOR_ACLVALIDATOR_H_
