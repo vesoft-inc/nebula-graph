@@ -1803,6 +1803,12 @@ class TestGoQuery(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_empty_result(resp)
 
+        stmt = "GO 0 STEPS FROM 'Tim Duncan' OVER like YIELD like._dst as id \
+                | GO FROM $-.id OVER serve"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_empty_result(resp)
+
     def test_go_cover_input(self):
         stmt = '''GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst \
             | GO FROM $-.src OVER like \

@@ -181,6 +181,7 @@ Status GoValidator::toPlan() {
     if (mToN_ == nullptr) {
         if (steps_ == 0) {
             auto* passThrough = PassThroughNode::make(qctx_->plan(), nullptr);
+            passThrough->setColNames(std::move(colNames_));
             tail_ = passThrough;
             root_ = tail_;
             return Status::OK();

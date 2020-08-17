@@ -47,6 +47,36 @@ TEST_F(QueryValidatorTest, TestFirstSentence) {
     }
 }
 
+TEST_F(QueryValidatorTest, GoZeroStep) {
+    {
+        std::string query = "GO 0 STEPS FROM \"1\" OVER serve";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kPassThrough,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 0 STEPS FROM \"1\" OVER like YIELD like._dst as id"
+                            "| GO FROM $-.id OVER serve";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kPassThrough,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 0 TO 0 STEPS FROM \"1\" OVER serve";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kPassThrough,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+}
+
 TEST_F(QueryValidatorTest, GoNSteps) {
     {
         std::string query = "GO 2 STEPS FROM \"1\" OVER like";
