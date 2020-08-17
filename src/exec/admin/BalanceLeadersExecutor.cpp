@@ -11,6 +11,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> BalanceLeadersExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return balanceLeaders();
 }
 
