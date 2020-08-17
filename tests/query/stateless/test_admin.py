@@ -57,11 +57,11 @@ class TestAdmin(NebulaTestSuite):
         # get
         resp = self.client.execute('GET CONFIGS meta:minloglevel')
         self.check_resp_failed(resp)
-        result = [['GRAPH', 'minloglevel', 'INT', 'MUTABLE', minloglevel]]
+        result = [['GRAPH', 'minloglevel', 'int', 'MUTABLE', minloglevel]]
         resp = self.client.execute_query('GET CONFIGS graph:minloglevel')
         self.check_resp_succeeded(resp)
         self.check_result(resp, result)
-        result = [['STORAGE', 'minloglevel', 'INT', 'MUTABLE', minloglevel]]
+        result = [['STORAGE', 'minloglevel', 'int', 'MUTABLE', minloglevel]]
         resp = self.client.execute_query('GET CONFIGS storage:minloglevel')
         self.check_resp_succeeded(resp)
         self.check_result(resp, result)
