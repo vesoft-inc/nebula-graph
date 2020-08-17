@@ -29,6 +29,7 @@
 #include "exec/admin/SwitchSpaceExecutor.h"
 #include "exec/admin/PartExecutor.h"
 #include "exec/admin/CharsetExecutor.h"
+#include "exec/admin/ConfigExecutor.h"
 #include "exec/logic/LoopExecutor.h"
 #include "exec/logic/MultiOutputsExecutor.h"
 #include "exec/logic/SelectExecutor.h"
@@ -472,6 +473,27 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto listRoles = asNode<ListRoles>(node);
             auto input = makeExecutor(listRoles->dep(), qctx, visited);
             exec = new ListRolesExecutor(listRoles, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowConfigs: {
+            auto showConfigs = asNode<ShowConfigs>(node);
+            auto input = makeExecutor(showConfigs->dep(), qctx, visited);
+            exec = new ShowConfigsExecutor(showConfigs, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kSetConfig: {
+            auto setConfig = asNode<SetConfig>(node);
+            auto input = makeExecutor(setConfig->dep(), qctx, visited);
+            exec = new SetConfigExecutor(setConfig, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kGetConfig: {
+            auto getConfig = asNode<GetConfig>(node);
+            auto input = makeExecutor(getConfig->dep(), qctx, visited);
+            exec = new GetConfigExecutor(getConfig, qctx);
             exec->dependsOn(input);
             break;
         }
