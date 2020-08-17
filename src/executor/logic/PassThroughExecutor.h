@@ -12,7 +12,7 @@
 #include <folly/SpinLock.h>
 #include <folly/futures/SharedPromise.h>
 
-#include "exec/Executor.h"
+#include "executor/Executor.h"
 
 namespace nebula {
 namespace graph {

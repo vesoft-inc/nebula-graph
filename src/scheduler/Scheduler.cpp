@@ -10,7 +10,7 @@
 #include "executor/ExecutionError.h"
 #include "executor/Executor.h"
 #include "executor/logic/LoopExecutor.h"
-#include "executor/logic/MultiOutputsExecutor.h"
+#include "executor/logic/PassThroughExecutor.h"
 #include "executor/logic/SelectExecutor.h"
 #include "planner/PlanNode.h"
 
