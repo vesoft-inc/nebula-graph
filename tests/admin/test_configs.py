@@ -62,7 +62,7 @@ class TestConfigs(NebulaTestSuite):
         expected_result = [['GRAPH', 'v', 'int', 'MUTABLE', v],
                            ['GRAPH', 'minloglevel', 'int', 'MUTABLE', 0],
                            ['GRAPH', 'slow_op_threshhold_ms', 'int', 'MUTABLE', 50],
-                           ['GRAPH', 'heartbeat_interval_secs', 'int', 'MUTABLE', 3],
+                           ['GRAPH', 'heartbeat_interval_secs', 'int', 'MUTABLE', 1],
                            ['GRAPH', 'meta_client_retry_times', 'int', 'MUTABLE', 3]]
         self.check_out_of_order_result(resp, expected_result)
 
@@ -74,7 +74,7 @@ class TestConfigs(NebulaTestSuite):
                            ['STORAGE', 'enable_reservoir_sampling', 'bool', 'MUTABLE', False],
                            ['STORAGE', 'custom_filter_interval_secs', 'int', 'MUTABLE', 86400],
                            ['STORAGE', 'slow_op_threshhold_ms', 'int', 'MUTABLE', 50],
-                           ['STORAGE', 'heartbeat_interval_secs', 'int', 'MUTABLE', 3],
+                           ['STORAGE', 'heartbeat_interval_secs', 'int', 'MUTABLE', 1],
                            ['STORAGE', 'meta_client_retry_times', 'int', 'MUTABLE', 3],
                            ['STORAGE', 'rocksdb_db_options', 'map', 'MUTABLE', {}],
                            ['STORAGE', 'max_edge_returned_per_vertex', 'int', 'MUTABLE', 2147483647],

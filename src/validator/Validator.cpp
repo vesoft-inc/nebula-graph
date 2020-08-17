@@ -166,7 +166,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kIngest:
         case Sentence::Kind::kBalance:
-        case Sentence::Kind::kConfig:
         case Sentence::Kind::kFindPath:
         case Sentence::Kind::kReturn: {
             // nothing
