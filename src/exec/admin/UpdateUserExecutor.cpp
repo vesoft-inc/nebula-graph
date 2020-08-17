@@ -12,6 +12,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> UpdateUserExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return updateUser().ensure([this]() { UNUSED(this); });
 }
 
@@ -19,7 +20,8 @@ folly::Future<Status> UpdateUserExecutor::updateUser() {
     auto *uuNode = asNode<UpdateUser>(node());
     return qctx()->getMetaClient()->alterUser(*uuNode->username(), *uuNode->password())
         .via(runner())
-        .then([](StatusOr<bool> resp) {
+        .then([this](StatusOr<bool> resp) {
+            SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {
                 return Status::Error("Update user failed!");

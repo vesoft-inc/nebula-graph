@@ -12,6 +12,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> CreateUserExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return createUser().ensure([this]() { UNUSED(this); });
 }
 
@@ -20,7 +21,8 @@ folly::Future<Status> CreateUserExecutor::createUser() {
     return qctx()->getMetaClient()->createUser(
             *cuNode->username(), *cuNode->password(), cuNode->ifNotExist())
         .via(runner())
-        .then([](StatusOr<bool> resp) {
+        .then([this](StatusOr<bool> resp) {
+            SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {
                 return Status::Error("Create User failed!");

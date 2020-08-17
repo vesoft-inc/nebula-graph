@@ -12,6 +12,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> ListUsersExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return listUsers().ensure([this]() { UNUSED(this); });
 }
 
@@ -19,6 +20,7 @@ folly::Future<Status> ListUsersExecutor::listUsers() {
     return qctx()->getMetaClient()->listUsers()
         .via(runner())
         .then([this](StatusOr<std::unordered_map<std::string, std::string>> &&resp) {
+            SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 return std::move(resp).status();
             }

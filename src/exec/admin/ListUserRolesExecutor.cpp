@@ -12,6 +12,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> ListUserRolesExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return listUserRoles().ensure([this]() { UNUSED(this); });
 }
 
@@ -20,6 +21,7 @@ folly::Future<Status> ListUserRolesExecutor::listUserRoles() {
     return qctx()->getMetaClient()->getUserRoles(*lurNode->username())
         .via(runner())
         .then([this](StatusOr<std::vector<meta::cpp2::RoleItem>> &&resp) {
+            SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 return std::move(resp).status();
             }

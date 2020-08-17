@@ -12,6 +12,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> ChangePasswordExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return changePassword().ensure([this]() { UNUSED(this); });
 }
 
@@ -20,7 +21,8 @@ folly::Future<Status> ChangePasswordExecutor::changePassword() {
     return qctx()->getMetaClient()->changePassword(
             *cpNode->username(), *cpNode->newPassword(), *cpNode->password())
         .via(runner())
-        .then([](StatusOr<bool> &&resp) {
+        .then([this](StatusOr<bool> &&resp) {
+            SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {
                 return Status::Error("Change password failed!");

@@ -12,6 +12,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> RevokeRoleExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return revokeRole().ensure([this]() { UNUSED(this); });
 }
 
@@ -29,7 +30,8 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
     item.set_role_type(rrNode->role());
     return qctx()->getMetaClient()->revokeFromUser(std::move(item))
         .via(runner())
-        .then([](StatusOr<bool> resp) {
+        .then([this](StatusOr<bool> resp) {
+            SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {
                 return Status::Error("Revoke role failed!");

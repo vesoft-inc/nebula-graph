@@ -12,10 +12,12 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GrantRoleExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
     return grantRole().ensure([this]() { UNUSED(this); });
 }
 
 folly::Future<Status> GrantRoleExecutor::grantRole() {
+    SCOPED_TIMER(&execTime_);
     auto *grNode = asNode<GrantRole>(node());
     const auto *spaceName = grNode->spaceName();
     auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(*spaceName);
@@ -29,7 +31,8 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
     item.set_role_type(grNode->role());
     return qctx()->getMetaClient()->grantToUser(std::move(item))
         .via(runner())
-        .then([](StatusOr<bool> resp) {
+        .then([this](StatusOr<bool> resp) {
+            SCOPED_TIMER(&execTime_);
             NG_RETURN_IF_ERROR(resp);
             if (!resp.value()) {
                 return Status::Error("Grant role failed!");
