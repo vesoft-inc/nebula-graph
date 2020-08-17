@@ -22,6 +22,10 @@
 #include "exec/admin/ListUserRolesExecutor.h"
 #include "exec/admin/ListUsersExecutor.h"
 #include "exec/admin/ListRolesExecutor.h"
+#include "exec/admin/BalanceLeadersExecutor.h"
+#include "exec/admin/BalanceExecutor.h"
+#include "exec/admin/StopBalanceExecutor.h"
+#include "exec/admin/ShowBalanceExecutor.h"
 #include "exec/admin/SubmitJobExecutor.h"
 #include "exec/admin/ShowHostsExecutor.h"
 #include "exec/admin/SnapshotExecutor.h"
@@ -474,6 +478,34 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto input = makeExecutor(listRoles->dep(), qctx, visited);
             exec = new ListRolesExecutor(listRoles, qctx);
             exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kBalanceLeaders: {
+            auto balanceLeaders = asNode<BalanceLeaders>(node);
+            auto dep = makeExecutor(balanceLeaders->dep(), qctx, visited);
+            exec = new BalanceLeadersExecutor(balanceLeaders, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kBalance: {
+            auto balance = asNode<Balance>(node);
+            auto dep = makeExecutor(balance->dep(), qctx, visited);
+            exec = new BalanceExecutor(balance, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kStopBalance: {
+            auto stopBalance = asNode<Balance>(node);
+            auto dep = makeExecutor(stopBalance->dep(), qctx, visited);
+            exec = new StopBalanceExecutor(stopBalance, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kShowBalance: {
+            auto showBalance = asNode<ShowBalance>(node);
+            auto dep = makeExecutor(showBalance->dep(), qctx, visited);
+            exec = new ShowBalanceExecutor(showBalance, qctx);
+            exec->dependsOn(dep);
             break;
         }
         case PlanNode::Kind::kShowConfigs: {

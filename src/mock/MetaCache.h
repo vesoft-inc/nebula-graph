@@ -87,6 +87,12 @@ public:
 
     meta::cpp2::ListRolesResp getUserRoles(const meta::cpp2::GetUserRolesReq& req);
 
+    ErrorOr<meta::cpp2::ErrorCode, int64_t> balanceSubmit(std::vector<HostAddr> dels);
+    ErrorOr<meta::cpp2::ErrorCode, int64_t> balanceStop();
+    meta::cpp2::ErrorCode                   balanceLeaders();
+    ErrorOr<meta::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
+    showBalance(int64_t id);
+
     ErrorOr<meta::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
     runAdminJob(const meta::cpp2::AdminJobReq& req);
 
@@ -156,8 +162,9 @@ private:
     };
 
     std::unordered_set<HostAddr>                             hostSet_;
+    std::unordered_map<std::string, GraphSpaceID>            spaceIndex_;
     std::unordered_map<GraphSpaceID, SpaceInfoCache>         cache_;
-    std::unordered_map<std::string, meta::cpp2::SpaceItem>   spaces_;
+    std::unordered_map<GraphSpaceID, meta::cpp2::SpaceItem>  spaces_;
     int64_t                                                  id_{0};
     std::unordered_map<std::string, meta::cpp2::Snapshot>    snapshots_;
     mutable folly::RWSpinLock                                lock_;
@@ -176,6 +183,20 @@ private:
         std::unordered_map<std::string/*user*/, std::unordered_set<meta::cpp2::RoleType>>;
     std::unordered_map<GraphSpaceID, UserRoles> roles_;
     mutable folly::RWSpinLock                   roleLock_;
+
+////////////////////////////////////////////// Balance /////////////////////////////////////////////
+    struct BalanceTask {
+        GraphSpaceID           space;
+        PartitionID            part;
+        HostAddr               from;
+        HostAddr               to;
+        meta::cpp2::TaskResult status;
+    };
+    struct BalanceJob {
+        meta::cpp2::TaskResult status;
+    };
+    std::unordered_map<int64_t, std::vector<BalanceTask>> balanceTasks_;
+    std::unordered_map<int64_t, BalanceJob>               balanceJobs_;
 
 ////////////////////////////////////////////// Job /////////////////////////////////////////////////
     struct JobDesc {
