@@ -13,7 +13,7 @@ namespace graph {
 
 folly::Future<Status> ChangePasswordExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return changePassword().ensure([this]() { UNUSED(this); });
+    return changePassword();
 }
 
 folly::Future<Status> ChangePasswordExecutor::changePassword() {

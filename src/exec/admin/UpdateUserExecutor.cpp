@@ -13,7 +13,7 @@ namespace graph {
 
 folly::Future<Status> UpdateUserExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return updateUser().ensure([this]() { UNUSED(this); });
+    return updateUser();
 }
 
 folly::Future<Status> UpdateUserExecutor::updateUser() {

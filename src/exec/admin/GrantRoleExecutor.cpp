@@ -13,7 +13,7 @@ namespace graph {
 
 folly::Future<Status> GrantRoleExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return grantRole().ensure([this]() { UNUSED(this); });
+    return grantRole();
 }
 
 folly::Future<Status> GrantRoleExecutor::grantRole() {

@@ -13,7 +13,7 @@ namespace graph {
 
 folly::Future<Status> CreateUserExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return createUser().ensure([this]() { UNUSED(this); });
+    return createUser();
 }
 
 folly::Future<Status> CreateUserExecutor::createUser() {

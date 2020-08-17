@@ -13,7 +13,7 @@ namespace graph {
 
 folly::Future<Status> ListUserRolesExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return listUserRoles().ensure([this]() { UNUSED(this); });
+    return listUserRoles();
 }
 
 folly::Future<Status> ListUserRolesExecutor::listUserRoles() {

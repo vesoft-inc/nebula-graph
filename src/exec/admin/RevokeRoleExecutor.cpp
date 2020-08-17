@@ -13,7 +13,7 @@ namespace graph {
 
 folly::Future<Status> RevokeRoleExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return revokeRole().ensure([this]() { UNUSED(this); });
+    return revokeRole();
 }
 
 folly::Future<Status> RevokeRoleExecutor::revokeRole() {
