@@ -8,11 +8,14 @@
 
 #include "planner/Admin.h"
 #include "context/QueryContext.h"
+#include "util/ScopedTimer.h"
 
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> SubmitJobExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
     auto *sjNode = asNode<SubmitJob>(node());
     auto jobOp = sjNode->jobOp();
     meta::cpp2::AdminCmd cmd = meta::cpp2::AdminCmd::COMPACT;
@@ -31,6 +34,8 @@ folly::Future<Status> SubmitJobExecutor::execute() {
     return qctx()->getMetaClient()->submitJob(jobOp, cmd, sjNode->params())
         .via(runner())
         .then([jobOp, this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
+            SCOPED_TIMER(&execTime_);
+
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status().toString();
                 return std::move(resp).status();
