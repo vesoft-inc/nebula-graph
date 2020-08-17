@@ -14,6 +14,7 @@ nebula_add_library(
     UseValidator.cpp
     GetSubgraphValidator.cpp
     AdminValidator.cpp
+    AdminJobValidator.cpp
     MaintainValidator.cpp
     MutateValidator.cpp
     FetchEdgesValidator.cpp
@@ -25,4 +26,4 @@ nebula_add_library(
     GroupByValidator.cpp
 )
 
-add_subdirectory(test)
+nebula_add_subdirectory(test)
