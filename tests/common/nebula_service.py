@@ -119,14 +119,18 @@ class NebulaService(object):
                 os.kill(self.pids[p], signal.SIGTERM)
             except OSError as err:
                 print("nebula stop " + p + " failed: " + str(err))
-        max_tries = 30
-        while self.check_procs_alive() and max_tries >= 0:
+
+        max_retries = 30
+        while self.check_procs_alive() and max_retries >= 0:
             time.sleep(1)
-            max_tries = max_tries-1
+            max_retries = max_retries-1
+
         if cleanup:
             shutil.rmtree(self.work_dir)
 
     def check_procs_alive(self):
+        pids = psutil.pids()
         for p in self.pids:
-            if p in psutil.pids():
+            if p in pids:
                 return True
+        return False

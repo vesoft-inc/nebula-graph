@@ -33,13 +33,12 @@ public:
 
     virtual ~Executor();
 
-    // Each executor inherited from this class should get input values from ExecutionContext,
-    // execute expression evaluation and save output result back to ExecutionContext after
-    // computation
-    virtual folly::Future<Status> execute() = 0;
-
     // Prepare or initialize executor before each execution
     virtual Status open();
+
+    // Each executor inherited from this class should get input values from ExecutionContext,
+    // evaluate expressions and save output result back to ExecutionContext by `finish'
+    virtual folly::Future<Status> execute() = 0;
 
     // Cleanup or reset executor some states after each execution
     virtual Status close();
