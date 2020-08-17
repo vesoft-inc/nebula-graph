@@ -11,7 +11,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> BalanceLeadersExecutor::execute() {
-    return balanceLeaders().ensure([this]() { UNUSED(this); });
+    return balanceLeaders();
 }
 
 folly::Future<Status> BalanceLeadersExecutor::balanceLeaders() {

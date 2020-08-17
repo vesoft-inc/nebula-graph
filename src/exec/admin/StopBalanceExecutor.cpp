@@ -11,7 +11,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> StopBalanceExecutor::execute() {
-    return stopBalance().ensure([this]() { UNUSED(this); });
+    return stopBalance();
 }
 
 folly::Future<Status> StopBalanceExecutor::stopBalance() {
