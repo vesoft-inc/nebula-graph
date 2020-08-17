@@ -72,6 +72,5 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetConfig::explain() const {
     addDescription("name", name_, desc.get());
     return desc;
 }
->>>>>>> rebase upstream
 }   // namespace graph
 }   // namespace nebula
