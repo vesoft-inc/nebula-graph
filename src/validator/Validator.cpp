@@ -162,16 +162,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
         case Sentence::Kind::kShowEdgeIndexes:
         case Sentence::Kind::kRebuildEdgeIndex:
         case Sentence::Kind::kDropEdgeIndex:
-        case Sentence::Kind::kShowCharset:
-        case Sentence::Kind::kShowCollation:
-        case Sentence::Kind::kShowUsers:
-        case Sentence::Kind::kCreateUser:
-        case Sentence::Kind::kDropUser:
-        case Sentence::Kind::kAlterUser:
-        case Sentence::Kind::kGrant:
-        case Sentence::Kind::kRevoke:
-        case Sentence::Kind::kShowRoles:
-        case Sentence::Kind::kChangePassword:
         case Sentence::Kind::kLookup:
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kIngest:
