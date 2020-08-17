@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
+#include "common/base/ErrorOr.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 
 namespace nebula {
@@ -86,6 +87,9 @@ public:
 
     meta::cpp2::ListRolesResp getUserRoles(const meta::cpp2::GetUserRolesReq& req);
 
+    ErrorOr<meta::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
+    runAdminJob(const meta::cpp2::AdminJobReq& req);
+
     Status createSnapshot();
 
     Status dropSnapshot(const meta::cpp2::DropSnapshotReq& req);
@@ -94,6 +98,10 @@ public:
 
 private:
     MetaCache() = default;
+
+    int64_t incId() {
+        return ++id_;
+    }
 
     Status alterColumnDefs(meta::cpp2::Schema &schema,
                            const std::vector<meta::cpp2::AlterSchemaItem> &items);
@@ -168,6 +176,49 @@ private:
         std::unordered_map<std::string/*user*/, std::unordered_set<meta::cpp2::RoleType>>;
     std::unordered_map<GraphSpaceID, UserRoles> roles_;
     mutable folly::RWSpinLock                   roleLock_;
+
+////////////////////////////////////////////// Job /////////////////////////////////////////////////
+    struct JobDesc {
+        meta::cpp2::AdminCmd            cmd_;  // compact, flush ...
+        std::vector<std::string>        paras_;
+        meta::cpp2::JobStatus           status_;
+        int64_t                         startTime_;
+        int64_t                         stopTime_;
+    };
+    struct TaskDesc {
+        int32_t                         iTask_;
+        nebula::HostAddr                dest_;
+        meta::cpp2::JobStatus           status_;
+        int64_t                         startTime_;
+        int64_t                         stopTime_;
+    };
+
+    ErrorOr<meta::cpp2::ErrorCode, std::unordered_map<int64_t, JobDesc>::iterator>
+    checkJobId(const meta::cpp2::AdminJobReq& req) {
+        const auto &params = req.get_paras();
+        if (params.empty()) {
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        int64_t jobId;
+        try {
+            jobId = folly::to<int64_t>(params.front());
+        } catch (std::exception &e) {
+            LOG(ERROR) << e.what();
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        const auto job = jobs_.find(jobId);
+        if (job == jobs_.end()) {
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        return job;
+    }
+
+
+    mutable folly::RWSpinLock                          jobLock_;
+    // jobId => jobs
+    std::unordered_map<int64_t, JobDesc>               jobs_;
+    // jobId => tasks
+    std::unordered_map<int64_t, std::vector<TaskDesc>> tasks_;
 };
 
 }  // namespace graph
