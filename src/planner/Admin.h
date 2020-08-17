@@ -271,6 +271,7 @@ public:
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        LOG(FATAL) << "Unimplemented";
         return nullptr;
     }
 
@@ -286,6 +287,7 @@ public:
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        LOG(FATAL) << "Unimplemented";
         return nullptr;
     }
 
@@ -307,6 +309,7 @@ public:
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        LOG(FATAL) << "Unimplemented";
         return nullptr;
     }
 
@@ -322,6 +325,7 @@ public:
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        LOG(FATAL) << "Unimplemented";
         return nullptr;
     }
 
