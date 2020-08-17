@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_ADMIN_STOP_BALANCE_EXECUTOR_H_
-#define EXEC_ADMIN_STOP_BALANCE_EXECUTOR_H_
+#ifndef EXEC_ADMIN_STOPBALANCEEXECUTOR_H_
+#define EXEC_ADMIN_STOPBALANCEEXECUTOR_H_
 
 #include "exec/Executor.h"
 #include "context/QueryContext.h"
@@ -27,4 +27,4 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // EXEC_ADMIN_STOP_BALANCE_EXECUTOR_H_
+#endif  // EXEC_ADMIN_STOPBALANCEEXECUTOR_H_
