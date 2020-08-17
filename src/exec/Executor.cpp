@@ -17,6 +17,7 @@
 #include "exec/admin/BalanceExecutor.h"
 #include "exec/admin/StopBalanceExecutor.h"
 #include "exec/admin/ShowBalanceExecutor.h"
+#include "exec/admin/SubmitJobExecutor.h"
 #include "exec/admin/ShowHostsExecutor.h"
 #include "exec/admin/SnapshotExecutor.h"
 #include "exec/admin/SpaceExecutor.h"
@@ -432,6 +433,13 @@ Executor *Executor::makeExecutor(const PlanNode *node,
             auto dep = makeExecutor(showBalance->dep(), qctx, visited);
             exec = new ShowBalanceExecutor(showBalance, qctx);
             exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kSubmitJob: {
+            auto submitJob = asNode<SubmitJob>(node);
+            auto input = makeExecutor(submitJob->dep(), qctx, visited);
+            exec = new SubmitJobExecutor(submitJob, qctx);
+            exec->dependsOn(input);
             break;
         }
         case PlanNode::Kind::kShowHosts: {

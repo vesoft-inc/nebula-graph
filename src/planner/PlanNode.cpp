@@ -113,6 +113,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "StopBalance";
         case Kind::kShowBalance:
             return "ShowBalance";
+        case Kind::kSubmitJob:
+            return "SubmitJob";
         case Kind::kDataJoin:
             return "DataJoin";
         case Kind::kDeleteVertices:

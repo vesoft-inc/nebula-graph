@@ -69,6 +69,7 @@ public:
         kBalance,
         kStopBalance,
         kShowBalance,
+        kSubmitJob,
         kShowHosts,
         kDataCollect,
         kCreateSnapshot,

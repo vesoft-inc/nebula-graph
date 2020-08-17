@@ -264,6 +264,50 @@ private:
     std::vector<PartitionID>           partIds_;
 };
 
+class SubmitJob final : public SingleDependencyNode {
+public:
+    static SubmitJob* make(ExecutionPlan* plan,
+                           PlanNode*      dep,
+                           meta::cpp2::AdminJobOp op,
+                           const std::vector<std::string>& params) {
+        return new SubmitJob(plan, dep, op, params);
+    }
+
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
+        // TODO(shylock)
+        LOG(FATAL) << "Unimplemented";
+        return nullptr;
+    }
+
+public:
+    meta::cpp2::AdminJobOp jobOp() const {
+        return op_;
+    }
+
+    meta::cpp2::AdminCmd cmd() const {
+        return cmd_;
+    }
+
+    const std::vector<std::string> &params() const {
+        return params_;
+    }
+
+private:
+    SubmitJob(ExecutionPlan* plan,
+              PlanNode* dep,
+              meta::cpp2::AdminJobOp op,
+              const std::vector<std::string> &params)
+        : SingleDependencyNode(plan, Kind::kSubmitJob, dep),
+          op_(op),
+          params_(params) {}
+
+
+private:
+    meta::cpp2::AdminJobOp         op_;
+    meta::cpp2::AdminCmd           cmd_;
+    const std::vector<std::string> params_;
+};
+
 class BalanceLeaders final : public SingleDependencyNode {
 public:
     static BalanceLeaders* make(ExecutionPlan* plan, PlanNode* dep) {
