@@ -83,6 +83,9 @@ public:
         kShowParts,
         kShowCharset,
         kShowCollation,
+        kShowConfigs,
+        kSetConfig,
+        kGetConfig,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);

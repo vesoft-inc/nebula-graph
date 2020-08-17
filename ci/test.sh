@@ -87,6 +87,7 @@ function run_test() {
         $PROJ_DIR/tests/query/v1/* \
         $PROJ_DIR/tests/query/v2/* \
         $PROJ_DIR/tests/query/stateless/test_schema.py \
+        $PROJ_DIR/tests/query/stateless/test_admin.py \
         $PROJ_DIR/tests/query/stateless/test_if_exists.py \
         $PROJ_DIR/tests/query/stateless/test_range.py \
         $PROJ_DIR/tests/query/stateless/test_go.py \
