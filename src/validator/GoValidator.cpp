@@ -179,10 +179,15 @@ Status GoValidator::validateYield(YieldClause* yield) {
 
 Status GoValidator::toPlan() {
     if (mToN_ == nullptr) {
-        if (steps_ > 1) {
-            return buildNStepsPlan();
-        } else {
+        if (steps_ == 0) {
+            auto* passThrough = MultiOutputsNode::make(qctx_->plan(), nullptr);
+            tail_ = passThrough;
+            root_ = tail_;
+            return Status::OK();
+        } else if (steps_ == 1) {
             return buildOneStepPlan();
+        } else {
+            return buildNStepsPlan();
         }
     } else {
         return buildMToNPlan();
