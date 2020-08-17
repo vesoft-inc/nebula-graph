@@ -279,6 +279,7 @@ public:
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override {
         // TODO(shylock)
+        LOG(FATAL) << "Unimplemented";
         return nullptr;
     }
 
