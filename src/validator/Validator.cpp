@@ -229,6 +229,7 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kListUsers:
         case PlanNode::Kind::kListRoles:
         case PlanNode::Kind::kMultiOutputs:
+        case PlanNode::Kind::kPassThrough:
         case PlanNode::Kind::kSwitchSpace:
         case PlanNode::Kind::kGetEdges:
         case PlanNode::Kind::kGetVertices:

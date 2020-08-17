@@ -1100,7 +1100,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kProject,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kStart,
       };
       EXPECT_TRUE(checkResult(query, expected));
@@ -1120,11 +1120,11 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kGetNeighbors,
           PK::kProject,
           PK::kProject,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
           PK::kStart,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
       };
       EXPECT_TRUE(checkResult(query, expected));
   }
@@ -1141,7 +1141,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kProject,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kStart,
       };
       EXPECT_TRUE(checkResult(query, expected));
@@ -1163,7 +1163,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kProject,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kStart,
       };
       EXPECT_TRUE(checkResult(query, expected));
@@ -1179,7 +1179,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kProject,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kStart,
       };
       EXPECT_TRUE(checkResult(query, expected));

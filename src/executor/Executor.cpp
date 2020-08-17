@@ -92,10 +92,10 @@ Executor *Executor::makeExecutor(const PlanNode *node,
     Executor *exec = nullptr;
 
     switch (node->kind()) {
-        case PlanNode::Kind::kMultiOutputs: {
-            auto mout = asNode<MultiOutputsNode>(node);
+        case PlanNode::Kind::kPassThrough: {
+            auto mout = asNode<PassThroughNode>(node);
             auto dep = makeExecutor(mout->dep(), qctx, visited);
-            exec = new MultiOutputsExecutor(mout, qctx);
+            exec = new PassThroughExecutor(mout, qctx);
             exec->dependsOn(dep);
             break;
         }

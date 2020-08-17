@@ -180,7 +180,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
 Status GoValidator::toPlan() {
     if (mToN_ == nullptr) {
         if (steps_ == 0) {
-            auto* passThrough = MultiOutputsNode::make(qctx_->plan(), nullptr);
+            auto* passThrough = PassThroughNode::make(qctx_->plan(), nullptr);
             tail_ = passThrough;
             root_ = tail_;
             return Status::OK();
