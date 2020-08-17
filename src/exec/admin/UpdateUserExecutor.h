@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_ADMIN_UPDATE_USER_EXECUTOR_H_
-#define EXEC_ADMIN_UPDATE_USER_EXECUTOR_H_
+#ifndef EXEC_ADMIN_UPDATEUSEREXECUTOR_H_
+#define EXEC_ADMIN_UPDATEUSEREXECUTOR_H_
 
 #include "exec/Executor.h"
 
@@ -26,4 +26,4 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#endif
+#endif  // EXEC_ADMIN_UPDATEUSEREXECUTOR_H_
