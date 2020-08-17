@@ -20,6 +20,7 @@ folly::Future<Status> ShowBalanceExecutor::showBalance() {
     return qctx()->getMetaClient()->showBalance(sbNode->id())
         .via(runner())
         .then([this](StatusOr<std::vector<meta::cpp2::BalanceTask>> resp) {
+            SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();
                 return std::move(resp).status();

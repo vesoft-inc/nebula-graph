@@ -18,7 +18,8 @@ folly::Future<Status> BalanceLeadersExecutor::execute() {
 folly::Future<Status> BalanceLeadersExecutor::balanceLeaders() {
     return qctx()->getMetaClient()->balanceLeader()
         .via(runner())
-        .then([](StatusOr<bool> resp) {
+        .then([this](StatusOr<bool> resp) {
+            SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();
                 return resp.status();

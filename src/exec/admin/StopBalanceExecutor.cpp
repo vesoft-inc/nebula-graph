@@ -19,6 +19,7 @@ folly::Future<Status> StopBalanceExecutor::stopBalance() {
     return qctx()->getMetaClient()->balance({}, true)
         .via(runner())
         .then([this](StatusOr<int64_t> resp) {
+            SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();
                 return resp.status();
