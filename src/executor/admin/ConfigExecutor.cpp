@@ -5,7 +5,7 @@
 */
 
 #include "common/conf/Configuration.h"
-#include "exec/admin/ConfigExecutor.h"
+#include "executor/admin/ConfigExecutor.h"
 #include "planner/Admin.h"
 #include "util/SchemaUtil.h"
 #include "context/QueryContext.h"

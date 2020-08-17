@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/admin/BalanceExecutor.h"
+#include "executor/admin/BalanceExecutor.h"
 #include "planner/Admin.h"
 
 namespace nebula {

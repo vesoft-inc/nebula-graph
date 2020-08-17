@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "exec/admin/GrantRoleExecutor.h"
+#include "executor/admin/GrantRoleExecutor.h"
 #include "planner/Admin.h"
 #include "context/QueryContext.h"
 

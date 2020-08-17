@@ -4,7 +4,7 @@
 * attached with Common Clause Condition 1.0, found in the LICENSES directory.
 */
 
-#include "exec/admin/CharsetExecutor.h"
+#include "executor/admin/CharsetExecutor.h"
 #include "context/QueryContext.h"
 #include "util/ScopedTimer.h"
 

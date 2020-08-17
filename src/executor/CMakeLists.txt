@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 nebula_add_library(
-    exec_obj OBJECT
+    executor_obj OBJECT
     Executor.cpp
     logic/LoopExecutor.cpp
     logic/MultiOutputsExecutor.cpp

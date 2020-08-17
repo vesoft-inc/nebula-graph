@@ -4,10 +4,10 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_ADMIN_SUBMIT_JOB_EXECUTOR_H_
-#define EXEC_ADMIN_SUBMIT_JOB_EXECUTOR_H_
+#ifndef EXECUTOR_ADMIN_SUBMIT_JOB_EXECUTOR_H_
+#define EXECUTOR_ADMIN_SUBMIT_JOB_EXECUTOR_H_
 
-#include "exec/Executor.h"
+#include "executor/Executor.h"
 
 namespace nebula {
 namespace graph {
@@ -23,4 +23,4 @@ public:
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // EXEC_ADMIN_SUBMIT_JOB_EXECUTOR_H_
+#endif  // EXECUTOR_ADMIN_SUBMIT_JOB_EXECUTOR_H_
