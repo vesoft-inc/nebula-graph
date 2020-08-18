@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png"/>
+  <img src="https://github.com/vesoft-inc/nebula/raw/master/docs/logo.png"/>
   <br> English | <a href="README-CN.md">中文</a>
   <br>A distributed, scalable, lightning-fast graph database<br>
 </p>
@@ -34,6 +34,13 @@ Compared with other graph database solutions, **Nebula Graph** has the following
 * Strong data consistency by RAFT protocol
 * SQL-like query language
 * Role-based access control for higher level security
+
+## Notice of Release
+
+The Nebula graph team is glad to annouce the Nebula Graph 2.0 pre-release. This is a brand new start with several important updates, and more of them are on the way. Welcome to join us.
+
+**<font color = #DC143C>WARNING: </font>**
+Use the 2.0 pre-release only if you need to test the latest features or performance improvements. DO NOT use it in production.
 
 ## Roadmap
 

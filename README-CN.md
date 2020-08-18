@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png"/>
+  <img src="https://github.com/vesoft-inc/nebula/raw/master/docs/logo.png"/>
   <br>中文 | <a href="README.md">English</a>
   <br>世界上唯一能够容纳千亿个顶点和万亿条边，并提供毫秒级查询延时的图数据库解决方案<br>
 </p>
@@ -29,6 +29,13 @@
 * RAFT 协议下的数据强一致
 * 类 SQL 查询语言
 * 用户鉴权
+
+## 发布通告
+
+Nebula Graph 2.0 pre-release版本已发布，目前已经有若干项重要更新，更多新特性正在开发中。欢迎加入我们，一同开发Nebula Graph 2.0。
+
+**<font color = #DC143C>警告：</font>**
+这是一个开发中的版本，仅供测试，请勿用于生产环境。
 
 ## 产品路线图
 
