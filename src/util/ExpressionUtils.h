@@ -299,6 +299,7 @@ public:
     }
 
     // determine the detail about symbol property expression
+    // TODO(shylock) make it A ExprVisitor
     template <typename To,
               typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
                                           std::is_same<To, TagPropertyExpression>::value>>
