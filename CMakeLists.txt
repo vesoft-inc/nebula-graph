@@ -131,6 +131,16 @@ if(TARGET clean-storage)
     add_dependencies(clean-modules clean-storage)
 endif()
 
+add_custom_target(
+    install-all
+    COMMAND $(MAKE) install
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+if(TARGET install-storage)
+    add_dependencies(install-all install-storage)
+endif()
+
 
 if (ENABLE_NATIVE)
     message(STATUS "ENABLE_NATIVE is ${ENABLE_NATIVE}")
