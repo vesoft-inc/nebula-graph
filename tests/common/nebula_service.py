@@ -136,6 +136,6 @@ class NebulaService(object):
     def check_procs_alive(self):
         pids = psutil.pids()
         for p in self.pids:
-            if p in pids:
+            if self.pids[p] in pids:
                 return True
         return False
