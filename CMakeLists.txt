@@ -85,9 +85,6 @@ list(APPEND CMAKE_MODULE_PATH ${nebula_common_source_dir}/cmake/nebula)
 include(PlatformCheck)
 include(NebulaCMakeMacros)
 include(GeneralCMakeOptions)
-print_option(ENABLE_PACK_ONE)
-print_option(ENABLE_BUILD_STORAGE)
-print_option(ENABLE_MODULE_UPDATE)
 include(GeneralCMakeConfig)
 include(GeneralCompilerConfig)
 include(LinkerConfig)
@@ -102,6 +99,7 @@ config_nebula_common(
     SOURCE_DIR ${nebula_common_source_dir}
     BUILD_DIR ${nebula_common_build_dir}
 )
+
 if(ENABLE_BUILD_STORAGE)
     include(ConfigNebulaStorage)
     nebula_fetch_module(
@@ -126,6 +124,7 @@ add_custom_target(
     clean-modules
     DEPENDS clean-common
 )
+
 if(TARGET clean-storage)
     add_dependencies(clean-modules clean-storage)
 endif()
