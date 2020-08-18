@@ -171,7 +171,7 @@ Status FetchVerticesValidator::prepareProperties() {
         prop.set_tag(tagId_.value());
         std::vector<std::string> propsName;
         propsName.reserve(yield->columns().size());
-        ExpressionTrait exprTrait(this);
+        PropsCollectVisitor propsCollectVisitor(this);
         for (auto col : yield->columns()) {
             if (col->expr()->kind() == Expression::Kind::kSymProperty) {
                 auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
@@ -180,23 +180,25 @@ Status FetchVerticesValidator::prepareProperties() {
             } else {
                 ExpressionUtils::transAllSymbolPropertyExpr<TagPropertyExpression>(col->expr());
             }
-            auto result = exprTrait.accumulate(col->expr());
+
+            TypeDeduceVisitor typeDeduceVisitor(this);
+            auto result = traverse(col->expr(), propsCollectVisitor, typeDeduceVisitor);
             NG_RETURN_IF_ERROR(result);
-            auto type = result.value();
-            if (exprTrait.hasInputVarProperty()) {
+            auto type = typeDeduceVisitor.type();
+            if (propsCollectVisitor.hasInputVarProperty()) {
                 return Status::Error("Unsupported input/variable property expression in yield.");
             }
-            if (!exprTrait.edgeProps_.empty()) {
+            if (!propsCollectVisitor.edgeProps_.empty()) {
                 return Status::Error("Unsupported edge property expression in yield.");
             }
-            if (exprTrait.hasSrcDstProperty()) {
+            if (propsCollectVisitor.hasSrcDstProperty()) {
                 return Status::Error("Unsupported src/dst property expression in yield.");
             }
 
-            if (exprTrait.tagProps_.empty()) {
+            if (propsCollectVisitor.tagProps_.empty()) {
                 return Status::Error("Unsupported empty tag property expression in yield.");
             }
-            if (exprTrait.tagProps_.size() > 1) {
+            if (propsCollectVisitor.tagProps_.size() > 1) {
                 return Status::Error("Only allowed to access one tag in yield.");
             }
 
@@ -204,7 +206,7 @@ Status FetchVerticesValidator::prepareProperties() {
             outputs_.emplace_back(colNames_.back(), type);
             // TODO(shylock) think about the push-down expr
         }
-        prop.set_props(std::move(exprTrait.tagProps_[tagId_.value()]));
+        prop.set_props(std::move(propsCollectVisitor.tagProps_[tagId_.value()]));
         props_.emplace_back(std::move(prop));
 
         // insert the reserved properties expression be compatible with 1.0

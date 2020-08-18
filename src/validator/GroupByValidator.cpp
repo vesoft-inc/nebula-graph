@@ -18,18 +18,18 @@ Status GroupByValidator::validateImpl() {
     NG_RETURN_IF_ERROR(checkInputProps());
     NG_RETURN_IF_ERROR(checkVarProps());
 
-    if (!exprTrait_.srcTagProps_.empty() || !exprTrait_.dstTagProps_.empty()) {
+    if (!propsCollectVisitor_.srcTagProps_.empty() || !propsCollectVisitor_.dstTagProps_.empty()) {
         return Status::SemanticError("Only support input and variable in GroupBy sentence.");
     }
-    if (!exprTrait_.inputProps_.empty() && !exprTrait_.varProps_.empty()) {
+    if (!propsCollectVisitor_.inputProps_.empty() && !propsCollectVisitor_.varProps_.empty()) {
         return Status::SemanticError("Not support both input and variable in GroupBy sentence.");
     }
     return Status::OK();
 }
 
 Status GroupByValidator::checkInputProps() const {
-    auto& inputProps = exprTrait_.inputProps_;
-    if (inputs_.empty() && !exprTrait_.inputProps_.empty()) {
+    auto& inputProps = propsCollectVisitor_.inputProps_;
+    if (inputs_.empty() && !propsCollectVisitor_.inputProps_.empty()) {
         return Status::SemanticError("no inputs for GroupBy.");
     }
     for (auto &prop : inputProps) {
@@ -40,7 +40,7 @@ Status GroupByValidator::checkInputProps() const {
 }
 
 Status GroupByValidator::checkVarProps() const {
-    auto& varProps = exprTrait_.varProps_;
+    auto& varProps = propsCollectVisitor_.varProps_;
     for (auto &pair : varProps) {
         auto &var = pair.first;
         if (!vctx_->existVar(var)) {
@@ -80,10 +80,10 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         // todo(jmq) count(distinct)
         groupItems_.emplace_back(Aggregate::GroupItem{col->expr(), AggFun::nameIdMap_[fun], false});
 
-        ExpressionTrait yieldExprTrait(this);
-        auto result = yieldExprTrait.accumulate(col->expr());
-        NG_RETURN_IF_ERROR(result);
-        auto type = result.value();
+        TypeDeduceVisitor yieldTypeVisitor(this);
+        PropsCollectVisitor  yieldPropsVisitor(this);
+        NG_RETURN_IF_ERROR(traverse(col->expr(), yieldPropsVisitor, yieldTypeVisitor));
+        auto type = yieldTypeVisitor.type();
         auto name = deduceColName(col);
         outputs_.emplace_back(name, type);
         outputColumnNames_.emplace_back(std::move(name));
@@ -96,19 +96,19 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
 
         // check input yield filed without agg function and not in group cols
         if (col->getAggFunName().empty()) {
-            if (!yieldExprTrait.inputProps_.empty()) {
-                if (!exprTrait_.isSubsetOfInput(yieldExprTrait.inputProps_)) {
+            if (!yieldPropsVisitor.inputProps_.empty()) {
+                if (!propsCollectVisitor_.isSubsetOfInput(yieldPropsVisitor.inputProps_)) {
                     return Status::SemanticError("Yield `%s` isn't in output fields",
                                                  col->toString().c_str());
                 }
-            } else if (!yieldExprTrait.varProps_.empty()) {
-                if (!exprTrait_.isSubsetOfVar(yieldExprTrait.varProps_)) {
+            } else if (!yieldPropsVisitor.varProps_.empty()) {
+                if (!propsCollectVisitor_.isSubsetOfVar(yieldPropsVisitor.varProps_)) {
                     return Status::SemanticError("Yield `%s` isn't in output fields",
                                                  col->toString().c_str());
                 }
             }
         }
-        exprTrait_.collect(std::move(yieldExprTrait));
+        propsCollectVisitor_.collect(std::move(yieldPropsVisitor));
     }
     return Status::OK();
 }
@@ -132,7 +132,7 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
             return Status::SemanticError("Use invalid group function `%s`",
                                          col->getAggFunName().c_str());
         }
-        NG_RETURN_IF_ERROR(exprTrait_.accumulate(col->expr()));
+        NG_RETURN_IF_ERROR(traverse(col->expr(), propsCollectVisitor_));
 
         groupCols_.emplace_back(col);
         groupKeys_.emplace_back(col->expr());

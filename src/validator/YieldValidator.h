@@ -48,7 +48,7 @@ private:
     YieldColumns *columns_{nullptr};
     std::vector<std::string> outputColumnNames_;
     std::vector<Aggregate::GroupItem> groupItems_;
-    ExpressionTrait exprTrait_;
+    PropsCollectVisitor propsCollectVisitor_;
 };
 
 }   // namespace graph

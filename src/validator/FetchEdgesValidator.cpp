@@ -169,7 +169,7 @@ Status FetchEdgesValidator::prepareProperties() {
         std::vector<std::string> propsName;
         propsName.reserve(newYield_->columns().size());
         dedup_ = newYield_->isDistinct();
-        ExpressionTrait exprTrait(this);
+        PropsCollectVisitor propsCollectVisitor(this);
         for (auto col : newYield_->columns()) {
             if (col->expr()->kind() == Expression::Kind::kSymProperty) {
                 auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
@@ -178,21 +178,22 @@ Status FetchEdgesValidator::prepareProperties() {
             } else {
                 ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(col->expr());
             }
-            auto result = exprTrait.accumulate(col->expr());
+            TypeDeduceVisitor typeDeduceVisitor(this);
+            auto result = traverse(col->expr(), propsCollectVisitor, typeDeduceVisitor);
             NG_RETURN_IF_ERROR(result);
-            auto type = result.value();
+            auto type = typeDeduceVisitor.type();
 
-            if (exprTrait.hasInputVarProperty()) {
+            if (propsCollectVisitor.hasInputVarProperty()) {
                 return Status::Error("Unsupported input/variable property expression in yield.");
             }
-            if (exprTrait.hasSrcDstProperty()) {
+            if (propsCollectVisitor.hasSrcDstProperty()) {
                 return Status::Error("Unsupported src/dst tag property expression in yield.");
             }
 
-            if (exprTrait.edgeProps_.empty()) {
+            if (propsCollectVisitor.edgeProps_.empty()) {
                 return Status::Error("Unsupported empty edge properties in yield.");
             }
-            if (exprTrait.edgeProps_.size() > 1) {
+            if (propsCollectVisitor.edgeProps_.size() > 1) {
                 return Status::Error("Only allow to access one edge in yield.");
             }
 
@@ -200,7 +201,7 @@ Status FetchEdgesValidator::prepareProperties() {
             outputs_.emplace_back(colNames_.back(), type);
             // TODO(shylock) think about the push-down expr
         }
-        prop.set_props(std::move(exprTrait.edgeProps_[edgeType_]));
+        prop.set_props(std::move(propsCollectVisitor.edgeProps_[edgeType_]));
     } else {
         // no yield
         std::vector<std::string> propNames;   // filter the type

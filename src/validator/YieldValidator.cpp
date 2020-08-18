@@ -16,23 +16,23 @@ namespace nebula {
 namespace graph {
 
 YieldValidator::YieldValidator(Sentence *sentence, QueryContext *qctx)
-    : Validator(sentence, qctx), exprTrait_(this) {}
+    : Validator(sentence, qctx), propsCollectVisitor_(this) {}
 
 Status YieldValidator::validateImpl() {
     auto yield = static_cast<YieldSentence *>(sentence_);
     NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
 
-    if (!exprTrait_.srcTagProps_.empty() || !exprTrait_.dstTagProps_.empty() ||
-        !exprTrait_.edgeProps_.empty()) {
+    if (!propsCollectVisitor_.srcTagProps_.empty() || !propsCollectVisitor_.dstTagProps_.empty() ||
+        !propsCollectVisitor_.edgeProps_.empty()) {
         return Status::SemanticError("Only support input and variable in yield sentence.");
     }
 
-    if (!exprTrait_.inputProps_.empty() && !exprTrait_.varProps_.empty()) {
+    if (!propsCollectVisitor_.inputProps_.empty() && !propsCollectVisitor_.varProps_.empty()) {
         return Status::SemanticError("Not support both input and variable.");
     }
 
-    if (!exprTrait_.varProps_.empty() && exprTrait_.varProps_.size() > 1) {
+    if (!propsCollectVisitor_.varProps_.empty() && propsCollectVisitor_.varProps_.size() > 1) {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
@@ -65,7 +65,7 @@ Status YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) 
 }
 
 Status YieldValidator::checkInputProps() const {
-    auto& inputProps = exprTrait_.inputProps_;
+    auto& inputProps = propsCollectVisitor_.inputProps_;
     if (inputs_.empty() && !inputProps.empty()) {
         return Status::SemanticError("no inputs for yield columns.");
     }
@@ -77,7 +77,7 @@ Status YieldValidator::checkInputProps() const {
 }
 
 Status YieldValidator::checkVarProps() const {
-    auto& varProps = exprTrait_.varProps_;
+    auto& varProps = propsCollectVisitor_.varProps_;
     for (auto &pair : varProps) {
         auto &var = pair.first;
         if (!vctx_->existVar(var)) {
@@ -97,9 +97,9 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
 
     auto expr = column->expr();
     DCHECK(expr != nullptr);
-    auto result = exprTrait_.accumulate(expr);
-    NG_RETURN_IF_ERROR(result);
-    auto type = result.value();
+    TypeDeduceVisitor typeDeduceVisitor(this);
+    NG_RETURN_IF_ERROR(traverse(expr, propsCollectVisitor_, typeDeduceVisitor));
+    auto type = typeDeduceVisitor.type();
 
     auto name = deduceColName(column);
     outputColumnNames_.emplace_back(name);
@@ -169,7 +169,7 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
         filter = clause->filter();
     }
     if (filter != nullptr) {
-        NG_RETURN_IF_ERROR(exprTrait_.accumulate(filter));
+        NG_RETURN_IF_ERROR(traverse(filter, propsCollectVisitor_));
     }
     return Status::OK();
 }
@@ -203,9 +203,9 @@ Status YieldValidator::toPlan() {
         tail_ = dedupDep;
     }
 
-    if (!exprTrait_.varProps_.empty()) {
-        DCHECK_EQ(exprTrait_.varProps_.size(), 1u);
-        auto var = exprTrait_.varProps_.cbegin()->first;
+    if (!propsCollectVisitor_.varProps_.empty()) {
+        DCHECK_EQ(propsCollectVisitor_.varProps_.size(), 1u);
+        auto var = propsCollectVisitor_.varProps_.cbegin()->first;
         static_cast<SingleInputNode *>(tail_)->setInputVar(var);
     }
 

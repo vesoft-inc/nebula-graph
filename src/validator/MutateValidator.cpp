@@ -281,14 +281,14 @@ Status DeleteVerticesValidator::validateImpl() {
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
     if (sentence->isRef()) {
-        ExpressionTrait inputTrait(this);
+        TypeDeduceVisitor typeDeduceVisitor(this);
         vidRef_ = sentence->vidRef();
-        auto type = inputTrait.accumulate(vidRef_);
-        NG_RETURN_IF_ERROR(type);
-        if (type.value() != Value::Type::STRING) {
+        NG_RETURN_IF_ERROR(traverse(vidRef_, typeDeduceVisitor));
+        auto type = typeDeduceVisitor.type();
+        if (type != Value::Type::STRING) {
             std::stringstream ss;
             ss << "The vid should be string type, "
-               << "but input is `" << type.value() << "'";
+               << "but input is `" << type << "'";
             return Status::Error(ss.str());
         }
     } else {
@@ -471,23 +471,20 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
 Status DeleteEdgesValidator::checkInput() {
     CHECK(!edgeKeyRefs_.empty());
     auto &edgeKeyRef = *edgeKeyRefs_.begin();
-    auto srcIdResult = exprTrait_.accumulate(edgeKeyRef->srcid());
-    NG_RETURN_IF_ERROR(srcIdResult);
-    auto dstIdResult = exprTrait_.accumulate(edgeKeyRef->dstid());
-    NG_RETURN_IF_ERROR(dstIdResult);
-    auto rankResult = exprTrait_.accumulate(edgeKeyRef->rank());
-    NG_RETURN_IF_ERROR(rankResult);
+    NG_RETURN_IF_ERROR(traverse(edgeKeyRef->srcid(), propsCollectVisitor_));
+    NG_RETURN_IF_ERROR(traverse(edgeKeyRef->dstid(), propsCollectVisitor_));
+    NG_RETURN_IF_ERROR(traverse(edgeKeyRef->rank(), propsCollectVisitor_));
 
-    if (!exprTrait_.srcTagProps_.empty() || !exprTrait_.dstTagProps_.empty() ||
-        !exprTrait_.edgeProps_.empty()) {
+    if (!propsCollectVisitor_.srcTagProps_.empty() || !propsCollectVisitor_.dstTagProps_.empty() ||
+        !propsCollectVisitor_.edgeProps_.empty()) {
         return Status::SyntaxError("Only support input and variable.");
     }
 
-    if (!exprTrait_.inputProps_.empty() && !exprTrait_.varProps_.empty()) {
+    if (!propsCollectVisitor_.inputProps_.empty() && !propsCollectVisitor_.varProps_.empty()) {
         return Status::Error("Not support both input and variable.");
     }
 
-    if (!exprTrait_.varProps_.empty() && exprTrait_.varProps_.size() > 1) {
+    if (!propsCollectVisitor_.varProps_.empty() && propsCollectVisitor_.varProps_.size() > 1) {
         return Status::Error("Only one variable allowed to use.");
     }
 

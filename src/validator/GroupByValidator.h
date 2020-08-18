@@ -19,7 +19,7 @@ namespace graph {
 class GroupByValidator final : public Validator {
 public:
     GroupByValidator(Sentence *sentence, QueryContext *context)
-        : Validator(sentence, context), exprTrait_(this) {}
+        : Validator(sentence, context), propsCollectVisitor_(this) {}
 
 private:
     Status validateImpl() override;
@@ -43,7 +43,7 @@ private:
 
     std::vector<std::string>                          outputColumnNames_;
 
-    ExpressionTrait                                   exprTrait_;
+    PropsCollectVisitor                               propsCollectVisitor_;
 
     std::vector<Expression*>                          groupKeys_;
     std::vector<Aggregate::GroupItem>                 groupItems_;

@@ -92,7 +92,7 @@ private:
 class DeleteEdgesValidator final : public Validator {
 public:
     DeleteEdgesValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context), exprTrait_(this) {
+        : Validator(sentence, context), propsCollectVisitor_(this) {
     }
 
 private:
@@ -109,7 +109,7 @@ private:
     // From InputPropertyExpression, ConstantExpression will covert to  InputPropertyExpression
     std::vector<EdgeKeyRef*>                       edgeKeyRefs_;
     std::string                                    edgeKeyVar_;
-    ExpressionTrait                                exprTrait_;
+    PropsCollectVisitor                            propsCollectVisitor_;
 };
 
 class UpdateValidator : public Validator {
