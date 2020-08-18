@@ -6,6 +6,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import time
+import datetime
 from pathlib import Path
 from typing import Pattern, Set
 
@@ -51,6 +52,7 @@ class NebulaTestSuite(object):
     @classmethod
     def setup_class(self):
         address = pytest.cmdline.address.split(':')
+        self.spaces = []
         self.host = address[0]
         self.port = address[1]
         self.user = pytest.cmdline.user
@@ -71,14 +73,14 @@ class NebulaTestSuite(object):
         for path in pathlist:
             print("will open ", path)
             with open(path, 'r') as data_file:
-                space_name = path.name.split('.')[0]
+                space_name = path.name.split('.')[0] + datetime.datetime.now().strftime('%H_%M_%S_%f')
+                self.spaces.append(space_name)
                 resp = self.execute(
-                'CREATE SPACE IF NOT EXISTS {space_name}(partition_num={partition_num}, replica_factor={replica_factor}, vid_size=30)'.format(partition_num=self.partition_num,
+                'CREATE SPACE IF NOT EXISTS {space_name}(partition_num={partition_num}, '
+                'replica_factor={replica_factor}, vid_size=30); USE {space_name};'.format(
+                        partition_num=self.partition_num,
                         replica_factor=self.replica_factor,
                         space_name=space_name))
-                self.check_resp_succeeded(resp)
-                time.sleep(self.delay)
-                resp = self.execute('USE {}'.format(space_name))
                 self.check_resp_succeeded(resp)
 
                 lines = data_file.readlines()
@@ -107,13 +109,22 @@ class NebulaTestSuite(object):
     @classmethod
     def drop_data(self):
         if self.data_loaded:
-            pathlist = Path(self.data_dir).rglob('*.ngql')
             drop_stmt = []
-            for path in pathlist:
-                space_name = path.name.split('.')[0]
-                drop_stmt.append('DROP SPACE {}'.format(space_name))
+            for space in self.spaces:
+                drop_stmt.append('DROP SPACE {}'.format(space))
             resp = self.execute(';'.join(drop_stmt))
             self.check_resp_succeeded(resp)
+
+    @classmethod
+    def use_nba(self):
+        resp = self.execute('USE nba;')
+        self.check_resp_succeeded(resp)
+
+    @classmethod
+    def use_student_space(self):
+        resp = self.execute('USE student_space;')
+        self.check_resp_succeeded(resp)
+
 
     @classmethod
     def create_nebula_clients(self):
@@ -209,64 +220,117 @@ class NebulaTestSuite(object):
             return False, msg
 
     @classmethod
+    def date_to_string(self, date):
+        return '{}/{}/{}'.format(date.year, date.month, date.day)
+
+    @classmethod
+    def date_time_to_string(self, date_time):
+        zone = '+'
+        if date_time.timezone < 0:
+            zone = '-'
+        return '{}/{}/{} {}:{}:{}.{} {}{}.{}'.format(date_time.year,
+                                                     date_time.month,
+                                                     date_time.day,
+                                                     date_time.hour,
+                                                     date_time.minute,
+                                                     date_time.sec,
+                                                     date_time.microsec,
+                                                     zone,
+                                                     date_time.timezone / 3600,
+                                                     date_time.timezone % 3600)
+    @classmethod
+    def map_to_string(self, map):
+        kvStrs = []
+        if map.kvs is not None:
+            for key in map.kvs:
+                kvStrs.append('"{}":"{}"'.format(key.decode('utf-8'), self.value_to_string(map.kvs[key])))
+            return '{' + ','.join(kvStrs) + '}'
+        return ''
+
+    @classmethod
+    def value_to_string(self, value):
+        if value.getType() == CommonTtypes.Value.__EMPTY__:
+            return '__EMPTY__'
+        elif value.getType() == CommonTtypes.Value.NVAL:
+            return '__NULL__'
+        elif value.getType() == CommonTtypes.Value.BVAL:
+            return str(value.get_bVal())
+        elif value.getType() == CommonTtypes.Value.IVAL:
+            return str(value.get_iVal())
+        elif value.getType() == CommonTtypes.Value.FVAL:
+            return str(value.get_fVal())
+        elif value.getType() == CommonTtypes.Value.SVAL:
+            return value.get_sVal().decode('utf-8')
+        elif value.getType() == CommonTtypes.Value.DVAL:
+            return self.date_time_to_string(value.get_dVal())
+        elif value.getType() == CommonTtypes.Value.TVAL:
+            return self.date_time_to_string(value.get_tVal())
+        elif value.getType() == CommonTtypes.Value.MVAL:
+            return self.map_to_string(value.get_mVal())
+        return 'Unsupported type'
+
+    @classmethod
     def row_to_string(self, row):
         value_list = []
         for col in row.values:
-            if col.getType() == CommonTtypes.Value.__EMPTY__:
-                value_list.append('__EMPTY__')
-            elif col.getType() == CommonTtypes.Value.NVAL:
-                value_list.append('__NULL__')
-            elif col.getType() == CommonTtypes.Value.BVAL:
-                value_list.append(col.get_bVal())
-            elif col.getType() == CommonTtypes.Value.IVAL:
-                value_list.append(col.get_iVal())
-            elif col.getType() == CommonTtypes.Value.FVAL:
-                value_list.append(col.get_fVal())
-            elif col.getType() == CommonTtypes.Value.SVAL:
-                value_list.append(col.get_sVal().decode('utf-8'))
-            elif col.getType() == CommonTtypes.Type.DVAL:
-                value_list.append(col.get_dVal().decode('utf-8'))
-            elif col.getType() == CommonTtypes.Type.DATETIME:
-                value_list.append(col.get_datetime())
+            value_list.append(self.value_to_string(col))
         return str(value_list)
 
     @classmethod
     def search_result(self, resp, expect, is_regex = False):
+         ok, msg = self.search(resp, expect, is_regex)
+         assert ok, msg
+
+    @classmethod
+    def search_not_exist(self, resp, expect, is_regex = False):
+        ok, msg = self.search(resp, expect, is_regex)
+        assert not ok, 'expect "{}" has exist'.format(str(expect))
+
+    @classmethod
+    def search(self, resp, expect, is_regex = False):
         if resp.data is None and len(expect) == 0:
-            return
+            return True
 
         if resp.data is None:
-            assert False, 'resp.data is None'
+            return False, 'resp.data is None'
         rows = resp.data.rows
 
-        msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
-        assert len(rows) == len(expect), msg
+        msg = 'len(rows)[%d] < len(expect)[%d]' % (len(rows), len(expect))
+        if len(rows) < len(expect):
+            return False, msg
 
         new_expect = expect
         if not is_regex:
             # convert expect to thrift value
             ok, new_expect, msg = self.convert_expect(expect)
             if not ok:
-                assert ok, 'convert expect failed, error msg: {}'.format(msg)
+                return ok, 'convert expect failed, error msg: {}'.format(msg)
 
-        for row in rows:
-            ok = False
-            msg = ""
-            for exp in new_expect:
-                exp_values = []
-                if not is_regex:
-                    exp_values = exp.values
-                else:
-                    exp_values = exp
-                for col, i in zip(row.values, range(0, len(exp_values))):
-                    ok, msg = self.check_value(col, exp_values[i])
+        for exp in new_expect:
+            exp_values = []
+            exp_str = ''
+            if not is_regex:
+                exp_values = exp.values
+                exp_str = self.row_to_string(exp)
+            else:
+                exp_values = exp
+                exp_str = str(exp)
+            has = False
+            for row in rows:
+                ok = True
+                if len(row.values) != len(exp_values):
+                    return False, 'len(row)[%d] != len(exp_values)[%d]' % (len(row.values), len(exp_values))
+                for col1, col2 in zip(row.values, exp_values):
+                    ok, msg = self.check_value(col1, col2)
                     if not ok:
+                        ok = False
                         break
                 if ok:
+                    has = True
                     break
-            assert ok, 'The returned row from nebula could not be found, row: {}, error message: {}'.format(
-                self.row_to_string(row), msg)
-            new_expect.remove(exp)
+            if not has:
+                return has, 'The returned row from nebula could not be found, row: {}'.format(exp_str)
+        return True, ''
 
     @classmethod
     def check_column_names(self, resp, expect):
@@ -274,6 +338,30 @@ class NebulaTestSuite(object):
             result = bytes.decode(resp.data.column_names[i])
             ok = (expect[i] == result)
             assert ok, "different column name, expect: {} vs. result: {}".format(expect[i], result)
+
+    @classmethod
+    def to_value(self, col):
+        value = CommonTtypes.Value()
+        if isinstance(col, bool):
+            value.set_bVal(col)
+        elif isinstance(col, int):
+            value.set_iVal(col)
+        elif isinstance(col, float):
+            value.set_fVal(col)
+        elif isinstance(col, str):
+            value.set_sVal(col.encode('utf-8'))
+        elif isinstance(col, dict):
+            map_val = CommonTtypes.Map()
+            map_val.kvs = dict()
+            for key in col:
+                ok, temp = self.to_value(col[key])
+                if not ok:
+                    return ok, temp
+                map_val.kvs[key.encode('utf-8')] = temp
+            value.set_mVal(map_val)
+        else:
+            return False, 'Wrong val type'
+        return True, value
 
     @classmethod
     def convert_expect(self, expect):
@@ -287,15 +375,9 @@ class NebulaTestSuite(object):
                 if isinstance(col, CommonTtypes.Value):
                     new_row.values.append(col)
                 else:
-                    value = CommonTtypes.Value()
-                    if isinstance(col, bool):
-                        value.set_bVal(col)
-                    elif isinstance(col, int):
-                        value.set_iVal(col)
-                    elif isinstance(col, float):
-                        value.set_fVal(col)
-                    elif isinstance(col, str):
-                        value.set_sVal(col.encode('utf-8'))
+                    ok, value = self.to_value(col)
+                    if not ok:
+                        return ok, value
                     new_row.values.append(value)
             result.append(new_row)
         return True, result, ''
@@ -416,4 +498,5 @@ class NebulaTestSuite(object):
             if not expect.match(resp.error_msg.decode('utf-8')):
                 assert False, msg
         else:
+            assert resp.error_msg.decode('utf-8') == expect, msg
             assert resp.error_msg.decode('utf-8') == expect, msg

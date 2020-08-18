@@ -10,6 +10,7 @@
 #include "parser/Sentence.h"
 #include "parser/MutateSentences.h"
 #include "common/network/NetworkUtils.h"
+#include "common/interface/gen-cpp2/meta_types.h"
 
 namespace nebula {
 
@@ -83,7 +84,12 @@ public:
         name_.reset(name);
         kind_ = Kind::kShowRoles;
     }
+
     std::string toString() const override;
+
+    const std::string *name() const {
+        return name_.get();
+    }
 
 private:
     std::unique_ptr<std::string>          name_;
@@ -295,97 +301,91 @@ private:
     std::unique_ptr<std::string>     spaceName_;
 };
 
-enum ConfigModule {
-    ALL, GRAPH, META, STORAGE
-};
-
 class ConfigRowItem {
 public:
-    explicit ConfigRowItem(ConfigModule module) {
-        module_ = std::make_unique<ConfigModule>(module);
+    explicit ConfigRowItem(meta::cpp2::ConfigModule module) {
+        module_ = module;
     }
 
-    ConfigRowItem(ConfigModule module, std::string* name, Expression* value) {
-        module_ = std::make_unique<ConfigModule>(module);
+    ConfigRowItem(meta::cpp2::ConfigModule module, std::string* name, Expression* value) {
+        module_ = module;
         name_.reset(name);
         value_.reset(value);
     }
 
-    ConfigRowItem(ConfigModule module, std::string* name) {
-        module_ = std::make_unique<ConfigModule>(module);
+    ConfigRowItem(meta::cpp2::ConfigModule module, std::string* name) {
+        module_ = module;
         name_.reset(name);
     }
 
-    ConfigRowItem(ConfigModule module, std::string* name, UpdateList *items) {
-        module_ = std::make_unique<ConfigModule>(module);
+    ConfigRowItem(meta::cpp2::ConfigModule module, std::string* name, UpdateList *items) {
+        module_ = module;
         name_.reset(name);
         updateItems_.reset(items);
     }
 
-    const ConfigModule* getModule() {
-        return module_.get();
+    meta::cpp2::ConfigModule getModule() const {
+        return module_;
     }
 
-    const std::string* getName() {
+    const std::string* getName() const {
         return name_.get();
     }
 
-    const Expression* getValue() {
+    Expression* getValue() const {
         return value_.get();
     }
 
-    const UpdateList* getUpdateItems() {
+    const UpdateList* getUpdateItems() const {
         return updateItems_.get();
     }
 
     std::string toString() const;
 
 private:
-    std::unique_ptr<ConfigModule>   module_;
+    meta::cpp2::ConfigModule        module_;
     std::unique_ptr<std::string>    name_;
     std::unique_ptr<Expression>     value_;
     std::unique_ptr<UpdateList>     updateItems_;
 };
 
-class ConfigSentence final : public Sentence {
+class ConfigBaseSentence : public Sentence {
 public:
-    enum class SubType : uint32_t {
-        kUnknown,
-        kShow,
-        kSet,
-        kGet,
-    };
-
-    explicit ConfigSentence(SubType subType) {
-        kind_ = Kind::kConfig;
-        subType_ = std::move(subType);
-    }
-
-    ConfigSentence(SubType subType, ConfigRowItem* item, bool force = false) {
-        kind_ = Kind::kConfig;
-        subType_ = std::move(subType);
+    explicit ConfigBaseSentence(Kind kind, ConfigRowItem* item) {
+        kind_ = kind;
         configItem_.reset(item);
-        isForce_ = force;
-    }
-
-    std::string toString() const override;
-
-    SubType subType() const {
-        return subType_;
     }
 
     ConfigRowItem* configItem() {
         return configItem_.get();
     }
 
-    bool isForce() {
-        return isForce_;
-    }
-
-private:
-    SubType                         subType_{SubType::kUnknown};
-    bool                            isForce_{false};
+protected:
     std::unique_ptr<ConfigRowItem>  configItem_;
+};
+
+class ShowConfigsSentence final : public ConfigBaseSentence {
+public:
+    explicit ShowConfigsSentence(ConfigRowItem* item)
+        : ConfigBaseSentence(Kind::kShowConfigs, item) {}
+
+    std::string toString() const override;
+};
+
+class SetConfigSentence final : public ConfigBaseSentence {
+public:
+    explicit SetConfigSentence(ConfigRowItem* item)
+        : ConfigBaseSentence(Kind::kSetConfig, item) {}
+
+    std::string toString() const override;
+};
+
+class GetConfigSentence final : public ConfigBaseSentence {
+public:
+    explicit GetConfigSentence(ConfigRowItem* item)
+        : ConfigBaseSentence(Kind::kGetConfig, item) {}
+
+    std::string toString() const override;
 };
 
 class HostList final {
@@ -482,6 +482,23 @@ public:
 private:
     std::unique_ptr<std::string>    name_;
 };
+
+class AdminJobSentence final : public Sentence {
+public:
+    explicit AdminJobSentence(meta::cpp2::AdminJobOp op) : op_(op) {
+        kind_ = Kind::kAdminJob;
+    }
+
+    void addPara(const std::string& para);
+    std::string toString() const override;
+    meta::cpp2::AdminJobOp getType() const;
+    const std::vector<std::string> &getParas() const;
+
+private:
+    meta::cpp2::AdminJobOp   op_;
+    std::vector<std::string> paras_;
+};
+
 
 }   // namespace nebula
 

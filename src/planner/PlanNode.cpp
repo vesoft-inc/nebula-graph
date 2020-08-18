@@ -8,6 +8,7 @@
 
 #include "common/interface/gen-cpp2/graph_types.h"
 #include "planner/ExecutionPlan.h"
+#include "util/ToJson.h"
 
 namespace nebula {
 namespace graph {
@@ -80,6 +81,25 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "InsertEdges";
         case Kind::kDataCollect:
             return "DataCollect";
+        // acl
+        case Kind::kCreateUser:
+            return "CreateUser";
+        case Kind::kDropUser:
+            return "DropUser";
+        case Kind::kUpdateUser:
+            return "UpdateUser";
+        case Kind::kGrantRole:
+            return "GrantRole";
+        case Kind::kRevokeRole:
+            return "RevokeRole";
+        case Kind::kChangePassword:
+            return "ChangePassword";
+        case Kind::kListUserRoles:
+            return "ListUserRoles";
+        case Kind::kListUsers:
+            return "ListUsers";
+        case Kind::kListRoles:
+            return "ListRoles";
         case Kind::kShowCreateSpace:
             return "ShowCreateSpace";
         case Kind::kShowCreateTag:
@@ -104,6 +124,16 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "DropSnapshot";
         case Kind::kShowSnapshots:
             return "ShowSnapshots";
+        case Kind::kBalanceLeaders:
+            return "BalanceLeaders";
+        case Kind::kBalance:
+            return "Balance";
+        case Kind::kStopBalance:
+            return "StopBalance";
+        case Kind::kShowBalance:
+            return "ShowBalance";
+        case Kind::kSubmitJob:
+            return "SubmitJob";
         case Kind::kDataJoin:
             return "DataJoin";
         case Kind::kDeleteVertices:
@@ -118,6 +148,17 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowHosts";
         case Kind::kShowParts:
             return "ShowParts";
+        case Kind::kShowCharset:
+            return "ShowCharset";
+        case Kind::kShowCollation:
+            return "ShowCollation";
+        case Kind::kShowConfigs:
+            return "ShowConfigs";
+        case Kind::kSetConfig:
+            return "SetConfig";
+        case Kind::kGetConfig:
+            return "GetConfig";
+        // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
@@ -138,6 +179,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> PlanNode::explain() const {
     desc->set_id(id_);
     desc->set_name(toString(kind_));
     desc->set_output_var(outputVar_);
+    addDescription("colNames", folly::toJson(util::toJson(colNames_)), desc.get());
     return desc;
 }
 
@@ -155,7 +197,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> SingleDependencyNode::explain() const
 
 std::unique_ptr<cpp2::PlanNodeDescription> SingleInputNode::explain() const {
     auto desc = SingleDependencyNode::explain();
-    DCHECK(!desc->__isset.description);
     addDescription("inputVar", inputVar_, desc.get());
     return desc;
 }
@@ -164,7 +205,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> BiInputNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(!desc->__isset.dependencies);
     desc->set_dependencies({left_->id(), right_->id()});
-    DCHECK(!desc->__isset.description);
     addDescription("leftVar", leftVar_, desc.get());
     addDescription("rightVar", rightVar_, desc.get());
     return desc;

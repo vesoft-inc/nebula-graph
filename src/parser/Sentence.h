@@ -91,7 +91,9 @@ public:
         kDownload,
         kIngest,
         kOrderBy,
-        kConfig,
+        kShowConfigs,
+        kSetConfig,
+        kGetConfig,
         kFetchVertices,
         kFetchEdges,
         kBalance,
@@ -101,7 +103,7 @@ public:
         kReturn,
         kCreateSnapshot,
         kDropSnapshot,
-        kAdmin,
+        kAdminJob,
         kGetSubgraph,
     };
 

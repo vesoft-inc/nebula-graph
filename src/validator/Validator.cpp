@@ -26,6 +26,9 @@
 #include "validator/SequentialValidator.h"
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
+#include "validator/ACLValidator.h"
+#include  "validator/BalanceValidator.h"
+#include "validator/AdminJobValidator.h"
 #include "validator/YieldValidator.h"
 #include "validator/GroupByValidator.h"
 #include "common/function/FunctionManager.h"
@@ -103,6 +106,26 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
             return std::make_unique<InsertEdgesValidator>(sentence, context);
+        case Sentence::Kind::kCreateUser:
+            return std::make_unique<CreateUserValidator>(sentence, context);
+        case Sentence::Kind::kDropUser:
+            return std::make_unique<DropUserValidator>(sentence, context);
+        case Sentence::Kind::kAlterUser:
+            return std::make_unique<UpdateUserValidator>(sentence, context);
+        case Sentence::Kind::kShowUsers:
+            return std::make_unique<ShowUsersValidator>(sentence, context);
+        case Sentence::Kind::kChangePassword:
+            return std::make_unique<ChangePasswordValidator>(sentence, context);
+        case Sentence::Kind::kGrant:
+            return std::make_unique<GrantRoleValidator>(sentence, context);
+        case Sentence::Kind::kRevoke:
+            return std::make_unique<RevokeRoleValidator>(sentence, context);
+        case Sentence::Kind::kShowRoles:
+            return std::make_unique<ShowRolesInSpaceValidator>(sentence, context);
+        case Sentence::Kind::kBalance:
+            return std::make_unique<BalanceValidator>(sentence, context);
+        case Sentence::Kind::kAdminJob:
+            return std::make_unique<AdminJobValidator>(sentence, context);
         case Sentence::Kind::kFetchVertices:
             return std::make_unique<FetchVerticesValidator>(sentence, context);
         case Sentence::Kind::kFetchEdges:
@@ -121,11 +144,47 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<UpdateVertexValidator>(sentence, context);
         case Sentence::Kind::kUpdateEdge:
             return std::make_unique<UpdateEdgeValidator>(sentence, context);
+        case Sentence::Kind::kShowHosts:
+            return std::make_unique<ShowHostsValidator>(sentence, context);
         case Sentence::Kind::kShowParts:
             return std::make_unique<ShowPartsValidator>(sentence, context);
-        default:
-            return std::make_unique<ReportError>(sentence, context);
+        case Sentence::Kind::kShowCharset:
+            return std::make_unique<ShowCharsetValidator>(sentence, context);
+        case Sentence::Kind::kShowCollation:
+            return std::make_unique<ShowCollationValidator>(sentence, context);
+        case Sentence::Kind::kGetConfig:
+            return std::make_unique<GetConfigValidator>(sentence, context);
+        case Sentence::Kind::kSetConfig:
+            return std::make_unique<SetConfigValidator>(sentence, context);
+        case Sentence::Kind::kShowConfigs:
+            return std::make_unique<ShowConfigsValidator>(sentence, context);
+        case Sentence::Kind::kUnknown:
+        case Sentence::Kind::kMatch:
+        case Sentence::Kind::kCreateTagIndex:
+        case Sentence::Kind::kShowCreateTagIndex:
+        case Sentence::Kind::kShowTagIndexStatus:
+        case Sentence::Kind::kDescribeTagIndex:
+        case Sentence::Kind::kShowTagIndexes:
+        case Sentence::Kind::kRebuildTagIndex:
+        case Sentence::Kind::kDropTagIndex:
+        case Sentence::Kind::kCreateEdgeIndex:
+        case Sentence::Kind::kShowCreateEdgeIndex:
+        case Sentence::Kind::kShowEdgeIndexStatus:
+        case Sentence::Kind::kDescribeEdgeIndex:
+        case Sentence::Kind::kShowEdgeIndexes:
+        case Sentence::Kind::kRebuildEdgeIndex:
+        case Sentence::Kind::kDropEdgeIndex:
+        case Sentence::Kind::kLookup:
+        case Sentence::Kind::kDownload:
+        case Sentence::Kind::kIngest:
+        case Sentence::Kind::kFindPath:
+        case Sentence::Kind::kReturn: {
+            // nothing
+            DLOG(FATAL) << "Unimplemented sentence " << kind;
+        }
     }
+    DLOG(FATAL) << "Unknown sentence " << static_cast<int>(kind);
+    return std::make_unique<ReportError>(sentence, context);
 }
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
@@ -138,6 +197,15 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kAggregate:
         case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:
+        case PlanNode::Kind::kCreateUser:
+        case PlanNode::Kind::kDropUser:
+        case PlanNode::Kind::kUpdateUser:
+        case PlanNode::Kind::kGrantRole:
+        case PlanNode::Kind::kRevokeRole:
+        case PlanNode::Kind::kChangePassword:
+        case PlanNode::Kind::kListUserRoles:
+        case PlanNode::Kind::kListUsers:
+        case PlanNode::Kind::kListRoles:
         case PlanNode::Kind::kMultiOutputs:
         case PlanNode::Kind::kSwitchSpace:
         case PlanNode::Kind::kGetEdges:
@@ -164,12 +232,22 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kShowEdges:
         case PlanNode::Kind::kCreateSnapshot:
         case PlanNode::Kind::kDropSnapshot:
+        case PlanNode::Kind::kSubmitJob:
         case PlanNode::Kind::kShowSnapshots:
+        case PlanNode::Kind::kBalanceLeaders:
+        case PlanNode::Kind::kBalance:
+        case PlanNode::Kind::kStopBalance:
+        case PlanNode::Kind::kShowBalance:
         case PlanNode::Kind::kDeleteVertices:
         case PlanNode::Kind::kDeleteEdges:
         case PlanNode::Kind::kUpdateVertex:
         case PlanNode::Kind::kUpdateEdge:
-        case PlanNode::Kind::kShowParts: {
+        case PlanNode::Kind::kShowParts:
+        case PlanNode::Kind::kShowCharset:
+        case PlanNode::Kind::kShowCollation:
+        case PlanNode::Kind::kShowConfigs:
+        case PlanNode::Kind::kSetConfig:
+        case PlanNode::Kind::kGetConfig: {
             static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
             break;
         }

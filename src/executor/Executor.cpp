@@ -1,405 +1,637 @@
-/* Copyright (c) 2018 vesoft inc. All rights reserved.
+/* Copyright (c) 2020 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "base/Base.h"
-#include "graph/Executor.h"
-#include "parser/TraverseSentences.h"
-#include "parser/MutateSentences.h"
-#include "parser/MaintainSentences.h"
-#include "parser/AdminSentences.h"
-#include "graph/GoExecutor.h"
-#include "graph/UseExecutor.h"
-#include "graph/PipeExecutor.h"
-#include "graph/CreateTagExecutor.h"
-#include "graph/CreateEdgeExecutor.h"
-#include "graph/AlterTagExecutor.h"
-#include "graph/AlterEdgeExecutor.h"
-#include "graph/DropTagExecutor.h"
-#include "graph/DropEdgeExecutor.h"
-#include "graph/DescribeTagExecutor.h"
-#include "graph/DescribeEdgeExecutor.h"
-#include "graph/InsertVertexExecutor.h"
-#include "graph/InsertEdgeExecutor.h"
-#include "graph/AssignmentExecutor.h"
-#include "graph/ShowExecutor.h"
-#include "graph/CreateSpaceExecutor.h"
-#include "graph/DescribeSpaceExecutor.h"
-#include "graph/DropSpaceExecutor.h"
-#include "graph/YieldExecutor.h"
-#include "graph/DownloadExecutor.h"
-#include "graph/OrderByExecutor.h"
-#include "graph/IngestExecutor.h"
-#include "graph/ConfigExecutor.h"
-#include "graph/FetchVerticesExecutor.h"
-#include "graph/FetchEdgesExecutor.h"
-#include "graph/ConfigExecutor.h"
-#include "graph/SetExecutor.h"
-#include "graph/FindExecutor.h"
-#include "graph/MatchExecutor.h"
-#include "graph/BalanceExecutor.h"
-#include "graph/DeleteVertexExecutor.h"
-#include "graph/DeleteEdgesExecutor.h"
-#include "graph/UpdateVertexExecutor.h"
-#include "graph/UpdateEdgeExecutor.h"
-#include "graph/FindPathExecutor.h"
-#include "graph/LimitExecutor.h"
-#include "graph/GroupByExecutor.h"
-#include "graph/ReturnExecutor.h"
-#include "graph/CreateSnapshotExecutor.h"
-#include "graph/DropSnapshotExecutor.h"
+#include "executor/Executor.h"
+
+#include <folly/String.h>
+#include <folly/executors/InlineExecutor.h>
+
+#include "common/interface/gen-cpp2/graph_types.h"
+#include "context/ExecutionContext.h"
+#include "context/QueryContext.h"
+#include "executor/ExecutionError.h"
+#include "executor/admin/BalanceExecutor.h"
+#include "executor/admin/BalanceLeadersExecutor.h"
+#include "executor/admin/ChangePasswordExecutor.h"
+#include "executor/admin/CharsetExecutor.h"
+#include "executor/admin/ConfigExecutor.h"
+#include "executor/admin/CreateUserExecutor.h"
+#include "executor/admin/DropUserExecutor.h"
+#include "executor/admin/GrantRoleExecutor.h"
+#include "executor/admin/ListRolesExecutor.h"
+#include "executor/admin/ListUserRolesExecutor.h"
+#include "executor/admin/ListUsersExecutor.h"
+#include "executor/admin/PartExecutor.h"
+#include "executor/admin/RevokeRoleExecutor.h"
+#include "executor/admin/ShowBalanceExecutor.h"
+#include "executor/admin/ShowHostsExecutor.h"
+#include "executor/admin/SnapshotExecutor.h"
+#include "executor/admin/SpaceExecutor.h"
+#include "executor/admin/StopBalanceExecutor.h"
+#include "executor/admin/SubmitJobExecutor.h"
+#include "executor/admin/SwitchSpaceExecutor.h"
+#include "executor/admin/UpdateUserExecutor.h"
+#include "executor/logic/LoopExecutor.h"
+#include "executor/logic/MultiOutputsExecutor.h"
+#include "executor/logic/SelectExecutor.h"
+#include "executor/logic/StartExecutor.h"
+#include "executor/maintain/EdgeExecutor.h"
+#include "executor/maintain/TagExecutor.h"
+#include "executor/mutate/DeleteExecutor.h"
+#include "executor/mutate/InsertExecutor.h"
+#include "executor/mutate/UpdateExecutor.h"
+#include "executor/query/AggregateExecutor.h"
+#include "executor/query/DataCollectExecutor.h"
+#include "executor/query/DataJoinExecutor.h"
+#include "executor/query/DedupExecutor.h"
+#include "executor/query/FilterExecutor.h"
+#include "executor/query/GetEdgesExecutor.h"
+#include "executor/query/GetNeighborsExecutor.h"
+#include "executor/query/GetVerticesExecutor.h"
+#include "executor/query/IndexScanExecutor.h"
+#include "executor/query/IntersectExecutor.h"
+#include "executor/query/LimitExecutor.h"
+#include "executor/query/MinusExecutor.h"
+#include "executor/query/ProjectExecutor.h"
+#include "executor/query/SortExecutor.h"
+#include "executor/query/UnionExecutor.h"
+#include "planner/Admin.h"
+#include "planner/Logic.h"
+#include "planner/Maintain.h"
+#include "planner/Mutate.h"
+#include "planner/PlanNode.h"
+#include "planner/Query.h"
+#include "util/ObjectPool.h"
+#include "util/ScopedTimer.h"
+
+using folly::stringPrintf;
 
 namespace nebula {
 namespace graph {
 
-std::unique_ptr<Executor> Executor::makeExecutor(Sentence *sentence) {
-    auto kind = sentence->kind();
-    std::unique_ptr<Executor> executor;
-    switch (kind) {
-        case Sentence::Kind::kGo:
-            executor = std::make_unique<GoExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kUse:
-            executor = std::make_unique<UseExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kPipe:
-            executor = std::make_unique<PipeExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kCreateTag:
-            executor = std::make_unique<CreateTagExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kCreateEdge:
-            executor = std::make_unique<CreateEdgeExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kAlterTag:
-            executor = std::make_unique<AlterTagExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kAlterEdge:
-            executor = std::make_unique<AlterEdgeExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDescribeTag:
-            executor = std::make_unique<DescribeTagExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDescribeEdge:
-            executor = std::make_unique<DescribeEdgeExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDropTag:
-             executor = std::make_unique<DropTagExecutor>(sentence, ectx());
-             break;
-        case Sentence::Kind::kDropEdge:
-             executor = std::make_unique<DropEdgeExecutor>(sentence, ectx());
-             break;
-        case Sentence::Kind::kInsertVertex:
-            executor = std::make_unique<InsertVertexExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kInsertEdge:
-            executor = std::make_unique<InsertEdgeExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kShow:
-            executor = std::make_unique<ShowExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kAssignment:
-            executor = std::make_unique<AssignmentExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kCreateSpace:
-            executor = std::make_unique<CreateSpaceExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDropSpace:
-            executor = std::make_unique<DropSpaceExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDescribeSpace:
-            executor = std::make_unique<DescribeSpaceExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kYield:
-            executor = std::make_unique<YieldExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDownload:
-            executor = std::make_unique<DownloadExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kOrderBy:
-            executor = std::make_unique<OrderByExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kIngest:
-            executor = std::make_unique<IngestExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kConfig:
-            executor = std::make_unique<ConfigExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::KGroupBy:
-            executor = std::make_unique<GroupByExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kFetchVertices:
-            executor = std::make_unique<FetchVerticesExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kFetchEdges:
-            executor = std::make_unique<FetchEdgesExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kSet:
-            executor = std::make_unique<SetExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kMatch:
-            executor = std::make_unique<MatchExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kFind:
-            executor = std::make_unique<FindExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kBalance:
-            executor = std::make_unique<BalanceExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDeleteVertices:
-            executor = std::make_unique<DeleteVertexExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDeleteEdges:
-            executor = std::make_unique<DeleteEdgesExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kUpdateVertex:
-            executor = std::make_unique<UpdateVertexExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kUpdateEdge:
-            executor = std::make_unique<UpdateEdgeExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kFindPath:
-            executor = std::make_unique<FindPathExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kLimit:
-            executor = std::make_unique<LimitExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kReturn:
-            executor = std::make_unique<ReturnExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kCreateSnapshot:
-            executor = std::make_unique<CreateSnapshotExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kDropSnapshot:
-            executor = std::make_unique<DropSnapshotExecutor>(sentence, ectx());
-            break;
-        case Sentence::Kind::kUnknown:
-            LOG(ERROR) << "Sentence kind unknown";
-            return nullptr;
-        default:
-            LOG(ERROR) << "Sentence kind illegal: " << kind;
-            return nullptr;
-    }
-    return executor;
+// static
+Executor *Executor::makeExecutor(const PlanNode *node, QueryContext *qctx) {
+    std::unordered_map<int64_t, Executor *> visited;
+    return makeExecutor(node, qctx, &visited);
 }
 
-std::string Executor::valueTypeToString(nebula::cpp2::ValueType type) {
-    switch (type.type) {
-        case nebula::cpp2::SupportedType::BOOL:
-            return "bool";
-        case nebula::cpp2::SupportedType::INT:
-            return "int";
-        case nebula::cpp2::SupportedType::DOUBLE:
-            return "double";
-        case nebula::cpp2::SupportedType::STRING:
-            return "string";
-        case nebula::cpp2::SupportedType::TIMESTAMP:
-            return "timestamp";
-        default:
-            return "unknown";
-    }
-}
-
-void Executor::writeVariantType(RowWriter &writer, const VariantType &value) {
-    switch (value.which()) {
-        case VAR_INT64:
-            writer << boost::get<int64_t>(value);
-            break;
-        case VAR_DOUBLE:
-            writer << boost::get<double>(value);
-            break;
-        case VAR_BOOL:
-            writer << boost::get<bool>(value);
-            break;
-        case VAR_STR:
-            writer << boost::get<std::string>(value);
-            break;
-        default:
-            LOG(FATAL) << "Unknown value type: " << static_cast<uint32_t>(value.which());
-    }
-}
-
-bool Executor::checkValueType(const nebula::cpp2::ValueType &type, const VariantType &value) {
-    switch (value.which()) {
-        case VAR_INT64:
-            return nebula::cpp2::SupportedType::INT == type.type ||
-                   nebula::cpp2::SupportedType::TIMESTAMP == type.type;
-        case VAR_DOUBLE:
-            return nebula::cpp2::SupportedType::DOUBLE == type.type;
-        case VAR_BOOL:
-            return nebula::cpp2::SupportedType::BOOL == type.type;
-        case VAR_STR:
-            return nebula::cpp2::SupportedType::STRING == type.type ||
-                   nebula::cpp2::SupportedType::TIMESTAMP == type.type;
-        // TODO: Other type
+// static
+Executor *Executor::makeExecutor(const PlanNode *node,
+                                 QueryContext *qctx,
+                                 std::unordered_map<int64_t, Executor *> *visited) {
+    DCHECK(qctx != nullptr);
+    DCHECK(node != nullptr);
+    auto iter = visited->find(node->id());
+    if (iter != visited->end()) {
+        return iter->second;
     }
 
-    return false;
-}
+    Executor *exec = nullptr;
 
-StatusOr<int64_t> Executor::toTimestamp(const VariantType &value) {
-    if (value.which() != VAR_INT64 && value.which() != VAR_STR) {
-        return Status::Error("Invalid value type");
-    }
-
-    int64_t timestamp;
-    if (value.which() == VAR_STR) {
-        static const std::regex reg("^([1-9]\\d{3})-"
-                                    "(0[1-9]|1[0-2]|\\d)-"
-                                    "(0[1-9]|[1-2][0-9]|3[0-1]|\\d)\\s+"
-                                    "(20|21|22|23|[0-1]\\d|\\d):"
-                                    "([0-5]\\d|\\d):"
-                                    "([0-5]\\d|\\d)$");
-        std::smatch result;
-        if (!std::regex_match(boost::get<std::string>(value), result, reg)) {
-            return Status::Error("Invalid timestamp type");
+    switch (node->kind()) {
+        case PlanNode::Kind::kMultiOutputs: {
+            auto mout = asNode<MultiOutputsNode>(node);
+            auto dep = makeExecutor(mout->dep(), qctx, visited);
+            exec = new MultiOutputsExecutor(mout, qctx);
+            exec->dependsOn(dep);
+            break;
         }
-        struct tm time;
-        memset(&time, 0, sizeof(time));
-        time.tm_year = atoi(result[1].str().c_str()) - 1900;
-        time.tm_mon = atoi(result[2].str().c_str()) - 1;
-        time.tm_mday = atoi(result[3].str().c_str());
-        time.tm_hour = atoi(result[4].str().c_str());
-        time.tm_min = atoi(result[5].str().c_str());
-        time.tm_sec = atoi(result[6].str().c_str());
-        timestamp = mktime(&time);
-    } else {
-        timestamp = boost::get<int64_t>(value);
-    }
-
-    // The mainstream Linux kernel's implementation constrains this
-    static const int64_t maxTimestamp = std::numeric_limits<int64_t>::max() / 1000000000;
-    if (timestamp < 0 || (timestamp > maxTimestamp)) {
-        return Status::Error("Invalid timestamp type");
-    }
-    return timestamp;
-}
-
-StatusOr<cpp2::ColumnValue> Executor::toColumnValue(const VariantType& value,
-                                                    cpp2::ColumnValue::Type type) const {
-    cpp2::ColumnValue colVal;
-    try {
-        if (type == cpp2::ColumnValue::Type::__EMPTY__) {
-            switch (value.which()) {
-                case VAR_INT64:
-                    colVal.set_integer(boost::get<int64_t>(value));
-                    break;
-                case VAR_DOUBLE:
-                    colVal.set_double_precision(boost::get<double>(value));
-                    break;
-                case VAR_BOOL:
-                    colVal.set_bool_val(boost::get<bool>(value));
-                    break;
-                case VAR_STR:
-                    colVal.set_str(boost::get<std::string>(value));
-                    break;
-                default:
-                    LOG(ERROR) << "Wrong Type: " << value.which();
-                    return Status::Error("Wrong Type: %d", value.which());
-            }
-            return colVal;
+        case PlanNode::Kind::kAggregate: {
+            auto agg = asNode<Aggregate>(node);
+            auto dep = makeExecutor(agg->dep(), qctx, visited);
+            exec = new AggregateExecutor(agg, qctx);
+            exec->dependsOn(dep);
+            break;
         }
-        switch (type) {
-            case cpp2::ColumnValue::Type::id:
-                colVal.set_id(boost::get<int64_t>(value));
-                break;
-            case cpp2::ColumnValue::Type::integer:
-                colVal.set_integer(boost::get<int64_t>(value));
-                break;
-            case cpp2::ColumnValue::Type::timestamp:
-                colVal.set_timestamp(boost::get<int64_t>(value));
-                break;
-            case cpp2::ColumnValue::Type::double_precision:
-                colVal.set_double_precision(boost::get<double>(value));
-                break;
-            case cpp2::ColumnValue::Type::bool_val:
-                colVal.set_bool_val(boost::get<bool>(value));
-                break;
-            case cpp2::ColumnValue::Type::str:
-                colVal.set_str(boost::get<std::string>(value));
-                break;
-            default:
-                LOG(ERROR) << "Wrong Type: " << static_cast<int32_t>(type);
-                return Status::Error("Wrong Type: %d", static_cast<int32_t>(type));
+        case PlanNode::Kind::kSort: {
+            auto sort = asNode<Sort>(node);
+            auto dep = makeExecutor(sort->dep(), qctx, visited);
+            exec = new SortExecutor(sort, qctx);
+            exec->dependsOn(dep);
+            break;
         }
-    } catch (const std::exception& e) {
-        LOG(ERROR) << "Exception caught: " << e.what();
-        return Status::Error("Wrong Type: %d", static_cast<int32_t>(type));
+        case PlanNode::Kind::kFilter: {
+            auto filter = asNode<Filter>(node);
+            auto dep = makeExecutor(filter->dep(), qctx, visited);
+            exec = new FilterExecutor(filter, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kGetEdges: {
+            auto ge = asNode<GetEdges>(node);
+            auto dep = makeExecutor(ge->dep(), qctx, visited);
+            exec = new GetEdgesExecutor(ge, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kGetVertices: {
+            auto gv = asNode<GetVertices>(node);
+            auto dep = makeExecutor(gv->dep(), qctx, visited);
+            exec = new GetVerticesExecutor(gv, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kGetNeighbors: {
+            auto gn = asNode<GetNeighbors>(node);
+            auto dep = makeExecutor(gn->dep(), qctx, visited);
+            exec = new GetNeighborsExecutor(gn, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kLimit: {
+            auto limit = asNode<Limit>(node);
+            auto dep = makeExecutor(limit->dep(), qctx, visited);
+            exec = new LimitExecutor(limit, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kProject: {
+            auto project = asNode<Project>(node);
+            auto dep = makeExecutor(project->dep(), qctx, visited);
+            exec = new ProjectExecutor(project, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kIndexScan: {
+            auto indexScan = asNode<IndexScan>(node);
+            auto dep = makeExecutor(indexScan->dep(), qctx, visited);
+            exec = new IndexScanExecutor(indexScan, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kStart: {
+            exec = new StartExecutor(node, qctx);
+            break;
+        }
+        case PlanNode::Kind::kUnion: {
+            auto uni = asNode<Union>(node);
+            auto left = makeExecutor(uni->left(), qctx, visited);
+            auto right = makeExecutor(uni->right(), qctx, visited);
+            exec = new UnionExecutor(uni, qctx);
+            exec->dependsOn(left)->dependsOn(right);
+            break;
+        }
+        case PlanNode::Kind::kIntersect: {
+            auto intersect = asNode<Intersect>(node);
+            auto left = makeExecutor(intersect->left(), qctx, visited);
+            auto right = makeExecutor(intersect->right(), qctx, visited);
+            exec = new IntersectExecutor(intersect, qctx);
+            exec->dependsOn(left)->dependsOn(right);
+            break;
+        }
+        case PlanNode::Kind::kMinus: {
+            auto minus = asNode<Minus>(node);
+            auto left = makeExecutor(minus->left(), qctx, visited);
+            auto right = makeExecutor(minus->right(), qctx, visited);
+            exec = new MinusExecutor(minus, qctx);
+            exec->dependsOn(left)->dependsOn(right);
+            break;
+        }
+        case PlanNode::Kind::kLoop: {
+            auto loop = asNode<Loop>(node);
+            auto dep = makeExecutor(loop->dep(), qctx, visited);
+            auto body = makeExecutor(loop->body(), qctx, visited);
+            exec = new LoopExecutor(loop, qctx, body);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kSelect: {
+            auto select = asNode<Select>(node);
+            auto dep = makeExecutor(select->dep(), qctx, visited);
+            auto then = makeExecutor(select->then(), qctx, visited);
+            auto els = makeExecutor(select->otherwise(), qctx, visited);
+            exec = new SelectExecutor(select, qctx, then, els);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kDedup: {
+            auto dedup = asNode<Dedup>(node);
+            auto dep = makeExecutor(dedup->dep(), qctx, visited);
+            exec = new DedupExecutor(dedup, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kSwitchSpace: {
+            auto switchSpace = asNode<SwitchSpace>(node);
+            auto dep = makeExecutor(switchSpace->dep(), qctx, visited);
+            exec = new SwitchSpaceExecutor(switchSpace, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kCreateSpace: {
+            auto createSpace = asNode<CreateSpace>(node);
+            auto dep = makeExecutor(createSpace->dep(), qctx, visited);
+            exec = new CreateSpaceExecutor(createSpace, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kDescSpace: {
+            auto descSpace = asNode<DescSpace>(node);
+            auto dep = makeExecutor(descSpace->dep(), qctx, visited);
+            exec = new DescSpaceExecutor(descSpace, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kShowSpaces: {
+            auto showSpaces = asNode<ShowSpaces>(node);
+            auto input = makeExecutor(showSpaces->dep(), qctx, visited);
+            exec = new ShowSpacesExecutor(showSpaces, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kDropSpace: {
+            auto dropSpace = asNode<DropSpace>(node);
+            auto input = makeExecutor(dropSpace->dep(), qctx, visited);
+            exec = new DropSpaceExecutor(dropSpace, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowCreateSpace: {
+            auto showCreateSpace = asNode<ShowCreateSpace>(node);
+            auto input = makeExecutor(showCreateSpace->dep(), qctx, visited);
+            exec = new ShowCreateSpaceExecutor(showCreateSpace, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kCreateTag: {
+            auto createTag = asNode<CreateTag>(node);
+            auto dep = makeExecutor(createTag->dep(), qctx, visited);
+            exec = new CreateTagExecutor(createTag, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kDescTag: {
+            auto descTag = asNode<DescTag>(node);
+            auto dep = makeExecutor(descTag->dep(), qctx, visited);
+            exec = new DescTagExecutor(descTag, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kAlterTag: {
+            auto alterTag = asNode<AlterTag>(node);
+            auto dep = makeExecutor(alterTag->dep(), qctx, visited);
+            exec = new AlterTagExecutor(alterTag, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kCreateEdge: {
+            auto createEdge = asNode<CreateEdge>(node);
+            auto dep = makeExecutor(createEdge->dep(), qctx, visited);
+            exec = new CreateEdgeExecutor(createEdge, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kDescEdge: {
+            auto descEdge = asNode<DescEdge>(node);
+            auto dep = makeExecutor(descEdge->dep(), qctx, visited);
+            exec = new DescEdgeExecutor(descEdge, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kAlterEdge: {
+            auto alterEdge = asNode<AlterEdge>(node);
+            auto dep = makeExecutor(alterEdge->dep(), qctx, visited);
+            exec = new AlterEdgeExecutor(alterEdge, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kShowTags: {
+            auto showTags = asNode<ShowTags>(node);
+            auto input = makeExecutor(showTags->dep(), qctx, visited);
+            exec = new ShowTagsExecutor(showTags, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowEdges: {
+            auto showEdges = asNode<ShowEdges>(node);
+            auto input = makeExecutor(showEdges->dep(), qctx, visited);
+            exec = new ShowEdgesExecutor(showEdges, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kDropTag: {
+            auto dropTag = asNode<DropTag>(node);
+            auto input = makeExecutor(dropTag->dep(), qctx, visited);
+            exec = new DropTagExecutor(dropTag, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kDropEdge: {
+            auto dropEdge = asNode<DropEdge>(node);
+            auto input = makeExecutor(dropEdge->dep(), qctx, visited);
+            exec = new DropEdgeExecutor(dropEdge, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowCreateTag: {
+            auto showCreateTag = asNode<ShowCreateTag>(node);
+            auto input = makeExecutor(showCreateTag->dep(), qctx, visited);
+            exec = new ShowCreateTagExecutor(showCreateTag, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowCreateEdge: {
+            auto showCreateEdge = asNode<ShowCreateEdge>(node);
+            auto input = makeExecutor(showCreateEdge->dep(), qctx, visited);
+            exec = new ShowCreateEdgeExecutor(showCreateEdge, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kInsertVertices: {
+            auto insertV = asNode<InsertVertices>(node);
+            auto dep = makeExecutor(insertV->dep(), qctx, visited);
+            exec = new InsertVerticesExecutor(insertV, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kInsertEdges: {
+            auto insertE = asNode<InsertEdges>(node);
+            auto dep = makeExecutor(insertE->dep(), qctx, visited);
+            exec = new InsertEdgesExecutor(insertE, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kDataCollect: {
+            auto dc = asNode<DataCollect>(node);
+            auto dep = makeExecutor(dc->dep(), qctx, visited);
+            exec = new DataCollectExecutor(dc, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kCreateSnapshot: {
+            auto createSnapshot = asNode<CreateSnapshot>(node);
+            auto input = makeExecutor(createSnapshot->dep(), qctx, visited);
+            exec = new CreateSnapshotExecutor(createSnapshot, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kDropSnapshot: {
+            auto dropSnapshot = asNode<DropSnapshot>(node);
+            auto input = makeExecutor(dropSnapshot->dep(), qctx, visited);
+            exec = new DropSnapshotExecutor(dropSnapshot, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowSnapshots: {
+            auto showSnapshots = asNode<ShowSnapshots>(node);
+            auto input = makeExecutor(showSnapshots->dep(), qctx, visited);
+            exec = new ShowSnapshotsExecutor(showSnapshots, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kDataJoin: {
+            auto dataJoin = asNode<DataJoin>(node);
+            auto input = makeExecutor(dataJoin->dep(), qctx, visited);
+            exec = new DataJoinExecutor(dataJoin, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kDeleteVertices: {
+            auto deleteV = asNode<DeleteVertices>(node);
+            auto input = makeExecutor(deleteV->dep(), qctx, visited);
+            exec = new DeleteVerticesExecutor(deleteV, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kDeleteEdges: {
+            auto deleteE = asNode<DeleteEdges>(node);
+            auto input = makeExecutor(deleteE->dep(), qctx, visited);
+            exec = new DeleteEdgesExecutor(deleteE, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kUpdateVertex: {
+            auto updateV = asNode<UpdateVertex>(node);
+            auto input = makeExecutor(updateV->dep(), qctx, visited);
+            exec = new UpdateVertexExecutor(updateV, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kUpdateEdge: {
+            auto updateE = asNode<UpdateEdge>(node);
+            auto input = makeExecutor(updateE->dep(), qctx, visited);
+            exec = new UpdateEdgeExecutor(updateE, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kCreateUser: {
+            auto createUser = asNode<CreateUser>(node);
+            auto input = makeExecutor(createUser->dep(), qctx, visited);
+            exec = new CreateUserExecutor(createUser, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kDropUser: {
+            auto dropUser = asNode<DropUser>(node);
+            auto input = makeExecutor(dropUser->dep(), qctx, visited);
+            exec = new DropUserExecutor(dropUser, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kUpdateUser: {
+            auto updateUser = asNode<UpdateUser>(node);
+            auto input = makeExecutor(updateUser->dep(), qctx, visited);
+            exec = new UpdateUserExecutor(updateUser, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kGrantRole: {
+            auto grantRole = asNode<GrantRole>(node);
+            auto input = makeExecutor(grantRole->dep(), qctx, visited);
+            exec = new GrantRoleExecutor(grantRole, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kRevokeRole: {
+            auto revokeRole = asNode<RevokeRole>(node);
+            auto input = makeExecutor(revokeRole->dep(), qctx, visited);
+            exec = new RevokeRoleExecutor(revokeRole, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kChangePassword: {
+            auto changePassword = asNode<ChangePassword>(node);
+            auto input = makeExecutor(changePassword->dep(), qctx, visited);
+            exec = new ChangePasswordExecutor(changePassword, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kListUserRoles: {
+            auto listUserRoles = asNode<ListUserRoles>(node);
+            auto input = makeExecutor(listUserRoles->dep(), qctx, visited);
+            exec = new ListUserRolesExecutor(listUserRoles, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kListUsers: {
+            auto listUsers = asNode<ListUsers>(node);
+            auto input = makeExecutor(listUsers->dep(), qctx, visited);
+            exec = new ListUsersExecutor(listUsers, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kListRoles: {
+            auto listRoles = asNode<ListRoles>(node);
+            auto input = makeExecutor(listRoles->dep(), qctx, visited);
+            exec = new ListRolesExecutor(listRoles, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kBalanceLeaders: {
+            auto balanceLeaders = asNode<BalanceLeaders>(node);
+            auto dep = makeExecutor(balanceLeaders->dep(), qctx, visited);
+            exec = new BalanceLeadersExecutor(balanceLeaders, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kBalance: {
+            auto balance = asNode<Balance>(node);
+            auto dep = makeExecutor(balance->dep(), qctx, visited);
+            exec = new BalanceExecutor(balance, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kStopBalance: {
+            auto stopBalance = asNode<Balance>(node);
+            auto dep = makeExecutor(stopBalance->dep(), qctx, visited);
+            exec = new StopBalanceExecutor(stopBalance, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kShowBalance: {
+            auto showBalance = asNode<ShowBalance>(node);
+            auto dep = makeExecutor(showBalance->dep(), qctx, visited);
+            exec = new ShowBalanceExecutor(showBalance, qctx);
+            exec->dependsOn(dep);
+            break;
+        }
+        case PlanNode::Kind::kShowConfigs: {
+            auto showConfigs = asNode<ShowConfigs>(node);
+            auto input = makeExecutor(showConfigs->dep(), qctx, visited);
+            exec = new ShowConfigsExecutor(showConfigs, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kSetConfig: {
+            auto setConfig = asNode<SetConfig>(node);
+            auto input = makeExecutor(setConfig->dep(), qctx, visited);
+            exec = new SetConfigExecutor(setConfig, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kGetConfig: {
+            auto getConfig = asNode<GetConfig>(node);
+            auto input = makeExecutor(getConfig->dep(), qctx, visited);
+            exec = new GetConfigExecutor(getConfig, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kSubmitJob: {
+            auto submitJob = asNode<SubmitJob>(node);
+            auto input = makeExecutor(submitJob->dep(), qctx, visited);
+            exec = new SubmitJobExecutor(submitJob, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowHosts: {
+            auto showHosts = asNode<ShowHosts>(node);
+            auto input = makeExecutor(showHosts->dep(), qctx, visited);
+            exec = new ShowHostsExecutor(showHosts, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowParts: {
+            auto showParts = asNode<ShowParts>(node);
+            auto input = makeExecutor(showParts->dep(), qctx, visited);
+            exec = new ShowPartsExecutor(showParts, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowCharset: {
+            auto showC = asNode<ShowCharset>(node);
+            auto input = makeExecutor(showC->dep(), qctx, visited);
+            exec = new ShowCharsetExecutor(showC, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kShowCollation: {
+            auto showC = asNode<ShowCollation>(node);
+            auto input = makeExecutor(showC->dep(), qctx, visited);
+            exec = new ShowCollationExecutor(showC, qctx);
+            exec->dependsOn(input);
+            break;
+        }
+        case PlanNode::Kind::kUnknown:
+        default:
+            LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
+            break;
     }
-    return colVal;
+
+    DCHECK(!!exec);
+
+    visited->insert({node->id(), exec});
+    return qctx->objPool()->add(exec);
 }
 
-OptVariantType Executor::toVariantType(const cpp2::ColumnValue& value) const {
-    switch (value.getType()) {
-        case cpp2::ColumnValue::Type::id:
-            return value.get_id();
-        case cpp2::ColumnValue::Type::integer:
-            return value.get_integer();
-        case cpp2::ColumnValue::Type::bool_val:
-            return value.get_bool_val();
-        case cpp2::ColumnValue::Type::double_precision:
-            return value.get_double_precision();
-        case cpp2::ColumnValue::Type::str:
-            return value.get_str();
-        case cpp2::ColumnValue::Type::timestamp:
-            return value.get_timestamp();
-        default:
-            break;
+Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *qctx)
+    : id_(DCHECK_NOTNULL(node)->id()),
+      name_(name),
+      node_(DCHECK_NOTNULL(node)),
+      qctx_(DCHECK_NOTNULL(qctx)),
+      ectx_(DCHECK_NOTNULL(qctx->ectx())) {
+    // Initialize the position in ExecutionContext for each executor before execution plan
+    // starting to run. This will avoid lock something for thread safety in real execution
+    if (!ectx_->exist(node->varName())) {
+        ectx_->initVar(node->varName());
     }
-
-    LOG(ERROR) << "Unknown ColumnType: " << static_cast<int32_t>(value.getType());
-    return Status::Error("Unknown ColumnType: %d", static_cast<int32_t>(value.getType()));
 }
 
-StatusOr<VariantType> Executor::transformDefaultValue(nebula::cpp2::SupportedType type,
-                                                      std::string& originalValue) {
-    switch (type) {
-        case nebula::cpp2::SupportedType::BOOL:
-            try {
-                return folly::to<bool>(originalValue);
-            } catch (const std::exception& ex) {
-                LOG(ERROR) << "Conversion to bool failed: " << originalValue;
-                return Status::Error("Type Conversion Failed");
-            }
-            break;
-        case nebula::cpp2::SupportedType::INT:
-            try {
-                return folly::to<int64_t>(originalValue);
-            } catch (const std::exception& ex) {
-                LOG(ERROR) << "Conversion to int64_t failed: " << originalValue;
-                return Status::Error("Type Conversion Failed");
-            }
-            break;
-        case nebula::cpp2::SupportedType::DOUBLE:
-            try {
-                return folly::to<double>(originalValue);
-            } catch (const std::exception& ex) {
-                LOG(ERROR) << "Conversion to double failed: " << originalValue;
-                return Status::Error("Type Conversion Failed");
-            }
-            break;
-        case nebula::cpp2::SupportedType::STRING:
-            return originalValue;
-            break;
-        default:
-            LOG(ERROR) << "Unknow type";
-            return Status::Error("Unknow type");
-    }
+Executor::~Executor() {}
+
+Status Executor::open() {
+    numRows_ = 0;
+    execTime_ = 0;
+    totalDuration_.reset();
     return Status::OK();
 }
 
-void Executor::doError(Status status, const stats::Stats* stats, uint32_t count) const {
-    stats::Stats::addStatsValue(stats, false, duration().elapsedInUSec(), count);
-    DCHECK(onError_);
-    onError_(std::move(status));
+Status Executor::close() {
+    cpp2::ProfilingStats stats;
+    stats.set_total_duration_in_us(totalDuration_.elapsedInUSec());
+    stats.set_rows(numRows_);
+    stats.set_exec_duration_in_us(execTime_);
+    qctx()->addProfilingData(node_->id(), std::move(stats));
+    return Status::OK();
 }
 
-void Executor::doFinish(ProcessControl pro, const stats::Stats* stats, uint32_t count) const {
-    stats::Stats::addStatsValue(stats, true, duration().elapsedInUSec(), count);
-    DCHECK(onFinish_);
-    onFinish_(pro);
+folly::Future<Status> Executor::start(Status status) const {
+    return folly::makeFuture(std::move(status)).via(runner());
 }
+
+folly::Future<Status> Executor::error(Status status) const {
+    return folly::makeFuture<Status>(ExecutionError(std::move(status))).via(runner());
+}
+
+Status Executor::finish(Result &&result) {
+    numRows_ = result.size();
+    ectx_->setResult(node()->varName(), std::move(result));
+    return Status::OK();
+}
+
+Status Executor::finish(Value &&value) {
+    return finish(ResultBuilder().value(std::move(value)).iter(Iterator::Kind::kDefault).finish());
+}
+
+folly::Executor *Executor::runner() const {
+    if (!qctx() || !qctx()->rctx() || !qctx()->rctx()->runner()) {
+        // This is just for test
+        return &folly::InlineExecutor::instance();
+    }
+    return qctx()->rctx()->runner();
+}
+
 }   // namespace graph
 }   // namespace nebula
