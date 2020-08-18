@@ -357,8 +357,15 @@ private:
 
 class InBoundClause final {
 public:
-    explicit InBoundClause(OverEdges *edges) {
+    enum BoundType : uint8_t {
+        IN,
+        OUT,
+        BOTH
+    };
+
+    explicit InBoundClause(OverEdges *edges, BoundType type) {
         overEdges_.reset(edges);
+        boundType_ = type;
     }
 
     std::vector<OverEdge *> edges() const { return overEdges_->edges(); }
@@ -367,6 +374,7 @@ public:
 
 private:
     std::unique_ptr<OverEdges> overEdges_;
+    BoundType boundType_;
 };
 
 using OutBoundClause = InBoundClause;
