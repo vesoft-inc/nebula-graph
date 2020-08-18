@@ -54,10 +54,9 @@ private:
 
     void buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEdge);
 
-    Project* buildLeftVarForTraceJoin(PlanNode* projectStartVid);
+    PlanNode* buildLeftVarForTraceJoin(PlanNode* projectStartVid);
 
-    Project* traceToStartVid(Project* projectLeftVarForJoin,
-                             Project* projectDstFromGN);
+    PlanNode* traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode* projectDstFromGN);
 
     PlanNode* buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                            PlanNode* dependencyForJoinInput);

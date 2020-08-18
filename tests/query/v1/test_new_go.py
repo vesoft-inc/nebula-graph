@@ -1733,83 +1733,6 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        # with intermidate data pipe
-        stmt = '''GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst \
-            | GO 1 TO 2 STEPS FROM $-.src OVER like YIELD $-.src as src, like._dst as dst'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : ["src", "dst"],
-            "rows" : [
-                ["Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Tony Parker"],
-                ["Tim Duncan", "Manu Ginobili"],
-
-                ["Tim Duncan", "Tim Duncan"],
-                ["Tim Duncan", "Tim Duncan"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "LaMarcus Aldridge"],
-                ["Tim Duncan", "LaMarcus Aldridge"],
-                ["Tim Duncan", "Tim Duncan"],
-                ["Tim Duncan", "Tim Duncan"],
-                ["Tim Duncan", "Tim Duncan"],
-                ["Tim Duncan", "Tim Duncan"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "Manu Ginobili"],
-                ["Tim Duncan", "LaMarcus Aldridge"],
-                ["Tim Duncan", "LaMarcus Aldridge"],
-                ["Tim Duncan", "Tim Duncan"],
-                ["Tim Duncan", "Tim Duncan"]
-            ]
-        }
-        self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
-        # var with properties
-        stmt = '''GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst \
-            | GO 1 TO 2 STEPS FROM $-.src OVER like \
-            YIELD $-.src as src, $-.dst, like._dst as dst, like.likeness'''
-        resp = self.execute_query(stmt)
-        self.check_resp_succeeded(resp)
-        expected_data = {
-            "column_names" : ["src", "$-.dst", "dst", "like.likeness"],
-            "rows" : [
-                ["Tim Duncan", "Tony Parker", "Tony Parker", 95],
-                ["Tim Duncan", "Tony Parker", "Manu Ginobili", 95],
-                ["Tim Duncan", "Manu Ginobili", "Tony Parker", 95],
-                ["Tim Duncan", "Manu Ginobili", "Manu Ginobili", 95],
-                ["Tim Duncan", "Tony Parker", "Tony Parker", 95],
-                ["Tim Duncan", "Tony Parker", "Manu Ginobili", 95],
-                ["Tim Duncan", "Manu Ginobili", "Tony Parker", 95],
-                ["Tim Duncan", "Manu Ginobili", "Manu Ginobili", 95],
-
-                ["Tim Duncan", "Tony Parker", "Tim Duncan", 95],
-                ["Tim Duncan", "Tony Parker", "Tim Duncan", 95],
-                ["Tim Duncan", "Tony Parker", "Manu Ginobili", 95],
-                ["Tim Duncan", "Tony Parker", "Manu Ginobili", 95],
-                ["Tim Duncan", "Tony Parker", "LaMarcus Aldridge", 90],
-                ["Tim Duncan", "Tony Parker", "LaMarcus Aldridge", 90],
-                ["Tim Duncan", "Tony Parker", "Tim Duncan", 90],
-                ["Tim Duncan", "Tony Parker", "Tim Duncan", 90],
-                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", 95],
-                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", 95],
-                ["Tim Duncan", "Manu Ginobili", "Manu Ginobili", 95],
-                ["Tim Duncan", "Manu Ginobili", "Manu Ginobili", 95],
-                ["Tim Duncan", "Manu Ginobili", "LaMarcus Aldridge", 90],
-                ["Tim Duncan", "Manu Ginobili", "LaMarcus Aldridge", 90],
-                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", 90],
-                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", 90]
-            ]
-        }
-        self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
-
     def test_error_massage(self):
         stmt = "GO FROM 'Tim Duncan' OVER serve YIELD $$.player.name as name"
         resp = self.execute_query(stmt)
@@ -1868,6 +1791,59 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
+        # with intermidate data pipe
+        stmt = '''GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst \
+            | GO 1 TO 2 STEPS FROM $-.src OVER like YIELD $-.src as src, like._dst as dst'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["src", "dst"],
+            "rows" : [
+                ["Tim Duncan", "Tony Parker"],
+                ["Tim Duncan", "Manu Ginobili"],
+                ["Tim Duncan", "Tony Parker"],
+                ["Tim Duncan", "Manu Ginobili"],
+
+                ["Tim Duncan", "Tim Duncan"],
+                ["Tim Duncan", "Tim Duncan"],
+                ["Tim Duncan", "Manu Ginobili"],
+                ["Tim Duncan", "Manu Ginobili"],
+                ["Tim Duncan", "LaMarcus Aldridge"],
+                ["Tim Duncan", "LaMarcus Aldridge"],
+                ["Tim Duncan", "Tim Duncan"],
+                ["Tim Duncan", "Tim Duncan"],
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        # var with properties
+        stmt = '''GO FROM 'Tim Duncan' OVER like YIELD like._src as src, like._dst as dst \
+            | GO 1 TO 2 STEPS FROM $-.src OVER like \
+            YIELD $-.src as src, $-.dst, like._dst as dst, like.likeness'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["src", "$-.dst", "dst", "like.likeness"],
+            "rows" : [
+                ["Tim Duncan", "Tony Parker", "Tony Parker", 95],
+                ["Tim Duncan", "Tony Parker", "Manu Ginobili", 95],
+                ["Tim Duncan", "Manu Ginobili", "Tony Parker", 95],
+                ["Tim Duncan", "Manu Ginobili", "Manu Ginobili", 95],
+
+                ["Tim Duncan", "Tony Parker", "Tim Duncan", 95],
+                ["Tim Duncan", "Tony Parker", "Manu Ginobili", 95],
+                ["Tim Duncan", "Tony Parker", "LaMarcus Aldridge", 90],
+                ["Tim Duncan", "Tony Parker", "Tim Duncan", 90],
+                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", 95],
+                ["Tim Duncan", "Manu Ginobili", "Manu Ginobili", 95],
+                ["Tim Duncan", "Manu Ginobili", "LaMarcus Aldridge", 90],
+                ["Tim Duncan", "Manu Ginobili", "Tim Duncan", 90],
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
         # partial neighbors input
         stmt = '''GO FROM 'Danny Green' OVER like YIELD like._src AS src, like._dst AS dst \
             | GO FROM $-.dst OVER teammate YIELD $-.src AS src, $-.dst, teammate._dst AS dst'''
@@ -1910,51 +1886,21 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : ["$-.src", "$-.dst", "like._src", "like._dst"],
             "rows" : [
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
                 ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
                 ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
                 ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
                 ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
                 ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
                 ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
                 ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"]
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -1967,51 +1913,21 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : ["$a.src", "$a.dst", "like._src", "like._dst"],
             "rows" : [
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
                 ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
                 ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
                 ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
                 ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
                 ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "LaMarcus Aldridge", "Tony Parker"],
-                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "Tim Duncan", "Manu Ginobili", "Tim Duncan"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
                 ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Manu Ginobili"],
-                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
                 ["Tony Parker", "Manu Ginobili", "Tim Duncan", "Tony Parker"],
-                ["Tony Parker", "Tim Duncan", "Tim Duncan", "Tony Parker"]
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "Manu Ginobili", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "Manu Ginobili", "LaMarcus Aldridge", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Manu Ginobili"],
+                ["Tony Parker", "LaMarcus Aldridge", "Tim Duncan", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tony Parker"],
+                ["Tony Parker", "LaMarcus Aldridge", "Manu Ginobili", "Tim Duncan"],
+                ["Tony Parker", "LaMarcus Aldridge", "LaMarcus Aldridge", "Tim Duncan"],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])

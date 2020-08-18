@@ -267,7 +267,7 @@ Status GoValidator::buildNStepsPlan() {
         startVidsVar = projectStartVid->varName();
     }
 
-    Project* projectLeftVarForJoin = nullptr;
+    PlanNode* projectLeftVarForJoin = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
         projectLeftVarForJoin = buildLeftVarForTraceJoin(projectStartVid);
     }
@@ -281,7 +281,7 @@ Status GoValidator::buildNStepsPlan() {
     Project* projectDstFromGN = projectDstVidsFromGN(gn, startVidsVar);
 
     // Trace to the start vid if $-.prop was declared.
-    Project* projectFromJoin = nullptr;
+    PlanNode* projectFromJoin = nullptr;
     if ((!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) &&
         projectLeftVarForJoin != nullptr && projectDstFromGN != nullptr) {
         projectFromJoin = traceToStartVid(projectLeftVarForJoin, projectDstFromGN);
@@ -326,7 +326,7 @@ Status GoValidator::buildMToNPlan() {
         startVidsVar = projectStartVid->varName();
     }
 
-    Project* projectLeftVarForJoin = nullptr;
+    PlanNode* projectLeftVarForJoin = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
         projectLeftVarForJoin = buildLeftVarForTraceJoin(projectStartVid);
     }
@@ -342,7 +342,7 @@ Status GoValidator::buildMToNPlan() {
     PlanNode* dependencyForProjectResult = projectDstFromGN;
 
     // Trace to the start vid if $-.prop was declared.
-    Project* projectFromJoin = nullptr;
+    PlanNode* projectFromJoin = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
         if ((!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) &&
             projectLeftVarForJoin != nullptr && projectDstFromGN != nullptr) {
@@ -569,8 +569,8 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
     return joinInput;
 }
 
-Project* GoValidator::traceToStartVid(Project* projectLeftVarForJoin,
-                                      Project* projectDstFromGN) {
+PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin,
+                                       PlanNode* projectDstFromGN) {
     DCHECK(projectLeftVarForJoin != nullptr);
     DCHECK(projectDstFromGN != nullptr);
 
@@ -607,14 +607,43 @@ Project* GoValidator::traceToStartVid(Project* projectLeftVarForJoin,
     columns->addColumn(column);
     auto* projectJoin = Project::make(plan, join, plan->saveObject(columns));
     projectJoin->setInputVar(join->varName());
-    projectJoin->setOutputVar(projectLeftVarForJoin->varName());
     projectJoin->setColNames(deduceColNames(columns));
     VLOG(1) << projectJoin->varName();
 
-    return projectJoin;
+    auto* dedup = Dedup::make(plan, projectJoin);
+    dedup->setInputVar(projectJoin->varName());
+    dedup->setOutputVar(projectLeftVarForJoin->varName());
+    dedup->setColNames(projectJoin->colNames());
+    return dedup;
 }
 
-Project* GoValidator::buildLeftVarForTraceJoin(PlanNode* projectStartVid) {
+Project* GoValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
+    Project* project = nullptr;
+    auto* plan = qctx_->plan();
+    auto* columns = new YieldColumns();
+    auto* column = new YieldColumn(
+        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
+        new std::string(kVid));
+    columns->addColumn(column);
+
+    srcVidColName_ = vctx_->anonColGen()->getCol();
+    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
+        column =
+            new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
+                            new std::string(srcVidColName_));
+        columns->addColumn(column);
+    }
+
+    project = Project::make(plan, gn, plan->saveObject(columns));
+    project->setInputVar(gn->varName());
+    project->setOutputVar(outputVar);
+    project->setColNames(deduceColNames(columns));
+    VLOG(1) << project->varName();
+
+    return project;
+}
+
+PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* projectStartVid) {
     auto* plan = qctx_->plan();
     dstVidColName_ = vctx_->anonColGen()->getCol();
     auto* columns = new YieldColumns();
@@ -633,7 +662,10 @@ Project* GoValidator::buildLeftVarForTraceJoin(PlanNode* projectStartVid) {
         fromType_ == kPipe ? inputVarName_ : userDefinedVarName_);
     projectLeftVarForJoin->setColNames(deduceColNames(columns));
 
-    return projectLeftVarForJoin;
+    auto* dedup = Dedup::make(plan, projectLeftVarForJoin);
+    dedup->setInputVar(projectLeftVarForJoin->varName());
+    dedup->setColNames(projectLeftVarForJoin->colNames());
+    return dedup;
 }
 
 Status GoValidator::buildOneStepPlan() {
