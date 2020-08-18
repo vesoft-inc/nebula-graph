@@ -30,7 +30,7 @@ private:
     Status validateBothInOutBound(BothInOutClause* out);
 
 private:
-    std::vector<EdgeType>                       edgeTypes_;
+    std::unordered_set<EdgeType>                edgeTypes_;
 };
 }  // namespace graph
 }  // namespace nebula

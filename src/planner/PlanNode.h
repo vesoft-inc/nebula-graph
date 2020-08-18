@@ -65,8 +65,23 @@ public:
         kDropEdge,
         kInsertVertices,
         kInsertEdges,
+        kBalanceLeaders,
+        kBalance,
+        kStopBalance,
+        kShowBalance,
+        kSubmitJob,
         kShowHosts,
         kDataCollect,
+        // user related
+        kCreateUser,
+        kDropUser,
+        kUpdateUser,
+        kGrantRole,
+        kRevokeRole,
+        kChangePassword,
+        kListUserRoles,
+        kListUsers,
+        kListRoles,
         kCreateSnapshot,
         kDropSnapshot,
         kShowSnapshots,
@@ -76,6 +91,11 @@ public:
         kUpdateVertex,
         kUpdateEdge,
         kShowParts,
+        kShowCharset,
+        kShowCollation,
+        kShowConfigs,
+        kSetConfig,
+        kGetConfig,
     };
 
     PlanNode(ExecutionPlan* plan, Kind kind);
@@ -152,7 +172,7 @@ std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
 // Dependencies will cover the inputs, For example bi input require bi dependencies as least,
 // but single dependencies may don't need any inputs (I.E admin plan node)
 // Single dependecy without input
-// It's useful for addmin plan node
+// It's useful for admin plan node
 class SingleDependencyNode : public PlanNode {
 public:
     const PlanNode* dep() const {

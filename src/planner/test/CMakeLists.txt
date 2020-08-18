@@ -9,6 +9,7 @@ nebula_add_test(
         ExecutionPlanTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:common_time_function_obj>
+        $<TARGET_OBJECTS:common_conf_obj>
         $<TARGET_OBJECTS:common_expression_obj>
         $<TARGET_OBJECTS:common_http_client_obj>
         $<TARGET_OBJECTS:common_network_obj>
@@ -41,7 +42,7 @@ nebula_add_test(
         $<TARGET_OBJECTS:parser_obj>
         $<TARGET_OBJECTS:validator_obj>
         $<TARGET_OBJECTS:planner_obj>
-        $<TARGET_OBJECTS:exec_obj>
+        $<TARGET_OBJECTS:executor_obj>
         $<TARGET_OBJECTS:scheduler_obj>
         $<TARGET_OBJECTS:util_obj>
         $<TARGET_OBJECTS:idgenerator_obj>

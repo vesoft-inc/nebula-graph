@@ -104,18 +104,16 @@ std::string ConfigRowItem::toString() const {
     return "";
 }
 
-std::string ConfigSentence::toString() const {
-    switch (subType_) {
-        case SubType::kShow:
-            return std::string("SHOW CONFIGS ") + configItem_->toString();
-        case SubType::kSet:
-            return std::string("SET CONFIGS ") + configItem_->toString();
-        case SubType::kGet:
-            return std::string("GET CONFIGS ") + configItem_->toString();
-        default:
-            FLOG_FATAL("Type illegal");
-    }
-    return "Unknown";
+std::string ShowConfigsSentence::toString() const {
+    return std::string("SHOW CONFIGS ") + configItem_->toString();
+}
+
+std::string SetConfigSentence::toString() const {
+    return std::string("SET CONFIGS ") + configItem_->toString();
+}
+
+std::string GetConfigSentence::toString() const {
+    return std::string("GET CONFIGS ") + configItem_->toString();
 }
 
 std::string BalanceSentence::toString() const {
@@ -149,6 +147,34 @@ std::string CreateSnapshotSentence::toString() const {
 
 std::string DropSnapshotSentence::toString() const {
     return folly::stringPrintf("DROP SNAPSHOT %s", name_.get()->c_str());
+}
+
+std::string AdminJobSentence::toString() const {
+    switch (op_) {
+    case meta::cpp2::AdminJobOp::ADD:
+        return "add job";
+    case meta::cpp2::AdminJobOp::SHOW_All:
+        return "show jobs";
+    case meta::cpp2::AdminJobOp::SHOW:
+        return "show job";
+    case meta::cpp2::AdminJobOp::STOP:
+        return "stop job";
+    case meta::cpp2::AdminJobOp::RECOVER:
+        return "recover job";
+    }
+    LOG(FATAL) << "Unkown job operation " << static_cast<uint8_t>(op_);
+}
+
+meta::cpp2::AdminJobOp AdminJobSentence::getType() const {
+    return op_;
+}
+
+const std::vector<std::string> &AdminJobSentence::getParas() const {
+    return paras_;
+}
+
+void AdminJobSentence::addPara(const std::string& para) {
+    paras_.emplace_back(para);
 }
 
 }   // namespace nebula

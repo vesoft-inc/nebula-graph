@@ -17,6 +17,7 @@
 #include "parser/ExplainSentence.h"
 #include "parser/SequentialSentences.h"
 #include "parser/ColumnTypeDef.h"
+#include "common/interface/gen-cpp2/meta_types.h"
 #include "util/SchemaUtil.h"
 
 namespace nebula {
@@ -88,7 +89,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::SchemaPropItem                 *alter_schema_prop_item;
     nebula::OrderFactor                    *order_factor;
     nebula::OrderFactors                   *order_factors;
-    nebula::ConfigModule                    config_module;
+    nebula::meta::cpp2::ConfigModule        config_module;
     nebula::ConfigRowItem                  *config_row_item;
     nebula::EdgeKey                        *edge_key;
     nebula::EdgeKeys                       *edge_keys;
@@ -158,7 +159,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token <strval> STRING VARIABLE LABEL IPV4
 
 %type <strval> name_label unreserved_keyword agg_function
-%type <strval> admin_operation admin_para
+%type <strval> admin_job_operation admin_job_para
 %type <expr> expression logic_xor_expression logic_or_expression logic_and_expression
 %type <expr> relational_expression multiplicative_expression additive_expression
 %type <expr> unary_expression constant_expression equality_expression base_expression
@@ -255,7 +256,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence
 %type <sentence> create_snapshot_sentence drop_snapshot_sentence
 
-%type <sentence> admin_sentence
+%type <sentence> admin_job_sentence
 %type <sentence> create_user_sentence alter_user_sentence drop_user_sentence change_password_sentence
 %type <sentence> show_sentence
 
@@ -728,8 +729,8 @@ step_clause
     | legal_integer KW_STEPS {
         $$ = new StepClause($1);
     }
-    | KW_UPTO legal_integer KW_STEPS {
-        $$ = new StepClause($2, true);
+    | legal_integer KW_TO legal_integer KW_STEPS {
+        $$ = new StepClause($1, $3);
     }
     ;
 
@@ -1783,41 +1784,42 @@ ingest_sentence
     }
     ;
 
-admin_sentence
-    : KW_SUBMIT KW_JOB admin_operation {
-        auto sentence = new AdminSentence("add_job");
+admin_job_sentence
+    : KW_SUBMIT KW_JOB admin_job_operation {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
         sentence->addPara(*$3);
+        delete $3;
         $$ = sentence;
     }
     | KW_SHOW KW_JOBS {
-        auto sentence = new AdminSentence("show_jobs");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::SHOW_All);
         $$ = sentence;
     }
     | KW_SHOW KW_JOB legal_integer {
-        auto sentence = new AdminSentence("show_job");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::SHOW);
         sentence->addPara(std::to_string($3));
         $$ = sentence;
     }
     | KW_STOP KW_JOB legal_integer {
-        auto sentence = new AdminSentence("stop_job");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::STOP);
         sentence->addPara(std::to_string($3));
         $$ = sentence;
     }
     | KW_RECOVER KW_JOB {
-        auto sentence = new AdminSentence("recover_job");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::RECOVER);
         $$ = sentence;
     }
     ;
 
-admin_operation
+admin_job_operation
     : KW_COMPACT { $$ = new std::string("compact"); }
     | KW_FLUSH   { $$ = new std::string("flush"); }
-    | admin_operation admin_para {
+    | admin_job_operation admin_job_para {
         $$ = new std::string(*$1 + " " + *$2);
     }
     ;
 
-admin_para
+admin_job_para
     : name_label ASSIGN name_label {
         auto left = *$1;
         auto right = *$3;
@@ -1860,7 +1862,7 @@ show_sentence
         $$ = new ShowRolesSentence($4);
     }
     | KW_SHOW KW_CONFIGS show_config_item {
-        $$ = new ConfigSentence(ConfigSentence::SubType::kShow, $3);
+        $$ = new ShowConfigsSentence($3);
     }
     | KW_SHOW KW_CREATE KW_SPACE name_label {
         $$ = new ShowCreateSpaceSentence($4);
@@ -1895,9 +1897,9 @@ show_sentence
     ;
 
 config_module_enum
-    : KW_GRAPH      { $$ = ConfigModule::GRAPH; }
-    | KW_META       { $$ = ConfigModule::META; }
-    | KW_STORAGE    { $$ = ConfigModule::STORAGE; }
+    : KW_GRAPH      { $$ = meta::cpp2::ConfigModule::GRAPH; }
+    | KW_META       { $$ = meta::cpp2::ConfigModule::META; }
+    | KW_STORAGE    { $$ = meta::cpp2::ConfigModule::STORAGE; }
     ;
 
 get_config_item
@@ -1905,7 +1907,7 @@ get_config_item
         $$ = new ConfigRowItem($1, $3);
     }
     | name_label {
-        $$ = new ConfigRowItem(ConfigModule::ALL, $1);
+        $$ = new ConfigRowItem(meta::cpp2::ConfigModule::ALL, $1);
     }
     ;
 
@@ -1914,13 +1916,13 @@ set_config_item
         $$ = new ConfigRowItem($1, $3, $5);
     }
     | name_label ASSIGN expression {
-        $$ = new ConfigRowItem(ConfigModule::ALL, $1, $3);
+        $$ = new ConfigRowItem(meta::cpp2::ConfigModule::ALL, $1, $3);
     }
     | config_module_enum COLON name_label ASSIGN L_BRACE update_list R_BRACE {
         $$ = new ConfigRowItem($1, $3, $6);
     }
     | name_label ASSIGN L_BRACE update_list R_BRACE {
-        $$ = new ConfigRowItem(ConfigModule::ALL, $1, $4);
+        $$ = new ConfigRowItem(meta::cpp2::ConfigModule::ALL, $1, $4);
     }
     ;
 
@@ -2030,11 +2032,11 @@ change_password_sentence
     ;
 
 role_type_clause
-    : KW_GOD { $$ = new RoleTypeClause(RoleTypeClause::GOD); }
-    | KW_ADMIN { $$ = new RoleTypeClause(RoleTypeClause::ADMIN); }
-    | KW_DBA { $$ = new RoleTypeClause(RoleTypeClause::DBA); }
-    | KW_USER { $$ = new RoleTypeClause(RoleTypeClause::USER); }
-    | KW_GUEST { $$ = new RoleTypeClause(RoleTypeClause::GUEST); }
+    : KW_GOD { $$ = new RoleTypeClause(meta::cpp2::RoleType::GOD); }
+    | KW_ADMIN { $$ = new RoleTypeClause(meta::cpp2::RoleType::ADMIN); }
+    | KW_DBA { $$ = new RoleTypeClause(meta::cpp2::RoleType::DBA); }
+    | KW_USER { $$ = new RoleTypeClause(meta::cpp2::RoleType::USER); }
+    | KW_GUEST { $$ = new RoleTypeClause(meta::cpp2::RoleType::GUEST); }
     ;
 
 acl_item_clause
@@ -2068,16 +2070,13 @@ revoke_sentence
 
 get_config_sentence
     : KW_GET KW_CONFIGS get_config_item {
-        $$ = new ConfigSentence(ConfigSentence::SubType::kGet, $3);
+        $$ = new GetConfigSentence($3);
     }
     ;
 
 set_config_sentence
     : KW_UPDATE KW_CONFIGS set_config_item {
-        $$ = new ConfigSentence(ConfigSentence::SubType::kSet, $3);
-    }
-    | KW_UPDATE KW_CONFIGS set_config_item KW_FORCE {
-        $$ = new ConfigSentence(ConfigSentence::SubType::kSet, $3, true);
+        $$ = new SetConfigSentence($3);
     }
     ;
 
@@ -2168,7 +2167,7 @@ mutate_sentence
     | update_edge_sentence { $$ = $1; }
     | download_sentence { $$ = $1; }
     | ingest_sentence { $$ = $1; }
-    | admin_sentence { $$ = $1; }
+    | admin_job_sentence { $$ = $1; }
     ;
 
 maintain_sentence

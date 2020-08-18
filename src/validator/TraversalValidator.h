@@ -34,6 +34,7 @@ protected:
     };
 
 protected:
+    StepClause::MToN*     mToN_{nullptr};
     uint32_t              steps_{1};
     std::string           srcVidColName_;
     FromType              fromType_{kConstantExpr};

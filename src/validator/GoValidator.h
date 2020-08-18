@@ -39,6 +39,8 @@ private:
 
     Status buildNStepsPlan();
 
+    Status buildMToNPlan();
+
     Status oneStep(PlanNode* dependencyForGn, const std::string& inputVarNameForGN,
                    PlanNode* projectFromJoin);
 
@@ -57,10 +59,10 @@ private:
     Project* traceToStartVid(Project* projectLeftVarForJoin,
                              Project* projectDstFromGN);
 
-    PlanNode* buildJoinPipeOrVariableInput(PlanNode* gn,
-                                           PlanNode* projectFromJoin);
+    PlanNode* buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
+                                           PlanNode* dependencyForJoinInput);
 
-    PlanNode* buildProjectSrcEdgePropsForGN(PlanNode* gn);
+    PlanNode* buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode* dependency);
 
     PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
 

@@ -56,9 +56,11 @@ bool PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kCreateSnapshot :
         case Sentence::Kind::kDropSnapshot :
         case Sentence::Kind::kBalance :
-        case Sentence::Kind::kAdmin :
+        case Sentence::Kind::kAdminJob :
+        case Sentence::Kind::kShowConfigs :
+        case Sentence::Kind::kSetConfig :
+        case Sentence::Kind::kGetConfig :
         case Sentence::Kind::kIngest :
-        case Sentence::Kind::kConfig :
         case Sentence::Kind::kDownload : {
             return PermissionManager::canWriteSpace(session);
         }
