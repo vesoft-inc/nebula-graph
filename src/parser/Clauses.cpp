@@ -197,7 +197,7 @@ std::string GroupClause::toString() const {
     return groupColumns_->toString();
 }
 
-std::string InBoundClause::toString() const {
+std::string BoundClause::toString() const {
     std::string buf;
     buf.reserve(256);
     switch (boundType_) {

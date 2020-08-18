@@ -355,7 +355,7 @@ private:
     std::unique_ptr<YieldColumns>               groupColumns_;
 };
 
-class InBoundClause final {
+class BoundClause final {
 public:
     enum BoundType : uint8_t {
         IN,
@@ -363,7 +363,7 @@ public:
         BOTH
     };
 
-    explicit InBoundClause(OverEdges *edges, BoundType type) {
+    explicit BoundClause(OverEdges *edges, BoundType type) {
         overEdges_.reset(edges);
         boundType_ = type;
     }
@@ -377,8 +377,9 @@ private:
     BoundType boundType_;
 };
 
-using OutBoundClause = InBoundClause;
-using BothInOutClause = InBoundClause;
+using InBoundClause = BoundClause;
+using OutBoundClause = BoundClause;
+using BothInOutClause = BoundClause;
 
 }   // namespace nebula
 #endif  // PARSER_CLAUSES_H_
