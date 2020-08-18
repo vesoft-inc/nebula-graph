@@ -40,7 +40,7 @@ Compared with other graph database solutions, **Nebula Graph** has the following
 
 ## Notice of Release
 
-The Nebula Graph team is glad to annouce the Nebula Graph 2.0 pre-release. This is a brand new start with several important updates, and more of them are on the way. Welcome to join us.
+The Nebula Graph team is glad to announce the Nebula Graph 2.0 pre-release. This is a brand new start with several important updates, and more of them are on the way. Welcome to join us.
 To use the stable release, see [Nebula Graph 1.0](https://github.com/vesoft-inc/nebula).
 
 ## Roadmap
