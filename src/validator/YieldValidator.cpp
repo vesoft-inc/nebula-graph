@@ -98,7 +98,7 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     auto expr = column->expr();
     DCHECK(expr != nullptr);
     TypeDeduceVisitor typeDeduceVisitor(this);
-    NG_RETURN_IF_ERROR(traverse(expr, propsCollectVisitor_, typeDeduceVisitor));
+    NG_RETURN_IF_ERROR(traverse<makeConstPtr>(expr, propsCollectVisitor_, typeDeduceVisitor));
     auto type = typeDeduceVisitor.type();
 
     auto name = deduceColName(column);
@@ -169,7 +169,7 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
         filter = clause->filter();
     }
     if (filter != nullptr) {
-        NG_RETURN_IF_ERROR(traverse(filter, propsCollectVisitor_));
+        NG_RETURN_IF_ERROR(traverse<makeConstPtr>(filter, propsCollectVisitor_));
     }
     return Status::OK();
 }

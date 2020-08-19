@@ -283,7 +283,7 @@ Status DeleteVerticesValidator::validateImpl() {
     if (sentence->isRef()) {
         TypeDeduceVisitor typeDeduceVisitor(this);
         vidRef_ = sentence->vidRef();
-        NG_RETURN_IF_ERROR(traverse(vidRef_, typeDeduceVisitor));
+        NG_RETURN_IF_ERROR(traverse<makeConstPtr>(vidRef_, typeDeduceVisitor));
         auto type = typeDeduceVisitor.type();
         if (type != Value::Type::STRING) {
             std::stringstream ss;
@@ -471,9 +471,9 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
 Status DeleteEdgesValidator::checkInput() {
     CHECK(!edgeKeyRefs_.empty());
     auto &edgeKeyRef = *edgeKeyRefs_.begin();
-    NG_RETURN_IF_ERROR(traverse(edgeKeyRef->srcid(), propsCollectVisitor_));
-    NG_RETURN_IF_ERROR(traverse(edgeKeyRef->dstid(), propsCollectVisitor_));
-    NG_RETURN_IF_ERROR(traverse(edgeKeyRef->rank(), propsCollectVisitor_));
+    NG_RETURN_IF_ERROR(traverse<makeConstPtr>(edgeKeyRef->srcid(), propsCollectVisitor_));
+    NG_RETURN_IF_ERROR(traverse<makeConstPtr>(edgeKeyRef->dstid(), propsCollectVisitor_));
+    NG_RETURN_IF_ERROR(traverse<makeConstPtr>(edgeKeyRef->rank(), propsCollectVisitor_));
 
     if (!propsCollectVisitor_.srcTagProps_.empty() || !propsCollectVisitor_.dstTagProps_.empty() ||
         !propsCollectVisitor_.edgeProps_.empty()) {

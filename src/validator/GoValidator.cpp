@@ -87,7 +87,7 @@ Status GoValidator::validateFrom(const FromClause* from) {
         } else {
             fromType_ = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
             TypeDeduceVisitor visitor(this);
-            NG_RETURN_IF_ERROR(traverse(src, visitor));
+            NG_RETURN_IF_ERROR(traverse<makeConstPtr>(src, visitor));
             auto type = visitor.type();
             if (type != Value::Type::STRING) {
                 std::stringstream ss;
@@ -172,12 +172,14 @@ Status GoValidator::validateWhere(WhereClause* where) {
         auto symbolExpr = static_cast<SymbolPropertyExpression*>(filter_);
         where->setFilter(ExpressionUtils::transSymbolPropertyExpression<EdgePropertyExpression>(
             symbolExpr));
-    } else {
-        ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(filter_);
     }
 
+    SymbolPropExprTransformer<EdgePropertyExpression> symbolPropExprTransformer;
     TypeDeduceVisitor typeDeduceVisitor(this);
-    NG_RETURN_IF_ERROR(traverse(filter_, propsCollectVisitor_, typeDeduceVisitor));
+    NG_RETURN_IF_ERROR(traverse<makeMutPtr>(filter_,
+                                            symbolPropExprTransformer,
+                                            propsCollectVisitor_,
+                                            typeDeduceVisitor));
     auto type = typeDeduceVisitor.type();
     if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE) {
         std::stringstream ss;
@@ -207,7 +209,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
             outputs_.emplace_back(colName, Value::Type::STRING);
-            NG_RETURN_IF_ERROR(traverse(col->expr(), propsCollectVisitor_));
+            NG_RETURN_IF_ERROR(traverse<makeConstPtr>(col->expr(), propsCollectVisitor_));
         }
 
         yields_ = newCols;
@@ -217,8 +219,6 @@ Status GoValidator::validateYield(YieldClause* yield) {
                 auto symbolExpr = static_cast<SymbolPropertyExpression*>(col->expr());
                 col->setExpr(ExpressionUtils::transSymbolPropertyExpression<EdgePropertyExpression>(
                     symbolExpr));
-            } else {
-                ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(col->expr());
             }
 
             if (!col->getAggFunName().empty()) {
@@ -229,8 +229,12 @@ Status GoValidator::validateYield(YieldClause* yield) {
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
 
+            SymbolPropExprTransformer<EdgePropertyExpression> symbolPropertyExprTransformer;
             TypeDeduceVisitor typeDeduceVisitor(this);
-            NG_RETURN_IF_ERROR(traverse(col->expr(), propsCollectVisitor_, typeDeduceVisitor));
+            NG_RETURN_IF_ERROR(traverse<makeMutPtr>(col->expr(),
+                                                    symbolPropertyExprTransformer,
+                                                    propsCollectVisitor_,
+                                                    typeDeduceVisitor));
             auto type = typeDeduceVisitor.type();
             outputs_.emplace_back(colName, type);
         }

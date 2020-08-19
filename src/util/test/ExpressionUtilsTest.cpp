@@ -16,7 +16,7 @@ TEST(ExpressionUtilsTest, Simple) {
     {
         auto expr = std::make_unique<ConstantExpression>(3);
         EvaluableVisitor visitor;
-        traverse(expr.get(), visitor);
+        traverse<makeConstPtr>(expr.get(), visitor);
         EXPECT_TRUE(visitor.evaluable());
     }
 }

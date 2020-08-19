@@ -170,16 +170,17 @@ Status FetchEdgesValidator::prepareProperties() {
         propsName.reserve(newYield_->columns().size());
         dedup_ = newYield_->isDistinct();
         PropsCollectVisitor propsCollectVisitor(this);
+        SymbolPropExprTransformer<EdgePropertyExpression> symbolPropExprTransformer;
         for (auto col : newYield_->columns()) {
             if (col->expr()->kind() == Expression::Kind::kSymProperty) {
                 auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
                 col->setExpr(ExpressionUtils::transSymbolPropertyExpression<EdgePropertyExpression>(
                     symbolExpr));
-            } else {
-                ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(col->expr());
             }
+
             TypeDeduceVisitor typeDeduceVisitor(this);
-            auto result = traverse(col->expr(), propsCollectVisitor, typeDeduceVisitor);
+            auto result = traverse<makeMutPtr>(
+                col->expr(), symbolPropExprTransformer, propsCollectVisitor, typeDeduceVisitor);
             NG_RETURN_IF_ERROR(result);
             auto type = typeDeduceVisitor.type();
 

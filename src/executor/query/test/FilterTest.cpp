@@ -34,7 +34,8 @@ public:
                     ExpressionUtils ::transSymbolPropertyExpression<EdgePropertyExpression>(       \
                         symbolExpr));                                                              \
             } else {                                                                               \
-                ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(col->expr());  \
+                SymbolPropExprTransformer<EdgePropertyExpression> symbolPropExprTransformer;       \
+                ASSERT_TRUE(traverse<makeMutPtr>(col->expr(), symbolPropExprTransformer).ok());    \
             }                                                                                      \
         }                                                                                          \
         auto* filter = yieldSentence->where()->filter();                                           \
@@ -44,7 +45,8 @@ public:
                 ExpressionUtils ::transSymbolPropertyExpression<EdgePropertyExpression>(           \
                     symbolExpr));                                                                  \
         } else {                                                                                   \
-            ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(filter);           \
+            SymbolPropExprTransformer<EdgePropertyExpression> symbolPropExprTransformer;           \
+            ASSERT_TRUE(traverse<makeMutPtr>(filter, symbolPropExprTransformer).ok());             \
         }                                                                                          \
         auto* filterNode = Filter::make(plan, nullptr, yieldSentence->where()->filter());          \
         filterNode->setInputVar(inputName);                                                        \

@@ -30,7 +30,10 @@ public:
 
     virtual ~ExprVisitor() = default;
 
-    virtual Status visit(const Expression* expr) = 0;
+    // follow this signature pretend to override it , or you will got a compile error
+    // gain performance by static dispatch
+    // virtual Status visit(Expression* expr) = 0;
+    // virtual Status visit(const Expression* expr) = 0;
 
     VisitOrder order() const {
         return order_;
@@ -65,7 +68,7 @@ class EvaluableVisitor : public ExprVisitor {
 public:
     EvaluableVisitor() : ExprVisitor(VisitOrder::kPre) {}
 
-    Status visit(const Expression* expr) override;
+    Status visit(const Expression* expr);
 
     bool evaluable() const {
         return evaluable_;
@@ -80,7 +83,7 @@ public:
     explicit TypeDeduceVisitor(const Validator* validator)
         : ExprVisitor(VisitOrder::kPost), validator_(validator) {}
 
-    Status visit(const Expression* expr) override;
+    Status visit(const Expression* expr);
 
     Value::Type type() const {
         auto type = subTypes_.top();
@@ -106,44 +109,66 @@ private:
 
 class ExprContext {};
 
-template <typename V, typename = std::enable_if_t<std::is_base_of<ExprVisitor, V>::value>>
-static inline Status preVisit(const Expression* expr, V& visitor) {
+template <typename T>
+struct makeMutPtr {
+    using type = T*;
+};
+
+template <typename T>
+struct makeConstPtr {
+    using type = const T*;
+};
+
+#define PTR(T) typename makePtr<T>::type
+
+template <typename Expr,
+          typename V,
+          typename = std::enable_if_t<std::is_base_of<ExprVisitor, V>::value>,
+          typename = std::enable_if_t<std::is_same<std::remove_const_t<Expr>, Expression>::value>>
+static inline Status preVisit(Expr* expr, V& visitor) {
     if (visitor.isPreOrder()) {
         return visitor.visit(expr);
     }
     return Status::OK();
 }
 
-template <typename V,
+template <typename Expr,
+          typename V,
           typename... Visitors,
-          typename = std::enable_if_t<std::is_base_of<ExprVisitor, V>::value>>
-static inline Status preVisit(const Expression* expr, V& visitor, Visitors&... visitors) {
+          typename = std::enable_if_t<std::is_base_of<ExprVisitor, V>::value>,
+          typename = std::enable_if_t<std::is_same<std::remove_const_t<Expr>, Expression>::value>>
+static inline Status preVisit(Expr* expr, V& visitor, Visitors&... visitors) {
     if (visitor.isPreOrder()) {
         NG_RETURN_IF_ERROR(visitor.visit(expr));
     }
     return preVisit(expr, visitors...);
 }
 
-template <typename V, typename = std::enable_if_t<std::is_base_of<ExprVisitor, V>::value>>
-static inline Status postVisit(const Expression* expr, V& visitor) {
+template <typename Expr,
+          typename V,
+          typename = std::enable_if_t<std::is_base_of<ExprVisitor, V>::value>,
+          typename = std::enable_if_t<std::is_same<std::remove_const_t<Expr>, Expression>::value>>
+static inline Status postVisit(Expr* expr, V& visitor) {
     if (visitor.isPostOrder()) {
         return visitor.visit(expr);
     }
     return Status::OK();
 }
 
-template <typename V,
+template <typename Expr,
+          typename V,
           typename... Visitors,
-          typename = std::enable_if_t<std::is_base_of<ExprVisitor, V>::value>>
-static inline Status postVisit(const Expression* expr, V& visitor, Visitors&... visitors) {
+          typename = std::enable_if_t<std::is_base_of<ExprVisitor, V>::value>,
+          typename = std::enable_if_t<std::is_same<std::remove_const_t<Expr>, Expression>::value>>
+static inline Status postVisit(Expr* expr, V& visitor, Visitors&... visitors) {
     if (visitor.isPostOrder()) {
         NG_RETURN_IF_ERROR(visitor.visit(expr));
     }
     return postVisit(expr, visitors...);
 }
 
-template <typename... Visitors>
-static inline Status traverse(const Expression* expr, Visitors&... visitors) {
+template <template <typename> class makePtr, typename... Visitors>
+static inline Status traverse(PTR(Expression) expr, Visitors&... visitors) {
     NG_RETURN_IF_ERROR(preVisit(expr, visitors...));
     switch (expr->kind()) {
         case Expression::Kind::kConstant:
@@ -184,9 +209,9 @@ static inline Status traverse(const Expression* expr, Visitors&... visitors) {
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
-            auto biExpr = static_cast<const BinaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(traverse(biExpr->left(), visitors...));
-            NG_RETURN_IF_ERROR(traverse(biExpr->right(), visitors...));
+            auto biExpr = static_cast<PTR(BinaryExpression)>(expr);
+            NG_RETURN_IF_ERROR(traverse<makePtr>(biExpr->left(), visitors...));
+            NG_RETURN_IF_ERROR(traverse<makePtr>(biExpr->right(), visitors...));
             break;
         }
         case Expression::Kind::kUnaryPlus:
@@ -194,40 +219,43 @@ static inline Status traverse(const Expression* expr, Visitors&... visitors) {
         case Expression::Kind::kUnaryNot:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr: {
-            auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            NG_RETURN_IF_ERROR(traverse(unaryExpr->operand(), visitors...));
+            auto unaryExpr = static_cast<PTR(UnaryExpression)>(expr);
+            NG_RETURN_IF_ERROR(traverse<makePtr>(unaryExpr->operand(), visitors...));
             break;
         }
         case Expression::Kind::kFunctionCall: {
-            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
+            auto funcExpr = static_cast<PTR(FunctionCallExpression)>(expr);
             for (auto& arg : funcExpr->args()->args()) {
-                NG_RETURN_IF_ERROR(traverse(arg.get(), visitors...));
+                NG_RETURN_IF_ERROR(traverse<makePtr>(arg.get(), visitors...));
             }
             break;
         }
         case Expression::Kind::kTypeCasting: {
-            auto typeCastExpr = static_cast<const TypeCastingExpression*>(expr);
-            NG_RETURN_IF_ERROR(traverse(typeCastExpr->operand(), visitors...));
+            auto typeCastExpr = static_cast<PTR(TypeCastingExpression)>(expr);
+            NG_RETURN_IF_ERROR(traverse<makePtr>(typeCastExpr->operand(), visitors...));
             break;
         }
         case Expression::Kind::kList: {
-            auto listExpr = static_cast<const ListExpression*>(expr);
+            auto listExpr = static_cast<PTR(ListExpression)>(expr);
             for (auto& item : listExpr->items()) {
-                NG_RETURN_IF_ERROR(traverse(item, visitors...));
+                NG_RETURN_IF_ERROR(
+                    traverse<makePtr>(const_cast<PTR(Expression)>(item), visitors...));
             }
             break;
         }
         case Expression::Kind::kSet: {
-            auto setExpr = static_cast<const SetExpression*>(expr);
+            auto setExpr = static_cast<PTR(SetExpression)>(expr);
             for (auto& item : setExpr->items()) {
-                NG_RETURN_IF_ERROR(traverse(item, visitors...));
+                NG_RETURN_IF_ERROR(
+                    traverse<makePtr>(const_cast<PTR(Expression)>(item), visitors...));
             }
             break;
         }
         case Expression::Kind::kMap: {
-            auto mapExpr = static_cast<const MapExpression*>(expr);
+            auto mapExpr = static_cast<PTR(MapExpression)>(expr);
             for (auto& item : mapExpr->items()) {
-                NG_RETURN_IF_ERROR(traverse(item.second, visitors...));
+                NG_RETURN_IF_ERROR(
+                    traverse<makePtr>(const_cast<PTR(Expression)>(item.second), visitors...));
             }
             break;
         }
@@ -241,7 +269,7 @@ public:
     explicit PropsCollectVisitor(const Validator* validator)
         : ExprVisitor(VisitOrder::kPre), validator_(validator) {}
 
-    Status visit(const Expression* expr) override;
+    Status visit(const Expression* expr);
 
     void collect(PropsCollectVisitor&& r);
 
@@ -279,31 +307,14 @@ private:
     const Validator* validator_{nullptr};
 };
 
-class ExpressionUtils {
+template <typename To,
+          typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
+                                      std::is_same<To, TagPropertyExpression>::value>>
+class SymbolPropExprTransformer : public ExprVisitor {
 public:
-    explicit ExpressionUtils(...) = delete;
+    SymbolPropExprTransformer() : ExprVisitor(VisitOrder::kPre) {}
 
-    // clone expression
-    static std::unique_ptr<Expression> clone(const Expression* expr) {
-        // TODO(shylock) optimize
-        if (expr == nullptr) {
-            return nullptr;
-        }
-        return CHECK_NOTNULL(Expression::decode(expr->encode()));
-    }
-
-    static bool evaluableExpr(const Expression* expr) {
-        EvaluableVisitor visitor;
-        traverse(expr, visitor);
-        return visitor.evaluable();
-    }
-
-    // determine the detail about symbol property expression
-    // TODO(shylock) make it A ExprVisitor
-    template <typename To,
-              typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
-                                          std::is_same<To, TagPropertyExpression>::value>>
-    static void transAllSymbolPropertyExpr(Expression* expr) {
+    Status visit(Expression* expr) {
         switch (expr->kind()) {
             case Expression::Kind::kDstProperty:
             case Expression::Kind::kSrcProperty:
@@ -319,8 +330,9 @@ public:
             case Expression::Kind::kUUID:
             case Expression::Kind::kVar:
             case Expression::Kind::kVersionedVar:
+            case Expression::Kind::kLabel:
             case Expression::Kind::kConstant: {
-                return;
+                return Status::OK();
             }
             case Expression::Kind::kAdd:
             case Expression::Kind::kMinus:
@@ -342,17 +354,13 @@ public:
                 auto* biExpr = static_cast<BinaryExpression*>(expr);
                 if (biExpr->left()->kind() == Expression::Kind::kSymProperty) {
                     auto* symbolExpr = static_cast<SymbolPropertyExpression*>(biExpr->left());
-                    biExpr->setLeft(transSymbolPropertyExpression<To>(symbolExpr));
-                } else {
-                    transAllSymbolPropertyExpr<To>(biExpr->left());
+                    biExpr->setLeft(transSymbolPropertyExpression(symbolExpr));
                 }
                 if (biExpr->right()->kind() == Expression::Kind::kSymProperty) {
                     auto* symbolExpr = static_cast<SymbolPropertyExpression*>(biExpr->right());
-                    biExpr->setRight(transSymbolPropertyExpression<To>(symbolExpr));
-                } else {
-                    transAllSymbolPropertyExpr<To>(biExpr->right());
+                    biExpr->setRight(transSymbolPropertyExpression(symbolExpr));
                 }
-                return;
+                return Status::OK();
             }
             case Expression::Kind::kUnaryIncr:
             case Expression::Kind::kUnaryDecr:
@@ -362,55 +370,78 @@ public:
                 auto* unaryExpr = static_cast<UnaryExpression*>(expr);
                 if (unaryExpr->operand()->kind() == Expression::Kind::kSymProperty) {
                     auto* symbolExpr = static_cast<SymbolPropertyExpression*>(unaryExpr->operand());
-                    unaryExpr->setOperand(transSymbolPropertyExpression<To>(symbolExpr));
-                } else {
-                    transAllSymbolPropertyExpr<To>(unaryExpr->operand());
+                    unaryExpr->setOperand(transSymbolPropertyExpression(symbolExpr));
                 }
-                return;
+                return Status::OK();
             }
             case Expression::Kind::kTypeCasting: {
                 auto* typeCastingExpr = static_cast<TypeCastingExpression*>(expr);
                 if (typeCastingExpr->operand()->kind() == Expression::Kind::kSymProperty) {
                     auto* symbolExpr =
                         static_cast<SymbolPropertyExpression*>(typeCastingExpr->operand());
-                    typeCastingExpr->setOperand(transSymbolPropertyExpression<To>(symbolExpr));
-                } else {
-                    transAllSymbolPropertyExpr<To>(typeCastingExpr->operand());
+                    typeCastingExpr->setOperand(transSymbolPropertyExpression(symbolExpr));
                 }
-                return;
+                return Status::OK();
             }
             case Expression::Kind::kFunctionCall: {
                 auto* funcExpr = static_cast<FunctionCallExpression*>(expr);
                 for (auto& arg : funcExpr->args()->args()) {
                     if (arg->kind() == Expression::Kind::kSymProperty) {
                         auto* symbolExpr = static_cast<SymbolPropertyExpression*>(arg.get());
-                        arg.reset(transSymbolPropertyExpression<To>(symbolExpr));
-                    } else {
-                        transAllSymbolPropertyExpr<To>(arg.get());
+                        arg.reset(transSymbolPropertyExpression(symbolExpr));
                     }
                 }
-                return;
+                return Status::OK();
             }
             case Expression::Kind::kList:   // FIXME(dutor)
             case Expression::Kind::kSet:
             case Expression::Kind::kMap:
-            case Expression::Kind::kSubscript:
-            case Expression::Kind::kLabel: {
-                return;
+            case Expression::Kind::kSubscript: {
+                DLOG(FATAL) << "Not support transfer symbol property in expr " << expr->kind();
+                return Status::SemanticError("Not support transfer symbol property in expr %d.",
+                                             static_cast<int>(expr->kind()));
             }
         }   // switch
         DLOG(FATAL) << "Impossible expression kind " << static_cast<int>(expr->kind());
-        return;
+        return Status::Error("Impossible expression kind %d.", static_cast<int>(expr->kind()));
     }
 
-    template <typename To,
-              typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
-                                          std::is_same<To, TagPropertyExpression>::value>>
+private:
     static To* transSymbolPropertyExpression(SymbolPropertyExpression* expr) {
         return new To(new std::string(std::move(*expr->sym())),
                       new std::string(std::move(*expr->prop())));
     }
 };
+
+class ExpressionUtils {
+public:
+    explicit ExpressionUtils(...) = delete;
+
+    // clone expression
+    static std::unique_ptr<Expression> clone(const Expression* expr) {
+        // TODO(shylock) optimize
+        if (expr == nullptr) {
+            return nullptr;
+        }
+        return CHECK_NOTNULL(Expression::decode(expr->encode()));
+    }
+
+    static bool evaluableExpr(const Expression* expr) {
+        EvaluableVisitor visitor;
+        traverse<makeConstPtr>(expr, visitor);
+        return visitor.evaluable();
+    }
+
+    template <typename To,
+            typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
+                                        std::is_same<To, TagPropertyExpression>::value>>
+    static To* transSymbolPropertyExpression(SymbolPropertyExpression* expr) {
+        return new To(new std::string(std::move(*expr->sym())),
+                      new std::string(std::move(*expr->prop())));
+    }
+};
+
+#undef PTR   // not a generic macro
 
 }   // namespace graph
 }   // namespace nebula

@@ -171,18 +171,18 @@ Status FetchVerticesValidator::prepareProperties() {
         prop.set_tag(tagId_.value());
         std::vector<std::string> propsName;
         propsName.reserve(yield->columns().size());
+        SymbolPropExprTransformer<TagPropertyExpression> symbolPropExprTransformer;
         PropsCollectVisitor propsCollectVisitor(this);
         for (auto col : yield->columns()) {
             if (col->expr()->kind() == Expression::Kind::kSymProperty) {
                 auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
                 col->setExpr(ExpressionUtils::transSymbolPropertyExpression<TagPropertyExpression>(
                     symbolExpr));
-            } else {
-                ExpressionUtils::transAllSymbolPropertyExpr<TagPropertyExpression>(col->expr());
             }
 
             TypeDeduceVisitor typeDeduceVisitor(this);
-            auto result = traverse(col->expr(), propsCollectVisitor, typeDeduceVisitor);
+            auto result = traverse<makeMutPtr>(
+                col->expr(), symbolPropExprTransformer, propsCollectVisitor, typeDeduceVisitor);
             NG_RETURN_IF_ERROR(result);
             auto type = typeDeduceVisitor.type();
             if (propsCollectVisitor.hasInputVarProperty()) {

@@ -82,7 +82,9 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
 
         TypeDeduceVisitor yieldTypeVisitor(this);
         PropsCollectVisitor  yieldPropsVisitor(this);
-        NG_RETURN_IF_ERROR(traverse(col->expr(), yieldPropsVisitor, yieldTypeVisitor));
+        NG_RETURN_IF_ERROR(traverse<makeConstPtr>(col->expr(),
+                                                  yieldPropsVisitor,
+                                                  yieldTypeVisitor));
         auto type = yieldTypeVisitor.type();
         auto name = deduceColName(col);
         outputs_.emplace_back(name, type);
@@ -132,7 +134,7 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
             return Status::SemanticError("Use invalid group function `%s`",
                                          col->getAggFunName().c_str());
         }
-        NG_RETURN_IF_ERROR(traverse(col->expr(), propsCollectVisitor_));
+        NG_RETURN_IF_ERROR(traverse<makeConstPtr>(col->expr(), propsCollectVisitor_));
 
         groupCols_.emplace_back(col);
         groupKeys_.emplace_back(col->expr());
