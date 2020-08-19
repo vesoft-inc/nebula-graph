@@ -37,7 +37,7 @@ TEST_F(GetSubgraphValidatorTest, Base) {
         EXPECT_TRUE(checkResult(query, expected));
     }
     {
-        std::string = "GET SUBGRAPH FROM \"1\" BOTH like";
+        std::string query = "GET SUBGRAPH FROM \"1\" BOTH like";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
             PK::kFilter,
@@ -53,7 +53,7 @@ TEST_F(GetSubgraphValidatorTest, Base) {
         EXPECT_TRUE(checkResult(query, expected));
     }
     {
-        std::string = "GET SUBGRAPH 3 STEPS FROM \"1\"";
+        std::string query = "GET SUBGRAPH 3 STEPS FROM \"1\"";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
             PK::kFilter,
