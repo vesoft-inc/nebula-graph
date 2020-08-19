@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png"/>
+  <img src="https://github.com/vesoft-inc/nebula/raw/master/docs/logo.png"/>
   <br>中文 | <a href="README.md">English</a>
   <br>世界上唯一能够容纳千亿个顶点和万亿条边，并提供毫秒级查询延时的图数据库解决方案<br>
 </p>
@@ -19,6 +19,9 @@
 
 # Nebula Graph是什么？
 
+**警告** 
+这是Nebula Graph 2.0 pre-release，一个开发中的版本。该版本仅供测试，请勿用于生产环境。
+
 **Nebula Graph** 是一款开源的图数据库，擅长处理千亿个顶点和万亿条边的超大规模数据集。
 
 与其他图数据库产品相比，**Nebula Graph** 具有如下优势：
@@ -30,15 +33,20 @@
 * 类 SQL 查询语言
 * 用户鉴权
 
+## 发布通告
+
+Nebula Graph 2.0 pre-release版本已发布，目前已经有若干项重要更新，更多新特性正在开发中。欢迎加入我们，一同开发Nebula Graph 2.0。
+如需使用稳定版本，请参见[Nebula Graph 1.0](https://github.com/vesoft-inc/nebula)。
+
 ## 产品路线图
 
-**Nebula Graph** 产品规划路线图请参见 [roadmap](https://github.com/vesoft-inc/nebula/wiki#roadmap)。
+**Nebula Graph** 产品规划路线图请参见 [roadmap](https://github.com/vesoft-inc/nebula/wiki/Nebula-Graph-Roadmap-2020)。
 
 ## 快速使用
 
-请查看[快速使用手册](docs/manual-CN/1.overview/2.quick-start/1.get-started.md)，开始使用 **Nebula Graph**。
+请查看[快速使用手册](https://docs.nebula-graph.com.cn/manual-CN/1.overview/2.quick-start/1.get-started/)，开始使用 **Nebula Graph**。
 
-在开始使用 **Nebula Graph** 之前，必须通过[编译源码](https://github.com/vesoft-inc/nebula/blob/master/docs/manual-EN/3.build-develop-and-administration/1.build/1.build-source-code.md)或者 [docker compose](https://github.com/vesoft-inc/nebula-docker-compose) 方式安装 **Nebula Graph**。您也可以观看[视频](https://space.bilibili.com/472621355)学习如何安装 **Nebula Graph**。
+在开始使用 **Nebula Graph** 之前，必须通过[编译源码](https://docs.nebula-graph.com.cn/manual-CN/3.build-develop-and-administration/1.build/1.build-source-code/)或者 [docker compose](https://docs.nebula-graph.com.cn/manual-CN/3.build-develop-and-administration/1.build/2.build-by-docker/) 方式安装 **Nebula Graph**。您也可以观看[视频](https://space.bilibili.com/472621355)学习如何安装 **Nebula Graph**。
 
 ## 获取帮助
 
@@ -48,8 +56,8 @@
 
 ## 文档
 
-* [简体中文](https://github.com/vesoft-inc/nebula/blob/master/docs/manual-CN/README.md)
-* [English](https://github.com/vesoft-inc/nebula/blob/master/docs/manual-EN/README.md)
+* [简体中文](https://docs.nebula-graph.com.cn/)
+* [English](https://docs.nebula-graph.io/)
 
 ## Nebula Graph 产品架构图
 
@@ -59,7 +67,7 @@
 
 **Nebula Graph** 是一个完全开源的项目，欢迎开源爱好者通过以下方式参与到 **Nebula Graph** 社区：
 * 从标记为 [good first issues](https://github.com/vesoft-inc/nebula/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 的问题入手
-* 贡献代码，详情请参见 [如何贡献](docs/manual-CN/4.contributions/how-to-contribute.md)
+* 贡献代码，详情请参见 [如何贡献](https://docs.nebula-graph.com.cn/manual-CN/4.contributions/how-to-contribute/)
 * 直接在GitHub上提 [Issue](https://github.com/vesoft-inc/nebula/issues)
 
 ## 许可证
