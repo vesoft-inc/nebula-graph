@@ -107,8 +107,6 @@ private:
     std::stack<Value::Type> subTypes_;
 };
 
-class ExprContext {};
-
 template <typename T>
 struct makeMutPtr {
     using type = T*;
