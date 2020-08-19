@@ -29,8 +29,11 @@ private:
 
     Status validateBothInOutBound(BothInOutClause* out);
 
+    Expression* buildFilterCondition() const;
+
 private:
     std::unordered_set<EdgeType>                edgeTypes_;
+    std::string                                 collectVar_;
 };
 }  // namespace graph
 }  // namespace nebula

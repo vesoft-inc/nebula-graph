@@ -21,73 +21,87 @@ using PK = nebula::graph::PlanNode::Kind;
 
 TEST_F(GetSubgraphValidatorTest, Base) {
     {
+        std::string query = "GET SUBGRAPH FROM \"1\"";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
+            PK::kFilter,
+            PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
             PK::kDedup,
+            PK::kAggregate,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
         };
-        EXPECT_TRUE(checkResult("GET SUBGRAPH FROM \"1\"", expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
     {
+        std::string = "GET SUBGRAPH FROM \"1\" BOTH like";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
+            PK::kFilter,
+            PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
             PK::kDedup,
+            PK::kAggregate,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
         };
-        EXPECT_TRUE(checkResult("GET SUBGRAPH FROM \"1\" BOTH like", expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
     {
+        std::string = "GET SUBGRAPH 3 STEPS FROM \"1\"";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
+            PK::kFilter,
+            PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
             PK::kDedup,
+            PK::kAggregate,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
         };
-        EXPECT_TRUE(checkResult("GET SUBGRAPH 3 STEPS FROM \"1\"", expected));
+        EXPECT_TRUE(checkResult(query, expected));
     }
 }
 
 TEST_F(GetSubgraphValidatorTest, Input) {
     {
-        EXPECT_TRUE(checkResult("GO FROM \"1\" OVER like YIELD like._src AS src"
-                                " | GET SUBGRAPH FROM $-.src",
-                                {
-                                    PK::kDataCollect,
-                                    PK::kLoop,
-                                    PK::kProject,
-                                    PK::kDedup,
-                                    PK::kGetNeighbors,
-                                    PK::kProject,
-                                    PK::kStart,
-                                    PK::kGetNeighbors,
-                                    PK::kStart,
-                                }));
+        std::string query =
+            "GO FROM \"1\" OVER like YIELD like._src AS src | GET SUBGRAPH FROM $-.src";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kProject,
+            PK::kAggregate,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
     }
     {
-        EXPECT_TRUE(checkResult("$a = GO FROM \"1\" OVER like YIELD like._src AS src;"
-                                "GET SUBGRAPH FROM $a.src",
-                                {
-                                    PK::kDataCollect,
-                                    PK::kLoop,
-                                    PK::kProject,
-                                    PK::kDedup,
-                                    PK::kGetNeighbors,
-                                    PK::kProject,
-                                    PK::kStart,
-                                    PK::kGetNeighbors,
-                                    PK::kStart,
-                                }));
+        std::string query =
+            "$a = GO FROM \"1\" OVER like YIELD like._src AS src; GET SUBGRAPH FROM $a.src";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kLoop,
+            PK::kProject,
+            PK::kAggregate,
+            PK::kGetNeighbors,
+            PK::kProject,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
     }
 }
 
