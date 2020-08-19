@@ -29,7 +29,7 @@ private:
 
     Status validateBothInOutBound(BothInOutClause* out);
 
-    Expression* buildFilterCondition() const;
+    Expression* buildFilterCondition(int64_t step);
 
 private:
     std::unordered_set<EdgeType>                edgeTypes_;

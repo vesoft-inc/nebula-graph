@@ -33,7 +33,11 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                    << "but was`" << type.value() << "'";
                 return Status::Error(ss.str());
             }
+
             starts.srcRef = src;
+            auto encode = starts.srcRef->encode();
+            auto decode = Expression::decode(encode);
+            startVidList_->add(decode.release());
             auto* propExpr = static_cast<PropertyExpression*>(src);
             if (starts.fromType == kVariable) {
                 starts.userDefinedVarName = *(propExpr->sym());
@@ -53,6 +57,9 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                 return Status::Error("Vid should be a string.");
             }
             starts.vids.emplace_back(std::move(vid));
+            auto encode = expr->encode();
+            auto decode = Expression::decode(encode);
+            startVidList_->add(decode.release());
         }
     }
     return Status::OK();

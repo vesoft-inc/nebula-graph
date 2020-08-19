@@ -7,7 +7,7 @@
 #include "validator/GetSubgraphValidator.h"
 
 #include "common/expression/UnaryExpression.h"
-
+#include "common/expression/Expression.h"
 #include "util/ContainerConv.h"
 #include "common/expression/VariableExpression.h"
 #include "context/QueryExpressionContext.h"
@@ -21,32 +21,31 @@ namespace graph {
 Status GetSubgraphValidator::validateImpl() {
     Status status;
     auto* gsSentence = static_cast<GetSubgraphSentence*>(sentence_);
-    do {
-        status = validateStep(gsSentence->step(), steps_);
-        if (!status.ok()) {
-            break;
-        }
 
-        status = validateStarts(gsSentence->from(), from_);
-        if (!status.ok()) {
-            return status;
-        }
+    status = validateStep(gsSentence->step(), steps_);
+    if (!status.ok()) {
+        return status;
+    }
 
-        status = validateInBound(gsSentence->in());
-        if (!status.ok()) {
-            return status;
-        }
+    status = validateStarts(gsSentence->from(), from_);
+    if (!status.ok()) {
+        return status;
+    }
 
-        status = validateOutBound(gsSentence->out());
-        if (!status.ok()) {
-            return status;
-        }
+    status = validateInBound(gsSentence->in());
+    if (!status.ok()) {
+        return status;
+    }
 
-        status = validateBothInOutBound(gsSentence->both());
-        if (!status.ok()) {
-            return status;
-        }
-    } while (false);
+    status = validateOutBound(gsSentence->out());
+    if (!status.ok()) {
+        return status;
+    }
+
+    status = validateBothInOutBound(gsSentence->both());
+    if (!status.ok()) {
+        return status;
+    }
 
     return Status::OK();
 }
@@ -121,30 +120,38 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
     return Status::OK();
 }
 
-Expression* GetSubgraphValidator::buildFilterCondition() const {
-    // collect history of vids As listOfVids
-    auto& hist = qctx_->ectx()->getHistory(collectVar_);
-    std::vector<std::string> listOfVids;
-    for (auto& result : hist) {
-        auto iter = result.iter();
-        auto* gnIter = static_cast<GetNeighborsIter*>(iter.get());
-        auto originVertices = gnIter->getVertices();
-        for (auto& v : originVertices.values) {
-            if (!v.isVertex()) {
-                continue;
-            }
-            listOfVids.emplace_back(v.getVertex().vid);
-        }
-    }
+/*
+ * 1 steps   history: collectVid{0}
+ * 2 steps   history: collectVid{-1} collectVid{0}
+ * 3 steps   history: collectVid{-2} collectVid{-1} collectVid{0}
+ * ...
+ * n steps   history: collectVid{-n+1} ...  collectVid{-1} collectVid{0}
+ */
+Expression* GetSubgraphValidator::buildFilterCondition(int64_t step) {
+    // where *._dst IN startVids OR *._dst IN collectVid{0}[0][0] OR *._dst IN collectVid{1}[0][0]
+    // OR ... *._dst IN collectVid{step}[0][0]
+    auto* dst = new EdgeDstIdExpression(new std::string("*"));
+    if (step == 1) {
+        auto* lastestVidsDataSet =
+            new VersionedVariableExpression(&collectVar_, new ConstantExpression(0));
+        auto* lastestVidsList = new SubscriptExpression(
+            new SubscriptExpression(std::move(lastestVidsDataSet), new ConstantExpression(0)),
+            new ConstantExpression(0));
 
-    // where *._dst udf_is_in listOfVids
-    ArgumentList* argList = new ArgumentList();
-    argList->addArgument(std::make_unique<EdgeDstIdExpression>(new std::string("*")));
-    for (const auto& i : listOfVids) {
-        argList->addArgument(std::make_unique<ConstantExpression>(std::move(i)));
+        auto* left = new RelationalExpression(
+            Expression::Kind::kRelIn, dst, new ListExpression(startVidList_));
+        auto* right = new RelationalExpression(Expression::Kind::kRelIn, dst, lastestVidsList);
+        return new LogicalExpression(Expression::Kind::kLogicalOr, left, right);
     }
-    auto* functionCall = new FunctionCallExpression(new std::string("udf_is_in"), argList);
-    return functionCall;
+    auto* historyVidsDataSet =
+        new VersionedVariableExpression(&collectVar_, new ConstantExpression(1 - step));
+    auto* historyVidsList = new SubscriptExpression(
+        new SubscriptExpression(std::move(historyVidsDataSet), new ConstantExpression(0)),
+        new ConstantExpression(0));
+    auto* left = new RelationalExpression(Expression::Kind::kRelIn, dst, historyVidsList);
+    auto* right = buildFilterCondition(step - 1);
+    auto* result = new LogicalExpression(Expression::Kind::kLogicalOr, left, right);
+    return result;
 }
 
 Status GetSubgraphValidator::toPlan() {
@@ -184,9 +191,9 @@ Status GetSubgraphValidator::toPlan() {
 
     auto* projectVids = projectDstVidsFromGN(gn, startVidsVar);
 
-    collectVar_ = vctx_->anonVarGen()->getVar();
+    auto var = vctx_->anonVarGen()->getVar();
     auto* column = new YieldColumn(
-        new VariablePropertyExpression(new std::string(collectVar_), new std::string(kVid)),
+        new VariablePropertyExpression(new std::string(var), new std::string(kVid)),
         new std::string(kVid));
     column->setAggFunction(new std::string("COLLECT"));
     auto fun = column->getAggFunName();
@@ -197,6 +204,7 @@ Status GetSubgraphValidator::toPlan() {
                         {Aggregate::GroupItem(column->expr(), AggFun::nameIdMap_[fun], true)});
     collect->setInputVar(projectVids->varName());
     collect->setColNames({kVid});
+    collectVar_ = collect->varName();
 
     // TODO(jmq) add condition when gn get empty result
     auto* condition = buildNStepLoopCondition(steps_.steps);
@@ -221,12 +229,12 @@ Status GetSubgraphValidator::toPlan() {
                            true /*subgraph not need duplicate*/);
     gn1->setInputVar(projectVids->varName());
 
-    auto* filter = Filter::make(plan, gn1, buildFilterCondition());
+    auto* filter = Filter::make(plan, gn1, buildFilterCondition(steps_.steps));
     filter->setInputVar(gn1->varName());
     filter->setColNames({kVid});
 
     // datacollect
-    std::vector<std::string> collects = {gn1->varName()};
+    std::vector<std::string> collects = {gn->varName(), gn1->varName()};
     auto* dc =
         DataCollect::make(plan, filter, DataCollect::CollectKind::kSubgraph, std::move(collects));
     dc->setInputVar(filter->varName());
