@@ -109,9 +109,8 @@ class TestSetQuery(NebulaTestSuite):
                          ["Tony Parker", 2018, "Hornets"],
                          ["LaMarcus Aldridge", 2015, "Spurs"],
                          ["LaMarcus Aldridge", 2006, "Trail Blazers"],
-                         ["Manu Ginobili", 2002, "Spurs"],
                          ["Tim Duncan", 1997, "Spurs"]]
-        # self.check_out_of_order_result(resp, expected_data)
+        self.check_out_of_order_result(resp, expected_data)
 
         stmt = '''GO FROM "Tim Duncan" OVER serve YIELD $^.player.name as name, $$.team.name as player \
          UNION ALL \
@@ -125,6 +124,7 @@ class TestSetQuery(NebulaTestSuite):
                          ["Tony Parker", 2018]]
         self.check_out_of_order_result(resp, expected_data)
 
+        # diffrent column names
         stmt = '''GO FROM "Tim Duncan" OVER serve YIELD $^.player.name as name, $$.team.name as player \
          UNION ALL \
          GO FROM "Tony Parker" OVER serve \
@@ -147,6 +147,7 @@ class TestSetQuery(NebulaTestSuite):
         expected_data = [["Tony Parker", 1999], ["Tony Parker", 2018]]
         self.check_out_of_order_result(resp, expected_data)
 
+        # diffrent column names
         stmt = '''GO FROM "Nobody" OVER serve YIELD $^.player.name AS player, serve.start_year AS start \
          UNION ALL \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year'''

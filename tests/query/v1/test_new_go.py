@@ -368,7 +368,6 @@ class TestGoQuery(NebulaTestSuite):
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        """
         stmt = '''GO FROM "Boris Diaw" OVER * YIELD like._dst as id \
             | ( GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve )'''
         resp = self.execute_query(stmt)
@@ -380,13 +379,11 @@ class TestGoQuery(NebulaTestSuite):
                 ["Spurs"],
                 ["Spurs"],
                 ["Spurs"],
-                ["Spurs"],
                 ["Hornets"],
                 ["Trail Blazers"]
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
-        """
 
     @pytest.mark.skip(reason = 'return diffrent numbers when edge type wanted.')
     def test_edge_type(self):
