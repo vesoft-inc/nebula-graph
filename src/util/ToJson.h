@@ -19,6 +19,7 @@ class EdgeKeyRef;
 class Expression;
 struct List;
 struct Value;
+struct HostAddr;
 
 namespace meta {
 struct SpaceDesc;
@@ -53,7 +54,9 @@ folly::dynamic toJson(const std::vector<T> &arr);
 std::string toJson(const std::string &str);
 std::string toJson(int32_t i);
 std::string toJson(int64_t i);
+std::string toJson(bool b);
 
+std::string toJson(const HostAddr &addr);
 std::string toJson(const List &list);
 std::string toJson(const Value &value);
 std::string toJson(const EdgeKeyRef *ref);

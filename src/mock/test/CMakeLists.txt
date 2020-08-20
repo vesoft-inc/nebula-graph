@@ -14,7 +14,7 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:parser_obj>
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:planner_obj>
-    $<TARGET_OBJECTS:exec_obj>
+    $<TARGET_OBJECTS:executor_obj>
     $<TARGET_OBJECTS:scheduler_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
@@ -38,8 +38,6 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:common_storage_thrift_obj>
     $<TARGET_OBJECTS:common_thrift_obj>
     $<TARGET_OBJECTS:common_meta_obj>
-    $<TARGET_OBJECTS:common_ws_obj>
-    $<TARGET_OBJECTS:common_ws_common_obj>
     $<TARGET_OBJECTS:common_thread_obj>
     $<TARGET_OBJECTS:common_time_obj>
     $<TARGET_OBJECTS:common_fs_obj>
@@ -80,11 +78,59 @@ nebula_add_test(
         ${GRAPH_TEST_LIB}
     LIBRARIES
         ${THRIFT_LIBRARIES}
+        proxygenhttpserver
+        proxygenlib
+        wangle
+        gtest
+        gtest_main
+)
+
+nebula_add_test(
+    NAME
+        acl_test
+    SOURCES
+        ACLTest.cpp
+    OBJECTS
+        ${GRAPH_TEST_LIB}
+    LIBRARIES
+        ${THRIFT_LIBRARIES}
         gtest
         gtest_main
         proxygenhttpserver
         proxygenlib
         wangle
+)
+
+nebula_add_test(
+    NAME
+        balance_test
+    SOURCES
+        BalanceTest.cpp
+    OBJECTS
+        ${GRAPH_TEST_LIB}
+    LIBRARIES
+        proxygenhttpserver
+        proxygenlib
+        ${THRIFT_LIBRARIES}
+        wangle
+        gtest
+        gtest_main
+)
+
+nebula_add_test(
+    NAME
+        admin_job_test
+    SOURCES
+        AdminJobTest.cpp
+    OBJECTS
+        ${GRAPH_TEST_LIB}
+    LIBRARIES
+        proxygenhttpserver
+        proxygenlib
+        ${THRIFT_LIBRARIES}
+        wangle
+        gtest
+        gtest_main
 )
 
 nebula_add_test(
@@ -95,9 +141,9 @@ nebula_add_test(
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES
+        ${THRIFT_LIBRARIES}
         proxygenhttpserver
         proxygenlib
-        ${THRIFT_LIBRARIES}
         wangle
         gtest
         gtest_main

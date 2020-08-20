@@ -16,27 +16,20 @@ jobs:
     name: lint
     if: ${{ contains(github.event.pull_request.labels.*.name, 'ready-for-testing') }}
     runs-on: ubuntu-latest
-    outputs:
-      has_source_files: ${{ steps.filter-source-files.outputs.has_source_files }}
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 2
+      - uses: jitterbit/get-changed-files@v1
+        id: diff
       - name: Cpplint
         run: |
           ln -snf $PWD/.linters/cpp/hooks/pre-commit.sh $PWD/.linters/cpp/pre-commit.sh
           .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD^ HEAD)
-      - name: Filter source files
-        id: filter-source-files
-        run: |
-          diff_commits=$(git log --oneline -n 1 | cut -d' ' -f1,5)
-          source_files=$(git --no-pager diff --name-only $diff_commits | grep '^src\|^tests\|^CMakeLists.txt\|^cmake\|^.github/workflows')
-          echo "::set-output name=has_source_files::$([[ "$source_files" == "" ]] && echo 0 || echo 1)"
 
   build:
     name: build
     needs: lint
-    if: ${{ needs.lint.outputs.has_source_files != 0 }}
     runs-on: self-hosted
     strategy:
       fail-fast: false
@@ -56,10 +49,8 @@ jobs:
         TOOLSET_DIR: /opt/vesoft/toolset/clang/9.0.0
         CCACHE_DIR: /tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}
         CCACHE_MAXSIZE: 1G
-        PYPI_MIRROR: https://mirrors.aliyun.com/pypi/simple/
       volumes:
         - /tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}:/tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}
-        - /run/secrets/GITHUB_PAT:/run/secrets/GITHUB_PAT
       options: --mount type=tmpfs,destination=/tmp/ccache/nebula-graph,tmpfs-size=1073741824 --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
@@ -67,22 +58,23 @@ jobs:
           fetch-depth: 1
       - name: Prepare environment
         id: prepare
+        env:
+          PYPI_MIRROR: https://mirrors.aliyun.com/pypi/simple/
         run: |
           [ -d build/ ] && rm -rf build/* || mkdir -p build
           pip3 install -U setuptools -i $PYPI_MIRROR
           pip3 install -r tests/requirements.txt -i $PYPI_MIRROR
-          echo "::set-output name=pat::$(cat /run/secrets/GITHUB_PAT)"
       - name: Checkout common
         uses: actions/checkout@v2
         with:
           repository: ${{ github.repository_owner }}/nebula-common
-          token: ${{ steps.prepare.outputs.pat }}
+          token: ${{ github.token }}
           path: modules/common
       - name: Checkout storage
         uses: actions/checkout@v2
         with:
           repository: ${{ github.repository_owner }}/nebula-storage
-          token: ${{ steps.prepare.outputs.pat }}
+          token: ${{ github.token }}
           path: modules/storage
       - name: CMake
         run: |
@@ -127,7 +119,6 @@ jobs:
         run: cmake --build build/ -j $(nproc)
       - name: CTest
         env:
-          ASAN_SYMBOLIZER_PATH: $TOOLSET_DIR/bin/llvm-symbolizer
           ASAN_OPTIONS: fast_unwind_on_malloc=1
         run: ctest -j $(($(nproc)/2+1)) --timeout 400 --output-on-failure
         working-directory: build/

@@ -123,6 +123,19 @@ private:
     Status toPlan() override;
 };
 
+class ShowHostsValidator final : public Validator {
+public:
+    ShowHostsValidator(Sentence* sentence, QueryContext* context)
+            : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
 class ShowPartsValidator final : public Validator {
 public:
     ShowPartsValidator(Sentence* sentence, QueryContext* context)
@@ -133,6 +146,80 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+};
+
+class ShowCharsetValidator final : public Validator {
+public:
+    ShowCharsetValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowCollationValidator final : public Validator {
+public:
+    ShowCollationValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowConfigsValidator final : public Validator {
+public:
+    ShowConfigsValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class SetConfigValidator final : public Validator {
+public:
+    SetConfigValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    meta::cpp2::ConfigModule                 module_;
+    std::string                              name_;
+    Value                                    value_;
+};
+
+class GetConfigValidator final : public Validator {
+public:
+    GetConfigValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    meta::cpp2::ConfigModule                 module_;
+    std::string                              name_;
 };
 }  // namespace graph
 }  // namespace nebula

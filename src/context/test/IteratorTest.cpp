@@ -339,6 +339,7 @@ TEST(IteratorTest, GetNeighbor) {
             Vertex vertex;
             vertex.vid = folly::to<std::string>(i);
             vertex.tags.emplace_back(tag1);
+            expected.emplace_back(vertex);
             expected.emplace_back(std::move(vertex));
         }
         Tag tag2;
@@ -348,14 +349,15 @@ TEST(IteratorTest, GetNeighbor) {
             Vertex vertex;
             vertex.vid = folly::to<std::string>(i);
             vertex.tags.emplace_back(tag2);
+            expected.emplace_back(vertex);
             expected.emplace_back(std::move(vertex));
         }
         List result = iter.getVertices();
-        EXPECT_EQ(result.values.size(), 20);
+        EXPECT_EQ(result.values.size(), 40);
         EXPECT_EQ(result.values, expected);
 
         result = iter.getVertices();
-        EXPECT_EQ(result.values.size(), 20);
+        EXPECT_EQ(result.values.size(), 40);
         EXPECT_EQ(result.values, expected);
     }
     {
@@ -543,6 +545,19 @@ TEST(IteratorTest, TestHead) {
         auto val = std::make_shared<Value>(std::move(datasets));
         GetNeighborsIter iter(std::move(val));
         EXPECT_TRUE(iter.valid_);
+    }
+    {
+        DataSet ds;
+        ds.colNames = {kVid,
+                        "_stats",
+                        "_tag:tag1:prop1:prop2",
+                        "_edge:::",
+                        "_expr"};
+        List datasets;
+        datasets.values.emplace_back(std::move(ds));
+        auto val = std::make_shared<Value>(std::move(datasets));
+        GetNeighborsIter iter(std::move(val));
+        EXPECT_FALSE(iter.valid_);
     }
 }
 

@@ -74,13 +74,16 @@ MockMetaServiceHandler::future_listSpaces(const meta::cpp2::ListSpacesReq&) {
 }
 
 folly::Future<meta::cpp2::AdminJobResp>
-MockMetaServiceHandler::future_runAdminJob(const meta::cpp2::AdminJobReq&) {
-    folly::Promise<meta::cpp2::AdminJobResp> promise;
-    auto future = promise.getFuture();
+MockMetaServiceHandler::future_runAdminJob(const meta::cpp2::AdminJobReq& req) {
     meta::cpp2::AdminJobResp resp;
+    auto result = MetaCache::instance().runAdminJob(req);
+    if (!ok(result)) {
+        resp.set_code(result.left());
+        return resp;
+    }
     resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    promise.setValue(std::move(resp));
-    return future;
+    resp.set_result(std::move(result).right());
+    return resp;
 }
 
 folly::Future<meta::cpp2::GetSpaceResp>
@@ -463,78 +466,95 @@ MockMetaServiceHandler::future_heartBeat(const meta::cpp2::HBReq& req) {
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_createUser(const meta::cpp2::CreateUserReq&) {
-    RETURN_SUCCESSED();
+MockMetaServiceHandler::future_createUser(const meta::cpp2::CreateUserReq& req) {
+    return MetaCache::instance().createUser(req);
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_dropUser(const meta::cpp2::DropUserReq&) {
-    RETURN_SUCCESSED();
+MockMetaServiceHandler::future_dropUser(const meta::cpp2::DropUserReq& req) {
+    return MetaCache::instance().dropUser(req);
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_alterUser(const meta::cpp2::AlterUserReq&) {
-    RETURN_SUCCESSED();
+MockMetaServiceHandler::future_alterUser(const meta::cpp2::AlterUserReq& req) {
+    return MetaCache::instance().alterUser(req);
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_grantRole(const meta::cpp2::GrantRoleReq&) {
-    RETURN_SUCCESSED();
+MockMetaServiceHandler::future_grantRole(const meta::cpp2::GrantRoleReq& req) {
+    return MetaCache::instance().grantRole(req);
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_revokeRole(const meta::cpp2::RevokeRoleReq&) {
-    RETURN_SUCCESSED();
+MockMetaServiceHandler::future_revokeRole(const meta::cpp2::RevokeRoleReq& req) {
+    return MetaCache::instance().revokeRole(req);
 }
 
 folly::Future<meta::cpp2::ListUsersResp>
-MockMetaServiceHandler::future_listUsers(const meta::cpp2::ListUsersReq&) {
-    folly::Promise<meta::cpp2::ListUsersResp> promise;
-    auto future = promise.getFuture();
-    meta::cpp2::ListUsersResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    promise.setValue(std::move(resp));
-    return future;
+MockMetaServiceHandler::future_listUsers(const meta::cpp2::ListUsersReq& req) {
+    return MetaCache::instance().listUsers(req);
 }
 
 folly::Future<meta::cpp2::ListRolesResp>
-MockMetaServiceHandler::future_listRoles(const meta::cpp2::ListRolesReq&) {
-    folly::Promise<meta::cpp2::ListRolesResp> promise;
-    auto future = promise.getFuture();
-    meta::cpp2::ListRolesResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    promise.setValue(std::move(resp));
-    return future;
+MockMetaServiceHandler::future_listRoles(const meta::cpp2::ListRolesReq& req) {
+    return MetaCache::instance().listRoles(req);
 }
 
 folly::Future<meta::cpp2::ExecResp>
-MockMetaServiceHandler::future_changePassword(const meta::cpp2::ChangePasswordReq&) {
-    RETURN_SUCCESSED();
+MockMetaServiceHandler::future_changePassword(const meta::cpp2::ChangePasswordReq& req) {
+    return MetaCache::instance().changePassword(req);
 }
 
 folly::Future<meta::cpp2::ListRolesResp>
-MockMetaServiceHandler::future_getUserRoles(const meta::cpp2::GetUserRolesReq&) {
-    folly::Promise<meta::cpp2::ListRolesResp> promise;
-    auto future = promise.getFuture();
-    meta::cpp2::ListRolesResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    promise.setValue(std::move(resp));
-    return future;
+MockMetaServiceHandler::future_getUserRoles(const meta::cpp2::GetUserRolesReq& req) {
+    return MetaCache::instance().getUserRoles(req);
 }
 
 folly::Future<meta::cpp2::BalanceResp>
-MockMetaServiceHandler::future_balance(const meta::cpp2::BalanceReq&) {
-    folly::Promise<meta::cpp2::BalanceResp> promise;
-    auto future = promise.getFuture();
+MockMetaServiceHandler::future_balance(const meta::cpp2::BalanceReq& req) {
     meta::cpp2::BalanceResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
-    promise.setValue(std::move(resp));
-    return future;
+    if (req.__isset.id) {
+        // show
+        auto result = MetaCache::instance().showBalance(*req.get_id());
+        if (ok(result)) {
+            resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+            resp.set_tasks(std::move(result).right());
+        } else {
+            resp.set_code(result.left());
+        }
+    } else if (req.__isset.stop) {
+        // stop
+        auto result = MetaCache::instance().balanceStop();
+        if (ok(result)) {
+            resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+            resp.set_id(result.right());
+        } else {
+            resp.set_code(result.left());
+        }
+    } else {
+        ErrorOr<meta::cpp2::ErrorCode, int64_t> result;
+        // submit
+        if (req.__isset.host_del) {
+            result = MetaCache::instance().balanceSubmit(*req.get_host_del());
+        } else {
+            result = MetaCache::instance().balanceSubmit({});
+        }
+        if (ok(result)) {
+            resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+            resp.set_id(result.right());
+        } else {
+            resp.set_code(result.left());
+        }
+    }
+    return resp;
 }
 
 folly::Future<meta::cpp2::ExecResp>
 MockMetaServiceHandler::future_leaderBalance(const meta::cpp2::LeaderBalanceReq&) {
-    RETURN_SUCCESSED();
+    meta::cpp2::ExecResp resp;
+    auto result = MetaCache::instance().balanceLeaders();
+    resp.set_code(result);
+    return resp;
 }
 
 folly::Future<meta::cpp2::ExecResp>

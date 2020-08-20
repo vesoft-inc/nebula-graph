@@ -19,7 +19,7 @@ namespace graph {
 std::unique_ptr<cpp2::PlanNodeDescription> Explore::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("space", folly::to<std::string>(space_), desc.get());
-    addDescription("dedup", folly::to<std::string>(dedup_), desc.get());
+    addDescription("dedup", util::toJson(dedup_), desc.get());
     addDescription("limit", folly::to<std::string>(limit_), desc.get());
     addDescription("filter", filter_, desc.get());
     addDescription("orderBy", folly::toJson(util::toJson(orderBy_)), desc.get());
@@ -40,13 +40,12 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetNeighbors::explain() const {
     addDescription(
         "statProps", statProps_ ? folly::toJson(util::toJson(*statProps_)) : "", desc.get());
     addDescription("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "", desc.get());
-    addDescription("random", folly::to<std::string>(random_), desc.get());
+    addDescription("random", util::toJson(random_), desc.get());
     return desc;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetVertices::explain() const {
     auto desc = Explore::explain();
-    addDescription("vertices", folly::toJson(util::toJson(vertices_)), desc.get());
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("props", folly::toJson(util::toJson(props_)), desc.get());
     addDescription("exprs", folly::toJson(util::toJson(exprs_)), desc.get());
@@ -55,7 +54,6 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetVertices::explain() const {
 
 std::unique_ptr<cpp2::PlanNodeDescription> GetEdges::explain() const {
     auto desc = Explore::explain();
-    addDescription("edges", folly::toJson(util::toJson(edges_)), desc.get());
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("type", util::toJson(type_), desc.get());
     addDescription("ranking", ranking_ ? ranking_->toString() : "", desc.get());
@@ -102,7 +100,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> Aggregate::explain() const {
     folly::dynamic itemArr = folly::dynamic::array();
     for (const auto &item : groupItems_) {
         folly::dynamic itemObj = folly::dynamic::object();
-        itemObj.insert("distinct", item.distinct);
+        itemObj.insert("distinct", util::toJson(item.distinct));
         itemObj.insert("funcType", static_cast<uint8_t>(item.func));
         itemObj.insert("expr", item.expr ? item.expr->toString() : "");
         itemArr.push_back(itemObj);

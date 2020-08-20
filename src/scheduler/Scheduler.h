@@ -28,7 +28,7 @@ class LoopExecutor;
 
 class Scheduler final : private cpp::NonCopyable, private cpp::NonMovable {
 public:
-    // For check whether a task is a Scheduler::Task by std::is_base_of<>::value in thread pool
+    // check whether a task is a Scheduler::Task by std::is_base_of<>::value in thread pool
     struct Task {
         int64_t planId;
         explicit Task(const Executor *e);
@@ -41,7 +41,7 @@ public:
 
 private:
     // Enable thread pool check the query plan id of each callback registered in future. The functor
-    // is only the proxy of the invocable function `fn`.
+    // is only the proxy of the invocable function `fn'.
     template <typename F>
     struct ExecTask : Task {
         using Extract = folly::futures::detail::Extract<F>;
@@ -63,24 +63,20 @@ private:
     }
 
     void analyze(Executor *executor);
-
-    folly::Future<Status> schedule(Executor *executor);
-
-    folly::Future<Status> schedule(const std::set<Executor *> &dependents);
-
+    folly::Future<Status> doSchedule(Executor *executor);
+    folly::Future<Status> doScheduleParallel(const std::set<Executor *> &dependents);
     folly::Future<Status> iterate(LoopExecutor *loop);
-
-    QueryContext *qctx_{nullptr};
+    folly::Future<Status> execute(Executor *executor);
 
     struct MultiOutputsData {
         folly::SpinLock lock;
         std::unique_ptr<folly::SharedPromise<Status>> promise;
         int32_t numOutputs;
 
-        explicit MultiOutputsData(int32_t outputs)
-            : promise(std::make_unique<folly::SharedPromise<Status>>()), numOutputs(outputs) {}
+        explicit MultiOutputsData(int32_t outputs);
     };
 
+    QueryContext *qctx_{nullptr};
     std::unordered_map<std::string, MultiOutputsData> multiOutputPromiseMap_;
 };
 

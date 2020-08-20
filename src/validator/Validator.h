@@ -78,9 +78,11 @@ public:
     static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
                                                     QueryContext* context);
 
-    MUST_USE_RESULT Status appendPlan(PlanNode* tail);
+    static Status validate(Sentence* sentence, QueryContext* qctx);
 
     Status validate();
+
+    MUST_USE_RESULT Status appendPlan(PlanNode* tail);
 
     void setInputVarName(std::string name) {
         inputVarName_ = std::move(name);
@@ -143,6 +145,16 @@ protected:
                                                const std::string &validatorName);
 
     static Status appendPlan(PlanNode* plan, PlanNode* appended);
+
+    // use for simple Plan only contain one node
+    template <typename Node, typename... Args>
+    Status genSingleNodePlan(Args... args) {
+        auto* plan = qctx_->plan();
+        auto *doNode = Node::make(plan, nullptr, std::forward<Args>(args)...);
+        root_ = doNode;
+        tail_ = root_;
+        return Status::OK();
+    }
 
     // Check the variable or input property reference
     // return the input variable

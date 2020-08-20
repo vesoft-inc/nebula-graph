@@ -36,9 +36,6 @@ std::string GoSentence::toString() const {
     return buf;
 }
 
-std::string MatchSentence::toString() const {
-    return "MATCH sentence";
-}
 
 std::string LookupSentence::toString() const {
     std::string buf;
@@ -222,6 +219,32 @@ std::string YieldSentence::toString() const {
     if (whereClause_ != nullptr) {
         buf += " ";
         buf += whereClause_->toString();
+    }
+    return buf;
+}
+
+std::string GetSubgraphSentence::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    buf += "GET SUBGRAPH ";
+    if (step_ != nullptr) {
+        buf += step_->toString();
+    }
+    if (from_ != nullptr) {
+        buf += " ";
+        buf += from_->toString();
+    }
+    if (in_ != nullptr) {
+        buf += " ";
+        buf += in_->toString();
+    }
+    if (out_ != nullptr) {
+        buf += " ";
+        buf += out_->toString();
+    }
+    if (both_ != nullptr) {
+        buf += " ";
+        buf += both_->toString();
     }
     return buf;
 }

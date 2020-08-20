@@ -13,10 +13,13 @@ namespace nebula {
 std::string StepClause::toString() const {
     std::string buf;
     buf.reserve(256);
-    if (isUpto()) {
-        buf += "UPTO ";
+    if (isMToN()) {
+        buf += std::to_string(mToN_->mSteps);
+        buf += " TO ";
+        buf += std::to_string(mToN_->nSteps);
+    } else {
+        buf += std::to_string(steps_);
     }
-    buf += std::to_string(steps_);
     buf += " STEPS";
     return buf;
 }
@@ -192,6 +195,24 @@ std::string YieldClause::toString() const {
 
 std::string GroupClause::toString() const {
     return groupColumns_->toString();
+}
+
+std::string BoundClause::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    switch (boundType_) {
+        case IN:
+            buf += "IN ";
+            break;
+        case OUT:
+            buf += "OUT ";
+            break;
+        case BOTH:
+            buf += "BOTH ";
+            break;
+    }
+    buf += overEdges_->toString();
+    return buf;
 }
 
 }   // namespace nebula

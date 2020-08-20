@@ -7,7 +7,6 @@ nebula_add_library(
     validator_obj OBJECT
     Validator.cpp
     AssignmentValidator.cpp
-    ASTValidator.cpp
     GoValidator.cpp
     PipeValidator.cpp
     SequentialValidator.cpp
@@ -15,15 +14,19 @@ nebula_add_library(
     UseValidator.cpp
     GetSubgraphValidator.cpp
     AdminValidator.cpp
+    BalanceValidator.cpp
+    AdminJobValidator.cpp
     MaintainValidator.cpp
     MutateValidator.cpp
+    ACLValidator.cpp
     FetchEdgesValidator.cpp
     FetchVerticesValidator.cpp
     LimitValidator.cpp
     OrderByValidator.cpp
     YieldValidator.cpp
+    TraversalValidator.cpp
     ExplainValidator.cpp
     GroupByValidator.cpp
 )
 
-add_subdirectory(test)
+nebula_add_subdirectory(test)

@@ -26,6 +26,9 @@
 #include "validator/SequentialValidator.h"
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
+#include "validator/ACLValidator.h"
+#include  "validator/BalanceValidator.h"
+#include "validator/AdminJobValidator.h"
 #include "validator/YieldValidator.h"
 #include "validator/GroupByValidator.h"
 #include "common/function/FunctionManager.h"
@@ -103,6 +106,26 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<InsertVerticesValidator>(sentence, context);
         case Sentence::Kind::kInsertEdges:
             return std::make_unique<InsertEdgesValidator>(sentence, context);
+        case Sentence::Kind::kCreateUser:
+            return std::make_unique<CreateUserValidator>(sentence, context);
+        case Sentence::Kind::kDropUser:
+            return std::make_unique<DropUserValidator>(sentence, context);
+        case Sentence::Kind::kAlterUser:
+            return std::make_unique<UpdateUserValidator>(sentence, context);
+        case Sentence::Kind::kShowUsers:
+            return std::make_unique<ShowUsersValidator>(sentence, context);
+        case Sentence::Kind::kChangePassword:
+            return std::make_unique<ChangePasswordValidator>(sentence, context);
+        case Sentence::Kind::kGrant:
+            return std::make_unique<GrantRoleValidator>(sentence, context);
+        case Sentence::Kind::kRevoke:
+            return std::make_unique<RevokeRoleValidator>(sentence, context);
+        case Sentence::Kind::kShowRoles:
+            return std::make_unique<ShowRolesInSpaceValidator>(sentence, context);
+        case Sentence::Kind::kBalance:
+            return std::make_unique<BalanceValidator>(sentence, context);
+        case Sentence::Kind::kAdminJob:
+            return std::make_unique<AdminJobValidator>(sentence, context);
         case Sentence::Kind::kFetchVertices:
             return std::make_unique<FetchVerticesValidator>(sentence, context);
         case Sentence::Kind::kFetchEdges:
@@ -121,11 +144,69 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<UpdateVertexValidator>(sentence, context);
         case Sentence::Kind::kUpdateEdge:
             return std::make_unique<UpdateEdgeValidator>(sentence, context);
+        case Sentence::Kind::kShowHosts:
+            return std::make_unique<ShowHostsValidator>(sentence, context);
         case Sentence::Kind::kShowParts:
             return std::make_unique<ShowPartsValidator>(sentence, context);
-        default:
-            return std::make_unique<ReportError>(sentence, context);
+        case Sentence::Kind::kShowCharset:
+            return std::make_unique<ShowCharsetValidator>(sentence, context);
+        case Sentence::Kind::kShowCollation:
+            return std::make_unique<ShowCollationValidator>(sentence, context);
+        case Sentence::Kind::kGetConfig:
+            return std::make_unique<GetConfigValidator>(sentence, context);
+        case Sentence::Kind::kSetConfig:
+            return std::make_unique<SetConfigValidator>(sentence, context);
+        case Sentence::Kind::kShowConfigs:
+            return std::make_unique<ShowConfigsValidator>(sentence, context);
+        case Sentence::Kind::kUnknown:
+        case Sentence::Kind::kMatch:
+        case Sentence::Kind::kCreateTagIndex:
+        case Sentence::Kind::kShowCreateTagIndex:
+        case Sentence::Kind::kShowTagIndexStatus:
+        case Sentence::Kind::kDescribeTagIndex:
+        case Sentence::Kind::kShowTagIndexes:
+        case Sentence::Kind::kRebuildTagIndex:
+        case Sentence::Kind::kDropTagIndex:
+        case Sentence::Kind::kCreateEdgeIndex:
+        case Sentence::Kind::kShowCreateEdgeIndex:
+        case Sentence::Kind::kShowEdgeIndexStatus:
+        case Sentence::Kind::kDescribeEdgeIndex:
+        case Sentence::Kind::kShowEdgeIndexes:
+        case Sentence::Kind::kRebuildEdgeIndex:
+        case Sentence::Kind::kDropEdgeIndex:
+        case Sentence::Kind::kLookup:
+        case Sentence::Kind::kDownload:
+        case Sentence::Kind::kIngest:
+        case Sentence::Kind::kFindPath:
+        case Sentence::Kind::kReturn: {
+            // nothing
+            DLOG(FATAL) << "Unimplemented sentence " << kind;
+        }
     }
+    DLOG(FATAL) << "Unknown sentence " << static_cast<int>(kind);
+    return std::make_unique<ReportError>(sentence, context);
+}
+
+// static
+Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
+    DCHECK(sentence != nullptr);
+    DCHECK(qctx != nullptr);
+
+    // Check if space chosen from session. if chosen, add it to context.
+    auto session = qctx->rctx()->session();
+    if (session->space() > -1) {
+        qctx->vctx()->switchToSpace(session->spaceName(), session->space());
+    }
+
+    auto validator = makeValidator(sentence, qctx);
+    NG_RETURN_IF_ERROR(validator->validate());
+
+    auto root = validator->root();
+    if (!root) {
+        return Status::Error("Get null plan from sequential validator");
+    }
+    qctx->plan()->setRoot(root);
+    return Status::OK();
 }
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
@@ -138,6 +219,15 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kAggregate:
         case PlanNode::Kind::kSelect:
         case PlanNode::Kind::kLoop:
+        case PlanNode::Kind::kCreateUser:
+        case PlanNode::Kind::kDropUser:
+        case PlanNode::Kind::kUpdateUser:
+        case PlanNode::Kind::kGrantRole:
+        case PlanNode::Kind::kRevokeRole:
+        case PlanNode::Kind::kChangePassword:
+        case PlanNode::Kind::kListUserRoles:
+        case PlanNode::Kind::kListUsers:
+        case PlanNode::Kind::kListRoles:
         case PlanNode::Kind::kMultiOutputs:
         case PlanNode::Kind::kSwitchSpace:
         case PlanNode::Kind::kGetEdges:
@@ -164,12 +254,22 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
         case PlanNode::Kind::kShowEdges:
         case PlanNode::Kind::kCreateSnapshot:
         case PlanNode::Kind::kDropSnapshot:
+        case PlanNode::Kind::kSubmitJob:
         case PlanNode::Kind::kShowSnapshots:
+        case PlanNode::Kind::kBalanceLeaders:
+        case PlanNode::Kind::kBalance:
+        case PlanNode::Kind::kStopBalance:
+        case PlanNode::Kind::kShowBalance:
         case PlanNode::Kind::kDeleteVertices:
         case PlanNode::Kind::kDeleteEdges:
         case PlanNode::Kind::kUpdateVertex:
         case PlanNode::Kind::kUpdateEdge:
-        case PlanNode::Kind::kShowParts: {
+        case PlanNode::Kind::kShowParts:
+        case PlanNode::Kind::kShowCharset:
+        case PlanNode::Kind::kShowCollation:
+        case PlanNode::Kind::kShowConfigs:
+        case PlanNode::Kind::kSetConfig:
+        case PlanNode::Kind::kGetConfig: {
             static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
             break;
         }
@@ -330,11 +430,11 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
 
             auto right = deduceExprType(biExpr->right());
             NG_RETURN_IF_ERROR(right);
-            if (right.value() != Value::Type::LIST) {   // FIXME(dutor)
-                std::stringstream ss;
-                ss << "`" << expr->toString() << "' is not a valid expression, "
-                    << "expected `LIST' but `" << right.value() << "' was given.";
-                return Status::SemanticError(ss.str());
+            if (right.value() != Value::Type::LIST &&
+                    right.value() != Value::Type::MAP &&
+                    right.value() != Value::Type::SET) {
+                return Status::SemanticError("`%s': Invalid expression for IN operator, "
+                                             "expecting List/Set/Map", biExpr->toString().c_str());
             }
             return Value::Type::BOOL;
         }
@@ -561,9 +661,12 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
         case Expression::Kind::kContains:
+        case Expression::Kind::kSubscript:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
+        case Expression::Kind::kLogicalXor:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn: {
             auto biExpr = static_cast<const BinaryExpression*>(expr);
             NG_RETURN_IF_ERROR(deduceProps(biExpr->left(), exprProps));
             NG_RETURN_IF_ERROR(deduceProps(biExpr->right(), exprProps));
@@ -571,7 +674,9 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             NG_RETURN_IF_ERROR(deduceProps(unaryExpr->operand(), exprProps));
             break;
@@ -630,19 +735,32 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
             NG_RETURN_IF_ERROR(deduceProps(typeCastExpr->operand(), exprProps));
             break;
         }
+        case Expression::Kind::kList: {
+            auto *list = static_cast<const ListExpression*>(expr);
+            for (auto *item : list->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
+            }
+            break;
+        }
+        case Expression::Kind::kSet: {
+            auto *set = static_cast<const SetExpression*>(expr);
+            for (auto *item : set->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item, exprProps));
+            }
+            break;
+        }
+        case Expression::Kind::kMap: {
+            auto *map = static_cast<const MapExpression*>(expr);
+            for (auto &item : map->items()) {
+                NG_RETURN_IF_ERROR(deduceProps(item.second, exprProps));
+            }
+            break;
+        }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kLabel:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
-        case Expression::Kind::kSubscript:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kRelNotIn: {
+        case Expression::Kind::kLabel: {
             // TODO:
             std::stringstream ss;
             ss << "Not supported expression `" << expr->toString() << "' for type deduction.";
@@ -671,6 +789,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kRelIn:
         case Expression::Kind::kRelNotIn:
         case Expression::Kind::kContains:
+        case Expression::Kind::kSubscript:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -679,7 +798,9 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         }
         case Expression::Kind::kUnaryPlus:
         case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
+        case Expression::Kind::kUnaryNot:
+        case Expression::Kind::kUnaryIncr:
+        case Expression::Kind::kUnaryDecr: {
             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
             return evaluableExpr(unaryExpr->operand());
         }
@@ -696,6 +817,33 @@ bool Validator::evaluableExpr(const Expression* expr) const {
             auto castExpr = static_cast<const TypeCastingExpression*>(expr);
             return evaluableExpr(castExpr->operand());
         }
+        case Expression::Kind::kList: {
+            auto *list = static_cast<const ListExpression*>(expr);
+            for (auto *item : list->items()) {
+                if (!evaluableExpr(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kSet: {
+            auto *set = static_cast<const SetExpression*>(expr);
+            for (auto *item : set->items()) {
+                if (!evaluableExpr(item)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case Expression::Kind::kMap: {
+            auto *map = static_cast<const MapExpression*>(expr);
+            for (auto &item : map->items()) {
+                if (!evaluableExpr(item.second)) {
+                    return false;
+                }
+            }
+            return true;
+        }
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty:
         case Expression::Kind::kTagProperty:
@@ -710,13 +858,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kVarProperty:
         case Expression::Kind::kInputProperty:
         case Expression::Kind::kSymProperty:
-        case Expression::Kind::kLabel:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:   // FIXME(dutor)
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
-        case Expression::Kind::kSubscript: {
+        case Expression::Kind::kLabel: {
             return false;
         }
     }

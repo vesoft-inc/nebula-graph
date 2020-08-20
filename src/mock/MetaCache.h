@@ -4,11 +4,12 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXEC_METACACHE_H_
-#define EXEC_METACACHE_H_
+#ifndef EXECUTOR_METACACHE_H_
+#define EXECUTOR_METACACHE_H_
 
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
+#include "common/base/ErrorOr.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 
 namespace nebula {
@@ -63,11 +64,37 @@ public:
 
     Status heartBeat(const meta::cpp2::HBReq &req);
 
-    Status listUsers(const meta::cpp2::ListUsersReq& req);
-
     std::vector<meta::cpp2::HostItem> listHosts();
 
     std::unordered_map<PartitionID, std::vector<HostAddr>> getParts();
+
+////////////////////////////////////////////// ACL related mock ////////////////////////////////////
+    meta::cpp2::ExecResp createUser(const meta::cpp2::CreateUserReq& req);
+
+    meta::cpp2::ExecResp dropUser(const meta::cpp2::DropUserReq& req);
+
+    meta::cpp2::ExecResp alterUser(const meta::cpp2::AlterUserReq& req);
+
+    meta::cpp2::ExecResp grantRole(const meta::cpp2::GrantRoleReq& req);
+
+    meta::cpp2::ExecResp revokeRole(const meta::cpp2::RevokeRoleReq& req);
+
+    meta::cpp2::ListUsersResp listUsers(const meta::cpp2::ListUsersReq& req);
+
+    meta::cpp2::ListRolesResp listRoles(const meta::cpp2::ListRolesReq& req);
+
+    meta::cpp2::ExecResp changePassword(const meta::cpp2::ChangePasswordReq& req);
+
+    meta::cpp2::ListRolesResp getUserRoles(const meta::cpp2::GetUserRolesReq& req);
+
+    ErrorOr<meta::cpp2::ErrorCode, int64_t> balanceSubmit(std::vector<HostAddr> dels);
+    ErrorOr<meta::cpp2::ErrorCode, int64_t> balanceStop();
+    meta::cpp2::ErrorCode                   balanceLeaders();
+    ErrorOr<meta::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
+    showBalance(int64_t id);
+
+    ErrorOr<meta::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
+    runAdminJob(const meta::cpp2::AdminJobReq& req);
 
     Status createSnapshot();
 
@@ -77,6 +104,10 @@ public:
 
 private:
     MetaCache() = default;
+
+    int64_t incId() {
+        return ++id_;
+    }
 
     Status alterColumnDefs(meta::cpp2::Schema &schema,
                            const std::vector<meta::cpp2::AlterSchemaItem> &items);
@@ -131,13 +162,86 @@ private:
     };
 
     std::unordered_set<HostAddr>                             hostSet_;
+    std::unordered_map<std::string, GraphSpaceID>            spaceIndex_;
     std::unordered_map<GraphSpaceID, SpaceInfoCache>         cache_;
-    std::unordered_map<std::string, meta::cpp2::SpaceItem>   spaces_;
+    std::unordered_map<GraphSpaceID, meta::cpp2::SpaceItem>  spaces_;
     int64_t                                                  id_{0};
     std::unordered_map<std::string, meta::cpp2::Snapshot>    snapshots_;
     mutable folly::RWSpinLock                                lock_;
+
+///////////////////////////////////////////// ACL cache ////////////////////////////////////////////
+    struct UserInfo {
+        std::string password;
+        // revserved
+    };
+
+    // username -> UserInfo
+    std::unordered_map<std::string, UserInfo>  users_;
+    mutable folly::RWSpinLock                  userLock_;
+    // authority
+    using UserRoles =
+        std::unordered_map<std::string/*user*/, std::unordered_set<meta::cpp2::RoleType>>;
+    std::unordered_map<GraphSpaceID, UserRoles> roles_;
+    mutable folly::RWSpinLock                   roleLock_;
+
+////////////////////////////////////////////// Balance /////////////////////////////////////////////
+    struct BalanceTask {
+        GraphSpaceID           space;
+        PartitionID            part;
+        HostAddr               from;
+        HostAddr               to;
+        meta::cpp2::TaskResult status;
+    };
+    struct BalanceJob {
+        meta::cpp2::TaskResult status;
+    };
+    std::unordered_map<int64_t, std::vector<BalanceTask>> balanceTasks_;
+    std::unordered_map<int64_t, BalanceJob>               balanceJobs_;
+
+////////////////////////////////////////////// Job /////////////////////////////////////////////////
+    struct JobDesc {
+        meta::cpp2::AdminCmd            cmd_;  // compact, flush ...
+        std::vector<std::string>        paras_;
+        meta::cpp2::JobStatus           status_;
+        int64_t                         startTime_;
+        int64_t                         stopTime_;
+    };
+    struct TaskDesc {
+        int32_t                         iTask_;
+        nebula::HostAddr                dest_;
+        meta::cpp2::JobStatus           status_;
+        int64_t                         startTime_;
+        int64_t                         stopTime_;
+    };
+
+    ErrorOr<meta::cpp2::ErrorCode, std::unordered_map<int64_t, JobDesc>::iterator>
+    checkJobId(const meta::cpp2::AdminJobReq& req) {
+        const auto &params = req.get_paras();
+        if (params.empty()) {
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        int64_t jobId;
+        try {
+            jobId = folly::to<int64_t>(params.front());
+        } catch (std::exception &e) {
+            LOG(ERROR) << e.what();
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        const auto job = jobs_.find(jobId);
+        if (job == jobs_.end()) {
+            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+        }
+        return job;
+    }
+
+
+    mutable folly::RWSpinLock                          jobLock_;
+    // jobId => jobs
+    std::unordered_map<int64_t, JobDesc>               jobs_;
+    // jobId => tasks
+    std::unordered_map<int64_t, std::vector<TaskDesc>> tasks_;
 };
 
 }  // namespace graph
 }  // namespace nebula
-#endif  // EXEC_METACACHE_H_
+#endif  // EXECUTOR_METACACHE_H_

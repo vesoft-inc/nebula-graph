@@ -1,128 +1,129 @@
-/* Copyright (c) 2018 vesoft inc. All rights reserved.
+/* Copyright (c) 2020 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef GRAPH_EXECUTOR_H_
-#define GRAPH_EXECUTOR_H_
+#ifndef EXECUTOR_EXECUTOR_H_
+#define EXECUTOR_EXECUTOR_H_
 
-#include "base/Base.h"
-#include "base/Status.h"
-#include "cpp/helpers.h"
-#include "graph/ExecutionContext.h"
-#include "gen-cpp2/common_types.h"
-#include "gen-cpp2/storage_types.h"
-#include "dataman/RowWriter.h"
-#include "meta/SchemaManager.h"
-#include "time/Duration.h"
-#include "stats/Stats.h"
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
 
+#include <folly/futures/Future.h>
 
-/**
- * Executor is the interface of kinds of specific executors that do the actual execution.
- */
+#include "common/base/Status.h"
+#include "common/cpp/helpers.h"
+#include "common/datatypes/Value.h"
+#include "common/time/Duration.h"
+#include "util/ScopedTimer.h"
+#include "context/ExecutionContext.h"
 
 namespace nebula {
 namespace graph {
 
-class Executor : public cpp::NonCopyable, public cpp::NonMovable {
+class PlanNode;
+class QueryContext;
+
+class Executor : private cpp::NonCopyable, private cpp::NonMovable {
 public:
-    explicit Executor(ExecutionContext *ectx) {
-        ectx_ = ectx;
+    // Create executor according to plan node
+    static Executor *makeExecutor(const PlanNode *node, QueryContext *qctx);
+
+    virtual ~Executor();
+
+    // Prepare or initialize executor before each execution
+    virtual Status open();
+
+    // Each executor inherited from this class should get input values from ExecutionContext,
+    // evaluate expressions and save output result back to ExecutionContext by `finish'
+    virtual folly::Future<Status> execute() = 0;
+
+    // Cleanup or reset executor some states after each execution
+    virtual Status close();
+
+    QueryContext *qctx() const {
+        return qctx_;
     }
 
-    virtual ~Executor() {}
-
-    /**
-     * Do some preparatory works, such as sanitize checking, dependency setup, etc.
-     *
-     * `prepare' succeeds only if all its sub-executors are prepared.
-     * `prepare' works in a synchronous way, once the executor is prepared, it will
-     * be executed.
-     */
-    virtual Status MUST_USE_RESULT prepare() = 0;
-
-    virtual void execute() = 0;
-
-    virtual const char* name() const = 0;
-
-    enum ProcessControl : uint8_t {
-        kNext = 0,
-        kReturn,
-    };
-
-    /**
-     * Set callback to be invoked when this executor is finished(normally).
-     */
-    void setOnFinish(std::function<void(ProcessControl)> onFinish) {
-        onFinish_ = onFinish;
-    }
-    /**
-     * When some error happens during an executor's execution, it should invoke its
-     * `onError_' with a Status that indicates the reason.
-     *
-     * An executor terminates its execution via invoking either `onFinish_' or `onError_',
-     * but should never call them both.
-     */
-    void setOnError(std::function<void(Status)> onError) {
-        onError_ = onError;
-    }
-    /**
-     * Upon finished successfully, `setupResponse' would be invoked on the last executor.
-     * Any Executor implementation, which wants to send its meaningful result to the client,
-     * should override this method.
-     */
-    virtual void setupResponse(cpp2::ExecutionResponse &resp) {
-        resp.set_error_code(cpp2::ErrorCode::SUCCEEDED);
+    int64_t id() const {
+        return id_;
     }
 
-    ExecutionContext* ectx() const {
-        return ectx_;
+    const std::string &name() const {
+        return name_;
     }
 
-    const time::Duration& duration() const {
-        return duration_;
+    const PlanNode *node() const {
+        return node_;
     }
+
+    const std::set<Executor *> &depends() const {
+        return depends_;
+    }
+
+    const std::set<Executor *> &successors() const {
+        return successors_;
+    }
+
+    Executor *dependsOn(Executor *dep) {
+        depends_.emplace(dep);
+        dep->successors_.emplace(this);
+        return this;
+    }
+
+    template <typename T>
+    static std::enable_if_t<std::is_base_of<PlanNode, T>::value, const T *> asNode(
+        const PlanNode *node) {
+        return static_cast<const T *>(node);
+    }
+
+    // Throw runtime error to stop whole execution early
+    folly::Future<Status> error(Status status) const;
 
 protected:
-    std::unique_ptr<Executor> makeExecutor(Sentence *sentence);
+    static Executor *makeExecutor(const PlanNode *node,
+                                  QueryContext *qctx,
+                                  std::unordered_map<int64_t, Executor *> *visited);
 
-    std::string valueTypeToString(nebula::cpp2::ValueType type);
+    // Only allow derived executor to construct
+    Executor(const std::string &name, const PlanNode *node, QueryContext *qctx);
 
-    void writeVariantType(RowWriter &writer, const VariantType &value);
+    // Start a future chain and bind it to thread pool
+    folly::Future<Status> start(Status status = Status::OK()) const;
 
-    bool checkValueType(const nebula::cpp2::ValueType &type, const VariantType &value);
+    folly::Executor *runner() const;
 
-    StatusOr<int64_t> toTimestamp(const VariantType &value);
+    // Store the result of this executor to execution context
+    Status finish(Result &&result);
+    // Store the default result which not used for later executor
+    Status finish(Value &&value);
 
-    StatusOr<cpp2::ColumnValue> toColumnValue(const VariantType& value,
-                                              cpp2::ColumnValue::Type type) const;
+    int64_t id_;
 
-    OptVariantType toVariantType(const cpp2::ColumnValue& value) const;
+    // Executor name
+    std::string name_;
 
-    Status checkIfGraphSpaceChosen() const {
-        if (ectx()->rctx()->session()->space() == -1) {
-            return Status::Error("Please choose a graph space with `USE spaceName' firstly");
-        }
-        return Status::OK();
-    }
+    // Relative Plan Node
+    const PlanNode *node_;
 
-    StatusOr<VariantType> transformDefaultValue(nebula::cpp2::SupportedType type,
-                                                std::string& originalValue);
-    void doError(Status status, const stats::Stats* stats = nullptr, uint32_t count = 1) const;
-    void doFinish(ProcessControl pro,
-                  const stats::Stats* stats = nullptr,
-                  uint32_t count = 1) const;
+    QueryContext *qctx_;
+    // Execution context for saving some execution data
+    ExecutionContext *ectx_;
 
-protected:
-    ExecutionContext                           *ectx_;
-    std::function<void(ProcessControl)>         onFinish_;
-    std::function<void(Status)>                 onError_;
-    time::Duration                              duration_;
+    // Topology
+    std::set<Executor *> depends_;
+    std::set<Executor *> successors_;
+
+    // profiling data
+    uint64_t numRows_{0};
+    uint64_t execTime_{0};
+    time::Duration totalDuration_;
 };
 
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // GRAPH_EXECUTOR_H_
+#endif   // EXECUTOR_EXECUTOR_H_
