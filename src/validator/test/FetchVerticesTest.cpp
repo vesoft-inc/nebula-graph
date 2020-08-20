@@ -15,7 +15,7 @@ class FetchVerticesValidatorTest : public ValidatorTestBase {};
 
 TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
     auto src = std::make_unique<VariablePropertyExpression>(
-        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string(kVid));
+        new std::string(qCtx_->vctx()->anonVarGen()->getVar()), new std::string("VertexID"));
     {
         ASSERT_TRUE(toPlan("FETCH PROP ON person \"1\""));
 
@@ -33,7 +33,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                                      src.get(),
                                      std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                                      {});
-        gv->setColNames({kVid, "person.name", "person.age"});
+        gv->setColNames({"VertexID", "person.name", "person.age"});
         auto result = Eq(plan->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
@@ -63,18 +63,18 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               src.get(),
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
-        gv->setColNames({kVid, "person.name", "person.age"});
+        gv->setColNames({"VertexID", "person.name", "person.age"});
 
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string(kVid)));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("age"))));
         auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
-        project->setColNames({kVid, "person.name", "person.age"});
+        project->setColNames({"VertexID", "person.name", "person.age"});
 
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
@@ -107,12 +107,12 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               src.get(),
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
-        gv->setColNames({kVid, "person.name", "(1>1)", "person.age"});  // TODO(shylock) fix
+        gv->setColNames({"VertexID", "person.name", "person.age"});
 
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string(kVid)));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(new RelationalExpression(
@@ -120,7 +120,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("age"))));
         auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
-        project->setColNames({kVid, "person.name", "(1>1)", "person.age"});
+        project->setColNames({"VertexID", "person.name", "(1>1)", "person.age"});
 
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
@@ -152,18 +152,18 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                                      src.get(),
                                      std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                                      std::vector<storage::cpp2::Expr>{std::move(expr1)});
-        gv->setColNames({kVid, "(person.name+person.age)"});  // TODO(shylock) fix
+        gv->setColNames({"VertexID", "person.name", "person.age"});
 
         // project, TODO(shylock) could push down to storage is it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string(kVid)));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(new ArithmeticExpression(
             Expression::Kind::kAdd,
             new TagPropertyExpression(new std::string("person"), new std::string("name")),
             new TagPropertyExpression(new std::string("person"), new std::string("age")))));
         auto *project = Project::make(expectedQueryCtx_->plan(), gv, yieldColumns.get());
-        project->setColNames({kVid, "(person.name+person.age)"});
+        project->setColNames({"VertexID", "(person.name+person.age)"});
 
         auto result = Eq(plan->root(), project);
         ASSERT_TRUE(result.ok()) << result;
@@ -195,13 +195,13 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
                               std::vector<storage::cpp2::VertexProp>{std::move(prop)},
                               std::vector<storage::cpp2::Expr>{std::move(expr1), std::move(expr2)});
 
-        std::vector<std::string> colNames{kVid, "person.name", "person.age"};
+        std::vector<std::string> colNames{"VertexID", "person.name", "person.age"};
         gv->setColNames(colNames);
 
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string(kVid)));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(
@@ -233,7 +233,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
 
         auto *gv = GetVertices::make(
             expectedQueryCtx_->plan(), start, 1, src.get(), {}, {});
-        gv->setColNames({kVid, "person.name", "person.age"});
+        gv->setColNames({"VertexID", "person.name", "person.age"});
         auto result = Eq(plan->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }

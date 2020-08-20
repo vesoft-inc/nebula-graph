@@ -489,6 +489,7 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
         GetVertices::make(plan, dedupVids, space_.id, vids,
                             buildDstVertexProps(), {});
     getDstVertices->setInputVar(dedupVids->varName());
+    getDstVertices->setColNames(buildDstVertexColNames());
 
     auto vidColName = vctx_->anonColGen()->getCol();
     auto* vidCol = new YieldColumn(
@@ -688,6 +689,25 @@ std::vector<storage::cpp2::VertexProp> GoValidator::buildDstVertexProps() {
                        });
     }
     return vertexProps;
+}
+
+std::vector<std::string> GoValidator::buildDstVertexColNames() {
+    std::vector<std::string> dstColNames;
+    dstColNames.reserve(exprProps_.dstTagProps().size());
+    dstColNames.emplace_back(kVid);
+    for (const auto &tagProps : exprProps_.dstTagProps()) {
+        auto tagId = tagProps.first;
+        auto tagNameResult = qctx_->schemaMng()->toTagName(space_.id, tagId);
+        DCHECK(tagNameResult.ok());
+        if (!tagNameResult.ok()) {
+            return dstColNames;
+        }
+        std::string tagName = std::move(tagNameResult).value();
+        for (const auto &prop : tagProps.second) {
+            dstColNames.emplace_back(tagName + "." + prop.toString());
+        }
+    }
+    return dstColNames;
 }
 
 GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
