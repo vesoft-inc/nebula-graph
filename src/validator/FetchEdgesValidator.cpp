@@ -47,8 +47,7 @@ Status FetchEdgesValidator::toPlan() {
                                         std::move(orderBy_),
                                         std::move(filter_));
     getEdgesNode->setInputVar(edgeKeysVar);
-    // TODO(shylock) split the getEdges column names with project
-    getEdgesNode->setColNames(geColNames_);
+    getEdgesNode->setColNames(std::move(geColNames_));
     // the pipe will set the input variable
     PlanNode *current = getEdgesNode;
 
@@ -123,7 +122,6 @@ Status FetchEdgesValidator::prepareEdges() {
         edgeKeys_.rows.reserve(keys.size());
         for (const auto &key : keys) {
             DCHECK(ExpressionUtils::isConstExpr(key->srcid()));
-            // TODO(shylock) Add new value type EDGE_ID to semantic and simplify this
             auto src = key->srcid()->eval(dummy);
             if (!src.isStr()) {   // string as vid
                 return Status::NotSupported("src is not a vertex id");

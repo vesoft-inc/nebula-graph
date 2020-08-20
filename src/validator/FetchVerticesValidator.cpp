@@ -34,7 +34,6 @@ Status FetchVerticesValidator::toPlan() {
                                               limit_,
                                               std::move(filter_));
     getVerticesNode->setInputVar(vidsVar);
-    // TODO(shylock) split the getVertices column names with project
     getVerticesNode->setColNames(std::move(gvColNames_));
     // pipe will set the input variable
     PlanNode *current = getVerticesNode;
@@ -97,7 +96,6 @@ Status FetchVerticesValidator::prepareVertices() {
     auto vids = sentence->vidList();
     srcVids_.rows.reserve(vids.size());
     for (const auto vid : vids) {
-        // TODO(shylock) Add a new value type VID to semantic this
         DCHECK(ExpressionUtils::isConstExpr(vid));
         auto v = vid->eval(dummy);
         if (!v.isStr()) {   // string as vid
