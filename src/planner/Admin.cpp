@@ -88,7 +88,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> DropNode::explain() const {
 std::unique_ptr<cpp2::PlanNodeDescription> CreateUser::explain() const {
     auto desc = CreateNode::explain();
     addDescription("username", *username_, desc.get());
-    addDescription("password", *password_, desc.get());
+    addDescription("password", "******", desc.get());
     return desc;
 }
 
@@ -101,7 +101,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> DropUser::explain() const {
 std::unique_ptr<cpp2::PlanNodeDescription> UpdateUser::explain() const {
     auto desc = SingleDependencyNode::explain();
     addDescription("username", *username_, desc.get());
-    addDescription("password", *password_, desc.get());
+    addDescription("password", "******", desc.get());
     return desc;
 }
 
@@ -124,8 +124,8 @@ std::unique_ptr<cpp2::PlanNodeDescription> RevokeRole::explain() const {
 std::unique_ptr<cpp2::PlanNodeDescription> ChangePassword::explain() const {
     auto desc = SingleDependencyNode::explain();
     addDescription("username", *username_, desc.get());
-    addDescription("password", *password_, desc.get());
-    addDescription("newPassword", *newPassword_, desc.get());
+    addDescription("password", "******", desc.get());
+    addDescription("newPassword", "******", desc.get());
     return desc;
 }
 
