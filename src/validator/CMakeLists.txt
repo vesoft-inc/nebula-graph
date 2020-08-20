@@ -7,7 +7,6 @@ nebula_add_library(
     validator_obj OBJECT
     Validator.cpp
     AssignmentValidator.cpp
-    ASTValidator.cpp
     GoValidator.cpp
     PipeValidator.cpp
     SequentialValidator.cpp
@@ -25,6 +24,7 @@ nebula_add_library(
     LimitValidator.cpp
     OrderByValidator.cpp
     YieldValidator.cpp
+    TraversalValidator.cpp
     ExplainValidator.cpp
     GroupByValidator.cpp
 )

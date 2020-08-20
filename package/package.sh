@@ -9,13 +9,14 @@
 #
 # usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE>
 #
-set -ex
+
+set -e
 
 version=""
 package_one=ON
 strip_enable="FALSE"
 usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE>"
-project_dir="$(cd "$(dirname "$0")" && pwd)"/../
+project_dir="$(cd "$(dirname "$0")" && pwd)/.."
 build_dir=${project_dir}/build
 enablesanitizer="OFF"
 static_sanitizer="OFF"
@@ -96,6 +97,7 @@ function build {
           -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
           -DENABLE_TESTING=OFF \
           -DENABLE_BUILD_STORAGE=ON \
+          -DENABLE_PACK_ONE=${package_one} \
           $project_dir
 
     if !( make -j$(nproc) ); then
@@ -116,7 +118,11 @@ function package {
         mkdir ${package_dir}
     fi
     pushd ${package_dir}
-    cmake -DNEBULA_BUILD_VERSION=${version} -DENABLE_PACK_ONE=${package_one} ${project_dir}/package/
+    cmake \
+        -DNEBULA_BUILD_VERSION=${version} \
+        -DENABLE_PACK_ONE=${package_one} \
+        -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+        ${project_dir}/package/
 
     strip_enable=$1
 
@@ -129,10 +135,10 @@ function package {
         sys_name=`cat /etc/redhat-release | cut -d ' ' -f1`
         if [[ ${sys_name} == "CentOS" ]]; then
             sys_ver=`cat /etc/redhat-release | tr -dc '0-9.' | cut -d \. -f1`
-            sys_ver=.el${sys_ver}.x86
+            sys_ver=.el${sys_ver}.x86_64
         elif [[ ${sys_name} == "Fedora" ]]; then
             sys_ver=`cat /etc/redhat-release | cut -d ' ' -f3`
-            sys_ver=.fc${sys_ver}.x86
+            sys_ver=.fc${sys_ver}.x86_64
         fi
         pType="RPM"
     elif [[ -f "/etc/lsb-release" ]]; then
@@ -164,4 +170,3 @@ function package {
 # The main
 build $version $enablesanitizer $static_sanitizer $build_type
 package $strip_enable
-
