@@ -11,7 +11,6 @@ from nebula2.graph import ttypes
 from tests.common.nebula_test_suite import NebulaTestSuite
 from tests.common.nebula_test_suite import T_NULL
 
-# using _vid instead VertexID for vertex id column name not compatible to 1.0
 class TestFetchQuery(NebulaTestSuite):
     @classmethod
     def prepare(self):
