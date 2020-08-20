@@ -27,10 +27,10 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             if (!type.ok()) {
                 return type.status();
             }
-            if (type.value() != Value::Type::STRING) {
+            if (type.value() != space_.spaceDesc.vidType_) {
                 std::stringstream ss;
-                ss << "`" << src->toString() << "', the srcs should be type of string, "
-                   << "but was`" << type.value() << "'";
+                ss << "`" << src->toString() << "', the srcs should be type of "
+                   << space_.spaceDesc.vidType_ << ", but was`" << type.value() << "'";
                 return Status::Error(ss.str());
             }
             starts.srcRef = src;
@@ -49,8 +49,11 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                         expr->toString().c_str());
             }
             auto vid = expr->eval(ctx(nullptr));
-            if (!vid.isStr()) {
-                return Status::Error("Vid should be a string.");
+            auto vid = expr->eval(ctx);
+            if (!SchemaUtil::isValidVid(vid, space_.spaceDesc.vidType_)) {
+                std::stringstream ss;
+                ss << "Vid should be a " << space_.spaceDesc.vidType_;
+                return Status::Error(ss.str());
             }
             starts.vids.emplace_back(std::move(vid));
             startVidList_->add(expr->clone().release());

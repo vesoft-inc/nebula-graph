@@ -24,6 +24,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
     auto *dvNode = asNode<DeleteVertices>(node());
     auto vidRef = dvNode->getVidRef();
     std::vector<Value> vertices;
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     if (vidRef != nullptr) {
         auto inputVar = dvNode->inputVar();
         // empty inputVar means using pipe and need to get the GetNeighbors's inputVar
@@ -45,7 +46,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
                 VLOG(3) << "NULL or EMPTY vid";
                 continue;
             }
-            if (!val.isStr()) {
+            if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vidType_)) {
                 std::stringstream ss;
                 ss << "Wrong vid type `" << val.type() << "', value `" << val.toString() << "'";
                 return Status::Error(ss.str());
@@ -57,7 +58,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
     if (vertices.empty()) {
         return Status::OK();
     }
-    auto spaceId = qctx()->rctx()->session()->space().id;
+    auto spaceId = spaceInfo.id;
     time::Duration deleteVertTime;
     return qctx()->getStorageClient()->deleteVertices(spaceId, std::move(vertices))
         .via(runner())
@@ -81,6 +82,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
     auto *deNode = asNode<DeleteEdges>(node());
     auto edgeKeyRefs = deNode->getEdgeKeyRefs();
     std::vector<storage::cpp2::EdgeKey> edgeKeys;
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     if (!edgeKeyRefs.empty()) {
         auto& inputVar = deNode->inputVar();
         DCHECK(!inputVar.empty());
@@ -100,14 +102,14 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
                     VLOG(3) << "NULL or EMPTY vid";
                     continue;
                 }
-                if (!srcId.isStr()) {
+                if (!SchemaUtil::isValidVid(srcId, spaceInfo.spaceDesc.vidType_)) {
                     std::stringstream ss;
                     ss << "Wrong srcId type `" << srcId.type()
                        << "`, value `" << srcId.toString() << "'";
                     return Status::Error(ss.str());
                 }
                 auto dstId = Expression::eval(edgeKeyRef->dstid(), ctx(iter.get()));
-                if (!dstId.isStr()) {
+                if (!SchemaUtil::isValidVid(dstId, spaceInfo.spaceDesc.vidType_)) {
                     std::stringstream ss;
                     ss << "Wrong dstId type `" << dstId.type()
                        << "', value `" << dstId.toString() << "'";
@@ -150,7 +152,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
         return Status::OK();
     }
 
-    auto spaceId = qctx()->rctx()->session()->space().id;
+    auto spaceId = spaceInfo.id;
     time::Duration deleteEdgeTime;
     return qctx()->getStorageClient()->deleteEdges(spaceId, std::move(edgeKeys))
             .via(runner())
