@@ -8,11 +8,12 @@
 
 #include "common/base/Base.h"
 #include "common/charset/Charset.h"
-#include "util/SchemaUtil.h"
+#include "common/interface/gen-cpp2/meta_types.h"
 #include "parser/MaintainSentences.h"
-#include "service/GraphFlags.h"
 #include "planner/Admin.h"
 #include "planner/Query.h"
+#include "service/GraphFlags.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -47,6 +48,15 @@ Status CreateSpaceValidator::validateImpl() {
                         spaceDesc_.vidSize_ > std::numeric_limits<int32_t>::max()) {
                     return Status::Error("Vid_size value is incorrect");
                 }
+                break;
+            }
+            case SpaceOptItem::VID_TYPE: {
+                auto vidType = item->getVidType();
+                if (vidType != meta::cpp2::PropertyType::INT64 ||
+                        vidType != meta::cpp2::PropertyType::STRING) {
+                    return Status::Error("Only support STRING or INT64 vid type.");
+                }
+                spaceDesc_.vidType_ = SchemaUtil::propTypeToValueType(vidType);
                 break;
             }
             case SpaceOptItem::CHARSET: {

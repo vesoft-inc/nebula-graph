@@ -67,7 +67,7 @@ if(NOT NEBULA_COMMON_SOURCE_DIR)
         TAG
             ${NEBULA_COMMON_REPO_TAG}
         UPDATE
-            ${ENEBULA_COMMON_REPO_URLNABLE_MODULE_UPDATE}
+            ${ENABLE_MODULE_UPDATE}
     )
     set(nebula_common_source_dir ${CMAKE_SOURCE_DIR}/modules/common)
     set(nebula_common_build_dir ${CMAKE_BINARY_DIR}/modules/common)

@@ -127,6 +127,7 @@ public:
         PARTITION_NUM,
         REPLICA_FACTOR,
         VID_SIZE,
+        VID_TYPE,
         CHARSET,
         COLLATE
     };
@@ -181,6 +182,15 @@ public:
         } else {
             LOG(ERROR) << "vid size illegal.";
             return 0;
+        }
+    }
+
+    meta::cpp2::PropertyType getVidType() const {
+        if (isInt()) {
+            return static_cast<meta::cpp2::PropertyType>(asInt());
+        } else {
+            LOG(ERROR) << "vid type illegal.";
+            return meta::cpp2::PropertyType::UNKNOWN;
         }
     }
 
