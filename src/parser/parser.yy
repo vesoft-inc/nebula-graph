@@ -754,7 +754,6 @@ vid_list
     }
     ;
 
-/* The difference from 1.0 is that 2.0 only supports vid of type STRING */
 vid
     : function_call_expression {
         $$ = $1;
@@ -765,6 +764,9 @@ vid
     | STRING {
         $$ = new ConstantExpression(*$1);
         delete $1;
+    }
+    | legal_integer {
+        $$ = new ConstantExpression($1);
     }
     ;
 

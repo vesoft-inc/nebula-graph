@@ -76,8 +76,11 @@ folly::Future<Status> DropSpaceExecutor::execute() {
                                << "' failed: " << resp.status();
                     return resp.status();
                 }
-                if (dsNode->getSpaceName() == qctx()->rctx()->session()->spaceName()) {
-                    qctx()->rctx()->session()->setSpace("", -1);
+                if (dsNode->getSpaceName() == qctx()->rctx()->session()->space().name) {
+                    SpaceInfo spaceInfo;
+                    spaceInfo.name = "";
+                    spaceInfo.id = -1;
+                    qctx()->rctx()->session()->setSpace(std::move(spaceInfo));
                 }
                 return Status::OK();
             });

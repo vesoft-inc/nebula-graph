@@ -199,8 +199,9 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
 
     // Check if space chosen from session. if chosen, add it to context.
     auto session = qctx->rctx()->session();
-    if (session->space() > -1) {
-        qctx->vctx()->switchToSpace(session->spaceName(), session->space());
+    if (session->space().id > -1) {
+        auto spaceInfo = session->space();
+        qctx_->vctx()->switchToSpace(std::move(spaceInfo));
     }
 
     auto validator = makeValidator(sentence, qctx);

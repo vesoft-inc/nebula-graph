@@ -116,10 +116,10 @@ folly::dynamic toJson(const meta::cpp2::AlterSchemaItem &item) {
 folly::dynamic toJson(const storage::cpp2::EdgeKey &edgeKey) {
     folly::dynamic edgeKeyObj = folly::dynamic::object();
     if (edgeKey.__isset.src) {
-        edgeKeyObj.insert("src", edgeKey.get_src());
+        edgeKeyObj.insert("src", toJson(edgeKey.get_src()));
     }
     if (edgeKey.__isset.dst) {
-        edgeKeyObj.insert("dst", edgeKey.get_dst());
+        edgeKeyObj.insert("dst", toJson(edgeKey.get_dst()));
     }
     if (edgeKey.__isset.edge_type) {
         edgeKeyObj.insert("edgeType", edgeKey.get_edge_type());
@@ -144,7 +144,7 @@ folly::dynamic toJson(const storage::cpp2::NewTag &tag) {
 folly::dynamic toJson(const storage::cpp2::NewVertex &vert) {
     folly::dynamic vertObj = folly::dynamic::object();
     if (vert.__isset.id) {
-        vertObj.insert("id", vert.get_id());
+        vertObj.insert("id", toJson(vert.get_id()));
     }
     if (vert.__isset.tags) {
         vertObj.insert("tags", util::toJson(vert.get_tags()));

@@ -351,5 +351,14 @@ Value::Type SchemaUtil::propTypeToValueType(meta::cpp2::PropertyType propType) {
     }
     return Value::Type::__EMPTY__;
 }
+
+bool SchemaUtil::validVretexId(const Value &value, Value::Type vidType) {
+    if (vidType != Value::Type::STRING
+            || vidType != Value::Type::INT  // compatible with 1.0
+            || value.type() != vidType) {
+        return false;
+    }
+    return true;
+}
 }  // namespace graph
 }  // namespace nebula
