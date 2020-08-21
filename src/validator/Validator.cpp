@@ -32,7 +32,10 @@
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/YieldValidator.h"
+#include "validator/GroupByValidator.h"
+#include "validator/MatchValidator.h"
 #include "visitor/EvaluableExprVisitor.h"
+#include "common/function/FunctionManager.h"
 
 namespace nebula {
 namespace graph {
@@ -160,6 +163,7 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
         case Sentence::Kind::kShowConfigs:
             return std::make_unique<ShowConfigsValidator>(sentence, context);
         case Sentence::Kind::kMatch:
+            return std::make_unique<MatchValidator>(sentence, context);
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kCreateTagIndex:
         case Sentence::Kind::kShowCreateTagIndex:
