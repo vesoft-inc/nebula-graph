@@ -403,55 +403,38 @@ private:
  */
 class IndexScan final : public Explore {
 public:
-    static IndexScan* make(QueryContext* qctx, PlanNode* input, GraphSpaceID space) {
-        return qctx->objPool()->add(new IndexScan(qctx->genId(), input, space));
-    }
-
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
-
-private:
-    IndexScan(int64_t id, PlanNode* input, GraphSpaceID space)
-        : Explore(id, Kind::kIndexScan, input, space) {}
-};
-
-/**
- * Lookup through index.
- */
-class Lookup final : public Explore {
-public:
     using IndexQueryCtx = std::unique_ptr<std::vector<storage::cpp2::IndexQueryContext>>;
     using IndexReturnCols = std::unique_ptr<std::vector<std::string>>;
 
-    static Lookup* make(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space) {
-        return new Lookup(plan, input, space);
+    static IndexScan* make(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space) {
+        return new IndexScan(plan, input, space);
     }
 
-    static Lookup* make(ExecutionPlan* plan,
-                        PlanNode* input,
-                        GraphSpaceID space,
-                        IndexQueryCtx&& contexts,
-                        IndexReturnCols&& returnCols,
-                        bool isEdge,
-                        int32_t schemaId,
-                        bool dedup = false,
-                        std::vector<storage::cpp2::OrderBy> orderBy = {},
-                        int64_t limit = std::numeric_limits<int64_t>::max(),
-                        std::string filter = "") {
-        return new Lookup(
-            plan,
-            input,
-            space,
-            std::move(contexts),
-            std::move(returnCols),
-            isEdge,
-            schemaId,
-            dedup,
-            std::move(orderBy),
-            limit,
-            std::move(filter));
+    static IndexScan* make(ExecutionPlan* plan,
+                           PlanNode* input,
+                           GraphSpaceID space,
+                           IndexQueryCtx&& contexts,
+                           IndexReturnCols&& returnCols,
+                           bool isEdge,
+                           int32_t schemaId,
+                           bool dedup = false,
+                           std::vector<storage::cpp2::OrderBy> orderBy = {},
+                           int64_t limit = std::numeric_limits<int64_t>::max(),
+                           std::string filter = "") {
+        return new IndexScan(plan,
+                             input,
+                             space,
+                             std::move(contexts),
+                             std::move(returnCols),
+                             isEdge,
+                             schemaId,
+                             dedup,
+                             std::move(orderBy),
+                             limit,
+                             std::move(filter));
     }
 
-    std::string explain() const override;
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
     const std::vector<storage::cpp2::IndexQueryContext>* queryContext() const {
         return contexts_.get();
@@ -473,7 +456,7 @@ public:
         contexts_ = std::move(contexts);
     }
 
-    void setreturnCols(IndexReturnCols cols) {
+    void setReturnCols(IndexReturnCols cols) {
         returnCols_ = std::move(cols);
     }
 
@@ -486,10 +469,10 @@ public:
     }
 
 private:
-    Lookup(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
-    : Explore(plan, Kind::kLookup, input, space) {}
+    IndexScan(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
+    : Explore(plan, Kind::kIndexScan, input, space) {}
 
-    Lookup(ExecutionPlan* plan,
+    IndexScan(ExecutionPlan* plan,
            PlanNode* input,
            GraphSpaceID space,
            IndexQueryCtx&& contexts,
@@ -501,7 +484,7 @@ private:
            int64_t limit,
            std::string filter)
     : Explore(plan,
-              Kind::kLookup,
+              Kind::kIndexScan,
               input,
               space,
               dedup,

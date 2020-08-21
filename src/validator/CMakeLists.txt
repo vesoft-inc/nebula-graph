@@ -27,7 +27,6 @@ nebula_add_library(
     TraversalValidator.cpp
     ExplainValidator.cpp
     GroupByValidator.cpp
-    LookupValidator.cpp
 )
 
 nebula_add_subdirectory(test)

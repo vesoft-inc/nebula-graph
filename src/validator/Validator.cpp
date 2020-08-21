@@ -32,7 +32,6 @@
 #include "validator/YieldValidator.h"
 #include "validator/GroupByValidator.h"
 #include "common/function/FunctionManager.h"
-#include "validator/LookupValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -183,10 +182,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             // nothing
             DLOG(FATAL) << "Unimplemented sentence " << kind;
         }
-        case Sentence::Kind::kLookup:
-          return std::make_unique<LookupValidator>(sentence, context);
-        default:
-            return std::make_unique<ReportError>(sentence, context);
     }
     DLOG(FATAL) << "Unknown sentence " << static_cast<int>(kind);
     return std::make_unique<ReportError>(sentence, context);
