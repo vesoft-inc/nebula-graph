@@ -128,8 +128,8 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
  * n steps   history: collectVid{-n+1} ...  collectVid{-1} collectVid{0}
  */
 Expression* GetSubgraphValidator::buildFilterCondition(int64_t step) {
-    // where *._dst IN startVids OR *._dst IN collectVid{0}[0][0] OR *._dst IN collectVid{1}[0][0]
-    // OR ... *._dst IN collectVid{step}[0][0]
+    // where *._dst IN startVids OR *._dst IN collectVid{0}[0][0] OR *._dst IN collectVid{-1}[0][0]
+    // OR ... *._dst IN collectVid{-step+1}[0][0]
     auto* dst = new EdgeDstIdExpression(new std::string("*"));
     if (step == 1) {
         auto* lastestVidsDataSet =
@@ -234,7 +234,7 @@ Status GetSubgraphValidator::toPlan() {
     filter->setColNames({kVid});
 
     // datacollect
-    std::vector<std::string> collects = {gn->varName(), gn1->varName()};
+    std::vector<std::string> collects = {gn->varName(), filter->varName()};
     auto* dc =
         DataCollect::make(plan, filter, DataCollect::CollectKind::kSubgraph, std::move(collects));
     dc->setInputVar(filter->varName());
