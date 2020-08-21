@@ -52,9 +52,12 @@ Status CreateSpaceValidator::validateImpl() {
             }
             case SpaceOptItem::VID_TYPE: {
                 auto vidType = item->getVidType();
-                if (vidType != meta::cpp2::PropertyType::INT64 ||
+                if (vidType != meta::cpp2::PropertyType::INT64 &&
                         vidType != meta::cpp2::PropertyType::STRING) {
-                    return Status::Error("Only support STRING or INT64 vid type.");
+                    std::stringstream ss;
+                    ss << "Only support STRING or INT64 vid type, but was given "
+                       << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType);
+                    return Status::Error(ss.str());
                 }
                 spaceDesc_.vidType_ = SchemaUtil::propTypeToValueType(vidType);
                 break;
