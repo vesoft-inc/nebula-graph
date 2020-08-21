@@ -41,11 +41,28 @@ set(OPTIMIZER_TEST_LIB
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:optimizer_obj>
 )
+
 nebula_add_test(
     NAME
         index_bound_value_test
     SOURCES
         IndexBoundValueTest.cpp
+    OBJECTS
+        ${OPTIMIZER_TEST_LIB}
+    LIBRARIES
+        proxygenhttpserver
+        proxygenlib
+        ${THRIFT_LIBRARIES}
+        wangle
+        gtest
+        gtest_main
+)
+
+nebula_add_test(
+    NAME
+        logical_expr_pull_test
+    SOURCES
+        LogicalExprPullTest.cpp
     OBJECTS
         ${OPTIMIZER_TEST_LIB}
     LIBRARIES
