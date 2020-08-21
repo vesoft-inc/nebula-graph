@@ -13,7 +13,6 @@
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/TraverseSentences.h"
 #include "planner/Logic.h"
-#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {

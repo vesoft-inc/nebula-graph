@@ -6,6 +6,7 @@
 
 #include "validator/TraversalValidator.h"
 #include "common/expression/VariableExpression.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {

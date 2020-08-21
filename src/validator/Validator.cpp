@@ -201,7 +201,7 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
     auto session = qctx->rctx()->session();
     if (session->space().id > -1) {
         auto spaceInfo = session->space();
-        qctx_->vctx()->switchToSpace(std::move(spaceInfo));
+        qctx->vctx()->switchToSpace(std::move(spaceInfo));
     }
 
     auto validator = makeValidator(sentence, qctx);
