@@ -155,6 +155,18 @@ Status ShowCreateSpaceValidator::validateImpl() {
     return Status::OK();
 }
 
+Status ShowCreateSpaceValidator::checkPermission() {
+    auto sentence = static_cast<ShowCreateSpaceSentence*>(sentence_);
+    auto spaceIdResult = qctx_->schemaMng()->toGraphSpaceID(*sentence->spaceName());
+    NG_RETURN_IF_ERROR(spaceIdResult);
+    auto targetSpaceId = spaceIdResult.value();
+    if (!PermissionManager::canReadSpace(qctx_->rctx()->session(), targetSpaceId)) {
+        return Status::PermissionError("No permission to read space `%s'.",
+                                       sentence->spaceName()->c_str());
+    }
+    return Status::OK();
+}
+
 Status ShowCreateSpaceValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto sentence = static_cast<ShowCreateSpaceSentence*>(sentence_);

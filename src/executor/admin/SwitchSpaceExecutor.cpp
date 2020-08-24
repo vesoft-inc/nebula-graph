@@ -6,6 +6,7 @@
 
 #include "executor/admin/SwitchSpaceExecutor.h"
 
+#include "service/PermissionManager.h"
 #include "planner/Query.h"
 #include "context/QueryContext.h"
 #include "util/ScopedTimer.h"
@@ -26,6 +27,11 @@ folly::Future<Status> SwitchSpaceExecutor::execute() {
                     return resp.status();
                 }
                 auto spaceId = resp.value().get_space_id();
+                auto *session = qctx_->rctx()->session();
+                if (!PermissionManager::canReadSpace(session, spaceId)) {
+                    return Status::PermissionError("Permission denied");
+                }
+
                 qctx_->rctx()->session()->setSpace(spaceName, spaceId);
                 LOG(INFO) << "Graph space switched to `" << spaceName
                           << "', space id: " << spaceId;

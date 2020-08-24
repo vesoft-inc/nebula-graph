@@ -17,30 +17,55 @@ from nebula2.graph import ttypes
 class TestPermission(NebulaTestSuite):
     @classmethod
     def prepare(self):
-        # TODO(shylock) enable authorize by update config
-        pass
+        resp = self.client.execute('UPDATE CONFIGS graph:enable_authorize=true')
+        self.check_resp_succeeded(resp)
+        time.sleep(self.delay)
 
     @classmethod
     def cleanup(self):
-        # TODO(shylock) disable authorize by update config
-        result = self.switch_user(pytest.cmdline.user, pytest.cmdline.password)
-        assert result
+        self.switch_user('root', 'nebula')
+        resp = self.client.execute('UPDATE CONFIGS graph:enable_authorize=false')
+        self.check_resp_succeeded(resp)
+        time.sleep(self.delay)
+        resp = self.switch_user(pytest.cmdline.user, pytest.cmdline.password)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP SPACE my_space'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP SPACE space1'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP SPACE space2'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP SPACE space3'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'DROP SPACE space4'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
 
     def test_simple(self):
         # incorrect user/password
         result =  self.switch_user('root', 'pwd')
-        assert not result
+        self.check_resp_failed(result)
 
         result = self.switch_user('user', 'nebula')
-        assert not result
+        self.check_resp_failed(result)
 
         result = self.switch_user('root', 'nebula')
-        assert result
+        self.check_resp_succeeded(result)
 
         # test root user password and use space.
         query = 'CREATE SPACE my_space(partition_num=1, replica_factor=1)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
+        time.sleep(self.delay)
 
         query = 'USE my_space; CREATE TAG person(name string)'
         resp = self.execute(query)
@@ -66,9 +91,11 @@ class TestPermission(NebulaTestSuite):
         time.sleep(self.delay)
 
         # verify password changed
-        assert not self.switch_user("root", "nebula")
+        result = self.switch_user("root", "nebula")
+        self.check_resp_failed(result)
 
-        assert self.switch_user('root', 'bb')
+        result = self.switch_user('root', 'bb')
+        self.check_resp_succeeded(result)
 
         query = 'CHANGE PASSWORD root FROM "bb" TO "nebula"'
         resp = self.execute(query)
@@ -99,7 +126,8 @@ class TestPermission(NebulaTestSuite):
         # TODO(shylock) check result
         time.sleep(self.delay)
 
-        assert self.switch_user('admin', 'admin')
+        resp = self.switch_user('admin', 'admin')
+        self.check_resp_succeeded(resp)
         query = 'ALTER USER root WITH PASSWORD "root"'
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
@@ -125,13 +153,15 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        assert self.switch_user('root', 'nebula')
+        resp = self.switch_user('root', 'nebula')
+        self.check_resp_succeeded(resp)
         query = 'DROP USER admin'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
     def test_schema_and_data(self):
-        assert self.switch_user('root', 'nebula')
+        resp = self.switch_user('root', 'nebula')
+        self.check_resp_succeeded(resp)
 
         query = 'CREATE SPACE space2(partition_num=1, replica_factor=1)'
         resp = self.execute(query)
@@ -185,13 +215,14 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = 'CREATE TAG INDEX tid1 ON t1(t_c)';
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # TODO(shylock) not supported sentence
+        # query = 'CREATE TAG INDEX tid1 ON t1(t_c)';
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = 'CREATE EDGE INDEX eid1 ON e1(e_c)';
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = 'CREATE EDGE INDEX eid1 ON e1(e_c)';
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
         query = 'DESCRIBE TAG t1';
         resp = self.execute(query)
@@ -201,21 +232,22 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = 'DESCRIBE TAG INDEX tid1';
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # TODO(shylock) not supported sentence
+        # query = 'DESCRIBE TAG INDEX tid1';
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = 'DESCRIBE EDGE INDEX eid1';
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = 'DESCRIBE EDGE INDEX eid1';
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = 'DROP TAG INDEX tid1';
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = 'DROP TAG INDEX tid1';
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = 'DROP EDGE INDEX eid1';
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = 'DROP EDGE INDEX eid1';
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
         query = 'ALTER TAG t1 DROP (t_c)';
         resp = self.execute(query)
@@ -235,7 +267,8 @@ class TestPermission(NebulaTestSuite):
         time.sleep(self.delay)
 
         # admin write schema test
-        assert self.switch_user('admin', 'admin')
+        resp = self.switch_user('admin', 'admin')
+        self.check_resp_succeeded(resp)
      
         query = 'USE space2'
         resp = self.execute(query)
@@ -249,13 +282,14 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "CREATE TAG INDEX tid1 ON t1(t_c)";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # TODO(shylock) not supported sentence
+        # query = "CREATE TAG INDEX tid1 ON t1(t_c)";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = "CREATE EDGE INDEX eid1 ON e1(e_c)";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = "CREATE EDGE INDEX eid1 ON e1(e_c)";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
         query = "DESCRIBE TAG t1";
         resp = self.execute(query)
@@ -265,21 +299,22 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "DESCRIBE TAG INDEX tid1";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # TODO(shylock) not supported sentence
+        # query = "DESCRIBE TAG INDEX tid1";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = "DESCRIBE EDGE INDEX eid1";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = "DESCRIBE EDGE INDEX eid1";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = "DROP TAG INDEX tid1";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = "DROP TAG INDEX tid1";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = "DROP EDGE INDEX eid1";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = "DROP EDGE INDEX eid1";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
         query = "ALTER TAG t1 DROP (t_c)";
         resp = self.execute(query)
@@ -299,7 +334,8 @@ class TestPermission(NebulaTestSuite):
         time.sleep(self.delay)
 
         # dba write schema test
-        assert self.switch_user('dba', 'dba')
+        resp = self.switch_user('dba', 'dba')
+        self.check_resp_succeeded(resp)
         query = 'USE space2'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
@@ -312,13 +348,14 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "CREATE TAG INDEX tid1 ON t1(t_c)";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # TODO(shylock) not supported index
+        # query = "CREATE TAG INDEX tid1 ON t1(t_c)";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = "CREATE EDGE INDEX eid1 ON e1(e_c)";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = "CREATE EDGE INDEX eid1 ON e1(e_c)";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
         query = "DESCRIBE TAG t1";
         resp = self.execute(query)
@@ -328,21 +365,22 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "DESCRIBE TAG INDEX tid1";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # TODO(shylock) not supported index
+        # query = "DESCRIBE TAG INDEX tid1";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = "DESCRIBE EDGE INDEX eid1";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = "DESCRIBE EDGE INDEX eid1";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = "DROP TAG INDEX tid1";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = "DROP TAG INDEX tid1";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
-        query = "DROP EDGE INDEX eid1";
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
+        # query = "DROP EDGE INDEX eid1";
+        # resp = self.execute(query)
+        # self.check_resp_succeeded(resp)
 
         query = "ALTER TAG t1 DROP (t_c)";
         resp = self.execute(query)
@@ -362,7 +400,8 @@ class TestPermission(NebulaTestSuite):
         time.sleep(self.delay)
 
         # user write schema test
-        assert self.switch_user('user', 'user')
+        resp = self.switch_user('user', 'user')
+        self.check_resp_succeeded(resp)
 
         query = 'USE space2'
         resp = self.execute(query)
@@ -376,13 +415,14 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        query = "CREATE TAG INDEX tid1 ON t1(t_c)";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
+        # TODO(shylock) not supported index
+        # query = "CREATE TAG INDEX tid1 ON t1(t_c)";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        query = "CREATE EDGE INDEX eid1 ON e1(e_c)";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
+        # query = "CREATE EDGE INDEX eid1 ON e1(e_c)";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
         query = "DESCRIBE TAG t1";
         resp = self.execute(query)
@@ -392,21 +432,22 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
 
-        query = "DESCRIBE TAG INDEX tid1";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
+        # TODO(shylock) not supported sentence
+        # query = "DESCRIBE TAG INDEX tid1";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
 
-        query = "DESCRIBE EDGE INDEX eid1";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
+        # query = "DESCRIBE EDGE INDEX eid1";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
 
-        query = "DROP TAG INDEX tid1";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
+        # query = "DROP TAG INDEX tid1";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        query = "DROP EDGE INDEX eid1";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
+        # query = "DROP EDGE INDEX eid1";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
         query = "ALTER TAG t1 DROP (t_c)";
         resp = self.execute(query)
@@ -426,7 +467,8 @@ class TestPermission(NebulaTestSuite):
         time.sleep(self.delay)
 
         # guest write schema test
-        assert self.switch_user('guest', 'guest')
+        resp = self.switch_user('guest', 'guest')
+        self.check_resp_succeeded(resp)
         query = 'USE space2'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
@@ -439,13 +481,14 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        query = "CREATE TAG INDEX tid1 ON t1(t_c)";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
+        # TODO(shylock) not supported sentence
+        # query = "CREATE TAG INDEX tid1 ON t1(t_c)";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        query = "CREATE EDGE INDEX eid1 ON e1(e_c)";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
+        # query = "CREATE EDGE INDEX eid1 ON e1(e_c)";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
         query = "DESCRIBE TAG t1";
         resp = self.execute(query)
@@ -455,21 +498,22 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
 
-        query = "DESCRIBE TAG INDEX tid1";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
+        # TODO(shylock) not supported sentence
+        # query = "DESCRIBE TAG INDEX tid1";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
 
-        query = "DESCRIBE EDGE INDEX eid1";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
+        # query = "DESCRIBE EDGE INDEX eid1";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
 
-        query = "DROP TAG INDEX tid1";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
+        # query = "DROP TAG INDEX tid1";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        query = "DROP EDGE INDEX eid1";
-        resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
+        # query = "DROP EDGE INDEX eid1";
+        # resp = self.execute(query)
+        # self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
         query = "ALTER TAG t1 DROP (t_c)";
         resp = self.execute(query)
@@ -488,6 +532,13 @@ class TestPermission(NebulaTestSuite):
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
         # god write data test
+        resp = self.switch_user('root', 'nebula')
+        self.check_resp_succeeded(resp)
+
+        query = 'USE space2'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
         query = 'CREATE TAG t1(t_c int)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
@@ -497,72 +548,101 @@ class TestPermission(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         time.sleep(self.delay)
 
-        query = "INSERT VERTEX t1(t_c) VALUES 1:(1)";
+        query = 'INSERT VERTEX t1(t_c) VALUES "1":(1)';
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "INSERT EDGE e1(e_c) VALUES 1 -> 2:(95)";
+        query = 'INSERT EDGE e1(e_c) VALUES "1" -> "2":(95)';
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "GO FROM 1 OVER e1";
+        query = 'GO FROM "1" OVER e1';
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
         # admin write data test
-        query = 'INSERT VERTEX t1(t_c) VALUES 1:(1)'
+        resp = self.switch_user('admin', 'admin')
+        self.check_resp_succeeded(resp)
+
+        query = 'USE space2'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "INSERT EDGE e1(e_c) VALUES 1 -> 2:(95)";
+        query = 'INSERT VERTEX t1(t_c) VALUES "1":(1)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "GO FROM 1 OVER e1";
+        query = 'INSERT EDGE e1(e_c) VALUES "1" -> "2":(95)';
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'GO FROM "1" OVER e1';
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
         # dba write data test
-        query = 'INSERT VERTEX t1(t_c) VALUES 1:(1)'
+        resp = self.switch_user('dba', 'dba')
+        self.check_resp_succeeded(resp)
+
+        query = 'USE space2'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "INSERT EDGE e1(e_c) VALUES 1 -> 2:(95)";
+        query = 'INSERT VERTEX t1(t_c) VALUES "1":(1)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "GO FROM 1 OVER e1";
+        query = 'INSERT EDGE e1(e_c) VALUES "1" -> "2":(95)';
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'GO FROM "1" OVER e1';
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
         # user write data test
-        query = 'INSERT VERTEX t1(t_c) VALUES 1:(1)'
+        resp = self.switch_user('user', 'user')
+        self.check_resp_succeeded(resp)
+
+        query = 'USE space2'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "INSERT EDGE e1(e_c) VALUES 1 -> 2:(95)";
+        query = 'INSERT VERTEX t1(t_c) VALUES "1":(1)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        query = "GO FROM 1 OVER e1";
+        query = 'INSERT EDGE e1(e_c) VALUES "1" -> "2":(95)';
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'GO FROM "1" OVER e1';
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
         # guest write data test
-        query = 'INSERT VERTEX t1(t_c) VALUES 1:(1)'
+        resp = self.switch_user('guest', 'guest')
+        self.check_resp_succeeded(resp)
+
+        query = 'USE space2'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
+
+        query = 'INSERT VERTEX t1(t_c) VALUES "1":(1)'
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        query = "INSERT EDGE e1(e_c) VALUES 1 -> 2:(95)";
+        query = 'INSERT EDGE e1(e_c) VALUES "1" -> "2":(95)';
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        query = "GO FROM 1 OVER e1";
+        query = 'GO FROM "1" OVER e1';
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
         # use space test
-        assert self.switch_user('root', 'nebula')
+        resp = self.switch_user('root', 'nebula')
+        self.check_resp_succeeded(resp)
         query = "CREATE SPACE space3(partition_num=1, replica_factor=1)";
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
@@ -572,53 +652,73 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        assert self.switch_user('admin', 'admin')
+        resp = self.switch_user('admin', 'admin')
+        self.check_resp_succeeded(resp)
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        assert self.switch_user('dba', 'dba')
+        resp = self.switch_user('dba', 'dba')
+        self.check_resp_succeeded(resp)
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        assert self.switch_user('user', 'user')
+        resp = self.switch_user('user', 'user')
+        self.check_resp_succeeded(resp)
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        assert self.switch_user('guest', 'guest')
+        resp = self.switch_user('guest', 'guest')
+        self.check_resp_succeeded(resp)
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
     def test_show_test(self):
-        assert self.switch_user('root', 'nebula')
+        resp = self.switch_user('root', 'nebula')
+        self.check_resp_succeeded(resp)
         query = 'CREATE SPACE space4(partition_num=1, replica_factor=1)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
         time.sleep(self.delay)
 
         query = 'SHOW SPACES'
-        resp = self.execute(query)
+        resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
-        # TODO(shylock) check result
+        expected_column_names = ['Name']
+        expected_result = [['my_space'], ['nba'], ['space1'], ['space2'], ['space3'], ['space4']]
+        self.check_column_names(resp, expected_column_names)
+        self.check_out_of_order_result(resp, expected_result)
 
-        assert self.switch_user('admin', 'admin')
-        resp = self.execute(query)
+        resp = self.switch_user('admin', 'admin')
         self.check_resp_succeeded(resp)
-        # TODO(shylock) check result
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        expected_result = [['space2']]
+        self.check_column_names(resp, expected_column_names)
+        self.check_out_of_order_result(resp, expected_result)
 
-        assert self.switch_user('dba', 'dba')
-        resp = self.execute(query)
+        resp = self.switch_user('dba', 'dba')
         self.check_resp_succeeded(resp)
-        # TODO(shylock) check result
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        expected_result = [['space2']]
+        self.check_column_names(resp, expected_column_names)
+        self.check_out_of_order_result(resp, expected_result)
 
-        assert self.switch_user('user', 'user')
-        resp = self.execute(query)
+        resp = self.switch_user('user', 'user')
         self.check_resp_succeeded(resp)
-        # TODO(shylock) check result
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        expected_result = [['space2']]
+        self.check_column_names(resp, expected_column_names)
+        self.check_out_of_order_result(resp, expected_result)
 
-        assert self.switch_user('guest', 'guest')
-        resp = self.execute(query)
+        resp = self.switch_user('guest', 'guest')
         self.check_resp_succeeded(resp)
-        # TODO(shylock) check result
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        expected_result = [['space2']]
+        self.check_column_names(resp, expected_column_names)
+        self.check_out_of_order_result(resp, expected_result)
 
         query = 'SHOW ROLES IN space1'
         resp = self.execute(query)
@@ -628,28 +728,33 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        assert self.switch_user('root', 'nebula')
+        resp = self.switch_user('root', 'nebula')
+        self.check_resp_succeeded(resp)
         query = 'SHOW ROLES IN space1'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        assert self.switch_user('guest', 'guest')
+        resp = self.switch_user('guest', 'guest')
+        self.check_resp_succeeded(resp)
         query = 'SHOW CREATE SPACE space1'
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
 
-        assert self.switch_user('root', 'nebula')
+        resp = self.switch_user('root', 'nebula')
+        self.check_resp_succeeded(resp)
         query = 'SHOW CREATE SPACE space1'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        assert self.switch_user('guest', 'guest')
+        resp = self.switch_user('guest', 'guest')
+        self.check_resp_succeeded(resp)
         query = 'SHOW CREATE SPACE space2'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
     def test_show_roles(self):
-        assert self.switch_user('root', 'nebula')
+        resp = self.switch_user('root', 'nebula')
+        self.check_resp_succeeded(resp)
         query = 'CREATE SPACE space5(partition_num=1, replica_factor=1)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
@@ -679,23 +784,31 @@ class TestPermission(NebulaTestSuite):
                            ['admin', 'ADMIN']]
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
-        self.check_result(resp, expected_result)
+        self.check_out_of_order_result(resp, expected_result)
 
-        assert self.switch_user('admin', 'admin')
+        resp = self.switch_user('admin', 'admin')
         self.check_resp_succeeded(resp)
-        self.check_result(resp, expected_result)
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        self.check_out_of_order_result(resp, expected_result)
 
-        assert self.switch_user('dba', 'dba')
+        resp = self.switch_user('dba', 'dba')
+        self.check_resp_succeeded(resp)
         expected_result = [['dba', 'DBA']]
+        resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
-        self.check_result(resp, expected_result)
+        self.check_out_of_order_result(resp, expected_result)
 
-        assert self.switch_user('user', 'user')
+        resp = self.switch_user('user', 'user')
+        self.check_resp_succeeded(resp)
         expected_result = [['user', 'USER']]
+        resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
-        self.check_result(resp, expected_result)
+        self.check_out_of_order_result(resp, expected_result)
 
-        assert self.switch_user('guest', 'guest')
-        expected_result = [['guest', 'GUEST']]
+        resp = self.switch_user('guest', 'guest')
         self.check_resp_succeeded(resp)
-        self.check_result(resp, expected_result)
+        expected_result = [['guest', 'GUEST']]
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        self.check_out_of_order_result(resp, expected_result)

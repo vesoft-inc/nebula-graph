@@ -77,6 +77,13 @@ function run_ctest() {
 
 function run_test() {
     cd $BUILD_DIR/tests
+    # when run in parallel enable authrize will affect other tests
+    ./ntr \
+        -n=1 \
+        --dist=loadfile \
+        --debug_log=false \
+        $PROJ_DIR/tests/standalone/test_permission.py
+
     ./ntr \
         -n=8 \
         --dist=loadfile \

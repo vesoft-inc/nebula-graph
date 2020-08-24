@@ -140,7 +140,7 @@ class NebulaTestSuite(object):
         self.password = password
         self.client._user = self.user
         self.client._password = self.password
-        return self.client.reconnect()
+        return self.client.authenticate(user, password)
 
     @classmethod
     def close_nebula_clients(self):

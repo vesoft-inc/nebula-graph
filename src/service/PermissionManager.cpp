@@ -42,6 +42,9 @@ bool PermissionManager::canReadSchemaOrData(Session *session) {
         LOG(ERROR) << "The space name is not set";
         return false;
     }
+    if (!FLAGS_enable_authorize) {
+        return true;
+    }
     if (session->isGod()) {
         return true;
     }
@@ -66,6 +69,9 @@ bool PermissionManager::canReadSchemaOrData(Session *session) {
 
 // static
 bool PermissionManager::canWriteSpace(Session *session) {
+    if (!FLAGS_enable_authorize) {
+        return true;
+    }
     return session->isGod();
 }
 
@@ -74,6 +80,9 @@ bool PermissionManager::canWriteSchema(Session *session) {
     if (session->space() == -1) {
         LOG(ERROR) << "The space name is not set";
         return false;
+    }
+    if (!FLAGS_enable_authorize) {
+        return true;
     }
     if (session->isGod()) {
         return true;
@@ -100,6 +109,9 @@ bool PermissionManager::canWriteSchema(Session *session) {
 
 // static
 bool PermissionManager::canWriteUser(Session *session) {
+    if (!FLAGS_enable_authorize) {
+        return true;
+    }
     return session->isGod();
 }
 
@@ -147,6 +159,9 @@ bool PermissionManager::canWriteData(Session *session) {
     if (session->space() == -1) {
         LOG(ERROR) << "The space name is not set";
         return false;
+    }
+    if (!FLAGS_enable_authorize) {
+        return true;
     }
     if (session->isGod()) {
         return true;

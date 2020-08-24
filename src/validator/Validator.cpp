@@ -6,6 +6,7 @@
 
 #include "validator/Validator.h"
 
+#include "service/GraphFlags.h"
 #include "parser/Sentence.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
@@ -27,7 +28,7 @@
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
 #include "validator/ACLValidator.h"
-#include  "validator/BalanceValidator.h"
+#include "validator/BalanceValidator.h"
 #include "validator/AdminJobValidator.h"
 #include "validator/YieldValidator.h"
 #include "validator/GroupByValidator.h"
@@ -307,9 +308,14 @@ Status Validator::validate() {
 
     auto status = validateImpl();
     if (!status.ok()) {
-        if (status.isSemanticError()) return status;
+        if (status.isSemanticError() || status.isPermissionError()) {
+            return status;
+        }
         return Status::SemanticError(status.message());
     }
+
+    // Execute after validateImpl because need field from it
+    NG_RETURN_IF_ERROR(checkPermission());
 
     status = toPlan();
     if (!status.ok()) {

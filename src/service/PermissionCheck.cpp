@@ -148,14 +148,16 @@ bool PermissionCheck::permissionCheck(Session *session,
              */
             return true;
         }
-        case Sentence::Kind::kShowSpaces:
-        case Sentence::Kind::kShowCreateSpace:
-        case Sentence::Kind::kShowRoles: {
+        case Sentence::Kind::kShowSpaces: {
             /*
              * Above operations are special operation.
              * can not get the space id via session,
              * Permission checking needs to be done in their executor.
              */
+            return true;
+        }
+        case Sentence::Kind::kShowCreateSpace:
+        case Sentence::Kind::kShowRoles: {
             return PermissionManager::canReadSpace(session, targetSpace);
         }
         case Sentence::Kind::kShowUsers:
@@ -169,9 +171,13 @@ bool PermissionCheck::permissionCheck(Session *session,
             return true;
         }
         case Sentence::Kind::kExplain:
-        case Sentence::Kind::kSequential:
-            LOG(FATAL) << "Impossible sequential sentences permission checking";
+            LOG(FATAL) << "Impossible permission checking for sentence " << sentence->kind();
+        case Sentence::Kind::kSequential: {
+            // No permission checking for sequential sentence.
+            return true;
+        }
     }
+    DLOG(FATAL) << "Impossible permission checking for sentence " << sentence->kind();
     return false;
 }
 }  // namespace graph
