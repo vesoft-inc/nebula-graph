@@ -164,11 +164,11 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> expression logic_xor_expression logic_or_expression logic_and_expression
 %type <expr> relational_expression multiplicative_expression additive_expression
 %type <expr> unary_expression constant_expression equality_expression base_expression
-%type <expr> src_ref_expression
-%type <expr> dst_ref_expression
-%type <expr> input_ref_expression
-%type <expr> var_ref_expression
-%type <expr> alias_ref_expression
+%type <expr> property_expression
+%type <expr> vertex_prop_expression
+%type <expr> edge_prop_expression
+%type <expr> input_prop_expression
+%type <expr> var_prop_expression
 %type <expr> vid_ref_expression
 %type <expr> vid
 %type <expr> function_call_expression
@@ -414,19 +414,7 @@ compound_expression
     : L_PAREN expression R_PAREN {
         $$ = $2;
     }
-    | input_ref_expression {
-        $$ = $1;
-    }
-    | src_ref_expression {
-        $$ = $1;
-    }
-    | dst_ref_expression {
-        $$ = $1;
-    }
-    | var_ref_expression {
-        $$ = $1;
-    }
-    | alias_ref_expression {
+    | property_expression {
         $$ = $1;
     }
     | function_call_expression {
@@ -439,6 +427,21 @@ compound_expression
         $$ = $1;
     }
     | attribute_expression {
+        $$ = $1;
+    }
+    ;
+
+property_expression
+    : input_prop_expression {
+        $$ = $1;
+    }
+    | vertex_prop_expression {
+        $$ = $1;
+    }
+    | var_prop_expression {
+        $$ = $1;
+    }
+    | edge_prop_expression {
         $$ = $1;
     }
     ;
@@ -459,7 +462,7 @@ attribute_expression
     }
     ;
 
-input_ref_expression
+input_prop_expression
     : INPUT_REF DOT name_label {
         $$ = new InputPropertyExpression($3);
     }
@@ -468,19 +471,16 @@ input_ref_expression
     }
     ;
 
-src_ref_expression
+vertex_prop_expression
     : SRC_REF DOT name_label DOT name_label {
         $$ = new SourcePropertyExpression($3, $5);
     }
-    ;
-
-dst_ref_expression
-    : DST_REF DOT name_label DOT name_label {
+    | DST_REF DOT name_label DOT name_label {
         $$ = new DestPropertyExpression($3, $5);
     }
     ;
 
-var_ref_expression
+var_prop_expression
     : VARIABLE DOT name_label {
         $$ = new VariablePropertyExpression($1, $3);
     }
@@ -489,7 +489,7 @@ var_ref_expression
     }
     ;
 
-alias_ref_expression
+edge_prop_expression
     : name_label DOT TYPE_PROP {
         $$ = new EdgeTypeExpression($1);
     }
@@ -794,10 +794,10 @@ unary_integer
     ;
 
 vid_ref_expression
-    : input_ref_expression {
+    : input_prop_expression {
         $$ = $1;
     }
-    | var_ref_expression {
+    | var_prop_expression {
         $$ = $1;
     }
     ;
@@ -1012,13 +1012,13 @@ lookup_sentence
     ;
 
 order_factor
-    : input_ref_expression {
+    : input_prop_expression {
         $$ = new OrderFactor($1, OrderFactor::ASCEND);
     }
-    | input_ref_expression KW_ASC {
+    | input_prop_expression KW_ASC {
         $$ = new OrderFactor($1, OrderFactor::ASCEND);
     }
-    | input_ref_expression KW_DESC {
+    | input_prop_expression KW_DESC {
         $$ = new OrderFactor($1, OrderFactor::DESCEND);
     }
     | LABEL {
@@ -1087,19 +1087,19 @@ edge_keys
     ;
 
 edge_key_ref:
-    input_ref_expression R_ARROW input_ref_expression AT input_ref_expression {
+    input_prop_expression R_ARROW input_prop_expression AT input_prop_expression {
         $$ = new EdgeKeyRef($1, $3, $5);
     }
     |
-    var_ref_expression R_ARROW var_ref_expression AT var_ref_expression {
+    var_prop_expression R_ARROW var_prop_expression AT var_prop_expression {
         $$ = new EdgeKeyRef($1, $3, $5, false);
     }
     |
-    input_ref_expression R_ARROW input_ref_expression {
+    input_prop_expression R_ARROW input_prop_expression {
         $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0));
     }
     |
-    var_ref_expression R_ARROW var_ref_expression {
+    var_prop_expression R_ARROW var_prop_expression {
         $$ = new EdgeKeyRef($1, $3, new ConstantExpression(0), false);
     }
     ;
