@@ -102,19 +102,30 @@ config_nebula_common(
 
 if(ENABLE_BUILD_STORAGE)
     include(ConfigNebulaStorage)
-    nebula_fetch_module(
-        NAME
-            storage
-        URL
-            ${NEBULA_STORAGE_REPO_URL}
-        TAG
-            ${NEBULA_STORAGE_REPO_TAG}
-        UPDATE
-            ${ENABLE_MODULE_UPDATE}
-    )
+    if(NOT NEBULA_STORAGE_SOURCE_DIR)
+        nebula_fetch_module(
+            NAME
+                storage
+            URL
+                ${NEBULA_STORAGE_REPO_URL}
+            TAG
+                ${NEBULA_STORAGE_REPO_TAG}
+            UPDATE
+                ${ENABLE_MODULE_UPDATE}
+        )
+        set(nebula_storage_source_dir ${CMAKE_SOURCE_DIR}/modules/storage)
+        set(nebula_storage_build_dir ${CMAKE_BINARY_DIR}/modules/storage)
+    else()
+        set(nebula_storage_source_dir ${NEBULA_STORAGE_SOURCE_DIR})
+        if(NOT NEBULA_STORAGE_BUILD_DIR)
+            set(nebula_storage_build_dir ${CMAKE_BINARY_DIR}/modules/storage)
+        else()
+            set(nebula_storage_build_dir ${NEBULA_STORAGE_BUILD_DIR})
+        endif()
+    endif()
     config_nebula_storage(
-        SOURCE_DIR ${CMAKE_SOURCE_DIR}/modules/storage
-        BUILD_DIR ${CMAKE_BINARY_DIR}/modules/storage
+        SOURCE_DIR ${nebula_storage_source_dir}
+        BUILD_DIR ${nebula_storage_build_dir}
         COMMON_SOURCE_DIR ${nebula_common_source_dir}
         COMMON_BUILD_DIR ${nebula_common_build_dir}
     )

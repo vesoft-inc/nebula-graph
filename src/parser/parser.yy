@@ -18,6 +18,7 @@
 #include "parser/SequentialSentences.h"
 #include "parser/ColumnTypeDef.h"
 #include "common/interface/gen-cpp2/meta_types.h"
+#include "common/expression/AttributeExpression.h"
 #include "util/SchemaUtil.h"
 
 namespace nebula {
@@ -177,6 +178,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> map_expression
 %type <expr> container_expression
 %type <expr> subscript_expression
+%type <expr> attribute_expression
+%type <expr> compound_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -283,7 +286,6 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 %type <boolval> opt_if_not_exists
 %type <boolval> opt_if_exists
-
 
 %start sentences
 
@@ -400,6 +402,18 @@ base_expression
     | KW_NULL {
         $$ = new ConstantExpression(NullType::__NULL__);
     }
+    | name_label {
+        $$ = new LabelExpression($1);
+    }
+    | compound_expression {
+        $$ = $1;
+    }
+    ;
+
+compound_expression
+    : L_PAREN expression R_PAREN {
+        $$ = $2;
+    }
     | input_ref_expression {
         $$ = $1;
     }
@@ -415,15 +429,8 @@ base_expression
     | alias_ref_expression {
         $$ = $1;
     }
-    | L_PAREN expression R_PAREN {
-        $$ = $2;
-    }
     | function_call_expression {
         $$ = $1;
-    }
-    | name_label {
-        // need to rewrite the expression
-        $$ = new LabelExpression($1);
     }
     | container_expression {
         $$ = $1;
@@ -431,11 +438,24 @@ base_expression
     | subscript_expression {
         $$ = $1;
     }
+    | attribute_expression {
+        $$ = $1;
+    }
     ;
 
 subscript_expression
     : base_expression L_BRACKET base_expression R_BRACKET {
         $$ = new SubscriptExpression($1, $3);
+    }
+    ;
+
+attribute_expression
+    : name_label DOT name_label {
+        $$ = new LabelAttributeExpression(new LabelExpression($1),
+                                          new LabelExpression($3));
+    }
+    | compound_expression DOT name_label {
+        $$ = new AttributeExpression($1, new LabelExpression($3));
     }
     ;
 
@@ -470,14 +490,7 @@ var_ref_expression
     ;
 
 alias_ref_expression
-    : name_label DOT name_label {
-        // determine the detail in later stage
-        $$ = new SymbolPropertyExpression(Expression::Kind::kSymProperty,
-                                          new std::string(""),
-                                          $1,
-                                          $3);
-    }
-    | name_label DOT TYPE_PROP {
+    : name_label DOT TYPE_PROP {
         $$ = new EdgeTypeExpression($1);
     }
     | name_label DOT SRC_ID_PROP {
@@ -1675,8 +1688,9 @@ update_item
         $$ = new UpdateItem($1, $3);
     }
     | name_label DOT name_label ASSIGN expression {
-        auto symExpr = new SymbolPropertyExpression(Expression::Kind::kSymProperty, new std::string(""), $1, $3);
-        $$ = new UpdateItem(symExpr, $5);
+        auto expr = new LabelAttributeExpression(new LabelExpression($1),
+                                                 new LabelExpression($3));
+        $$ = new UpdateItem(expr, $5);
     }
     ;
 
