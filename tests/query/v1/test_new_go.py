@@ -88,6 +88,7 @@ class TestGoQuery(NebulaTestSuite):
                 ["Spurs"],
                 ["Spurs"],
                 ["Spurs"],
+                ["Spurs"],
                 ["Hornets"],
                 ["Trail Blazers"]
             ]
@@ -122,6 +123,7 @@ class TestGoQuery(NebulaTestSuite):
                 ["Spurs"],
                 ["Spurs"],
                 ["Spurs"],
+                ["Spurs"],
                 ["Hornets"],
                 ["Trail Blazers"]
             ]
@@ -142,6 +144,7 @@ class TestGoQuery(NebulaTestSuite):
         expected_data = {
             "column_names" : [],
             "rows" : [
+                ["Spurs"],
                 ["Spurs"],
                 ["Spurs"],
                 ["Spurs"],
@@ -379,13 +382,14 @@ class TestGoQuery(NebulaTestSuite):
                 ["Spurs"],
                 ["Spurs"],
                 ["Spurs"],
+                ["Spurs"],
                 ["Hornets"],
                 ["Trail Blazers"]
             ]
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-    @pytest.mark.skip(reason = 'return diffrent numbers when edge type wanted.')
+    @pytest.mark.skip(reason = 'return diffrent type when edge type wanted.')
     def test_edge_type(self):
         stmt = '''GO FROM "Russell Westbrook" OVER serve, like \
             YIELD serve.start_year, like.likeness, serve._type, like._type'''
@@ -518,7 +522,7 @@ class TestGoQuery(NebulaTestSuite):
         }
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-    def test_reference_pipein_yieldandwhere(self):
+    def test_reference_pipe_in_yieldandwhere(self):
         stmt = '''GO FROM 'Tim Duncan', 'Chris Paul' OVER like \
             YIELD $^.player.name AS name, like._dst AS id \
             | GO FROM $-.id OVER like \

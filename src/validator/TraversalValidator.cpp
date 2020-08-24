@@ -147,7 +147,13 @@ PlanNode* TraversalValidator::buildRuntimeInput() {
     project->setColNames({ kVid });
     VLOG(1) << project->varName() << " input: " << project->inputVar();
     src_ = plan->saveObject(new InputPropertyExpression(new std::string(kVid)));
-    return project;
+
+    auto* dedupVids = Dedup::make(plan, project);
+    dedupVids->setInputVar(project->varName());
+    dedupVids->setColNames(project->colNames());
+
+    projectStartVid_ = project;
+    return dedupVids;
 }
 
 Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {
