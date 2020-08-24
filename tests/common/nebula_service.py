@@ -78,10 +78,7 @@ class NebulaService(object):
         sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sk.settimeout(1)
         result = sk.connect_ex(('127.0.0.1', port))
-        if result == 0:
-            return True
-        else:
-            return False
+        return result == 0
 
     def install(self):
         os.mkdir(self.work_dir)
