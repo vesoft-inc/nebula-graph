@@ -22,7 +22,7 @@ protected:
     Status validateStep(const StepClause* step);
     Status validateFrom(const FromClause* from);
 
-    Project* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
+    PlanNode* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
     std::string buildConstantInput();
     PlanNode* buildRuntimeInput();
     Expression* buildNStepLoopCondition(uint32_t steps) const;

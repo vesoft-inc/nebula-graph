@@ -56,7 +56,7 @@ private:
 
     PlanNode* buildLeftVarForTraceJoin(PlanNode* dedupStartVid);
 
-    PlanNode* traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode* projectDstFromGN);
+    PlanNode* traceToStartVid(PlanNode* projectLeftVarForJoin, PlanNode* dedupDstVids);
 
     PlanNode* buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                            PlanNode* dependencyForJoinInput);

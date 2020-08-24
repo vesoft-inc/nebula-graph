@@ -277,24 +277,23 @@ Status GoValidator::buildNStepsPlan() {
     gn->setInputVar(startVidsVar);
     VLOG(1) << gn->varName();
 
-    Project* projectDstFromGN = projectDstVidsFromGN(gn, startVidsVar);
+    PlanNode* dedupDstVids = projectDstVidsFromGN(gn, startVidsVar);
 
     // Trace to the start vid if $-.prop was declared.
     PlanNode* projectFromJoin = nullptr;
     if ((!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) &&
-        projectLeftVarForJoin != nullptr && projectDstFromGN != nullptr) {
-        projectFromJoin = traceToStartVid(projectLeftVarForJoin, projectDstFromGN);
+        projectLeftVarForJoin != nullptr && dedupDstVids != nullptr) {
+        projectFromJoin = traceToStartVid(projectLeftVarForJoin, dedupDstVids);
     }
 
     auto* loop = Loop::make(
         plan,
         projectLeftVarForJoin == nullptr ? dedupStartVid
-                                         : projectLeftVarForJoin,
-        projectFromJoin == nullptr ? projectDstFromGN : projectFromJoin,
+                                         : projectLeftVarForJoin,  // dep
+        projectFromJoin == nullptr ? dedupDstVids : projectFromJoin,  // body
         buildNStepLoopCondition(steps_ - 1));
 
-    auto status = oneStep(loop, projectDstFromGN->varName(),
-            projectFromJoin == nullptr ? projectDstFromGN : projectFromJoin);
+    auto status = oneStep(loop, dedupDstVids->varName(), projectFromJoin);
     if (!status.ok()) {
         return status;
     }
@@ -336,15 +335,16 @@ Status GoValidator::buildMToNPlan() {
     gn->setInputVar(startVidsVar);
     VLOG(1) << gn->varName();
 
-    Project* projectDstFromGN = projectDstVidsFromGN(gn, startVidsVar);
-    PlanNode* dependencyForProjectResult = projectDstFromGN;
+    PlanNode* dedupDstVids = projectDstVidsFromGN(gn, startVidsVar);
+
+    PlanNode* dependencyForProjectResult = dedupDstVids;
 
     // Trace to the start vid if $-.prop was declared.
     PlanNode* projectFromJoin = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
         if ((!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) &&
-            projectLeftVarForJoin != nullptr && projectDstFromGN != nullptr) {
-            projectFromJoin = traceToStartVid(projectLeftVarForJoin, projectDstFromGN);
+            projectLeftVarForJoin != nullptr && dedupDstVids != nullptr) {
+            projectFromJoin = traceToStartVid(projectLeftVarForJoin, dedupDstVids);
         }
     }
 
@@ -352,7 +352,7 @@ Status GoValidator::buildMToNPlan() {
     PlanNode* projectSrcEdgeProps = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
         !exprProps_.dstTagProps().empty()) {
-        PlanNode* depForProject = projectDstFromGN;
+        PlanNode* depForProject = dedupDstVids;
         if (projectFromJoin != nullptr) {
             depForProject = projectFromJoin;
         }
@@ -382,7 +382,7 @@ Status GoValidator::buildMToNPlan() {
         auto* filterNode = Filter::make(plan, dependencyForProjectResult,
                     newFilter_ != nullptr ? newFilter_ : filter_);
         filterNode->setInputVar(
-            dependencyForProjectResult == projectDstFromGN ?
+            dependencyForProjectResult == dedupDstVids ?
                 gn->varName() : dependencyForProjectResult->varName());
         filterNode->setColNames(dependencyForProjectResult->colNames());
         dependencyForProjectResult = filterNode;
@@ -392,7 +392,7 @@ Status GoValidator::buildMToNPlan() {
         Project::make(plan, dependencyForProjectResult,
         newYieldCols_ != nullptr ? newYieldCols_ : yields_);
     projectResult->setInputVar(
-            dependencyForProjectResult == projectDstFromGN ?
+            dependencyForProjectResult == dedupDstVids ?
                 gn->varName() : dependencyForProjectResult->varName());
     projectResult->setColNames(std::vector<std::string>(colNames_));
 
@@ -568,9 +568,9 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
 }
 
 PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin,
-                                       PlanNode* projectDstFromGN) {
+                                       PlanNode* dedupDstVids) {
     DCHECK(projectLeftVarForJoin != nullptr);
-    DCHECK(projectDstFromGN != nullptr);
+    DCHECK(dedupDstVids != nullptr);
 
     auto* plan = qctx_->plan();
     auto hashKey = new VariablePropertyExpression(
@@ -578,16 +578,16 @@ PlanNode* GoValidator::traceToStartVid(PlanNode* projectLeftVarForJoin,
             new std::string(dstVidColName_));
     plan->saveObject(hashKey);
     auto probeKey = new VariablePropertyExpression(
-        new std::string(projectDstFromGN->varName()), new std::string(srcVidColName_));
+        new std::string(dedupDstVids->varName()), new std::string(srcVidColName_));
     plan->saveObject(probeKey);
     auto* join = DataJoin::make(
-        plan, projectDstFromGN,
+        plan, dedupDstVids,
         {projectLeftVarForJoin->varName(),
             ExecutionContext::kLatestVersion},
-        {projectDstFromGN->varName(), ExecutionContext::kLatestVersion},
+        {dedupDstVids->varName(), ExecutionContext::kLatestVersion},
         {hashKey}, {probeKey});
     std::vector<std::string> colNames = projectLeftVarForJoin->colNames();
-    for (auto& col : projectDstFromGN->colNames()) {
+    for (auto& col : dedupDstVids->colNames()) {
         colNames.emplace_back(col);
     }
     join->setColNames(std::move(colNames));

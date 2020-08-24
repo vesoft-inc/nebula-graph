@@ -105,6 +105,7 @@ class TestSetQuery(NebulaTestSuite):
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
         expected_data = [["Manu Ginobili", 2002, "Spurs"],
+                         ["Manu Ginobili", 2002, "Spurs"],
                          ["Tony Parker", 1999, "Spurs"],
                          ["Tony Parker", 2018, "Hornets"],
                          ["LaMarcus Aldridge", 2015, "Spurs"],
