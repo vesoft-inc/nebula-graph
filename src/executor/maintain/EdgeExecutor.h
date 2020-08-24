@@ -17,10 +17,10 @@ public:
     CreateEdgeExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("CreateEdgeExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> createEdge();
+    folly::Future<GraphStatus> createEdge();
 };
 
 class DescEdgeExecutor final : public Executor {
@@ -28,10 +28,10 @@ public:
     DescEdgeExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("DescEdgeExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> descEdge();
+    folly::Future<GraphStatus> descEdge();
 };
 
 class DropEdgeExecutor final : public Executor {
@@ -39,7 +39,7 @@ public:
     DropEdgeExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("DropEdgeExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class ShowEdgesExecutor final : public Executor {
@@ -47,7 +47,7 @@ public:
     ShowEdgesExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("ShowEdgesExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class ShowCreateEdgeExecutor final : public Executor {
@@ -55,7 +55,7 @@ public:
     ShowCreateEdgeExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("ShowCreateEdgeExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class AlterEdgeExecutor final : public Executor {
@@ -63,7 +63,7 @@ public:
     AlterEdgeExecutor(const PlanNode *node, QueryContext *qctx)
             : Executor("AlterEdgeExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 }   // namespace graph
 }   // namespace nebula

@@ -11,18 +11,18 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> SortExecutor::execute() {
+folly::Future<GraphStatus> SortExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto* sort = asNode<Sort>(node());
     auto iter = ectx_->getResult(sort->inputVar()).iter();
     if (UNLIKELY(iter == nullptr)) {
-        return Status::Error("Internal error: nullptr iterator in sort executor");
+        return GraphStatus::setInternalError("Nullptr iterator in sort executor");
     }
     if (UNLIKELY(iter->isGetNeighborsIter())) {
-        std::string errMsg = "Internal error: Sort executor does not supported GetNeighborsIter";
+        std::string errMsg = "Sort executor does not supported GetNeighborsIter";
         LOG(ERROR) << errMsg;
-        return Status::Error(errMsg);
+        return GraphStatus::setInternalError(errMsg);
     }
     if (iter->isSequentialIter()) {
         auto seqIter = static_cast<SequentialIter*>(iter.get());
@@ -34,8 +34,9 @@ folly::Future<Status> SortExecutor::execute() {
             if (indexFind == colIndices.end()) {
                 LOG(ERROR) << "Column name `" << factor.first
                            << "' does not exist.";
-                return Status::Error("Column name `%s' does not exist.",
-                                     factor.first.c_str());
+                return GraphStatus::setInternalError(
+                        folly::stringPrintf("Column name `%s' does not exist.",
+                                             factor.first.c_str()));
             }
             indexes.emplace_back(std::make_pair(indexFind->second, factor.second));
         }

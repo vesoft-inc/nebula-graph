@@ -13,6 +13,7 @@
 #include "context/QueryContext.h"
 #include "parser/GQLParser.h"
 #include "scheduler/Scheduler.h"
+#include "util/GraphStatus.h"
 
 /**
  * QueryInstance coordinates the execution process,
@@ -45,14 +46,14 @@ public:
      * If any error occurred during the execution, `onError' should
      * be invoked with a status to indicate the reason.
      */
-    void onError(Status);
+    void onError(GraphStatus status);
 
     QueryContext* qctx() const {
         return qctx_.get();
     }
 
 private:
-    Status validateAndOptimize();
+    GraphStatus validateAndOptimize();
     // return true if continue to execute
     bool explainOrContinue();
 

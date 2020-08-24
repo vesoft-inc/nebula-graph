@@ -28,7 +28,7 @@ public:
     ShowConfigsExecutor(const PlanNode *node, QueryContext *ectx)
         : ConfigBaseExecutor("ShowConfigsExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class SetConfigExecutor final : public ConfigBaseExecutor {
@@ -36,7 +36,7 @@ public:
     SetConfigExecutor(const PlanNode *node, QueryContext *ectx)
         : ConfigBaseExecutor("SetConfigExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
     std::string                              name_;
@@ -48,7 +48,7 @@ public:
     GetConfigExecutor(const PlanNode *node, QueryContext *ectx)
         : ConfigBaseExecutor("GetConfigExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
     std::string                              name_;

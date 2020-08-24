@@ -19,27 +19,27 @@ public:
         : TraversalValidator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
-    Status validateWhere(WhereClause* where);
+    GraphStatus validateWhere(WhereClause* where);
 
-    Status validateYield(YieldClause* yield);
+    GraphStatus validateYield(YieldClause* yield);
 
     void extractPropExprs(const Expression* expr);
 
     std::unique_ptr<Expression> rewriteToInputProp(Expression* expr);
 
-    Status buildColumns();
+    GraphStatus buildColumns();
 
-    Status buildOneStepPlan();
+    GraphStatus buildOneStepPlan();
 
-    Status buildNStepsPlan();
+    GraphStatus buildNStepsPlan();
 
-    Status buildMToNPlan();
+    GraphStatus buildMToNPlan();
 
-    Status oneStep(PlanNode* dependencyForGn, const std::string& inputVarNameForGN,
+    GraphStatus oneStep(PlanNode* dependencyForGn, const std::string& inputVarNameForGN,
                    PlanNode* projectFromJoin);
 
     std::vector<std::string> buildDstVertexColNames();

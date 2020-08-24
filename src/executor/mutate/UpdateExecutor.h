@@ -24,6 +24,7 @@ public:
 
 protected:
     StatusOr<DataSet> handleResult(DataSet &&data);
+    GraphStatus handleErrorCode(const storage::cpp2::UpdateResponse &resp);
 
 protected:
     std::vector<std::string>         yieldNames_;
@@ -34,7 +35,7 @@ public:
     UpdateVertexExecutor(const PlanNode *node, QueryContext *ectx)
         : UpdateBaseExecutor("UpdateVertexExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class UpdateEdgeExecutor final : public UpdateBaseExecutor {
@@ -42,7 +43,7 @@ public:
     UpdateEdgeExecutor(const PlanNode *node, QueryContext *ectx)
         : UpdateBaseExecutor("UpdateEdgeExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

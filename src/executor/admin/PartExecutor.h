@@ -17,7 +17,7 @@ public:
     ShowPartsExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("ShowPartsExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

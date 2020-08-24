@@ -21,17 +21,17 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
-    Status validateGroup(const GroupClause *groupClause);
+    GraphStatus validateGroup(const GroupClause *groupClause);
 
-    Status validateYield(const YieldClause *yieldClause);
+    GraphStatus validateYield(const YieldClause *yieldClause);
 
-    Status checkInputProps() const;
+    GraphStatus checkInputProps() const;
 
-    Status checkVarProps() const;
+    GraphStatus checkVarProps() const;
 
 private:
     std::vector<YieldColumn*>                         groupCols_;

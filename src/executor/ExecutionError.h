@@ -16,16 +16,16 @@ namespace graph {
 
 class ExecutionError final : public std::runtime_error {
 public:
-    explicit ExecutionError(Status status) : std::runtime_error(status.toString()) {
+    explicit ExecutionError(GraphStatus status) : std::runtime_error(status.toString()) {
         status_ = std::move(status);
     }
 
-    Status status() const {
+    GraphStatus status() const {
         return status_;
     }
 
 private:
-    Status status_;
+    GraphStatus status_;
 };
 
 }   // namespace graph

@@ -16,7 +16,7 @@ namespace graph {
     folly::Promise<meta::cpp2::ExecResp> promise; \
     auto future = promise.getFuture(); \
     meta::cpp2::ExecResp resp; \
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED); \
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED); \
     promise.setValue(std::move(resp)); \
     return future;
 
@@ -28,11 +28,11 @@ MockMetaServiceHandler::future_createSpace(const meta::cpp2::CreateSpaceReq& req
     GraphSpaceID spaceId;
     auto status = MetaCache::instance().createSpace(req, spaceId);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     meta::cpp2::ID id;
     id.set_space_id(spaceId);
     resp.set_id(id);
@@ -47,11 +47,11 @@ MockMetaServiceHandler::future_dropSpace(const meta::cpp2::DropSpaceReq &req) {
     meta::cpp2::ExecResp resp;
     auto status = MetaCache::instance().dropSpace(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -63,11 +63,11 @@ MockMetaServiceHandler::future_listSpaces(const meta::cpp2::ListSpacesReq&) {
     auto status = MetaCache::instance().listSpaces();
     meta::cpp2::ListSpacesResp resp;
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_spaces(std::move(status).value());
     promise.setValue(std::move(resp));
     return future;
@@ -81,7 +81,7 @@ MockMetaServiceHandler::future_runAdminJob(const meta::cpp2::AdminJobReq& req) {
         resp.set_code(result.left());
         return resp;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_result(std::move(result).right());
     return resp;
 }
@@ -93,12 +93,12 @@ MockMetaServiceHandler::future_getSpace(const meta::cpp2::GetSpaceReq& req) {
     auto status = MetaCache::instance().getSpace(req);
     meta::cpp2::GetSpaceResp resp;
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
     auto spaceInfo = std::move(status).value();
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_item(std::move(spaceInfo));
     promise.setValue(std::move(resp));
     return future;
@@ -109,7 +109,7 @@ MockMetaServiceHandler::future_listHosts(const meta::cpp2::ListHostsReq&) {
     folly::Promise<meta::cpp2::ListHostsResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ListHostsResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_hosts(MetaCache::instance().listHosts());
     promise.setValue(resp);
     return future;
@@ -120,7 +120,7 @@ MockMetaServiceHandler::future_listParts(const meta::cpp2::ListPartsReq&) {
     folly::Promise<meta::cpp2::ListPartsResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ListPartsResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -130,7 +130,7 @@ MockMetaServiceHandler::future_getPartsAlloc(const meta::cpp2::GetPartsAllocReq&
     folly::Promise<meta::cpp2::GetPartsAllocResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::GetPartsAllocResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_parts(MetaCache::instance().getParts());
     promise.setValue(resp);
     return future;
@@ -146,7 +146,7 @@ MockMetaServiceHandler::future_get(const meta::cpp2::GetReq&) {
     folly::Promise<meta::cpp2::GetResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::GetResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -156,7 +156,7 @@ MockMetaServiceHandler::future_multiGet(const meta::cpp2::MultiGetReq&) {
     folly::Promise<meta::cpp2::MultiGetResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::MultiGetResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -166,7 +166,7 @@ MockMetaServiceHandler::future_scan(const meta::cpp2::ScanReq&) {
     folly::Promise<meta::cpp2::ScanResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ScanResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -189,11 +189,11 @@ MockMetaServiceHandler::future_createTag(const meta::cpp2::CreateTagReq& req) {
     TagID tagId = 0;
     auto status = MetaCache::instance().createTag(req, tagId);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     meta::cpp2::ID id;
     id.set_tag_id(tagId);
     resp.set_id(std::move(id));
@@ -209,11 +209,11 @@ MockMetaServiceHandler::future_alterTag(const meta::cpp2::AlterTagReq &req) {
     auto status = MetaCache::instance().AlterTag(req);
     if (!status.ok()) {
         LOG(ERROR) << status;
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -225,11 +225,11 @@ MockMetaServiceHandler::future_dropTag(const meta::cpp2::DropTagReq& req) {
     meta::cpp2::ExecResp resp;
     auto status = MetaCache::instance().dropTag(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -241,11 +241,11 @@ MockMetaServiceHandler::future_getTag(const meta::cpp2::GetTagReq& req) {
     meta::cpp2::GetTagResp resp;
     auto status = MetaCache::instance().getTag(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_schema(std::move(status).value());
     promise.setValue(std::move(resp));
     return future;
@@ -258,12 +258,12 @@ MockMetaServiceHandler::future_listTags(const meta::cpp2::ListTagsReq& req) {
     auto status = MetaCache::instance().listTags(req);
     meta::cpp2::ListTagsResp resp;
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
 
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_tags(std::move(status).value());
     promise.setValue(std::move(resp));
     return future;
@@ -277,11 +277,11 @@ MockMetaServiceHandler::future_createEdge(const meta::cpp2::CreateEdgeReq& req) 
     EdgeType edgeType;
     auto status = MetaCache::instance().createEdge(req, edgeType);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     meta::cpp2::ID id;
     id.set_edge_type(edgeType);
     resp.set_id(std::move(id));
@@ -296,11 +296,11 @@ MockMetaServiceHandler::future_alterEdge(const meta::cpp2::AlterEdgeReq &req) {
     meta::cpp2::ExecResp resp;
     auto status = MetaCache::instance().AlterEdge(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -312,11 +312,11 @@ MockMetaServiceHandler::future_dropEdge(const meta::cpp2::DropEdgeReq& req) {
     meta::cpp2::ExecResp resp;
     auto status = MetaCache::instance().dropEdge(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -328,11 +328,11 @@ MockMetaServiceHandler::future_getEdge(const meta::cpp2::GetEdgeReq& req) {
     meta::cpp2::GetEdgeResp resp;
     auto status = MetaCache::instance().getEdge(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_schema(std::move(status).value());
     promise.setValue(std::move(resp));
     return future;
@@ -345,12 +345,12 @@ MockMetaServiceHandler::future_listEdges(const meta::cpp2::ListEdgesReq& req) {
     meta::cpp2::ListEdgesResp resp;
     auto status = MetaCache::instance().listEdges(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
 
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_edges(std::move(status).value());
     promise.setValue(std::move(resp));
     return future;
@@ -371,7 +371,7 @@ MockMetaServiceHandler::future_getTagIndex(const meta::cpp2::GetTagIndexReq&) {
     folly::Promise<meta::cpp2::GetTagIndexResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::GetTagIndexResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -381,7 +381,7 @@ MockMetaServiceHandler::future_listTagIndexes(const meta::cpp2::ListTagIndexesRe
     folly::Promise<meta::cpp2::ListTagIndexesResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ListTagIndexesResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -396,7 +396,7 @@ MockMetaServiceHandler::future_listTagIndexStatus(const meta::cpp2::ListIndexSta
     folly::Promise<meta::cpp2::ListIndexStatusResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ListIndexStatusResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -416,7 +416,7 @@ MockMetaServiceHandler::future_getEdgeIndex(const meta::cpp2::GetEdgeIndexReq&) 
     folly::Promise<meta::cpp2::GetEdgeIndexResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::GetEdgeIndexResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -426,7 +426,7 @@ MockMetaServiceHandler::future_listEdgeIndexes(const meta::cpp2::ListEdgeIndexes
     folly::Promise<meta::cpp2::ListEdgeIndexesResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ListEdgeIndexesResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -441,7 +441,7 @@ MockMetaServiceHandler::future_listEdgeIndexStatus(const meta::cpp2::ListIndexSt
     folly::Promise<meta::cpp2::ListIndexStatusResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ListIndexStatusResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -453,12 +453,12 @@ MockMetaServiceHandler::future_heartBeat(const meta::cpp2::HBReq& req) {
     meta::cpp2::HBResp resp;
     auto status = MetaCache::instance().heartBeat(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
 
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_cluster_id(clusterId_);
     resp.set_last_update_time_in_ms(time::WallClock::fastNowInMilliSec());
     promise.setValue(std::move(resp));
@@ -517,7 +517,7 @@ MockMetaServiceHandler::future_balance(const meta::cpp2::BalanceReq& req) {
         // show
         auto result = MetaCache::instance().showBalance(*req.get_id());
         if (ok(result)) {
-            resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+            resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
             resp.set_tasks(std::move(result).right());
         } else {
             resp.set_code(result.left());
@@ -526,13 +526,13 @@ MockMetaServiceHandler::future_balance(const meta::cpp2::BalanceReq& req) {
         // stop
         auto result = MetaCache::instance().balanceStop();
         if (ok(result)) {
-            resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+            resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
             resp.set_id(result.right());
         } else {
             resp.set_code(result.left());
         }
     } else {
-        ErrorOr<meta::cpp2::ErrorCode, int64_t> result;
+        ErrorOr<nebula::cpp2::ErrorCode, int64_t> result;
         // submit
         if (req.__isset.host_del) {
             result = MetaCache::instance().balanceSubmit(*req.get_host_del());
@@ -540,7 +540,7 @@ MockMetaServiceHandler::future_balance(const meta::cpp2::BalanceReq& req) {
             result = MetaCache::instance().balanceSubmit({});
         }
         if (ok(result)) {
-            resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+            resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
             resp.set_id(result.right());
         } else {
             resp.set_code(result.left());
@@ -567,7 +567,7 @@ MockMetaServiceHandler::future_getConfig(const meta::cpp2::GetConfigReq&) {
     folly::Promise<meta::cpp2::GetConfigResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::GetConfigResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -582,7 +582,7 @@ MockMetaServiceHandler::future_listConfigs(const meta::cpp2::ListConfigsReq&) {
     folly::Promise<meta::cpp2::ListConfigsResp> promise;
     auto future = promise.getFuture();
     meta::cpp2::ListConfigsResp resp;
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -594,11 +594,11 @@ MockMetaServiceHandler::future_createSnapshot(const meta::cpp2::CreateSnapshotRe
     meta::cpp2::ExecResp resp;
     auto status = MetaCache::instance().createSnapshot();
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -610,11 +610,11 @@ MockMetaServiceHandler::future_dropSnapshot(const meta::cpp2::DropSnapshotReq& r
     meta::cpp2::ExecResp resp;
     auto status = MetaCache::instance().dropSnapshot(req);
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     promise.setValue(std::move(resp));
     return future;
 }
@@ -626,11 +626,11 @@ MockMetaServiceHandler::future_listSnapshots(const meta::cpp2::ListSnapshotsReq&
     meta::cpp2::ListSnapshotsResp resp;
     auto status = MetaCache::instance().listSnapshots();
     if (!status.ok()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_UNKNOWN);
+        resp.set_code(nebula::cpp2::ErrorCode::E_UNKNOWN);
         promise.setValue(std::move(resp));
         return future;
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_snapshots(std::move(status).value());
     promise.setValue(std::move(resp));
     return future;

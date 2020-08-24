@@ -15,10 +15,13 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> IntersectExecutor::execute() {
+folly::Future<GraphStatus> IntersectExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
-    NG_RETURN_IF_ERROR(checkInputDataSets());
+    auto status = checkInputDataSets();
+    if (!status.ok()) {
+        return status;
+    }
 
     auto lIter = getLeftInputDataIter();
     auto rIter = getRightInputDataIter();

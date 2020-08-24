@@ -40,7 +40,19 @@ StatusOr<DataSet> UpdateBaseExecutor::handleResult(DataSet &&data) {
     return result;
 }
 
-folly::Future<Status> UpdateVertexExecutor::execute() {
+GraphStatus UpdateBaseExecutor::handleErrorCode(const storage::cpp2::UpdateResponse &resp) {
+    for (auto& code : resp.get_result().get_failed_parts()) {
+        if (code.get_code() != nebula::cpp2::ErrorCode::SUCCEEDED) {
+            LOG(ERROR) << "Update failed, error code: "
+                       << nebula::cpp2::_ErrorCode_VALUES_TO_NAMES.at(code.get_code())
+                       << ", partId " << code.get_part_id();
+            return GraphStatus::setRpcResponse(code.get_code(), "");
+        }
+    }
+    return GraphStatus::OK();
+}
+
+folly::Future<GraphStatus> UpdateVertexExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto *uvNode = asNode<UpdateVertex>(node());
     yieldNames_ = uvNode->getYieldNames();
@@ -60,27 +72,29 @@ folly::Future<Status> UpdateVertexExecutor::execute() {
             SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();
-                return resp.status();
+                return GraphStatus::setRpcFailed(resp.status().toString());
             }
-            auto value = std::move(resp).value();
-            for (auto& code : value.get_result().get_failed_parts()) {
-                NG_RETURN_IF_ERROR(handleErrorCode(code.get_code(), code.get_part_id()));
+            auto value = resp.value();
+            auto gStatus = handleErrorCode(value);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
+
             if (value.__isset.props) {
-                auto status = handleResult(std::move(*value.get_props()));
-                if (!status.ok()) {
-                    return status.status();
+                auto ret = handleResult(std::move(*value.get_props()));
+                if (!ret.ok()) {
+                    return GraphStatus::setInternalError(ret.status().toString());
                 }
                 return finish(ResultBuilder()
-                                  .value(std::move(status).value())
+                                  .value(std::move(ret).value())
                                   .iter(Iterator::Kind::kDefault)
                                   .finish());
             }
-            return Status::OK();
+            return GraphStatus::OK();
         });
 }
 
-folly::Future<Status> UpdateEdgeExecutor::execute() {
+folly::Future<GraphStatus> UpdateEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto *ueNode = asNode<UpdateEdge>(node());
     storage::cpp2::EdgeKey edgeKey;
@@ -104,24 +118,25 @@ folly::Future<Status> UpdateEdgeExecutor::execute() {
             .then([this](StatusOr<storage::cpp2::UpdateResponse> resp) {
                 SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
-                    LOG(ERROR) << "Update edge failed: " << resp.status();
-                    return resp.status();
+                    LOG(ERROR) << resp.status();
+                    return GraphStatus::setRpcFailed(resp.status().toString());
                 }
-                auto value = std::move(resp).value();
-                for (auto& code : value.get_result().get_failed_parts()) {
-                    NG_RETURN_IF_ERROR(handleErrorCode(code.get_code(), code.get_part_id()));
+                auto value = resp.value();
+                auto gStatus = handleErrorCode(value);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
                 if (value.__isset.props) {
-                    auto status = handleResult(std::move(*value.get_props()));
-                    if (!status.ok()) {
-                        return status.status();
+                    auto ret = handleResult(std::move(*value.get_props()));
+                    if (!ret.ok()) {
+                        return GraphStatus::setInternalError(ret.status().toString());
                     }
                     return finish(ResultBuilder()
-                                    .value(std::move(status).value())
+                                    .value(std::move(ret).value())
                                     .iter(Iterator::Kind::kDefault)
                                     .finish());
                 }
-                return Status::OK();
+                return GraphStatus::OK();
             });
 }
 }   // namespace graph

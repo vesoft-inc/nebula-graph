@@ -13,34 +13,43 @@
 namespace nebula {
 namespace graph {
 
-Status PipeValidator::validateImpl() {
+GraphStatus PipeValidator::validateImpl() {
     auto pipeSentence = static_cast<PipedSentence*>(sentence_);
     auto left = pipeSentence->left();
     lValidator_ = makeValidator(left, qctx_);
     lValidator_->setInputCols(std::move(inputs_));
     lValidator_->setInputVarName(inputVarName_);
-    NG_RETURN_IF_ERROR(lValidator_->validate());
+    auto gStatus = lValidator_->validate();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
 
     auto right = pipeSentence->right();
     rValidator_ = makeValidator(right, qctx_);
     rValidator_->setInputCols(lValidator_->outputCols());
     rValidator_->setInputVarName(lValidator_->root()->varName());
-    NG_RETURN_IF_ERROR(rValidator_->validate());
+    gStatus = rValidator_->validate();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
 
     outputs_ = rValidator_->outputCols();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status PipeValidator::toPlan() {
+GraphStatus PipeValidator::toPlan() {
     root_ = rValidator_->root();
     tail_ = lValidator_->tail();
-    NG_RETURN_IF_ERROR(rValidator_->appendPlan(lValidator_->root()));
+    auto gStatus = rValidator_->appendPlan(lValidator_->root());
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
     auto node = static_cast<SingleInputNode*>(rValidator_->tail());
     if (node->inputVar().empty()) {
         // If the input variable was not set, set it dynamically.
         node->setInputVar(lValidator_->root()->varName());
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 }  // namespace graph

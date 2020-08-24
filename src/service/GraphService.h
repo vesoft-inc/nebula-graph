@@ -36,10 +36,10 @@ public:
     folly::Future<cpp2::ExecutionResponse>
     future_execute(int64_t sessionId, const std::string& stmt) override;
 
-    const char* getErrorStr(cpp2::ErrorCode result);
+    const char* getErrorStr(nebula::cpp2::ErrorCode result);
 
 private:
-    void onHandle(RequestContext<cpp2::AuthResponse>& ctx, cpp2::ErrorCode code);
+    void onHandle(RequestContext<cpp2::AuthResponse>& ctx, nebula::cpp2::ErrorCode code);
 
     bool auth(const std::string& username, const std::string& password);
 

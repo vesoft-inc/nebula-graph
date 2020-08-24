@@ -19,7 +19,7 @@ namespace graph {
 
 class SetExecutor : public Executor {
 public:
-    Status checkInputDataSets();
+    GraphStatus checkInputDataSets();
     std::unique_ptr<Iterator> getLeftInputDataIter() const;
     std::unique_ptr<Iterator> getRightInputDataIter() const;
 

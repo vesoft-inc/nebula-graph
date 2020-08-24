@@ -12,22 +12,25 @@
 namespace nebula {
 namespace graph {
 
-Status AssignmentValidator::validateImpl() {
+GraphStatus AssignmentValidator::validateImpl() {
     auto* assignSentence = static_cast<AssignmentSentence*>(sentence_);
     validator_ = makeValidator(assignSentence->sentence(), qctx_);
-    NG_RETURN_IF_ERROR(validator_->validate());
+    auto status = validator_->validate();
+    if (!status.ok()) {
+        return status;
+    }
 
     auto outputs = validator_->outputCols();
     var_ = *assignSentence->var();
     vctx_->registerVariable(var_, std::move(outputs));
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status AssignmentValidator::toPlan() {
+GraphStatus AssignmentValidator::toPlan() {
     root_ = validator_->root();
     root_->setOutputVar(var_);
     tail_ = validator_->tail();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 }   // namespace graph

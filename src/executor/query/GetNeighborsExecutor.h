@@ -27,18 +27,16 @@ public:
         gn_ = asNode<GetNeighbors>(node);
     }
 
-    folly::Future<Status> execute() override;
-
-    Status close() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
     friend class GetNeighborsTest_BuildRequestDataSet_Test;
-    Status buildRequestDataSet();
+    GraphStatus buildRequestDataSet();
 
-    folly::Future<Status> getNeighbors();
+    folly::Future<GraphStatus> getNeighbors();
 
     using RpcResponse = storage::StorageRpcResponse<storage::cpp2::GetNeighborsResponse>;
-    Status handleResponse(RpcResponse& resps);
+    GraphStatus handleResponse(RpcResponse& resps);
 
     void checkResponseResult(const storage::cpp2::ResponseCommon &resp) const;
 

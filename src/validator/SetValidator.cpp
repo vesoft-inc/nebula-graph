@@ -12,32 +12,44 @@
 namespace nebula {
 namespace graph {
 
-Status SetValidator::validateImpl() {
+GraphStatus SetValidator::validateImpl() {
     auto setSentence = static_cast<SetSentence *>(sentence_);
     lValidator_ = makeValidator(setSentence->left(), qctx_);
-    NG_RETURN_IF_ERROR(lValidator_->validate());
+    auto gStatus = lValidator_->validate();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
     rValidator_ = makeValidator(setSentence->right(), qctx_);
-    NG_RETURN_IF_ERROR(rValidator_->validate());
+    gStatus = rValidator_->validate();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
 
     auto lCols = lValidator_->outputCols();
     auto rCols = rValidator_->outputCols();
 
     if (lCols.size() != rCols.size()) {
-        return Status::SemanticError("number of columns to UNION/INTERSECT/MINUS must be same");
+        return GraphStatus::setSemanticError(
+                "number of columns to UNION/INTERSECT/MINUS must be same");
     }
 
     for (size_t i = 0, e = lCols.size(); i < e; i++) {
         if (lCols[i].first != rCols[i].first) {
-            return Status::SemanticError(
+            return GraphStatus::setSemanticError(
                 "different column names to UNION/INTERSECT/MINUS are not supported");
         }
     }
 
     outputs_ = std::move(lCols);
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status SetValidator::toPlan() {
+=======
+GraphStatus SetValidator::toPlan() {
+    auto plan = qctx_->plan();
+>>>>>>> all use GraphStatus
     auto setSentence = static_cast<const SetSentence *>(sentence_);
     auto lRoot = DCHECK_NOTNULL(lValidator_->root());
     auto rRoot = DCHECK_NOTNULL(rValidator_->root());
@@ -70,16 +82,32 @@ Status SetValidator::toPlan() {
             break;
         }
         default:
-            return Status::Error("Unknown operator: %ld", static_cast<int64_t>(setSentence->op()));
+            return GraphStatus::setInternalError(
+                    folly::stringPrintf("Unknown operator: %ld",
+                                         static_cast<int64_t>(setSentence->op())));
     }
 
     bNode->setLeftVar(lRoot->varName());
     bNode->setRightVar(rRoot->varName());
 
+<<<<<<< HEAD
     tail_ = PassThroughNode::make(qctx_, nullptr);
     NG_RETURN_IF_ERROR(lValidator_->appendPlan(tail_));
     NG_RETURN_IF_ERROR(rValidator_->appendPlan(tail_));
     return Status::OK();
+=======
+    tail_ = MultiOutputsNode::make(plan, nullptr);
+    auto gStatus = lValidator_->appendPlan(tail_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = rValidator_->appendPlan(tail_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+    return GraphStatus::OK();
+>>>>>>> all use GraphStatus
 }
 
 }   // namespace graph

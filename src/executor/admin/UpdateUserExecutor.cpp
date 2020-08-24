@@ -11,22 +11,22 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> UpdateUserExecutor::execute() {
+folly::Future<GraphStatus> UpdateUserExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return updateUser();
 }
 
-folly::Future<Status> UpdateUserExecutor::updateUser() {
+folly::Future<GraphStatus> UpdateUserExecutor::updateUser() {
     auto *uuNode = asNode<UpdateUser>(node());
     return qctx()->getMetaClient()->alterUser(*uuNode->username(), *uuNode->password())
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .then([this](auto&& resp) {
             SCOPED_TIMER(&execTime_);
-            NG_RETURN_IF_ERROR(resp);
-            if (!resp.value()) {
-                return Status::Error("Update user failed!");
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            return Status::OK();
+            return GraphStatus::OK();
         });
 }
 

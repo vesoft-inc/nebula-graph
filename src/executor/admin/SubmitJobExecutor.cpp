@@ -13,7 +13,7 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> SubmitJobExecutor::execute() {
+folly::Future<GraphStatus> SubmitJobExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *sjNode = asNode<SubmitJob>(node());
@@ -28,50 +28,54 @@ folly::Future<Status> SubmitJobExecutor::execute() {
             cmd = meta::cpp2::AdminCmd::FLUSH;
         } else {
             DLOG(FATAL) << "Unknown job command " << params.front();
-            return Status::Error("Unknown job command %s", params.front().c_str());
+            return GraphStatus::setInternalError(
+                    folly::stringPrintf("Unknown job command %s",
+                                         params.front().c_str()));
         }
     }
     return qctx()->getMetaClient()->submitJob(jobOp, cmd, sjNode->params())
         .via(runner())
-        .then([jobOp, this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
+        .then([jobOp, this](auto &&resp) {
             SCOPED_TIMER(&execTime_);
 
-            if (!resp.ok()) {
-                LOG(ERROR) << resp.status().toString();
-                return std::move(resp).status();
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
+            auto result = resp.value().get_result();
+
             switch (jobOp) {
                 case meta::cpp2::AdminJobOp::ADD: {
                     nebula::DataSet v({"New Job Id"});
-                    DCHECK(resp.value().__isset.job_id);
-                    if (!resp.value().__isset.job_id) {
-                        return Status::Error("Response unexpected.");
+                    DCHECK(result.__isset.job_id);
+                    if (!result.__isset.job_id) {
+                        return GraphStatus::setInternalError("Response unexpected.");
                     }
-                    v.emplace_back(nebula::Row({*DCHECK_NOTNULL(resp.value().get_job_id())}));
+                    v.emplace_back(nebula::Row({*DCHECK_NOTNULL(result.get_job_id())}));
                     return finish(std::move(v));
                 }
                 case meta::cpp2::AdminJobOp::RECOVER: {
                     nebula::DataSet v({"Recovered job num"});
-                    DCHECK(resp.value().__isset.recovered_job_num);
-                    if (!resp.value().__isset.recovered_job_num) {
-                        return Status::Error("Response unexpected.");
+                    DCHECK(result.__isset.recovered_job_num);
+                    if (!result.__isset.recovered_job_num) {
+                        return GraphStatus::setInternalError("Response unexpected.");
                     }
                     v.emplace_back(
-                        nebula::Row({*DCHECK_NOTNULL(resp.value().get_recovered_job_num())}));
+                        nebula::Row({*DCHECK_NOTNULL(result.get_recovered_job_num())}));
                     return finish(std::move(v));
                 }
                 case meta::cpp2::AdminJobOp::SHOW: {
                     nebula::DataSet v(
                         {"Job Id(TaskId)", "Command(Dest)", "Status", "Start Time", "Stop Time"});
-                    DCHECK(resp.value().__isset.job_desc);
-                    if (!resp.value().__isset.job_desc) {
-                        return Status::Error("Response unexpected.");
+                    DCHECK(result.__isset.job_desc);
+                    if (!result.__isset.job_desc) {
+                        return GraphStatus::setInternalError("Response unexpected.");
                     }
-                    DCHECK(resp.value().__isset.task_desc);
-                    if (!resp.value().__isset.task_desc) {
-                        return Status::Error("Response unexpected");
+                    DCHECK(result.__isset.task_desc);
+                    if (!result.__isset.task_desc) {
+                        return GraphStatus::setInternalError("Response unexpected");
                     }
-                    auto &jobDesc = *resp.value().get_job_desc();
+                    auto &jobDesc = *result.get_job_desc();
                     // job desc
                     v.emplace_back(
                         nebula::Row(
@@ -82,7 +86,7 @@ folly::Future<Status> SubmitJobExecutor::execute() {
                             jobDesc.front().get_stop_time(),
                             }));
                     // tasks desc
-                    auto &tasksDesc = *resp.value().get_task_desc();
+                    auto &tasksDesc = *result.get_task_desc();
                     for (const auto & taskDesc : tasksDesc) {
                         v.emplace_back(nebula::Row({
                             taskDesc.get_task_id(),
@@ -96,11 +100,11 @@ folly::Future<Status> SubmitJobExecutor::execute() {
                 }
                 case meta::cpp2::AdminJobOp::SHOW_All: {
                     nebula::DataSet v({"Job Id", "Command", "Status", "Start Time", "Stop Time"});
-                    DCHECK(resp.value().__isset.job_desc);
-                    if (!resp.value().__isset.job_desc) {
-                        return Status::Error("Response unexpected");
+                    DCHECK(result.__isset.job_desc);
+                    if (!result.__isset.job_desc) {
+                        return GraphStatus::setInternalError("Response unexpected");
                     }
-                    const auto &jobsDesc = *resp.value().get_job_desc();
+                    const auto &jobsDesc = *result.get_job_desc();
                     for (const auto &jobDesc : jobsDesc) {
                         v.emplace_back(nebula::Row({
                             jobDesc.get_id(),
@@ -122,7 +126,9 @@ folly::Future<Status> SubmitJobExecutor::execute() {
             // no default so the compiler will warning when lack
             }
             DLOG(FATAL) << "Unknown job operation " << static_cast<int>(jobOp);
-            return Status::Error("Unkown job job operation %d.", static_cast<int>(jobOp));
+            return GraphStatus::setInternalError(
+                    folly::stringPrintf("Unknown job job operation %d.",
+                                         static_cast<int>(jobOp)));
         });
 }
 

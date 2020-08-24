@@ -12,10 +12,12 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> UnionExecutor::execute() {
+folly::Future<GraphStatus> UnionExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-
-    NG_RETURN_IF_ERROR(checkInputDataSets());
+    auto status = checkInputDataSets();
+    if (!status.ok()) {
+        return status;
+    }
     auto left = getLeftInputDataIter();
     auto right = getRightInputDataIter();
     auto value = left->valuePtr();

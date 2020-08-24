@@ -10,22 +10,22 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> StopBalanceExecutor::execute() {
+folly::Future<GraphStatus> StopBalanceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return stopBalance();
 }
 
-folly::Future<Status> StopBalanceExecutor::stopBalance() {
+folly::Future<GraphStatus> StopBalanceExecutor::stopBalance() {
     return qctx()->getMetaClient()->balance({}, true)
         .via(runner())
-        .then([this](StatusOr<int64_t> resp) {
+        .then([this](auto&& resp) {
             SCOPED_TIMER(&execTime_);
-            if (!resp.ok()) {
-                LOG(ERROR) << resp.status();
-                return resp.status();
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
             DataSet v({"ID"});
-            v.emplace_back(Row({resp.value()}));
+            v.emplace_back(Row({resp.value().get_id()}));
             return finish(std::move(v));
         });
 }

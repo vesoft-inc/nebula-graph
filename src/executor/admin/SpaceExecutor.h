@@ -17,7 +17,7 @@ public:
     CreateSpaceExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("CreateSpaceExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class DescSpaceExecutor final : public Executor {
@@ -25,7 +25,7 @@ public:
     DescSpaceExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("DescSpaceExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class DropSpaceExecutor final : public Executor {
@@ -33,7 +33,7 @@ public:
     DropSpaceExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("DropSpaceExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class ShowSpacesExecutor final : public Executor {
@@ -41,7 +41,7 @@ public:
     ShowSpacesExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("ShowSpacesExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class ShowCreateSpaceExecutor final : public Executor {
@@ -49,7 +49,7 @@ public:
     ShowCreateSpaceExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("ShowCreateSpaceExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 }   // namespace graph
 }   // namespace nebula

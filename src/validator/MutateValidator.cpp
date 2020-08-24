@@ -10,9 +10,9 @@
 
 namespace nebula {
 namespace graph {
-Status InsertVerticesValidator::validateImpl() {
+GraphStatus InsertVerticesValidator::validateImpl() {
     spaceId_ = vctx_->whichSpace().id;
-    auto status = Status::OK();
+    auto status = GraphStatus::OK();
     do {
         status = check();
         if (!status.ok()) {
@@ -26,8 +26,14 @@ Status InsertVerticesValidator::validateImpl() {
     return status;
 }
 
+<<<<<<< HEAD
 Status InsertVerticesValidator::toPlan() {
     auto doNode = InsertVertices::make(qctx_,
+=======
+GraphStatus InsertVerticesValidator::toPlan() {
+    auto *plan = qctx_->plan();
+    auto doNode = InsertVertices::make(plan,
+>>>>>>> all use GraphStatus
                                        nullptr,
                                        spaceId_,
                                        std::move(vertices_),
@@ -35,14 +41,14 @@ Status InsertVerticesValidator::toPlan() {
                                        overwritable_);
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status InsertVerticesValidator::check() {
+GraphStatus InsertVerticesValidator::check() {
     auto sentence = static_cast<InsertVerticesSentence*>(sentence_);
     rows_ = sentence->rows();
     if (rows_.empty()) {
-        return Status::Error("VALUES cannot be empty");
+        return GraphStatus::setInternalError("Values cannot be empty");
     }
 
     auto tagItems = sentence->tagItems();
@@ -55,14 +61,14 @@ Status InsertVerticesValidator::check() {
         auto tagStatus = qctx_->schemaMng()->toTagID(spaceId_, *tagName);
         if (!tagStatus.ok()) {
             LOG(ERROR) << "No schema found for " << *tagName;
-            return Status::Error("No schema found for `%s'", tagName->c_str());
+            return GraphStatus::setTagNotFound(*tagName);
         }
 
         auto tagId = tagStatus.value();
         auto schema = qctx_->schemaMng()->getTagSchema(spaceId_, tagId);
         if (schema == nullptr) {
             LOG(ERROR) << "No schema found for " << *tagName;
-            return Status::Error("No schema found for `%s'", tagName->c_str());
+            return GraphStatus::setTagNotFound(*tagName);
         }
 
         std::vector<std::string> names;
@@ -71,7 +77,7 @@ Status InsertVerticesValidator::check() {
         for (auto *it : props) {
             if (schema->getFieldIndex(*it) < 0) {
                 LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-                return Status::Error("Unknown column `%s' in schema", it->c_str());
+                return GraphStatus::setTagPropNotFound();
             }
             propSize_++;
             names.emplace_back(*it);
@@ -79,23 +85,23 @@ Status InsertVerticesValidator::check() {
         tagPropNames_[tagId] = names;
         schemas_.emplace_back(tagId, schema);
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status InsertVerticesValidator::prepareVertices() {
+GraphStatus InsertVerticesValidator::prepareVertices() {
     vertices_.reserve(rows_.size());
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propSize_ != row->values().size()) {
-            return Status::Error("Column count doesn't match value count.");
+            return GraphStatus::setColumnCountNotMatch();
         }
         if (!evaluableExpr(row->id())) {
             LOG(ERROR) << "Wrong vid expression `" << row->id()->toString() << "\"";
-            return Status::Error("Wrong vid expression `%s'", row->id()->toString().c_str());
+            return GraphStatus::setInvalidVid();
         }
         auto idStatus = SchemaUtil::toVertexID(row->id());
         if (!idStatus.ok()) {
-            return idStatus.status();
+            return GraphStatus::setInvalidData();
         }
         auto vertexId = std::move(idStatus).value();
 
@@ -103,12 +109,12 @@ Status InsertVerticesValidator::prepareVertices() {
         for (auto &value : row->values()) {
             if (!evaluableExpr(value)) {
                 LOG(ERROR) << "Insert wrong value: `" << value->toString() << "'.";
-                return Status::Error("Insert wrong value: `%s'.", value->toString().c_str());
+                return GraphStatus::setInvalidExpr(value->toString());
             }
         }
         auto valsRet = SchemaUtil::toValueVec(row->values());
         if (!valsRet.ok()) {
-            return valsRet.status();
+            return GraphStatus::setInvalidData();
         }
         auto values = std::move(valsRet).value();
 
@@ -124,7 +130,7 @@ Status InsertVerticesValidator::prepareVertices() {
                 auto schemaType = schema->getFieldType(propNames[index]);
                 auto valueStatus = SchemaUtil::toSchemaValue(schemaType, values[handleValueNum]);
                 if (!valueStatus.ok()) {
-                    return valueStatus.status();
+                    return GraphStatus::setInvalidData();
                 }
                 props.emplace_back(std::move(valueStatus).value());
                 handleValueNum++;
@@ -139,12 +145,12 @@ Status InsertVerticesValidator::prepareVertices() {
         vertex.set_tags(std::move(tags));
         vertices_.emplace_back(std::move(vertex));
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status InsertEdgesValidator::validateImpl() {
+GraphStatus InsertEdgesValidator::validateImpl() {
     spaceId_ = vctx_->whichSpace().id;
-    auto status = Status::OK();
+    auto status = GraphStatus::OK();
     do {
         status = check();
         if (!status.ok()) {
@@ -159,8 +165,14 @@ Status InsertEdgesValidator::validateImpl() {
     return status;
 }
 
+<<<<<<< HEAD
 Status InsertEdgesValidator::toPlan() {
     auto doNode = InsertEdges::make(qctx_,
+=======
+GraphStatus InsertEdgesValidator::toPlan() {
+    auto *plan = qctx_->plan();
+    auto doNode = InsertEdges::make(plan,
+>>>>>>> all use GraphStatus
                                     nullptr,
                                     spaceId_,
                                     std::move(edges_),
@@ -168,15 +180,15 @@ Status InsertEdgesValidator::toPlan() {
                                     overwritable_);
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status InsertEdgesValidator::check() {
+GraphStatus InsertEdgesValidator::check() {
     auto sentence = static_cast<InsertEdgesSentence*>(sentence_);
     overwritable_ = sentence->overwritable();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, *sentence->edge());
     if (!edgeStatus.ok()) {
-        return edgeStatus.status();
+        return GraphStatus::setEdgeNotFound(*sentence->edge());;
     }
     edgeType_ = edgeStatus.value();
     auto props = sentence->properties();
@@ -184,47 +196,47 @@ Status InsertEdgesValidator::check() {
 
     schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
     if (schema_ == nullptr) {
-        LOG(ERROR) << "No schema found for " << sentence->edge();
-        return Status::Error("No schema found for `%s'", sentence->edge()->c_str());
+        LOG(ERROR) << "No schema found for " << *sentence->edge();
+        return GraphStatus::setEdgeNotFound(*sentence->edge());
     }
 
     // Check prop name is in schema
     for (auto *it : props) {
         if (schema_->getFieldIndex(*it) < 0) {
             LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-            return Status::Error("Unknown column `%s' in schema", it->c_str());
+            return GraphStatus::setEdgePropNotFound();
         }
         propNames_.emplace_back(*it);
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status InsertEdgesValidator::prepareEdges() {;
+GraphStatus InsertEdgesValidator::prepareEdges() {;
     edges_.reserve(rows_.size()*2);
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propNames_.size() != row->values().size()) {
-            return Status::Error("Column count doesn't match value count.");
+            return GraphStatus::setColumnCountNotMatch();
         }
         if (!evaluableExpr(row->srcid())) {
             LOG(ERROR) << "Wrong src vid expression `" << row->srcid()->toString() << "\"";
-            return Status::Error("Wrong src vid expression `%s'", row->srcid()->toString().c_str());
+            return GraphStatus::setInvalidExpr(row->srcid()->toString());
         }
 
         if (!evaluableExpr(row->dstid())) {
             LOG(ERROR) << "Wrong dst vid expression `" << row->dstid()->toString() << "\"";
-            return Status::Error("Wrong dst vid expression `%s'", row->dstid()->toString().c_str());
+            return GraphStatus::setInvalidExpr(row->dstid()->toString());
         }
 
         auto idStatus = SchemaUtil::toVertexID(row->srcid());
         if (!idStatus.ok()) {
-            return idStatus.status();
+            return GraphStatus::setInvalidVid();
         }
         auto srcId = std::move(idStatus).value();
         idStatus = SchemaUtil::toVertexID(row->dstid());
         if (!idStatus.ok()) {
-            return idStatus.status();
+            return GraphStatus::setInvalidVid();
         }
         auto dstId = std::move(idStatus).value();
 
@@ -234,13 +246,13 @@ Status InsertEdgesValidator::prepareEdges() {;
         for (auto &value : row->values()) {
             if (!evaluableExpr(value)) {
                 LOG(ERROR) << "Insert wrong value: `" << value->toString() << "'.";
-                return Status::Error("Insert wrong value: `%s'.", value->toString().c_str());
+                return GraphStatus::setInvalidData();
             }
         }
 
         auto valsRet = SchemaUtil::toValueVec(row->values());
         if (!valsRet.ok()) {
-            return valsRet.status();
+            return GraphStatus::setInvalidVid();
         }
         auto values = std::move(valsRet).value();
         std::vector<Value> props;
@@ -248,7 +260,7 @@ Status InsertEdgesValidator::prepareEdges() {;
             auto schemaType = schema_->getFieldType(propNames_[index]);
             auto valueStatus = SchemaUtil::toSchemaValue(schemaType, values[index]);
             if (!valueStatus.ok()) {
-                return valueStatus.status();
+                return GraphStatus::setInvalidData();
             }
             props.emplace_back(std::move(valueStatus).value());
         }
@@ -271,30 +283,31 @@ Status InsertEdgesValidator::prepareEdges() {;
         edges_.emplace_back(std::move(edge));
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DeleteVerticesValidator::validateImpl() {
+GraphStatus DeleteVerticesValidator::validateImpl() {
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
     if (sentence->isRef()) {
         vidRef_ = sentence->vidRef();
         auto type = deduceExprType(vidRef_);
         if (!type.ok()) {
-            return type.status();
+            LOG(ERROR) << type.status();
+            return GraphStatus::setInvalidExpr(vidRef_->toString());
         }
         if (type.value() != Value::Type::STRING) {
             std::stringstream ss;
             ss << "The vid should be string type, "
                << "but input is `" << type.value() << "'";
-            return Status::Error(ss.str());
+            return GraphStatus::setInvalidVid();
         }
     } else {
         auto vIds = sentence->vidList()->vidList();
         for (auto vId : vIds) {
             auto idStatus = SchemaUtil::toVertexID(vId);
             if (!idStatus.ok()) {
-                return idStatus.status();
+                return GraphStatus::setInvalidVid();
             }
             vertices_.emplace_back(std::move(idStatus).value());
         }
@@ -302,18 +315,18 @@ Status DeleteVerticesValidator::validateImpl() {
 
     auto ret = qctx_->schemaMng()->getAllEdge(spaceId_);
     if (!ret.ok()) {
-        return ret.status();
+        return GraphStatus::setNoEdges();
     }
     edgeNames_ = std::move(ret).value();
     for (auto &name : edgeNames_) {
         auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, name);
         if (!edgeStatus.ok()) {
-            return edgeStatus.status();
+            return GraphStatus::setEdgeNotFound(name);
         }
         auto edgeType = edgeStatus.value();
         edgeTypes_.emplace_back(edgeType);
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 std::string DeleteVerticesValidator::buildVIds() {
@@ -335,7 +348,12 @@ std::string DeleteVerticesValidator::buildVIds() {
     return input;
 }
 
+<<<<<<< HEAD
 Status DeleteVerticesValidator::toPlan() {
+=======
+GraphStatus DeleteVerticesValidator::toPlan() {
+    auto plan = qctx_->plan();
+>>>>>>> all use GraphStatus
     std::string vidVar;
     if (!vertices_.empty() && vidRef_ == nullptr) {
         vidVar = buildVIds();
@@ -401,15 +419,15 @@ Status DeleteVerticesValidator::toPlan() {
     dvNode->setInputVar(vidVar);
     root_ = dvNode;
     tail_ = getNeighbors;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DeleteEdgesValidator::validateImpl() {
+GraphStatus DeleteEdgesValidator::validateImpl() {
     auto sentence = static_cast<DeleteEdgesSentence*>(sentence_);
     auto spaceId = vctx_->whichSpace().id;
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId, *sentence->edge());
     if (!edgeStatus.ok()) {
-        return edgeStatus.status();
+        return GraphStatus::setEdgeNotFound(*sentence->edge());
     }
     auto edgeType = edgeStatus.value();
     if (sentence->isRef()) {
@@ -423,10 +441,10 @@ Status DeleteEdgesValidator::validateImpl() {
         return buildEdgeKeyRef(sentence->edgeKeys()->keys(), edgeType);
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
+GraphStatus DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
                                              const EdgeType edgeType) {
     edgeKeyVar_ = vctx_->anonVarGen()->getVar();
     DataSet ds({kSrc, kType, kRank, kDst});
@@ -435,11 +453,11 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
         storage::cpp2::EdgeKey key;
         auto srcIdStatus = SchemaUtil::toVertexID(edgeKey->srcid());
         if (!srcIdStatus.ok()) {
-            return srcIdStatus.status();
+            return GraphStatus::setInvalidExpr(edgeKey->srcid()->toString());
         }
         auto dstIdStatus = SchemaUtil::toVertexID(edgeKey->dstid());
         if (!dstIdStatus.ok()) {
-            return dstIdStatus.status();
+            return GraphStatus::setInvalidExpr(edgeKey->dstid()->toString());
         }
 
         auto srcId = std::move(srcIdStatus).value();
@@ -462,84 +480,119 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
     qctx_->objPool()->add(edgeKeyRef);
 
     edgeKeyRefs_.emplace_back(edgeKeyRef);
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DeleteEdgesValidator::checkInput() {
+GraphStatus DeleteEdgesValidator::checkInput() {
     CHECK(!edgeKeyRefs_.empty());
     auto &edgeKeyRef = *edgeKeyRefs_.begin();
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->srcid(), exprProps_));
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->dstid(), exprProps_));
-    NG_LOG_AND_RETURN_IF_ERROR(deduceProps(edgeKeyRef->rank(), exprProps_));
+    auto status = deduceProps(edgeKeyRef->srcid(), exprProps_);
+    if (!status.ok()) {
+        return GraphStatus::setUnsupportedExpr(edgeKeyRef->srcid()->toString());
+    }
+
+    status = deduceProps(edgeKeyRef->dstid(), exprProps_);
+    if (!status.ok()) {
+        return GraphStatus::setUnsupportedExpr(edgeKeyRef->dstid()->toString());
+    }
+
+    status = deduceProps(edgeKeyRef->rank(), exprProps_);
+    if (!status.ok()) {
+        return GraphStatus::setUnsupportedExpr(edgeKeyRef->rank()->toString());
+    }
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
         !exprProps_.edgeProps().empty()) {
-        return Status::SyntaxError("Only support input and variable.");
+        return GraphStatus::setSyntaxError("Only support input and variable.");
     }
 
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
-        return Status::Error("Not support both input and variable.");
+        return GraphStatus::setSyntaxError("Not support both input and variable.");
     }
 
     if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
-        return Status::Error("Only one variable allowed to use.");
+        return GraphStatus::setSyntaxError("Only one variable allowed to use.");
     }
 
-    auto status = deduceExprType(edgeKeyRef->srcid());
-    NG_RETURN_IF_ERROR(status);
+    auto typeResult = deduceExprType(edgeKeyRef->srcid());
+    if (!typeResult.ok()) {
+        return GraphStatus::setInvalidExpr(edgeKeyRef->srcid()->toString());
+    }
 
-    status = deduceExprType(edgeKeyRef->dstid());
-    NG_RETURN_IF_ERROR(status);
+    typeResult = deduceExprType(edgeKeyRef->dstid());
+    if (!typeResult.ok()) {
+        return GraphStatus::setInvalidExpr(edgeKeyRef->dstid()->toString());
+    }
 
-    status = deduceExprType(edgeKeyRef->rank());
-    NG_RETURN_IF_ERROR(status);
+    typeResult = deduceExprType(edgeKeyRef->rank());
+    if (!typeResult.ok()) {
+        return GraphStatus::setInvalidExpr(edgeKeyRef->rank()->toString());
+    }
 
     if (edgeKeyRef->srcid()->kind() == Expression::Kind::kVarProperty) {
         edgeKeyVar_ = *static_cast<PropertyExpression*>(edgeKeyRef->srcid())->sym();
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status DeleteEdgesValidator::toPlan() {
     auto *doNode = DeleteEdges::make(qctx_,
+=======
+GraphStatus DeleteEdgesValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = DeleteEdges::make(plan,
+>>>>>>> all use GraphStatus
                                      nullptr,
                                      vctx_->whichSpace().id,
                                      edgeKeyRefs_);
     doNode->setInputVar(edgeKeyVar_);
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status UpdateValidator::initProps() {
+GraphStatus UpdateValidator::initProps() {
     spaceId_ = vctx_->whichSpace().id;
     insertable_ = sentence_->getInsertable();
     if (sentence_->getName() != nullptr) {
         name_ = *sentence_->getName();
     }
-    NG_RETURN_IF_ERROR(getUpdateProps());
-    NG_RETURN_IF_ERROR(getCondition());
+
+    auto gStatus = getUpdateProps();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = getCondition();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
     return getReturnProps();
 }
 
-Status UpdateValidator::getCondition() {
+GraphStatus UpdateValidator::getCondition() {
     auto *clause = sentence_->whenClause();
     if (clause != nullptr) {
         auto filter = clause->filter();
         if (filter != nullptr) {
             auto encodeStr = filter->encode();
             auto copyFilterExpr = Expression::decode(encodeStr);
-            NG_LOG_AND_RETURN_IF_ERROR(
-                    checkAndResetSymExpr(copyFilterExpr.get(), name_, encodeStr));
+            auto gStatus = checkAndResetSymExpr(copyFilterExpr.get(), name_, encodeStr);
+            if (!gStatus.ok()) {
+                return gStatus;
+            }
             condition_ = std::move(encodeStr);
         }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status UpdateValidator::getReturnProps() {
+GraphStatus UpdateValidator::getReturnProps() {
     auto *clause = sentence_->yieldClause();
     if (clause != nullptr) {
+        GraphStatus gStatus;
         auto yields = clause->columns();
         for (auto *col : yields) {
             if (col->alias() == nullptr) {
@@ -550,19 +603,23 @@ Status UpdateValidator::getReturnProps() {
             auto encodeStr = col->expr()->encode();
             auto copyColExpr = Expression::decode(encodeStr);
 
-            NG_LOG_AND_RETURN_IF_ERROR(checkAndResetSymExpr(copyColExpr.get(), name_, encodeStr));
+            gStatus = checkAndResetSymExpr(copyColExpr.get(), name_, encodeStr);
+            if (!gStatus.ok()) {
+                return gStatus;
+            }
             returnProps_.emplace_back(std::move(encodeStr));
         }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status UpdateValidator::getUpdateProps() {
-    auto status = Status::OK();
+GraphStatus UpdateValidator::getUpdateProps() {
+    auto status = GraphStatus::OK();
     auto items = sentence_->updateList()->items();
     std::unordered_set<std::string> symNames;
     std::string fieldName;
     const std::string *symName = nullptr;
+    GraphStatus gStatus;
     for (auto& item : items) {
         storage::cpp2::UpdatedProp updatedProp;
         // The syntax has guaranteed it is name or expression
@@ -581,11 +638,14 @@ Status UpdateValidator::getUpdateProps() {
         auto valueExpr = item->value();
         if (valueExpr == nullptr) {
             LOG(ERROR) << "valueExpr is nullptr";
-            return Status::SyntaxError("Empty update item field value.");
+            return GraphStatus::setSyntaxError("Empty update item field value.");
         }
         auto encodeStr = valueExpr->encode();
         auto copyValueExpr = Expression::decode(encodeStr);
-        NG_LOG_AND_RETURN_IF_ERROR(checkAndResetSymExpr(copyValueExpr.get(), *symName, encodeStr));
+        gStatus = checkAndResetSymExpr(copyValueExpr.get(), *symName, encodeStr);
+        if (!gStatus.ok()) {
+            return gStatus;
+        }
         updatedProp.set_value(std::move(encodeStr));
         updatedProp.set_name(fieldName);
         updatedProps_.emplace_back(std::move(updatedProp));
@@ -594,7 +654,7 @@ Status UpdateValidator::getUpdateProps() {
     if (symNames.size() != 1) {
         auto errorMsg = "Multi schema name: " + folly::join(",", symNames);
         LOG(ERROR) << errorMsg;
-        return Status::Error(std::move(errorMsg));
+        return GraphStatus::setSemanticError(std::move(errorMsg));
     }
     if (symName != nullptr) {
         name_ = *symName;
@@ -603,21 +663,20 @@ Status UpdateValidator::getUpdateProps() {
 }
 
 
-Status UpdateValidator::checkAndResetSymExpr(Expression* inExpr,
-                                             const std::string& symName,
-                                             std::string &encodeStr) {
+GraphStatus UpdateValidator::checkAndResetSymExpr(Expression* inExpr,
+                                                  const std::string& symName,
+                                                  std::string &encodeStr) {
     bool hasWrongType = false;
     auto symExpr = rewriteSymExpr(inExpr, symName, hasWrongType, isEdge_);
     if (hasWrongType) {
-        return Status::Error("Has wrong expr in `%s'",
-                             inExpr->toString().c_str());
+        return GraphStatus::setInvalidExpr(inExpr->toString());
     }
     if (symExpr != nullptr) {
         encodeStr = symExpr->encode();
-        return Status::OK();
+        return GraphStatus::OK();
     }
     encodeStr = inExpr->encode();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 // rewrite the expr which has kSymProperty expr to toExpr
@@ -749,26 +808,35 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
 }
 
 
-Status UpdateVertexValidator::validateImpl() {
+GraphStatus UpdateVertexValidator::validateImpl() {
     auto sentence = static_cast<UpdateVertexSentence*>(sentence_);
     auto idRet = SchemaUtil::toVertexID(sentence->getVid());
     if (!idRet.ok()) {
         LOG(ERROR) << idRet.status();
-        return idRet.status();
+        return GraphStatus::setInvalidVid();
     }
     vId_ = std::move(idRet).value();
-    NG_RETURN_IF_ERROR(initProps());
+    auto gStatus = initProps();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
     auto ret = qctx_->schemaMng()->toTagID(spaceId_, name_);
     if (!ret.ok()) {
         LOG(ERROR) << "No schema found for " << name_;
-        return Status::Error("No schema found for `%s'", name_.c_str());
+        return GraphStatus::setTagNotFound(name_);
     }
     tagId_ = ret.value();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status UpdateVertexValidator::toPlan() {
     auto *update = UpdateVertex::make(qctx_,
+=======
+GraphStatus UpdateVertexValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *update = UpdateVertex::make(plan,
+>>>>>>> all use GraphStatus
                                       nullptr,
                                       spaceId_,
                                       std::move(name_),
@@ -781,36 +849,45 @@ Status UpdateVertexValidator::toPlan() {
                                       std::move(yieldColNames_));
     root_ = update;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status UpdateEdgeValidator::validateImpl() {
+GraphStatus UpdateEdgeValidator::validateImpl() {
     auto sentence = static_cast<UpdateEdgeSentence*>(sentence_);
     auto srcIdRet = SchemaUtil::toVertexID(sentence->getSrcId());
     if (!srcIdRet.ok()) {
         LOG(ERROR) << srcIdRet.status();
-        return srcIdRet.status();
+        return GraphStatus::setInvalidVid();
     }
     srcId_ = std::move(srcIdRet).value();
     auto dstIdRet = SchemaUtil::toVertexID(sentence->getDstId());
     if (!dstIdRet.ok()) {
         LOG(ERROR) << dstIdRet.status();
-        return dstIdRet.status();
+        return GraphStatus::setInvalidVid();
     }
     dstId_ = std::move(dstIdRet).value();
     rank_ = sentence->getRank();
-    NG_RETURN_IF_ERROR(initProps());
+    auto gStatus = initProps();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
     auto ret = qctx_->schemaMng()->toEdgeType(spaceId_, name_);
     if (!ret.ok()) {
         LOG(ERROR) << "No schema found for " << name_;
-        return Status::Error("No schema found for `%s'", name_.c_str());
+        return GraphStatus::setEdgeNotFound(name_);
     }
     edgeType_ = ret.value();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status UpdateEdgeValidator::toPlan() {
     auto *outNode = UpdateEdge::make(qctx_,
+=======
+GraphStatus UpdateEdgeValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *outNode = UpdateEdge::make(plan,
+>>>>>>> all use GraphStatus
                                      nullptr,
                                      spaceId_,
                                      name_,
@@ -839,7 +916,7 @@ Status UpdateEdgeValidator::toPlan() {
                                     std::move(yieldColNames_));
     root_ = inNode;
     tail_ = outNode;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 }  // namespace graph

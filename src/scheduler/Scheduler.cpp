@@ -19,6 +19,7 @@ namespace graph {
 
 Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id()) {}
 
+<<<<<<< HEAD
 Scheduler::PassThroughData::PassThroughData(int32_t outputs)
     : promise(std::make_unique<folly::SharedPromise<Status>>()), numOutputs(outputs) {}
 
@@ -26,6 +27,15 @@ Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
 
 folly::Future<Status> Scheduler::schedule() {
     auto executor = Executor::create(qctx_->plan()->root(), qctx_);
+=======
+Scheduler::MultiOutputsData::MultiOutputsData(int32_t outputs)
+    : promise(std::make_unique<folly::SharedPromise<GraphStatus>>()), numOutputs(outputs) {}
+
+Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
+
+folly::Future<GraphStatus> Scheduler::schedule() {
+    auto executor = Executor::makeExecutor(qctx_->plan()->root(), qctx_);
+>>>>>>> all use GraphStatus
     analyze(executor);
     return doSchedule(executor);
 }
@@ -61,17 +71,17 @@ void Scheduler::analyze(Executor *executor) {
     }
 }
 
-folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
+folly::Future<GraphStatus> Scheduler::doSchedule(Executor *executor) {
     switch (executor->node()->kind()) {
         case PlanNode::Kind::kSelect: {
             auto sel = static_cast<SelectExecutor *>(executor);
             return doScheduleParallel(sel->depends())
                 .then(task(sel,
-                           [sel, this](Status status) {
+                           [sel, this](GraphStatus status) {
                                if (!status.ok()) return sel->error(std::move(status));
                                return execute(sel);
                            }))
-                .then(task(sel, [sel, this](Status status) {
+                .then(task(sel, [sel, this](GraphStatus status) {
                     if (!status.ok()) return sel->error(std::move(status));
 
                     auto val = qctx_->ectx()->getValue(sel->node()->varName());
@@ -81,10 +91,11 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
         }
         case PlanNode::Kind::kLoop: {
             auto loop = static_cast<LoopExecutor *>(executor);
-            return doScheduleParallel(loop->depends()).then(task(loop, [loop, this](Status status) {
-                if (!status.ok()) return loop->error(std::move(status));
-                return iterate(loop);
-            }));
+            return doScheduleParallel(loop->depends()).then(task(loop,
+                        [loop, this](GraphStatus status) {
+                            if (!status.ok()) return loop->error(std::move(status));
+                            return iterate(loop);
+                        }));
         }
         case PlanNode::Kind::kPassThrough: {
             auto mout = static_cast<PassThroughExecutor *>(executor);
@@ -97,7 +108,7 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
             if (data.numOutputs == 0) {
                 // Reset promise of output executors when it's in loop
                 data.numOutputs = static_cast<int32_t>(mout->successors().size());
-                data.promise = std::make_unique<folly::SharedPromise<Status>>();
+                data.promise = std::make_unique<folly::SharedPromise<GraphStatus>>();
             }
 
             data.numOutputs--;
@@ -106,7 +117,7 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
             }
 
             return doScheduleParallel(mout->depends())
-                .then(task(mout, [&data, mout, this](Status status) {
+                .then(task(mout, [&data, mout, this](GraphStatus status) {
                     // Notify and wake up all waited tasks
                     data.promise->setValue(status);
 
@@ -120,55 +131,58 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
                 return execute(executor);
             }
 
-            return doScheduleParallel(deps).then(task(executor, [executor, this](Status stats) {
-                if (!stats.ok()) return executor->error(std::move(stats));
-                return execute(executor);
-            }));
+            return doScheduleParallel(deps).then(task(executor,
+                        [executor, this](GraphStatus stats) {
+                            if (!stats.ok()) return executor->error(std::move(stats));
+                            return execute(executor);
+                        }));
         }
     }
 }
 
-folly::Future<Status> Scheduler::doScheduleParallel(const std::set<Executor *> &dependents) {
+folly::Future<GraphStatus> Scheduler::doScheduleParallel(const std::set<Executor *> &dependents) {
     CHECK(!dependents.empty());
 
-    std::vector<folly::Future<Status>> futures;
+    std::vector<folly::Future<GraphStatus>> futures;
     for (auto dep : dependents) {
         futures.emplace_back(doSchedule(dep));
     }
-    return folly::collect(futures).then([](std::vector<Status> stats) {
+    return folly::collect(futures).then([](std::vector<GraphStatus> stats) {
         for (auto &s : stats) {
             if (!s.ok()) return s;
         }
-        return Status::OK();
+        return GraphStatus::OK();
     });
 }
 
-folly::Future<Status> Scheduler::iterate(LoopExecutor *loop) {
-    return execute(loop).then(task(loop, [loop, this](Status status) {
+folly::Future<GraphStatus> Scheduler::iterate(LoopExecutor *loop) {
+    return execute(loop).then(task(loop, [loop, this](GraphStatus status) {
         if (!status.ok()) return loop->error(std::move(status));
 
         auto val = qctx_->ectx()->getValue(loop->node()->varName());
         if (!val.isBool()) {
             std::stringstream ss;
             ss << "Loop produces a bad condition result: " << val << " type: " << val.type();
-            return loop->error(Status::Error(ss.str()));
+            return loop->error(GraphStatus::setInternalError(ss.str()));
         }
         auto cond = val.moveBool();
-        if (!cond) return folly::makeFuture(Status::OK());
-        return doSchedule(loop->loopBody()).then(task(loop, [loop, this](Status s) {
+        if (!cond) return folly::makeFuture(GraphStatus::OK());
+        return doSchedule(loop->loopBody()).then(task(loop, [loop, this](GraphStatus s) {
             if (!s.ok()) return loop->error(std::move(s));
             return iterate(loop);
         }));
     }));
 }
 
-folly::Future<Status> Scheduler::execute(Executor *executor) {
+folly::Future<GraphStatus> Scheduler::execute(Executor *executor) {
     auto status = executor->open();
     if (!status.ok()) {
         return executor->error(std::move(status));
     }
-    return executor->execute().then([executor](Status s) {
-        NG_RETURN_IF_ERROR(s);
+    return executor->execute().then([executor](GraphStatus s) {
+        if (!s.ok()) {
+            return s;
+        }
         return executor->close();
     });
 }

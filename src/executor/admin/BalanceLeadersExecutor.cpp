@@ -10,24 +10,21 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> BalanceLeadersExecutor::execute() {
+folly::Future<GraphStatus> BalanceLeadersExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return balanceLeaders();
 }
 
-folly::Future<Status> BalanceLeadersExecutor::balanceLeaders() {
+folly::Future<GraphStatus> BalanceLeadersExecutor::balanceLeaders() {
     return qctx()->getMetaClient()->balanceLeader()
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .then([this](auto&& resp) {
             SCOPED_TIMER(&execTime_);
-            if (!resp.ok()) {
-                LOG(ERROR) << resp.status();
-                return resp.status();
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            if (!resp.value()) {
-                return Status::Error("Balance leaders failed");
-            }
-            return Status::OK();
+            return GraphStatus::OK();
         });
 }
 

@@ -16,17 +16,18 @@
 
 namespace nebula {
 namespace graph {
-Status CreateTagValidator::validateImpl() {
+GraphStatus CreateTagValidator::validateImpl() {
     auto sentence = static_cast<CreateTagSentence*>(sentence_);
-    auto status = Status::OK();
+    auto status = GraphStatus::OK();
     name_ = *sentence->name();
     ifNotExist_ = sentence->isIfNotExist();
     do {
         // Check the validateContext has the same name schema
         auto pro = vctx_->getSchema(name_);
         if (pro != nullptr) {
-            status = Status::Error("Has the same name `%s' in the SequentialSentences",
-                                    name_.c_str());
+            status = GraphStatus::setSemanticError(
+                    folly::stringPrintf("Has the same name `%s' in the SequentialSentences",
+                                         name_.c_str()));
             break;
         }
 
@@ -49,26 +50,27 @@ Status CreateTagValidator::validateImpl() {
     return status;
 }
 
-Status CreateTagValidator::toPlan() {
+GraphStatus CreateTagValidator::toPlan() {
     auto *plan = qctx_->plan();
     auto doNode = CreateTag::make(qctx_,
             plan->root(), std::move(name_), std::move(schema_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status CreateEdgeValidator::validateImpl() {
+GraphStatus CreateEdgeValidator::validateImpl() {
     auto sentence = static_cast<CreateEdgeSentence*>(sentence_);
-    auto status = Status::OK();
+    auto status = GraphStatus::OK();
     name_ = *sentence->name();
     ifNotExist_ = sentence->isIfNotExist();
     do {
         // Check the validateContext has the same name schema
         auto pro = vctx_->getSchema(name_);
         if (pro != nullptr) {
-            status = Status::Error("Has the same name `%s' in the SequentialSentences",
-                                    name_.c_str());
+            status = GraphStatus::setSemanticError(
+                    folly::stringPrintf("Has the same name `%s' in the SequentialSentences",
+                                        name_.c_str()));
             break;
         }
 
@@ -92,42 +94,42 @@ Status CreateEdgeValidator::validateImpl() {
     return status;
 }
 
-Status CreateEdgeValidator::toPlan() {
+GraphStatus CreateEdgeValidator::toPlan() {
     auto *plan = qctx_->plan();
     auto doNode = CreateEdge::make(qctx_,
             plan->root(), std::move(name_), std::move(schema_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DescTagValidator::validateImpl() {
-    return Status::OK();
+GraphStatus DescTagValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status DescTagValidator::toPlan() {
+GraphStatus DescTagValidator::toPlan() {
     auto sentence = static_cast<DescribeTagSentence*>(sentence_);
     auto name = *sentence->name();
     auto doNode = DescTag::make(qctx_, nullptr, std::move(name));
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DescEdgeValidator::validateImpl() {
-    return Status::OK();
+GraphStatus DescEdgeValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status DescEdgeValidator::toPlan() {
+GraphStatus DescEdgeValidator::toPlan() {
     auto sentence = static_cast<DescribeEdgeSentence*>(sentence_);
     auto name = *sentence->name();
     auto doNode = DescEdge::make(qctx_, nullptr, std::move(name));
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem*>& schemaOpts,
+GraphStatus AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem*>& schemaOpts,
                                    const std::vector<SchemaPropItem*>& schemaProps) {
         for (auto& schemaOpt : schemaOpts) {
             meta::cpp2::AlterSchemaItem schemaItem;
@@ -173,7 +175,7 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem*>& schem
                 case SchemaPropItem::TTL_DURATION:
                     retInt = schemaProp->getTtlDuration();
                     if (!retInt.ok()) {
-                        return retInt.status();
+                        return GraphStatus::setInvalidParam("ttl_duration");
                     }
                     ttlDuration = retInt.value();
                     schemaProp_.set_ttl_duration(ttlDuration);
@@ -182,25 +184,29 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem*>& schem
                     // Check the legality of the column in meta
                     retStr = schemaProp->getTtlCol();
                     if (!retStr.ok()) {
-                        return retStr.status();
+                        return GraphStatus::setInvalidParam("ttl_col");
                     }
                     schemaProp_.set_ttl_col(retStr.value());
                     break;
-                default:
-                    return Status::Error("Property type not support");
             }
         }
-        return Status::OK();
+        return GraphStatus::OK();
 }
 
-Status AlterTagValidator::validateImpl() {
+GraphStatus AlterTagValidator::validateImpl() {
     auto sentence = static_cast<AlterTagSentence*>(sentence_);
     name_ = *sentence->name();
     return alterSchema(sentence->getSchemaOpts(), sentence->getSchemaProps());
 }
 
+<<<<<<< HEAD
 Status AlterTagValidator::toPlan() {
     auto *doNode = AlterTag::make(qctx_,
+=======
+GraphStatus AlterTagValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = AlterTag::make(plan,
+>>>>>>> all use GraphStatus
                                   nullptr,
                                   vctx_->whichSpace().id,
                                   std::move(name_),
@@ -208,17 +214,23 @@ Status AlterTagValidator::toPlan() {
                                   std::move(schemaProp_));
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status AlterEdgeValidator::validateImpl() {
+GraphStatus AlterEdgeValidator::validateImpl() {
     auto sentence = static_cast<AlterEdgeSentence*>(sentence_);
     name_ = *sentence->name();
     return alterSchema(sentence->getSchemaOpts(), sentence->getSchemaProps());
 }
 
+<<<<<<< HEAD
 Status AlterEdgeValidator::toPlan() {
     auto *doNode = AlterEdge::make(qctx_,
+=======
+GraphStatus AlterEdgeValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = AlterEdge::make(plan,
+>>>>>>> all use GraphStatus
                                    nullptr,
                                    vctx_->whichSpace().id,
                                    std::move(name_),
@@ -226,64 +238,76 @@ Status AlterEdgeValidator::toPlan() {
                                    std::move(schemaProp_));
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowTagsValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowTagsValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowTagsValidator::toPlan() {
     auto *doNode = ShowTags::make(qctx_, nullptr);
+=======
+GraphStatus ShowTagsValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = ShowTags::make(plan, nullptr);
+>>>>>>> all use GraphStatus
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowEdgesValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowEdgesValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowEdgesValidator::toPlan() {
     auto *doNode = ShowEdges::make(qctx_, nullptr);
+=======
+GraphStatus ShowEdgesValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = ShowEdges::make(plan, nullptr);
+>>>>>>> all use GraphStatus
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowCreateTagValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowCreateTagValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status ShowCreateTagValidator::toPlan() {
+GraphStatus ShowCreateTagValidator::toPlan() {
     auto sentence = static_cast<ShowCreateTagSentence*>(sentence_);
     auto *doNode = ShowCreateTag::make(qctx_,
                                        nullptr,
                                       *sentence->name());
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowCreateEdgeValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowCreateEdgeValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status ShowCreateEdgeValidator::toPlan() {
+GraphStatus ShowCreateEdgeValidator::toPlan() {
     auto sentence = static_cast<ShowCreateEdgeSentence*>(sentence_);
     auto *doNode = ShowCreateEdge::make(qctx_,
                                         nullptr,
                                        *sentence->name());
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DropTagValidator::validateImpl() {
-    return Status::OK();
+GraphStatus DropTagValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status DropTagValidator::toPlan() {
+GraphStatus DropTagValidator::toPlan() {
     auto sentence = static_cast<DropTagSentence*>(sentence_);
     auto *doNode = DropTag::make(qctx_,
                                  nullptr,
@@ -291,14 +315,14 @@ Status DropTagValidator::toPlan() {
                                  sentence->isIfExists());
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DropEdgeValidator::validateImpl() {
-    return Status::OK();
+GraphStatus DropEdgeValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status DropEdgeValidator::toPlan() {
+GraphStatus DropEdgeValidator::toPlan() {
     auto sentence = static_cast<DropEdgeSentence*>(sentence_);
     auto *doNode = DropEdge::make(qctx_,
                                   nullptr,
@@ -306,7 +330,7 @@ Status DropEdgeValidator::toPlan() {
                                   sentence->isIfExists());
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 }  // namespace graph
 }  // namespace nebula

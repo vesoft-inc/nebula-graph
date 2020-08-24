@@ -11,14 +11,14 @@
 
 namespace nebula {
 namespace graph {
-folly::Future<Status> DataCollectExecutor::execute() {
+folly::Future<GraphStatus> DataCollectExecutor::execute() {
     return doCollect().ensure([this] () {
         result_ = Value::kEmpty;
         colNames_.clear();
     });
 }
 
-folly::Future<Status> DataCollectExecutor::doCollect() {
+folly::Future<GraphStatus> DataCollectExecutor::doCollect() {
     SCOPED_TIMER(&execTime_);
 
     auto* dc = asNode<DataCollect>(node());
@@ -26,15 +26,24 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
     auto vars = dc->vars();
     switch (dc->collectKind()) {
         case DataCollect::CollectKind::kSubgraph: {
-            NG_RETURN_IF_ERROR(collectSubgraph(vars));
+            auto status = collectSubgraph(vars);
+            if (!status.ok()) {
+                return status;
+            }
             break;
         }
         case DataCollect::CollectKind::kRowBasedMove: {
-            NG_RETURN_IF_ERROR(rowBasedMove(vars));
+            auto gStatus = rowBasedMove(vars);
+            if (!gStatus.ok()) {
+                return gStatus;
+            }
             break;
         }
         case DataCollect::CollectKind::kMToN: {
-            NG_RETURN_IF_ERROR(collectMToN(vars, dc->mToN(), dc->distinct()));
+            auto gStatus = rowBasedMove(vars);
+            if (!gStatus.ok()) {
+                return gStatus;
+            }
             break;
         }
         default:
@@ -45,7 +54,7 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
     return finish(builder.finish());
 }
 
-Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
+GraphStatus DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
     // the subgraph not need duplicate vertices or edges, so dedup here directly
@@ -83,15 +92,16 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                 }
                 ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
             } else {
-                return Status::Error("Iterator should be kind of GetNeighborIter.");
+                return GraphStatus::setInternalError(
+                        "Iterator should be kind of GetNeighborIter");
             }
         }
     }
     result_.setDataSet(std::move(ds));
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {
+GraphStatus DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
     DCHECK(!ds.colNames.empty());
@@ -104,16 +114,17 @@ Status DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {
                 ds.rows.emplace_back(seqIter->moveRow());
             }
         } else {
-            return Status::Error("Iterator should be kind of SequentialIter.");
+            return GraphStatus::setInternalError(
+                    "Iterator should be kind of SequentialIter");
         }
     }
     result_.setDataSet(std::move(ds));
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
-                                        StepClause::MToN* mToN,
-                                        bool distinct) {
+GraphStatus DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
+                                             StepClause::MToN* mToN,
+                                             bool distinct) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
     DCHECK(!ds.colNames.empty());
@@ -129,18 +140,19 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
                 auto* seqIter = static_cast<SequentialIter*>(iter.get());
                 for (; seqIter->valid(); seqIter->next()) {
                     if (distinct && !unique.emplace(seqIter->row()).second) {
-                            continue;
+                        continue;
                     }
                     ds.rows.emplace_back(seqIter->moveRow());
                 }
             } else {
-                return Status::Error("Iterator should be kind of SequentialIter.");
+                return GraphStatus::setInternalError(
+                        "Iterator should be kind of SequentialIter");
             }
             itersHolder.emplace_back(std::move(iter));
         }
     }
     result_.setDataSet(std::move(ds));
-    return Status::OK();
+    return GraphStatus::OK();
 }
 }  // namespace graph
 }  // namespace nebula

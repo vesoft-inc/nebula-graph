@@ -17,10 +17,10 @@ public:
     ListRolesExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("ListRolesExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> listRoles();
+    folly::Future<GraphStatus> listRoles();
 };
 
 }   // namespace graph

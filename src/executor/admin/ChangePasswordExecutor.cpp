@@ -11,23 +11,23 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> ChangePasswordExecutor::execute() {
+folly::Future<GraphStatus> ChangePasswordExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return changePassword();
 }
 
-folly::Future<Status> ChangePasswordExecutor::changePassword() {
+folly::Future<GraphStatus> ChangePasswordExecutor::changePassword() {
     auto *cpNode = asNode<ChangePassword>(node());
     return qctx()->getMetaClient()->changePassword(
             *cpNode->username(), *cpNode->newPassword(), *cpNode->password())
         .via(runner())
-        .then([this](StatusOr<bool> &&resp) {
+        .then([this](auto&& resp) {
             SCOPED_TIMER(&execTime_);
-            NG_RETURN_IF_ERROR(resp);
-            if (!resp.value()) {
-                return Status::Error("Change password failed!");
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            return Status::OK();
+            return GraphStatus::OK();
         });
 }
 

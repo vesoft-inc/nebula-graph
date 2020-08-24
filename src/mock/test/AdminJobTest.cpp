@@ -40,21 +40,21 @@ TEST_F(AdminJobTest, Error) {
         std::string query = "SUBMIT JOB COMPACT";
         client_->execute(query, resp);
         // TODO(shylock) semantic error?
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_SEMANTIC_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_SEMANTIC_ERROR);
     }
     {
         // show one not exists
         cpp2::ExecutionResponse resp;
         std::string query = "SHOW JOB 233";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
     {
         // stop one not exists
         cpp2::ExecutionResponse resp;
         std::string query = "STOP JOB 233";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
 }
 
@@ -63,21 +63,21 @@ TEST_F(AdminJobTest, Base) {
         cpp2::ExecutionResponse resp;
         std::string query = "CREATE SPACE space_for_default(partition_num=9, replica_factor=1);";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     sleep(FLAGS_heartbeat_interval_secs + 1);
     {
         cpp2::ExecutionResponse resp;
         std::string query = "USE space_for_default;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // submit
         cpp2::ExecutionResponse resp;
         std::string query = "SUBMIT JOB COMPACT";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         DataSet expected({"New Job Id"});
         expected.emplace_back(Row({
@@ -90,7 +90,7 @@ TEST_F(AdminJobTest, Base) {
         cpp2::ExecutionResponse resp;
         std::string query = "SUBMIT JOB FLUSH";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         DataSet expected({"New Job Id"});
         expected.emplace_back(Row({
@@ -103,7 +103,7 @@ TEST_F(AdminJobTest, Base) {
         cpp2::ExecutionResponse resp;
         std::string query = "SHOW JOBS";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         nebula::DataSet expected({"Job Id", "Command", "Status", "Start Time", "Stop Time"});
         expected.emplace_back(Row({
@@ -119,7 +119,7 @@ TEST_F(AdminJobTest, Base) {
         cpp2::ExecutionResponse resp;
         std::string query = "SHOW JOB 2";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         nebula::DataSet expected(
             {"Job Id(TaskId)", "Command(Dest)", "Status", "Start Time", "Stop Time"});
@@ -132,7 +132,7 @@ TEST_F(AdminJobTest, Base) {
         cpp2::ExecutionResponse resp;
         std::string query = "STOP JOB 2";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         nebula::DataSet expected({"Result"});
         expected.emplace_back(Row({"Job stopped"}));
@@ -143,7 +143,7 @@ TEST_F(AdminJobTest, Base) {
         cpp2::ExecutionResponse resp;
         std::string query = "SHOW JOBS";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         nebula::DataSet expected({"Job Id", "Command", "Status", "Start Time", "Stop Time"});
         expected.emplace_back(Row({
@@ -159,7 +159,7 @@ TEST_F(AdminJobTest, Base) {
         cpp2::ExecutionResponse resp;
         std::string query = "RECOVER JOB";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         nebula::DataSet expected({"Recovered job num"});
         expected.emplace_back(Row({

@@ -17,10 +17,10 @@ public:
     ListUsersExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("ListUsersExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> listUsers();
+    folly::Future<GraphStatus> listUsers();
 };
 
 }   // namespace graph

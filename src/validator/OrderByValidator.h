@@ -18,9 +18,9 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     std::vector<std::pair<std::string, OrderFactor::OrderType>>     colOrderTypes_;

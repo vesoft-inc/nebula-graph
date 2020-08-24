@@ -19,14 +19,16 @@ public:
     }
 
 private:
-    Status validateImpl() override {
-        return Status::Error("Not support sentence type: %ld, query: %s",
-                static_cast<int64_t>(sentence_->kind()), sentence_->toString().c_str());
+    GraphStatus validateImpl() override {
+        return GraphStatus::setInternalError(
+                folly::stringPrintf("Not support sentence type: %ld, query: %s",
+                static_cast<int64_t>(sentence_->kind()), sentence_->toString().c_str()));
     }
 
-    Status toPlan() override {
-        return Status::Error("Not support sentence type: %ld, query: %s",
-                static_cast<int64_t>(sentence_->kind()), sentence_->toString().c_str());
+    GraphStatus toPlan() override {
+        return GraphStatus::setInternalError(
+                folly::stringPrintf("Not support sentence type: %ld, query: %s",
+                static_cast<int64_t>(sentence_->kind()), sentence_->toString().c_str()));
     }
 };
 }  // namespace graph

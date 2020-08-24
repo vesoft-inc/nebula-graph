@@ -17,7 +17,7 @@ public:
     SubmitJobExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("SubmitJobExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

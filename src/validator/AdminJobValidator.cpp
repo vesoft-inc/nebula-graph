@@ -10,15 +10,21 @@
 namespace nebula {
 namespace graph {
 
-Status AdminJobValidator::validateImpl() {
-    return Status::OK();
+GraphStatus AdminJobValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status AdminJobValidator::toPlan() {
     auto *doNode = SubmitJob::make(qctx_, nullptr, sentence_->getType(), sentence_->getParas());
+=======
+GraphStatus AdminJobValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = SubmitJob::make(plan, nullptr, sentence_->getType(), sentence_->getParas());
+>>>>>>> all use GraphStatus
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 }  // namespace graph

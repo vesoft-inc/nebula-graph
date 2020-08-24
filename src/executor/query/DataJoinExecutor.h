@@ -48,12 +48,10 @@ public:
     DataJoinExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("DataJoinExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
-
-    Status close() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> doInnerJoin();
+    folly::Future<GraphStatus> doInnerJoin();
 
     void buildHashTable(const std::vector<Expression*>& hashKeys, Iterator* iter);
 

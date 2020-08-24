@@ -23,9 +23,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     meta::SpaceDesc                    spaceDesc_;
@@ -40,9 +40,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowSpacesValidator final : public Validator {
@@ -53,9 +53,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class DropSpaceValidator final : public Validator {
@@ -66,9 +66,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowCreateSpaceValidator final : public Validator {
@@ -79,9 +79,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class CreateSnapshotValidator final : public Validator {
@@ -92,9 +92,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class DropSnapshotValidator final : public Validator {
@@ -105,9 +105,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowSnapshotsValidator final : public Validator {
@@ -118,9 +118,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowHostsValidator final : public Validator {
@@ -131,9 +131,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowPartsValidator final : public Validator {
@@ -143,9 +143,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowCharsetValidator final : public Validator {
@@ -156,9 +156,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowCollationValidator final : public Validator {
@@ -169,9 +169,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowConfigsValidator final : public Validator {
@@ -182,9 +182,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class SetConfigValidator final : public Validator {
@@ -195,9 +195,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     meta::cpp2::ConfigModule                 module_;
@@ -213,9 +213,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     meta::cpp2::ConfigModule                 module_;

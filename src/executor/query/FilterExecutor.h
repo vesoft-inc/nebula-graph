@@ -17,7 +17,7 @@ public:
     FilterExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("FilterExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

@@ -11,23 +11,23 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> CreateUserExecutor::execute() {
+folly::Future<GraphStatus> CreateUserExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return createUser();
 }
 
-folly::Future<Status> CreateUserExecutor::createUser() {
+folly::Future<GraphStatus> CreateUserExecutor::createUser() {
     auto *cuNode = asNode<CreateUser>(node());
     return qctx()->getMetaClient()->createUser(
             *cuNode->username(), *cuNode->password(), cuNode->ifNotExist())
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .then([this](StatusOr<meta::cpp2::ExecResp> resp) {
             SCOPED_TIMER(&execTime_);
-            NG_RETURN_IF_ERROR(resp);
-            if (!resp.value()) {
-                return Status::Error("Create User failed!");
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            return Status::OK();
+            return GraphStatus::OK();
         });
 }
 

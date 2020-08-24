@@ -13,16 +13,13 @@
 
 namespace nebula {
 namespace graph {
-folly::Future<Status> DataJoinExecutor::execute() {
-    return doInnerJoin();
+folly::Future<GraphStatus> DataJoinExecutor::execute() {
+    return doInnerJoin().ensure([this]() {
+        exchange_ = false;
+    });
 }
 
-Status DataJoinExecutor::close() {
-    exchange_ = false;
-    return Executor::close();
-}
-
-folly::Future<Status> DataJoinExecutor::doInnerJoin() {
+folly::Future<GraphStatus> DataJoinExecutor::doInnerJoin() {
     SCOPED_TIMER(&execTime_);
 
     auto* dataJoin = asNode<DataJoin>(node());
@@ -38,7 +35,7 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
     if (!lhsIter->isSequentialIter() && !lhsIter->isJoinIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter->kind();
-        return error(Status::Error(ss.str()));
+        return error(GraphStatus::setInternalError(ss.str()));
     }
     auto rhsIter = ectx_
                        ->getVersionedResult(dataJoin->rightVar().first,
@@ -49,7 +46,7 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
     if (!rhsIter->isSequentialIter() && !rhsIter->isJoinIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter->kind();
-        return error(Status::Error(ss.str()));
+        return error(GraphStatus::setInternalError(ss.str()));
     }
 
     auto resultIter = std::make_unique<JoinIter>();

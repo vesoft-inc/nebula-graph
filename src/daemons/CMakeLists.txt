@@ -55,11 +55,13 @@ nebula_add_executable(
         $<TARGET_OBJECTS:common_function_manager_obj>
         $<TARGET_OBJECTS:common_agg_function_obj>
         $<TARGET_OBJECTS:common_conf_obj>
+        $<TARGET_OBJECTS:common_error_msg_thrift_obj>
     LIBRARIES
         proxygenhttpserver
         proxygenlib
         ${THRIFT_LIBRARIES}
         wangle
+        boost_locale
 )
 
 

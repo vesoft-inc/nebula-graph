@@ -10,28 +10,24 @@
 namespace nebula {
 namespace graph {
 
-Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& starts) {
+GraphStatus TraversalValidator::validateStarts(const VerticesClause* clause, Starts& starts) {
     if (clause == nullptr) {
         return Status::Error("From clause nullptr.");
+        steps_ = steps;
     }
     if (clause->isRef()) {
         auto* src = clause->ref();
         if (src->kind() != Expression::Kind::kInputProperty
                 && src->kind() != Expression::Kind::kVarProperty) {
-            return Status::Error(
-                    "`%s', Only input and variable expression is acceptable"
-                    " when starts are evaluated at runtime.", src->toString().c_str());
+            return GraphStatus::setInvalidExpr(src->toString());
         } else {
             starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
             auto type = deduceExprType(src);
             if (!type.ok()) {
-                return type.status();
+                return GraphStatus::setInvalidExpr(src->toString());
             }
             if (type.value() != Value::Type::STRING) {
-                std::stringstream ss;
-                ss << "`" << src->toString() << "', the srcs should be type of string, "
-                   << "but was`" << type.value() << "'";
-                return Status::Error(ss.str());
+                return GraphStatus::setInvalidVid();
             }
             starts.srcRef = src;
             auto* propExpr = static_cast<PropertyExpression*>(src);
@@ -45,22 +41,21 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
         QueryExpressionContext ctx;
         for (auto* expr : vidList) {
             if (!evaluableExpr(expr)) {
-                return Status::Error("`%s' is not an evaluable expression.",
-                        expr->toString().c_str());
+                return GraphStatus::setInvalidExpr(expr->toString());
             }
             auto vid = expr->eval(ctx(nullptr));
             if (!vid.isStr()) {
-                return Status::Error("Vid should be a string.");
+                return GraphStatus::setInvalidVid();
             }
             starts.vids.emplace_back(std::move(vid));
         }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
+GraphStatus TraversalValidator::validateOver(const OverClause* clause, Over& over) {
     if (clause == nullptr) {
-        return Status::Error("Over clause nullptr.");
+        return GraphStatus::setInternalError("Over clause nullptr.");
     }
 
     over.direction = clause->direction();
@@ -70,14 +65,16 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
         NG_RETURN_IF_ERROR(allEdgeStatus);
         auto edges = std::move(allEdgeStatus).value();
         if (edges.empty()) {
-            return Status::Error("No edge type found in space %s",
-                    space_.name.c_str());
+            return GraphStatus::setSemanticError(
+                    folly::stringPrintf("No edge type found in space %s",
+                    space_.name.c_str()));
         }
         for (auto edge : edges) {
             auto edgeType = schemaMng->toEdgeType(space_.id, edge);
             if (!edgeType.ok()) {
-                return Status::Error("%s not found in space [%s].",
-                        edge.c_str(), space_.name.c_str());
+                return GraphStatus::setSemanticError(
+                        folly::stringPrintf("%s not found in space [%s].",
+                        edge.c_str(), space_.name.c_str()));
             }
             over.edgeTypes.emplace_back(edgeType.value());
         }
@@ -89,18 +86,19 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
             auto edgeName = *edge->edge();
             auto edgeType = schemaMng->toEdgeType(space_.id, edgeName);
             if (!edgeType.ok()) {
-                return Status::Error("%s not found in space [%s].",
+                return GraphStatus::setSemanticError(
+                        folly::stringPrintf("%s not found in space [%s].",
                         edgeName.c_str(), space_.name.c_str());
             }
             over.edgeTypes.emplace_back(edgeType.value());
         }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
+GraphStatus TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
     if (clause == nullptr) {
-        return Status::Error("Step clause nullptr.");
+        return GraphStatus::setInternalError("Step clause nullptr.");
     }
     if (clause->isMToN()) {
         auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
@@ -109,25 +107,27 @@ Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
 
         if (mToN->mSteps == 0 && mToN->nSteps == 0) {
             step.steps = 0;
-            return Status::OK();
+            return GraphStatus::OK();
         }
         if (mToN->mSteps == 0) {
             mToN->mSteps = 1;
         }
         if (mToN->nSteps < mToN->mSteps) {
-            return Status::Error("`%s', upper bound steps should be greater than lower bound.",
-                                 clause->toString().c_str());
+            return GraphStatus::setSyntaxError(
+                    folly::stringPrintf(
+                            "`%s', upper bound steps should be greater than lower bound.",
+                            step->toString().c_str()));
         }
         if (mToN->mSteps == mToN->nSteps) {
             steps_.steps = mToN->mSteps;
-            return Status::OK();
+            return GraphStatus::OK();
         }
         step.mToN = mToN;
     } else {
         auto steps = clause->steps();
         step.steps = steps;
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 

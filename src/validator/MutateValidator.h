@@ -22,13 +22,13 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
-    Status check();
+    GraphStatus check();
 
-    Status prepareVertices();
+    GraphStatus prepareVertices();
 
 private:
     using TagSchema = std::shared_ptr<const meta::SchemaProviderIf>;
@@ -48,13 +48,13 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
-    Status check();
+    GraphStatus check();
 
-    Status prepareEdges();
+    GraphStatus prepareEdges();
 
 private:
     GraphSpaceID                                      spaceId_{-1};
@@ -73,11 +73,11 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
     std::string buildVIds();
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     GraphSpaceID                                  spaceId_{-1};
@@ -97,13 +97,13 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
-    Status checkInput();
+    GraphStatus checkInput();
 
-    Status buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
+    GraphStatus buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKeys,
                            const EdgeType edgeType);
 
 private:
@@ -126,16 +126,16 @@ public:
     virtual ~UpdateValidator() {}
 
 protected:
-    Status initProps();
+    GraphStatus initProps();
 
-    Status getCondition();
+    GraphStatus getCondition();
 
-    Status getReturnProps();
+    GraphStatus getReturnProps();
 
-    Status getUpdateProps();
+    GraphStatus getUpdateProps();
 
 private:
-    Status checkAndResetSymExpr(Expression* inExpr,
+    GraphStatus checkAndResetSymExpr(Expression* inExpr,
                                 const std::string& symName,
                                 std::string &encodeStr);
 
@@ -163,9 +163,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     std::string               vId_;
@@ -179,9 +179,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     std::string                                       srcId_;

@@ -19,15 +19,15 @@ public:
         : TraversalValidator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
-    Status validateInBound(InBoundClause* in);
+    GraphStatus validateInBound(InBoundClause* in);
 
-    Status validateOutBound(OutBoundClause* out);
+    GraphStatus validateOutBound(OutBoundClause* out);
 
-    Status validateBothInOutBound(BothInOutClause* out);
+    GraphStatus validateBothInOutBound(BothInOutClause* out);
 
 private:
     std::unordered_set<EdgeType>                edgeTypes_;

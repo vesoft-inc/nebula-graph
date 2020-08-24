@@ -17,10 +17,10 @@ public:
     ShowHostsExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("ShowHostsExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> showHosts();
+    folly::Future<GraphStatus> showHosts();
 };
 
 }  // namespace graph

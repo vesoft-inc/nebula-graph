@@ -1235,7 +1235,7 @@ TEST_F(QueryValidatorTest, TestMaxAllowedStatements) {
     auto result = checkResult(query);
     EXPECT_FALSE(result);
     EXPECT_EQ(std::string(result.message()),
-              "SemanticError: The maximum number of statements allowed has been exceeded");
+              "Out of range of the maximum number of statements to execute.");
 }
 
 TEST_F(QueryValidatorTest, FindPath) {

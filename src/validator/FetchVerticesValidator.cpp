@@ -11,14 +11,26 @@
 namespace nebula {
 namespace graph {
 
-Status FetchVerticesValidator::validateImpl() {
-    NG_RETURN_IF_ERROR(check());
-    NG_RETURN_IF_ERROR(prepareVertices());
-    NG_RETURN_IF_ERROR(prepareProperties());
-    return Status::OK();
+GraphStatus FetchVerticesValidator::validateImpl() {
+    auto gStatus = check();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = prepareVertices();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = prepareProperties();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    return GraphStatus::OK();
 }
 
-Status FetchVerticesValidator::toPlan() {
+GraphStatus FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
     std::string vidsVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
     auto *getVerticesNode = GetVertices::make(qctx_,
@@ -54,10 +66,10 @@ Status FetchVerticesValidator::toPlan() {
     }
     root_ = current;
     tail_ = getVerticesNode;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status FetchVerticesValidator::check() {
+GraphStatus FetchVerticesValidator::check() {
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
 
@@ -65,27 +77,31 @@ Status FetchVerticesValidator::check() {
     if (!sentence->isAllTagProps()) {
         tagName_ = *(sentence->tag());
         auto tagStatus = qctx_->schemaMng()->toTagID(spaceId_, tagName_);
-        NG_RETURN_IF_ERROR(tagStatus);
+        if (!tagStatus.ok()) {
+            return GraphStatus::setTagNotFound(tagName_);
+        }
 
         tagId_ = tagStatus.value();
         schema_ = qctx_->schemaMng()->getTagSchema(spaceId_, tagId_.value());
         if (schema_ == nullptr) {
             LOG(ERROR) << "No schema found for " << tagName_;
-            return Status::Error("No schema found for `%s'", tagName_.c_str());
+            return GraphStatus::setTagNotFound(tagName_);
         }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status FetchVerticesValidator::prepareVertices() {
+GraphStatus FetchVerticesValidator::prepareVertices() {
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     // from ref, eval when execute
     if (sentence->isRef()) {
         srcRef_ = sentence->ref();
         auto result = checkRef(srcRef_, Value::Type::STRING);
-        NG_RETURN_IF_ERROR(result);
+        if (!result.ok()) {
+            return GraphStatus::setInvalidExpr(srcRef_->toString());
+        }
         inputVar_ = std::move(result).value();
-        return Status::OK();
+        return GraphStatus::OK();
     }
 
     // from constant, eval now
@@ -97,16 +113,20 @@ Status FetchVerticesValidator::prepareVertices() {
         DCHECK(ExpressionUtils::isConstExpr(vid));
         auto v = vid->eval(dummy);
         if (!v.isStr()) {   // string as vid
-            return Status::NotSupported("Not a vertex id");
+            return GraphStatus::setInvalidVid();
         }
         srcVids_.emplace_back(nebula::Row({std::move(v).getStr()}));
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 // TODO(shylock) select _vid property instead of return always.
+<<<<<<< HEAD
 Status FetchVerticesValidator::prepareProperties() {
     static constexpr char VertexID[] = "VertexID";
+=======
+GraphStatus FetchVerticesValidator::prepareProperties() {
+>>>>>>> all use GraphStatus
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     auto *yield = sentence->yieldClause();
     if (yield == nullptr) {
@@ -130,7 +150,9 @@ Status FetchVerticesValidator::prepareProperties() {
         } else {
             // all schema properties
             const auto allTagsResult = qctx_->schemaMng()->getAllVerTagSchema(spaceId_);
-            NG_RETURN_IF_ERROR(allTagsResult);
+            if (!allTagsResult.ok()) {
+                return GraphStatus::setNoTags();
+            }
             const auto allTags = std::move(allTagsResult).value();
             std::vector<std::pair<TagID, std::shared_ptr<const meta::NebulaSchemaProvider>>>
                 allTagsSchema;
@@ -138,7 +160,8 @@ Status FetchVerticesValidator::prepareProperties() {
             for (const auto &tag : allTags) {
                 allTagsSchema.emplace_back(tag.first, tag.second.back());
             }
-            std::sort(allTagsSchema.begin(), allTagsSchema.end(), [](const auto &a, const auto &b) {
+            std::sort(allTagsSchema.begin(), allTagsSchema.end(),
+                    [](const auto &a, const auto &b) {
                 return a.first < b.first;
             });
             outputs_.emplace_back(VertexID, Value::Type::STRING);
@@ -146,7 +169,10 @@ Status FetchVerticesValidator::prepareProperties() {
             gvColNames_.emplace_back(colNames_.back());
             for (const auto &tagSchema : allTagsSchema) {
                 auto tagNameResult = qctx_->schemaMng()->toTagName(spaceId_, tagSchema.first);
-                NG_RETURN_IF_ERROR(tagNameResult);
+                if (!tagNameResult.ok()) {
+                    return GraphStatus::setTagNotFound(
+                            folly::stringPrintf("TAG_ID: %d", tagSchema.first));
+                }
                 auto tagName = std::move(tagNameResult).value();
                 for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
                     outputs_.emplace_back(
@@ -183,8 +209,9 @@ Status FetchVerticesValidator::prepareProperties() {
             }
             const auto *invalidExpr = findInvalidYieldExpression(col->expr());
             if (invalidExpr != nullptr) {
-                return Status::Error("Invalid yield expression `%s'.",
-                                     col->expr()->toString().c_str());
+                return GraphStatus::setSemanticError(
+                        folly::stringPrintf("Invalid yield expression `%s'.",
+                                             col->expr()->toString().c_str()));
             }
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
@@ -192,22 +219,22 @@ Status FetchVerticesValidator::prepareProperties() {
             for (const auto &storageExpr : storageExprs) {
                 const auto *expr = static_cast<const PropertyExpression *>(storageExpr);
                 if (*expr->sym() != tagName_) {
-                    return Status::Error("Mismatched tag name");
+                    return GraphStatus::setInvalidExpr(expr->toString());
                 }
                 // Check is prop name in schema
                 if (schema_->getFieldIndex(*expr->prop()) < 0) {
                     LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in tag `"
                                 << tagName_ << "'.";
-                    return Status::Error("Unknown column `%s' in tag `%s'.",
-                                            expr->prop()->c_str(),
-                                            tagName_.c_str());
+                    return GraphStatus::setColumnNotFound(*expr->prop());
                 }
                 propsName.emplace_back(*expr->prop());
                 gvColNames_.emplace_back(*expr->sym() + "." + *expr->prop());
             }
             colNames_.emplace_back(deduceColName(col));
             auto typeResult = deduceExprType(col->expr());
-            NG_RETURN_IF_ERROR(typeResult);
+            if (!typeResult.ok()) {
+                return GraphStatus::setInvalidExpr(col->expr()->toString());
+            }
             outputs_.emplace_back(colNames_.back(), typeResult.value());
             // TODO(shylock) think about the push-down expr
         }
@@ -226,7 +253,7 @@ Status FetchVerticesValidator::prepareProperties() {
         }
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 /*static*/

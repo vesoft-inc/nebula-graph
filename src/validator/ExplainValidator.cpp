@@ -41,34 +41,42 @@ static StatusOr<std::string> toExplainFormatType(const std::string& formatType) 
         return fmtType;
     }
     auto allowedStr = folly::join(",", kAllowedFmtType);
-    return Status::SyntaxError(
+    return Status::Error(
         "Invalid explain/profile format type: \"%s\", only following values are supported: %s",
         fmtType.c_str(),
         allowedStr.c_str());
 }
 
-Status ExplainValidator::validateImpl() {
+GraphStatus ExplainValidator::validateImpl() {
     auto explain = static_cast<ExplainSentence*>(sentence_);
 
     auto status = toExplainFormatType(explain->formatType());
-    NG_RETURN_IF_ERROR(status);
+    if (!status.ok()) {
+        return GraphStatus::setInvalidParam(explain->formatType());
+    }
     auto planDesc = std::make_unique<cpp2::PlanDescription>();
     planDesc->set_format(std::move(status).value());
     qctx_->setPlanDescription(std::move(planDesc));
 
     auto sentences = explain->seqSentences();
     validator_ = std::make_unique<SequentialValidator>(sentences, qctx_);
-    NG_RETURN_IF_ERROR(validator_->validate());
+    auto gStatus = validator_->validate();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
 
     outputs_ = validator_->outputCols();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ExplainValidator::toPlan() {
-    NG_RETURN_IF_ERROR(validator_->toPlan());
+GraphStatus ExplainValidator::toPlan() {
+    auto gStatus = validator_->toPlan();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
     root_ = validator_->root();
     tail_ = validator_->tail();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 }   // namespace graph

@@ -16,16 +16,17 @@ public:
     DataCollectExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("DataCollectExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> doCollect();
+    folly::Future<GraphStatus> doCollect();
 
-    Status collectSubgraph(const std::vector<std::string>& vars);
+    GraphStatus collectSubgraph(const std::vector<std::string>& vars);
 
-    Status rowBasedMove(const std::vector<std::string>& vars);
+    GraphStatus rowBasedMove(const std::vector<std::string>& vars);
 
-    Status collectMToN(const std::vector<std::string>& vars, StepClause::MToN* mToN, bool distinct);
+    GraphStatus collectMToN(const std::vector<std::string>& vars,
+                            StepClause::MToN* mToN, bool distinct);
 
     std::vector<std::string>    colNames_;
     Value                       result_;

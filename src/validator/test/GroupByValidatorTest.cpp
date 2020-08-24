@@ -157,7 +157,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY 1+1 YIELD COUNT(1), 1+1";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(1+1)` invalid");
+        EXPECT_EQ(std::string(result.message()), "Invalid expression `(1+1)'.");
     }
     {
         // use dst
@@ -173,14 +173,14 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "| GROUP BY $-.start_year YIELD COUNT($-.age)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `$-.start_year', not exist prop `start_year'");
+                  "Invalid expression `$-.start_year'.");
     }
     {
         // group name noexist
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY noexist YIELD COUNT($-.age)";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `noexist` invalid");
+        EXPECT_EQ(std::string(result.message()), "Invalid expression `noexist'.");
     }
     {
         // use sum(*)
@@ -188,7 +188,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "| GROUP BY $-.id YIELD SUM(*)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `SUM(*)` invaild, * valid in count.");
+                  "Invalid expression `SUM(*)'.");
     }
     {
         // use agg fun has more than two inputs
@@ -202,7 +202,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY $-.id, SUM($-.age) YIELD $-.id, SUM($-.age)";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Use invalid group function `SUM`");
+        EXPECT_EQ(std::string(result.message()), "Invalid expression `SUM($-.age)'.");
     }
     {
         // yield without group by
@@ -210,8 +210,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "COUNT(like._dst) AS id ";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `COUNT(like._dst) AS id', not support "
-                  "aggregate function in go sentence.");
+                  "Invalid expression `COUNT(like._dst) AS id'.");
     }
      {
         // yield col not in group output
@@ -226,8 +225,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "COUNT(*) AS count, "
                             "1+1 AS cal";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Yield `$-.name AS name` isn't in output fields");
+        EXPECT_EQ(std::string(result.message()), "Invalid expression `$-.name AS name'.");
     }
     {
         // duplicate col
@@ -235,8 +233,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
             "GO FROM \"1\" OVER like YIELD $$.person.age AS age, $^.person.age AS age"
             "| GROUP BY $-.age YIELD $-.age, 1+1";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: GroupBy sentence: duplicate prop `age'");
+        EXPECT_EQ(std::string(result.message()), "Duplicate column name `age'.");
     }
     {
         // duplicate col
@@ -244,8 +241,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "YIELD $$.person.age AS age, $^.person.age AS age, like._dst AS id "
                             "| GROUP BY $-.id YIELD $-.id, COUNT($-.age)";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: GroupBy sentence: duplicate prop `age'");
+        EXPECT_EQ(std::string(result.message()), "Duplicate column name `age'.");
     }
 
     // {

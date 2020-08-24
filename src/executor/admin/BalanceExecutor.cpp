@@ -10,23 +10,23 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> BalanceExecutor::execute() {
+folly::Future<GraphStatus> BalanceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return balance();
 }
 
-folly::Future<Status> BalanceExecutor::balance() {
+folly::Future<GraphStatus> BalanceExecutor::balance() {
     auto *bNode = asNode<Balance>(node());
     return qctx()->getMetaClient()->balance(bNode->deleteHosts(), false)
         .via(runner())
-        .then([this](StatusOr<int64_t> resp) {
+        .then([this](auto&& resp) {
             SCOPED_TIMER(&execTime_);
-            if (!resp.ok()) {
-                LOG(ERROR) << resp.status();
-                return resp.status();
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
             DataSet v({"ID"});
-            v.emplace_back(Row({resp.value()}));
+            v.emplace_back(Row({resp.value().get_id()}));
             return finish(std::move(v));
         });
 }

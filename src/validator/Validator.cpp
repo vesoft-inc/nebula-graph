@@ -193,7 +193,7 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
 }
 
 // static
-Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
+GraphStatus Validator::validate(Sentence* sentence, QueryContext* qctx) {
     DCHECK(sentence != nullptr);
     DCHECK(qctx != nullptr);
 
@@ -204,16 +204,20 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
     }
 
     auto validator = makeValidator(sentence, qctx);
-    NG_RETURN_IF_ERROR(validator->validate());
+    auto status = validator->validate();
+    if (!status.ok()) {
+        return status;
+    }
 
     auto root = validator->root();
     if (!root) {
-        return Status::Error("Get null plan from sequential validator");
+        return GraphStatus::setInternalError("Get null plan from sequential validator");
     }
     qctx->plan()->setRoot(root);
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     DCHECK(node != nullptr);
     DCHECK(appended != nullptr);
@@ -227,41 +231,116 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
 
 Status Validator::appendPlan(PlanNode* root) {
     return appendPlan(tail_, root);
+=======
+GraphStatus Validator::appendPlan(PlanNode* node, PlanNode* appended) {
+    switch (DCHECK_NOTNULL(node)->kind()) {
+        case PlanNode::Kind::kShowHosts:
+        case PlanNode::Kind::kFilter:
+        case PlanNode::Kind::kProject:
+        case PlanNode::Kind::kSort:
+        case PlanNode::Kind::kLimit:
+        case PlanNode::Kind::kAggregate:
+        case PlanNode::Kind::kSelect:
+        case PlanNode::Kind::kLoop:
+        case PlanNode::Kind::kCreateUser:
+        case PlanNode::Kind::kDropUser:
+        case PlanNode::Kind::kUpdateUser:
+        case PlanNode::Kind::kGrantRole:
+        case PlanNode::Kind::kRevokeRole:
+        case PlanNode::Kind::kChangePassword:
+        case PlanNode::Kind::kListUserRoles:
+        case PlanNode::Kind::kListUsers:
+        case PlanNode::Kind::kListRoles:
+        case PlanNode::Kind::kMultiOutputs:
+        case PlanNode::Kind::kSwitchSpace:
+        case PlanNode::Kind::kGetEdges:
+        case PlanNode::Kind::kGetVertices:
+        case PlanNode::Kind::kCreateSpace:
+        case PlanNode::Kind::kCreateTag:
+        case PlanNode::Kind::kCreateEdge:
+        case PlanNode::Kind::kDescSpace:
+        case PlanNode::Kind::kDescTag:
+        case PlanNode::Kind::kDescEdge:
+        case PlanNode::Kind::kInsertVertices:
+        case PlanNode::Kind::kInsertEdges:
+        case PlanNode::Kind::kGetNeighbors:
+        case PlanNode::Kind::kAlterTag:
+        case PlanNode::Kind::kAlterEdge:
+        case PlanNode::Kind::kShowCreateSpace:
+        case PlanNode::Kind::kShowCreateTag:
+        case PlanNode::Kind::kShowCreateEdge:
+        case PlanNode::Kind::kDropSpace:
+        case PlanNode::Kind::kDropTag:
+        case PlanNode::Kind::kDropEdge:
+        case PlanNode::Kind::kShowSpaces:
+        case PlanNode::Kind::kShowTags:
+        case PlanNode::Kind::kShowEdges:
+        case PlanNode::Kind::kCreateSnapshot:
+        case PlanNode::Kind::kDropSnapshot:
+        case PlanNode::Kind::kSubmitJob:
+        case PlanNode::Kind::kShowSnapshots:
+        case PlanNode::Kind::kBalanceLeaders:
+        case PlanNode::Kind::kBalance:
+        case PlanNode::Kind::kStopBalance:
+        case PlanNode::Kind::kShowBalance:
+        case PlanNode::Kind::kDeleteVertices:
+        case PlanNode::Kind::kDeleteEdges:
+        case PlanNode::Kind::kUpdateVertex:
+        case PlanNode::Kind::kUpdateEdge:
+        case PlanNode::Kind::kShowParts:
+        case PlanNode::Kind::kShowCharset:
+        case PlanNode::Kind::kShowCollation:
+        case PlanNode::Kind::kShowConfigs:
+        case PlanNode::Kind::kSetConfig:
+        case PlanNode::Kind::kGetConfig: {
+            static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
+            break;
+        }
+        default: {
+            return GraphStatus::setSemanticError(
+                    folly::stringPrintf("%s not support to append an input.",
+                                         PlanNode::toString(node->kind())));
+        }
+    }
+    return GraphStatus::OK();
 }
 
-Status Validator::validate() {
+GraphStatus Validator::appendPlan(PlanNode* tail) {
+    return appendPlan(tail_, DCHECK_NOTNULL(tail));
+>>>>>>> all use GraphStatus
+}
+
+GraphStatus Validator::validate() {
     if (!vctx_) {
         VLOG(1) << "Validate context was not given.";
-        return Status::SemanticError("Validate context was not given.");
+        return GraphStatus::setSemanticError("Validate context was not given.");
     }
 
     if (!sentence_) {
         VLOG(1) << "Sentence was not given";
-        return Status::SemanticError("Sentence was not given");
+        return GraphStatus::setSemanticError("Sentence was not given");
     }
 
     if (!noSpaceRequired_ && !spaceChosen()) {
         VLOG(1) << "Space was not chosen.";
-        return Status::SemanticError("Space was not chosen.");
+        return GraphStatus::setNotUseSpace();
     }
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
     }
 
-    auto status = validateImpl();
-    if (!status.ok()) {
-        if (status.isSemanticError()) return status;
-        return Status::SemanticError(status.message());
+    auto gStatus = validateImpl();
+    if (!gStatus.ok()) {
+        return gStatus;
     }
 
-    status = toPlan();
-    if (!status.ok()) {
-        if (status.isSemanticError()) return status;
-        return Status::SemanticError(status.message());
+    gStatus = toPlan();
+    if (!gStatus.ok()) {
+        return gStatus;
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 bool Validator::spaceChosen() {
@@ -306,25 +385,20 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 // static
-Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
-                                               const folly::StringPiece& prop,
-                                               const std::string& validatorName) {
+GraphStatus Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
+                                                    const folly::StringPiece& prop) {
     auto eq = [&](const ColDef& col) { return col.first == prop.str(); };
     auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
     if (iter == cols.cend()) {
-        return Status::SemanticError("%s: prop `%s' not exists",
-                                      validatorName.c_str(),
-                                      prop.str().c_str());
+        return GraphStatus::setColumnNotFound(prop.str());
     }
 
     iter = std::find_if(iter + 1, cols.cend(), eq);
     if (iter != cols.cend()) {
-        return Status::SemanticError("%s: duplicate prop `%s'",
-                                      validatorName.c_str(),
-                                      prop.str().c_str());
+        return GraphStatus::setDuplicateColumnName(prop.str());
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {

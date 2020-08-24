@@ -16,8 +16,8 @@
 #include <folly/futures/Future.h>
 #include <folly/futures/SharedPromise.h>
 
-#include "common/base/Status.h"
 #include "common/cpp/helpers.h"
+#include "util/GraphStatus.h"
 
 namespace nebula {
 namespace graph {
@@ -37,7 +37,7 @@ public:
     explicit Scheduler(QueryContext *qctx);
     ~Scheduler() = default;
 
-    folly::Future<Status> schedule();
+    folly::Future<GraphStatus> schedule();
 
 private:
     // Enable thread pool check the query plan id of each callback registered in future. The functor
@@ -63,14 +63,14 @@ private:
     }
 
     void analyze(Executor *executor);
-    folly::Future<Status> doSchedule(Executor *executor);
-    folly::Future<Status> doScheduleParallel(const std::set<Executor *> &dependents);
-    folly::Future<Status> iterate(LoopExecutor *loop);
-    folly::Future<Status> execute(Executor *executor);
+    folly::Future<GraphStatus> doSchedule(Executor *executor);
+    folly::Future<GraphStatus> doScheduleParallel(const std::set<Executor *> &dependents);
+    folly::Future<GraphStatus> iterate(LoopExecutor *loop);
+    folly::Future<GraphStatus> execute(Executor *executor);
 
     struct PassThroughData {
         folly::SpinLock lock;
-        std::unique_ptr<folly::SharedPromise<Status>> promise;
+        std::unique_ptr<folly::SharedPromise<GraphStatus>> promise;
         int32_t numOutputs;
 
         explicit PassThroughData(int32_t outputs);

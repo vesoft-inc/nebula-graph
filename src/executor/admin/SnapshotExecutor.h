@@ -17,10 +17,10 @@ public:
     CreateSnapshotExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("CreateSnapshotExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> descSpace();
+    folly::Future<GraphStatus> descSpace();
 };
 
 class DropSnapshotExecutor final : public Executor {
@@ -28,10 +28,10 @@ public:
     DropSnapshotExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("DropSnapshotExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> descSpace();
+    folly::Future<GraphStatus> descSpace();
 };
 
 class ShowSnapshotsExecutor final : public Executor {
@@ -39,10 +39,10 @@ public:
     ShowSnapshotsExecutor(const PlanNode *node, QueryContext *ectx)
             : Executor("ShowSnapshotsExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> descSpace();
+    folly::Future<GraphStatus> descSpace();
 };
 
 }   // namespace graph

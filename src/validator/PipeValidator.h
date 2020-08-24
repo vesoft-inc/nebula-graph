@@ -19,7 +19,7 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
     /**
      * Connect the execution plans for the left and right subtrees.
@@ -32,7 +32,7 @@ private:
      *  Project(_dst) -> GetNeighbor(id2, e2) ->
                 Project(_dst) -> GetNeighbor(id1, e1)
      */
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     std::unique_ptr<Validator>  lValidator_;

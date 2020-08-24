@@ -21,9 +21,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class DropUserValidator final : public Validator {
@@ -33,9 +33,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class UpdateUserValidator final : public Validator {
@@ -45,9 +45,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowUsersValidator final : public Validator {
@@ -57,9 +57,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ChangePasswordValidator final : public Validator {
@@ -70,9 +70,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class GrantRoleValidator final : public Validator {
@@ -82,9 +82,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class RevokeRoleValidator final : public Validator {
@@ -94,9 +94,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowRolesInSpaceValidator final : public Validator {
@@ -107,9 +107,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 }   // namespace graph

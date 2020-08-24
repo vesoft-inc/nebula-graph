@@ -14,14 +14,14 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> FilterExecutor::execute() {
+folly::Future<GraphStatus> FilterExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* filter = asNode<Filter>(node());
     auto iter = ectx_->getResult(filter->inputVar()).iter();
 
     if (iter == nullptr) {
         LOG(ERROR) << "Internal Error: iterator is nullptr";
-        return Status::Error("Internal Error: iterator is nullptr");
+        return GraphStatus::setInternalError("iterator is nullptr");
     }
     ResultBuilder builder;
     builder.value(iter->valuePtr());
@@ -30,8 +30,8 @@ folly::Future<Status> FilterExecutor::execute() {
     while (iter->valid()) {
         auto val = condition->eval(ctx(iter.get()));
         if (!val.isBool() && !val.isNull()) {
-            return Status::Error("Internal Error: Wrong type result, "
-                                 "should be NULL type or BOOL type");
+            return GraphStatus::setInternalError("Wrong type result, "
+                                                 "should be NULL type or BOOL type");
         }
         if (val.isNull() || !val.getBool()) {
             iter->erase();

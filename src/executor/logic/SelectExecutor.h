@@ -16,7 +16,7 @@ class SelectExecutor final : public Executor {
 public:
     SelectExecutor(const PlanNode* node, QueryContext* qctx, Executor* then, Executor* els);
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
     Executor* thenBody() const {
         return then_;

@@ -13,7 +13,7 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> CreateEdgeExecutor::execute() {
+folly::Future<GraphStatus> CreateEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *ceNode = asNode<CreateEdge>(node());
@@ -21,46 +21,34 @@ folly::Future<Status> CreateEdgeExecutor::execute() {
     return qctx()->getMetaClient()->createEdgeSchema(spaceId,
             ceNode->getName(), ceNode->getSchema(), ceNode->getIfNotExists())
             .via(runner())
-            .then([ceNode, spaceId](StatusOr<bool> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Create edge `" << ceNode->getName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
-                }
-                return Status::OK();
+            .then([this, ceNode](auto resp) {
+                return checkMetaResp(resp, ceNode->getName());
             });
 }
 
 
-folly::Future<Status> DescEdgeExecutor::execute() {
+folly::Future<GraphStatus> DescEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *deNode = asNode<DescEdge>(node());
     auto spaceId = qctx()->rctx()->session()->space();
     return qctx()->getMetaClient()->getEdgeSchema(spaceId, deNode->getName())
             .via(runner())
-            .then([this, deNode, spaceId](StatusOr<meta::cpp2::Schema> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << resp.status();
-                    return resp.status();
+            .then([this, deNode, spaceId](auto&& resp) {
+                auto gStatus = checkMetaResp(resp, deNode->getName());
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                auto ret = SchemaUtil::toDescSchema(resp.value());
-                if (!ret.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Desc edge `" << deNode->getName()
-                               << "' failed: " << resp.status();
-                    return ret.status();
-                }
+                auto ds = SchemaUtil::toDescSchema(resp.value().get_schema());
                 return finish(ResultBuilder()
-                                  .value(Value(std::move(ret).value()))
+                                  .value(Value(std::move(ds)))
                                   .iter(Iterator::Kind::kDefault)
                                   .finish());
             });
 }
 
 
-folly::Future<Status> DropEdgeExecutor::execute() {
+folly::Future<GraphStatus> DropEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *deNode = asNode<DropEdge>(node());
@@ -69,29 +57,22 @@ folly::Future<Status> DropEdgeExecutor::execute() {
                                                    deNode->getName(),
                                                    deNode->getIfExists())
             .via(runner())
-            .then([deNode, spaceId](StatusOr<bool> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Drop edge `" << deNode->getName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
-                }
-                return Status::OK();
+            .then([this, deNode](auto&& resp) {
+                return checkMetaResp(resp, deNode->getName());
             });
 }
 
-folly::Future<Status> ShowEdgesExecutor::execute() {
+folly::Future<GraphStatus> ShowEdgesExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto spaceId = qctx()->rctx()->session()->space();
     return qctx()->getMetaClient()->listEdgeSchemas(spaceId).via(runner()).then(
-        [this, spaceId](StatusOr<std::vector<meta::cpp2::EdgeItem>> resp) {
-            if (!resp.ok()) {
-                LOG(ERROR) << "SpaceId: " << spaceId
-                           << ", Show edges failed: " << resp.status();
-                return resp.status();
+        [this, spaceId](auto &&resp) {
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            auto edgeItems = std::move(resp).value();
+            auto edgeItems = resp.value().get_edges();
 
             DataSet dataSet;
             dataSet.colNames = {"Name"};
@@ -111,7 +92,7 @@ folly::Future<Status> ShowEdgesExecutor::execute() {
         });
 }
 
-folly::Future<Status> ShowCreateEdgeExecutor::execute() {
+folly::Future<GraphStatus> ShowCreateEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *sceNode = asNode<ShowCreateEdge>(node());
@@ -120,26 +101,22 @@ folly::Future<Status> ShowCreateEdgeExecutor::execute() {
         ->getMetaClient()
         ->getEdgeSchema(spaceId, sceNode->getName())
         .via(runner())
-        .then([this, sceNode, spaceId](StatusOr<meta::cpp2::Schema> resp) {
-            if (!resp.ok()) {
-                LOG(ERROR) << "SpaceId: " << spaceId
-                           << ", ShowCreate edge `" << sceNode->getName()
-                           << "' failed: " << resp.status();
-                return resp.status();
+        .then([this, sceNode, spaceId](auto &&resp) {
+            auto gStatus = checkMetaResp(resp, sceNode->getName());
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            auto ret = SchemaUtil::toShowCreateSchema(false, sceNode->getName(), resp.value());
-            if (!ret.ok()) {
-                LOG(ERROR) << ret.status();
-                return ret.status();
-            }
+            auto ds = SchemaUtil::toShowCreateSchema(false,
+                                                     sceNode->getName(),
+                                                     resp.value().get_schema());
             return finish(ResultBuilder()
-                              .value(std::move(ret).value())
+                              .value(std::move(ds))
                               .iter(Iterator::Kind::kDefault)
                               .finish());
         });
 }
 
-folly::Future<Status> AlterEdgeExecutor::execute() {
+folly::Future<GraphStatus> AlterEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *aeNode = asNode<AlterEdge>(node());
@@ -148,12 +125,10 @@ folly::Future<Status> AlterEdgeExecutor::execute() {
                                                     aeNode->getSchemaItems(),
                                                     aeNode->getSchemaProp())
             .via(runner())
-            .then([this, aeNode](StatusOr<EdgeType> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << aeNode->space()
-                               << ", Alter edge `" << aeNode->getName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
+            .then([this, aeNode](auto &&resp) {
+                auto gStatus = checkMetaResp(resp, aeNode->getName());
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
                 return finish(
                     ResultBuilder().value(Value()).iter(Iterator::Kind::kDefault).finish());

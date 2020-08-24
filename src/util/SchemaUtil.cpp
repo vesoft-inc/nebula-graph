@@ -13,13 +13,13 @@ namespace nebula {
 namespace graph {
 
 // static
-Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
-                                   meta::cpp2::Schema &schema) {
-    auto status = Status::OK();
+GraphStatus SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
+                                        meta::cpp2::Schema &schema) {
+    auto status = GraphStatus::OK();
     std::unordered_set<std::string> nameSet;
     for (auto& spec : columnSpecs) {
         if (nameSet.find(*spec->name()) != nameSet.end()) {
-            return Status::Error("Duplicate column name `%s'", spec->name()->c_str());
+            return GraphStatus::setDuplicateColumnName(*spec->name());
         }
         nameSet.emplace(*spec->name());
         meta::cpp2::ColumnDef column;
@@ -35,20 +35,21 @@ Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &colu
             auto value = spec->getDefaultValue();
             auto valStatus = toSchemaValue(type, value);
             if (!valStatus.ok()) {
-                return valStatus.status();
+                VLOG(1) << valStatus.status();
+                return GraphStatus::setInvalidData();
             }
             column.set_default_value(std::move(valStatus).value());
         }
         schema.columns.emplace_back(std::move(column));
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 // static
-Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
-                                 meta::cpp2::Schema &schema) {
-    auto status = Status::OK();
+GraphStatus SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
+                                      meta::cpp2::Schema &schema) {
+    auto status = GraphStatus::OK();
     if (!schemaProps.empty()) {
         for (auto& schemaProp : schemaProps) {
             switch (schemaProp->getPropType()) {
@@ -72,12 +73,13 @@ Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps
             // Disable implicit TTL mode
             if (!schema.schema_prop.get_ttl_col() ||
                 (schema.schema_prop.get_ttl_col() && schema.schema_prop.get_ttl_col()->empty())) {
-                return Status::Error("Implicit ttl_col not support");
+                LOG(ERROR) << "Implicit ttl_col not support";
+                return GraphStatus::setInvalidParam("ttl_col");
             }
         }
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 // static
@@ -146,29 +148,29 @@ StatusOr<nebula::Value> SchemaUtil::toSchemaValue(const meta::cpp2::PropertyType
 
 
 // static
-Status SchemaUtil::setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
+GraphStatus SchemaUtil::setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
     auto ret = schemaProp->getTtlDuration();
     if (!ret.ok()) {
-        return ret.status();
+        return GraphStatus::setInvalidParam("ttl_duration");
     }
 
     auto ttlDuration = ret.value();
     schema.schema_prop.set_ttl_duration(ttlDuration);
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 
 // static
-Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
+GraphStatus SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
     auto ret = schemaProp->getTtlCol();
     if (!ret.ok()) {
-        return ret.status();
+        return GraphStatus::setInvalidParam("ttl_col");
     }
 
     auto  ttlColName = ret.value();
     if (ttlColName.empty()) {
         schema.schema_prop.set_ttl_col("");
-        return Status::OK();
+        return GraphStatus::OK();
     }
     // Check the legality of the ttl column name
     for (auto& col : schema.columns) {
@@ -177,13 +179,13 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
             // TODO(YT) Ttl_duration supports datetime type
             if (col.type != meta::cpp2::PropertyType::INT64 &&
                 col.type != meta::cpp2::PropertyType::TIMESTAMP) {
-                return Status::Error("Ttl column type illegal");
+                return GraphStatus::setInvalidParam("ttl_col");
             }
             schema.schema_prop.set_ttl_col(ttlColName);
-            return Status::OK();
+            return GraphStatus::OK();
         }
     }
-    return Status::Error("Ttl column name not exist in columns");
+    return GraphStatus::setSemanticError("Ttl column name not exist in columns");
 }
 
 // static
@@ -214,7 +216,7 @@ SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
     return values;
 }
 
-StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
+DataSet SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
     DataSet dataSet({"Field", "Type", "Null", "Default"});
     for (auto &col : schema.get_columns()) {
         Row row;
@@ -229,9 +231,9 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
     return dataSet;
 }
 
-StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
-                                                 const std::string &name,
-                                                 const meta::cpp2::Schema &schema) {
+DataSet SchemaUtil::toShowCreateSchema(bool isTag,
+                                       const std::string &name,
+                                       const meta::cpp2::Schema &schema) {
     DataSet dataSet;
     std::string createStr;
     createStr.resize(1024);

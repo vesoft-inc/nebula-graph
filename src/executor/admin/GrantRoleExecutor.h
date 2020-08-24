@@ -17,10 +17,10 @@ public:
     GrantRoleExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("GrantRoleExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> grantRole();
+    folly::Future<GraphStatus> grantRole();
 };
 
 }   // namespace graph

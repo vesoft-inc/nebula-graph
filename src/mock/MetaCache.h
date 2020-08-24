@@ -87,13 +87,13 @@ public:
 
     meta::cpp2::ListRolesResp getUserRoles(const meta::cpp2::GetUserRolesReq& req);
 
-    ErrorOr<meta::cpp2::ErrorCode, int64_t> balanceSubmit(std::vector<HostAddr> dels);
-    ErrorOr<meta::cpp2::ErrorCode, int64_t> balanceStop();
-    meta::cpp2::ErrorCode                   balanceLeaders();
-    ErrorOr<meta::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
+    ErrorOr<nebula::cpp2::ErrorCode, int64_t> balanceSubmit(std::vector<HostAddr> dels);
+    ErrorOr<nebula::cpp2::ErrorCode, int64_t> balanceStop();
+    nebula::cpp2::ErrorCode                   balanceLeaders();
+    ErrorOr<nebula::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
     showBalance(int64_t id);
 
-    ErrorOr<meta::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
+    ErrorOr<nebula::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
     runAdminJob(const meta::cpp2::AdminJobReq& req);
 
     Status createSnapshot();
@@ -214,22 +214,22 @@ private:
         int64_t                         stopTime_;
     };
 
-    ErrorOr<meta::cpp2::ErrorCode, std::unordered_map<int64_t, JobDesc>::iterator>
+    ErrorOr<nebula::cpp2::ErrorCode, std::unordered_map<int64_t, JobDesc>::iterator>
     checkJobId(const meta::cpp2::AdminJobReq& req) {
         const auto &params = req.get_paras();
         if (params.empty()) {
-            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+            return nebula::cpp2::ErrorCode::E_INVALID_PARAM;
         }
         int64_t jobId;
         try {
             jobId = folly::to<int64_t>(params.front());
         } catch (std::exception &e) {
             LOG(ERROR) << e.what();
-            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+            return nebula::cpp2::ErrorCode::E_INVALID_PARAM;
         }
         const auto job = jobs_.find(jobId);
         if (job == jobs_.end()) {
-            return meta::cpp2::ErrorCode::E_INVALID_PARM;
+            return nebula::cpp2::ErrorCode::E_INVALID_PARAM;
         }
         return job;
     }

@@ -12,12 +12,12 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> ShowHostsExecutor::execute() {
+folly::Future<GraphStatus> ShowHostsExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return showHosts();
+    return showHosts().ensure([this]() { UNUSED(this); });
 }
 
-folly::Future<Status> ShowHostsExecutor::showHosts() {
+folly::Future<GraphStatus> ShowHostsExecutor::showHosts() {
     static constexpr char kNoPartition[]        = "No valid partition";
     static constexpr char kPartitionDelimeter[] = ", ";
     return qctx()
@@ -25,11 +25,11 @@ folly::Future<Status> ShowHostsExecutor::showHosts() {
         ->listHosts()
         .via(runner())
         .then([this](auto &&resp) {
-            if (!resp.ok()) {
-                LOG(ERROR) << resp.status();
-                return resp.status();
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            auto    value = std::move(resp).value();
+            auto    value = resp.value().get_hosts();
             DataSet v({"Host",
                        "Port",
                        "Status",
@@ -57,7 +57,7 @@ folly::Future<Status> ShowHostsExecutor::showHosts() {
                 i = 0;
                 for (const auto &p : host.get_all_parts()) {
                     parts << p.first << ":" << p.second.size();
-                    if (i < host.get_all_parts().size() - 1) {
+                    if (i < host.get_leader_parts().size() - 1) {
                         parts << kPartitionDelimeter;
                     }
                     ++i;

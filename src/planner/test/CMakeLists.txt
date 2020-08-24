@@ -36,6 +36,7 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_conf_obj>
         $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
         $<TARGET_OBJECTS:common_charset_obj>
+        $<TARGET_OBJECTS:common_error_msg_thrift_obj>
         $<TARGET_OBJECTS:query_engine_obj>
         $<TARGET_OBJECTS:session_obj>
         $<TARGET_OBJECTS:graph_flags_obj>
@@ -54,4 +55,5 @@ nebula_add_test(
         proxygenlib
         ${THRIFT_LIBRARIES}
         wangle
+        boost_locale
 )

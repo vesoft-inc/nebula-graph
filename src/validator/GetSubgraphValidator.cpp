@@ -17,9 +17,8 @@
 
 namespace nebula {
 namespace graph {
-
-Status GetSubgraphValidator::validateImpl() {
-    Status status;
+GraphStatus GetSubgraphValidator::validateImpl() {
+    GraphStatus status;
     auto* gsSentence = static_cast<GetSubgraphSentence*>(sentence_);
     do {
         status = validateStep(gsSentence->step(), steps_);
@@ -48,22 +47,22 @@ Status GetSubgraphValidator::validateImpl() {
         }
     } while (false);
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
+GraphStatus GetSubgraphValidator::validateInBound(InBoundClause* in) {
     if (in != nullptr) {
         auto space = vctx_->whichSpace();
         auto edges = in->edges();
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : edges) {
             if (e->alias() != nullptr) {
-                return Status::Error("Get Subgraph not support rename edge name.");
+                return GraphStatus::setSemanticError("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
-                return et.status();
+                return GraphStatus::setEdgeNotFound(*e->edge());
             }
 
             auto v = -et.value();
@@ -71,44 +70,44 @@ Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
         }
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
+GraphStatus GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
     if (out != nullptr) {
         auto space = vctx_->whichSpace();
         auto edges = out->edges();
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
-                return Status::Error("Get Subgraph not support rename edge name.");
+                return GraphStatus::setSemanticError("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
-                return et.status();
+                return GraphStatus::setEdgeNotFound(*e->edge());
             }
 
             edgeTypes_.emplace(et.value());
         }
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
+GraphStatus GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
     if (out != nullptr) {
         auto space = vctx_->whichSpace();
         auto edges = out->edges();
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
-                return Status::Error("Get Subgraph not support rename edge name.");
+                return GraphStatus::setSemanticError("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
             if (!et.ok()) {
-                return et.status();
+                return GraphStatus::setEdgeNotFound(*e->edge());
             }
 
             auto v = et.value();
@@ -118,10 +117,10 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
         }
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GetSubgraphValidator::toPlan() {
+GraphStatus GetSubgraphValidator::toPlan() {
     auto& space = vctx_->whichSpace();
 
     //                           bodyStart->gn->project(dst)
@@ -129,6 +128,7 @@ Status GetSubgraphValidator::toPlan() {
     // start [->previous] [-> project(input)] -> loop -> collect
     auto* bodyStart = StartNode::make(qctx_);
 
+    std::vector<EdgeType> edgeTypes;
     auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
@@ -143,22 +143,35 @@ Status GetSubgraphValidator::toPlan() {
         startVidsVar = projectStartVid->varName();
     }
 
+    ResultBuilder builder;
+    builder.value(Value(std::move(ds))).iter(Iterator::Kind::kSequential);
+    qctx_->ectx()->setResult(vidsToSave, builder.finish());
+    auto* vids = new VariablePropertyExpression(
+                     new std::string(vidsToSave),
+                     new std::string(kVid));
     auto* gn1 = GetNeighbors::make(
             qctx_,
             bodyStart,
             space.id,
-            src_,
+            plan->saveObject(vids),
             ContainerConv::to<std::vector>(std::move(edgeTypes_)),
-            // TODO(shylock) add syntax like `BOTH *`, `OUT *` ...
-            storage::cpp2::EdgeDirection::OUT_EDGE,  // FIXME: make direction right
+            storage::cpp2::EdgeDirection::BOTH,  // FIXME: make direction right
             std::move(vertexProps),
             std::move(edgeProps),
             std::move(statProps),
             std::move(exprs),
             true /*subgraph not need duplicate*/);
-    gn1->setInputVar(startVidsVar);
+    gn1->setInputVar(vidsToSave);
 
-    auto *projectVids = projectDstVidsFromGN(gn1, startVidsVar);
+    auto* columns = new YieldColumns();
+    auto* column = new YieldColumn(
+        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
+        new std::string(kVid));
+    columns->addColumn(column);
+    auto* project = Project::make(plan, gn1, plan->saveObject(columns));
+    project->setInputVar(gn1->varName());
+    project->setOutputVar(vidsToSave);
+    project->setColNames(deduceColNames(columns));
 
     // ++counter{0} <= steps
     // TODO(shylock) add condition when gn get empty result
@@ -214,8 +227,7 @@ Status GetSubgraphValidator::toPlan() {
     dc->setColNames({"_vertices", "_edges"});
     root_ = dc;
     tail_ = loop;
-    return Status::OK();
+    return GraphStatus::OK();
 }
-
 }  // namespace graph
 }  // namespace nebula

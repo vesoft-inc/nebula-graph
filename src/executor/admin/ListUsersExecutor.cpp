@@ -11,21 +11,22 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> ListUsersExecutor::execute() {
+folly::Future<GraphStatus> ListUsersExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return listUsers();
 }
 
-folly::Future<Status> ListUsersExecutor::listUsers() {
+folly::Future<GraphStatus> ListUsersExecutor::listUsers() {
     return qctx()->getMetaClient()->listUsers()
         .via(runner())
-        .then([this](StatusOr<std::unordered_map<std::string, std::string>> &&resp) {
+        .then([this](StatusOr<meta::cpp2::ListUsersResp> &&resp) {
             SCOPED_TIMER(&execTime_);
-            if (!resp.ok()) {
-                return std::move(resp).status();
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
             nebula::DataSet v({"Account"});
-            auto items = std::move(resp).value();
+            auto items = resp.value().get_users();
             for (const auto &item : items) {
                 v.emplace_back(nebula::Row(
                     {

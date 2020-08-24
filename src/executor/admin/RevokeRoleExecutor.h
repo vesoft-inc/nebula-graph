@@ -17,10 +17,10 @@ public:
     RevokeRoleExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("RevokeRoleExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> revokeRole();
+    folly::Future<GraphStatus> revokeRole();
 };
 
 }   // namespace graph

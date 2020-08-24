@@ -11,18 +11,18 @@
 
 namespace nebula {
 namespace graph {
-folly::Future<Status> ShowPartsExecutor::execute() {
+folly::Future<GraphStatus> ShowPartsExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *spNode = asNode<ShowParts>(node());
     return qctx()->getMetaClient()->listParts(spNode->getSpaceId(), spNode->getPartIds())
             .via(runner())
-            .then([this](StatusOr<std::vector<meta::cpp2::PartItem>> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << resp.status();
-                    return resp.status();
+            .then([this](auto&& resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                auto partItems = std::move(resp).value();
+                auto partItems = resp.value().get_parts();
 
                 std::sort(partItems.begin(), partItems.end(),
                       [] (const auto& a, const auto& b) {

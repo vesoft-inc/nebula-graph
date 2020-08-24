@@ -39,28 +39,28 @@ TEST_F(ACLTest, Error) {
         cpp2::ExecutionResponse resp;
         std::string query = "ALTER USER not_exists WITH PASSWORD \"not_exists\";";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
     {
         // drop user not exists
         cpp2::ExecutionResponse resp;
         std::string query = "DROP USER not_exists;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
     {
         // grant to user not exists
         cpp2::ExecutionResponse resp;
         std::string query = "GRANT ROLE ADMIN ON not_exists TO not_exists";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
     {
         // revoke from user not exists
         cpp2::ExecutionResponse resp;
         std::string query = "REVOKE ROLE ADMIN ON not_exists FROM not_exists";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
 }
 
@@ -70,35 +70,35 @@ TEST_F(ACLTest, Simple) {
         cpp2::ExecutionResponse resp;
         std::string query = "DROP USER IF EXISTS not_exists;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // create user
         cpp2::ExecutionResponse resp;
         std::string query = "CREATE USER test1";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // create user with password
         cpp2::ExecutionResponse resp;
         std::string query = "CREATE USER test2 WITH PASSWORD \"123456\"";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // create user exists
         cpp2::ExecutionResponse resp;
         std::string query = "CREATE USER IF NOT EXISTS test2 WITH PASSWORD \"123456\"";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // create one space
         cpp2::ExecutionResponse resp;
         std::string query = "CREATE SPACE test";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
         sleep(FLAGS_heartbeat_interval_secs + 1);
     }
     {
@@ -106,21 +106,21 @@ TEST_F(ACLTest, Simple) {
         cpp2::ExecutionResponse resp;
         std::string query = "GRANT ROLE ADMIN ON test TO test1";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // revoke
         cpp2::ExecutionResponse resp;
         std::string query = "REVOKE ROLE ADMIN ON test FROM test1";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // drop user
         cpp2::ExecutionResponse resp;
         std::string query = "DROP USER test2";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
 }
 

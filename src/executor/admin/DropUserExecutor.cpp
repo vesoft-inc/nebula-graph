@@ -11,22 +11,22 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> DropUserExecutor::execute() {
+folly::Future<GraphStatus> DropUserExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return dropUser();
 }
 
-folly::Future<Status> DropUserExecutor::dropUser() {
+folly::Future<GraphStatus> DropUserExecutor::dropUser() {
     auto *duNode = asNode<DropUser>(node());
     return qctx()->getMetaClient()->dropUser(*duNode->username(), duNode->ifExist())
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .then([this](StatusOr<meta::cpp2::ExecResp> resp) {
             SCOPED_TIMER(&execTime_);
-            NG_RETURN_IF_ERROR(resp);
-            if (!resp.value()) {
-                return Status::Error("Drop user failed!");
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            return Status::OK();
+            return GraphStatus::OK();
         });
 }
 

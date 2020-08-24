@@ -10,22 +10,24 @@
 
 namespace nebula {
 namespace graph {
-Status LimitValidator::validateImpl() {
+GraphStatus LimitValidator::validateImpl() {
     auto limitSentence = static_cast<LimitSentence*>(sentence_);
     offset_ = limitSentence->offset();
     count_ = limitSentence->count();
     if (offset_ < 0) {
-        return Status::SyntaxError("skip `%ld' is illegal", offset_);
+        return GraphStatus::setSyntaxError(
+                folly::stringPrintf("skip `%ld' is illegal", offset_));
     }
     if (count_ < 0) {
-        return Status::SyntaxError("count `%ld' is illegal", count_);
+        return GraphStatus::setSyntaxError(
+                folly::stringPrintf("count `%ld' is illegal", count_));
     }
 
     outputs_ = inputCols();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status LimitValidator::toPlan() {
+GraphStatus LimitValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *limitNode = Limit::make(qctx_, plan->root(), offset_, count_);
     std::vector<std::string> colNames;
@@ -35,7 +37,7 @@ Status LimitValidator::toPlan() {
     limitNode->setColNames(std::move(colNames));
     root_ = limitNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 }  // namespace graph
 }  // namespace nebula

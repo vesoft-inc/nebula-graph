@@ -22,7 +22,7 @@ protected:
 
     static ::testing::AssertionResult verifyDataSetWithoutOrder(cpp2::ExecutionResponse &resp,
                                                                 DataSet &expected) {
-        if (resp.get_error_code() != cpp2::ErrorCode::SUCCEEDED) {
+        if (resp.get_error_code() != nebula::cpp2::ErrorCode::SUCCEEDED) {
             return ::testing::AssertionFailure() << "query failed: "
                 << cpp2::_ErrorCode_VALUES_TO_NAMES.at(resp.get_error_code());
         }
@@ -53,7 +53,7 @@ protected:
 
     ::testing::AssertionResult verifyColNames(const cpp2::ExecutionResponse &resp,
                                               const std::vector<std::string> &expected) {
-        if (resp.get_error_code() != cpp2::ErrorCode::SUCCEEDED) {
+        if (resp.get_error_code() != nebula::cpp2::ErrorCode::SUCCEEDED) {
             return TestError() << "query failed: "
                                << cpp2::_ErrorCode_VALUES_TO_NAMES.at(resp.get_error_code());
         }
@@ -90,7 +90,7 @@ protected:
 
     ::testing::AssertionResult verifyValues(const cpp2::ExecutionResponse &resp,
                                             const std::vector<std::vector<Value>> &expected) {
-        if (resp.get_error_code() != cpp2::ErrorCode::SUCCEEDED) {
+        if (resp.get_error_code() != nebula::cpp2::ErrorCode::SUCCEEDED) {
             return TestError() << "query failed: "
                                << cpp2::_ErrorCode_VALUES_TO_NAMES.at(resp.get_error_code());
         }

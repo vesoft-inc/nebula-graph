@@ -16,11 +16,14 @@ using nebula::storage::cpp2::GetPropResponse;
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> GetVerticesExecutor::execute() {
-    return getVertices();
+folly::Future<GraphStatus> GetVerticesExecutor::execute() {
+    return getVertices().ensure([this]() {
+        // TODO(yee): some cleanup or stats actions
+        UNUSED(this);
+    });
 }
 
-folly::Future<Status> GetVerticesExecutor::getVertices() {
+folly::Future<GraphStatus> GetVerticesExecutor::getVertices() {
     SCOPED_TIMER(&execTime_);
 
     auto *gv = asNode<GetVertices>(node());

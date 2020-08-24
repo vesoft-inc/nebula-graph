@@ -46,6 +46,7 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_process_obj>
+    $<TARGET_OBJECTS:common_error_msg_thrift_obj>
 )
 
 nebula_add_test(
@@ -71,4 +72,5 @@ nebula_add_test(
         wangle
         proxygenhttpserver
         proxygenlib
+        boost_locale
 )

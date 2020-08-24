@@ -22,11 +22,11 @@ public:
     }
 
 private:
-    Status validateImpl() override {
-        return Status::OK();
+    GraphStatus validateImpl() override {
+        return GraphStatus::OK();
     }
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 }  // namespace graph

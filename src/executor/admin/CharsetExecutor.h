@@ -17,7 +17,7 @@ public:
     ShowCharsetExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("ShowCharsetExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 class ShowCollationExecutor final : public Executor {
@@ -25,7 +25,7 @@ public:
     ShowCollationExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("ShowCollationExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 }   // namespace graph
 }   // namespace nebula

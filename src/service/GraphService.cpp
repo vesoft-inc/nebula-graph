@@ -14,6 +14,7 @@
 #include "service/GraphFlags.h"
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"
+#include "util/GraphStatus.h"
 
 namespace nebula {
 namespace graph {
@@ -38,15 +39,15 @@ folly::Future<cpp2::AuthResponse> GraphService::future_authenticate(
     ctx.setSession(std::move(session));
 
     if (!FLAGS_enable_authorize) {
-        onHandle(ctx, cpp2::ErrorCode::SUCCEEDED);
+        onHandle(ctx, nebula::cpp2::ErrorCode::SUCCEEDED);
     } else if (auth(username, password)) {
         auto roles = queryEngine_->metaClient()->getRolesByUserFromCache(username);
         for (const auto& role : roles) {
             ctx.session()->setRole(role.get_space_id(), role.get_role_type());
         }
-        onHandle(ctx, cpp2::ErrorCode::SUCCEEDED);
+        onHandle(ctx, nebula::cpp2::ErrorCode::SUCCEEDED);
     } else {
-        onHandle(ctx, cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD);
+        onHandle(ctx, nebula::cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD);
     }
 
     ctx.finish();
@@ -70,8 +71,11 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
         auto result = sessionManager_->findSession(sessionId);
         if (!result.ok()) {
             FLOG_ERROR("Session not found, id[%ld]", sessionId);
-            ctx->resp().set_error_code(cpp2::ErrorCode::E_SESSION_INVALID);
-            // ctx->resp().set_error_msg(result.status().toString());
+            ctx->resp().set_error_code(nebula::cpp2::ErrorCode::E_SESSION_INVALID);
+            ctx->resp().set_error_msg(
+                    folly::stringPrintf(
+                        GraphStatus::getErrorMsg(
+                            nebula::cpp2::ErrorCode::E_SESSION_INVALID).c_str(), sessionId));
             ctx->finish();
             return future;
         }
@@ -83,32 +87,14 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
 }
 
 
-const char* GraphService::getErrorStr(cpp2::ErrorCode result) {
-    switch (result) {
-    case cpp2::ErrorCode::SUCCEEDED:
-        return "Succeeded";
-    /**********************
-     * Server side errors
-     **********************/
-    case cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD:
-        return "Bad username/password";
-    case cpp2::ErrorCode::E_SESSION_INVALID:
-        return "The session is invalid";
-    case cpp2::ErrorCode::E_SESSION_TIMEOUT:
-        return "The session timed out";
-    case cpp2::ErrorCode::E_SYNTAX_ERROR:
-        return "Syntax error";
-    /**********************
-     * Unknown error
-     **********************/
-    default:
-        return "Unknown error";
-    }
+const char* GraphService::getErrorStr(nebula::cpp2::ErrorCode result) {
+    return GraphStatus::getErrorMsg(result).c_str();
 }
 
-void GraphService::onHandle(RequestContext<cpp2::AuthResponse>& ctx, cpp2::ErrorCode code) {
+void GraphService::onHandle(RequestContext<cpp2::AuthResponse>& ctx,
+                            nebula::cpp2::ErrorCode code) {
     ctx.resp().set_error_code(code);
-    if (code != cpp2::ErrorCode::SUCCEEDED) {
+    if (code != nebula::cpp2::ErrorCode::SUCCEEDED) {
         sessionManager_->removeSession(ctx.session()->id());
         ctx.resp().set_error_msg(getErrorStr(code));
     } else {

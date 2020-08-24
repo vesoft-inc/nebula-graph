@@ -22,7 +22,7 @@ SelectExecutor::SelectExecutor(const PlanNode* node,
       then_(DCHECK_NOTNULL(then)),
       else_(DCHECK_NOTNULL(els)) {}
 
-folly::Future<Status> SelectExecutor::execute() {
+folly::Future<GraphStatus> SelectExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto* select = asNode<Select>(node());

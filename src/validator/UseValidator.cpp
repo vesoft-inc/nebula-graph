@@ -11,7 +11,7 @@
 
 namespace nebula {
 namespace graph {
-Status UseValidator::validateImpl() {
+GraphStatus UseValidator::validateImpl() {
     auto useSentence = static_cast<UseSentence*>(sentence_);
     spaceName_ = useSentence->space();
     // firstly get from validate context
@@ -20,23 +20,23 @@ Status UseValidator::validateImpl() {
         auto ret = qctx_->schemaMng()->toGraphSpaceID(*spaceName_);
         if (!ret.ok()) {
             LOG(ERROR) << "Unknown space: " << *spaceName_;
-            return ret.status();
+            return GraphStatus::setSpaceNotFound(*spaceName_);
         }
         vctx_->switchToSpace(*spaceName_, ret.value());
-        return Status::OK();
+        return GraphStatus::OK();
     }
 
     vctx_->switchToSpace(*spaceName_, -1);
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status UseValidator::toPlan() {
+GraphStatus UseValidator::toPlan() {
     // The input will be set by father validator later.
     auto *start = StartNode::make(qctx_);
     auto reg = SwitchSpace::make(qctx_, start, *spaceName_);
     root_ = reg;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 }  // namespace graph
 }  // namespace nebula

@@ -22,8 +22,8 @@ public:
     }
 
 private:
-    Status validateImpl() override;
-    Status toPlan() override;
+    GraphStatus validateImpl() override;
+    GraphStatus toPlan() override;
 
 private:
     std::string                      name_;
@@ -38,8 +38,8 @@ public:
     }
 
 private:
-    Status validateImpl() override;
-    Status toPlan() override;
+    GraphStatus validateImpl() override;
+    GraphStatus toPlan() override;
 
 private:
     std::string                       name_;
@@ -54,9 +54,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowCreateTagValidator final : public Validator {
@@ -66,9 +66,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class DescEdgeValidator final : public Validator {
@@ -78,9 +78,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     std::string                         name_;
@@ -92,9 +92,9 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class AlterValidator : public Validator {
@@ -103,7 +103,7 @@ public:
         : Validator(sentence, context) {}
 
 protected:
-    Status alterSchema(const std::vector<AlterSchemaOptItem*>& schemaOpts,
+    GraphStatus alterSchema(const std::vector<AlterSchemaOptItem*>& schemaOpts,
                        const std::vector<SchemaPropItem*>& schemaProps);
 
 protected:
@@ -118,9 +118,9 @@ public:
         : AlterValidator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class AlterEdgeValidator final : public AlterValidator {
@@ -129,9 +129,9 @@ public:
         : AlterValidator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowTagsValidator final : public Validator {
@@ -140,9 +140,9 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class ShowEdgesValidator final : public Validator {
@@ -151,9 +151,9 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class DropTagValidator final : public Validator {
@@ -162,9 +162,9 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 
 class DropEdgeValidator final : public Validator {
@@ -173,9 +173,9 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 };
 }  // namespace graph
 }  // namespace nebula

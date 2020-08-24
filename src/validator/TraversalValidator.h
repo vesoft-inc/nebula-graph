@@ -46,11 +46,11 @@ protected:
 protected:
     TraversalValidator(Sentence* sentence, QueryContext* qctx) : Validator(sentence, qctx) {}
 
-    Status validateStarts(const VerticesClause* clause, Starts& starts);
+    GraphStatus validateStarts(const VerticesClause* clause, Starts& starts);
 
-    Status validateOver(const OverClause* clause, Over& over);
+    GraphStatus validateOver(const OverClause* clause, Over& over);
 
-    Status validateStep(const StepClause* clause, Steps& step);
+    GraphStatus validateStep(const StepClause* clause, Steps& step);
 
     PlanNode* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
 

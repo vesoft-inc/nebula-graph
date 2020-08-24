@@ -11,18 +11,20 @@
 
 namespace nebula {
 namespace graph {
-folly::Future<Status> DedupExecutor::execute() {
+folly::Future<GraphStatus> DedupExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* dedup = asNode<Dedup>(node());
     DCHECK(!dedup->inputVar().empty());
     auto iter = ectx_->getResult(dedup->inputVar()).iter();
 
     if (UNLIKELY(iter == nullptr)) {
-        return Status::Error("Internal Error: iterator is nullptr");
+        return GraphStatus::setInternalError("Iterator is nullptr");
     }
 
     if (UNLIKELY(iter->isGetNeighborsIter())) {
-        auto e = Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
+        auto e = GraphStatus::setInternalError(
+                folly::stringPrintf("Invalid iterator kind, %d",
+                                     static_cast<uint16_t>(iter->kind())));
         LOG(ERROR) << e;
         return e;
     }

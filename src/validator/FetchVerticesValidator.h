@@ -21,15 +21,15 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
-    Status check();
+    GraphStatus check();
 
-    Status prepareVertices();
+    GraphStatus prepareVertices();
 
-    Status prepareProperties();
+    GraphStatus prepareProperties();
 
     static const Expression* findInvalidYieldExpression(const Expression* root);
 

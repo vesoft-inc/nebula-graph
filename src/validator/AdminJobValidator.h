@@ -25,9 +25,9 @@ public:
     }
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     AdminJobSentence               *sentence_{nullptr};

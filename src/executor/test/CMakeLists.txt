@@ -42,7 +42,13 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
+<<<<<<< HEAD:src/executor/test/CMakeLists.txt
     $<TARGET_OBJECTS:expr_visitor_obj>
+=======
+    $<TARGET_OBJECTS:common_encryption_obj>
+    $<TARGET_OBJECTS:common_http_client_obj>
+    $<TARGET_OBJECTS:common_error_msg_thrift_obj>
+>>>>>>> all use GraphStatus:src/executor/query/test/CMakeLists.txt
 )
 
 SET(EXEC_QUERY_TEST_LIBS
@@ -52,6 +58,7 @@ SET(EXEC_QUERY_TEST_LIBS
     wangle
     proxygenhttpserver
     proxygenlib
+    boost_locale
 )
 
 nebula_add_test(

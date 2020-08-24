@@ -11,22 +11,23 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> ListUserRolesExecutor::execute() {
+folly::Future<GraphStatus> ListUserRolesExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return listUserRoles();
 }
 
-folly::Future<Status> ListUserRolesExecutor::listUserRoles() {
+folly::Future<GraphStatus> ListUserRolesExecutor::listUserRoles() {
     auto *lurNode = asNode<ListUserRoles>(node());
     return qctx()->getMetaClient()->getUserRoles(*lurNode->username())
         .via(runner())
-        .then([this](StatusOr<std::vector<meta::cpp2::RoleItem>> &&resp) {
+        .then([this](auto&& resp) {
             SCOPED_TIMER(&execTime_);
-            if (!resp.ok()) {
-                return std::move(resp).status();
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
             nebula::DataSet v({"Account", "Role Type"});
-            auto items = std::move(resp).value();
+            auto items = resp.value().get_roles();
             for (const auto &item : items) {
                 v.emplace_back(nebula::Row(
                     {

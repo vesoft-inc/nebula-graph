@@ -11,32 +11,32 @@
 
 namespace nebula {
 namespace graph {
-folly::Future<Status> CreateSpaceExecutor::execute() {
+folly::Future<GraphStatus> CreateSpaceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *csNode = asNode<CreateSpace>(node());
     return qctx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
             .via(runner())
-            .then([](StatusOr<bool> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << resp.status();
-                    return resp.status();
+            .then([this](auto&& resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                return Status::OK();
+                return GraphStatus::OK();
             });
 }
 
 
-folly::Future<Status> DescSpaceExecutor::execute() {
+folly::Future<GraphStatus> DescSpaceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *dsNode = asNode<DescSpace>(node());
     return qctx()->getMetaClient()->getSpace(dsNode->getSpaceName())
             .via(runner())
-            .then([this](StatusOr<meta::cpp2::SpaceItem> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << resp.status();
-                    return resp.status();
+            .then([this](auto&& resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
                 DataSet dataSet;
                 dataSet.colNames = {"ID",
@@ -46,7 +46,7 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                                     "Vid Size",
                                     "Charset",
                                     "Collate"};
-                auto &spaceItem = resp.value();
+                auto &spaceItem = resp.value().get_item();
                 auto &properties = spaceItem.get_properties();
                 Row row;
                 row.values.emplace_back(spaceItem.get_space_id());
@@ -64,41 +64,40 @@ folly::Future<Status> DescSpaceExecutor::execute() {
             });
 }
 
-folly::Future<Status> DropSpaceExecutor::execute() {
+folly::Future<GraphStatus> DropSpaceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *dsNode = asNode<DropSpace>(node());
     return qctx()->getMetaClient()->dropSpace(dsNode->getSpaceName(), dsNode->getIfExists())
             .via(runner())
-            .then([this, dsNode](StatusOr<bool> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "Drop space `" << dsNode->getSpaceName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
+            .then([this, dsNode](auto&& resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
                 if (dsNode->getSpaceName() == qctx()->rctx()->session()->spaceName()) {
                     qctx()->rctx()->session()->setSpace("", -1);
                 }
-                return Status::OK();
+                return GraphStatus::OK();
             });
 }
 
 
-folly::Future<Status> ShowSpacesExecutor::execute() {
+folly::Future<GraphStatus> ShowSpacesExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     return qctx()->getMetaClient()->listSpaces().via(runner()).then(
-        [this](StatusOr<std::vector<meta::SpaceIdName>> resp) {
-            if (!resp.ok()) {
-                LOG(ERROR) << "Show spaces failed: " << resp.status();
-                return resp.status();
+        [this](auto&& resp) {
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            auto spaceItems = std::move(resp).value();
+            auto spaceItems = resp.value().get_spaces();
 
             DataSet dataSet({"Name"});
             std::set<std::string> orderSpaceNames;
             for (auto &space : spaceItems) {
-                orderSpaceNames.emplace(space.second);
+                orderSpaceNames.emplace(space.name);
             }
             for (auto &name : orderSpaceNames) {
                 Row row;
@@ -112,19 +111,18 @@ folly::Future<Status> ShowSpacesExecutor::execute() {
         });
 }
 
-folly::Future<Status> ShowCreateSpaceExecutor::execute() {
+folly::Future<GraphStatus> ShowCreateSpaceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *scsNode = asNode<ShowCreateSpace>(node());
     return qctx()->getMetaClient()->getSpace(scsNode->getSpaceName())
             .via(runner())
-            .then([this, scsNode](StatusOr<meta::cpp2::SpaceItem> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "Show create space `" << scsNode->getSpaceName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
+            .then([this, scsNode](auto&& resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                auto properties = resp.value().get_properties();
+                auto properties = resp.value().get_item().get_properties();
                 DataSet dataSet({"Space", "Create Space"});
                 Row row;
                 row.values.emplace_back(properties.get_space_name());

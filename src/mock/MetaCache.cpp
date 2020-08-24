@@ -334,15 +334,15 @@ meta::cpp2::ExecResp MetaCache::createUser(const meta::cpp2::CreateUserReq& req)
     const auto user = users_.find(req.get_account());
     if (user != users_.end()) {  // already exists
         resp.set_code(req.get_if_not_exists() ?
-                    meta::cpp2::ErrorCode::SUCCEEDED :
-                    meta::cpp2::ErrorCode::E_EXISTED);
+                    nebula::cpp2::ErrorCode::SUCCEEDED :
+                    nebula::cpp2::ErrorCode::E_EXISTED);
         return resp;
     }
 
     auto result = users_.emplace(req.get_account(), UserInfo{req.get_encoded_pwd()});
     resp.set_code(result.second ?
-                  meta::cpp2::ErrorCode::SUCCEEDED :
-                  meta::cpp2::ErrorCode::E_UNKNOWN);
+                  nebula::cpp2::ErrorCode::SUCCEEDED :
+                  nebula::cpp2::ErrorCode::E_UNKNOWN);
     return resp;
 }
 
@@ -352,15 +352,15 @@ meta::cpp2::ExecResp MetaCache::dropUser(const meta::cpp2::DropUserReq& req) {
     const auto user = users_.find(req.get_account());
     if (user == users_.end()) {  // not exists
         resp.set_code(req.get_if_exists() ?
-                    meta::cpp2::ErrorCode::SUCCEEDED :
-                    meta::cpp2::ErrorCode::E_NOT_FOUND);
+                    nebula::cpp2::ErrorCode::SUCCEEDED :
+                    nebula::cpp2::ErrorCode::E_NOT_FOUND);
         return resp;
     }
 
     auto result = users_.erase(req.get_account());
     resp.set_code(result == 1 ?
-                  meta::cpp2::ErrorCode::SUCCEEDED :
-                  meta::cpp2::ErrorCode::E_UNKNOWN);
+                  nebula::cpp2::ErrorCode::SUCCEEDED :
+                  nebula::cpp2::ErrorCode::E_UNKNOWN);
     return resp;
 }
 
@@ -369,11 +369,11 @@ meta::cpp2::ExecResp MetaCache::alterUser(const meta::cpp2::AlterUserReq& req) {
     folly::RWSpinLock::WriteHolder wh(userLock_);
     auto user = users_.find(req.get_account());
     if (user == users_.end()) {  // not exists
-        resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+        resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
         return resp;
     }
     user->second.password = req.get_encoded_pwd();
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     return resp;
 }
 
@@ -386,13 +386,13 @@ meta::cpp2::ExecResp MetaCache::grantRole(const meta::cpp2::GrantRoleReq& req) {
         // find space
         auto space = roles_.find(item.get_space_id());
         if (space == roles_.end()) {
-            resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+            resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
             return resp;
         }
         // find user
         auto user = users_.find(item.get_user_id());
         if (user == users_.end()) {
-            resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+            resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
             return resp;
         }
     }
@@ -407,7 +407,7 @@ meta::cpp2::ExecResp MetaCache::grantRole(const meta::cpp2::GrantRoleReq& req) {
     } else {
         user->second.emplace(item.get_role_type());
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     return resp;
 }
 
@@ -418,23 +418,23 @@ meta::cpp2::ExecResp MetaCache::revokeRole(const meta::cpp2::RevokeRoleReq& req)
     // find space
     auto space = roles_.find(item.get_space_id());
     if (space == roles_.end()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+        resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
         return resp;
     }
     // find user
     auto user = space->second.find(item.get_user_id());
     if (user == space->second.end()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+        resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
         return resp;
     }
     // find role
     auto role = user->second.find(item.get_role_type());
     if (role == user->second.end()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+        resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
         return resp;
     }
     user->second.erase(item.get_role_type());
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     return resp;
 }
 
@@ -445,7 +445,7 @@ meta::cpp2::ListUsersResp MetaCache::listUsers(const meta::cpp2::ListUsersReq&) 
     for (const auto &user : users_) {
         users.emplace(user.first, user.second.password);
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_users(std::move(users));
     return resp;
 }
@@ -456,7 +456,7 @@ meta::cpp2::ListRolesResp MetaCache::listRoles(const meta::cpp2::ListRolesReq& r
     std::vector<meta::cpp2::RoleItem> items;
     const auto space = roles_.find(req.get_space_id());
     if (space == roles_.end()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+        resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
         return resp;
     }
     for (const auto &user : space->second) {
@@ -468,7 +468,7 @@ meta::cpp2::ListRolesResp MetaCache::listRoles(const meta::cpp2::ListRolesReq& r
             items.emplace_back(std::move(item));
         }
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_roles(std::move(items));
     return resp;
 }
@@ -478,14 +478,14 @@ meta::cpp2::ExecResp MetaCache::changePassword(const meta::cpp2::ChangePasswordR
     folly::RWSpinLock::WriteHolder wh(userLock_);
     auto user = users_.find(req.get_account());
     if (user == users_.end()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+        resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
         return resp;
     }
     if (user->second.password != req.get_old_encoded_pwd()) {
-        resp.set_code(meta::cpp2::ErrorCode::E_INVALID_PASSWORD);
+        resp.set_code(nebula::cpp2::ErrorCode::E_INVALID_PASSWORD);
     }
     user->second.password = req.get_new_encoded_pwd();
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     return resp;
 }
 
@@ -496,7 +496,7 @@ meta::cpp2::ListRolesResp MetaCache::getUserRoles(const meta::cpp2::GetUserRoles
         // find user
         auto user = users_.find(req.get_account());
         if (user == users_.end()) {
-            resp.set_code(meta::cpp2::ErrorCode::E_NOT_FOUND);
+            resp.set_code(nebula::cpp2::ErrorCode::E_NOT_FOUND);
             return resp;
         }
     }
@@ -515,16 +515,16 @@ meta::cpp2::ListRolesResp MetaCache::getUserRoles(const meta::cpp2::GetUserRoles
             }
         }
     }
-    resp.set_code(meta::cpp2::ErrorCode::SUCCEEDED);
+    resp.set_code(nebula::cpp2::ErrorCode::SUCCEEDED);
     resp.set_roles(std::move(items));
     return resp;
 }
 
-ErrorOr<meta::cpp2::ErrorCode, int64_t> MetaCache::balanceSubmit(std::vector<HostAddr> dels) {
+ErrorOr<nebula::cpp2::ErrorCode, int64_t> MetaCache::balanceSubmit(std::vector<HostAddr> dels) {
     folly::RWSpinLock::ReadHolder rh(lock_);
     for (const auto &job : balanceJobs_) {
         if (job.second.status == meta::cpp2::TaskResult::IN_PROGRESS) {
-            return meta::cpp2::ErrorCode::E_BALANCER_RUNNING;
+            return nebula::cpp2::ErrorCode::E_BALANCER_RUNNING;
         }
     }
     std::vector<BalanceTask> jobs;
@@ -553,25 +553,25 @@ ErrorOr<meta::cpp2::ErrorCode, int64_t> MetaCache::balanceSubmit(std::vector<Hos
     return jobId;
 }
 
-ErrorOr<meta::cpp2::ErrorCode, int64_t> MetaCache::balanceStop() {
+ErrorOr<nebula::cpp2::ErrorCode, int64_t> MetaCache::balanceStop() {
     for (auto &job : balanceJobs_) {
         if (job.second.status == meta::cpp2::TaskResult::IN_PROGRESS) {
             job.second.status = meta::cpp2::TaskResult::FAILED;
             return job.first;
         }
     }
-    return meta::cpp2::ErrorCode::E_NO_RUNNING_BALANCE_PLAN;
+    return nebula::cpp2::ErrorCode::E_NO_RUNNING_BALANCE_PLAN;
 }
 
-meta::cpp2::ErrorCode MetaCache::balanceLeaders() {
-    return meta::cpp2::ErrorCode::SUCCEEDED;
+nebula::cpp2::ErrorCode MetaCache::balanceLeaders() {
+    return nebula::cpp2::ErrorCode::SUCCEEDED;
 }
 
-ErrorOr<meta::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
+ErrorOr<nebula::cpp2::ErrorCode, std::vector<meta::cpp2::BalanceTask>>
 MetaCache::showBalance(int64_t id) {
     const auto job = balanceTasks_.find(id);
     if (job == balanceTasks_.end()) {
-        return meta::cpp2::ErrorCode::E_NOT_FOUND;
+        return nebula::cpp2::ErrorCode::E_NOT_FOUND;
     }
     std::vector<meta::cpp2::BalanceTask> result;
     result.reserve(job->second.size());
@@ -590,7 +590,7 @@ MetaCache::showBalance(int64_t id) {
     return result;
 }
 
-ErrorOr<meta::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
+ErrorOr<nebula::cpp2::ErrorCode, meta::cpp2::AdminJobResult>
 MetaCache::runAdminJob(const meta::cpp2::AdminJobReq& req) {
     meta::cpp2::AdminJobResult result;
     switch (req.get_op()) {
@@ -693,13 +693,13 @@ MetaCache::runAdminJob(const meta::cpp2::AdminJobReq& req) {
             auto job = value(ret);
             if (job->second.status_ != meta::cpp2::JobStatus::QUEUE &&
                 job->second.status_ != meta::cpp2::JobStatus::RUNNING) {
-                return meta::cpp2::ErrorCode::E_CONFLICT;
+                return nebula::cpp2::ErrorCode::E_CONFLICT;
             }
             job->second.status_ = meta::cpp2::JobStatus::STOPPED;
             return result;
         }
     }
-    return meta::cpp2::ErrorCode::E_INVALID_PARM;
+    return nebula::cpp2::ErrorCode::E_INVALID_PARAM;
 }
 
 Status MetaCache::alterColumnDefs(meta::cpp2::Schema &schema,

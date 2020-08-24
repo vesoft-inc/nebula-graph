@@ -10,25 +10,30 @@
 
 namespace nebula {
 namespace graph {
-Status OrderByValidator::validateImpl() {
+GraphStatus OrderByValidator::validateImpl() {
     auto sentence = static_cast<OrderBySentence*>(sentence_);
     outputs_ = inputCols();
     auto factors = sentence->factors();
+    GraphStatus gStatus;
     for (auto &factor : factors) {
         if (factor->expr()->kind() != Expression::Kind::kInputProperty) {
-            return Status::SemanticError("Order by with invalid expression `%s'",
-                                          factor->expr()->toString().c_str());
+            return GraphStatus::setSemanticError(
+                    folly::stringPrintf("Order by with invalid expression `%s'",
+                                        factor->expr()->toString().c_str()));
         }
         auto expr = static_cast<InputPropertyExpression*>(factor->expr());
         auto *name = expr->prop();
-        NG_RETURN_IF_ERROR(checkPropNonexistOrDuplicate(outputs_, *name, "Order by"));
+        gStatus = checkPropNonexistOrDuplicate(outputs_, *name);
+        if (!gStatus.ok()) {
+            return gStatus;
+        }
         colOrderTypes_.emplace_back(std::make_pair(*name, factor->orderType()));
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status OrderByValidator::toPlan() {
+GraphStatus OrderByValidator::toPlan() {
     auto* plan = qctx_->plan();
     auto *sortNode = Sort::make(qctx_, plan->root(), std::move(colOrderTypes_));
     std::vector<std::string> colNames;
@@ -38,7 +43,7 @@ Status OrderByValidator::toPlan() {
     sortNode->setColNames(std::move(colNames));
     root_ = sortNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 }  // namespace graph
 }  // namespace nebula

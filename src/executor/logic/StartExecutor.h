@@ -17,7 +17,7 @@ public:
     StartExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("StartExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

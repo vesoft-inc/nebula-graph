@@ -24,13 +24,13 @@ public:
         setNoSpaceRequired();
     }
 
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
     /**
      * Each sentence would be converted to a sub-plan, and they would
      * be cascaded together into a complete execution plan.
      */
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     /**

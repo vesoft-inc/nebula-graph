@@ -18,10 +18,10 @@ public:
     ShowBalanceExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("ShowBalanceExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> showBalance();
+    folly::Future<GraphStatus> showBalance();
 };
 
 }   // namespace graph

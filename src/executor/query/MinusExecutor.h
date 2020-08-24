@@ -17,7 +17,7 @@ public:
     MinusExecutor(const PlanNode *node, QueryContext *qctx)
         : SetExecutor("MinusExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

@@ -12,7 +12,11 @@
 #include "parser/Sentence.h"
 #include "context/ValidateContext.h"
 #include "context/QueryContext.h"
+<<<<<<< HEAD
 #include "validator/ExpressionProps.h"
+=======
+#include "util/GraphStatus.h"
+>>>>>>> all use GraphStatus
 
 namespace nebula {
 
@@ -27,11 +31,11 @@ public:
     static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
                                                     QueryContext* context);
 
-    static Status validate(Sentence* sentence, QueryContext* qctx);
+    static GraphStatus validate(Sentence* sentence, QueryContext* qctx);
 
-    Status validate();
+    GraphStatus validate();
 
-    MUST_USE_RESULT Status appendPlan(PlanNode* tail);
+    MUST_USE_RESULT GraphStatus appendPlan(PlanNode* tail);
 
     void setInputVarName(std::string name) {
         inputVarName_ = std::move(name);
@@ -72,12 +76,12 @@ protected:
     /**
      * Validate the sentence.
      */
-    virtual Status validateImpl() = 0;
+    virtual GraphStatus validateImpl() = 0;
 
     /**
      * Convert an ast to plan.
      */
-    virtual Status toPlan() = 0;
+    virtual GraphStatus toPlan() = 0;
 
     std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
 
@@ -89,19 +93,24 @@ protected:
 
     bool evaluableExpr(const Expression* expr) const;
 
-    static Status checkPropNonexistOrDuplicate(const ColsDef& cols,
-                                               const folly::StringPiece& prop,
-                                               const std::string &validatorName);
+    static GraphStatus checkPropNonexistOrDuplicate(const ColsDef& cols,
+                                                    const folly::StringPiece& prop);
 
-    static Status appendPlan(PlanNode* plan, PlanNode* appended);
+    static GraphStatus appendPlan(PlanNode* plan, PlanNode* appended);
 
     // use for simple Plan only contain one node
     template <typename Node, typename... Args>
+<<<<<<< HEAD
     Status genSingleNodePlan(Args... args) {
         auto *doNode = Node::make(qctx_, nullptr, std::forward<Args>(args)...);
+=======
+    GraphStatus genSingleNodePlan(Args... args) {
+        auto* plan = qctx_->plan();
+        auto *doNode = Node::make(plan, nullptr, std::forward<Args>(args)...);
+>>>>>>> all use GraphStatus
         root_ = doNode;
         tail_ = root_;
-        return Status::OK();
+        return GraphStatus::OK();
     }
 
     // Check the variable or input property reference

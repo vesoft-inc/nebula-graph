@@ -11,18 +11,18 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> GrantRoleExecutor::execute() {
+folly::Future<GraphStatus> GrantRoleExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return grantRole();
 }
 
-folly::Future<Status> GrantRoleExecutor::grantRole() {
+folly::Future<GraphStatus> GrantRoleExecutor::grantRole() {
     SCOPED_TIMER(&execTime_);
     auto *grNode = asNode<GrantRole>(node());
     const auto *spaceName = grNode->spaceName();
     auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(*spaceName);
     if (!spaceIdResult.ok()) {
-        return std::move(spaceIdResult).status();
+        return GraphStatus::setSpaceNotFound(*spaceName);
     }
     auto spaceId = spaceIdResult.value();
     meta::cpp2::RoleItem item;
@@ -31,13 +31,13 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
     item.set_role_type(grNode->role());
     return qctx()->getMetaClient()->grantToUser(std::move(item))
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .then([this](StatusOr<meta::cpp2::ExecResp> resp) {
             SCOPED_TIMER(&execTime_);
-            NG_RETURN_IF_ERROR(resp);
-            if (!resp.value()) {
-                return Status::Error("Grant role failed!");
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            return Status::OK();
+            return GraphStatus::OK();
         });
 }
 

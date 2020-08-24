@@ -11,17 +11,17 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> RevokeRoleExecutor::execute() {
+folly::Future<GraphStatus> RevokeRoleExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return revokeRole();
 }
 
-folly::Future<Status> RevokeRoleExecutor::revokeRole() {
+folly::Future<GraphStatus> RevokeRoleExecutor::revokeRole() {
     auto *rrNode = asNode<RevokeRole>(node());
     const auto *spaceName = rrNode->spaceName();
     auto spaceIdResult = qctx()->getMetaClient()->getSpaceIdByNameFromCache(*spaceName);
     if (!spaceIdResult.ok()) {
-        return std::move(spaceIdResult).status();
+        return GraphStatus::setSpaceNotFound(*spaceName);
     }
     auto spaceId = spaceIdResult.value();
     meta::cpp2::RoleItem item;
@@ -30,13 +30,13 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
     item.set_role_type(rrNode->role());
     return qctx()->getMetaClient()->revokeFromUser(std::move(item))
         .via(runner())
-        .then([this](StatusOr<bool> resp) {
+        .then([this](auto&& resp) {
             SCOPED_TIMER(&execTime_);
-            NG_RETURN_IF_ERROR(resp);
-            if (!resp.value()) {
-                return Status::Error("Revoke role failed!");
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            return Status::OK();
+            return GraphStatus::OK();
         });
 }
 

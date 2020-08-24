@@ -15,12 +15,12 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> DeleteVerticesExecutor::execute() {
+folly::Future<GraphStatus> DeleteVerticesExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return deleteVertices();
 }
 
-folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
+folly::Future<GraphStatus> DeleteVerticesExecutor::deleteVertices() {
     auto *dvNode = asNode<DeleteVertices>(node());
     auto vidRef = dvNode->getVidRef();
     std::vector<VertexID> vertices;
@@ -46,16 +46,16 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
                 continue;
             }
             if (!val.isStr()) {
-                std::stringstream ss;
-                ss << "Wrong vid type `" << val.type() << "', value `" << val.toString() << "'";
-                return Status::Error(ss.str());
+                LOG(ERROR) << "Wrong vid type `" << val.type()
+                           << "', value `" << val.toString() << "'";
+                return GraphStatus::setInvalidVid();
             }
             vertices.emplace_back(val.moveStr());
         }
     }
 
     if (vertices.empty()) {
-        return Status::OK();
+        return GraphStatus::OK();
     }
     auto spaceId = qctx()->rctx()->session()->space();
     time::Duration deleteVertTime;
@@ -70,11 +70,11 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
         });
 }
 
-folly::Future<Status> DeleteEdgesExecutor::execute() {
+folly::Future<GraphStatus> DeleteEdgesExecutor::execute() {
     return deleteEdges();
 }
 
-folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
+folly::Future<GraphStatus> DeleteEdgesExecutor::deleteEdges() {
     SCOPED_TIMER(&execTime_);
 
     auto *deNode = asNode<DeleteEdges>(node());
@@ -87,7 +87,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
         auto iter = inputResult.iter();
         if (iter->size() == 0) {
             VLOG(2) << "Empty input";
-            return Status::OK();
+            return GraphStatus::OK();
         }
         edgeKeys.reserve(iter->size());
         QueryExpressionContext ctx(ectx_);
@@ -100,32 +100,28 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
                     continue;
                 }
                 if (!srcId.isStr()) {
-                    std::stringstream ss;
-                    ss << "Wrong srcId type `" << srcId.type()
-                       << "`, value `" << srcId.toString() << "'";
-                    return Status::Error(ss.str());
+                    LOG(ERROR) << "Wrong srcId type `" << srcId.type()
+                               << "`, value `" << srcId.toString() << "'";
+                    return GraphStatus::setInvalidVid();
                 }
                 auto dstId = Expression::eval(edgeKeyRef->dstid(), ctx(iter.get()));
                 if (!dstId.isStr()) {
-                    std::stringstream ss;
-                    ss << "Wrong dstId type `" << dstId.type()
-                       << "', value `" << dstId.toString() << "'";
-                    return Status::Error(ss.str());
+                    LOG(ERROR) << "Wrong dstId type `" << dstId.type()
+                               << "', value `" << dstId.toString() << "'";
+                    return GraphStatus::setInvalidVid();
                 }
                 auto rank = Expression::eval(edgeKeyRef->rank(), ctx(iter.get()));
                 if (!rank.isInt()) {
-                    std::stringstream ss;
-                    ss << "Wrong rank type `" << rank.type()
-                       << "', value `" << rank.toString() << "'";
-                    return Status::Error(ss.str());
+                    LOG(ERROR) << "Wrong rank type `" << rank.type()
+                               << "', value `" << rank.toString() << "'";
+                    return GraphStatus::setInvalidRank();
                 }
                 DCHECK(edgeKeyRef->type());
                 auto type = Expression::eval(edgeKeyRef->type(), ctx(iter.get()));
                 if (!type.isInt()) {
-                    std::stringstream ss;
-                    ss << "Wrong edge type `" << type.type()
-                       << "', value `" << type.toString() << "'";
-                    return Status::Error(ss.str());
+                    LOG(ERROR) << "Wrong edge type `" << type.type()
+                               << "', value `" << type.toString() << "'";
+                    return GraphStatus::setInvalidEdgeType();
                 }
 
                 // out edge
@@ -146,7 +142,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
 
     if (edgeKeys.empty()) {
         VLOG(2) << "Empty edgeKeys";
-        return Status::OK();
+        return GraphStatus::OK();
     }
 
     auto spaceId = qctx()->rctx()->session()->space();

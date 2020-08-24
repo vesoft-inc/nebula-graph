@@ -25,8 +25,12 @@ set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:common_meta_client_obj>
     $<TARGET_OBJECTS:common_conf_obj>
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
+<<<<<<< HEAD
     $<TARGET_OBJECTS:session_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
+=======
+    $<TARGET_OBJECTS:common_error_msg_thrift_obj>
+>>>>>>> all use GraphStatus
     $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:planner_obj>
@@ -37,20 +41,39 @@ nebula_add_test(
     NAME parser_test
     SOURCES ParserTest.cpp
     OBJECTS ${PARSER_TEST_LIBS}
+<<<<<<< HEAD
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES}
+=======
+    LIBRARIES
+        gtest
+        gtest_main
+        ${THRIFT_LIBRARIES}
+        wangle
+        boost_locale
+>>>>>>> all use GraphStatus
 )
 
 nebula_add_test(
     NAME scanner_test
     SOURCES ScannerTest.cpp
     OBJECTS ${PARSER_TEST_LIBS}
+<<<<<<< HEAD
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES}
+=======
+    LIBRARIES
+        gtest
+        gtest_main
+        ${THRIFT_LIBRARIES}
+        wangle
+        boost_locale
+>>>>>>> all use GraphStatus
 )
 
 nebula_add_executable(
     NAME parser_bm
     SOURCES ParserBenchmark.cpp
     OBJECTS ${PARSER_TEST_LIBS}
+<<<<<<< HEAD
     LIBRARIES follybenchmark boost_regex ${THRIFT_LIBRARIES}
 )
 
@@ -59,6 +82,14 @@ nebula_add_test(
     SOURCES ExpressionParsingTest.cpp
     OBJECTS ${PARSER_TEST_LIBS}
     LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES}
+=======
+    LIBRARIES
+        follybenchmark
+        boost_regex
+        ${THRIFT_LIBRARIES}
+        wangle
+        boost_locale
+>>>>>>> all use GraphStatus
 )
 
 if(ENABLE_FUZZ_TEST)

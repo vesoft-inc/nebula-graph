@@ -10,22 +10,22 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> ShowBalanceExecutor::execute() {
+folly::Future<GraphStatus> ShowBalanceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return showBalance();
 }
 
-folly::Future<Status> ShowBalanceExecutor::showBalance() {
+folly::Future<GraphStatus> ShowBalanceExecutor::showBalance() {
     auto *sbNode = asNode<ShowBalance>(node());
     return qctx()->getMetaClient()->showBalance(sbNode->jobId())
         .via(runner())
-        .then([this](StatusOr<std::vector<meta::cpp2::BalanceTask>> resp) {
+        .then([this](StatusOr<meta::cpp2::BalanceResp> resp) {
             SCOPED_TIMER(&execTime_);
-            if (!resp.ok()) {
-                LOG(ERROR) << resp.status();
-                return std::move(resp).status();
+            auto gStatus = checkMetaResp(resp);
+            if (!gStatus.ok()) {
+                return gStatus;
             }
-            auto tasks = std::move(resp).value();
+            auto tasks = resp.value().get_tasks();
             // TODO(shylock) typed items instead binary
             // E.G. "balanceId", "spaceId", "partId", "from", "to"
             uint32_t total = tasks.size(), succeeded = 0, failed = 0, inProgress = 0, invalid = 0;

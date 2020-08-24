@@ -14,10 +14,13 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> MinusExecutor::execute() {
+folly::Future<GraphStatus> MinusExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
-    NG_RETURN_IF_ERROR(checkInputDataSets());
+    auto status = checkInputDataSets();
+    if (!status.ok()) {
+        return status;
+    }
 
     auto lIter = getLeftInputDataIter();
     auto rIter = getRightInputDataIter();

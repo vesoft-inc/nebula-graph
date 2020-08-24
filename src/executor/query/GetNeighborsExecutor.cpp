@@ -21,21 +21,18 @@ using nebula::storage::GraphStorageClient;
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> GetNeighborsExecutor::execute() {
+folly::Future<GraphStatus> GetNeighborsExecutor::execute() {
     auto status = buildRequestDataSet();
     if (!status.ok()) {
         return error(std::move(status));
     }
-    return getNeighbors();
+    return getNeighbors().ensure([this]() {
+        // clear the members
+        reqDs_.rows.clear();
+    });
 }
 
-Status GetNeighborsExecutor::close() {
-    // clear the members
-    reqDs_.rows.clear();
-    return Executor::close();
-}
-
-Status GetNeighborsExecutor::buildRequestDataSet() {
+GraphStatus GetNeighborsExecutor::buildRequestDataSet() {
     SCOPED_TIMER(&execTime_);
     auto& inputVar = gn_->inputVar();
     VLOG(1) << node()->varName() << " : " << inputVar;
@@ -57,10 +54,10 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
             reqDs_.rows.emplace_back(Row({std::move(val)}));
         }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
+folly::Future<GraphStatus> GetNeighborsExecutor::getNeighbors() {
     if (reqDs_.rows.empty()) {
         LOG(INFO) << "Empty input.";
         DataSet emptyResult;
@@ -97,10 +94,10 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
         });
 }
 
-Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
+GraphStatus GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
     auto completeness = resps.completeness();
     if (UNLIKELY(completeness == 0)) {
-        return Status::Error("Get neighbors failed");
+        return GraphStatus::setRpcResponse(resps.failedParts().begin()->second, "");
     }
 
     ResultBuilder builder;
@@ -133,7 +130,7 @@ void GetNeighborsExecutor::checkResponseResult(const storage::cpp2::ResponseComm
     if (!failedParts.empty()) {
         std::stringstream ss;
         for (auto& part : failedParts) {
-            ss << "error code: " << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(part.get_code())
+            ss << "error code: " << nebula::cpp2::_ErrorCode_VALUES_TO_NAMES.at(part.get_code())
                << ", leader: " << part.get_leader()->host << ":" << part.get_leader()->port
                << ", part id: " << part.get_part_id() << "; ";
         }

@@ -20,8 +20,8 @@ class ExplainValidator final : public Validator {
 public:
     ExplainValidator(Sentence* sentence, QueryContext* context);
 
-    Status validateImpl() override;
-    Status toPlan() override;
+    GraphStatus validateImpl() override;
+    GraphStatus toPlan() override;
 
 private:
     std::unique_ptr<SequentialValidator> validator_;

@@ -12,47 +12,47 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> CreateSnapshotExecutor::execute() {
+folly::Future<GraphStatus> CreateSnapshotExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     return qctx()->getMetaClient()->createSnapshot()
             .via(runner())
-            .then([](StatusOr<bool> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << resp.status();
-                    return resp.status();
+            .then([this](auto&& resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                return Status::OK();
+                return GraphStatus::OK();
             });
 }
 
-folly::Future<Status> DropSnapshotExecutor::execute() {
+folly::Future<GraphStatus> DropSnapshotExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *dsNode = asNode<DropSnapshot>(node());
     return qctx()->getMetaClient()->dropSnapshot(dsNode->getShapshotName())
             .via(runner())
-            .then([](StatusOr<bool> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << resp.status();
-                    return resp.status();
+            .then([this, dsNode](auto &&resp) {
+                auto gStatus = checkMetaResp(resp, dsNode->getShapshotName());
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                return Status::OK();
+                return GraphStatus::OK();
             });
 }
 
-folly::Future<Status> ShowSnapshotsExecutor::execute() {
+folly::Future<GraphStatus> ShowSnapshotsExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     return qctx()->getMetaClient()->listSnapshots()
             .via(runner())
-            .then([this](StatusOr<std::vector<meta::cpp2::Snapshot>> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << resp.status();
-                    return resp.status();
+            .then([this](auto &&resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
 
-                auto snapshots = std::move(resp).value();
+                auto snapshots = resp.value().get_snapshots();
                 DataSet dataSet({"Name", "Status", "Hosts"});
 
                 for (auto &snapshot : snapshots) {

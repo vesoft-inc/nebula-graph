@@ -16,6 +16,7 @@ using nebula::storage::GraphStorageClient;
 namespace nebula {
 namespace graph {
 
+<<<<<<< HEAD
 folly::Future<Status> IndexScanExecutor::execute() {
     return indexScan();
 }
@@ -92,6 +93,12 @@ void IndexScanExecutor::checkResponseResult(const storage::cpp2::ResponseCommon&
         }
         LOG(ERROR) << ss.str();
     }
+=======
+folly::Future<GraphStatus> IndexScanExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+    // TODO(yee): Get all neighbors by storage client
+    return start();
+>>>>>>> all use GraphStatus
 }
 
 }   // namespace graph

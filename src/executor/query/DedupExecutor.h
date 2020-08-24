@@ -17,7 +17,7 @@ public:
     DedupExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("DedupExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

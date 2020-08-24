@@ -10,7 +10,7 @@
 
 namespace nebula {
 namespace graph {
-folly::Future<Status> ShowCharsetExecutor::execute() {
+folly::Future<GraphStatus> ShowCharsetExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     DataSet dataSet({"Charset", "Description", "Default collation", "Maxlen"});
@@ -31,7 +31,7 @@ folly::Future<Status> ShowCharsetExecutor::execute() {
 }
 
 
-folly::Future<Status> ShowCollationExecutor::execute() {
+folly::Future<GraphStatus> ShowCollationExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     DataSet dataSet({"Collation", "Charset"});

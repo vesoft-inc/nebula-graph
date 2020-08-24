@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef _EXEC_QUERY_GET_PROP_EXECUTOR_H_
-#define _EXEC_QUERY_GET_PROP_EXECUTOR_H_
+#ifndef _EXECUTOR_QUERY_GET_PROP_EXECUTOR_H_
+#define _EXECUTOR_QUERY_GET_PROP_EXECUTOR_H_
 
 #include "executor/Executor.h"
 #include "common/clients/storage/StorageClientBase.h"
@@ -18,10 +18,17 @@ protected:
     GetPropExecutor(const std::string &name, const PlanNode *node, QueryContext *qctx)
         : Executor(name, node, qctx) {}
 
+<<<<<<< HEAD
     Status handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp,
                       const std::vector<std::string> &colNames) {
+=======
+    GraphStatus handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp) {
+>>>>>>> all use GraphStatus
         auto result = handleCompleteness(rpcResp);
-        NG_RETURN_IF_ERROR(result);
+        if (!result.ok()) {
+            // return the first error code
+            return GraphStatus::setRpcResponse(rpcResp.failedParts().begin()->second, "");
+        }
         auto state = std::move(result).value();
         // Ok, merge DataSets to one
         nebula::DataSet v;
@@ -61,7 +68,7 @@ protected:
             const auto &failedCodes = rpcResp.failedParts();
             for (auto it = failedCodes.begin(); it != failedCodes.end(); it++) {
                 LOG(ERROR) << name_ << " failed, error "
-                           << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second) << ", part "
+                           << nebula::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second) << ", part "
                            << it->first;
             }
             if (completeness == 0) {
@@ -77,4 +84,4 @@ protected:
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // _EXEC_QUERY_GET_PROP_EXECUTOR_H_
+#endif  // _EXECUTOR_QUERY_GET_PROP_EXECUTOR_H_

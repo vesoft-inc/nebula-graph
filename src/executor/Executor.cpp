@@ -590,38 +590,37 @@ Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *
 }
 
 Executor::~Executor() {}
-
-Status Executor::open() {
+    GraphStatus Executor::open() {
     numRows_ = 0;
     execTime_ = 0;
     totalDuration_.reset();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status Executor::close() {
+GraphStatus Executor::close() {
     cpp2::ProfilingStats stats;
     stats.set_total_duration_in_us(totalDuration_.elapsedInUSec());
     stats.set_rows(numRows_);
     stats.set_exec_duration_in_us(execTime_);
     qctx()->addProfilingData(node_->id(), std::move(stats));
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-folly::Future<Status> Executor::start(Status status) const {
+folly::Future<GraphStatus> Executor::start(GraphStatus status) const {
     return folly::makeFuture(std::move(status)).via(runner());
 }
 
-folly::Future<Status> Executor::error(Status status) const {
-    return folly::makeFuture<Status>(ExecutionError(std::move(status))).via(runner());
+folly::Future<GraphStatus> Executor::error(GraphStatus status) const {
+    return folly::makeFuture<GraphStatus>(ExecutionError(std::move(status))).via(runner());
 }
 
-Status Executor::finish(Result &&result) {
+GraphStatus Executor::finish(Result &&result) {
     numRows_ = result.size();
     ectx_->setResult(node()->varName(), std::move(result));
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status Executor::finish(Value &&value) {
+GraphStatus Executor::finish(Value &&value) {
     return finish(ResultBuilder().value(std::move(value)).iter(Iterator::Kind::kDefault).finish());
 }
 

@@ -52,6 +52,7 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_agg_function_obj>
+    $<TARGET_OBJECTS:common_error_msg_thrift_obj>
 )
 
 nebula_add_test(
@@ -68,6 +69,7 @@ nebula_add_test(
         proxygenhttpserver
         proxygenlib
         wangle
+        boost_locale
 )
 
 nebula_add_test(
@@ -84,6 +86,7 @@ nebula_add_test(
         wangle
         gtest
         gtest_main
+        boost_locale
 )
 
 nebula_add_test(
@@ -100,6 +103,7 @@ nebula_add_test(
         proxygenhttpserver
         proxygenlib
         wangle
+        boost_locale
 )
 
 nebula_add_test(
@@ -116,6 +120,7 @@ nebula_add_test(
         wangle
         gtest
         gtest_main
+        boost_locale
 )
 
 nebula_add_test(
@@ -132,6 +137,7 @@ nebula_add_test(
         wangle
         gtest
         gtest_main
+        boost_locale
 )
 
 nebula_add_test(
@@ -148,4 +154,5 @@ nebula_add_test(
         wangle
         gtest
         gtest_main
+        boost_locale
 )

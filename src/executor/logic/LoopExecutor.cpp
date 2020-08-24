@@ -22,7 +22,7 @@ namespace graph {
 LoopExecutor::LoopExecutor(const PlanNode *node, QueryContext *qctx, Executor *body)
     : Executor("LoopExecutor", node, qctx), body_(DCHECK_NOTNULL(body)) {}
 
-folly::Future<Status> LoopExecutor::execute() {
+folly::Future<GraphStatus> LoopExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *loopNode = asNode<Loop>(node());

@@ -15,7 +15,7 @@
 namespace nebula {
 namespace graph {
 
-Status SetExecutor::checkInputDataSets() {
+GraphStatus SetExecutor::checkInputDataSets() {
     auto setNode = asNode<SetOp>(node());
 
     auto lIter = ectx_->getResult(setNode->leftInputVar()).iter();
@@ -25,35 +25,36 @@ Status SetExecutor::checkInputDataSets() {
                  rIter->kind() == Iterator::Kind::kGetNeighbors)) {
         std::stringstream ss;
         ss << "Invalid iterator kind: " << lIter->kind() << " vs. " << rIter->kind();
-        return Status::Error(ss.str());
+        return GraphStatus::setInternalError(ss.str());
     }
 
     auto leftData = lIter->valuePtr();
     auto rightData = rIter->valuePtr();
 
     if (UNLIKELY(!leftData || !rightData)) {
-        return Status::Error("SET related executor failed, %s side input dataset is null",
-                             !leftData ? "left" : "right");
+        return GraphStatus::setInternalError(
+                folly::stringPrintf("SET related executor failed, %s side input dataset is null",
+                                     !leftData ? "left" : "right"));
     }
 
     if (UNLIKELY(!leftData->isDataSet() || !rightData->isDataSet())) {
         std::stringstream ss;
         ss << "Invalid data types of dependencies: " << leftData->type() << " vs. "
-           << rightData->type() << ".";
-        return Status::Error(ss.str());
+           << rightData->type();
+        return GraphStatus::setInternalError(ss.str());
     }
 
     auto& lds = leftData->getDataSet();
     auto& rds = rightData->getDataSet();
 
     if (LIKELY(lds.colNames == rds.colNames)) {
-        return Status::OK();
+        return GraphStatus::OK();
     }
 
     auto lcols = folly::join(",", lds.colNames);
     auto rcols = folly::join(",", rds.colNames);
-    return Status::Error(
-        "Datasets have different columns: <%s> vs. <%s>", lcols.c_str(), rcols.c_str());
+    return GraphStatus::setInternalError(folly::stringPrintf(
+        "Datasets have different columns: <%s> vs. <%s>", lcols.c_str(), rcols.c_str()));
 }
 
 std::unique_ptr<Iterator> SetExecutor::getLeftInputDataIter() const {

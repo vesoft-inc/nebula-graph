@@ -17,7 +17,7 @@ public:
     UnionExecutor(const PlanNode *node, QueryContext *qctx)
         : SetExecutor("UnionExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

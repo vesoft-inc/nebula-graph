@@ -17,10 +17,10 @@ public:
     GetEdgesExecutor(const PlanNode *node, QueryContext *qctx)
         : GetPropExecutor("GetEdgesExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> getEdges();
+    folly::Future<GraphStatus> getEdges();
 };
 
 }   // namespace graph

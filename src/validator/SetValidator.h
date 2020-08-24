@@ -19,7 +19,7 @@ public:
         : Validator(sentence, context) {}
 
 private:
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
     /**
      * Merge the starting node of the execution plan
@@ -33,7 +33,7 @@ private:
      *  Union -> Project(_dst) -> GetNeighbor(id1, e1) -|
      *        |-> Project(_dst) -> GetNeighbor(id2, e2) -> End
      */
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     std::unique_ptr<Validator>  lValidator_;

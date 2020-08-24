@@ -8,6 +8,7 @@ nebula_add_library(
     util_obj OBJECT
     SchemaUtil.cpp
     ToJson.cpp
+    GraphStatus.cpp
 )
 
 nebula_add_library(

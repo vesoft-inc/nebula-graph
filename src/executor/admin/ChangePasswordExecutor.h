@@ -17,10 +17,10 @@ public:
     ChangePasswordExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("ChangePasswordExecutor", node, ectx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> changePassword();
+    folly::Future<GraphStatus> changePassword();
 };
 
 }   // namespace graph

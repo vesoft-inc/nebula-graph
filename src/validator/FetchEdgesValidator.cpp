@@ -19,14 +19,25 @@ namespace graph {
     kDst,
 };
 
-Status FetchEdgesValidator::validateImpl() {
-    NG_RETURN_IF_ERROR(check());
-    NG_RETURN_IF_ERROR(prepareEdges());
-    NG_RETURN_IF_ERROR(prepareProperties());
-    return Status::OK();
+GraphStatus FetchEdgesValidator::validateImpl() {
+    auto gStatus = check();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = prepareEdges();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = prepareProperties();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+    return GraphStatus::OK();
 }
 
-Status FetchEdgesValidator::toPlan() {
+GraphStatus FetchEdgesValidator::toPlan() {
     // Start [-> some input] -> GetEdges [-> Project] [-> Dedup] [-> next stage] -> End
     std::string edgeKeysVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
 
@@ -66,48 +77,58 @@ Status FetchEdgesValidator::toPlan() {
     }
     root_ = current;
     tail_ = getEdgesNode;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status FetchEdgesValidator::check() {
+GraphStatus FetchEdgesValidator::check() {
     auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
     edgeTypeName_ = *sentence->edge();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, edgeTypeName_);
-    NG_RETURN_IF_ERROR(edgeStatus);
+    if (!edgeStatus.ok()) {
+        return GraphStatus::setEdgeNotFound(edgeTypeName_);
+    }
     edgeType_ = edgeStatus.value();
     schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
     if (schema_ == nullptr) {
-        LOG(ERROR) << "No schema found for " << sentence->edge();
-        return Status::Error("No schema found for `%s'", sentence->edge()->c_str());
+        LOG(ERROR) << "No schema found for " << edgeTypeName_;
+        return GraphStatus::setEdgeNotFound(edgeTypeName_);
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status FetchEdgesValidator::prepareEdges() {
+GraphStatus FetchEdgesValidator::prepareEdges() {
     auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     // from ref, eval in execute
     if (sentence->isRef()) {
         srcRef_ = sentence->ref()->srcid();
         auto result = checkRef(srcRef_, Value::Type::STRING);
-        NG_RETURN_IF_ERROR(result);
+        if (!result.ok()) {
+            return GraphStatus::setInvalidExpr(srcRef_->toString());
+        }
         inputVar_ = std::move(result).value();
         rankRef_ = sentence->ref()->rank();
         if (rankRef_->kind() != Expression::Kind::kConstant) {
             result = checkRef(rankRef_, Value::Type::INT);
-            NG_RETURN_IF_ERROR(result);
+            if (!result.ok()) {
+                return GraphStatus::setInvalidExpr(rankRef_->toString());
+            }
             if (inputVar_ != result.value()) {
-                return Status::Error("Can't refer to different variable as key at same time.");
+                return GraphStatus::setSemanticError(
+                        "Can't refer to different variable as key at same time.");
             }
         }
         dstRef_ = sentence->ref()->dstid();
         result = checkRef(dstRef_, Value::Type::STRING);
-        NG_RETURN_IF_ERROR(result);
-        if (inputVar_ != result.value()) {
-            return Status::Error("Can't refer to different variable as key at same time.");
+        if (!result.ok()) {
+            return GraphStatus::setInvalidExpr(dstRef_->toString());
         }
-        return Status::OK();
+        if (inputVar_ != result.value()) {
+            return GraphStatus::setSemanticError(
+                    "Can't refer to different variable as key at same time.");
+        }
+        return GraphStatus::OK();
     }
 
     // from constant, eval now
@@ -121,22 +142,22 @@ Status FetchEdgesValidator::prepareEdges() {
             DCHECK(ExpressionUtils::isConstExpr(key->srcid()));
             auto src = key->srcid()->eval(dummy);
             if (!src.isStr()) {   // string as vid
-                return Status::NotSupported("src is not a vertex id");
+                return GraphStatus::setInvalidVid();
             }
             auto ranking = key->rank();
             DCHECK(ExpressionUtils::isConstExpr(key->dstid()));
             auto dst = key->dstid()->eval(dummy);
             if (!src.isStr()) {
-                return Status::NotSupported("dst is not a vertex id");
+                return GraphStatus::setInvalidVid();
             }
             edgeKeys_.emplace_back(nebula::Row(
                 {std::move(src).getStr(), edgeType_, ranking, std::move(dst).getStr()}));
         }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status FetchEdgesValidator::prepareProperties() {
+GraphStatus FetchEdgesValidator::prepareProperties() {
     auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
     auto *yield = sentence->yieldClause();
     storage::cpp2::EdgeProp prop;
@@ -174,8 +195,7 @@ Status FetchEdgesValidator::prepareProperties() {
             }
             const auto *invalidExpr = findInvalidYieldExpression(col->expr());
             if (invalidExpr != nullptr) {
-                return Status::Error("Invalid newYield_ expression `%s'.",
-                                     col->expr()->toString().c_str());
+                return GraphStatus::setInvalidExpr( col->expr()->toString());
             }
             // The properties from storage directly push down only
             // The other will be computed in Project Executor
@@ -183,23 +203,23 @@ Status FetchEdgesValidator::prepareProperties() {
             for (const auto &storageExpr : storageExprs) {
                 const auto *expr = static_cast<const PropertyExpression *>(storageExpr);
                 if (*expr->sym() != edgeTypeName_) {
-                    return Status::Error("Mismatched edge type name");
+                    return GraphStatus::setSemanticError("Mismatched edge type name");
                 }
                 // Check is prop name in schema
                 if (schema_->getFieldIndex(*expr->prop()) < 0 &&
                     reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
                     LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `"
                                 << edgeTypeName_ << "'.";
-                    return Status::Error("Unknown column `%s' in edge `%s'",
-                                            expr->prop()->c_str(),
-                                            edgeTypeName_.c_str());
+                    return GraphStatus::setColumnNotFound(edgeTypeName_);
                 }
                 propsName.emplace_back(*expr->prop());
                 geColNames_.emplace_back(*expr->sym() + "." + *expr->prop());
             }
             colNames_.emplace_back(deduceColName(col));
             auto typeResult = deduceExprType(col->expr());
-            NG_RETURN_IF_ERROR(typeResult);
+            if (!typeResult.ok()) {
+                return GraphStatus::setInvalidExpr(col->expr()->toString());
+            }
             outputs_.emplace_back(colNames_.back(), typeResult.value());
             // TODO(shylock) think about the push-down expr
         }
@@ -236,7 +256,7 @@ Status FetchEdgesValidator::prepareProperties() {
     }
 
     props_.emplace_back(std::move(prop));
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 /*static*/

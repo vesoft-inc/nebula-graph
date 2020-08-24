@@ -16,7 +16,7 @@ class LoopExecutor final : public Executor {
 public:
     LoopExecutor(const PlanNode *node, QueryContext *qctx, Executor *body);
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
     Executor *loopBody() const {
         return body_;

@@ -19,7 +19,7 @@ namespace nebula {
 namespace graph {
 
 void QueryInstance::execute() {
-    Status status = validateAndOptimize();
+    GraphStatus status = validateAndOptimize();
     if (!status.ok()) {
         onError(std::move(status));
         return;
@@ -31,7 +31,7 @@ void QueryInstance::execute() {
     }
 
     scheduler_->schedule()
-        .then([this](Status s) {
+        .then([this](GraphStatus s) {
             if (s.ok()) {
                 this->onFinish();
             } else {
@@ -39,21 +39,28 @@ void QueryInstance::execute() {
             }
         })
         .onError([this](const ExecutionError &e) { onError(e.status()); })
-        .onError([this](const std::exception &e) { onError(Status::Error("%s", e.what())); });
+        .onError([this](const std::exception &e) {
+            onError(GraphStatus::setInternalError(folly::stringPrintf("%s", e.what())));
+        });
 }
 
-Status QueryInstance::validateAndOptimize() {
+GraphStatus QueryInstance::validateAndOptimize() {
     auto *rctx = qctx()->rctx();
     VLOG(1) << "Parsing query: " << rctx->query();
     auto result = GQLParser().parse(rctx->query());
-    NG_RETURN_IF_ERROR(result);
+    if (!result.ok()) {
+        return GraphStatus::setSyntaxError(result.status().toString());
+    }
     sentence_ = std::move(result).value();
 
-    NG_RETURN_IF_ERROR(Validator::validate(sentence_.get(), qctx()));
+    auto status = Validator::validate(sentence_.get(), qctx());
+    if (!status.ok()) {
+        return status;
+    }
 
     // TODO: optional optimize for plan.
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 bool QueryInstance::explainOrContinue() {
@@ -81,8 +88,8 @@ void QueryInstance::onFinish() {
                 rctx->resp().set_data(std::move(result));
             } else {
                 LOG(ERROR) << "Empty column name list";
-                rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
-                rctx->resp().set_error_msg("Internal error: empty column name list");
+                rctx->resp().set_error_code(nebula::cpp2::ErrorCode::E_INTERNAL_ERROR);
+                rctx->resp().set_error_msg("InternalError: Empty column name list");
             }
         }
     }
@@ -100,18 +107,10 @@ void QueryInstance::onFinish() {
     delete this;
 }
 
-void QueryInstance::onError(Status status) {
+void QueryInstance::onError(GraphStatus status) {
     LOG(ERROR) << status;
     auto *rctx = qctx()->rctx();
-    if (status.isSyntaxError()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);
-    } else if (status.isStatementEmpty()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_STATEMENT_EMTPY);
-    } else if (status.isSemanticError()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_SEMANTIC_ERROR);
-    } else {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
-    }
+    rctx->resp().set_error_code(status.getErrorCode());
     auto &spaceName = rctx->session()->spaceName();
     rctx->resp().set_space_name(spaceName);
     rctx->resp().set_error_msg(status.toString());

@@ -17,7 +17,7 @@ public:
     LimitExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("LimitExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 };
 
 }   // namespace graph

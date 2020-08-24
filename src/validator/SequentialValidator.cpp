@@ -15,18 +15,19 @@ DECLARE_uint32(max_allowed_statements);
 
 namespace nebula {
 namespace graph {
-Status SequentialValidator::validateImpl() {
-    Status status;
+GraphStatus SequentialValidator::validateImpl() {
+    GraphStatus status;
     if (sentence_->kind() != Sentence::Kind::kSequential) {
-        return Status::Error(
+        return GraphStatus::setInternalError(
+                folly::stringPrintf(
                 "Sequential validator validates a SequentialSentences, but %ld is given.",
-                static_cast<int64_t>(sentence_->kind()));
+                static_cast<int64_t>(sentence_->kind())));
     }
     auto seqSentence = static_cast<SequentialSentences*>(sentence_);
     auto sentences = seqSentence->sentences();
 
     if (sentences.size() > static_cast<size_t>(FLAGS_max_allowed_statements)) {
-        return Status::Error("The maximum number of statements allowed has been exceeded");
+        return GraphStatus::setOutOfMaxStatements();
     }
 
     DCHECK(!sentences.empty());
@@ -35,12 +36,14 @@ Status SequentialValidator::validateImpl() {
         case Sentence::Kind::kLimit:
         case Sentence::Kind::kOrderBy:
         case Sentence::Kind::kGroupBy:
-            return Status::SyntaxError("Could not start with the statement: %s",
-                                       firstSentence->toString().c_str());
+            return GraphStatus::setSyntaxError(
+                    folly::stringPrintf("Could not start with the statement: %s",
+                    firstSentence->toString().c_str()));
         default:
             break;
     }
 
+    GraphStatus gStatus;
     for (auto* sentence : sentences) {
         if (FLAGS_enable_authorize) {
             auto *session = qctx_->rctx()->session();
@@ -49,27 +52,47 @@ Status SequentialValidator::validateImpl() {
              * kUse, kDescribeSpace, kRevoke and kGrant.
              */
             if (!PermissionCheck::permissionCheck(DCHECK_NOTNULL(session), sentence)) {
-                return Status::PermissionError("Permission denied");
+                return GraphStatus::setPermissionDenied();
             }
         }
         auto validator = makeValidator(sentence, qctx_);
-        NG_RETURN_IF_ERROR(validator->validate());
+        gStatus = validator->validate();
+        if (!gStatus.ok()) {
+            return gStatus;
+        }
         validators_.emplace_back(std::move(validator));
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status SequentialValidator::toPlan() {
+=======
+GraphStatus SequentialValidator::toPlan() {
+    auto* plan = qctx_->plan();
+>>>>>>> all use GraphStatus
     root_ = validators_.back()->root();
     ifBuildDataCollectForRoot(root_);
+    GraphStatus gStatus;
     for (auto iter = validators_.begin(); iter < validators_.end() - 1; ++iter) {
-        NG_RETURN_IF_ERROR((iter + 1)->get()->appendPlan(iter->get()->root()));
+        gStatus = (iter + 1)->get()->appendPlan(iter->get()->root());
+        if (!gStatus.ok()) {
+            return gStatus;
+        }
     }
+<<<<<<< HEAD
     tail_ = StartNode::make(qctx_);
     NG_RETURN_IF_ERROR(validators_.front()->appendPlan(tail_));
+=======
+    tail_ = StartNode::make(plan);
+    gStatus = validators_.front()->appendPlan(tail_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+>>>>>>> all use GraphStatus
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 const Sentence* SequentialValidator::getFirstSentence(const Sentence* sentence) const {

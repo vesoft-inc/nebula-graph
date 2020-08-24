@@ -23,6 +23,7 @@ public:
     }
 
 private:
+<<<<<<< HEAD
     folly::Future<Status> execute() override;
 
     folly::Future<Status> indexScan();
@@ -38,6 +39,9 @@ private:
 
 private:
     const IndexScan *   gn_;
+=======
+    folly::Future<GraphStatus> execute() override;
+>>>>>>> all use GraphStatus
 };
 
 }   // namespace graph

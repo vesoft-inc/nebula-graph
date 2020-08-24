@@ -16,35 +16,59 @@
 
 namespace nebula {
 namespace graph {
-Status GoValidator::validateImpl() {
+GraphStatus GoValidator::validateImpl() {
     auto* goSentence = static_cast<GoSentence*>(sentence_);
-    NG_RETURN_IF_ERROR(validateStep(goSentence->stepClause(), steps_));
-    NG_RETURN_IF_ERROR(validateStarts(goSentence->fromClause(), from_));
-    NG_RETURN_IF_ERROR(validateOver(goSentence->overClause(), over_));
-    NG_RETURN_IF_ERROR(validateWhere(goSentence->whereClause()));
-    NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
-
-    if (!exprProps_.inputProps().empty() && from_.fromType != kPipe) {
-        return Status::Error("$- must be referred in FROM before used in WHERE or YIELD");
+    auto gStatus = validateStep(goSentence->stepClause(), steps_);
+    if (!gStatus.ok()) {
+        return gStatus;
     }
 
-    if (!exprProps_.varProps().empty() && from_.fromType != kVariable) {
-        return Status::Error("A variable must be referred in FROM before used in WHERE or YIELD");
+    gStatus = validateFrom(goSentence->fromClause(), from_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = validateOver(goSentence->overClause(), over_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = validateWhere(goSentence->whereClause());
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = validateYield(goSentence->yieldClause());
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    if (!exprProps_.inputProps().empty() && fromType_ != kPipe) {
+        return GraphStatus::setSemanticError(
+                "$- must be referred in FROM before used in WHERE or YIELD");
+    }
+
+    if (!exprProps_.varProps().empty() && fromType_ != kVariable) {
+        return GraphStatus::setSemanticError(
+                "A variable must be referred in FROM before used in WHERE or YIELD");
     }
 
     if ((!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) ||
         exprProps_.varProps().size() > 1) {
-        return Status::Error("Only support single input in a go sentence.");
+        return GraphStatus::setSemanticError("Only support single input in a go sentence.");
     }
 
-    NG_RETURN_IF_ERROR(buildColumns());
+    gStatus = buildColumns();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GoValidator::validateWhere(WhereClause* where) {
+GraphStatus GoValidator::validateWhere(WhereClause* where) {
     if (where == nullptr) {
-        return Status::OK();
+        return GraphStatus::OK();
     }
 
     filter_ = where->filter();
@@ -59,7 +83,7 @@ Status GoValidator::validateWhere(WhereClause* where) {
 
     auto typeStatus = deduceExprType(filter_);
     if (!typeStatus.ok()) {
-        return typeStatus.status();
+        return GraphStatus::setInvalidExpr(filter_->toString());
     }
 
     auto type = typeStatus.value();
@@ -67,19 +91,19 @@ Status GoValidator::validateWhere(WhereClause* where) {
         std::stringstream ss;
         ss << "`" << filter_->toString() << "', Filter only accpet bool/null value, "
            << "but was `" << type << "'";
-        return Status::Error(ss.str());
+        return GraphStatus::setSemanticError(ss.str());
     }
 
     auto status = deduceProps(filter_, exprProps_);
     if (!status.ok()) {
-        return status;
+        return GraphStatus::setUnsupportedExpr(filter_->toString());
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GoValidator::validateYield(YieldClause* yield) {
+GraphStatus GoValidator::validateYield(YieldClause* yield) {
     if (yield == nullptr) {
-        return Status::Error("Yield clause nullptr.");
+        return GraphStatus::setSemanticError("Yield clause nullptr.");
     }
 
     distinct_ = yield->isDistinct();
@@ -89,17 +113,22 @@ Status GoValidator::validateYield(YieldClause* yield) {
         DCHECK(!over_.allEdges.empty());
         auto* newCols = new YieldColumns();
         qctx_->objPool()->add(newCols);
+        Status status;
         for (auto& e : over_.allEdges) {
             auto* col = new YieldColumn(new EdgeDstIdExpression(new std::string(e)));
             newCols->addColumn(col);
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
             outputs_.emplace_back(colName, Value::Type::STRING);
-            NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
+            status = deduceProps(col->expr(), exprProps_);
+            if (!status.ok()) {
+                return GraphStatus::setUnsupportedExpr(filter_->toString());
+            }
         }
 
         yields_ = newCols;
     } else {
+        Status status;
         for (auto col : cols) {
             if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
                 auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());
@@ -110,33 +139,38 @@ Status GoValidator::validateYield(YieldClause* yield) {
             }
 
             if (!col->getAggFunName().empty()) {
-                return Status::Error(
-                    "`%s', not support aggregate function in go sentence.",
-                    col->toString().c_str());
+                return GraphStatus::setInvalidExpr(col->toString());
             }
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
 
             auto typeStatus = deduceExprType(col->expr());
-            NG_RETURN_IF_ERROR(typeStatus);
+            if (!typeStatus.ok()) {
+                return GraphStatus::setInvalidExpr(col->expr()->toString());
+            }
             auto type = typeStatus.value();
             outputs_.emplace_back(colName, type);
 
-            NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
+            status = deduceProps(col->expr(), exprProps_);
+            if (!status.ok()) {
+                LOG(ERROR) << status;
+                return GraphStatus::setUnsupportedExpr(col->expr()->toString());
+            }
         }
         for (auto& e : exprProps_.edgeProps()) {
             auto found = std::find(over_.edgeTypes.begin(), over_.edgeTypes.end(), e.first);
             if (found == over_.edgeTypes.end()) {
-                return Status::Error("Edges should be declared first in over clause.");
+                return GraphStatus::setSemanticError(
+                        "Edges should be declared first in over clause.");
             }
         }
         yields_ = yield->yields();
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GoValidator::toPlan() {
+GraphStatus GoValidator::toPlan() {
     if (steps_.mToN == nullptr) {
         if (steps_.steps == 0) {
             auto* passThrough = PassThroughNode::make(qctx_, nullptr);
@@ -154,9 +188,9 @@ Status GoValidator::toPlan() {
     }
 }
 
-Status GoValidator::oneStep(PlanNode* dependencyForGn,
-                            const std::string& inputVarNameForGN,
-                            PlanNode* projectFromJoin) {
+GraphStatus GoValidator::oneStep(PlanNode* dependencyForGn,
+                                 const std::string& inputVarNameForGN,
+                                  PlanNode* projectFromJoin) {
     auto* gn = GetNeighbors::make(qctx_, dependencyForGn, space_.id);
     gn->setSrc(src_);
     gn->setVertexProps(buildSrcVertexProps());
@@ -211,10 +245,10 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
         root_ = projectResult;
     }
     tail_ = gn;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GoValidator::buildNStepsPlan() {
+GraphStatus GoValidator::buildNStepsPlan() {
     auto* bodyStart = StartNode::make(qctx_);
 
     std::string startVidsVar;
@@ -266,10 +300,10 @@ Status GoValidator::buildNStepsPlan() {
         tail_ = loop;
     }
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GoValidator::buildMToNPlan() {
+GraphStatus GoValidator::buildMToNPlan() {
     auto* bodyStart = StartNode::make(qctx_);
 
     std::string startVidsVar;
@@ -386,7 +420,7 @@ Status GoValidator::buildMToNPlan() {
     dataCollect->setDistinct(distinct_);
     dataCollect->setColNames(projectResult->colNames());
     root_ = dataCollect;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode* dependency) {
@@ -587,7 +621,7 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
     return dedup;
 }
 
-Status GoValidator::buildOneStepPlan() {
+GraphStatus GoValidator::buildOneStepPlan() {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
     if (!from_.vids.empty() && from_.srcRef == nullptr) {
@@ -606,7 +640,7 @@ Status GoValidator::buildOneStepPlan() {
         tail_ = projectStartVid_;
     }
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 GetNeighbors::VertexProps GoValidator::buildSrcVertexProps() {
@@ -948,7 +982,7 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
     return nullptr;
 }
 
-Status GoValidator::buildColumns() {
+GraphStatus GoValidator::buildColumns() {
     if (exprProps_.dstTagProps().empty() && exprProps_.inputProps().empty() &&
         exprProps_.varProps().empty() && from_.fromType == FromType::kInstantExpr) {
         return Status::OK();
@@ -996,7 +1030,7 @@ Status GoValidator::buildColumns() {
         }
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 }  // namespace graph

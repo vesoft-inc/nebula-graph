@@ -16,11 +16,11 @@ using nebula::storage::cpp2::GetPropResponse;
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> GetEdgesExecutor::execute() {
+folly::Future<GraphStatus> GetEdgesExecutor::execute() {
     return getEdges();
 }
 
-folly::Future<Status> GetEdgesExecutor::getEdges() {
+folly::Future<GraphStatus> GetEdgesExecutor::getEdges() {
     SCOPED_TIMER(&execTime_);
 
     GraphStorageClient *client = qctx()->getStorageClient();

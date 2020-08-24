@@ -18,101 +18,128 @@ namespace graph {
 YieldValidator::YieldValidator(Sentence *sentence, QueryContext *qctx)
     : Validator(sentence, qctx) {}
 
-Status YieldValidator::validateImpl() {
+GraphStatus YieldValidator::validateImpl() {
     auto yield = static_cast<YieldSentence *>(sentence_);
-    NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
-    NG_RETURN_IF_ERROR(validateWhere(yield->where()));
+    auto gStatus = validateYieldAndBuildOutputs(yield->yield());
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    gStatus = validateWhere(yield->where());
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
         !exprProps_.edgeProps().empty()) {
-        return Status::SemanticError("Only support input and variable in yield sentence.");
+        return GraphStatus::setSemanticError("Only support input and variable in yield sentence");
     }
 
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
-        return Status::SemanticError("Not support both input and variable.");
+        return GraphStatus::setSemanticError("Not support both input and variable");
     }
 
     if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
-        return Status::SemanticError("Only one variable allowed to use.");
+        return GraphStatus::setSemanticError("Only one variable allowed to use");
     }
 
     // TODO(yee): following check maybe not make sense
-    NG_RETURN_IF_ERROR(checkInputProps());
-    NG_RETURN_IF_ERROR(checkVarProps());
-
-    if (hasAggFun_) {
-        NG_RETURN_IF_ERROR(checkAggFunAndBuildGroupItems(yield->yield()));
+    gStatus = checkInputProps();
+    if (!gStatus.ok()) {
+        return gStatus;
     }
 
-    return Status::OK();
+    gStatus = checkVarProps();
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+
+    if (hasAggFun_) {
+        gStatus = checkAggFunAndBuildGroupItems(yield->yield());
+        return gStatus;
+    }
+
+    return GraphStatus::OK();
 }
 
-Status YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) {
+GraphStatus YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) {
     auto yield = clause->yields();
     for (auto column : yield->columns()) {
         auto expr = column->expr();
         auto fun = column->getAggFunName();
         if (!evaluableExpr(expr) && fun.empty()) {
-            return Status::SemanticError(
-                "Input columns without aggregation are not supported in YIELD statement "
-                "without GROUP BY, near `%s'",
-                expr->toString().c_str());
+            return GraphStatus::setInvalidExpr(expr->toString());
         }
 
         groupItems_.emplace_back(Aggregate::GroupItem{expr, AggFun::nameIdMap_[fun], false});
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status YieldValidator::checkInputProps() const {
+GraphStatus YieldValidator::checkInputProps() const {
     auto& inputProps = const_cast<ExpressionProps*>(&exprProps_)->inputProps();
     if (inputs_.empty() && !inputProps.empty()) {
-        return Status::SemanticError("no inputs for yield columns.");
+        return GraphStatus::setSemanticError("no inputs for yield columns.");
     }
+    GraphStatus status;
     for (auto &prop : inputProps) {
         DCHECK_NE(prop, "*");
-        NG_RETURN_IF_ERROR(checkPropNonexistOrDuplicate(inputs_, prop, "Yield sentence"));
+        status = checkPropNonexistOrDuplicate(inputs_, prop);
+        if (!status.ok()) {
+            return status;
+        }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status YieldValidator::checkVarProps() const {
+GraphStatus YieldValidator::checkVarProps() const {
     auto& varProps = const_cast<ExpressionProps*>(&exprProps_)->varProps();
     for (auto &pair : varProps) {
         auto &var = pair.first;
         if (!vctx_->existVar(var)) {
-            return Status::SemanticError("variable `%s' not exist.", var.c_str());
+            return GraphStatus::setSemanticError(
+                    folly::stringPrintf("variable `%s' not exist.", var.c_str()));
         }
         auto &props = vctx_->getVar(var);
+        GraphStatus status;
         for (auto &prop : pair.second) {
             DCHECK_NE(prop, "*");
-            NG_RETURN_IF_ERROR(checkPropNonexistOrDuplicate(props, prop, "Yield sentence"));
+            status = checkPropNonexistOrDuplicate(props, prop);
+            if (!status.ok()) {
+                return status;
+            }
         }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status YieldValidator::makeOutputColumn(YieldColumn *column) {
+GraphStatus YieldValidator::makeOutputColumn(YieldColumn *column) {
     columns_->addColumn(column);
 
     auto expr = column->expr();
     DCHECK(expr != nullptr);
-    NG_RETURN_IF_ERROR(deduceProps(expr, exprProps_));
+    auto status = deduceProps(expr, exprProps_);
+    if (!status.ok()) {
+        return GraphStatus::setUnsupportedExpr(expr->toString());
+    }
 
-    auto status = deduceExprType(expr);
-    NG_RETURN_IF_ERROR(status);
-    auto type = std::move(status).value();
+    auto typeResult = deduceExprType(expr);
+    if (!typeResult.ok()) {
+        return GraphStatus::setInvalidExpr(expr->toString());
+    }
+    auto type = std::move(typeResult).value();
 
     auto name = deduceColName(column);
     outputColumnNames_.emplace_back(name);
 
     outputs_.emplace_back(name, type);
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
+GraphStatus YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
     auto columns = clause->columns();
     columns_ = qctx_->objPool()->add(new YieldColumns);
+    GraphStatus gStatus;
     for (auto column : columns) {
         auto expr = DCHECK_NOTNULL(column->expr());
         if (expr->kind() == Expression::Kind::kInputProperty) {
@@ -122,10 +149,14 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
             if (*ipe->prop() == "*") {
                 for (auto &colDef : inputs_) {
                     auto newExpr = new InputPropertyExpression(new std::string(colDef.first));
-                    NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
+                    gStatus = makeOutputColumn(new YieldColumn(newExpr));
+                    if (!gStatus.ok()) {
+                        return gStatus;
+                    }
                 }
                 if (!column->getAggFunName().empty()) {
-                    return Status::SemanticError("could not apply aggregation function on `$-.*'");
+                    return GraphStatus::setSemanticError(
+                            "could not apply aggregation function on `$-.*'");
                 }
                 continue;
             }
@@ -135,17 +166,22 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
             if (*vpe->prop() == "*") {
                 auto var = DCHECK_NOTNULL(vpe->sym());
                 if (!vctx_->existVar(*var)) {
-                    return Status::SemanticError("variable `%s' not exists.", var->c_str());
+                    return GraphStatus::setSemanticError(
+                            folly::stringPrintf("variable `%s' not exists.", var->c_str()));
                 }
                 auto &varColDefs = vctx_->getVar(*var);
                 for (auto &colDef : varColDefs) {
                     auto newExpr = new VariablePropertyExpression(new std::string(*var),
                                                                   new std::string(colDef.first));
-                    NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
+                    gStatus = makeOutputColumn(new YieldColumn(newExpr));
+                    if (!gStatus.ok()) {
+                        return gStatus;
+                    }
                 }
                 if (!column->getAggFunName().empty()) {
-                    return Status::SemanticError("could not apply aggregation function on `$%s.*'",
-                                                 var->c_str());
+                    return GraphStatus::setSemanticError(
+                            folly::stringPrintf("could not apply aggregation function on `$%s.*'",
+                                                 var->c_str()));
                 }
                 continue;
             }
@@ -155,28 +191,35 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
         if (!fun.empty()) {
             auto foundAgg = AggFun::nameIdMap_.find(fun);
             if (foundAgg == AggFun::nameIdMap_.end()) {
-                return Status::SemanticError("Unkown aggregate function: `%s'", fun.c_str());
+                return GraphStatus::setSemanticError(
+                        folly::stringPrintf("Unkown aggregate function: `%s'", fun.c_str()));
             }
             hasAggFun_ = true;
         }
 
-        NG_RETURN_IF_ERROR(makeOutputColumn(column->clone().release()));
+        gStatus = makeOutputColumn(column->clone().release());
+        if (!gStatus.ok()) {
+            return gStatus;
+        }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status YieldValidator::validateWhere(const WhereClause *clause) {
+GraphStatus YieldValidator::validateWhere(const WhereClause *clause) {
     Expression *filter = nullptr;
     if (clause != nullptr) {
         filter = clause->filter();
     }
     if (filter != nullptr) {
-        NG_RETURN_IF_ERROR(deduceProps(filter, exprProps_));
+        auto status = deduceProps(filter, exprProps_);
+        if (!status.ok()) {
+            return GraphStatus::setUnsupportedExpr(filter->toString());
+        }
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status YieldValidator::toPlan() {
+GraphStatus YieldValidator::toPlan() {
     auto yield = static_cast<const YieldSentence *>(sentence_);
 
     Filter *filter = nullptr;
@@ -219,7 +262,7 @@ Status YieldValidator::toPlan() {
         root_ = dedupDep;
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 }   // namespace graph

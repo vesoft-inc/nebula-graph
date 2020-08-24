@@ -39,14 +39,14 @@ TEST_F(BalanceTest, Error) {
         cpp2::ExecutionResponse resp;
         std::string query = "BALANCE DATA 233;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
     {
         // stop not exists
         cpp2::ExecutionResponse resp;
         std::string query = "BALANCE DATA STOP;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::E_EXECUTION_ERROR);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::E_EXECUTION_ERROR);
     }
 }
 
@@ -56,14 +56,14 @@ TEST_F(BalanceTest, Simple) {
         cpp2::ExecutionResponse resp;
         std::string query = "BALANCE LEADER;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // balance without space
         cpp2::ExecutionResponse resp;
         std::string query = "BALANCE DATA;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         DataSet expected({"ID"});
         expected.emplace_back(Row({1}));
@@ -74,7 +74,7 @@ TEST_F(BalanceTest, Simple) {
         cpp2::ExecutionResponse resp;
         std::string query = "BALANCE DATA 1;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         DataSet expected({"balanceId, spaceId:partId, src->dst", "status"});
         expected.emplace_back(Row({
@@ -88,27 +88,27 @@ TEST_F(BalanceTest, Simple) {
         cpp2::ExecutionResponse resp;
         std::string query = "BALANCE DATA STOP;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // create space
         cpp2::ExecutionResponse resp;
         std::string query = "CREATE SPACE space1(partition_num=3, replica_factor=1);";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         // create space
         cpp2::ExecutionResponse resp;
         std::string query = "CREATE SPACE space2(partition_num=9, replica_factor=3);";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
     }
     {
         cpp2::ExecutionResponse resp;
         std::string query = "BALANCE DATA;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         DataSet expected({"ID"});
         expected.emplace_back(Row({4}));
@@ -119,7 +119,7 @@ TEST_F(BalanceTest, Simple) {
         cpp2::ExecutionResponse resp;
         std::string query = "BALANCE DATA 4;";
         client_->execute(query, resp);
-        ASSERT_ERROR_CODE(resp, cpp2::ErrorCode::SUCCEEDED);
+        ASSERT_ERROR_CODE(resp, nebula::cpp2::ErrorCode::SUCCEEDED);
 
         // TODO(shylock) dataset constructor
         auto storagePort = gEnv->storageServerPort();

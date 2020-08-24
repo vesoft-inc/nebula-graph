@@ -14,7 +14,9 @@
 #include "common/interface/gen-cpp2/common_types.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/meta/NebulaSchemaProvider.h"
+
 #include "parser/MaintainSentences.h"
+#include "util/GraphStatus.h"
 
 namespace nebula {
 namespace graph {
@@ -24,11 +26,11 @@ public:
     SchemaUtil() = delete;
 
 public:
-    static Status validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
-                                  meta::cpp2::Schema &schema);
+    static GraphStatus validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
+                                       meta::cpp2::Schema &schema);
 
-    static Status validateProps(const std::vector<SchemaPropItem*> &schemaProps,
-                                meta::cpp2::Schema &schema);
+    static GraphStatus validateProps(const std::vector<SchemaPropItem*> &schemaProps,
+                                     meta::cpp2::Schema &schema);
 
     static std::shared_ptr<const meta::NebulaSchemaProvider>
     generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema &schema);
@@ -36,19 +38,19 @@ public:
     static StatusOr<nebula::Value> toSchemaValue(const meta::cpp2::PropertyType type,
                                                  const Value &v);
 
-    static Status setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
+    static GraphStatus setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
 
-    static Status setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
+    static GraphStatus setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
 
     static StatusOr<VertexID> toVertexID(Expression *expr);
 
     static StatusOr<std::vector<Value>> toValueVec(std::vector<Expression*> exprs);
 
-    static StatusOr<DataSet> toDescSchema(const meta::cpp2::Schema &schema);
+    static DataSet toDescSchema(const meta::cpp2::Schema &schema);
 
-    static StatusOr<DataSet> toShowCreateSchema(bool isTag,
-                                                const std::string &name,
-                                                const meta::cpp2::Schema &schema);
+    static DataSet toShowCreateSchema(bool isTag,
+                                      const std::string &name,
+                                      const meta::cpp2::Schema &schema);
 
     static std::string typeToString(const meta::cpp2::ColumnDef &col);
 

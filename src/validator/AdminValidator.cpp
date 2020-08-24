@@ -16,10 +16,9 @@
 
 namespace nebula {
 namespace graph {
-Status CreateSpaceValidator::validateImpl() {
+GraphStatus CreateSpaceValidator::validateImpl() {
     auto sentence = static_cast<CreateSpaceSentence*>(sentence_);
     ifNotExist_ = sentence->isIfNotExist();
-    auto status = Status::OK();
     spaceDesc_ = meta::SpaceDesc();
     spaceDesc_.spaceName_ = std::move(*(sentence->spaceName()));
     StatusOr<std::string> retStatusOr;
@@ -30,14 +29,14 @@ Status CreateSpaceValidator::validateImpl() {
             case SpaceOptItem::PARTITION_NUM: {
                 spaceDesc_.partNum_ = item->getPartitionNum();
                 if (spaceDesc_.partNum_ <= 0) {
-                    return Status::Error("Partition_num value should be greater than zero");
+                    return GraphStatus::setInvalidPartitionNum();
                 }
                 break;
             }
             case SpaceOptItem::REPLICA_FACTOR: {
                 spaceDesc_.replicaFactor_ = item->getReplicaFactor();
                 if (spaceDesc_.replicaFactor_ <= 0) {
-                    return Status::Error("Replica_factor value should be greater than zero");
+                    return GraphStatus::setInvalidReplicaFactor();
                 }
                 break;
             }
@@ -45,21 +44,25 @@ Status CreateSpaceValidator::validateImpl() {
                 spaceDesc_.vidSize_ = item->getVidSize();
                 if (spaceDesc_.vidSize_ < 0 ||
                         spaceDesc_.vidSize_ > std::numeric_limits<int32_t>::max()) {
-                    return Status::Error("Vid_size value is incorrect");
+                    return GraphStatus::setInvalidSpaceVidLen();
                 }
                 break;
             }
             case SpaceOptItem::CHARSET: {
                 result = item->getCharset();
                 folly::toLowerAscii(result);
-                NG_RETURN_IF_ERROR(charsetInfo->isSupportCharset(result));
+                if (!charsetInfo->isSupportCharset(result).ok()) {
+                    return GraphStatus::setInvalidCharset();
+                }
                 spaceDesc_.charsetName_ = std::move(result);
                 break;
             }
             case SpaceOptItem::COLLATE: {
                 result = item->getCollate();
                 folly::toLowerAscii(result);
-                NG_RETURN_IF_ERROR(charsetInfo->isSupportCollate(result));
+                if (!charsetInfo->isSupportCollate(result).ok()) {
+                    return GraphStatus::setInvalidCollate();
+                }
                 spaceDesc_.collationName_ = std::move(result);
                 break;
             }
@@ -68,18 +71,22 @@ Status CreateSpaceValidator::validateImpl() {
 
     // if charset and collate are not specified, set default value
     if (!spaceDesc_.charsetName_.empty() && !spaceDesc_.collationName_.empty()) {
-        NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(spaceDesc_.charsetName_,
-                    spaceDesc_.collationName_));
+        if (!charsetInfo->charsetAndCollateMatch(spaceDesc_.charsetName_,
+                    spaceDesc_.collationName_).ok()) {
+            return GraphStatus::setCharsetCollateNotMatch();
+        }
     } else if (!spaceDesc_.charsetName_.empty()) {
         retStatusOr = charsetInfo->getDefaultCollationbyCharset(spaceDesc_.charsetName_);
         if (!retStatusOr.ok()) {
-            return retStatusOr.status();
+            LOG(ERROR) << retStatusOr.status();
+            return GraphStatus::setUnsupported();
         }
         spaceDesc_.collationName_ = std::move(retStatusOr.value());
     } else if (!spaceDesc_.collationName_.empty()) {
         retStatusOr = charsetInfo->getCharsetbyCollation(spaceDesc_.collationName_);
         if (!retStatusOr.ok()) {
-            return retStatusOr.status();
+            LOG(ERROR) << retStatusOr.status();
+            return GraphStatus::setUnsupported();
         }
         spaceDesc_.charsetName_ = std::move(retStatusOr.value());
     }
@@ -87,129 +94,184 @@ Status CreateSpaceValidator::validateImpl() {
     if (spaceDesc_.charsetName_.empty() && spaceDesc_.collationName_.empty()) {
         std::string charsetName = FLAGS_default_charset;
         folly::toLowerAscii(charsetName);
-        NG_RETURN_IF_ERROR(charsetInfo->isSupportCharset(charsetName));
+        if (!charsetInfo->isSupportCharset(charsetName).ok()) {
+            return GraphStatus::setUnsupported();
+        }
 
         std::string collateName = FLAGS_default_collate;
         folly::toLowerAscii(collateName);
-        NG_RETURN_IF_ERROR(charsetInfo->isSupportCollate(collateName));
+        if (!charsetInfo->isSupportCollate(collateName).ok()) {
+            return GraphStatus::setUnsupported();
+        }
 
         spaceDesc_.charsetName_ = std::move(charsetName);
         spaceDesc_.collationName_ = std::move(collateName);
 
-        NG_RETURN_IF_ERROR(charsetInfo->charsetAndCollateMatch(spaceDesc_.charsetName_,
-                    spaceDesc_.collationName_));
+        if (!charsetInfo->charsetAndCollateMatch(spaceDesc_.charsetName_,
+                    spaceDesc_.collationName_).ok()) {
+            return GraphStatus::setUnsupported();
+        }
     }
 
     // add to validate context
     vctx_->addSpace(spaceDesc_.spaceName_);
-    return status;
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status CreateSpaceValidator::toPlan() {
     auto *doNode = CreateSpace::make(qctx_, nullptr, std::move(spaceDesc_), ifNotExist_);
+=======
+GraphStatus CreateSpaceValidator::toPlan() {
+    auto *plan = qctx_->plan();
+    auto *doNode = CreateSpace::make(plan, nullptr, std::move(spaceDesc_), ifNotExist_);
+>>>>>>> all use GraphStatus
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DescSpaceValidator::validateImpl() {
-    return Status::OK();
+GraphStatus DescSpaceValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status DescSpaceValidator::toPlan() {
+GraphStatus DescSpaceValidator::toPlan() {
     auto sentence = static_cast<DescribeSpaceSentence*>(sentence_);
     auto *doNode = DescSpace::make(qctx_, nullptr, *sentence->spaceName());
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowSpacesValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowSpacesValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowSpacesValidator::toPlan() {
     auto *doNode = ShowSpaces::make(qctx_, nullptr);
+=======
+GraphStatus ShowSpacesValidator::toPlan() {
+    auto *plan = qctx_->plan();
+    auto *doNode = ShowSpaces::make(plan, nullptr);
+>>>>>>> all use GraphStatus
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DropSpaceValidator::validateImpl() {
-    return Status::OK();
+GraphStatus DropSpaceValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status DropSpaceValidator::toPlan() {
+=======
+GraphStatus DropSpaceValidator::toPlan() {
+    auto *plan = qctx_->plan();
+>>>>>>> all use GraphStatus
     auto sentence = static_cast<DropSpaceSentence*>(sentence_);
     auto *doNode = DropSpace::make(qctx_, nullptr, *sentence->spaceName(), sentence->isIfExists());
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowCreateSpaceValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowCreateSpaceValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowCreateSpaceValidator::toPlan() {
+=======
+GraphStatus ShowCreateSpaceValidator::toPlan() {
+    auto* plan = qctx_->plan();
+>>>>>>> all use GraphStatus
     auto sentence = static_cast<ShowCreateSpaceSentence*>(sentence_);
     auto spaceName = *sentence->spaceName();
     auto *doNode = ShowCreateSpace::make(qctx_, nullptr, std::move(spaceName));
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status CreateSnapshotValidator::validateImpl() {
-    return Status::OK();
+GraphStatus CreateSnapshotValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status CreateSnapshotValidator::toPlan() {
     auto *doNode = CreateSnapshot::make(qctx_, nullptr);
+=======
+GraphStatus CreateSnapshotValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = CreateSnapshot::make(plan, nullptr);
+>>>>>>> all use GraphStatus
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DropSnapshotValidator::validateImpl() {
-    return Status::OK();
+GraphStatus DropSnapshotValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status DropSnapshotValidator::toPlan() {
+=======
+GraphStatus DropSnapshotValidator::toPlan() {
+    auto* plan = qctx_->plan();
+>>>>>>> all use GraphStatus
     auto sentence = static_cast<DropSnapshotSentence*>(sentence_);
     auto *doNode = DropSnapshot::make(qctx_, nullptr, *sentence->name());
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowSnapshotsValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowSnapshotsValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowSnapshotsValidator::toPlan() {
     auto *doNode = ShowSnapshots::make(qctx_, nullptr);
+=======
+GraphStatus ShowSnapshotsValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = ShowSnapshots::make(plan, nullptr);
+>>>>>>> all use GraphStatus
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowHostsValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowHostsValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowHostsValidator::toPlan() {
     auto *showHosts = ShowHosts::make(qctx_, nullptr);
+=======
+GraphStatus ShowHostsValidator::toPlan() {
+    auto *showHosts = ShowHosts::make(qctx_->plan(), nullptr);
+>>>>>>> all use GraphStatus
     root_ = showHosts;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowPartsValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowPartsValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowPartsValidator::toPlan() {
+=======
+GraphStatus ShowPartsValidator::toPlan() {
+    auto* plan = qctx_->plan();
+>>>>>>> all use GraphStatus
     auto sentence = static_cast<ShowPartsSentence*>(sentence_);
     std::vector<PartitionID> partIds;
     if (sentence->getList() != nullptr) {
@@ -221,36 +283,48 @@ Status ShowPartsValidator::toPlan() {
                                  std::move(partIds));
     root_ = node;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowCharsetValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowCharsetValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowCharsetValidator::toPlan() {
     auto *node = ShowCharset::make(qctx_, nullptr);
+=======
+GraphStatus ShowCharsetValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *node = ShowCharset::make(plan, nullptr);
+>>>>>>> all use GraphStatus
     root_ = node;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowCollationValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowCollationValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status ShowCollationValidator::toPlan() {
     auto *node = ShowCollation::make(qctx_, nullptr);
+=======
+GraphStatus ShowCollationValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *node = ShowCollation::make(plan, nullptr);
+>>>>>>> all use GraphStatus
     root_ = node;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ShowConfigsValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowConfigsValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status ShowConfigsValidator::toPlan() {
+GraphStatus ShowConfigsValidator::toPlan() {
     auto sentence = static_cast<ShowConfigsSentence*>(sentence_);
     meta::cpp2::ConfigModule module;
     auto item = sentence->configItem();
@@ -262,14 +336,14 @@ Status ShowConfigsValidator::toPlan() {
     auto *doNode = ShowConfigs::make(qctx_, nullptr, module);
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status SetConfigValidator::validateImpl() {
+GraphStatus SetConfigValidator::validateImpl() {
     auto sentence = static_cast<SetConfigSentence*>(sentence_);
     auto item = sentence->configItem();
     if (item == nullptr) {
-        return Status::Error("Empty config item");
+        return GraphStatus::setInternalError("Empty config item");
     }
     if (item->getName() != nullptr) {
         name_ = *item->getName();
@@ -293,39 +367,46 @@ Status SetConfigValidator::validateImpl() {
             std::string name;
             Value value;
             if (updateItem->getFieldName() == nullptr || updateItem->value() == nullptr) {
-                return Status::Error("Empty item");
+                return GraphStatus::setSemanticError("Empty config item");
             }
             name = *updateItem->getFieldName();
 
             value = Expression::eval(const_cast<Expression*>(updateItem->value()), ctx(nullptr));
 
             if (value.isNull() || (!value.isNumeric() && !value.isStr() && !value.isBool())) {
-                return Status::Error("Wrong value: %s", name.c_str());
+                return GraphStatus::setSemanticError(
+                        folly::stringPrintf("Invalid value from `%s'", name.c_str()));
             }
             configs.kvs.emplace(std::move(name), std::move(value));
         }
         value_.setMap(std::move(configs));
     }
 
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status SetConfigValidator::toPlan() {
     auto *doNode = SetConfig::make(qctx_,
+=======
+GraphStatus SetConfigValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = SetConfig::make(plan,
+>>>>>>> all use GraphStatus
                                    nullptr,
                                    module_,
                                    std::move(name_),
                                    std::move(value_));
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GetConfigValidator::validateImpl() {
+GraphStatus GetConfigValidator::validateImpl() {
     auto sentence = static_cast<GetConfigSentence*>(sentence_);
     auto item = sentence->configItem();
     if (item == nullptr) {
-        return Status::Error("Empty config item");
+        return GraphStatus::setSemanticError("Empty config item");
     }
 
     module_ = item->getModule();
@@ -333,17 +414,23 @@ Status GetConfigValidator::validateImpl() {
         name_ = *item->getName();
     }
     name_ = *item->getName();
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
+<<<<<<< HEAD
 Status GetConfigValidator::toPlan() {
     auto *doNode = GetConfig::make(qctx_,
+=======
+GraphStatus GetConfigValidator::toPlan() {
+    auto* plan = qctx_->plan();
+    auto *doNode = GetConfig::make(plan,
+>>>>>>> all use GraphStatus
                                    nullptr,
                                    module_,
                                    std::move(name_));
     root_ = doNode;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 }  // namespace graph
 }  // namespace nebula

@@ -12,7 +12,12 @@
 namespace nebula {
 namespace graph {
 
+<<<<<<< HEAD
 Status BalanceValidator::toPlan() {
+=======
+GraphStatus BalanceValidator::toPlan() {
+    auto* plan = qctx_->plan();
+>>>>>>> all use GraphStatus
     PlanNode *current = nullptr;
     BalanceSentence *sentence = static_cast<BalanceSentence*>(sentence_);
     switch (sentence->subType()) {
@@ -36,11 +41,13 @@ Status BalanceValidator::toPlan() {
         // fallthrough
     default:
         DLOG(FATAL) << "Unknown balance kind " << sentence->kind();
-        return Status::NotSupported("Unknown balance kind %d", static_cast<int>(sentence->kind()));
+        return GraphStatus::setInternalError(
+                folly::stringPrintf("Unknown balance kind %d",
+                                    static_cast<int>(sentence->kind())));
     }
     root_ = current;
     tail_ = root_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
 }  // namespace graph

@@ -11,7 +11,7 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> LimitExecutor::execute() {
+folly::Future<GraphStatus> LimitExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto* limit = asNode<Limit>(node());

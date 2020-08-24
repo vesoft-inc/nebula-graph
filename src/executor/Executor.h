@@ -19,7 +19,11 @@
 #include "common/datatypes/Value.h"
 #include "common/time/Duration.h"
 #include "context/ExecutionContext.h"
+<<<<<<< HEAD
 #include "util/ScopedTimer.h"
+=======
+#include "util/GraphStatus.h"
+>>>>>>> all use GraphStatus
 
 namespace nebula {
 namespace graph {
@@ -35,14 +39,13 @@ public:
     virtual ~Executor();
 
     // Prepare or initialize executor before each execution
-    virtual Status open();
+    virtual GraphStatus open();
 
-    // Each executor inherited from this class should get input values from ExecutionContext,
     // evaluate expressions and save output result back to ExecutionContext by `finish'
-    virtual folly::Future<Status> execute() = 0;
+    virtual folly::Future<GraphStatus> execute() = 0;
 
     // Cleanup or reset executor some states after each execution
-    virtual Status close();
+    virtual GraphStatus close();
 
     QueryContext *qctx() const {
         return qctx_;
@@ -81,7 +84,7 @@ public:
     }
 
     // Throw runtime error to stop whole execution early
-    folly::Future<Status> error(Status status) const;
+    folly::Future<GraphStatus> error(GraphStatus status) const;
 
 protected:
     static Executor *makeExecutor(const PlanNode *node,
@@ -92,14 +95,23 @@ protected:
     Executor(const std::string &name, const PlanNode *node, QueryContext *qctx);
 
     // Start a future chain and bind it to thread pool
-    folly::Future<Status> start(Status status = Status::OK()) const;
+    folly::Future<GraphStatus> start(GraphStatus status = GraphStatus::OK()) const;
 
     folly::Executor *runner() const;
 
     // Store the result of this executor to execution context
-    Status finish(Result &&result);
+    GraphStatus finish(Result &&result);
     // Store the default result which not used for later executor
-    Status finish(Value &&value);
+    GraphStatus finish(Value &&value);
+
+    template<typename RESP>
+    GraphStatus checkMetaResp(const RESP &resp, const std::string &name = "") {
+        if (!resp.ok()) {
+            LOG(ERROR) << resp.status();
+            return GraphStatus::setRpcFailed(resp.status().toString());
+        }
+        return GraphStatus::setRpcResponse(resp.value().get_code(), name);
+    }
 
     int64_t id_;
 

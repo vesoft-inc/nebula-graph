@@ -13,11 +13,11 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> InsertVerticesExecutor::execute() {
-    return insertVertices();
+folly::Future<GraphStatus> InsertVerticesExecutor::execute() {
+    return insertVertices().ensure([this]() { UNUSED(this); });
 }
 
-folly::Future<Status> InsertVerticesExecutor::insertVertices() {
+folly::Future<GraphStatus> InsertVerticesExecutor::insertVertices() {
     SCOPED_TIMER(&execTime_);
 
     auto *ivNode = asNode<InsertVertices>(node());
@@ -36,11 +36,11 @@ folly::Future<Status> InsertVerticesExecutor::insertVertices() {
         });
 }
 
-folly::Future<Status> InsertEdgesExecutor::execute() {
-    return insertEdges();
+folly::Future<GraphStatus> InsertEdgesExecutor::execute() {
+    return insertEdges().ensure([this]() { UNUSED(this); });
 }
 
-folly::Future<Status> InsertEdgesExecutor::insertEdges() {
+folly::Future<GraphStatus> InsertEdgesExecutor::insertEdges() {
     SCOPED_TIMER(&execTime_);
 
     auto *ieNode = asNode<InsertEdges>(node());

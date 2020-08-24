@@ -9,7 +9,7 @@
 
 #include <vector>
 
-#include "common/base/Status.h"
+#include "util/GraphStatus.h"
 #include "planner/Query.h"
 #include "validator/Validator.h"
 
@@ -30,17 +30,17 @@ class YieldValidator final : public Validator {
 public:
     YieldValidator(Sentence *sentence, QueryContext *qctx);
 
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
-    Status validateYieldAndBuildOutputs(const YieldClause *clause);
-    Status validateWhere(const WhereClause *clause);
-    Status checkVarProps() const;
-    Status checkInputProps() const;
-    Status checkAggFunAndBuildGroupItems(const YieldClause *clause);
-    Status makeOutputColumn(YieldColumn *column);
+    GraphStatus validateYieldAndBuildOutputs(const YieldClause *clause);
+    GraphStatus validateWhere(const WhereClause *clause);
+    GraphStatus checkVarProps() const;
+    GraphStatus checkInputProps() const;
+    GraphStatus checkAggFunAndBuildGroupItems(const YieldClause *clause);
+    GraphStatus makeOutputColumn(YieldColumn *column);
 
     bool hasAggFun_{false};
 

@@ -18,18 +18,18 @@ static std::size_t kUsernameMaxLength = 16;
 static std::size_t kPasswordMaxLength = 24;
 
 // create user
-Status CreateUserValidator::validateImpl() {
+GraphStatus CreateUserValidator::validateImpl() {
     const auto *sentence = static_cast<const CreateUserSentence*>(sentence_);
     if (sentence->getAccount()->size() > kUsernameMaxLength) {
-        return Status::Error("Username exceed maximum length %ld characters.", kUsernameMaxLength);
+        return GraphStatus::setOutOfLenOfUsername();
     }
     if (sentence->getPassword()->size() > kPasswordMaxLength) {
-        return Status::Error("Password exceed maximum length %ld characters.", kPasswordMaxLength);
+        return GraphStatus::setOutOfLenOfPassword();
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status CreateUserValidator::toPlan() {
+GraphStatus CreateUserValidator::toPlan() {
     auto sentence = static_cast<CreateUserSentence*>(sentence_);
     return genSingleNodePlan<CreateUser>(sentence->getAccount(),
                                          sentence->getPassword(),
@@ -37,65 +37,63 @@ Status CreateUserValidator::toPlan() {
 }
 
 // drop user
-Status DropUserValidator::validateImpl() {
+GraphStatus DropUserValidator::validateImpl() {
     const auto *sentence = static_cast<const DropUserSentence*>(sentence_);
     if (sentence->getAccount()->size() > kUsernameMaxLength) {
-        return Status::Error("Username exceed maximum length %ld characters.", kUsernameMaxLength);
+        return GraphStatus::setOutOfLenOfUsername();
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status DropUserValidator::toPlan() {
+GraphStatus DropUserValidator::toPlan() {
     auto sentence = static_cast<DropUserSentence*>(sentence_);
     return genSingleNodePlan<DropUser>(sentence->getAccount(),
                                        sentence->ifExists());
 }
 
 // update user
-Status UpdateUserValidator::validateImpl() {
+GraphStatus UpdateUserValidator::validateImpl() {
     const auto *sentence = static_cast<const AlterUserSentence*>(sentence_);
     if (sentence->getAccount()->size() > kUsernameMaxLength) {
-        return Status::Error("Username exceed maximum length %ld characters.", kUsernameMaxLength);
+        return GraphStatus::setOutOfLenOfUsername();
     }
     if (sentence->getPassword()->size() > kPasswordMaxLength) {
-        return Status::Error("Password exceed maximum length %ld characters.", kPasswordMaxLength);
+        return GraphStatus::setOutOfLenOfPassword();
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status UpdateUserValidator::toPlan() {
+GraphStatus UpdateUserValidator::toPlan() {
     auto sentence = static_cast<AlterUserSentence*>(sentence_);
     return genSingleNodePlan<UpdateUser>(sentence->getAccount(),
                                          sentence->getPassword());
 }
 
 // show users
-Status ShowUsersValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowUsersValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status ShowUsersValidator::toPlan() {
+GraphStatus ShowUsersValidator::toPlan() {
     return genSingleNodePlan<ListUsers>();
 }
 
 // change password
-Status ChangePasswordValidator::validateImpl() {
+GraphStatus ChangePasswordValidator::validateImpl() {
     const auto *sentence = static_cast<const ChangePasswordSentence*>(sentence_);
     if (sentence->getAccount()->size() > kUsernameMaxLength) {
-        return Status::Error("Username exceed maximum length %ld characters.", kUsernameMaxLength);
+        return GraphStatus::setOutOfLenOfUsername();
     }
     if (sentence->getOldPwd()->size() > kPasswordMaxLength) {
-        return Status::Error("Old password exceed maximum length %ld characters.",
-                             kPasswordMaxLength);
+        return GraphStatus::setOutOfLenOfPassword();
     }
     if (sentence->getNewPwd()->size() > kPasswordMaxLength) {
-        return Status::Error("New password exceed maximum length %ld characters.",
-                             kPasswordMaxLength);
+        return GraphStatus::setOutOfLenOfPassword();
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status ChangePasswordValidator::toPlan() {
+GraphStatus ChangePasswordValidator::toPlan() {
     auto sentence = static_cast<ChangePasswordSentence*>(sentence_);
     return genSingleNodePlan<ChangePassword>(sentence->getAccount(),
                                              sentence->getOldPwd(),
@@ -103,15 +101,15 @@ Status ChangePasswordValidator::toPlan() {
 }
 
 // grant role
-Status GrantRoleValidator::validateImpl() {
+GraphStatus GrantRoleValidator::validateImpl() {
     const auto *sentence = static_cast<const GrantSentence*>(sentence_);
     if (sentence->getAccount()->size() > kUsernameMaxLength) {
-        return Status::Error("Username exceed maximum length %ld characters.", kUsernameMaxLength);
+        return GraphStatus::setOutOfLenOfUsername();
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status GrantRoleValidator::toPlan() {
+GraphStatus GrantRoleValidator::toPlan() {
     auto sentence = static_cast<GrantSentence*>(sentence_);
     return genSingleNodePlan<GrantRole>(sentence->getAccount(),
                                         sentence->getAclItemClause()->getSpaceName(),
@@ -119,15 +117,15 @@ Status GrantRoleValidator::toPlan() {
 }
 
 // revoke role
-Status RevokeRoleValidator::validateImpl() {
+GraphStatus RevokeRoleValidator::validateImpl() {
     const auto *sentence = static_cast<const RevokeSentence*>(sentence_);
     if (sentence->getAccount()->size() > kUsernameMaxLength) {
-        return Status::Error("Username exceed maximum length %ld characters.", kUsernameMaxLength);
+        return GraphStatus::setOutOfLenOfUsername();
     }
-    return Status::OK();
+    return GraphStatus::OK();
 }
 
-Status RevokeRoleValidator::toPlan() {
+GraphStatus RevokeRoleValidator::toPlan() {
     auto sentence = static_cast<RevokeSentence*>(sentence_);
     return genSingleNodePlan<RevokeRole>(sentence->getAccount(),
                                          sentence->getAclItemClause()->getSpaceName(),
@@ -135,14 +133,16 @@ Status RevokeRoleValidator::toPlan() {
 }
 
 // show roles in space
-Status ShowRolesInSpaceValidator::validateImpl() {
-    return Status::OK();
+GraphStatus ShowRolesInSpaceValidator::validateImpl() {
+    return GraphStatus::OK();
 }
 
-Status ShowRolesInSpaceValidator::toPlan() {
+GraphStatus ShowRolesInSpaceValidator::toPlan() {
     auto sentence = static_cast<ShowRolesSentence*>(sentence_);
     auto spaceIdResult = qctx_->schemaMng()->toGraphSpaceID(*sentence->name());
-    NG_RETURN_IF_ERROR(spaceIdResult);
+    if (!spaceIdResult.ok()) {
+        return GraphStatus::setSpaceNotFound(*sentence->name());
+    }
     auto spaceId = spaceIdResult.value();
     return genSingleNodePlan<ListRoles>(spaceId);
 }

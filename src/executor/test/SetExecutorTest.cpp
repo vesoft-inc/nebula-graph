@@ -195,7 +195,8 @@ TEST_F(SetExecutorTest, TestGetNeighobrsIterator) {
 
     EXPECT_FALSE(status.ok());
 
-    auto expected = "Invalid iterator kind: get neighbors iterator vs. sequential iterator";
+    auto expected = "InternalError: `Invalid iterator kind: "
+                    "get neighbors iterator vs. sequential iterator'.";
     EXPECT_EQ(status.toString(), expected);
 }
 
@@ -221,7 +222,7 @@ TEST_F(SetExecutorTest, TestUnionDifferentColumns) {
 
     EXPECT_FALSE(status.ok());
 
-    auto expected = "Datasets have different columns: <col1> vs. <col1,col2>";
+    auto expected = "InternalError: `Datasets have different columns: <col1> vs. <col1,col2>'.";
     EXPECT_EQ(status.toString(), expected);
 }
 
@@ -246,8 +247,8 @@ TEST_F(SetExecutorTest, TestUnionDifferentValueType) {
     EXPECT_FALSE(status.ok());
 
     std::stringstream ss;
-    ss << "Invalid data types of dependencies: " << Value::Type::LIST << " vs. "
-       << Value::Type::DATASET << ".";
+    ss << "InternalError: `Invalid data types of dependencies: " << Value::Type::LIST << " vs. "
+       << Value::Type::DATASET << "'.";
     EXPECT_EQ(status.toString(), ss.str());
 }
 

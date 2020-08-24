@@ -13,23 +13,23 @@
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> SwitchSpaceExecutor::execute() {
+folly::Future<GraphStatus> SwitchSpaceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *spaceToNode = asNode<SwitchSpace>(node());
     auto spaceName = spaceToNode->getSpaceName();
     return qctx()->getMetaClient()->getSpace(spaceName)
             .via(runner())
-            .then([spaceName, this](StatusOr<meta::cpp2::SpaceItem> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << resp.status();
-                    return resp.status();
+            .then([spaceName, this](auto&& resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                auto spaceId = resp.value().get_space_id();
+                auto spaceId = resp.value().get_item().get_space_id();
                 qctx_->rctx()->session()->setSpace(spaceName, spaceId);
                 LOG(INFO) << "Graph space switched to `" << spaceName
                           << "', space id: " << spaceId;
-                return Status::OK();
+                return GraphStatus::OK();
             });
 }
 

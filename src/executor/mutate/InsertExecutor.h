@@ -17,10 +17,10 @@ public:
     InsertVerticesExecutor(const PlanNode *node, QueryContext *qctx)
         : MutateExecutor("InsertVerticesExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> insertVertices();
+    folly::Future<GraphStatus> insertVertices();
 };
 
 class InsertEdgesExecutor final : public MutateExecutor {
@@ -28,10 +28,10 @@ public:
     InsertEdgesExecutor(const PlanNode *node, QueryContext *qctx)
         : MutateExecutor("InsertEdgesExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> insertEdges();
+    folly::Future<GraphStatus> insertEdges();
 };
 }   // namespace graph
 }   // namespace nebula

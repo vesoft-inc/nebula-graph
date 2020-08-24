@@ -36,28 +36,24 @@ DataSet ConfigBaseExecutor::generateResult(const std::vector<meta::cpp2::ConfigI
     return result;
 }
 
-folly::Future<Status> ShowConfigsExecutor::execute() {
+folly::Future<GraphStatus> ShowConfigsExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *scNode = asNode<ShowConfigs>(node());
     return qctx()->getMetaClient()->listConfigs(scNode->getModule())
             .via(runner())
-            .then([this, scNode](StatusOr<std::vector<meta::cpp2::ConfigItem>> resp) {
-                if (!resp.ok()) {
-                    auto module = meta::cpp2::_ConfigModule_VALUES_TO_NAMES.at(scNode->getModule());
-                    LOG(ERROR) << "Show configs `" << module
-                               << "' failed: " << resp.status();
-                    return Status::Error("Show config `%s' failed: %s",
-                                          module,
-                                          resp.status().toString().c_str());
+            .then([this, scNode](StatusOr<meta::cpp2::ListConfigsResp> resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
 
-                auto result = generateResult(resp.value());
+                auto result = generateResult(resp.value().get_items());
                 return finish(ResultBuilder().value(Value(std::move(result))).finish());
             });
 }
 
-folly::Future<Status> SetConfigExecutor::execute() {
+folly::Future<GraphStatus> SetConfigExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *scNode = asNode<SetConfig>(node());
@@ -65,34 +61,28 @@ folly::Future<Status> SetConfigExecutor::execute() {
                                               scNode->getName(),
                                               scNode->getValue())
             .via(runner())
-            .then([scNode](StatusOr<bool> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "Set config `" << scNode->getName()
-                               << "' failed: " << resp.status();
-                    return Status::Error("Set config `%s' failed: %s",
-                                          scNode->getName().c_str(),
-                                          resp.status().toString().c_str());
+            .then([this, scNode](StatusOr<meta::cpp2::ExecResp> resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                return Status::OK();
+                return GraphStatus::OK();
             });
 }
 
-folly::Future<Status> GetConfigExecutor::execute() {
+folly::Future<GraphStatus> GetConfigExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *gcNode = asNode<GetConfig>(node());
     return qctx()->getMetaClient()->getConfig(gcNode->getModule(),
                                               gcNode->getName())
             .via(runner())
-            .then([this, gcNode](StatusOr<std::vector<meta::cpp2::ConfigItem>> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "Get config `" << gcNode->getName()
-                               << "' failed: " << resp.status();
-                    return Status::Error("Get config `%s' failed: %s",
-                                          gcNode->getName().c_str(),
-                                          resp.status().toString().c_str());
+            .then([this, gcNode](StatusOr<meta::cpp2::GetConfigResp> resp) {
+                auto gStatus = checkMetaResp(resp);
+                if (!gStatus.ok()) {
+                    return gStatus;
                 }
-                auto result = generateResult(resp.value());
+                auto result = generateResult(resp.value().get_items());
                 return finish(ResultBuilder().value(Value(std::move(result))).finish());
             });
 }

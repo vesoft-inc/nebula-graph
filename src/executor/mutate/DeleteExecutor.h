@@ -17,10 +17,10 @@ public:
     DeleteVerticesExecutor(const PlanNode *node, QueryContext *qctx)
         : MutateExecutor("DeleteVerticesExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> deleteVertices();
+    folly::Future<GraphStatus> deleteVertices();
 };
 
 class DeleteEdgesExecutor final : public MutateExecutor {
@@ -28,11 +28,11 @@ public:
     DeleteEdgesExecutor(const PlanNode *node, QueryContext *qctx)
         : MutateExecutor("DeleteEdgesExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> deleteEdges();
-    Status prepareEdgeKeys(const EdgeType edgeType, const EdgeKeys *edgeKeys);
+    folly::Future<GraphStatus> deleteEdges();
+    GraphStatus prepareEdgeKeys(const EdgeType edgeType, const EdgeKeys *edgeKeys);
 };
 }   // namespace graph
 }   // namespace nebula

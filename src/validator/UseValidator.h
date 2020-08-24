@@ -27,9 +27,9 @@ private:
         return true;
     }
 
-    Status validateImpl() override;
+    GraphStatus validateImpl() override;
 
-    Status toPlan() override;
+    GraphStatus toPlan() override;
 
 private:
     const std::string         *spaceName_{nullptr};

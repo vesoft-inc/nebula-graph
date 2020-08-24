@@ -17,10 +17,10 @@ public:
     GetVerticesExecutor(const PlanNode *node, QueryContext *qctx)
         : GetPropExecutor("GetVerticesExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
 private:
-    folly::Future<Status> getVertices();
+    folly::Future<GraphStatus> getVertices();
 };
 
 }   // namespace graph
