@@ -74,7 +74,7 @@ if __name__ == "__main__":
     try:
         # Init args
         parser = init_configs()
-        (configs, args) = parser.parse_args()
+        (configs, opts) = parser.parse_args()
 
         # Create the test result directory if it doesn't already exist.
         if not os.path.exists(RESULT_DIR):

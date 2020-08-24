@@ -24,6 +24,16 @@ def init_configs():
                               dest = all_configs[config][0],
                               default = all_configs[config][1],
                               help = all_configs[config][2])
-    return opt_parser
 
+    # the configs only for pytest
+    opt_parser.add_option('-n', '--n',
+                          dest = 'n',
+                          default = 'auto',
+                          help = 'pytest use it')
+
+    opt_parser.add_option('-dist', '--dist'
+                          dest = 'dist',
+                          default = 'loadfile',
+                          help = 'pytest use it')
+    return opt_parser
 
