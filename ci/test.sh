@@ -13,9 +13,16 @@ TOOLSET_DIR=/opt/vesoft/toolset/clang/9.0.0
 
 mkdir -p $BUILD_DIR
 
+function get_py_client() {
+    git clone -b v2.0 git@github.com:vesoft-inc/nebula-python.git
+    cd nebula-python
+    python3 setup.py install
+}
+
 function prepare() {
     pip3 install -U setuptools -i https://mirrors.aliyun.com/pypi/simple/
     pip3 install -r $PROJ_DIR/tests/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+    get_py_client
 }
 
 function lint() {
