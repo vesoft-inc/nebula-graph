@@ -199,7 +199,7 @@ class TestSpace(NebulaTestSuite):
         expect_result = [['default_space']]
         self.search_not_exist(resp, expect_result)
 
-    def test_create_cpace_with_string_vid(self):
+    def test_create_space_with_string_vid(self):
         resp = self.client.execute('CREATE SPACE space_string_vid (partition_num=9, '
                                    'replica_factor=1, charset=utf8, collate=utf8_bin, '
                                    'vid_size = 8, vid_type = string)')
@@ -210,7 +210,7 @@ class TestSpace(NebulaTestSuite):
         expect_result = [['space_string_vid', 9, 1, 'utf8', 'utf8_bin', 8, 'STRING']]
         self.check_result(resp, expect_result, {0})
 
-    def test_create_cpace_with_int_vid(self):
+    def test_create_space_with_int_vid(self):
         resp = self.client.execute('CREATE SPACE space_int_vid (partition_num=9, '
                                    'replica_factor=1, charset=utf8, collate=utf8_bin, '
                                    'vid_size = 8, vid_type = int64)')

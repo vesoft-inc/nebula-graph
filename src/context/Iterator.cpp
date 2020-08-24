@@ -257,7 +257,7 @@ Value GetNeighborsIter::getVertex() const {
 
     auto segment = currentSeg();
     auto vidVal = getColumn(nebula::kVid);
-    if (!vidVal.isStr() || vidVal.isInt()) {
+    if (!vidVal.isStr() && vidVal.isInt()) {
         return Value::kNullBadType;
     }
     Vertex vertex;
@@ -300,12 +300,12 @@ Value GetNeighborsIter::getEdge() const {
     }
 
     auto& src = getColumn(kVid);
-    if (!src.isStr() || !src.isStr()) {
+    if (!src.isStr() && !src.isInt()) {
         return Value::kNullBadType;
     }
 
     auto& dst = getEdgeProp(edgeName, kDst);
-    if (!dst.isStr() || !dst.isStr()) {
+    if (!dst.isStr() && !dst.isInt()) {
         return Value::kNullBadType;
     }
     if (type.getInt() > 0) {
