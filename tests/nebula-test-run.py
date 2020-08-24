@@ -109,7 +109,7 @@ if __name__ == "__main__":
         print("Running TestExecutor with args: {} ".format(args))
 
         # load nba data
-        load_data = LoadGlobalData(TEST_DIR, nebula_ip, nebula_port)
+        load_data = LoadGlobalData(TEST_DIR, nebula_ip, nebula_port, configs.user, configs.password)
         load_data.load_all_test_data()
 
         # Switch to your $src_dir/tests
