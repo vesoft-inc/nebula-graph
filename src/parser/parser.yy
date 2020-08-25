@@ -403,10 +403,7 @@ expression
     | INTEGER {
         $$ = new ConstantExpression($1);
     }
-    ;
-
-expression
-    : compound_expression {
+    | compound_expression {
         $$ = $1;
     }
     | MINUS {

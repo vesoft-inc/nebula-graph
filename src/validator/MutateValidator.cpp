@@ -578,9 +578,9 @@ Status UpdateValidator::getUpdateProps() {
         if (item->getFieldExpr() != nullptr) {
             DCHECK(item->getFieldExpr()->kind() == Expression::Kind::kLabelAttribute);
             auto laExpr = static_cast<const LabelAttributeExpression*>(item->getFieldExpr());
-            symNames.emplace(*laExpr->leftLabel());
-            symName = laExpr->leftLabel();
-            fieldName = *laExpr->rightLabel();
+            symNames.emplace(*laExpr->left()->name());
+            symName = laExpr->left()->name();
+            fieldName = *laExpr->right()->name();
         }
         auto valueExpr = item->value();
         if (valueExpr == nullptr) {
@@ -698,8 +698,8 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
             auto laExpr = static_cast<LabelAttributeExpression*>(expr);
             if (isEdge) {
                 return std::make_unique<EdgePropertyExpression>(
-                        new std::string(*laExpr->leftLabel()),
-                        new std::string(*laExpr->rightLabel()));
+                        new std::string(*laExpr->left()->name()),
+                        new std::string(*laExpr->right()->name()));
             } else {
                 hasWrongType = true;
                 return nullptr;

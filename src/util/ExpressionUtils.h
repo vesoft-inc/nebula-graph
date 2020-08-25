@@ -350,8 +350,8 @@ public:
               typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
                                           std::is_same<To, TagPropertyExpression>::value>>
     static To* rewriteLabelAttribute(LabelAttributeExpression* expr) {
-        return new To(new std::string(std::move(*expr->leftLabel())),
-                      new std::string(std::move(*expr->rightLabel())));
+        return new To(new std::string(std::move(*expr->left()->name())),
+                      new std::string(std::move(*expr->right()->name())));
     }
 
 private:
