@@ -267,7 +267,7 @@ Status GoValidator::buildNStepsPlan() {
     }
 
     PlanNode* projectLeftVarForJoin = nullptr;
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
+    if (fromType_ != FromType::kInstantExpr) {
         projectLeftVarForJoin = buildLeftVarForTraceJoin(dedupStartVid);
     }
 
@@ -279,9 +279,9 @@ Status GoValidator::buildNStepsPlan() {
 
     PlanNode* dedupDstVids = projectDstVidsFromGN(gn, startVidsVar);
 
-    // Trace to the start vid if $-.prop was declared.
+    // Trace to the start vid if starts from a runtime start vid.
     PlanNode* projectFromJoin = nullptr;
-    if ((!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) &&
+    if (fromType_ != FromType::kInstantExpr  &&
         projectLeftVarForJoin != nullptr && dedupDstVids != nullptr) {
         projectFromJoin = traceToStartVid(projectLeftVarForJoin, dedupDstVids);
     }

@@ -30,6 +30,19 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
+        stmt = 'GO FROM "Tim Duncan", "Tim Duncan" OVER serve'
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["serve._dst"],
+            "rows" : [
+                ["Spurs"],
+                ["Spurs"]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
         stmt = 'YIELD "Tim Duncan" as vid | GO FROM $-.vid OVER serve'
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
@@ -909,7 +922,7 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-    def test_only_id_two_steps(self):
+    def test_only_id_n_steps(self):
         stmt = "GO 2 STEPS FROM 'Tony Parker' OVER like YIELD like._dst"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
@@ -921,6 +934,41 @@ class TestGoQuery(NebulaTestSuite):
                 ["Tony Parker"],
                 ["Tony Parker"],
                 ["Manu Ginobili"]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = "GO 3 STEPS FROM 'Tony Parker' OVER like YIELD like._dst"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["like._dst"],
+            "rows" : [
+                ["Tony Parker"],
+                ["Manu Ginobili"],
+                ["Manu Ginobili"],
+                ["Tim Duncan"],
+                ["Tim Duncan"],
+                ["LaMarcus Aldridge"],
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = "GO 1 STEPS FROM 'Tony Parker' OVER like YIELD like._dst AS id"\
+               " | GO 2 STEPS FROM $-.id OVER like YIELD like._dst"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names" : ["like._dst"],
+            "rows" : [
+                ["Tony Parker"],
+                ["Manu Ginobili"],
+                ["Manu Ginobili"],
+                ["Tim Duncan"],
+                ["Tim Duncan"],
+                ["LaMarcus Aldridge"],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
