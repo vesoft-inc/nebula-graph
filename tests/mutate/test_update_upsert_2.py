@@ -13,8 +13,9 @@ class TestUpdateVertex(NebulaTestSuite):
     @classmethod
     def prepare(self):
         resp = self.execute('CREATE SPACE myspace_test_update(partition_num=1, replica_factor=1, vid_size=20);'
-                            'USE myspace_test_update;'
-                            'CREATE TAG course(name string, credits int);'
+                            'USE myspace_test_update;')
+        self.check_resp_succeeded(resp)
+        resp = self.execute('CREATE TAG course(name string, credits int);'
                             'CREATE TAG building(name string);'
                             'CREATE TAG student(name string, age int, gender string);'
                             'CREATE TAG student_default(name string NOT NULL, age int NOT NULL, '

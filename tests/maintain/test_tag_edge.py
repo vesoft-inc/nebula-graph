@@ -433,12 +433,16 @@ class TestSchema(NebulaTestSuite):
         # 2.0 use space get from cache
         time.sleep(self.delay)
 
-        resp = self.client.execute_query('USE test_multi; CREATE Tag test_tag(); SHOW TAGS;')
+        resp = self.client.execute('USE test_multi;')
+        self.check_resp_succeeded(resp)
+        resp = self.execute_query('CREATE Tag test_tag(); SHOW TAGS;')
         self.check_resp_succeeded(resp)
         expect_result = [['test_tag']]
         self.check_result(resp, expect_result)
 
-        resp = self.client.execute_query('USE test_multi; CREATE TAG test_tag1(); USE my_space; SHOW TAGS;')
+        resp = self.client.execute('USE test_multi;')
+        self.check_resp_succeeded(resp)
+        resp = self.execute_query('CREATE TAG test_tag1(); USE my_space; SHOW TAGS;')
         self.check_resp_succeeded(resp)
         expect_result = [['animal'], ['person']]
         self.check_out_of_order_result(resp, expect_result)
@@ -447,7 +451,9 @@ class TestSchema(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
     def test_reserved_keyword(self):
-        resp = self.client.execute('USE my_space; CREATE TAG `tag` (`edge` string)')
+        resp = self.client.execute('USE my_space;')
+        self.check_resp_succeeded(resp)
+        resp = self.execute('CREATE TAG `tag` (`edge` string)')
         self.check_resp_succeeded(resp)
 
         resp = self.client.execute_query('DESCRIBE TAG `tag`')
@@ -471,7 +477,9 @@ class TestSchema(NebulaTestSuite):
         assert resp.space_name.decode('utf-8') == ""
 
     def test_alter_tag_with_default(self):
-        resp = self.client.execute('USE tag_space; CREATE TAG t(name string DEFAULT "N/A", age int DEFAULT -1)')
+        resp = self.client.execute('USE tag_space;')
+        self.check_resp_succeeded(resp)
+        resp = self.execute('CREATE TAG t(name string DEFAULT "N/A", age int DEFAULT -1)')
         self.check_resp_succeeded(resp)
 
         # alter add

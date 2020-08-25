@@ -20,7 +20,7 @@ class LoadGlobalData(object):
         self.port = port
         self.client_pool = ConnectionPool(ip = self.ip, port = self.port, network_timeout = 0)
         self.client = GraphClient(self.client_pool)
-        self.client.authenticate("user", "password")
+        self.client.authenticate("root", "nebula")
 
     def load_all_test_data(self):
         if self.client is None:

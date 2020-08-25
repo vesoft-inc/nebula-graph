@@ -171,7 +171,8 @@ bool PermissionCheck::permissionCheck(Session *session,
             return true;
         }
         case Sentence::Kind::kExplain:
-            LOG(FATAL) << "Impossible permission checking for sentence " << sentence->kind();
+            // everyone could explain
+            return true;
         case Sentence::Kind::kSequential: {
             // No permission checking for sequential sentence.
             return true;

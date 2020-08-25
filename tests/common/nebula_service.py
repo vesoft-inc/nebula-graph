@@ -100,6 +100,8 @@ class NebulaService(object):
                                                   metad_ports[0],
                                                   ports,
                                                   debug_log)
+            if server_name == 'graphd':
+                command += ' --enable_authorize=true'
             print("exec: " + command)
             p = subprocess.Popen([command], shell=True, stdout=subprocess.PIPE)
             p.wait()

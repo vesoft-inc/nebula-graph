@@ -48,11 +48,11 @@ def pytest_addoption(parser):
                          help="address of the Nebula")
     parser.addoption('--user',
                         dest='user',
-                        default='user',
+                        default='root',
                         help='the user of Nebula')
     parser.addoption('--password',
                         dest='password',
-                        default='password',
+                        default='nebula',
                         help='the password of Nebula')
     parser.addoption('--partition_num',
                         dest='partition_num',
