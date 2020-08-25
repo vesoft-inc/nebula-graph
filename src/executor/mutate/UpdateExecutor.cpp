@@ -17,7 +17,7 @@ namespace graph {
 StatusOr<DataSet> UpdateBaseExecutor::handleResult(DataSet &&data) {
     if (data.colNames.size() <= 1) {
         if (yieldNames_.empty()) {
-            return Status::OK();
+            return DataSet();
         }
         LOG(ERROR) << "Empty return props";
         return Status::Error("Empty return props");
@@ -83,12 +83,16 @@ folly::Future<GraphStatus> UpdateVertexExecutor::execute() {
             if (value.__isset.props) {
                 auto ret = handleResult(std::move(*value.get_props()));
                 if (!ret.ok()) {
+                    LOG(ERROR) << ret.status();
                     return GraphStatus::setInternalError(ret.status().toString());
                 }
-                return finish(ResultBuilder()
-                                  .value(std::move(ret).value())
-                                  .iter(Iterator::Kind::kDefault)
-                                  .finish());
+
+                if (ret.value().colSize() != 0) {
+                    return finish(ResultBuilder()
+                                    .value(std::move(ret).value())
+                                    .iter(Iterator::Kind::kDefault)
+                                    .finish());
+                }
             }
             return GraphStatus::OK();
         });
@@ -129,12 +133,15 @@ folly::Future<GraphStatus> UpdateEdgeExecutor::execute() {
                 if (value.__isset.props) {
                     auto ret = handleResult(std::move(*value.get_props()));
                     if (!ret.ok()) {
+                        LOG(ERROR) << ret.status();
                         return GraphStatus::setInternalError(ret.status().toString());
                     }
-                    return finish(ResultBuilder()
-                                    .value(std::move(ret).value())
-                                    .iter(Iterator::Kind::kDefault)
-                                    .finish());
+                    if (ret.value().colSize() != 0) {
+                        return finish(ResultBuilder()
+                                        .value(std::move(ret).value())
+                                        .iter(Iterator::Kind::kDefault)
+                                        .finish());
+                    }
                 }
                 return GraphStatus::OK();
             });
