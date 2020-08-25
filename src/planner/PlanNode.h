@@ -128,7 +128,6 @@ public:
 
     void setId(int64_t id) {
         id_ = id;
-        outputVar_ = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
     }
 
     void setColNames(std::vector<std::string>&& cols) {
@@ -140,10 +139,6 @@ public:
     }
 
     static const char* toString(Kind kind);
-
-    const std::string& nodeLabel() const {
-        return outputVar_;
-    }
 
 protected:
     static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);

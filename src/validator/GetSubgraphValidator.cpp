@@ -186,7 +186,7 @@ Status GetSubgraphValidator::toPlan() {
 
     // collect(gn2._vids) as listofvids
     auto& listOfVids = varGen_->getVar();
-    columns = new YieldColumns();
+    columns = qctx_->objPool()->add(new YieldColumns());
     column = new YieldColumn(
             new VariablePropertyExpression(
                 new std::string(gn2->varGenerated()),
@@ -194,7 +194,7 @@ Status GetSubgraphValidator::toPlan() {
             new std::string(listOfVids));
     column->setFunction(new std::string("collect"));
     columns->addColumn(column);
-    auto* group = Aggregate::make(qctx_, gn2, plan->saveObject(columns));
+    auto* group = Aggregate::make(qctx_, gn2, columns);
 
     auto* filter = Filter::make(
                         qctx_,

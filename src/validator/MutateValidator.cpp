@@ -330,7 +330,7 @@ std::string DeleteVerticesValidator::buildVIds() {
     auto* vIds = new VariablePropertyExpression(
             new std::string(input),
             new std::string(kVid));
-    qctx_->plan()->saveObject(vIds);
+    qctx_->objPool()->add(vIds);
     vidRef_ = vIds;
     return input;
 }
@@ -353,7 +353,7 @@ Status DeleteVerticesValidator::toPlan() {
                 new EdgeDstIdExpression(new std::string(name)),
                 new EdgeRankExpression(new std::string(name)));
         edgeKeyRef->setType(new EdgeTypeExpression(new std::string(name)));
-        qctx_->plan()->saveObject(edgeKeyRef);
+        qctx_->objPool()->add(edgeKeyRef);
         edgeKeyRefs_.emplace_back(edgeKeyRef);
 
         storage::cpp2::EdgeProp edgeProp;
@@ -459,7 +459,7 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
     auto* dstIdExpr = new InputPropertyExpression(new std::string(kDst));
     auto* edgeKeyRef = new EdgeKeyRef(srcIdExpr, dstIdExpr, rankExpr);
     edgeKeyRef->setType(typeExpr);
-    qctx_->plan()->saveObject(edgeKeyRef);
+    qctx_->objPool()->add(edgeKeyRef);
 
     edgeKeyRefs_.emplace_back(edgeKeyRef);
     return Status::OK();

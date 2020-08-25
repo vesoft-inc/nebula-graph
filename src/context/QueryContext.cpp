@@ -30,7 +30,7 @@ QueryContext::QueryContext() {
 
 void QueryContext::init() {
     objPool_ = std::make_unique<ObjectPool>();
-    ep_ = std::make_unique<ExecutionPlan>(objPool_.get());
+    ep_ = std::make_unique<ExecutionPlan>();
     vctx_ = std::make_unique<ValidateContext>();
     ectx_ = std::make_unique<ExecutionContext>();
     idGen_ = std::make_unique<IdGenerator>(0);

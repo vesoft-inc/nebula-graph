@@ -15,7 +15,7 @@ class FetchEdgesValidatorTest : public ValidatorTestBase {
 protected:
     QueryContext *getQCtx(const std::string &query) {
         auto status = validate(query);
-        ASSERT_TRUE(status);
+        EXPECT_TRUE(status);
         return std::move(status).value();
     }
 };
@@ -62,9 +62,8 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
     }
     // With YIELD
     {
-        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end");
+        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, like.end");
 
-        ExecutionPlan expectedPlan(pool_.get());
         auto *start = StartNode::make(qctx);
 
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
@@ -114,15 +113,13 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                               std::string("like.") + kRank,
                               "like.start",
                               "like.end"});
-        expectedPlan.setRoot(project);
-        auto result = Eq(plan->root(), project);
+        auto result = Eq(qctx->plan()->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD const expression
     {
-        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, 1 + 1, like.end");
+        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD like.start, 1 + 1, like.end");
 
-        ExecutionPlan expectedPlan(pool_.get());
         auto *start = StartNode::make(qctx);
 
         // GetEdges
@@ -177,15 +174,13 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                               "like.start",
                               "(1+1)",
                               "like.end"});
-        expectedPlan.setRoot(project);
-        auto result = Eq(plan->root(), project);
+        auto result = Eq(qctx->plan()->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD combine properties
     {
-        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end");
+        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD like.start > like.end");
 
-        ExecutionPlan expectedPlan(pool_.get());
         auto *start = StartNode::make(qctx);
 
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
@@ -235,15 +230,13 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                               std::string("like.") + kRank,
                               "(like.start>like.end)"});
 
-        expectedPlan.setRoot(project);
-        auto result = Eq(plan->root(), project);
+        auto result = Eq(qctx->plan()->root(), project);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD distinct
     {
-        auto plan = toPlan("FETCH PROP ON like \"1\"->\"2\" YIELD distinct like.start, like.end");
+        auto qctx = getQCtx("FETCH PROP ON like \"1\"->\"2\" YIELD distinct like.start, like.end");
 
-        ExecutionPlan expectedPlan(pool_.get());
         auto *start = StartNode::make(qctx);
 
         auto edgeTypeResult = schemaMng_->toEdgeType(1, "like");
@@ -301,11 +294,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
 
         // data collect
         auto *dataCollect = DataCollect::make(
-            &expectedPlan, dedup, DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
+            qctx, dedup, DataCollect::CollectKind::kRowBasedMove, {dedup->varName()});
         dataCollect->setColNames(colNames);
 
-        expectedPlan.setRoot(dataCollect);
-        auto result = Eq(plan->root(), dataCollect);
+        auto result = Eq(qctx->plan()->root(), dataCollect);
         ASSERT_TRUE(result.ok()) << result;
     }
 }

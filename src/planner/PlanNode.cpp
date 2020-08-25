@@ -14,7 +14,8 @@ namespace nebula {
 namespace graph {
 
 PlanNode::PlanNode(int64_t id, Kind kind) : kind_(kind), id_(id) {
-    DCHECK_LE(id_, 0);
+    DCHECK_GE(id_, 0);
+    outputVar_ = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
 }
 
 // static
@@ -112,11 +113,11 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
         case Kind::kDropEdge:
             return "DropEdge";
         case Kind::kShowSpaces:
-            return "kShowSpaces";
+            return "ShowSpaces";
         case Kind::kShowTags:
-            return "kShowTags";
+            return "ShowTags";
         case Kind::kShowEdges:
-            return "kShowEdges";
+            return "ShowEdges";
         case Kind::kCreateSnapshot:
             return "CreateSnapshot";
         case Kind::kDropSnapshot:

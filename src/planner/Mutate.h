@@ -324,9 +324,7 @@ private:
                  std::move(updatedProps),
                  std::move(returnProps),
                  std::move(condition),
-                 std::move(yieldNames))
-
-          ,
+                 std::move(yieldNames)),
           srcId_(std::move(srcId)),
           dstId_(std::move(dstId)),
           rank_(rank),

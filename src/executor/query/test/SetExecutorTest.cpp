@@ -25,7 +25,6 @@ class SetExecutorTest : public ::testing::Test {
 public:
     void SetUp() override {
         qctx_ = std::make_unique<QueryContext>();
-        plan_ = qctx_->plan();
     }
 
     static bool diffDataSet(const DataSet& lhs, const DataSet& rhs) {
@@ -49,7 +48,6 @@ public:
 
 protected:
     std::unique_ptr<QueryContext> qctx_;
-    ExecutionPlan* plan_;
 };
 
 TEST_F(SetExecutorTest, TestUnionAll) {
@@ -60,7 +58,7 @@ TEST_F(SetExecutorTest, TestUnionAll) {
         unionNode->setLeftVar(left->varName());
         unionNode->setRightVar(right->varName());
 
-        auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
+        auto unionExecutor = Executor::create(unionNode, qctx_.get());
         ResultBuilder lb, rb;
         lb.value(Value(lds)).iter(Iterator::Kind::kSequential);
         rb.value(Value(rds)).iter(Iterator::Kind::kSequential);
@@ -83,7 +81,9 @@ TEST_F(SetExecutorTest, TestUnionAll) {
             resultDS.emplace_back(std::move(row));
         }
 
-        EXPECT_TRUE(diffDataSet(resultDS, expected));
+        EXPECT_TRUE(diffDataSet(resultDS, expected)) << "\nResult dataset: \n"
+                                                     << resultDS << "Expected dataset: \n"
+                                                     << expected;
     };
 
     std::vector<std::string> colNames = {"col1", "col2"};
@@ -177,7 +177,7 @@ TEST_F(SetExecutorTest, TestGetNeighobrsIterator) {
     unionNode->setLeftVar(left->varName());
     unionNode->setRightVar(right->varName());
 
-    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
+    auto unionExecutor = Executor::create(unionNode, qctx_.get());
 
     DataSet lds;
     lds.colNames = {"col1"};
@@ -206,7 +206,7 @@ TEST_F(SetExecutorTest, TestUnionDifferentColumns) {
     unionNode->setLeftVar(left->varName());
     unionNode->setRightVar(right->varName());
 
-    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
+    auto unionExecutor = Executor::create(unionNode, qctx_.get());
 
     DataSet lds;
     lds.colNames = {"col1"};
@@ -232,7 +232,7 @@ TEST_F(SetExecutorTest, TestUnionDifferentValueType) {
     unionNode->setLeftVar(left->varName());
     unionNode->setRightVar(right->varName());
 
-    auto unionExecutor = Executor::makeExecutor(unionNode, qctx_.get());
+    auto unionExecutor = Executor::create(unionNode, qctx_.get());
 
     List lst;
     DataSet rds;
@@ -262,7 +262,7 @@ TEST_F(SetExecutorTest, TestIntersect) {
         ResultBuilder lb, rb;
         lb.value(Value(lds)).iter(Iterator::Kind::kSequential);
         rb.value(Value(rds)).iter(Iterator::Kind::kSequential);
-        auto executor = Executor::makeExecutor(intersect, qctx_.get());
+        auto executor = Executor::create(intersect, qctx_.get());
         qctx_->ectx()->setResult(left->varName(), lb.finish());
         qctx_->ectx()->setResult(right->varName(), rb.finish());
 
@@ -369,7 +369,7 @@ TEST_F(SetExecutorTest, TestMinus) {
         ResultBuilder lb, rb;
         lb.value(Value(lds)).iter(Iterator::Kind::kSequential);
         rb.value(Value(rds)).iter(Iterator::Kind::kSequential);
-        auto executor = Executor::makeExecutor(minus, qctx_.get());
+        auto executor = Executor::create(minus, qctx_.get());
         qctx_->ectx()->setResult(left->varName(), lb.finish());
         qctx_->ectx()->setResult(right->varName(), rb.finish());
 
