@@ -32,6 +32,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 }
 
 %code {
+    #include "GraphScanner.h"
     static int yylex(nebula::GraphParser::semantic_type* yylval,
                      nebula::GraphParser::location_type *yylloc,
                      nebula::GraphScanner& scanner);
@@ -119,7 +120,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 /* keywords */
 %token KW_BOOL KW_INT8 KW_INT16 KW_INT32 KW_INT64 KW_INT KW_FLOAT KW_DOUBLE
 %token KW_STRING KW_FIXED_STRING KW_TIMESTAMP KW_DATE KW_DATETIME
-%token KW_GO KW_AS KW_TO KW_OR KW_AND KW_XOR KW_USE KW_SET KW_FROM KW_WHERE KW_ALTER
+%token KW_GO KW_AS KW_TO KW_USE KW_SET KW_FROM KW_WHERE KW_ALTER
 %token KW_MATCH KW_INSERT KW_VALUES KW_YIELD KW_RETURN KW_CREATE KW_VERTEX KW_OFFLINE
 %token KW_EDGE KW_EDGES KW_STEPS KW_OVER KW_UPTO KW_REVERSELY KW_SPACE KW_DELETE KW_FIND KW_REBUILD
 %token KW_TAG KW_TAGS KW_UNION KW_INTERSECT KW_MINUS
@@ -149,7 +150,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
-%token PIPE OR AND XOR LT LE GT GE EQ NE PLUS MINUS STAR DIV MOD NOT NEG ASSIGN
+%token PIPE ASSIGN
 %token DOT COLON SEMICOLON L_ARROW R_ARROW AT
 %token ID_PROP TYPE_PROP SRC_ID_PROP DST_ID_PROP RANK_PROP INPUT_REF DST_REF SRC_REF
 
@@ -161,9 +162,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 %type <strval> name_label unreserved_keyword agg_function
 %type <strval> admin_job_operation admin_job_para
-%type <expr> expression logic_xor_expression logic_or_expression logic_and_expression
-%type <expr> relational_expression multiplicative_expression additive_expression
-%type <expr> unary_expression constant_expression equality_expression base_expression
+%type <expr> expression
 %type <expr> property_expression
 %type <expr> vertex_prop_expression
 %type <expr> edge_prop_expression
@@ -287,6 +286,16 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <boolval> opt_if_not_exists
 %type <boolval> opt_if_exists
 
+%left OR KW_OR KW_XOR
+%left AND KW_AND
+%left EQ NE LT LE GT GE KW_IN KW_CONTAINS
+%left PLUS MINUS
+%left STAR DIV MOD
+%right NOT KW_NOT
+%nonassoc UNARY_PLUS
+%nonassoc UNARY_MINUS
+%nonassoc CASTING
+
 %start sentences
 
 %%
@@ -374,21 +383,7 @@ agg_function
     | KW_BIT_XOR            { $$ = new std::string("BIT_XOR"); }
     ;
 
-constant_expression
-    : legal_integer {
-        $$ = new ConstantExpression($1);
-    }
-    | MINUS INTEGER {
-        $$ = new ConstantExpression(-$2);;
-    }
-    | MINUS base_expression {
-        $$ = new UnaryExpression(Expression::Kind::kUnaryNegate, $2);
-    }
-    | base_expression {
-        $$ = $1;
-    }
-
-base_expression
+expression
     : DOUBLE {
         $$ = new ConstantExpression($1);
     }
@@ -405,8 +400,87 @@ base_expression
     | name_label {
         $$ = new LabelExpression($1);
     }
-    | compound_expression {
+    | INTEGER {
+        $$ = new ConstantExpression($1);
+    }
+    ;
+
+expression
+    : compound_expression {
         $$ = $1;
+    }
+    | MINUS {
+        scanner.setUnaryMinus(true);
+    } expression %prec UNARY_MINUS {
+        $$ = new UnaryExpression(Expression::Kind::kUnaryNegate, $3);
+        scanner.setUnaryMinus(false);
+    }
+    | PLUS expression %prec UNARY_PLUS {
+        $$ = new UnaryExpression(Expression::Kind::kUnaryPlus, $2);
+    }
+    | NOT expression {
+        $$ = new UnaryExpression(Expression::Kind::kUnaryNot, $2);
+    }
+    | KW_NOT expression {
+        $$ = new UnaryExpression(Expression::Kind::kUnaryNot, $2);
+    }
+    | L_PAREN type_spec R_PAREN expression %prec CASTING {
+        $$ = new TypeCastingExpression(graph::SchemaUtil::propTypeToValueType($2->type), $4);
+        delete $2;
+    }
+    | expression STAR expression {
+        $$ = new ArithmeticExpression(Expression::Kind::kMultiply, $1, $3);
+    }
+    | expression DIV expression {
+        $$ = new ArithmeticExpression(Expression::Kind::kDivision, $1, $3);
+    }
+    | expression MOD expression {
+        $$ = new ArithmeticExpression(Expression::Kind::kMod, $1, $3);
+    }
+    | expression PLUS expression {
+        $$ = new ArithmeticExpression(Expression::Kind::kAdd, $1, $3);
+    }
+    | expression MINUS expression {
+        $$ = new ArithmeticExpression(Expression::Kind::kMinus, $1, $3);
+    }
+    | expression LT expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelLT, $1, $3);
+    }
+    | expression GT expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelGT, $1, $3);
+    }
+    | expression LE expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelLE, $1, $3);
+    }
+    | expression GE expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelGE, $1, $3);
+    }
+    | expression KW_IN expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelIn, $1, $3);
+    }
+    | expression KW_CONTAINS expression {
+        $$ = new RelationalExpression(Expression::Kind::kContains, $1, $3);
+    }
+    | expression EQ expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelEQ, $1, $3);
+    }
+    | expression NE expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelNE, $1, $3);
+    }
+    | expression AND expression {
+        $$ = new LogicalExpression(Expression::Kind::kLogicalAnd, $1, $3);
+    }
+    | expression KW_AND expression {
+        $$ = new LogicalExpression(Expression::Kind::kLogicalAnd, $1, $3);
+    }
+    | expression OR expression {
+        $$ = new LogicalExpression(Expression::Kind::kLogicalOr, $1, $3);
+    }
+    | expression KW_OR expression {
+        $$ = new LogicalExpression(Expression::Kind::kLogicalOr, $1, $3);
+    }
+    | expression KW_XOR expression {
+        $$ = new LogicalExpression(Expression::Kind::kLogicalXor, $1, $3);
     }
     ;
 
@@ -447,7 +521,7 @@ property_expression
     ;
 
 subscript_expression
-    : base_expression L_BRACKET base_expression R_BRACKET {
+    : compound_expression L_BRACKET expression R_BRACKET {
         $$ = new SubscriptExpression($1, $3);
     }
     ;
@@ -540,23 +614,6 @@ argument_list
     }
     ;
 
-unary_expression
-    : constant_expression { $$ = $1; }
-    | PLUS unary_expression {
-        $$ = new UnaryExpression(Expression::Kind::kUnaryPlus, $2);
-    }
-    | NOT unary_expression {
-        $$ = new UnaryExpression(Expression::Kind::kUnaryNot, $2);
-    }
-    | KW_NOT unary_expression {
-        $$ = new UnaryExpression(Expression::Kind::kUnaryNot, $2);
-    }
-    | L_PAREN type_spec R_PAREN unary_expression {
-        $$ = new TypeCastingExpression(graph::SchemaUtil::propTypeToValueType($2->type), $4);
-        delete $2;
-    }
-    ;
-
 type_spec
     : KW_BOOL { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::BOOL); }
     | KW_INT8 { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::INT8); }
@@ -578,84 +635,6 @@ type_spec
     | KW_DATETIME { $$ = new ColumnTypeDef(meta::cpp2::PropertyType::DATETIME); }
     ;
 
-multiplicative_expression
-    : unary_expression { $$ = $1; }
-    | multiplicative_expression STAR unary_expression {
-        $$ = new ArithmeticExpression(Expression::Kind::kMultiply, $1, $3);
-    }
-    | multiplicative_expression DIV unary_expression {
-        $$ = new ArithmeticExpression(Expression::Kind::kDivision, $1, $3);
-    }
-    | multiplicative_expression MOD unary_expression {
-        $$ = new ArithmeticExpression(Expression::Kind::kMod, $1, $3);
-    }
-    ;
-
-additive_expression
-    : multiplicative_expression { $$ = $1; }
-    | additive_expression PLUS multiplicative_expression {
-        $$ = new ArithmeticExpression(Expression::Kind::kAdd, $1, $3);
-    }
-    | additive_expression MINUS multiplicative_expression {
-        $$ = new ArithmeticExpression(Expression::Kind::kMinus, $1, $3);
-    }
-    ;
-
-relational_expression
-    : additive_expression { $$ = $1; }
-    | relational_expression LT additive_expression {
-        $$ = new RelationalExpression(Expression::Kind::kRelLT, $1, $3);
-    }
-    | relational_expression GT additive_expression {
-        $$ = new RelationalExpression(Expression::Kind::kRelGT, $1, $3);
-    }
-    | relational_expression LE additive_expression {
-        $$ = new RelationalExpression(Expression::Kind::kRelLE, $1, $3);
-    }
-    | relational_expression GE additive_expression {
-        $$ = new RelationalExpression(Expression::Kind::kRelGE, $1, $3);
-    }
-    | relational_expression KW_CONTAINS additive_expression {
-        $$ = new RelationalExpression(Expression::Kind::kContains, $1, $3);
-    }
-    ;
-
-equality_expression
-    : relational_expression { $$ = $1; }
-    | equality_expression EQ relational_expression {
-        $$ = new RelationalExpression(Expression::Kind::kRelEQ, $1, $3);
-    }
-    | equality_expression NE relational_expression {
-        $$ = new RelationalExpression(Expression::Kind::kRelNE, $1, $3);
-    }
-    ;
-
-logic_and_expression
-    : equality_expression { $$ = $1; }
-    | logic_and_expression AND equality_expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalAnd, $1, $3);
-    }
-    | logic_and_expression KW_AND equality_expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalAnd, $1, $3);
-    }
-    ;
-
-logic_or_expression
-    : logic_and_expression { $$ = $1; }
-    | logic_or_expression OR logic_and_expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalOr, $1, $3);
-    }
-    | logic_or_expression KW_OR logic_and_expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalOr, $1, $3);
-    }
-    ;
-
-logic_xor_expression
-    : logic_or_expression { $$ = $1; }
-    | logic_xor_expression KW_XOR logic_or_expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalXor, $1, $3);
-    }
-    ;
 
 container_expression
     : list_expression {
@@ -707,10 +686,6 @@ map_item_list
         $$ = $1;
         $$->add($3, $5);
     }
-    ;
-
-expression
-    : logic_xor_expression { $$ = $1; }
     ;
 
 go_sentence
@@ -2300,7 +2275,6 @@ sentences
 
 %%
 
-#include "GraphScanner.h"
 void nebula::GraphParser::error(const nebula::GraphParser::location_type& loc,
                                 const std::string &msg) {
     std::ostringstream os;
@@ -2351,5 +2325,9 @@ void ifOutOfRange(const int64_t input,
 static int yylex(nebula::GraphParser::semantic_type* yylval,
                  nebula::GraphParser::location_type *yylloc,
                  nebula::GraphScanner& scanner) {
-    return scanner.yylex(yylval, yylloc);
+    auto token = scanner.yylex(yylval, yylloc);
+    if (scanner.hasUnaryMinus() && token != nebula::GraphParser::token::INTEGER) {
+        scanner.setUnaryMinus(false);
+    }
+    return token;
 }
