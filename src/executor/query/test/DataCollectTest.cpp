@@ -128,7 +128,7 @@ std::unique_ptr<QueryContext> DataCollectTest::qctx_;
 
 TEST_F(DataCollectTest, CollectSubgraph) {
     auto* plan = qctx_->plan();
-    auto* dc = DataCollect::make(plan, nullptr,
+    auto* dc = DataCollect::make(qctx_, nullptr,
             DataCollect::CollectKind::kSubgraph, {"input_datasets"});
     dc->setColNames(std::vector<std::string>{"_vertices", "_edges"});
 
@@ -180,7 +180,7 @@ TEST_F(DataCollectTest, CollectSubgraph) {
 
 TEST_F(DataCollectTest, RowBasedMove) {
     auto* plan = qctx_->plan();
-    auto* dc = DataCollect::make(plan, nullptr,
+    auto* dc = DataCollect::make(qctx_, nullptr,
             DataCollect::CollectKind::kRowBasedMove, {"input_sequential"});
     dc->setColNames(std::vector<std::string>{"col1", "col2"});
 
@@ -200,7 +200,7 @@ TEST_F(DataCollectTest, RowBasedMove) {
 
 TEST_F(DataCollectTest, EmptyResult) {
     auto* plan = qctx_->plan();
-    auto* dc = DataCollect::make(plan, nullptr,
+    auto* dc = DataCollect::make(qctx_, nullptr,
             DataCollect::CollectKind::kSubgraph, {"empty_get_neighbors"});
     dc->setColNames(std::vector<std::string>{"_vertices", "_edges"});
 

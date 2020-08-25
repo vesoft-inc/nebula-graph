@@ -30,7 +30,7 @@ std::unique_ptr<QueryContext> LogicExecutorsTest::qctx_;
 
 TEST_F(LogicExecutorsTest, Start) {
     auto* plan = qctx_->plan();
-    auto* start = StartNode::make(plan);
+    auto* start = StartNode::make(qctx_);
     auto startExe = std::make_unique<StartExecutor>(start, qctx_.get());
     auto f = startExe->execute();
     auto status = std::move(f).get();
@@ -50,9 +50,9 @@ TEST_F(LogicExecutorsTest, Loop) {
                                 new std::string(counter),
                                 new ConstantExpression(0))),
                 new ConstantExpression(static_cast<int32_t>(5)));
-    auto* loop = Loop::make(plan, nullptr, nullptr, condition.get());
+    auto* loop = Loop::make(qctx_, nullptr, nullptr, condition.get());
 
-    auto* start = StartNode::make(plan);
+    auto* start = StartNode::make(qctx_);
     auto startExe = std::make_unique<StartExecutor>(start, qctx_.get());
     auto loopExe = std::make_unique<LoopExecutor>(loop, qctx_.get(), startExe.get());
     for (size_t i = 0; i < 5; ++i) {
@@ -78,9 +78,9 @@ TEST_F(LogicExecutorsTest, Select) {
     auto* plan = qctx_->plan();
     {
         auto condition = std::make_unique<ConstantExpression>(true);
-        auto* select = Select::make(plan, nullptr, nullptr, nullptr, condition.get());
+        auto* select = Select::make(qctx_, nullptr, nullptr, nullptr, condition.get());
 
-        auto* start = StartNode::make(plan);
+        auto* start = StartNode::make(qctx_);
         auto startExe = std::make_unique<StartExecutor>(start, qctx_.get());
         auto selectExe = std::make_unique<SelectExecutor>(
                 select, qctx_.get(), startExe.get(), startExe.get());
@@ -95,9 +95,9 @@ TEST_F(LogicExecutorsTest, Select) {
     }
     {
         auto condition = std::make_unique<ConstantExpression>(false);
-        auto* select = Select::make(plan, nullptr, nullptr, nullptr, condition.get());
+        auto* select = Select::make(qctx_, nullptr, nullptr, nullptr, condition.get());
 
-        auto* start = StartNode::make(plan);
+        auto* start = StartNode::make(qctx_);
         auto startExe = std::make_unique<StartExecutor>(start, qctx_.get());
         auto selectExe = std::make_unique<SelectExecutor>(
                 select, qctx_.get(), startExe.get(), startExe.get());

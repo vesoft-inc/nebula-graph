@@ -32,10 +32,9 @@ protected:
     }
 
 protected:
-    static std::unique_ptr<QueryContext> qctx_;
+    std::unique_ptr<QueryContext> qctx_;
 };
 
-std::unique_ptr<QueryContext> GetNeighborsTest::qctx_;
 
 TEST_F(GetNeighborsTest, BuildRequestDataSet) {
     auto* plan = qctx_->plan();
@@ -46,7 +45,7 @@ TEST_F(GetNeighborsTest, BuildRequestDataSet) {
     auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
     auto* vids = new InputPropertyExpression(new std::string("id"));
     auto* gn = GetNeighbors::make(
-            plan,
+            qctx_,
             nullptr,
             0,
             plan->saveObject(vids),

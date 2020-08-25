@@ -7,15 +7,14 @@
 #include "planner/PlanNode.h"
 
 #include "common/interface/gen-cpp2/graph_types.h"
-#include "planner/ExecutionPlan.h"
+#include "context/QueryContext.h"
 #include "util/ToJson.h"
 
 namespace nebula {
 namespace graph {
 
-PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
-    DCHECK(plan_ != nullptr);
-    plan_->addPlanNode(this);
+PlanNode::PlanNode(int64_t id, Kind kind) : kind_(kind), id_(id) {
+    DCHECK_LE(id_, 0);
 }
 
 // static
@@ -158,7 +157,7 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "SetConfig";
         case Kind::kGetConfig:
             return "GetConfig";
-        // no default so the compiler will warning when lack
+            // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }

@@ -54,9 +54,9 @@ protected:
 
 TEST_F(SetExecutorTest, TestUnionAll) {
     auto testUnion = [this](const DataSet& lds, const DataSet& rds, const DataSet& expected) {
-        auto left = StartNode::make(plan_);
-        auto right = StartNode::make(plan_);
-        auto unionNode = Union::make(plan_, left, right);
+        auto left = StartNode::make(qctx_.get());
+        auto right = StartNode::make(qctx_.get());
+        auto unionNode = Union::make(qctx_.get(), left, right);
         unionNode->setLeftVar(left->varName());
         unionNode->setRightVar(right->varName());
 
@@ -171,9 +171,9 @@ TEST_F(SetExecutorTest, TestUnionAll) {
 }
 
 TEST_F(SetExecutorTest, TestGetNeighobrsIterator) {
-    auto left = StartNode::make(plan_);
-    auto right = StartNode::make(plan_);
-    auto unionNode = Union::make(plan_, left, right);
+    auto left = StartNode::make(qctx_.get());
+    auto right = StartNode::make(qctx_.get());
+    auto unionNode = Union::make(qctx_.get(), left, right);
     unionNode->setLeftVar(left->varName());
     unionNode->setRightVar(right->varName());
 
@@ -200,9 +200,9 @@ TEST_F(SetExecutorTest, TestGetNeighobrsIterator) {
 }
 
 TEST_F(SetExecutorTest, TestUnionDifferentColumns) {
-    auto left = StartNode::make(plan_);
-    auto right = StartNode::make(plan_);
-    auto unionNode = Union::make(plan_, left, right);
+    auto left = StartNode::make(qctx_.get());
+    auto right = StartNode::make(qctx_.get());
+    auto unionNode = Union::make(qctx_.get(), left, right);
     unionNode->setLeftVar(left->varName());
     unionNode->setRightVar(right->varName());
 
@@ -226,9 +226,9 @@ TEST_F(SetExecutorTest, TestUnionDifferentColumns) {
 }
 
 TEST_F(SetExecutorTest, TestUnionDifferentValueType) {
-    auto left = StartNode::make(plan_);
-    auto right = StartNode::make(plan_);
-    auto unionNode = Union::make(plan_, left, right);
+    auto left = StartNode::make(qctx_.get());
+    auto right = StartNode::make(qctx_.get());
+    auto unionNode = Union::make(qctx_.get(), left, right);
     unionNode->setLeftVar(left->varName());
     unionNode->setRightVar(right->varName());
 
@@ -253,9 +253,9 @@ TEST_F(SetExecutorTest, TestUnionDifferentValueType) {
 
 TEST_F(SetExecutorTest, TestIntersect) {
     auto testInterset = [this](const DataSet& lds, const DataSet& rds, const DataSet& expected) {
-        auto left = StartNode::make(plan_);
-        auto right = StartNode::make(plan_);
-        auto intersect = Intersect::make(plan_, left, right);
+        auto left = StartNode::make(qctx_.get());
+        auto right = StartNode::make(qctx_.get());
+        auto intersect = Intersect::make(qctx_.get(), left, right);
         intersect->setLeftVar(left->varName());
         intersect->setRightVar(right->varName());
 
@@ -360,9 +360,9 @@ TEST_F(SetExecutorTest, TestIntersect) {
 
 TEST_F(SetExecutorTest, TestMinus) {
     auto testMinus = [this](const DataSet& lds, const DataSet& rds, const DataSet& expected) {
-        auto left = StartNode::make(plan_);
-        auto right = StartNode::make(plan_);
-        auto minus = Minus::make(plan_, left, right);
+        auto left = StartNode::make(qctx_.get());
+        auto right = StartNode::make(qctx_.get());
+        auto minus = Minus::make(qctx_.get(), left, right);
         minus->setLeftVar(left->varName());
         minus->setRightVar(right->varName());
 

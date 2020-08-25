@@ -36,12 +36,12 @@ protected:
     }
 
     ExecutionPlan* toPlan(const std::string& query) {
-        auto planStatus = validate(query);
-        EXPECT_TRUE(planStatus);
-        return std::move(planStatus).value();
+        auto qctxStatus = validate(query);
+        EXPECT_TRUE(qctxStatus);
+        return std::move(qctxStatus).value()->plan();
     }
 
-    StatusOr<ExecutionPlan*> validate(const std::string& query) {
+    StatusOr<QueryContext*> validate(const std::string& query) {
         VLOG(1) << "query: " << query;
         auto result = GQLParser().parse(query);
         if (!result.ok()) {
@@ -50,14 +50,14 @@ protected:
         auto sentences = pool_->add(std::move(result).value().release());
         auto qctx = buildContext();
         NG_RETURN_IF_ERROR(Validator::validate(sentences, qctx));
-        return qctx->plan();
+        return qctx;
     }
 
     QueryContext* buildContext() {
         auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
         rctx->setSession(session_);
         auto qctx = pool_->add(new QueryContext());
-        qctx->setRctx(std::move(rctx));
+        qctx->setRCtx(std::move(rctx));
         qctx->setSchemaManager(schemaMng_.get());
         qctx->setCharsetInfo(CharsetInfo::instance());
         return qctx;

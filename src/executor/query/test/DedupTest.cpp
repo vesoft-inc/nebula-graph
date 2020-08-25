@@ -25,7 +25,7 @@ public:
     do {                                                                       \
         auto* plan = qctx_->plan();                                            \
         auto yieldSentence = getYieldSentence(sentence);                       \
-        auto* dedupNode = Dedup::make(plan, nullptr);                          \
+        auto* dedupNode = Dedup::make(qctx_, nullptr);                          \
         dedupNode->setInputVar(inputName);                                     \
         dedupNode->setOutputVar(outputName);                                   \
         auto dedupExec =                                                       \
@@ -41,7 +41,7 @@ public:
                                                                                \
         dedupNode->setInputVar(outputName);                                    \
         auto* project =                                                        \
-            Project::make(plan, nullptr, yieldSentence->yieldColumns());       \
+            Project::make(qctx_, nullptr, yieldSentence->yieldColumns());       \
         project->setInputVar(dedupNode->varName());                            \
         auto colNames = expected.colNames;                                     \
         project->setColNames(std::move(colNames));                             \

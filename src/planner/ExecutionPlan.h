@@ -53,7 +53,7 @@ public:
 
     // follow the flavor like std::make_unique, combine the object creation and ownership holding
     template <typename T, typename... Args>
-    T* makeAndSave(Args&&... args) {
+    T* makeAndAdd(Args&&... args) {
         return objPool_->makeAndAdd<T>(std::forward<Args>(args)...);
     }
 

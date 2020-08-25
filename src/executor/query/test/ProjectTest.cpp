@@ -51,7 +51,7 @@ TEST_F(ProjectTest, Project1Col) {
     auto yieldColumns = getYieldColumns("YIELD $input_project.vid AS vid");
 
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, yieldColumns);
+    auto* project = Project::make(qctx_, nullptr, yieldColumns);
     project->setInputVar(input);
     project->setColNames(std::vector<std::string>{"vid"});
 
@@ -77,7 +77,7 @@ TEST_F(ProjectTest, Project2Col) {
     auto yieldColumns = getYieldColumns(
             "YIELD $input_project.vid AS vid, $input_project.col2 AS num");
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, yieldColumns);
+    auto* project = Project::make(qctx_, nullptr, yieldColumns);
     project->setInputVar(input);
     project->setColNames(std::vector<std::string>{"vid", "num"});
 
@@ -103,7 +103,7 @@ TEST_F(ProjectTest, EmptyInput) {
     std::string input = "empty";
     auto yieldColumns = getYieldColumns("YIELD $input_project.vid AS vid");
     auto* plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, std::move(yieldColumns));
+    auto* project = Project::make(qctx_, nullptr, std::move(yieldColumns));
     project->setInputVar(input);
     project->setColNames(std::vector<std::string>{"vid"});
 

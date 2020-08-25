@@ -20,7 +20,7 @@ class SortTest : public QueryTestBase {
 #define SORT_RESUTL_CHECK(input_name, outputName, multi, factors, expected)           \
     do {                                                                              \
         auto* plan = qctx_->plan();                                                   \
-        auto* sortNode = Sort::make(plan, nullptr, factors);                          \
+        auto* sortNode = Sort::make(qctx_, nullptr, factors);                          \
         sortNode->setInputVar(input_name);                                            \
         sortNode->setOutputVar(outputName);                                           \
         auto sortExec = std::make_unique<SortExecutor>(sortNode, qctx_.get());        \
@@ -38,7 +38,7 @@ class SortTest : public QueryTestBase {
             colNames.emplace_back("age");                                             \
         }                                                                             \
         auto yieldSentence = getYieldSentence(sentence);                              \
-        auto* project = Project::make(plan, nullptr, yieldSentence->yieldColumns());  \
+        auto* project = Project::make(qctx_, nullptr, yieldSentence->yieldColumns());  \
         project->setInputVar(sortNode->varName());                                    \
         project->setColNames(std::move(colNames));                                    \
         auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());        \

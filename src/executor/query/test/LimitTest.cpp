@@ -21,7 +21,7 @@ class LimitTest : public QueryTestBase {
 #define LIMIT_RESUTL_CHECK(outputName, offset, count, expected)                           \
     do {                                                                                  \
         auto* plan = qctx_->plan();                                                       \
-        auto* limitNode = Limit::make(plan, nullptr, offset, count);                      \
+        auto* limitNode = Limit::make(qctx_, nullptr, offset, count);                      \
         limitNode->setInputVar("input_neighbor");                                         \
         limitNode->setOutputVar(outputName);                                              \
         auto limitExec = std::make_unique<LimitExecutor>(limitNode, qctx_.get());         \
@@ -41,7 +41,7 @@ class LimitTest : public QueryTestBase {
                     col->expr());                                                         \
             }                                                                             \
         }                                                                                 \
-        auto* project = Project::make(plan, nullptr, yieldSentence->yieldColumns());      \
+        auto* project = Project::make(qctx_, nullptr, yieldSentence->yieldColumns());      \
         project->setInputVar(limitNode->varName());                                       \
         project->setColNames(std::vector<std::string>{"name", "start"});                  \
         auto proExe = std::make_unique<ProjectExecutor>(project, qctx_.get());            \

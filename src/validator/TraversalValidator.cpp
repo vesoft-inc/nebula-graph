@@ -108,7 +108,7 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
         columns->addColumn(column);
     }
 
-    project = Project::make(plan, gn, plan->saveObject(columns));
+    project = Project::make(qctx_, gn, plan->saveObject(columns));
     project->setInputVar(gn->varName());
     project->setColNames(deduceColNames(columns));
     VLOG(1) << project->varName();
@@ -145,7 +145,7 @@ PlanNode* TraversalValidator::buildRuntimeInput() {
     auto* column = new YieldColumn(decode.release(), new std::string(kVid));
     columns->addColumn(column);
     auto plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(qctx_, nullptr, plan->saveObject(columns));
     if (fromType_ == kVariable) {
         project->setInputVar(userDefinedVarName_);
     }
