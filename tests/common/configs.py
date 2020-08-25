@@ -50,5 +50,5 @@ def get_delay_time(client):
     assert resp.error_code == 0
     assert len(resp.data.rows) == 1, "invalid row size: {}".format(resp.data.rows)
     storage_delay = resp.data.rows[0].values[4].get_iVal() + 1
-    delay = max(graph_delay, storage_delay) * 2
+    delay = max(graph_delay, storage_delay) * 3
     return delay
