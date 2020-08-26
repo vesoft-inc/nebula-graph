@@ -258,6 +258,7 @@ class NebulaTestSuite(object):
             return self.date_time_to_string(value.get_tVal())
         elif value.getType() == CommonTtypes.Value.MVAL:
             return self.map_to_string(value.get_mVal())
+        #elif value.getType() == CommonTtypes
         return 'Unsupported type'
 
     @classmethod
@@ -342,17 +343,96 @@ class NebulaTestSuite(object):
         elif isinstance(col, str):
             value.set_sVal(col.encode('utf-8'))
         elif isinstance(col, dict):
-            map_val = CommonTtypes.Map()
-            map_val.kvs = dict()
-            for key in col:
-                ok, temp = self.to_value(col[key])
+            if "type" not in col:
+                map_val = CommonTtypes.Map()
+                map_val.kvs = dict()
+                for key in col:
+                    ok, temp = self.to_value(col[key])
+                    if not ok:
+                        return ok, temp
+                    map_val.kvs[key.encode('utf-8')] = temp
+                value.set_mVal(map_val)
+            else:
+                ok, temp = self.convert_vertex_edge(col)
                 if not ok:
-                    return ok, temp
-                map_val.kvs[key.encode('utf-8')] = temp
-            value.set_mVal(map_val)
+                    return False, 'Wrong val type'
+                value.set_lVal(temp)
         else:
             return False, 'Wrong val type'
         return True, value
+
+    @classmethod
+    def convert_to_vertex(self, v):
+        vertex = CommonTtypes.Vertex()
+        vertex.vid = bytes(v["vid"], encoding = 'utf-8')
+        tags = []
+        for tagVal in v["tags"]:
+            tag = CommonTtypes.Tag()
+            tag.name= bytes(tagVal["name"], encoding = 'utf-8')
+            props = dict()
+            for k, v in tagVal["props"].items():
+                value = CommonTtypes.Value()
+                if isinstance(v, int):
+                    value.set_iVal(v)
+                elif isinstance(v, float):
+                    value.set_fVal(v)
+                elif isinstance(v, str):
+                    value.set_sVal(v.encode('utf-8'))
+                else:
+                    assert "type error"
+
+                props[bytes(k, encoding = 'utf-8')] = value
+            tag.props = props
+            tags.append(tag)
+        vertex.tags = tags
+        return vertex
+
+
+    @classmethod
+    def convert_to_edge(self, e):
+        edge = CommonTtypes.Edge()
+        edge.src = bytes(e["src"], encoding = 'utf-8')
+        edge.dst = bytes(e["dst"], encoding = 'utf-8')
+        edge.type = e["type"]
+        edge.ranking = e["ranking"]
+        edge.name = bytes(e["name"], encoding = 'utf-8')
+        props = dict()
+        for k,v in e["props"].items():
+            value = CommonTtypes.Value()
+            if isinstance(v, int):
+                value.set_iVal(v)
+            elif isinstance(v, float):
+                value.set_fVal(v)
+            elif isinstance(v, str):
+                value.set_sVal(v.encode('utf-8'))
+            else:
+                assert "type error"
+            props[bytes(k, encoding = 'utf-8')] = value
+        edge.props = props
+        return edge
+
+
+    @classmethod
+    def convert_vertex_edge(self, col):
+        result = CommonTtypes.List()
+        temp = []
+        if not isinstance(col["value"] ,list):
+            return False, 'Wrong val type'
+
+        if col["type"] == "vertex":
+            for vertex in col["value"]:
+                value = CommonTtypes.Value()
+                value.set_vVal(self.convert_to_vertex(vertex))
+                temp.append(value)
+        elif col["type"] == "edge":
+            for edge in col["value"]:
+                value = CommonTtypes.Value()
+                value.set_eVal(self.convert_to_edge(edge))
+                temp.append(value)
+        else:
+            return False, 'Unsupport val type'
+        result.values = temp
+        return True, result
 
     @classmethod
     def convert_expect(self, expect):
@@ -368,7 +448,7 @@ class NebulaTestSuite(object):
                 else:
                     ok, value = self.to_value(col)
                     if not ok:
-                        return ok, value
+                        return ok, value, 'jmq'
                     new_row.values.append(value)
             result.append(new_row)
         return True, result, ''
@@ -416,6 +496,7 @@ class NebulaTestSuite(object):
 
     @classmethod
     def check_out_of_order_result(self, resp, expect, ignore_col: Set[int] = set()):
+        print(resp)
         if resp.data is None and len(expect) == 0:
             return
 

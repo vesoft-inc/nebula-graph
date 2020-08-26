@@ -229,7 +229,7 @@ Status GetSubgraphValidator::toPlan() {
                            true /*subgraph not need duplicate*/);
     gn1->setInputVar(projectVids->varName());
 
-    auto* filter = Filter::make(plan, gn1, buildFilterCondition(steps_.steps));
+    auto* filter = Filter::make(plan, gn1, qctx_->objPool()->add(buildFilterCondition(steps_.steps)));
     filter->setInputVar(gn1->varName());
     filter->setColNames({kVid});
 
