@@ -679,8 +679,10 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
         expected_column_names = ['Name']
+        expected_result = [[['test_permission_space']], [['space1']], [['space2']], [['space3']], [['space4']]]
         self.check_column_names(resp, expected_column_names)
-        assert len(resp.data.rows) >= 5  # can't check result when run in parallel
+        for row in expected_result:
+            self.search_result(resp, row)
 
         resp = self.adminClient.execute_query(query)
         self.check_resp_succeeded(resp)
