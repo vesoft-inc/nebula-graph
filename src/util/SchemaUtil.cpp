@@ -34,12 +34,14 @@ Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &colu
         }
 
         if (spec->hasDefaultValue()) {
-            auto value = spec->getDefaultValue();
+            QueryExpressionContext ctx(nullptr, nullptr);
+            auto defaultValueExpr = spec->getDefaultValue();
+            auto& value = defaultValueExpr->eval(ctx);
             auto valStatus = toSchemaValue(type, value);
             if (!valStatus.ok()) {
                 return valStatus.status();
             }
-            column.set_default_value(std::move(valStatus).value());
+            column.set_default_value(defaultValueExpr->encode());
         }
         schema.columns.emplace_back(std::move(column));
     }
@@ -88,11 +90,15 @@ SchemaUtil::generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema
     auto schemaPtr = std::make_shared<meta::NebulaSchemaProvider>(ver);
     for (auto col : schema.get_columns()) {
         bool hasDef = col.__isset.default_value;
+        std::unique_ptr<Expression> defaultValueExpr;
+        if (hasDef) {
+            defaultValueExpr = Expression::decode(*col.get_default_value());
+        }
         schemaPtr->addField(col.get_name(),
                             col.get_type().get_type(),
                             col.type.__isset.type_length ? *col.get_type().get_type_length() : 0,
                             col.__isset.nullable ? *col.get_nullable() : false,
-                            hasDef ? *col.get_default_value() : Value());
+                            hasDef ? defaultValueExpr.release() : nullptr);
     }
     return schemaPtr;
 }
@@ -224,7 +230,21 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
         row.values.emplace_back(typeToString(col));
         auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
         row.values.emplace_back(nullable ? "YES" : "NO");
-        auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
+        auto defaultValue = Value::kEmpty;
+        if (col.__isset.default_value) {
+            auto expr = Expression::decode(*col.get_default_value());
+            if (expr == nullptr) {
+                LOG(ERROR) << "Internal error: Wrong default value expression.";
+                defaultValue = Value();
+                break;
+            }
+            if (expr->kind() == Expression::Kind::kConstant) {
+                QueryExpressionContext ctx(nullptr, nullptr);
+                defaultValue = Expression::eval(expr.get(), ctx);
+            } else {
+                defaultValue = Value(expr->toString());
+            }
+        }
         row.values.emplace_back(std::move(defaultValue));
         dataSet.emplace_back(std::move(row));
     }
@@ -257,12 +277,23 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
         }
 
         if (col.__isset.default_value) {
-            auto value = col.get_default_value();
-            auto toStr = value->toString();
-            if (value->isNumeric() || value->isBool()) {
-                createStr += " DEFAULT " + toStr;
+            auto encodeStr = *col.get_default_value();
+            auto expr = Expression::decode(encodeStr);
+            if (expr == nullptr) {
+                LOG(ERROR) << "Internal error: the default value is wrong expression.";
+                break;
+            }
+            if (expr->kind() == Expression::Kind::kConstant) {
+                QueryExpressionContext ctx(nullptr, nullptr);
+                auto& value = expr->eval(ctx);
+                auto toStr = value.toString();
+                if (value.isNumeric() || value.isBool()) {
+                    createStr += " DEFAULT " + toStr;
+                } else {
+                    createStr += " DEFAULT \"" + toStr + "\"";
+                }
             } else {
-                createStr += " DEFAULT \"" + toStr + "\"";
+                createStr += " DEFAULT " + expr->toString();
             }
         }
         createStr += ",\n";
