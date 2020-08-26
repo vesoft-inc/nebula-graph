@@ -127,10 +127,7 @@ protected:
     // Do all permission checking in validator except which need execute
     // TODO(shylock) do all permission which don't need execute in here
     virtual Status checkPermission() {
-        if (!PermissionCheck::permissionCheck(qctx_->rctx()->session(), sentence_, space_.id)) {
-            return Status::PermissionError("Permission denied");
-        }
-        return Status::OK();
+        return PermissionCheck::permissionCheck(qctx_->rctx()->session(), sentence_, space_.id);
     }
 
     /**

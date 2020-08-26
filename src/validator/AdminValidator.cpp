@@ -160,11 +160,7 @@ Status ShowCreateSpaceValidator::checkPermission() {
     auto spaceIdResult = qctx_->schemaMng()->toGraphSpaceID(*sentence->spaceName());
     NG_RETURN_IF_ERROR(spaceIdResult);
     auto targetSpaceId = spaceIdResult.value();
-    if (!PermissionManager::canReadSpace(qctx_->rctx()->session(), targetSpaceId)) {
-        return Status::PermissionError("No permission to read space `%s'.",
-                                       sentence->spaceName()->c_str());
-    }
-    return Status::OK();
+    return PermissionManager::canReadSpace(qctx_->rctx()->session(), targetSpaceId);
 }
 
 Status ShowCreateSpaceValidator::toPlan() {

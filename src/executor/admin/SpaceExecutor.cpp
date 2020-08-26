@@ -44,9 +44,7 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 auto spaceId = spaceItem.get_space_id();
                 // check permission
                 auto *session = qctx_->rctx()->session();
-                if (!PermissionManager::canReadSpace(session, spaceId)) {
-                    return Status::PermissionError("Permission denied");
-                }
+                NG_RETURN_IF_ERROR(PermissionManager::canReadSpace(session, spaceId));
 
                 DataSet dataSet;
                 dataSet.colNames = {"ID",
@@ -107,7 +105,7 @@ folly::Future<Status> ShowSpacesExecutor::execute() {
             std::set<std::string> orderSpaceNames;
             for (auto &space : spaceItems) {
                 if (!PermissionManager::canReadSpace(qctx_->rctx()->session(),
-                                                               space.first)) {
+                                                     space.first).ok()) {
                     continue;
                 }
                 orderSpaceNames.emplace(space.second);

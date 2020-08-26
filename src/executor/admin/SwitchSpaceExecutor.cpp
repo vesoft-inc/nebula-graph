@@ -28,10 +28,7 @@ folly::Future<Status> SwitchSpaceExecutor::execute() {
                 }
                 auto spaceId = resp.value().get_space_id();
                 auto *session = qctx_->rctx()->session();
-                if (!PermissionManager::canReadSpace(session, spaceId)) {
-                    return Status::PermissionError("Permission denied");
-                }
-
+                NG_RETURN_IF_ERROR(PermissionManager::canReadSpace(session, spaceId));
                 qctx_->rctx()->session()->setSpace(spaceName, spaceId);
                 LOG(INFO) << "Graph space switched to `" << spaceName
                           << "', space id: " << spaceId;

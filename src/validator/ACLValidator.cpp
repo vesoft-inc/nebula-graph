@@ -141,12 +141,7 @@ Status ShowRolesInSpaceValidator::validateImpl() {
 }
 
 Status ShowRolesInSpaceValidator::checkPermission() {
-    auto sentence = static_cast<ShowRolesSentence *>(sentence_);
-    if (!PermissionManager::canReadSpace(qctx_->rctx()->session(), targetSpaceId_)) {
-        return Status::PermissionError("No permission to read space `%s'.",
-                                       sentence->name()->c_str());
-    }
-    return Status::OK();
+    return PermissionManager::canReadSpace(qctx_->rctx()->session(), targetSpaceId_);
 }
 
 Status ShowRolesInSpaceValidator::toPlan() {

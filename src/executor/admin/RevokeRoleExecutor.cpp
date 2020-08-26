@@ -30,9 +30,8 @@ folly::Future<Status> RevokeRoleExecutor::revokeRole() {
         return Status::PermissionError("Permission denied");
     }
     auto *session = qctx_->rctx()->session();
-    if (!PermissionManager::canWriteRole(session, rrNode->role(), spaceId, *rrNode->username())) {
-        return Status::PermissionError("Permission denied");
-    }
+    NG_RETURN_IF_ERROR(
+        PermissionManager::canWriteRole(session, rrNode->role(), spaceId, *rrNode->username()));
 
     meta::cpp2::RoleItem item;
     item.set_space_id(spaceId);

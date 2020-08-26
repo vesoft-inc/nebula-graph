@@ -27,13 +27,9 @@ folly::Future<Status> GrantRoleExecutor::grantRole() {
     NG_RETURN_IF_ERROR(spaceIdResult);
     auto spaceId = spaceIdResult.value();
 
-    if (grNode->role() == meta::cpp2::RoleType::GOD) {
-        return Status::PermissionError("Permission denied");
-    }
     auto *session = qctx_->rctx()->session();
-    if (!PermissionManager::canWriteRole(session, grNode->role(), spaceId, *grNode->username())) {
-        return Status::PermissionError("Permission denied");
-    }
+    NG_RETURN_IF_ERROR(
+        PermissionManager::canWriteRole(session, grNode->role(), spaceId, *grNode->username()));
 
     meta::cpp2::RoleItem item;
     item.set_space_id(spaceId);   // TODO(shylock) pass space name directly
