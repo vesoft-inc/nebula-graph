@@ -87,7 +87,6 @@ Status FindPathValidator::validateOver(const OverClause* clause, Over& over) {
                 return Status::Error("%s not found in space [%s].",
                         edge.c_str(), space_.name.c_str());
             }
-            VLOG(1) << "et: " << edgeType.value();
             over.edgeTypes.emplace_back(edgeType.value());
         }
         over.allEdges = std::move(edges);

@@ -63,7 +63,6 @@ Status GoValidator::validateOver(const OverClause* over) {
                 return Status::Error("%s not found in space [%s].",
                         edge.c_str(), space_.name.c_str());
             }
-            VLOG(1) << "et: " << edgeType.value();
             edgeTypes_.emplace_back(edgeType.value());
         }
         allEdges_ = std::move(edges);
@@ -251,7 +250,6 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
     } else {
         root_ = projectResult;
     }
-    VLOG(1) << root_->kind();
     tail_ = gn;
     return Status::OK();
 }
@@ -442,7 +440,6 @@ PlanNode* GoValidator::buildProjectSrcEdgePropsForGN(std::string gnVar, PlanNode
         srcAndEdgePropCols_->addColumn(srcVidCol);
     }
 
-    VLOG(1) << "build dst cols";
     // Get all _dst to a single column.
     if (!exprProps_.dstTagProps().empty()) {
         joinDstVidColName_ = vctx_->anonColGen()->getCol();
@@ -739,7 +736,6 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
                             ep.type = -type;
-                            VLOG(1) << "edge type: " << ep.type;
                             ep.props = {kDst};
                             return ep;
                         });
@@ -750,7 +746,6 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
                             ep.type = type;
-                            VLOG(1) << "edge type: " << ep.type;
                             ep.props = {kDst};
                             return ep;
                         });
@@ -759,7 +754,6 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
                            [](auto& type) {
                                storage::cpp2::EdgeProp ep;
                                ep.type = -type;
-                               VLOG(1) << "edge type: " << ep.type;
                                ep.props = {kDst};
                                return ep;
                            });
@@ -770,7 +764,6 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
                         [](auto& type) {
                             storage::cpp2::EdgeProp ep;
                             ep.type = type;
-                            VLOG(1) << "edge type: " << ep.type;
                             ep.props = {kDst};
                             return ep;
                         });
