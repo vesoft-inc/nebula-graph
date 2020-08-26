@@ -159,8 +159,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<SetConfigValidator>(sentence, context);
         case Sentence::Kind::kShowConfigs:
             return std::make_unique<ShowConfigsValidator>(sentence, context);
-        case Sentence::Kind::kUnknown:
         case Sentence::Kind::kMatch:
+        case Sentence::Kind::kUnknown:
         case Sentence::Kind::kCreateTagIndex:
         case Sentence::Kind::kShowCreateTagIndex:
         case Sentence::Kind::kShowTagIndexStatus:
@@ -282,8 +282,8 @@ Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     return Status::OK();
 }
 
-Status Validator::appendPlan(PlanNode* tail) {
-    return appendPlan(tail_, DCHECK_NOTNULL(tail));
+Status Validator::appendPlan(PlanNode* root) {
+    return appendPlan(tail_, DCHECK_NOTNULL(root));
 }
 
 Status Validator::validate() {
@@ -530,7 +530,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kTagProperty:
         case Expression::Kind::kDstProperty:
         case Expression::Kind::kSrcProperty: {
-            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* tagPropExpr = static_cast<const PropertyExpression*>(expr);
             auto* tag = tagPropExpr->sym();
             auto tagId = qctx_->schemaMng()->toTagID(space_.id, *tag);
             if (!tagId.ok()) {
@@ -550,7 +550,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             return SchemaUtil::propTypeToValueType(field->type());
         }
         case Expression::Kind::kEdgeProperty: {
-            auto* edgePropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* edgePropExpr = static_cast<const PropertyExpression*>(expr);
             auto* edge = edgePropExpr->sym();
             auto edgeType = qctx_->schemaMng()->toEdgeType(space_.id, *edge);
             if (!edgeType.ok()) {
@@ -570,7 +570,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             return SchemaUtil::propTypeToValueType(field->type());
         }
         case Expression::Kind::kVarProperty: {
-            auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* varPropExpr = static_cast<const PropertyExpression*>(expr);
             auto* var = varPropExpr->sym();
             if (!vctx_->existVar(*var)) {
                 return Status::SemanticError(
@@ -588,7 +588,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             return found->second;
         }
         case Expression::Kind::kInputProperty: {
-            auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* inputPropExpr = static_cast<const PropertyExpression*>(expr);
             auto* prop = inputPropExpr->prop();
             auto found = std::find_if(inputs_.begin(), inputs_.end(), [&prop] (auto& col) {
                 return *prop == col.first;
@@ -599,8 +599,8 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
             }
             return found->second;
         }
-        case Expression::Kind::kSymProperty: {
-            return Status::SemanticError("SymbolPropertyExpression can not be instantiated.");
+        case Expression::Kind::kLabelAttribute: {
+            return Status::SemanticError("LabelAtrributeExpression can not be instantiated.");
         }
         case Expression::Kind::kLabel: {
             return Status::SemanticError("LabelExpression can not be instantiated.");
@@ -622,6 +622,12 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kEdgeDst: {
             return Value::Type::STRING;
         }
+        case Expression::Kind::kVertex: {
+            return Value::Type::VERTEX;
+        }
+        case Expression::Kind::kEdge: {
+            return Value::Type::EDGE;
+        }
         case Expression::Kind::kUUID: {
             return Value::Type::STRING;
         }
@@ -642,6 +648,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
         case Expression::Kind::kMap: {
             return Value::Type::MAP;
         }
+        case Expression::Kind::kAttribute:
         case Expression::Kind::kSubscript: {
             return Value::Type::LIST;   // FIXME(dutor)
         }
@@ -652,6 +659,8 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
 
 Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps) {
     switch (expr->kind()) {
+        case Expression::Kind::kVertex:
+        case Expression::Kind::kEdge:
         case Expression::Kind::kConstant: {
             break;
         }
@@ -695,21 +704,21 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
             break;
         }
         case Expression::Kind::kDstProperty: {
-            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* tagPropExpr = static_cast<const PropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
             exprProps.insertDstTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kSrcProperty: {
-            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* tagPropExpr = static_cast<const PropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
             exprProps.insertSrcTagProp(status.value(), *tagPropExpr->prop());
             break;
         }
         case Expression::Kind::kTagProperty: {
-            auto* tagPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* tagPropExpr = static_cast<const PropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toTagID(space_.id, *tagPropExpr->sym());
             NG_RETURN_IF_ERROR(status);
             exprProps.insertTagProp(status.value(), *tagPropExpr->prop());
@@ -720,19 +729,19 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
         case Expression::Kind::kEdgeType:
         case Expression::Kind::kEdgeRank:
         case Expression::Kind::kEdgeDst: {
-            auto* edgePropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* edgePropExpr = static_cast<const PropertyExpression*>(expr);
             auto status = qctx_->schemaMng()->toEdgeType(space_.id, *edgePropExpr->sym());
             NG_RETURN_IF_ERROR(status);
             exprProps.insertEdgeProp(status.value(), *edgePropExpr->prop());
             break;
         }
         case Expression::Kind::kInputProperty: {
-            auto* inputPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* inputPropExpr = static_cast<const PropertyExpression*>(expr);
             exprProps.insertInputProp(*inputPropExpr->prop());
             break;
         }
         case Expression::Kind::kVarProperty: {
-            auto* varPropExpr = static_cast<const SymbolPropertyExpression*>(expr);
+            auto* varPropExpr = static_cast<const PropertyExpression*>(expr);
             exprProps.insertVarProp(*varPropExpr->sym(), *varPropExpr->prop());
             break;
         }
@@ -765,7 +774,8 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
-        case Expression::Kind::kSymProperty:
+        case Expression::Kind::kAttribute:
+        case Expression::Kind::kLabelAttribute:
         case Expression::Kind::kLabel: {
             // TODO:
             std::stringstream ss;
@@ -796,6 +806,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kRelNotIn:
         case Expression::Kind::kContains:
         case Expression::Kind::kSubscript:
+        case Expression::Kind::kAttribute:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
@@ -863,7 +874,9 @@ bool Validator::evaluableExpr(const Expression* expr) const {
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kVarProperty:
         case Expression::Kind::kInputProperty:
-        case Expression::Kind::kSymProperty:
+        case Expression::Kind::kLabelAttribute:
+        case Expression::Kind::kVertex:
+        case Expression::Kind::kEdge:
         case Expression::Kind::kLabel: {
             return false;
         }
@@ -895,17 +908,17 @@ Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
 
 StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
     if (ref->kind() == Expression::Kind::kInputProperty) {
-        const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
-        ColDef col(*symExpr->prop(), type);
+        const auto* propExpr = static_cast<const PropertyExpression*>(ref);
+        ColDef col(*propExpr->prop(), type);
         const auto find = std::find(inputs_.begin(), inputs_.end(), col);
         if (find == inputs_.end()) {
-            return Status::Error("No input property %s", symExpr->prop()->c_str());
+            return Status::Error("No input property %s", propExpr->prop()->c_str());
         }
         return std::string();
     } else if (ref->kind() == Expression::Kind::kVarProperty) {
-        const auto* symExpr = static_cast<const SymbolPropertyExpression*>(ref);
-        ColDef col(*symExpr->prop(), type);
-        const auto &varName = *symExpr->sym();
+        const auto* propExpr = static_cast<const PropertyExpression*>(ref);
+        ColDef col(*propExpr->prop(), type);
+        const auto &varName = *propExpr->sym();
         const auto &var = vctx_->getVar(varName);
         if (var.empty()) {
             return Status::Error("No variable %s", varName.c_str());
@@ -913,7 +926,7 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         const auto find = std::find(var.begin(), var.end(), col);
         if (find == var.end()) {
             return Status::Error("No property %s in variable %s",
-                                 symExpr->prop()->c_str(),
+                                 propExpr->prop()->c_str(),
                                  varName.c_str());
         }
         return varName;
