@@ -130,25 +130,28 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
 Expression* GetSubgraphValidator::buildFilterCondition(int64_t step) {
     // where *._dst IN startVids OR *._dst IN collectVid{0}[0][0] OR *._dst IN collectVid{-1}[0][0]
     // OR ... *._dst IN collectVid{-step+1}[0][0]
-    auto* dst = new EdgeDstIdExpression(new std::string("*"));
     if (step == 1) {
-        auto* lastestVidsDataSet =
-            new VersionedVariableExpression(&collectVar_, new ConstantExpression(0));
+        auto* lastestVidsDataSet = new VersionedVariableExpression(new std::string(collectVar_),
+                                                                   new ConstantExpression(0));
         auto* lastestVidsList = new SubscriptExpression(
             new SubscriptExpression(std::move(lastestVidsDataSet), new ConstantExpression(0)),
             new ConstantExpression(0));
 
-        auto* left = new RelationalExpression(
-            Expression::Kind::kRelIn, dst, new ListExpression(startVidList_));
-        auto* right = new RelationalExpression(Expression::Kind::kRelIn, dst, lastestVidsList);
+        auto* left = new RelationalExpression(Expression::Kind::kRelIn,
+                                              new EdgeDstIdExpression(new std::string("*")),
+                                              new ListExpression(startVidList_.release()));
+        auto* right = new RelationalExpression(Expression::Kind::kRelIn,
+                                               new EdgeDstIdExpression(new std::string("*")),
+                                               lastestVidsList);
         return new LogicalExpression(Expression::Kind::kLogicalOr, left, right);
     }
-    auto* historyVidsDataSet =
-        new VersionedVariableExpression(&collectVar_, new ConstantExpression(1 - step));
+    auto* historyVidsDataSet = new VersionedVariableExpression(new std::string(collectVar_),
+                                                               new ConstantExpression(1 - step));
     auto* historyVidsList = new SubscriptExpression(
         new SubscriptExpression(std::move(historyVidsDataSet), new ConstantExpression(0)),
         new ConstantExpression(0));
-    auto* left = new RelationalExpression(Expression::Kind::kRelIn, dst, historyVidsList);
+    auto* left = new RelationalExpression(
+        Expression::Kind::kRelIn, new EdgeDstIdExpression(new std::string("*")), historyVidsList);
     auto* right = buildFilterCondition(step - 1);
     auto* result = new LogicalExpression(Expression::Kind::kLogicalOr, left, right);
     return result;
@@ -195,6 +198,7 @@ Status GetSubgraphValidator::toPlan() {
     auto* column = new YieldColumn(
         new VariablePropertyExpression(new std::string(var), new std::string(kVid)),
         new std::string(kVid));
+    qctx_->objPool()->add(column);
     column->setAggFunction(new std::string("COLLECT"));
     auto fun = column->getAggFunName();
     auto* collect =

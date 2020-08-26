@@ -45,7 +45,7 @@ protected:
 
 protected:
     TraversalValidator(Sentence* sentence, QueryContext* qctx) : Validator(sentence, qctx) {
-        startVidList_ = new ExpressionList();
+        startVidList_.reset(new ExpressionList());
     }
 
     Status validateStarts(const VerticesClause* clause, Starts& starts);
@@ -71,7 +71,7 @@ protected:
     PlanNode*             projectStartVid_{nullptr};
 
 
-    ExpressionList*       startVidList_{nullptr};
+    std::unique_ptr<ExpressionList>  startVidList_;
 };
 
 }  // namespace graph
