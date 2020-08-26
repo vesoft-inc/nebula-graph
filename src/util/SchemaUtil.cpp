@@ -13,43 +13,6 @@ namespace nebula {
 namespace graph {
 
 // static
-Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
-                                   meta::cpp2::Schema &schema) {
-    auto status = Status::OK();
-    std::unordered_set<std::string> nameSet;
-    for (auto& spec : columnSpecs) {
-        if (nameSet.find(*spec->name()) != nameSet.end()) {
-            return Status::Error("Duplicate column name `%s'", spec->name()->c_str());
-        }
-        nameSet.emplace(*spec->name());
-        meta::cpp2::ColumnDef column;
-        column.set_name(*spec->name());
-        auto type = spec->type();
-        meta::cpp2::ColumnTypeDef typeDef;
-        typeDef.set_type(type);
-        column.set_type(std::move(typeDef));
-        column.set_nullable(spec->isNull());
-        if (meta::cpp2::PropertyType::FIXED_STRING == type) {
-            column.type.set_type_length(spec->typeLen());
-        }
-
-        if (spec->hasDefaultValue()) {
-            QueryExpressionContext ctx(nullptr, nullptr);
-            auto defaultValueExpr = spec->getDefaultValue();
-            auto& value = defaultValueExpr->eval(ctx);
-            auto valStatus = toSchemaValue(type, value);
-            if (!valStatus.ok()) {
-                return valStatus.status();
-            }
-            column.set_default_value(defaultValueExpr->encode());
-        }
-        schema.columns.emplace_back(std::move(column));
-    }
-
-    return Status::OK();
-}
-
-// static
 Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
                                  meta::cpp2::Schema &schema) {
     auto status = Status::OK();
