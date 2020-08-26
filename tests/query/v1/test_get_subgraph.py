@@ -62,7 +62,9 @@ class TestGroupBy(NebulaTestSuite):
                                              {"src" : "Tim Duncan", "dst" : "Tony Parker", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
                                              {"src" : "Tim Duncan", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 1997}},
                                              {"src" : "Tim Duncan", "dst" : "Danny Green", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2010}},
-                                             {"src" : "Tim Duncan", "dst" : "LaMarcus Aldridge", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2015}}]}
+                                             {"src" : "Tim Duncan", "dst" : "LaMarcus Aldridge", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2015}},
+                                             {"src" : "Tim Duncan", "dst" : "Manu Ginobili", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2002}},
+                                             {"src" : "Tim Duncan", "dst" : "Tony Parker", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2001}},]}
 
         vertex2 = {"type" : "vertex", "value" : [{"vid" : "Tony Parker", "tags":[{"name" : "player", "props" : {"age" : 36, "name" : "Tony Parker"}}]},
                                                  {"vid" : "Manu Ginobili", "tags":[{"name" : "player", "props" : {"age" : 41, "name" : "Manu Ginobili"}}]},
@@ -91,7 +93,7 @@ class TestGroupBy(NebulaTestSuite):
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        #self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan'"
         resp = self.execute_query(stmt)
@@ -152,7 +154,7 @@ class TestGroupBy(NebulaTestSuite):
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        #self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan' IN like, serve"
         resp = self.execute_query(stmt)

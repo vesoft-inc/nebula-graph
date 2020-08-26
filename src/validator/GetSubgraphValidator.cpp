@@ -134,7 +134,7 @@ Expression* GetSubgraphValidator::buildFilterCondition(int64_t step) {
         auto* lastestVidsDataSet = new VersionedVariableExpression(new std::string(collectVar_),
                                                                    new ConstantExpression(0));
         auto* lastestVidsList = new SubscriptExpression(
-            new SubscriptExpression(std::move(lastestVidsDataSet), new ConstantExpression(0)),
+            new SubscriptExpression(lastestVidsDataSet, new ConstantExpression(0)),
             new ConstantExpression(0));
 
         auto* left = new RelationalExpression(Expression::Kind::kRelIn,
@@ -148,7 +148,7 @@ Expression* GetSubgraphValidator::buildFilterCondition(int64_t step) {
     auto* historyVidsDataSet = new VersionedVariableExpression(new std::string(collectVar_),
                                                                new ConstantExpression(1 - step));
     auto* historyVidsList = new SubscriptExpression(
-        new SubscriptExpression(std::move(historyVidsDataSet), new ConstantExpression(0)),
+        new SubscriptExpression(historyVidsDataSet, new ConstantExpression(0)),
         new ConstantExpression(0));
     auto* left = new RelationalExpression(
         Expression::Kind::kRelIn, new EdgeDstIdExpression(new std::string("*")), historyVidsList);
