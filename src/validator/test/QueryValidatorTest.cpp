@@ -61,7 +61,11 @@ TEST_F(QueryValidatorTest, GoZeroStep) {
                             "| GO FROM $-.id OVER serve";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kPassThrough,
             PK::kStart
         };
