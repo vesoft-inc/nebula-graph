@@ -5,6 +5,7 @@
  */
 
 #include "validator/FindPathValidator.h"
+#include "planner/Logic.h"
 
 namespace nebula {
 namespace graph {
@@ -137,6 +138,10 @@ Status FindPathValidator::validateStep(const StepClause* clause, Step& step) {
 }
 
 Status FindPathValidator::toPlan() {
+    // TODO: Implement the path plan.
+    auto* passThrough = PassThroughNode::make(qctx_->plan(), nullptr);
+    tail_ = passThrough;
+    root_ = tail_;
     return Status::OK();
 }
 }  // namespace graph

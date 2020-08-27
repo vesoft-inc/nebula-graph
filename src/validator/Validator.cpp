@@ -19,6 +19,7 @@
 #include "validator/ExplainValidator.h"
 #include "validator/FetchEdgesValidator.h"
 #include "validator/FetchVerticesValidator.h"
+#include "validator/FindPathValidator.h"
 #include "validator/GetSubgraphValidator.h"
 #include "validator/GoValidator.h"
 #include "validator/GroupByValidator.h"
@@ -159,6 +160,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<SetConfigValidator>(sentence, context);
         case Sentence::Kind::kShowConfigs:
             return std::make_unique<ShowConfigsValidator>(sentence, context);
+        case Sentence::Kind::kFindPath:
+            return std::make_unique<FindPathValidator>(sentence, context);
         case Sentence::Kind::kMatch:
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kCreateTagIndex:
@@ -178,7 +181,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
         case Sentence::Kind::kLookup:
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kIngest:
-        case Sentence::Kind::kFindPath:
         case Sentence::Kind::kReturn: {
             // nothing
             DLOG(FATAL) << "Unimplemented sentence " << kind;
