@@ -1268,7 +1268,7 @@ TEST_F(QueryValidatorTest, FindPath) {
     {
         std::string query =
             "YIELD \"1\" AS src, \"2\" AS dst"
-            " | FIND SHORTEST PATH FROM \"1\" TO \"2\" OVER like, serve UPTO 5 STEPS";
+            " | FIND SHORTEST PATH FROM $-.src TO $-.dst OVER like, serve UPTO 5 STEPS";
         std::vector<PlanNode::Kind> expected = {
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -1301,7 +1301,7 @@ TEST_F(QueryValidatorTest, FindPath) {
     }
     {
         std::string query = "YIELD \"1\" AS src, \"2\" AS dst"
-                            " | FIND ALL PATH FROM \"1\" TO \"2\" OVER like, serve UPTO 5 STEPS";
+                            " | FIND ALL PATH FROM $-.src TO $-.dst OVER like, serve UPTO 5 STEPS";
         std::vector<PlanNode::Kind> expected = {
         };
         EXPECT_TRUE(checkResult(query, expected));
