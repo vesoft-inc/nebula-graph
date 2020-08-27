@@ -100,6 +100,8 @@ protected:
     Status finish(Result &&result);
     // Store the default result which not used for later executor
     Status finish(Value &&value);
+    // Not store anything in fact
+    Status finish();
 
     int64_t id_;
 

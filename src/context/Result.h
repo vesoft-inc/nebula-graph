@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "context/Iterator.h"
+#include "planner/PlanNode.h"
 
 namespace nebula {
 namespace graph {
@@ -38,6 +39,10 @@ public:
         return *core_.value;
     }
 
+    PlanNode::Lifetime lifetime() const {
+        return core_.lifetime;
+    }
+
     State state() const {
         return core_.state;
     }
@@ -61,6 +66,7 @@ private:
     struct Core {
         State state;
         std::string msg;
+        PlanNode::Lifetime lifetime{PlanNode::Lifetime::kStatic};
         std::shared_ptr<Value> value;
         std::unique_ptr<Iterator> iter;
     };
@@ -95,6 +101,11 @@ public:
 
     ResultBuilder& iter(std::unique_ptr<Iterator> iter) {
         core_.iter = std::move(iter);
+        return *this;
+    }
+
+    ResultBuilder& lifetime(PlanNode::Lifetime lifetime) {
+        core_.lifetime = lifetime;
         return *this;
     }
 

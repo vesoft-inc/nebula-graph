@@ -625,6 +625,10 @@ Status Executor::finish(Value &&value) {
     return finish(ResultBuilder().value(std::move(value)).iter(Iterator::Kind::kDefault).finish());
 }
 
+Status Executor::finish() {
+    return Status::OK();
+}
+
 folly::Executor *Executor::runner() const {
     if (!qctx() || !qctx()->rctx() || !qctx()->rctx()->runner()) {
         // This is just for test

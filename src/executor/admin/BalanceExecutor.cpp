@@ -19,11 +19,15 @@ folly::Future<Status> BalanceExecutor::balance() {
     auto *bNode = asNode<Balance>(node());
     return qctx()->getMetaClient()->balance(bNode->deleteHosts(), false)
         .via(runner())
-        .then([this](StatusOr<int64_t> resp) {
+        .then([this, bNode](StatusOr<int64_t> resp) {
             SCOPED_TIMER(&execTime_);
             if (!resp.ok()) {
                 LOG(ERROR) << resp.status();
                 return resp.status();
+            }
+
+            if (bNode->lifetime() == PlanNode::Lifetime::kVolatile) {
+                return finish();
             }
             DataSet v({"ID"});
             v.emplace_back(Row({resp.value()}));

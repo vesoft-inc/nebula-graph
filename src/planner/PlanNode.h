@@ -26,6 +26,14 @@ class ExecutionPlan;
  */
 class PlanNode {
 public:
+    // Analysis and mark the lifetime in optimizer
+    // Must done after the plan structure will not modified again
+    enum class Lifetime {
+        kVolatile,  // The resutl will not persist in fact
+        kOnce,  // The result only use once, could move it to reduce copy and memory consumption
+        kStatic  // Live in the entire query
+    };
+
     enum class Kind : uint8_t {
         kUnknown = 0,
         kStart,
@@ -150,6 +158,14 @@ public:
         colNames_ = cols;
     }
 
+    void setLifetime(Lifetime lifetime) {
+        lifetime_ = lifetime;
+    }
+
+    Lifetime lifetime() const {
+        return lifetime_;
+    }
+
     static const char* toString(Kind kind);
 
     const std::string& nodeLabel() const {
@@ -165,6 +181,8 @@ protected:
     using VariableName = std::string;
     VariableName                             outputVar_;
     std::vector<std::string>                 colNames_;
+    // lifetime of the result
+    Lifetime                                 lifetime_{Lifetime::kStatic};
 };
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
