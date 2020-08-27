@@ -15,14 +15,11 @@ Status TraversalValidator::validateStep(const StepClause* step) {
         return Status::Error("Step clause nullptr.");
     }
     steps_ = qctx_->objPool()->makeAndAdd<StepClause>(*step);
-    if (steps_->steps() == 0) {
-        return Status::Error("Only accpet positive number steps.");
-    }
     if (steps_->from() > steps_->to()) {
         return Status::Error("`%s', upper bound steps should be greater than lower bound.",
                              steps_->toString().c_str());
     }
-    if (steps_->from() == 0) {
+    if (steps_->from() == 0 && steps_->to() > 0) {
         steps_->setFrom(1);
     }
     return Status::OK();

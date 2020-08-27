@@ -179,10 +179,16 @@ Status GoValidator::validateYield(YieldClause* yield) {
 
 Status GoValidator::toPlan() {
     if (steps_->from() == steps_->to()) {
-        if (steps_->to() > 1) {
-            return buildNStepsPlan();
-        } else {
+        if (steps_->to() == 0) {
+            auto* passThrough = PassThroughNode::make(qctx_->plan(), nullptr);
+            passThrough->setColNames(std::move(colNames_));
+            tail_ = passThrough;
+            root_ = tail_;
+            return Status::OK();
+        } else if (steps_->to() == 1) {
             return buildOneStepPlan();
+        } else {
+            return buildNStepsPlan();
         }
     } else {
         return buildMToNPlan();
