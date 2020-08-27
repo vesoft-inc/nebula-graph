@@ -178,8 +178,8 @@ Status GoValidator::validateYield(YieldClause* yield) {
 }
 
 Status GoValidator::toPlan() {
-    if (mToN_ == nullptr) {
-        if (steps_ > 1) {
+    if (steps_->from() == steps_->to()) {
+        if (steps_->to() > 1) {
             return buildNStepsPlan();
         } else {
             return buildOneStepPlan();
@@ -291,7 +291,7 @@ Status GoValidator::buildNStepsPlan() {
         projectLeftVarForJoin == nullptr ? dedupStartVid
                                          : projectLeftVarForJoin,  // dep
         projectFromJoin == nullptr ? dedupDstVids : projectFromJoin,  // body
-        buildNStepLoopCondition(steps_ - 1));
+        buildNStepLoopCondition(steps_->to() - 1));
 
     auto status = oneStep(loop, dedupDstVids->varName(), projectFromJoin);
     if (!status.ok()) {
@@ -408,7 +408,7 @@ Status GoValidator::buildMToNPlan() {
         projectLeftVarForJoin == nullptr ? dedupStartVid
                                          : projectLeftVarForJoin,  // dep
         dedupNode == nullptr ? projectResult : dedupNode,  // body
-        buildNStepLoopCondition(mToN_->nSteps));
+        buildNStepLoopCondition(steps_->to()));
 
     if (projectStartVid_ != nullptr) {
         tail_ = projectStartVid_;
@@ -424,7 +424,7 @@ Status GoValidator::buildMToNPlan() {
     }
     auto* dataCollect =
         DataCollect::make(plan, loop, DataCollect::CollectKind::kMToN, collectVars);
-    dataCollect->setMToN(mToN_);
+    dataCollect->setStep(steps_);
     dataCollect->setDistinct(distinct_);
     dataCollect->setColNames(projectResult->colNames());
     root_ = dataCollect;
@@ -519,7 +519,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                                     PlanNode* dependencyForJoinInput) {
     auto* plan = qctx_->plan();
 
-    if (steps_ > 1 || mToN_ != nullptr) {
+    if (steps_->to() > 1 || (steps_->from() != steps_->to())) {
         DCHECK(projectFromJoin != nullptr);
         auto* joinHashKey = new VariablePropertyExpression(
                 new std::string(dependencyForJoinInput->varName()), new std::string(kVid));
@@ -532,7 +532,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                            dependencyForJoinInput,
                            {dependencyForJoinInput->varName(), ExecutionContext::kLatestVersion},
                            {projectFromJoin->varName(),
-                            mToN_ != nullptr ? ExecutionContext::kPreviousOneVersion
+                            steps_->from() != steps_->to() ? ExecutionContext::kPreviousOneVersion
                                              : ExecutionContext::kLatestVersion},
                            {joinHashKey},
                            {probeKey});
@@ -548,7 +548,9 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
     DCHECK(dependencyForJoinInput != nullptr);
     auto* joinHashKey = new VariablePropertyExpression(
         new std::string(dependencyForJoinInput->varName()),
-        new std::string((steps_ > 1 || mToN_ != nullptr) ? firstBeginningSrcVidColName_ : kVid));
+        new std::string((steps_->to() > 1 || (steps_->from() != steps_->to()))
+                         ? firstBeginningSrcVidColName_
+                         : kVid));
     plan->saveObject(joinHashKey);
     auto* joinInput =
         DataJoin::make(plan, dependencyForJoinInput,

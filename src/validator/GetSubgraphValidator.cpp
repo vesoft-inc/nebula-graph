@@ -163,7 +163,7 @@ Status GetSubgraphValidator::toPlan() {
 
     // ++counter{0} <= steps
     // TODO(shylock) add condition when gn get empty result
-    auto* condition = buildNStepLoopCondition(steps_);
+    auto* condition = buildNStepLoopCondition(steps_->to());
     // The input of loop will set by father validator.
     auto* loop = Loop::make(plan, nullptr, projectVids, condition);
 

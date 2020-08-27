@@ -717,8 +717,12 @@ public:
         return new DataCollect(plan, input, collectKind, std::move(vars));
     }
 
-    void setMToN(StepClause::MToN* mToN) {
-        mToN_ = mToN;
+    void setStep(StepClause* step) {
+        step_ = step;
+    }
+
+    StepClause* step() const {
+        return step_;
     }
 
     void setDistinct(bool distinct) {
@@ -731,10 +735,6 @@ public:
 
     const std::vector<std::string>& vars() const {
         return vars_;
-    }
-
-    StepClause::MToN* mToN() const {
-        return mToN_;
     }
 
     bool distinct() const {
@@ -757,7 +757,7 @@ private:
     CollectKind                 collectKind_;
     std::vector<std::string>    vars_;
     // using for m to n steps
-    StepClause::MToN*           mToN_{nullptr};
+    StepClause*                 step_{nullptr};
     bool                        distinct_{false};
 };
 

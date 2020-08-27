@@ -34,8 +34,7 @@ protected:
     };
 
 protected:
-    StepClause::MToN*     mToN_{nullptr};
-    uint32_t              steps_{1};
+    StepClause*           steps_{nullptr};
     std::string           srcVidColName_;
     FromType              fromType_{kInstantExpr};
     Expression*           srcRef_{nullptr};

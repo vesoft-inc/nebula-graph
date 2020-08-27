@@ -25,7 +25,7 @@ private:
 
     Status rowBasedMove(const std::vector<std::string>& vars);
 
-    Status collectMToN(const std::vector<std::string>& vars, StepClause::MToN* mToN, bool distinct);
+    Status collectMToN(const std::vector<std::string>& vars, StepClause* step, bool distinct);
 
     std::vector<std::string>    colNames_;
     Value                       result_;

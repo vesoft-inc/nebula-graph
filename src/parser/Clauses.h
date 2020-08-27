@@ -14,38 +14,35 @@
 namespace nebula {
 class StepClause final {
 public:
-    struct MToN {
-        uint32_t mSteps;
-        uint32_t nSteps;
-    };
+    explicit StepClause(uint32_t steps = 1) : from_(steps), to_(steps) {}
 
-    explicit StepClause(uint32_t steps = 1) {
-        steps_ = steps;
+    StepClause(uint32_t from, uint32_t to) : from_(from), to_(to) {
+        DCHECK_GE(to_, from_);
     }
 
-    StepClause(uint32_t m, uint32_t n) {
-        mToN_ = std::make_unique<MToN>();
-        mToN_->mSteps = m;
-        mToN_->nSteps = n;
+    void setFrom(uint32_t from) {
+        from_ = from;
+    }
+
+    uint32_t from() const {
+        return from_;
+    }
+
+    uint32_t to() const {
+        return to_;
     }
 
     uint32_t steps() const {
-        return steps_;
-    }
-
-    MToN* mToN() const {
-        return mToN_.get();
-    }
-
-    bool isMToN() const {
-        return mToN_ != nullptr;
+        return to_;
     }
 
     std::string toString() const;
 
 private:
-    uint32_t                                    steps_{1};
-    std::unique_ptr<MToN>                       mToN_;
+    // Collect the data to final result from this step
+    uint32_t                                    from_{1};
+    // The real iterate steps
+    uint32_t                                    to_{1};
 };
 
 

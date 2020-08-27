@@ -14,28 +14,16 @@ Status TraversalValidator::validateStep(const StepClause* step) {
     if (step == nullptr) {
         return Status::Error("Step clause nullptr.");
     }
-    if (step->isMToN()) {
-        auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
-        mToN->mSteps = step->mToN()->mSteps;
-        mToN->nSteps = step->mToN()->nSteps;
-        if (mToN->mSteps == 0) {
-            mToN->mSteps = 1;
-        }
-        if (mToN->nSteps < mToN->mSteps) {
-            return Status::Error("`%s', upper bound steps should be greater than lower bound.",
-                                 step->toString().c_str());
-        }
-        if (mToN->mSteps == mToN->nSteps) {
-            steps_ = mToN->mSteps;
-            return Status::OK();
-        }
-        mToN_ = mToN;
-    } else {
-        auto steps = step->steps();
-        if (steps == 0) {
-            return Status::Error("Only accpet positive number steps.");
-        }
-        steps_ = steps;
+    steps_ = qctx_->objPool()->makeAndAdd<StepClause>(*step);
+    if (steps_->steps() == 0) {
+        return Status::Error("Only accpet positive number steps.");
+    }
+    if (steps_->from() > steps_->to()) {
+        return Status::Error("`%s', upper bound steps should be greater than lower bound.",
+                             steps_->toString().c_str());
+    }
+    if (steps_->from() == 0) {
+        steps_->setFrom(1);
     }
     return Status::OK();
 }

@@ -13,12 +13,12 @@ namespace nebula {
 std::string StepClause::toString() const {
     std::string buf;
     buf.reserve(256);
-    if (isMToN()) {
-        buf += std::to_string(mToN_->mSteps);
+    if (from_ != to_) {
+        buf += std::to_string(from_);
         buf += " TO ";
-        buf += std::to_string(mToN_->nSteps);
+        buf += std::to_string(to_);
     } else {
-        buf += std::to_string(steps_);
+        buf += std::to_string(to_);
     }
     buf += " STEPS";
     return buf;
