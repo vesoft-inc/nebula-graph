@@ -127,7 +127,6 @@ public:
     enum OptionType : uint8_t {
         PARTITION_NUM,
         REPLICA_FACTOR,
-        VID_SIZE,
         VID_TYPE,
         CHARSET,
         COLLATE
@@ -143,6 +142,11 @@ public:
         optValue_ = val;
     }
 
+    SpaceOptItem(OptionType op, ColumnTypeDef val) {
+        optType_ = op;
+        optValue_ = std::move(val);
+    }
+
     int64_t asInt() const {
         return boost::get<int64_t>(optValue_);
     }
@@ -151,12 +155,20 @@ public:
         return boost::get<std::string>(optValue_);
     }
 
+    const ColumnTypeDef& asTypeDef() const {
+        return boost::get<ColumnTypeDef>(optValue_);
+    }
+
     bool isInt() const {
         return optValue_.which() == 0;
     }
 
     bool isString() const {
         return optValue_.which() == 1;
+    }
+
+    bool isTypeDef() const {
+        return optValue_.which() == 2;
     }
 
     int64_t getPartitionNum() const {
@@ -177,21 +189,12 @@ public:
         }
     }
 
-    int32_t getVidSize() const {
-        if (isInt()) {
-            return asInt();
-        } else {
-            LOG(ERROR) << "vid size illegal.";
-            return 0;
-        }
-    }
-
-    meta::cpp2::PropertyType getVidType() const {
-        if (isInt()) {
-            return static_cast<meta::cpp2::PropertyType>(asInt());
+    ColumnTypeDef getVidType() const {
+        if (isTypeDef()) {
+            return asTypeDef();
         } else {
             LOG(ERROR) << "vid type illegal.";
-            return meta::cpp2::PropertyType::UNKNOWN;
+            return ColumnTypeDef(meta::cpp2::PropertyType::UNKNOWN);
         }
     }
 

@@ -41,8 +41,8 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             auto type = ge->type()->eval(expCtx(valueIter.get()));
             auto ranking = ge->ranking()->eval(expCtx(valueIter.get()));
             auto dst = ge->dst()->eval(expCtx(valueIter.get()));
-            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vidType_)
-                    || !SchemaUtil::isValidVid(dst, spaceInfo.spaceDesc.vidType_)
+            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)
+                    || !SchemaUtil::isValidVid(dst, spaceInfo.spaceDesc.vid_type)
                     || !type.isInt() || !ranking.isInt()) {
                 LOG(WARNING) << "Mismatched edge key type";
                 continue;

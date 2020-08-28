@@ -17,7 +17,7 @@ namespace graph {
 struct SpaceInfo {
     std::string name;
     GraphSpaceID id;
-    meta::SpaceDesc spaceDesc;
+    meta::cpp2::SpaceDesc spaceDesc;
 };
 
 class Session final {

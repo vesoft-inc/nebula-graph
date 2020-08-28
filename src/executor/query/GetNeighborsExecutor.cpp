@@ -51,7 +51,7 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
     const auto& spaceInfo = qctx()->rctx()->session()->space();
     for (; iter->valid(); iter->next()) {
         auto val = Expression::eval(src, ctx(iter.get()));
-        if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vidType_)) {
+        if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vid_type)) {
             continue;
         }
         auto ret = uniqueVid.emplace(val);

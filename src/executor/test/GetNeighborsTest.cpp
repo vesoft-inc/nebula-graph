@@ -34,9 +34,7 @@ protected:
         SpaceInfo spaceInfo;
         spaceInfo.name = "test_space";
         spaceInfo.id = 1;
-        spaceInfo.spaceDesc.spaceName_ = "test_space";
-        spaceInfo.spaceDesc.vidSize_ = 8;
-        spaceInfo.spaceDesc.vidType_ = Value::Type::STRING;
+        spaceInfo.spaceDesc.space_name = "test_space";
         session->setSpace(std::move(spaceInfo));
         auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
         rctx->setSession(std::move(session));

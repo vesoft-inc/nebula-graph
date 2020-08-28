@@ -45,7 +45,6 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                                     "Replica Factor",
                                     "Charset",
                                     "Collate",
-                                    "Vid Size",
                                     "Vid Type"};
                 auto &spaceItem = resp.value();
                 auto &properties = spaceItem.get_properties();
@@ -56,9 +55,9 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 row.values.emplace_back(properties.get_replica_factor());
                 row.values.emplace_back(properties.get_charset_name());
                 row.values.emplace_back(properties.get_collate_name());
-                row.values.emplace_back(properties.get_vid_size());
                 row.values.emplace_back(
-                        meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(properties.get_vid_type()));
+                    ColumnTypeDef(properties.get_vid_type(), properties.get_vid_size())
+                        .toString());
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
                                   .value(Value(std::move(dataSet)))
@@ -135,7 +134,7 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                 Row row;
                 row.values.emplace_back(properties.get_space_name());
                 auto fmt = "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
-                           "charset = %s, collate = %s, vid_size = %d, vid_type = %s)";
+                           "charset = %s, collate = %s, vid_type = %s)";
                 row.values.emplace_back(folly::stringPrintf(
                     fmt,
                     properties.get_space_name().c_str(),
@@ -143,8 +142,8 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                     properties.get_replica_factor(),
                     properties.get_charset_name().c_str(),
                     properties.get_collate_name().c_str(),
-                    properties.get_vid_size(),
-                    meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(properties.get_vid_type())));
+                    ColumnTypeDef(properties.get_vid_type(), properties.get_vid_size())
+                        .toString()));
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
                                   .value(Value(std::move(dataSet)))

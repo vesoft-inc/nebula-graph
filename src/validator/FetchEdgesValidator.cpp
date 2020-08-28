@@ -120,13 +120,13 @@ Status FetchEdgesValidator::prepareEdges() {
         for (const auto &key : keys) {
             DCHECK(ExpressionUtils::isConstExpr(key->srcid()));
             auto src = key->srcid()->eval(dummy);
-            if (!SchemaUtil::isValidVid(src, space_.spaceDesc.vidType_)) {
+            if (!SchemaUtil::isValidVid(src, space_.spaceDesc.vid_type)) {
                 return Status::NotSupported("src is not a vertex id");
             }
             auto ranking = key->rank();
             DCHECK(ExpressionUtils::isConstExpr(key->dstid()));
             auto dst = key->dstid()->eval(dummy);
-            if (!SchemaUtil::isValidVid(dst, space_.spaceDesc.vidType_)) {
+            if (!SchemaUtil::isValidVid(dst, space_.spaceDesc.vid_type)) {
                 return Status::NotSupported("dst is not a vertex id");
             }
             edgeKeys_.emplace_back(nebula::Row(

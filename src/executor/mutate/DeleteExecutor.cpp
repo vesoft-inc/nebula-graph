@@ -46,7 +46,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
                 VLOG(3) << "NULL or EMPTY vid";
                 continue;
             }
-            if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vidType_)) {
+            if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vid_type)) {
                 std::stringstream ss;
                 ss << "Wrong vid type `" << val.type() << "', value `" << val.toString() << "'";
                 return Status::Error(ss.str());
@@ -102,14 +102,14 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
                     VLOG(3) << "NULL or EMPTY vid";
                     continue;
                 }
-                if (!SchemaUtil::isValidVid(srcId, spaceInfo.spaceDesc.vidType_)) {
+                if (!SchemaUtil::isValidVid(srcId, spaceInfo.spaceDesc.vid_type)) {
                     std::stringstream ss;
                     ss << "Wrong srcId type `" << srcId.type()
                        << "`, value `" << srcId.toString() << "'";
                     return Status::Error(ss.str());
                 }
                 auto dstId = Expression::eval(edgeKeyRef->dstid(), ctx(iter.get()));
-                if (!SchemaUtil::isValidVid(dstId, spaceInfo.spaceDesc.vidType_)) {
+                if (!SchemaUtil::isValidVid(dstId, spaceInfo.spaceDesc.vid_type)) {
                     std::stringstream ss;
                     ss << "Wrong dstId type `" << dstId.type()
                        << "', value `" << dstId.toString() << "'";

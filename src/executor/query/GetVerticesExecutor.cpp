@@ -37,7 +37,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         for (; valueIter->valid(); valueIter->next()) {
             auto src = gv->src()->eval(expCtx(valueIter.get()));
             VLOG(1) << "src vid: " << src;
-            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vidType_)) {
+            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
                 LOG(WARNING) << "Mismatched vid type: " << src.type();
                 continue;
             }

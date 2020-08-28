@@ -1994,11 +1994,8 @@ space_opt_item
         $$ = new SpaceOptItem(SpaceOptItem::COLLATE, *$3);
         delete $3;
     }
-    | KW_VID_SIZE ASSIGN legal_integer {
-        $$ = new SpaceOptItem(SpaceOptItem::VID_SIZE, $3);
-    }
     | KW_VID_TYPE ASSIGN type_spec {
-        $$ = new SpaceOptItem(SpaceOptItem::VID_TYPE, static_cast<int64_t>($3->type));
+        $$ = new SpaceOptItem(SpaceOptItem::VID_TYPE, *$3);
         delete $3;
     }
     // TODO(YT) Create Spaces for different engines

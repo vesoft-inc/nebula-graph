@@ -352,7 +352,8 @@ Value::Type SchemaUtil::propTypeToValueType(meta::cpp2::PropertyType propType) {
     return Value::Type::__EMPTY__;
 }
 
-bool SchemaUtil::isValidVid(const Value &value, Value::Type vidType) {
+bool SchemaUtil::isValidVid(const Value &value, meta::cpp2::PropertyType type) {
+    auto vidType = propTypeToValueType(type);
     if ((vidType != Value::Type::STRING
             && vidType != Value::Type::INT)  // compatible with 1.0
             || value.type() != vidType) {
