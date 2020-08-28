@@ -7,6 +7,7 @@
 #define PARSER_ADMINSENTENCES_H_
 
 #include "parser/Clauses.h"
+#include "parser/ColumnTypeDef.h"
 #include "parser/Sentence.h"
 #include "parser/MutateSentences.h"
 #include "common/network/NetworkUtils.h"
@@ -121,7 +122,7 @@ public:
 
 class SpaceOptItem final {
 public:
-    using Value = boost::variant<int64_t, std::string>;
+    using Value = boost::variant<int64_t, std::string, ColumnTypeDef>;
 
     enum OptionType : uint8_t {
         PARTITION_NUM,

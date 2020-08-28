@@ -53,7 +53,7 @@ Status CreateSpaceValidator::validateImpl() {
             case SpaceOptItem::VID_TYPE: {
                 auto vidType = item->getVidType();
                 if (vidType != meta::cpp2::PropertyType::INT64 &&
-                        vidType != meta::cpp2::PropertyType::STRING) {
+                        vidType != meta::cpp2::PropertyType::FIXED_STRING) {
                     std::stringstream ss;
                     ss << "Only support STRING or INT64 vid type, but was given "
                        << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType);
