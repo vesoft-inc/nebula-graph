@@ -20,7 +20,7 @@ public:
     }
 
 private:
-    explicit StartNode(int64_t id) : PlanNode(id, DepKind::kNoDep, Kind::kStart) {}
+    explicit StartNode(int64_t id) : PlanNode(id, Kind::kStart) {}
 };
 
 class BinarySelect : public SingleInputNode {

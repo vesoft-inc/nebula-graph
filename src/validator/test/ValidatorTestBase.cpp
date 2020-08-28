@@ -40,32 +40,26 @@ void ValidatorTestBase::bfsTraverse(const PlanNode *root, std::vector<PlanNode::
             ASSERT_TRUE(false) << "Unknown Plan Node.";
         }
 
-        switch (node->depKind()) {
-            case PlanNode::DepKind::kSingleDep: {
+        switch (node->dependencies().size()) {
+            case 1: {
+                auto *sNode = static_cast<const SingleDependencyNode *>(node);
+                queue.emplace(sNode->dep());
                 if (node->kind() == PlanNode::Kind::kSelect) {
                     auto *current = static_cast<const Select *>(node);
-                    queue.emplace(current->dep());
                     queue.emplace(current->then());
                     if (current->otherwise() != nullptr) {
                         queue.emplace(current->otherwise());
                     }
                 } else if (node->kind() == PlanNode::Kind::kLoop) {
                     auto *current = static_cast<const Loop *>(node);
-                    queue.emplace(current->dep());
                     queue.emplace(current->body());
-                } else {
-                    auto *current = static_cast<const SingleDependencyNode *>(node);
-                    queue.emplace(current->dep());
                 }
                 break;
             }
-            case PlanNode::DepKind::kBinaryDep: {
+            case 2: {
                 auto *current = static_cast<const BiInputNode *>(node);
                 queue.emplace(current->left());
                 queue.emplace(current->right());
-                break;
-            }
-            case PlanNode::DepKind::kNoDep: {
                 break;
             }
         }

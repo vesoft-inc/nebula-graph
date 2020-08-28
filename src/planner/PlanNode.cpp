@@ -13,8 +13,7 @@
 namespace nebula {
 namespace graph {
 
-PlanNode::PlanNode(int64_t id, DepKind depKind, Kind kind)
-    : depKind_(depKind), kind_(kind), id_(id) {
+PlanNode::PlanNode(int64_t id, Kind kind) : kind_(kind), id_(id) {
     DCHECK_GE(id_, 0);
     outputVar_ = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
 }

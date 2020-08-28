@@ -23,12 +23,6 @@ class PlanNodeDescription;
  */
 class PlanNode {
 public:
-    enum class DepKind : uint8_t {
-        kSingleDep = 0,
-        kBinaryDep,
-        kNoDep,
-    };
-
     enum class Kind : uint8_t {
         kUnknown = 0,
         kStart,
@@ -101,16 +95,12 @@ public:
         kGetConfig,
     };
 
-    PlanNode(int64_t id, DepKind depKind, Kind kind);
+    PlanNode(int64_t id, Kind kind);
 
     virtual ~PlanNode() = default;
 
     // Describe plan node
     virtual std::unique_ptr<cpp2::PlanNodeDescription> explain() const;
-
-    DepKind depKind() const {
-        return depKind_;
-    }
 
     Kind kind() const {
         return kind_;
@@ -167,7 +157,6 @@ public:
 protected:
     static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);
 
-    DepKind                                  depKind_{DepKind::kNoDep};
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
     std::string                              outputVar_;
@@ -189,7 +178,7 @@ public:
 
 protected:
     SingleDependencyNode(int64_t id, Kind kind, const PlanNode* dep)
-        : PlanNode(id, DepKind::kSingleDep, kind) {
+        : PlanNode(id, kind) {
         dependencies_.emplace_back(dep);
     }
 
@@ -255,7 +244,7 @@ public:
 
 protected:
     BiInputNode(int64_t id, Kind kind, PlanNode* left, PlanNode* right)
-        : PlanNode(id, DepKind::kBinaryDep, kind) {
+        : PlanNode(id, kind) {
         dependencies_.emplace_back(DCHECK_NOTNULL(left));
         dependencies_.emplace_back(DCHECK_NOTNULL(right));
     }

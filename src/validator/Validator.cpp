@@ -211,16 +211,17 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
     DCHECK(node != nullptr);
-    if (node->depKind() == PlanNode::DepKind::kSingleDep) {
-        static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
-        return Status::OK();
+    DCHECK(appended != nullptr);
+    if (node->dependencies().size() != 1) {
+        return Status::SemanticError("%s not support to append an input.",
+                                     PlanNode::toString(node->kind()));
     }
-    return Status::SemanticError("%s not support to append an input.",
-                                 PlanNode::toString(node->kind()));
+    static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
+    return Status::OK();
 }
 
 Status Validator::appendPlan(PlanNode* root) {
-    return appendPlan(tail_, DCHECK_NOTNULL(root));
+    return appendPlan(tail_, root);
 }
 
 Status Validator::validate() {
