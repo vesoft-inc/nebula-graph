@@ -31,6 +31,8 @@ private:
 
     Expression* buildFilterCondition(int64_t step);
 
+    GetNeighbors::EdgeProps buildEdgeProps();
+
 private:
     std::unordered_set<EdgeType>                edgeTypes_;
     std::string                                 collectVar_;

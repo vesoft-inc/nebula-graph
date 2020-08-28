@@ -7,12 +7,13 @@
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 from tests.common.nebula_test_suite import T_EMPTY, T_NULL
+from tests.common.load_test_data import VERTEXS, EDGES
 import pytest
 
-class TestGroupBy(NebulaTestSuite):
+class TestSubGraph(NebulaTestSuite):
     @classmethod
     def prepare(self):
-        self.load_data()
+        self.use_nba()
 
     def cleanup():
         pass
@@ -56,34 +57,37 @@ class TestGroupBy(NebulaTestSuite):
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
-        vertex1 = {"type" : "vertex", "value" : [{"vid" : "Tim Duncan", "tags":[{"name" : "bachelor", "props" : {"name" : "Tim Duncan", "speciality" : "psychology"}},
-                                                                                {"name" : "player", "props" : {"age" : 42, "name" : "Tim Duncan"}},]},]}
-        edge1 = {"type" : "edge", "value" : [{"src" : "Tim Duncan", "dst" : "Manu Ginobili", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
-                                             {"src" : "Tim Duncan", "dst" : "Tony Parker", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
-                                             {"src" : "Tim Duncan", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 1997}},
-                                             {"src" : "Tim Duncan", "dst" : "Danny Green", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2010}},
-                                             {"src" : "Tim Duncan", "dst" : "LaMarcus Aldridge", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2015}},
-                                             {"src" : "Tim Duncan", "dst" : "Manu Ginobili", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2002}},
-                                             {"src" : "Tim Duncan", "dst" : "Tony Parker", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2001}},]}
+        vertex1 = [VERTEXS["Tim Duncan"]]
 
-        vertex2 = {"type" : "vertex", "value" : [{"vid" : "Tony Parker", "tags":[{"name" : "player", "props" : {"age" : 36, "name" : "Tony Parker"}}]},
-                                                 {"vid" : "Manu Ginobili", "tags":[{"name" : "player", "props" : {"age" : 41, "name" : "Manu Ginobili"}}]},
-                                                 {"vid" : "Danny Green", "tags":[{"name" : "player", "props" : {"age" : 31, "name" : "Danny Green"}}]},
-                                                 {"vid" : "LaMarcus Aldridge", "tags":[{"name" : "player", "props" : {"age" : 33, "name" : "LaMarcus Aldridge"}}]},]}
+        edge1 = [EDGES['Tim Duncan'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Spurs'+'serve'+'0'],
+                 EDGES['Tim Duncan'+'Danny Green'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0']]
 
-        edge2 = {"type" : "edge", "value" : [{"src" : "Tony Parker", "dst" : "LaMarcus Aldridge", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 90}},
-                                             {"src" : "Tony Parker", "dst" : "Manu Ginobili", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
-                                             {"src" : "Tony Parker", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
-                                             {"src" : "Tony Parker", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2018, "start_year" : 1999}},
-                                             {"src" : "Manu Ginobili", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 90}},
-                                             {"src" : "Manu Ginobili", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2018, "start_year" : 2002}},
-                                             {"src" : "Manu Ginobili", "dst" : "Tony Parker", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2002}},
-                                             {"src" : "Danny Green", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 70}},
-                                             {"src" : "Danny Green", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2018, "start_year" : 2010}},
-                                             {"src" : "LaMarcus Aldridge", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 75}},
-                                             {"src" : "LaMarcus Aldridge", "dst" : "Tony Parker", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 75}},
-                                             {"src" : "LaMarcus Aldridge", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2019, "start_year" : 2015}},]}
+        vertex2 = [VERTEXS['Tony Parker'],
+                   VERTEXS['Manu Ginobili'],
+                   VERTEXS['Danny Green'],
+                   VERTEXS['LaMarcus Aldridge']]
 
+        edge2 = [EDGES['Tony Parker'+'LaMarcus Aldridge'+'like'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Tony Parker'+'Spurs'+'serve'+'0'],
+                 EDGES['Tony Parker'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'teammate'+'0'],
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Manu Ginobili'+'Spurs'+'serve'+'0'],
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'teammate'+'0'],
+                 EDGES['Manu Ginobili'+'Tony Parker'+'teammate'+'0'],
+                 EDGES['Danny Green'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Danny Green'+'Spurs'+'serve'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Tim Duncan'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Tony Parker'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Spurs'+'serve'+'0']]
 
         expected_data = {
             "column_names" : ["_vertices", "_edges"],
@@ -93,57 +97,70 @@ class TestGroupBy(NebulaTestSuite):
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        #self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan'"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
-        vertex1 = {"type" : "vertex", "value" : [{"vid" : "Tim Duncan", "tags":[{"name" : "bachelor", "props" : {"name" : "Tim Duncan", "speciality" : "psychology"}},
-                                                                                {"name" : "player", "props" : {"age" : 42, "name" : "Tim Duncan"}},]},]}
-        edge1 = {"type" : "edge", "value" : [{"src" : "Tim Duncan", "dst" : "Manu Ginobili", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
-                                             {"src" : "Tim Duncan", "dst" : "Tony Parker", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
-                                             {"src" : "Tim Duncan", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 1997}},
-                                             {"src" : "Tim Duncan", "dst" : "Danny Green", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2010}},
-                                             {"src" : "Tim Duncan", "dst" : "LaMarcus Aldridge", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2015}}]}
+        vertex1 = [VERTEXS["Tim Duncan"]]
 
-        vertex2 = {"type" : "vertex", "value" : [{"vid" : "Tony Parker", "tags":[{"name" : "player", "props" : {"age" : 36, "name" : "Tony Parker"}}]},
-                                                 {"vid" : "Manu Ginobili", "tags":[{"name" : "player", "props" : {"age" : 41, "name" : "Manu Ginobili"}}]},
-                                                 {"vid" : "Danny Green", "tags":[{"name" : "player", "props" : {"age" : 31, "name" : "Danny Green"}}]},
-                                                 {"vid" : "LaMarcus Aldridge", "tags":[{"name" : "player", "props" : {"age" : 33, "name" : "LaMarcus Aldridge"}}]},]}
+        edge1 = [EDGES['Tim Duncan'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Spurs'+'serve'+'0'],
+                 EDGES['Tim Duncan'+'Danny Green'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0']]
 
-        edge2 = {"type" : "edge", "value" : [{"src" : "Tony Parker", "dst" : "LaMarcus Aldridge", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 90}},
-                                             {"src" : "Tony Parker", "dst" : "Manu Ginobili", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
-                                             {"src" : "Tony Parker", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 95}},
-                                             {"src" : "Tony Parker", "dst" : "Hornets", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2019, "start_year" : 2018}},
-                                             {"src" : "Tony Parker", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2018, "start_year" : 1999}},
-                                             {"src" : "Tony Parker", "dst" : "Kyle Anderson", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2014}},
-                                             {"src" : "Manu Ginobili", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 90}},
-                                             {"src" : "Manu Ginobili", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2018, "start_year" : 2002}},
-                                             {"src" : "Manu Ginobili", "dst" : "Tony Parker", "type" : 0, "name" : "teammate", "ranking" : 0, "props" : {"end_year" : 2016, "start_year" : 2002}},
-                                             {"src" : "Danny Green", "dst" : "LeBron James", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 80}},
-                                             {"src" : "Danny Green", "dst" : "Marco Belinelli", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 83}},
-                                             {"src" : "Danny Green", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 70}},
-                                             {"src" : "Danny Green", "dst" : "Cavaliers", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2010, "start_year" : 2009}},
-                                             {"src" : "Danny Green", "dst" : "Raptors", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2019, "start_year" : 2018}},
-                                             {"src" : "Danny Green", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2018, "start_year" : 2010}},
-                                             {"src" : "LaMarcus Aldridge", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 75}},
-                                             {"src" : "LaMarcus Aldridge", "dst" : "Tony Parker", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 75}},
-                                             {"src" : "LaMarcus Aldridge", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2019, "start_year" : 2015}},
-                                             {"src" : "LaMarcus Aldridge", "dst" : "Trail Blazers", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2015, "start_year" : 2006}},]}
+        vertex2 = [VERTEXS['Tony Parker'],
+                   VERTEXS['Manu Ginobili'],
+                   VERTEXS['Danny Green'],
+                   VERTEXS['LaMarcus Aldridge']]
 
-        vertex3 = {"type" : "vertex", "value" : [{"vid" : "LeBron James", "tags":[{"name" : "player", "props" : {"age" : 34, "name" : "LeBron James"}}]},
-                                                 {"vid" : "Kyle Anderson", "tags":[{"name" : "player", "props" : {"age" : 25, "name" : "Kyle Anderson"}}]},
-                                                 {"vid" : "Marco Belinelli", "tags":[{"name" : "player", "props" : {"age" : 32, "name" : "Marco Belinelli"}}]},]}
+        edge2 = [EDGES['Tony Parker'+'LaMarcus Aldridge'+'like'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Tony Parker'+'Hornets'+'serve'+'0'],
+                 EDGES['Tony Parker'+'Spurs'+'serve'+'0'],
+                 EDGES['Tony Parker'+'Kyle Anderson'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'teammate'+'0'],
 
-        edge3 = {"type" : "edge", "value" : [{"src" : "LeBron James", "dst" : "Cavaliers", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2018, "start_year" : 2014}},
-                                             {"src" : "Kyle Anderson", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2018, "start_year" : 2014}},
-                                             {"src" : "Marco Belinelli", "dst" : "Danny Green", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 60}},
-                                             {"src" : "Marco Belinelli", "dst" : "Tim Duncan", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 55}},
-                                             {"src" : "Marco Belinelli", "dst" : "Tony Parker", "type" : 0, "name" : "like", "ranking" : 0, "props" : {"likeness" : 50}},
-                                             {"src" : "Marco Belinelli", "dst" : "Hornets", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2017, "start_year" : 2016}},
-                                             {"src" : "Marco Belinelli", "dst" : "Raptors", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2010, "start_year" : 2009}},
-                                             {"src" : "Marco Belinelli", "dst" : "Spurs", "type" : 0, "name" : "serve", "ranking" : 0, "props" : {"end_year" : 2019, "start_year" : 2018}},]}
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Manu Ginobili'+'Spurs'+'serve'+'0'],
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'teammate'+'0'],
+                 EDGES['Manu Ginobili'+'Tony Parker'+'teammate'+'0'],
+
+                 EDGES['Danny Green'+'LeBron James'+'like'+'0'],
+                 EDGES['Danny Green'+'Marco Belinelli'+'like'+'0'],
+                 EDGES['Danny Green'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Danny Green'+'Cavaliers'+'serve'+'0'],
+                 EDGES['Danny Green'+'Raptors'+'serve'+'0'],
+                 EDGES['Danny Green'+'Spurs'+'serve'+'0'],
+
+                 EDGES['LaMarcus Aldridge'+'Tim Duncan'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Tony Parker'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Spurs'+'serve'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Trail Blazers'+'serve'+'0']]
+
+        vertex3 = [VERTEXS['LeBron James'],
+                   VERTEXS['Kyle Anderson'],
+                   VERTEXS['Marco Belinelli']]
+
+        edge3 = [EDGES['LeBron James'+'Cavaliers'+'serve'+'0'],
+                 EDGES['LeBron James'+'Cavaliers'+'serve'+'1'],
+                 EDGES['Kyle Anderson'+'Spurs'+'serve'+'0'],
+
+                 EDGES['Marco Belinelli'+'Danny Green'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Tony Parker'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Hornets'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Raptors'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Spurs'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Hornets'+'serve'+'1'],
+                 EDGES['Marco Belinelli'+'Spurs'+'serve'+'1'],]
 
         expected_data = {
             "column_names" : ["_vertices", "_edges"],
@@ -154,46 +171,248 @@ class TestGroupBy(NebulaTestSuite):
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        #self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan' IN like, serve"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
+        vertex1 = [VERTEXS["Tim Duncan"]]
+
+        edge1 = [EDGES['Tim Duncan'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Spurs'+'serve'+'0'],
+                 EDGES['Tim Duncan'+'Danny Green'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0']]
+
+        vertex2 = [VERTEXS['Tony Parker'],
+                   VERTEXS['Manu Ginobili'],
+                   VERTEXS['Danny Green'],
+                   VERTEXS['LaMarcus Aldridge']]
+
+        edge2 = [EDGES['Tony Parker'+'LaMarcus Aldridge'+'like'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Tony Parker'+'Hornets'+'serve'+'0'],
+                 EDGES['Tony Parker'+'Spurs'+'serve'+'0'],
+                 EDGES['Tony Parker'+'Kyle Anderson'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'teammate'+'0'],
+
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Manu Ginobili'+'Spurs'+'serve'+'0'],
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'teammate'+'0'],
+                 EDGES['Manu Ginobili'+'Tony Parker'+'teammate'+'0'],
+
+                 EDGES['Danny Green'+'LeBron James'+'like'+'0'],
+                 EDGES['Danny Green'+'Marco Belinelli'+'like'+'0'],
+                 EDGES['Danny Green'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Danny Green'+'Cavaliers'+'serve'+'0'],
+                 EDGES['Danny Green'+'Raptors'+'serve'+'0'],
+                 EDGES['Danny Green'+'Spurs'+'serve'+'0'],
+
+                 EDGES['LaMarcus Aldridge'+'Tim Duncan'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Tony Parker'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Spurs'+'serve'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Trail Blazers'+'serve'+'0']]
+
+        vertex3 = [VERTEXS['LeBron James'],
+                   VERTEXS['Kyle Anderson'],
+                   VERTEXS['Marco Belinelli']]
+
+        edge3 = [EDGES['LeBron James'+'Cavaliers'+'serve'+'0'],
+                 EDGES['LeBron James'+'Cavaliers'+'serve'+'1'],
+                 EDGES['Kyle Anderson'+'Spurs'+'serve'+'0'],
+
+                 EDGES['Marco Belinelli'+'Danny Green'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Tony Parker'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Hornets'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Raptors'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Spurs'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Hornets'+'serve'+'1'],
+                 EDGES['Marco Belinelli'+'Spurs'+'serve'+'1'],]
+
         expected_data = {
             "column_names" : ["_vertices", "_edges"],
             "rows" : [
-                ["Tony Parker"]
+                [vertex1, edge1],
+                [vertex2, edge2],
+                [vertex3, edge3]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        #self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan' IN like OUT serve"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
+
+        vertex1 = [VERTEXS["Tim Duncan"]]
+
+        edge1 = [EDGES['Tim Duncan'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Spurs'+'serve'+'0'],
+                 EDGES['Tim Duncan'+'Danny Green'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0']]
+
+        vertex2 = [VERTEXS['Tony Parker'],
+                   VERTEXS['Manu Ginobili'],
+                   VERTEXS['Danny Green'],
+                   VERTEXS['LaMarcus Aldridge']]
+
+        edge2 = [EDGES['Tony Parker'+'LaMarcus Aldridge'+'like'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Tony Parker'+'Hornets'+'serve'+'0'],
+                 EDGES['Tony Parker'+'Spurs'+'serve'+'0'],
+                 EDGES['Tony Parker'+'Kyle Anderson'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'teammate'+'0'],
+
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Manu Ginobili'+'Spurs'+'serve'+'0'],
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'teammate'+'0'],
+                 EDGES['Manu Ginobili'+'Tony Parker'+'teammate'+'0'],
+
+                 EDGES['Danny Green'+'LeBron James'+'like'+'0'],
+                 EDGES['Danny Green'+'Marco Belinelli'+'like'+'0'],
+                 EDGES['Danny Green'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Danny Green'+'Cavaliers'+'serve'+'0'],
+                 EDGES['Danny Green'+'Raptors'+'serve'+'0'],
+                 EDGES['Danny Green'+'Spurs'+'serve'+'0'],
+
+                 EDGES['LaMarcus Aldridge'+'Tim Duncan'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Tony Parker'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Spurs'+'serve'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Trail Blazers'+'serve'+'0']]
+
+        vertex3 = [VERTEXS['LeBron James'],
+                   VERTEXS['Kyle Anderson'],
+                   VERTEXS['Marco Belinelli']]
+
+        edge3 = [EDGES['LeBron James'+'Cavaliers'+'serve'+'0'],
+                 EDGES['LeBron James'+'Cavaliers'+'serve'+'1'],
+                 EDGES['Kyle Anderson'+'Spurs'+'serve'+'0'],
+
+                 EDGES['Marco Belinelli'+'Danny Green'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Tony Parker'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Hornets'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Raptors'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Spurs'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Hornets'+'serve'+'1'],
+                 EDGES['Marco Belinelli'+'Spurs'+'serve'+'1']]
+
         expected_data = {
             "column_names" : ["_vertices", "_edges"],
             "rows" : [
-                ["Tony Parker"]
+                [vertex1, edge1],
+                [vertex2, edge2],
+                [vertex3, edge3]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        #self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan', 'James Harden' IN like OUT serve"
+        stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan', 'James Harden' IN teammate OUT serve"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
+
+        vertex1 = [VERTEXS["Tim Duncan"],
+                   VERTEXS["James Harden"]]
+
+        edge1 = [EDGES['Tim Duncan'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'like'+'0'],
+                 EDGES['Tim Duncan'+'Spurs'+'serve'+'0'],
+                 EDGES['Tim Duncan'+'Danny Green'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0'],
+
+                 EDGES['James Harden'+'Russell Westbrook'+'like'+'0'],
+                 EDGES['James Harden'+'Rockets'+'serve'+'0'],
+                 EDGES['James Harden'+'Thunders'+'serve'+'0']]
+
+        vertex2 = [VERTEXS['Tony Parker'],
+                   VERTEXS['Manu Ginobili'],
+                   VERTEXS['Danny Green'],
+                   VERTEXS['LaMarcus Aldridge'],
+                   VERTEXS['Russell Westbrook']]
+
+        edge2 = [EDGES['Tony Parker'+'LaMarcus Aldridge'+'like'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'like'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Tony Parker'+'Hornets'+'serve'+'0'],
+                 EDGES['Tony Parker'+'Spurs'+'serve'+'0'],
+                 EDGES['Tony Parker'+'Kyle Anderson'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'LaMarcus Aldridge'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Manu Ginobili'+'teammate'+'0'],
+                 EDGES['Tony Parker'+'Tim Duncan'+'teammate'+'0'],
+
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Manu Ginobili'+'Spurs'+'serve'+'0'],
+                 EDGES['Manu Ginobili'+'Tim Duncan'+'teammate'+'0'],
+                 EDGES['Manu Ginobili'+'Tony Parker'+'teammate'+'0'],
+
+                 EDGES['Danny Green'+'LeBron James'+'like'+'0'],
+                 EDGES['Danny Green'+'Marco Belinelli'+'like'+'0'],
+                 EDGES['Danny Green'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Danny Green'+'Cavaliers'+'serve'+'0'],
+                 EDGES['Danny Green'+'Raptors'+'serve'+'0'],
+                 EDGES['Danny Green'+'Spurs'+'serve'+'0'],
+
+                 EDGES['LaMarcus Aldridge'+'Tim Duncan'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Tony Parker'+'like'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Spurs'+'serve'+'0'],
+                 EDGES['LaMarcus Aldridge'+'Trail Blazers'+'serve'+'0'],
+
+                 EDGES['Russell Westbrook'+'James Harden'+'like'+'0'],
+                 EDGES['Russell Westbrook'+'Paul George'+'like'+'0'],
+                 EDGES['Russell Westbrook'+'Thunders'+'serve'+'0']]
+
+        vertex3 = [VERTEXS['LeBron James'],
+                   VERTEXS['Kyle Anderson'],
+                   VERTEXS['Marco Belinelli'],
+                   VERTEXS['Paul George']]
+
+        edge3 = [EDGES['LeBron James'+'Cavaliers'+'serve'+'0'],
+                 EDGES['LeBron James'+'Cavaliers'+'serve'+'1'],
+                 EDGES['Kyle Anderson'+'Spurs'+'serve'+'0'],
+
+                 EDGES['Marco Belinelli'+'Danny Green'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Tim Duncan'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Tony Parker'+'like'+'0'],
+                 EDGES['Marco Belinelli'+'Hornets'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Raptors'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Spurs'+'serve'+'0'],
+                 EDGES['Marco Belinelli'+'Hornets'+'serve'+'1'],
+                 EDGES['Marco Belinelli'+'Spurs'+'serve'+'1'],
+
+                 EDGES['Paul George'+'Russell Westbrook'+'like'+'0'],
+                 EDGES['Paul George'+'Thunders'+'serve'+'0']]
+
+
         expected_data = {
             "column_names" : ["_vertices", "_edges"],
             "rows" : [
-                ["Tony Parker"]
+                [vertex1, edge1],
+                [vertex2, edge2],
+                [vertex3, edge3]
             ]
         }
+        #import pdb; pdb.set_trace()
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        #self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan' OUT serve BOTH like"
+        stmt = "GET SUBGRAPH 3 STEPS FROM 'Paul George' OUT serve BOTH like"
         resp = self.execute_query(stmt)
+        import pdb; pdb.set_trace()
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names" : ["_vertices", "_edges"],

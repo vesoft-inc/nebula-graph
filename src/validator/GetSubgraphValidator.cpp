@@ -157,12 +157,26 @@ Expression* GetSubgraphValidator::buildFilterCondition(int64_t step) {
     return result;
 }
 
+GetNeighbors::EdgeProps GetSubgraphValidator::buildEdgeProps() {
+    GetNeighbors::EdgeProps edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+    if (edgeTypes_.empty()) {
+        return edgeProps;
+    }
+    edgeProps->reserve(edgeTypes_.size());
+    for (auto& e : edgeTypes_) {
+        storage::cpp2::EdgeProp ep;
+        ep.set_type(e);
+        edgeProps->emplace_back(std::move(ep));
+    }
+    return edgeProps;
+}
+
 Status GetSubgraphValidator::toPlan() {
     auto& space = vctx_->whichSpace();
     // gn <- filter <- DataCollect
     //  |
     // loop(step) -> Agg(collect) -> project -> gn -> bodyStart
-    auto* bodyStart = StartNode::make(plan);
+    auto* bodyStart = StartNode::make(qctx_);
 
     std::string startVidsVar;
     PlanNode* projectStartVid = nullptr;
@@ -174,22 +188,10 @@ Status GetSubgraphValidator::toPlan() {
     }
 
     auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
-    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
-    auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
-    auto exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
-    auto* gn =
-        GetNeighbors::make(plan,
-                           bodyStart,
-                           space.id,
-                           src_,
-                           ContainerConv::to<std::vector>(std::move(edgeTypes_)),
-                           // TODO(jmq) add syntax like `BOTH *`, `OUT *` ...
-                           storage::cpp2::EdgeDirection::OUT_EDGE,   // FIXME: make direction right
-                           std::move(vertexProps),
-                           std::move(edgeProps),
-                           std::move(statProps),
-                           std::move(exprs),
-                           true /*subgraph not need duplicate*/);
+    auto* gn = GetNeighbors::make(qctx_, bodyStart, space.id);
+    gn->setSrc(src_);
+    gn->setVertexProps(std::move(vertexProps));
+    gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(startVidsVar);
 
     auto* projectVids = projectDstVidsFromGN(gn, startVidsVar);
@@ -202,7 +204,7 @@ Status GetSubgraphValidator::toPlan() {
     column->setAggFunction(new std::string("COLLECT"));
     auto fun = column->getAggFunName();
     auto* collect =
-        Aggregate::make(plan,
+        Aggregate::make(qctx_,
                         projectVids,
                         {},
                         {Aggregate::GroupItem(column->expr(), AggFun::nameIdMap_[fun], true)});
@@ -212,35 +214,23 @@ Status GetSubgraphValidator::toPlan() {
 
     // TODO(jmq) add condition when gn get empty result
     auto* condition = buildNStepLoopCondition(steps_.steps);
-    auto* loop = Loop::make(plan, projectStartVid, collect, condition);
+    auto* loop = Loop::make(qctx_, projectStartVid, collect, condition);
 
     vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
-    edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
-    statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
-    exprs = std::make_unique<std::vector<storage::cpp2::Expr>>();
-    auto* gn1 =
-        GetNeighbors::make(plan,
-                           loop,
-                           space.id,
-                           src_,
-                           ContainerConv::to<std::vector>(std::move(edgeTypes_)),
-                           // TODO(jmq) add syntax like `BOTH *`, `OUT *` ...
-                           storage::cpp2::EdgeDirection::OUT_EDGE,   // FIXME: make direction right
-                           std::move(vertexProps),
-                           std::move(edgeProps),
-                           std::move(statProps),
-                           std::move(exprs),
-                           true /*subgraph not need duplicate*/);
+    auto* gn1 = GetNeighbors::make(qctx_, bodyStart, space.id);
+    gn1->setSrc(src_);
+    gn1->setVertexProps(std::move(vertexProps));
+    gn1->setEdgeProps(buildEdgeProps());
     gn1->setInputVar(projectVids->varName());
 
-    auto* filter = Filter::make(plan, gn1, qctx_->objPool()->add(buildFilterCondition(steps_.steps)));
+    auto* filter = Filter::make(qctx_, gn1, qctx_->objPool()->add(buildFilterCondition(steps_.steps)));
     filter->setInputVar(gn1->varName());
     filter->setColNames({kVid});
 
     // datacollect
     std::vector<std::string> collects = {gn->varName(), filter->varName()};
     auto* dc =
-        DataCollect::make(plan, filter, DataCollect::CollectKind::kSubgraph, std::move(collects));
+        DataCollect::make(qctx_, filter, DataCollect::CollectKind::kSubgraph, std::move(collects));
     dc->setInputVar(filter->varName());
     dc->setColNames({"_vertices", "_edges"});
     root_ = dc;
