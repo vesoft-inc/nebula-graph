@@ -63,7 +63,7 @@ class TestSpace(NebulaTestSuite):
                            'replica_factor = 1, '\
                            'charset = utf8, '\
                            'collate = utf8_bin, '\
-                           'vid_type = FIEX_STRING(8))';
+                           'vid_type = FIXED_STRING(8))';
 
         expect_result = [['default_space', create_space_str]]
         self.check_result(resp, expect_result)
