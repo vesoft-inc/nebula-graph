@@ -4,18 +4,18 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXECUTOR_LOGIC_STARTEXECUTOR_H_
-#define EXECUTOR_LOGIC_STARTEXECUTOR_H_
+#ifndef EXECUTOR_LOGIC_PASSTHROUGHEXECUTOR_H_
+#define EXECUTOR_LOGIC_PASSTHROUGHEXECUTOR_H_
 
 #include "executor/Executor.h"
 
 namespace nebula {
 namespace graph {
 
-class StartExecutor final : public Executor {
+class PassThroughExecutor final : public Executor {
 public:
-    StartExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("StartExecutor", node, qctx) {}
+    PassThroughExecutor(const PlanNode* node, QueryContext* qctx)
+        : Executor("PassThroughExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };
@@ -23,4 +23,4 @@ public:
 }   // namespace graph
 }   // namespace nebula
 
-#endif   // EXECUTOR_LOGIC_STARTEXECUTOR_H_
+#endif   // EXECUTOR_LOGIC_PASSTHROUGHEXECUTOR_H_

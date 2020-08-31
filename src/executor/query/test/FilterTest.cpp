@@ -24,29 +24,28 @@ public:
 
 #define FILTER_RESUTL_CHECK(inputName, outputName, sentence, expected)                             \
     do {                                                                                           \
-        auto* plan = qctx_->plan();                                                                \
         auto yieldSentence = getYieldSentence(sentence);                                           \
         auto columns = yieldSentence->columns();                                                   \
         for (auto& col : columns) {                                                                \
-            if (col->expr()->kind() == Expression::Kind::kSymProperty) {                           \
-                auto symbolExpr = static_cast<SymbolPropertyExpression*>(col->expr());             \
+            if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {                        \
+                auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());                 \
                 col->setExpr(                                                                      \
-                    ExpressionUtils ::transSymbolPropertyExpression<EdgePropertyExpression>(       \
-                        symbolExpr));                                                              \
+                    ExpressionUtils ::rewriteLabelAttribute<EdgePropertyExpression>(               \
+                        laExpr));                                                                  \
             } else {                                                                               \
-                ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(col->expr());  \
+                ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());       \
             }                                                                                      \
         }                                                                                          \
         auto* filter = yieldSentence->where()->filter();                                           \
-        if (filter->kind() == Expression::Kind::kSymProperty) {                                    \
-            auto symbolExpr = static_cast<SymbolPropertyExpression*>(filter);                      \
+        if (filter->kind() == Expression::Kind::kLabelAttribute) {                                 \
+            auto laExpr = static_cast<LabelAttributeExpression*>(filter);                          \
             yieldSentence->where()->setFilter(                                                     \
-                ExpressionUtils ::transSymbolPropertyExpression<EdgePropertyExpression>(           \
-                    symbolExpr));                                                                  \
+                ExpressionUtils ::rewriteLabelAttribute<EdgePropertyExpression>(                   \
+                    laExpr));                                                                      \
         } else {                                                                                   \
-            ExpressionUtils::transAllSymbolPropertyExpr<EdgePropertyExpression>(filter);           \
+            ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(filter);                \
         }                                                                                          \
-        auto* filterNode = Filter::make(plan, nullptr, yieldSentence->where()->filter());          \
+        auto* filterNode = Filter::make(qctx_.get(), nullptr, yieldSentence->where()->filter());   \
         filterNode->setInputVar(inputName);                                                        \
         filterNode->setOutputVar(outputName);                                                      \
         auto filterExec = std::make_unique<FilterExecutor>(filterNode, qctx_.get());               \
@@ -55,7 +54,7 @@ public:
         EXPECT_EQ(filterResult.state(), Result::State::kSuccess);                                  \
                                                                                                    \
         filterNode->setInputVar(outputName);                                                       \
-        auto* project = Project::make(plan, nullptr, yieldSentence->yieldColumns());               \
+        auto* project = Project::make(qctx_.get(), nullptr, yieldSentence->yieldColumns());        \
         project->setInputVar(filterNode->varName());                                               \
         project->setColNames(std::vector<std::string>{"name"});                                    \
                                                                                                    \

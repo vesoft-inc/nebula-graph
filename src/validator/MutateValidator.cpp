@@ -27,8 +27,7 @@ Status InsertVerticesValidator::validateImpl() {
 }
 
 Status InsertVerticesValidator::toPlan() {
-    auto *plan = qctx_->plan();
-    auto doNode = InsertVertices::make(plan,
+    auto doNode = InsertVertices::make(qctx_,
                                        nullptr,
                                        spaceId_,
                                        std::move(vertices_),
@@ -161,8 +160,7 @@ Status InsertEdgesValidator::validateImpl() {
 }
 
 Status InsertEdgesValidator::toPlan() {
-    auto *plan = qctx_->plan();
-    auto doNode = InsertEdges::make(plan,
+    auto doNode = InsertEdges::make(qctx_,
                                     nullptr,
                                     spaceId_,
                                     std::move(edges_),
@@ -332,18 +330,17 @@ std::string DeleteVerticesValidator::buildVIds() {
     auto* vIds = new VariablePropertyExpression(
             new std::string(input),
             new std::string(kVid));
-    qctx_->plan()->saveObject(vIds);
+    qctx_->objPool()->add(vIds);
     vidRef_ = vIds;
     return input;
 }
 
 Status DeleteVerticesValidator::toPlan() {
-    auto plan = qctx_->plan();
     std::string vidVar;
     if (!vertices_.empty() && vidRef_ == nullptr) {
         vidVar = buildVIds();
     } else if (vidRef_ != nullptr && vidRef_->kind() == Expression::Kind::kVarProperty) {
-        vidVar = *static_cast<SymbolPropertyExpression*>(vidRef_)->sym();
+        vidVar = *static_cast<PropertyExpression*>(vidRef_)->sym();
     }
 
     std::vector<storage::cpp2::EdgeProp> edgeProps;
@@ -356,7 +353,7 @@ Status DeleteVerticesValidator::toPlan() {
                 new EdgeDstIdExpression(new std::string(name)),
                 new EdgeRankExpression(new std::string(name)));
         edgeKeyRef->setType(new EdgeTypeExpression(new std::string(name)));
-        qctx_->plan()->saveObject(edgeKeyRef);
+        qctx_->objPool()->add(edgeKeyRef);
         edgeKeyRefs_.emplace_back(edgeKeyRef);
 
         storage::cpp2::EdgeProp edgeProp;
@@ -376,7 +373,7 @@ Status DeleteVerticesValidator::toPlan() {
     auto edgePropsPtr = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(edgeProps);
     auto statPropsPtr = std::make_unique<std::vector<storage::cpp2::StatProp>>();
     auto exprPtr = std::make_unique<std::vector<storage::cpp2::Expr>>();
-    auto* getNeighbors = GetNeighbors::make(plan,
+    auto* getNeighbors = GetNeighbors::make(qctx_,
                                             nullptr,
                                             spaceId_,
                                             vidRef_,
@@ -389,14 +386,14 @@ Status DeleteVerticesValidator::toPlan() {
     getNeighbors->setInputVar(vidVar);
 
     // create deleteEdges node
-    auto *deNode = DeleteEdges::make(plan,
+    auto *deNode = DeleteEdges::make(qctx_,
                                      getNeighbors,
                                      spaceId_,
                                      std::move(edgeKeyRefs_));
 
     deNode->setInputVar(getNeighbors->varName());
 
-    auto *dvNode = DeleteVertices::make(plan,
+    auto *dvNode = DeleteVertices::make(qctx_,
                                         deNode,
                                         spaceId_,
                                         vidRef_);
@@ -462,7 +459,7 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
     auto* dstIdExpr = new InputPropertyExpression(new std::string(kDst));
     auto* edgeKeyRef = new EdgeKeyRef(srcIdExpr, dstIdExpr, rankExpr);
     edgeKeyRef->setType(typeExpr);
-    qctx_->plan()->saveObject(edgeKeyRef);
+    qctx_->objPool()->add(edgeKeyRef);
 
     edgeKeyRefs_.emplace_back(edgeKeyRef);
     return Status::OK();
@@ -498,14 +495,13 @@ Status DeleteEdgesValidator::checkInput() {
     NG_RETURN_IF_ERROR(status);
 
     if (edgeKeyRef->srcid()->kind() == Expression::Kind::kVarProperty) {
-        edgeKeyVar_ = *static_cast<SymbolPropertyExpression*>(edgeKeyRef->srcid())->sym();
+        edgeKeyVar_ = *static_cast<PropertyExpression*>(edgeKeyRef->srcid())->sym();
     }
     return Status::OK();
 }
 
 Status DeleteEdgesValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = DeleteEdges::make(plan,
+    auto *doNode = DeleteEdges::make(qctx_,
                                      nullptr,
                                      vctx_->whichSpace().id,
                                      edgeKeyRefs_);
@@ -576,11 +572,11 @@ Status UpdateValidator::getUpdateProps() {
             symNames.emplace(name_);
         }
         if (item->getFieldExpr() != nullptr) {
-            DCHECK(item->getFieldExpr()->kind() == Expression::Kind::kSymProperty);
-            auto symExpr = static_cast<const SymbolPropertyExpression*>(item->getFieldExpr());
-            symNames.emplace(*symExpr->sym());
-            symName = symExpr->sym();
-            fieldName = *symExpr->prop();
+            DCHECK(item->getFieldExpr()->kind() == Expression::Kind::kLabelAttribute);
+            auto laExpr = static_cast<const LabelAttributeExpression*>(item->getFieldExpr());
+            symNames.emplace(*laExpr->left()->name());
+            symName = laExpr->left()->name();
+            fieldName = *laExpr->right()->name();
         }
         auto valueExpr = item->value();
         if (valueExpr == nullptr) {
@@ -630,6 +626,8 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
                                                             bool &hasWrongType,
                                                             bool isEdge) {
     switch (expr->kind()) {
+        case Expression::Kind::kVertex:
+        case Expression::Kind::kEdge:
         case Expression::Kind::kConstant: {
             break;
         }
@@ -692,11 +690,12 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
             }
             break;
         }
-        case Expression::Kind::kSymProperty: {
-            auto symExpr = static_cast<SymbolPropertyExpression*>(expr);
+        case Expression::Kind::kLabelAttribute: {
+            auto laExpr = static_cast<LabelAttributeExpression*>(expr);
             if (isEdge) {
                 return std::make_unique<EdgePropertyExpression>(
-                        new std::string(sym), new std::string(*symExpr->prop()));
+                        new std::string(*laExpr->left()->name()),
+                        new std::string(*laExpr->right()->name()));
             } else {
                 hasWrongType = true;
                 return nullptr;
@@ -740,6 +739,7 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
         case Expression::Kind::kList:   // FIXME(dutor)
         case Expression::Kind::kSet:
         case Expression::Kind::kMap:
+        case Expression::Kind::kAttribute:
         case Expression::Kind::kSubscript: {
             hasWrongType = true;
             break;
@@ -768,8 +768,7 @@ Status UpdateVertexValidator::validateImpl() {
 }
 
 Status UpdateVertexValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *update = UpdateVertex::make(plan,
+    auto *update = UpdateVertex::make(qctx_,
                                       nullptr,
                                       spaceId_,
                                       std::move(name_),
@@ -811,8 +810,7 @@ Status UpdateEdgeValidator::validateImpl() {
 }
 
 Status UpdateEdgeValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *outNode = UpdateEdge::make(plan,
+    auto *outNode = UpdateEdge::make(qctx_,
                                      nullptr,
                                      spaceId_,
                                      name_,
@@ -826,7 +824,7 @@ Status UpdateEdgeValidator::toPlan() {
                                      condition_,
                                      {});
 
-    auto *inNode = UpdateEdge::make(plan,
+    auto *inNode = UpdateEdge::make(qctx_,
                                     outNode,
                                     spaceId_,
                                     std::move(name_),

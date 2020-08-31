@@ -47,6 +47,40 @@ TEST_F(QueryValidatorTest, TestFirstSentence) {
     }
 }
 
+TEST_F(QueryValidatorTest, GoZeroStep) {
+    {
+        std::string query = "GO 0 STEPS FROM \"1\" OVER serve";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kPassThrough,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 0 STEPS FROM \"1\" OVER like YIELD like._dst as id"
+                            "| GO FROM $-.id OVER serve";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
+            PK::kPassThrough,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GO 0 TO 0 STEPS FROM \"1\" OVER serve";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kPassThrough,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+}
+
 TEST_F(QueryValidatorTest, GoNSteps) {
     {
         std::string query = "GO 2 STEPS FROM \"1\" OVER like";
@@ -55,6 +89,7 @@ TEST_F(QueryValidatorTest, GoNSteps) {
             PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -69,6 +104,7 @@ TEST_F(QueryValidatorTest, GoNSteps) {
             PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -87,6 +123,7 @@ TEST_F(QueryValidatorTest, GoNSteps) {
             PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -104,6 +141,7 @@ TEST_F(QueryValidatorTest, GoNSteps) {
             PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -118,9 +156,19 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
                             "id | GO 2 STEPS FROM $-.id OVER like";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
+            PK::kDataJoin,
+            PK::kDataJoin,
+            PK::kProject,
             PK::kGetNeighbors,
             PK::kLoop,
+            PK::kDedup,
+            PK::kDedup,
             PK::kProject,
+            PK::kProject,
+            PK::kDedup,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
@@ -135,11 +183,16 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
                             "| GO 1 STEPS FROM $-.id OVER like";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -150,7 +203,11 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
         std::string query = "YIELD \"1\" AS id | GO FROM $-.id OVER like";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kStart
         };
@@ -164,6 +221,8 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kDataJoin,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -180,6 +239,8 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kDataJoin,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -198,6 +259,8 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kDataJoin,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart
@@ -214,10 +277,14 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kGetNeighbors,
             PK::kLoop,
+            PK::kDedup,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
-            PK::kProject,
+            PK::kDedup,
             PK::kDataJoin,
+            PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
@@ -239,10 +306,14 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kGetNeighbors,
             PK::kLoop,
+            PK::kDedup,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
-            PK::kProject,
+            PK::kDedup,
             PK::kDataJoin,
+            PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
@@ -266,10 +337,14 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kGetNeighbors,
             PK::kLoop,
+            PK::kDedup,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
-            PK::kProject,
+            PK::kDedup,
             PK::kDataJoin,
+            PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
@@ -294,6 +369,8 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kDataJoin,
             PK::kProject,
@@ -323,6 +400,8 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kDataJoin,
             PK::kProject,
@@ -350,6 +429,8 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -373,10 +454,14 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kGetNeighbors,
             PK::kLoop,
+            PK::kDedup,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
-            PK::kProject,
+            PK::kDedup,
             PK::kDataJoin,
+            PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
             PK::kDataJoin,
@@ -411,10 +496,14 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kGetNeighbors,
             PK::kLoop,
+            PK::kDedup,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
-            PK::kProject,
+            PK::kDedup,
             PK::kDataJoin,
+            PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
             PK::kDataJoin,
@@ -460,6 +549,8 @@ TEST_F(QueryValidatorTest, GoWithVariable) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -499,6 +590,7 @@ TEST_F(QueryValidatorTest, GoReversely) {
             PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -702,7 +794,11 @@ TEST_F(QueryValidatorTest, GoOneStep) {
                             "| GO FROM $-.id OVER like";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -764,9 +860,17 @@ TEST_F(QueryValidatorTest, OutputToAPipe) {
             "| ( GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve )";
         std::vector<PlanNode::Kind> expected = {
             PK::kProject,
-            PK::kGetNeighbors,
+            PK::kDataJoin,
             PK::kProject,
             PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -785,6 +889,7 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kStart,
             PK::kDedup,
             PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -800,6 +905,7 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kStart,
             PK::kDedup,
             PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -822,6 +928,7 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kDedup,
             PK::kProject,
             PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -837,6 +944,7 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kStart,
             PK::kDedup,
             PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -852,6 +960,7 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kStart,
             PK::kDedup,
             PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -866,6 +975,7 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kLoop,
             PK::kStart,
             PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -887,6 +997,7 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kDedup,
             PK::kProject,
             PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -900,17 +1011,21 @@ TEST_F(QueryValidatorTest, GoMToN) {
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
             PK::kLoop,
-            PK::kProject,
+            PK::kDedup,
             PK::kProject,
             PK::kProject,
             PK::kDataJoin,
-            PK::kProject,
+            PK::kDedup,
             PK::kDataJoin,
+            PK::kProject,
+            PK::kProject,
+            PK::kProject,
+            PK::kDedup,
             PK::kGetNeighbors,
             PK::kProject,
             PK::kStart,
-            PK::kProject,
             PK::kDataJoin,
+            PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
@@ -1019,7 +1134,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kProject,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kStart,
       };
       EXPECT_TRUE(checkResult(query, expected));
@@ -1039,11 +1154,11 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kGetNeighbors,
           PK::kProject,
           PK::kProject,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
           PK::kStart,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
       };
       EXPECT_TRUE(checkResult(query, expected));
   }
@@ -1060,7 +1175,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kProject,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kStart,
       };
       EXPECT_TRUE(checkResult(query, expected));
@@ -1082,7 +1197,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kProject,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kStart,
       };
       EXPECT_TRUE(checkResult(query, expected));
@@ -1098,7 +1213,7 @@ TEST_F(QueryValidatorTest, TestSetValidator) {
           PK::kProject,
           PK::kGetNeighbors,
           PK::kGetNeighbors,
-          PK::kMultiOutputs,
+          PK::kPassThrough,
           PK::kStart,
       };
       EXPECT_TRUE(checkResult(query, expected));

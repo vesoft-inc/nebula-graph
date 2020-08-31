@@ -7,15 +7,15 @@
 #include "planner/PlanNode.h"
 
 #include "common/interface/gen-cpp2/graph_types.h"
-#include "planner/ExecutionPlan.h"
+#include "context/QueryContext.h"
 #include "util/ToJson.h"
 
 namespace nebula {
 namespace graph {
 
-PlanNode::PlanNode(ExecutionPlan* plan, Kind kind) : kind_(kind), plan_(plan) {
-    DCHECK(plan_ != nullptr);
-    plan_->addPlanNode(this);
+PlanNode::PlanNode(int64_t id, Kind kind) : kind_(kind), id_(id) {
+    DCHECK_GE(id_, 0);
+    outputVar_ = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
 }
 
 // static
@@ -55,8 +55,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Loop";
         case Kind::kDedup:
             return "Dedup";
-        case Kind::kMultiOutputs:
-            return "MultiOutputs";
+        case Kind::kPassThrough:
+            return "PassThrough";
         case Kind::kSwitchSpace:
             return "RegisterSpaceToSession";
         case Kind::kCreateSpace:
@@ -113,11 +113,11 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
         case Kind::kDropEdge:
             return "DropEdge";
         case Kind::kShowSpaces:
-            return "kShowSpaces";
+            return "ShowSpaces";
         case Kind::kShowTags:
-            return "kShowTags";
+            return "ShowTags";
         case Kind::kShowEdges:
-            return "kShowEdges";
+            return "ShowEdges";
         case Kind::kCreateSnapshot:
             return "CreateSnapshot";
         case Kind::kDropSnapshot:
@@ -158,7 +158,7 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "SetConfig";
         case Kind::kGetConfig:
             return "GetConfig";
-        // no default so the compiler will warning when lack
+            // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
@@ -191,7 +191,7 @@ std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind) {
 std::unique_ptr<cpp2::PlanNodeDescription> SingleDependencyNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(!desc->__isset.dependencies);
-    desc->set_dependencies({dependency_->id()});
+    desc->set_dependencies({dep()->id()});
     return desc;
 }
 
@@ -204,7 +204,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> SingleInputNode::explain() const {
 std::unique_ptr<cpp2::PlanNodeDescription> BiInputNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(!desc->__isset.dependencies);
-    desc->set_dependencies({left_->id(), right_->id()});
+    desc->set_dependencies({left()->id(), right()->id()});
     addDescription("leftVar", leftVar_, desc.get());
     addDescription("rightVar", rightVar_, desc.get());
     return desc;

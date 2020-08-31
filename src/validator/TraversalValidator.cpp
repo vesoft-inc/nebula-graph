@@ -18,6 +18,11 @@ Status TraversalValidator::validateStep(const StepClause* step) {
         auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
         mToN->mSteps = step->mToN()->mSteps;
         mToN->nSteps = step->mToN()->nSteps;
+
+        if (mToN->mSteps == 0 && mToN->nSteps == 0) {
+            steps_ = 0;
+            return Status::OK();
+        }
         if (mToN->mSteps == 0) {
             mToN->mSteps = 1;
         }
@@ -32,9 +37,6 @@ Status TraversalValidator::validateStep(const StepClause* step) {
         mToN_ = mToN;
     } else {
         auto steps = step->steps();
-        if (steps == 0) {
-            return Status::Error("Only accpet positive number steps.");
-        }
         steps_ = steps;
     }
     return Status::OK();
@@ -64,11 +66,11 @@ Status TraversalValidator::validateFrom(const FromClause* from) {
                 return Status::Error(ss.str());
             }
             srcRef_ = src;
-            auto* symPropExpr = static_cast<SymbolPropertyExpression*>(src);
+            auto* propExpr = static_cast<PropertyExpression*>(src);
             if (fromType_ == kVariable) {
-                userDefinedVarName_ = *(symPropExpr->sym());
+                userDefinedVarName_ = *(propExpr->sym());
             }
-            firstBeginningSrcVidColName_ = *(symPropExpr->prop());
+            firstBeginningSrcVidColName_ = *(propExpr->prop());
         }
     } else {
         auto vidList = from->vidList();
@@ -89,10 +91,9 @@ Status TraversalValidator::validateFrom(const FromClause* from) {
 }
 
 
-Project* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
+PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
     Project* project = nullptr;
-    auto* plan = qctx_->plan();
-    auto* columns = new YieldColumns();
+    auto* columns = qctx_->objPool()->add(new YieldColumns());
     auto* column = new YieldColumn(
         new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
         new std::string(kVid));
@@ -106,13 +107,16 @@ Project* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::strin
         columns->addColumn(column);
     }
 
-    project = Project::make(plan, gn, plan->saveObject(columns));
+    project = Project::make(qctx_, gn, columns);
     project->setInputVar(gn->varName());
-    project->setOutputVar(outputVar);
     project->setColNames(deduceColNames(columns));
     VLOG(1) << project->varName();
 
-    return project;
+    auto* dedupDstVids = Dedup::make(qctx_, project);
+    dedupDstVids->setInputVar(project->varName());
+    dedupDstVids->setOutputVar(outputVar);
+    dedupDstVids->setColNames(project->colNames());
+    return dedupDstVids;
 }
 
 std::string TraversalValidator::buildConstantInput() {
@@ -128,26 +132,32 @@ std::string TraversalValidator::buildConstantInput() {
 
     auto* vids = new VariablePropertyExpression(new std::string(input),
                                                 new std::string(kVid));
-    qctx_->plan()->saveObject(vids);
+    qctx_->objPool()->add(vids);
     src_ = vids;
     return input;
 }
 
 PlanNode* TraversalValidator::buildRuntimeInput() {
-    auto* columns = new YieldColumns();
+    auto pool = qctx_->objPool();
+    auto* columns = pool->add(new YieldColumns());
     auto encode = srcRef_->encode();
     auto decode = Expression::decode(encode);
     auto* column = new YieldColumn(decode.release(), new std::string(kVid));
     columns->addColumn(column);
-    auto plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(qctx_, nullptr, columns);
     if (fromType_ == kVariable) {
         project->setInputVar(userDefinedVarName_);
     }
     project->setColNames({ kVid });
     VLOG(1) << project->varName() << " input: " << project->inputVar();
-    src_ = plan->saveObject(new InputPropertyExpression(new std::string(kVid)));
-    return project;
+    src_ = pool->add(new InputPropertyExpression(new std::string(kVid)));
+
+    auto* dedupVids = Dedup::make(qctx_, project);
+    dedupVids->setInputVar(project->varName());
+    dedupVids->setColNames(project->colNames());
+
+    projectStartVid_ = project;
+    return dedupVids;
 }
 
 Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {
@@ -155,17 +165,13 @@ Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {
     // ++loopSteps{0} <= steps
     auto loopSteps = vctx_->anonVarGen()->getVar();
     qctx_->ectx()->setValue(loopSteps, 0);
-    auto* condition = new RelationalExpression(
+    return qctx_->objPool()->add(new RelationalExpression(
         Expression::Kind::kRelLE,
         new UnaryExpression(
             Expression::Kind::kUnaryIncr,
-            new VersionedVariableExpression(new std::string(loopSteps),
-                                            new ConstantExpression(0))),
-        new ConstantExpression(static_cast<int32_t>(steps)));
-    qctx_->plan()->saveObject(condition);
-    return condition;
+            new VersionedVariableExpression(new std::string(loopSteps), new ConstantExpression(0))),
+        new ConstantExpression(static_cast<int32_t>(steps))));
 }
-
 
 }  // namespace graph
 }  // namespace nebula

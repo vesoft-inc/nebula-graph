@@ -36,89 +36,32 @@ void ValidatorTestBase::bfsTraverse(const PlanNode *root, std::vector<PlanNode::
         visited.emplace(node->id());
         result.emplace_back(node->kind());
 
-        switch (node->kind()) {
-            case PlanNode::Kind::kUnknown:
-                ASSERT_TRUE(false) << "Unknown Plan Node.";
-            case PlanNode::Kind::kStart: {
+        if (node->kind() == PlanNode::Kind::kUnknown) {
+            ASSERT_TRUE(false) << "Unknown Plan Node.";
+        }
+
+        switch (node->dependencies().size()) {
+            case 1: {
+                auto *sNode = static_cast<const SingleDependencyNode *>(node);
+                queue.emplace(sNode->dep());
+                if (node->kind() == PlanNode::Kind::kSelect) {
+                    auto *current = static_cast<const Select *>(node);
+                    queue.emplace(current->then());
+                    if (current->otherwise() != nullptr) {
+                        queue.emplace(current->otherwise());
+                    }
+                } else if (node->kind() == PlanNode::Kind::kLoop) {
+                    auto *current = static_cast<const Loop *>(node);
+                    queue.emplace(current->body());
+                }
                 break;
             }
-            case PlanNode::Kind::kCreateUser:
-            case PlanNode::Kind::kDropUser:
-            case PlanNode::Kind::kUpdateUser:
-            case PlanNode::Kind::kGrantRole:
-            case PlanNode::Kind::kRevokeRole:
-            case PlanNode::Kind::kChangePassword:
-            case PlanNode::Kind::kListUserRoles:
-            case PlanNode::Kind::kListUsers:
-            case PlanNode::Kind::kListRoles:
-            case PlanNode::Kind::kShowHosts:
-            case PlanNode::Kind::kGetNeighbors:
-            case PlanNode::Kind::kGetVertices:
-            case PlanNode::Kind::kGetEdges:
-            case PlanNode::Kind::kIndexScan:
-            case PlanNode::Kind::kFilter:
-            case PlanNode::Kind::kProject:
-            case PlanNode::Kind::kSort:
-            case PlanNode::Kind::kLimit:
-            case PlanNode::Kind::kAggregate:
-            case PlanNode::Kind::kSwitchSpace:
-            case PlanNode::Kind::kMultiOutputs:
-            case PlanNode::Kind::kDedup:
-            case PlanNode::Kind::kDataCollect:
-            case PlanNode::Kind::kCreateSpace:
-            case PlanNode::Kind::kCreateTag:
-            case PlanNode::Kind::kCreateEdge:
-            case PlanNode::Kind::kDescSpace:
-            case PlanNode::Kind::kDescTag:
-            case PlanNode::Kind::kDescEdge:
-            case PlanNode::Kind::kInsertVertices:
-            case PlanNode::Kind::kInsertEdges:
-            case PlanNode::Kind::kShowCreateSpace:
-            case PlanNode::Kind::kShowCreateTag:
-            case PlanNode::Kind::kShowCreateEdge:
-            case PlanNode::Kind::kDropSpace:
-            case PlanNode::Kind::kDropTag:
-            case PlanNode::Kind::kDropEdge:
-            case PlanNode::Kind::kShowSpaces:
-            case PlanNode::Kind::kShowTags:
-            case PlanNode::Kind::kShowEdges:
-            case PlanNode::Kind::kCreateSnapshot:
-            case PlanNode::Kind::kDropSnapshot:
-            case PlanNode::Kind::kShowSnapshots:
-            case PlanNode::Kind::kDataJoin:
-            case PlanNode::Kind::kDeleteVertices:
-            case PlanNode::Kind::kDeleteEdges:
-            case PlanNode::Kind::kUpdateVertex:
-            case PlanNode::Kind::kUpdateEdge: {
-                auto *current = static_cast<const SingleDependencyNode *>(node);
-                queue.emplace(current->dep());
-                break;
-            }
-            case PlanNode::Kind::kUnion:
-            case PlanNode::Kind::kIntersect:
-            case PlanNode::Kind::kMinus: {
+            case 2: {
                 auto *current = static_cast<const BiInputNode *>(node);
                 queue.emplace(current->left());
                 queue.emplace(current->right());
                 break;
             }
-            case PlanNode::Kind::kSelect: {
-                auto *current = static_cast<const Select *>(node);
-                queue.emplace(current->dep());
-                queue.emplace(current->then());
-                if (current->otherwise() != nullptr) {
-                    queue.emplace(current->otherwise());
-                }
-                break;
-            }
-            case PlanNode::Kind::kLoop: {
-                auto *current = static_cast<const Loop *>(node);
-                queue.emplace(current->dep());
-                queue.emplace(current->body());
-                break;
-            }
-            default:
-                LOG(FATAL) << "Unknown PlanNode: " << static_cast<int64_t>(node->kind());
         }
     }
 }
@@ -131,15 +74,15 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
     } else if (l == nullptr && r == nullptr) {
         return Status::OK();
     } else {
-        return Status::Error("%s.this != %s.this", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+        return Status::Error("%s.this != %s.this", l->varName().c_str(), r->varName().c_str());
     }
     if (l->kind() != r->kind()) {
         return Status::Error(
-            "%s.kind_ != %s.kind_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+            "%s.kind_ != %s.kind_", l->varName().c_str(), r->varName().c_str());
     }
     if (l->colNamesRef() != r->colNamesRef()) {
         return Status::Error(
-            "%s.colNames_ != %s.colNames_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+            "%s.colNames_ != %s.colNames_", l->varName().c_str(), r->varName().c_str());
     }
     switch (l->kind()) {
         case PlanNode::Kind::kUnknown:
@@ -153,7 +96,7 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
             if (lDC->collectKind() != rDC->collectKind()) {
                 return Status::Error(
                     "%s.collectKind_ != %s.collectKind_",
-                    l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                    l->varName().c_str(), r->varName().c_str());
             }
             return Status::OK();
         }
@@ -165,16 +108,16 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
                 // TODO(shylock) check more about the anno variable
                 if (lGV->src()->kind() != rGV->src()->kind()) {
                     return Status::Error(
-                        "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                        "%s.src_ != %s.src_", l->varName().c_str(), r->varName().c_str());
                 }
             } else if (lGV->src() != rGV->src()) {
                     return Status::Error(
-                        "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                        "%s.src_ != %s.src_", l->varName().c_str(), r->varName().c_str());
             }
             // props
             if (lGV->props() != rGV->props()) {
                 return Status::Error(
-                    "%s.props_ != %s.props_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                    "%s.props_ != %s.props_", l->varName().c_str(), r->varName().c_str());
             }
             return Status::OK();
         }
@@ -186,38 +129,38 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
                 // TODO(shylock) check more about the anno variable
                 if (lGE->src()->kind() != rGE->src()->kind()) {
                     return Status::Error(
-                        "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                        "%s.src_ != %s.src_", l->varName().c_str(), r->varName().c_str());
                 }
             } else if (lGE->src() != rGE->src()) {
                     return Status::Error(
-                        "%s.src_ != %s.src_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                        "%s.src_ != %s.src_", l->varName().c_str(), r->varName().c_str());
             }
             // dst
             if (lGE->dst() != nullptr && rGE->dst() != nullptr) {
                 if (lGE->dst()->kind() != rGE->dst()->kind()) {
                     return Status::Error(
-                        "%s.dst_ != %s.dst_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                        "%s.dst_ != %s.dst_", l->varName().c_str(), r->varName().c_str());
                 }
             } else if (lGE->dst() != rGE->dst()) {
                     return Status::Error(
-                        "%s.dst_ != %s.dst_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                        "%s.dst_ != %s.dst_", l->varName().c_str(), r->varName().c_str());
             }
             // ranking
             if (lGE->ranking() != nullptr && rGE->ranking() != nullptr) {
                 if (lGE->ranking()->kind() != lGE->ranking()->kind()) {
                     return Status::Error(
                         "%s.ranking_ != %s.ranking_",
-                        l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                        l->varName().c_str(), r->varName().c_str());
                 }
             } else if (lGE->ranking() != rGE->ranking()) {
                     return Status::Error(
                         "%s.ranking_ != %s.ranking_",
-                        l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                        l->varName().c_str(), r->varName().c_str());
             }
             // props
             if (lGE->props() != rGE->props()) {
                 return Status::Error(
-                    "%s.props_ != %s.props_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                    "%s.props_ != %s.props_", l->varName().c_str(), r->varName().c_str());
             }
             return Status::OK();
         }
@@ -230,19 +173,19 @@ Status ValidatorTestBase::EqSelf(const PlanNode *l, const PlanNode *r) {
                 auto rCols = rp->columns()->columns();
                 if (lCols.size() != rCols.size()) {
                     return Status::Error("%s.columns_ != %s.columns_",
-                                         l->nodeLabel().c_str(),
-                                         r->nodeLabel().c_str());
+                                         l->varName().c_str(),
+                                         r->varName().c_str());
                 }
                 for (std::size_t i = 0; i < lCols.size(); ++i) {
                     if (*lCols[i] != *rCols[i]) {
                         return Status::Error("%s.columns_ != %s.columns_",
-                                             l->nodeLabel().c_str(),
-                                             r->nodeLabel().c_str());
+                                             l->varName().c_str(),
+                                             r->varName().c_str());
                     }
                 }
             } else {
                 return Status::Error(
-                    "%s.columns_ != %s.columns_", l->nodeLabel().c_str(), r->nodeLabel().c_str());
+                    "%s.columns_ != %s.columns_", l->varName().c_str(), r->varName().c_str());
             }
             return Status::OK();
         }

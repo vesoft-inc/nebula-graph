@@ -21,9 +21,7 @@ Status FetchVerticesValidator::validateImpl() {
 Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
     std::string vidsVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
-
-    auto *plan = qctx_->plan();
-    auto *getVerticesNode = GetVertices::make(plan,
+    auto *getVerticesNode = GetVertices::make(qctx_,
                                               nullptr,
                                               spaceId_,
                                               src_,
@@ -39,14 +37,14 @@ Status FetchVerticesValidator::toPlan() {
     PlanNode *current = getVerticesNode;
 
     if (withProject_) {
-        auto *projectNode = Project::make(plan, current, newYieldColumns_);
+        auto *projectNode = Project::make(qctx_, current, newYieldColumns_);
         projectNode->setInputVar(current->varName());
         projectNode->setColNames(colNames_);
         current = projectNode;
     }
     // Project select properties then dedup
     if (dedup_) {
-        auto *dedupNode = Dedup::make(plan, current);
+        auto *dedupNode = Dedup::make(qctx_, current);
         dedupNode->setInputVar(current->varName());
         dedupNode->setColNames(colNames_);
         current = dedupNode;
@@ -176,12 +174,12 @@ Status FetchVerticesValidator::prepareProperties() {
         std::vector<std::string> propsName;
         propsName.reserve(yield->columns().size());
         for (auto col : yield->columns()) {
-            if (col->expr()->kind() == Expression::Kind::kSymProperty) {
-                auto symbolExpr = static_cast<SymbolPropertyExpression *>(col->expr());
-                col->setExpr(ExpressionUtils::transSymbolPropertyExpression<TagPropertyExpression>(
-                    symbolExpr));
+            if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
+                auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());
+                col->setExpr(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(
+                    laExpr));
             } else {
-                ExpressionUtils::transAllSymbolPropertyExpr<TagPropertyExpression>(col->expr());
+                ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(col->expr());
             }
             const auto *invalidExpr = findInvalidYieldExpression(col->expr());
             if (invalidExpr != nullptr) {
@@ -192,7 +190,7 @@ Status FetchVerticesValidator::prepareProperties() {
             // The other will be computed in Project Executor
             const auto storageExprs = ExpressionUtils::findAllStorage(col->expr());
             for (const auto &storageExpr : storageExprs) {
-                const auto *expr = static_cast<const SymbolPropertyExpression *>(storageExpr);
+                const auto *expr = static_cast<const PropertyExpression *>(storageExpr);
                 if (*expr->sym() != tagName_) {
                     return Status::Error("Mismatched tag name");
                 }
@@ -249,8 +247,8 @@ std::string FetchVerticesValidator::buildConstantInput() {
     auto input = vctx_->anonVarGen()->getVar();
     qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(srcVids_))).finish());
 
-    src_ = qctx_->plan()->makeAndSave<VariablePropertyExpression>(new std::string(input),
-                                                                  new std::string(kVid));
+    src_ = qctx_->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
+                                                                    new std::string(kVid));
     return input;
 }
 
