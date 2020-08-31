@@ -84,14 +84,6 @@ class TestPermission(NebulaTestSuite):
 
         query = 'USE test_permission_space; CREATE TAG person(name string)'
         resp = self.execute(query)
-        self.check_resp_failed(resp, ttypes.ErrorCode.E_BAD_PERMISSION)
-
-        query = 'USE test_permission_space'
-        resp = self.execute(query)
-        self.check_resp_succeeded(resp)
-
-        query = "CREATE TAG person(name string)"
-        resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
         # change root password, incorrect password.

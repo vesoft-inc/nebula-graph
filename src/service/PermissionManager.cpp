@@ -36,15 +36,15 @@ Status PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
 
 // static
 Status PermissionManager::canReadSchemaOrData(Session *session) {
-    if (session->space() == -1) {
-        LOG(ERROR) << "No space selected";
-        return Status::PermissionError("No space selected.");
-    }
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
     if (session->isGod()) {
         return Status::OK();
+    }
+    if (session->space() == -1) {
+        LOG(ERROR) << "No space selected";
+        return Status::PermissionError("No space selected.");
     }
     auto roleResult = session->roleWithSpace(session->space());
     if (!roleResult.ok()) {
@@ -76,15 +76,15 @@ Status PermissionManager::canWriteSpace(Session *session) {
 
 // static
 Status PermissionManager::canWriteSchema(Session *session) {
-    if (session->space() == -1) {
-        LOG(ERROR) << "No space selected";
-        return Status::PermissionError("No space selected.");
-    }
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
     if (session->isGod()) {
         return Status::OK();
+    }
+    if (session->space() == -1) {
+        LOG(ERROR) << "No space selected";
+        return Status::PermissionError("No space selected.");
     }
     auto roleResult = session->roleWithSpace(session->space());
     if (!roleResult.ok()) {
@@ -160,15 +160,15 @@ Status PermissionManager::canWriteRole(Session *session,
 
 // static
 Status PermissionManager::canWriteData(Session *session) {
-    if (session->space() == -1) {
-        LOG(ERROR) << "No space selected.";
-        return Status::PermissionError("No space selected.");
-    }
     if (!FLAGS_enable_authorize) {
         return Status::OK();
     }
     if (session->isGod()) {
         return Status::OK();
+    }
+    if (session->space() == -1) {
+        LOG(ERROR) << "No space selected.";
+        return Status::PermissionError("No space selected.");
     }
     auto roleResult = session->roleWithSpace(session->space());
     if (!roleResult.ok()) {

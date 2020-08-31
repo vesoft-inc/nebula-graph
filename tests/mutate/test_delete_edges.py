@@ -14,9 +14,8 @@ class TestDeleteEdges(NebulaTestSuite):
     @classmethod
     def prepare(self):
         resp = self.execute('CREATE SPACE TestDeleteEdges(partition_num=1, replica_factor=1);'
-                            'USE TestDeleteEdges;')
-        self.check_resp_succeeded(resp)
-        resp = self.execute('CREATE TAG person(name string, age int);'
+                            'USE TestDeleteEdges;'
+                            'CREATE TAG person(name string, age int);'
                             'CREATE EDGE friend(intimacy int);'
                             'CREATE EDGE schoolmate(likeness int);'
                             'CREATE EDGE transfer(money int);')
