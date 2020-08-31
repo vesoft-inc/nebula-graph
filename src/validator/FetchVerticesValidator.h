@@ -30,6 +30,8 @@ private:
     Status prepareVertices();
 
     Status prepareProperties();
+    Status preparePropertiesWithoutYield();
+    Status preparePropertiesWithYield(const YieldClause *yield);
 
     static const Expression* findInvalidYieldExpression(const Expression* root);
 
