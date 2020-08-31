@@ -139,7 +139,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
 Status GoValidator::toPlan() {
     if (steps_.mToN == nullptr) {
         if (steps_.steps == 0) {
-            auto* passThrough = PassThroughNode::make(qctx_->plan(), nullptr);
+            auto* passThrough = PassThroughNode::make(qctx_, nullptr);
             passThrough->setColNames(std::move(colNames_));
             tail_ = passThrough;
             root_ = tail_;
@@ -382,7 +382,7 @@ Status GoValidator::buildMToNPlan() {
     }
     auto* dataCollect =
         DataCollect::make(qctx_, loop, DataCollect::CollectKind::kMToN, collectVars);
-    dataCollect->setMToN(mToN_);
+    dataCollect->setMToN(steps_.mToN);
     dataCollect->setDistinct(distinct_);
     dataCollect->setColNames(projectResult->colNames());
     root_ = dataCollect;

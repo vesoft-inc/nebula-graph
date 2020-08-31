@@ -181,13 +181,11 @@ std::string TraversalValidator::buildConstantInput() {
 PlanNode* TraversalValidator::buildRuntimeInput() {
     auto pool = qctx_->objPool();
     auto* columns = pool->add(new YieldColumns());
-    auto* columns = new YieldColumns();
     auto encode = from_.srcRef->encode();
     auto decode = Expression::decode(encode);
     auto* column = new YieldColumn(decode.release(), new std::string(kVid));
     columns->addColumn(column);
-    auto plan = qctx_->plan();
-    auto* project = Project::make(plan, nullptr, plan->saveObject(columns));
+    auto* project = Project::make(qctx_, nullptr, columns);
     if (from_.fromType == kVariable) {
         project->setInputVar(from_.userDefinedVarName);
     }
