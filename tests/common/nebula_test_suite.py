@@ -136,12 +136,8 @@ class NebulaTestSuite(object):
         self.client.authenticate(self.user, self.password)
 
     @classmethod
-    def spawn_nebula_client(self, user, password):
-        client = GraphClient(self.client_pool)
-        resp = client.authenticate(user, password)
-        if resp.error_code != ttypes.ErrorCode.SUCCEEDED:
-            client.sign_out()
-        return resp, client
+    def spawn_nebula_client(self):
+        return GraphClient(self.client_pool)
 
     @classmethod
     def close_nebula_client(self, client):
