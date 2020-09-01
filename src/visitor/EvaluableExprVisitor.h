@@ -19,11 +19,77 @@ public:
     }
 
 private:
-    void visit(ConstantExpression*) override {
+    using ExprVisitorImpl::visit;
+
+    void visit(ConstantExpression *) override {
         isEvaluable_ = true;
     }
 
-    bool isEvaluable_{false};
+    void visit(LabelExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(UUIDExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(VariableExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(VersionedVariableExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(TagPropertyExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(EdgePropertyExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(InputPropertyExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(VariablePropertyExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(DestPropertyExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(SourcePropertyExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(EdgeSrcIdExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(EdgeTypeExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(EdgeRankExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(EdgeDstIdExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(VertexExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    void visit(EdgeExpression *) override {
+        isEvaluable_ = false;
+    }
+
+    bool isEvaluable_{true};
 };
 
 }   // namespace graph

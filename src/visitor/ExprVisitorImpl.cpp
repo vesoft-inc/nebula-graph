@@ -9,20 +9,14 @@
 namespace nebula {
 namespace graph {
 
-void ExprVisitorImpl::visit(ConstantExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit constant expr " << expr->toString();
-}
-
 void ExprVisitorImpl::visit(UnaryExpression *expr) {
+    DCHECK(ok());
     expr->operand()->accept(this);
 }
 
 void ExprVisitorImpl::visit(TypeCastingExpression *expr) {
+    DCHECK(ok());
     expr->operand()->accept(this);
-}
-
-void ExprVisitorImpl::visit(LabelExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit label expr " << expr->toString();
 }
 
 // binary expression
@@ -47,6 +41,7 @@ void ExprVisitorImpl::visit(LogicalExpression *expr) {
 }
 
 void ExprVisitorImpl::visit(LabelAttributeExpression *expr) {
+    DCHECK(ok());
     const_cast<LabelExpression *>(expr->left())->accept(this);
     if (ok()) {
         const_cast<LabelExpression *>(expr->right())->accept(this);
@@ -55,6 +50,7 @@ void ExprVisitorImpl::visit(LabelAttributeExpression *expr) {
 
 // function call
 void ExprVisitorImpl::visit(FunctionCallExpression *expr) {
+    DCHECK(ok());
     for (const auto &arg : expr->args()->args()) {
         arg->accept(this);
         if (!ok()) {
@@ -63,20 +59,9 @@ void ExprVisitorImpl::visit(FunctionCallExpression *expr) {
     }
 }
 
-void ExprVisitorImpl::visit(UUIDExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit uuid expr " << expr->toString();
-}
-// variable expression
-void ExprVisitorImpl::visit(VariableExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit variable expr " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(VersionedVariableExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit version variable expr " << expr->toString();
-}
-
 // container expression
 void ExprVisitorImpl::visit(ListExpression *expr) {
+    DCHECK(ok());
     for (auto item : expr->items()) {
         const_cast<Expression *>(item)->accept(this);
         if (!ok()) {
@@ -86,6 +71,7 @@ void ExprVisitorImpl::visit(ListExpression *expr) {
 }
 
 void ExprVisitorImpl::visit(SetExpression *expr) {
+    DCHECK(ok());
     for (auto item : expr->items()) {
         const_cast<Expression *>(item)->accept(this);
         if (!ok()) {
@@ -95,6 +81,7 @@ void ExprVisitorImpl::visit(SetExpression *expr) {
 }
 
 void ExprVisitorImpl::visit(MapExpression *expr) {
+    DCHECK(ok());
     for (auto &pair : expr->items()) {
         const_cast<Expression *>(pair.second)->accept(this);
         if (!ok()) {
@@ -103,57 +90,8 @@ void ExprVisitorImpl::visit(MapExpression *expr) {
     }
 }
 
-// property Expression
-void ExprVisitorImpl::visit(TagPropertyExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit tag property expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(EdgePropertyExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit edge property expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(InputPropertyExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit input property expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(VariablePropertyExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit variable property expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(DestPropertyExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit dst property expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(SourcePropertyExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit source property expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(EdgeSrcIdExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit edge src id expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(EdgeTypeExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit edge type expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(EdgeRankExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit edge rank expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(EdgeDstIdExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit dst id expr: " << expr->toString();
-}
-
-// vertex/edge expression
-void ExprVisitorImpl::visit(VertexExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit vertex expr: " << expr->toString();
-}
-
-void ExprVisitorImpl::visit(EdgeExpression *expr) {
-    VLOG(4) << "ExprVisitorImpl visit edge expr: " << expr->toString();
-}
-
 void ExprVisitorImpl::visitBinaryExpr(BinaryExpression *expr) {
+    DCHECK(ok());
     expr->left()->accept(this);
     if (ok()) {
         expr->right()->accept(this);
