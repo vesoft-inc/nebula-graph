@@ -6,33 +6,33 @@
 
 #include "validator/Validator.h"
 
-#include "service/GraphFlags.h"
+#include "common/function/FunctionManager.h"
 #include "parser/Sentence.h"
 #include "planner/Query.h"
-#include "util/SchemaUtil.h"
 #include "util/ExpressionUtils.h"
+#include "util/SchemaUtil.h"
+#include "validator/ACLValidator.h"
+#include "validator/AdminJobValidator.h"
 #include "validator/AdminValidator.h"
 #include "validator/AssignmentValidator.h"
+#include "validator/BalanceValidator.h"
 #include "validator/ExplainValidator.h"
+#include "validator/FetchEdgesValidator.h"
+#include "validator/FetchVerticesValidator.h"
 #include "validator/GetSubgraphValidator.h"
 #include "validator/GoValidator.h"
+#include "validator/GroupByValidator.h"
 #include "validator/LimitValidator.h"
 #include "validator/MaintainValidator.h"
 #include "validator/MutateValidator.h"
 #include "validator/OrderByValidator.h"
 #include "validator/PipeValidator.h"
-#include "validator/FetchVerticesValidator.h"
-#include "validator/FetchEdgesValidator.h"
 #include "validator/ReportError.h"
 #include "validator/SequentialValidator.h"
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
-#include "validator/ACLValidator.h"
-#include "validator/BalanceValidator.h"
-#include "validator/AdminJobValidator.h"
 #include "validator/YieldValidator.h"
-#include "validator/GroupByValidator.h"
-#include "common/function/FunctionManager.h"
+#include "visitor/EvaluableExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -211,79 +211,18 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
 }
 
 Status Validator::appendPlan(PlanNode* node, PlanNode* appended) {
-    switch (DCHECK_NOTNULL(node)->kind()) {
-        case PlanNode::Kind::kShowHosts:
-        case PlanNode::Kind::kFilter:
-        case PlanNode::Kind::kProject:
-        case PlanNode::Kind::kSort:
-        case PlanNode::Kind::kLimit:
-        case PlanNode::Kind::kAggregate:
-        case PlanNode::Kind::kSelect:
-        case PlanNode::Kind::kLoop:
-        case PlanNode::Kind::kCreateUser:
-        case PlanNode::Kind::kDropUser:
-        case PlanNode::Kind::kUpdateUser:
-        case PlanNode::Kind::kGrantRole:
-        case PlanNode::Kind::kRevokeRole:
-        case PlanNode::Kind::kChangePassword:
-        case PlanNode::Kind::kListUserRoles:
-        case PlanNode::Kind::kListUsers:
-        case PlanNode::Kind::kListRoles:
-        case PlanNode::Kind::kMultiOutputs:
-        case PlanNode::Kind::kSwitchSpace:
-        case PlanNode::Kind::kGetEdges:
-        case PlanNode::Kind::kGetVertices:
-        case PlanNode::Kind::kCreateSpace:
-        case PlanNode::Kind::kCreateTag:
-        case PlanNode::Kind::kCreateEdge:
-        case PlanNode::Kind::kDescSpace:
-        case PlanNode::Kind::kDescTag:
-        case PlanNode::Kind::kDescEdge:
-        case PlanNode::Kind::kInsertVertices:
-        case PlanNode::Kind::kInsertEdges:
-        case PlanNode::Kind::kGetNeighbors:
-        case PlanNode::Kind::kAlterTag:
-        case PlanNode::Kind::kAlterEdge:
-        case PlanNode::Kind::kShowCreateSpace:
-        case PlanNode::Kind::kShowCreateTag:
-        case PlanNode::Kind::kShowCreateEdge:
-        case PlanNode::Kind::kDropSpace:
-        case PlanNode::Kind::kDropTag:
-        case PlanNode::Kind::kDropEdge:
-        case PlanNode::Kind::kShowSpaces:
-        case PlanNode::Kind::kShowTags:
-        case PlanNode::Kind::kShowEdges:
-        case PlanNode::Kind::kCreateSnapshot:
-        case PlanNode::Kind::kDropSnapshot:
-        case PlanNode::Kind::kSubmitJob:
-        case PlanNode::Kind::kShowSnapshots:
-        case PlanNode::Kind::kBalanceLeaders:
-        case PlanNode::Kind::kBalance:
-        case PlanNode::Kind::kStopBalance:
-        case PlanNode::Kind::kShowBalance:
-        case PlanNode::Kind::kDeleteVertices:
-        case PlanNode::Kind::kDeleteEdges:
-        case PlanNode::Kind::kUpdateVertex:
-        case PlanNode::Kind::kUpdateEdge:
-        case PlanNode::Kind::kShowParts:
-        case PlanNode::Kind::kShowCharset:
-        case PlanNode::Kind::kShowCollation:
-        case PlanNode::Kind::kShowConfigs:
-        case PlanNode::Kind::kSetConfig:
-        case PlanNode::Kind::kGetConfig: {
-            static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
-            break;
-        }
-        default: {
-            return Status::SemanticError("%s not support to append an input.",
-                                         PlanNode::toString(node->kind()));
-        }
+    DCHECK(node != nullptr);
+    DCHECK(appended != nullptr);
+    if (node->dependencies().size() != 1) {
+        return Status::SemanticError("%s not support to append an input.",
+                                     PlanNode::toString(node->kind()));
     }
+    static_cast<SingleDependencyNode*>(node)->dependsOn(appended);
     return Status::OK();
 }
 
 Status Validator::appendPlan(PlanNode* root) {
-    return appendPlan(tail_, DCHECK_NOTNULL(root));
+    return appendPlan(tail_, root);
 }
 
 Status Validator::validate() {
@@ -787,101 +726,9 @@ Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps
 }
 
 bool Validator::evaluableExpr(const Expression* expr) const {
-    switch (expr->kind()) {
-        case Expression::Kind::kConstant: {
-            return true;
-        }
-        case Expression::Kind::kAdd:
-        case Expression::Kind::kMinus:
-        case Expression::Kind::kMultiply:
-        case Expression::Kind::kDivision:
-        case Expression::Kind::kMod:
-        case Expression::Kind::kRelEQ:
-        case Expression::Kind::kRelNE:
-        case Expression::Kind::kRelLT:
-        case Expression::Kind::kRelLE:
-        case Expression::Kind::kRelGT:
-        case Expression::Kind::kRelGE:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kRelNotIn:
-        case Expression::Kind::kContains:
-        case Expression::Kind::kSubscript:
-        case Expression::Kind::kAttribute:
-        case Expression::Kind::kLogicalAnd:
-        case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
-            auto biExpr = static_cast<const BinaryExpression*>(expr);
-            return evaluableExpr(biExpr->left()) && evaluableExpr(biExpr->right());
-        }
-        case Expression::Kind::kUnaryPlus:
-        case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr: {
-            auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            return evaluableExpr(unaryExpr->operand());
-        }
-        case Expression::Kind::kFunctionCall: {
-            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
-            for (auto& arg : funcExpr->args()->args()) {
-                if (!evaluableExpr(arg.get())) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        case Expression::Kind::kTypeCasting: {
-            auto castExpr = static_cast<const TypeCastingExpression*>(expr);
-            return evaluableExpr(castExpr->operand());
-        }
-        case Expression::Kind::kList: {
-            auto *list = static_cast<const ListExpression*>(expr);
-            for (auto *item : list->items()) {
-                if (!evaluableExpr(item)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        case Expression::Kind::kSet: {
-            auto *set = static_cast<const SetExpression*>(expr);
-            for (auto *item : set->items()) {
-                if (!evaluableExpr(item)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        case Expression::Kind::kMap: {
-            auto *map = static_cast<const MapExpression*>(expr);
-            for (auto &item : map->items()) {
-                if (!evaluableExpr(item.second)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        case Expression::Kind::kDstProperty:
-        case Expression::Kind::kSrcProperty:
-        case Expression::Kind::kTagProperty:
-        case Expression::Kind::kEdgeProperty:
-        case Expression::Kind::kEdgeSrc:
-        case Expression::Kind::kEdgeType:
-        case Expression::Kind::kEdgeRank:
-        case Expression::Kind::kEdgeDst:
-        case Expression::Kind::kUUID:
-        case Expression::Kind::kVar:
-        case Expression::Kind::kVersionedVar:
-        case Expression::Kind::kVarProperty:
-        case Expression::Kind::kInputProperty:
-        case Expression::Kind::kLabelAttribute:
-        case Expression::Kind::kVertex:
-        case Expression::Kind::kEdge:
-        case Expression::Kind::kLabel: {
-            return false;
-        }
-    }
-    return false;
+    EvaluableExprVisitor visitor;
+    const_cast<Expression*>(expr)->accept(&visitor);
+    return visitor.ok();
 }
 
 // static
@@ -1027,4 +874,3 @@ void ExpressionProps::unionProps(ExpressionProps exprProps) {
 }
 }   // namespace graph
 }   // namespace nebula
-

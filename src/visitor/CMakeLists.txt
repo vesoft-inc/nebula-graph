@@ -4,12 +4,6 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 nebula_add_library(
-    planner_obj OBJECT
-    PlanNode.cpp
-    ExecutionPlan.cpp
-    Admin.cpp
-    Logic.cpp
-    Query.cpp
-    Mutate.cpp
-    Maintain.cpp
+    expr_visitor_obj OBJECT
+    ExprVisitorImpl.cpp
 )

@@ -9,7 +9,6 @@
 
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
-#include "util/IdGenerator.h"
 
 namespace nebula {
 namespace graph {
@@ -17,8 +16,6 @@ namespace graph {
 namespace cpp2 {
 class PlanNodeDescription;
 }   // namespace cpp2
-
-class ExecutionPlan;
 
 /**
  * PlanNode is an abstraction of nodes in an execution plan which
@@ -45,7 +42,7 @@ public:
         kLoop,
         kSwitchSpace,
         kDedup,
-        kMultiOutputs,
+        kPassThrough,
         kCreateSpace,
         kCreateTag,
         kCreateEdge,
@@ -98,7 +95,7 @@ public:
         kGetConfig,
     };
 
-    PlanNode(ExecutionPlan* plan, Kind kind);
+    PlanNode(int64_t id, Kind kind);
 
     virtual ~PlanNode() = default;
 
@@ -121,10 +118,6 @@ public:
         return outputVar_;
     }
 
-    const ExecutionPlan* plan() const {
-        return plan_;
-    }
-
     std::vector<std::string> colNames() const {
         return colNames_;
     }
@@ -135,11 +128,6 @@ public:
 
     void setId(int64_t id) {
         id_ = id;
-        outputVar_ = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
-    }
-
-    void setPlan(ExecutionPlan* plan) {
-        plan_ = plan;
     }
 
     void setColNames(std::vector<std::string>&& cols) {
@@ -150,21 +138,30 @@ public:
         colNames_ = cols;
     }
 
-    static const char* toString(Kind kind);
-
-    const std::string& nodeLabel() const {
-        return outputVar_;
+    const PlanNode* dep(size_t index = 0) const {
+        DCHECK_LT(index, dependencies_.size());
+        return dependencies_.at(index);
     }
+
+    void setDep(size_t index, const PlanNode* dep) {
+        DCHECK_LT(index, dependencies_.size());
+        dependencies_[index] = DCHECK_NOTNULL(dep);
+    }
+
+    const std::vector<const PlanNode*>& dependencies() const {
+        return dependencies_;
+    }
+
+    static const char* toString(Kind kind);
 
 protected:
     static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);
 
     Kind                                     kind_{Kind::kUnknown};
-    int64_t                                  id_{IdGenerator::INVALID_ID};
-    ExecutionPlan*                           plan_{nullptr};
-    using VariableName = std::string;
-    VariableName                             outputVar_;
+    int64_t                                  id_{-1};
+    std::string                              outputVar_;
     std::vector<std::string>                 colNames_;
+    std::vector<const PlanNode*>             dependencies_;
 };
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
@@ -175,21 +172,17 @@ std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
 // It's useful for admin plan node
 class SingleDependencyNode : public PlanNode {
 public:
-    const PlanNode* dep() const {
-        return dependency_;
-    }
-
-    void dependsOn(PlanNode *dep) {
-        dependency_ = DCHECK_NOTNULL(dep);
+    void dependsOn(const PlanNode* dep) {
+        setDep(0, dep);
     }
 
 protected:
-    SingleDependencyNode(ExecutionPlan *plan, Kind kind, const PlanNode *dep)
-        : PlanNode(plan, kind), dependency_(dep) {}
+    SingleDependencyNode(int64_t id, Kind kind, const PlanNode* dep)
+        : PlanNode(id, kind) {
+        dependencies_.emplace_back(dep);
+    }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
-
-    const PlanNode *dependency_;
 };
 
 class SingleInputNode : public SingleDependencyNode {
@@ -205,8 +198,8 @@ public:
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
-    SingleInputNode(ExecutionPlan* plan, Kind kind, const PlanNode* dep)
-        : SingleDependencyNode(plan, kind, dep) {
+    SingleInputNode(int64_t id, Kind kind, const PlanNode* dep)
+        : SingleDependencyNode(id, kind, dep) {
     }
 
     // Datasource for this node.
@@ -215,12 +208,12 @@ protected:
 
 class BiInputNode : public PlanNode {
 public:
-    void setLeft(PlanNode* left) {
-        left_ = left;
+    void setLeft(const PlanNode* left) {
+        setDep(0, left);
     }
 
-    void setRight(PlanNode* right) {
-        right_ = right;
+    void setRight(const PlanNode* right) {
+        setDep(1, right);
     }
 
     void setLeftVar(std::string leftVar) {
@@ -232,11 +225,11 @@ public:
     }
 
     const PlanNode* left() const {
-        return left_;
+        return dep(0);
     }
 
     const PlanNode* right() const {
-        return right_;
+        return dep(1);
     }
 
     const std::string& leftInputVar() const {
@@ -250,12 +243,12 @@ public:
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
-    BiInputNode(ExecutionPlan* plan, Kind kind, PlanNode* left, PlanNode* right)
-        : PlanNode(plan, kind), left_(left), right_(right) {
+    BiInputNode(int64_t id, Kind kind, PlanNode* left, PlanNode* right)
+        : PlanNode(id, kind) {
+        dependencies_.emplace_back(DCHECK_NOTNULL(left));
+        dependencies_.emplace_back(DCHECK_NOTNULL(right));
     }
 
-    PlanNode* left_{nullptr};
-    PlanNode* right_{nullptr};
     // Datasource for this node.
     std::string leftVar_;
     std::string rightVar_;

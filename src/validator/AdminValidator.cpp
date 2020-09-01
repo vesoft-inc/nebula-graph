@@ -106,8 +106,7 @@ Status CreateSpaceValidator::validateImpl() {
 }
 
 Status CreateSpaceValidator::toPlan() {
-    auto *plan = qctx_->plan();
-    auto *doNode = CreateSpace::make(plan, nullptr, std::move(spaceDesc_), ifNotExist_);
+    auto *doNode = CreateSpace::make(qctx_, nullptr, std::move(spaceDesc_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -119,8 +118,7 @@ Status DescSpaceValidator::validateImpl() {
 
 Status DescSpaceValidator::toPlan() {
     auto sentence = static_cast<DescribeSpaceSentence*>(sentence_);
-    auto *plan = qctx_->plan();
-    auto *doNode = DescSpace::make(plan, nullptr, *sentence->spaceName());
+    auto *doNode = DescSpace::make(qctx_, nullptr, *sentence->spaceName());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -131,8 +129,7 @@ Status ShowSpacesValidator::validateImpl() {
 }
 
 Status ShowSpacesValidator::toPlan() {
-    auto *plan = qctx_->plan();
-    auto *doNode = ShowSpaces::make(plan, nullptr);
+    auto *doNode = ShowSpaces::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -143,9 +140,8 @@ Status DropSpaceValidator::validateImpl() {
 }
 
 Status DropSpaceValidator::toPlan() {
-    auto *plan = qctx_->plan();
     auto sentence = static_cast<DropSpaceSentence*>(sentence_);
-    auto *doNode = DropSpace::make(plan, nullptr, *sentence->spaceName(), sentence->isIfExists());
+    auto *doNode = DropSpace::make(qctx_, nullptr, *sentence->spaceName(), sentence->isIfExists());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -164,10 +160,9 @@ Status ShowCreateSpaceValidator::checkPermission() {
 }
 
 Status ShowCreateSpaceValidator::toPlan() {
-    auto* plan = qctx_->plan();
     auto sentence = static_cast<ShowCreateSpaceSentence*>(sentence_);
     auto spaceName = *sentence->spaceName();
-    auto *doNode = ShowCreateSpace::make(plan, nullptr, std::move(spaceName));
+    auto *doNode = ShowCreateSpace::make(qctx_, nullptr, std::move(spaceName));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -178,8 +173,7 @@ Status CreateSnapshotValidator::validateImpl() {
 }
 
 Status CreateSnapshotValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = CreateSnapshot::make(plan, nullptr);
+    auto *doNode = CreateSnapshot::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -190,9 +184,8 @@ Status DropSnapshotValidator::validateImpl() {
 }
 
 Status DropSnapshotValidator::toPlan() {
-    auto* plan = qctx_->plan();
     auto sentence = static_cast<DropSnapshotSentence*>(sentence_);
-    auto *doNode = DropSnapshot::make(plan, nullptr, *sentence->name());
+    auto *doNode = DropSnapshot::make(qctx_, nullptr, *sentence->name());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -203,8 +196,7 @@ Status ShowSnapshotsValidator::validateImpl() {
 }
 
 Status ShowSnapshotsValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = ShowSnapshots::make(plan, nullptr);
+    auto *doNode = ShowSnapshots::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -215,7 +207,7 @@ Status ShowHostsValidator::validateImpl() {
 }
 
 Status ShowHostsValidator::toPlan() {
-    auto *showHosts = ShowHosts::make(qctx_->plan(), nullptr);
+    auto *showHosts = ShowHosts::make(qctx_, nullptr);
     root_ = showHosts;
     tail_ = root_;
     return Status::OK();
@@ -226,13 +218,12 @@ Status ShowPartsValidator::validateImpl() {
 }
 
 Status ShowPartsValidator::toPlan() {
-    auto* plan = qctx_->plan();
     auto sentence = static_cast<ShowPartsSentence*>(sentence_);
     std::vector<PartitionID> partIds;
     if (sentence->getList() != nullptr) {
         partIds = *sentence->getList();
     }
-    auto *node = ShowParts::make(plan,
+    auto *node = ShowParts::make(qctx_,
                                  nullptr,
                                  vctx_->whichSpace().id,
                                  std::move(partIds));
@@ -246,8 +237,7 @@ Status ShowCharsetValidator::validateImpl() {
 }
 
 Status ShowCharsetValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *node = ShowCharset::make(plan, nullptr);
+    auto *node = ShowCharset::make(qctx_, nullptr);
     root_ = node;
     tail_ = root_;
     return Status::OK();
@@ -258,8 +248,7 @@ Status ShowCollationValidator::validateImpl() {
 }
 
 Status ShowCollationValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *node = ShowCollation::make(plan, nullptr);
+    auto *node = ShowCollation::make(qctx_, nullptr);
     root_ = node;
     tail_ = root_;
     return Status::OK();
@@ -278,8 +267,7 @@ Status ShowConfigsValidator::toPlan() {
     } else {
         module = meta::cpp2::ConfigModule::ALL;
     }
-    auto* plan = qctx_->plan();
-    auto *doNode = ShowConfigs::make(plan, nullptr, module);
+    auto *doNode = ShowConfigs::make(qctx_, nullptr, module);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -331,8 +319,7 @@ Status SetConfigValidator::validateImpl() {
 }
 
 Status SetConfigValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = SetConfig::make(plan,
+    auto *doNode = SetConfig::make(qctx_,
                                    nullptr,
                                    module_,
                                    std::move(name_),
@@ -358,8 +345,7 @@ Status GetConfigValidator::validateImpl() {
 }
 
 Status GetConfigValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = GetConfig::make(plan,
+    auto *doNode = GetConfig::make(qctx_,
                                    nullptr,
                                    module_,
                                    std::move(name_));

@@ -25,6 +25,8 @@ set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:common_meta_client_obj>
     $<TARGET_OBJECTS:common_conf_obj>
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
+    $<TARGET_OBJECTS:session_obj>
+    $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:util_obj>
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:planner_obj>
@@ -35,21 +37,28 @@ nebula_add_test(
     NAME parser_test
     SOURCES ParserTest.cpp
     OBJECTS ${PARSER_TEST_LIBS}
-    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES}
 )
 
 nebula_add_test(
     NAME scanner_test
     SOURCES ScannerTest.cpp
     OBJECTS ${PARSER_TEST_LIBS}
-    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES} wangle
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES}
 )
 
 nebula_add_executable(
     NAME parser_bm
     SOURCES ParserBenchmark.cpp
     OBJECTS ${PARSER_TEST_LIBS}
-    LIBRARIES follybenchmark boost_regex ${THRIFT_LIBRARIES} wangle
+    LIBRARIES follybenchmark boost_regex ${THRIFT_LIBRARIES}
+)
+
+nebula_add_test(
+    NAME expression_parsing_test
+    SOURCES ExpressionParsingTest.cpp
+    OBJECTS ${PARSER_TEST_LIBS}
+    LIBRARIES gtest gtest_main ${THRIFT_LIBRARIES}
 )
 
 if(ENABLE_FUZZ_TEST)
