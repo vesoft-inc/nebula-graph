@@ -41,7 +41,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             starts.firstBeginningSrcVidColName = *(propExpr->prop());
         }
     } else {
-        auto vidList = from->vidList();
+        auto vidList = clause->vidList();
         QueryExpressionContext ctx;
         for (auto* expr : vidList) {
             if (!evaluableExpr(expr)) {
