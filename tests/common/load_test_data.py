@@ -69,6 +69,7 @@ class LoadGlobalData(object):
                         resp = self.client.execute(ngql_statement)
                         assert resp.error_code == ttypes.ErrorCode.SUCCEEDED, resp.error_msg
                         ngql_statement = ""
+                        dataType[0] = 'none'
 
     # The whole test will load once, for the only read tests
     def load_student(self):
@@ -306,7 +307,7 @@ class LoadGlobalData(object):
 
         props = dict()
         name = CommonTtypes.Value()
-        name.set_sVal(line[1])
+        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
         props[bytes('name', encoding = 'utf-8')] = name
         tag.props = props
         tags.append(tag)

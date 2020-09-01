@@ -56,8 +56,6 @@ class NebulaTestSuite(object):
 
     @classmethod
     def load_data(self):
-        self.vertexs = dict()
-        self.edges = dict()
         self.data_loaded = True
         pathlist = Path(self.data_dir).rglob('*.ngql')
         for path in pathlist:
@@ -95,7 +93,6 @@ class NebulaTestSuite(object):
                             resp = self.execute(ngql_statement)
                             self.check_resp_succeeded(resp)
                             ngql_statement = ""
-                            dataType[0] = 'none'
 
     @classmethod
     def drop_data(self):
@@ -361,7 +358,6 @@ class NebulaTestSuite(object):
             return False, 'Wrong val type'
         return True, value
 
-
     @classmethod
     def convert_expect(self, expect):
         result = []
@@ -399,6 +395,7 @@ class NebulaTestSuite(object):
             ok, new_expect, msg = self.convert_expect(expect)
             if not ok:
                 assert ok, 'convert expect failed, error msg: {}'.format(msg)
+        #import pdb; pdb.set_trace()
         for row, i in zip(rows, range(0, len(new_expect))):
             if isinstance(new_expect[i], CommonTtypes.Row):
                 assert len(row.values) - len(ignore_col) == len(new_expect[i].values), '{}, {}, {}'.format(len(row.values), len(ignore_col), len(new_expect[i].values))
@@ -422,10 +419,6 @@ class NebulaTestSuite(object):
                         self.row_to_string(row), expect_to_string, msg)
 
     @classmethod
-    def data_sort(self, rows):
-        pass
-
-    @classmethod
     def check_out_of_order_result(self, resp, expect, ignore_col: Set[int] = set()):
         if resp.data is None and len(expect) == 0:
             return
@@ -438,7 +431,6 @@ class NebulaTestSuite(object):
         if not ok:
             assert ok, 'convert expect failed, error msg: {}'.format(msg)
         rows = resp.data.rows
-        #import pdb; pdb.set_trace()
         sorted_rows = sorted(rows, key=str)
         resp.data.rows = sorted_rows
         sorted_expect = sorted(new_expect, key=str)

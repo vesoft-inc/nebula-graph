@@ -7,8 +7,6 @@
 #include "validator/GetSubgraphValidator.h"
 
 #include "common/expression/UnaryExpression.h"
-#include "common/expression/Expression.h"
-#include "util/ContainerConv.h"
 #include "common/expression/VariableExpression.h"
 #include "context/QueryExpressionContext.h"
 #include "parser/TraverseSentences.h"
@@ -187,11 +185,23 @@ Status GetSubgraphValidator::toPlan() {
         startVidsVar = projectStartVid->varName();
     }
 
+    if (steps_ == 0) {
+        std::vector<storage::cpp2::Expr> exprs;
+        std::vector<storage::cpp2::VertexProp> vertexProps;
+        auto* getVertexProps = GetVertices::make(
+            qctx_, bodyStart, space.id, src_, std::move(vertexProps), std::move(exprs), true);
+        getVertexProps->setInputVar(startVidsVar);
+        root_ = getVertexProps;
+        tail_ = root_;
+        return Status::OK();
+    }
+
     auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space.id);
     gn->setSrc(src_);
     gn->setVertexProps(std::move(vertexProps));
     gn->setEdgeProps(buildEdgeProps());
+    gn->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn->setInputVar(startVidsVar);
 
     auto* projectVids = projectDstVidsFromGN(gn, startVidsVar);
@@ -217,10 +227,12 @@ Status GetSubgraphValidator::toPlan() {
     auto* loop = Loop::make(qctx_, projectStartVid, collect, condition);
 
     vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
-    auto* gn1 = GetNeighbors::make(qctx_, bodyStart, space.id);
+    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+    auto* gn1 = GetNeighbors::make(qctx_, loop, space.id);
     gn1->setSrc(src_);
     gn1->setVertexProps(std::move(vertexProps));
-    gn1->setEdgeProps(buildEdgeProps());
+    gn1->setEdgeProps(std::move(edgeProps));
+    gn1->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn1->setInputVar(projectVids->varName());
 
     auto* filter = Filter::make(qctx_, gn1, qctx_->objPool()->add(buildFilterCondition(steps_.steps)));

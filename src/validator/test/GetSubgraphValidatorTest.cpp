@@ -125,15 +125,25 @@ TEST_F(GetSubgraphValidatorTest, Input) {
         };
         EXPECT_TRUE(checkResult(query, expected));
     }
+    {
+        std::string query = "GET SUBGRAPH 0 STEPS FROM \"1\"";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kGetVertices,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query = "GET SUBGRAPH 0 STEPS FROM \"1\", \"2\", \"3\"";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kGetVertices,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
 }
 
 TEST_F(GetSubgraphValidatorTest, RefNotExist) {
-    {
-        std::string query = "GET SUBGRAPH 0 STEPS FROM \"1\"";
-        auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Only accpet positive number steps.");
-    }
     {
         std::string query = "GET SUBGRAPH FROM $-.id";
         auto result = checkResult(query);
