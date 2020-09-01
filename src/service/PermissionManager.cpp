@@ -19,7 +19,7 @@ Status PermissionManager::canReadSpace(Session *session, GraphSpaceID spaceId) {
     }
     auto roleResult = session->roleWithSpace(spaceId);
     if (!roleResult.ok()) {
-        return Status::PermissionError("No permission to read space %d.", spaceId);
+        return Status::PermissionError("No permission to read space.");
     }
     auto role = roleResult.value();
     switch (role) {
@@ -152,10 +152,9 @@ Status PermissionManager::canWriteRole(Session *session,
     if (role == meta::cpp2::RoleType::ADMIN && targetRole != meta::cpp2::RoleType::ADMIN) {
         return Status::OK();
     }
-    return Status::PermissionError("No permission to grant/revoke `%s' to `%s' on space `%d'.",
+    return Status::PermissionError("No permission to grant/revoke `%s' to `%s'.",
                                    meta::cpp2::_RoleType_VALUES_TO_NAMES.at(role),
-                                   targetUser.c_str(),
-                                   spaceId);
+                                   targetUser.c_str());
 }
 
 // static
