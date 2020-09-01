@@ -4,21 +4,23 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXECUTOR_QUERY_PRODUCESEMISHORTESTPATHEXECUTOR_H_
-#define EXECUTOR_QUERY_PRODUCESEMISHORTESTPATHEXECUTOR_H_
+#ifndef EXECUTOR_QUERY_BFSSHORTESTPATHEXECUTOR_H_
+#define EXECUTOR_QUERY_BFSSHORTESTPATHEXECUTOR_H_
 
 #include "executor/Executor.h"
 
 namespace nebula {
 namespace graph {
-class ProduceSemiShortestPathExecutor final : public Executor {
+class BFSShortestPathExecutor final : public Executor {
 public:
-    ProduceSemiShortestPathExecutor(const PlanNode* node, QueryContext* qctx)
-        : Executor("ProduceSemiShortestPath", node, qctx) {}
+    BFSShortestPathExecutor(const PlanNode* node, QueryContext* qctx)
+        : Executor("BFSShortestPath", node, qctx) {}
 
     folly::Future<Status> execute() override;
 
 private:
+    std::unordered_set<Value>               visited_;
+    std::multimap<Value, const Path*>       path_;
 };
 }  // namespace graph
 }  // namespace nebula

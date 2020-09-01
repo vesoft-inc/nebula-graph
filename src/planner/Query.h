@@ -951,6 +951,10 @@ class ProduceSemiShortestPath : public PlanNode {
 public:
 };
 
+class BFSShortestPath : public SingleInputNode {
+public:
+};
+
 class ConjunctPath : public PlanNode {
 public:
 };
