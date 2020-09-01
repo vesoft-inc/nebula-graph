@@ -406,11 +406,7 @@ public:
     using IndexQueryCtx = std::unique_ptr<std::vector<storage::cpp2::IndexQueryContext>>;
     using IndexReturnCols = std::unique_ptr<std::vector<std::string>>;
 
-    static IndexScan* make(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space) {
-        return new IndexScan(plan, input, space);
-    }
-
-    static IndexScan* make(ExecutionPlan* plan,
+    static IndexScan* make(QueryContext* qctx,
                            PlanNode* input,
                            GraphSpaceID space,
                            IndexQueryCtx&& contexts,
@@ -421,17 +417,17 @@ public:
                            std::vector<storage::cpp2::OrderBy> orderBy = {},
                            int64_t limit = std::numeric_limits<int64_t>::max(),
                            std::string filter = "") {
-        return new IndexScan(plan,
-                             input,
-                             space,
-                             std::move(contexts),
-                             std::move(returnCols),
-                             isEdge,
-                             schemaId,
-                             dedup,
-                             std::move(orderBy),
-                             limit,
-                             std::move(filter));
+        return qctx->objPool()->add(new IndexScan(qctx->genId(),
+                                                  input,
+                                                  space,
+                                                  std::move(contexts),
+                                                  std::move(returnCols),
+                                                  isEdge,
+                                                  schemaId,
+                                                  dedup,
+                                                  std::move(orderBy),
+                                                  limit,
+                                                  std::move(filter)));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -469,21 +465,18 @@ public:
     }
 
 private:
-    IndexScan(ExecutionPlan* plan, PlanNode* input, GraphSpaceID space)
-    : Explore(plan, Kind::kIndexScan, input, space) {}
-
-    IndexScan(ExecutionPlan* plan,
-           PlanNode* input,
-           GraphSpaceID space,
-           IndexQueryCtx&& contexts,
-           IndexReturnCols&& returnCols,
-           bool isEdge,
-           int32_t schemaId,
-           bool dedup,
-           std::vector<storage::cpp2::OrderBy> orderBy,
-           int64_t limit,
-           std::string filter)
-    : Explore(plan,
+    IndexScan(int64_t id,
+              PlanNode* input,
+              GraphSpaceID space,
+              IndexQueryCtx&& contexts,
+              IndexReturnCols&& returnCols,
+              bool isEdge,
+              int32_t schemaId,
+              bool dedup,
+              std::vector<storage::cpp2::OrderBy> orderBy,
+              int64_t limit,
+              std::string filter)
+    : Explore(id,
               Kind::kIndexScan,
               input,
               space,
