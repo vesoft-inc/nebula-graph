@@ -134,10 +134,10 @@ class NebulaService(object):
 
     def check_procs_alive(self):
         process = subprocess.Popen(['ps', '-eo' ,'pid,args'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, notused = process.communicate()
-        for line in stdout.splitlines():
-            pid, cmdline = bytes.decode(line).split(' ', 1)
+        stdout = process.communicate()
+        for line in bytes.decode(stdout[0]).splitlines():
+            pid = line.lstrip().split(' ', 1)[0]
             for p in self.pids:
-                if self.pids[p] == int(pid):
+                if str(self.pids[p]) == str(pid):
                     return True
         return False
