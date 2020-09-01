@@ -686,7 +686,7 @@ std::vector<storage::cpp2::VertexProp> GoValidator::buildDstVertexProps() {
 
 std::vector<std::string> GoValidator::buildDstVertexColNames() {
     std::vector<std::string> dstColNames;
-    dstColNames.reserve(exprProps_.dstTagProps().size());
+    dstColNames.reserve(exprProps_.dstTagProps().size() + 1);
     dstColNames.emplace_back(kVid);
     for (const auto &tagProps : exprProps_.dstTagProps()) {
         auto tagId = tagProps.first;
