@@ -23,8 +23,8 @@ protected:
 };
 
 TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
-    auto src = std::make_unique<VariablePropertyExpression>(
-        new std::string("_VARNAME_"), new std::string("VertexID"));
+    auto src = std::make_unique<VariablePropertyExpression>(new std::string("_VARNAME_"),
+                                                            new std::string("VertexID"));
     {
         auto qctx = getQCtx("FETCH PROP ON person \"1\"");
 
@@ -35,12 +35,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         auto tagId = tagIdResult.value();
         storage::cpp2::VertexProp prop;
         prop.set_tag(tagId);
-        auto *gv = GetVertices::make(qctx,
-                                     start,
-                                     1,
-                                     src.get(),
-                                     std::vector<storage::cpp2::VertexProp>{std::move(prop)},
-                                     {});
+        auto *gv = GetVertices::make(
+            qctx, start, 1, src.get(), std::vector<storage::cpp2::VertexProp>{std::move(prop)}, {});
         gv->setColNames({"VertexID", "person.name", "person.age"});
         auto result = Eq(qctx->plan()->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
@@ -230,8 +226,17 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
 
         auto *start = StartNode::make(qctx);
 
-        auto *gv = GetVertices::make(
-            qctx, start, 1, src.get(), {}, {});
+        auto *gv = GetVertices::make(qctx, start, 1, src.get(), {}, {});
+        gv->setColNames({"VertexID", "person.name", "person.age"});
+        auto result = Eq(qctx->plan()->root(), gv);
+        ASSERT_TRUE(result.ok()) << result;
+    }
+    {
+        auto qctx = getQCtx("FETCH PROP ON * \"1\", \"2\"");
+
+        auto *start = StartNode::make(qctx);
+
+        auto *gv = GetVertices::make(qctx, start, 1, src.get(), {}, {});
         gv->setColNames({"VertexID", "person.name", "person.age"});
         auto result = Eq(qctx->plan()->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
@@ -285,6 +290,30 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kStart,
+                                }));
+    }
+    // on *
+    {
+        const std::string query = "FETCH PROP ON person \"1\", \"2\" YIELD person.name AS name"
+                                  "| FETCH PROP ON * $-.name";
+        EXPECT_TRUE(checkResult(query,
+                                {
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kGetVertices,
+                                    PlanNode::Kind::kStart,
+                                }));
+    }
+    {
+        const std::string query =
+            "$a = FETCH PROP ON person \"1\", \"2\" YIELD person.name AS name;"
+            "FETCH PROP ON * $a.name";
+        EXPECT_TRUE(checkResult(query,
+                                {
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
