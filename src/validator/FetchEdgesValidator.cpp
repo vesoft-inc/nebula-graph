@@ -173,16 +173,15 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
     dedup_ = newYield_->isDistinct();
     for (auto col : newYield_->columns()) {
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());
-            col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(
-                laExpr));
+            auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
+            col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr));
         } else {
             ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());
         }
         const auto *invalidExpr = findInvalidYieldExpression(col->expr());
         if (invalidExpr != nullptr) {
             return Status::Error("Invalid newYield_ expression `%s'.",
-                                    col->expr()->toString().c_str());
+                                 col->expr()->toString().c_str());
         }
         // The properties from storage directly push down only
         // The other will be computed in Project Executor
@@ -195,11 +194,11 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
             // Check is prop name in schema
             if (schema_->getFieldIndex(*expr->prop()) < 0 &&
                 reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
-                LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `"
-                            << edgeTypeName_ << "'.";
+                LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `" << edgeTypeName_
+                           << "'.";
                 return Status::Error("Unknown column `%s' in edge `%s'",
-                                        expr->prop()->c_str(),
-                                        edgeTypeName_.c_str());
+                                     expr->prop()->c_str(),
+                                     edgeTypeName_.c_str());
             }
             propsName.emplace_back(*expr->prop());
             geColNames_.emplace_back(*expr->sym() + "." + *expr->prop());
@@ -241,7 +240,7 @@ Status FetchEdgesValidator::preparePropertiesWithoutYield() {
     for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
         propNames.emplace_back(schema_->getFieldName(i));
         outputs_.emplace_back(schema_->getFieldName(i),
-                                SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
+                              SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
         colNames_.emplace_back(edgeTypeName_ + "." + schema_->getFieldName(i));
         geColNames_.emplace_back(colNames_.back());
     }
@@ -265,14 +264,14 @@ std::string FetchEdgesValidator::buildConstantInput() {
     auto input = vctx_->anonVarGen()->getVar();
     qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(edgeKeys_))).finish());
 
-    src_ = pool->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                        new std::string(kSrc));
+    src_ =
+        pool->makeAndAdd<VariablePropertyExpression>(new std::string(input), new std::string(kSrc));
     type_ = pool->makeAndAdd<VariablePropertyExpression>(new std::string(input),
                                                          new std::string(kType));
     rank_ = pool->makeAndAdd<VariablePropertyExpression>(new std::string(input),
                                                          new std::string(kRank));
-    dst_ = pool->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                        new std::string(kDst));
+    dst_ =
+        pool->makeAndAdd<VariablePropertyExpression>(new std::string(input), new std::string(kDst));
     return input;
 }
 

@@ -60,7 +60,7 @@ Status FetchVerticesValidator::toPlan() {
 }
 
 Status FetchVerticesValidator::check() {
-    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
 
     tagName_ = *sentence->tag();
@@ -80,7 +80,7 @@ Status FetchVerticesValidator::check() {
 }
 
 Status FetchVerticesValidator::prepareVertices() {
-    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
     // from ref, eval when execute
     if (sentence->isRef()) {
         srcRef_ = sentence->ref();
@@ -108,7 +108,7 @@ Status FetchVerticesValidator::prepareVertices() {
 
 // TODO(shylock) select _vid property instead of return always.
 Status FetchVerticesValidator::prepareProperties() {
-    auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
+    auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
     auto *yield = sentence->yieldClause();
     if (yield == nullptr) {
         return preparePropertiesWithoutYield();
@@ -126,7 +126,7 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     outputs_.reserve(yieldSize + 1);
     colNames_.emplace_back(VertexID);
     gvColNames_.emplace_back(colNames_.back());
-    outputs_.emplace_back(VertexID, Value::Type::STRING);  // kVid
+    outputs_.emplace_back(VertexID, Value::Type::STRING);   // kVid
 
     dedup_ = yield->isDistinct();
     storage::cpp2::VertexProp prop;
@@ -135,16 +135,14 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     propsName.reserve(yield->columns().size());
     for (auto col : yield->columns()) {
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());
-            col->setExpr(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(
-                laExpr));
+            auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
+            col->setExpr(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(laExpr));
         } else {
             ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(col->expr());
         }
         const auto *invalidExpr = findInvalidYieldExpression(col->expr());
         if (invalidExpr != nullptr) {
-            return Status::Error("Invalid yield expression `%s'.",
-                                    col->expr()->toString().c_str());
+            return Status::Error("Invalid yield expression `%s'.", col->expr()->toString().c_str());
         }
         // The properties from storage directly push down only
         // The other will be computed in Project Executor
@@ -156,11 +154,10 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
             }
             // Check is prop name in schema
             if (schema_->getFieldIndex(*expr->prop()) < 0) {
-                LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in tag `"
-                            << tagName_ << "'.";
-                return Status::Error("Unknown column `%s' in tag `%s'.",
-                                        expr->prop()->c_str(),
-                                        tagName_.c_str());
+                LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in tag `" << tagName_
+                           << "'.";
+                return Status::Error(
+                    "Unknown column `%s' in tag `%s'.", expr->prop()->c_str(), tagName_.c_str());
             }
             propsName.emplace_back(*expr->prop());
             gvColNames_.emplace_back(*expr->sym() + "." + *expr->prop());
@@ -178,9 +175,8 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     // TODO(shylock) select kVid from storage
     newYieldColumns_ = qctx_->objPool()->add(new YieldColumns());
     // note eval vid by input expression
-    newYieldColumns_->addColumn(
-        new YieldColumn(new InputPropertyExpression(new std::string(VertexID)),
-                        new std::string(VertexID)));
+    newYieldColumns_->addColumn(new YieldColumn(
+        new InputPropertyExpression(new std::string(VertexID)), new std::string(VertexID)));
     for (auto col : yield->columns()) {
         newYieldColumns_->addColumn(col->clone().release());
     }
@@ -198,10 +194,10 @@ Status FetchVerticesValidator::preparePropertiesWithoutYield() {
         props_.emplace_back(std::move(prop));
         outputs_.emplace_back(VertexID, Value::Type::STRING);
         colNames_.emplace_back(VertexID);
-        gvColNames_.emplace_back(VertexID);  // keep compatible with 1.0
+        gvColNames_.emplace_back(VertexID);   // keep compatible with 1.0
         for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
             outputs_.emplace_back(schema_->getFieldName(i),
-                                    SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
+                                  SchemaUtil::propTypeToValueType(schema_->getFieldType(i)));
             colNames_.emplace_back(tagName_ + '.' + schema_->getFieldName(i));
             gvColNames_.emplace_back(colNames_.back());
         }
