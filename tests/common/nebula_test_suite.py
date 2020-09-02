@@ -395,7 +395,6 @@ class NebulaTestSuite(object):
             ok, new_expect, msg = self.convert_expect(expect)
             if not ok:
                 assert ok, 'convert expect failed, error msg: {}'.format(msg)
-        #import pdb; pdb.set_trace()
         for row, i in zip(rows, range(0, len(new_expect))):
             if isinstance(new_expect[i], CommonTtypes.Row):
                 assert len(row.values) - len(ignore_col) == len(new_expect[i].values), '{}, {}, {}'.format(len(row.values), len(ignore_col), len(new_expect[i].values))
