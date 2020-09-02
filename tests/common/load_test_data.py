@@ -46,7 +46,6 @@ class LoadGlobalData(object):
 
             lines = data_file.readlines()
             ddl = False
-            dataType = ['none']
             ngql_statement = ""
             for line in lines:
                 strip_line = line.strip()
@@ -62,14 +61,11 @@ class LoadGlobalData(object):
                             ddl = False
                 else:
                     line = line.rstrip()
-                    if not ddl:
-                        self.parse_line(line.strip(), dataType)
                     ngql_statement += " " + line
                     if line.endswith(';'):
                         resp = self.client.execute(ngql_statement)
                         assert resp.error_code == ttypes.ErrorCode.SUCCEEDED, resp.error_msg
                         ngql_statement = ""
-                        dataType[0] = 'none'
 
     # The whole test will load once, for the only read tests
     def load_student(self):
@@ -204,194 +200,3 @@ class LoadGlobalData(object):
         assert resp.error_code == ttypes.ErrorCode.SUCCEEDED, resp.error_msg
         self.client.sign_out()
         self.client_pool.close()
-
-    def parse_line(self, line, dataType):
-        if line.startswith('INSERT') or line.startswith('VALUES'):
-            return 'error'
-
-        if line.startswith('VERTEX player'):
-            dataType[0] = 'player'
-        elif line.startswith('VERTEX team'):
-            dataType[0] = 'team'
-        elif line.startswith('VERTEX bachelor'):
-            dataType[0] = 'bachelor'
-        elif line.startswith('EDGE serve'):
-            dataType[0] = 'serve'
-        elif line.startswith('EDGE like'):
-            dataType[0] = 'like'
-        elif line.startswith('EDGE teammate'):
-            dataType[0] = 'teammate'
-        else:
-            line = re.split(':|,|->', line.strip(',; \t'))
-            line = list(map(lambda i: i.strip(' ()"'), line))
-            value = CommonTtypes.Value()
-            if dataType[0] == 'none':
-                return 'error'
-            elif dataType[0] == 'player':
-                vertex = self.create_vertex_player(line)
-                key = str(vertex.vid, encoding='utf-8')
-                if key in VERTEXS:
-                    temp = VERTEXS[key].get_vVal()
-                    temp.tags.append(vertex.tags[0])
-                    temp.tags.sort(key=lambda x : x.name)
-                    value.set_vVal(temp)
-                    VERTEXS[key] = value
-                else:
-                    value.set_vVal(vertex)
-                    VERTEXS[key] = value
-            elif dataType[0] == 'team':
-                vertex = self.create_vertex_team(line)
-                value.set_vVal(vertex)
-                key = str(vertex.vid, encoding = 'utf-8')
-                VERTEXS[key] = value
-            elif dataType[0] == 'bachelor':
-                vertex = self.create_vertex_bachelor(line)
-                key = str(vertex.vid, encoding = 'utf-8')
-                if key in VERTEXS:
-                    temp = VERTEXS[key].get_vVal()
-                    temp.tags.append(vertex.tags[0])
-                    temp.tags.sort(key=lambda x : x.name)
-                    value.set_vVal(temp)
-                    VERTEXS[key] = value
-                else:
-                    value.set_vVal(vertex)
-                    VERTEXS[key] = value
-            elif dataType[0] == 'serve':
-                edge = self.create_edge_serve(line)
-                value.set_eVal(edge)
-                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
-                EDGES[key] = value
-            elif dataType[0] == 'like':
-                edge = self.create_edge_like(line)
-                value.set_eVal(edge)
-                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
-                EDGES[key] = value
-            elif dataType[0] == 'teammate':
-                edge = self.create_edge_teammate(line)
-                value.set_eVal(edge)
-                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
-                EDGES[key] = value
-            else:
-                assert False
-
-    def create_vertex_player(self, line):
-        if len(line) != 3:
-            assert False
-
-        vertex = CommonTtypes.Vertex()
-        vertex.vid = bytes(line[0], encoding = 'utf-8')
-        tags = []
-        tag = CommonTtypes.Tag()
-        tag.name = bytes('player', encoding = 'utf-8')
-
-        props = dict()
-        name = CommonTtypes.Value()
-        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
-        props[bytes('name', encoding = 'utf-8')] = name
-        age = CommonTtypes.Value()
-        age.set_iVal(int(line[2]))
-        props[bytes('age', encoding = 'utf-8')] = age
-        tag.props = props
-        tags.append(tag)
-        vertex.tags = tags
-        return vertex
-
-    def create_vertex_team(self, line):
-        if len(line) != 2:
-            assert False
-        vertex = CommonTtypes.Vertex()
-        vertex.vid = bytes(line[0], encoding = 'utf-8')
-        tags = []
-        tag = CommonTtypes.Tag()
-        tag.name = bytes('team', encoding = 'utf-8')
-
-        props = dict()
-        name = CommonTtypes.Value()
-        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
-        props[bytes('name', encoding = 'utf-8')] = name
-        tag.props = props
-        tags.append(tag)
-        vertex.tags = tags
-        return vertex
-
-    def create_vertex_bachelor(self, line):
-        if len(line) != 3:
-            assert False
-
-        vertex = CommonTtypes.Vertex()
-        vertex.vid = bytes(line[0], encoding = 'utf-8')
-        tags = []
-        tag = CommonTtypes.Tag()
-        tag.name = bytes('bachelor', encoding = 'utf-8')
-
-        props = dict()
-        name = CommonTtypes.Value()
-        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
-        props[bytes('name', encoding = 'utf-8')] = name
-        speciality = CommonTtypes.Value()
-        speciality.set_sVal(bytes(line[2], encoding = 'utf-8'))
-        props[bytes('speciality', encoding = 'utf-8')] = speciality
-        tag.props = props
-        tags.append(tag)
-        vertex.tags = tags
-        return vertex
-
-    def create_edge_serve(self, line):
-        if len(line) != 4:
-            assert False
-        edge = CommonTtypes.Edge()
-        edge.src = bytes(line[0], encoding = 'utf-8')
-        if '@' in line[1]:
-            temp = list(map(lambda i: i.strip('"'), re.split('@', line[1])))
-            edge.dst = bytes(temp[0], encoding = 'utf-8')
-            edge.ranking = int(temp[1])
-        else:
-            edge.dst = bytes(line[1], encoding = 'utf-8')
-            edge.ranking = 0
-        edge.type = 0
-        edge.name = bytes('serve', encoding = 'utf-8')
-        props = dict()
-        start_year = CommonTtypes.Value()
-        start_year.set_iVal(int(line[2]))
-        end_year = CommonTtypes.Value()
-        end_year.set_iVal(int(line[3]))
-        props[bytes('start_year', encoding = 'utf-8')] = start_year
-        props[bytes('end_year', encoding = 'utf-8')] = end_year
-        edge.props = props
-        return edge
-
-    def create_edge_like(self, line):
-        if len(line) != 3:
-            assert False
-        edge = CommonTtypes.Edge()
-
-        edge.src = bytes(line[0], encoding = 'utf-8')
-        edge.dst = bytes(line[1], encoding = 'utf-8')
-        edge.type = 0
-        edge.ranking = 0
-        edge.name = bytes('like', encoding = 'utf-8')
-        props = dict()
-        likeness = CommonTtypes.Value()
-        likeness.set_iVal(int(line[2]))
-        props[bytes('likeness', encoding = 'utf-8')] = likeness
-        edge.props = props
-        return edge
-
-    def create_edge_teammate(self, line):
-        if len(line) != 4:
-            assert False
-        edge = CommonTtypes.Edge()
-        edge.src = bytes(line[0], encoding = 'utf-8')
-        edge.dst = bytes(line[1], encoding = 'utf-8')
-        edge.type = 0
-        edge.ranking = 0
-        edge.name = bytes('teammate', encoding = 'utf-8')
-        props = dict()
-        start_year = CommonTtypes.Value()
-        start_year.set_iVal(int(line[2]))
-        end_year = CommonTtypes.Value()
-        end_year.set_iVal(int(line[3]))
-        props[bytes('start_year', encoding = 'utf-8')] = start_year
-        props[bytes('end_year', encoding = 'utf-8')] = end_year
-        edge.props = props
-        return edge

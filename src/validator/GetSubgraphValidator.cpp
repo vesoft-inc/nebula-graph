@@ -185,7 +185,7 @@ Status GetSubgraphValidator::toPlan() {
         startVidsVar = projectStartVid->varName();
     }
 
-    if (steps_ == 0) {
+    if (steps_.steps == 0) {
         std::vector<storage::cpp2::Expr> exprs;
         std::vector<storage::cpp2::VertexProp> vertexProps;
         auto* getVertexProps = GetVertices::make(
@@ -235,7 +235,8 @@ Status GetSubgraphValidator::toPlan() {
     gn1->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn1->setInputVar(projectVids->varName());
 
-    auto* filter = Filter::make(qctx_, gn1, qctx_->objPool()->add(buildFilterCondition(steps_.steps)));
+    auto* filter =
+        Filter::make(qctx_, gn1, qctx_->objPool()->add(buildFilterCondition(steps_.steps)));
     filter->setInputVar(gn1->varName());
     filter->setColNames({kVid});
 

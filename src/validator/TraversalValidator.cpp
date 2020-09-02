@@ -35,7 +35,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             }
 
             starts.srcRef = src;
-            auto encode = starts.srcRef->encode();
+            auto encode = src->encode();
             auto decode = Expression::decode(encode);
             startVidList_->add(decode.release());
             auto* propExpr = static_cast<PropertyExpression*>(src);

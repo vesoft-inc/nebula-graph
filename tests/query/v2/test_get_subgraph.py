@@ -7,16 +7,13 @@
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 from tests.common.nebula_test_suite import T_EMPTY, T_NULL
-from tests.common.load_test_data import VERTEXS, EDGES
-import logging
 import pytest
-
-logging.basicConfig(level = logging.DEBUG)
 
 class TestSubGraph(NebulaTestSuite):
     @classmethod
     def prepare(self):
         self.use_nba()
+        self.load_vertex_edge()
 
     def cleanup():
         pass
@@ -91,14 +88,13 @@ class TestSubGraph(NebulaTestSuite):
         self.check_out_of_order_result(resp, expected_data["rows"])
 
     def test_subgraph(self):
+        VERTEXS = self.VERTEXS
+        EDGES = self.EDGES
+
         stmt = "GET SUBGRAPH FROM 'Tim Duncan'"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
-        log = logging.getLogger('subgraph')
-        log.debug('@@@@@@@@@@@@@@@ size is %d', len(VERTEXS))
-        for k,v in VERTEXS.items():
-            log.debug('vertex is %s\n', k)
-        assert 0
+
         vertex1 = [VERTEXS['Tim Duncan']]
 
         edge1 = [
