@@ -92,7 +92,7 @@ class TestSubGraph(NebulaTestSuite):
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
-        vertex1 = [VERTEXS["Tim Duncan"]]
+        vertex1 = [VERTEXS['Tim Duncan']]
 
         edge1 = [
                     EDGES['Manu Ginobili'+'Tim Duncan'+'teammate'+'0'],
