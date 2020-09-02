@@ -117,7 +117,7 @@ if __name__ == "__main__":
         error_code = executor.run_tests(args)
         load_data.drop_data()
     except Exception as x:
-        print(x)
+        print('\033[31m' + str(x) + '\033[0m')
 
     finally:
         if stop_nebula and configs.stop_nebula.lower() == 'true':
