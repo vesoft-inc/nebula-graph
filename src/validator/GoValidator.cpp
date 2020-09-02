@@ -23,7 +23,7 @@ GraphStatus GoValidator::validateImpl() {
         return gStatus;
     }
 
-    gStatus = validateFrom(goSentence->fromClause(), from_);
+    gStatus = validateStarts(goSentence->fromClause(), from_);
     if (!gStatus.ok()) {
         return gStatus;
     }
@@ -43,12 +43,12 @@ GraphStatus GoValidator::validateImpl() {
         return gStatus;
     }
 
-    if (!exprProps_.inputProps().empty() && fromType_ != kPipe) {
+    if (!exprProps_.inputProps().empty() && from_.fromType != kPipe) {
         return GraphStatus::setSemanticError(
                 "$- must be referred in FROM before used in WHERE or YIELD");
     }
 
-    if (!exprProps_.varProps().empty() && fromType_ != kVariable) {
+    if (!exprProps_.varProps().empty() && from_.fromType != kVariable) {
         return GraphStatus::setSemanticError(
                 "A variable must be referred in FROM before used in WHERE or YIELD");
     }

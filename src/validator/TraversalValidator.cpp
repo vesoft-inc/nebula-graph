@@ -11,36 +11,8 @@ namespace nebula {
 namespace graph {
 
 GraphStatus TraversalValidator::validateStarts(const VerticesClause* clause, Starts& starts) {
-    if (step == nullptr) {
-        return GraphStatus::setInternalError("Step clause nullptr.");
-    }
-    if (step->isMToN()) {
-        auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
-        mToN->mSteps = step->mToN()->mSteps;
-        mToN->nSteps = step->mToN()->nSteps;
-
-        if (mToN->mSteps == 0 && mToN->nSteps == 0) {
-            steps_ = 0;
-            return GraphStatus::OK();
-        }
-        if (mToN->mSteps == 0) {
-            mToN->mSteps = 1;
-        }
-        if (mToN->nSteps < mToN->mSteps) {
-            return GraphStatus::setSyntaxError(
-                    folly::stringPrintf(
-                            "`%s', upper bound steps should be greater than lower bound.",
-                            step->toString().c_str()));
-        }
-        if (mToN->mSteps == mToN->nSteps) {
-            steps_ = mToN->mSteps;
-            return GraphStatus::OK();
-        }
-        mToN_ = mToN;
-    } else {
-        auto steps = step->steps();
->>>>>>> update
-        steps_ = steps;
+    if (clause == nullptr) {
+        return GraphStatus::setInternalError("From clause nullptr.");
     }
     if (clause->isRef()) {
         auto* src = clause->ref();
@@ -89,7 +61,9 @@ GraphStatus TraversalValidator::validateOver(const OverClause* clause, Over& ove
     auto* schemaMng = qctx_->schemaMng();
     if (clause->isOverAll()) {
         auto allEdgeStatus = schemaMng->getAllEdge(space_.id);
-        NG_RETURN_IF_ERROR(allEdgeStatus);
+        if (!allEdgeStatus.ok()) {
+            return GraphStatus::setNoEdges();
+        }
         auto edges = std::move(allEdgeStatus).value();
         if (edges.empty()) {
             return GraphStatus::setSemanticError(
@@ -115,7 +89,7 @@ GraphStatus TraversalValidator::validateOver(const OverClause* clause, Over& ove
             if (!edgeType.ok()) {
                 return GraphStatus::setSemanticError(
                         folly::stringPrintf("%s not found in space [%s].",
-                        edgeName.c_str(), space_.name.c_str());
+                        edgeName.c_str(), space_.name.c_str()));
             }
             over.edgeTypes.emplace_back(edgeType.value());
         }
@@ -143,7 +117,7 @@ GraphStatus TraversalValidator::validateStep(const StepClause* clause, Steps& st
             return GraphStatus::setSyntaxError(
                     folly::stringPrintf(
                             "`%s', upper bound steps should be greater than lower bound.",
-                            step->toString().c_str()));
+                            clause->toString().c_str()));
         }
         if (mToN->mSteps == mToN->nSteps) {
             steps_.steps = mToN->mSteps;

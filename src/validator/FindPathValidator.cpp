@@ -9,23 +9,35 @@
 
 namespace nebula {
 namespace graph {
-Status FindPathValidator::validateImpl() {
+GraphStatus FindPathValidator::validateImpl() {
     auto fpSentence = static_cast<FindPathSentence*>(sentence_);
     isShortest_ = fpSentence->isShortest();
 
-    NG_RETURN_IF_ERROR(validateStarts(fpSentence->from(), from_));
-    NG_RETURN_IF_ERROR(validateStarts(fpSentence->to(), to_));
-    NG_RETURN_IF_ERROR(validateOver(fpSentence->over(), over_));
-    NG_RETURN_IF_ERROR(validateStep(fpSentence->step(), steps_));
-    return Status::OK();
+    auto gStatus = validateStarts(fpSentence->from(), from_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+    gStatus = validateStarts(fpSentence->to(), to_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+    gStatus = validateOver(fpSentence->over(), over_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+    gStatus = validateStep(fpSentence->step(), steps_);
+    if (!gStatus.ok()) {
+        return gStatus;
+    }
+    return GraphStatus::OK();
 }
 
-Status FindPathValidator::toPlan() {
+GraphStatus FindPathValidator::toPlan() {
     // TODO: Implement the path plan.
     auto* passThrough = PassThroughNode::make(qctx_, nullptr);
     tail_ = passThrough;
     root_ = tail_;
-    return Status::OK();
+    return GraphStatus::OK();
 }
 }  // namespace graph
 }  // namespace nebula
