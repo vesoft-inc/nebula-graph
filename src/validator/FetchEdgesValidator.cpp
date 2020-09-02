@@ -225,16 +225,16 @@ Status FetchEdgesValidator::preparePropertiesWithoutYield() {
     geColNames_.reserve(3 + schema_->getNumFields());
     // insert the reserved properties be compatible with 1.0
     propNames.emplace_back(kSrc);
-    outputs_.emplace_back(edgeTypeName_ + "." + kSrc, Value::Type::STRING);
     colNames_.emplace_back(edgeTypeName_ + "." + kSrc);
+    outputs_.emplace_back(colNames_.back(), Value::Type::STRING);
     geColNames_.emplace_back(colNames_.back());
     propNames.emplace_back(kDst);
-    outputs_.emplace_back(edgeTypeName_ + "." + kDst, Value::Type::STRING);
     colNames_.emplace_back(edgeTypeName_ + "." + kDst);
+    outputs_.emplace_back(colNames_.back(), Value::Type::STRING);
     geColNames_.emplace_back(colNames_.back());
     propNames.emplace_back(kRank);
-    outputs_.emplace_back(edgeTypeName_ + "." + kRank, Value::Type::INT);
     colNames_.emplace_back(edgeTypeName_ + "." + kRank);
+    outputs_.emplace_back(colNames_.back(), Value::Type::INT);
     geColNames_.emplace_back(colNames_.back());
 
     for (std::size_t i = 0; i < schema_->getNumFields(); ++i) {
