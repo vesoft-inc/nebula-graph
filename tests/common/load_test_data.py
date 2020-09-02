@@ -15,9 +15,6 @@ from tests.common.configs import get_delay_time
 from nebula2.common import ttypes as CommonTtypes
 import re
 
-VERTEXS = dict()
-EDGES = dict()
-
 class LoadGlobalData(object):
     def __init__(self, data_dir, ip, port, user, password):
         self.data_dir = data_dir
