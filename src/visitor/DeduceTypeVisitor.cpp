@@ -159,9 +159,8 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
     status_ = Status::OK();
 }
 
-void DeduceTypeVisitor::visit(LabelExpression *expr) {
-    status_ = Status::SemanticError("LabelExpression can not be instantiated: %s",
-                                    expr->toString().c_str());
+void DeduceTypeVisitor::visit(LabelExpression *) {
+    status_ = Status::SemanticError("LabelExpression can not be instantiated.");
 }
 
 void DeduceTypeVisitor::visit(ArithmeticExpression *expr) {
