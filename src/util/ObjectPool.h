@@ -23,6 +23,7 @@ public:
     ~ObjectPool() = default;
 
     void clear() {
+        folly::SpinLockGuard g(lock_);
         objects_.clear();
     }
 
