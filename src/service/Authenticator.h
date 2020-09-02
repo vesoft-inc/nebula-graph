@@ -8,6 +8,7 @@
 #define SERVICE_AUTHENTICATOR_H_
 
 #include "common/base/Base.h"
+#include "util/GraphStatus.h"
 
 namespace nebula {
 namespace graph {
@@ -16,8 +17,8 @@ class Authenticator {
 public:
     virtual ~Authenticator() {}
 
-    virtual bool MUST_USE_RESULT auth(const std::string &user,
-                                      const std::string &password) = 0;
+    virtual GraphStatus MUST_USE_RESULT auth(const std::string &user,
+                                             const std::string &password) = 0;
 };
 
 }   // namespace graph

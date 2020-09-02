@@ -19,11 +19,8 @@
 #include "common/datatypes/Value.h"
 #include "common/time/Duration.h"
 #include "context/ExecutionContext.h"
-<<<<<<< HEAD
 #include "util/ScopedTimer.h"
-=======
 #include "util/GraphStatus.h"
->>>>>>> all use GraphStatus
 
 namespace nebula {
 namespace graph {

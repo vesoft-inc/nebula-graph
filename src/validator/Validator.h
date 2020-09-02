@@ -12,11 +12,8 @@
 #include "parser/Sentence.h"
 #include "context/ValidateContext.h"
 #include "context/QueryContext.h"
-<<<<<<< HEAD
 #include "validator/ExpressionProps.h"
-=======
 #include "util/GraphStatus.h"
->>>>>>> all use GraphStatus
 
 namespace nebula {
 
@@ -100,14 +97,8 @@ protected:
 
     // use for simple Plan only contain one node
     template <typename Node, typename... Args>
-<<<<<<< HEAD
-    Status genSingleNodePlan(Args... args) {
-        auto *doNode = Node::make(qctx_, nullptr, std::forward<Args>(args)...);
-=======
     GraphStatus genSingleNodePlan(Args... args) {
-        auto* plan = qctx_->plan();
-        auto *doNode = Node::make(plan, nullptr, std::forward<Args>(args)...);
->>>>>>> all use GraphStatus
+        auto *doNode = Node::make(qctx_, nullptr, std::forward<Args>(args)...);
         root_ = doNode;
         tail_ = root_;
         return GraphStatus::OK();

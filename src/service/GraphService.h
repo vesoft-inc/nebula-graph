@@ -12,6 +12,7 @@
 #include "service/Authenticator.h"
 #include "service/QueryEngine.h"
 #include "service/SessionManager.h"
+#include "util/GraphStatus.h"
 
 namespace folly {
 class IOThreadPoolExecutor;
@@ -36,12 +37,10 @@ public:
     folly::Future<cpp2::ExecutionResponse>
     future_execute(int64_t sessionId, const std::string& stmt) override;
 
-    const char* getErrorStr(nebula::cpp2::ErrorCode result);
-
 private:
-    void onHandle(RequestContext<cpp2::AuthResponse>& ctx, nebula::cpp2::ErrorCode code);
+    void onHandle(RequestContext<cpp2::AuthResponse>& ctx, GraphStatus gStatus);
 
-    bool auth(const std::string& username, const std::string& password);
+    GraphStatus auth(const std::string& username, const std::string& password);
 
     std::unique_ptr<SessionManager>             sessionManager_;
     std::unique_ptr<QueryEngine>                queryEngine_;

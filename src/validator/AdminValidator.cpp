@@ -118,14 +118,8 @@ GraphStatus CreateSpaceValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status CreateSpaceValidator::toPlan() {
-    auto *doNode = CreateSpace::make(qctx_, nullptr, std::move(spaceDesc_), ifNotExist_);
-=======
 GraphStatus CreateSpaceValidator::toPlan() {
-    auto *plan = qctx_->plan();
-    auto *doNode = CreateSpace::make(plan, nullptr, std::move(spaceDesc_), ifNotExist_);
->>>>>>> all use GraphStatus
+    auto *doNode = CreateSpace::make(qctx_, nullptr, std::move(spaceDesc_), ifNotExist_);
     root_ = doNode;
     tail_ = root_;
     return GraphStatus::OK();
@@ -147,14 +141,8 @@ GraphStatus ShowSpacesValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowSpacesValidator::toPlan() {
-    auto *doNode = ShowSpaces::make(qctx_, nullptr);
-=======
 GraphStatus ShowSpacesValidator::toPlan() {
-    auto *plan = qctx_->plan();
-    auto *doNode = ShowSpaces::make(plan, nullptr);
->>>>>>> all use GraphStatus
+    auto *doNode = ShowSpaces::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return GraphStatus::OK();
@@ -164,12 +152,7 @@ GraphStatus DropSpaceValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status DropSpaceValidator::toPlan() {
-=======
 GraphStatus DropSpaceValidator::toPlan() {
-    auto *plan = qctx_->plan();
->>>>>>> all use GraphStatus
     auto sentence = static_cast<DropSpaceSentence*>(sentence_);
     auto *doNode = DropSpace::make(qctx_, nullptr, *sentence->spaceName(), sentence->isIfExists());
     root_ = doNode;
@@ -181,12 +164,7 @@ GraphStatus ShowCreateSpaceValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowCreateSpaceValidator::toPlan() {
-=======
 GraphStatus ShowCreateSpaceValidator::toPlan() {
-    auto* plan = qctx_->plan();
->>>>>>> all use GraphStatus
     auto sentence = static_cast<ShowCreateSpaceSentence*>(sentence_);
     auto spaceName = *sentence->spaceName();
     auto *doNode = ShowCreateSpace::make(qctx_, nullptr, std::move(spaceName));
@@ -199,14 +177,8 @@ GraphStatus CreateSnapshotValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status CreateSnapshotValidator::toPlan() {
-    auto *doNode = CreateSnapshot::make(qctx_, nullptr);
-=======
 GraphStatus CreateSnapshotValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = CreateSnapshot::make(plan, nullptr);
->>>>>>> all use GraphStatus
+    auto *doNode = CreateSnapshot::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return GraphStatus::OK();
@@ -216,12 +188,7 @@ GraphStatus DropSnapshotValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status DropSnapshotValidator::toPlan() {
-=======
 GraphStatus DropSnapshotValidator::toPlan() {
-    auto* plan = qctx_->plan();
->>>>>>> all use GraphStatus
     auto sentence = static_cast<DropSnapshotSentence*>(sentence_);
     auto *doNode = DropSnapshot::make(qctx_, nullptr, *sentence->name());
     root_ = doNode;
@@ -233,14 +200,8 @@ GraphStatus ShowSnapshotsValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowSnapshotsValidator::toPlan() {
-    auto *doNode = ShowSnapshots::make(qctx_, nullptr);
-=======
 GraphStatus ShowSnapshotsValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = ShowSnapshots::make(plan, nullptr);
->>>>>>> all use GraphStatus
+    auto *doNode = ShowSnapshots::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return GraphStatus::OK();
@@ -250,13 +211,8 @@ GraphStatus ShowHostsValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowHostsValidator::toPlan() {
-    auto *showHosts = ShowHosts::make(qctx_, nullptr);
-=======
 GraphStatus ShowHostsValidator::toPlan() {
-    auto *showHosts = ShowHosts::make(qctx_->plan(), nullptr);
->>>>>>> all use GraphStatus
+    auto *showHosts = ShowHosts::make(qctx_, nullptr);
     root_ = showHosts;
     tail_ = root_;
     return GraphStatus::OK();
@@ -266,12 +222,7 @@ GraphStatus ShowPartsValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowPartsValidator::toPlan() {
-=======
 GraphStatus ShowPartsValidator::toPlan() {
-    auto* plan = qctx_->plan();
->>>>>>> all use GraphStatus
     auto sentence = static_cast<ShowPartsSentence*>(sentence_);
     std::vector<PartitionID> partIds;
     if (sentence->getList() != nullptr) {
@@ -290,14 +241,8 @@ GraphStatus ShowCharsetValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowCharsetValidator::toPlan() {
-    auto *node = ShowCharset::make(qctx_, nullptr);
-=======
 GraphStatus ShowCharsetValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *node = ShowCharset::make(plan, nullptr);
->>>>>>> all use GraphStatus
+    auto *node = ShowCharset::make(qctx_, nullptr);
     root_ = node;
     tail_ = root_;
     return GraphStatus::OK();
@@ -307,14 +252,8 @@ GraphStatus ShowCollationValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowCollationValidator::toPlan() {
-    auto *node = ShowCollation::make(qctx_, nullptr);
-=======
 GraphStatus ShowCollationValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *node = ShowCollation::make(plan, nullptr);
->>>>>>> all use GraphStatus
+    auto *node = ShowCollation::make(qctx_, nullptr);
     root_ = node;
     tail_ = root_;
     return GraphStatus::OK();
@@ -385,14 +324,8 @@ GraphStatus SetConfigValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status SetConfigValidator::toPlan() {
-    auto *doNode = SetConfig::make(qctx_,
-=======
 GraphStatus SetConfigValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = SetConfig::make(plan,
->>>>>>> all use GraphStatus
+    auto *doNode = SetConfig::make(qctx_,
                                    nullptr,
                                    module_,
                                    std::move(name_),
@@ -417,14 +350,8 @@ GraphStatus GetConfigValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status GetConfigValidator::toPlan() {
-    auto *doNode = GetConfig::make(qctx_,
-=======
 GraphStatus GetConfigValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = GetConfig::make(plan,
->>>>>>> all use GraphStatus
+    auto *doNode = GetConfig::make(qctx_,
                                    nullptr,
                                    module_,
                                    std::move(name_));

@@ -26,14 +26,8 @@ GraphStatus InsertVerticesValidator::validateImpl() {
     return status;
 }
 
-<<<<<<< HEAD
-Status InsertVerticesValidator::toPlan() {
-    auto doNode = InsertVertices::make(qctx_,
-=======
 GraphStatus InsertVerticesValidator::toPlan() {
-    auto *plan = qctx_->plan();
-    auto doNode = InsertVertices::make(plan,
->>>>>>> all use GraphStatus
+    auto doNode = InsertVertices::make(qctx_,
                                        nullptr,
                                        spaceId_,
                                        std::move(vertices_),
@@ -165,14 +159,8 @@ GraphStatus InsertEdgesValidator::validateImpl() {
     return status;
 }
 
-<<<<<<< HEAD
-Status InsertEdgesValidator::toPlan() {
-    auto doNode = InsertEdges::make(qctx_,
-=======
 GraphStatus InsertEdgesValidator::toPlan() {
-    auto *plan = qctx_->plan();
-    auto doNode = InsertEdges::make(plan,
->>>>>>> all use GraphStatus
+    auto doNode = InsertEdges::make(qctx_,
                                     nullptr,
                                     spaceId_,
                                     std::move(edges_),
@@ -348,12 +336,7 @@ std::string DeleteVerticesValidator::buildVIds() {
     return input;
 }
 
-<<<<<<< HEAD
-Status DeleteVerticesValidator::toPlan() {
-=======
 GraphStatus DeleteVerticesValidator::toPlan() {
-    auto plan = qctx_->plan();
->>>>>>> all use GraphStatus
     std::string vidVar;
     if (!vertices_.empty() && vidRef_ == nullptr) {
         vidVar = buildVIds();
@@ -535,14 +518,8 @@ GraphStatus DeleteEdgesValidator::checkInput() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status DeleteEdgesValidator::toPlan() {
-    auto *doNode = DeleteEdges::make(qctx_,
-=======
 GraphStatus DeleteEdgesValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = DeleteEdges::make(plan,
->>>>>>> all use GraphStatus
+    auto *doNode = DeleteEdges::make(qctx_,
                                      nullptr,
                                      vctx_->whichSpace().id,
                                      edgeKeyRefs_);
@@ -829,14 +806,8 @@ GraphStatus UpdateVertexValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status UpdateVertexValidator::toPlan() {
-    auto *update = UpdateVertex::make(qctx_,
-=======
 GraphStatus UpdateVertexValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *update = UpdateVertex::make(plan,
->>>>>>> all use GraphStatus
+    auto *update = UpdateVertex::make(qctx_,
                                       nullptr,
                                       spaceId_,
                                       std::move(name_),
@@ -880,14 +851,8 @@ GraphStatus UpdateEdgeValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status UpdateEdgeValidator::toPlan() {
-    auto *outNode = UpdateEdge::make(qctx_,
-=======
 GraphStatus UpdateEdgeValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *outNode = UpdateEdge::make(plan,
->>>>>>> all use GraphStatus
+    auto *outNode = UpdateEdge::make(qctx_,
                                      nullptr,
                                      spaceId_,
                                      name_,

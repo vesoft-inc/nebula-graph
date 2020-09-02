@@ -11,8 +11,35 @@ namespace nebula {
 namespace graph {
 
 GraphStatus TraversalValidator::validateStarts(const VerticesClause* clause, Starts& starts) {
-    if (clause == nullptr) {
-        return Status::Error("From clause nullptr.");
+    if (step == nullptr) {
+        return GraphStatus::setInternalError("Step clause nullptr.");
+    }
+    if (step->isMToN()) {
+        auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
+        mToN->mSteps = step->mToN()->mSteps;
+        mToN->nSteps = step->mToN()->nSteps;
+
+        if (mToN->mSteps == 0 && mToN->nSteps == 0) {
+            steps_ = 0;
+            return GraphStatus::OK();
+        }
+        if (mToN->mSteps == 0) {
+            mToN->mSteps = 1;
+        }
+        if (mToN->nSteps < mToN->mSteps) {
+            return GraphStatus::setSyntaxError(
+                    folly::stringPrintf(
+                            "`%s', upper bound steps should be greater than lower bound.",
+                            step->toString().c_str()));
+        }
+        if (mToN->mSteps == mToN->nSteps) {
+            steps_ = mToN->mSteps;
+            return GraphStatus::OK();
+        }
+        mToN_ = mToN;
+    } else {
+        auto steps = step->steps();
+>>>>>>> update
         steps_ = steps;
     }
     if (clause->isRef()) {

@@ -157,7 +157,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY 1+1 YIELD COUNT(1), 1+1";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "Invalid expression `(1+1)'.");
+        EXPECT_EQ(std::string(result.message()), "Expression `(1+1)' is not valid.");
     }
     {
         // use dst
@@ -173,14 +173,14 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "| GROUP BY $-.start_year YIELD COUNT($-.age)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "Invalid expression `$-.start_year'.");
+                  "Expression `$-.start_year' is not valid.");
     }
     {
         // group name noexist
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY noexist YIELD COUNT($-.age)";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "Invalid expression `noexist'.");
+        EXPECT_EQ(std::string(result.message()), "Expression `noexist' is not valid.");
     }
     {
         // use sum(*)
@@ -188,7 +188,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "| GROUP BY $-.id YIELD SUM(*)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "Invalid expression `SUM(*)'.");
+                  "Expression `SUM(*)' is not valid.");
     }
     {
         // use agg fun has more than two inputs
@@ -202,7 +202,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY $-.id, SUM($-.age) YIELD $-.id, SUM($-.age)";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "Invalid expression `SUM($-.age)'.");
+        EXPECT_EQ(std::string(result.message()), "Expression `SUM($-.age)' is not valid.");
     }
     {
         // yield without group by
@@ -210,7 +210,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "COUNT(like._dst) AS id ";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "Invalid expression `COUNT(like._dst) AS id'.");
+                  "Expression `COUNT(like._dst) AS id' is not valid.");
     }
      {
         // yield col not in group output
@@ -225,7 +225,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "COUNT(*) AS count, "
                             "1+1 AS cal";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "Invalid expression `$-.name AS name'.");
+        EXPECT_EQ(std::string(result.message()), "Expression `$-.name AS name' is not valid.");
     }
     {
         // duplicate col

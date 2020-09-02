@@ -10,7 +10,6 @@
 #include "common/clients/storage/GraphStorageClient.h"
 #include "service/GraphService.h"
 #include "service/RequestContext.h"
-#include "service/SimpleAuthenticator.h"
 #include "service/GraphFlags.h"
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"
@@ -39,15 +38,16 @@ folly::Future<cpp2::AuthResponse> GraphService::future_authenticate(
     ctx.setSession(std::move(session));
 
     if (!FLAGS_enable_authorize) {
-        onHandle(ctx, nebula::cpp2::ErrorCode::SUCCEEDED);
-    } else if (auth(username, password)) {
-        auto roles = queryEngine_->metaClient()->getRolesByUserFromCache(username);
-        for (const auto& role : roles) {
-            ctx.session()->setRole(role.get_space_id(), role.get_role_type());
-        }
-        onHandle(ctx, nebula::cpp2::ErrorCode::SUCCEEDED);
+        onHandle(ctx, GraphStatus::OK());
     } else {
-        onHandle(ctx, nebula::cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD);
+        auto gStatus = auth(username, password);
+        if (!gStatus.ok()) {
+            auto roles = queryEngine_->metaClient()->getRolesByUserFromCache(username);
+            for (const auto &role : roles) {
+                ctx.session()->setRole(role.get_space_id(), role.get_role_type());
+            }
+        }
+        onHandle(ctx, gStatus);
     }
 
     ctx.finish();
@@ -71,11 +71,11 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
         auto result = sessionManager_->findSession(sessionId);
         if (!result.ok()) {
             FLOG_ERROR("Session not found, id[%ld]", sessionId);
-            ctx->resp().set_error_code(nebula::cpp2::ErrorCode::E_SESSION_INVALID);
+            ctx->resp().set_error_code(nebula::cpp2::ErrorCode::E_SESSION_NOT_EXIST);
             ctx->resp().set_error_msg(
                     folly::stringPrintf(
                         GraphStatus::getErrorMsg(
-                            nebula::cpp2::ErrorCode::E_SESSION_INVALID).c_str(), sessionId));
+                            nebula::cpp2::ErrorCode::E_SESSION_NOT_EXIST).c_str(), sessionId));
             ctx->finish();
             return future;
         }
@@ -86,23 +86,18 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     return future;
 }
 
-
-const char* GraphService::getErrorStr(nebula::cpp2::ErrorCode result) {
-    return GraphStatus::getErrorMsg(result).c_str();
-}
-
 void GraphService::onHandle(RequestContext<cpp2::AuthResponse>& ctx,
-                            nebula::cpp2::ErrorCode code) {
-    ctx.resp().set_error_code(code);
-    if (code != nebula::cpp2::ErrorCode::SUCCEEDED) {
+                            GraphStatus gStatus) {
+    ctx.resp().set_error_code(gStatus.getErrorCode());
+    if (!gStatus.ok()) {
         sessionManager_->removeSession(ctx.session()->id());
-        ctx.resp().set_error_msg(getErrorStr(code));
+        ctx.resp().set_error_msg(gStatus.toString());
     } else {
         ctx.resp().set_session_id(ctx.session()->id());
     }
 }
 
-bool GraphService::auth(const std::string& username, const std::string& password) {
+GraphStatus GraphService::auth(const std::string& username, const std::string& password) {
     std::string authType = FLAGS_auth_type;
     folly::toLowerAscii(authType);
     if (!authType.compare("password")) {
@@ -113,7 +108,7 @@ bool GraphService::auth(const std::string& username, const std::string& password
         return authenticator->auth(username, password);
     }
     LOG(WARNING) << "Unknown auth type: " << authType;
-    return false;
+    return GraphStatus::setInvalidAuthType(authType);
 }
 
 }  // namespace graph

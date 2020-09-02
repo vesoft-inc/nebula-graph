@@ -121,12 +121,8 @@ GraphStatus FetchVerticesValidator::prepareVertices() {
 }
 
 // TODO(shylock) select _vid property instead of return always.
-<<<<<<< HEAD
-Status FetchVerticesValidator::prepareProperties() {
-    static constexpr char VertexID[] = "VertexID";
-=======
 GraphStatus FetchVerticesValidator::prepareProperties() {
->>>>>>> all use GraphStatus
+    static constexpr char VertexID[] = "VertexID";
     auto *sentence = static_cast<FetchVerticesSentence*>(sentence_);
     auto *yield = sentence->yieldClause();
     if (yield == nullptr) {

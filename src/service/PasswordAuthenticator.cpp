@@ -13,8 +13,15 @@ PasswordAuthenticator::PasswordAuthenticator(const meta::MetaClient* client) {
     metaClient_ = client;
 }
 
-bool PasswordAuthenticator::auth(const std::string& user, const std::string& password) {
-    return metaClient_->authCheckFromCache(user, password);
+GraphStatus PasswordAuthenticator::auth(const std::string& user, const std::string& password) {
+    auto code = metaClient_->authCheckFromCache(user, password);
+    if (code == nebula::cpp2::ErrorCode::E_USERNAME_NOT_FOUND) {
+        return GraphStatus::setUsernameNotFound();
+    }
+    if (code == nebula::cpp2::ErrorCode::E_INVALID_PASSWORD) {
+        return GraphStatus::setInvalidPassword();
+    }
+    return GraphStatus::OK();
 }
 
 }   // namespace graph

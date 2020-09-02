@@ -66,15 +66,15 @@ public:
                            getErrorMsg(ErrorCode::E_LEADER_CHANGED));
     }
 
-    static GraphStatus setBadUsernamePassword() {
-        return GraphStatus(ErrorCode::E_BAD_USERNAME_PASSWORD,
-                           getErrorMsg(ErrorCode::E_BAD_USERNAME_PASSWORD));
+    static GraphStatus setUsernameNotFound() {
+        return GraphStatus(ErrorCode::E_USERNAME_NOT_FOUND,
+                           getErrorMsg(ErrorCode::E_USERNAME_NOT_FOUND));
     }
 
-    static GraphStatus setSessionInvalid(const int64_t sessionId) {
-        return GraphStatus(ErrorCode::E_SESSION_INVALID,
+    static GraphStatus setSessionNotFound(const int64_t sessionId) {
+        return GraphStatus(ErrorCode::E_SESSION_NOT_EXIST,
                    folly::stringPrintf(
-                           getErrorMsg(ErrorCode::E_SESSION_INVALID).c_str(), sessionId));
+                           getErrorMsg(ErrorCode::E_SESSION_NOT_EXIST).c_str(), sessionId));
     }
 
     static GraphStatus setSyntaxError(const std::string& string) {
@@ -135,6 +135,12 @@ public:
         return GraphStatus(ErrorCode::E_UNSUPPORTED_EXPR,
                 folly::stringPrintf(
                         getErrorMsg(ErrorCode::E_UNSUPPORTED_EXPR).c_str(), expr.c_str()));
+    }
+
+    static GraphStatus setInvalidAuthType(const std::string &type) {
+        return GraphStatus(ErrorCode::E_INVALID_AUTH_TYPE,
+                folly::stringPrintf(
+                    getErrorMsg(ErrorCode::E_INVALID_AUTH_TYPE).c_str(), type.c_str()));
     }
 
     static GraphStatus setOutOfMaxStatements() {
@@ -250,11 +256,6 @@ public:
                            getErrorMsg(ErrorCode::E_NO_RUNNING_BALANCE_PLAN));
     }
 
-    static GraphStatus setCorrupttedBalancePlan() {
-        return GraphStatus(ErrorCode::E_CORRUPTTED_BALANCE_PLAN,
-                           getErrorMsg(ErrorCode::E_CORRUPTTED_BALANCE_PLAN));
-    }
-
     static GraphStatus setNoValidHost() {
         return GraphStatus(ErrorCode::E_NO_VALID_HOST,
                            getErrorMsg(ErrorCode::E_NO_VALID_HOST));
@@ -330,11 +331,6 @@ public:
                            getErrorMsg(ErrorCode::E_SAVE_JOB_FAILED));
     }
 
-    static GraphStatus setKeyHasExists() {
-        return GraphStatus(ErrorCode::E_KEY_HAS_EXISTS,
-                           getErrorMsg(ErrorCode::E_KEY_HAS_EXISTS));
-    }
-
     static GraphStatus setPartNotFound() {
         return GraphStatus(ErrorCode::E_PART_NOT_FOUND,
                            getErrorMsg(ErrorCode::E_PART_NOT_FOUND));
@@ -370,11 +366,6 @@ public:
                            getErrorMsg(ErrorCode::E_NOT_NULLABLE));
     }
 
-    static GraphStatus setFieldUnset() {
-        return GraphStatus(ErrorCode::E_FIELD_UNSET,
-                           getErrorMsg(ErrorCode::E_FIELD_UNSET));
-    }
-
     static GraphStatus setOutOfRange() {
         return GraphStatus(ErrorCode::E_OUT_OF_RANGE,
                            getErrorMsg(ErrorCode::E_OUT_OF_RANGE));
@@ -400,9 +391,9 @@ public:
                            getErrorMsg(ErrorCode::E_INVALID_FILTER));
     }
 
-    static GraphStatus setInvalidUpdate() {
-        return GraphStatus(ErrorCode::E_INVALID_UPDATER,
-                           getErrorMsg(ErrorCode::E_INVALID_UPDATER));
+    static GraphStatus setInvalidField() {
+        return GraphStatus(ErrorCode::E_INVALID_FIELD,
+                           getErrorMsg(ErrorCode::E_INVALID_FIELD));
     }
 
     static GraphStatus setInvalidStore() {
@@ -451,8 +442,8 @@ public:
     }
 
     static GraphStatus setInvalidTaskParam() {
-        return GraphStatus(ErrorCode::E_INVALID_TASK_PARA,
-                           getErrorMsg(ErrorCode::E_INVALID_TASK_PARA));
+        return GraphStatus(ErrorCode::E_INVALID_TASK_PARAM,
+                           getErrorMsg(ErrorCode::E_INVALID_TASK_PARAM));
     }
 
     static GraphStatus setUserCancel() {

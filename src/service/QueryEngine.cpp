@@ -44,8 +44,6 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
 
     schemaManager_ = meta::SchemaManager::create(metaClient_.get());
 
-    // gflagsManager_ = std::make_unique<meta::ClientBasedGflagsManager>(metaClient_.get());
-
     storage_ = std::make_unique<storage::GraphStorageClient>(ioExecutor,
                                                              metaClient_.get());
     charsetInfo_ = CharsetInfo::instance();

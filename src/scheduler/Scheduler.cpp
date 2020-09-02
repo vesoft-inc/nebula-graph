@@ -19,23 +19,13 @@ namespace graph {
 
 Scheduler::Task::Task(const Executor *e) : planId(DCHECK_NOTNULL(e)->node()->id()) {}
 
-<<<<<<< HEAD
 Scheduler::PassThroughData::PassThroughData(int32_t outputs)
-    : promise(std::make_unique<folly::SharedPromise<Status>>()), numOutputs(outputs) {}
-
-Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
-
-folly::Future<Status> Scheduler::schedule() {
-    auto executor = Executor::create(qctx_->plan()->root(), qctx_);
-=======
-Scheduler::MultiOutputsData::MultiOutputsData(int32_t outputs)
     : promise(std::make_unique<folly::SharedPromise<GraphStatus>>()), numOutputs(outputs) {}
 
 Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
 
 folly::Future<GraphStatus> Scheduler::schedule() {
-    auto executor = Executor::makeExecutor(qctx_->plan()->root(), qctx_);
->>>>>>> all use GraphStatus
+    auto executor = Executor::create(qctx_->plan()->root(), qctx_);
     analyze(executor);
     return doSchedule(executor);
 }

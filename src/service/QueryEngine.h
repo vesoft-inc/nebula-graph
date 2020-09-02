@@ -12,7 +12,6 @@
 #include "service/RequestContext.h"
 #include "common/interface/gen-cpp2/GraphService.h"
 #include "common/meta/SchemaManager.h"
-// #include "common/meta/ClientBasedGflagsManager.h"
 #include "common/clients/meta/MetaClient.h"
 #include "common/clients/storage/GraphStorageClient.h"
 #include "common/network/NetworkUtils.h"
@@ -44,7 +43,6 @@ public:
 
 private:
     std::unique_ptr<meta::SchemaManager>              schemaManager_;
-    // std::unique_ptr<meta::ClientBasedGflagsManager>   gflagsManager_;
     std::unique_ptr<storage::GraphStorageClient>      storage_;
     std::unique_ptr<meta::MetaClient>                 metaClient_;
     CharsetInfo*                                      charsetInfo_{nullptr};

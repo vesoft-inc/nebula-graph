@@ -16,12 +16,11 @@ using nebula::storage::GraphStorageClient;
 namespace nebula {
 namespace graph {
 
-<<<<<<< HEAD
-folly::Future<Status> IndexScanExecutor::execute() {
+folly::Future<GraphStatus> IndexScanExecutor::execute() {
     return indexScan();
 }
 
-folly::Future<Status> IndexScanExecutor::indexScan() {
+folly::Future<GraphStatus> IndexScanExecutor::indexScan() {
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     auto *lookup = asNode<IndexScan>(node());
     return storageClient->lookupIndex(lookup->space(),
@@ -36,10 +35,10 @@ folly::Future<Status> IndexScanExecutor::indexScan() {
 }
 
 template <typename Resp>
-Status IndexScanExecutor::handleResp(storage::StorageRpcResponse<Resp> &&rpcResp) {
+GraphStatus IndexScanExecutor::handleResp(storage::StorageRpcResponse<Resp> &&rpcResp) {
     auto completeness = handleCompleteness(rpcResp);
     if (!completeness.ok()) {
-        return std::move(completeness).status();
+        return GraphStatus::setRpcResponse(rpcResp.failedParts().begin()->second, "");
     }
     auto state = std::move(completeness).value();
     nebula::DataSet v;
@@ -71,7 +70,7 @@ IndexScanExecutor::handleCompleteness(const storage::StorageRpcResponse<Resp> &r
         const auto &failedCodes = rpcResp.failedParts();
         for (auto it = failedCodes.begin(); it != failedCodes.end(); it++) {
             LOG(ERROR) << name_ << " failed, error "
-                       << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second) << ", part "
+                       << nebula::cpp2::_ErrorCode_VALUES_TO_NAMES.at(it->second) << ", part "
                        << it->first;
         }
         if (completeness == 0) {
@@ -87,18 +86,12 @@ void IndexScanExecutor::checkResponseResult(const storage::cpp2::ResponseCommon&
     if (!failedParts.empty()) {
         std::stringstream ss;
         for (auto& part : failedParts) {
-            ss << "error code: " << storage::cpp2::_ErrorCode_VALUES_TO_NAMES.at(part.get_code())
+            ss << "error code: " << nebula::cpp2::_ErrorCode_VALUES_TO_NAMES.at(part.get_code())
                << ", leader: " << part.get_leader()->host << ":" << part.get_leader()->port
                << ", part id: " << part.get_part_id() << "; ";
         }
         LOG(ERROR) << ss.str();
     }
-=======
-folly::Future<GraphStatus> IndexScanExecutor::execute() {
-    SCOPED_TIMER(&execTime_);
-    // TODO(yee): Get all neighbors by storage client
-    return start();
->>>>>>> all use GraphStatus
 }
 
 }   // namespace graph

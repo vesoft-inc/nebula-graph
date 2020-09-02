@@ -43,16 +43,11 @@ protected:
         }
         auto sentences = pool_->add(std::move(result).value().release());
         auto qctx = buildContext();
-<<<<<<< HEAD
-        NG_RETURN_IF_ERROR(Validator::validate(sentences, qctx));
-        return qctx;
-=======
         auto gStatus = Validator::validate(sentences, qctx);
         if (!gStatus.ok()) {
             return Status::Error(gStatus.toString());
         }
-        return qctx->plan();
->>>>>>> all use GraphStatus
+        return qctx;
     }
 
     QueryContext* buildContext() {

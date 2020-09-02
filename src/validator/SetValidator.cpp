@@ -36,7 +36,7 @@ GraphStatus SetValidator::validateImpl() {
     for (size_t i = 0, e = lCols.size(); i < e; i++) {
         if (lCols[i].first != rCols[i].first) {
             return GraphStatus::setSemanticError(
-                "different column names to UNION/INTERSECT/MINUS are not supported");
+                    "different column names to UNION/INTERSECT/MINUS are not supported");
         }
     }
 
@@ -44,12 +44,7 @@ GraphStatus SetValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status SetValidator::toPlan() {
-=======
 GraphStatus SetValidator::toPlan() {
-    auto plan = qctx_->plan();
->>>>>>> all use GraphStatus
     auto setSentence = static_cast<const SetSentence *>(sentence_);
     auto lRoot = DCHECK_NOTNULL(lValidator_->root());
     auto rRoot = DCHECK_NOTNULL(rValidator_->root());
@@ -84,19 +79,13 @@ GraphStatus SetValidator::toPlan() {
         default:
             return GraphStatus::setInternalError(
                     folly::stringPrintf("Unknown operator: %ld",
-                                         static_cast<int64_t>(setSentence->op())));
+                            static_cast<int64_t>(setSentence->op())));
     }
 
     bNode->setLeftVar(lRoot->varName());
     bNode->setRightVar(rRoot->varName());
 
-<<<<<<< HEAD
     tail_ = PassThroughNode::make(qctx_, nullptr);
-    NG_RETURN_IF_ERROR(lValidator_->appendPlan(tail_));
-    NG_RETURN_IF_ERROR(rValidator_->appendPlan(tail_));
-    return Status::OK();
-=======
-    tail_ = MultiOutputsNode::make(plan, nullptr);
     auto gStatus = lValidator_->appendPlan(tail_);
     if (!gStatus.ok()) {
         return gStatus;
@@ -107,8 +96,8 @@ GraphStatus SetValidator::toPlan() {
         return gStatus;
     }
     return GraphStatus::OK();
->>>>>>> all use GraphStatus
 }
 
 }   // namespace graph
 }   // namespace nebula
+

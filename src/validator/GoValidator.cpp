@@ -177,7 +177,7 @@ GraphStatus GoValidator::toPlan() {
             passThrough->setColNames(std::move(colNames_));
             tail_ = passThrough;
             root_ = tail_;
-            return Status::OK();
+            return GraphStatus::OK();
         } else if (steps_.steps == 1) {
             return buildOneStepPlan();
         } else {
@@ -190,7 +190,7 @@ GraphStatus GoValidator::toPlan() {
 
 GraphStatus GoValidator::oneStep(PlanNode* dependencyForGn,
                                  const std::string& inputVarNameForGN,
-                                  PlanNode* projectFromJoin) {
+                                 PlanNode* projectFromJoin) {
     auto* gn = GetNeighbors::make(qctx_, dependencyForGn, space_.id);
     gn->setSrc(src_);
     gn->setVertexProps(buildSrcVertexProps());
@@ -985,7 +985,7 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
 GraphStatus GoValidator::buildColumns() {
     if (exprProps_.dstTagProps().empty() && exprProps_.inputProps().empty() &&
         exprProps_.varProps().empty() && from_.fromType == FromType::kInstantExpr) {
-        return Status::OK();
+        return GraphStatus::OK();
     }
 
     auto pool = qctx_->objPool();

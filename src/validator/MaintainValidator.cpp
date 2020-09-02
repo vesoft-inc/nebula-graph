@@ -199,14 +199,8 @@ GraphStatus AlterTagValidator::validateImpl() {
     return alterSchema(sentence->getSchemaOpts(), sentence->getSchemaProps());
 }
 
-<<<<<<< HEAD
-Status AlterTagValidator::toPlan() {
-    auto *doNode = AlterTag::make(qctx_,
-=======
 GraphStatus AlterTagValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = AlterTag::make(plan,
->>>>>>> all use GraphStatus
+    auto *doNode = AlterTag::make(qctx_,
                                   nullptr,
                                   vctx_->whichSpace().id,
                                   std::move(name_),
@@ -223,14 +217,8 @@ GraphStatus AlterEdgeValidator::validateImpl() {
     return alterSchema(sentence->getSchemaOpts(), sentence->getSchemaProps());
 }
 
-<<<<<<< HEAD
-Status AlterEdgeValidator::toPlan() {
-    auto *doNode = AlterEdge::make(qctx_,
-=======
 GraphStatus AlterEdgeValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = AlterEdge::make(plan,
->>>>>>> all use GraphStatus
+    auto *doNode = AlterEdge::make(qctx_,
                                    nullptr,
                                    vctx_->whichSpace().id,
                                    std::move(name_),
@@ -245,14 +233,8 @@ GraphStatus ShowTagsValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowTagsValidator::toPlan() {
-    auto *doNode = ShowTags::make(qctx_, nullptr);
-=======
 GraphStatus ShowTagsValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = ShowTags::make(plan, nullptr);
->>>>>>> all use GraphStatus
+    auto *doNode = ShowTags::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return GraphStatus::OK();
@@ -262,14 +244,8 @@ GraphStatus ShowEdgesValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status ShowEdgesValidator::toPlan() {
-    auto *doNode = ShowEdges::make(qctx_, nullptr);
-=======
 GraphStatus ShowEdgesValidator::toPlan() {
-    auto* plan = qctx_->plan();
-    auto *doNode = ShowEdges::make(plan, nullptr);
->>>>>>> all use GraphStatus
+    auto *doNode = ShowEdges::make(qctx_, nullptr);
     root_ = doNode;
     tail_ = root_;
     return GraphStatus::OK();

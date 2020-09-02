@@ -12,12 +12,7 @@
 namespace nebula {
 namespace graph {
 
-<<<<<<< HEAD
-Status BalanceValidator::toPlan() {
-=======
 GraphStatus BalanceValidator::toPlan() {
-    auto* plan = qctx_->plan();
->>>>>>> all use GraphStatus
     PlanNode *current = nullptr;
     BalanceSentence *sentence = static_cast<BalanceSentence*>(sentence_);
     switch (sentence->subType()) {

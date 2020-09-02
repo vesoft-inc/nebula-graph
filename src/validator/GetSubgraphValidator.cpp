@@ -128,7 +128,6 @@ GraphStatus GetSubgraphValidator::toPlan() {
     // start [->previous] [-> project(input)] -> loop -> collect
     auto* bodyStart = StartNode::make(qctx_);
 
-    std::vector<EdgeType> edgeTypes;
     auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     auto statProps = std::make_unique<std::vector<storage::cpp2::StatProp>>();
@@ -143,35 +142,22 @@ GraphStatus GetSubgraphValidator::toPlan() {
         startVidsVar = projectStartVid->varName();
     }
 
-    ResultBuilder builder;
-    builder.value(Value(std::move(ds))).iter(Iterator::Kind::kSequential);
-    qctx_->ectx()->setResult(vidsToSave, builder.finish());
-    auto* vids = new VariablePropertyExpression(
-                     new std::string(vidsToSave),
-                     new std::string(kVid));
     auto* gn1 = GetNeighbors::make(
             qctx_,
             bodyStart,
             space.id,
-            plan->saveObject(vids),
+            src_,
             ContainerConv::to<std::vector>(std::move(edgeTypes_)),
-            storage::cpp2::EdgeDirection::BOTH,  // FIXME: make direction right
+            // TODO(shylock) add syntax like `BOTH *`, `OUT *` ...
+            storage::cpp2::EdgeDirection::OUT_EDGE,  // FIXME: make direction right
             std::move(vertexProps),
             std::move(edgeProps),
             std::move(statProps),
             std::move(exprs),
             true /*subgraph not need duplicate*/);
-    gn1->setInputVar(vidsToSave);
+    gn1->setInputVar(startVidsVar);
 
-    auto* columns = new YieldColumns();
-    auto* column = new YieldColumn(
-        new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
-        new std::string(kVid));
-    columns->addColumn(column);
-    auto* project = Project::make(plan, gn1, plan->saveObject(columns));
-    project->setInputVar(gn1->varName());
-    project->setOutputVar(vidsToSave);
-    project->setColNames(deduceColNames(columns));
+    auto *projectVids = projectDstVidsFromGN(gn1, startVidsVar);
 
     // ++counter{0} <= steps
     // TODO(shylock) add condition when gn get empty result
@@ -231,3 +217,4 @@ GraphStatus GetSubgraphValidator::toPlan() {
 }
 }  // namespace graph
 }  // namespace nebula
+

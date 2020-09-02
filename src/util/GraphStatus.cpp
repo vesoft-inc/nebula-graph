@@ -34,8 +34,8 @@ GraphStatus GraphStatus::setRpcResponse(const nebula::cpp2::ErrorCode code,
             return GraphStatus::setRpcFailed(name);
         case nebula::cpp2::ErrorCode::E_LEADER_CHANGED:
             return GraphStatus::setLeaderChanged();
-        case nebula::cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD:
-            return GraphStatus::setBadUsernamePassword();
+        case nebula::cpp2::ErrorCode::E_USERNAME_NOT_FOUND:
+            return GraphStatus::setUsernameNotFound();
         case nebula::cpp2::ErrorCode::E_NO_HOSTS:
             return GraphStatus::setNoHosts();
         case nebula::cpp2::ErrorCode::E_SPACE_EXISTED:
@@ -68,8 +68,6 @@ GraphStatus GraphStatus::setRpcResponse(const nebula::cpp2::ErrorCode code,
             return GraphStatus::setBalanced();
         case nebula::cpp2::ErrorCode::E_NO_RUNNING_BALANCE_PLAN:
             return GraphStatus::setNoRunningBalancePlan();
-        case nebula::cpp2::ErrorCode::E_CORRUPTTED_BALANCE_PLAN:
-            return GraphStatus::setCorrupttedBalancePlan();
         case nebula::cpp2::ErrorCode::E_NO_VALID_HOST:
             return GraphStatus::setNoValidHost();
         case nebula::cpp2::ErrorCode::E_INVALID_PASSWORD:
@@ -100,8 +98,6 @@ GraphStatus GraphStatus::setRpcResponse(const nebula::cpp2::ErrorCode code,
             return GraphStatus::setStopJobFailed();
         case nebula::cpp2::ErrorCode::E_SAVE_JOB_FAILED:
             return GraphStatus::setSaveJobFailed();
-        case nebula::cpp2::ErrorCode::E_KEY_HAS_EXISTS:
-            return GraphStatus::setKeyHasExists();
         case nebula::cpp2::ErrorCode::E_PART_NOT_FOUND:
             return GraphStatus::setPartNotFound();
         case nebula::cpp2::ErrorCode::E_KEY_NOT_FOUND:
@@ -116,8 +112,6 @@ GraphStatus GraphStatus::setRpcResponse(const nebula::cpp2::ErrorCode code,
             return GraphStatus::setInvalidOperation();
         case nebula::cpp2::ErrorCode::E_NOT_NULLABLE:
             return GraphStatus::setNotNullable();
-        case nebula::cpp2::ErrorCode::E_FIELD_UNSET:
-            return GraphStatus::setFieldUnset();
         case nebula::cpp2::ErrorCode::E_OUT_OF_RANGE:
             return GraphStatus::setOutOfRange();
         case nebula::cpp2::ErrorCode::E_ATOMIC_OP_FAILED:
@@ -128,8 +122,8 @@ GraphStatus GraphStatus::setRpcResponse(const nebula::cpp2::ErrorCode code,
             return GraphStatus::setInvalidSpaceVidLen();
         case nebula::cpp2::ErrorCode::E_INVALID_FILTER:
             return GraphStatus::setInvalidFilter();
-        case nebula::cpp2::ErrorCode::E_INVALID_UPDATER:
-            return GraphStatus::setInvalidFilter();
+        case nebula::cpp2::ErrorCode::E_INVALID_FIELD:
+            return GraphStatus::setInvalidField();
         case nebula::cpp2::ErrorCode::E_INVALID_STORE:
             return GraphStatus::setInvalidStore();
         case nebula::cpp2::ErrorCode::E_INVALID_PEER:
@@ -148,7 +142,7 @@ GraphStatus GraphStatus::setRpcResponse(const nebula::cpp2::ErrorCode code,
             return GraphStatus::setFilterOut();
         case nebula::cpp2::ErrorCode::E_INVALID_DATA:
             return GraphStatus::setInvalidData();
-        case nebula::cpp2::ErrorCode::E_INVALID_TASK_PARA:
+        case nebula::cpp2::ErrorCode::E_INVALID_TASK_PARAM:
             return GraphStatus::setInvalidTaskParam();
         case nebula::cpp2::ErrorCode::E_USER_CANCEL:
             return GraphStatus::setUserCancel();

@@ -18,13 +18,13 @@ CloudAuthenticator::CloudAuthenticator(const meta::MetaClient* client) {
     metaClient_ = client;
 }
 
-bool CloudAuthenticator::auth(const std::string& user, const std::string& password) {
+GraphStatus CloudAuthenticator::auth(const std::string& user, const std::string& password) {
     // The shadow account on the nebula side has been created
     // Normal passwords and tokens use different prefixes
 
     // First, go to meta to check if the shadow account exists
     if (!metaClient_->checkShadowAccountFromCache(user)) {
-        return false;
+        return GraphStatus::setUsernameNotFound();
     }
 
     // Second, use user + password authentication methods
@@ -38,20 +38,20 @@ bool CloudAuthenticator::auth(const std::string& user, const std::string& passwo
 
     if (!result.ok()) {
         LOG(ERROR) << result.status();
-        return false;
+        return GraphStatus::setInvalidPassword();
     }
 
     try {
         auto json = folly::parseJson(result.value());
         if (json["code"].asString().compare("0") != 0) {
             LOG(ERROR) << "Cloud authentication failed, user: " << user;
-            return false;
+            return GraphStatus::setInvalidPassword();
         }
     } catch (std::exception& e) {
         LOG(ERROR) << "Invalid json: " << e.what();
-        return false;
+        GraphStatus::setInvalidPassword();
     }
-    return true;
+    return GraphStatus::OK();
 }
 
 }   // namespace graph

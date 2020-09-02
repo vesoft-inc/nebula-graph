@@ -23,13 +23,12 @@ public:
     }
 
 private:
-<<<<<<< HEAD
-    folly::Future<Status> execute() override;
+    folly::Future<GraphStatus> execute() override;
 
-    folly::Future<Status> indexScan();
+    folly::Future<GraphStatus> indexScan();
 
     template <typename Resp>
-    Status handleResp(storage::StorageRpcResponse<Resp> &&rpcResp);
+    GraphStatus handleResp(storage::StorageRpcResponse<Resp> &&rpcResp);
 
     template <typename Resp>
     StatusOr<Result::State>
@@ -39,9 +38,6 @@ private:
 
 private:
     const IndexScan *   gn_;
-=======
-    folly::Future<GraphStatus> execute() override;
->>>>>>> all use GraphStatus
 };
 
 }   // namespace graph

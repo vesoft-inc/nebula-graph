@@ -66,12 +66,8 @@ GraphStatus SequentialValidator::validateImpl() {
     return GraphStatus::OK();
 }
 
-<<<<<<< HEAD
-Status SequentialValidator::toPlan() {
-=======
+
 GraphStatus SequentialValidator::toPlan() {
-    auto* plan = qctx_->plan();
->>>>>>> all use GraphStatus
     root_ = validators_.back()->root();
     ifBuildDataCollectForRoot(root_);
     GraphStatus gStatus;
@@ -81,16 +77,11 @@ GraphStatus SequentialValidator::toPlan() {
             return gStatus;
         }
     }
-<<<<<<< HEAD
     tail_ = StartNode::make(qctx_);
-    NG_RETURN_IF_ERROR(validators_.front()->appendPlan(tail_));
-=======
-    tail_ = StartNode::make(plan);
     gStatus = validators_.front()->appendPlan(tail_);
     if (!gStatus.ok()) {
         return gStatus;
     }
->>>>>>> all use GraphStatus
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return GraphStatus::OK();
 }

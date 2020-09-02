@@ -18,12 +18,8 @@ protected:
     GetPropExecutor(const std::string &name, const PlanNode *node, QueryContext *qctx)
         : Executor(name, node, qctx) {}
 
-<<<<<<< HEAD
-    Status handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp,
-                      const std::vector<std::string> &colNames) {
-=======
-    GraphStatus handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp) {
->>>>>>> all use GraphStatus
+    GraphStatus handleResp(storage::StorageRpcResponse<storage::cpp2::GetPropResponse> &&rpcResp,
+                           const std::vector<std::string> &colNames) {
         auto result = handleCompleteness(rpcResp);
         if (!result.ok()) {
             // return the first error code
