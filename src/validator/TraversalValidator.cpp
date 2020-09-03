@@ -51,7 +51,6 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                         expr->toString().c_str());
             }
             auto vid = expr->eval(ctx(nullptr));
-            auto vid = expr->eval(ctx);
             if (!SchemaUtil::isValidVid(vid, space_.spaceDesc.vid_type)) {
                 std::stringstream ss;
                 ss << "Vid should be a "

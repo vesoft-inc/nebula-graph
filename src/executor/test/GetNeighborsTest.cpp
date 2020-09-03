@@ -38,7 +38,7 @@ protected:
         session->setSpace(std::move(spaceInfo));
         auto rctx = std::make_unique<RequestContext<cpp2::ExecutionResponse>>();
         rctx->setSession(std::move(session));
-        qctx_->setRctx(std::move(rctx));
+        qctx_->setRCtx(std::move(rctx));
     }
 
 protected:

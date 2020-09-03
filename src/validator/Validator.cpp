@@ -199,7 +199,7 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
 
     // Check if space chosen from session. if chosen, add it to context.
     auto session = qctx->rctx()->session();
-    if (session->space().id > -1) {
+    if (session->space().id > kInvalidSpaceID) {
         auto spaceInfo = session->space();
         qctx->vctx()->switchToSpace(std::move(spaceInfo));
     }
@@ -248,6 +248,8 @@ Status Validator::validate() {
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
+        VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name
+                << " id: " << space_.id;
     }
 
     auto status = validateImpl();
