@@ -10,7 +10,7 @@ import re
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 
-leader_pattern = re.compile(r'127.0.0.1:.*|')
+leader_pattern = re.compile(r'127.0.0.1:.*|^$')
 peers_pattern = re.compile(r'127.0.0.1:.*')
 losts_pattern = re.compile(r'')
 
@@ -24,7 +24,7 @@ class TestParts(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         # Wait for leader info
-        time.sleep(self.delay + 5)
+        time.sleep(self.delay)
 
     @classmethod
     def cleanup(self):
@@ -45,6 +45,7 @@ class TestParts(NebulaTestSuite):
             for i in range(1, 6)
         ]
         self.check_result(resp, expected_result, is_regex=True)
+
 
         # Specify the part id
         resp = self.client.execute_query('SHOW PART 3')

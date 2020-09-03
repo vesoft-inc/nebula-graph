@@ -98,7 +98,8 @@ function run_test() {
         $PROJ_DIR/tests/query/stateless/test_if_exists.py \
         $PROJ_DIR/tests/query/stateless/test_range.py \
         $PROJ_DIR/tests/query/stateless/test_go.py \
-        $PROJ_DIR/tests/query/stateless/test_simple_query.py
+        $PROJ_DIR/tests/query/stateless/test_simple_query.py \
+        $PROJ_DIR/tests/query/stateless/test_keyword.py
 }
 
 case "$1" in
