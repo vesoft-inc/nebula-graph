@@ -36,6 +36,7 @@ private:
 private:
     std::unordered_set<EdgeType>                edgeTypes_;
     std::string                                 collectVar_;
+    std::string                                 runtimeStartVar_;
 };
 }  // namespace graph
 }  // namespace nebula

@@ -822,3 +822,166 @@ class TestSubGraph(NebulaTestSuite):
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = "GO FROM 'Tim Duncan' over serve YIELD serve._src AS id | GET SUBGRAPH FROM $-.id"
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+
+        vertex1 = [VERTEXS['Tim Duncan']]
+
+        edge1 = [
+                    EDGES['Manu Ginobili'+'Tim Duncan'+'teammate'+'0'],
+                    EDGES['Tony Parker'+'Tim Duncan'+'teammate'+'0'],
+                    EDGES['Aron Baynes'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Boris Diaw'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Danny Green'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Dejounte Murray'+'Tim Duncan'+'like'+'0'],
+                    EDGES['LaMarcus Aldridge'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Manu Ginobili'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Marco Belinelli'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Shaquile O\'Neal'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Tiago Splitter'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Tony Parker'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Tim Duncan'+'Manu Ginobili'+'like'+'0'],
+                    EDGES['Tim Duncan'+'Tony Parker'+'like'+'0'],
+                    EDGES['Tim Duncan'+'Spurs'+'serve'+'0'],
+                    EDGES['Tim Duncan'+'Danny Green'+'teammate'+'0'],
+                    EDGES['Tim Duncan'+'LaMarcus Aldridge'+'teammate'+'0'],
+                    EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
+                    EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0']
+                ]
+
+        vertex2 = [
+                    VERTEXS['Danny Green'],
+                    VERTEXS['Manu Ginobili'],
+                    VERTEXS['Aron Baynes'],
+                    VERTEXS['Boris Diaw'],
+                    VERTEXS['Shaquile O\'Neal'],
+                    VERTEXS['Tony Parker'],
+                    VERTEXS['Spurs'],
+                    VERTEXS['Dejounte Murray'],
+                    VERTEXS['LaMarcus Aldridge'],
+                    VERTEXS['Marco Belinelli'],
+                    VERTEXS['Tiago Splitter']
+                  ]
+
+        edge2 = [
+                    EDGES['Dejounte Murray'+'Danny Green'+'like'+'0'],
+                    EDGES['Marco Belinelli'+'Danny Green'+'like'+'0'],
+                    EDGES['Danny Green'+'Marco Belinelli'+'like'+'0'],
+                    EDGES['Danny Green'+'Spurs'+'serve'+'0'],
+                    EDGES['Tony Parker'+'Manu Ginobili'+'teammate'+'0'],
+                    EDGES['Dejounte Murray'+'Manu Ginobili'+'like'+'0'],
+                    EDGES['Tiago Splitter'+'Manu Ginobili'+'like'+'0'],
+                    EDGES['Tony Parker'+'Manu Ginobili'+'like'+'0'],
+                    EDGES['Manu Ginobili'+'Spurs'+'serve'+'0'],
+                    EDGES['Manu Ginobili'+'Tony Parker'+'teammate'+'0'],
+                    EDGES['Aron Baynes'+'Spurs'+'serve'+'0'],
+                    EDGES['Boris Diaw'+'Tony Parker'+'like'+'0'],
+                    EDGES['Boris Diaw'+'Spurs'+'serve'+'0'],
+                    EDGES['Dejounte Murray'+'Tony Parker'+'like'+'0'],
+                    EDGES['LaMarcus Aldridge'+'Tony Parker'+'like'+'0'],
+                    EDGES['Marco Belinelli'+'Tony Parker'+'like'+'0'],
+                    EDGES['Tony Parker'+'LaMarcus Aldridge'+'like'+'0'],
+                    EDGES['Tony Parker'+'Spurs'+'serve'+'0'],
+                    EDGES['Tony Parker'+'LaMarcus Aldridge'+'teammate'+'0'],
+                    EDGES['Dejounte Murray'+'Spurs'+'serve'+'0'],
+                    EDGES['LaMarcus Aldridge'+'Spurs'+'serve'+'0'],
+                    EDGES['Marco Belinelli'+'Spurs'+'serve'+'0'],
+                    EDGES['Tiago Splitter'+'Spurs'+'serve'+'0'],
+                    EDGES['Marco Belinelli'+'Spurs'+'serve'+'1'],
+                    EDGES['Dejounte Murray'+'Marco Belinelli'+'like'+'0']
+                ]
+
+        expected_data = {
+            "column_names" : ["_vertices", "_edges"],
+            "rows" : [
+                [vertex1, edge1],
+                [vertex2, edge2]
+            ]
+        }
+
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = '''$a = GO FROM 'Tim Duncan' over serve YIELD serve._src AS id;
+                  GET SUBGRAPH FROM $a.id'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+
+        vertex1 = [VERTEXS['Tim Duncan']]
+
+        edge1 = [
+                    EDGES['Manu Ginobili'+'Tim Duncan'+'teammate'+'0'],
+                    EDGES['Tony Parker'+'Tim Duncan'+'teammate'+'0'],
+                    EDGES['Aron Baynes'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Boris Diaw'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Danny Green'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Dejounte Murray'+'Tim Duncan'+'like'+'0'],
+                    EDGES['LaMarcus Aldridge'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Manu Ginobili'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Marco Belinelli'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Shaquile O\'Neal'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Tiago Splitter'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Tony Parker'+'Tim Duncan'+'like'+'0'],
+                    EDGES['Tim Duncan'+'Manu Ginobili'+'like'+'0'],
+                    EDGES['Tim Duncan'+'Tony Parker'+'like'+'0'],
+                    EDGES['Tim Duncan'+'Spurs'+'serve'+'0'],
+                    EDGES['Tim Duncan'+'Danny Green'+'teammate'+'0'],
+                    EDGES['Tim Duncan'+'LaMarcus Aldridge'+'teammate'+'0'],
+                    EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
+                    EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0']
+                ]
+
+        vertex2 = [
+                    VERTEXS['Danny Green'],
+                    VERTEXS['Manu Ginobili'],
+                    VERTEXS['Aron Baynes'],
+                    VERTEXS['Boris Diaw'],
+                    VERTEXS['Shaquile O\'Neal'],
+                    VERTEXS['Tony Parker'],
+                    VERTEXS['Spurs'],
+                    VERTEXS['Dejounte Murray'],
+                    VERTEXS['LaMarcus Aldridge'],
+                    VERTEXS['Marco Belinelli'],
+                    VERTEXS['Tiago Splitter']
+                  ]
+
+        edge2 = [
+                    EDGES['Dejounte Murray'+'Danny Green'+'like'+'0'],
+                    EDGES['Marco Belinelli'+'Danny Green'+'like'+'0'],
+                    EDGES['Danny Green'+'Marco Belinelli'+'like'+'0'],
+                    EDGES['Danny Green'+'Spurs'+'serve'+'0'],
+                    EDGES['Tony Parker'+'Manu Ginobili'+'teammate'+'0'],
+                    EDGES['Dejounte Murray'+'Manu Ginobili'+'like'+'0'],
+                    EDGES['Tiago Splitter'+'Manu Ginobili'+'like'+'0'],
+                    EDGES['Tony Parker'+'Manu Ginobili'+'like'+'0'],
+                    EDGES['Manu Ginobili'+'Spurs'+'serve'+'0'],
+                    EDGES['Manu Ginobili'+'Tony Parker'+'teammate'+'0'],
+                    EDGES['Aron Baynes'+'Spurs'+'serve'+'0'],
+                    EDGES['Boris Diaw'+'Tony Parker'+'like'+'0'],
+                    EDGES['Boris Diaw'+'Spurs'+'serve'+'0'],
+                    EDGES['Dejounte Murray'+'Tony Parker'+'like'+'0'],
+                    EDGES['LaMarcus Aldridge'+'Tony Parker'+'like'+'0'],
+                    EDGES['Marco Belinelli'+'Tony Parker'+'like'+'0'],
+                    EDGES['Tony Parker'+'LaMarcus Aldridge'+'like'+'0'],
+                    EDGES['Tony Parker'+'Spurs'+'serve'+'0'],
+                    EDGES['Tony Parker'+'LaMarcus Aldridge'+'teammate'+'0'],
+                    EDGES['Dejounte Murray'+'Spurs'+'serve'+'0'],
+                    EDGES['LaMarcus Aldridge'+'Spurs'+'serve'+'0'],
+                    EDGES['Marco Belinelli'+'Spurs'+'serve'+'0'],
+                    EDGES['Tiago Splitter'+'Spurs'+'serve'+'0'],
+                    EDGES['Marco Belinelli'+'Spurs'+'serve'+'1'],
+                    EDGES['Dejounte Murray'+'Marco Belinelli'+'like'+'0']
+                ]
+
+        expected_data = {
+            "column_names" : ["_vertices", "_edges"],
+            "rows" : [
+                [vertex1, edge1],
+                [vertex2, edge2]
+            ]
+        }
+
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])

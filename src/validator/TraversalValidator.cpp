@@ -33,11 +33,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                    << "but was`" << type.value() << "'";
                 return Status::Error(ss.str());
             }
-
             starts.srcRef = src;
-            auto encode = src->encode();
-            auto decode = Expression::decode(encode);
-            startVidList_->add(decode.release());
             auto* propExpr = static_cast<PropertyExpression*>(src);
             if (starts.fromType == kVariable) {
                 starts.userDefinedVarName = *(propExpr->sym());
