@@ -955,7 +955,7 @@ class BFSShortestPath : public SingleInputNode {
 public:
 };
 
-class ConjunctPath : public PlanNode {
+class ConjunctPath : public BiInputNode {
 public:
 };
 

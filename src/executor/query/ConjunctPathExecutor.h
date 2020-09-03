@@ -17,6 +17,9 @@ public:
         : Executor("ConjunctPathExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
+
+private:
+    bool findPath(Iterator* iter, std::multimap<Value, const Path*>& table, DataSet& ds);
 };
 }  // namespace graph
 }  // namespace nebula

@@ -77,9 +77,6 @@ private:
 
     // name -> Value with multiple versions
     std::unordered_map<std::string, std::vector<Result>>     valueMap_;
-
-    std::unordered_map<Value, Vertex>   vertices_;
-    std::unordered_map<std::tuple<Value, std::string, int64_t, Value>, Edge>    edges_;
 };
 
 }  // namespace graph
