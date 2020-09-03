@@ -581,3 +581,14 @@ class TestYield(NebulaTestSuite):
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
         self.check_result(resp, [['hello']])
+
+    def test_constant_expression_with_where(self):
+        query = 'YIELD 1+1, "Hello world!" WHERE true;'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        self.check_result(resp, [[2, 'Hello world!']])
+
+        query = 'YIELD 1+1, "Hello world!" WHERE NULL;'
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        self.check_empty_result(resp)
