@@ -71,6 +71,7 @@ static size_t makePlanNodeDesc(const PlanNode* node, cpp2::PlanDescription* plan
         }
         default: {
             // Other plan nodes have single dependency
+            DCHECK_EQ(node->dependencies().size(), 1U);
             auto singleDepNode = static_cast<const SingleDependencyNode*>(node);
             makePlanNodeDesc(singleDepNode->dep(), planDesc);
             break;
