@@ -44,6 +44,11 @@ Status YieldValidator::validateImpl() {
         NG_RETURN_IF_ERROR(checkAggFunAndBuildGroupItems(yield->yield()));
     }
 
+    if (exprProps_.inputProps().empty() && exprProps_.varProps().empty()) {
+        // generate constant expression result into querycontext
+        genConstantExprValues();
+    }
+
     return Status::OK();
 }
 
@@ -127,11 +132,9 @@ void YieldValidator::genConstantExprValues() {
 Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
     auto columns = clause->columns();
     columns_ = qctx_->objPool()->add(new YieldColumns);
-    bool hasInputVar = false;
     for (auto column : columns) {
         auto expr = DCHECK_NOTNULL(column->expr());
         if (expr->kind() == Expression::Kind::kInputProperty) {
-            hasInputVar = true;
             auto ipe = static_cast<const InputPropertyExpression *>(expr);
             // Get all props of input expression could NOT be a part of another expression. So
             // it's always a root of expression.
@@ -146,7 +149,6 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
                 continue;
             }
         } else if (expr->kind() == Expression::Kind::kVarProperty) {
-            hasInputVar = true;
             auto vpe = static_cast<const VariablePropertyExpression *>(expr);
             // Get all props of variable expression is same as above input property expression.
             if (*vpe->prop() == "*") {
@@ -180,10 +182,6 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
         NG_RETURN_IF_ERROR(makeOutputColumn(column->clone().release()));
     }
 
-    if (!hasInputVar) {
-        // generate constant expression result into querycontext
-        genConstantExprValues();
-    }
     return Status::OK();
 }
 

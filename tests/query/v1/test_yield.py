@@ -592,3 +592,20 @@ class TestYield(NebulaTestSuite):
         resp = self.execute_query(query)
         self.check_resp_succeeded(resp)
         self.check_empty_result(resp)
+
+        query = '''GO FROM "Tim Duncan", "Tim Duncan" OVER serve YIELD $$.team.name AS team
+                   | YIELD 1+1, "Hello world!" WHERE $-.team == "Spurs"'''
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        columns = ['(1+1)', 'Hello world!']
+        self.check_column_names(resp, columns)
+        expect_result = [[2, 'Hello world!'], [2, 'Hello world!']]
+        self.check_out_of_order_result(resp, expect_result)
+
+        query = '''GO FROM "Tim Duncan", "Tim Duncan" OVER serve YIELD $$.team.name AS team
+                   | YIELD 1+1, "Hello world!" WHERE $-.team != "Spurs"'''
+        resp = self.execute_query(query)
+        self.check_resp_succeeded(resp)
+        columns = ['(1+1)', 'Hello world!']
+        self.check_column_names(resp, columns)
+        self.check_empty_result(resp)
