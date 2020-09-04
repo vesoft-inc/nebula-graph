@@ -26,7 +26,6 @@ void DeducePropsVisitor::visit(EdgePropertyExpression *expr) {
     visitEdgePropExpr(expr);
 }
 
-
 void DeducePropsVisitor::visit(TagPropertyExpression *expr) {
     auto status = qctx_->schemaMng()->toTagID(space_, *expr->sym());
     if (!status.ok()) {

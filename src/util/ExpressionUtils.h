@@ -14,8 +14,8 @@
 #include "common/expression/TypeCastingExpression.h"
 #include "common/expression/UnaryExpression.h"
 #include "common/expression/LabelExpression.h"
-#include "visitor/FindExprVisitor.h"
-#include "visitor/CollectExprsVisitor.h"
+#include "visitor/FindAnyExprVisitor.h"
+#include "visitor/CollectAllExprsVisitor.h"
 #include "visitor/RewriteLabelAttrVisitor.h"
 
 namespace nebula {
@@ -33,7 +33,7 @@ public:
     // null for not found
     static const Expression* findAnyKind(const Expression* self,
                                          const std::unordered_set<Expression::Kind>& expected) {
-        FindExprVisitor visitor(expected);
+        FindAnyExprVisitor visitor(expected);
         const_cast<Expression*>(self)->accept(&visitor);
         return visitor.expr();
     }
@@ -43,7 +43,7 @@ public:
     static std::vector<const Expression*> findAnyKindInAll(
         const Expression* self,
         const std::unordered_set<Expression::Kind>& expected) {
-        CollectExprsVisitor visitor(expected);
+        CollectAllExprsVisitor visitor(expected);
         const_cast<Expression*>(self)->accept(&visitor);
         return std::move(visitor).exprs();
     }
