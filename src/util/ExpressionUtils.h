@@ -10,12 +10,12 @@
 #include "common/expression/BinaryExpression.h"
 #include "common/expression/Expression.h"
 #include "common/expression/FunctionCallExpression.h"
+#include "common/expression/LabelExpression.h"
 #include "common/expression/PropertyExpression.h"
 #include "common/expression/TypeCastingExpression.h"
 #include "common/expression/UnaryExpression.h"
-#include "common/expression/LabelExpression.h"
-#include "visitor/FindAnyExprVisitor.h"
 #include "visitor/CollectAllExprsVisitor.h"
+#include "visitor/FindAnyExprVisitor.h"
 #include "visitor/RewriteLabelAttrVisitor.h"
 
 namespace nebula {
@@ -31,8 +31,8 @@ public:
     }
 
     // null for not found
-    static const Expression* findAnyKind(const Expression* self,
-                                         const std::unordered_set<Expression::Kind>& expected) {
+    static const Expression* findAny(const Expression* self,
+                                     const std::unordered_set<Expression::Kind>& expected) {
         FindAnyExprVisitor visitor(expected);
         const_cast<Expression*>(self)->accept(&visitor);
         return visitor.expr();
@@ -40,7 +40,7 @@ public:
 
     // Find all expression fit any kind
     // Empty for not found any one
-    static std::vector<const Expression*> findAnyKindInAll(
+    static std::vector<const Expression*> collectAll(
         const Expression* self,
         const std::unordered_set<Expression::Kind>& expected) {
         CollectAllExprsVisitor visitor(expected);
@@ -48,52 +48,51 @@ public:
         return std::move(visitor).exprs();
     }
 
-    static bool hasAnyKind(const Expression* expr,
-                           const std::unordered_set<Expression::Kind>& expected) {
-        return findAnyKind(expr, expected) != nullptr;
+    static bool hasAny(const Expression* expr,
+                       const std::unordered_set<Expression::Kind>& expected) {
+        return findAny(expr, expected) != nullptr;
     }
 
     // Require data from input/variable
     static bool hasInput(const Expression* expr) {
-        return hasAnyKind(expr,
-                          {Expression::Kind::kInputProperty,
-                           Expression::Kind::kVarProperty,
-                           Expression::Kind::kVar,
-                           Expression::Kind::kVersionedVar});
+        return hasAny(expr,
+                      {Expression::Kind::kInputProperty,
+                       Expression::Kind::kVarProperty,
+                       Expression::Kind::kVar,
+                       Expression::Kind::kVersionedVar});
     }
 
     // require data from graph storage
     static const Expression* findStorage(const Expression* expr) {
-        return findAnyKind(expr,
-                           {Expression::Kind::kTagProperty,
-                            Expression::Kind::kEdgeProperty,
-                            Expression::Kind::kDstProperty,
-                            Expression::Kind::kSrcProperty,
-                            Expression::Kind::kEdgeSrc,
-                            Expression::Kind::kEdgeType,
-                            Expression::Kind::kEdgeRank,
-                            Expression::Kind::kEdgeDst,
-                            Expression::Kind::kVertex,
-                            Expression::Kind::kEdge});
+        return findAny(expr,
+                       {Expression::Kind::kTagProperty,
+                        Expression::Kind::kEdgeProperty,
+                        Expression::Kind::kDstProperty,
+                        Expression::Kind::kSrcProperty,
+                        Expression::Kind::kEdgeSrc,
+                        Expression::Kind::kEdgeType,
+                        Expression::Kind::kEdgeRank,
+                        Expression::Kind::kEdgeDst,
+                        Expression::Kind::kVertex,
+                        Expression::Kind::kEdge});
     }
 
     static std::vector<const Expression*> findAllStorage(const Expression* expr) {
-        return findAnyKindInAll(expr,
-                                {Expression::Kind::kTagProperty,
-                                 Expression::Kind::kEdgeProperty,
-                                 Expression::Kind::kDstProperty,
-                                 Expression::Kind::kSrcProperty,
-                                 Expression::Kind::kEdgeSrc,
-                                 Expression::Kind::kEdgeType,
-                                 Expression::Kind::kEdgeRank,
-                                 Expression::Kind::kEdgeDst,
-                                 Expression::Kind::kVertex,
-                                 Expression::Kind::kEdge});
+        return collectAll(expr,
+                          {Expression::Kind::kTagProperty,
+                           Expression::Kind::kEdgeProperty,
+                           Expression::Kind::kDstProperty,
+                           Expression::Kind::kSrcProperty,
+                           Expression::Kind::kEdgeSrc,
+                           Expression::Kind::kEdgeType,
+                           Expression::Kind::kEdgeRank,
+                           Expression::Kind::kEdgeDst,
+                           Expression::Kind::kVertex,
+                           Expression::Kind::kEdge});
     }
 
     static std::vector<const Expression*> findAllInputVariableProp(const Expression* expr) {
-        return findAnyKindInAll(expr,
-                                {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty});
+        return collectAll(expr, {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty});
     }
 
     static bool hasStorage(const Expression* expr) {
@@ -115,22 +114,22 @@ public:
     }
 
     static bool isConstExpr(const Expression* expr) {
-        return !hasAnyKind(expr,
-                           {Expression::Kind::kInputProperty,
-                            Expression::Kind::kVarProperty,
-                            Expression::Kind::kVar,
-                            Expression::Kind::kVersionedVar,
-                            Expression::Kind::kLabelAttribute,
-                            Expression::Kind::kTagProperty,
-                            Expression::Kind::kEdgeProperty,
-                            Expression::Kind::kDstProperty,
-                            Expression::Kind::kSrcProperty,
-                            Expression::Kind::kEdgeSrc,
-                            Expression::Kind::kEdgeType,
-                            Expression::Kind::kEdgeRank,
-                            Expression::Kind::kEdgeDst,
-                            Expression::Kind::kVertex,
-                            Expression::Kind::kEdge});
+        return !hasAny(expr,
+                       {Expression::Kind::kInputProperty,
+                        Expression::Kind::kVarProperty,
+                        Expression::Kind::kVar,
+                        Expression::Kind::kVersionedVar,
+                        Expression::Kind::kLabelAttribute,
+                        Expression::Kind::kTagProperty,
+                        Expression::Kind::kEdgeProperty,
+                        Expression::Kind::kDstProperty,
+                        Expression::Kind::kSrcProperty,
+                        Expression::Kind::kEdgeSrc,
+                        Expression::Kind::kEdgeType,
+                        Expression::Kind::kEdgeRank,
+                        Expression::Kind::kEdgeDst,
+                        Expression::Kind::kVertex,
+                        Expression::Kind::kEdge});
     }
 
     // clone expression
@@ -163,4 +162,4 @@ public:
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // _UTIL_EXPRESSION_UTILS_H_
+#endif   // _UTIL_EXPRESSION_UTILS_H_

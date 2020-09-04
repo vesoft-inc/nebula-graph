@@ -19,7 +19,7 @@ class CollectAllExprsVisitor final : public ExprVisitorImpl {
 public:
     explicit CollectAllExprsVisitor(const std::unordered_set<Expression::Kind>& exprKinds);
     bool ok() const override {
-        return true;
+        return !exprKinds_.empty();
     }
 
     std::vector<const Expression*> exprs() && {

@@ -31,7 +31,7 @@ void FindAnyExprVisitor::visit(FunctionCallExpression *expr) {
     if (found_) return;
     for (const auto &arg : expr->args()->args()) {
         arg->accept(this);
-        if (found_) break;
+        if (found_) return;
     }
 }
 
