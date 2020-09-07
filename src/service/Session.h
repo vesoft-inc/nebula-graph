@@ -15,6 +15,7 @@ namespace nebula {
 namespace graph {
 
 constexpr int64_t kInvalidSpaceID = -1;
+constexpr int64_t kInvalidSessionID = 0;
 
 struct SpaceInfo {
     std::string name;
@@ -83,7 +84,7 @@ private:
 
 
 private:
-    int64_t           id_{kInvalidSpaceID};
+    int64_t           id_{kInvalidSessionID};
     SpaceInfo         space_;
     std::string       account_;
     time::Duration    idleDuration_;

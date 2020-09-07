@@ -57,7 +57,7 @@ Status CreateSpaceValidator::validateImpl() {
                 } else {
                     if (typeDef.typeLen <= 0 ||
                         typeDef.typeLen > std::numeric_limits<int16_t>::max()) {
-                        return Status::Error("vid size is out of size: %d", typeDef.typeLen);
+                        return Status::Error("Vid size is out of size: %d", typeDef.typeLen);
                     }
                     spaceDesc_.vid_size = typeDef.typeLen;
                 }
