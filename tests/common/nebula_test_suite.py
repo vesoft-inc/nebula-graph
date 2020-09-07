@@ -15,6 +15,8 @@ from nebula2.Client import GraphClient
 from nebula2.common import ttypes as CommonTtypes
 from nebula2.ConnectionPool import ConnectionPool
 from nebula2.graph import ttypes
+from tests.common.configs import get_delay_time
+import re
 
 
 T_EMPTY = CommonTtypes.Value()
@@ -34,20 +36,7 @@ T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.DIV_BY_ZERO)
 class NebulaTestSuite(object):
     @classmethod
     def set_delay(self):
-        # resp = self.client.execute_query(
-        #     'get configs GRAPH:heartbeat_interval_secs')
-        # self.check_resp_succeeded(resp)
-        # assert len(resp.rows) == 1, "invalid row size: {}".format(resp.rows)
-        # self.graph_delay = int(resp.rows[0].values[4].get_sVal()) + 1
-        self.graph_delay = 3
-
-        # resp = self.client.execute_query(
-        #     'get configs STORAGE:heartbeat_interval_secs')
-        # self.check_resp_succeeded(resp)
-        # assert len(resp.rows) == 1, "invalid row size: {}".format(resp.rows)
-        # self.storage_delay = int(resp.rows[0].values[4].get_sVal()) + 1
-        self.storage_delay = 3
-        self.delay = max(self.graph_delay, self.storage_delay) * 2
+        self.delay = get_delay_time(self.client)
 
     @classmethod
     def setup_class(self):
@@ -65,6 +54,33 @@ class NebulaTestSuite(object):
         self.create_nebula_clients()
         self.set_delay()
         self.prepare()
+
+    @classmethod
+    def load_vertex_edge(self):
+        self.VERTEXS = dict()
+        self.EDGES = dict()
+        nba_file = self.data_dir + '/data/nba.ngql'
+        print("load will open ", nba_file)
+        with open(nba_file, 'r') as data_file:
+            lines = data_file.readlines()
+            ddl = False
+            dataType = ['none']
+            for line in lines:
+                strip_line = line.strip()
+                if len(strip_line) == 0:
+                    continue
+                elif strip_line.startswith('--'):
+                    comment = strip_line[2:]
+                    if comment == 'DDL':
+                        ddl = True
+                    elif comment == 'END':
+                        if ddl:
+                            ddl = False
+                else:
+                    if not ddl:
+                        self.parse_line(line.strip(), dataType)
+                    if line.endswith(';'):
+                        dataType[0] = 'none'
 
     @classmethod
     def load_data(self):
@@ -147,12 +163,14 @@ class NebulaTestSuite(object):
             self.close_nebula_clients()
 
     @classmethod
-    def execute(self, ngql):
-        return self.client.execute(ngql)
+    def execute(self, ngql, profile=True):
+        return self.client.execute(
+            'PROFILE {{{}}}'.format(ngql) if profile else ngql)
 
     @classmethod
-    def execute_query(self, ngql):
-        return self.client.execute_query(ngql)
+    def execute_query(self, ngql, profile=True):
+        return self.client.execute_query(
+            'PROFILE {{{}}}'.format(ngql) if profile else ngql)
 
     @classmethod
     def prepare(cls):
@@ -167,7 +185,8 @@ class NebulaTestSuite(object):
     @classmethod
     def check_resp_succeeded(self, resp):
         assert resp.error_code == ttypes.ErrorCode.SUCCEEDED \
-               or resp.error_code == ttypes.ErrorCode.E_STATEMENT_EMTPY, resp.error_msg
+               or resp.error_code == ttypes.ErrorCode.E_STATEMENT_EMTPY, \
+               bytes.decode(resp.error_msg)
 
     @classmethod
     def check_resp_failed(self, resp, error_code: ttypes.ErrorCode = ttypes.ErrorCode.SUCCEEDED):
@@ -175,12 +194,12 @@ class NebulaTestSuite(object):
             assert resp.error_code != error_code, '{} == {}, {}'.format(
                 ttypes.ErrorCode._VALUES_TO_NAMES[resp.error_code],
                 ttypes.ErrorCode._VALUES_TO_NAMES[error_code],
-                resp.error_msg)
+                bytes.decode(resp.error_msg))
         else:
             assert resp.error_code == error_code, '{} != {}, {}'.format(
                 ttypes.ErrorCode._VALUES_TO_NAMES[resp.error_code],
                 ttypes.ErrorCode._VALUES_TO_NAMES[error_code],
-                resp.error_msg)
+                bytes.decode(resp.error_msg))
 
     @classmethod
     def check_value(self, col, expect):
@@ -359,6 +378,10 @@ class NebulaTestSuite(object):
                     return ok, temp
                 map_val.kvs[key.encode('utf-8')] = temp
             value.set_mVal(map_val)
+        elif isinstance(col, list):
+            list_val = CommonTtypes.List()
+            list_val.values = col
+            value.set_lVal(list_val)
         else:
             return False, 'Wrong val type'
         return True, value
@@ -377,7 +400,7 @@ class NebulaTestSuite(object):
                 else:
                     ok, value = self.to_value(col)
                     if not ok:
-                        return ok, value
+                        return ok, value, 'to_value:error'
                     new_row.values.append(value)
             result.append(new_row)
         return True, result, ''
@@ -400,7 +423,6 @@ class NebulaTestSuite(object):
             ok, new_expect, msg = self.convert_expect(expect)
             if not ok:
                 assert ok, 'convert expect failed, error msg: {}'.format(msg)
-
         for row, i in zip(rows, range(0, len(new_expect))):
             if isinstance(new_expect[i], CommonTtypes.Row):
                 assert len(row.values) - len(ignore_col) == len(new_expect[i].values), '{}, {}, {}'.format(len(row.values), len(ignore_col), len(new_expect[i].values))
@@ -500,3 +522,201 @@ class NebulaTestSuite(object):
         else:
             assert resp.error_msg.decode('utf-8') == expect, msg
             assert resp.error_msg.decode('utf-8') == expect, msg
+
+    @classmethod
+    def parse_line(self, line, dataType):
+        if line.startswith('INSERT') or line.startswith('VALUES'):
+            return ''
+
+        if line.startswith('VERTEX player'):
+            dataType[0] = 'player'
+        elif line.startswith('VERTEX team'):
+            dataType[0] = 'team'
+        elif line.startswith('VERTEX bachelor'):
+            dataType[0] = 'bachelor'
+        elif line.startswith('EDGE serve'):
+            dataType[0] = 'serve'
+        elif line.startswith('EDGE like'):
+            dataType[0] = 'like'
+        elif line.startswith('EDGE teammate'):
+            dataType[0] = 'teammate'
+        else:
+            line = re.split(':|,|->', line.strip(',; \t'))
+            line = list(map(lambda i: i.strip(' ()"'), line))
+            value = CommonTtypes.Value()
+            if dataType[0] == 'none':
+                assert False
+            elif dataType[0] == 'player':
+                vertex = self.create_vertex_player(line)
+                key = str(vertex.vid, encoding='utf-8')
+                if key in self.VERTEXS:
+                    temp = self.VERTEXS[key].get_vVal()
+                    temp.tags.append(vertex.tags[0])
+                    temp.tags.sort(key=lambda x : x.name)
+                    value.set_vVal(temp)
+                    self.VERTEXS[key] = value
+                else:
+                    value.set_vVal(vertex)
+                    self.VERTEXS[key] = value
+            elif dataType[0] == 'team':
+                vertex = self.create_vertex_team(line)
+                value.set_vVal(vertex)
+                key = str(vertex.vid, encoding = 'utf-8')
+                self.VERTEXS[key] = value
+            elif dataType[0] == 'bachelor':
+                vertex = self.create_vertex_bachelor(line)
+                key = str(vertex.vid, encoding = 'utf-8')
+                if key in self.VERTEXS:
+                    temp = self.VERTEXS[key].get_vVal()
+                    temp.tags.append(vertex.tags[0])
+                    temp.tags.sort(key=lambda x : x.name)
+                    value.set_vVal(temp)
+                    self.VERTEXS[key] = value
+                else:
+                    value.set_vVal(vertex)
+                    self.VERTEXS[key] = value
+            elif dataType[0] == 'serve':
+                edge = self.create_edge_serve(line)
+                value.set_eVal(edge)
+                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
+                self.EDGES[key] = value
+            elif dataType[0] == 'like':
+                edge = self.create_edge_like(line)
+                value.set_eVal(edge)
+                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
+                self.EDGES[key] = value
+            elif dataType[0] == 'teammate':
+                edge = self.create_edge_teammate(line)
+                value.set_eVal(edge)
+                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
+                self.EDGES[key] = value
+            else:
+                assert False
+
+    @classmethod
+    def create_vertex_player(self, line):
+        if len(line) != 3:
+            assert False
+
+        vertex = CommonTtypes.Vertex()
+        vertex.vid = bytes(line[0], encoding = 'utf-8')
+        tags = []
+        tag = CommonTtypes.Tag()
+        tag.name = bytes('player', encoding = 'utf-8')
+
+        props = dict()
+        name = CommonTtypes.Value()
+        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
+        props[bytes('name', encoding = 'utf-8')] = name
+        age = CommonTtypes.Value()
+        age.set_iVal(int(line[2]))
+        props[bytes('age', encoding = 'utf-8')] = age
+        tag.props = props
+        tags.append(tag)
+        vertex.tags = tags
+        return vertex
+
+    @classmethod
+    def create_vertex_team(self, line):
+        if len(line) != 2:
+            assert False
+        vertex = CommonTtypes.Vertex()
+        vertex.vid = bytes(line[0], encoding = 'utf-8')
+        tags = []
+        tag = CommonTtypes.Tag()
+        tag.name = bytes('team', encoding = 'utf-8')
+
+        props = dict()
+        name = CommonTtypes.Value()
+        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
+        props[bytes('name', encoding = 'utf-8')] = name
+        tag.props = props
+        tags.append(tag)
+        vertex.tags = tags
+        return vertex
+
+    @classmethod
+    def create_vertex_bachelor(self, line):
+        if len(line) != 3:
+            assert False
+
+        vertex = CommonTtypes.Vertex()
+        vertex.vid = bytes(line[0], encoding = 'utf-8')
+        tags = []
+        tag = CommonTtypes.Tag()
+        tag.name = bytes('bachelor', encoding = 'utf-8')
+
+        props = dict()
+        name = CommonTtypes.Value()
+        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
+        props[bytes('name', encoding = 'utf-8')] = name
+        speciality = CommonTtypes.Value()
+        speciality.set_sVal(bytes(line[2], encoding = 'utf-8'))
+        props[bytes('speciality', encoding = 'utf-8')] = speciality
+        tag.props = props
+        tags.append(tag)
+        vertex.tags = tags
+        return vertex
+
+    @classmethod
+    def create_edge_serve(self, line):
+        if len(line) != 4:
+            assert False
+        edge = CommonTtypes.Edge()
+        edge.src = bytes(line[0], encoding = 'utf-8')
+        if '@' in line[1]:
+            temp = list(map(lambda i: i.strip('"'), re.split('@', line[1])))
+            edge.dst = bytes(temp[0], encoding = 'utf-8')
+            edge.ranking = int(temp[1])
+        else:
+            edge.dst = bytes(line[1], encoding = 'utf-8')
+            edge.ranking = 0
+        edge.type = 0
+        edge.name = bytes('serve', encoding = 'utf-8')
+        props = dict()
+        start_year = CommonTtypes.Value()
+        start_year.set_iVal(int(line[2]))
+        end_year = CommonTtypes.Value()
+        end_year.set_iVal(int(line[3]))
+        props[bytes('start_year', encoding = 'utf-8')] = start_year
+        props[bytes('end_year', encoding = 'utf-8')] = end_year
+        edge.props = props
+        return edge
+
+    @classmethod
+    def create_edge_like(self, line):
+        if len(line) != 3:
+            assert False
+        edge = CommonTtypes.Edge()
+
+        edge.src = bytes(line[0], encoding = 'utf-8')
+        edge.dst = bytes(line[1], encoding = 'utf-8')
+        edge.type = 0
+        edge.ranking = 0
+        edge.name = bytes('like', encoding = 'utf-8')
+        props = dict()
+        likeness = CommonTtypes.Value()
+        likeness.set_iVal(int(line[2]))
+        props[bytes('likeness', encoding = 'utf-8')] = likeness
+        edge.props = props
+        return edge
+
+    @classmethod
+    def create_edge_teammate(self, line):
+        if len(line) != 4:
+            assert False
+        edge = CommonTtypes.Edge()
+        edge.src = bytes(line[0], encoding = 'utf-8')
+        edge.dst = bytes(line[1], encoding = 'utf-8')
+        edge.type = 0
+        edge.ranking = 0
+        edge.name = bytes('teammate', encoding = 'utf-8')
+        props = dict()
+        start_year = CommonTtypes.Value()
+        start_year.set_iVal(int(line[2]))
+        end_year = CommonTtypes.Value()
+        end_year.set_iVal(int(line[3]))
+        props[bytes('start_year', encoding = 'utf-8')] = start_year
+        props[bytes('end_year', encoding = 'utf-8')] = end_year
+        edge.props = props
+        return edge

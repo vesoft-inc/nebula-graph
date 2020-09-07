@@ -5,7 +5,7 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-set -ex -o pipefail
+set -e -o pipefail
 
 PROJ_DIR="$(cd "$(dirname "$0")" && pwd)/.."
 BUILD_DIR=$PROJ_DIR/build
@@ -20,8 +20,8 @@ function get_py_client() {
 }
 
 function prepare() {
-    pip3 install -U setuptools -i https://mirrors.aliyun.com/pypi/simple/
-    pip3 install -r $PROJ_DIR/tests/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+    pip3 install --user -U setuptools -i https://mirrors.aliyun.com/pypi/simple/
+    pip3 install --user -r $PROJ_DIR/tests/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
     get_py_client
 }
 
@@ -98,7 +98,8 @@ function run_test() {
         $PROJ_DIR/tests/query/stateless/test_if_exists.py \
         $PROJ_DIR/tests/query/stateless/test_range.py \
         $PROJ_DIR/tests/query/stateless/test_go.py \
-        $PROJ_DIR/tests/query/stateless/test_simple_query.py
+        $PROJ_DIR/tests/query/stateless/test_simple_query.py \
+        $PROJ_DIR/tests/query/stateless/test_keyword.py
 }
 
 case "$1" in
