@@ -38,6 +38,6 @@ public:
     static Value boundValueWithMin(const meta::cpp2::ColumnDef& col, const Value& v);
 };
 
-}
-}
+}  // namespace graph
+}  // namespace nebula
 #endif  // NEBULA_GRAPH_OPTIMIZER_OPTIMIZERUTILS_H_

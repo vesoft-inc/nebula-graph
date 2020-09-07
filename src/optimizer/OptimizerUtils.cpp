@@ -193,7 +193,7 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
                 d.day -= 1;
             } else {
                 d.day = 31;
-                if ( d.month > 1) {
+                if (d.month > 1) {
                     d.month -= 1;
                 } else {
                     d.month = 12;

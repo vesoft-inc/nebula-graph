@@ -125,7 +125,6 @@ TEST(IndexBoundValueTest, DoubleTest) {
 
     EXPECT_EQ(-(5.1f - 0.0000000000000001f),
               OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(-5.1f)).getFloat());
-
 }
 
 TEST(IndexBoundValueTest, DateTest) {
