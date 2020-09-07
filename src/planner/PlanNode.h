@@ -104,6 +104,8 @@ public:
         kShowConfigs,
         kSetConfig,
         kGetConfig,
+        kBFSShortest,
+        kConjunctPath,
     };
 
     PlanNode(int64_t id, Kind kind);
@@ -237,11 +239,11 @@ protected:
 
 class BiInputNode : public PlanNode {
 public:
-    void setLeft(const PlanNode* left) {
+    void setLeftDep(const PlanNode* left) {
         setDep(0, left);
     }
 
-    void setRight(const PlanNode* right) {
+    void setRightDep(const PlanNode* right) {
         setDep(1, right);
     }
 

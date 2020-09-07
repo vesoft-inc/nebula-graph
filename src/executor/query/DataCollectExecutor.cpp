@@ -37,6 +37,10 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
             NG_RETURN_IF_ERROR(collectMToN(vars, dc->mToN(), dc->distinct()));
             break;
         }
+        case DataCollect::CollectKind::kBFSShortest: {
+            NG_RETURN_IF_ERROR(collectBFSShortest(vars));
+            break;
+        }
         default:
             LOG(FATAL) << "Unknown data collect type: " << static_cast<int64_t>(dc->collectKind());
     }
@@ -140,6 +144,24 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
         }
     }
     result_.setDataSet(std::move(ds));
+    return Status::OK();
+}
+
+Status DataCollectExecutor::collectBFSShortest(const std::vector<std::string>& vars) {
+    DataSet ds;
+    ds.colNames = std::move(colNames_);
+    DCHECK(!ds.colNames.empty());
+    for (auto& var : vars) {
+        auto iter = ectx_->getResult(var).iter();
+        if (iter->isSequentialIter()) {
+            auto* seqIter = static_cast<SequentialIter*>(iter.get());
+            for (; seqIter->valid(); seqIter->next()) {
+                ds.rows.emplace_back(seqIter->moveRow());
+            }
+        } else {
+            return Status::Error("Iterator should be kind of SequentialIter.");
+        }
+    }
     return Status::OK();
 }
 }  // namespace graph

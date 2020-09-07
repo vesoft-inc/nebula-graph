@@ -5,6 +5,8 @@
  */
 
 #include "validator/FindPathValidator.h"
+
+#include "common/expression/VariableExpression.h"
 #include "planner/Logic.h"
 
 namespace nebula {
@@ -26,6 +28,94 @@ Status FindPathValidator::toPlan() {
     tail_ = passThrough;
     root_ = tail_;
     return Status::OK();
+}
+
+Status FindPathValidator::singlePairPlan() {
+    auto* bodyStart = StartNode::make(qctx_);
+    auto* passThrough = PassThroughNode::make(qctx_, bodyStart);
+
+    auto* forward = bfs(passThrough, from_, false);
+
+    auto* backward = bfs(passThrough, to_, true);
+
+    auto* conjunct = ConjunctPath::make(qctx_, forward, backward);
+    conjunct->setLeftVar(forward->varName());
+    conjunct->setRightVar(backward->varName());
+
+    auto* loop = Loop::make(
+        qctx_, conjunct, nullptr, buildBfsLoopCondition(steps_.steps, conjunct->varName()));
+
+    auto* dataCollect = DataCollect::make(
+        qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->varName()});
+
+    root_ = dataCollect;
+    tail_ = loop;
+    return Status::OK();
+}
+
+void FindPathValidator::buildStart(const Starts& starts,
+                                   std::string& startVidsVar,
+                                   PlanNode* dedupStartVid,
+                                   Expression* src) {
+    if (!starts.vids.empty() && starts.srcRef == nullptr) {
+        buildConstantInput(starts, startVidsVar, src);
+    } else {
+        dedupStartVid = buildRuntimeInput();
+        startVidsVar = dedupStartVid->varName();
+    }
+}
+
+PlanNode* FindPathValidator::bfs(PlanNode* dep, const Starts& starts, bool reverse) {
+    std::string startVidsVar;
+    Expression* vids = nullptr;
+    buildConstantInput(starts, startVidsVar, vids);
+
+    auto* gn = GetNeighbors::make(qctx_, dep, space_.id);
+    gn->setSrc(vids);
+    gn->setEdgeProps(buildEdgeKey(reverse));
+    gn->setInputVar(startVidsVar);
+
+    auto* bfs = BFSShortestPath::make(qctx_, gn);
+    bfs->setInputVar(gn->varName());
+    bfs->setColNames({"dst", "path"});
+    bfs->setOutputVar(startVidsVar);
+
+    return bfs;
+}
+
+Expression* FindPathValidator::buildBfsLoopCondition(uint32_t steps, const std::string& pathVar) {
+    // ++loopSteps{0} <= (steps/2+steps%2) && size(pathVar) == 0
+    auto loopSteps = vctx_->anonVarGen()->getVar();
+    qctx_->ectx()->setValue(loopSteps, 0);
+
+    auto* nSteps = new RelationalExpression(
+        Expression::Kind::kRelLE,
+        new UnaryExpression(
+            Expression::Kind::kUnaryIncr,
+            new VersionedVariableExpression(new std::string(loopSteps), new ConstantExpression(0))),
+        new ConstantExpression(static_cast<int32_t>(steps / 2 + steps % 2)));
+
+    auto* args = new ArgumentList();
+    args->addArgument(std::make_unique<VariableExpression>(new std::string(pathVar)));
+    auto* notFoundPath =
+        new RelationalExpression(Expression::Kind::kRelEQ,
+                                 new FunctionCallExpression(new std::string("size"), args),
+                                 new ConstantExpression(0));
+    return qctx_->objPool()->add(
+        new LogicalExpression(Expression::Kind::kLogicalAnd, nSteps, notFoundPath));
+}
+
+GetNeighbors::EdgeProps FindPathValidator::buildEdgeKey(bool reverse) {
+    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
+                over_.edgeTypes.size());
+    std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps->begin(),
+                [reverse](auto& type) {
+                    storage::cpp2::EdgeProp ep;
+                    ep.type = reverse ? -type : type;
+                    ep.props = {kDst, kType, kRank};
+                    return ep;
+                });
+    return edgeProps;
 }
 }  // namespace graph
 }  // namespace nebula

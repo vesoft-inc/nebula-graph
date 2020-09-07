@@ -838,6 +838,7 @@ public:
         kSubgraph,
         kRowBasedMove,
         kMToN,
+        kBFSShortest,
     };
 
     static DataCollect* make(QueryContext* qctx,
@@ -948,15 +949,28 @@ private:
 };
 
 class ProduceSemiShortestPath : public PlanNode {
-public:
 };
 
 class BFSShortestPath : public SingleInputNode {
 public:
+    static BFSShortestPath* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new BFSShortestPath(qctx->genId(), input));
+    }
+
+private:
+    BFSShortestPath(int64_t id, PlanNode* input)
+        : SingleInputNode(id, Kind::kBFSShortest, input) {}
 };
 
 class ConjunctPath : public BiInputNode {
 public:
+    static ConjunctPath* make(QueryContext* qctx, PlanNode* left, PlanNode* right) {
+        return qctx->objPool()->add(new ConjunctPath(qctx->genId(), left, right));
+    }
+
+private:
+    ConjunctPath(int64_t id, PlanNode* left, PlanNode* right)
+        : BiInputNode(id, Kind::kConjunctPath, left, right) {}
 };
 
 }  // namespace graph
