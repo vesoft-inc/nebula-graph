@@ -7,7 +7,7 @@
 #ifndef _EXEC_QUERY_GET_PROP_EXECUTOR_H_
 #define _EXEC_QUERY_GET_PROP_EXECUTOR_H_
 
-#include "executor/query/QueryStorageExecutor.h"
+#include "executor/QueryStorageExecutor.h"
 #include "common/clients/storage/StorageClientBase.h"
 
 namespace nebula {

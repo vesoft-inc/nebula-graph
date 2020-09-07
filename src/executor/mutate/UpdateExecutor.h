@@ -8,7 +8,7 @@
 #define EXECUTOR_MUTATE_UPDATEEXECUTOR_H_
 
 #include "common/base/StatusOr.h"
-#include "executor/query/QueryStorageExecutor.h"
+#include "executor/QueryStorageExecutor.h"
 
 namespace nebula {
 namespace graph {

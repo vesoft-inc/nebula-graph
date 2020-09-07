@@ -7,7 +7,7 @@
 #ifndef EXECUTOR_MUTATE_INSERTVERTICESEXECUTOR_H_
 #define EXECUTOR_MUTATE_INSERTVERTICESEXECUTOR_H_
 
-#include "executor/query/QueryStorageExecutor.h"
+#include "executor/QueryStorageExecutor.h"
 
 namespace nebula {
 namespace graph {

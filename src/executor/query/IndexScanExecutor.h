@@ -9,7 +9,7 @@
 
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "common/clients/storage/GraphStorageClient.h"
-#include "executor/query/QueryStorageExecutor.h"
+#include "executor/QueryStorageExecutor.h"
 #include "planner/Query.h"
 
 namespace nebula {
