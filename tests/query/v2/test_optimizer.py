@@ -18,7 +18,7 @@ class TestOptimizer(NebulaTestSuite):
 
     def test_PushFilterDownGetNbrsRule(self):
         resp = self.execute_query('''
-            EXPLAIN GO 1 STEPS FROM "Kobe Bryant" OVER serve
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve
             WHERE $^.player.age > 18 YIELD $^.player.name AS name
         ''')
         expected_plan = [
@@ -29,7 +29,7 @@ class TestOptimizer(NebulaTestSuite):
         self.check_exec_plan(resp, expected_plan)
 
         resp = self.execute_query('''
-            EXPLAIN GO 1 STEPS FROM "Kobe Bryant" OVER like REVERSELY
+            GO 1 STEPS FROM "Kobe Bryant" OVER like REVERSELY
             WHERE $^.player.age > 18 YIELD $^.player.name AS name
         ''')
         expected_plan = [
@@ -40,7 +40,7 @@ class TestOptimizer(NebulaTestSuite):
         self.check_exec_plan(resp, expected_plan)
 
         resp = self.execute_query('''
-            EXPLAIN GO 1 STEPS FROM "Kobe Bryant" OVER serve
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve
             WHERE serve.start_year > 2002 YIELD $^.player.name AS name
         ''')
         expected_plan = [
@@ -51,7 +51,7 @@ class TestOptimizer(NebulaTestSuite):
         self.check_exec_plan(resp, expected_plan)
 
         resp = self.execute_query('''
-            EXPLAIN GO 1 STEPS FROM "Lakerys" OVER serve REVERSELY
+            GO 1 STEPS FROM "Lakerys" OVER serve REVERSELY
             WHERE serve.start_year > 2002 YIELD $^.player.name AS name
         ''')
         expected_plan = [
@@ -64,7 +64,7 @@ class TestOptimizer(NebulaTestSuite):
     @pytest.mark.skip(reason="Depends on other opt rules to eliminate duplicate project nodes")
     def test_PushFilterDownGetNbrsRule_Failed(self):
         resp = self.execute_query('''
-            EXPLAIN GO 1 STEPS FROM "Kobe Bryant" OVER serve
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve
             WHERE $^.player.age > 18 AND $$.team.name == "Lakers"
             YIELD $^.player.name AS name
         ''')
@@ -77,7 +77,7 @@ class TestOptimizer(NebulaTestSuite):
         self.check_exec_plan(resp, expected_plan)
 
         resp = self.execute_query('''
-            EXPLAIN GO 1 STEPS FROM "Kobe Bryant" OVER serve
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve
             WHERE $^.player.age > 18 OR $$.team.name == "Lakers"
             YIELD $^.player.name AS name
         ''')
@@ -91,7 +91,7 @@ class TestOptimizer(NebulaTestSuite):
 
         # fail to optimize cases
         resp = self.execute_query('''
-            EXPLAIN GO 1 STEPS FROM "Kobe Bryant" OVER serve \
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve \
             WHERE $$.team.name == "Lakers" YIELD $^.player.name AS name
         ''')
         expected_plan = [

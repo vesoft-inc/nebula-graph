@@ -48,9 +48,9 @@ Status PushFilterDownGetNbrsRule::transform(QueryContext *qctx,
     auto filter = static_cast<const Filter *>(groupExpr->node());
     auto gn = static_cast<const GetNeighbors *>(pair.second->node());
 
-    Expression *expr = Expression::decode(Expression::encode(*filter->condition())).release();
+    auto condition = filter->condition()->clone();
     graph::ExtractFilterExprVisitor visitor;
-    expr->accept(&visitor);
+    condition->accept(&visitor);
     if (!visitor.ok()) {
         result->eraseCurr = false;
         result->eraseAll = false;
@@ -58,20 +58,23 @@ Status PushFilterDownGetNbrsRule::transform(QueryContext *qctx,
     }
 
     auto pool = qctx->objPool();
-    auto remainedExpr = pool->add(std::move(visitor).remainedExpr().release());
+    auto remainedExpr = std::move(visitor).remainedExpr();
     OptGroupExpr *newFilterGroupExpr = nullptr;
     if (remainedExpr != nullptr) {
-        auto newFilter = Filter::make(qctx, nullptr, remainedExpr);
+        auto newFilter = Filter::make(qctx, nullptr, pool->add(remainedExpr.release()));
         newFilterGroupExpr = OptGroupExpr::create(qctx, newFilter, groupExpr->group());
     }
 
+    auto newGNFilter = condition->encode();
     if (!gn->filter().empty()) {
-        auto filterExpr = pool->add(Expression::decode(gn->filter()).release());
-        expr = pool->makeAndAdd<LogicalExpression>(Expression::Kind::kLogicalAnd, expr, filterExpr);
+        auto filterExpr = Expression::decode(gn->filter());
+        LogicalExpression logicExpr(
+            Expression::Kind::kLogicalAnd, condition.release(), filterExpr.release());
+        newGNFilter = logicExpr.encode();
     }
 
     auto newGN = cloneGetNbrs(qctx, gn);
-    newGN->setFilter(expr->encode());
+    newGN->setFilter(newGNFilter);
 
     OptGroupExpr *newGroupExpr = nullptr;
     if (newFilterGroupExpr != nullptr) {
@@ -82,12 +85,13 @@ Status PushFilterDownGetNbrsRule::transform(QueryContext *qctx,
     } else {
         // Filter(A)->GetNeighbors(C) => GetNeighbors(A&&C)
         newGroupExpr = OptGroupExpr::create(qctx, newGN, groupExpr->group());
+        newGN->setOutputVar(filter->varName());
     }
 
     for (auto dep : pair.second->dependencies()) {
         newGroupExpr->dependsOn(dep);
     }
-    result->newGroupExprs.emplace_back(newGroupExpr);
+    result->newGroupExprs.emplace_back(newFilterGroupExpr ? newFilterGroupExpr : newGroupExpr);
     result->eraseAll = true;
     result->eraseCurr = true;
 
@@ -124,6 +128,7 @@ GetNeighbors *PushFilterDownGetNbrsRule::cloneGetNbrs(QueryContext *qctx,
     newGN->setDedup(gn->dedup());
     newGN->setRandom(gn->random());
     newGN->setLimit(gn->limit());
+    newGN->setInputVar(gn->inputVar());
 
     if (gn->vertexProps()) {
         auto vertexProps = *gn->vertexProps();

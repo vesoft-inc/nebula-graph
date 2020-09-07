@@ -86,10 +86,10 @@ void ExtractFilterExprVisitor::visit(LogicalExpression *expr) {
         canBePushed_ = canBePushedLeft || canBePushedRight;
         if (canBePushed_) {
             if (!canBePushedLeft) {
-                remainedExpr_ = Expression::decode(Expression::encode(*expr->left()));
+                remainedExpr_ = expr->left()->clone();
                 expr->setLeft(new ConstantExpression(true));
             } else if (!canBePushedRight) {
-                remainedExpr_ = Expression::decode(Expression::encode(*expr->right()));
+                remainedExpr_ = expr->right()->clone();
                 expr->setRight(new ConstantExpression(true));
             }
         }
