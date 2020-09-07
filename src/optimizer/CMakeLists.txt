@@ -7,3 +7,5 @@ nebula_add_library(
     optimizer_obj OBJECT
     OptimizerUtils.cpp
 )
+
+nebula_add_subdirectory(test)
