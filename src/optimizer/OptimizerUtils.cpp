@@ -59,7 +59,7 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             if (!col.__isset.type_length || col.get_type_length() == nullptr) {
                 return Value(NullType::BAD_TYPE);
             }
-            std::vector<unsigned char> bytes(*col.get_type_length(), '\377');
+            std::vector<unsigned char> bytes(*col.get_type_length(), 0);
             auto size = v.getStr().size() > bytes.size() ? bytes.size() : v.getStr().size();
             ::memcpy(&bytes[0], v.getStr().data(), size);
             size_t i = bytes.size();
@@ -67,7 +67,7 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
                 if (bytes[i-1]++ != 255) break;
             }
             if (i == 0) {
-                return Value(std::string('\377', *col.get_type_length()));
+                return Value(std::string(*col.get_type_length(), '\377'));
             }
             return Value(std::string(bytes.begin(), bytes.end()));
         }
@@ -178,7 +178,7 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
                 if (bytes[i-1]-- != 0) break;
             }
             if (i == 0) {
-                return Value(std::string('\0', *col.get_type_length()));
+                return Value(std::string(*col.get_type_length(), '\0'));
             }
             return Value(std::string(bytes.begin(), bytes.end()));
         }
