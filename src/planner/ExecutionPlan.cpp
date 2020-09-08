@@ -15,7 +15,7 @@
 namespace nebula {
 namespace graph {
 
-ExecutionPlan::ExecutionPlan() : id_(EPIdGenerator::instance().id()) {}
+ExecutionPlan::ExecutionPlan(PlanNode* root) : id_(EPIdGenerator::instance().id()), root_(root) {}
 
 ExecutionPlan::~ExecutionPlan() {}
 

@@ -25,7 +25,7 @@ class RuleSet;
 
 class Optimizer final {
 public:
-    Optimizer(graph::QueryContext *qctx, const RuleSet *ruleSet);
+    Optimizer(graph::QueryContext *qctx, std::vector<const RuleSet *> ruleSets);
     ~Optimizer() = default;
 
     StatusOr<const graph::PlanNode *> findBestPlan(graph::PlanNode *root);
@@ -37,9 +37,9 @@ private:
     OptGroup *convertToGroup(graph::PlanNode *node);
 
     graph::QueryContext *qctx_{nullptr};
-    const RuleSet *ruleSet_{nullptr};
     graph::PlanNode *rootNode_{nullptr};
     OptGroup *rootGroup_{nullptr};
+    std::vector<const RuleSet *> ruleSets_;
     std::unordered_map<int64_t, OptGroup *> visitedNodes_;
 };
 

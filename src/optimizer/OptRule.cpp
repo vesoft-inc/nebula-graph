@@ -16,6 +16,11 @@ RuleSet &RuleSet::defaultRules() {
     return kDefaultRules;
 }
 
+RuleSet &RuleSet::queryRules() {
+    static RuleSet kQueryRules("QueryRules");
+    return kQueryRules;
+}
+
 RuleSet::RuleSet(const std::string &name) : name_(name) {}
 
 RuleSet *RuleSet::addRule(const OptRule *rule) {
@@ -27,6 +32,12 @@ RuleSet *RuleSet::addRule(const OptRule *rule) {
         LOG(WARNING) << "Rule set " << name_ << " has contained this rule: " << rule->toString();
     }
     return this;
+}
+
+void RuleSet::merge(const RuleSet &ruleset) {
+    for (auto rule : ruleset.rules()) {
+        addRule(rule);
+    }
 }
 
 }   // namespace opt

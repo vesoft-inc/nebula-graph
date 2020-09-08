@@ -46,8 +46,11 @@ protected:
 class RuleSet final {
 public:
     static RuleSet &defaultRules();
+    static RuleSet &queryRules();
 
     RuleSet *addRule(const OptRule *rule);
+
+    void merge(const RuleSet &ruleset);
 
     const std::vector<const OptRule *> &rules() const {
         return rules_;

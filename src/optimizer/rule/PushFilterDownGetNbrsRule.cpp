@@ -29,7 +29,7 @@ std::unique_ptr<OptRule> PushFilterDownGetNbrsRule::kInstance =
     std::unique_ptr<PushFilterDownGetNbrsRule>(new PushFilterDownGetNbrsRule());
 
 PushFilterDownGetNbrsRule::PushFilterDownGetNbrsRule() {
-    RuleSet::defaultRules().addRule(this);
+    RuleSet::queryRules().addRule(this);
 }
 
 bool PushFilterDownGetNbrsRule::match(const OptGroupExpr *groupExpr) const {

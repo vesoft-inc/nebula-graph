@@ -23,9 +23,9 @@ using nebula::graph::SingleDependencyNode;
 namespace nebula {
 namespace opt {
 
-Optimizer::Optimizer(QueryContext *qctx, const RuleSet *ruleSet) : qctx_(qctx), ruleSet_(ruleSet) {
+Optimizer::Optimizer(QueryContext *qctx, std::vector<const RuleSet *> ruleSets)
+    : qctx_(qctx), ruleSets_(std::move(ruleSets)) {
     DCHECK(qctx != nullptr);
-    DCHECK(ruleSet != nullptr);
 }
 
 StatusOr<const PlanNode *> Optimizer::findBestPlan(PlanNode *root) {
@@ -44,9 +44,11 @@ Status Optimizer::prepare() {
 
 Status Optimizer::doExploration() {
     // TODO(yee): Apply all rules recursively, not only once round
-    for (auto rule : ruleSet_->rules()) {
-        if (!rootGroup_->isExplored(rule)) {
-            NG_RETURN_IF_ERROR(rootGroup_->explore(rule));
+    for (auto ruleSet : ruleSets_) {
+        for (auto rule : ruleSet->rules()) {
+            if (!rootGroup_->isExplored(rule)) {
+                NG_RETURN_IF_ERROR(rootGroup_->explore(rule));
+            }
         }
     }
     return Status::OK();
