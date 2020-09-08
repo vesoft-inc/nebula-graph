@@ -388,6 +388,107 @@ size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
     return nextSeg + 1;
 }
 
+PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) {
+    DCHECK(value->isDataSet());
+    auto& ds = value->getDataSet();
+    auto status = makeDataSetIndex(ds);
+    if (UNLIKELY(!status.ok())) {
+        LOG(ERROR) << status;
+        clear();
+        return;
+    }
+    for (auto& row : ds.rows) {
+        rows_.emplace_back(&row);
+    }
+    iter_ = rows_.begin();
+}
+
+Status PropIter::buildPropIndex(const std::string& props, size_t columnId) {
+    std::vector<std::string> pieces;
+    folly::split(":", props, pieces);
+    if (UNLIKELY(pieces.size() != 2)) {
+        return Status::Error("Bad column name format: %s", props.c_str());
+    }
+    std::string name = pieces[0];
+    auto& tagPropsMap = dsIndex_.tagPropsMap;
+    if (tagPropsMap.find(name) != tagPropsMap.end()) {
+        auto& propIndex = tagPropsMap[name];
+        propIndex.colIndexs.emplace_back(columnId);
+        propIndex.propIndices.emplace(pieces[1], columnId);
+    } else {
+        PropIndex propIndex;
+        propIndex.colIndexs.emplace_back(columnId);
+        propIndex.propIndices.emplace(pieces[1], columnId);
+        tagPropsMap.emplace(name, std::move(propIndex));
+    }
+    return Status::OK();
+}
+
+Status PropIter::makeDataSetIndex(const DataSet& ds) {
+    dsIndex_.ds = &ds;
+    auto& colNames = ds.colNames;
+    for (size_t i = 0; i < colNames.size(); ++i) {
+        dsIndex_.colIndices.emplace(colNames[i], i);
+        auto& colName = colNames[i];
+        if (colName.find(":") != std::string::npos) {
+            NG_RETURN_IF_ERROR(buildPropIndex(colName, i));
+        }
+    }
+    return Status::OK();
+}
+
+const Value& PropIter::getColumn(const std::string& col) const {
+    if (!valid()) {
+        return Value::kNullValue;
+    }
+
+    auto& logicalRow = *iter_;
+    auto index = dsIndex_.colIndices.find(col);
+    if (index == dsIndex_.colIndices.end()) {
+        return Value::kNullValue;
+    } else {
+        DCHECK_LT(index->second, logicalRow.row_->values.size());
+        return logicalRow.row_->values[index->second];
+    }
+}
+
+Value PropIter::getVertex() const {
+    if (!valid()) {
+        return Value::kNullValue;
+    }
+
+    auto vidVal = getColumn(nebula::kVid);
+    if (!vidVal.isStr()) {
+        return Value::kNullValue;
+    }
+    Vertex vertex;
+    vertex.vid = vidVal.getStr();
+    auto& tagPropsMap = dsIndex_.tagPropsMap;
+    bool isVertexProps = true;
+    for (auto& tagProp : tagPropsMap) {
+        auto& row = *(iter_->row_);
+        auto& colIndexs = tagProp.second.colIndexs;
+        for (auto& index : colIndexs) {
+            if (row[index].empty()) {
+                // TODO: nullType
+                // Not current vertex's prop
+                isVertexProps = false;
+                break;
+            }
+        }
+        if (!isVertexProps) {
+            continue;
+        }
+        Tag tag;
+        tag.name = tagProp.first;
+        for (auto& propIndices : tagProp.second.propIndices) {
+            tag.props.emplace(propIndices.first, row[propIndices.second]);
+        }
+        vertex.tags.emplace_back(std::move(tag));
+    }
+    return Value(std::move(vertex));
+}
+
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
     switch (kind) {
         case Iterator::Kind::kDefault:
@@ -401,6 +502,9 @@ std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
             break;
         case Iterator::Kind::kJoin:
             os << "join";
+            break;
+        case Iterator::Kind::kProp:
+            os << "Prop";
             break;
     }
     os << " iterator";
@@ -417,6 +521,9 @@ std::ostream& operator<<(std::ostream& os, LogicalRow::Kind kind) {
             break;
         case LogicalRow::Kind::kJoin:
             os << "join row";
+            break;
+        case LogicalRow::Kind::kProp:
+            os << "prop row";
             break;
     }
     return os;
