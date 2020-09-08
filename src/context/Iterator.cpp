@@ -410,16 +410,16 @@ Status PropIter::buildPropIndex(const std::string& props, size_t columnId) {
         return Status::Error("Bad column name format: %s", props.c_str());
     }
     std::string name = pieces[0];
-    auto& tagPropsMap = dsIndex_.tagPropsMap;
-    if (tagPropsMap.find(name) != tagPropsMap.end()) {
-        auto& propIndex = tagPropsMap[name];
+    auto& propsMap = dsIndex_.propsMap;
+    if (propsMap.find(name) != propsMap.end()) {
+        auto& propIndex = propsMap[name];
         propIndex.colIndexs.emplace_back(columnId);
         propIndex.propIndices.emplace(pieces[1], columnId);
     } else {
         PropIndex propIndex;
         propIndex.colIndexs.emplace_back(columnId);
         propIndex.propIndices.emplace(pieces[1], columnId);
-        tagPropsMap.emplace(name, std::move(propIndex));
+        propsMap.emplace(name, std::move(propIndex));
     }
     return Status::OK();
 }
@@ -452,6 +452,41 @@ const Value& PropIter::getColumn(const std::string& col) const {
     }
 }
 
+const Value& PropIter::getTagEdgeProp(const std::string& name, const std::string& prop) const {
+    if (!valid()) {
+        return Value::kNullValue;
+    }
+    auto& row = *(iter_->row_);
+    if (prop == kSrc || prop == kDst || prop == kRank || prop == kType) {
+        auto index = dsIndex_.colIndices.find(prop);
+        if (index == dsIndex_.colIndices.end()) {
+            VLOG(1) << "No prop found: " << prop;
+            return Value::kNullValue;
+        }
+        DCHECK_GT(row.size(), index->second);
+        return row[index->second];
+    }
+
+    auto& propsMap = dsIndex_.propsMap;
+    auto index = propsMap.find(name);
+    if (index == propsMap.end()) {
+        return Value::kNullValue;
+    }
+
+    auto propIndex = index->second.propIndices.find(prop);
+    if (propIndex == index->second.propIndices.end()) {
+        VLOG(1) << "No prop found : " << prop;
+        return Value::kNullValue;
+    }
+    auto colId = propIndex->second;
+    DCHECK_GT(row.size(), colId);
+    if (row[colId].empty()) {
+        LOG(ERROR) << prop << " not exist";
+        return Value::kNullBadType;
+    }
+    return row[colId];
+}
+
 Value PropIter::getVertex() const {
     if (!valid()) {
         return Value::kNullValue;
@@ -463,7 +498,7 @@ Value PropIter::getVertex() const {
     }
     Vertex vertex;
     vertex.vid = vidVal.getStr();
-    auto& tagPropsMap = dsIndex_.tagPropsMap;
+    auto& tagPropsMap = dsIndex_.propsMap;
     bool isVertexProps = true;
     for (auto& tagProp : tagPropsMap) {
         auto& row = *(iter_->row_);
@@ -487,6 +522,74 @@ Value PropIter::getVertex() const {
         vertex.tags.emplace_back(std::move(tag));
     }
     return Value(std::move(vertex));
+}
+
+Value PropIter::getEdge() const {
+    if (!valid()) {
+        return Value::kNullValue;
+    }
+    auto row = *(iter_->row_);
+    Edge edge;
+    auto& colIndices = dsIndex_.colIndices;
+
+    auto srcIndex = colIndices.find(kSrc);
+    if (srcIndex == colIndices.end() || !row[srcIndex->second].isStr()) {
+        return Value::kNullValue;
+    }
+    DCHECK_GT(row.size(), srcIndex->second);
+
+    auto dstIndex = colIndices.find(kDst);
+    if (dstIndex == colIndices.end() || !row[dstIndex->second].isStr()) {
+        return Value::kNullValue;
+    }
+    DCHECK_GT(row.size(), dstIndex->second);
+
+    auto typeIndex = colIndices.find(kType);
+    if (typeIndex == colIndices.end() || !row[typeIndex->second].isInt()) {
+        return Value::kNullValue;
+    }
+    DCHECK_GT(row.size(), typeIndex->second);
+
+    auto rankIndex = colIndices.find(kRank);
+    if (rankIndex == colIndices.end() || !row[rankIndex->second].isInt()) {
+        return Value::kNullValue;
+    }
+    DCHECK_GT(row.size(), rankIndex->second);
+
+    auto src = row[srcIndex->second].getStr();
+    auto dst = row[dstIndex->second].getStr();
+
+    auto& type = row[typeIndex->second].getInt();
+    if (type > 0) {
+        edge.src = src;
+        edge.dst = dst;
+    } else {
+        edge.src = dst;
+        edge.dst = src;
+    }
+    edge.ranking = row[rankIndex->second].getInt();
+    edge.type = 0;
+
+    auto& edgePropsMap = dsIndex_.propsMap;
+    bool isEdgeProps = true;
+    for (auto& edgeProp : edgePropsMap) {
+        for (auto& index : edgeProp.second.colIndexs) {
+            if (row[index].empty()) {
+                // Not current edge's prop
+                isEdgeProps = false;
+                break;
+            }
+        }
+        if (!isEdgeProps) {
+            continue;
+        }
+        edge.name = edgeProp.first;
+        for (auto& propIndices : edgeProp.second.propIndices) {
+            edge.props.emplace(propIndices.first, row[propIndices.second]);
+        }
+        return Value(std::move(edge));
+    }
+    return Value::kNullValue;
 }
 
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {

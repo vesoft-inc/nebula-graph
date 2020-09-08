@@ -789,6 +789,10 @@ public:
 
     Value getVertex() const override;
 
+    Value getEdge() const override;
+
+    const Value& getTagEdgeProp(const std::string& name, const std::string& prop) const;
+
     Status buildPropIndex(const std::string& props, size_t columnIdx);
 
 private:
@@ -803,13 +807,14 @@ private:
 
     struct DataSetIndex {
         const DataSet* ds;
-        // | _vid | tag1.prop1 | tag1.prop2 | tag2.prop1 | tag2.prop2 | ...
-        // _vid : 0 | tag1.prop1 : 1 | tag1.prop2 : 2 | tag2.prop1 : 3 |...
+        // vertex | _vid | tag1.prop1 | tag1.prop2 | tag2,prop1 | tag2,prop2 | ...
+        //        |_vid : 0 | tag1.prop1 : 1 | tag1.prop2 : 2 | tag2.prop1 : 3 |...
+        // edge   |_src | _type| _ranking | _dst | edge1.prop1 | edge1.prop2 |...
+        //        |_src : 0 | _type : 1| _ranking : 2 | _dst : 3| edge1.prop1 : 4|...
         std::unordered_map<std::string, size_t> colIndices;
-        // {tag1 : [[prop1, prop2], {prop1 : col_idx1, prop2 : col_idx2}]}
-        std::unordered_map<std::string, PropIndex> tagPropsMap;
-        // {edge1 : [[prop1, prop2], {prop1 : col_idx1, prop2 : col_idx2}]}
-        std::unordered_map<std::string, PropIndex> edgePropsMap;
+        // {tag1 : [[1, 2], {prop1 : 1, prop2 : 2}]}
+        // {edge1 : [[4, 5], {prop1 : 4, prop2 : 5}]}
+        std::unordered_map<std::string, PropIndex> propsMap;
     };
 
 private:
