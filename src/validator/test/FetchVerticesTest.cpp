@@ -17,7 +17,7 @@ class FetchVerticesValidatorTest : public ValidatorTestBase {
 protected:
     QueryContext *getQCtx(const std::string &query) {
         auto status = validate(query);
-        EXPECT_TRUE(status);
+        EXPECT_TRUE(status.ok());
         return std::move(status).value();
     }
 };
@@ -260,6 +260,57 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         auto *project = Project::make(qctx, gv, yieldColumns.get());
         project->setColNames(colNames);
+
+        auto result = Eq(qctx->plan()->root(), project);
+        ASSERT_TRUE(result.ok()) << result;
+    }
+    {
+        auto qctx = getQCtx("FETCH PROP ON * \"1\", \"2\" YIELD person.name, person.age");
+
+        auto *start = StartNode::make(qctx);
+
+        std::vector<std::string> colNames {"VertexID", "person.name", "person.age"};
+        // Get vertices
+        auto *gv = GetVertices::make(qctx, start, 1, src.get(), {}, {});
+        gv->setColNames(colNames);
+
+        // project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
+        yieldColumns->addColumn(new YieldColumn(
+            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
+        auto *project = Project::make(qctx, gv, yieldColumns.get());
+        project->setColNames(colNames);
+
+        auto result = Eq(qctx->plan()->root(), project);
+        ASSERT_TRUE(result.ok()) << result;
+    }
+    {
+        auto qctx = getQCtx("FETCH PROP ON * \"1\", \"2\" YIELD 1+1, person.name, person.age");
+
+        auto *start = StartNode::make(qctx);
+
+        // Get vertices
+        auto *gv = GetVertices::make(qctx, start, 1, src.get(), {}, {});
+        gv->setColNames({"VertexID", "person.name", "person.age"});
+
+        // project
+        auto yieldColumns = std::make_unique<YieldColumns>();
+        yieldColumns->addColumn(new YieldColumn(
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
+        yieldColumns->addColumn(new YieldColumn(
+            new ArithmeticExpression(Expression::Kind::kAdd,
+                                     new ConstantExpression(1),
+                                     new ConstantExpression(1))));
+        yieldColumns->addColumn(new YieldColumn(
+            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
+        yieldColumns->addColumn(new YieldColumn(
+            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
+        auto *project = Project::make(qctx, gv, yieldColumns.get());
+        project->setColNames({"VertexID", "(1+1)", "person.name", "person.age"});
 
         auto result = Eq(qctx->plan()->root(), project);
         ASSERT_TRUE(result.ok()) << result;

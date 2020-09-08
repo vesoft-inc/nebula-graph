@@ -165,14 +165,14 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
             return Status::Error("Unsupported src/dst property expression in yield.");
         }
 
-        if (exprProps.tagProps().empty()) {
-            return Status::Error("Unsupported empty tag property expression in yield.");
-        }
         colNames_.emplace_back(deduceColName(col));
         auto typeResult = deduceExprType(col->expr());
         NG_RETURN_IF_ERROR(typeResult);
         outputs_.emplace_back(colNames_.back(), typeResult.value());
         // TODO(shylock) think about the push-down expr
+    }
+    if (exprProps.tagProps().empty()) {
+        return Status::Error("Unsupported empty tag property expression in yield.");
     }
 
     if (onStar_) {
