@@ -39,18 +39,18 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             }
         }
         case Value::Type::FLOAT : {
-            if (v.getFloat() > 0.0f) {
+            if (v.getFloat() > 0.0) {
                 if (v.getFloat() == std::numeric_limits<double_t>::max()) {
                     return v;
                 }
-            } else if (v.getFloat() == 0.0f) {
+            } else if (v.getFloat() == 0.0) {
                 return Value(std::numeric_limits<double_t>::min());
             } else {
                 if (v.getFloat() == -std::numeric_limits<double_t>::min()) {
-                    return Value(0.0f);
+                    return Value(0.0);
                 }
             }
-            return v.getFloat() + 0.0000000000000001f;
+            return v.getFloat() + 0.0000000000000001;
         }
         case Value::Type::BOOL: {
             return v;
@@ -61,14 +61,19 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             }
             std::string str;
             str.reserve(*col.get_type_length());
-            str.append(v.getStr());
-            str.append(*col.get_type_length() - v.getStr().size(), '\0');
+            if (v.getStr().size() > static_cast<size_t>(*col.get_type_length())) {
+                str.append(v.getStr(), 0, *col.get_type_length());
+            } else {
+                str.append(v.getStr());
+                str.append(*col.get_type_length() - v.getStr().size(), '\0');
+            }
+            std::string maxStr(*col.get_type_length(), '\377');
+            if (str == maxStr) {
+                return Value(maxStr);
+            }
             std::vector<unsigned char> bytes(str.begin(), str.end());
             for (size_t i = bytes.size(); i >= 1; i--) {
-                if (bytes[i-1] < 255) {
-                    bytes[i-1] += 1;
-                    break;
-                }
+                if (bytes[i-1]++ != 255) break;
             }
             return Value(std::string(bytes.begin(), bytes.end()));
         }
@@ -153,16 +158,16 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             }
         }
         case Value::Type::FLOAT : {
-            if (v.getFloat() < 0.0f) {
+            if (v.getFloat() < 0.0) {
                 if (v.getFloat() == -std::numeric_limits<double_t>::max()) {
                     return v;
                 } else if (v.getFloat() == -std::numeric_limits<double_t>::min()) {
-                    return Value(0.0f);
+                    return Value(0.0);
                 }
-            } else if (v.getFloat() == 0.0f) {
+            } else if (v.getFloat() == 0.0) {
                 return Value(-std::numeric_limits<double_t>::min());
             }
-            return v.getFloat() - 0.0000000000000001f;
+            return v.getFloat() - 0.0000000000000001;
         }
         case Value::Type::BOOL: {
             return v;
@@ -171,16 +176,24 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             if (!col.__isset.type_length || col.get_type_length() == nullptr) {
                 return v;
             }
+            std::string minStr(*col.get_type_length(), '\0');
+            if (v.getStr().empty()) {
+                return Value(minStr);
+            }
             std::string str;
             str.reserve(*col.get_type_length());
-            str.append(v.getStr());
-            str.append(*col.get_type_length() - v.getStr().size(), '\0');
+            if (v.getStr().size() > static_cast<size_t>(*col.get_type_length())) {
+                str.append(v.getStr(), 0, *col.get_type_length());
+            } else {
+                str.append(v.getStr());
+                str.append(*col.get_type_length() - v.getStr().size(), '\0');
+            }
+            if (str == minStr) {
+                return Value(minStr);
+            }
             std::vector<unsigned char> bytes(str.begin(), str.end());
             for (size_t i = bytes.size(); i >= 1; i--) {
-                if (bytes[i-1] > 0) {
-                    bytes[i-1] -= 1;
-                    break;
-                }
+                if (bytes[i-1]-- != 0) break;
             }
             return Value(std::string(bytes.begin(), bytes.end()));
         }

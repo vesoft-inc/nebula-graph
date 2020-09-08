@@ -34,11 +34,39 @@ TEST(IndexBoundValueTest, StringTest) {
     EXPECT_EQ(maxStr, OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(maxStr)).getStr());
 
     retVal = OptimizerUtils::boundValue(col, OP::LESS_THAN, Value("aa")).getStr();
-    expected = {'a', '`', '\0', '\0', '\0', '\0', '\0', '\0'};
+    expected = {'a', '`', 255, 255, 255, 255, 255, 255};
     EXPECT_EQ(std::string(expected.begin(), expected.end()), retVal);
 
     retVal = OptimizerUtils::boundValue(col, OP::LESS_THAN, Value("")).getStr();
     EXPECT_EQ(minStr, retVal);
+
+    retVal = OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(minStr)).getStr();
+    EXPECT_EQ(minStr, retVal);
+
+    {
+        auto actual = "ABCDEFGHIJKLMN";
+        auto expectGT = "ABCDEFGI";
+        auto expectLT = "ABCDEFGG";
+        EXPECT_EQ(expectGT,
+                  OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(actual)).getStr());
+        EXPECT_EQ(expectLT,
+                  OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(actual)).getStr());
+    }
+    {
+        std::vector<unsigned char> act = {255, 255, 255, 254, 255, 255, 255, 255};
+        std::vector<unsigned char> exp = {255, 255, 255, 255, 0, 0, 0, 0};
+        auto actStr = std::string(act.begin(), act.end());
+        auto expStr = std::string(exp.begin(), exp.end());
+        EXPECT_EQ(expStr,
+                  OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(actStr)).getStr());
+    }
+    {
+        std::vector<unsigned char> act = {255, 255, 255, 0, 0, 0, 0, 0};
+        std::vector<unsigned char> exp = {255, 255, 254, 255, 255, 255, 255, 255};
+        auto actStr = std::string(act.begin(), act.end());
+        auto expStr = std::string(exp.begin(), exp.end());
+        EXPECT_EQ(expStr, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(actStr)).getStr());
+    }
 }
 
 TEST(IndexBoundValueTest, BoolTest) {
@@ -97,34 +125,34 @@ TEST(IndexBoundValueTest, DoubleTest) {
     auto maxDouble = std::numeric_limits<double_t>::max();
     auto minDouble = std::numeric_limits<double_t>::min();
     EXPECT_EQ(maxDouble, OptimizerUtils::boundValue(col, OP::MAX, Value(maxDouble)).getFloat());
-    EXPECT_EQ(maxDouble, OptimizerUtils::boundValue(col, OP::MAX, Value(1.1f)).getFloat());
+    EXPECT_EQ(maxDouble, OptimizerUtils::boundValue(col, OP::MAX, Value(1.1)).getFloat());
     EXPECT_EQ(-maxDouble, OptimizerUtils::boundValue(col, OP::MIN, Value(minDouble)).getFloat());
-    EXPECT_EQ(-maxDouble, OptimizerUtils::boundValue(col, OP::MIN, Value(1.1f)).getFloat());
+    EXPECT_EQ(-maxDouble, OptimizerUtils::boundValue(col, OP::MIN, Value(1.1)).getFloat());
 
-    EXPECT_EQ(0.0f,
+    EXPECT_EQ(0.0,
               OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(-minDouble)).getFloat());
-    EXPECT_EQ(maxDouble - 0.0000000000000001f,
+    EXPECT_EQ(maxDouble - 0.0000000000000001,
               OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(maxDouble)).getFloat());
-    EXPECT_EQ(-minDouble, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(0.0f)).getFloat());
+    EXPECT_EQ(-minDouble, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(0.0)).getFloat());
 
-    EXPECT_EQ(5.1f - 0.0000000000000001f,
-              OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(5.1f)));
+    EXPECT_EQ(5.1 - 0.0000000000000001,
+              OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(5.1)));
 
-    EXPECT_EQ(-(5.1f + 0.0000000000000001f),
-              OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(-5.1f)));
+    EXPECT_EQ(-(5.1 + 0.0000000000000001),
+              OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(-5.1)));
 
     EXPECT_EQ(maxDouble,
               OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(maxDouble)).getFloat());
-    EXPECT_EQ(0.0f,
+    EXPECT_EQ(0.0,
               OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(-minDouble)).getFloat());
 
-    EXPECT_EQ(minDouble, OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(0.0f)).getFloat());
+    EXPECT_EQ(minDouble, OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(0.0)).getFloat());
 
-    EXPECT_EQ(5.1f + 0.0000000000000001f,
-              OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(5.1f)).getFloat());
+    EXPECT_EQ(5.1 + 0.0000000000000001,
+              OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(5.1)).getFloat());
 
-    EXPECT_EQ(-(5.1f - 0.0000000000000001f),
-              OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(-5.1f)).getFloat());
+    EXPECT_EQ(-(5.1 - 0.0000000000000001),
+              OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(-5.1)).getFloat());
 }
 
 TEST(IndexBoundValueTest, DateTest) {
