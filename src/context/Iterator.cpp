@@ -469,6 +469,41 @@ const Value& PropIter::getProp(const std::string& name, const std::string& prop)
     return row[colId];
 }
 
+const Value& PropIter::getTagEdgeProp(const std::string& name, const std::string& prop) const {
+    if (!valid()) {
+        return Value::kNullValue;
+    }
+    auto& row = *(iter_->row_);
+    if (prop == kSrc || prop == kDst || prop == kRank || prop == kType) {
+        auto index = dsIndex_.colIndices.find(prop);
+        if (index == dsIndex_.colIndices.end()) {
+            VLOG(1) << "No prop found: " << prop;
+            return Value::kNullValue;
+        }
+        DCHECK_GT(row.size(), index->second);
+        return row[index->second];
+    }
+
+    auto& propsMap = dsIndex_.propsMap;
+    auto index = propsMap.find(name);
+    if (index == propsMap.end()) {
+        return Value::kNullValue;
+    }
+
+    auto propIndex = index->second.propIndices.find(prop);
+    if (propIndex == index->second.propIndices.end()) {
+        VLOG(1) << "No prop found : " << prop;
+        return Value::kNullValue;
+    }
+    auto colId = propIndex->second;
+    DCHECK_GT(row.size(), colId);
+    if (row[colId].empty()) {
+        LOG(ERROR) << prop << " not exist";
+        return Value::kNullBadType;
+    }
+    return row[colId];
+}
+
 Value PropIter::getVertex() const {
     if (!valid()) {
         return Value::kNullValue;
