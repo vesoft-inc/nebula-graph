@@ -64,6 +64,7 @@ Status FetchVerticesValidator::check() {
     auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
 
     if (!sentence->isAllTagProps()) {
+        onStar_ = false;
         auto tagName = *(sentence->tag());
         auto tagStatus = qctx_->schemaMng()->toTagID(space_.id, tagName);
         NG_RETURN_IF_ERROR(tagStatus);
