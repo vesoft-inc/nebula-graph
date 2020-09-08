@@ -41,6 +41,7 @@ private:
     DataSet srcVids_{{kVid}};  // src from constant
     Expression* srcRef_{nullptr};  // src from runtime
     Expression* src_{nullptr};  // src in total
+    bool onStar_{false};
     std::unordered_map<std::string, TagID> tags_;
     std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema_;
     std::vector<storage::cpp2::VertexProp> props_;

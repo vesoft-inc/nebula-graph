@@ -77,6 +77,7 @@ Status FetchVerticesValidator::check() {
         }
         tagsSchema_.emplace(tagId, schema);
     } else {
+        onStar_ = true;
         const auto allTagsResult = qctx_->schemaMng()->getAllVerTagSchema(space_.id);
         NG_RETURN_IF_ERROR(allTagsResult);
         const auto allTags = std::move(allTagsResult).value();
@@ -174,8 +175,16 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
         // TODO(shylock) think about the push-down expr
     }
 
-    if (tags_ != exprProps.tagNameIds()) {
-        return Status::SemanticError("Mismatched tag.");
+    if (onStar_) {
+        for (const auto &tag : exprProps.tagNameIds()) {
+            if (tags_.find(tag.first) == tags_.end()) {
+                return Status::SemanticError("Mismatched tag.");
+            }
+        }
+    } else {
+        if (tags_ != exprProps.tagNameIds()) {
+            return Status::SemanticError("Mismatched tag.");
+        }
     }
     for (const auto &tagNameId : exprProps.tagNameIds()) {
         storage::cpp2::VertexProp vProp;
