@@ -113,11 +113,20 @@ public:
     }
 
     void setOutputVar(std::string var) {
-        outputVar_ = std::move(var);
+        outputVars_.emplace_back(std::move(var));
     }
 
-    std::string varName() const {
-        return outputVar_;
+    std::string outputVar() const {
+        return outputVars_.back();
+    }
+
+    std::string outputVar(size_t index) const {
+        DCHECK_LT(index, outputVars_.size());
+        return outputVars_[index];
+    }
+
+    const std::vector<std::string>& outputVars() const {
+        return outputVars_;
     }
 
     std::vector<std::string> colNames() const {
@@ -166,9 +175,10 @@ protected:
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
     double                                   cost_{0.0};
-    std::string                              outputVar_;
     std::vector<std::string>                 colNames_;
     std::vector<const PlanNode*>             dependencies_;
+    std::vector<std::string>                 inputVars_;
+    std::vector<std::string>                 outputVars_;
 };
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
@@ -195,11 +205,16 @@ protected:
 class SingleInputNode : public SingleDependencyNode {
 public:
     void setInputVar(std::string inputVar) {
-        inputVar_ = std::move(inputVar);
+        if (!inputVars_.empty()) {
+            inputVars_[0] = std::move(inputVar);
+        } else {
+            inputVars_.emplace_back(inputVar);
+        }
     }
 
     const std::string& inputVar() const {
-        return inputVar_;
+        DCHECK(!inputVars_.empty());
+        return inputVars_[0];
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -207,10 +222,12 @@ public:
 protected:
     SingleInputNode(int64_t id, Kind kind, const PlanNode* dep)
         : SingleDependencyNode(id, kind, dep) {
+        if (dep != nullptr) {
+            inputVars_.emplace_back(dep->outputVar());
+        } else {
+            inputVars_.resize(1);
+        }
     }
-
-    // Datasource for this node.
-    std::string inputVar_;
 };
 
 class BiInputNode : public PlanNode {
@@ -224,11 +241,11 @@ public:
     }
 
     void setLeftVar(std::string leftVar) {
-        leftVar_ = std::move(leftVar);
+        inputVars_[0] = std::move(leftVar);
     }
 
     void setRightVar(std::string rightVar) {
-        rightVar_ = std::move(rightVar);
+        inputVars_[1] = std::move(rightVar);
     }
 
     const PlanNode* left() const {
@@ -240,11 +257,11 @@ public:
     }
 
     const std::string& leftInputVar() const {
-        return leftVar_;
+        return inputVars_[0];
     }
 
     const std::string& rightInputVar() const {
-        return rightVar_;
+        return inputVars_[1];
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -252,13 +269,13 @@ public:
 protected:
     BiInputNode(int64_t id, Kind kind, PlanNode* left, PlanNode* right)
         : PlanNode(id, kind) {
-        dependencies_.emplace_back(DCHECK_NOTNULL(left));
-        dependencies_.emplace_back(DCHECK_NOTNULL(right));
+        DCHECK(left != nullptr);
+        DCHECK(right != nullptr);
+        dependencies_.emplace_back(left);
+        dependencies_.emplace_back(right);
+        inputVars_.emplace_back(left->outputVar());
+        inputVars_.emplace_back(right->outputVar());
     }
-
-    // Datasource for this node.
-    std::string leftVar_;
-    std::string rightVar_;
 };
 
 }  // namespace graph
