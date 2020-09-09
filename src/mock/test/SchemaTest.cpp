@@ -88,6 +88,7 @@ TEST_F(SchemaTest, TestSpace) {
         ASSERT_TRUE(verifyValues(resp, values));
     }
     // Show Create space
+    ::sleep(FLAGS_heartbeat_interval_secs * 2);
     std::string createSpaceStr;
     {
         cpp2::ExecutionResponse resp;

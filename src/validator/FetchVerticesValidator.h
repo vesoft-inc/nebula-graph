@@ -29,6 +29,8 @@ private:
 
     Status prepareVertices();
 
+    Status preparePropertiesWithYield(const YieldClause *yield);
+    Status preparePropertiesWithoutYield();
     Status prepareProperties();
 
     static const Expression* findInvalidYieldExpression(const Expression* root);
@@ -56,6 +58,7 @@ private:
     // So expression like these will be evaluate in Project Executor
     bool withProject_{false};
     // outputs
+    std::vector<std::string> gvColNames_;
     std::vector<std::string> colNames_;
     // new yield to inject reserved properties for compatible with 1.0
     YieldColumns* newYieldColumns_{nullptr};

@@ -29,6 +29,8 @@ private:
 
     Status prepareEdges();
 
+    Status preparePropertiesWithYield(const YieldClause *yield);
+    Status preparePropertiesWithoutYield();
     Status prepareProperties();
 
     static const Expression* findInvalidYieldExpression(const Expression* root);
@@ -63,6 +65,7 @@ private:
     bool withProject_{false};
     // outputs
     std::vector<std::string> colNames_;
+    std::vector<std::string> geColNames_;
     // new yield to inject reserved properties for compatible with 1.0
     YieldClause* newYield_{nullptr};
     // input

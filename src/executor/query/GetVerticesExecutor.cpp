@@ -31,9 +31,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         // Accept Table such as | $a | $b | $c |... as input which one column indicate src
         auto valueIter = ectx_->getResult(gv->inputVar()).iter();
         VLOG(1) << "GV input var: " << gv->inputVar() << " iter kind: " << valueIter->kind();
-        auto expCtx = QueryExpressionContext(qctx()->ectx(), valueIter.get());
+        auto expCtx = QueryExpressionContext(qctx()->ectx());
         for (; valueIter->valid(); valueIter->next()) {
-            auto src = gv->src()->eval(expCtx);
+            auto src = gv->src()->eval(expCtx(valueIter.get()));
             VLOG(1) << "src vid: " << src;
             if (!src.isStr()) {
                 LOG(WARNING) << "Mismatched vid type: " << src.type();
@@ -63,9 +63,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         .ensure([getPropsTime]() {
             VLOG(1) << "Get props time: " << getPropsTime.elapsedInUSec() << "us";
         })
-        .then([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+        .then([this, gv](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
-            return handleResp(std::move(rpcResp));
+            return handleResp(std::move(rpcResp), gv->colNamesRef());
         });
 }
 

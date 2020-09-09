@@ -19,6 +19,7 @@
 #include "parser/ColumnTypeDef.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/expression/AttributeExpression.h"
+#include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/VariableExpression.h"
 #include "util/SchemaUtil.h"
 
@@ -1133,9 +1134,9 @@ find_path_sentence
     ;
 
 find_path_upto_clause
-    : %empty { $$ = new StepClause(5, true); }
+    : %empty { $$ = new StepClause(5); }
     | KW_UPTO legal_integer KW_STEPS {
-        $$ = new StepClause($2, true);
+        $$ = new StepClause($2);
     }
     ;
 
