@@ -232,7 +232,7 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     if (edge != "*" &&
             (currentEdge.compare(1, std::string::npos, edge) != 0)) {
         VLOG(1) << "Current edge: " << currentEdgeName() << " Wanted: " << edge;
-        return Value::kEmpty;
+        return Value::kNullBadType;
     }
     auto segment = currentSeg();
     auto index = dsIndices_[segment].edgePropsMap.find(currentEdge);
@@ -469,25 +469,15 @@ const Value& PropIter::getProp(const std::string& name, const std::string& prop)
     return row[colId];
 }
 
-const Value& PropIter::getTagEdgeProp(const std::string& name, const std::string& prop) const {
+const Value& PropIter::getProp(const std::string& name, const std::string& prop) const {
     if (!valid()) {
         return Value::kNullValue;
     }
     auto& row = *(iter_->row_);
-    if (prop == kSrc || prop == kDst || prop == kRank || prop == kType) {
-        auto index = dsIndex_.colIndices.find(prop);
-        if (index == dsIndex_.colIndices.end()) {
-            VLOG(1) << "No prop found: " << prop;
-            return Value::kNullValue;
-        }
-        DCHECK_GT(row.size(), index->second);
-        return row[index->second];
-    }
-
     auto& propsMap = dsIndex_.propsMap;
     auto index = propsMap.find(name);
     if (index == propsMap.end()) {
-        return Value::kNullValue;
+        return Value::kEmpty;
     }
 
     auto propIndex = index->second.propIndices.find(prop);
@@ -497,10 +487,6 @@ const Value& PropIter::getTagEdgeProp(const std::string& name, const std::string
     }
     auto colId = propIndex->second;
     DCHECK_GT(row.size(), colId);
-    if (row[colId].empty()) {
-        LOG(ERROR) << prop << " not exist";
-        return Value::kNullBadType;
-    }
     return row[colId];
 }
 
