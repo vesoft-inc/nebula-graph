@@ -530,44 +530,32 @@ Value PropIter::getEdge() const {
     }
     auto row = *(iter_->row_);
     Edge edge;
-    auto& colIndices = dsIndex_.colIndices;
 
-    auto srcIndex = colIndices.find(kSrc);
-    if (srcIndex == colIndices.end() || !row[srcIndex->second].isStr()) {
-        return Value::kNullValue;
+    auto type = getColumn(kType);
+    if (!type.isInt()) {
+        return Value::kNullBadType;
     }
-    DCHECK_GT(row.size(), srcIndex->second);
-
-    auto dstIndex = colIndices.find(kDst);
-    if (dstIndex == colIndices.end() || !row[dstIndex->second].isStr()) {
-        return Value::kNullValue;
+    auto& src = getColumn(kSrc);
+    if (!src.isStr()) {
+        return Value::kNullBadType;
     }
-    DCHECK_GT(row.size(), dstIndex->second);
-
-    auto typeIndex = colIndices.find(kType);
-    if (typeIndex == colIndices.end() || !row[typeIndex->second].isInt()) {
-        return Value::kNullValue;
+    auto& dst = getColumn(kDst);
+    if (!dst.isStr()) {
+        return Value::kNullBadType;
     }
-    DCHECK_GT(row.size(), typeIndex->second);
-
-    auto rankIndex = colIndices.find(kRank);
-    if (rankIndex == colIndices.end() || !row[rankIndex->second].isInt()) {
-        return Value::kNullValue;
-    }
-    DCHECK_GT(row.size(), rankIndex->second);
-
-    auto src = row[srcIndex->second].getStr();
-    auto dst = row[dstIndex->second].getStr();
-
-    auto& type = row[typeIndex->second].getInt();
-    if (type > 0) {
-        edge.src = src;
-        edge.dst = dst;
+    if (type.getInt() > 0) {
+        edge.src = src.getStr();
+        edge.dst = dst.getStr();
     } else {
-        edge.src = dst;
-        edge.dst = src;
+        edge.src = dst.getStr();
+        edge.dst = src.getStr();
     }
-    edge.ranking = row[rankIndex->second].getInt();
+
+    auto rank = getColumn(kRank);
+    if (!rank.isInt()) {
+        return Value::kNullBadType;
+    }
+    edge.ranking = rank.getInt();
     edge.type = 0;
 
     auto& edgePropsMap = dsIndex_.propsMap;
