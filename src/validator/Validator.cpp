@@ -258,7 +258,9 @@ Status Validator::validate() {
     }
 
     // Execute after validateImpl because need field from it
-    NG_RETURN_IF_ERROR(checkPermission());
+    if (FLAGS_enable_authorize) {
+        NG_RETURN_IF_ERROR(checkPermission());
+    }
 
     status = toPlan();
     if (!status.ok()) {
