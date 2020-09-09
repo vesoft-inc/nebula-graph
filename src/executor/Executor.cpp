@@ -368,12 +368,12 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
             return pool->add(new ShowCollationExecutor(node, qctx));
         }
         case PlanNode::Kind::kBFSShortest: {
-            return pool->add(new BFSShortestPathExecutor(bfs, qctx));
+            return pool->add(new BFSShortestPathExecutor(node, qctx));
         }
         case PlanNode::Kind::kConjunctPath: {
-            return pool->add(new ConjunctPathExecutor(conjunct, qctx));
+            return pool->add(new ConjunctPathExecutor(node, qctx));
         }
-        case PlanNode::Kind::kUnknown:
+        case PlanNode::Kind::kUnknown: {
             break;
         }
     }
