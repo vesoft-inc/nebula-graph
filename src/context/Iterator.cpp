@@ -232,7 +232,7 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     if (edge != "*" &&
             (currentEdge.compare(1, std::string::npos, edge) != 0)) {
         VLOG(1) << "Current edge: " << currentEdgeName() << " Wanted: " << edge;
-        return Value::kEmpty;
+        return Value::kNullBadType;
     }
     auto segment = currentSeg();
     auto index = dsIndices_[segment].edgePropsMap.find(currentEdge);
@@ -403,9 +403,22 @@ PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) 
     iter_ = rows_.begin();
 }
 
+Status PropIter::makeDataSetIndex(const DataSet& ds) {
+    dsIndex_.ds = &ds;
+    auto& colNames = ds.colNames;
+    for (size_t i = 0; i < colNames.size(); ++i) {
+        dsIndex_.colIndices.emplace(colNames[i], i);
+        auto& colName = colNames[i];
+        if (colName.find(".") != std::string::npos) {
+            NG_RETURN_IF_ERROR(buildPropIndex(colName, i));
+        }
+    }
+    return Status::OK();
+}
+
 Status PropIter::buildPropIndex(const std::string& props, size_t columnId) {
     std::vector<std::string> pieces;
-    folly::split(":", props, pieces);
+    folly::split(".", props, pieces);
     if (UNLIKELY(pieces.size() != 2)) {
         return Status::Error("Bad column name format: %s", props.c_str());
     }
@@ -420,19 +433,6 @@ Status PropIter::buildPropIndex(const std::string& props, size_t columnId) {
         propIndex.colIndexs.emplace_back(columnId);
         propIndex.propIndices.emplace(pieces[1], columnId);
         propsMap.emplace(name, std::move(propIndex));
-    }
-    return Status::OK();
-}
-
-Status PropIter::makeDataSetIndex(const DataSet& ds) {
-    dsIndex_.ds = &ds;
-    auto& colNames = ds.colNames;
-    for (size_t i = 0; i < colNames.size(); ++i) {
-        dsIndex_.colIndices.emplace(colNames[i], i);
-        auto& colName = colNames[i];
-        if (colName.find(":") != std::string::npos) {
-            NG_RETURN_IF_ERROR(buildPropIndex(colName, i));
-        }
     }
     return Status::OK();
 }
@@ -452,25 +452,15 @@ const Value& PropIter::getColumn(const std::string& col) const {
     }
 }
 
-const Value& PropIter::getTagEdgeProp(const std::string& name, const std::string& prop) const {
+const Value& PropIter::getProp(const std::string& name, const std::string& prop) const {
     if (!valid()) {
         return Value::kNullValue;
     }
     auto& row = *(iter_->row_);
-    if (prop == kSrc || prop == kDst || prop == kRank || prop == kType) {
-        auto index = dsIndex_.colIndices.find(prop);
-        if (index == dsIndex_.colIndices.end()) {
-            VLOG(1) << "No prop found: " << prop;
-            return Value::kNullValue;
-        }
-        DCHECK_GT(row.size(), index->second);
-        return row[index->second];
-    }
-
     auto& propsMap = dsIndex_.propsMap;
     auto index = propsMap.find(name);
     if (index == propsMap.end()) {
-        return Value::kNullValue;
+        return Value::kEmpty;
     }
 
     auto propIndex = index->second.propIndices.find(prop);
@@ -480,10 +470,6 @@ const Value& PropIter::getTagEdgeProp(const std::string& name, const std::string
     }
     auto colId = propIndex->second;
     DCHECK_GT(row.size(), colId);
-    if (row[colId].empty()) {
-        LOG(ERROR) << prop << " not exist";
-        return Value::kNullBadType;
-    }
     return row[colId];
 }
 
@@ -505,13 +491,13 @@ Value PropIter::getVertex() const {
         auto& colIndexs = tagProp.second.colIndexs;
         for (auto& index : colIndexs) {
             if (row[index].empty()) {
-                // TODO: nullType
                 // Not current vertex's prop
                 isVertexProps = false;
                 break;
             }
         }
         if (!isVertexProps) {
+            isVertexProps = true;
             continue;
         }
         Tag tag;
@@ -530,34 +516,6 @@ Value PropIter::getEdge() const {
     }
     auto row = *(iter_->row_);
     Edge edge;
-
-    auto type = getColumn(kType);
-    if (!type.isInt()) {
-        return Value::kNullBadType;
-    }
-    auto& src = getColumn(kSrc);
-    if (!src.isStr()) {
-        return Value::kNullBadType;
-    }
-    auto& dst = getColumn(kDst);
-    if (!dst.isStr()) {
-        return Value::kNullBadType;
-    }
-    if (type.getInt() > 0) {
-        edge.src = src.getStr();
-        edge.dst = dst.getStr();
-    } else {
-        edge.src = dst.getStr();
-        edge.dst = src.getStr();
-    }
-
-    auto rank = getColumn(kRank);
-    if (!rank.isInt()) {
-        return Value::kNullBadType;
-    }
-    edge.ranking = rank.getInt();
-    edge.type = 0;
-
     auto& edgePropsMap = dsIndex_.propsMap;
     bool isEdgeProps = true;
     for (auto& edgeProp : edgePropsMap) {
@@ -569,15 +527,67 @@ Value PropIter::getEdge() const {
             }
         }
         if (!isEdgeProps) {
+            isEdgeProps = true;
             continue;
         }
+        auto edgeName = edgeProp.first;
         edge.name = edgeProp.first;
+        auto type = getEdgeProp(edgeName, kType);
+        if (!type.isInt()) {
+            return Value::kNullBadType;
+        }
+        auto& src = getEdgeProp(edgeName, kSrc);
+        if (!src.isStr()) {
+            return Value::kNullBadType;
+        }
+        auto& dst = getEdgeProp(edgeName, kDst);
+        if (!dst.isStr()) {
+            return Value::kNullBadType;
+        }
+        if (type.getInt() > 0) {
+            edge.src = src.getStr();
+            edge.dst = dst.getStr();
+        } else {
+            edge.src = dst.getStr();
+            edge.dst = src.getStr();
+        }
+        auto rank = getEdgeProp(edgeName, kRank);
+        if (!rank.isInt()) {
+            return Value::kNullBadType;
+        }
+        edge.ranking = rank.getInt();
+        edge.type = 0;
+
         for (auto& propIndices : edgeProp.second.propIndices) {
+            if (propIndices.first == kSrc || propIndices.first == kDst ||
+                propIndices.first == kType || propIndices.first == kRank) {
+                continue;
+            }
             edge.props.emplace(propIndices.first, row[propIndices.second]);
         }
         return Value(std::move(edge));
     }
     return Value::kNullValue;
+}
+
+List PropIter::getVertices() {
+    DCHECK(iter_ == rows_.begin());
+    List vertices;
+    for (; valid(); next()) {
+        vertices.values.emplace_back(getVertex());
+    }
+    reset();
+    return vertices;
+}
+
+List PropIter::getEdges() {
+    DCHECK(iter_ == rows_.begin());
+    List edges;
+    for (; valid(); next()) {
+        edges.values.emplace_back(getEdge());
+    }
+    reset();
+    return edges;
 }
 
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {

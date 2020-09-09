@@ -791,7 +791,19 @@ public:
 
     Value getEdge() const override;
 
-    const Value& getTagEdgeProp(const std::string& name, const std::string& prop) const;
+    List getVertices();
+
+    List getEdges();
+
+    const Value& getProp(const std::string& name, const std::string& prop) const;
+
+    const Value& getTagProp(const std::string& tag, const std::string& prop) const override {
+        return getProp(tag, prop);
+    }
+
+    const Value& getEdgeProp(const std::string& edge, const std::string& prop) const override {
+        return getProp(edge, prop);
+    }
 
     Status buildPropIndex(const std::string& props, size_t columnIdx);
 
