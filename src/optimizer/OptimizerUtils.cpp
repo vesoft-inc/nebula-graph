@@ -59,15 +59,14 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             if (!col.__isset.type_length || col.get_type_length() == nullptr) {
                 return Value(NullType::BAD_TYPE);
             }
-            std::vector<unsigned char> bytes(*col.get_type_length(), 0);
-            auto size = v.getStr().size() > bytes.size() ? bytes.size() : v.getStr().size();
-            ::memcpy(&bytes[0], v.getStr().data(), size);
-            size_t i = bytes.size();
-            for (; i > 0; i--) {
-                if (bytes[i-1]++ != 255) break;
-            }
-            if (i == 0) {
-                return Value(std::string(*col.get_type_length(), '\377'));
+            std::vector<unsigned char> bytes(v.getStr().begin(), v.getStr().end());
+            bytes.resize(*col.get_type_length());
+            for (size_t i = bytes.size();; i--) {
+                if (i > 0) {
+                    if (bytes[i-1]++ != 255) break;
+                } else {
+                    return Value(std::string(*col.get_type_length(), '\377'));
+                }
             }
             return Value(std::string(bytes.begin(), bytes.end()));
         }
@@ -170,15 +169,14 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             if (!col.__isset.type_length || col.get_type_length() == nullptr) {
                 return Value(NullType::BAD_TYPE);
             }
-            std::vector<unsigned char> bytes(*col.get_type_length(), 0);
-            auto size = v.getStr().size() > bytes.size() ? bytes.size() : v.getStr().size();
-            ::memcpy(&bytes[0], v.getStr().data(), size);
-            size_t i = bytes.size();
-            for (; i > 0; i--) {
-                if (bytes[i-1]-- != 0) break;
-            }
-            if (i == 0) {
-                return Value(std::string(*col.get_type_length(), '\0'));
+            std::vector<unsigned char> bytes(v.getStr().begin(), v.getStr().end());
+            bytes.resize(*col.get_type_length());
+            for (size_t i = bytes.size();; i--) {
+                if (i > 0) {
+                    if (bytes[i-1]-- != 0) break;
+                } else {
+                    return Value(std::string(*col.get_type_length(), '\0'));
+                }
             }
             return Value(std::string(bytes.begin(), bytes.end()));
         }
@@ -267,10 +265,7 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col, const 
             if (!col.__isset.type_length || col.get_type_length() == nullptr) {
                 return Value(NullType::BAD_TYPE);
             }
-            std::string str;
-            str.reserve(*col.get_type_length());
-            str.append(*col.get_type_length(), '\377');
-            return Value(str);
+            return Value(std::string(*col.get_type_length(), '\377'));
         }
         case Value::Type::DATE : {
             Date d;
@@ -312,10 +307,7 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col, const 
             if (!col.__isset.type_length || col.get_type_length() == nullptr) {
                 return Value(NullType::BAD_TYPE);
             }
-            std::string str;
-            str.reserve(*col.get_type_length());
-            str.append(*col.get_type_length(), '\0');
-            return Value(str);
+            return Value(std::string(*col.get_type_length(), '\0'));
         }
         case Value::Type::DATE : {
             return Value(Date());
