@@ -336,10 +336,11 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
             return pool->add(new ShowCollationExecutor(node, qctx));
         }
         case PlanNode::Kind::kUnknown: {
-            LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
-            return nullptr;
+            break;
         }
     }
+    LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
+    return nullptr;
 }
 
 Executor::Executor(const std::string &name, const PlanNode *node, QueryContext *qctx)
