@@ -61,6 +61,8 @@
 #include "executor/query/SortExecutor.h"
 #include "executor/query/TopNExecutor.h"
 #include "executor/query/UnionExecutor.h"
+#include "executor/query/BFSShortestPathExecutor.h"
+#include "executor/query/ConjunctPathExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Logic.h"
 #include "planner/Maintain.h"
@@ -365,7 +367,13 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kShowCollation: {
             return pool->add(new ShowCollationExecutor(node, qctx));
         }
-        case PlanNode::Kind::kUnknown: {
+        case PlanNode::Kind::kBFSShortest: {
+            return pool->add(new BFSShortestPathExecutor(bfs, qctx));
+        }
+        case PlanNode::Kind::kConjunctPath: {
+            return pool->add(new ConjunctPathExecutor(conjunct, qctx));
+        }
+        case PlanNode::Kind::kUnknown:
             break;
         }
     }

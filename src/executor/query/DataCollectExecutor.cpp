@@ -87,7 +87,9 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                 }
                 ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
             } else {
-                return Status::Error("Iterator should be kind of GetNeighborIter.");
+                std::stringstream msg;
+                msg << "Iterator should be kind of GetNeighborIter, but was: " << iter->kind();
+                return Status::Error(msg.str());
             }
         }
     }
@@ -138,7 +140,9 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
                     ds.rows.emplace_back(seqIter->moveRow());
                 }
             } else {
-                return Status::Error("Iterator should be kind of SequentialIter.");
+                std::stringstream msg;
+                msg << "Iterator should be kind of SequentialIter, but was: " << iter->kind();
+                return Status::Error(msg.str());
             }
             itersHolder.emplace_back(std::move(iter));
         }
@@ -159,9 +163,12 @@ Status DataCollectExecutor::collectBFSShortest(const std::vector<std::string>& v
                 ds.rows.emplace_back(seqIter->moveRow());
             }
         } else {
-            return Status::Error("Iterator should be kind of SequentialIter.");
+            std::stringstream msg;
+            msg << "Iterator should be kind of SequentialIter, but was: " << iter->kind();
+            return Status::Error(msg.str());
         }
     }
+    result_.setDataSet(std::move(ds));
     return Status::OK();
 }
 }  // namespace graph

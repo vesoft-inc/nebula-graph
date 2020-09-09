@@ -56,7 +56,7 @@ protected:
 
     PlanNode* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
 
-    void buildConstantInput(const Starts& starts, std::string& startVidsVar, Expression* vids);
+    void buildConstantInput(const Starts& starts, std::string& startVidsVar, Expression*& vids);
 
     PlanNode* buildRuntimeInput();
 

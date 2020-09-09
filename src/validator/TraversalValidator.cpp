@@ -169,7 +169,7 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
 
 void TraversalValidator::buildConstantInput(const Starts& starts,
                                             std::string& startVidsVar,
-                                            Expression* vids) {
+                                            Expression*& vids) {
     startVidsVar = vctx_->anonVarGen()->getVar();
     DataSet ds;
     ds.colNames.emplace_back(kVid);

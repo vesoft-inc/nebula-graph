@@ -24,9 +24,13 @@ Status FindPathValidator::validateImpl() {
 
 Status FindPathValidator::toPlan() {
     // TODO: Implement the path plan.
-    auto* passThrough = PassThroughNode::make(qctx_, nullptr);
-    tail_ = passThrough;
-    root_ = tail_;
+    if (from_.vids.size() == 1 && to_.vids.size()) {
+        return singlePairPlan();
+    } else {
+        auto* passThrough = PassThroughNode::make(qctx_, nullptr);
+        tail_ = passThrough;
+        root_ = tail_;
+    }
     return Status::OK();
 }
 
@@ -35,18 +39,23 @@ Status FindPathValidator::singlePairPlan() {
     auto* passThrough = PassThroughNode::make(qctx_, bodyStart);
 
     auto* forward = bfs(passThrough, from_, false);
+    VLOG(1) << "forward: " << forward->varName();
 
     auto* backward = bfs(passThrough, to_, true);
+    VLOG(1) << "backward: " << backward->varName();
 
     auto* conjunct = ConjunctPath::make(qctx_, forward, backward);
     conjunct->setLeftVar(forward->varName());
     conjunct->setRightVar(backward->varName());
+    conjunct->setColNames({"_path"});
 
     auto* loop = Loop::make(
-        qctx_, conjunct, nullptr, buildBfsLoopCondition(steps_.steps, conjunct->varName()));
+        qctx_, nullptr, conjunct, buildBfsLoopCondition(steps_.steps, conjunct->varName()));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->varName()});
+    dataCollect->setColNames({"_path"});
+    dataCollect->setInputVar(conjunct->varName());
 
     root_ = dataCollect;
     tail_ = loop;
@@ -70,6 +79,7 @@ PlanNode* FindPathValidator::bfs(PlanNode* dep, const Starts& starts, bool rever
     Expression* vids = nullptr;
     buildConstantInput(starts, startVidsVar, vids);
 
+    DCHECK(!!vids);
     auto* gn = GetNeighbors::make(qctx_, dep, space_.id);
     gn->setSrc(vids);
     gn->setEdgeProps(buildEdgeKey(reverse));
@@ -77,8 +87,18 @@ PlanNode* FindPathValidator::bfs(PlanNode* dep, const Starts& starts, bool rever
 
     auto* bfs = BFSShortestPath::make(qctx_, gn);
     bfs->setInputVar(gn->varName());
-    bfs->setColNames({"dst", "path"});
+    bfs->setColNames({"_vid", "path"});
     bfs->setOutputVar(startVidsVar);
+
+    DataSet ds;
+    ds.colNames = {"_vid", "path"};
+    Path path;
+    path.src = Vertex(starts.vids.front().getStr(), {});
+    Row row;
+    row.values.emplace_back(starts.vids.front());
+    row.values.emplace_back(std::move(path));
+    ds.rows.emplace_back(std::move(row));
+    qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
     return bfs;
 }
@@ -97,10 +117,16 @@ Expression* FindPathValidator::buildBfsLoopCondition(uint32_t steps, const std::
 
     auto* args = new ArgumentList();
     args->addArgument(std::make_unique<VariableExpression>(new std::string(pathVar)));
-    auto* notFoundPath =
+    auto* pathEmpty =
         new RelationalExpression(Expression::Kind::kRelEQ,
                                  new FunctionCallExpression(new std::string("size"), args),
                                  new ConstantExpression(0));
+    auto* notFoundPath = new LogicalExpression(
+        Expression::Kind::kLogicalOr,
+        new RelationalExpression(Expression::Kind::kRelEQ,
+                                 new VariableExpression(new std::string(pathVar)),
+                                 new ConstantExpression(Value())),
+        pathEmpty);
     return qctx_->objPool()->add(
         new LogicalExpression(Expression::Kind::kLogicalAnd, nSteps, notFoundPath));
 }
