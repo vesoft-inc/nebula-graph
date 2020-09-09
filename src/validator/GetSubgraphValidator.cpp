@@ -271,7 +271,6 @@ Status GetSubgraphValidator::toPlan() {
     std::vector<std::string> collects = {gn->outputVar(), filter->outputVar()};
     auto* dc =
         DataCollect::make(qctx_, filter, DataCollect::CollectKind::kSubgraph, std::move(collects));
-    dc->setInputVar(filter->outputVar());
     dc->setColNames({"_vertices", "_edges"});
     root_ = dc;
     tail_ = projectStartVid_ != nullptr ? projectStartVid_ : loop;

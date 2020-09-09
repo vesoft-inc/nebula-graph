@@ -113,14 +113,11 @@ public:
     }
 
     void setOutputVar(std::string var) {
-        outputVars_.emplace_back(std::move(var));
+        DCHECK_EQ(1, outputVars_.size());
+        outputVars_[0] = (std::move(var));
     }
 
-    std::string outputVar() const {
-        return outputVars_.back();
-    }
-
-    std::string outputVar(size_t index) const {
+    std::string outputVar(size_t index = 0) const {
         DCHECK_LT(index, outputVars_.size());
         return outputVars_[index];
     }
@@ -205,11 +202,8 @@ protected:
 class SingleInputNode : public SingleDependencyNode {
 public:
     void setInputVar(std::string inputVar) {
-        if (!inputVars_.empty()) {
-            inputVars_[0] = std::move(inputVar);
-        } else {
-            inputVars_.emplace_back(inputVar);
-        }
+        DCHECK(!inputVars_.empty());
+        inputVars_[0] = std::move(inputVar);
     }
 
     const std::string& inputVar() const {
