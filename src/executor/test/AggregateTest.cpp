@@ -98,7 +98,7 @@ struct RowCmp {
     auto future = aggExe->execute();                                        \
     auto status = std::move(future).get();                                  \
     EXPECT_TRUE(status.ok());                                               \
-    auto& result = qctx_->ectx()->getResult(agg->outputVar());                \
+    auto& result = qctx_->ectx()->getResult(agg->outputVar());              \
     EXPECT_EQ(result.value().getDataSet(), expected);                       \
     EXPECT_EQ(result.state(), Result::State::kSuccess);
 
@@ -119,7 +119,7 @@ struct RowCmp {
     auto future = aggExe->execute();                                        \
     auto status = std::move(future).get();                                  \
     EXPECT_TRUE(status.ok());                                               \
-    auto& result = qctx_->ectx()->getResult(agg->outputVar());                \
+    auto& result = qctx_->ectx()->getResult(agg->outputVar());              \
     DataSet sortedDs = result.value().getDataSet();                         \
     std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());        \
     EXPECT_EQ(sortedDs, expected);                                          \
@@ -147,7 +147,7 @@ struct RowCmp {
     auto future = aggExe->execute();                                        \
     auto status = std::move(future).get();                                  \
     EXPECT_TRUE(status.ok());                                               \
-    auto& result = qctx_->ectx()->getResult(agg->outputVar());                \
+    auto& result = qctx_->ectx()->getResult(agg->outputVar());              \
     DataSet sortedDs = result.value().getDataSet();                         \
     std::sort(sortedDs.rows.begin(), sortedDs.rows.end(), RowCmp());        \
     EXPECT_EQ(sortedDs, expected);                                          \
@@ -168,7 +168,7 @@ struct RowCmp {
     auto future = aggExe->execute();                                        \
     auto status = std::move(future).get();                                  \
     EXPECT_TRUE(status.ok());                                               \
-    auto& result = qctx_->ectx()->getResult(agg->outputVar());                \
+    auto& result = qctx_->ectx()->getResult(agg->outputVar());              \
     EXPECT_EQ(result.value().getDataSet(), expected);                       \
     EXPECT_EQ(result.state(), Result::State::kSuccess);
 
