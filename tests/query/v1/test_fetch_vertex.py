@@ -226,7 +226,7 @@ class TestFetchQuery(NebulaTestSuite):
         query = 'FETCH PROP ON * "Boris Diaw" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality'
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.name', 'player.age', 'team.name', 'bachelor.name', 'bachelor.speciality']
-        expect_result = [['Boris Diaw', 'Boris Diaw', 36, T_NULL, T_NULL, T_NULL]]
+        expect_result = [['Boris Diaw', 'Boris Diaw', 36, T_EMPTY, T_EMPTY, T_EMPTY]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
@@ -234,7 +234,7 @@ class TestFetchQuery(NebulaTestSuite):
         query = 'FETCH PROP ON * "Boris Diaw" YIELD player.age, team.name, bachelor.speciality'
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.age', 'team.name', 'bachelor.speciality']
-        expect_result = [['Boris Diaw', 36, T_NULL, T_NULL]]
+        expect_result = [['Boris Diaw', 36, T_EMPTY, T_EMPTY]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
@@ -242,7 +242,7 @@ class TestFetchQuery(NebulaTestSuite):
         query = 'FETCH PROP ON * "Tim Duncan" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality'
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.name', 'player.age', 'team.name', 'bachelor.name', 'bachelor.speciality']
-        expect_result = [['Tim Duncan', 'Tim Duncan', 42, T_NULL, "Tim Duncan", "psychology"]]
+        expect_result = [['Tim Duncan', 'Tim Duncan', 42, T_EMPTY, "Tim Duncan", "psychology"]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
@@ -250,7 +250,7 @@ class TestFetchQuery(NebulaTestSuite):
         query = 'FETCH PROP ON * "Tim Duncan" YIELD player.name, team.name, bachelor.name'
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.name', 'team.name', 'bachelor.name']
-        expect_result = [['Tim Duncan', 'Tim Duncan', T_NULL, "Tim Duncan"]]
+        expect_result = [['Tim Duncan', 'Tim Duncan', T_EMPTY, "Tim Duncan"]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
@@ -259,8 +259,8 @@ class TestFetchQuery(NebulaTestSuite):
         query = 'FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality'
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.name', 'player.age', 'team.name', 'bachelor.name', 'bachelor.speciality']
-        expect_result = [['Tim Duncan', 'Tim Duncan', 42, T_NULL, "Tim Duncan", "psychology"],
-                         ['Boris Diaw', 'Boris Diaw', 36, T_NULL, T_NULL, T_NULL]]
+        expect_result = [['Tim Duncan', 'Tim Duncan', 42, T_EMPTY, "Tim Duncan", "psychology"],
+                         ['Boris Diaw', 'Boris Diaw', 36, T_EMPTY, T_EMPTY, T_EMPTY]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
@@ -268,8 +268,8 @@ class TestFetchQuery(NebulaTestSuite):
         query = 'FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD player.age, team.name, bachelor.name'
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.age', 'team.name', 'bachelor.name']
-        expect_result = [['Tim Duncan', 42, T_NULL, "Tim Duncan"],
-                         ['Boris Diaw', 36, T_NULL, T_NULL]]
+        expect_result = [['Tim Duncan', 42, T_EMPTY, "Tim Duncan"],
+                         ['Boris Diaw', 36, T_EMPTY, T_EMPTY]]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
         self.check_out_of_order_result(resp, expect_result)
@@ -280,8 +280,8 @@ class TestFetchQuery(NebulaTestSuite):
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.name', 'player.age', 'team.name', 'bachelor.name', 'bachelor.speciality']
         expect_result = [
-            ['Tony Parker', 'Tony Parker', 36, T_NULL, T_NULL, T_NULL],
-            ['Tim Duncan', 'Tim Duncan', 42, T_NULL, "Tim Duncan", "psychology"]
+            ['Tony Parker', 'Tony Parker', 36, T_EMPTY, T_EMPTY, T_EMPTY],
+            ['Tim Duncan', 'Tim Duncan', 42, T_EMPTY, "Tim Duncan", "psychology"]
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
@@ -292,8 +292,8 @@ class TestFetchQuery(NebulaTestSuite):
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.age', 'team.name', 'bachelor.speciality']
         expect_result = [
-            ['Tony Parker', 36, T_NULL, T_NULL],
-            ['Tim Duncan',  42, T_NULL, "psychology"]
+            ['Tony Parker', 36, T_EMPTY, T_EMPTY],
+            ['Tim Duncan',  42, T_EMPTY, "psychology"]
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
@@ -305,8 +305,8 @@ class TestFetchQuery(NebulaTestSuite):
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.name', 'player.age', 'team.name', 'bachelor.name', 'bachelor.speciality']
         expect_result = [
-            ['Tony Parker', 'Tony Parker', 36, T_NULL, T_NULL, T_NULL],
-            ['Tim Duncan', 'Tim Duncan', 42, T_NULL, "Tim Duncan", "psychology"]
+            ['Tony Parker', 'Tony Parker', 36, T_EMPTY, T_EMPTY, T_EMPTY],
+            ['Tim Duncan', 'Tim Duncan', 42, T_EMPTY, "Tim Duncan", "psychology"]
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
@@ -317,8 +317,8 @@ class TestFetchQuery(NebulaTestSuite):
         resp = self.execute_query(query)
         expect_column_names = ['VertexID', 'player.age', 'team.name', 'bachelor.speciality']
         expect_result = [
-            ['Tony Parker', 36, T_NULL, T_NULL],
-            ['Tim Duncan',  42, T_NULL, "psychology"]
+            ['Tony Parker', 36, T_EMPTY, T_EMPTY],
+            ['Tim Duncan',  42, T_EMPTY, "psychology"]
         ]
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, expect_column_names)
