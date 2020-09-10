@@ -93,6 +93,7 @@ function run_test() {
     cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
     testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
+    ./ntr --debug_log=false $PROJ_DIR/tests/single_execute/* &
     ./ntr \
         -n=8 \
         --dist=loadfile \
@@ -110,6 +111,30 @@ function test_in_cluster() {
         --debug_log=false \
         --address="nebulaclusters-graphd:3699" \
         $testpath
+=======
+        $PROJ_DIR/tests/admin/* \
+        $PROJ_DIR/tests/maintain/* \
+        $PROJ_DIR/tests/mutate/* \
+        $PROJ_DIR/tests/query/v1/* \
+        $PROJ_DIR/tests/query/v2/* \
+        $PROJ_DIR/tests/query/stateless/test_schema.py \
+        $PROJ_DIR/tests/query/stateless/test_admin.py \
+        $PROJ_DIR/tests/query/stateless/test_if_exists.py \
+        $PROJ_DIR/tests/query/stateless/test_range.py \
+        $PROJ_DIR/tests/query/stateless/test_go.py \
+        $PROJ_DIR/tests/query/stateless/test_simple_query.py \
+        $PROJ_DIR/tests/query/stateless/test_keyword.py \
+        $PROJ_DIR/tests/query/stateless/test_lookup.py &
+
+    for pid in $(jobs -p)
+    do
+        wait $pid
+        status=$?
+        if [ $status != 0 ];then
+            exit 1
+        fi
+    done
+>>>>>>> add snapshot and job test
 }
 
 case "$1" in
