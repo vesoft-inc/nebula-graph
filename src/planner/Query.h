@@ -668,6 +668,56 @@ private:
     int64_t     count_{-1};
 };
 
+
+/**
+ * Get the Top N record set.
+ */
+class TopN final : public SingleInputNode {
+public:
+    static TopN* make(QueryContext* qctx,
+                      PlanNode* input,
+                      std::vector<std::pair<std::string, OrderFactor::OrderType>> factors,
+                      int64_t offset,
+                      int64_t count) {
+        return qctx->objPool()->add(new TopN(qctx->genId(),
+            input, std::move(factors), offset, count));
+    }
+
+    const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors() const {
+        return factors_;
+    }
+
+    int64_t offset() const {
+        return offset_;
+    }
+
+    int64_t count() const {
+        return count_;
+    }
+
+    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+
+private:
+    TopN(int64_t id,
+         PlanNode* input,
+         std::vector<std::pair<std::string, OrderFactor::OrderType>> factors,
+         int64_t offset,
+         int64_t count)
+        : SingleInputNode(id, Kind::kTopN, input) {
+        factors_ = std::move(factors);
+        DCHECK_GE(offset, 0);
+        DCHECK_GE(count, 0);
+        offset_ = offset;
+        count_ = count;
+    }
+
+private:
+    std::vector<std::pair<std::string, OrderFactor::OrderType>>   factors_;
+    int64_t     offset_{-1};
+    int64_t     count_{-1};
+};
+
+
 /**
  * Do Aggregation with the given set of records,
  * such as AVG(), COUNT()...

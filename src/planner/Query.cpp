@@ -95,6 +95,14 @@ std::unique_ptr<cpp2::PlanNodeDescription> Limit::explain() const {
     return desc;
 }
 
+std::unique_ptr<cpp2::PlanNodeDescription> TopN::explain() const {
+    auto desc = SingleInputNode::explain();
+    addDescription("factors", folly::toJson(util::toJson(factors_)), desc.get());
+    addDescription("offset", folly::to<std::string>(offset_), desc.get());
+    addDescription("count", folly::to<std::string>(count_), desc.get());
+    return desc;
+}
+
 std::unique_ptr<cpp2::PlanNodeDescription> Aggregate::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("groupKeys", folly::toJson(util::toJson(groupKeys_)), desc.get());
