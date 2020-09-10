@@ -202,7 +202,7 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-    def test_assignmenT_EMPTY_result(self):
+    def test_assignment_empty_result(self):
         stmt = '''$var = GO FROM "-1" OVER like YIELD like._dst as id; \
             GO FROM $var.id OVER like'''
         resp = self.execute_query(stmt)
@@ -269,7 +269,7 @@ class TestGoQuery(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_empty_result(resp)
 
-    def tesT_EMPTY_inputs(self):
+    def test_empty_inputs(self):
         stmt = '''GO FROM "NON EXIST VERTEX ID" OVER like YIELD like._dst as id \
             | GO FROM $-.id OVER like YIELD like._dst as id | GO FROM $-.id OVER serve'''
         resp = self.execute_query(stmt)
