@@ -147,11 +147,7 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
             return pool->add(new SortExecutor(node, qctx));
         }
         case PlanNode::Kind::kTopN: {
-            auto topn = asNode<TopN>(node);
-            auto dep = makeExecutor(topn->dep(), qctx, visited);
-            exec = new TopNExecutor(topn, qctx);
-            exec->dependsOn(dep);
-            break;
+            return pool->add(new TopNExecutor(node, qctx));
         }
         case PlanNode::Kind::kFilter: {
             return pool->add(new FilterExecutor(node, qctx));
