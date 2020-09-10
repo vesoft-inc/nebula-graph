@@ -216,7 +216,7 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
     auto& row = *(iter_->row_);
     DCHECK_GT(row.size(), colId);
     if (!row[colId].isList()) {
-        return Value::kEmpty;
+        return Value::kNullBadType;
     }
     auto& list = row[colId].getList();
     return list.values[propIndex->second];
