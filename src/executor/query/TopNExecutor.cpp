@@ -14,7 +14,6 @@ namespace graph {
 
 folly::Future<Status> TopNExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    std::cout << "TopNExecutor executing..." << std::endl;
     auto* topn = asNode<TopN>(node());
     auto iter = ectx_->getResult(topn->inputVar()).iter();
     if (UNLIKELY(iter == nullptr)) {
@@ -26,7 +25,6 @@ folly::Future<Status> TopNExecutor::execute() {
         return Status::Error(errMsg);
     }
     if (iter->isSequentialIter()) {
-        std::cout << "isSequentialIter" << std::endl;
         auto seqIter = static_cast<SequentialIter*>(iter.get());
         auto &factors = topn->factors();
         auto &colIndices = seqIter->getColIndices();
@@ -45,20 +43,13 @@ folly::Future<Status> TopNExecutor::execute() {
             for (auto &item : indexes) {
                 auto index = item.first;
                 auto orderType = item.second;
-                std::cout << "lhs[index]: ";
-                std::cout << lhs[index];
-                std::cout << " rhs[index]: ";
-                std::cout << rhs[index] << std::endl;
                 if (lhs[index] == rhs[index]) {
-                    std::cout << "==" << std::endl;
                     continue;
                 }
 
                 if (orderType == OrderFactor::OrderType::ASCEND) {
-                    std::cout << (lhs[index] < rhs[index] ? "asc <" : "asc >") << std::endl;
                     return lhs[index] < rhs[index];
                 } else if (orderType == OrderFactor::OrderType::DESCEND) {
-                    std::cout << (lhs[index] > rhs[index] ? "dsc >" : "dsc <") << std::endl;
                     return lhs[index] > rhs[index];
                 }
             }
@@ -82,10 +73,7 @@ folly::Future<Status> TopNExecutor::execute() {
             seqIter->clear();
             return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
         }
-        std::cout << "原始数据：" << std::endl;
-        for (auto i = seqIter->begin(); i != seqIter->end(); ++i) {
-            std::cout << *i << std::endl;
-        }
+
         std::vector<SequentialIter::SeqLogicalRow> heap(seqIter->begin(),
                                                         seqIter->begin() + heapSize);
         std::make_heap(heap.begin(), heap.end(), comparator);
@@ -99,16 +87,7 @@ folly::Future<Status> TopNExecutor::execute() {
             }
             ++it;
         }
-        std::cout << "堆有序数据:" << std::endl;
-        for (auto a : heap) {
-            std::cout << a << std::endl;
-        }
         std::sort_heap(heap.begin(), heap.end(), comparator);
-        std::cout << "sort_heap数据： " << std::endl;
-        for (auto a : heap) {
-            std::cout << a << std::endl;
-        }
-        std::cout << "=======" << std::endl;
         iter->eraseRange(maxCount, size);
         auto beg = seqIter->begin();
         for (int i = 0; i < maxCount; ++i) {
