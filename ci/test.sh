@@ -84,6 +84,7 @@ function run_ctest() {
 
 function run_test() {
     cd $BUILD_DIR/tests
+    export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
     ./ntr \
         -n=8 \
         --dist=loadfile \
