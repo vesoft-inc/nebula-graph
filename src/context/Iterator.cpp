@@ -469,27 +469,6 @@ const Value& PropIter::getProp(const std::string& name, const std::string& prop)
     return row[colId];
 }
 
-const Value& PropIter::getProp(const std::string& name, const std::string& prop) const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
-    auto& row = *(iter_->row_);
-    auto& propsMap = dsIndex_.propsMap;
-    auto index = propsMap.find(name);
-    if (index == propsMap.end()) {
-        return Value::kEmpty;
-    }
-
-    auto propIndex = index->second.propIndices.find(prop);
-    if (propIndex == index->second.propIndices.end()) {
-        VLOG(1) << "No prop found : " << prop;
-        return Value::kNullValue;
-    }
-    auto colId = propIndex->second;
-    DCHECK_GT(row.size(), colId);
-    return row[colId];
-}
-
 Value PropIter::getVertex() const {
     if (!valid()) {
         return Value::kNullValue;
