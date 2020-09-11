@@ -232,7 +232,7 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     if (edge != "*" &&
             (currentEdge.compare(1, std::string::npos, edge) != 0)) {
         VLOG(1) << "Current edge: " << currentEdgeName() << " Wanted: " << edge;
-        return Value::kNullBadType;
+        return Value::kEmpty;
     }
     auto segment = currentSeg();
     auto index = dsIndices_[segment].edgePropsMap.find(currentEdge);
