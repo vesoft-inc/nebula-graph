@@ -425,14 +425,11 @@ Status PropIter::buildPropIndex(const std::string& props, size_t columnId) {
     std::string name = pieces[0];
     auto& propsMap = dsIndex_.propsMap;
     if (propsMap.find(name) != propsMap.end()) {
-        auto& propIndex = propsMap[name];
-        propIndex.colIndexs.emplace_back(columnId);
-        propIndex.propIndices.emplace(pieces[1], columnId);
+        propsMap[name].emplace(pieces[1], columnId);
     } else {
-        PropIndex propIndex;
-        propIndex.colIndexs.emplace_back(columnId);
-        propIndex.propIndices.emplace(pieces[1], columnId);
-        propsMap.emplace(name, std::move(propIndex));
+        std::unordered_map<std::string, size_t> propIndices;
+        propIndices.emplace(pieces[1], columnId);
+        propsMap.emplace(name, std::move(propIndices));
     }
     return Status::OK();
 }
@@ -463,8 +460,8 @@ const Value& PropIter::getProp(const std::string& name, const std::string& prop)
         return Value::kEmpty;
     }
 
-    auto propIndex = index->second.propIndices.find(prop);
-    if (propIndex == index->second.propIndices.end()) {
+    auto propIndex = index->second.find(prop);
+    if (propIndex == index->second.end()) {
         VLOG(1) << "No prop found : " << prop;
         return Value::kNullValue;
     }
@@ -486,11 +483,10 @@ Value PropIter::getVertex() const {
     vertex.vid = vidVal.getStr();
     auto& tagPropsMap = dsIndex_.propsMap;
     bool isVertexProps = true;
+    auto& row = *(iter_->row_);
     for (auto& tagProp : tagPropsMap) {
-        auto& row = *(iter_->row_);
-        auto& colIndexs = tagProp.second.colIndexs;
-        for (auto& index : colIndexs) {
-            if (row[index].empty()) {
+        for (auto& propIndex : tagProp.second) {
+            if (row[propIndex.second].empty()) {
                 // Not current vertex's prop
                 isVertexProps = false;
                 break;
@@ -502,8 +498,8 @@ Value PropIter::getVertex() const {
         }
         Tag tag;
         tag.name = tagProp.first;
-        for (auto& propIndices : tagProp.second.propIndices) {
-            tag.props.emplace(propIndices.first, row[propIndices.second]);
+        for (auto& propIndex : tagProp.second) {
+            tag.props.emplace(propIndex.first, row[propIndex.second]);
         }
         vertex.tags.emplace_back(std::move(tag));
     }
@@ -514,13 +510,13 @@ Value PropIter::getEdge() const {
     if (!valid()) {
         return Value::kNullValue;
     }
-    auto row = *(iter_->row_);
     Edge edge;
     auto& edgePropsMap = dsIndex_.propsMap;
     bool isEdgeProps = true;
+    auto row = *(iter_->row_);
     for (auto& edgeProp : edgePropsMap) {
-        for (auto& index : edgeProp.second.colIndexs) {
-            if (row[index].empty()) {
+        for (auto& propIndex : edgeProp.second) {
+            if (row[propIndex.second].empty()) {
                 // Not current edge's prop
                 isEdgeProps = false;
                 break;
@@ -558,12 +554,12 @@ Value PropIter::getEdge() const {
         edge.ranking = rank.getInt();
         edge.type = 0;
 
-        for (auto& propIndices : edgeProp.second.propIndices) {
-            if (propIndices.first == kSrc || propIndices.first == kDst ||
-                propIndices.first == kType || propIndices.first == kRank) {
+        for (auto& propIndex : edgeProp.second) {
+            if (propIndex.first == kSrc || propIndex.first == kDst ||
+                propIndex.first == kType || propIndex.first == kRank) {
                 continue;
             }
-            edge.props.emplace(propIndices.first, row[propIndices.second]);
+            edge.props.emplace(propIndex.first, row[propIndex.second]);
         }
         return Value(std::move(edge));
     }

@@ -812,11 +812,6 @@ private:
         iter_ = rows_.begin() + pos;
     }
 
-    struct PropIndex {
-        std::vector<size_t> colIndexs;
-        std::unordered_map<std::string, size_t> propIndices;
-    };
-
     struct DataSetIndex {
         const DataSet* ds;
         // vertex | _vid | tag1.prop1 | tag1.prop2 | tag2,prop1 | tag2,prop2 | ...
@@ -824,9 +819,9 @@ private:
         // edge   |_src | _type| _ranking | _dst | edge1.prop1 | edge1.prop2 |...
         //        |_src : 0 | _type : 1| _ranking : 2 | _dst : 3| edge1.prop1 : 4|...
         std::unordered_map<std::string, size_t> colIndices;
-        // {tag1 : [[1, 2], {prop1 : 1, prop2 : 2}]}
-        // {edge1 : [[4, 5], {prop1 : 4, prop2 : 5}]}
-        std::unordered_map<std::string, PropIndex> propsMap;
+        // {tag1 : {prop1 : 1, prop2 : 2}
+        // {edge1 : {prop1 : 4, prop2 : 5}
+        std::unordered_map<std::string, std::unordered_map<std::string, size_t> > propsMap;
     };
 
 private:
