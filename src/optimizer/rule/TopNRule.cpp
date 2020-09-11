@@ -52,7 +52,7 @@ Status TopNRule::transform(QueryContext *qctx,
     auto topn = TopN::make(qctx, nullptr, sort->factors(), limit->offset(), limit->count());
     topn->setOutputVar(limit->outputVar());
     topn->setInputVar(sort->inputVar());
-    topnExpr = OptGroupExpr::create(qctx, topn, groupExpr->group());
+    auto topnExpr = OptGroupExpr::create(qctx, topn, groupExpr->group());
     for (auto dep : pair.second->dependencies()) {
         topnExpr->dependsOn(dep);
     }
