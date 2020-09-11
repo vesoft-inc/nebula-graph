@@ -12,10 +12,6 @@
 #include "optimizer/OptRule.h"
 
 namespace nebula {
-namespace graph {
-class GetNeighbors;
-}   // namespace graph
-
 namespace opt {
 
 class TopNRule final : public OptRule {
@@ -30,9 +26,6 @@ public:
 
 private:
     TopNRule();
-
-    graph::GetNeighbors *cloneGetNbrs(graph::QueryContext *qctx,
-                                      const graph::GetNeighbors *getNbrs) const;
 
     std::pair<bool, const OptGroupExpr *> findMatchedGroupExpr(const OptGroupExpr *groupExpr) const;
 };

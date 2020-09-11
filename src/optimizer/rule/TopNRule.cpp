@@ -19,6 +19,7 @@
 
 using nebula::graph::Limit;
 using nebula::graph::Sort;
+using nebula::graph::TopN;
 using nebula::graph::PlanNode;
 using nebula::graph::QueryContext;
 
@@ -49,7 +50,7 @@ Status TopNRule::transform(QueryContext *qctx,
     auto sort = static_cast<const Sort *>(pair.second->node());
 
     auto topn = TopN::make(qctx, nullptr, sort->factors(), limit->offset(), limit->count());
-    topn->setOutputVar(limit->varName());
+    topn->setOutputVar(limit->outputVar());
     topn->setInputVar(sort->inputVar());
     topnExpr = OptGroupExpr::create(qctx, topn, groupExpr->group());
     for (auto dep : pair.second->dependencies()) {
