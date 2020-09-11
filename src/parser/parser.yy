@@ -294,6 +294,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %left PLUS MINUS
 %left STAR DIV MOD
 %right NOT KW_NOT
+%left LABEL
+%left COLON
 %nonassoc UNARY_PLUS
 %nonassoc UNARY_MINUS
 %nonassoc CASTING
@@ -594,6 +596,9 @@ function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
         $$ = new FunctionCallExpression($1, $3);
     }
+    | LABEL COLON COLON LABEL L_PAREN opt_argument_list R_PAREN {
+        $$ = new FunctionCallExpression($4, $6, $1);
+    }
     ;
 
 uuid_expression
@@ -604,7 +609,7 @@ uuid_expression
 
 opt_argument_list
     : %empty {
-        $$ = nullptr;
+        $$ = new ArgumentList();
     }
     | argument_list {
         $$ = $1;

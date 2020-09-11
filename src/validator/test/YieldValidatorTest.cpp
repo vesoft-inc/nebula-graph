@@ -122,11 +122,11 @@ TEST_F(YieldValidatorTest, FuncitonCall) {
                   "SemanticError: `abs(test)` is not a valid expression : Parameter's type error");
     }
     {
-        std::string query = "YIELD noexist(12)";
+        std::string query = "YIELD nonexist(12)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `noexist(12)` is not a valid expression : Function `noexist' not "
-                  "defined");
+                  "SemanticError: `nonexist(12)` is not a valid expression : "
+                  "No function named `nonexist' in scope `'.");
     }
 }
 
