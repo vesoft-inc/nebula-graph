@@ -62,6 +62,8 @@ Status PushFilterDownGetNbrsRule::transform(QueryContext *qctx,
     OptGroupExpr *newFilterGroupExpr = nullptr;
     if (remainedExpr != nullptr) {
         auto newFilter = Filter::make(qctx, nullptr, pool->add(remainedExpr.release()));
+        newFilter->setOutputVar(filter->outputVar());
+        newFilter->setInputVar(filter->inputVar());
         newFilterGroupExpr = OptGroupExpr::create(qctx, newFilter, groupExpr->group());
     }
 
@@ -81,6 +83,7 @@ Status PushFilterDownGetNbrsRule::transform(QueryContext *qctx,
         // Filter(A&&B)->GetNeighbors(C) => Filter(A)->GetNeighbors(B&&C)
         auto newGroup = OptGroup::create(qctx);
         newGroupExpr = OptGroupExpr::create(qctx, newGN, newGroup);
+        newGN->setOutputVar(gn->outputVar());
         newFilterGroupExpr->dependsOn(newGroup);
     } else {
         // Filter(A)->GetNeighbors(C) => GetNeighbors(A&&C)
