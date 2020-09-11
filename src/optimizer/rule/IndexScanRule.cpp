@@ -97,22 +97,23 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
         bool found = false;
         FilterItems fieldItems;
         for (const auto& item : items.items) {
-            if (std::get<0>(item) == field.get_name()) {
-                found = true;
-                fieldItems.addItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
+            if (std::get<0>(item) != field.get_name()) {
+                continue;
             }
-            if (!found) break;
-            // NE expr should be add filter expr .
-            auto it = std::find_if(fieldItems.items.begin(), fieldItems.items.end(),
-                [](const auto &ite) {
-                    return std::get<1>(ite) == RelationalExpression::Kind::kRelNE;
-            });
-            if (it != fieldItems.items.end()) {
-                break;
-            }
-            auto ret = appendColHint(hints, fieldItems, field);
-            NG_RETURN_IF_ERROR(ret);
+            fieldItems.addItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
+            found = true;
         }
+        if (!found) break;
+        // TODO (sky) : rewrite filter expr. NE expr should be add filter expr .
+        auto it = std::find_if(fieldItems.items.begin(), fieldItems.items.end(),
+                               [](const auto &ite) {
+                                   return std::get<1>(ite) == RelationalExpression::Kind::kRelNE;
+                               });
+        if (it != fieldItems.items.end()) {
+            break;
+        }
+        auto ret = appendColHint(hints, fieldItems, field);
+        NG_RETURN_IF_ERROR(ret);
     }
     ctx.set_index_id(index->get_index_id());
     // TODO (sky) : rewrite expr and set filter
@@ -169,13 +170,18 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
     return Status::OK();
 }
 
-Status IndexScanRule::boundValue(const FilterItem& item, const meta::cpp2::ColumnDef& col,
-    Value& begin, Value& end) const {
+Status IndexScanRule::boundValue(const FilterItem& item,
+                                 const meta::cpp2::ColumnDef& col,
+                                 Value& begin, Value& end) const {
+    auto val = std::get<2>(item);
+    if (val.type() != graph::SchemaUtil::propTypeToValueType(col.get_type())) {
+        return Status::SemanticError("Data type of field : %s", col.get_name().c_str());
+    }
     switch (std::get<1>(item)) {
         case Expression::Kind::kRelLE: {
             // if c1 <= int(5) , the range pair should be (min, 6)
             // if c1 < int(5), the range pair should be (min, 5)
-            auto v = OptimizerUtils::boundValue(col, BVO::GREATER_THAN, std::get<2>(item));
+            auto v = OptimizerUtils::boundValue(col, BVO::GREATER_THAN, val);
             CHECK_BOUND_VALUE(v);
             // where c <= 1 and c <= 2 , 1 should be valid.
             if (end == Value()) {
@@ -188,25 +194,25 @@ Status IndexScanRule::boundValue(const FilterItem& item, const meta::cpp2::Colum
         case Expression::Kind::kRelGE: {
             // where c >= 1 and c >= 2 , 2 should be valid.
             if (begin == Value()) {
-                begin = std::get<2>(item);
+                begin = val;
             } else {
-                begin = std::get<2>(item) < begin ? begin : std::get<2>(item);
+                begin = val < begin ? begin : val;
             }
             break;
         }
         case Expression::Kind::kRelLT: {
             // c < 5 and c < 6 , 5 should be valid.
             if (end == Value()) {
-                end = std::get<2>(item);
+                end = val;
             } else {
-                end = std::get<2>(item) < end ? std::get<2>(item) : end;
+                end = val < end ? val : end;
             }
             break;
         }
         case Expression::Kind::kRelGT: {
             // if c >= 5, the range pair should be (5, max)
             // if c > 5, the range pair should be (6, max)
-            auto v = OptimizerUtils::boundValue(col, BVO::GREATER_THAN, std::get<2>(item));
+            auto v = OptimizerUtils::boundValue(col, BVO::GREATER_THAN, val);
             CHECK_BOUND_VALUE(v);
             // where c > 1 and c > 2 , 2 should be valid.
             if (begin == Value()) {

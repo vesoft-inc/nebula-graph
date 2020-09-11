@@ -28,6 +28,9 @@ using IndexQueryCtx = std::unique_ptr<std::vector<IndexQueryContext>>;
 using FilterItem = std::tuple<std::string, RelationalExpression::Kind, Value>;
 
 class IndexScanRule final : public OptRule {
+    FRIEND_TEST(IndexScanRuleTest, BoundValueTest);
+    FRIEND_TEST(IndexScanRuleTest, IQCtxTest);
+
 public:
     static std::unique_ptr<OptRule> kInstance;
 
