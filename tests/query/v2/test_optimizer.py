@@ -101,3 +101,65 @@ class TestOptimizer(NebulaTestSuite):
             ["Start", []]
         ]
         self.check_exec_plan(resp, expected_plan)
+        
+
+    def test_TopNRule(self):
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER like
+            YIELD $^.player.age AS age
+             | ORDER BY age
+             | LIMIT 2
+        ''')
+        expected_plan = [
+            ["DataCollect", [1]],
+            ["TopN", [2]],
+            ["Project", [3]],
+            ["GetNeighbors", [4]],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER like REVERSELY
+            YIELD $^.player.name AS name |
+            ORDER BY name |
+            LIMIT 2
+        ''')
+        expected_plan = [
+            ["DataCollect", [1]],
+            ["TopN", [2]],
+            ["Project", [3]],
+            ["GetNeighbors", [4]],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+
+    def test_TopNRule_Failed(self):
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER like
+            YIELD $^.player.age AS age
+             | ORDER BY age
+             | LIMIT 2, 3
+        ''')
+        expected_plan = [
+            ["DataCollect", [1]],
+            ["Limit", [2]],
+            ["Sort", [3]],
+            ["Project", [4]],
+            ["GetNeighbors", [5]],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER like
+            YIELD $^.player.age AS age
+             | ORDER BY age
+        ''')
+        expected_plan = [
+            ["DataCollect", [1]],
+            ["Sort", [2]],
+            ["Project", [3]],
+            ["GetNeighbors", [4]],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
