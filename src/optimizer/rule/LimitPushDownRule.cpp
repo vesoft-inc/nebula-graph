@@ -30,7 +30,7 @@ std::unique_ptr<OptRule> LimitPushDownRule::kInstance =
     std::unique_ptr<LimitPushDownRule>(new LimitPushDownRule());
 
 LimitPushDownRule::LimitPushDownRule() {
-    RuleSet::defaultRules().addRule(this);
+    RuleSet::queryRules().addRule(this);
 }
 
 bool LimitPushDownRule::match(const OptGroupExpr *groupExpr) const {
@@ -45,9 +45,9 @@ bool LimitPushDownRule::match(const OptGroupExpr *groupExpr) const {
 Status LimitPushDownRule::transform(QueryContext *qctx,
                                     const OptGroupExpr *groupExpr,
                                     TransformResult *result) const {
-    const auto &pair = findMatchedGroupExpr(groupExpr);
-    const auto projExpr = pair.second[0];
-    const auto gnExpr = pair.second[1];
+    auto pair = findMatchedGroupExpr(groupExpr);
+    auto projExpr = pair.second[0];
+    auto gnExpr = pair.second[1];
 
     const auto limit = static_cast<const Limit *>(groupExpr->node());
     const auto proj = static_cast<const Project *>(projExpr->node());
@@ -56,17 +56,16 @@ Status LimitPushDownRule::transform(QueryContext *qctx,
     int64_t limitRows = limit->offset() + limit->count();
 
     auto newLimit = cloneLimit(qctx, limit);
-    auto newLimitGroup = OptGroup::create(qctx);
-    auto newLimitExpr = OptGroupExpr::create(qctx, newLimit, newLimitGroup);
+    auto newLimitExpr = OptGroupExpr::create(qctx, newLimit, groupExpr->group());
 
     auto newProj = cloneProj(qctx, proj);
     auto newProjGroup = OptGroup::create(qctx);
-    auto newProjExpr = OptGroupExpr::create(qctx, newProj, newProjGroup);
+    auto newProjExpr = newProjGroup->makeGroupExpr(qctx, newProj);
 
     auto newGn = cloneGetNbrs(qctx, gn);
     newGn->setLimit(limitRows);
     auto newGnGroup = OptGroup::create(qctx);
-    auto newGnExpr = OptGroupExpr::create(qctx, newGn, newGnGroup);
+    auto newGnExpr = newGnGroup->makeGroupExpr(qctx, newGn);
 
     newLimitExpr->dependsOn(newProjGroup);
     newProjExpr->dependsOn(newGnGroup);
@@ -77,7 +76,6 @@ Status LimitPushDownRule::transform(QueryContext *qctx,
     result->eraseAll = true;
     result->eraseCurr = true;
     result->newGroupExprs.emplace_back(newLimitExpr);
-
     return Status::OK();
 }
 
@@ -88,6 +86,7 @@ std::string LimitPushDownRule::toString() const {
 std::pair<bool, std::vector<const OptGroupExpr *>> LimitPushDownRule::findMatchedGroupExpr(
     const OptGroupExpr *groupExpr) const {
     std::vector<const OptGroupExpr *> matched;
+
     auto node = groupExpr->node();
     if (node->kind() != PlanNode::Kind::kLimit) {
         return std::make_pair(false, matched);
@@ -132,7 +131,6 @@ std::pair<bool, std::vector<const OptGroupExpr *>> LimitPushDownRule::findMatche
     if (limitRows >= gn->limit()) {
         return std::make_pair(false, matched);
     }
-
     matched.push_back(projExpr);
     matched.push_back(gnExpr);
     return std::make_pair(true, matched);
@@ -148,7 +146,12 @@ Limit *LimitPushDownRule::cloneLimit(QueryContext *qctx,
 
 Project *LimitPushDownRule::cloneProj(QueryContext *qctx,
                                       const Project *proj) const {
-    auto newProj = Project::make(qctx, nullptr, const_cast<YieldColumns *>(proj->columns()));
+    auto cols = qctx->objPool()->add(new YieldColumns());
+    for (auto col : proj->columns()->columns()) {
+        cols->addColumn((col->clone()).release());
+    }
+
+    auto newProj = Project::make(qctx, nullptr, cols);
     newProj->setInputVar(proj->inputVar());
     newProj->setOutputVar(proj->outputVar());
     return newProj;
@@ -162,6 +165,8 @@ GetNeighbors *LimitPushDownRule::cloneGetNbrs(QueryContext *qctx,
     newGn->setEdgeDirection(gn->edgeDirection());
     newGn->setDedup(gn->dedup());
     newGn->setRandom(gn->random());
+    newGn->setFilter(gn->filter());
+    newGn->setLimit(gn->limit());
     newGn->setInputVar(gn->inputVar());
     newGn->setOutputVar(gn->outputVar());
 

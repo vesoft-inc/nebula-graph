@@ -101,3 +101,89 @@ class TestOptimizer(NebulaTestSuite):
             ["Start", []]
         ]
         self.check_exec_plan(resp, expected_plan)
+
+    def test_LimitPushDownRule(self):
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve
+            WHERE $^.player.age > 18 YIELD $^.player.name AS name
+             | Limit 3
+        ''')
+        expected_plan = [
+            ["Project", [1]],
+            ["GetNeighbors", [2], ['3']],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER like REVERSELY
+            WHERE $^.player.age > 18 YIELD $^.player.name AS name
+        ''')
+        expected_plan = [
+            ["Project", [1]],
+            ["GetNeighbors", [2], ['($^.player.age>18)']],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve
+            WHERE serve.start_year > 2002 YIELD $^.player.name AS name
+        ''')
+        expected_plan = [
+            ["Project", [1]],
+            ["GetNeighbors", [2], ['(serve.start_year>2002)']],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Lakerys" OVER serve REVERSELY
+            WHERE serve.start_year > 2002 YIELD $^.player.name AS name
+        ''')
+        expected_plan = [
+            ["Project", [1]],
+            ["GetNeighbors", [2], ['(serve.start_year>2002)']],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+
+    def test_LimitPushDownRule_Failed(self):
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve
+            WHERE $^.player.age > 18 AND $$.team.name == "Lakers"
+            YIELD $^.player.name AS name
+        ''')
+        expected_plan = [
+            ["Project", [1]],
+            ["Filter", [2], ['($$.team.name=="Lakers")']],
+            ["GetNeighbors", [3], ['($^.player.age>18)']],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve
+            WHERE $^.player.age > 18 OR $$.team.name == "Lakers"
+            YIELD $^.player.name AS name
+        ''')
+        expected_plan = [
+            ["Project", [1]],
+            ["Filter", [2], ['($^.player.age>18) OR ($$.team.name=="Lakers")']]
+            ["GetNeighbors", [3]],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
+
+        # fail to optimize cases
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Kobe Bryant" OVER serve \
+            WHERE $$.team.name == "Lakers" YIELD $^.player.name AS name
+        ''')
+        expected_plan = [
+            ["Project", [1]],
+            ["Filter", [2]],
+            ["GetNeighbors", [3]],
+            ["Start", []]
+        ]
+        self.check_exec_plan(resp, expected_plan)
