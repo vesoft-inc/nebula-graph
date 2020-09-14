@@ -15,7 +15,7 @@ namespace graph {
 
 PlanNode::PlanNode(int64_t id, Kind kind) : kind_(kind), id_(id) {
     DCHECK_GE(id_, 0);
-    outputVar_ = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
+    outputVars_.emplace_back(folly::stringPrintf("__%s_%ld", toString(kind_), id_));
 }
 
 // static
@@ -81,7 +81,7 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "InsertEdges";
         case Kind::kDataCollect:
             return "DataCollect";
-        // acl
+        // ACL
         case Kind::kCreateUser:
             return "CreateUser";
         case Kind::kDropUser:
@@ -174,11 +174,15 @@ void PlanNode::addDescription(std::string key, std::string value, cpp2::PlanNode
     desc->get_description()->emplace_back(std::move(kv));
 }
 
+void PlanNode::calcCost() {
+    VLOG(1) << "unimplemented cost calculation.";
+}
+
 std::unique_ptr<cpp2::PlanNodeDescription> PlanNode::explain() const {
     auto desc = std::make_unique<cpp2::PlanNodeDescription>();
     desc->set_id(id_);
     desc->set_name(toString(kind_));
-    desc->set_output_var(outputVar_);
+    desc->set_output_var(folly::toJson(util::toJson(outputVars_)));
     addDescription("colNames", folly::toJson(util::toJson(colNames_)), desc.get());
     return desc;
 }
@@ -197,7 +201,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> SingleDependencyNode::explain() const
 
 std::unique_ptr<cpp2::PlanNodeDescription> SingleInputNode::explain() const {
     auto desc = SingleDependencyNode::explain();
-    addDescription("inputVar", inputVar_, desc.get());
+    addDescription("inputVar", inputVar(), desc.get());
     return desc;
 }
 
@@ -205,8 +209,8 @@ std::unique_ptr<cpp2::PlanNodeDescription> BiInputNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(!desc->__isset.dependencies);
     desc->set_dependencies({left()->id(), right()->id()});
-    addDescription("leftVar", leftVar_, desc.get());
-    addDescription("rightVar", rightVar_, desc.get());
+    addDescription("leftVar", leftInputVar(), desc.get());
+    addDescription("rightVar", rightInputVar(), desc.get());
     return desc;
 }
 

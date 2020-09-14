@@ -46,16 +46,14 @@ TEST_F(LogicExecutorsTest, Loop) {
                                 new std::string(counter),
                                 new ConstantExpression(0))),
                 new ConstantExpression(static_cast<int32_t>(5)));
-    auto* loop = Loop::make(qctx_.get(), nullptr, nullptr, condition.get());
-
     auto* start = StartNode::make(qctx_.get());
-    auto startExe = std::make_unique<StartExecutor>(start, qctx_.get());
-    auto loopExe = std::make_unique<LoopExecutor>(loop, qctx_.get(), startExe.get());
+    auto* loop = Loop::make(qctx_.get(), start, start, condition.get());
+    auto loopExe = Executor::create(loop, qctx_.get());
     for (size_t i = 0; i < 5; ++i) {
         auto f = loopExe->execute();
         auto status = std::move(f).get();
         EXPECT_TRUE(status.ok());
-        auto& result = qctx_->ectx()->getResult(loop->varName());
+        auto& result = qctx_->ectx()->getResult(loop->outputVar());
         auto& value = result.value();
         EXPECT_TRUE(value.isBool());
         EXPECT_TRUE(value.getBool());
@@ -64,7 +62,7 @@ TEST_F(LogicExecutorsTest, Loop) {
     auto f = loopExe->execute();
     auto status = std::move(f).get();
     EXPECT_TRUE(status.ok());
-    auto& result = qctx_->ectx()->getResult(loop->varName());
+    auto& result = qctx_->ectx()->getResult(loop->outputVar());
     auto& value = result.value();
     EXPECT_TRUE(value.isBool());
     EXPECT_FALSE(value.getBool());
@@ -72,35 +70,31 @@ TEST_F(LogicExecutorsTest, Loop) {
 
 TEST_F(LogicExecutorsTest, Select) {
     {
-        auto condition = std::make_unique<ConstantExpression>(true);
-        auto* select = Select::make(qctx_.get(), nullptr, nullptr, nullptr, condition.get());
-
         auto* start = StartNode::make(qctx_.get());
-        auto startExe = std::make_unique<StartExecutor>(start, qctx_.get());
-        auto selectExe = std::make_unique<SelectExecutor>(
-                select, qctx_.get(), startExe.get(), startExe.get());
+        auto condition = std::make_unique<ConstantExpression>(true);
+        auto* select = Select::make(qctx_.get(), start, start, start, condition.get());
+
+        auto selectExe = Executor::create(select, qctx_.get());
 
         auto f = selectExe->execute();
         auto status = std::move(f).get();
         EXPECT_TRUE(status.ok());
-        auto& result = qctx_->ectx()->getResult(select->varName());
+        auto& result = qctx_->ectx()->getResult(select->outputVar());
         auto& value = result.value();
         EXPECT_TRUE(value.isBool());
         EXPECT_TRUE(value.getBool());
     }
     {
-        auto condition = std::make_unique<ConstantExpression>(false);
-        auto* select = Select::make(qctx_.get(), nullptr, nullptr, nullptr, condition.get());
-
         auto* start = StartNode::make(qctx_.get());
-        auto startExe = std::make_unique<StartExecutor>(start, qctx_.get());
-        auto selectExe = std::make_unique<SelectExecutor>(
-                select, qctx_.get(), startExe.get(), startExe.get());
+        auto condition = std::make_unique<ConstantExpression>(false);
+        auto* select = Select::make(qctx_.get(), start, start, start, condition.get());
+
+        auto selectExe = Executor::create(select, qctx_.get());
 
         auto f = selectExe->execute();
         auto status = std::move(f).get();
         EXPECT_TRUE(status.ok());
-        auto& result = qctx_->ectx()->getResult(select->varName());
+        auto& result = qctx_->ectx()->getResult(select->outputVar());
         auto& value = result.value();
         EXPECT_TRUE(value.isBool());
         EXPECT_FALSE(value.getBool());
