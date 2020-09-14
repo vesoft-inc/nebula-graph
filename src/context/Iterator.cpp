@@ -443,10 +443,9 @@ const Value& PropIter::getColumn(const std::string& col) const {
     auto index = dsIndex_.colIndices.find(col);
     if (index == dsIndex_.colIndices.end()) {
         return Value::kNullValue;
-    } else {
-        DCHECK_LT(index->second, logicalRow.row_->values.size());
-        return logicalRow.row_->values[index->second];
     }
+    DCHECK_LT(index->second, logicalRow.row_->values.size());
+    return logicalRow.row_->values[index->second];
 }
 
 const Value& PropIter::getProp(const std::string& name, const std::string& prop) const {
