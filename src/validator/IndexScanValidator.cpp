@@ -28,7 +28,7 @@ Status IndexScanValidator::toPlan() {
 }
 
 Status IndexScanValidator::prepareFrom() {
-    auto *sentence = dynamic_cast<const LookupSentence *>(sentence_);
+    auto *sentence = static_cast<const LookupSentence *>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
     const auto* from = sentence->from();
     auto ret = qctx_->schemaMng()->toEdgeType(spaceId_, *from);
@@ -44,7 +44,7 @@ Status IndexScanValidator::prepareFrom() {
 }
 
 Status IndexScanValidator::prepareYield() {
-    auto *sentence = dynamic_cast<const LookupSentence *>(sentence_);
+    auto *sentence = static_cast<const LookupSentence *>(sentence_);
     auto columns = sentence->yieldClause()->columns();
     auto schema = qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_);
     const auto* from = sentence->from();
@@ -56,14 +56,14 @@ Status IndexScanValidator::prepareYield() {
     returnCols_ = std::make_unique<std::vector<std::string>>();
     for (const auto* col : columns) {
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto laExpr = dynamic_cast<LabelAttributeExpression *>(col->expr());
+            auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
             if (*laExpr->left()->name() != *from) {
                 return Status::SemanticError("Schema name error : %s",
                                              laExpr->left()->name()->c_str());
             }
             auto ret = schema->getFieldType(*laExpr->right()->name());
             if (ret == meta::cpp2::PropertyType::UNKNOWN) {
-                return Status::SemanticError("Column %s not fount from schema %s",
+                return Status::SemanticError("Column %s not found in schema %s",
                                              laExpr->right()->name()->c_str(),
                                              from->c_str());
             }
@@ -79,7 +79,7 @@ Status IndexScanValidator::prepareYield() {
 }
 
 Status IndexScanValidator::prepareFilter() {
-    auto *sentence = dynamic_cast<const LookupSentence *>(sentence_);
+    auto *sentence = static_cast<const LookupSentence *>(sentence_);
     auto *filter = sentence->whereClause()->filter();
     auto ret = checkFilter(filter, *sentence->from());
     NG_RETURN_IF_ERROR(ret);
@@ -96,7 +96,7 @@ Status IndexScanValidator::checkFilter(Expression* expr, const std::string& from
     switch (expr->kind()) {
         case Expression::Kind::kLogicalOr :
         case Expression::Kind::kLogicalAnd : {
-            auto lExpr = dynamic_cast<LogicalExpression*>(expr);
+            auto lExpr = static_cast<LogicalExpression*>(expr);
             auto ret = checkFilter(lExpr->left(), from);
             NG_RETURN_IF_ERROR(ret);
             ret = checkFilter(lExpr->right(), from);
@@ -109,33 +109,35 @@ Status IndexScanValidator::checkFilter(Expression* expr, const std::string& from
         case Expression::Kind::kRelLT:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelNE: {
-            auto* rExpr = dynamic_cast<RelationalExpression*>(expr);
+            auto* rExpr = static_cast<RelationalExpression*>(expr);
             auto* left = rExpr->left();
             auto* right = rExpr->right();
             // Does not support filter : schema.col1 > schema.col2
             if (left->kind() == Expression::Kind::kLabelAttribute &&
                 right->kind() == Expression::Kind::kLabelAttribute) {
-                return Status::SemanticError("Condition have not been supported : %s",
-                                             rExpr->toString().c_str());
+                return Status::NotSupported("Expression %s not supported yet",
+                                            rExpr->toString().c_str());
             } else if (left->kind() == Expression::Kind::kLabelAttribute) {
-                auto* attExpr = dynamic_cast<LabelAttributeExpression *>(left);
+                auto* attExpr = static_cast<LabelAttributeExpression *>(left);
                 if (*attExpr->left()->name() != from) {
-                    return Status::SemanticError("Schema name error : %s", from.c_str());
+                    return Status::SemanticError("Schema name error : %s",
+                                                 attExpr->left()->name()->c_str());
                 }
             } else if (right->kind() == Expression::Kind::kLabelAttribute) {
-                auto* attExpr = dynamic_cast<LabelAttributeExpression *>(right);
+                auto* attExpr = static_cast<LabelAttributeExpression *>(right);
                 if (*attExpr->left()->name() != from) {
-                    return Status::SemanticError("Schema name error : %s", from.c_str());
+                    return Status::SemanticError("Schema name error : %s",
+                                                  attExpr->left()->name()->c_str());
                 }
             } else {
-                return Status::SemanticError("Condition have not been supported : %s",
-                                             rExpr->toString().c_str());
+                return Status::NotSupported("Expression %s not supported yet",
+                                            rExpr->toString().c_str());
             }
             break;
         }
         default: {
-            return Status::SemanticError("Condition have not been supported : %s",
-                                         expr->toString().c_str());
+            return Status::NotSupported("Expression %s not supported yet",
+                                        expr->toString().c_str());
         }
     }
     return Status::OK();
