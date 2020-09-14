@@ -4,9 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "executor/query/ConjunctPathExecutor.h"
+#include "executor/algo/ConjunctPathExecutor.h"
 
-#include "planner/Query.h"
+#include "planner/Algo.h"
 
 namespace nebula {
 namespace graph {
@@ -90,9 +90,9 @@ std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
     std::vector<Row> rows;
     if (!meets.empty()) {
         VLOG(1) << "Build forward, size: " << forward_.size();
-        auto forwardPath = buildBfsPath(meets, forward_);
+        auto forwardPath = buildBfsInterimPath(meets, forward_);
         VLOG(1) << "Build backward, size: " << backward_.size();
-        auto backwardPath = buildBfsPath(meets, backward_);
+        auto backwardPath = buildBfsInterimPath(meets, backward_);
         for (auto& p : forwardPath) {
             auto range = backwardPath.equal_range(p.first);
             for (auto& i = range.first; i != range.second; ++i) {
@@ -110,8 +110,9 @@ std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
     return rows;
 }
 
-std::multimap<Value, Path> ConjunctPathExecutor::buildBfsPath(std::unordered_set<Value>& meets,
-        std::vector<std::multimap<Value, const Edge*>>& hists) {
+std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
+    std::unordered_set<Value>& meets,
+    std::vector<std::multimap<Value, const Edge*>>& hists) {
     std::multimap<Value, Path> results;
     for (auto& v : meets) {
         VLOG(1) << "Meet at: " << v;
@@ -149,13 +150,13 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsPath(std::unordered_set
                     } else {
                         tmp.emplace_back(std::move(p));
                     }
-                }  // `edge'
-            }  // `interimPath'
+                }   // `edge'
+            }       // `interimPath'
             if (hist != hists.begin()) {
                 interimPaths = std::move(tmp);
             }
-        }  // `hist'
-    }  // `v'
+        }   // `hist'
+    }       // `v'
     return results;
 }
 

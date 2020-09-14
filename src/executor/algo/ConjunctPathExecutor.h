@@ -25,8 +25,9 @@ private:
                                          bool isLatest,
                                          std::multimap<Value, const Edge*>& table);
 
-    std::multimap<Value, Path> buildBfsPath(std::unordered_set<Value>& meets,
-                                            std::vector<std::multimap<Value, const Edge*>>& hist);
+    std::multimap<Value, Path> buildBfsInterimPath(
+        std::unordered_set<Value>& meets,
+        std::vector<std::multimap<Value, const Edge*>>& hist);
 
     folly::Future<Status> conjunctPath();
 

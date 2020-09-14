@@ -7,6 +7,7 @@
 #include "validator/FindPathValidator.h"
 
 #include "common/expression/VariableExpression.h"
+#include "planner/Algo.h"
 #include "planner/Logic.h"
 
 namespace nebula {

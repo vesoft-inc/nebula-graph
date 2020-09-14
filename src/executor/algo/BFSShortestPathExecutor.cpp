@@ -4,9 +4,9 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "executor/query/BFSShortestPathExecutor.h"
+#include "executor/algo/BFSShortestPathExecutor.h"
 
-#include "planner/Query.h"
+#include "planner/Algo.h"
 
 namespace nebula {
 namespace graph {
