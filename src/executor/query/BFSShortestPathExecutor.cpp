@@ -20,53 +20,32 @@ folly::Future<Status> BFSShortestPathExecutor::execute() {
 
     DataSet ds;
     ds.colNames = node()->colNames();
-    std::unordered_map<Value, Value> interimPath;
+    std::unordered_map<Value, Value> interim;
 
     for (; iter->valid(); iter->next()) {
-        auto dst = iter->getEdgeProp("*", kDst);
-        auto visited = !visited_.emplace(dst).second;
+        auto& dst = iter->getEdgeProp("*", kDst);
+        auto visited = visited_.find(dst) != visited_.end();
         if (visited) {
             continue;
         }
 
-        auto src = iter->getColumn(kVid);
-        auto type = iter->getEdgeProp("*", kType);
-        auto rank = iter->getEdgeProp("*", kRank);
-        auto pathRange = path_.equal_range(src);
-        VLOG(1) << src << "->" << dst << "@" << rank;
-        if (pathRange.first == pathRange.second) {
-            Path path;
-            path.src = Vertex(src.getStr(), {});
-            path.steps.emplace_back(
-                Step(Vertex(dst.getStr(), {}), type.getInt(), "", rank.getInt(), {}));
-            VLOG(1) << "dst: " << dst << " path: " << path;
-            interimPath.emplace(std::move(dst), std::move(path));
-            interimPath.emplace(std::move(src), Path());
-        } else {
-            for (auto i = pathRange.first; i != pathRange.second; ++i) {
-                if (i->second == nullptr) {
-                    continue;
-                }
-                Path path = *i->second;
-                path.steps.emplace_back(
-                    Step(Vertex(dst.getStr(), {}), type.getInt(), "", rank.getInt(), {}));
-                interimPath.emplace(std::move(dst), std::move(path));
-                VLOG(1) << "dst: " << dst << " path: " << path;
-            }
-        }
+        auto& src = iter->getColumn(kVid);
+        auto& type = iter->getEdgeProp("*", kType);
+        auto& rank = iter->getEdgeProp("*", kRank);
+        // save the starts.
+        visited_.emplace(src);
+        Edge e = Edge(src.getStr(), dst.getStr(), type.getInt(), "", rank.getInt(), {});
+        VLOG(1) << "dst: " << dst << " edge: " << e;
+        interim.emplace(dst, std::move(e));
     }
-    for (auto& kv : interimPath) {
+    for (auto& kv : interim) {
         auto dst = std::move(kv.first);
-        auto path = std::move(kv.second);
+        auto edge = std::move(kv.second);
         Row row;
         row.values.emplace_back(dst);
-        row.values.emplace_back(std::move(path));
+        row.values.emplace_back(std::move(edge));
         ds.rows.emplace_back(std::move(row));
-        if (ds.rows.back().values.back().isPath()) {
-            path_.emplace(dst, &ds.rows.back().values.back().getPath());
-        } else {
-            path_.emplace(dst, nullptr);
-        }
+        visited_.emplace(dst);
     }
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }

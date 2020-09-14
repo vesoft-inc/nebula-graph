@@ -87,16 +87,14 @@ PlanNode* FindPathValidator::bfs(PlanNode* dep, const Starts& starts, bool rever
 
     auto* bfs = BFSShortestPath::make(qctx_, gn);
     bfs->setInputVar(gn->varName());
-    bfs->setColNames({"_vid", "path"});
+    bfs->setColNames({"_vid", "edge"});
     bfs->setOutputVar(startVidsVar);
 
     DataSet ds;
-    ds.colNames = {"_vid", "path"};
-    Path path;
-    path.src = Vertex(starts.vids.front().getStr(), {});
+    ds.colNames = {"_vid", "edge"};
     Row row;
     row.values.emplace_back(starts.vids.front());
-    row.values.emplace_back(std::move(path));
+    row.values.emplace_back(Value());
     ds.rows.emplace_back(std::move(row));
     qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 

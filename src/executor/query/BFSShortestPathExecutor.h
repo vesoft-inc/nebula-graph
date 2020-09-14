@@ -20,7 +20,6 @@ public:
 
 private:
     std::unordered_set<Value>               visited_;
-    std::multimap<Value, const Path*>       path_;
 };
 }  // namespace graph
 }  // namespace nebula

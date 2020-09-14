@@ -12,6 +12,154 @@ namespace nebula {
 namespace graph {
 folly::Future<Status> ConjunctPathExecutor::execute() {
     SCOPED_TIMER(&execTime_);
+    return bfsShortestPath();
+}
+
+folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
+    auto* conjunct = asNode<ConjunctPath>(node());
+    auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
+    const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
+    VLOG(1) << "current: " << node()->varName();
+    VLOG(1) << "left input: " << conjunct->leftInputVar()
+            << " right input: " << conjunct->rightInputVar();
+    DCHECK(!!lIter);
+
+    DataSet ds;
+    ds.colNames = conjunct->colNames();
+
+    VLOG(1) << "forward, size: " << forward_.size();
+    VLOG(1) << "backward, size: " << backward_.size();
+    forward_.emplace_back();
+    for (; lIter->valid(); lIter->next()) {
+        auto& dst = lIter->getColumn("_vid");
+        auto& edge = lIter->getColumn("edge");
+        VLOG(1) << "dst: " << dst << " edge: " << edge;
+        if (!edge.isEdge()) {
+            forward_.back().emplace(Value(dst), nullptr);
+        } else {
+            forward_.back().emplace(Value(dst), &edge.getEdge());
+        }
+    }
+
+    bool isLatest = false;
+    if (rHist.size() >= 2) {
+        auto previous = rHist[rHist.size() - 2].iter();
+        VLOG(1) << "Find odd length path.";
+        auto rows = findBfsShortestPath(previous.get(), isLatest, forward_.back());
+        if (!rows.empty()) {
+            VLOG(1) << "Meet odd length path.";
+            ds.rows = std::move(rows);
+            return finish(ResultBuilder().value(Value(std::move(ds))).finish());
+        }
+    }
+
+    auto latest = rHist.back().iter();
+    isLatest = true;
+    backward_.emplace_back();
+    VLOG(1) << "Find even length path.";
+    auto rows = findBfsShortestPath(latest.get(), isLatest, forward_.back());
+    if (!rows.empty()) {
+        VLOG(1) << "Meet even length path.";
+        ds.rows = std::move(rows);
+        return finish(ResultBuilder().value(Value(std::move(ds))).finish());
+    }
+    return folly::makeFuture<Status>(Status::OK());
+}
+
+std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
+    Iterator* iter,
+    bool isLatest,
+    std::multimap<Value, const Edge*>& table) {
+    std::unordered_set<Value> meets;
+    for (; iter->valid(); iter->next()) {
+        auto& dst = iter->getColumn("_vid");
+        if (isLatest) {
+            auto& edge = iter->getColumn("edge");
+            VLOG(1) << "dst: " << dst << " edge: " << edge;
+            if (!edge.isEdge()) {
+                backward_.back().emplace(dst, nullptr);
+            } else {
+                backward_.back().emplace(dst, &edge.getEdge());
+            }
+        }
+        if (table.find(dst) != table.end()) {
+            meets.emplace(dst);
+        }
+    }
+
+    std::vector<Row> rows;
+    if (!meets.empty()) {
+        VLOG(1) << "Build forward, size: " << forward_.size();
+        auto forwardPath = buildBfsPath(meets, forward_);
+        VLOG(1) << "Build backward, size: " << backward_.size();
+        auto backwardPath = buildBfsPath(meets, backward_);
+        for (auto& p : forwardPath) {
+            auto range = backwardPath.equal_range(p.first);
+            for (auto& i = range.first; i != range.second; ++i) {
+                Path result = p.second;
+                result.reverse();
+                VLOG(1) << "Forward path: " << result;
+                VLOG(1) << "Backward path: " << i->second;
+                result.append(std::move(i->second));
+                Row row;
+                row.emplace_back(std::move(result));
+                rows.emplace_back(std::move(row));
+            }
+        }
+    }
+    return rows;
+}
+
+std::multimap<Value, Path> ConjunctPathExecutor::buildBfsPath(std::unordered_set<Value>& meets,
+        std::vector<std::multimap<Value, const Edge*>>& hists) {
+    std::multimap<Value, Path> results;
+    for (auto& v : meets) {
+        VLOG(1) << "Meet at: " << v;
+        Path start;
+        start.src = Vertex(v.getStr(), {});
+        if (hists.empty()) {
+            // Happens at one step path situation when meet at starts
+            results.emplace(v, std::move(start));
+            continue;
+        }
+        std::vector<Path> interimPaths = {std::move(start)};
+        for (auto hist = hists.end() - 1; hist >= hists.begin(); --hist) {
+            std::vector<Path> tmp;
+            for (auto& interimPath : interimPaths) {
+                Value id;
+                if (interimPath.steps.empty()) {
+                    id = interimPath.src.vid;
+                } else {
+                    id = interimPath.steps.back().dst.vid;
+                }
+                auto edges = hist->equal_range(id);
+                for (auto i = edges.first; i != edges.second; ++i) {
+                    Path p = interimPath;
+                    if (i->second != nullptr) {
+                        auto& edge = *(i->second);
+                        VLOG(1) << "Edge: " << edge;
+                        VLOG(1) << "Interim path: " << interimPath;
+                        p.steps.emplace_back(
+                            Step(Vertex(edge.src, {}), -edge.type, "", edge.ranking, {}));
+                        VLOG(1) << "New semi path: " << p;
+                    }
+                    if (hist == hists.begin()) {
+                        VLOG(1) << "emplace result: " << p.src.vid;
+                        results.emplace(p.src.vid, std::move(p));
+                    } else {
+                        tmp.emplace_back(std::move(p));
+                    }
+                }  // `edge'
+            }  // `interimPath'
+            if (hist != hists.begin()) {
+                interimPaths = std::move(tmp);
+            }
+        }  // `hist'
+    }  // `v'
+    return results;
+}
+
+folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
     auto* conjunct = asNode<ConjunctPath>(node());
     auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
     const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());

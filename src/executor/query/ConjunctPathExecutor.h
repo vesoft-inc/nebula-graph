@@ -19,7 +19,21 @@ public:
     folly::Future<Status> execute() override;
 
 private:
+    folly::Future<Status> bfsShortestPath();
+
+    std::vector<Row> findBfsShortestPath(Iterator* iter,
+                                         bool isLatest,
+                                         std::multimap<Value, const Edge*>& table);
+
+    std::multimap<Value, Path> buildBfsPath(std::unordered_set<Value>& meets,
+                                            std::vector<std::multimap<Value, const Edge*>>& hist);
+
+    folly::Future<Status> conjunctPath();
+
     bool findPath(Iterator* iter, std::multimap<Value, const Path*>& table, DataSet& ds);
+
+    std::vector<std::multimap<Value, const Edge*>>  forward_;
+    std::vector<std::multimap<Value, const Edge*>>  backward_;
 };
 }  // namespace graph
 }  // namespace nebula
