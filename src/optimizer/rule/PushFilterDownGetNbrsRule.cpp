@@ -83,7 +83,6 @@ Status PushFilterDownGetNbrsRule::transform(QueryContext *qctx,
         // Filter(A&&B)->GetNeighbors(C) => Filter(A)->GetNeighbors(B&&C)
         auto newGroup = OptGroup::create(qctx);
         newGroupExpr = OptGroupExpr::create(qctx, newGN, newGroup);
-        newGN->setOutputVar(gn->outputVar());
         newFilterGroupExpr->dependsOn(newGroup);
     } else {
         // Filter(A)->GetNeighbors(C) => GetNeighbors(A&&C)
@@ -132,6 +131,7 @@ GetNeighbors *PushFilterDownGetNbrsRule::cloneGetNbrs(QueryContext *qctx,
     newGN->setRandom(gn->random());
     newGN->setLimit(gn->limit());
     newGN->setInputVar(gn->inputVar());
+    newGN->setOutputVar(gn->outputVar());
 
     if (gn->vertexProps()) {
         auto vertexProps = *gn->vertexProps();
