@@ -285,9 +285,11 @@ class NebulaTestSuite(object):
         elif value.getType() == CommonTtypes.Value.SVAL:
             return value.get_sVal().decode('utf-8')
         elif value.getType() == CommonTtypes.Value.DVAL:
-            return self.date_time_to_string(value.get_dVal())
+            return self.date_to_string(value.get_dVal())
         elif value.getType() == CommonTtypes.Value.TVAL:
-            return self.date_time_to_string(value.get_tVal())
+            return self.time_to_string(value.get_tVal())
+        elif value.getType() == CommonTtypes.Value.DTVAL:
+            return self.date_time_to_string(value.get_dtVal())
         elif value.getType() == CommonTtypes.Value.MVAL:
             return self.map_to_string(value.get_mVal())
         return 'Unsupported type'
