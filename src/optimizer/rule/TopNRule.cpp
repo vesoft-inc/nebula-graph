@@ -43,8 +43,8 @@ bool TopNRule::match(const OptGroupExpr *groupExpr) const {
 }
 
 Status TopNRule::transform(QueryContext *qctx,
-                                            const OptGroupExpr *groupExpr,
-                                            TransformResult *result) const {
+                           const OptGroupExpr *groupExpr,
+                           TransformResult *result) const {
     auto pair = findMatchedGroupExpr(groupExpr);
     auto limit = static_cast<const Limit *>(groupExpr->node());
     auto sort = static_cast<const Sort *>(pair.second->node());
