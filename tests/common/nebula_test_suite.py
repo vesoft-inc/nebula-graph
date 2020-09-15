@@ -246,20 +246,21 @@ class NebulaTestSuite(object):
         return '{}/{}/{}'.format(date.year, date.month, date.day)
 
     @classmethod
+    def time_to_string(self, date_time):
+        return '{}:{}:{}.{}'.format(date_time.hour,
+                                    date_time.minute,
+                                    date_time.sec,
+                                    date_time.microsec)
+    @classmethod
     def date_time_to_string(self, date_time):
-        zone = '+'
-        if date_time.timezone < 0:
-            zone = '-'
-        return '{}/{}/{} {}:{}:{}.{} {}{}.{}'.format(date_time.year,
-                                                     date_time.month,
-                                                     date_time.day,
-                                                     date_time.hour,
-                                                     date_time.minute,
-                                                     date_time.sec,
-                                                     date_time.microsec,
-                                                     zone,
-                                                     date_time.timezone / 3600,
-                                                     date_time.timezone % 3600)
+        return '{}/{}/{} {}:{}:{}.{}'.format(date_time.year,
+                                             date_time.month,
+                                             date_time.day,
+                                             date_time.hour,
+                                             date_time.minute,
+                                             date_time.sec,
+                                             date_time.microsec)
+
     @classmethod
     def map_to_string(self, map):
         kvStrs = []

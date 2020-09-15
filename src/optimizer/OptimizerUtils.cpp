@@ -274,7 +274,15 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col, const 
             d.day = 31;
             return Value(d);
         }
-        case Value::Type::DATETIME : {
+        case Value::Type::TIME: {
+            Time dt;
+            dt.hour = 24;
+            dt.minute = 60;
+            dt.sec = 60;
+            dt.microsec = std::numeric_limits<int32_t>::max();
+            return Value(dt);
+        }
+        case Value::Type::DATETIME: {
             DateTime dt;
             dt.year = std::numeric_limits<int16_t>::max();
             dt.month = 12;
@@ -283,12 +291,24 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col, const 
             dt.minute = 60;
             dt.sec = 60;
             dt.microsec = std::numeric_limits<int32_t>::max();
-            dt.timezone = std::numeric_limits<int32_t>::max();
             return Value(dt);
         }
-        default :
+        case Value::Type::__EMPTY__:
+        case Value::Type::NULLVALUE:
+        case Value::Type::VERTEX:
+        case Value::Type::EDGE:
+        case Value::Type::LIST:
+        case Value::Type::SET:
+        case Value::Type::MAP:
+        case Value::Type::DATASET:
+        case Value::Type::PATH: {
+            DLOG(FATAL) << "Not supported value type " << type
+                        << "for index.";
             return Value(NullType::BAD_TYPE);
+        }
     }
+    DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
+    return Value(NullType::BAD_TYPE);
 }
 
 Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col, const Value& v) {
@@ -312,12 +332,28 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col, const 
         case Value::Type::DATE : {
             return Value(Date());
         }
+        case Value::Type::TIME: {
+            return Value(Time());
+        }
         case Value::Type::DATETIME : {
             return Value(DateTime());
         }
-        default :
+        case Value::Type::__EMPTY__:
+        case Value::Type::NULLVALUE:
+        case Value::Type::VERTEX:
+        case Value::Type::EDGE:
+        case Value::Type::LIST:
+        case Value::Type::SET:
+        case Value::Type::MAP:
+        case Value::Type::DATASET:
+        case Value::Type::PATH: {
+            DLOG(FATAL) << "Not supported value type " << type
+                        << "for index.";
             return Value(NullType::BAD_TYPE);
+        }
     }
+    DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
+    return Value(NullType::BAD_TYPE);
 }
 
 }  // namespace graph
