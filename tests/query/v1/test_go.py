@@ -992,7 +992,6 @@ class TestGoQuery(NebulaTestSuite):
                " | GO 2 STEPS FROM $-.id OVER like YIELD like._dst"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
-        import pdb; pdb.set_trace()
         expected_data = {
             "column_names" : ["like._dst"],
             "rows" : [
