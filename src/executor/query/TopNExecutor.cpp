@@ -88,11 +88,12 @@ folly::Future<Status> TopNExecutor::execute() {
             ++it;
         }
         std::sort_heap(heap.begin(), heap.end(), comparator);
-        iter->eraseRange(maxCount, size);
+
         auto beg = seqIter->begin();
         for (int i = 0; i < maxCount; ++i) {
             beg[i] = heap[offset+i];
         }
+        iter->eraseRange(maxCount, size);
     }
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
 }
