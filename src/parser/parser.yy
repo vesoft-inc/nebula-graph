@@ -56,7 +56,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::ExplainSentence                *explain_sentence;
     nebula::ColumnSpecification            *colspec;
     nebula::ColumnSpecificationList        *colspeclist;
-    nebula::ColumnNameList                 *colsnamelist;
+    nebula::ColumnNameList                 *column_name_list;
     nebula::StepClause                     *step_clause;
     nebula::StepClause                     *find_path_upto_clause;
     nebula::FromClause                     *from_clause;
@@ -101,6 +101,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::GroupClause                    *group_clause;
     nebula::HostList                       *host_list;
     nebula::HostAddr                       *host_item;
+    // nebula::ZoneList                       *zone_list;
+    nebula::ZoneNameList                   *zone_name_list;
     std::vector<int32_t>                   *integer_list;
     nebula::InBoundClause                  *in_bound_clause;
     nebula::OutBoundClause                 *out_bound_clause;
@@ -133,7 +135,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_MATCH KW_INSERT KW_VALUES KW_YIELD KW_RETURN KW_CREATE KW_VERTEX
 %token KW_EDGE KW_EDGES KW_STEPS KW_OVER KW_UPTO KW_REVERSELY KW_SPACE KW_DELETE KW_FIND
 %token KW_TAG KW_TAGS KW_UNION KW_INTERSECT KW_MINUS
-%token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOSTS KW_PART KW_PARTS KW_ADD
+%token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOST KW_HOSTS KW_PART KW_PARTS KW_ADD
 %token KW_PARTITION_NUM KW_REPLICA_FACTOR KW_CHARSET KW_COLLATE KW_COLLATION KW_VID_TYPE
 %token KW_DROP KW_REMOVE KW_SPACES KW_INGEST KW_INDEX KW_INDEXES
 %token KW_IF KW_NOT KW_EXISTS KW_WITH
@@ -142,7 +144,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_GET KW_DECLARE KW_GRAPH KW_META KW_STORAGE
 %token KW_TTL KW_TTL_DURATION KW_TTL_COL KW_DATA KW_STOP
 %token KW_FETCH KW_PROP KW_UPDATE KW_UPSERT KW_WHEN
-%token KW_ORDER KW_ASC KW_LIMIT KW_OFFSET KW_GROUP
+%token KW_ORDER KW_ASC KW_LIMIT KW_OFFSET
 %token KW_DISTINCT KW_ALL KW_OF
 %token KW_BALANCE KW_LEADER
 %token KW_SHORTEST KW_PATH
@@ -159,6 +161,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_STARTS KW_ENDS
 %token KW_UNWIND KW_SKIP KW_OPTIONAL
 %token KW_CASE KW_THEN KW_ELSE KW_END
+%token KW_GROUP KW_ZONE KW_GROUPS KW_ZONES KW_INTO
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -237,6 +240,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <group_clause> group_clause
 %type <host_list> host_list
 %type <host_item> host_item
+// %type <zone_list> zone_list
 %type <integer_list> integer_list
 %type <in_bound_clause> in_bound_clause
 %type <out_bound_clause> out_bound_clause
@@ -267,7 +271,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 %type <colspec> column_spec
 %type <colspeclist> column_spec_list
-%type <colsnamelist> column_name_list
+%type <column_name_list> column_name_list
+%type <zone_name_list> zone_name_list
 
 %type <role_type_clause> role_type_clause
 %type <acl_item_clause> acl_item_clause
@@ -285,6 +290,10 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <sentence> drop_tag_index_sentence drop_edge_index_sentence
 %type <sentence> describe_tag_index_sentence describe_edge_index_sentence
 %type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence
+%type <sentence> add_group_sentence drop_group_sentence desc_group_sentence
+%type <sentence> add_zone_into_group_sentence drop_zone_from_group_sentence
+%type <sentence> add_zone_sentence drop_zone_sentence desc_zone_sentence
+%type <sentence> add_host_into_zone_sentence drop_host_from_zone_sentence
 %type <sentence> create_snapshot_sentence drop_snapshot_sentence
 
 %type <sentence> admin_job_sentence
@@ -349,6 +358,7 @@ legal_integer
 unreserved_keyword
     : KW_SPACE              { $$ = new std::string("space"); }
     | KW_VALUES             { $$ = new std::string("values"); }
+    | KW_HOST               { $$ = new std::string("host"); }
     | KW_HOSTS              { $$ = new std::string("hosts"); }
     | KW_SPACES             { $$ = new std::string("spaces"); }
     | KW_USER               { $$ = new std::string("user"); }
@@ -401,8 +411,13 @@ unreserved_keyword
     | KW_SHORTEST           { $$ = new std::string("shortest"); }
     | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
     | KW_CONTAINS           { $$ = new std::string("contains"); }
+    | KW_NOT_CONTAINS       { $$ = new std::string("not contains"); }
     | KW_STARTS             { $$ = new std::string("starts"); }
+    | KW_STARTS_WITH        { $$ = new std::string("starts with"); }
+    | KW_NOT_STARTS_WITH    { $$ = new std::string("not starts with"); }
     | KW_ENDS               { $$ = new std::string("ends"); }
+    | KW_ENDS_WITH          { $$ = new std::string("ends with"); }
+    | KW_NOT_ENDS_WITH      { $$ = new std::string("not ends with"); }
     | KW_VID_TYPE           { $$ = new std::string("vid_type"); }
     | KW_LIMIT              { $$ = new std::string("limit"); }
     | KW_SKIP               { $$ = new std::string("skip"); }
@@ -416,6 +431,10 @@ unreserved_keyword
     | KW_THEN               { $$ = new std::string("then"); }
     | KW_ELSE               { $$ = new std::string("else"); }
     | KW_END                { $$ = new std::string("end"); }
+    | KW_INTO               { $$ = new std::string("into"); }
+    | KW_GROUPS             { $$ = new std::string("groups"); }
+    | KW_ZONE               { $$ = new std::string("zone"); }
+    | KW_ZONES              { $$ = new std::string("zones"); }
     ;
 
 agg_function
@@ -1827,6 +1846,72 @@ rebuild_edge_index_sentence
     }
     ;
 
+add_group_sentence
+    : KW_ADD KW_GROUP name_label zone_name_list{
+        $$ = new AddGroupSentence($3, $4);
+    }
+    ;
+
+drop_group_sentence
+    : KW_DROP KW_GROUP name_label {
+        $$ = new DropGroupSentence($3);
+    }
+    ;
+
+desc_group_sentence
+    : KW_DESCRIBE KW_GROUP name_label {
+        $$ = new DescribeGroupSentence($3);
+    }
+    | KW_DESC KW_GROUP name_label {
+        $$ = new DescribeGroupSentence($3);
+    }
+    ;
+
+add_zone_into_group_sentence
+    : KW_ADD KW_ZONE name_label KW_INTO KW_GROUP name_label {
+        $$ = new AddZoneIntoGroupSentence($3, $6);
+    }
+    ;
+
+drop_zone_from_group_sentence
+    : KW_DROP KW_ZONE name_label KW_FROM KW_GROUP name_label {
+        $$ = new DropZoneFromGroupSentence($3, $6);
+    }
+    ;
+
+add_zone_sentence
+    : KW_ADD KW_ZONE name_label host_list {
+        $$ = new AddZoneSentence($3, $4);
+    }
+    ;
+
+drop_zone_sentence
+    : KW_DROP KW_ZONE name_label {
+        $$ = new DropZoneSentence($3);
+    }
+    ;
+
+desc_zone_sentence
+    : KW_DESCRIBE KW_ZONE name_label {
+        $$ = new DescribeZoneSentence($3);
+    }
+    | KW_DESC KW_ZONE name_label {
+        $$ = new DescribeZoneSentence($3);
+    }
+    ;
+
+add_host_into_zone_sentence
+    : KW_ADD KW_HOST host_item KW_INTO KW_ZONE name_label {
+        $$ = new AddHostIntoZoneSentence($3, $6);
+    }
+    ;
+
+drop_host_from_zone_sentence
+    : KW_DROP KW_HOST host_item KW_FROM KW_ZONE name_label {
+        $$ = new DropHostFromZoneSentence($3, $6);
+    }
+    ;
+
 traverse_sentence
     : L_PAREN set_sentence R_PAREN { $$ = $2; }
     | go_sentence { $$ = $1; }
@@ -2038,7 +2123,7 @@ update_vertex_sentence
         $$ = sentence;
     }
     | KW_UPSERT KW_VERTEX vid KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateVertexSentence($3, $5, $6, $7,true);
+        auto sentence = new UpdateVertexSentence($3, $5, $6, $7, true);
         $$ = sentence;
     }
      // ======== End: Compatible with 1.0 =========
@@ -2241,6 +2326,12 @@ show_sentence
     | KW_SHOW KW_COLLATION {
         $$ = new ShowCollationSentence();
     }
+    | KW_SHOW KW_GROUPS {
+        $$ = new ListGroupsSentence();
+    }
+    | KW_SHOW KW_ZONES {
+        $$ = new ListZonesSentence();
+    }
     ;
 
 config_module_enum
@@ -2282,16 +2373,52 @@ show_config_item
     }
     ;
 
+// zone_list
+//     : zone {
+//         $$ = new ZoneList();
+//         $$->addZone($1);
+//     }
+//     | zone_list COMMA zone {
+//         $$ = $1;
+//         $$->addZone($3);
+//     }
+//     | zone_list COMMA {
+//         $$ = $1;
+//     }
+//     ;
+
+zone_name_list
+    : name_label {
+        $$ = new ZoneNameList();
+        $$->addZone($1);
+    }
+    | zone_name_list COMMA name_label {
+        $$ = $1;
+        $$->addZone($3);
+    }
+    ;
+
 create_space_sentence
     : KW_CREATE KW_SPACE opt_if_not_exists name_label {
         auto sentence = new CreateSpaceSentence($4, $3);
         $$ = sentence;
     }
+    // | KW_CREATE KW_SPACE opt_if_not_exists name_label KW_ON zone_list {
+    //     auto sentence = new CreateSpaceSentence($4, $3);
+    //     sentence->setZones($6);
+    //     $$ = sentence;
+    // }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN {
         auto sentence = new CreateSpaceSentence($4, $3);
         sentence->setOpts($6);
         $$ = sentence;
     }
+    // | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN KW_ON zone_list {
+    //     auto sentence = new CreateSpaceSentence($4, $3);
+    //     sentence->setOpts($6);
+    //     sentence->setZones($9);
+    //     $$ = sentence;
+    // }
     ;
 
 describe_space_sentence
@@ -2538,6 +2665,16 @@ maintain_sentence
     | describe_edge_index_sentence { $$ = $1; }
     | rebuild_tag_index_sentence { $$ = $1; }
     | rebuild_edge_index_sentence { $$ = $1; }
+    | add_group_sentence { $$ = $1; }
+    | drop_group_sentence { $$ = $1; }
+    | desc_group_sentence { $$ = $1; }
+    | add_zone_into_group_sentence { $$ = $1; }
+    | drop_zone_from_group_sentence { $$ = $1; }
+    | add_zone_sentence { $$ = $1; }
+    | drop_zone_sentence { $$ = $1; }
+    | desc_zone_sentence { $$ = $1; }
+    | add_host_into_zone_sentence { $$ = $1; }
+    | drop_host_from_zone_sentence { $$ = $1; }
     | show_sentence { $$ = $1; }
     ;
     | create_user_sentence { $$ = $1; }

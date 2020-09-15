@@ -45,6 +45,14 @@ std::string ShowCollationSentence::toString() const {
     return std::string("SHOW COLLATION");
 }
 
+std::string ShowGroupsSentence::toString() const {
+    return std::string("SHOW GROUPS");
+}
+
+std::string ShowZonesSentence::toString() const {
+    return std::string("SHOW ZONES");
+}
+
 std::string SpaceOptItem::toString() const {
     switch (optType_) {
         case PARTITION_NUM:
@@ -75,6 +83,20 @@ std::string SpaceOptList::toString() const {
     }
     if (!buf.empty()) {
         buf.resize(buf.size()-1);
+    }
+    return buf;
+}
+
+
+std::string ZoneList::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    for (auto &zone : zones_) {
+        buf += std::to_string(zone);
+        buf += ",";
+    }
+    if (!buf.empty()) {
+        buf.resize(buf.size() - 1);
     }
     return buf;
 }
