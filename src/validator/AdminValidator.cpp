@@ -55,9 +55,9 @@ Status CreateSpaceValidator::validateImpl() {
                 if (typeDef.type == meta::cpp2::PropertyType::INT64) {
                     spaceDesc_.vid_size = 8;
                 } else {
-                    if (typeDef.typeLen <= 0 ||
-                        typeDef.typeLen > std::numeric_limits<int16_t>::max()) {
-                        return Status::Error("Vid size is out of size: %d", typeDef.typeLen);
+                    if (typeDef.typeLen <= 0) {
+                        return Status::Error("Vid size should be a positive number: %d",
+                                             typeDef.typeLen);
                     }
                     spaceDesc_.vid_size = typeDef.typeLen;
                 }
