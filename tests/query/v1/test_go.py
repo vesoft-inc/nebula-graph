@@ -978,10 +978,15 @@ class TestGoQuery(NebulaTestSuite):
             "column_names" : ["like._dst"],
             "rows" : [
                 ["Tony Parker"],
+                ["Tony Parker"],
+                ["Manu Ginobili"],
+                ["Manu Ginobili"],
                 ["Manu Ginobili"],
                 ["Manu Ginobili"],
                 ["Tim Duncan"],
                 ["Tim Duncan"],
+                ["Tim Duncan"],
+                ["LaMarcus Aldridge"],
                 ["LaMarcus Aldridge"],
             ]
         }
@@ -1327,7 +1332,6 @@ class TestGoQuery(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-    @pytest.mark.skip(reason = 'not check duplicate column yet')
     def test_duplicate_column_name(self):
         stmt = "GO FROM 'Tim Duncan' OVER serve YIELD serve._dst, serve._dst"
         resp = self.execute_query(stmt)
