@@ -23,7 +23,7 @@ struct HostAddr;
 
 namespace meta {
 namespace cpp2 {
-struct SpaceDesc;
+class SpaceDesc;
 class AlterSchemaItem;
 class ColumnDef;
 class Schema;

@@ -55,6 +55,8 @@ public:
     static Value::Type propTypeToValueType(meta::cpp2::PropertyType propType);
 
     static bool isValidVid(const Value& value, meta::cpp2::PropertyType type);
+
+    static bool isValidVid(const Value& value);
 };
 
 }  // namespace graph

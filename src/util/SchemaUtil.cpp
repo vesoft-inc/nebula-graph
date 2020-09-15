@@ -361,5 +361,12 @@ bool SchemaUtil::isValidVid(const Value &value, meta::cpp2::PropertyType type) {
     }
     return true;
 }
+
+bool SchemaUtil::isValidVid(const Value &value) {
+    if (!value.isStr() && !value.isInt()) {
+        return false;
+    }
+    return true;
+}
 }  // namespace graph
 }  // namespace nebula

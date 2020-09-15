@@ -246,20 +246,18 @@ class NebulaTestSuite(object):
         return '{}/{}/{}'.format(date.year, date.month, date.day)
 
     @classmethod
+    def time_to_string(self, time):
+        return '{}:{}:{}.{}'.format(time.hour, time.minute, time.sec, time.microsec)
+
+    @classmethod
     def date_time_to_string(self, date_time):
-        zone = '+'
-        if date_time.timezone < 0:
-            zone = '-'
-        return '{}/{}/{} {}:{}:{}.{} {}{}.{}'.format(date_time.year,
-                                                     date_time.month,
-                                                     date_time.day,
-                                                     date_time.hour,
-                                                     date_time.minute,
-                                                     date_time.sec,
-                                                     date_time.microsec,
-                                                     zone,
-                                                     date_time.timezone / 3600,
-                                                     date_time.timezone % 3600)
+        return '{}/{}/{} {}:{}:{}.{}'.format(date_time.year,
+                                             date_time.month,
+                                             date_time.day,
+                                             date_time.hour,
+                                             date_time.minute,
+                                             date_time.sec,
+                                             date_time.microsec)
     @classmethod
     def map_to_string(self, map):
         kvStrs = []
@@ -284,9 +282,11 @@ class NebulaTestSuite(object):
         elif value.getType() == CommonTtypes.Value.SVAL:
             return value.get_sVal().decode('utf-8')
         elif value.getType() == CommonTtypes.Value.DVAL:
-            return self.date_time_to_string(value.get_dVal())
+            return self.date_to_string(value.get_dVal())
         elif value.getType() == CommonTtypes.Value.TVAL:
-            return self.date_time_to_string(value.get_tVal())
+            return self.time_to_string(value.get_tVal())
+        elif value.getType() == CommonTtypes.Value.DTVAL:
+            return self.date_time_to_string(value.get_dtVal())
         elif value.getType() == CommonTtypes.Value.MVAL:
             return self.map_to_string(value.get_mVal())
         return 'Unsupported type'
