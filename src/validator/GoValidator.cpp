@@ -26,6 +26,9 @@ Status GoValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateWhere(goSentence->whereClause()));
     NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
 
+    NG_RETURN_IF_ERROR(checkInputProps("GoSentence"));
+    NG_RETURN_IF_ERROR(checkVarProps("GoSentence"));
+
     if (!exprProps_.inputProps().empty() && from_.fromType != kPipe) {
         return Status::SemanticError("$- must be referred in FROM before used in WHERE or YIELD");
     }

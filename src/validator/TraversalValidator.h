@@ -62,6 +62,10 @@ protected:
 
     Expression* buildNStepLoopCondition(uint32_t steps) const;
 
+    Status checkInputProps(const std::string& validatorName) const;
+
+    Status checkVarProps(const std::string& validatorName) const;
+
 protected:
     Starts                from_;
     Steps                 steps_;

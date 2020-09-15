@@ -24,6 +24,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                     " when starts are evaluated at runtime.", src->toString().c_str());
         } else {
             starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
+            NG_RETURN_IF_ERROR(deduceProps(src, exprProps_));
             auto type = deduceExprType(src);
             if (!type.ok()) {
                 return type.status();
@@ -207,6 +208,35 @@ Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {
             Expression::Kind::kUnaryIncr,
             new VersionedVariableExpression(new std::string(loopSteps), new ConstantExpression(0))),
         new ConstantExpression(static_cast<int32_t>(steps))));
+}
+
+
+Status TraversalValidator::checkInputProps(const std::string& validatorName) const {
+    auto& inputProps = const_cast<ExpressionProps*>(&exprProps_)->inputProps();
+    if (inputs_.empty() && !inputProps.empty()) {
+        return Status::SemanticError("no inputs for GroupBy.");
+    }
+    for (auto &prop : inputProps) {
+        DCHECK_NE(prop, "*");
+        NG_RETURN_IF_ERROR(checkPropNonexistOrDuplicate(inputs_, prop, validatorName));
+    }
+    return Status::OK();
+}
+
+Status TraversalValidator::checkVarProps(const std::string& validatorName) const {
+    auto& varProps = const_cast<ExpressionProps*>(&exprProps_)->varProps();
+    for (auto &pair : varProps) {
+        auto &var = pair.first;
+        if (!vctx_->existVar(var)) {
+            return Status::SemanticError("variable `%s' not exist.", var.c_str());
+        }
+        auto &props = vctx_->getVar(var);
+        for (auto &prop : pair.second) {
+            DCHECK_NE(prop, "*");
+            NG_RETURN_IF_ERROR(checkPropNonexistOrDuplicate(props, prop, validatorName));
+        }
+    }
+    return Status::OK();
 }
 
 }  // namespace graph

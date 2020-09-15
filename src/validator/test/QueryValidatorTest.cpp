@@ -1089,6 +1089,18 @@ TEST_F(QueryValidatorTest, GoInvalid) {
         std::string query = "GO FROM \"2\" OVER like YIELD COUNT(123);";
         EXPECT_FALSE(checkResult(query));
     }
+    {
+        std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, like._src AS id | GO "
+                            "FROM $-.id OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: GoSentence: duplicate prop `id'");
+    }
+    {
+        std::string query = "$a = GO FROM \"1\" OVER like YIELD like._dst AS id, like._src AS id; "
+                            "GO FROM $a.id OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: GoSentence: duplicate prop `id'");
+    }
 }
 
 TEST_F(QueryValidatorTest, Limit) {
