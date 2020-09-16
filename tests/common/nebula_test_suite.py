@@ -261,11 +261,16 @@ class NebulaTestSuite(object):
     @classmethod
     def map_to_string(self, map):
         kvStrs = []
-        if map.kvs is not None:
-            for key in map.kvs:
-                kvStrs.append('"{}":"{}"'.format(key.decode('utf-8'), self.value_to_string(map.kvs[key])))
-            return '{' + ','.join(kvStrs) + '}'
-        return ''
+        for key in map.kvs:
+            kvStrs.append('"{}":"{}"'.format(key.decode('utf-8'), self.value_to_string(map.kvs[key])))
+        return '{' + ','.join(kvStrs) + '}'
+
+    @classmethod
+    def list_to_string(self, list):
+        values = []
+        for val in list.values:
+            values.append('{}'.format(self.value_to_string(val)));
+        return '[' + ','.join(values) + ']'
 
     @classmethod
     def value_to_string(self, value):
@@ -289,14 +294,16 @@ class NebulaTestSuite(object):
             return self.date_time_to_string(value.get_dtVal())
         elif value.getType() == CommonTtypes.Value.MVAL:
             return self.map_to_string(value.get_mVal())
-        return 'Unsupported type'
+        else:
+            return value.__repr__();
+        return 'Unsupported type: {}'.format(value.getType())
 
     @classmethod
     def row_to_string(self, row):
         value_list = []
         for col in row.values:
             value_list.append(self.value_to_string(col))
-        return str(value_list)
+        return '[' + ','.join(value_list) + ']'
 
     @classmethod
     def search_result(self, resp, expect, is_regex=False):
