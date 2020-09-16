@@ -13,7 +13,8 @@ namespace opt {
 
 TEST(IndexScanRuleTest, BoundValueTest) {
     meta::cpp2::ColumnDef col;
-    auto instance = std::unique_ptr<IndexScanRule>(new IndexScanRule());
+    auto* inst = std::move(IndexScanRule::kInstance).get();
+    auto* instance = static_cast<IndexScanRule*>(inst);
     IndexScanRule::FilterItems items;
     {
         Value begin, end;
@@ -81,7 +82,8 @@ TEST(IndexScanRuleTest, BoundValueTest) {
 }
 
 TEST(IndexScanRuleTest, IQCtxTest) {
-    auto instance = std::unique_ptr<IndexScanRule>(new IndexScanRule());
+    auto* inst = std::move(IndexScanRule::kInstance).get();
+    auto* instance = static_cast<IndexScanRule*>(inst);
     {
         IndexItem index = std::make_unique<meta::cpp2::IndexItem>();
         IndexScanRule::FilterItems items;

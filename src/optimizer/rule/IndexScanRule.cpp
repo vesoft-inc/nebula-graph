@@ -16,7 +16,7 @@ std::unique_ptr<OptRule> IndexScanRule::kInstance =
     std::unique_ptr<IndexScanRule>(new IndexScanRule());
 
 IndexScanRule::IndexScanRule() {
-    RuleSet::queryRules().addRule(this);
+    RuleSet::defaultRules().addRule(this);
 }
 
 bool IndexScanRule::match(const OptGroupExpr *groupExpr) const {
@@ -43,6 +43,7 @@ Status IndexScanRule::transform(graph::QueryContext *qctx,
     newIG->setQueryContext(std::move(iqctx));
     auto newGroupExpr = OptGroupExpr::create(qctx, newIG, nullptr);
     result->newGroupExprs.emplace_back(newGroupExpr);
+    result->eraseAll = true;
     return Status::OK();
 }
 
@@ -122,12 +123,13 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
     return Status::OK();
 }
 
-#define CHECK_BOUND_VALUE(v)                         \
-if (v == Value(NullType::BAD_TYPE)) {                \
-    LOG(ERROR) << "Encode value error . field : "    \
-           << col.get_name();                        \
-    return Status::Error();                          \
-}
+#define CHECK_BOUND_VALUE(v, name)                                                                 \
+    do {                                                                                           \
+        if (v == Value(NullType::BAD_TYPE)) {                                                      \
+            LOG(ERROR) << "Encode value error . field : "  << name;                                \
+            return Status::Error();                                                                \
+        }                                                                                          \
+    } while (0)
 
 Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
                                     const FilterItems& items,
@@ -153,11 +155,11 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
     if (isRangeScan) {
         if (begin == Value()) {
             begin = OptimizerUtils::boundValue(col, BVO::MIN, Value());
-            CHECK_BOUND_VALUE(begin);
+            CHECK_BOUND_VALUE(begin, col.get_name());
         }
         if (end == Value()) {
             end = OptimizerUtils::boundValue(col, BVO::MAX, Value());
-            CHECK_BOUND_VALUE(end);
+            CHECK_BOUND_VALUE(end, col.get_name());
         }
         hint.set_scan_type(storage::cpp2::ScanType::RANGE);
         hint.set_end_value(std::move(end));
@@ -182,7 +184,7 @@ Status IndexScanRule::boundValue(const FilterItem& item,
             // if c1 <= int(5) , the range pair should be (min, 6)
             // if c1 < int(5), the range pair should be (min, 5)
             auto v = OptimizerUtils::boundValue(col, BVO::GREATER_THAN, val);
-            CHECK_BOUND_VALUE(v);
+            CHECK_BOUND_VALUE(v, col.get_name());
             // where c <= 1 and c <= 2 , 1 should be valid.
             if (end == Value()) {
                 end = v;
@@ -213,7 +215,7 @@ Status IndexScanRule::boundValue(const FilterItem& item,
             // if c >= 5, the range pair should be (5, max)
             // if c > 5, the range pair should be (6, max)
             auto v = OptimizerUtils::boundValue(col, BVO::GREATER_THAN, val);
-            CHECK_BOUND_VALUE(v);
+            CHECK_BOUND_VALUE(v, col.get_name());
             // where c > 1 and c > 2 , 2 should be valid.
             if (begin == Value()) {
                 begin = v;
@@ -230,7 +232,7 @@ Status IndexScanRule::boundValue(const FilterItem& item,
 
 IndexScan* IndexScanRule::cloneIndexScan(graph::QueryContext *qctx,
                                          const OptGroupExpr *groupExpr) const {
-    auto ig = dynamic_cast<const IndexScan *>(groupExpr->node());
+    auto ig = static_cast<const IndexScan *>(groupExpr->node());
     auto ctx = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
     auto returnCols = std::make_unique<std::vector<std::string>>(*ig->returnColumns());
     auto indexScan = IndexScan::make(qctx,
@@ -244,23 +246,23 @@ IndexScan* IndexScanRule::cloneIndexScan(graph::QueryContext *qctx,
 }
 
 bool IndexScanRule::isEdge(const OptGroupExpr *groupExpr) const {
-    auto ig = dynamic_cast<const IndexScan *>(groupExpr->node());
+    auto ig = static_cast<const IndexScan *>(groupExpr->node());
     return ig->isEdge();
 }
 
 int32_t IndexScanRule::schemaId(const OptGroupExpr *groupExpr) const {
-    auto ig = dynamic_cast<const IndexScan *>(groupExpr->node());
+    auto ig = static_cast<const IndexScan *>(groupExpr->node());
     return ig->schemaId();
 }
 
 GraphSpaceID IndexScanRule::spaceId(const OptGroupExpr *groupExpr) const {
-    auto ig = dynamic_cast<const IndexScan *>(groupExpr->node());
+    auto ig = static_cast<const IndexScan *>(groupExpr->node());
     return ig->space();
 }
 
 std::unique_ptr<Expression>
 IndexScanRule::filterExpr(const OptGroupExpr *groupExpr) const {
-    auto ig = dynamic_cast<const IndexScan *>(groupExpr->node());
+    auto ig = static_cast<const IndexScan *>(groupExpr->node());
     auto qct = ig->queryContext();
     // The initial IndexScan plan node has only one queryContext.
     if (qct->size() != 1) {
@@ -285,7 +287,7 @@ Status IndexScanRule::analyzeExpression(Expression* expr,
     switch (expr->kind()) {
         case Expression::Kind::kLogicalOr :
         case Expression::Kind::kLogicalAnd : {
-            auto lExpr = dynamic_cast<LogicalExpression*>(expr);
+            auto lExpr = static_cast<LogicalExpression*>(expr);
             auto k = expr->kind() == Expression::Kind::kLogicalAnd
                      ? ScanKind::Kind::LOGICAL_AND : ScanKind::Kind::LOGICAL_OR;
             if (kind->getKind() == ScanKind::Kind::UNKNOWN) {
@@ -307,7 +309,7 @@ Status IndexScanRule::analyzeExpression(Expression* expr,
         case Expression::Kind::kRelLT:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelNE: {
-            auto* rExpr = dynamic_cast<RelationalExpression*>(expr);
+            auto* rExpr = static_cast<RelationalExpression*>(expr);
             auto ret = writeRelationalExpr(rExpr, items);
             NG_RETURN_IF_ERROR(ret);
             break;
@@ -326,13 +328,13 @@ Status IndexScanRule::writeRelationalExpr(RelationalExpression* expr, FilterItem
     graph::QueryExpressionContext ctx(nullptr);
     if (expr->left()->kind() == Expression::Kind::kLabelAttribute &&
         expr->right()->kind() == Expression::Kind::kConstant) {
-        auto* l = dynamic_cast<const LabelAttributeExpression*>(expr->left());
-        auto* r = dynamic_cast<ConstantExpression*>(expr->right());
+        auto* l = static_cast<const LabelAttributeExpression*>(expr->left());
+        auto* r = static_cast<ConstantExpression*>(expr->right());
         items->addItem(*l->left()->name(), expr->kind(), r->eval(ctx));
     } else if (expr->left()->kind() == Expression::Kind::kConstant &&
                expr->right()->kind() == Expression::Kind::kLabelAttribute) {
-        auto* r = dynamic_cast<const LabelAttributeExpression*>(expr->right());
-        auto* l = dynamic_cast<ConstantExpression*>(expr->left());
+        auto* r = static_cast<const LabelAttributeExpression*>(expr->right());
+        auto* l = static_cast<ConstantExpression*>(expr->left());
 
         items->addItem(*r->left()->name(), reverseRelationalExprKind(expr->kind()), l->eval(ctx));
     } else {
