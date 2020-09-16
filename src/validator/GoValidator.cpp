@@ -748,6 +748,8 @@ void GoValidator::extractPropExprs(const Expression* expr) {
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn:
         case Expression::Kind::kContains:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
@@ -818,20 +820,36 @@ void GoValidator::extractPropExprs(const Expression* expr) {
             }
             break;
         }
+        case Expression::Kind::kList: {
+            auto* listExpr = static_cast<const ListExpression *>(expr);
+            for (auto& item : listExpr->items()) {
+                extractPropExprs(item);
+            }
+            break;
+        }
+        case Expression::Kind::kSet: {
+            auto* setExpr = static_cast<const SetExpression *>(expr);
+            for (auto& item : setExpr->items()) {
+                extractPropExprs(item);
+            }
+            break;
+        }
+        case Expression::Kind::kMap: {
+            auto* mapExpr = static_cast<const MapExpression *>(expr);
+            for (auto& item : mapExpr->items()) {
+                extractPropExprs(item.second);
+            }
+            break;
+        }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:   // FIXME(dutor)
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
         case Expression::Kind::kSubscript:
         case Expression::Kind::kAttribute:
         case Expression::Kind::kLabelAttribute:
-        case Expression::Kind::kLabel:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kRelNotIn: {
+        case Expression::Kind::kLabel: {
             LOG(FATAL) << "Not support " << expr->kind();
             break;
         }
@@ -856,6 +874,8 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
         case Expression::Kind::kRelLE:
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelGE:
+        case Expression::Kind::kRelIn:
+        case Expression::Kind::kRelNotIn:
         case Expression::Kind::kContains:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
@@ -921,20 +941,51 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
         case Expression::Kind::kInputProperty: {
             break;
         }
+        case Expression::Kind::kList: {
+            auto* listExpr = static_cast<ListExpression *>(expr);
+            auto items = listExpr->moveItems();
+            for (auto iter = items.begin(); iter < items.end(); ++iter) {
+                auto rewrite = rewriteToInputProp(iter->get());
+                if (rewrite != nullptr) {
+                    *iter = std::move(rewrite);
+                }
+            }
+            listExpr->setItems(std::move(items));
+            break;
+        }
+        case Expression::Kind::kSet: {
+            auto* setExpr = static_cast<SetExpression *>(expr);
+            auto items = setExpr->moveItems();
+            for (auto iter = items.begin(); iter < items.end(); ++iter) {
+                auto rewrite = rewriteToInputProp(iter->get());
+                if (rewrite != nullptr) {
+                    *iter = std::move(rewrite);
+                }
+            }
+            setExpr->setItems(std::move(items));
+            break;
+        }
+        case Expression::Kind::kMap: {
+            auto* mapExpr = static_cast<MapExpression*>(expr);
+            auto items = mapExpr->moveItems();
+            for (auto iter = items.begin(); iter < items.end(); ++iter) {
+                auto rewrite = rewriteToInputProp(iter->second.get());
+                if (rewrite != nullptr) {
+                    *iter = std::make_pair(std::move(iter->first), std::move(rewrite));
+                }
+            }
+            mapExpr->setItems(std::move(items));
+            break;
+        }
         case Expression::Kind::kUUID:
         case Expression::Kind::kVar:
         case Expression::Kind::kVersionedVar:
         case Expression::Kind::kLabelAttribute:
         case Expression::Kind::kUnaryIncr:
         case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:   // FIXME(dutor)
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
         case Expression::Kind::kAttribute:
         case Expression::Kind::kSubscript:
-        case Expression::Kind::kLabel:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kRelNotIn: {
+        case Expression::Kind::kLabel: {
             LOG(FATAL) << "Not support " << expr->kind();
             break;
         }
