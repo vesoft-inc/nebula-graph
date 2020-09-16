@@ -672,7 +672,7 @@ class NebulaTestSuite(object):
         else:
             edge.dst = bytes(line[1], encoding = 'utf-8')
             edge.ranking = 0
-        edge.type = 0
+        edge.type = 1
         edge.name = bytes('serve', encoding = 'utf-8')
         props = dict()
         start_year = CommonTtypes.Value()
@@ -692,7 +692,7 @@ class NebulaTestSuite(object):
 
         edge.src = bytes(line[0], encoding = 'utf-8')
         edge.dst = bytes(line[1], encoding = 'utf-8')
-        edge.type = 0
+        edge.type = 1
         edge.ranking = 0
         edge.name = bytes('like', encoding = 'utf-8')
         props = dict()
@@ -709,7 +709,7 @@ class NebulaTestSuite(object):
         edge = CommonTtypes.Edge()
         edge.src = bytes(line[0], encoding = 'utf-8')
         edge.dst = bytes(line[1], encoding = 'utf-8')
-        edge.type = 0
+        edge.type = 1
         edge.ranking = 0
         edge.name = bytes('teammate', encoding = 'utf-8')
         props = dict()
@@ -755,3 +755,4 @@ class NebulaTestSuite(object):
         for i in range(len(plan_node_desc.dependencies)):
             line_num = plan_desc.node_index_map[plan_node_desc.dependencies[i]]
             cls.diff_plan_node(plan_desc, line_num, expect, expect_node[1][i])
+
