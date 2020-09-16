@@ -94,7 +94,7 @@ class NebulaTestSuite(object):
                 self.spaces.append(space_name)
                 resp = self.execute(
                 'CREATE SPACE IF NOT EXISTS {space_name}(partition_num={partition_num}, '
-                'replica_factor={replica_factor}, vid_size=30); USE {space_name};'.format(
+                'replica_factor={replica_factor}, vid_type=FIXED_STRING(30)); USE {space_name};'.format(
                         partition_num=self.partition_num,
                         replica_factor=self.replica_factor,
                         space_name=space_name))
@@ -246,11 +246,10 @@ class NebulaTestSuite(object):
         return '{}/{}/{}'.format(date.year, date.month, date.day)
 
     @classmethod
-    def time_to_string(self, date_time):
-        return '{}:{}:{}.{}'.format(date_time.hour,
-                                    date_time.minute,
-                                    date_time.sec,
-                                    date_time.microsec)
+
+    def time_to_string(self, time):
+        return '{}:{}:{}.{}'.format(time.hour, time.minute, time.sec, time.microsec)
+
     @classmethod
     def date_time_to_string(self, date_time):
         return '{}/{}/{} {}:{}:{}.{}'.format(date_time.year,
