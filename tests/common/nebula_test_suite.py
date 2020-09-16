@@ -246,7 +246,6 @@ class NebulaTestSuite(object):
         return '{}/{}/{}'.format(date.year, date.month, date.day)
 
     @classmethod
-
     def time_to_string(self, time):
         return '{}:{}:{}.{}'.format(time.hour, time.minute, time.sec, time.microsec)
 
