@@ -64,15 +64,18 @@ void FoldConstantExprVisitor::visit(LogicalExpression *expr) {
 
 // function call
 void FoldConstantExprVisitor::visit(FunctionCallExpression *expr) {
+    bool canBeFolded = true;
     for (auto &arg : expr->args()->args()) {
         if (arg->kind() != Expression::Kind::kConstant) {
             arg->accept(this);
             if (canBeFolded_) {
                 arg.reset(fold(arg.get()));
+            } else {
+                canBeFolded = false;
             }
         }
     }
-    canBeFolded_ = false;
+    canBeFolded_ = canBeFolded;
 }
 
 void FoldConstantExprVisitor::visit(UUIDExpression *expr) {
@@ -130,7 +133,7 @@ void FoldConstantExprVisitor::visit(MapExpression *expr) {
     auto items = expr->items();
     bool canBeFolded = true;
     for (size_t i = 0; i < items.size(); ++i) {
-        auto pair = items[i];
+        auto &pair = items[i];
         auto item = const_cast<Expression *>(pair.second);
         if (!canBeFolded_) {
             canBeFolded = false;

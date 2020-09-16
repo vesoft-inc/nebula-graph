@@ -113,7 +113,7 @@ Status YieldValidator::makeOutputColumn(YieldColumn *column) {
     auto name = deduceColName(column);
     outputColumnNames_.emplace_back(name);
 
-    // Fold constant expression must be after type deduction
+    // Constant expression folding must be after type deduction
     FoldConstantExprVisitor visitor;
     expr->accept(&visitor);
     if (visitor.canBeFolded()) {

@@ -78,6 +78,10 @@ public:
         return new FunctionCallExpression(new std::string(std::move(fn)), argsList);
     }
 
+    static VariableExpression *var(const std::string &name) {
+        return new VariableExpression(new std::string(name));
+    }
+
 protected:
     ObjectPool pool;
 };
@@ -90,6 +94,11 @@ TEST_F(FoldConstantExprVisitorTest, TestArithmeticExpr) {
     auto expected = pool.add(add(constant(4), constant(2)));
     ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
     ASSERT(visitor.canBeFolded());
+
+    // 4+2 => 6
+    auto root = pool.add(visitor.fold(expr));
+    auto rootExpected = pool.add(constant(6));
+    ASSERT_EQ(*root, *rootExpected) << root->toString() << " vs. " << rootExpected->toString();
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestRelationExpr) {
@@ -100,6 +109,11 @@ TEST_F(FoldConstantExprVisitorTest, TestRelationExpr) {
     expr->accept(&visitor);
     ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
     ASSERT(visitor.canBeFolded());
+
+    // false==false => true
+    auto root = pool.add(visitor.fold(expr));
+    auto rootExpected = pool.add(constant(true));
+    ASSERT_EQ(*root, *rootExpected) << root->toString() << " vs. " << rootExpected->toString();
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestLogicalExpr) {
@@ -111,26 +125,38 @@ TEST_F(FoldConstantExprVisitorTest, TestLogicalExpr) {
     expr->accept(&visitor);
     ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
     ASSERT(visitor.canBeFolded());
+
+    // false && true => false
+    auto root = pool.add(visitor.fold(expr));
+    auto rootExpected = pool.add(constant(false));
+    ASSERT_EQ(*root, *rootExpected) << root->toString() << " vs. " << rootExpected->toString();
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestSubscriptExpr) {
-    // 1 + [1, 2, (2+1), 0][2] => 1 + 3
-    auto expr = pool.add(
-        add(constant(1),
-            sub(list_({constant(1), constant(2), add(constant(2), constant(1))}), constant(2))));
-    auto expected = pool.add(add(constant(1), constant(3)));
+    // 1 + [1, pow(2, 2+1), 2][2-1] => 1 + 8
+    auto expr = pool.add(add(constant(1),
+                             sub(list_({constant(1),
+                                        fn("pow", {constant(2), add(constant(2), constant(1))}),
+                                        constant(2)}),
+                                 minus(constant(2), constant(1)))));
+    auto expected = pool.add(add(constant(1), constant(8)));
     FoldConstantExprVisitor visitor;
     expr->accept(&visitor);
     ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
     ASSERT(visitor.canBeFolded());
+
+    // 1+8 => 9
+    auto root = pool.add(visitor.fold(expr));
+    auto rootExpected = pool.add(constant(9));
+    ASSERT_EQ(*root, *rootExpected) << root->toString() << " vs. " << rootExpected->toString();
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestFoldFailed) {
     // function call
     {
-        // max(2, (1+2)) => max(2, 3)
-        auto expr = pool.add(fn("max", {constant(2), add(constant(1), constant(2))}));
-        auto expected = pool.add(fn("max", {constant(2), constant(3)}));
+        // pow($v, (1+2)) => pow($v, 3)
+        auto expr = pool.add(fn("pow", {var("v"), add(constant(1), constant(2))}));
+        auto expected = pool.add(fn("pow", {var("v"), constant(3)}));
         FoldConstantExprVisitor visitor;
         expr->accept(&visitor);
         ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
@@ -138,13 +164,11 @@ TEST_F(FoldConstantExprVisitorTest, TestFoldFailed) {
     }
     // list
     {
-        // [1, max(1, 2), 1+2][1-1] => [1, max(1, 2), 3][0]
-        auto expr = pool.add(sub(list_({constant(1),
-                                        fn("max", {constant(1), constant(2)}),
-                                        add(constant(1), constant(2))}),
-                                 minus(constant(1), constant(1))));
-        auto expected = pool.add(sub(
-            list_({constant(1), fn("max", {constant(1), constant(2)}), constant(3)}), constant(0)));
+        // [$v, pow(1, 2), 1+2][2-1] => [$v, 1, 3][0]
+        auto expr = pool.add(sub(
+            list_({var("v"), fn("pow", {constant(1), constant(2)}), add(constant(1), constant(2))}),
+            minus(constant(1), constant(1))));
+        auto expected = pool.add(sub(list_({var("v"), constant(1), constant(3)}), constant(0)));
         FoldConstantExprVisitor visitor;
         expr->accept(&visitor);
         ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
