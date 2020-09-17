@@ -94,6 +94,31 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             }
             return Value(d);
         }
+        case Value::Type::TIME : {
+            auto dt = v.getDateTime();
+            // Ignore the time zone.
+            if (dt.microsec < std::numeric_limits<int32_t>::max()) {
+                dt.microsec = dt.microsec + 1;
+            } else {
+                dt.microsec = 1;
+                if (dt.sec < 60) {
+                    dt.sec += 1;
+                } else {
+                    dt.sec = 1;
+                    if (dt.minute < 60) {
+                        dt.minute += 1;
+                    } else {
+                        dt.minute = 1;
+                        if (dt.hour < 24) {
+                            dt.hour += 1;
+                        } else {
+                            return v.getTime();
+                        }
+                    }
+                }
+            }
+            return Value(dt);
+        }
         case Value::Type::DATETIME : {
             auto dt = v.getDateTime();
             // Ignore the time zone.
@@ -134,10 +159,22 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             }
             return Value(dt);
         }
-        default : {
+        case Value::Type::__EMPTY__:
+        case Value::Type::NULLVALUE:
+        case Value::Type::VERTEX:
+        case Value::Type::EDGE:
+        case Value::Type::LIST:
+        case Value::Type::SET:
+        case Value::Type::MAP:
+        case Value::Type::DATASET:
+        case Value::Type::PATH: {
+            DLOG(FATAL) << "Not supported value type " << type
+                        << "for index.";
             return Value(NullType::BAD_TYPE);
         }
     }
+    DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
+    return Value(NullType::BAD_TYPE);
 }
 
 Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const Value& v) {
@@ -202,6 +239,33 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             }
             return Value(d);
         }
+        case Value::Type::TIME : {
+            if (DateTime() == v.getDateTime()) {
+                return v.getDateTime();
+            }
+            auto dt = v.getDateTime();
+            if (dt.microsec > 1) {
+                dt.microsec -= 1;
+            } else {
+                dt.microsec = std::numeric_limits<int32_t>::max();
+                if (dt.sec > 1) {
+                    dt.sec -= 1;
+                } else {
+                    dt.sec = 60;
+                    if (dt.minute > 1) {
+                        dt.minute -= 1;
+                    } else {
+                        dt.minute = 60;
+                        if (dt.hour > 1) {
+                            dt.hour -= 1;
+                        } else {
+                            return v.getTime();
+                        }
+                    }
+                }
+            }
+            return Value(dt);
+        }
         case Value::Type::DATETIME : {
             if (DateTime() == v.getDateTime()) {
                 return v.getDateTime();
@@ -244,9 +308,22 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             }
             return Value(dt);
         }
-        default :
+        case Value::Type::__EMPTY__:
+        case Value::Type::NULLVALUE:
+        case Value::Type::VERTEX:
+        case Value::Type::EDGE:
+        case Value::Type::LIST:
+        case Value::Type::SET:
+        case Value::Type::MAP:
+        case Value::Type::DATASET:
+        case Value::Type::PATH: {
+            DLOG(FATAL) << "Not supported value type " << type
+                        << "for index.";
             return Value(NullType::BAD_TYPE);
+        }
     }
+    DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
+    return Value(NullType::BAD_TYPE);
 }
 
 Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col, const Value& v) {
