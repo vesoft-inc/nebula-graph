@@ -39,9 +39,9 @@ Status IndexScanRule::transform(graph::QueryContext *qctx,
     ret = createIndexQueryCtx(iqctx, kind, items, qctx, groupExpr);
     NG_RETURN_IF_ERROR(ret);
 
-    auto newIG = cloneIndexScan(qctx, groupExpr);
-    newIG->setQueryContext(std::move(iqctx));
-    auto newGroupExpr = OptGroupExpr::create(qctx, newIG, nullptr);
+    auto newIN = cloneIndexScan(qctx, groupExpr);
+    newIN->setIndexQueryContext(std::move(iqctx));
+    auto newGroupExpr = OptGroupExpr::create(qctx, newIN, nullptr);
     result->newGroupExprs.emplace_back(newGroupExpr);
     result->eraseAll = true;
     return Status::OK();
@@ -96,24 +96,24 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
     decltype(ctx.column_hints) hints;
     for (const auto& field : fields) {
         bool found = false;
-        FilterItems fieldItems;
+        FilterItems filterItems;
         for (const auto& item : items.items) {
             if (std::get<0>(item) != field.get_name()) {
                 continue;
             }
-            fieldItems.addItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
+            filterItems.addItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
             found = true;
         }
         if (!found) break;
         // TODO (sky) : rewrite filter expr. NE expr should be add filter expr .
-        auto it = std::find_if(fieldItems.items.begin(), fieldItems.items.end(),
+        auto it = std::find_if(filterItems.items.begin(), filterItems.items.end(),
                                [](const auto &ite) {
                                    return std::get<1>(ite) == RelationalExpression::Kind::kRelNE;
                                });
-        if (it != fieldItems.items.end()) {
+        if (it != filterItems.items.end()) {
             break;
         }
-        auto ret = appendColHint(hints, fieldItems, field);
+        auto ret = appendColHint(hints, filterItems, field);
         NG_RETURN_IF_ERROR(ret);
     }
     ctx.set_index_id(index->get_index_id());
@@ -126,7 +126,7 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
 #define CHECK_BOUND_VALUE(v, name)                                                                 \
     do {                                                                                           \
         if (v == Value(NullType::BAD_TYPE)) {                                                      \
-            LOG(ERROR) << "Encode value error . field : "  << name;                                \
+            LOG(ERROR) << "Get bound value error. field : "  << name;                              \
             return Status::Error();                                                                \
         }                                                                                          \
     } while (0)
@@ -177,7 +177,7 @@ Status IndexScanRule::boundValue(const FilterItem& item,
                                  Value& begin, Value& end) const {
     auto val = std::get<2>(item);
     if (val.type() != graph::SchemaUtil::propTypeToValueType(col.get_type())) {
-        return Status::SemanticError("Data type of field : %s", col.get_name().c_str());
+        return Status::SemanticError("Data type error of field : %s", col.get_name().c_str());
     }
     switch (std::get<1>(item)) {
         case Expression::Kind::kRelLE: {
@@ -232,38 +232,38 @@ Status IndexScanRule::boundValue(const FilterItem& item,
 
 IndexScan* IndexScanRule::cloneIndexScan(graph::QueryContext *qctx,
                                          const OptGroupExpr *groupExpr) const {
-    auto ig = static_cast<const IndexScan *>(groupExpr->node());
+    auto in = static_cast<const IndexScan *>(groupExpr->node());
     auto ctx = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
-    auto returnCols = std::make_unique<std::vector<std::string>>(*ig->returnColumns());
+    auto returnCols = std::make_unique<std::vector<std::string>>(*in->returnColumns());
     auto indexScan = IndexScan::make(qctx,
                                      nullptr,
-                                     ig->space(),
+                                     in->space(),
                                      std::move(ctx),
                                      std::move(returnCols),
-                                     ig->isEdge(),
-                                     ig->schemaId());
+                                     in->isEdge(),
+                                     in->schemaId());
     return indexScan;
 }
 
 bool IndexScanRule::isEdge(const OptGroupExpr *groupExpr) const {
-    auto ig = static_cast<const IndexScan *>(groupExpr->node());
-    return ig->isEdge();
+    auto in = static_cast<const IndexScan *>(groupExpr->node());
+    return in->isEdge();
 }
 
 int32_t IndexScanRule::schemaId(const OptGroupExpr *groupExpr) const {
-    auto ig = static_cast<const IndexScan *>(groupExpr->node());
-    return ig->schemaId();
+    auto in = static_cast<const IndexScan *>(groupExpr->node());
+    return in->schemaId();
 }
 
 GraphSpaceID IndexScanRule::spaceId(const OptGroupExpr *groupExpr) const {
-    auto ig = static_cast<const IndexScan *>(groupExpr->node());
-    return ig->space();
+    auto in = static_cast<const IndexScan *>(groupExpr->node());
+    return in->space();
 }
 
 std::unique_ptr<Expression>
 IndexScanRule::filterExpr(const OptGroupExpr *groupExpr) const {
-    auto ig = static_cast<const IndexScan *>(groupExpr->node());
-    auto qct = ig->queryContext();
+    auto in = static_cast<const IndexScan *>(groupExpr->node());
+    auto qct = in->queryContext();
     // The initial IndexScan plan node has only one queryContext.
     if (qct->size() != 1) {
         LOG(ERROR) << "Index Scan plan node error";
