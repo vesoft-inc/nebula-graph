@@ -296,7 +296,6 @@ class NebulaTestSuite(object):
             return self.map_to_string(value.get_mVal())
         else:
             return value.__repr__();
-        return 'Unsupported type: {}'.format(value.getType())
 
     @classmethod
     def row_to_string(self, row):
