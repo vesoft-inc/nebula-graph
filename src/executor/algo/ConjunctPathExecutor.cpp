@@ -141,7 +141,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
                         VLOG(1) << "Edge: " << edge;
                         VLOG(1) << "Interim path: " << interimPath;
                         p.steps.emplace_back(
-                            Step(Vertex(edge.src, {}), -edge.type, "", edge.ranking, {}));
+                            Step(Vertex(edge.src, {}), -edge.type, edge.name, edge.ranking, {}));
                         VLOG(1) << "New semi path: " << p;
                     }
                     if (hist == hists.begin()) {
