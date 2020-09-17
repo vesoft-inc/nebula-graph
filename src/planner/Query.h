@@ -612,11 +612,11 @@ class Sort final : public SingleInputNode {
 public:
     static Sort* make(QueryContext* qctx,
                       PlanNode* input,
-                      std::vector<std::pair<std::string, OrderFactor::OrderType>> factors) {
+                      std::vector<std::pair<size_t, OrderFactor::OrderType>> factors) {
         return qctx->objPool()->add(new Sort(qctx->genId(), input, std::move(factors)));
     }
 
-    const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors() const {
+    const std::vector<std::pair<size_t, OrderFactor::OrderType>>& factors() const {
         return factors_;
     }
 
@@ -625,13 +625,13 @@ public:
 private:
     Sort(int64_t id,
          PlanNode* input,
-         std::vector<std::pair<std::string, OrderFactor::OrderType>> factors)
+         std::vector<std::pair<size_t, OrderFactor::OrderType>> factors)
         : SingleInputNode(id, Kind::kSort, input) {
         factors_ = std::move(factors);
     }
 
 private:
-    std::vector<std::pair<std::string, OrderFactor::OrderType>>   factors_;
+    std::vector<std::pair<size_t, OrderFactor::OrderType>>   factors_;
 };
 
 /**
@@ -676,14 +676,14 @@ class TopN final : public SingleInputNode {
 public:
     static TopN* make(QueryContext* qctx,
                       PlanNode* input,
-                      std::vector<std::pair<std::string, OrderFactor::OrderType>> factors,
+                      std::vector<std::pair<size_t, OrderFactor::OrderType>> factors,
                       int64_t offset,
                       int64_t count) {
         return qctx->objPool()->add(new TopN(qctx->genId(),
             input, std::move(factors), offset, count));
     }
 
-    const std::vector<std::pair<std::string, OrderFactor::OrderType>>& factors() const {
+    const std::vector<std::pair<size_t, OrderFactor::OrderType>>& factors() const {
         return factors_;
     }
 
@@ -700,7 +700,7 @@ public:
 private:
     TopN(int64_t id,
          PlanNode* input,
-         std::vector<std::pair<std::string, OrderFactor::OrderType>> factors,
+         std::vector<std::pair<size_t, OrderFactor::OrderType>> factors,
          int64_t offset,
          int64_t count)
         : SingleInputNode(id, Kind::kTopN, input) {
@@ -712,7 +712,7 @@ private:
     }
 
 private:
-    std::vector<std::pair<std::string, OrderFactor::OrderType>>   factors_;
+    std::vector<std::pair<size_t, OrderFactor::OrderType>>   factors_;
     int64_t     offset_{-1};
     int64_t     count_{-1};
 };

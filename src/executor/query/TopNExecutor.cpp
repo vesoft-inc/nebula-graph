@@ -27,20 +27,20 @@ folly::Future<Status> TopNExecutor::execute() {
     if (iter->isSequentialIter()) {
         auto seqIter = static_cast<SequentialIter*>(iter.get());
         auto &factors = topn->factors();
-        auto &colIndices = seqIter->getColIndices();
-        std::vector<std::pair<size_t, OrderFactor::OrderType>> indexes;
-        for (auto &factor : factors) {
-            auto indexFind = colIndices.find(factor.first);
-            if (indexFind == colIndices.end()) {
-                LOG(ERROR) << "Column name `" << factor.first
-                           << "' does not exist.";
-                return Status::Error("Column name `%s' does not exist.",
-                                     factor.first.c_str());
-            }
-            indexes.emplace_back(std::make_pair(indexFind->second, factor.second));
-        }
-        auto comparator = [&indexes] (const LogicalRow &lhs, const LogicalRow &rhs) {
-            for (auto &item : indexes) {
+        // auto &colIndices = seqIter->getColIndices();
+        // std::vector<std::pair<size_t, OrderFactor::OrderType>> indexes;
+        // for (auto &factor : factors) {
+        //     auto indexFind = colIndices.find(factor.first);
+        //     if (indexFind == colIndices.end()) {
+        //         LOG(ERROR) << "Column name `" << factor.first
+        //                    << "' does not exist.";
+        //         return Status::Error("Column name `%s' does not exist.",
+        //                              factor.first.c_str());
+        //     }
+        //     indexes.emplace_back(std::make_pair(indexFind->second, factor.second));
+        // }
+        auto comparator = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
+            for (auto &item : factors) {
                 auto index = item.first;
                 auto orderType = item.second;
                 if (lhs[index] == rhs[index]) {
