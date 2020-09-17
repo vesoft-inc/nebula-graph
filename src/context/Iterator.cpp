@@ -580,7 +580,7 @@ List PropIter::getEdges() {
         if (edge.isEdge()) {
             const_cast<Edge&>(edge.getEdge()).format();
         }
-        edges.values.emplace_back(getEdge());
+        edges.values.emplace_back(std::move(edge));
     }
     reset();
     return edges;
