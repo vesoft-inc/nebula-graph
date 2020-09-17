@@ -25,7 +25,7 @@ Status FindPathValidator::validateImpl() {
 
 Status FindPathValidator::toPlan() {
     // TODO: Implement the path plan.
-    if (from_.vids.size() == 1 && to_.vids.size()) {
+    if (from_.vids.size() == 1 && to_.vids.size() == 1) {
         return singlePairPlan();
     } else {
         auto* passThrough = PassThroughNode::make(qctx_, nullptr);
@@ -40,23 +40,22 @@ Status FindPathValidator::singlePairPlan() {
     auto* passThrough = PassThroughNode::make(qctx_, bodyStart);
 
     auto* forward = bfs(passThrough, from_, false);
-    VLOG(1) << "forward: " << forward->varName();
+    VLOG(1) << "forward: " << forward->outputVar();
 
     auto* backward = bfs(passThrough, to_, true);
-    VLOG(1) << "backward: " << backward->varName();
+    VLOG(1) << "backward: " << backward->outputVar();
 
     auto* conjunct = ConjunctPath::make(qctx_, forward, backward);
-    conjunct->setLeftVar(forward->varName());
-    conjunct->setRightVar(backward->varName());
+    conjunct->setLeftVar(forward->outputVar());
+    conjunct->setRightVar(backward->outputVar());
     conjunct->setColNames({"_path"});
 
     auto* loop = Loop::make(
-        qctx_, nullptr, conjunct, buildBfsLoopCondition(steps_.steps, conjunct->varName()));
+        qctx_, nullptr, conjunct, buildBfsLoopCondition(steps_.steps, conjunct->outputVar()));
 
     auto* dataCollect = DataCollect::make(
-        qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->varName()});
+        qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->outputVar()});
     dataCollect->setColNames({"_path"});
-    dataCollect->setInputVar(conjunct->varName());
 
     root_ = dataCollect;
     tail_ = loop;
@@ -71,7 +70,7 @@ void FindPathValidator::buildStart(const Starts& starts,
         buildConstantInput(starts, startVidsVar, src);
     } else {
         dedupStartVid = buildRuntimeInput();
-        startVidsVar = dedupStartVid->varName();
+        startVidsVar = dedupStartVid->outputVar();
     }
 }
 
@@ -87,7 +86,7 @@ PlanNode* FindPathValidator::bfs(PlanNode* dep, const Starts& starts, bool rever
     gn->setInputVar(startVidsVar);
 
     auto* bfs = BFSShortestPath::make(qctx_, gn);
-    bfs->setInputVar(gn->varName());
+    bfs->setInputVar(gn->outputVar());
     bfs->setColNames({"_vid", "edge"});
     bfs->setOutputVar(startVidsVar);
 

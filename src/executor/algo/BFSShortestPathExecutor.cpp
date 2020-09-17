@@ -14,7 +14,7 @@ folly::Future<Status> BFSShortestPathExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* bfs = asNode<BFSShortestPath>(node());
     auto iter = ectx_->getResult(bfs->inputVar()).iter();
-    VLOG(1) << "current: " << node()->varName();
+    VLOG(1) << "current: " << node()->outputVar();
     VLOG(1) << "input: " << bfs->inputVar();
     DCHECK(!!iter);
 
@@ -23,20 +23,20 @@ folly::Future<Status> BFSShortestPathExecutor::execute() {
     std::unordered_map<Value, Value> interim;
 
     for (; iter->valid(); iter->next()) {
-        auto& dst = iter->getEdgeProp("*", kDst);
-        auto visited = visited_.find(dst) != visited_.end();
+        auto edgeVal = iter->getEdge();
+        if (!edgeVal.isEdge()) {
+            continue;
+        }
+        auto& edge = edgeVal.getEdge();
+        auto visited = visited_.find(edge.dst) != visited_.end();
         if (visited) {
             continue;
         }
 
-        auto& src = iter->getColumn(kVid);
-        auto& type = iter->getEdgeProp("*", kType);
-        auto& rank = iter->getEdgeProp("*", kRank);
         // save the starts.
-        visited_.emplace(src);
-        Edge e = Edge(src.getStr(), dst.getStr(), type.getInt(), "", rank.getInt(), {});
-        VLOG(1) << "dst: " << dst << " edge: " << e;
-        interim.emplace(dst, std::move(e));
+        visited_.emplace(edge.src);
+        VLOG(1) << "dst: " << edge.dst << " edge: " << edge;
+        interim.emplace(edge.dst, std::move(edgeVal));
     }
     for (auto& kv : interim) {
         auto dst = std::move(kv.first);

@@ -19,7 +19,7 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
     auto* conjunct = asNode<ConjunctPath>(node());
     auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
     const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
-    VLOG(1) << "current: " << node()->varName();
+    VLOG(1) << "current: " << node()->outputVar();
     VLOG(1) << "left input: " << conjunct->leftInputVar()
             << " right input: " << conjunct->rightInputVar();
     DCHECK(!!lIter);
@@ -164,7 +164,7 @@ folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
     auto* conjunct = asNode<ConjunctPath>(node());
     auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
     const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
-    VLOG(1) << "current: " << node()->varName();
+    VLOG(1) << "current: " << node()->outputVar();
     VLOG(1) << "left input: " << conjunct->leftInputVar()
             << " right input: " << conjunct->rightInputVar();
     DCHECK(!!lIter);
