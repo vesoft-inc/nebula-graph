@@ -25,7 +25,6 @@ using storage::cpp2::IndexColumnHint;
 using BVO = graph::OptimizerUtils::BoundValueOperator;
 using IndexItem = std::shared_ptr<meta::cpp2::IndexItem>;
 using IndexQueryCtx = std::unique_ptr<std::vector<IndexQueryContext>>;
-using FilterItem = std::tuple<std::string, RelationalExpression::Kind, Value>;
 
 class IndexScanRule final : public OptRule {
     FRIEND_TEST(IndexScanRuleTest, BoundValueTest);
@@ -68,7 +67,26 @@ private:
         }
     };
 
+    // col_   : index column name
+    // relOP_ : Relational operator , for example c1 > 1 , the relOP_ == kRelGT
+    //                                            1 > c1 , the relOP_ == kRelLT
+    // value_ : Constant value. from ConstantExpression.
+    struct FilterItem {
+        std::string                 col_;
+        RelationalExpression::Kind  relOP_;
+        Value                       value_;
 
+        FilterItem(const std::string& col,
+                   RelationalExpression::Kind relOP,
+                   const Value& value)
+                   : col_(col)
+                   , relOP_(relOP)
+                   , value_(value) {}
+    };
+
+    // FilterItems used for optimal index fetch and index scan context optimize.
+    // for example : where c1 > 1 and c1 < 2 , the FilterItems should be :
+    //               {c1, kRelGT, 1} , {c1, kRelLT, 2}
     struct FilterItems {
         std::vector<FilterItem> items;
         FilterItems() {}
@@ -78,7 +96,7 @@ private:
         void addItem(const std::string& field,
                       RelationalExpression::Kind kind,
                       const Value& v) {
-            items.emplace_back(std::make_tuple(field, kind, v));
+            items.emplace_back(FilterItem(field, kind, v));
         }
     };
 

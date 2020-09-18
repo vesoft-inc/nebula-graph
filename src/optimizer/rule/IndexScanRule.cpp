@@ -98,17 +98,17 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
         bool found = false;
         FilterItems filterItems;
         for (const auto& item : items.items) {
-            if (std::get<0>(item) != field.get_name()) {
+            if (item.col_ != field.get_name()) {
                 continue;
             }
-            filterItems.addItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
+            filterItems.addItem(item.col_, item.relOP_, item.value_);
             found = true;
         }
         if (!found) break;
         // TODO (sky) : rewrite filter expr. NE expr should be add filter expr .
         auto it = std::find_if(filterItems.items.begin(), filterItems.items.end(),
                                [](const auto &ite) {
-                                   return std::get<1>(ite) == RelationalExpression::Kind::kRelNE;
+                                   return ite.relOP_ == RelationalExpression::Kind::kRelNE;
                                });
         if (it != filterItems.items.end()) {
             break;
@@ -138,14 +138,14 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
     Value begin, end;
     bool isRangeScan = true;
     for (const auto& item : items.items) {
-        if (std::get<1>(item) == Expression::Kind::kRelEQ) {
+        if (item.relOP_ == Expression::Kind::kRelEQ) {
             // check the items, don't allow where c1 == 1 and c1 == 2 and c1 > 3....
             // If EQ item appears, only one element is allowed
             if (items.items.size() > 1) {
                 return Status::SemanticError();
             }
             isRangeScan = false;
-            begin = std::get<2>(item);
+            begin = item.value_;
             break;
         }
         auto ret = boundValue(item, col, begin, end);
@@ -175,11 +175,11 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
 Status IndexScanRule::boundValue(const FilterItem& item,
                                  const meta::cpp2::ColumnDef& col,
                                  Value& begin, Value& end) const {
-    auto val = std::get<2>(item);
+    auto val = item.value_;
     if (val.type() != graph::SchemaUtil::propTypeToValueType(col.get_type())) {
         return Status::SemanticError("Data type error of field : %s", col.get_name().c_str());
     }
-    switch (std::get<1>(item)) {
+    switch (item.relOP_) {
         case Expression::Kind::kRelLE: {
             // if c1 <= int(5) , the range pair should be (min, 6)
             // if c1 < int(5), the range pair should be (min, 5)
@@ -325,6 +325,7 @@ Status IndexScanRule::analyzeExpression(Expression* expr,
 
 
 Status IndexScanRule::writeRelationalExpr(RelationalExpression* expr, FilterItems* items) const {
+    // TODO (sky) : Check illegal filter. for example : where c1 == 1 and c1 == 2
     graph::QueryExpressionContext ctx(nullptr);
     if (expr->left()->kind() == Expression::Kind::kLabelAttribute &&
         expr->right()->kind() == Expression::Kind::kConstant) {
@@ -430,7 +431,7 @@ IndexScanRule::findValidIndex(graph::QueryContext *qctx,
         for (const auto& item : items.items) {
             auto it = std::find_if(fields.begin(), fields.end(),
                                    [item](const auto &field) {
-                                       return field.get_name() == std::get<0>(item);
+                                       return field.get_name() == item.col_;
                                    });
             if (it == fields.end()) {
                 allColsHint = false;
@@ -449,7 +450,7 @@ IndexScanRule::findValidIndex(graph::QueryContext *qctx,
             const auto& fields = index->get()->get_fields();
             auto it = std::find_if(items.items.begin(), items.items.end(),
                                    [fields](const auto &item) {
-                                       return std::get<0>(item) == fields[0].get_name();
+                                       return item.col_ == fields[0].get_name();
                                    });
             if (it == items.items.end()) {
                 validIndexes.erase(index);
@@ -470,12 +471,12 @@ IndexScanRule::findIndexForEqualScan(const std::vector<IndexItem>& indexes,
         for (const auto& field : index->get_fields()) {
             auto it = std::find_if(items.items.begin(), items.items.end(),
                                    [field](const auto &item) {
-                                       return std::get<0>(item) == field.get_name();
+                                       return item.col_ == field.get_name();
                                    });
             if (it == items.items.end()) {
                 break;
             }
-            if (std::get<1>(*it) == RelationalExpression::Kind::kRelEQ) {
+            if (it->relOP_ == RelationalExpression::Kind::kRelEQ) {
                 ++hintCount;
             } else {
                 break;
@@ -510,18 +511,18 @@ IndexScanRule::findIndexForRangeScan(const std::vector<IndexItem>& indexes,
         for (const auto& field : index->get_fields()) {
             auto fi = std::find_if(items.items.begin(), items.items.end(),
                                    [field](const auto &item) {
-                                       return std::get<0>(item) == field.get_name();
+                                       return item.col_ == field.get_name();
                                    });
             if (fi == items.items.end()) {
                 break;
             }
-            if (std::get<1>(*fi) == RelationalExpression::Kind::kRelEQ) {
+            if ((*fi).relOP_ == RelationalExpression::Kind::kRelEQ) {
                 continue;
             }
-            if (std::get<1>(*fi) == RelationalExpression::Kind::kRelGE ||
-                std::get<1>(*fi) == RelationalExpression::Kind::kRelGT ||
-                std::get<1>(*fi) == RelationalExpression::Kind::kRelLE ||
-                std::get<1>(*fi) == RelationalExpression::Kind::kRelLT) {
+            if ((*fi).relOP_ == RelationalExpression::Kind::kRelGE ||
+                (*fi).relOP_ == RelationalExpression::Kind::kRelGT ||
+                (*fi).relOP_ == RelationalExpression::Kind::kRelLE ||
+                (*fi).relOP_ == RelationalExpression::Kind::kRelLT) {
                 hintCount++;
             } else {
                 break;
