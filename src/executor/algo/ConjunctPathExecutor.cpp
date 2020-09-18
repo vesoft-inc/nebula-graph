@@ -61,9 +61,8 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
     if (!rows.empty()) {
         VLOG(1) << "Meet even length path.";
         ds.rows = std::move(rows);
-        return finish(ResultBuilder().value(Value(std::move(ds))).finish());
     }
-    return folly::makeFuture<Status>(Status::OK());
+    return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
 std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
@@ -124,7 +123,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
             continue;
         }
         std::vector<Path> interimPaths = {std::move(start)};
-        for (auto hist = hists.end() - 1; hist >= hists.begin(); --hist) {
+        for (auto hist = hists.rbegin(); hist > hists.rend(); --hist) {
             std::vector<Path> tmp;
             for (auto& interimPath : interimPaths) {
                 Value id;
@@ -144,7 +143,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
                             Step(Vertex(edge.src, {}), -edge.type, edge.name, edge.ranking, {}));
                         VLOG(1) << "New semi path: " << p;
                     }
-                    if (hist == hists.begin()) {
+                    if (hist == (hists.rend() + 1)) {
                         VLOG(1) << "emplace result: " << p.src.vid;
                         results.emplace(p.src.vid, std::move(p));
                     } else {
@@ -152,7 +151,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
                     }
                 }   // `edge'
             }       // `interimPath'
-            if (hist != hists.begin()) {
+            if (hist != (hists.rend() + 1)) {
                 interimPaths = std::move(tmp);
             }
         }   // `hist'

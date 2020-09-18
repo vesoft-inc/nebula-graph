@@ -20,7 +20,7 @@ folly::Future<Status> BFSShortestPathExecutor::execute() {
 
     DataSet ds;
     ds.colNames = node()->colNames();
-    std::unordered_map<Value, Value> interim;
+    std::multimap<Value, Value> interim;
 
     for (; iter->valid(); iter->next()) {
         auto edgeVal = iter->getEdge();
