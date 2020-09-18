@@ -95,29 +95,29 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             return Value(d);
         }
         case Value::Type::TIME : {
-            auto dt = v.getDateTime();
+            auto t = v.getTime();
             // Ignore the time zone.
-            if (dt.microsec < std::numeric_limits<int32_t>::max()) {
-                dt.microsec = dt.microsec + 1;
+            if (t.microsec < std::numeric_limits<int32_t>::max()) {
+                t.microsec = t.microsec + 1;
             } else {
-                dt.microsec = 1;
-                if (dt.sec < 60) {
-                    dt.sec += 1;
+                t.microsec = 1;
+                if (t.sec < 60) {
+                    t.sec += 1;
                 } else {
-                    dt.sec = 1;
-                    if (dt.minute < 60) {
-                        dt.minute += 1;
+                    t.sec = 1;
+                    if (t.minute < 60) {
+                        t.minute += 1;
                     } else {
-                        dt.minute = 1;
-                        if (dt.hour < 24) {
-                            dt.hour += 1;
+                        t.minute = 1;
+                        if (t.hour < 24) {
+                            t.hour += 1;
                         } else {
                             return v.getTime();
                         }
                     }
                 }
             }
-            return Value(dt);
+            return Value(t);
         }
         case Value::Type::DATETIME : {
             auto dt = v.getDateTime();
@@ -240,31 +240,31 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             return Value(d);
         }
         case Value::Type::TIME : {
-            if (DateTime() == v.getDateTime()) {
-                return v.getDateTime();
+            if (Time() == v.getTime()) {
+                return v.getTime();
             }
-            auto dt = v.getDateTime();
-            if (dt.microsec > 1) {
-                dt.microsec -= 1;
+            auto t = v.getTime();
+            if (t.microsec > 1) {
+                t.microsec -= 1;
             } else {
-                dt.microsec = std::numeric_limits<int32_t>::max();
-                if (dt.sec > 1) {
-                    dt.sec -= 1;
+                t.microsec = std::numeric_limits<int32_t>::max();
+                if (t.sec > 1) {
+                    t.sec -= 1;
                 } else {
-                    dt.sec = 60;
-                    if (dt.minute > 1) {
-                        dt.minute -= 1;
+                    t.sec = 60;
+                    if (t.minute > 1) {
+                        t.minute -= 1;
                     } else {
-                        dt.minute = 60;
-                        if (dt.hour > 1) {
-                            dt.hour -= 1;
+                        t.minute = 60;
+                        if (t.hour > 1) {
+                            t.hour -= 1;
                         } else {
                             return v.getTime();
                         }
                     }
                 }
             }
-            return Value(dt);
+            return Value(t);
         }
         case Value::Type::DATETIME : {
             if (DateTime() == v.getDateTime()) {
