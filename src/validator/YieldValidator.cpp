@@ -11,6 +11,7 @@
 #include "parser/Clauses.h"
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
+#include "util/ExpressionUtils.h"
 #include "visitor/FoldConstantExprVisitor.h"
 
 namespace nebula {
@@ -201,15 +202,8 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
     }
     if (filter != nullptr) {
         NG_RETURN_IF_ERROR(deduceProps(filter, exprProps_));
-        auto newFilter = filter->clone();
-        FoldConstantExprVisitor visitor;
-        newFilter->accept(&visitor);
-        if (visitor.canBeFolded()) {
-            filterCondition_ = visitor.fold(newFilter.get());
-        } else {
-            filterCondition_ = newFilter.release();
-        }
-        qctx_->objPool()->add(filterCondition_);
+        auto newFilter = ExpressionUtils::foldConstantExpr(filter);
+        filterCondition_ = qctx_->objPool()->add(newFilter.release());
     }
     return Status::OK();
 }
