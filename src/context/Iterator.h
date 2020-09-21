@@ -413,14 +413,11 @@ public:
         DCHECK(value->isDataSet());
         auto& ds = value->getDataSet();
         for (auto& row : ds.rows) {
-            LOG(INFO) << "sequentialIter ds.row.size jie" << row.size();
             rows_.emplace_back(&row);
         }
         iter_ = rows_.begin();
-        LOG(INFO) << "SequentialIter colnames jie";
         for (size_t i = 0; i < ds.colNames.size(); ++i) {
             colIndices_.emplace(ds.colNames[i], i);
-            LOG(INFO) << ds.colNames[i];
         }
     }
 
