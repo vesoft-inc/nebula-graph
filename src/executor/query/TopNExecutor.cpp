@@ -8,7 +8,6 @@
 #include "planner/Query.h"
 #include "util/ScopedTimer.h"
 
-
 namespace nebula {
 namespace graph {
 
@@ -31,7 +30,7 @@ folly::Future<Status> TopNExecutor::execute() {
     }
 
     auto &factors = topn->factors();
-    auto comparator = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
+    comparator_ = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
         for (auto &item : factors) {
             auto index = item.first;
             auto orderType = item.second;
@@ -48,71 +47,55 @@ folly::Future<Status> TopNExecutor::execute() {
         return false;
     };
 
-    auto offset = topn->offset();
+    offset_ = topn->offset();
     auto count = topn->count();
     auto size = iter->size();
-    int64_t maxCount = count;
-    int64_t heapSize = 0;
-    if (size <= static_cast<size_t>(offset)) {
-        maxCount = 0;
-    } else if (size > static_cast<size_t>(offset + count)) {
-        heapSize = offset + count;
+    maxCount_ = count;
+    heapSize_ = 0;
+    if (size <= static_cast<size_t>(offset_)) {
+        maxCount_ = 0;
+    } else if (size > static_cast<size_t>(offset_ + count)) {
+        heapSize_ = offset_ + count;
     } else {
-        maxCount = size - offset;
-        heapSize = size;
+        maxCount_ = size - offset_;
+        heapSize_ = size;
     }
-    if (heapSize == 0) {
+    if (heapSize_ == 0) {
         iter->clear();
         return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
     }
 
     if (iter->isSequentialIter()) {
-        TopNHeap<SequentialIter::SeqLogicalRow> topnHeap;
-        topnHeap.offset = offset;
-        topnHeap.maxCount = maxCount;
-        topnHeap.heapSize = heapSize;
-        topnHeap.comparator = comparator;
-        executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(iter.get(), topnHeap);
+        executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(iter.get());
     } else if (iter->isJoinIter()) {
-        TopNHeap<JoinIter::JoinLogicalRow> topnHeap;
-        topnHeap.offset = offset;
-        topnHeap.maxCount = maxCount;
-        topnHeap.heapSize = heapSize;
-        topnHeap.comparator = comparator;
-        executeTopN<JoinIter::JoinLogicalRow, JoinIter>(iter.get(), topnHeap);
+        executeTopN<JoinIter::JoinLogicalRow, JoinIter>(iter.get());
     } else if (iter->isPropIter()) {
-        TopNHeap<PropIter::PropLogicalRow> topnHeap;
-        topnHeap.offset = offset;
-        topnHeap.maxCount = maxCount;
-        topnHeap.heapSize = heapSize;
-        topnHeap.comparator = comparator;
-        executeTopN<PropIter::PropLogicalRow, PropIter>(iter.get(), topnHeap);
+        executeTopN<PropIter::PropLogicalRow, PropIter>(iter.get());
     }
-    iter->eraseRange(maxCount, size);
+    iter->eraseRange(maxCount_, size);
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
 }
 
 template<typename T, typename U>
-void TopNExecutor::executeTopN(Iterator *pIter, TopNHeap<T> &topnHeap) {
+void TopNExecutor::executeTopN(Iterator *pIter) {
     auto iter = static_cast<U*>(pIter);
-    topnHeap.heap = std::vector<T>(iter->begin(),
-                        iter->begin() + topnHeap.heapSize);
-    std::make_heap(topnHeap.heap.begin(), topnHeap.heap.end(), topnHeap.comparator);
-    auto it = iter->begin() + topnHeap.heapSize;
+    std::vector<T> heap(iter->begin(), iter->begin()+heapSize_);
+    std::make_heap(heap.begin(), heap.end(), comparator_);
+    auto it = iter->begin() + heapSize_;
     while (it != iter->end()) {
-        if (topnHeap.comparator(*it, topnHeap.heap[0])) {
-            std::pop_heap(topnHeap.heap.begin(), topnHeap.heap.end(), topnHeap.comparator);
-            topnHeap.heap.pop_back();
-            topnHeap.heap.push_back(*it);
-            std::push_heap(topnHeap.heap.begin(), topnHeap.heap.end(), topnHeap.comparator);
+        if (comparator_(*it, heap[0])) {
+            std::pop_heap(heap.begin(), heap.end(), comparator_);
+            heap.pop_back();
+            heap.push_back(*it);
+            std::push_heap(heap.begin(), heap.end(), comparator_);
         }
         ++it;
     }
-    std::sort_heap(topnHeap.heap.begin(), topnHeap.heap.end(), topnHeap.comparator);
+    std::sort_heap(heap.begin(), heap.end(), comparator_);
 
     auto beg = iter->begin();
-    for (int i = 0; i < topnHeap.maxCount; ++i) {
-        beg[i] = topnHeap.heap[topnHeap.offset+i];
+    for (int i = 0; i < maxCount_; ++i) {
+        beg[i] = heap[offset_+i];
     }
 }
 
