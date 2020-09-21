@@ -27,8 +27,8 @@ public:
         kSuccess,
     };
 
-    static const Result& EMPTY_RESULT();
-    static const std::vector<Result>& EMPTY_RESULT_LIST();
+    static const Result& EmptyResult();
+    static const std::vector<Result>& EmptyResultList();
 
     std::shared_ptr<Value> valuePtr() const {
         return core_.value;

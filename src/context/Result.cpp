@@ -9,12 +9,12 @@
 namespace nebula {
 namespace graph {
 
-const Result& Result::EMPTY_RESULT() {
+const Result& Result::EmptyResult() {
     static Result kEmptyResult = ResultBuilder().iter(Iterator::Kind::kDefault).finish();
     return kEmptyResult;
 }
 
-const std::vector<Result>& Result::EMPTY_RESULT_LIST() {
+const std::vector<Result>& Result::EmptyResultList() {
     static std::vector<Result> kEmptyResultList;
     return kEmptyResultList;
 }
