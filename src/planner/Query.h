@@ -630,6 +630,19 @@ private:
         factors_ = std::move(factors);
     }
 
+    std::vector<std::pair<std::string, std::string>> factorsString() const {
+        std::vector<std::pair<std::string, std::string>> result;
+        auto cols = colNames();
+        auto get = [&cols](const std::pair<size_t, OrderFactor::OrderType> &factor) {
+            auto colName = cols[factor.first];
+            auto order = factor.second == OrderFactor::OrderType::ASCEND ? "ASCEND" : "DESCEND";
+            return std::pair<std::string, std::string>{colName, order};
+        };
+        std::transform(factors_.begin(), factors_.end(), result.begin(), get);
+
+        return result;
+    }
+
 private:
     std::vector<std::pair<size_t, OrderFactor::OrderType>>   factors_;
 };
@@ -709,6 +722,19 @@ private:
         DCHECK_GE(count, 0);
         offset_ = offset;
         count_ = count;
+    }
+
+    std::vector<std::pair<std::string, std::string>> factorsString() const {
+        std::vector<std::pair<std::string, std::string>> result;
+        auto cols = colNames();
+        auto get = [&cols](const std::pair<size_t, OrderFactor::OrderType> &factor) {
+            auto colName = cols[factor.first];
+            auto order = factor.second == OrderFactor::OrderType::ASCEND ? "ASCEND" : "DESCEND";
+            return std::pair<std::string, std::string>{colName, order};
+        };
+        std::transform(factors_.begin(), factors_.end(), result.begin(), get);
+
+        return result;
     }
 
 private:
