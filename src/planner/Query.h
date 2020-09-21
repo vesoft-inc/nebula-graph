@@ -632,6 +632,7 @@ private:
 
     std::vector<std::pair<std::string, std::string>> factorsString() const {
         std::vector<std::pair<std::string, std::string>> result;
+        result.resize(factors_.size());
         auto cols = colNames();
         auto get = [&cols](const std::pair<size_t, OrderFactor::OrderType> &factor) {
             auto colName = cols[factor.first];
@@ -726,6 +727,7 @@ private:
 
     std::vector<std::pair<std::string, std::string>> factorsString() const {
         std::vector<std::pair<std::string, std::string>> result;
+        result.resize(factors_.size());
         auto cols = colNames();
         auto get = [&cols](const std::pair<size_t, OrderFactor::OrderType> &factor) {
             auto colName = cols[factor.first];
