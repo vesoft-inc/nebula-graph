@@ -20,10 +20,17 @@ public:
     folly::Future<Status> execute() override;
 
 private:
+    template<typename T>
+    class TopNHeap {
+    public:
+        int64_t offset;
+        int64_t maxCount;
+        int64_t heapSize;
+        std::function<bool(const LogicalRow&, const LogicalRow&)> comparator;
+        std::vector<T> heap;
+    };
     template<typename T, typename U>
-    void executeTopN(Iterator *it, int64_t offset, int64_t maxCount,
-            int64_t heapSize, int64_t size,
-            std::function<bool(const LogicalRow&, const LogicalRow&)> comparator);
+    void executeTopN(Iterator *it, TopNHeap<T> &topnHeap);
 };
 
 }   // namespace graph
