@@ -19,6 +19,11 @@ folly::Future<Status> TopNExecutor::execute() {
     if (UNLIKELY(iter == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in topn executor");
     }
+    if (UNLIKELY(iter->isDefaultIter())) {
+        std::string errMsg = "Internal error: Sort executor does not supported DefaultIter";
+        LOG(ERROR) << errMsg;
+        return Status::Error(errMsg);
+    }
     if (UNLIKELY(iter->isGetNeighborsIter())) {
         std::string errMsg = "Internal error: TopN executor does not supported GetNeighborsIter";
         LOG(ERROR) << errMsg;
@@ -60,77 +65,45 @@ folly::Future<Status> TopNExecutor::execute() {
         iter->clear();
         return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
     }
+
     if (iter->isSequentialIter()) {
-        auto seqIter = static_cast<SequentialIter*>(iter.get());
-
-        std::vector<SequentialIter::SeqLogicalRow> heap(seqIter->begin(),
-                                                        seqIter->begin() + heapSize);
-        std::make_heap(heap.begin(), heap.end(), comparator);
-        auto it = seqIter->begin() + heapSize;
-        while (it != seqIter->end()) {
-            if (comparator(*it, heap[0])) {
-                std::pop_heap(heap.begin(), heap.end(), comparator);
-                heap.pop_back();
-                heap.push_back(*it);
-                std::push_heap(heap.begin(), heap.end(), comparator);
-            }
-            ++it;
-        }
-        std::sort_heap(heap.begin(), heap.end(), comparator);
-
-        auto beg = seqIter->begin();
-        for (int i = 0; i < maxCount; ++i) {
-            beg[i] = heap[offset+i];
-        }
-        iter->eraseRange(maxCount, size);
+        executeTopN<SequentialIter, SequentialIter::SeqLogicalRow>(iter.get(),
+        offset, maxCount, heapSize, size, comparator);
     } else if (iter->isJoinIter()) {
-        auto joinIter = static_cast<JoinIter*>(iter.get());
-
-        std::vector<JoinIter::JoinLogicalRow> heap(joinIter->begin(),
-                                                   joinIter->begin() + heapSize);
-        std::make_heap(heap.begin(), heap.end(), comparator);
-        auto it = joinIter->begin() + heapSize;
-        while (it != joinIter->end()) {
-            if (comparator(*it, heap[0])) {
-                std::pop_heap(heap.begin(), heap.end(), comparator);
-                heap.pop_back();
-                heap.push_back(*it);
-                std::push_heap(heap.begin(), heap.end(), comparator);
-            }
-            ++it;
-        }
-        std::sort_heap(heap.begin(), heap.end(), comparator);
-
-        auto beg = joinIter->begin();
-        for (int i = 0; i < maxCount; ++i) {
-            beg[i] = heap[offset+i];
-        }
-        iter->eraseRange(maxCount, size);
+        executeTopN<JoinIter, JoinIter::JoinLogicalRow>(iter.get(),
+        offset, maxCount, heapSize, size, comparator);
     } else if (iter->isPropIter()) {
-        auto propIter = static_cast<PropIter*>(iter.get());
-
-        std::vector<PropIter::PropLogicalRow> heap(propIter->begin(),
-                                                   propIter->begin() + heapSize);
-        std::make_heap(heap.begin(), heap.end(), comparator);
-        auto it = propIter->begin() + heapSize;
-        while (it != propIter->end()) {
-            if (comparator(*it, heap[0])) {
-                std::pop_heap(heap.begin(), heap.end(), comparator);
-                heap.pop_back();
-                heap.push_back(*it);
-                std::push_heap(heap.begin(), heap.end(), comparator);
-            }
-            ++it;
-        }
-        std::sort_heap(heap.begin(), heap.end(), comparator);
-
-        auto beg = propIter->begin();
-        for (int i = 0; i < maxCount; ++i) {
-            beg[i] = heap[offset+i];
-        }
-        iter->eraseRange(maxCount, size);
+        executeTopN<PropIter, PropIter::PropLogicalRow>(iter.get(),
+        offset, maxCount, heapSize, size, comparator);
     }
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
+}
+
+template<typename T, typename U>
+void TopNExecutor::executeTopN(Iterator *pIter, int64_t offset, int64_t maxCount,
+        int64_t heapSize, int64_t size,
+        std::function<bool(const LogicalRow&, const LogicalRow&)> comparator) {
+    auto iter = static_cast<T*>(pIter);
+    std::vector<U> heap(iter->begin(),
+                        iter->begin() + heapSize);
+    std::make_heap(heap.begin(), heap.end(), comparator);
+    auto it = iter->begin() + heapSize;
+    while (it != iter->end()) {
+        if (comparator(*it, heap[0])) {
+            std::pop_heap(heap.begin(), heap.end(), comparator);
+            heap.pop_back();
+            heap.push_back(*it);
+            std::push_heap(heap.begin(), heap.end(), comparator);
+        }
+        ++it;
+    }
+    std::sort_heap(heap.begin(), heap.end(), comparator);
+
+    auto beg = iter->begin();
+    for (int i = 0; i < maxCount; ++i) {
+        beg[i] = heap[offset+i];
+    }
+    iter->eraseRange(maxCount, size);
 }
 
 }   // namespace graph

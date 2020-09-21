@@ -18,6 +18,12 @@ public:
         : Executor("TopNExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
+
+private:
+    template<typename T, typename U>
+    void executeTopN(Iterator *it, int64_t offset, int64_t maxCount,
+            int64_t heapSize, int64_t size,
+            std::function<bool(const LogicalRow&, const LogicalRow&)> comparator);
 };
 
 }   // namespace graph
