@@ -12,7 +12,13 @@ namespace nebula {
 namespace graph {
 folly::Future<Status> ConjunctPathExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return bfsShortestPath();
+    auto* conjunct = asNode<ConjunctPath>(node());
+    switch (conjunct->pathKind()) {
+        case ConjunctPath::PathKind::kBiBFS:
+            return bfsShortestPath();
+        default:
+            LOG(FATAL) << "Not implement.";
+    }
 }
 
 folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
@@ -99,7 +105,7 @@ std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
                 result.reverse();
                 VLOG(1) << "Forward path: " << result;
                 VLOG(1) << "Backward path: " << i->second;
-                result.append(std::move(i->second));
+                result.append(i->second);
                 Row row;
                 row.emplace_back(std::move(result));
                 rows.emplace_back(std::move(row));
@@ -119,11 +125,12 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
         start.src = Vertex(v.getStr(), {});
         if (hists.empty()) {
             // Happens at one step path situation when meet at starts
+            VLOG(1) << "Start: " << start;
             results.emplace(v, std::move(start));
             continue;
         }
         std::vector<Path> interimPaths = {std::move(start)};
-        for (auto hist = hists.rbegin(); hist > hists.rend(); --hist) {
+        for (auto hist = hists.rbegin(); hist < hists.rend(); ++hist) {
             std::vector<Path> tmp;
             for (auto& interimPath : interimPaths) {
                 Value id;
@@ -143,7 +150,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
                             Step(Vertex(edge.src, {}), -edge.type, edge.name, edge.ranking, {}));
                         VLOG(1) << "New semi path: " << p;
                     }
-                    if (hist == (hists.rend() + 1)) {
+                    if (hist == (hists.rend() - 1)) {
                         VLOG(1) << "emplace result: " << p.src.vid;
                         results.emplace(p.src.vid, std::move(p));
                     } else {
@@ -151,7 +158,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
                     }
                 }   // `edge'
             }       // `interimPath'
-            if (hist != (hists.rend() + 1)) {
+            if (hist != (hists.rend() - 1)) {
                 interimPaths = std::move(tmp);
             }
         }   // `hist'

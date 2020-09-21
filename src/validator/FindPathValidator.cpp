@@ -45,7 +45,8 @@ Status FindPathValidator::singlePairPlan() {
     auto* backward = bfs(passThrough, to_, true);
     VLOG(1) << "backward: " << backward->outputVar();
 
-    auto* conjunct = ConjunctPath::make(qctx_, forward, backward);
+    auto* conjunct =
+        ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kBiBFS);
     conjunct->setLeftVar(forward->outputVar());
     conjunct->setRightVar(backward->outputVar());
     conjunct->setColNames({"_path"});
@@ -94,7 +95,7 @@ PlanNode* FindPathValidator::bfs(PlanNode* dep, const Starts& starts, bool rever
     ds.colNames = {"_vid", "edge"};
     Row row;
     row.values.emplace_back(starts.vids.front());
-    row.values.emplace_back(Value());
+    row.values.emplace_back(Value::kEmpty);
     ds.rows.emplace_back(std::move(row));
     qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 

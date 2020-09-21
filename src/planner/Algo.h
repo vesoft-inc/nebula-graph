@@ -29,13 +29,31 @@ private:
 
 class ConjunctPath : public BiInputNode {
 public:
-    static ConjunctPath* make(QueryContext* qctx, PlanNode* left, PlanNode* right) {
-        return qctx->objPool()->add(new ConjunctPath(qctx->genId(), left, right));
+    enum class PathKind : uint8_t {
+        kBiBFS,
+        kBiDijkstra,
+        kFloyd,
+        kAllPath,
+    };
+
+    static ConjunctPath* make(QueryContext* qctx,
+                              PlanNode* left,
+                              PlanNode* right,
+                              PathKind pathKind) {
+        return qctx->objPool()->add(new ConjunctPath(qctx->genId(), left, right, pathKind));
+    }
+
+    PathKind pathKind() const {
+        return pathKind_;
     }
 
 private:
-    ConjunctPath(int64_t id, PlanNode* left, PlanNode* right)
-        : BiInputNode(id, Kind::kConjunctPath, left, right) {}
+    ConjunctPath(int64_t id, PlanNode* left, PlanNode* right, PathKind pathKind)
+        : BiInputNode(id, Kind::kConjunctPath, left, right) {
+        pathKind_ = pathKind;
+    }
+
+    PathKind pathKind_;
 };
 
 }  // namespace graph

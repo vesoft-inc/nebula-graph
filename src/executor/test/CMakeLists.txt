@@ -71,6 +71,7 @@ nebula_add_test(
         AggregateTest.cpp
         DataJoinTest.cpp
         BFSShortestTest.cpp
+        ConjunctPathTest.cpp
     OBJECTS
         ${EXEC_QUERY_TEST_OBJS}
     LIBRARIES
