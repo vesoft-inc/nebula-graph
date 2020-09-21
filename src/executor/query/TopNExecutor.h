@@ -21,7 +21,7 @@ public:
 
 private:
     template<typename T, typename U>
-    void executeTopN(Iterator *pIter);
+    void executeTopN(Iterator *iter);
 
     int64_t offset_;
     int64_t maxCount_;

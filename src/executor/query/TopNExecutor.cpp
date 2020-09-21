@@ -77,12 +77,12 @@ folly::Future<Status> TopNExecutor::execute() {
 }
 
 template<typename T, typename U>
-void TopNExecutor::executeTopN(Iterator *pIter) {
-    auto iter = static_cast<U*>(pIter);
-    std::vector<T> heap(iter->begin(), iter->begin()+heapSize_);
+void TopNExecutor::executeTopN(Iterator *iter) {
+    auto uIter = static_cast<U*>(iter);
+    std::vector<T> heap(uIter->begin(), uIter->begin()+heapSize_);
     std::make_heap(heap.begin(), heap.end(), comparator_);
-    auto it = iter->begin() + heapSize_;
-    while (it != iter->end()) {
+    auto it = uIter->begin() + heapSize_;
+    while (it != uIter->end()) {
         if (comparator_(*it, heap[0])) {
             std::pop_heap(heap.begin(), heap.end(), comparator_);
             heap.pop_back();
@@ -93,7 +93,7 @@ void TopNExecutor::executeTopN(Iterator *pIter) {
     }
     std::sort_heap(heap.begin(), heap.end(), comparator_);
 
-    auto beg = iter->begin();
+    auto beg = uIter->begin();
     for (int i = 0; i < maxCount_; ++i) {
         beg[i] = heap[offset_+i];
     }
