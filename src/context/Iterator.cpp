@@ -351,11 +351,6 @@ void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
     } else if (rhs->isJoinIter()) {
         buildIndexFromJoinIter(static_cast<const JoinIter*>(rhs), nextSeg);
     }
-    LOG(INFO) << "Jointer::joinIndex colnames jie";
-    for (auto a : colIndices_) {
-        LOG(INFO) << "colName: " << a.first << " segIdx: "
-                  << a.second.first << " colIdx: " << a.second.second;
-    }
 }
 
 size_t JoinIter::buildIndexFromSeqIter(const SequentialIter* iter,
