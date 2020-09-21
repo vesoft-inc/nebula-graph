@@ -30,7 +30,7 @@ Status IndexScanRule::transform(graph::QueryContext *qctx,
     ScanKind kind;
     auto filter = filterExpr(groupExpr);
     if (filter == nullptr) {
-        return Status::SemanticError();
+        return Status::SemanticError("WHERE clause error");
     }
     auto ret = analyzeExpression(filter.get(), &items, &kind);
     NG_RETURN_IF_ERROR(ret);
@@ -67,7 +67,7 @@ Status IndexScanRule::createIQCWithLogicAnd(IndexQueryCtx &iqctx,
                                             const OptGroupExpr *groupExpr) const {
     auto index = findOptimalIndex(qctx, groupExpr, items);
     if (index == nullptr) {
-        return Status::IndexNotFound();
+        return Status::IndexNotFound("No valid index found");
     }
 
     return appendIQCtx(index, items, iqctx);
@@ -80,7 +80,7 @@ Status IndexScanRule::createIQCWithLogicOR(IndexQueryCtx &iqctx,
     for (auto const& item : items.items) {
         auto index = findOptimalIndex(qctx, groupExpr, FilterItems({item}));
         if (index == nullptr) {
-            return Status::IndexNotFound();
+            return Status::IndexNotFound("No valid index found");
         }
         auto ret = appendIQCtx(index, FilterItems({item}), iqctx);
         NG_RETURN_IF_ERROR(ret);
@@ -127,7 +127,7 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
     do {                                                                                           \
         if (v == Value(NullType::BAD_TYPE)) {                                                      \
             LOG(ERROR) << "Get bound value error. field : "  << name;                              \
-            return Status::Error();                                                                \
+            return Status::Error("Get bound value error. field : %s", name.c_str());               \
         }                                                                                          \
     } while (0)
 
@@ -176,7 +176,7 @@ Status IndexScanRule::boundValue(const FilterItem& item,
                                  const meta::cpp2::ColumnDef& col,
                                  Value& begin, Value& end) const {
     auto val = item.value_;
-    if (val.type() != graph::SchemaUtil::propTypeToValueType(col.get_type())) {
+    if (val.type() != graph::SchemaUtil::propTypeToValueType(col.type.type)) {
         return Status::SemanticError("Data type error of field : %s", col.get_name().c_str());
     }
     switch (item.relOP_) {

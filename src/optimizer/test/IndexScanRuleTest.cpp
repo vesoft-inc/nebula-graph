@@ -19,7 +19,7 @@ TEST(IndexScanRuleTest, BoundValueTest) {
     {
         Value begin, end;
         col.set_name("col1");
-        col.set_type(meta::cpp2::PropertyType::INT64);
+        col.type.set_type(meta::cpp2::PropertyType::INT64);
         // col > 1 and col < 5
         items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(1L));
         items.addItem("col1", RelationalExpression::Kind::kRelLT, Value(5L));
@@ -35,7 +35,7 @@ TEST(IndexScanRuleTest, BoundValueTest) {
         Value begin, end;
         items.items.clear();
         col.set_name("col1");
-        col.set_type(meta::cpp2::PropertyType::INT64);
+        col.type.set_type(meta::cpp2::PropertyType::INT64);
         // col > 1 and col > 6
         items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(1L));
         items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(6L));
@@ -51,7 +51,7 @@ TEST(IndexScanRuleTest, BoundValueTest) {
         Value begin, end;
         items.items.clear();
         col.set_name("col1");
-        col.set_type(meta::cpp2::PropertyType::INT64);
+        col.type.set_type(meta::cpp2::PropertyType::INT64);
         // col > 1 and col >= 6
         items.addItem("col1", RelationalExpression::Kind::kRelGT, Value(1L));
         items.addItem("col1", RelationalExpression::Kind::kRelGE, Value(6L));
@@ -67,7 +67,7 @@ TEST(IndexScanRuleTest, BoundValueTest) {
         Value begin, end;
         items.items.clear();
         col.set_name("col1");
-        col.set_type(meta::cpp2::PropertyType::INT64);
+        col.type.set_type(meta::cpp2::PropertyType::INT64);
         // col < 1 and col <= 6
         items.addItem("col1", RelationalExpression::Kind::kRelLT, Value(1L));
         items.addItem("col1", RelationalExpression::Kind::kRelLE, Value(6L));
@@ -101,7 +101,7 @@ TEST(IndexScanRuleTest, IQCtxTest) {
             for (int8_t i = 0; i < 5; i++) {
                 meta::cpp2::ColumnDef col;
                 col.set_name(folly::stringPrintf("col%d", i));
-                col.set_type(meta::cpp2::PropertyType::INT64);
+                col.type.set_type(meta::cpp2::PropertyType::INT64);
                 cols.emplace_back(std::move(col));
             }
             index->set_fields(std::move(cols));
