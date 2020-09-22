@@ -36,6 +36,7 @@
 #include "visitor/DeducePropsVisitor.h"
 #include "visitor/DeduceTypeVisitor.h"
 #include "visitor/EvaluableExprVisitor.h"
+#include "validator/IndexScanValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -191,6 +192,9 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
         case Sentence::Kind::kMatch:
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kLookup:
+            return std::make_unique<IndexScanValidator>(sentence, context);
+        case Sentence::Kind::kMatch:
+        case Sentence::Kind::kUnknown:
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kIngest:
         case Sentence::Kind::kReturn: {

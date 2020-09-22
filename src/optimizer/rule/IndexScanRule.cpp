@@ -41,7 +41,11 @@ Status IndexScanRule::transform(graph::QueryContext *qctx,
 
     auto newIN = cloneIndexScan(qctx, groupExpr);
     newIN->setIndexQueryContext(std::move(iqctx));
-    auto newGroupExpr = OptGroupExpr::create(qctx, newIN, nullptr);
+    auto newGroupExpr = OptGroupExpr::create(qctx, newIN, groupExpr->group());
+    if (groupExpr->dependencies().size() != 1) {
+        return Status::Error("Plan node dependencies error");
+    }
+    newGroupExpr->dependsOn(groupExpr->dependencies()[0]);
     result->newGroupExprs.emplace_back(newGroupExpr);
     result->eraseAll = true;
     return Status::OK();
@@ -331,13 +335,13 @@ Status IndexScanRule::writeRelationalExpr(RelationalExpression* expr, FilterItem
         expr->right()->kind() == Expression::Kind::kConstant) {
         auto* l = static_cast<const LabelAttributeExpression*>(expr->left());
         auto* r = static_cast<ConstantExpression*>(expr->right());
-        items->addItem(*l->left()->name(), expr->kind(), r->eval(ctx));
+        items->addItem(*l->right()->name(), expr->kind(), r->eval(ctx));
     } else if (expr->left()->kind() == Expression::Kind::kConstant &&
                expr->right()->kind() == Expression::Kind::kLabelAttribute) {
         auto* r = static_cast<const LabelAttributeExpression*>(expr->right());
         auto* l = static_cast<ConstantExpression*>(expr->left());
 
-        items->addItem(*r->left()->name(), reverseRelationalExprKind(expr->kind()), l->eval(ctx));
+        items->addItem(*r->right()->name(), reverseRelationalExprKind(expr->kind()), l->eval(ctx));
     } else {
         return Status::Error("Optimizer error, when rewrite relational expression");
     }

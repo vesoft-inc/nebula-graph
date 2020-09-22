@@ -45,8 +45,20 @@ Status IndexScanValidator::prepareFrom() {
 
 Status IndexScanValidator::prepareYield() {
     auto *sentence = static_cast<const LookupSentence *>(sentence_);
+    if (sentence->yieldClause() == nullptr) {
+        if (isEdge_) {
+            outputs_.emplace_back("SrcID", Value::Type::VERTEX);
+            outputs_.emplace_back("Ranking", Value::Type::INT);
+            outputs_.emplace_back("DstID", Value::Type::VERTEX);
+        } else {
+            outputs_.emplace_back("VertexID", Value::Type::VERTEX);
+        }
+        return Status::OK();
+    }
     auto columns = sentence->yieldClause()->columns();
-    auto schema = qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_);
+    auto schema = isEdge_
+                  ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
+                  : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
     const auto* from = sentence->from();
     if (schema == nullptr) {
         return isEdge_
@@ -54,26 +66,34 @@ Status IndexScanValidator::prepareYield() {
                : Status::TagNotFound("Tag schema not found : %s", from->c_str());
     }
     returnCols_ = std::make_unique<std::vector<std::string>>();
-    for (const auto* col : columns) {
+    for (auto col : columns) {
+        std::string schemaName, colName;
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
-            auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
-            if (*laExpr->left()->name() != *from) {
-                return Status::SemanticError("Schema name error : %s",
-                                             laExpr->left()->name()->c_str());
+            auto la = static_cast<LabelAttributeExpression *>(col->expr());
+            schemaName = *la->left()->name();
+            colName = *la->right()->name();
+            if (isEdge_) {
+                col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(la));
+            } else {
+                col->setExpr(ExpressionUtils::rewriteLabelAttribute<TagPropertyExpression>(la));
             }
-            auto ret = schema->getFieldType(*laExpr->right()->name());
-            if (ret == meta::cpp2::PropertyType::UNKNOWN) {
-                return Status::SemanticError("Column %s not found in schema %s",
-                                             laExpr->right()->name()->c_str(),
-                                             from->c_str());
-            }
-            returnCols_->emplace_back(*laExpr->right()->name());
-            auto typeResult = deduceExprType(col->expr());
-            NG_RETURN_IF_ERROR(typeResult);
-            outputs_.emplace_back(deduceColName(col), typeResult.value());
         } else {
-            return Status::SemanticError();
+            return Status::SemanticError("Yield clauses are not supported : %s",
+                                         col->expr()->toString().c_str());
         }
+
+        if (schemaName != *from) {
+            return Status::SemanticError("Schema name error : %s", schemaName.c_str());
+        }
+        auto ret = schema->getFieldType(colName);
+        if (ret == meta::cpp2::PropertyType::UNKNOWN) {
+            return Status::SemanticError("Column %s not found in schema %s",
+                                         colName.c_str(), from->c_str());
+        }
+        returnCols_->emplace_back(colName);
+        auto typeResult = deduceExprType(col->expr());
+        NG_RETURN_IF_ERROR(typeResult);
+        outputs_.emplace_back(deduceColName(col), typeResult.value());
     }
     return Status::OK();
 }
