@@ -18,13 +18,13 @@ class TestINandNotIn(NebulaTestSuite):
         pass
 
     def test_in_list(self):
-        stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN ['Danny Green'] YIELD $$.player.name"
+        stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN ['Tim Duncan', 'Danny Green'] YIELD $$.player.name"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names" : ['$$.player.name'],
             "rows" : [
-                []
+                ['Tim Duncan']
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -35,9 +35,9 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : ['like._dst'],
             "rows" : [
-                ['vertices']
+                []
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -48,9 +48,25 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : ['like._dst'],
             "rows" : [
-                ['vertices']
+                ['Tim Duncan'],
+                ['Manu Ginobili'],
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = '''GO FROM 'Tony Parker' OVER like YIELD like._dst AS ID |
+                  GO FROM $-.ID OVER like WHERE like.likeness IN [95,56,21]'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+
+        expected_data = {
+            "column_names" : ['like._dst'],
+            "rows" : [
+                ['Tony Parker'],
+                ['Manu Ginobili'],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -100,33 +116,52 @@ class TestINandNotIn(NebulaTestSuite):
         expected_data = {
             "column_names" : ['$$.player.name'],
             "rows" : [
-                ['vertices']
+                ['LaMarcus Aldridge']
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN ['Danny Green']"
+        stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst NOT IN ['Danny Green']"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : ['like._dst'],
             "rows" : [
-                ['vertices']
+                ['LaMarcus Aldridge'],
+                ['Manu Ginobili'],
+                ['Tim Duncan'],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GO FROM 'Tony Parker' OVER like WHERE like.likeness IN [95,56,21]"
+        stmt = "GO FROM 'Tony Parker' OVER like WHERE like.likeness NOT IN [95,56,21] YIELD $$.player.name, like.likeness"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : ['$$.player.name', 'like.likeness'],
             "rows" : [
-                ['vertices']
+                ['LaMarcus Aldridge', 90]
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_out_of_order_result(resp, expected_data["rows"])
+
+        stmt = '''$A = GO FROM 'Tony Parker' OVER like YIELD like._dst AS ID;
+                  GO FROM $A.ID OVER like WHERE like.likeness NOT IN [95,56,21]
+                  YIELD $^.player.name, $$.player.name, like.likeness'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+
+        expected_data = {
+            "column_names" : ['$^.player.name', '$$.player.name', 'like.likeness'],
+            "rows" : [
+                ['Manu Ginobili', 'Tim Duncan', 90],
+                ['LaMarcus Aldridge', 'Tim Duncan', 75],
+                ['LaMarcus Aldridge', 'Tony Parker', 75],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -137,12 +172,11 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [False]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "YIELD 0 NOT IN [1, 2, 3]"
@@ -150,12 +184,11 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [True]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "YIELD 'hello' NOT IN ['hello', 'world', 3]"
@@ -163,23 +196,22 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [False]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
     def test_in_set(self):
-        stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN {'Danny Green'} YIELD $$.player.name"
+        stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN {'Tim Duncan', 'Danny Green'} YIELD $$.player.name"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
         expected_data = {
             "column_names" : ['$$.player.name'],
             "rows" : [
-                ['vertices']
+                ['Tim Duncan']
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -190,22 +222,24 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : ['like._dst'],
             "rows" : [
-                ['vertices']
+                []
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GO FROM 'Tony Parker' OVER like WHERE like.likeness IN {95,56,21,95,90}"
+        stmt = "GO FROM 'Tony Parker' OVER like WHERE like.likeness IN {95,56,21,95,90} YIELD $$.player.name, like.likeness"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : ['$$.player.name', 'like.likeness'],
             "rows" : [
-                ['vertices']
+                ['LaMarcus Aldridge', 90],
+                ['Manu Ginobili', 95],
+                ['Tim Duncan', 95],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -216,12 +250,11 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [True]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "YIELD 0 IN {1, 2, 3, 1, 2}"
@@ -229,12 +262,11 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [False]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "YIELD 'hello' IN {'hello', 'world', 3}"
@@ -242,12 +274,11 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [True]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
     def test_not_in_set(self):
@@ -258,33 +289,37 @@ class TestINandNotIn(NebulaTestSuite):
         expected_data = {
             "column_names" : ['$$.player.name'],
             "rows" : [
-                ['vertices']
+                ['LaMarcus Aldridge'],
+                ['Manu Ginobili'],
+                ['Tim Duncan'],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN {'Danny Green'}"
+        stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst NOT IN {'Danny Green'}"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : ['like._dst'],
             "rows" : [
-                ['vertices']
+                ['LaMarcus Aldridge'],
+                ['Manu Ginobili'],
+                ['Tim Duncan'],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
-        stmt = "GO FROM 'Tony Parker' OVER like WHERE like.likeness IN {95,56,21}"
+        stmt = "GO FROM 'Tony Parker' OVER like WHERE like.likeness NOT IN {95,56,21} YIELD $$.player.name, like.likeness"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : ['$$.player.name', 'like.likeness'],
             "rows" : [
-                ['vertices']
+                ['LaMarcus Aldridge', 90]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -295,12 +330,11 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [False]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "YIELD 0 NOT IN {1, 2, 3}"
@@ -308,12 +342,11 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [True]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
 
         stmt = "YIELD 'hello' NOT IN {'hello', 'world', 3}"
@@ -321,10 +354,9 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
+            "column_names" : [],
             "rows" : [
-                ['vertices']
+                [False]
             ]
         }
-        self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
