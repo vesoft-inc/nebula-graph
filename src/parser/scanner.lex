@@ -91,7 +91,7 @@ PART                        ([Pp][Aa][Rr][Tt])
 PARTS                       ([Pp][Aa][Rr][Tt][Ss])
 PARTITION_NUM               ([Pp][Aa][Rr][Tt][Ii][Tt][Ii][[Oo][Nn][_][Nn][Uu][Mm])
 REPLICA_FACTOR              ([Rr][Ee][Pp][Ll][Ii][Cc][Aa][_][Ff][Aa][Cc][Tt][Oo][Rr])
-VID_SIZE                    ([Vv][Ii][Dd][_][Ss][Ii][Zz][Ee])
+VID_TYPE                    ([Vv][Ii][Dd][_][Tt][Yy][Pp][Ee])
 CHARSET                     ([Cc][Hh][Aa][Rr][Ss][Ee][Tt])
 COLLATE                     ([Cc][Oo][Ll][Ll][Aa][Tt][Ee])
 COLLATION                   ([Cc][Oo][Ll][Ll][Aa][Tt][Ii][Oo][Nn])
@@ -162,7 +162,6 @@ NULL                        ([Nn][Uu][Ll][Ll])
 SNAPSHOT                    ([Ss][Nn][Aa][Pp][Ss][Hh][Oo][Tt])
 SNAPSHOTS                   ([Ss][Nn][Aa][Pp][Ss][Hh][Oo][Tt][Ss])
 FORCE                       ([Ff][Oo][Rr][Cc][Ee])
-OFFLINE                     ([Oo][Ff][Ff][Ll][Ii][Nn][Ee])
 BIDIRECT                    ([Bb][Ii][Dd][Ii][Rr][Ee][Cc][Tt])
 ACCOUNT                     ([Aa][Cc][Cc][Oo][Uu][Nn][Tt])
 DBA                         ([Dd][Bb][Aa])
@@ -298,7 +297,7 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 {GROUP}                     { return TokenType::KW_GROUP; }
 {PARTITION_NUM}             { return TokenType::KW_PARTITION_NUM; }
 {REPLICA_FACTOR}            { return TokenType::KW_REPLICA_FACTOR; }
-{VID_SIZE}                  { return TokenType::KW_VID_SIZE; }
+{VID_TYPE}                  { return TokenType::KW_VID_TYPE; }
 {CHARSET}                   { return TokenType::KW_CHARSET; }
 {COLLATE}                   { return TokenType::KW_COLLATE; }
 {COLLATION}                 { return TokenType::KW_COLLATION; }
@@ -308,7 +307,6 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 {DATA}                      { return TokenType::KW_DATA; }
 {SNAPSHOT}                  { return TokenType::KW_SNAPSHOT; }
 {SNAPSHOTS}                 { return TokenType::KW_SNAPSHOTS; }
-{OFFLINE}                   { return TokenType::KW_OFFLINE; }
 {ACCOUNT}                   { return TokenType::KW_ACCOUNT; }
 {JOBS}                      { return TokenType::KW_JOBS; }
 {JOB}                       { return TokenType::KW_JOB; }

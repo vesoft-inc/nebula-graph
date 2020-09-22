@@ -119,7 +119,7 @@ protected:
     StatusOr<std::string> checkRef(const Expression *ref, const Value::Type type) const;
 
 protected:
-    SpaceDescription                space_;
+    SpaceInfo                       space_;
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
     ValidateContext*                vctx_{nullptr};

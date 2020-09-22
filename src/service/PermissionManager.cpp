@@ -42,11 +42,11 @@ Status PermissionManager::canReadSchemaOrData(Session *session) {
     if (session->isGod()) {
         return Status::OK();
     }
-    if (session->space() == -1) {
+    if (session->space().id == -1) {
         LOG(ERROR) << "No space selected";
         return Status::PermissionError("No space selected.");
     }
-    auto roleResult = session->roleWithSpace(session->space());
+    auto roleResult = session->roleWithSpace(session->space().id);
     if (!roleResult.ok()) {
         return Status::PermissionError("No permission to read schema/data.");
     }
@@ -82,11 +82,11 @@ Status PermissionManager::canWriteSchema(Session *session) {
     if (session->isGod()) {
         return Status::OK();
     }
-    if (session->space() == -1) {
+    if (session->space().id == -1) {
         LOG(ERROR) << "No space selected";
         return Status::PermissionError("No space selected.");
     }
-    auto roleResult = session->roleWithSpace(session->space());
+    auto roleResult = session->roleWithSpace(session->space().id);
     if (!roleResult.ok()) {
         return Status::PermissionError("No permission to write schema.");
     }
@@ -165,11 +165,11 @@ Status PermissionManager::canWriteData(Session *session) {
     if (session->isGod()) {
         return Status::OK();
     }
-    if (session->space() == -1) {
+    if (session->space().id == -1) {
         LOG(ERROR) << "No space selected.";
         return Status::PermissionError("No space selected.");
     }
-    auto roleResult = session->roleWithSpace(session->space());
+    auto roleResult = session->roleWithSpace(session->space().id);
     if (!roleResult.ok()) {
         return Status::PermissionError("No permission to write data.");
     }

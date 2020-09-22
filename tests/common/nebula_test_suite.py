@@ -94,7 +94,7 @@ class NebulaTestSuite(object):
                 self.spaces.append(space_name)
                 resp = self.execute(
                 'CREATE SPACE IF NOT EXISTS {space_name}(partition_num={partition_num}, '
-                'replica_factor={replica_factor}, vid_size=30); USE {space_name};'.format(
+                'replica_factor={replica_factor}, vid_type=FIXED_STRING(30)); USE {space_name};'.format(
                         partition_num=self.partition_num,
                         replica_factor=self.replica_factor,
                         space_name=space_name))
@@ -255,28 +255,32 @@ class NebulaTestSuite(object):
         return '{}/{}/{}'.format(date.year, date.month, date.day)
 
     @classmethod
+    def time_to_string(self, time):
+        return '{}:{}:{}.{}'.format(time.hour, time.minute, time.sec, time.microsec)
+
+    @classmethod
     def date_time_to_string(self, date_time):
-        zone = '+'
-        if date_time.timezone < 0:
-            zone = '-'
-        return '{}/{}/{} {}:{}:{}.{} {}{}.{}'.format(date_time.year,
-                                                     date_time.month,
-                                                     date_time.day,
-                                                     date_time.hour,
-                                                     date_time.minute,
-                                                     date_time.sec,
-                                                     date_time.microsec,
-                                                     zone,
-                                                     date_time.timezone / 3600,
-                                                     date_time.timezone % 3600)
+        return '{}/{}/{} {}:{}:{}.{}'.format(date_time.year,
+                                             date_time.month,
+                                             date_time.day,
+                                             date_time.hour,
+                                             date_time.minute,
+                                             date_time.sec,
+                                             date_time.microsec)
+
     @classmethod
     def map_to_string(self, map):
         kvStrs = []
-        if map.kvs is not None:
-            for key in map.kvs:
-                kvStrs.append('"{}":"{}"'.format(key.decode('utf-8'), self.value_to_string(map.kvs[key])))
-            return '{' + ','.join(kvStrs) + '}'
-        return ''
+        for key in map.kvs:
+            kvStrs.append('"{}":"{}"'.format(key.decode('utf-8'), self.value_to_string(map.kvs[key])))
+        return '{' + ','.join(kvStrs) + '}'
+
+    @classmethod
+    def list_to_string(self, list):
+        values = []
+        for val in list.values:
+            values.append('{}'.format(self.value_to_string(val)));
+        return '[' + ','.join(values) + ']'
 
     @classmethod
     def value_to_string(self, value):
@@ -293,19 +297,22 @@ class NebulaTestSuite(object):
         elif value.getType() == CommonTtypes.Value.SVAL:
             return value.get_sVal().decode('utf-8')
         elif value.getType() == CommonTtypes.Value.DVAL:
-            return self.date_time_to_string(value.get_dVal())
+            return self.date_to_string(value.get_dVal())
         elif value.getType() == CommonTtypes.Value.TVAL:
-            return self.date_time_to_string(value.get_tVal())
+            return self.time_to_string(value.get_tVal())
+        elif value.getType() == CommonTtypes.Value.DTVAL:
+            return self.date_time_to_string(value.get_dtVal())
         elif value.getType() == CommonTtypes.Value.MVAL:
             return self.map_to_string(value.get_mVal())
-        return 'Unsupported type'
+        else:
+            return value.__repr__();
 
     @classmethod
     def row_to_string(self, row):
         value_list = []
         for col in row.values:
             value_list.append(self.value_to_string(col))
-        return str(value_list)
+        return '[' + ','.join(value_list) + ']'
 
     @classmethod
     def search_result(self, resp, expect, is_regex=False):
@@ -681,7 +688,7 @@ class NebulaTestSuite(object):
         else:
             edge.dst = bytes(line[1], encoding = 'utf-8')
             edge.ranking = 0
-        edge.type = 0
+        edge.type = 1
         edge.name = bytes('serve', encoding = 'utf-8')
         props = dict()
         start_year = CommonTtypes.Value()
@@ -701,7 +708,7 @@ class NebulaTestSuite(object):
 
         edge.src = bytes(line[0], encoding = 'utf-8')
         edge.dst = bytes(line[1], encoding = 'utf-8')
-        edge.type = 0
+        edge.type = 1
         edge.ranking = 0
         edge.name = bytes('like', encoding = 'utf-8')
         props = dict()
@@ -718,7 +725,7 @@ class NebulaTestSuite(object):
         edge = CommonTtypes.Edge()
         edge.src = bytes(line[0], encoding = 'utf-8')
         edge.dst = bytes(line[1], encoding = 'utf-8')
-        edge.type = 0
+        edge.type = 1
         edge.ranking = 0
         edge.name = bytes('teammate', encoding = 'utf-8')
         props = dict()
@@ -764,3 +771,4 @@ class NebulaTestSuite(object):
         for i in range(len(plan_node_desc.dependencies)):
             line_num = plan_desc.node_index_map[plan_node_desc.dependencies[i]]
             cls.diff_plan_node(plan_desc, line_num, expect, expect_node[1][i])
+

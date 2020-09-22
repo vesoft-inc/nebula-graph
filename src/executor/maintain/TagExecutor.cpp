@@ -17,11 +17,11 @@ folly::Future<Status> CreateTagExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *ctNode = asNode<CreateTag>(node());
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->createTagSchema(spaceId,
             ctNode->getName(), ctNode->getSchema(), ctNode->getIfNotExists())
             .via(runner())
-            .then([ctNode, spaceId](StatusOr<bool> resp) {
+            .then([ctNode, spaceId](StatusOr<TagID> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
                                << ", Create tag `" << ctNode->getName()
@@ -36,7 +36,7 @@ folly::Future<Status> DescTagExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *dtNode = asNode<DescTag>(node());
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()
         ->getMetaClient()
         ->getTagSchema(spaceId, dtNode->getName())
@@ -64,7 +64,7 @@ folly::Future<Status> DropTagExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *dtNode = asNode<DropTag>(node());
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->dropTagSchema(spaceId,
                                                   dtNode->getName(),
                                                   dtNode->getIfExists())
@@ -83,7 +83,7 @@ folly::Future<Status> DropTagExecutor::execute() {
 folly::Future<Status> ShowTagsExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->listTagSchemas(spaceId).via(runner()).then(
         [this, spaceId](StatusOr<std::vector<meta::cpp2::TagItem>> resp) {
             if (!resp.ok()) {
@@ -115,7 +115,7 @@ folly::Future<Status> ShowCreateTagExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *sctNode = asNode<ShowCreateTag>(node());
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->getTagSchema(spaceId, sctNode->getName())
             .via(runner())
             .then([this, sctNode, spaceId](StatusOr<meta::cpp2::Schema> resp) {
@@ -146,7 +146,7 @@ folly::Future<Status> AlterTagExecutor::execute() {
                                                    aeNode->getSchemaItems(),
                                                    aeNode->getSchemaProp())
             .via(runner())
-            .then([aeNode](StatusOr<TagID> resp) {
+            .then([aeNode](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << aeNode->space()
                                << ", Alter tag `" << aeNode->getName()

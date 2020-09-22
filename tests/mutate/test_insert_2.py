@@ -17,9 +17,9 @@ class TestInsert2(NebulaTestSuite):
     '''
     @classmethod
     def prepare(self):
-        resp = self.execute('CREATE SPACE IF NOT EXISTS mySpace2(partition_num=1, vid_size=10);'
-                            'USE mySpace2;')
-        resp = self.execute('CREATE TAG student(name string NOT NULL, age int);'
+        resp = self.execute('CREATE SPACE IF NOT EXISTS mySpace2(partition_num=1, vid_type=FIXED_STRING(10));'
+                            'USE mySpace2;'
+                            'CREATE TAG student(name string NOT NULL, age int);'
                             'CREATE TAG course(name fixed_string(5) NOT NULL, introduce string DEFAULT NULL);')
         self.check_resp_succeeded(resp)
         time.sleep(self.delay)

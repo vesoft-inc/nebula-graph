@@ -15,8 +15,10 @@ using OP = OptimizerUtils::BoundValueOperator;
 TEST(IndexBoundValueTest, StringTest) {
     meta::cpp2::ColumnDef col;
     {
-        col.set_type(meta::cpp2::PropertyType::FIXED_STRING);
-        col.set_type_length(8);
+        meta::cpp2::ColumnTypeDef typeDef;
+        typeDef.set_type(meta::cpp2::PropertyType::FIXED_STRING);
+        typeDef.set_type_length(8);
+        col.set_type(std::move(typeDef));
     }
     std::vector<unsigned char> max = {255, 255, 255, 255, 255, 255, 255, 255};
     std::vector<unsigned char> min = {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'};
@@ -72,7 +74,9 @@ TEST(IndexBoundValueTest, StringTest) {
 TEST(IndexBoundValueTest, BoolTest) {
     meta::cpp2::ColumnDef col;
     {
-        col.set_type(meta::cpp2::PropertyType::BOOL);
+        meta::cpp2::ColumnTypeDef typeDef;
+        typeDef.set_type(meta::cpp2::PropertyType::BOOL);
+        col.set_type(std::move(typeDef));
     }
     EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MIN, Value(true)).getBool());
     EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MAX, Value(true)).getBool());
@@ -94,7 +98,9 @@ TEST(IndexBoundValueTest, BoolTest) {
 TEST(IndexBoundValueTest, IntTest) {
     meta::cpp2::ColumnDef col;
     {
-        col.set_type(meta::cpp2::PropertyType::INT64);
+        meta::cpp2::ColumnTypeDef typeDef;
+        typeDef.set_type(meta::cpp2::PropertyType::INT64);
+        col.set_type(std::move(typeDef));
     }
     auto maxInt = std::numeric_limits<int64_t>::max();
     auto minInt = std::numeric_limits<int64_t>::min();
@@ -120,7 +126,9 @@ TEST(IndexBoundValueTest, IntTest) {
 TEST(IndexBoundValueTest, DoubleTest) {
     meta::cpp2::ColumnDef col;
     {
-        col.set_type(meta::cpp2::PropertyType::DOUBLE);
+        meta::cpp2::ColumnTypeDef typeDef;
+        typeDef.set_type(meta::cpp2::PropertyType::DOUBLE);
+        col.set_type(std::move(typeDef));
     }
     auto maxDouble = std::numeric_limits<double_t>::max();
     auto minDouble = std::numeric_limits<double_t>::min();
@@ -158,7 +166,9 @@ TEST(IndexBoundValueTest, DoubleTest) {
 TEST(IndexBoundValueTest, DateTest) {
     meta::cpp2::ColumnDef col;
     {
-        col.set_type(meta::cpp2::PropertyType::DATE);
+        meta::cpp2::ColumnTypeDef typeDef;
+        typeDef.set_type(meta::cpp2::PropertyType::DATE);
+        col.set_type(std::move(typeDef));
     }
     auto maxYear = std::numeric_limits<int16_t>::max();
     EXPECT_EQ(Date(maxYear, 12, 31),
@@ -182,7 +192,9 @@ TEST(IndexBoundValueTest, DateTest) {
 TEST(IndexBoundValueTest, DateTimeTest) {
     meta::cpp2::ColumnDef col;
     {
-        col.set_type(meta::cpp2::PropertyType::DATETIME);
+        meta::cpp2::ColumnTypeDef typeDef;
+        typeDef.set_type(meta::cpp2::PropertyType::DATETIME);
+        col.set_type(std::move(typeDef));
     }
     DateTime maxDT;
     {
@@ -193,7 +205,6 @@ TEST(IndexBoundValueTest, DateTimeTest) {
         maxDT.day = 31;
         maxDT.month = 12;
         maxDT.year = std::numeric_limits<int16_t>::max();
-        maxDT.timezone = std::numeric_limits<int32_t>::max();
     }
 
     DateTime minDT = DateTime();
@@ -211,7 +222,6 @@ TEST(IndexBoundValueTest, DateTimeTest) {
         actual.day = 31;
         actual.month = 12;
         actual.year = 2020;
-        actual.timezone = 1;
 
         expect.microsec = 1;
         expect.sec = 1;
@@ -220,7 +230,6 @@ TEST(IndexBoundValueTest, DateTimeTest) {
         expect.day = 1;
         expect.month = 1;
         expect.year = 2021;
-        expect.timezone = 1;
         EXPECT_EQ(expect,
                   OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(actual)).getDateTime());
     }
@@ -233,7 +242,6 @@ TEST(IndexBoundValueTest, DateTimeTest) {
         actual.day = 31;
         actual.month = 12;
         actual.year = 2020;
-        actual.timezone = 1;
 
         expect.microsec = 1;
         expect.sec = 35;
@@ -242,7 +250,6 @@ TEST(IndexBoundValueTest, DateTimeTest) {
         expect.day = 31;
         expect.month = 12;
         expect.year = 2020;
-        expect.timezone = 1;
         EXPECT_EQ(expect,
                   OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(actual)).getDateTime());
     }
@@ -259,7 +266,6 @@ TEST(IndexBoundValueTest, DateTimeTest) {
         actual.day = 31;
         actual.month = 12;
         actual.year = 2020;
-        actual.timezone = 1;
 
         expect.microsec = std::numeric_limits<int32_t>::max() - 1;
         expect.sec = 34;
@@ -268,7 +274,6 @@ TEST(IndexBoundValueTest, DateTimeTest) {
         expect.day = 31;
         expect.month = 12;
         expect.year = 2020;
-        expect.timezone = 1;
         EXPECT_EQ(expect,
                   OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(actual)).getDateTime());
     }

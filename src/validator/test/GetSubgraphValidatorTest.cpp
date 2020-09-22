@@ -134,6 +134,7 @@ TEST_F(GetSubgraphValidatorTest, Input) {
     {
         std::string query = "GET SUBGRAPH 0 STEPS FROM \"1\"";
         std::vector<PlanNode::Kind> expected = {
+            PK::kAggregate,
             PK::kGetVertices,
             PK::kStart,
         };
@@ -142,7 +143,38 @@ TEST_F(GetSubgraphValidatorTest, Input) {
     {
         std::string query = "GET SUBGRAPH 0 STEPS FROM \"1\", \"2\", \"3\"";
         std::vector<PlanNode::Kind> expected = {
+            PK::kAggregate,
             PK::kGetVertices,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query =
+            "GO FROM \"1\" OVER like YIELD like._src AS src | GET SUBGRAPH 0 STEPS FROM $-.src";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kAggregate,
+            PK::kGetVertices,
+            PK::kAggregate,
+            PK::kDedup,
+            PK::kProject,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart,
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query =
+            "$a = GO FROM \"1\" OVER like YIELD like._src AS src; GET SUBGRAPH 0 STEPS FROM $a.src";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kAggregate,
+            PK::kGetVertices,
+            PK::kAggregate,
+            PK::kDedup,
+            PK::kProject,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -165,14 +197,14 @@ TEST_F(GetSubgraphValidatorTest, RefNotExist) {
             "GO FROM \"1\" OVER like YIELD $$.person.age AS id | GET SUBGRAPH FROM $-.id";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `$-.id', the srcs should be type of string, but was`INT'");
+                  "SemanticError: `$-.id', the srcs should be type of FIXED_STRING, but was`INT'");
     }
     {
         std::string query =
             "$a = GO FROM \"1\" OVER like YIELD $$.person.age AS ID; GET SUBGRAPH FROM $a.ID";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `$a.ID', the srcs should be type of string, but was`INT'");
+                  "SemanticError: `$a.ID', the srcs should be type of FIXED_STRING, but was`INT'");
     }
     {
         std::string query =
