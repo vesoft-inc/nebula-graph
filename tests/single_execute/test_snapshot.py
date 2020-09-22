@@ -36,3 +36,12 @@ class TestSnapshot(NebulaTestSuite):
 
         self.check_column_names(resp, expected_col_names)
         self.check_empty_result(resp)
+
+        # insert data and get the data
+        self.use_nba()
+        resp = self.client.execute('INSERT VERTEX player(name, age) VALUES "Tom":("Tom", 10)')
+        self.check_resp_succeeded(resp)
+        resp = self.client.execute_query('FETCH PROP ON player "Tom"')
+        self.check_resp_succeeded(resp)
+        expected_value = [['Tom', 'Tom', 10]]
+        self.check_result(resp, expected_value)
