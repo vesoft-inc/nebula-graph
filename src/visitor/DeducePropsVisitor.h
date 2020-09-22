@@ -18,7 +18,53 @@ class Expression;
 namespace graph {
 
 class QueryContext;
-class ExpressionProps;
+
+class ExpressionProps final {
+public:
+    using TagIDPropsMap = std::unordered_map<TagID, std::set<folly::StringPiece>>;
+    using EdgePropMap = std::unordered_map<EdgeType, std::set<folly::StringPiece>>;
+    using VarPropMap = std::unordered_map<std::string, std::set<folly::StringPiece>>;
+
+    ExpressionProps() = default;
+    ~ExpressionProps() = default;
+
+    const std::set<folly::StringPiece>& inputProps() const {
+        return inputProps_;
+    }
+    const TagIDPropsMap& srcTagProps() const {
+        return srcTagProps_;
+    }
+    const TagIDPropsMap& dstTagProps() const {
+        return dstTagProps_;
+    }
+    const TagIDPropsMap& tagProps() const {
+        return tagProps_;
+    }
+    const EdgePropMap& edgeProps() const {
+        return edgeProps_;
+    }
+    const VarPropMap& varProps() const {
+        return varProps_;
+    }
+
+    void insertInputProp(folly::StringPiece prop);
+    void insertVarProp(const std::string& outputVar, folly::StringPiece prop);
+    void insertSrcTagProp(TagID tagId, folly::StringPiece prop);
+    void insertDstTagProp(TagID tagId, folly::StringPiece prop);
+    void insertEdgeProp(EdgeType edgeType, folly::StringPiece prop);
+    void insertTagProp(TagID tagId, folly::StringPiece prop);
+    bool isSubsetOfInput(const std::set<folly::StringPiece>& props);
+    bool isSubsetOfVar(const VarPropMap& props);
+    void unionProps(ExpressionProps exprProps);
+
+private:
+    std::set<folly::StringPiece> inputProps_;
+    VarPropMap varProps_;
+    TagIDPropsMap srcTagProps_;
+    TagIDPropsMap dstTagProps_;
+    EdgePropMap edgeProps_;
+    TagIDPropsMap tagProps_;
+};
 
 class DeducePropsVisitor : public ExprVisitorImpl {
 public:
