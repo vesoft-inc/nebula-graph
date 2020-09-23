@@ -745,7 +745,7 @@ private:
     std::vector<std::pair<size_t, OrderFactor::OrderType>>   factors_;
     int64_t     offset_{-1};
     int64_t     count_{-1};
-}
+};
 
 /**
  * Do Aggregation with the given set of records,
