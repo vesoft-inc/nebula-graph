@@ -25,6 +25,10 @@ public:
         return std::move(remainedExpr_);
     }
 
+    const std::string name() override {
+        return name_;
+    }
+
 private:
     using ExprVisitorImpl::visit;
 
@@ -49,6 +53,7 @@ private:
 
     bool canBePushed_{true};
     std::unique_ptr<Expression> remainedExpr_;
+    const std::string name_ = "Extract Filter Expr";
 };
 
 }   // namespace graph

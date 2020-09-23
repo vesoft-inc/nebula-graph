@@ -26,6 +26,10 @@ public:
         return std::move(exprs_);
     }
 
+    const std::string name() override {
+        return name_;
+    }
+
 private:
     using ExprVisitorImpl::visit;
 
@@ -59,6 +63,8 @@ private:
 
     const std::unordered_set<Expression::Kind>& exprKinds_;
     std::vector<const Expression*> exprs_;
+
+    const std::string name_ = "Collect All Expr";
 };
 
 }   // namespace graph

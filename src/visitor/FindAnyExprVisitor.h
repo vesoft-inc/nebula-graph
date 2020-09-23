@@ -28,6 +28,10 @@ public:
         return expr_;
     }
 
+    const std::string name() override {
+        return name_;
+    }
+
 private:
     using ExprVisitorImpl::visit;
 
@@ -63,6 +67,7 @@ private:
     bool found_{false};
     const Expression* expr_{nullptr};
     const std::unordered_set<Expression::Kind>& kinds_;
+    const std::string name_ = "Find Any Expr";
 };
 
 }   // namespace graph

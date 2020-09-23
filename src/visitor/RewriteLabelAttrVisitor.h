@@ -23,6 +23,10 @@ public:
         return true;
     }
 
+    const std::string name() override {
+        return name_;
+    }
+
 private:
     using ExprVisitorImpl::visit;
 
@@ -59,6 +63,8 @@ private:
     static bool isLabelAttrExpr(const Expression *expr);
 
     bool isTag_{false};
+
+    const std::string name_ = "Rewrite Label Attribute";
 };
 
 }   // namespace graph

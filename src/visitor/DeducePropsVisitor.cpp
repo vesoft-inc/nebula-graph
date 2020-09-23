@@ -122,11 +122,5 @@ void DeducePropsVisitor::visitEdgePropExpr(PropertyExpression *expr) {
     exprProps_->insertEdgeProp(status.value(), *expr->prop());
 }
 
-void DeducePropsVisitor::reportError(const Expression *expr) {
-    std::stringstream ss;
-    ss << "Not supported expression `" << expr->toString() << "' for type deduction.";
-    status_ = Status::SemanticError(ss.str());
-}
-
 }   // namespace graph
 }   // namespace nebula

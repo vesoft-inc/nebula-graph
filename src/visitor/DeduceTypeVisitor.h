@@ -29,12 +29,12 @@ public:
         return status_.ok();
     }
 
-    Status status() && {
-        return std::move(status_);
-    }
-
     Value::Type type() const {
         return type_;
+    }
+
+    const std::string name() override {
+        return name_;
     }
 
 private:
@@ -80,8 +80,8 @@ private:
     const ValidateContext *vctx_;
     const ColsDef &inputs_;
     GraphSpaceID space_;
-    Status status_;
     Value::Type type_;
+    const std::string name_ = "Deduce Type";
 };
 
 }   // namespace graph

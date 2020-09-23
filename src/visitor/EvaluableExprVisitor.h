@@ -18,6 +18,10 @@ public:
         return isEvaluable_;
     }
 
+    const std::string name() override {
+        return name_;
+    }
+
 private:
     using ExprVisitorImpl::visit;
 
@@ -90,6 +94,7 @@ private:
     }
 
     bool isEvaluable_{true};
+    const std::string name_ = "Evaluable Expr";
 };
 
 }   // namespace graph

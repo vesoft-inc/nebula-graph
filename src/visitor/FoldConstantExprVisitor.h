@@ -18,6 +18,10 @@ public:
         return canBeFolded_;
     }
 
+    const std::string name() override {
+        return name_;
+    }
+
     void visit(ConstantExpression *expr) override;
     void visit(UnaryExpression *expr) override;
     void visit(TypeCastingExpression *expr) override;
@@ -59,6 +63,7 @@ public:
 
 private:
     bool canBeFolded_{false};
+    const std::string name_ = "Fold Constant Expr";
 };
 
 }   // namespace graph

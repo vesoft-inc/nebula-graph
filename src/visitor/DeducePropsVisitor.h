@@ -28,8 +28,8 @@ public:
         return status_.ok();
     }
 
-    const Status& status() const {
-        return status_;
+    const std::string name() override {
+        return name_;
     }
 
 private:
@@ -55,12 +55,11 @@ private:
     void visit(EdgeExpression* expr) override;
 
     void visitEdgePropExpr(PropertyExpression* expr);
-    void reportError(const Expression* expr);
 
     QueryContext* qctx_{nullptr};
     GraphSpaceID space_;
     ExpressionProps* exprProps_{nullptr};
-    Status status_;
+    const std::string name_ = "Deduce Props";
 };
 
 }   // namespace graph
