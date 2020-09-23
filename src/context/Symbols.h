@@ -7,10 +7,11 @@
 #ifndef CONTEXT_SYMBOLS_H_
 #define CONTEXT_SYMBOLS_H_
 
-#include "planner/PlanNode.h"
 
 namespace nebula {
 namespace graph {
+
+class PlanNode;
 
 struct ColDef {
     ColDef(std::string n, Value::Type t) {
@@ -32,7 +33,7 @@ struct Variable {
     std::string name;
     Value::Type type{Value::Type::DATASET};
     // Valid if type is dataset.
-    ColsDef columns;
+    std::vector<std::string> colNames;
 };
 
 class SymbolTable final {
@@ -51,6 +52,15 @@ public:
 
     void addDependency(std::string varName, folly::StringPiece dependency) {
         dependencies_[varName].emplace_back(dependency);
+    }
+
+    Variable* findVar(std::string& varName) {
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return nullptr;
+        } else {
+            return var->second;
+        }
     }
 
 private:

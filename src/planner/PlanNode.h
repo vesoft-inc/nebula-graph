@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
+#include "context/Symbols.h"
 
 namespace nebula {
 namespace graph {
@@ -108,7 +109,7 @@ public:
         kConjunctPath,
     };
 
-    PlanNode(int64_t id, Kind kind);
+    PlanNode(int64_t id, Kind kind, SymbolTable* symTable);
 
     virtual ~PlanNode() = default;
 
@@ -127,24 +128,31 @@ public:
 
     void setOutputVar(std::string var) {
         DCHECK_EQ(1, outputVars_.size());
-        outputVars_[0] = (std::move(var));
+        outputVars_[0]->name = (std::move(var));
     }
 
     std::string outputVar(size_t index = 0) const {
         DCHECK_LT(index, outputVars_.size());
-        return outputVars_[index];
+        return outputVars_[index]->name;
     }
 
-    const std::vector<std::string>& outputVars() const {
+    Variable* outputVarPtr(size_t index = 0) const {
+        DCHECK_LT(index, outputVars_.size());
+        return outputVars_[index].get();
+    }
+
+    const std::vector<std::unique_ptr<Variable>>& outputVars() const {
         return outputVars_;
     }
 
     std::vector<std::string> colNames() const {
-        return colNames_;
+        DCHECK(!outputVars_.empty());
+        return outputVars_[0]->colNames;
     }
 
     const std::vector<std::string>& colNamesRef() const {
-        return colNames_;
+        DCHECK(!outputVars_.empty());
+        return outputVars_[0]->colNames;
     }
 
     void setId(int64_t id) {
@@ -152,11 +160,13 @@ public:
     }
 
     void setColNames(std::vector<std::string>&& cols) {
-        colNames_ = std::move(cols);
+        DCHECK(!outputVars_.empty());
+        outputVars_[0]->colNames = std::move(cols);
     }
 
     void setColNames(const std::vector<std::string>& cols) {
-        colNames_ = cols;
+        DCHECK(!outputVars_.empty());
+        outputVars_[0]->colNames = cols;
     }
 
     const PlanNode* dep(size_t index = 0) const {
@@ -184,11 +194,11 @@ protected:
 
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
+    SymbolTable*                             symTable_{nullptr};
     double                                   cost_{0.0};
-    std::vector<std::string>                 colNames_;
     std::vector<const PlanNode*>             dependencies_;
-    std::vector<std::string>                 inputVars_;
-    std::vector<std::string>                 outputVars_;
+    std::vector<Variable*>                   inputVars_;
+    std::vector<std::unique_ptr<Variable>>   outputVars_;
 };
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
@@ -204,8 +214,8 @@ public:
     }
 
 protected:
-    SingleDependencyNode(int64_t id, Kind kind, const PlanNode* dep)
-        : PlanNode(id, kind) {
+    SingleDependencyNode(int64_t id, Kind kind, const PlanNode* dep, SymbolTable* symTable)
+        : PlanNode(id, kind, symTable) {
         dependencies_.emplace_back(dep);
     }
 
@@ -216,23 +226,26 @@ class SingleInputNode : public SingleDependencyNode {
 public:
     void setInputVar(std::string inputVar) {
         DCHECK(!inputVars_.empty());
-        inputVars_[0] = std::move(inputVar);
+        auto* inputVarPtr = symTable_->findVar(inputVar);
+        DCHECK(inputVarPtr != nullptr);
+        inputVars_[0] = inputVarPtr;
     }
 
     const std::string& inputVar() const {
         DCHECK(!inputVars_.empty());
-        return inputVars_[0];
+        DCHECK(inputVars_[0] != nullptr);
+        return inputVars_[0]->name;
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
-    SingleInputNode(int64_t id, Kind kind, const PlanNode* dep)
-        : SingleDependencyNode(id, kind, dep) {
+    SingleInputNode(int64_t id, Kind kind, const PlanNode* dep, SymbolTable* symTable)
+        : SingleDependencyNode(id, kind, dep, symTable) {
         if (dep != nullptr) {
-            inputVars_.emplace_back(dep->outputVar());
+            inputVars_.emplace_back(dep->outputVarPtr());
         } else {
-            inputVars_.resize(1);
+            inputVars_.emplace_back(nullptr);
         }
     }
 };
@@ -248,11 +261,17 @@ public:
     }
 
     void setLeftVar(std::string leftVar) {
-        inputVars_[0] = std::move(leftVar);
+        DCHECK_GE(inputVars_.size(), 1);
+        auto* leftVarPtr = symTable_->findVar(leftVar);
+        DCHECK(leftVarPtr != nullptr);
+        inputVars_[0] = leftVarPtr;
     }
 
     void setRightVar(std::string rightVar) {
-        inputVars_[1] = std::move(rightVar);
+        DCHECK_EQ(inputVars_.size(), 2);
+        auto* rightVarPtr = symTable_->findVar(rightVar);
+        DCHECK(rightVarPtr != nullptr);
+        inputVars_[1] = rightVarPtr;
     }
 
     const PlanNode* left() const {
@@ -264,33 +283,24 @@ public:
     }
 
     const std::string& leftInputVar() const {
-        return inputVars_[0];
+        return inputVars_[0]->name;
     }
 
     const std::string& rightInputVar() const {
-        return inputVars_[1];
+        return inputVars_[1]->name;
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
-    BiInputNode(int64_t id, Kind kind, PlanNode* left, PlanNode* right)
-        : PlanNode(id, kind) {
-        if (left != nullptr) {
-            dependencies_.emplace_back(left);
-            inputVars_.emplace_back(left->outputVar());
-        } else {
-            dependencies_.emplace_back();
-            inputVars_.emplace_back();
-        }
-
-        if (right != nullptr) {
-            dependencies_.emplace_back(right);
-            inputVars_.emplace_back(right->outputVar());
-        } else {
-            dependencies_.emplace_back();
-            inputVars_.emplace_back();
-        }
+    BiInputNode(int64_t id, Kind kind, PlanNode* left, PlanNode* right, SymbolTable* symTable)
+        : PlanNode(id, kind, symTable) {
+        DCHECK(left != nullptr);
+        DCHECK(right != nullptr);
+        dependencies_.emplace_back(left);
+        dependencies_.emplace_back(right);
+        inputVars_.emplace_back(left->outputVarPtr());
+        inputVars_.emplace_back(right->outputVarPtr());
     }
 };
 

@@ -36,6 +36,7 @@ void QueryContext::init() {
     vctx_ = std::make_unique<ValidateContext>();
     ectx_ = std::make_unique<ExecutionContext>();
     idGen_ = std::make_unique<IdGenerator>(0);
+    symTable_ = std::make_unique<SymbolTable>();
 }
 
 void QueryContext::addProfilingData(int64_t planNodeId, cpp2::ProfilingStats&& profilingStats) {

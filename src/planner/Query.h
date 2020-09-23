@@ -78,16 +78,17 @@ protected:
             bool dedup,
             int64_t limit,
             std::string filter,
-            std::vector<storage::cpp2::OrderBy> orderBy)
-        : SingleInputNode(id, kind, input),
+            std::vector<storage::cpp2::OrderBy> orderBy,
+            SymbolTable* symTable)
+        : SingleInputNode(id, kind, input, symTable),
           space_(space),
           dedup_(dedup),
           limit_(limit),
           filter_(std::move(filter)),
           orderBy_(std::move(orderBy)) {}
 
-    Explore(int64_t id, Kind kind, PlanNode* input, GraphSpaceID space)
-        : SingleInputNode(id, kind, input), space_(space) {}
+    Explore(int64_t id, Kind kind, PlanNode* input, GraphSpaceID space, SymbolTable* symTable)
+        : SingleInputNode(id, kind, input, symTable), space_(space) {}
 
 protected:
     GraphSpaceID space_;
@@ -108,7 +109,8 @@ public:
     using Exprs = std::unique_ptr<std::vector<storage::cpp2::Expr>>;
 
     static GetNeighbors* make(QueryContext* qctx, PlanNode* input, GraphSpaceID space) {
-        return qctx->objPool()->add(new GetNeighbors(qctx->genId(), input, space));
+        return qctx->objPool()->add(
+            new GetNeighbors(qctx->genId(), input, space, qctx->symTable()));
     }
 
     static GetNeighbors* make(QueryContext* qctx,
@@ -211,8 +213,8 @@ public:
     }
 
 private:
-    GetNeighbors(int64_t id, PlanNode* input, GraphSpaceID space)
-        : Explore(id, Kind::kGetNeighbors, input, space) {}
+    GetNeighbors(int64_t id, PlanNode* input, GraphSpaceID space, SymbolTable* symTable)
+        : Explore(id, Kind::kGetNeighbors, input, space, symTable) {}
 
 private:
     Expression*                                  src_{nullptr};
@@ -250,7 +252,8 @@ public:
                 dedup,
                 std::move(orderBy),
                 limit,
-                std::move(filter)));
+                std::move(filter),
+                qctx->symTable()));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -277,7 +280,8 @@ private:
                 bool dedup,
                 std::vector<storage::cpp2::OrderBy> orderBy,
                 int64_t limit,
-                std::string filter)
+                std::string filter,
+                SymbolTable* symTable)
         : Explore(id,
                   Kind::kGetVertices,
                   input,
@@ -285,7 +289,8 @@ private:
                   dedup,
                   limit,
                   std::move(filter),
-                  std::move(orderBy)),
+                  std::move(orderBy),
+                  symTable),
           src_(src),
           props_(std::move(props)),
           exprs_(std::move(exprs)) { }
@@ -330,7 +335,8 @@ public:
                 dedup,
                 limit,
                 std::move(orderBy),
-                std::move(filter)));
+                std::move(filter),
+                qctx->symTable()));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -372,7 +378,8 @@ private:
              bool dedup,
              int64_t limit,
              std::vector<storage::cpp2::OrderBy> orderBy,
-             std::string filter)
+             std::string filter,
+             SymbolTable* symTable)
         : Explore(id,
                   Kind::kGetEdges,
                   input,
@@ -380,7 +387,8 @@ private:
                   dedup,
                   limit,
                   std::move(filter),
-                  std::move(orderBy)),
+                  std::move(orderBy),
+                  symTable),
           src_(src),
           type_(type),
           ranking_(ranking),
@@ -429,7 +437,8 @@ public:
                                                   dedup,
                                                   std::move(orderBy),
                                                   limit,
-                                                  std::move(filter)));
+                                                  std::move(filter),
+                                                  qctx->symTable()));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -479,7 +488,8 @@ private:
               bool dedup,
               std::vector<storage::cpp2::OrderBy> orderBy,
               int64_t limit,
-              std::string filter)
+              std::string filter,
+              SymbolTable* symTable)
     : Explore(id,
               Kind::kIndexScan,
               input,
@@ -487,7 +497,8 @@ private:
               dedup,
               limit,
               std::move(filter),
-              std::move(orderBy)) {
+              std::move(orderBy),
+              symTable) {
         contexts_ = std::move(contexts);
         returnCols_ = std::move(returnCols);
         isEdge_ = isEdge;
@@ -509,7 +520,7 @@ public:
     static Filter* make(QueryContext* qctx,
                         PlanNode* input,
                         Expression* condition) {
-        return qctx->objPool()->add(new Filter(qctx->genId(), input, condition));
+        return qctx->objPool()->add(new Filter(qctx->genId(), input, condition, qctx->symTable()));
     }
 
     Expression* condition() const {
@@ -519,8 +530,8 @@ public:
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
-    Filter(int64_t id, PlanNode* input, Expression* condition)
-      : SingleInputNode(id, Kind::kFilter, input) {
+    Filter(int64_t id, PlanNode* input, Expression* condition, SymbolTable* symTable)
+      : SingleInputNode(id, Kind::kFilter, input, symTable) {
         condition_ = condition;
     }
 
@@ -536,8 +547,8 @@ private:
  */
 class SetOp : public BiInputNode {
 protected:
-    SetOp(int64_t id, Kind kind, PlanNode* left, PlanNode* right)
-        : BiInputNode(id, kind, left, right) {
+    SetOp(int64_t id, Kind kind, PlanNode* left, PlanNode* right, SymbolTable* symTable)
+        : BiInputNode(id, kind, left, right, symTable) {
         DCHECK(kind == Kind::kUnion || kind == Kind::kIntersect || kind == Kind::kMinus);
     }
 };
@@ -548,12 +559,12 @@ protected:
 class Union final : public SetOp {
 public:
     static Union* make(QueryContext *qctx, PlanNode* left, PlanNode* right) {
-        return qctx->objPool()->add(new Union(qctx->genId(), left, right));
+        return qctx->objPool()->add(new Union(qctx->genId(), left, right, qctx->symTable()));
     }
 
 private:
-    Union(int64_t id, PlanNode* left, PlanNode* right)
-        : SetOp(id, Kind::kUnion, left, right) {}
+    Union(int64_t id, PlanNode* left, PlanNode* right, SymbolTable* symTable)
+        : SetOp(id, Kind::kUnion, left, right, symTable) {}
 };
 
 /**
@@ -562,12 +573,12 @@ private:
 class Intersect final : public SetOp {
 public:
     static Intersect* make(QueryContext* qctx, PlanNode* left, PlanNode* right) {
-        return qctx->objPool()->add(new Intersect(qctx->genId(), left, right));
+        return qctx->objPool()->add(new Intersect(qctx->genId(), left, right, qctx->symTable()));
     }
 
 private:
-    Intersect(int64_t id, PlanNode* left, PlanNode* right)
-        : SetOp(id, Kind::kIntersect, left, right) {}
+    Intersect(int64_t id, PlanNode* left, PlanNode* right, SymbolTable* symTable)
+        : SetOp(id, Kind::kIntersect, left, right, symTable) {}
 };
 
 /**
@@ -576,12 +587,12 @@ private:
 class Minus final : public SetOp {
 public:
     static Minus* make(QueryContext* qctx, PlanNode* left, PlanNode* right) {
-        return qctx->objPool()->add(new Minus(qctx->genId(), left, right));
+        return qctx->objPool()->add(new Minus(qctx->genId(), left, right, qctx->symTable()));
     }
 
 private:
-    Minus(int64_t id, PlanNode* left, PlanNode* right)
-        : SetOp(id, Kind::kMinus, left, right) {}
+    Minus(int64_t id, PlanNode* left, PlanNode* right, SymbolTable* symTable)
+        : SetOp(id, Kind::kMinus, left, right, symTable) {}
 };
 
 /**
@@ -592,7 +603,7 @@ public:
     static Project* make(QueryContext* qctx,
                          PlanNode* input,
                          YieldColumns* cols) {
-        return qctx->objPool()->add(new Project(qctx->genId(), input, cols));
+        return qctx->objPool()->add(new Project(qctx->genId(), input, cols, qctx->symTable()));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -602,8 +613,8 @@ public:
     }
 
 private:
-    Project(int64_t id, PlanNode* input, YieldColumns* cols)
-      : SingleInputNode(id, Kind::kProject, input), cols_(cols) { }
+    Project(int64_t id, PlanNode* input, YieldColumns* cols, SymbolTable* symTable)
+      : SingleInputNode(id, Kind::kProject, input, symTable), cols_(cols) { }
 
 private:
     YieldColumns*               cols_{nullptr};
@@ -617,7 +628,8 @@ public:
     static Sort* make(QueryContext* qctx,
                       PlanNode* input,
                       std::vector<std::pair<size_t, OrderFactor::OrderType>> factors) {
-        return qctx->objPool()->add(new Sort(qctx->genId(), input, std::move(factors)));
+        return qctx->objPool()->add(
+            new Sort(qctx->genId(), input, std::move(factors), qctx->symTable()));
     }
 
     const std::vector<std::pair<size_t, OrderFactor::OrderType>>& factors() const {
@@ -630,7 +642,8 @@ private:
     Sort(int64_t id,
          PlanNode* input,
          std::vector<std::pair<size_t, OrderFactor::OrderType>> factors)
-        : SingleInputNode(id, Kind::kSort, input) {
+         SymbolTable* symTable)
+        : SingleInputNode(id, Kind::kSort, input, symTable) {
         factors_ = std::move(factors);
     }
 
@@ -657,11 +670,9 @@ private:
  */
 class Limit final : public SingleInputNode {
 public:
-    static Limit* make(QueryContext* qctx,
-                       PlanNode* input,
-                       int64_t offset,
-                       int64_t count) {
-        return qctx->objPool()->add(new Limit(qctx->genId(), input, offset, count));
+    static Limit* make(QueryContext* qctx, PlanNode* input, int64_t offset, int64_t count) {
+        return qctx->objPool()->add(
+            new Limit(qctx->genId(), input, offset, count, qctx->symTable()));
     }
 
     int64_t offset() const {
@@ -675,8 +686,8 @@ public:
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
-    Limit(int64_t id, PlanNode* input, int64_t offset, int64_t count)
-        : SingleInputNode(id, Kind::kLimit, input) {
+    Limit(int64_t id, PlanNode* input, int64_t offset, int64_t count, SymbolTable* symTable)
+        : SingleInputNode(id, Kind::kLimit, input, symTable) {
         offset_ = offset;
         count_ = count;
     }
@@ -767,8 +778,8 @@ public:
                            PlanNode* input,
                            std::vector<Expression*>&& groupKeys,
                            std::vector<GroupItem>&& groupItems) {
-        return qctx->objPool()->add(
-            new Aggregate(qctx->genId(), input, std::move(groupKeys), std::move(groupItems)));
+        return qctx->objPool()->add(new Aggregate(
+            qctx->genId(), input, std::move(groupKeys), std::move(groupItems), qctx->symTable()));
     }
 
     const std::vector<Expression*>& groupKeys() const {
@@ -785,8 +796,9 @@ private:
     Aggregate(int64_t id,
               PlanNode* input,
               std::vector<Expression*>&& groupKeys,
-              std::vector<GroupItem>&& groupItems)
-        : SingleInputNode(id, Kind::kAggregate, input) {
+              std::vector<GroupItem>&& groupItems,
+              SymbolTable* symTable)
+        : SingleInputNode(id, Kind::kAggregate, input, symTable) {
         groupKeys_ = std::move(groupKeys);
         groupItems_ = std::move(groupItems);
     }
@@ -798,10 +810,9 @@ private:
 
 class SwitchSpace final : public SingleInputNode {
 public:
-    static SwitchSpace* make(QueryContext* qctx,
-                             PlanNode* input,
-                             std::string spaceName) {
-        return qctx->objPool()->add(new SwitchSpace(qctx->genId(), input, spaceName));
+    static SwitchSpace* make(QueryContext* qctx, PlanNode* input, std::string spaceName) {
+        return qctx->objPool()->add(
+            new SwitchSpace(qctx->genId(), input, spaceName, qctx->symTable()));
     }
 
     const std::string& getSpaceName() const {
@@ -813,8 +824,9 @@ public:
 private:
     SwitchSpace(int64_t id,
                 PlanNode* input,
-                std::string spaceName)
-        : SingleInputNode(id, Kind::kSwitchSpace, input) {
+                std::string spaceName,
+                SymbolTable* symTable)
+        : SingleInputNode(id, Kind::kSwitchSpace, input, symTable) {
         spaceName_ = std::move(spaceName);
     }
 
@@ -826,13 +838,14 @@ class Dedup final : public SingleInputNode {
 public:
     static Dedup* make(QueryContext* qctx,
                        PlanNode* input) {
-        return qctx->objPool()->add(new Dedup(qctx->genId(), input));
+        return qctx->objPool()->add(new Dedup(qctx->genId(), input, qctx->symTable()));
     }
 
 private:
     Dedup(int64_t id,
-          PlanNode* input)
-        : SingleInputNode(id, Kind::kDedup, input) {
+          PlanNode* input,
+          SymbolTable* symTable)
+        : SingleInputNode(id, Kind::kDedup, input, symTable) {
     }
 };
 
@@ -850,7 +863,7 @@ public:
                              CollectKind collectKind,
                              std::vector<std::string> vars) {
         return qctx->objPool()->add(
-            new DataCollect(qctx->genId(), input, collectKind, std::move(vars)));
+            new DataCollect(qctx->genId(), input, collectKind, std::move(vars), qctx->symTable()));
     }
 
     void setMToN(StepClause::MToN* mToN) {
@@ -865,8 +878,12 @@ public:
         return collectKind_;
     }
 
-    const std::vector<std::string>& vars() const {
-        return inputVars_;
+    std::vector<std::string> vars() const {
+        std::vector<std::string> vars(inputVars_.size());
+        std::transform(inputVars_.begin(), inputVars_.end(), vars.begin(), [](auto& var) {
+            return var->name;
+        });
+        return vars;
     }
 
     StepClause::MToN* mToN() const {
@@ -883,10 +900,16 @@ private:
     DataCollect(int64_t id,
                 PlanNode* input,
                 CollectKind collectKind,
-                std::vector<std::string> vars)
-        : SingleDependencyNode(id, Kind::kDataCollect, input) {
+                std::vector<std::string> vars,
+                SymbolTable* symTable)
+        : SingleDependencyNode(id, Kind::kDataCollect, input, symTable) {
         collectKind_ = collectKind;
-        inputVars_ = std::move(vars);
+        inputVars_.clear();
+        for (auto& var : vars) {
+            auto* inputVarPtr = symTable_->findVar(var);
+            DCHECK(inputVarPtr != nullptr);
+            inputVars_.emplace_back(inputVarPtr);
+        }
     }
 
 private:
@@ -912,7 +935,8 @@ public:
                                                  std::move(leftVar),
                                                  std::move(rightVar),
                                                  std::move(hashKeys),
-                                                 std::move(probeKeys)));
+                                                 std::move(probeKeys),
+                                                 qctx->symTable()));
     }
 
     const std::pair<std::string, int64_t>& leftVar() const {
@@ -937,8 +961,10 @@ private:
     DataJoin(int64_t id, PlanNode* input,
              std::pair<std::string, int64_t> leftVar,
              std::pair<std::string, int64_t> rightVar,
-             std::vector<Expression*> hashKeys, std::vector<Expression*> probeKeys)
-        : SingleDependencyNode(id, Kind::kDataJoin, input),
+             std::vector<Expression*> hashKeys,
+             std::vector<Expression*> probeKeys,
+             SymbolTable* symTable)
+        : SingleDependencyNode(id, Kind::kDataJoin, input, symTable),
         leftVar_(std::move(leftVar)),
         rightVar_(std::move(rightVar)),
         hashKeys_(std::move(hashKeys)),
