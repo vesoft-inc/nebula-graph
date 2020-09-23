@@ -123,11 +123,11 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_BOOL KW_INT8 KW_INT16 KW_INT32 KW_INT64 KW_INT KW_FLOAT KW_DOUBLE
 %token KW_STRING KW_FIXED_STRING KW_TIMESTAMP KW_DATE KW_DATETIME
 %token KW_GO KW_AS KW_TO KW_USE KW_SET KW_FROM KW_WHERE KW_ALTER
-%token KW_MATCH KW_INSERT KW_VALUES KW_YIELD KW_RETURN KW_CREATE KW_VERTEX KW_OFFLINE
+%token KW_MATCH KW_INSERT KW_VALUES KW_YIELD KW_RETURN KW_CREATE KW_VERTEX
 %token KW_EDGE KW_EDGES KW_STEPS KW_OVER KW_UPTO KW_REVERSELY KW_SPACE KW_DELETE KW_FIND KW_REBUILD
 %token KW_TAG KW_TAGS KW_UNION KW_INTERSECT KW_MINUS
 %token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOSTS KW_PART KW_PARTS KW_ADD
-%token KW_PARTITION_NUM KW_REPLICA_FACTOR KW_CHARSET KW_COLLATE KW_COLLATION KW_VID_SIZE
+%token KW_PARTITION_NUM KW_REPLICA_FACTOR KW_CHARSET KW_COLLATE KW_COLLATION KW_VID_TYPE
 %token KW_DROP KW_REMOVE KW_SPACES KW_INGEST KW_INDEX KW_INDEXES
 %token KW_IF KW_NOT KW_EXISTS KW_WITH
 %token KW_COUNT KW_COUNT_DISTINCT KW_SUM KW_AVG KW_MAX KW_MIN KW_STD KW_BIT_AND KW_BIT_OR KW_BIT_XOR
@@ -345,7 +345,6 @@ unreserved_keyword
     | KW_JOB                { $$ = new std::string("job"); }
     | KW_JOBS               { $$ = new std::string("jobs"); }
     | KW_BIDIRECT           { $$ = new std::string("bidirect"); }
-    | KW_OFFLINE            { $$ = new std::string("offline"); }
     | KW_FORCE              { $$ = new std::string("force"); }
     | KW_STATUS             { $$ = new std::string("status"); }
     | KW_PART               { $$ = new std::string("part"); }
@@ -371,6 +370,7 @@ unreserved_keyword
     | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
     | KW_NOT_CONTAINS           { $$ = new std::string("contains"); }
     | KW_CONTAINS           { $$ = new std::string("contains"); }
+    | KW_VID_TYPE           { $$ = new std::string("vid_type"); }
     ;
 
 agg_function
@@ -754,7 +754,6 @@ vid_list
     }
     ;
 
-/* The difference from 1.0 is that 2.0 only supports vid of type STRING */
 vid
     : function_call_expression {
         $$ = $1;
@@ -765,6 +764,9 @@ vid
     | STRING {
         $$ = new ConstantExpression(*$1);
         delete $1;
+    }
+    | legal_integer {
+        $$ = new ConstantExpression($1);
     }
     ;
 
@@ -1466,17 +1468,11 @@ rebuild_tag_index_sentence
     : KW_REBUILD KW_TAG KW_INDEX name_label {
         $$ = new RebuildTagIndexSentence($4, false);
     }
-    | KW_REBUILD KW_TAG KW_INDEX name_label KW_OFFLINE {
-        $$ = new RebuildTagIndexSentence($4, true);
-    }
     ;
 
 rebuild_edge_index_sentence
     : KW_REBUILD KW_EDGE KW_INDEX name_label {
         $$ = new RebuildEdgeIndexSentence($4, false);
-    }
-    | KW_REBUILD KW_EDGE KW_INDEX name_label KW_OFFLINE {
-        $$ = new RebuildEdgeIndexSentence($4, true);
     }
     ;
 
@@ -1884,10 +1880,10 @@ show_sentence
         $$ = new ShowCreateEdgeIndexSentence($5);
     }
     | KW_SHOW KW_TAG KW_INDEX KW_STATUS {
-        $$ = new ShowTagIndexStatusSentence();
+        $$ = new ShowTagIndexesSentence();
     }
     | KW_SHOW KW_EDGE KW_INDEX KW_STATUS {
-        $$ = new ShowEdgeIndexStatusSentence();
+        $$ = new ShowEdgeIndexesSentence();
     }
     | KW_SHOW KW_SNAPSHOTS {
         $$ = new ShowSnapshotsSentence();
@@ -1981,9 +1977,6 @@ space_opt_item
     | KW_REPLICA_FACTOR ASSIGN legal_integer {
         $$ = new SpaceOptItem(SpaceOptItem::REPLICA_FACTOR, $3);
     }
-    | KW_VID_SIZE ASSIGN legal_integer {
-        $$ = new SpaceOptItem(SpaceOptItem::VID_SIZE, $3);
-    }
     | KW_CHARSET ASSIGN name_label {
         // Currently support utf8, it is an alias for utf8mb4
         $$ = new SpaceOptItem(SpaceOptItem::CHARSET, *$3);
@@ -1992,6 +1985,10 @@ space_opt_item
     | KW_COLLATE ASSIGN name_label {
         // Currently support utf8_bin, it is an alias for utf8mb4_bin
         $$ = new SpaceOptItem(SpaceOptItem::COLLATE, *$3);
+        delete $3;
+    }
+    | KW_VID_TYPE ASSIGN type_spec {
+        $$ = new SpaceOptItem(SpaceOptItem::VID_TYPE, *$3);
         delete $3;
     }
     // TODO(YT) Create Spaces for different engines

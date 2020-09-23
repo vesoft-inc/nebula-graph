@@ -43,9 +43,9 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                                     "Name",
                                     "Partition Number",
                                     "Replica Factor",
-                                    "Vid Size",
                                     "Charset",
-                                    "Collate"};
+                                    "Collate",
+                                    "Vid Type"};
                 auto &spaceItem = resp.value();
                 auto &properties = spaceItem.get_properties();
                 Row row;
@@ -53,9 +53,11 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 row.values.emplace_back(properties.get_space_name());
                 row.values.emplace_back(properties.get_partition_num());
                 row.values.emplace_back(properties.get_replica_factor());
-                row.values.emplace_back(properties.get_vid_size());
                 row.values.emplace_back(properties.get_charset_name());
                 row.values.emplace_back(properties.get_collate_name());
+                auto &vid = properties.get_vid_type();
+                auto vidSize = vid.__isset.type_length ? *vid.get_type_length() : 0;
+                row.values.emplace_back(ColumnTypeDef(vid.get_type(), vidSize).toString());
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
                                   .value(Value(std::move(dataSet)))
@@ -76,8 +78,11 @@ folly::Future<Status> DropSpaceExecutor::execute() {
                                << "' failed: " << resp.status();
                     return resp.status();
                 }
-                if (dsNode->getSpaceName() == qctx()->rctx()->session()->spaceName()) {
-                    qctx()->rctx()->session()->setSpace("", -1);
+                if (dsNode->getSpaceName() == qctx()->rctx()->session()->space().name) {
+                    SpaceInfo spaceInfo;
+                    spaceInfo.name = "";
+                    spaceInfo.id = -1;
+                    qctx()->rctx()->session()->setSpace(std::move(spaceInfo));
                 }
                 return Status::OK();
             });
@@ -129,15 +134,17 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                 Row row;
                 row.values.emplace_back(properties.get_space_name());
                 auto fmt = "CREATE SPACE `%s` (partition_num = %d, replica_factor = %d, "
-                           "vid_size = %d, charset = %s, collate = %s)";
+                           "charset = %s, collate = %s, vid_type = %s)";
+                auto &vid = properties.get_vid_type();
+                auto vidSize = vid.__isset.type_length ? *vid.get_type_length() : 0;
                 row.values.emplace_back(
-                        folly::stringPrintf(fmt,
-                                            properties.get_space_name().c_str(),
-                                            properties.get_partition_num(),
-                                            properties.get_replica_factor(),
-                                            properties.get_vid_size(),
-                                            properties.get_charset_name().c_str(),
-                                            properties.get_collate_name().c_str()));
+                    folly::stringPrintf(fmt,
+                                        properties.get_space_name().c_str(),
+                                        properties.get_partition_num(),
+                                        properties.get_replica_factor(),
+                                        properties.get_charset_name().c_str(),
+                                        properties.get_collate_name().c_str(),
+                                        ColumnTypeDef(vid.get_type(), vidSize).toString().c_str()));
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
                                   .value(Value(std::move(dataSet)))

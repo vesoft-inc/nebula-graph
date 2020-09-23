@@ -17,11 +17,11 @@ folly::Future<Status> CreateEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *ceNode = asNode<CreateEdge>(node());
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->createEdgeSchema(spaceId,
             ceNode->getName(), ceNode->getSchema(), ceNode->getIfNotExists())
             .via(runner())
-            .then([ceNode, spaceId](StatusOr<bool> resp) {
+            .then([ceNode, spaceId](StatusOr<EdgeType> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
                                << ", Create edge `" << ceNode->getName()
@@ -37,7 +37,7 @@ folly::Future<Status> DescEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *deNode = asNode<DescEdge>(node());
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->getEdgeSchema(spaceId, deNode->getName())
             .via(runner())
             .then([this, deNode, spaceId](StatusOr<meta::cpp2::Schema> resp) {
@@ -64,7 +64,7 @@ folly::Future<Status> DropEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *deNode = asNode<DropEdge>(node());
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->dropEdgeSchema(spaceId,
                                                    deNode->getName(),
                                                    deNode->getIfExists())
@@ -83,7 +83,7 @@ folly::Future<Status> DropEdgeExecutor::execute() {
 folly::Future<Status> ShowEdgesExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->listEdgeSchemas(spaceId).via(runner()).then(
         [this, spaceId](StatusOr<std::vector<meta::cpp2::EdgeItem>> resp) {
             if (!resp.ok()) {
@@ -115,7 +115,7 @@ folly::Future<Status> ShowCreateEdgeExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *sceNode = asNode<ShowCreateEdge>(node());
-    auto spaceId = qctx()->rctx()->session()->space();
+    auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()
         ->getMetaClient()
         ->getEdgeSchema(spaceId, sceNode->getName())
@@ -148,7 +148,7 @@ folly::Future<Status> AlterEdgeExecutor::execute() {
                                                     aeNode->getSchemaItems(),
                                                     aeNode->getSchemaProp())
             .via(runner())
-            .then([this, aeNode](StatusOr<EdgeType> resp) {
+            .then([this, aeNode](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << aeNode->space()
                                << ", Alter edge `" << aeNode->getName()

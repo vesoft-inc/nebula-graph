@@ -89,7 +89,7 @@ protected:
 
     bool evaluableExpr(const Expression* expr) const;
 
-    static Status checkPropNonexistOrDuplicate(const ColsDef& cols,
+    static StatusOr<size_t> checkPropNonexistOrDuplicate(const ColsDef& cols,
                                                folly::StringPiece prop,
                                                const std::string& validator);
 
@@ -109,7 +109,7 @@ protected:
     StatusOr<std::string> checkRef(const Expression *ref, const Value::Type type) const;
 
 protected:
-    SpaceDescription                space_;
+    SpaceInfo                       space_;
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
     ValidateContext*                vctx_{nullptr};

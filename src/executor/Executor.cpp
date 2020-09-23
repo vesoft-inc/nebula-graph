@@ -40,6 +40,8 @@
 #include "executor/logic/StartExecutor.h"
 #include "executor/maintain/EdgeExecutor.h"
 #include "executor/maintain/TagExecutor.h"
+#include "executor/maintain/EdgeIndexExecutor.h"
+#include "executor/maintain/TagIndexExecutor.h"
 #include "executor/mutate/DeleteExecutor.h"
 #include "executor/mutate/InsertExecutor.h"
 #include "executor/mutate/UpdateExecutor.h"
@@ -57,6 +59,7 @@
 #include "executor/query/MinusExecutor.h"
 #include "executor/query/ProjectExecutor.h"
 #include "executor/query/SortExecutor.h"
+#include "executor/query/TopNExecutor.h"
 #include "executor/query/UnionExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Logic.h"
@@ -142,6 +145,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kSort: {
             return pool->add(new SortExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kTopN: {
+            return pool->add(new TopNExecutor(node, qctx));
         }
         case PlanNode::Kind::kFilter: {
             return pool->add(new FilterExecutor(node, qctx));
@@ -238,6 +244,30 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kShowCreateEdge: {
             return pool->add(new ShowCreateEdgeExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kCreateTagIndex: {
+            return pool->add(new CreateTagIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kCreateEdgeIndex: {
+            return pool->add(new CreateEdgeIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDropTagIndex: {
+            return pool->add(new DropTagIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDropEdgeIndex: {
+            return pool->add(new DropEdgeIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDescTagIndex: {
+            return pool->add(new DescTagIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDescEdgeIndex: {
+            return pool->add(new DescEdgeIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kRebuildTagIndex: {
+            return pool->add(new RebuildTagIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kRebuildEdgeIndex: {
+            return pool->add(new RebuildEdgeIndexExecutor(node, qctx));
         }
         case PlanNode::Kind::kInsertVertices: {
             return pool->add(new InsertVerticesExecutor(node, qctx));

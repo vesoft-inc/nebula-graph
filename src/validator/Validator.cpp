@@ -164,22 +164,32 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<ShowConfigsValidator>(sentence, context);
         case Sentence::Kind::kFindPath:
             return std::make_unique<FindPathValidator>(sentence, context);
+        case Sentence::Kind::kCreateTagIndex:
+            return std::make_unique<CreateTagIndexValidator>(sentence, context);
+        case Sentence::Kind::kShowCreateTagIndex:
+            return std::make_unique<ShowCreateTagIndexValidator>(sentence, context);
+        case Sentence::Kind::kDescribeTagIndex:
+            return std::make_unique<DescribeTagIndexValidator>(sentence, context);
+        case Sentence::Kind::kShowTagIndexes:
+            return std::make_unique<ShowTagIndexesValidator>(sentence, context);
+        case Sentence::Kind::kRebuildTagIndex:
+            return std::make_unique<RebuildTagIndexValidator>(sentence, context);
+        case Sentence::Kind::kDropTagIndex:
+            return std::make_unique<DropTagIndexValidator>(sentence, context);
+        case Sentence::Kind::kCreateEdgeIndex:
+            return std::make_unique<CreateEdgeIndexValidator>(sentence, context);
+        case Sentence::Kind::kShowCreateEdgeIndex:
+            return std::make_unique<ShowCreateEdgeIndexValidator>(sentence, context);
+        case Sentence::Kind::kDescribeEdgeIndex:
+            return std::make_unique<DescribeEdgeIndexValidator>(sentence, context);
+        case Sentence::Kind::kShowEdgeIndexes:
+            return std::make_unique<ShowEdgeIndexesValidator>(sentence, context);
+        case Sentence::Kind::kRebuildEdgeIndex:
+            return std::make_unique<RebuildEdgeIndexValidator>(sentence, context);
+        case Sentence::Kind::kDropEdgeIndex:
+            return std::make_unique<DropEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kMatch:
         case Sentence::Kind::kUnknown:
-        case Sentence::Kind::kCreateTagIndex:
-        case Sentence::Kind::kShowCreateTagIndex:
-        case Sentence::Kind::kShowTagIndexStatus:
-        case Sentence::Kind::kDescribeTagIndex:
-        case Sentence::Kind::kShowTagIndexes:
-        case Sentence::Kind::kRebuildTagIndex:
-        case Sentence::Kind::kDropTagIndex:
-        case Sentence::Kind::kCreateEdgeIndex:
-        case Sentence::Kind::kShowCreateEdgeIndex:
-        case Sentence::Kind::kShowEdgeIndexStatus:
-        case Sentence::Kind::kDescribeEdgeIndex:
-        case Sentence::Kind::kShowEdgeIndexes:
-        case Sentence::Kind::kRebuildEdgeIndex:
-        case Sentence::Kind::kDropEdgeIndex:
         case Sentence::Kind::kLookup:
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kIngest:
@@ -199,8 +209,9 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
 
     // Check if space chosen from session. if chosen, add it to context.
     auto session = qctx->rctx()->session();
-    if (session->space() > -1) {
-        qctx->vctx()->switchToSpace(session->spaceName(), session->space());
+    if (session->space().id > kInvalidSpaceID) {
+        auto spaceInfo = session->space();
+        qctx->vctx()->switchToSpace(std::move(spaceInfo));
     }
 
     auto validator = makeValidator(sentence, qctx);
@@ -247,6 +258,8 @@ Status Validator::validate() {
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
+        VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name
+                << " id: " << space_.id;
     }
 
     auto status = validateImpl();
@@ -306,7 +319,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 // static
-Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
+StatusOr<size_t> Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
                                                folly::StringPiece prop,
                                                const std::string& validator) {
     auto eq = [&](const ColDef& col) { return col.first == prop.str(); };
@@ -316,13 +329,14 @@ Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
             "%s: prop `%s' not exists", validator.c_str(), prop.str().c_str());
     }
 
+    size_t colIdx = std::distance(cols.cbegin(), iter);
     iter = std::find_if(iter + 1, cols.cend(), eq);
     if (iter != cols.cend()) {
         return Status::SemanticError(
             "%s: duplicate prop `%s'", validator.c_str(), prop.str().c_str());
     }
 
-    return Status::OK();
+    return colIdx;
 }
 
 StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
