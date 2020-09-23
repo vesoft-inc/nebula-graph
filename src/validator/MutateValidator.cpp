@@ -585,8 +585,8 @@ Status UpdateValidator::getUpdateProps() {
             LOG(ERROR) << "valueExpr is nullptr";
             return Status::SyntaxError("Empty update item field value.");
         }
-        auto encodeStr = valueExpr->encode();
-        auto copyValueExpr = Expression::decode(encodeStr);
+        std::string encodeStr;
+        auto copyValueExpr = valueExpr->clone();
         NG_LOG_AND_RETURN_IF_ERROR(checkAndResetSymExpr(copyValueExpr.get(), *symName, encodeStr));
         updatedProp.set_value(std::move(encodeStr));
         updatedProp.set_name(fieldName);
