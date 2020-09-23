@@ -730,6 +730,7 @@ private:
     std::vector<std::pair<std::string, std::string>> factorsString() const {
         std::vector<std::pair<std::string, std::string>> result;
         result.resize(factors_.size());
+        auto cols = colNames();
         auto get = [&cols](const std::pair<size_t, OrderFactor::OrderType> &factor) {
             auto colName = cols[factor.first];
             auto order = factor.second == OrderFactor::OrderType::ASCEND ? "ASCEND" : "DESCEND";
@@ -742,6 +743,9 @@ private:
 
 private:
     std::vector<std::pair<size_t, OrderFactor::OrderType>>   factors_;
+    int64_t     offset_{-1};
+    int64_t     count_{-1};
+}
 
 /**
  * Do Aggregation with the given set of records,

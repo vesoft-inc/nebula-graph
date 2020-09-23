@@ -101,7 +101,7 @@ class TestOptimizer(NebulaTestSuite):
             ["Start", []]
         ]
         self.check_exec_plan(resp, expected_plan)
-        
+
 
     def test_TopNRule(self):
         resp = self.execute_query('''
