@@ -3,27 +3,17 @@
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
-#ifndef VISITOR_EXTRACTFILTEREXPRVISITOR_H_
-#define VISITOR_EXTRACTFILTEREXPRVISITOR_H_
-
-#include <memory>
+#ifndef VISITOR_EXTRACTPROPEXPRVISITON_H_
+#define VISITOR_EXTRACTPROPEXPRVISITON_H_
 
 #include "visitor/ExprVisitorImpl.h"
 
 namespace nebula {
 namespace graph {
 
-class ExtractFilterExprVisitor final : public ExprVisitorImpl {
+class ExtractPropExprVisitor final : public ExprVisitorImpl {
 public:
-    ExtractFilterExprVisitor() = default;
-
-    bool ok() const override {
-        return canBePushed_;
-    }
-
-    std::unique_ptr<Expression> remainedExpr() && {
-        return std::move(remainedExpr_);
-    }
+    explicit ExtractPropExprVisitor(YieldColumns* props) : props_(props) {}
 
 private:
     using ExprVisitorImpl::visit;
@@ -47,11 +37,10 @@ private:
     void visit(EdgeExpression *) override;
     void visit(LogicalExpression *) override;
 
-    bool canBePushed_{true};
-    std::unique_ptr<Expression> remainedExpr_;
-};
+    void reportError(const Expression* expr);
 
+private:
+    YieldColumns*                         props_{nullptr};
+};
 }   // namespace graph
 }   // namespace nebula
-
-#endif   // VISITOR_EXTRACTFILTEREXPRVISITOR_H_
