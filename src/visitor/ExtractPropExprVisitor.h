@@ -13,7 +13,24 @@ namespace graph {
 
 class ExtractPropExprVisitor final : public ExprVisitorImpl {
 public:
-    explicit ExtractPropExprVisitor(YieldColumns* props) : props_(props) {}
+    ExtractPropExprVisitor(ValidateContext *vctx,
+                           YieldColumns *srcAndEdgePropCols,
+                           YieldColumns *dstPropCols,
+                           YieldColumns *inputPropCols,
+                           std::unordered_map<std::string, YieldColumn *> &propExprColMap)
+        : vctx_(DCHECK_NOTNULL(vctx)),
+          srcAndEdgePropCols_(srcAndEdgePropCols),
+          dstPropCols_(dstPropCols),
+          inputPropCols_(inputPropCols),
+          propExprColMap_(propExprColMap) {}
+
+    bool ok() const override {
+        return status_.ok();
+    }
+
+    const Status& status() const {
+        return status_;
+    }
 
 private:
     using ExprVisitorImpl::visit;
@@ -21,6 +38,7 @@ private:
     void visit(ConstantExpression *) override;
     void visit(LabelExpression *) override;
     void visit(UUIDExpression *) override;
+    void visit(UnaryExpression *) override;
     void visit(VariableExpression *) override;
     void visit(VersionedVariableExpression *) override;
     void visit(TagPropertyExpression *) override;
@@ -37,10 +55,19 @@ private:
     void visit(EdgeExpression *) override;
     void visit(LogicalExpression *) override;
 
-    void reportError(const Expression* expr);
+    void visitVertexEdgePropExpr(PropertyExpression *);
+    void visitPropertyExpr(PropertyExpression *);
+    void reportError(const Expression *);
 
 private:
-    YieldColumns*                         props_{nullptr};
+    YieldColumns *srcAndEdgePropCols_{nullptr};
+    YieldColumns *dstPropCols_{nullptr};
+    YieldColumns *inputPropCols_{nullptr};
+    std::unordered_map<std::string, YieldColumn *> propExprColMap_;
+
+    Status status_;
 };
 }   // namespace graph
 }   // namespace nebula
+
+#endif

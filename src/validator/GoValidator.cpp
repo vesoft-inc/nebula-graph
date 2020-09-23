@@ -11,6 +11,7 @@
 #include "common/base/Base.h"
 #include "common/expression/VariableExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "visitor/ExtractPropExprVisitor.h"
 #include "parser/TraverseSentences.h"
 #include "planner/Logic.h"
 
@@ -731,130 +732,136 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeDst() {
 }
 
 void GoValidator::extractPropExprs(const Expression* expr) {
-    switch (expr->kind()) {
-        case Expression::Kind::kVertex:
-        case Expression::Kind::kEdge:
-        case Expression::Kind::kConstant: {
-            break;
-        }
-        case Expression::Kind::kAdd:
-        case Expression::Kind::kMinus:
-        case Expression::Kind::kMultiply:
-        case Expression::Kind::kDivision:
-        case Expression::Kind::kMod:
-        case Expression::Kind::kRelEQ:
-        case Expression::Kind::kRelNE:
-        case Expression::Kind::kRelLT:
-        case Expression::Kind::kRelLE:
-        case Expression::Kind::kRelGT:
-        case Expression::Kind::kRelGE:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kRelNotIn:
-        case Expression::Kind::kContains:
-        case Expression::Kind::kLogicalAnd:
-        case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
-            auto biExpr = static_cast<const BinaryExpression*>(expr);
-            extractPropExprs(biExpr->left());
-            extractPropExprs(biExpr->right());
-            break;
-        }
-        case Expression::Kind::kUnaryPlus:
-        case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
-            auto unaryExpr = static_cast<const UnaryExpression*>(expr);
-            extractPropExprs(unaryExpr->operand());
-            break;
-        }
-        case Expression::Kind::kTypeCasting: {
-            auto typeCastingExpr = static_cast<const TypeCastingExpression*>(expr);
-            extractPropExprs(typeCastingExpr->operand());
-            break;
-        }
-        case Expression::Kind::kFunctionCall: {
-            auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
-            auto& args = funcExpr->args()->args();
-            for (auto iter = args.begin(); iter < args.end(); ++iter) {
-                extractPropExprs(iter->get());
-            }
-            break;
-        }
-        case Expression::Kind::kDstProperty: {
-            auto found = propExprColMap_.find(expr->toString());
-            if (found == propExprColMap_.end()) {
-                auto newExpr = expr->clone();
-                auto col = new YieldColumn(
-                    newExpr.release(), new std::string(vctx_->anonColGen()->getCol()));
-                propExprColMap_.emplace(expr->toString(), col);
-                dstPropCols_->addColumn(col);
-            }
-            break;
-        }
-        case Expression::Kind::kTagProperty:
-        case Expression::Kind::kSrcProperty:
-        case Expression::Kind::kEdgeProperty:
-        case Expression::Kind::kEdgeSrc:
-        case Expression::Kind::kEdgeType:
-        case Expression::Kind::kEdgeRank:
-        case Expression::Kind::kEdgeDst: {
-            auto found = propExprColMap_.find(expr->toString());
-            if (found == propExprColMap_.end()) {
-                auto newExpr = expr->clone();
-                auto col = new YieldColumn(
-                    newExpr.release(), new std::string(vctx_->anonColGen()->getCol()));
-                propExprColMap_.emplace(expr->toString(), col);
-                srcAndEdgePropCols_->addColumn(col);
-            }
-            break;
-        }
-        case Expression::Kind::kInputProperty:
-        case Expression::Kind::kVarProperty: {
-            auto* propExpr = static_cast<const PropertyExpression*>(expr);
-            auto found = propExprColMap_.find(expr->toString());
-            if (found == propExprColMap_.end()) {
-                auto newExpr = expr->clone();
-                auto col = new YieldColumn(
-                    newExpr.release(), new std::string(*propExpr->prop()));
-                propExprColMap_.emplace(expr->toString(), col);
-                inputPropCols_->addColumn(col);
-            }
-            break;
-        }
-        case Expression::Kind::kList: {
-            auto* listExpr = static_cast<const ListExpression *>(expr);
-            for (auto& item : listExpr->items()) {
-                extractPropExprs(item);
-            }
-            break;
-        }
-        case Expression::Kind::kSet: {
-            auto* setExpr = static_cast<const SetExpression *>(expr);
-            for (auto& item : setExpr->items()) {
-                extractPropExprs(item);
-            }
-            break;
-        }
-        case Expression::Kind::kMap: {
-            auto* mapExpr = static_cast<const MapExpression *>(expr);
-            for (auto& item : mapExpr->items()) {
-                extractPropExprs(item.second);
-            }
-            break;
-        }
-        case Expression::Kind::kUUID:
-        case Expression::Kind::kVar:
-        case Expression::Kind::kVersionedVar:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kSubscript:
-        case Expression::Kind::kAttribute:
-        case Expression::Kind::kLabelAttribute:
-        case Expression::Kind::kLabel: {
-            LOG(FATAL) << "Not support " << expr->kind();
-            break;
-        }
-    }
+    ExtractPropExprVisitor visitor(
+        vctx_, srcAndEdgePropCols_, dstPropCols_, inputPropCols_, propExprColMap_);
+    const_cast<Expression*>(expr)->accept(&visitor);
 }
+
+// void GoValidator::extractPropExpr1(const Expression* expr) {
+//     switch (expr->kind()) {
+//         case Expression::Kind::kVertex:
+//         case Expression::Kind::kEdge:
+//         case Expression::Kind::kConstant: {
+//             break;
+//         }
+//         case Expression::Kind::kAdd:
+//         case Expression::Kind::kMinus:
+//         case Expression::Kind::kMultiply:
+//         case Expression::Kind::kDivision:
+//         case Expression::Kind::kMod:
+//         case Expression::Kind::kRelEQ:
+//         case Expression::Kind::kRelNE:
+//         case Expression::Kind::kRelLT:
+//         case Expression::Kind::kRelLE:
+//         case Expression::Kind::kRelGT:
+//         case Expression::Kind::kRelGE:
+//         case Expression::Kind::kRelIn:
+//         case Expression::Kind::kRelNotIn:
+//         case Expression::Kind::kContains:
+//         case Expression::Kind::kLogicalAnd:
+//         case Expression::Kind::kLogicalOr:
+//         case Expression::Kind::kLogicalXor: {
+//             auto biExpr = static_cast<const BinaryExpression*>(expr);
+//             extractPropExprs(biExpr->left());
+//             extractPropExprs(biExpr->right());
+//             break;
+//         }
+//         case Expression::Kind::kUnaryPlus:
+//         case Expression::Kind::kUnaryNegate:
+//         case Expression::Kind::kUnaryNot: {
+//             auto unaryExpr = static_cast<const UnaryExpression*>(expr);
+//             extractPropExprs(unaryExpr->operand());
+//             break;
+//         }
+//         case Expression::Kind::kTypeCasting: {
+//             auto typeCastingExpr = static_cast<const TypeCastingExpression*>(expr);
+//             extractPropExprs(typeCastingExpr->operand());
+//             break;
+//         }
+//         case Expression::Kind::kFunctionCall: {
+//             auto funcExpr = static_cast<const FunctionCallExpression*>(expr);
+//             auto& args = funcExpr->args()->args();
+//             for (auto iter = args.begin(); iter < args.end(); ++iter) {
+//                 extractPropExprs(iter->get());
+//             }
+//             break;
+//         }
+//         case Expression::Kind::kDstProperty: {
+//             auto found = propExprColMap_.find(expr->toString());
+//             if (found == propExprColMap_.end()) {
+//                 auto newExpr = expr->clone();
+//                 auto col = new YieldColumn(
+//                     newExpr.release(), new std::string(vctx_->anonColGen()->getCol()));
+//                 propExprColMap_.emplace(expr->toString(), col);
+//                 dstPropCols_->addColumn(col);
+//             }
+//             break;
+//         }
+//         case Expression::Kind::kTagProperty:
+//         case Expression::Kind::kSrcProperty:
+//         case Expression::Kind::kEdgeProperty:
+//         case Expression::Kind::kEdgeSrc:
+//         case Expression::Kind::kEdgeType:
+//         case Expression::Kind::kEdgeRank:
+//         case Expression::Kind::kEdgeDst: {
+//             auto found = propExprColMap_.find(expr->toString());
+//             if (found == propExprColMap_.end()) {
+//                 auto newExpr = expr->clone();
+//                 auto col = new YieldColumn(
+//                     newExpr.release(), new std::string(vctx_->anonColGen()->getCol()));
+//                 propExprColMap_.emplace(expr->toString(), col);
+//                 srcAndEdgePropCols_->addColumn(col);
+//             }
+//             break;
+//         }
+//         case Expression::Kind::kInputProperty:
+//         case Expression::Kind::kVarProperty: {
+//             auto* propExpr = static_cast<const PropertyExpression*>(expr);
+//             auto found = propExprColMap_.find(expr->toString());
+//             if (found == propExprColMap_.end()) {
+//                 auto newExpr = expr->clone();
+//                 auto col = new YieldColumn(
+//                     newExpr.release(), new std::string(*propExpr->prop()));
+//                 propExprColMap_.emplace(expr->toString(), col);
+//                 inputPropCols_->addColumn(col);
+//             }
+//             break;
+//         }
+//         case Expression::Kind::kList: {
+//             auto* listExpr = static_cast<const ListExpression *>(expr);
+//             for (auto& item : listExpr->items()) {
+//                 extractPropExprs(item);
+//             }
+//             break;
+//         }
+//         case Expression::Kind::kSet: {
+//             auto* setExpr = static_cast<const SetExpression *>(expr);
+//             for (auto& item : setExpr->items()) {
+//                 extractPropExprs(item);
+//             }
+//             break;
+//         }
+//         case Expression::Kind::kMap: {
+//             auto* mapExpr = static_cast<const MapExpression *>(expr);
+//             for (auto& item : mapExpr->items()) {
+//                 extractPropExprs(item.second);
+//             }
+//             break;
+//         }
+//         case Expression::Kind::kUUID:
+//         case Expression::Kind::kVar:
+//         case Expression::Kind::kVersionedVar:
+//         case Expression::Kind::kUnaryIncr:
+//         case Expression::Kind::kUnaryDecr:
+//         case Expression::Kind::kSubscript:
+//         case Expression::Kind::kAttribute:
+//         case Expression::Kind::kLabelAttribute:
+//         case Expression::Kind::kLabel: {
+//             LOG(FATAL) << "Not support " << expr->kind();
+//             break;
+//         }
+//     }
+// }
 
 std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
     switch (expr->kind()) {
@@ -943,7 +950,7 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
         }
         case Expression::Kind::kList: {
             auto* listExpr = static_cast<ListExpression *>(expr);
-            auto items = listExpr->moveItems();
+            auto items = std::move(listExpr)->get();
             for (auto iter = items.begin(); iter < items.end(); ++iter) {
                 auto rewrite = rewriteToInputProp(iter->get());
                 if (rewrite != nullptr) {
@@ -955,7 +962,7 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
         }
         case Expression::Kind::kSet: {
             auto* setExpr = static_cast<SetExpression *>(expr);
-            auto items = setExpr->moveItems();
+            auto items = std::move(setExpr)->get();
             for (auto iter = items.begin(); iter < items.end(); ++iter) {
                 auto rewrite = rewriteToInputProp(iter->get());
                 if (rewrite != nullptr) {
@@ -967,7 +974,7 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
         }
         case Expression::Kind::kMap: {
             auto* mapExpr = static_cast<MapExpression*>(expr);
-            auto items = mapExpr->moveItems();
+            auto items = std::move(mapExpr)->get();
             for (auto iter = items.begin(); iter < items.end(); ++iter) {
                 auto rewrite = rewriteToInputProp(iter->second.get());
                 if (rewrite != nullptr) {
