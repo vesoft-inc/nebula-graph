@@ -99,7 +99,7 @@ protected:
 
     bool evaluableExpr(const Expression* expr) const;
 
-    static Status checkPropNonexistOrDuplicate(const ColsDef& cols,
+    static StatusOr<size_t> checkPropNonexistOrDuplicate(const ColsDef& cols,
                                                folly::StringPiece prop,
                                                const std::string& validator);
 

@@ -10,7 +10,6 @@
 #include "common/clients/storage/GraphStorageClient.h"
 #include "service/GraphService.h"
 #include "service/RequestContext.h"
-#include "service/SimpleAuthenticator.h"
 #include "service/GraphFlags.h"
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"

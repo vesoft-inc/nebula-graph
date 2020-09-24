@@ -5,9 +5,10 @@
 */
 
 #include "executor/admin/SpaceExecutor.h"
-#include "planner/Admin.h"
 #include "context/QueryContext.h"
 #include "service/PermissionManager.h"
+#include "planner/Admin.h"
+#include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
 
 namespace nebula {
@@ -62,9 +63,7 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 row.values.emplace_back(properties.get_replica_factor());
                 row.values.emplace_back(properties.get_charset_name());
                 row.values.emplace_back(properties.get_collate_name());
-                row.values.emplace_back(
-                    ColumnTypeDef(properties.get_vid_type(), properties.get_vid_size())
-                        .toString());
+                row.values.emplace_back(SchemaUtil::typeToString(properties.get_vid_type()));
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
                                   .value(Value(std::move(dataSet)))
@@ -153,8 +152,7 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                     properties.get_replica_factor(),
                     properties.get_charset_name().c_str(),
                     properties.get_collate_name().c_str(),
-                    ColumnTypeDef(properties.get_vid_type(), properties.get_vid_size())
-                        .toString().c_str()));
+                    SchemaUtil::typeToString(properties.get_vid_type()).c_str()));
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
                                   .value(Value(std::move(dataSet)))
