@@ -38,6 +38,10 @@ void ExpressionProps::insertEdgeProp(EdgeType edgeType, folly::StringPiece prop)
     props.emplace(prop);
 }
 
+void ExpressionProps::insertTagNameIds(const std::string &name, TagID tagId) {
+    tagNameIds_.emplace(name, tagId);
+}
+
 void ExpressionProps::insertTagProp(TagID tagId, folly::StringPiece prop) {
     auto& props = tagProps_[tagId];
     props.emplace(prop);
@@ -123,6 +127,7 @@ void DeducePropsVisitor::visit(TagPropertyExpression *expr) {
         status_ = std::move(status).status();
         return;
     }
+    exprProps_->insertTagNameIds(*expr->sym(), status.value());
     exprProps_->insertTagProp(status.value(), *expr->prop());
 }
 
@@ -215,7 +220,7 @@ void DeducePropsVisitor::visitEdgePropExpr(PropertyExpression *expr) {
 
 void DeducePropsVisitor::reportError(const Expression *expr) {
     std::stringstream ss;
-    ss << "Not supported expression `" << expr->toString() << "' for type deduction.";
+    ss << "Not supported expression `" << expr->toString() << "' for props deduction.";
     status_ = Status::SemanticError(ss.str());
 }
 

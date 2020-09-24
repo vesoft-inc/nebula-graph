@@ -164,8 +164,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<ShowConfigsValidator>(sentence, context);
         case Sentence::Kind::kFindPath:
             return std::make_unique<FindPathValidator>(sentence, context);
-        case Sentence::Kind::kMatch:
-        case Sentence::Kind::kUnknown:
         case Sentence::Kind::kCreateTagIndex:
             return std::make_unique<CreateTagIndexValidator>(sentence, context);
         case Sentence::Kind::kShowCreateTagIndex:
@@ -190,6 +188,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<RebuildEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kDropEdgeIndex:
             return std::make_unique<DropEdgeIndexValidator>(sentence, context);
+        case Sentence::Kind::kMatch:
+        case Sentence::Kind::kUnknown:
         case Sentence::Kind::kLookup:
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kIngest:
@@ -319,7 +319,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
 }
 
 // static
-Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
+StatusOr<size_t> Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
                                                folly::StringPiece prop,
                                                const std::string& validator) {
     auto eq = [&](const ColDef& col) { return col.first == prop.str(); };
@@ -329,13 +329,14 @@ Status Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
             "%s: prop `%s' not exists", validator.c_str(), prop.str().c_str());
     }
 
+    size_t colIdx = std::distance(cols.cbegin(), iter);
     iter = std::find_if(iter + 1, cols.cend(), eq);
     if (iter != cols.cend()) {
         return Status::SemanticError(
             "%s: duplicate prop `%s'", validator.c_str(), prop.str().c_str());
     }
 
-    return Status::OK();
+    return colIdx;
 }
 
 StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
