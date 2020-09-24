@@ -27,7 +27,7 @@ public:
         return status_;
     }
 
-    std::unique_ptr<Expression> result() {
+    std::unique_ptr<Expression> result() && {
         return std::move(result_);
     }
 

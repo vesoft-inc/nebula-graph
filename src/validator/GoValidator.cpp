@@ -742,7 +742,7 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
     RewriteInputPropVisitor visitor(propExprColMap_);
     const_cast<Expression*>(expr)->accept(&visitor);
     if (visitor.ok()) {
-        return visitor.result();
+        return std::move(visitor).result();
     }
     return nullptr;
 }
