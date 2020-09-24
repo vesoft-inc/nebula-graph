@@ -52,3 +52,11 @@
 --ws_http_port=13000
 # HTTP2 service port
 --ws_h2_port=13002
+
+########## authorization ##########
+# Enable authorization
+--enable_authorize=false
+
+########## Authentication ##########
+# User login authentication type, password for nebula authentication, ldap for ldap authentication, cloud for cloud authentication
+--auth_type=password
