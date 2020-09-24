@@ -4,10 +4,22 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "ExtractPropExprVisitor.h"
+#include "visitor/ExtractPropExprVisitor.h"
 
 namespace nebula {
 namespace graph {
+
+ExtractPropExprVisitor::ExtractPropExprVisitor(
+    ValidateContext* vctx,
+    YieldColumns* srcAndEdgePropCols,
+    YieldColumns* dstPropCols,
+    YieldColumns* inputPropCols,
+    std::unordered_map<std::string, YieldColumn*>& propExprColMap)
+    : vctx_(DCHECK_NOTNULL(vctx)),
+      srcAndEdgePropCols_(srcAndEdgePropCols),
+      dstPropCols_(dstPropCols),
+      inputPropCols_(inputPropCols),
+      propExprColMap_(propExprColMap) {}
 
 void ExtractPropExprVisitor::visit(ConstantExpression* expr) {
     UNUSED(expr);
@@ -41,10 +53,6 @@ void ExtractPropExprVisitor::visit(VersionedVariableExpression* expr) {
     reportError(expr);
 }
 
-void ExtractPropExprVisitor::visit(SubscriptExpression* expr) {
-    reportError(expr);
-}
-
 void ExtractPropExprVisitor::visit(UUIDExpression* expr) {
     reportError(expr);
 }
@@ -60,19 +68,23 @@ void ExtractPropExprVisitor::visit(UnaryExpression* expr) {
         case Expression::Kind::kUnaryDecr:
         case Expression::Kind::kUnaryIncr: {
             reportError(expr);
+            break;
+        }
+        default: {
+            LOG(FATAL) << "Invalid Kind " << expr->kind();
         }
     }
 }
 
 void ExtractPropExprVisitor::visitPropertyExpr(PropertyExpression* expr) {
-    void* propExpr = nullptr;
+    PropertyExpression* propExpr = nullptr;
     switch (expr->kind()) {
         case Expression::Kind::kInputProperty: {
-            propExpr = static_cast<const InputPropertyExpression*>(expr);
+            propExpr = static_cast<InputPropertyExpression*>(expr);
             break;
         }
         case Expression::Kind::kVarProperty: {
-            propExpr = static_cast<const VariablePropertyExpression*>(expr);
+            propExpr = static_cast<VariablePropertyExpression*>(expr);
             break;
         }
         default: {
@@ -97,34 +109,34 @@ void ExtractPropExprVisitor::visit(InputPropertyExpression* expr) {
 }
 
 void ExtractPropExprVisitor::visitVertexEdgePropExpr(PropertyExpression* expr) {
-    void* propExpr = nullptr;
+    PropertyExpression* propExpr = nullptr;
     switch (expr->kind()) {
         case Expression::Kind::kTagProperty: {
-            propExpr = static_cast<const TagPropertyExpression*>(expr);
+            propExpr = static_cast<TagPropertyExpression*>(expr);
             break;
         }
         case Expression::Kind::kSrcProperty: {
-            propExpr = static_cast<const SourcePropertyExpression*>(expr);
+            propExpr = static_cast<SourcePropertyExpression*>(expr);
             break;
         }
         case Expression::Kind::kEdgeProperty: {
-            propExpr = static_cast<const EdgePropertyExpression*>(expr);
+            propExpr = static_cast<EdgePropertyExpression*>(expr);
             break;
         }
         case Expression::Kind::kEdgeSrc: {
-            propExpr = static_cast<const EdgeSrcIdExpression*>(expr);
+            propExpr = static_cast<EdgeSrcIdExpression*>(expr);
             break;
         }
         case Expression::Kind::kEdgeType: {
-            propExpr = static_cast<const EdgeTypeExpression*>(expr);
+            propExpr = static_cast<EdgeTypeExpression*>(expr);
             break;
         }
         case Expression::Kind::kEdgeRank: {
-            propExpr = static_cast<const EdgeRankExpression*>(expr);
+            propExpr = static_cast<EdgeRankExpression*>(expr);
             break;
         }
         case Expression::Kind::kEdgeDst: {
-            propExpr = static_cast<const EdgeDstIdExpression*>(expr);
+            propExpr = static_cast<EdgeDstIdExpression*>(expr);
             break;
         }
         default: {
@@ -135,7 +147,7 @@ void ExtractPropExprVisitor::visitVertexEdgePropExpr(PropertyExpression* expr) {
     if (found == propExprColMap_.end()) {
         auto newExpr = propExpr->clone();
         auto col =
-            new YieldColumn(newExpr.release(), new std::string(vctx_->anonColGen_->getCol()));
+            new YieldColumn(newExpr.release(), new std::string(vctx_->anonColGen()->getCol()));
         propExprColMap_.emplace(propExpr->toString(), col);
         srcAndEdgePropCols_->addColumn(col);
     }
@@ -174,7 +186,7 @@ void ExtractPropExprVisitor::visit(DestPropertyExpression* expr) {
     if (found == propExprColMap_.end()) {
         auto newExpr = expr->clone();
         auto col =
-            new YieldColumn(newExpr.release(), new std::string(vctx_->anonColGen_->getCol()));
+            new YieldColumn(newExpr.release(), new std::string(vctx_->anonColGen()->getCol()));
         propExprColMap_.emplace(expr->toString(), col);
         dstPropCols_->addColumn(col);
     }
