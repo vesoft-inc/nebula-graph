@@ -46,13 +46,6 @@ Status IndexScanValidator::prepareFrom() {
 Status IndexScanValidator::prepareYield() {
     auto *sentence = static_cast<const LookupSentence *>(sentence_);
     if (sentence->yieldClause() == nullptr) {
-        if (isEdge_) {
-            outputs_.emplace_back("SrcID", Value::Type::VERTEX);
-            outputs_.emplace_back("Ranking", Value::Type::INT);
-            outputs_.emplace_back("DstID", Value::Type::VERTEX);
-        } else {
-            outputs_.emplace_back("VertexID", Value::Type::VERTEX);
-        }
         return Status::OK();
     }
     auto columns = sentence->yieldClause()->columns();
@@ -91,9 +84,6 @@ Status IndexScanValidator::prepareYield() {
                                          colName.c_str(), from->c_str());
         }
         returnCols_->emplace_back(colName);
-        auto typeResult = deduceExprType(col->expr());
-        NG_RETURN_IF_ERROR(typeResult);
-        outputs_.emplace_back(deduceColName(col), typeResult.value());
     }
     return Status::OK();
 }
