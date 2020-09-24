@@ -140,9 +140,13 @@ private:
 
     std::unique_ptr<Expression> filterExpr(const OptGroupExpr *groupExpr) const;
 
-    Status analyzeExpression(Expression* expr, FilterItems* items, ScanKind* kind) const;
+    Status analyzeExpression(Expression* expr, FilterItems* items,
+                             ScanKind* kind, bool isEdge) const;
 
-    Status writeRelationalExpr(RelationalExpression* expr, FilterItems* items) const;
+    template <typename E,
+              typename = std::enable_if_t<std::is_same<E, EdgePropertyExpression>::value ||
+                                          std::is_same<E, TagPropertyExpression>::value>>
+    Status addFilterItem(RelationalExpression* expr, FilterItems* items) const;
 
     Expression::Kind reverseRelationalExprKind(Expression::Kind kind) const;
 

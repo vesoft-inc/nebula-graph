@@ -32,7 +32,7 @@ Status IndexScanRule::transform(graph::QueryContext *qctx,
     if (filter == nullptr) {
         return Status::SemanticError("WHERE clause error");
     }
-    auto ret = analyzeExpression(filter.get(), &items, &kind);
+    auto ret = analyzeExpression(filter.get(), &items, &kind, isEdge(groupExpr));
     NG_RETURN_IF_ERROR(ret);
 
     IndexQueryCtx iqctx = std::make_unique<std::vector<IndexQueryContext>>();
@@ -278,7 +278,8 @@ IndexScanRule::filterExpr(const OptGroupExpr *groupExpr) const {
 
 Status IndexScanRule::analyzeExpression(Expression* expr,
                                         FilterItems* items,
-                                        ScanKind* kind) const {
+                                        ScanKind* kind,
+                                        bool isEdge) const {
     // TODO (sky) : Currently only simple logical expressions are supported,
     //              such as all AND or all OR expressions, example :
     //              where c1 > 1 and c1 < 2 and c2 == 1
@@ -301,9 +302,9 @@ Status IndexScanRule::analyzeExpression(Expression* expr,
                                                    Expression::encode(*expr).c_str());
                 return Status::NotSupported(errorMsg);
             }
-            auto ret = analyzeExpression(lExpr->left(), items, kind);
+            auto ret = analyzeExpression(lExpr->left(), items, kind, isEdge);
             NG_RETURN_IF_ERROR(ret);
-            ret = analyzeExpression(lExpr->right(), items, kind);
+            ret = analyzeExpression(lExpr->right(), items, kind, isEdge);
             NG_RETURN_IF_ERROR(ret);
             break;
         }
@@ -314,7 +315,9 @@ Status IndexScanRule::analyzeExpression(Expression* expr,
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelNE: {
             auto* rExpr = static_cast<RelationalExpression*>(expr);
-            auto ret = writeRelationalExpr(rExpr, items);
+            auto ret = isEdge
+                       ? addFilterItem<EdgePropertyExpression>(rExpr, items)
+                       : addFilterItem<TagPropertyExpression>(rExpr, items);
             NG_RETURN_IF_ERROR(ret);
             break;
         }
@@ -327,21 +330,23 @@ Status IndexScanRule::analyzeExpression(Expression* expr,
     return Status::OK();
 }
 
-
-Status IndexScanRule::writeRelationalExpr(RelationalExpression* expr, FilterItems* items) const {
+template <typename E, typename>
+Status IndexScanRule::addFilterItem(RelationalExpression* expr, FilterItems* items) const {
     // TODO (sky) : Check illegal filter. for example : where c1 == 1 and c1 == 2
+    auto relType = std::is_same<E, EdgePropertyExpression>::value
+                   ? Expression::Kind::kEdgeProperty
+                   : Expression::Kind::kTagProperty;
     graph::QueryExpressionContext ctx(nullptr);
-    if (expr->left()->kind() == Expression::Kind::kLabelAttribute &&
+    if (expr->left()->kind() == relType &&
         expr->right()->kind() == Expression::Kind::kConstant) {
-        auto* l = static_cast<const LabelAttributeExpression*>(expr->left());
+        auto* l = static_cast<const E*>(expr->left());
         auto* r = static_cast<ConstantExpression*>(expr->right());
-        items->addItem(*l->right()->name(), expr->kind(), r->eval(ctx));
+        items->addItem(*l->prop(), expr->kind(), r->eval(ctx));
     } else if (expr->left()->kind() == Expression::Kind::kConstant &&
-               expr->right()->kind() == Expression::Kind::kLabelAttribute) {
-        auto* r = static_cast<const LabelAttributeExpression*>(expr->right());
+               expr->right()->kind() == relType) {
+        auto* r = static_cast<const E*>(expr->right());
         auto* l = static_cast<ConstantExpression*>(expr->left());
-
-        items->addItem(*r->right()->name(), reverseRelationalExprKind(expr->kind()), l->eval(ctx));
+        items->addItem(*r->prop(), reverseRelationalExprKind(expr->kind()), l->eval(ctx));
     } else {
         return Status::Error("Optimizer error, when rewrite relational expression");
     }
