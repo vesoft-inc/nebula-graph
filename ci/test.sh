@@ -87,6 +87,7 @@ function run_test() {
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
     ./ntr \
         -n=8 \
+        --rm_dir=$NEBULA_TEST_RM_DIR \
         --dist=loadfile \
         --debug_log=false \
         $PROJ_DIR/tests/admin/* \

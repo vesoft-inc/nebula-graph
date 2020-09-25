@@ -128,6 +128,7 @@ jobs:
       - name: Pytest
         env:
           NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
+          NEBULA_TEST_RM_DIR: false
         run: ./ci/test.sh test
         timeout-minutes: 25
       - name: Graph Log
@@ -141,4 +142,4 @@ jobs:
         run: cat /tmp/nebula-*/logs/nebula-storaged.ERROR
       - name: Cleanup
         if: ${{ always() }}
-        run: rm -rf build modules
+        run: rm -rf build modules && rm -rf /tmp/nebula-*
