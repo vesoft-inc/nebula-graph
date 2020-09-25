@@ -132,13 +132,13 @@ jobs:
         timeout-minutes: 25
       - name: Graph Log
         if: ${{ failure() }}
-        run: cat cat /tmp/nebula-*/logs/nebula-graphd.ERROR && exit 1
+        run: cat /tmp/nebula-*/logs/nebula-graphd.ERROR && exit 1
       - name: Meta Log
         if: ${{ failure() }}
-        run: cat cat /tmp/nebula-*/logs/nebula-metad.ERROR && exit 1
+        run: cat /tmp/nebula-*/logs/nebula-metad.ERROR && exit 1
       - name: Storage Log
         if: ${{ failure() }}
-        run: cat cat /tmp/nebula-*/logs/nebula-storaged.ERROR
+        run: cat /tmp/nebula-*/logs/nebula-storaged.ERROR
       - name: Cleanup
         if: ${{ always() }}
         run: rm -rf build modules
