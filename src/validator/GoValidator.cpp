@@ -754,9 +754,7 @@ Status GoValidator::buildColumns() {
     }
 
     auto pool = qctx_->objPool();
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
-        !exprProps_.srcTagProps().empty() || !exprProps_.edgeProps().empty() ||
-        !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
+    if (notAllPropsEmpty()) {
         srcAndEdgePropCols_ = pool->add(new YieldColumns());
     }
 
@@ -797,6 +795,12 @@ Status GoValidator::buildColumns() {
     }
 
     return Status::OK();
+}
+
+bool GoValidator::notAllPropsEmpty() {
+    return !exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
+        !exprProps_.srcTagProps().empty() || !exprProps_.edgeProps().empty() ||
+        !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr;
 }
 
 }  // namespace graph

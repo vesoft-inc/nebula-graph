@@ -231,22 +231,6 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
     }
     {
         std::string query = "GO 1 STEPS FROM \"1\" OVER like YIELD like._dst AS "
-                            "id | GO 1 STEPS FROM $-.id OVER like YIELD $-.id";
-        std::vector<PlanNode::Kind> expected = {
-            PK::kProject,
-            PK::kDataJoin,
-            PK::kProject,
-            PK::kGetNeighbors,
-            PK::kDedup,
-            PK::kProject,
-            PK::kProject,
-            PK::kGetNeighbors,
-            PK::kStart
-        };
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-    {
-        std::string query = "GO 1 STEPS FROM \"1\" OVER like YIELD like._dst AS "
                             "id | GO 1 STEPS FROM $-.id OVER like "
                             "WHERE $-.id == \"2\" YIELD $-.id, like._dst";
         std::vector<PlanNode::Kind> expected = {
