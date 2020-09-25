@@ -349,7 +349,7 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         if (find == inputs_.end()) {
             return Status::Error("No input property %s", propExpr->prop()->c_str());
         }
-        return std::string();
+        return inputVarName_;
     } else if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
         ColDef col(*propExpr->prop(), type);

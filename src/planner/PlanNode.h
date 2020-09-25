@@ -128,7 +128,12 @@ public:
 
     void setOutputVar(std::string var) {
         DCHECK_EQ(1, outputVars_.size());
-        outputVars_[0]->name = (std::move(var));
+        auto* outputVarPtr = symTable_->findVar(var);
+        DCHECK(outputVarPtr != nullptr);
+        auto oldVar = outputVars_[0]->name;
+        outputVarPtr->colNames = outputVars_[0]->colNames;
+        outputVars_[0] = outputVarPtr;
+        symTable_->updateAllOccurence(oldVar, outputVarPtr->name);
     }
 
     std::string outputVar(size_t index = 0) const {
@@ -138,10 +143,10 @@ public:
 
     Variable* outputVarPtr(size_t index = 0) const {
         DCHECK_LT(index, outputVars_.size());
-        return outputVars_[index].get();
+        return outputVars_[index];
     }
 
-    const std::vector<std::unique_ptr<Variable>>& outputVars() const {
+    const std::vector<Variable*>& outputVars() const {
         return outputVars_;
     }
 
@@ -198,7 +203,7 @@ protected:
     double                                   cost_{0.0};
     std::vector<const PlanNode*>             dependencies_;
     std::vector<Variable*>                   inputVars_;
-    std::vector<std::unique_ptr<Variable>>   outputVars_;
+    std::vector<Variable*>                   outputVars_;
 };
 
 std::ostream& operator<<(std::ostream& os, PlanNode::Kind kind);
@@ -231,10 +236,13 @@ public:
         inputVars_[0] = inputVarPtr;
     }
 
-    const std::string& inputVar() const {
+    std::string inputVar() const {
         DCHECK(!inputVars_.empty());
-        DCHECK(inputVars_[0] != nullptr);
-        return inputVars_[0]->name;
+        if (inputVars_[0] != nullptr) {
+            return inputVars_[0]->name;
+        } else {
+            return "";
+        }
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;

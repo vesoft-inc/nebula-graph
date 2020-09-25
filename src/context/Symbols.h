@@ -7,6 +7,7 @@
 #ifndef CONTEXT_SYMBOLS_H_
 #define CONTEXT_SYMBOLS_H_
 
+#include "util/ObjectPool.h"
 
 namespace nebula {
 namespace graph {
@@ -30,6 +31,8 @@ struct ColDef {
 using ColsDef = std::vector<ColDef>;
 
 struct Variable {
+    explicit Variable(std::string n) : name(std::move(n)) {}
+
     std::string name;
     Value::Type type{Value::Type::DATASET};
     // Valid if type is dataset.
@@ -38,6 +41,18 @@ struct Variable {
 
 class SymbolTable final {
 public:
+    explicit SymbolTable(ObjectPool* objPool) {
+        DCHECK(objPool != nullptr);
+        objPool_ = objPool;
+    }
+
+    Variable* newVariable(std::string name) {
+        auto* variable = objPool_->makeAndAdd<Variable>(name);
+        addVar(std::move(name), variable);
+        VLOG(1) << "New variable for: " << name;
+        return variable;
+    }
+
     void addOrigin(std::string varName, PlanNode* node) {
         origins_.emplace(std::move(varName), node);
     }
@@ -54,6 +69,11 @@ public:
         dependencies_[varName].emplace_back(dependency);
     }
 
+    void updateAllOccurence(std::string& oldVar, std::string& newVar) {
+        UNUSED(oldVar);
+        UNUSED(newVar);
+    }
+
     Variable* findVar(std::string& varName) {
         auto var = vars_.find(varName);
         if (var == vars_.end()) {
@@ -64,6 +84,7 @@ public:
     }
 
 private:
+    ObjectPool*                                                      objPool_{nullptr};
     // var name -> plan node
     std::unordered_map<std::string, PlanNode*>                       origins_;
     // var name -> variable

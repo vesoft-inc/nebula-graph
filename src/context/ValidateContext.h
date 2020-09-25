@@ -21,8 +21,8 @@ namespace graph {
 
 class ValidateContext final {
 public:
-    ValidateContext() {
-        anonVarGen_ = std::make_unique<AnonVarGenerator>();
+    explicit ValidateContext(std::unique_ptr<AnonVarGenerator> varGen) {
+        anonVarGen_ = std::move(varGen);
         anonColGen_ = std::make_unique<AnonColGenerator>();
     }
 

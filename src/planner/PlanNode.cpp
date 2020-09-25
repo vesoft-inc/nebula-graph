@@ -18,9 +18,8 @@ PlanNode::PlanNode(int64_t id, Kind kind, SymbolTable* symTable)
     DCHECK_GE(id_, 0);
     DCHECK(symTable != nullptr);
     auto varName = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
-    outputVars_.emplace_back();
-    outputVars_.back()->name = varName;
-    symTable->addVar(std::move(varName), outputVars_.back().get());
+    auto* variable = symTable->newVariable(varName);
+    outputVars_.emplace_back(variable);
 }
 
 // static
