@@ -19,7 +19,9 @@ PlanNode::PlanNode(int64_t id, Kind kind, SymbolTable* symTable)
     DCHECK(symTable != nullptr);
     auto varName = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
     auto* variable = symTable->newVariable(varName);
+    VLOG(1) << "New variable: " << varName;
     outputVars_.emplace_back(variable);
+    symTable_->addOrigin(varName, this);
 }
 
 // static

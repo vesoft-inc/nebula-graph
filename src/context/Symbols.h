@@ -47,9 +47,9 @@ public:
     }
 
     Variable* newVariable(std::string name) {
+        VLOG(1) << "New variable for: " << name;
         auto* variable = objPool_->makeAndAdd<Variable>(name);
         addVar(std::move(name), variable);
-        VLOG(1) << "New variable for: " << name;
         return variable;
     }
 

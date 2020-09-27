@@ -910,6 +910,11 @@ private:
             auto* inputVarPtr = symTable_->findVar(var);
             DCHECK(inputVarPtr != nullptr);
             inputVars_.emplace_back(inputVarPtr);
+            for (auto& output : outputVars_) {
+                DCHECK(output != nullptr);
+                symTable_->addDerivative(var, output->name);
+                symTable_->addDependency(output->name, var);
+            }
         }
     }
 
@@ -959,17 +964,38 @@ public:
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 private:
-    DataJoin(int64_t id, PlanNode* input,
+    DataJoin(int64_t id,
+             PlanNode* input,
              std::pair<std::string, int64_t> leftVar,
              std::pair<std::string, int64_t> rightVar,
              std::vector<Expression*> hashKeys,
              std::vector<Expression*> probeKeys,
              SymbolTable* symTable)
         : SingleDependencyNode(id, Kind::kDataJoin, input, symTable),
-        leftVar_(std::move(leftVar)),
-        rightVar_(std::move(rightVar)),
-        hashKeys_(std::move(hashKeys)),
-        probeKeys_(std::move(probeKeys)) {}
+          leftVar_(std::move(leftVar)),
+          rightVar_(std::move(rightVar)),
+          hashKeys_(std::move(hashKeys)),
+          probeKeys_(std::move(probeKeys)) {
+        inputVars_.clear();
+
+        auto* leftVarPtr = symTable_->findVar(leftVar_.first);
+        DCHECK(leftVarPtr != nullptr);
+        inputVars_.emplace_back(leftVarPtr);
+        for (auto& output : outputVars_) {
+            DCHECK(output != nullptr);
+            symTable_->addDerivative(leftVar_.first, output->name);
+            symTable_->addDependency(output->name, leftVar_.first);
+        }
+
+        auto* rightVarPtr = symTable_->findVar(rightVar_.first);
+        DCHECK(rightVarPtr != nullptr);
+        inputVars_.emplace_back(rightVarPtr);
+        for (auto& output : outputVars_) {
+            DCHECK(output != nullptr);
+            symTable_->addDerivative(rightVar_.first, output->name);
+            symTable_->addDependency(output->name, rightVar_.first);
+        }
+    }
 
 private:
     // var name, var version

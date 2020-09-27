@@ -133,6 +133,7 @@ public:
         auto oldVar = outputVars_[0]->name;
         outputVarPtr->colNames = outputVars_[0]->colNames;
         outputVars_[0] = outputVarPtr;
+        symTable_->addOrigin(outputVarPtr->name, this);
         symTable_->updateAllOccurence(oldVar, outputVarPtr->name);
     }
 
@@ -233,7 +234,19 @@ public:
         DCHECK(!inputVars_.empty());
         auto* inputVarPtr = symTable_->findVar(inputVar);
         DCHECK(inputVarPtr != nullptr);
+        std::string oldVar;
+        if (inputVars_[0] != nullptr) {
+            oldVar = inputVars_[0]->name;
+        }
         inputVars_[0] = inputVarPtr;
+        for (auto& output : outputVars_) {
+            DCHECK(output != nullptr);
+            symTable_->addDerivative(inputVar, output->name);
+            symTable_->addDependency(output->name, inputVar);
+        }
+        if (!oldVar.empty()) {
+            symTable_->updateAllOccurence(oldVar, inputVar);
+        }
     }
 
     std::string inputVar() const {
@@ -251,7 +264,13 @@ protected:
     SingleInputNode(int64_t id, Kind kind, const PlanNode* dep, SymbolTable* symTable)
         : SingleDependencyNode(id, kind, dep, symTable) {
         if (dep != nullptr) {
-            inputVars_.emplace_back(dep->outputVarPtr());
+            auto* inputVarPtr = dep->outputVarPtr();
+            inputVars_.emplace_back(inputVarPtr);
+            for (auto& output : outputVars_) {
+                DCHECK(output != nullptr);
+                symTable_->addDerivative(inputVarPtr->name, output->name);
+                symTable_->addDependency(output->name, inputVarPtr->name);
+            }
         } else {
             inputVars_.emplace_back(nullptr);
         }
@@ -272,14 +291,38 @@ public:
         DCHECK_GE(inputVars_.size(), 1);
         auto* leftVarPtr = symTable_->findVar(leftVar);
         DCHECK(leftVarPtr != nullptr);
+        std::string oldVar;
+        if (inputVars_[0] != nullptr) {
+            oldVar = inputVars_[0]->name;
+        }
         inputVars_[0] = leftVarPtr;
+        for (auto& output : outputVars_) {
+            DCHECK(output != nullptr);
+            symTable_->addDerivative(leftVar, output->name);
+            symTable_->addDependency(output->name, leftVar);
+        }
+        if (!oldVar.empty()) {
+            symTable_->updateAllOccurence(oldVar, leftVar);
+        }
     }
 
     void setRightVar(std::string rightVar) {
         DCHECK_EQ(inputVars_.size(), 2);
         auto* rightVarPtr = symTable_->findVar(rightVar);
         DCHECK(rightVarPtr != nullptr);
+        std::string oldVar;
+        if (inputVars_[1] != nullptr) {
+            oldVar = inputVars_[1]->name;
+        }
         inputVars_[1] = rightVarPtr;
+        for (auto& output : outputVars_) {
+            DCHECK(output != nullptr);
+            symTable_->addDerivative(rightVar, output->name);
+            symTable_->addDependency(output->name, rightVar);
+        }
+        if (!oldVar.empty()) {
+            symTable_->updateAllOccurence(oldVar, rightVar);
+        }
     }
 
     const PlanNode* left() const {
@@ -305,10 +348,24 @@ protected:
         : PlanNode(id, kind, symTable) {
         DCHECK(left != nullptr);
         DCHECK(right != nullptr);
+
         dependencies_.emplace_back(left);
+        auto* leftVarPtr = left->outputVarPtr();
+        inputVars_.emplace_back(leftVarPtr);
+        for (auto& output : outputVars_) {
+            DCHECK(output != nullptr);
+            symTable_->addDerivative(leftVarPtr->name, output->name);
+            symTable_->addDependency(output->name, leftVarPtr->name);
+        }
+
         dependencies_.emplace_back(right);
-        inputVars_.emplace_back(left->outputVarPtr());
-        inputVars_.emplace_back(right->outputVarPtr());
+        auto* rightVarPtr = right->outputVarPtr();
+        inputVars_.emplace_back(rightVarPtr);
+        for (auto& output : outputVars_) {
+            DCHECK(output != nullptr);
+            symTable_->addDerivative(rightVarPtr->name, output->name);
+            symTable_->addDependency(output->name, rightVarPtr->name);
+        }
     }
 };
 
