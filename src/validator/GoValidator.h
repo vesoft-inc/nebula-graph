@@ -65,6 +65,8 @@ private:
 
     PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
 
+    void rewriteFilterToInputProp();
+
 private:
     Over                                                    over_;
     Expression*                                             filter_{nullptr};
