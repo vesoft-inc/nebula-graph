@@ -239,13 +239,14 @@ public:
             oldVar = inputVars_[0]->name;
         }
         inputVars_[0] = inputVarPtr;
-        for (auto& output : outputVars_) {
-            DCHECK(output != nullptr);
-            symTable_->addDerivative(inputVar, output->name);
-            symTable_->addDependency(output->name, inputVar);
-        }
         if (!oldVar.empty()) {
             symTable_->updateAllOccurence(oldVar, inputVar);
+        } else {
+            for (auto& output : outputVars_) {
+                DCHECK(output != nullptr);
+                symTable_->addDerivative(inputVar, output->name);
+                symTable_->addDependency(output->name, inputVar);
+            }
         }
     }
 
@@ -296,13 +297,14 @@ public:
             oldVar = inputVars_[0]->name;
         }
         inputVars_[0] = leftVarPtr;
-        for (auto& output : outputVars_) {
-            DCHECK(output != nullptr);
-            symTable_->addDerivative(leftVar, output->name);
-            symTable_->addDependency(output->name, leftVar);
-        }
         if (!oldVar.empty()) {
             symTable_->updateAllOccurence(oldVar, leftVar);
+        } else {
+            for (auto& output : outputVars_) {
+                DCHECK(output != nullptr);
+                symTable_->addDerivative(leftVar, output->name);
+                symTable_->addDependency(output->name, leftVar);
+            }
         }
     }
 
@@ -315,13 +317,14 @@ public:
             oldVar = inputVars_[1]->name;
         }
         inputVars_[1] = rightVarPtr;
-        for (auto& output : outputVars_) {
-            DCHECK(output != nullptr);
-            symTable_->addDerivative(rightVar, output->name);
-            symTable_->addDependency(output->name, rightVar);
-        }
         if (!oldVar.empty()) {
             symTable_->updateAllOccurence(oldVar, rightVar);
+        } else {
+            for (auto& output : outputVars_) {
+                DCHECK(output != nullptr);
+                symTable_->addDerivative(rightVar, output->name);
+                symTable_->addDependency(output->name, rightVar);
+            }
         }
     }
 

@@ -69,9 +69,32 @@ public:
         dependencies_[varName].emplace_back(dependency);
     }
 
-    void updateAllOccurence(std::string& oldVar, std::string& newVar) {
-        UNUSED(oldVar);
-        UNUSED(newVar);
+    void updateAllOccurence(std::string oldVar, std::string newVar) {
+        auto oldDerivative = derivatives_.find(oldVar);
+        if (oldDerivative != derivatives_.end()) {
+            derivatives_.emplace(newVar, std::move(oldDerivative->second));
+            derivatives_.erase(oldVar);
+        }
+        for (auto& derivative : derivatives_) {
+            for (auto& var : derivative.second) {
+                if (var == oldVar) {
+                    var = newVar;
+                }
+            }
+        }
+
+        auto oldDependency = dependencies_.find(oldVar);
+        if (oldDependency != dependencies_.end()) {
+            dependencies_.emplace(newVar, std::move(oldDependency->second));
+            dependencies_.erase(oldVar);
+        }
+        for (auto& dependency : dependencies_) {
+            for (auto& var : dependency.second) {
+                if (var == oldVar) {
+                    var = newVar;
+                }
+            }
+        }
     }
 
     Variable* findVar(std::string& varName) {
