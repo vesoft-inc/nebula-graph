@@ -171,29 +171,39 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
 
     // extract the filter expressions that can be pushed down to GetNeighbors
     // PlanNode* pushDownFilterNode = nullptr;
-    std::unique_ptr<Expression> remainedFilterExpr(nullptr);
-    bool canBePushDown = false;
-    if (filter_ != nullptr) {
-        auto filterExpr = filter_->clone();
-        graph::ExtractFilterExprVisitor visitor;
-        filterExpr->accept(&visitor);
-        canBePushDown = visitor.ok();
-        if (canBePushDown) {
-            auto* pushDownFilterNode = Filter::make(qctx_, dependencyForProjectResult,
-                        filterExpr.release());
-            pushDownFilterNode->setInputVar(dependencyForProjectResult->outputVar());
-            pushDownFilterNode->setColNames(dependencyForProjectResult->colNames());
-            dependencyForProjectResult = pushDownFilterNode;
-
-            remainedFilterExpr = std::move(visitor).remainedExpr();
-        }
+    if (filter1_ != nullptr) {
+        auto* pushDownFilterNode = Filter::make(qctx_, dependencyForProjectResult,
+                    newFilter1_);
+        pushDownFilterNode->setInputVar(dependencyForProjectResult->outputVar());
+        pushDownFilterNode->setColNames(dependencyForProjectResult->colNames());
+        dependencyForProjectResult = pushDownFilterNode;
     }
-    rewriteFilterToInputProp();
+    // std::unique_ptr<Expression> remainedFilterExpr(nullptr);
+    // bool canBePushDown = false;
+    // if (filter_ != nullptr) {
+    //     auto filterExpr = filter_->clone();
+    //     graph::ExtractFilterExprVisitor visitor;
+    //     filterExpr->accept(&visitor);
+    //     canBePushDown = visitor.ok();
+    //     if (canBePushDown) {
+    //         auto filterCondition = filterExpr.release();
+    //         rewriteFilterToInputProp(filterCondition);
+    //         auto* pushDownFilterNode = Filter::make(qctx_, dependencyForProjectResult,
+    //                     filterCondition);
+    //         pushDownFilterNode->setInputVar(dependencyForProjectResult->outputVar());
+    //         pushDownFilterNode->setColNames(dependencyForProjectResult->colNames());
+    //         dependencyForProjectResult = pushDownFilterNode;
+
+    //         remainedFilterExpr = std::move(visitor).remainedExpr();
+    //     }
+    // }
 
     PlanNode* projectSrcEdgeProps = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
         !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
-        projectSrcEdgeProps = buildProjectSrcEdgePropsForGN(gn->outputVar(), gn);
+        projectSrcEdgeProps = buildProjectSrcEdgePropsForGN(
+            dependencyForProjectResult->outputVar(),
+            dependencyForProjectResult);
     }
 
     // Join the dst props if $$.tag.prop was declared.
@@ -214,10 +224,20 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
         dependencyForProjectResult = joinInput;
     }
 
-    if (filter_ != nullptr && (!canBePushDown || remainedFilterExpr != nullptr)) {
+    // if (filter_ != nullptr && (!canBePushDown || remainedFilterExpr != nullptr)) {
+    //     auto filter2 = remainedFilterExpr == nullptr ?
+    // (newFilter_ != nullptr ? newFilter_ : filter_)
+    //                 : remainedFilterExpr.release()
+    //     rewriteFilterToInputProp(filter2);
+    //     auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
+    //                 filter2);
+    //     filterNode->setInputVar(dependencyForProjectResult->outputVar());
+    //     filterNode->setColNames(dependencyForProjectResult->colNames());
+    //     dependencyForProjectResult = filterNode;
+    // }
+    if (filter2_ != nullptr) {
         auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
-                    remainedFilterExpr == nullptr ? (newFilter_ != nullptr ? newFilter_ : filter_)
-                    : remainedFilterExpr.release());
+                    newFilter2_);
         filterNode->setInputVar(dependencyForProjectResult->outputVar());
         filterNode->setColNames(dependencyForProjectResult->colNames());
         dependencyForProjectResult = filterNode;
@@ -363,7 +383,7 @@ Status GoValidator::buildMToNPlan() {
 
     if (filter_ != nullptr) {
         auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
-                    newFilter_ != nullptr ? newFilter_ : filter_);
+                    newFilter_);
         filterNode->setInputVar(
             dependencyForProjectResult == dedupDstVids ?
                 gn->outputVar() : dependencyForProjectResult->outputVar());
@@ -790,16 +810,54 @@ Status GoValidator::buildColumns() {
         inputPropCols_ = pool->add(new YieldColumns());
     }
 
+    // extract the filter expressions that can be pushed down to GetNeighbors
     if (filter_ != nullptr) {
         extractPropExprs(filter_);
-        // auto newFilter = filter_->clone();
-        // auto rewriteFilter = rewriteToInputProp(newFilter.get());
-        // if (rewriteFilter != nullptr) {
-        //     newFilter_ = rewriteFilter.release();
-        // } else {
-        //     newFilter_ = newFilter.release();
-        // }
-        // pool->add(newFilter_);
+        auto filterExpr = filter_->clone();
+        graph::ExtractFilterExprVisitor visitor;
+        filterExpr->accept(&visitor);
+        if (visitor.ok()) {
+            filter1_ = filterExpr.release();  // can be push down
+            filter2_ = std::move(visitor).remainedExpr().release();
+        } else {
+            filter1_ = nullptr;
+            filter2_ = filterExpr.release();
+        }
+    }
+
+    if (filter_ != nullptr) {
+        auto newFilter = filter_->clone();
+        auto rewriteFilter = rewriteToInputProp(newFilter.get());
+        if (rewriteFilter != nullptr) {
+            newFilter_ = rewriteFilter.release();
+        } else {
+            newFilter_ = newFilter.release();
+        }
+        pool->add(newFilter_);
+    }
+
+    if (filter1_ != nullptr) {
+        extractPropExprs(filter1_);
+        auto newFilter = filter1_->clone();
+        auto rewriteFilter = rewriteToInputProp(newFilter.get());
+        if (rewriteFilter != nullptr) {
+            newFilter1_ = rewriteFilter.release();
+        } else {
+            newFilter1_ = newFilter.release();
+        }
+        pool->add(newFilter1_);
+    }
+
+    if (filter2_ != nullptr) {
+        extractPropExprs(filter2_);
+        auto newFilter = filter2_->clone();
+        auto rewriteFilter = rewriteToInputProp(newFilter.get());
+        if (rewriteFilter != nullptr) {
+            newFilter2_ = rewriteFilter.release();
+        } else {
+            newFilter2_ = newFilter.release();
+        }
+        pool->add(newFilter2_);
     }
 
     newYieldCols_ = pool->add(new YieldColumns());
@@ -819,19 +877,6 @@ Status GoValidator::buildColumns() {
     }
 
     return Status::OK();
-}
-
-void GoValidator::rewriteFilterToInputProp() {
-    if (filter_ != nullptr) {
-        auto newFilter = filter_->clone();
-        auto rewriteFilter = rewriteToInputProp(newFilter.get());
-        if (rewriteFilter != nullptr) {
-            newFilter_ = rewriteFilter.release();
-        } else {
-            newFilter_ = newFilter.release();
-        }
-        qctx_->objPool()->add(newFilter_);
-    }
 }
 
 }  // namespace graph
