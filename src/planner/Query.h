@@ -641,7 +641,7 @@ public:
 private:
     Sort(int64_t id,
          PlanNode* input,
-         std::vector<std::pair<size_t, OrderFactor::OrderType>> factors)
+         std::vector<std::pair<size_t, OrderFactor::OrderType>> factors,
          SymbolTable* symTable)
         : SingleInputNode(id, Kind::kSort, input, symTable) {
         factors_ = std::move(factors);
@@ -709,7 +709,7 @@ public:
                       int64_t offset,
                       int64_t count) {
         return qctx->objPool()->add(new TopN(qctx->genId(),
-            input, std::move(factors), offset, count));
+            input, std::move(factors), offset, count, qctx->symTable()));
     }
 
     const std::vector<std::pair<size_t, OrderFactor::OrderType>>& factors() const {
@@ -731,8 +731,9 @@ private:
          PlanNode* input,
          std::vector<std::pair<size_t, OrderFactor::OrderType>> factors,
          int64_t offset,
-         int64_t count)
-        : SingleInputNode(id, Kind::kTopN, input) {
+         int64_t count,
+         SymbolTable* symTable)
+        : SingleInputNode(id, Kind::kTopN, input, symTable) {
         factors_ = std::move(factors);
         DCHECK_GE(offset, 0);
         DCHECK_GE(count, 0);
