@@ -15,6 +15,7 @@
 #include "visitor/RewriteInputPropVisitor.h"
 #include "parser/TraverseSentences.h"
 #include "planner/Logic.h"
+#include "visitor/ExtractFilterExprVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -168,6 +169,22 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
 
     PlanNode* dependencyForProjectResult = gn;
 
+    // extract the filter expressions that can be pushed down to GetNeighbors
+    // PlanNode* pushDownFilterNode = nullptr;
+    auto filterExpr = (newFilter_ != nullptr ? newFilter_ : filter_)->clone();
+    graph::ExtractFilterExprVisitor visitor;
+    filterExpr->accept(&visitor);
+    std::unique_ptr<Expression> remainedFilterExpr(nullptr);
+    if (visitor.ok()) {
+        auto* pushDownFilterNode = Filter::make(qctx_, dependencyForProjectResult,
+                    filterExpr.release());
+        pushDownFilterNode->setInputVar(dependencyForProjectResult->outputVar());
+        pushDownFilterNode->setColNames(dependencyForProjectResult->colNames());
+        dependencyForProjectResult = pushDownFilterNode;
+
+        remainedFilterExpr = std::move(visitor).remainedExpr();
+    }
+
     PlanNode* projectSrcEdgeProps = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
         !exprProps_.dstTagProps().empty() || from_.fromType != FromType::kInstantExpr) {
@@ -192,9 +209,10 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
         dependencyForProjectResult = joinInput;
     }
 
-    if (filter_ != nullptr) {
+    if (!visitor.ok() || remainedFilterExpr != nullptr) {
         auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
-                    newFilter_ != nullptr ? newFilter_ : filter_);
+                    remainedFilterExpr == nullptr ? (newFilter_ != nullptr ? newFilter_ : filter_)
+                    : remainedFilterExpr.release());
         filterNode->setInputVar(dependencyForProjectResult->outputVar());
         filterNode->setColNames(dependencyForProjectResult->colNames());
         dependencyForProjectResult = filterNode;
