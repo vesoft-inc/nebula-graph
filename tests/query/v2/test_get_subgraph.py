@@ -251,7 +251,6 @@ class TestSubGraph(NebulaTestSuite):
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_subgraph_result(resp, expected_data["rows"])
-        #self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan'"
         resp = self.execute_query(stmt)
