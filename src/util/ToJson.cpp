@@ -11,8 +11,8 @@
 #include "common/expression/Expression.h"
 #include "common/interface/gen-cpp2/meta_types.h"
 #include "common/interface/gen-cpp2/storage_types.h"
-#include "parser/ColumnTypeDef.h"
 #include "parser/EdgeKey.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace util {
@@ -26,6 +26,10 @@ std::string toJson(int32_t i) {
 }
 
 std::string toJson(int64_t i) {
+    return folly::to<std::string>(i);
+}
+
+std::string toJson(size_t i) {
     return folly::to<std::string>(i);
 }
 
@@ -60,16 +64,16 @@ folly::dynamic toJson(const meta::cpp2::SpaceDesc &desc) {
     obj.insert("replicaFactor", desc.replica_factor);
     obj.insert("charset", desc.charset_name);
     obj.insert("collate", desc.collate_name);
-    obj.insert("vidType", ColumnTypeDef(desc.vid_type, desc.vid_size).toString());
+    obj.insert("vidType", graph::SchemaUtil::typeToString(desc.get_vid_type()));
     return obj;
 }
 
 folly::dynamic toJson(const meta::cpp2::ColumnDef &column) {
     folly::dynamic obj = folly::dynamic::object();
     obj.insert("name", column.get_name());
-    obj.insert("type", meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(column.get_type()));
-    if (column.__isset.type_length) {
-        obj.insert("typeLength", folly::to<std::string>(*column.get_type_length()));
+    obj.insert("type", meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(column.get_type().get_type()));
+    if (column.type.__isset.type_length) {
+        obj.insert("typeLength", folly::to<std::string>(*column.get_type().get_type_length()));
     }
     if (column.__isset.nullable) {
         obj.insert("nullable", folly::to<std::string>(*column.get_nullable()));

@@ -23,12 +23,14 @@ Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &colu
         }
         nameSet.emplace(*spec->name());
         meta::cpp2::ColumnDef column;
-        auto type = spec->type();
         column.set_name(*spec->name());
-        column.set_type(type);
+        auto type = spec->type();
+        meta::cpp2::ColumnTypeDef typeDef;
+        typeDef.set_type(type);
+        column.set_type(std::move(typeDef));
         column.set_nullable(spec->isNull());
         if (meta::cpp2::PropertyType::FIXED_STRING == type) {
-            column.set_type_length(spec->typeLen());
+            column.type.set_type_length(spec->typeLen());
         }
 
         if (spec->hasDefaultValue()) {
@@ -87,8 +89,8 @@ SchemaUtil::generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema
     for (auto col : schema.get_columns()) {
         bool hasDef = col.__isset.default_value;
         schemaPtr->addField(col.get_name(),
-                            col.get_type(),
-                            col.__isset.type_length ? *col.get_type_length() : 0,
+                            col.get_type().get_type(),
+                            col.type.__isset.type_length ? *col.get_type().get_type_length() : 0,
                             col.__isset.nullable ? *col.get_nullable() : false,
                             hasDef ? *col.get_default_value() : Value());
     }
@@ -175,8 +177,8 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
         if (col.name == ttlColName) {
             // Only integer columns and timestamp columns can be used as ttl_col
             // TODO(YT) Ttl_duration supports datetime type
-            if (col.type != meta::cpp2::PropertyType::INT64 &&
-                col.type != meta::cpp2::PropertyType::TIMESTAMP) {
+            if (col.type.type != meta::cpp2::PropertyType::INT64 &&
+                col.type.type != meta::cpp2::PropertyType::TIMESTAMP) {
                 return Status::Error("Ttl column type illegal");
             }
             schema.schema_prop.set_ttl_col(ttlColName);
@@ -288,40 +290,19 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
     return dataSet;
 }
 
-std::string SchemaUtil::typeToString(const meta::cpp2::ColumnDef &col) {
-    switch (col.get_type()) {
-        case meta::cpp2::PropertyType::BOOL:
-            return "bool";
-        case meta::cpp2::PropertyType::INT8:
-            return "int8";
-        case meta::cpp2::PropertyType::INT16:
-            return "int16";
-        case meta::cpp2::PropertyType::INT32:
-            return "int32";
-        case meta::cpp2::PropertyType::INT64:
-            return "int64";
-        case meta::cpp2::PropertyType::VID:
-            return "vid";
-        case meta::cpp2::PropertyType::FLOAT:
-            return "float";
-        case meta::cpp2::PropertyType::DOUBLE:
-            return "double";
-        case meta::cpp2::PropertyType::STRING:
-            return "string";
-        case meta::cpp2::PropertyType::FIXED_STRING: {
-            auto typeLen = col.__isset.type_length ? *col.get_type_length() : 0;
-            return folly::stringPrintf("fixed_string(%d)", typeLen);
-        }
-        case meta::cpp2::PropertyType::TIMESTAMP:
-            return "timestamp";
-        case meta::cpp2::PropertyType::DATE:
-            return "date";
-        case meta::cpp2::PropertyType::DATETIME:
-            return "datetime";
-        case meta::cpp2::PropertyType::UNKNOWN:
-            return "";
+std::string SchemaUtil::typeToString(const meta::cpp2::ColumnTypeDef &col) {
+    auto type = meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(col.get_type());
+    if (col.get_type() == meta::cpp2::PropertyType::FIXED_STRING) {
+        return folly::stringPrintf("%s(%d)", type, *col.get_type_length());
     }
-    return "";
+    return type;
+}
+
+std::string SchemaUtil::typeToString(const meta::cpp2::ColumnDef &col) {
+    auto str = typeToString(col.get_type());
+    std::transform(
+        std::begin(str), std::end(str), std::begin(str), [](uint8_t c) { return std::tolower(c); });
+    return str;
 }
 
 Value::Type SchemaUtil::propTypeToValueType(meta::cpp2::PropertyType propType) {
@@ -334,6 +315,8 @@ Value::Type SchemaUtil::propTypeToValueType(meta::cpp2::PropertyType propType) {
         case meta::cpp2::PropertyType::INT64:
         case meta::cpp2::PropertyType::TIMESTAMP:
             return Value::Type::INT;
+        case meta::cpp2::PropertyType::TIME:
+            return Value::Type::TIME;
         case meta::cpp2::PropertyType::VID:
             return Value::Type::STRING;
         case meta::cpp2::PropertyType::FLOAT:
@@ -350,6 +333,10 @@ Value::Type SchemaUtil::propTypeToValueType(meta::cpp2::PropertyType propType) {
             return Value::Type::__EMPTY__;
     }
     return Value::Type::__EMPTY__;
+}
+
+bool SchemaUtil::isValidVid(const Value &value, const meta::cpp2::ColumnTypeDef &type) {
+    return isValidVid(value, type.get_type());
 }
 
 bool SchemaUtil::isValidVid(const Value &value, meta::cpp2::PropertyType type) {

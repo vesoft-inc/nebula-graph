@@ -45,6 +45,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Project";
         case Kind::kSort:
             return "Sort";
+        case Kind::kTopN:
+            return "TopN";
         case Kind::kLimit:
             return "Limit";
         case Kind::kAggregate:
@@ -75,6 +77,22 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "AlterTag";
         case Kind::kAlterEdge:
             return "AlterEdge";
+        case Kind::kCreateTagIndex:
+            return "kCreateTagIndex";
+        case Kind::kCreateEdgeIndex:
+            return "kCreateEdgeIndex";
+        case Kind::kDropTagIndex:
+            return "kDropTagIndex";
+        case Kind::kDropEdgeIndex:
+            return "kDropEdgeIndex";
+        case Kind::kDescTagIndex:
+            return "kDescTagIndex";
+        case Kind::kDescEdgeIndex:
+            return "kDescEdgeIndex";
+        case Kind::kRebuildTagIndex:
+            return "kRebuildTagIndex";
+        case Kind::kRebuildEdgeIndex:
+            return "kRebuildEdgeIndex";
         case Kind::kInsertVertices:
             return "InsertVertices";
         case Kind::kInsertEdges:

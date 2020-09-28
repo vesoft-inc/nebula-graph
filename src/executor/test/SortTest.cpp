@@ -57,8 +57,8 @@ TEST_F(SortTest, sortOneColAsc) {
     expected.emplace_back(Row({20}));
     expected.emplace_back(Row({20}));
     expected.emplace_back(Row({Value::kNullValue}));
-    std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
-    factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::ASCEND));
+    std::vector<std::pair<size_t, OrderFactor::OrderType>> factors;
+    factors.emplace_back(std::make_pair(2, OrderFactor::OrderType::ASCEND));
     SORT_RESUTL_CHECK("input_sequential", "sort_one_col_asc", false, factors, expected);
 }
 
@@ -70,8 +70,8 @@ TEST_F(SortTest, sortOneColDes) {
     expected.emplace_back(Row({19}));
     expected.emplace_back(Row({18}));
     expected.emplace_back(Row({18}));
-    std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
-    factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::DESCEND));
+    std::vector<std::pair<size_t, OrderFactor::OrderType>> factors;
+    factors.emplace_back(std::make_pair(2, OrderFactor::OrderType::DESCEND));
     SORT_RESUTL_CHECK("input_sequential", "sort_one_col_des", false, factors, expected);
 }
 
@@ -83,9 +83,9 @@ TEST_F(SortTest, sortTwoColsAscAsc) {
     expected.emplace_back(Row({20, 2008}));
     expected.emplace_back(Row({20, 2009}));
     expected.emplace_back(Row({Value::kNullValue, 2009}));
-    std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
-    factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::ASCEND));
-    factors.emplace_back(std::make_pair("e_start_year", OrderFactor::OrderType::ASCEND));
+    std::vector<std::pair<size_t, OrderFactor::OrderType>> factors;
+    factors.emplace_back(std::make_pair(2, OrderFactor::OrderType::ASCEND));
+    factors.emplace_back(std::make_pair(4, OrderFactor::OrderType::ASCEND));
     SORT_RESUTL_CHECK("input_sequential", "sort_two_cols_asc_asc", true, factors, expected);
 }
 
@@ -97,9 +97,9 @@ TEST_F(SortTest, sortTwoColsAscDes) {
     expected.emplace_back(Row({20, 2009}));
     expected.emplace_back(Row({20, 2008}));
     expected.emplace_back(Row({Value::kNullValue, 2009}));
-    std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
-    factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::ASCEND));
-    factors.emplace_back(std::make_pair("e_start_year", OrderFactor::OrderType::DESCEND));
+    std::vector<std::pair<size_t, OrderFactor::OrderType>> factors;
+    factors.emplace_back(std::make_pair(2, OrderFactor::OrderType::ASCEND));
+    factors.emplace_back(std::make_pair(4, OrderFactor::OrderType::DESCEND));
     SORT_RESUTL_CHECK("input_sequential", "sort_two_cols_asc_des", true, factors, expected);
 }
 
@@ -111,9 +111,9 @@ TEST_F(SortTest, sortTwoColDesDes) {
     expected.emplace_back(Row({19, 2009}));
     expected.emplace_back(Row({18, 2010}));
     expected.emplace_back(Row({18, 2010}));
-    std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
-    factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::DESCEND));
-    factors.emplace_back(std::make_pair("e_start_year", OrderFactor::OrderType::DESCEND));
+    std::vector<std::pair<size_t, OrderFactor::OrderType>> factors;
+    factors.emplace_back(std::make_pair(2, OrderFactor::OrderType::DESCEND));
+    factors.emplace_back(std::make_pair(4, OrderFactor::OrderType::DESCEND));
     SORT_RESUTL_CHECK("input_sequential", "sort_two_cols_des_des", true, factors, expected);
 }
 
@@ -125,9 +125,9 @@ TEST_F(SortTest, sortTwoColDesDes_union) {
     expected.emplace_back(Row({19, 2009}));
     expected.emplace_back(Row({18, 2010}));
     expected.emplace_back(Row({18, 2010}));
-    std::vector<std::pair<std::string, OrderFactor::OrderType>> factors;
-    factors.emplace_back(std::make_pair("v_age", OrderFactor::OrderType::DESCEND));
-    factors.emplace_back(std::make_pair("e_start_year", OrderFactor::OrderType::DESCEND));
+    std::vector<std::pair<size_t, OrderFactor::OrderType>> factors;
+    factors.emplace_back(std::make_pair(2, OrderFactor::OrderType::DESCEND));
+    factors.emplace_back(std::make_pair(4, OrderFactor::OrderType::DESCEND));
     SORT_RESUTL_CHECK("union_sequential", "union_sort_two_cols_des_des", true, factors, expected);
 }
 }   // namespace graph

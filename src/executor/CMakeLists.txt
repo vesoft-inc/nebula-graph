@@ -21,6 +21,7 @@ nebula_add_library(
     query/MinusExecutor.cpp
     query/ProjectExecutor.cpp
     query/SortExecutor.cpp
+    query/TopNExecutor.cpp
     query/IndexScanExecutor.cpp
     query/SetExecutor.cpp
     query/UnionExecutor.cpp
@@ -48,7 +49,9 @@ nebula_add_library(
     admin/PartExecutor.cpp
     admin/CharsetExecutor.cpp
     maintain/TagExecutor.cpp
+    maintain/TagIndexExecutor.cpp
     maintain/EdgeExecutor.cpp
+    maintain/EdgeIndexExecutor.cpp
     mutate/InsertExecutor.cpp
     mutate/DeleteExecutor.cpp
     mutate/UpdateExecutor.cpp

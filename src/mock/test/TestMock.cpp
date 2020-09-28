@@ -56,14 +56,14 @@ TEST_F(MockServerTest, TestMeta) {
         ASSERT_EQ(spaceId1, getStatus.value().get_space_id());
         ASSERT_EQ(10, getStatus.value().get_properties().get_partition_num());
         ASSERT_EQ(1, getStatus.value().get_properties().get_replica_factor());
-        ASSERT_EQ(8, getStatus.value().get_properties().get_vid_size());
+        ASSERT_EQ(8, *getStatus.value().get_properties().get_vid_type().get_type_length());
 
         getStatus = metaClient->getSpace(spaceName2).get();
         ASSERT_TRUE(getStatus.ok());
         ASSERT_EQ(spaceId2, getStatus.value().get_space_id());
         ASSERT_EQ(100, getStatus.value().get_properties().get_partition_num());
         ASSERT_EQ(3, getStatus.value().get_properties().get_replica_factor());
-        ASSERT_EQ(8, getStatus.value().get_properties().get_vid_size());
+        ASSERT_EQ(8, *getStatus.value().get_properties().get_vid_type().get_type_length());
 
         // List spaces
         auto listStatus = metaClient->listSpaces().get();
@@ -84,7 +84,7 @@ TEST_F(MockServerTest, TestMeta) {
             meta::cpp2::Schema tagSchema;
             meta::cpp2::ColumnDef col;
             col.set_name(folly::stringPrintf("col_%d", i));
-            col.set_type(meta::cpp2::PropertyType::STRING);
+            col.type.set_type(meta::cpp2::PropertyType::STRING);
             col.set_default_value(nebula::Value("NULL"));
             std::vector<meta::cpp2::ColumnDef> cols;
             cols.emplace_back(col);
@@ -102,7 +102,8 @@ TEST_F(MockServerTest, TestMeta) {
             auto schema = status.value();
             ASSERT_EQ(1, schema.get_columns().size());
             ASSERT_EQ(folly::stringPrintf("col_%d", i), schema.get_columns()[0].get_name());
-            ASSERT_EQ(meta::cpp2::PropertyType::STRING, schema.get_columns()[0].get_type());
+            ASSERT_EQ(meta::cpp2::PropertyType::STRING,
+                      schema.get_columns()[0].get_type().get_type());
             ASSERT_EQ("NULL", schema.get_columns()[0].get_default_value()->getStr());
         }
 
@@ -131,7 +132,9 @@ TEST_F(MockServerTest, TestMeta) {
             meta::cpp2::Schema edgeSchema;
             meta::cpp2::ColumnDef col;
             col.set_name(folly::stringPrintf("col_%d", i));
-            col.set_type(meta::cpp2::PropertyType::STRING);
+            meta::cpp2::ColumnTypeDef typeDef;
+            typeDef.set_type(meta::cpp2::PropertyType::STRING);
+            col.set_type(std::move(typeDef));
             col.set_default_value(nebula::Value("NULL"));
             std::vector<meta::cpp2::ColumnDef> cols;
             cols.emplace_back(col);
@@ -149,7 +152,8 @@ TEST_F(MockServerTest, TestMeta) {
             auto schema = status.value();
             ASSERT_EQ(1, schema.get_columns().size());
             ASSERT_EQ(folly::stringPrintf("col_%d", i), schema.get_columns()[0].get_name());
-            ASSERT_EQ(meta::cpp2::PropertyType::STRING, schema.get_columns()[0].get_type());
+            ASSERT_EQ(meta::cpp2::PropertyType::STRING,
+                      schema.get_columns()[0].get_type().get_type());
             ASSERT_EQ("NULL", schema.get_columns()[0].get_default_value()->getStr());
         }
 
@@ -198,5 +202,3 @@ TEST_F(MockServerTest, DISABLED_TestStorage) {
 
 }   // namespace graph
 }   // namespace nebula
-
-
