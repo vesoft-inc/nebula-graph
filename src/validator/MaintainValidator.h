@@ -299,6 +299,9 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
+private:
+    std::string                      index_;
 };
 
 class ShowTagIndexesValidator final : public Validator {

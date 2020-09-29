@@ -459,25 +459,40 @@ Status ShowCreateTagIndexValidator::validateImpl() {
 }
 
 Status ShowCreateTagIndexValidator::toPlan() {
-    // auto sentence = static_cast<ShowCreateTagIndexSentence*>(sentence_);
+    auto sentence = static_cast<ShowCreateTagIndexSentence*>(sentence_);
+    auto *doNode = ShowCreateTagIndex::make(qctx_,
+                                            nullptr,
+                                            *sentence->indexName());
+    root_ = doNode;
+    tail_ = root_;
     return Status::OK();
 }
 
 Status ShowCreateEdgeIndexValidator::validateImpl() {
-    return Status::OK();
-}
-
-Status ShowCreateEdgeIndexValidator::toPlan() {
-    return Status::OK();
-}
-
-Status ShowTagIndexesValidator::validateImpl() {
-    auto sentence = static_cast<ShowCreateEdgeIndexSentence*>(sentence_);
+    auto sentence = static_cast<ShowCreateTagIndexSentence*>(sentence_);
     index_ = *sentence->indexName();
     return Status::OK();
 }
 
+Status ShowCreateEdgeIndexValidator::toPlan() {
+    auto sentence = static_cast<ShowCreateEdgeIndexSentence*>(sentence_);
+    auto *doNode = ShowCreateEdgeIndex::make(qctx_,
+                                             nullptr,
+                                             *sentence->indexName());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowTagIndexesValidator::validateImpl() {
+    return Status::OK();
+}
+
 Status ShowTagIndexesValidator::toPlan() {
+    auto *doNode = ShowTagIndexes::make(qctx_,
+                                        nullptr);
+    root_ = doNode;
+    tail_ = root_;
     return Status::OK();
 }
 
@@ -486,6 +501,10 @@ Status ShowEdgeIndexesValidator::validateImpl() {
 }
 
 Status ShowEdgeIndexesValidator::toPlan() {
+    auto *doNode = ShowEdgeIndexes::make(qctx_,
+                                        nullptr);
+    root_ = doNode;
+    tail_ = root_;
     return Status::OK();
 }
 
@@ -494,14 +513,25 @@ Status RebuildTagIndexValidator::validateImpl() {
 }
 
 Status RebuildTagIndexValidator::toPlan() {
+    auto sentence = static_cast<RebuildTagIndexSentence*>(sentence_);
+    auto *doNode = RebuildTagIndex::make(qctx_,
+                                        nullptr,
+                                        *sentence->indexName());
+    root_ = doNode;
+    tail_ = root_;
     return Status::OK();
 }
-
 Status RebuildEdgeIndexValidator::validateImpl() {
     return Status::OK();
 }
 
 Status RebuildEdgeIndexValidator::toPlan() {
+    auto sentence = static_cast<RebuildEdgeIndexSentence*>(sentence_);
+    auto *doNode = RebuildEdgeIndex::make(qctx_,
+                                        nullptr,
+                                        *sentence->indexName());
+    root_ = doNode;
+    tail_ = root_;
     return Status::OK();
 }
 
