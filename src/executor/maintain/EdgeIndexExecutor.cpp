@@ -30,15 +30,71 @@ folly::Future<Status> CreateEdgeIndexExecutor::execute() {
 }
 
 folly::Future<Status> DropEdgeIndexExecutor::execute() {
-    // auto *deiNode = asNode<DropEdgeIndexNode>(node());
-    // auto spaceId = qctx()->rctx()->session()->space();
-    return Status::OK();
+    auto *deiNode = asNode<DropEdgeIndex>(node());
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()->getMetaClient()->dropEdgeIndex(spaceId,
+            deiNode->getIndexName(), deiNode->getIfExists())
+            .via(runner())
+            .then([deiNode, spaceId](StatusOr<IndexID> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << "SpaceId: " << spaceId
+                               << ", Drop index`" << deiNode->getIndexName()
+                               << "' failed: " << resp.status();
+                    return resp.status();
+                }
+                return Status::OK();
+            });
 }
 
 folly::Future<Status> DescEdgeIndexExecutor::execute() {
-    // auto *deiNode = asNode<DescEdgeIndexNode>(node());
-    // auto spaceId = qctx()->rctx()->session()->space();
-    return Status::OK();
+    auto *deiNode = asNode<DescEdgeIndex>(node());
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()
+        ->getMetaClient()
+        ->getEdgeIndex(spaceId, deiNode->getIndexName())
+        .via(runner())
+        .then([deiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+            if (!resp.ok()) {
+                LOG(ERROR) << "SpaceId: " << spaceId
+                           << ", Desc index`" << deiNode->getIndexName()
+                           << "' failed: " << resp.status();
+                return resp.status();
+            }
+            return Status::OK();
+        });
+}
+
+folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
+     auto spaceId = qctx()->rctx()->session()->space().id;
+     return qctx()
+        ->getMetaClient()
+        ->listEdgeIndexes(spaceId)
+        .via(runner())
+        .then([this, spaceId](StatusOr<std::vector<meta::cpp2::IndexItem>> resp) {
+            if (!resp.ok()) {
+                LOG(ERROR) << "SpaceId: " << spaceId
+                           << ", Show edge indexes failed" << resp.status();
+                return resp.status();
+            }
+
+            auto edgeIndexItems = std::move(resp).value();
+
+            DataSet dataSet;
+            dataSet.colNames = {"Names"};
+            std::set<std::string> edgeIndexNames;
+            for (auto &edgeIndex : edgeIndexItems) {
+                edgeIndexNames.emplace(edgeIndex.get_index_name());
+            }
+            for (auto &name : edgeIndexNames) {
+                Row row;
+                row.values.emplace_back(name);
+                dataSet.rows.emplace_back(std::move(row));
+            }
+            return finish(ResultBuilder()
+                            .value(Value(std::move(dataSet)))
+                            .iter(Iterator::Kind::kDefault)
+                            .finish());
+        });
 }
 
 }   // namespace graph
