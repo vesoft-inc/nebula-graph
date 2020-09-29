@@ -33,11 +33,8 @@ PushFilterDownGetNbrsRule::PushFilterDownGetNbrsRule() {
 }
 
 const Pattern &PushFilterDownGetNbrsRule::pattern() const {
-    // pattern: AnyPlanNode <- GetNeighbors <- Filter
-    static Pattern pattern =
-        Pattern::create(graph::PlanNode::Kind::kFilter,
-                        {Pattern::create(graph::PlanNode::Kind::kGetNeighbors,
-                                         {Pattern::create(graph::PlanNode::Kind::kUnknown)})});
+    static Pattern pattern = Pattern::create(
+        graph::PlanNode::Kind::kFilter, {Pattern::create(graph::PlanNode::Kind::kGetNeighbors)});
     return pattern;
 }
 

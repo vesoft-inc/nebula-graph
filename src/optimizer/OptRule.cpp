@@ -22,12 +22,12 @@ Pattern Pattern::create(graph::PlanNode::Kind kind, std::initializer_list<Patter
 }
 
 StatusOr<MatchedResult> Pattern::match(const OptGroupExpr *groupExpr) const {
-    if (kind_ == graph::PlanNode::Kind::kUnknown) {
-        return MatchedResult{};
-    }
-
     if (groupExpr->node()->kind() != kind_) {
         return Status::Error();
+    }
+
+    if (dependencies_.empty()) {
+        return MatchedResult{groupExpr, {}};
     }
 
     if (groupExpr->dependencies().size() != dependencies_.size()) {
