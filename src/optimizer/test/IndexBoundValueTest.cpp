@@ -192,15 +192,12 @@ TEST(IndexBoundValueTest, DateTest) {
 TEST(IndexBoundValueTest, TimeTest) {
     meta::cpp2::ColumnDef col;
     {
-        col.set_type(meta::cpp2::PropertyType::TIME);
+        meta::cpp2::ColumnTypeDef typeDef;
+        typeDef.set_type(meta::cpp2::PropertyType::TIME);
+        col.set_type(std::move(typeDef));
     }
-    Time maxT;
-    {
-        maxT.microsec = std::numeric_limits<int32_t>::max();
-        maxT.sec = 60;
-        maxT.minute = 60;
-        maxT.hour = 24;
-    }
+    // TODO(shylock) us may limited to 999999
+    Time maxT{24, 60, 60, std::numeric_limits<int32_t>::max()};
 
     Time minT = Time();
 
@@ -213,17 +210,17 @@ TEST(IndexBoundValueTest, TimeTest) {
         actual.microsec = std::numeric_limits<int32_t>::max();
         actual.sec = 60;
         actual.minute = 60;
-        actual.hour = 24;
+        actual.hour = 22;
 
         expect.microsec = 1;
         expect.sec = 1;
         expect.minute = 1;
-        expect.hour = 1;
+        expect.hour = 23;
         EXPECT_EQ(expect,
                   OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(actual)).getTime());
     }
     {
-        DateTime actual, expect;
+        Time actual, expect;
         actual.microsec = std::numeric_limits<int32_t>::max();
         actual.sec = 34;
         actual.minute = 60;
