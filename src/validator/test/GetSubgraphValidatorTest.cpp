@@ -216,13 +216,13 @@ TEST_F(GetSubgraphValidatorTest, RefNotExist) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, like._src AS id | GET "
                             "SUBGRAPH FROM $-.id";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Subgraph: duplicate prop `id'");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
     }
     {
         std::string query = "$a = GO FROM \"1\" OVER like YIELD like._dst AS id, like._src AS id; "
                             "GET SUBGRAPH FROM $a.id";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Subgraph: duplicate prop `id'");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
     }
 }
 

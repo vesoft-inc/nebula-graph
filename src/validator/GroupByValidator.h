@@ -29,10 +29,6 @@ private:
 
     Status validateYield(const YieldClause *yieldClause);
 
-    Status checkInputProps() const;
-
-    Status checkVarProps() const;
-
 private:
     std::vector<YieldColumn*>                         groupCols_;
     std::vector<YieldColumn*>                         yieldCols_;

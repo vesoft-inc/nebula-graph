@@ -37,8 +37,6 @@ public:
 private:
     Status validateYieldAndBuildOutputs(const YieldClause *clause);
     Status validateWhere(const WhereClause *clause);
-    Status checkVarProps() const;
-    Status checkInputProps() const;
     Status checkAggFunAndBuildGroupItems(const YieldClause *clause);
     Status makeOutputColumn(YieldColumn *column);
     void genConstantExprValues();

@@ -131,6 +131,9 @@ protected:
     // return the input variable
     StatusOr<std::string> checkRef(const Expression *ref, const Value::Type type) const;
 
+    // Check the output for duplicate column names
+    Status checkDuplicateColName();
+
 protected:
     SpaceInfo                       space_;
     Sentence*                       sentence_{nullptr};

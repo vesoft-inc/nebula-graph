@@ -236,7 +236,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
             "| GROUP BY $-.age YIELD $-.age, 1+1";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: GroupBy sentence: duplicate prop `age'");
+                  "SemanticError: Duplicate Column Name : `age'");
     }
     {
         // duplicate col
@@ -245,7 +245,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "| GROUP BY $-.id YIELD $-.id, COUNT($-.age)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: GroupBy sentence: duplicate prop `age'");
+                  "SemanticError: Duplicate Column Name : `age'");
     }
 
     // {

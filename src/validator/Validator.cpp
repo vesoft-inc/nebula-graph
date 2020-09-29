@@ -315,27 +315,6 @@ bool Validator::evaluableExpr(const Expression* expr) const {
     return visitor.ok();
 }
 
-// static
-StatusOr<size_t> Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
-                                               folly::StringPiece prop,
-                                               const std::string& validator) {
-    auto eq = [&](const ColDef& col) { return col.name == prop.str(); };
-    auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
-    if (iter == cols.cend()) {
-        return Status::SemanticError(
-            "%s: prop `%s' not exists", validator.c_str(), prop.str().c_str());
-    }
-
-    size_t colIdx = std::distance(cols.cbegin(), iter);
-    iter = std::find_if(iter + 1, cols.cend(), eq);
-    if (iter != cols.cend()) {
-        return Status::SemanticError(
-            "%s: duplicate prop `%s'", validator.c_str(), prop.str().c_str());
-    }
-
-    return colIdx;
-}
-
 StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
@@ -375,5 +354,17 @@ Status Validator::toPlan() {
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }
+
+Status Validator::checkDuplicateColName() {
+    std::unordered_map<std::string, bool> names;
+    for (auto & item : outputs_) {
+        auto ret = names.emplace(item.first, true);
+        if (!ret.second) {
+            return Status::SemanticError("Duplicate Column Name : `%s'", item.first.c_str());
+        }
+    }
+    return Status::OK();
+}
+
 }   // namespace graph
 }   // namespace nebula
