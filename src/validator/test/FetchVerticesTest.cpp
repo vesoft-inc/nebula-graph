@@ -669,6 +669,9 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesPropFailed) {
     ASSERT_FALSE(validate("FETCH PROP ON person \"1\" YIELD tag2.prop2"));
     ASSERT_FALSE(validate("FETCH PROP ON person, book \"1\" YIELD tag3.prop3"));
 
+    // unused tag
+    ASSERT_FALSE(validate("FETCH PROP ON person, book \"1\" YIELD person.name"));
+
     // not exist tag
     ASSERT_FALSE(validate("FETCH PROP ON not_exist_tag \"1\" YIELD not_exist_tag.prop1"));
     ASSERT_FALSE(validate("FETCH PROP ON person, not_exist_tag \"1\""
