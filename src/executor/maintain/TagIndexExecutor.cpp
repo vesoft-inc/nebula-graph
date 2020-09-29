@@ -30,11 +30,71 @@ folly::Future<Status> CreateTagIndexExecutor::execute() {
 }
 
 folly::Future<Status> DropTagIndexExecutor::execute() {
-    return Status::OK();
+    auto *dtiNode = asNode<DropTagIndex>(node());
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()->getMetaClient()->dropTagIndex(spaceId,
+            dtiNode->getIndexName(), dtiNode->getIfExists())
+            .via(runner())
+            .then([dtiNode, spaceId](StatusOr<bool> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << "SpaceId: " << spaceId
+                               << ", Drop index`" << dtiNode->getIndexName()
+                               << "' failed: " << resp.status();
+                    return resp.status();
+                }
+                return Status::OK();
+            });
 }
 
 folly::Future<Status> DescTagIndexExecutor::execute() {
-    return Status::OK();
+    auto *dtiNode = asNode<DescTagIndex>(node());
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()
+        ->getMetaClient()
+        ->getTagIndex(spaceId, dtiNode->getIndexName())
+        .via(runner())
+        .then([dtiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+            if (!resp.ok()) {
+                LOG(ERROR) << "SpaceId: " << spaceId
+                           << ", Desc index`" << dtiNode->getIndexName()
+                           << "' failed: " << resp.status();
+                return resp.status();
+            }
+            return Status::OK();
+        });
+}
+
+folly::Future<Status> ShowTagIndexesExecutor::execute() {
+     auto spaceId = qctx()->rctx()->session()->space().id;
+     return qctx()
+        ->getMetaClient()
+        ->listTagIndexes(spaceId)
+        .via(runner())
+        .then([this, spaceId](StatusOr<std::vector<meta::cpp2::IndexItem>> resp) {
+            if (!resp.ok()) {
+                LOG(ERROR) << "SpaceId: " << spaceId
+                           << ", Show tag indexes failed" << resp.status();
+                return resp.status();
+            }
+
+            auto tagIndexItems = std::move(resp).value();
+
+            DataSet dataSet;
+            dataSet.colNames = {"Names"};
+            std::set<std::string> tagIndexNames;
+            for (auto &tagIndex : tagIndexItems) {
+                tagIndexNames.emplace(tagIndex.get_index_name());
+            }
+            for (auto &name : tagIndexNames) {
+                Row row;
+                row.values.emplace_back(name);
+                dataSet.rows.emplace_back(std::move(row));
+            }
+            return finish(ResultBuilder()
+                            .value(Value(std::move(dataSet)))
+                            .iter(Iterator::Kind::kDefault)
+                            .finish());
+        });
 }
 
 }   // namespace graph
