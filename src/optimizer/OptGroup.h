@@ -8,6 +8,7 @@
 #define OPTIMIZER_OPTGROUP_H_
 
 #include <algorithm>
+#include <list>
 #include <vector>
 #include "common/base/Status.h"
 
@@ -44,7 +45,7 @@ public:
 
     void addGroupExpr(OptGroupExpr *groupExpr);
     OptGroupExpr *makeGroupExpr(graph::QueryContext *qctx, graph::PlanNode *node);
-    const std::vector<OptGroupExpr *> &groupExprs() const {
+    const std::list<OptGroupExpr *> &groupExprs() const {
         return groupExprs_;
     }
 
@@ -58,7 +59,7 @@ private:
     std::pair<double, const OptGroupExpr *> findMinCostGroupExpr() const;
 
     graph::QueryContext *qctx_{nullptr};
-    std::vector<OptGroupExpr *> groupExprs_;
+    std::list<OptGroupExpr *> groupExprs_;
     std::vector<const OptRule *> exploredRules_;
 };
 

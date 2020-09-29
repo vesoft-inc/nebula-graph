@@ -22,7 +22,9 @@ IndexScanRule::IndexScanRule() {
 }
 
 const Pattern& IndexScanRule::pattern() const {
-    static Pattern pattern = Pattern::create(graph::PlanNode::Kind::kIndexScan);
+    // pattern: AnyPlanNode -> IndexScanNode
+    static Pattern pattern = Pattern::create(graph::PlanNode::Kind::kIndexScan,
+                                             {Pattern::create(graph::PlanNode::Kind::kUnknown)});
     return pattern;
 }
 

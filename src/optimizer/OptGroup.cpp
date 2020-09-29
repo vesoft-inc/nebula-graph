@@ -32,6 +32,7 @@ OptGroup::OptGroup(QueryContext *qctx) noexcept : qctx_(qctx) {
 }
 
 void OptGroup::addGroupExpr(OptGroupExpr *groupExpr) {
+    DCHECK(groupExpr != nullptr);
     DCHECK(groupExpr->group() == this);
     groupExprs_.emplace_back(groupExpr);
 }
@@ -49,7 +50,9 @@ Status OptGroup::explore(const OptRule *rule) {
 
     for (auto iter = groupExprs_.begin(); iter != groupExprs_.end();) {
         auto groupExpr = *iter;
+        DCHECK(groupExpr != nullptr);
         if (groupExpr->isExplored(rule)) {
+            ++iter;
             continue;
         }
         // Bottom to up exploration
@@ -130,17 +133,19 @@ OptGroupExpr::OptGroupExpr(PlanNode *node, const OptGroup *group) noexcept
 }
 
 Status OptGroupExpr::explore(const OptRule *rule) {
-    if (isExplored(rule)) return Status::OK();
+    if (isExplored(rule)) {
+        return Status::OK();
+    }
     setExplored(rule);
 
     for (auto dep : dependencies_) {
-        if (!dep->isExplored(rule)) {
+        if (dep && !dep->isExplored(rule)) {
             NG_RETURN_IF_ERROR(dep->explore(rule));
         }
     }
 
     for (auto body : bodies_) {
-        if (!body->isExplored(rule)) {
+        if (body && !body->isExplored(rule)) {
             NG_RETURN_IF_ERROR(body->explore(rule));
         }
     }

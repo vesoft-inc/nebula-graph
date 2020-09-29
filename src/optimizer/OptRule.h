@@ -26,7 +26,7 @@ class OptGroupExpr;
 class OptGroup;
 
 struct MatchedResult {
-    const OptGroupExpr *node;
+    const OptGroupExpr *node{nullptr};
     std::vector<MatchedResult> dependencies;
 };
 
