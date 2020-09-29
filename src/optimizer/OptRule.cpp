@@ -7,16 +7,58 @@
 #include "optimizer/OptRule.h"
 
 #include "common/base/Logging.h"
+#include "optimizer/OptGroup.h"
 
 namespace nebula {
 namespace opt {
 
-RuleSet &RuleSet::defaultRules() {
+Pattern Pattern::create(graph::PlanNode::Kind kind, std::initializer_list<Pattern> patterns) {
+    Pattern pattern;
+    pattern.kind_ = kind;
+    for (auto &p : patterns) {
+        pattern.dependencies_.emplace_back(p);
+    }
+    return pattern;
+}
+
+StatusOr<MatchedResult> Pattern::match(const OptGroupExpr *groupExpr) const {
+    if (groupExpr->node()->kind() != kind_) {
+        return Status::Error();
+    }
+
+    if (groupExpr->dependencies().size() != dependencies_.size()) {
+        return Status::Error();
+    }
+
+    MatchedResult result;
+    result.node = groupExpr;
+    result.dependencies.reserve(dependencies_.size());
+    for (size_t i = 0; i < dependencies_.size(); ++i) {
+        auto group = groupExpr->dependencies()[i];
+        const auto &pattern = dependencies_[i];
+        auto status = pattern.match(group);
+        NG_RETURN_IF_ERROR(status);
+        result.dependencies.emplace_back(std::move(status).value());
+    }
+    return result;
+}
+
+StatusOr<MatchedResult> Pattern::match(const OptGroup *group) const {
+    for (auto node : group->groupExprs()) {
+        auto status = match(node);
+        if (status.ok()) {
+            return status;
+        }
+    }
+    return Status::Error();
+}
+
+RuleSet &RuleSet::DefaultRules() {
     static RuleSet kDefaultRules("DefaultRuleSet");
     return kDefaultRules;
 }
 
-RuleSet &RuleSet::queryRules() {
+RuleSet &RuleSet::QueryRules() {
     static RuleSet kQueryRules("QueryRules");
     return kQueryRules;
 }

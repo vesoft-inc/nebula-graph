@@ -31,13 +31,11 @@ class IndexScanRule final : public OptRule {
     FRIEND_TEST(IndexScanRuleTest, IQCtxTest);
 
 public:
-    static std::unique_ptr<OptRule> kInstance;
+    const Pattern& pattern() const override;
+    bool match(const MatchedResult& result) const override;
 
-    bool match(const OptGroupExpr *groupExpr) const override;
-
-    Status transform(graph::QueryContext *qctx,
-                     const OptGroupExpr *groupExpr,
-                     TransformResult *result) const override;
+    StatusOr<TransformResult> transform(graph::QueryContext* qctx,
+                                        const MatchedResult& matched) const override;
 
     std::string toString() const override;
 
@@ -99,6 +97,8 @@ private:
             items.emplace_back(FilterItem(field, kind, v));
         }
     };
+
+    static std::unique_ptr<OptRule> kInstance;
 
     IndexScanRule();
 
