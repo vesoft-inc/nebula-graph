@@ -38,8 +38,8 @@ const Pattern &PushFilterDownGetNbrsRule::pattern() const {
     return pattern;
 }
 
-bool PushFilterDownGetNbrsRule::match(const MatchedResult &result) const {
-    UNUSED(result);
+bool PushFilterDownGetNbrsRule::match(const MatchedResult &matched) const {
+    UNUSED(matched);
     return true;
 }
 

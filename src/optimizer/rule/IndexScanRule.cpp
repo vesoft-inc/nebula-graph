@@ -26,8 +26,8 @@ const Pattern& IndexScanRule::pattern() const {
     return pattern;
 }
 
-bool IndexScanRule::match(const MatchedResult& result) const {
-    UNUSED(result);
+bool IndexScanRule::match(const MatchedResult& matched) const {
+    UNUSED(matched);
     return true;
 }
 
