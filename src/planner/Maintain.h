@@ -573,6 +573,64 @@ private:
         : DropIndexNode(qctx, Kind::kDropEdgeIndex, input, std::move(indexName), ifExists) {}
 };
 
+class ShowCreateTagIndex final : public DescIndexNode {
+public:
+    static ShowCreateTagIndex* make(QueryContext* qctx,
+                               PlanNode* input,
+                               std::string indexName) {
+        return qctx->objPool()->add(new ShowCreateTagIndex(qctx->genId(),
+                                    input,
+                                    std::move(indexName)));
+    }
+
+private:
+    ShowCreateTagIndex(int64_t id,
+                  PlanNode* input,
+                  std::string indexName)
+        : DescIndexNode(id, input, Kind::kShowCreateTagIndex, std::move(indexName)) {
+    }
+};
+
+class ShowCreateEdgeIndex final : public DescIndexNode {
+public:
+    static ShowCreateEdgeIndex* make(QueryContext* qctx,
+                                PlanNode* input,
+                                std::string indexName) {
+        return qctx->objPool()->add(new ShowCreateEdgeIndex(qctx->genId(),
+                                                            input,
+                                                            std::move(indexName)));
+    }
+
+private:
+    ShowCreateEdgeIndex(int64_t id,
+                   PlanNode* input,
+                   std::string indexName)
+        : DescIndexNode(id, input, Kind::kShowCreateEdgeIndex, std::move(indexName)) {}
+};
+
+class ShowTagIndexes final : public SingleInputNode {
+public:
+    static ShowTagIndexes* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ShowTagIndexes(qctx->genId(), input));
+    }
+
+private:
+    ShowTagIndexes(int64_t id, PlanNode* input)
+        : SingleInputNode(id, Kind::kShowTagIndexes, input) {}
+};
+
+class ShowEdgeIndexes final : public SingleInputNode {
+public:
+    static ShowEdgeIndexes* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ShowEdgeIndexes(qctx->genId(), input));
+    }
+
+private:
+    ShowEdgeIndexes(int64_t id, PlanNode* input)
+        : SingleInputNode(id, Kind::kShowEdges, input) {
+    }
+};
+
 class RebuildIndexNode : public SingleInputNode {
 protected:
     RebuildIndexNode(QueryContext* qctx,

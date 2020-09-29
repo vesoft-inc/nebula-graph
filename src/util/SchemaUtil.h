@@ -47,6 +47,10 @@ public:
                                                 const std::string &name,
                                                 const meta::cpp2::Schema &schema);
 
+    static StatusOr<DataSet> toShowCreateIndex(bool isTag,
+                                               const std::string &indexName,
+                                               const meta::cpp2::IndexItem &indexItem);
+
     static std::string typeToString(const meta::cpp2::ColumnTypeDef &col);
     static std::string typeToString(const meta::cpp2::ColumnDef &col);
 

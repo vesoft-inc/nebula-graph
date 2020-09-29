@@ -463,6 +463,14 @@ Status ShowCreateTagIndexValidator::toPlan() {
     return Status::OK();
 }
 
+Status ShowCreateEdgeIndexValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowCreateEdgeIndexValidator::toPlan() {
+    return Status::OK();
+}
+
 Status ShowTagIndexesValidator::validateImpl() {
     auto sentence = static_cast<ShowCreateEdgeIndexSentence*>(sentence_);
     index_ = *sentence->indexName();
@@ -470,14 +478,6 @@ Status ShowTagIndexesValidator::validateImpl() {
 }
 
 Status ShowTagIndexesValidator::toPlan() {
-    return Status::OK();
-}
-
-Status ShowCreateEdgeIndexValidator::validateImpl() {
-    return Status::OK();
-}
-
-Status ShowCreateEdgeIndexValidator::toPlan() {
     return Status::OK();
 }
 

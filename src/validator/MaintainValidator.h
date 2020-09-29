@@ -289,6 +289,18 @@ private:
     std::string                      index_;
 };
 
+
+class ShowCreateEdgeIndexValidator final : public Validator {
+public:
+    ShowCreateEdgeIndexValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
 class ShowTagIndexesValidator final : public Validator {
 public:
     ShowTagIndexesValidator(Sentence* sentence, QueryContext* context)
@@ -301,17 +313,6 @@ private:
 
 private:
     std::string                      index_;
-};
-
-class ShowCreateEdgeIndexValidator final : public Validator {
-public:
-    ShowCreateEdgeIndexValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
-
-private:
-    Status validateImpl() override;
-
-    Status toPlan() override;
 };
 
 class ShowEdgeIndexesValidator final : public Validator {

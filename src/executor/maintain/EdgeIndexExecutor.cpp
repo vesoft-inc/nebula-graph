@@ -65,8 +65,8 @@ folly::Future<Status> DescEdgeIndexExecutor::execute() {
 }
 
 folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
-     auto spaceId = qctx()->rctx()->session()->space().id;
-     return qctx()
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()
         ->getMetaClient()
         ->listEdgeIndexes(spaceId)
         .via(runner())
@@ -95,6 +95,33 @@ folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
                             .iter(Iterator::Kind::kDefault)
                             .finish());
         });
+}
+folly::Future<Status> ShowCreateEdgeIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
+    auto *sctiNode = asNode<ShowCreateEdgeIndex>(node());
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()->getMetaClient()->getEdgeIndex(spaceId, sctiNode->getIndexName())
+            .via(runner())
+            .then([this, sctiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << "SpaceId: " << spaceId
+                               << ", Show create edge index`" << sctiNode->getIndexName()
+                               << "' failed: " << resp.status();
+                    return resp.status();
+                }
+                auto ret = SchemaUtil::toShowCreateIndex(false,
+                                                        sctiNode->getIndexName(),
+                                                        resp.value());
+                if (!ret.ok()) {
+                    LOG(ERROR) << ret.status();
+                    return ret.status();
+                }
+                return finish(ResultBuilder()
+                                  .value(std::move(ret).value())
+                                  .iter(Iterator::Kind::kDefault)
+                                  .finish());
+            });
 }
 
 }   // namespace graph

@@ -44,6 +44,13 @@ public:
     folly::Future<Status> execute() override;
 };
 
+class ShowCreateTagIndexExecutor final : public Executor {
+    ShowCreateTagIndexExecutor(const PlanNode *node, QueryContext *ectx)
+        : Executor("ShowCreateTagIndexExecutor", node, ectx) {}
+
+    folly::Future<Status> execute() override;
+};
+
 }   // namespace graph
 }   // namespace nebula
 

@@ -284,6 +284,65 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
     return dataSet;
 }
 
+StatusOr<DataSet> SchemaUtil::toShowCreateIndex(bool isTag,
+                                                const std::string &indexName,
+                                                const meta::cpp2::IndexItem &indexItem) {
+    DataSet dataSet;
+    std::string createStr;
+    createStr.resize(1024);
+    if (isTag) {
+        dataSet.colNames = {"Tag", "Create Tag"};
+        createStr = "CREATE TAG `" + name + "` (\n";
+    } else {
+        dataSet.colNames = {"Edge", "Create Edge"};
+        createStr = "CREATE EDGE `" + name + "` (\n";
+    }
+    Row row;
+    row.emplace_back(name);
+    for (auto &col : schema.get_columns()) {
+        createStr += " `" + col.get_name() + "`";
+        createStr += " " + typeToString(col);
+        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        if (!nullable) {
+            createStr += " NOT NULL";
+        } else {
+            createStr += " NULL";
+        }
+
+        if (col.__isset.default_value) {
+            auto value = col.get_default_value();
+            auto toStr = value->toString();
+            if (value->isNumeric() || value->isBool()) {
+                createStr += " DEFAULT " + toStr;
+            } else {
+                createStr += " DEFAULT \"" + toStr + "\"";
+            }
+        }
+        createStr += ",\n";
+    }
+    if (!schema.columns.empty()) {
+        createStr.resize(createStr.size() -2);
+        createStr += "\n";
+    }
+    createStr += ")";
+    auto prop = schema.get_schema_prop();
+    createStr += " ttl_duration = ";
+    if (prop.__isset.ttl_duration) {
+        createStr += folly::to<std::string>(*prop.get_ttl_duration());
+    } else {
+        createStr += "0";
+    }
+    createStr += ", ttl_col = ";
+    if (prop.__isset.ttl_col && !(prop.get_ttl_col()->empty())) {
+        createStr += "\"" + *prop.get_ttl_col() + "\"";
+    } else {
+        createStr += "\"\"";
+    }
+    row.emplace_back(std::move(createStr));
+    dataSet.rows.emplace_back(std::move(row));
+    return dataSet;
+}
+
 std::string SchemaUtil::typeToString(const meta::cpp2::ColumnTypeDef &col) {
     auto type = meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(col.get_type());
     if (col.get_type() == meta::cpp2::PropertyType::FIXED_STRING) {
