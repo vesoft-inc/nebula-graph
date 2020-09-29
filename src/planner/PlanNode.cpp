@@ -210,8 +210,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> PlanNode::explain() const {
     auto desc = std::make_unique<cpp2::PlanNodeDescription>();
     desc->set_id(id_);
     desc->set_name(toString(kind_));
-    // desc->set_output_var(folly::toJson(util::toJson(outputVars_)));
-    // addDescription("colNames", folly::toJson(util::toJson(colNames_)), desc.get());
+    desc->set_output_var(folly::toJson(util::toJson(outputVars_)));
     return desc;
 }
 
