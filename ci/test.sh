@@ -87,9 +87,9 @@ function run_test() {
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
     ./ntr \
         -n=8 \
-        --rm_dir=$NEBULA_TEST_RM_DIR \
         --dist=loadfile \
         --debug_log=false \
+        ${@:1} \
         $PROJ_DIR/tests/admin/* \
         $PROJ_DIR/tests/maintain/* \
         $PROJ_DIR/tests/mutate/* \
@@ -121,7 +121,7 @@ case "$1" in
         run_ctest
         ;;
     test)
-        run_test
+        run_test "${@:2}"
         ;;
     *)
         prepare

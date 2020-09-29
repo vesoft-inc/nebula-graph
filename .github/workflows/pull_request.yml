@@ -128,8 +128,7 @@ jobs:
       - name: Pytest
         env:
           NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-          NEBULA_TEST_RM_DIR: false
-        run: ./ci/test.sh test
+        run: ./ci/test.sh test --rm_dir=false
         timeout-minutes: 25
       - name: Graph Log
         if: ${{ failure() }}
