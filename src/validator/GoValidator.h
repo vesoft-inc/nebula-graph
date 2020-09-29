@@ -65,6 +65,8 @@ private:
 
     PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
 
+    void extractFilter();
+
 private:
     Over                                                    over_;
     Expression*                                             filter_{nullptr};
@@ -78,7 +80,7 @@ private:
     YieldColumns*                                           dstPropCols_{nullptr};
     YieldColumns*                                           inputPropCols_{nullptr};
     std::unordered_map<std::string, YieldColumn*>           propExprColMap_;
-    Expression*                                             filter1_{nullptr};
+    Expression*                                             filter1_{nullptr};  // can be push down
     Expression*                                             filter2_{nullptr};
     Expression*                                             newFilter_{nullptr};
     Expression*                                             newFilter1_{nullptr};

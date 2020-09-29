@@ -40,6 +40,7 @@ Status GoValidator::validateImpl() {
         return Status::Error("Only support single input in a go sentence.");
     }
 
+    extractFilter();
     NG_RETURN_IF_ERROR(buildColumns());
 
     return Status::OK();
@@ -170,33 +171,13 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
     PlanNode* dependencyForProjectResult = gn;
 
     // extract the filter expressions that can be pushed down to GetNeighbors
-    // PlanNode* pushDownFilterNode = nullptr;
     if (filter1_ != nullptr) {
         auto* pushDownFilterNode = Filter::make(qctx_, dependencyForProjectResult,
-                    newFilter1_);
+                    filter1_);
         pushDownFilterNode->setInputVar(dependencyForProjectResult->outputVar());
         pushDownFilterNode->setColNames(dependencyForProjectResult->colNames());
         dependencyForProjectResult = pushDownFilterNode;
     }
-    // std::unique_ptr<Expression> remainedFilterExpr(nullptr);
-    // bool canBePushDown = false;
-    // if (filter_ != nullptr) {
-    //     auto filterExpr = filter_->clone();
-    //     graph::ExtractFilterExprVisitor visitor;
-    //     filterExpr->accept(&visitor);
-    //     canBePushDown = visitor.ok();
-    //     if (canBePushDown) {
-    //         auto filterCondition = filterExpr.release();
-    //         rewriteFilterToInputProp(filterCondition);
-    //         auto* pushDownFilterNode = Filter::make(qctx_, dependencyForProjectResult,
-    //                     filterCondition);
-    //         pushDownFilterNode->setInputVar(dependencyForProjectResult->outputVar());
-    //         pushDownFilterNode->setColNames(dependencyForProjectResult->colNames());
-    //         dependencyForProjectResult = pushDownFilterNode;
-
-    //         remainedFilterExpr = std::move(visitor).remainedExpr();
-    //     }
-    // }
 
     PlanNode* projectSrcEdgeProps = nullptr;
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
@@ -224,20 +205,9 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
         dependencyForProjectResult = joinInput;
     }
 
-    // if (filter_ != nullptr && (!canBePushDown || remainedFilterExpr != nullptr)) {
-    //     auto filter2 = remainedFilterExpr == nullptr ?
-    // (newFilter_ != nullptr ? newFilter_ : filter_)
-    //                 : remainedFilterExpr.release()
-    //     rewriteFilterToInputProp(filter2);
-    //     auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
-    //                 filter2);
-    //     filterNode->setInputVar(dependencyForProjectResult->outputVar());
-    //     filterNode->setColNames(dependencyForProjectResult->colNames());
-    //     dependencyForProjectResult = filterNode;
-    // }
     if (filter2_ != nullptr) {
         auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
-                    newFilter2_);
+                    newFilter2_ != nullptr ? newFilter2_ : filter2_);
         filterNode->setInputVar(dependencyForProjectResult->outputVar());
         filterNode->setColNames(dependencyForProjectResult->colNames());
         dependencyForProjectResult = filterNode;
@@ -383,7 +353,7 @@ Status GoValidator::buildMToNPlan() {
 
     if (filter_ != nullptr) {
         auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
-                    newFilter_);
+                    newFilter_ != nullptr ? newFilter_ : filter_);
         filterNode->setInputVar(
             dependencyForProjectResult == dedupDstVids ?
                 gn->outputVar() : dependencyForProjectResult->outputVar());
@@ -790,6 +760,21 @@ std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
     return nullptr;
 }
 
+void GoValidator::extractFilter() {
+    // extract the filter expressions that can be pushed down to GetNeighbors
+    if (filter_ != nullptr) {
+        auto filterExpr = filter_->clone();
+        graph::ExtractFilterExprVisitor visitor;
+        filterExpr->accept(&visitor);
+        if (visitor.ok()) {
+            filter1_ = filterExpr.release();  // can be push down
+            filter2_ = std::move(visitor).remainedExpr().release();
+        } else {
+            filter1_ = nullptr;
+            filter2_ = filterExpr.release();
+        }
+    }
+}
 Status GoValidator::buildColumns() {
     if (exprProps_.dstTagProps().empty() && exprProps_.inputProps().empty() &&
         exprProps_.varProps().empty() && from_.fromType == FromType::kInstantExpr) {
@@ -810,22 +795,8 @@ Status GoValidator::buildColumns() {
         inputPropCols_ = pool->add(new YieldColumns());
     }
 
-    // extract the filter expressions that can be pushed down to GetNeighbors
     if (filter_ != nullptr) {
         extractPropExprs(filter_);
-        auto filterExpr = filter_->clone();
-        graph::ExtractFilterExprVisitor visitor;
-        filterExpr->accept(&visitor);
-        if (visitor.ok()) {
-            filter1_ = filterExpr.release();  // can be push down
-            filter2_ = std::move(visitor).remainedExpr().release();
-        } else {
-            filter1_ = nullptr;
-            filter2_ = filterExpr.release();
-        }
-    }
-
-    if (filter_ != nullptr) {
         auto newFilter = filter_->clone();
         auto rewriteFilter = rewriteToInputProp(newFilter.get());
         if (rewriteFilter != nullptr) {
