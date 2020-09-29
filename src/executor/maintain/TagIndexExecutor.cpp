@@ -6,6 +6,7 @@
 
 #include "executor/maintain/TagIndexExecutor.h"
 #include "planner/Maintain.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -20,7 +21,7 @@ folly::Future<Status> CreateTagIndexExecutor::execute() {
             .then([ctiNode, spaceId](StatusOr<IndexID> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Create index`" << ctiNode->getIndexName()
+                               << ", Create index `" << ctiNode->getIndexName()
                                << " at tag: " << ctiNode->getSchemaName()
                                << "' failed: " << resp.status();
                     return resp.status();
@@ -38,7 +39,7 @@ folly::Future<Status> DropTagIndexExecutor::execute() {
             .then([dtiNode, spaceId](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Drop tag index`" << dtiNode->getIndexName()
+                               << ", Drop tag index `" << dtiNode->getIndexName()
                                << "' failed: " << resp.status();
                     return resp.status();
                 }
@@ -53,14 +54,23 @@ folly::Future<Status> DescTagIndexExecutor::execute() {
         ->getMetaClient()
         ->getTagIndex(spaceId, dtiNode->getIndexName())
         .via(runner())
-        .then([dtiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+        .then([this, dtiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
             if (!resp.ok()) {
                 LOG(ERROR) << "SpaceId: " << spaceId
-                           << ", Desc tag index`" << dtiNode->getIndexName()
+                           << ", Desc tag index `" << dtiNode->getIndexName()
                            << "' failed: " << resp.status();
                 return resp.status();
             }
-            return Status::OK();
+
+            auto ret = SchemaUtil::toDescIndex(resp.value());
+            if (!ret.ok()) {
+                LOG(ERROR) << ret.status();
+                return ret.status();
+            }
+            return finish(ResultBuilder()
+                              .value(std::move(ret).value())
+                              .iter(Iterator::Kind::kDefault)
+                              .finish());
         });
 }
 
@@ -107,7 +117,7 @@ folly::Future<Status> ShowTagIndexesExecutor::execute() {
             .then([this, sctiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Show create tag index`" << sctiNode->getIndexName()
+                               << ", Show create tag index `" << sctiNode->getIndexName()
                                << "' failed: " << resp.status();
                     return resp.status();
                 }

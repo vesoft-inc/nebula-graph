@@ -45,6 +45,7 @@ public:
 };
 
 class ShowCreateTagIndexExecutor final : public Executor {
+public:
     ShowCreateTagIndexExecutor(const PlanNode *node, QueryContext *ectx)
         : Executor("ShowCreateTagIndexExecutor", node, ectx) {}
 

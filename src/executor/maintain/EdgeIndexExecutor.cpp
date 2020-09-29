@@ -6,6 +6,7 @@
 
 #include "executor/maintain/EdgeIndexExecutor.h"
 #include "planner/Maintain.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -53,14 +54,23 @@ folly::Future<Status> DescEdgeIndexExecutor::execute() {
         ->getMetaClient()
         ->getEdgeIndex(spaceId, deiNode->getIndexName())
         .via(runner())
-        .then([deiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+        .then([this, deiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
             if (!resp.ok()) {
                 LOG(ERROR) << "SpaceId: " << spaceId
                            << ", Desc index`" << deiNode->getIndexName()
                            << "' failed: " << resp.status();
                 return resp.status();
             }
-            return Status::OK();
+
+            auto ret = SchemaUtil::toDescIndex(resp.value());
+            if (!ret.ok()) {
+                LOG(ERROR) << ret.status();
+                return ret.status();
+            }
+            return finish(ResultBuilder()
+                              .value(std::move(ret).value())
+                              .iter(Iterator::Kind::kDefault)
+                              .finish());
         });
 }
 
@@ -99,19 +109,20 @@ folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
 folly::Future<Status> ShowCreateEdgeIndexExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
-    auto *sctiNode = asNode<ShowCreateEdgeIndex>(node());
+    auto *sceiNode = asNode<ShowCreateEdgeIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
-    return qctx()->getMetaClient()->getEdgeIndex(spaceId, sctiNode->getIndexName())
+
+    return qctx()->getMetaClient()->getEdgeIndex(spaceId, sceiNode->getIndexName())
             .via(runner())
-            .then([this, sctiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+            .then([this, sceiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Show create edge index`" << sctiNode->getIndexName()
+                               << ", Show create edge index `" << sceiNode->getIndexName()
                                << "' failed: " << resp.status();
                     return resp.status();
                 }
                 auto ret = SchemaUtil::toShowCreateIndex(false,
-                                                        sctiNode->getIndexName(),
+                                                        sceiNode->getIndexName(),
                                                         resp.value());
                 if (!ret.ok()) {
                     LOG(ERROR) << ret.status();

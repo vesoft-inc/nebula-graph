@@ -284,60 +284,46 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
     return dataSet;
 }
 
-StatusOr<DataSet> SchemaUtil::toShowCreateIndex(bool isTag,
+StatusOr<DataSet> SchemaUtil::toDescIndex(const meta::cpp2::IndexItem &indexItem) {
+    DataSet dataSet({"Field", "Type", "Null", "Default"});
+    for (auto &col : indexItem.get_fields()) {
+        Row row;
+        row.values.emplace_back(Value(col.get_name()));
+        row.values.emplace_back(typeToString(col));
+        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
+        row.values.emplace_back(nullable ? "YES" : "NO");
+        auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
+        row.values.emplace_back(std::move(defaultValue));
+        dataSet.emplace_back(std::move(row));
+    }
+    return dataSet;
+}
+
+StatusOr<DataSet> SchemaUtil::toShowCreateIndex(bool isTagIndex,
                                                 const std::string &indexName,
                                                 const meta::cpp2::IndexItem &indexItem) {
     DataSet dataSet;
     std::string createStr;
     createStr.resize(1024);
-    if (isTag) {
-        dataSet.colNames = {"Tag", "Create Tag"};
-        createStr = "CREATE TAG `" + name + "` (\n";
+    std::string schemaName = indexItem.get_schema_name();
+    if (isTagIndex) {
+        dataSet.colNames = {"Tag Index", "Create Tag Index"};
+        createStr = "CREATE TAG INDEX `" + indexName +  "` ON `" + schemaName + "` (\n";
     } else {
-        dataSet.colNames = {"Edge", "Create Edge"};
-        createStr = "CREATE EDGE `" + name + "` (\n";
+        dataSet.colNames = {"Edge Index", "Create Edge Index"};
+        createStr = "CREATE EDGE INDEX `" + indexName + "` ON `" + schemaName + "` (\n";
     }
     Row row;
-    row.emplace_back(name);
-    for (auto &col : schema.get_columns()) {
+    row.emplace_back(indexName);
+    for (auto &col : indexItem.get_fields()) {
         createStr += " `" + col.get_name() + "`";
-        createStr += " " + typeToString(col);
-        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
-        if (!nullable) {
-            createStr += " NOT NULL";
-        } else {
-            createStr += " NULL";
-        }
-
-        if (col.__isset.default_value) {
-            auto value = col.get_default_value();
-            auto toStr = value->toString();
-            if (value->isNumeric() || value->isBool()) {
-                createStr += " DEFAULT " + toStr;
-            } else {
-                createStr += " DEFAULT \"" + toStr + "\"";
-            }
-        }
         createStr += ",\n";
     }
-    if (!schema.columns.empty()) {
+    if (!indexItem.fields.empty()) {
         createStr.resize(createStr.size() -2);
         createStr += "\n";
     }
     createStr += ")";
-    auto prop = schema.get_schema_prop();
-    createStr += " ttl_duration = ";
-    if (prop.__isset.ttl_duration) {
-        createStr += folly::to<std::string>(*prop.get_ttl_duration());
-    } else {
-        createStr += "0";
-    }
-    createStr += ", ttl_col = ";
-    if (prop.__isset.ttl_col && !(prop.get_ttl_col()->empty())) {
-        createStr += "\"" + *prop.get_ttl_col() + "\"";
-    } else {
-        createStr += "\"\"";
-    }
     row.emplace_back(std::move(createStr));
     dataSet.rows.emplace_back(std::move(row));
     return dataSet;

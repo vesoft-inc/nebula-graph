@@ -47,7 +47,9 @@ public:
                                                 const std::string &name,
                                                 const meta::cpp2::Schema &schema);
 
-    static StatusOr<DataSet> toShowCreateIndex(bool isTag,
+    static StatusOr<DataSet> toDescIndex(const meta::cpp2::IndexItem &indexItem);
+
+    static StatusOr<DataSet> toShowCreateIndex(bool isTagIndex,
                                                const std::string &indexName,
                                                const meta::cpp2::IndexItem &indexItem);
 
