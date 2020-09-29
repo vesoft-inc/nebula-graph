@@ -61,25 +61,46 @@ public:
         vars_.emplace(std::move(varName), variable);
     }
 
-    void addDerivative(std::string varName, folly::StringPiece derivative) {
-        derivatives_[varName].emplace_back(derivative);
+    void addDerivative(std::string varName, std::string derivative) {
+        VLOG(1) << "Add derivative: " << varName << " -> " << derivative;
+        derivatives_[varName].emplace(derivative);
+        VLOG(1) << "derivative size: " << derivatives_.size();
     }
 
-    void addDependency(std::string varName, folly::StringPiece dependency) {
-        dependencies_[varName].emplace_back(dependency);
+    void addDependency(std::string varName, std::string dependency) {
+        VLOG(1) << "Add deoendency: " << varName << " <- " << dependency;
+        dependencies_[varName].emplace(dependency);
+        VLOG(1) << "dependencies size: " << dependencies_.size();
+    }
+
+    void deleteDerivative(std::string varName, std::string derivative) {
+        auto derivatives = derivatives_.find(varName);
+        if (derivatives != derivatives_.end()) {
+            derivatives->second.erase(derivative);
+        }
+    }
+
+    void deleteDependency(std::string varName, std::string dependency) {
+        auto dependencies = dependencies_.find(varName);
+        if (dependencies != dependencies_.end()) {
+            dependencies->second.erase(dependency);
+        }
     }
 
     void updateAllOccurence(std::string oldVar, std::string newVar) {
+        VLOG(1) << "Update ocur: " << oldVar << " -> " << newVar;
+        if (oldVar == newVar) {
+            return;
+        }
+
         auto oldDerivative = derivatives_.find(oldVar);
         if (oldDerivative != derivatives_.end()) {
             derivatives_.emplace(newVar, std::move(oldDerivative->second));
             derivatives_.erase(oldVar);
         }
         for (auto& derivative : derivatives_) {
-            for (auto& var : derivative.second) {
-                if (var == oldVar) {
-                    var = newVar;
-                }
+            if (derivative.second.erase(oldVar) > 0) {
+                derivative.second.emplace(newVar);
             }
         }
 
@@ -89,15 +110,13 @@ public:
             dependencies_.erase(oldVar);
         }
         for (auto& dependency : dependencies_) {
-            for (auto& var : dependency.second) {
-                if (var == oldVar) {
-                    var = newVar;
-                }
+            if (dependency.second.erase(oldVar) > 0) {
+                dependency.second.emplace(newVar);
             }
         }
     }
 
-    Variable* findVar(std::string& varName) {
+    Variable* getVar(const std::string& varName) {
         auto var = vars_.find(varName);
         if (var == vars_.end()) {
             return nullptr;
@@ -106,16 +125,45 @@ public:
         }
     }
 
+    PlanNode* getOrigin(const std::string& varName) {
+        auto node = origins_.find(varName);
+        if (node == origins_.end()) {
+            return nullptr;
+        } else {
+            return node->second;
+        }
+    }
+
+    std::unordered_set<std::string>& getDerivatives(const std::string& varName) {
+        static std::unordered_set<std::string> emptyDerivatives;
+        auto derivatives = derivatives_.find(varName);
+        if (derivatives == derivatives_.end()) {
+            return emptyDerivatives;
+        } else {
+            return derivatives->second;
+        }
+    }
+
+    std::unordered_set<std::string>& getDependencies(const std::string& varName) {
+        static std::unordered_set<std::string> emptyDependencies;
+        auto dependencies = dependencies_.find(varName);
+        if (dependencies == dependencies_.end()) {
+            return emptyDependencies;
+        } else {
+            return dependencies->second;
+        }
+    }
+
 private:
-    ObjectPool*                                                      objPool_{nullptr};
+    ObjectPool*                                                             objPool_{nullptr};
     // var name -> plan node
-    std::unordered_map<std::string, PlanNode*>                       origins_;
+    std::unordered_map<std::string, PlanNode*>                              origins_;
     // var name -> variable
-    std::unordered_map<std::string, Variable*>                       vars_;
+    std::unordered_map<std::string, Variable*>                              vars_;
     // var name -> derivatives
-    std::unordered_map<std::string, std::vector<folly::StringPiece>> derivatives_;
+    std::unordered_map<std::string, std::unordered_set<std::string>>        derivatives_;
     // var name -> dependencies
-    std::unordered_map<std::string, std::vector<folly::StringPiece>> dependencies_;
+    std::unordered_map<std::string, std::unordered_set<std::string>>        dependencies_;
 };
 }  // namespace graph
 }  // namespace nebula

@@ -128,7 +128,7 @@ public:
 
     void setOutputVar(std::string var) {
         DCHECK_EQ(1, outputVars_.size());
-        auto* outputVarPtr = symTable_->findVar(var);
+        auto* outputVarPtr = symTable_->getVar(var);
         DCHECK(outputVarPtr != nullptr);
         auto oldVar = outputVars_[0]->name;
         outputVarPtr->colNames = outputVars_[0]->colNames;
@@ -232,7 +232,7 @@ class SingleInputNode : public SingleDependencyNode {
 public:
     void setInputVar(std::string inputVar) {
         DCHECK(!inputVars_.empty());
-        auto* inputVarPtr = symTable_->findVar(inputVar);
+        auto* inputVarPtr = symTable_->getVar(inputVar);
         DCHECK(inputVarPtr != nullptr);
         std::string oldVar;
         if (inputVars_[0] != nullptr) {
@@ -240,7 +240,12 @@ public:
         }
         inputVars_[0] = inputVarPtr;
         if (!oldVar.empty()) {
-            symTable_->updateAllOccurence(oldVar, inputVar);
+            for (auto& output : outputVars_) {
+                symTable_->deleteDerivative(oldVar, output->name);
+                symTable_->addDerivative(inputVar, output->name);
+                symTable_->deleteDependency(output->name, oldVar);
+                symTable_->addDependency(output->name, inputVar);
+            }
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
@@ -290,7 +295,7 @@ public:
 
     void setLeftVar(std::string leftVar) {
         DCHECK_GE(inputVars_.size(), 1);
-        auto* leftVarPtr = symTable_->findVar(leftVar);
+        auto* leftVarPtr = symTable_->getVar(leftVar);
         DCHECK(leftVarPtr != nullptr);
         std::string oldVar;
         if (inputVars_[0] != nullptr) {
@@ -298,7 +303,12 @@ public:
         }
         inputVars_[0] = leftVarPtr;
         if (!oldVar.empty()) {
-            symTable_->updateAllOccurence(oldVar, leftVar);
+            for (auto& output : outputVars_) {
+                symTable_->deleteDerivative(oldVar, output->name);
+                symTable_->addDerivative(leftVar, output->name);
+                symTable_->deleteDependency(output->name, oldVar);
+                symTable_->addDependency(output->name, leftVar);
+            }
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
@@ -310,7 +320,7 @@ public:
 
     void setRightVar(std::string rightVar) {
         DCHECK_EQ(inputVars_.size(), 2);
-        auto* rightVarPtr = symTable_->findVar(rightVar);
+        auto* rightVarPtr = symTable_->getVar(rightVar);
         DCHECK(rightVarPtr != nullptr);
         std::string oldVar;
         if (inputVars_[1] != nullptr) {
@@ -318,7 +328,12 @@ public:
         }
         inputVars_[1] = rightVarPtr;
         if (!oldVar.empty()) {
-            symTable_->updateAllOccurence(oldVar, rightVar);
+            for (auto& output : outputVars_) {
+                symTable_->deleteDerivative(oldVar, output->name);
+                symTable_->addDerivative(rightVar, output->name);
+                symTable_->deleteDependency(output->name, oldVar);
+                symTable_->addDependency(output->name, rightVar);
+            }
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);

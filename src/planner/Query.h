@@ -907,7 +907,7 @@ private:
         collectKind_ = collectKind;
         inputVars_.clear();
         for (auto& var : vars) {
-            auto* inputVarPtr = symTable_->findVar(var);
+            auto* inputVarPtr = symTable_->getVar(var);
             DCHECK(inputVarPtr != nullptr);
             inputVars_.emplace_back(inputVarPtr);
             for (auto& output : outputVars_) {
@@ -978,7 +978,7 @@ private:
           probeKeys_(std::move(probeKeys)) {
         inputVars_.clear();
 
-        auto* leftVarPtr = symTable_->findVar(leftVar_.first);
+        auto* leftVarPtr = symTable_->getVar(leftVar_.first);
         DCHECK(leftVarPtr != nullptr);
         inputVars_.emplace_back(leftVarPtr);
         for (auto& output : outputVars_) {
@@ -987,7 +987,7 @@ private:
             symTable_->addDependency(output->name, leftVar_.first);
         }
 
-        auto* rightVarPtr = symTable_->findVar(rightVar_.first);
+        auto* rightVarPtr = symTable_->getVar(rightVar_.first);
         DCHECK(rightVarPtr != nullptr);
         inputVars_.emplace_back(rightVarPtr);
         for (auto& output : outputVars_) {
