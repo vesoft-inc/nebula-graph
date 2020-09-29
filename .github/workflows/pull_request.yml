@@ -139,7 +139,13 @@ jobs:
         run: cat /tmp/nebula-*/logs/nebula-metad.ERROR && exit 1
       - name: Storage Log
         if: ${{ failure() }}
-        run: cat /tmp/nebula-*/logs/nebula-storaged.ERROR
+        run: cat /tmp/nebula-*/logs/nebula-storaged.ERROR && exit 1
+      - name: Upload logs
+        uses: actions/upload-artifact@v2
+        if: ${{ failure() }}
+        with:	
+          name: nebula-test-logs
+          path:  /tmp/nebula-*/logs/
       - name: Cleanup
         if: ${{ always() }}
         run: rm -rf build modules && rm -rf /tmp/nebula-*
