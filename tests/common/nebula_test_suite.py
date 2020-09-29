@@ -579,10 +579,13 @@ class NebulaTestSuite(object):
             new_expect = self.sort_vertex_edge_list(expect)
 
         for exp in new_expect:
+            find = False
             for row in new_rows:
                 if row == exp:
+                    find = True
                     new_rows.remove(row)
                     break
+            assert find, 'Can not find {}'.format(exp)
 
         assert len(new_rows) == 0
 
