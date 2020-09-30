@@ -315,7 +315,7 @@ bool Validator::evaluableExpr(const Expression* expr) const {
     return visitor.ok();
 }
 
-StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
+StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
         ColDef col(*propExpr->prop(), type);
@@ -327,8 +327,10 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
     } else if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
         ColDef col(*propExpr->prop(), type);
-        const auto& outputVar = *propExpr->sym();
-        const auto& var = vctx_->getVar(outputVar);
+
+        const auto &outputVar = *propExpr->sym();
+        userDefinedVarNameList_.emplace_back(std::string(outputVar));
+        const auto &var = vctx_->getVar(outputVar);
         if (var.empty()) {
             return Status::SemanticError("No variable `%s'", outputVar.c_str());
         }
@@ -356,11 +358,29 @@ Status Validator::toPlan() {
 }
 
 Status Validator::checkDuplicateColName() {
-    std::unordered_map<std::string, bool> names;
-    for (auto & item : outputs_) {
-        auto ret = names.emplace(item.first, true);
-        if (!ret.second) {
-            return Status::SemanticError("Duplicate Column Name : `%s'", item.first.c_str());
+    if (!inputs_.empty()) {
+        std::unordered_map<std::string, bool> names;
+        for (auto& item : inputs_) {
+            auto ret = names.emplace(item.first, true);
+            if (!ret.second) {
+                return Status::SemanticError("Duplicate Column Name : `%s'", item.first.c_str());
+            }
+        }
+    }
+    if (userDefinedVarNameList_.empty()) {
+        return Status::OK();
+    }
+    for (const auto& varName : userDefinedVarNameList_) {
+        auto& varProps = vctx_->getVar(varName);
+        if (!varProps.empty()) {
+            std::unordered_map<std::string, bool> names;
+            for (auto& item : varProps) {
+                auto ret = names.emplace(item.first, true);
+                if (!ret.second) {
+                    return Status::SemanticError("Duplicate Column Name : `%s'",
+                                                 item.first.c_str());
+                }
+            }
         }
     }
     return Status::OK();

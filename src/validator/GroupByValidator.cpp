@@ -15,6 +15,7 @@ Status GroupByValidator::validateImpl() {
     auto *groupBySentence = static_cast<GroupBySentence*>(sentence_);
     NG_RETURN_IF_ERROR(validateGroup(groupBySentence->groupClause()));
     NG_RETURN_IF_ERROR(validateYield(groupBySentence->yieldClause()));
+    NG_RETURN_IF_ERROR(checkDuplicateColName());
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty()) {
         return Status::SemanticError("Only support input and variable in GroupBy sentence.");
@@ -45,6 +46,11 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
                 return Status::SemanticError("`%s` invaild, * valid in count.",
                                              col->toString().c_str());
             }
+        }
+
+        if (col->expr()->kind() == Expression::Kind::kVarProperty) {
+            auto varExpr = static_cast<PropertyExpression* >(col->expr());
+            userDefinedVarNameList_.push_back(*(varExpr->sym()));
         }
 
         // todo(jmq) count(distinct)
@@ -81,7 +87,6 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         }
         exprProps_.unionProps(std::move(yieldProps));
     }
-    NG_RETURN_IF_ERROR(checkDuplicateColName());
     return Status::OK();
 }
 
@@ -97,6 +102,7 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
     }
     for (auto* col : columns) {
         if (col->expr()->kind() != Expression::Kind::kInputProperty &&
+            col->expr()->kind() != Expression::Kind::kVarProperty &&
             col->expr()->kind() != Expression::Kind::kFunctionCall) {
             return Status::SemanticError("Group `%s` invalid", col->expr()->toString().c_str());
         }
@@ -109,6 +115,11 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
 
         groupCols_.emplace_back(col);
         groupKeys_.emplace_back(col->expr());
+
+        if (col->expr()->kind() == Expression::Kind::kVarProperty) {
+            auto varExpr = static_cast<PropertyExpression* >(col->expr());
+            userDefinedVarNameList_.push_back(*(varExpr->sym()));
+        }
     }
     return Status::OK();
 }

@@ -21,6 +21,7 @@ Status OrderByValidator::validateImpl() {
         }
         auto expr = static_cast<InputPropertyExpression*>(factor->expr());
         NG_RETURN_IF_ERROR(deduceExprType(expr));
+        NG_RETURN_IF_ERROR(checkDuplicateColName());
         auto* name = expr->prop();
         auto eq = [&](const ColDef& col) { return col.first == *name; };
         auto iter = std::find_if(outputs_.cbegin(), outputs_.cend(), eq);

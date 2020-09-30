@@ -22,6 +22,7 @@ Status GetSubgraphValidator::validateImpl() {
 
     NG_RETURN_IF_ERROR(validateStep(gsSentence->step(), steps_));
     NG_RETURN_IF_ERROR(validateStarts(gsSentence->from(), from_));
+    NG_RETURN_IF_ERROR(checkDuplicateColName());
     NG_RETURN_IF_ERROR(validateInBound(gsSentence->in()));
     NG_RETURN_IF_ERROR(validateOutBound(gsSentence->out()));
     NG_RETURN_IF_ERROR(validateBothInOutBound(gsSentence->both()));

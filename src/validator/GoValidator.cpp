@@ -25,6 +25,7 @@ Status GoValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateOver(goSentence->overClause(), over_));
     NG_RETURN_IF_ERROR(validateWhere(goSentence->whereClause()));
     NG_RETURN_IF_ERROR(validateYield(goSentence->yieldClause()));
+    NG_RETURN_IF_ERROR(checkDuplicateColName());
 
     if (!exprProps_.inputProps().empty() && from_.fromType != kPipe) {
         return Status::SemanticError("$- must be referred in FROM before used in WHERE or YIELD");
@@ -128,7 +129,6 @@ Status GoValidator::validateYield(YieldClause* yield) {
         }
         yields_ = yield->yields();
     }
-    NG_RETURN_IF_ERROR(checkDuplicateColName());
     return Status::OK();
 }
 

@@ -129,7 +129,7 @@ protected:
 
     // Check the variable or input property reference
     // return the input variable
-    StatusOr<std::string> checkRef(const Expression *ref, const Value::Type type) const;
+    StatusOr<std::string> checkRef(const Expression *ref, const Value::Type type);
 
     // Check the output for duplicate column names
     Status checkDuplicateColName();
@@ -150,6 +150,8 @@ protected:
     // root and tail of a subplan.
     PlanNode*                       root_{nullptr};
     PlanNode*                       tail_{nullptr};
+    // user define Variable name list
+    std::vector<std::string>        userDefinedVarNameList_;
 };
 
 }  // namespace graph
