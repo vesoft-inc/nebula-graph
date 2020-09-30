@@ -21,13 +21,13 @@ Status OrderByValidator::validateImpl() {
         }
         auto expr = static_cast<InputPropertyExpression*>(factor->expr());
         NG_RETURN_IF_ERROR(deduceExprType(expr));
-        NG_RETURN_IF_ERROR(checkDuplicateColName());
         auto* name = expr->prop();
         auto eq = [&](const ColDef& col) { return col.first == *name; };
         auto iter = std::find_if(outputs_.cbegin(), outputs_.cend(), eq);
         size_t colIdx = std::distance(outputs_.cbegin(), iter);
         colOrderTypes_.emplace_back(std::make_pair(colIdx, factor->orderType()));
     }
+    NG_RETURN_IF_ERROR(checkDuplicateColName());
 
     return Status::OK();
 }
