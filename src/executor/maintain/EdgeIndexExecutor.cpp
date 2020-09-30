@@ -12,6 +12,8 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> CreateEdgeIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
     auto *ceiNode = asNode<CreateEdgeIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->createEdgeIndex(spaceId,
@@ -31,6 +33,8 @@ folly::Future<Status> CreateEdgeIndexExecutor::execute() {
 }
 
 folly::Future<Status> DropEdgeIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
     auto *deiNode = asNode<DropEdgeIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->dropEdgeIndex(spaceId,
@@ -39,7 +43,7 @@ folly::Future<Status> DropEdgeIndexExecutor::execute() {
             .then([deiNode, spaceId](StatusOr<IndexID> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Drop index`" << deiNode->getIndexName()
+                               << ", Drop edge index`" << deiNode->getIndexName()
                                << "' failed: " << resp.status();
                     return resp.status();
                 }
@@ -48,6 +52,8 @@ folly::Future<Status> DropEdgeIndexExecutor::execute() {
 }
 
 folly::Future<Status> DescEdgeIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
     auto *deiNode = asNode<DescEdgeIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()
@@ -57,7 +63,7 @@ folly::Future<Status> DescEdgeIndexExecutor::execute() {
         .then([this, deiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
             if (!resp.ok()) {
                 LOG(ERROR) << "SpaceId: " << spaceId
-                           << ", Desc index`" << deiNode->getIndexName()
+                           << ", Desc edge index`" << deiNode->getIndexName()
                            << "' failed: " << resp.status();
                 return resp.status();
             }
@@ -74,7 +80,37 @@ folly::Future<Status> DescEdgeIndexExecutor::execute() {
         });
 }
 
+folly::Future<Status> ShowCreateEdgeIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
+    auto *sceiNode = asNode<ShowCreateEdgeIndex>(node());
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()->getMetaClient()->getEdgeIndex(spaceId, sceiNode->getIndexName())
+            .via(runner())
+            .then([this, sceiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << "SpaceId: " << spaceId
+                               << ", Show create edge index `" << sceiNode->getIndexName()
+                               << "' failed: " << resp.status();
+                    return resp.status();
+                }
+                auto ret = SchemaUtil::toShowCreateIndex(false,
+                                                         sceiNode->getIndexName(),
+                                                         resp.value());
+                if (!ret.ok()) {
+                    LOG(ERROR) << ret.status();
+                    return ret.status();
+                }
+                return finish(ResultBuilder()
+                                  .value(std::move(ret).value())
+                                  .iter(Iterator::Kind::kDefault)
+                                  .finish());
+            });
+}
+
 folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()
         ->getMetaClient()
@@ -91,11 +127,11 @@ folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
 
             DataSet dataSet;
             dataSet.colNames = {"Names"};
-            std::set<std::string> edgeIndexNames;
+            std::set<std::string> orderEdgeIndexNames;
             for (auto &edgeIndex : edgeIndexItems) {
-                edgeIndexNames.emplace(edgeIndex.get_index_name());
+                orderEdgeIndexNames.emplace(edgeIndex.get_index_name());
             }
-            for (auto &name : edgeIndexNames) {
+            for (auto &name : orderEdgeIndexNames) {
                 Row row;
                 row.values.emplace_back(name);
                 dataSet.rows.emplace_back(std::move(row));
@@ -105,34 +141,6 @@ folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
                             .iter(Iterator::Kind::kDefault)
                             .finish());
         });
-}
-folly::Future<Status> ShowCreateEdgeIndexExecutor::execute() {
-    SCOPED_TIMER(&execTime_);
-
-    auto *sceiNode = asNode<ShowCreateEdgeIndex>(node());
-    auto spaceId = qctx()->rctx()->session()->space().id;
-
-    return qctx()->getMetaClient()->getEdgeIndex(spaceId, sceiNode->getIndexName())
-            .via(runner())
-            .then([this, sceiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Show create edge index `" << sceiNode->getIndexName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
-                }
-                auto ret = SchemaUtil::toShowCreateIndex(false,
-                                                        sceiNode->getIndexName(),
-                                                        resp.value());
-                if (!ret.ok()) {
-                    LOG(ERROR) << ret.status();
-                    return ret.status();
-                }
-                return finish(ResultBuilder()
-                                  .value(std::move(ret).value())
-                                  .iter(Iterator::Kind::kDefault)
-                                  .finish());
-            });
 }
 
 }   // namespace graph

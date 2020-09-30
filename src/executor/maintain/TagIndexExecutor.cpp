@@ -12,6 +12,8 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> CreateTagIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
     auto *ctiNode = asNode<CreateTagIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->createTagIndex(spaceId,
@@ -31,6 +33,8 @@ folly::Future<Status> CreateTagIndexExecutor::execute() {
 }
 
 folly::Future<Status> DropTagIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
     auto *dtiNode = asNode<DropTagIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->dropTagIndex(spaceId,
@@ -48,6 +52,8 @@ folly::Future<Status> DropTagIndexExecutor::execute() {
 }
 
 folly::Future<Status> DescTagIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
     auto *dtiNode = asNode<DescTagIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()
@@ -74,7 +80,37 @@ folly::Future<Status> DescTagIndexExecutor::execute() {
         });
 }
 
+folly::Future<Status> ShowCreateTagIndexExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
+    auto *sctiNode = asNode<ShowCreateTagIndex>(node());
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()->getMetaClient()->getTagIndex(spaceId, sctiNode->getIndexName())
+            .via(runner())
+            .then([this, sctiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+                if (!resp.ok()) {
+                    LOG(ERROR) << "SpaceId: " << spaceId
+                               << ", Show create tag index `" << sctiNode->getIndexName()
+                               << "' failed: " << resp.status();
+                    return resp.status();
+                }
+                auto ret = SchemaUtil::toShowCreateIndex(true,
+                                                         sctiNode->getIndexName(),
+                                                         resp.value());
+                if (!ret.ok()) {
+                    LOG(ERROR) << ret.status();
+                    return ret.status();
+                }
+                return finish(ResultBuilder()
+                                  .value(std::move(ret).value())
+                                  .iter(Iterator::Kind::kDefault)
+                                  .finish());
+            });
+}
+
 folly::Future<Status> ShowTagIndexesExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
      auto spaceId = qctx()->rctx()->session()->space().id;
      return qctx()
         ->getMetaClient()
@@ -91,11 +127,11 @@ folly::Future<Status> ShowTagIndexesExecutor::execute() {
 
             DataSet dataSet;
             dataSet.colNames = {"Names"};
-            std::set<std::string> tagIndexNames;
+            std::set<std::string> orderTagIndexNames;
             for (auto &tagIndex : tagIndexItems) {
-                tagIndexNames.emplace(tagIndex.get_index_name());
+                orderTagIndexNames.emplace(tagIndex.get_index_name());
             }
-            for (auto &name : tagIndexNames) {
+            for (auto &name : orderTagIndexNames) {
                 Row row;
                 row.values.emplace_back(name);
                 dataSet.rows.emplace_back(std::move(row));
@@ -105,34 +141,6 @@ folly::Future<Status> ShowTagIndexesExecutor::execute() {
                             .iter(Iterator::Kind::kDefault)
                             .finish());
         });
-}
-
- folly::Future<Status> ShowCreateTagIndexExecutor::execute() {
-    SCOPED_TIMER(&execTime_);
-
-    auto *sctiNode = asNode<ShowCreateTagIndex>(node());
-    auto spaceId = qctx()->rctx()->session()->space().id;
-    return qctx()->getMetaClient()->getTagIndex(spaceId, sctiNode->getIndexName())
-            .via(runner())
-            .then([this, sctiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Show create tag index `" << sctiNode->getIndexName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
-                }
-                auto ret = SchemaUtil::toShowCreateIndex(true,
-                                                        sctiNode->getIndexName(),
-                                                        resp.value());
-                if (!ret.ok()) {
-                    LOG(ERROR) << ret.status();
-                    return ret.status();
-                }
-                return finish(ResultBuilder()
-                                  .value(std::move(ret).value())
-                                  .iter(Iterator::Kind::kDefault)
-                                  .finish());
-            });
 }
 
 }   // namespace graph

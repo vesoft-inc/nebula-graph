@@ -576,8 +576,8 @@ private:
 class ShowCreateTagIndex final : public DescIndexNode {
 public:
     static ShowCreateTagIndex* make(QueryContext* qctx,
-                               PlanNode* input,
-                               std::string indexName) {
+                                    PlanNode* input,
+                                    std::string indexName) {
         return qctx->objPool()->add(new ShowCreateTagIndex(qctx->genId(),
                                     input,
                                     std::move(indexName)));
@@ -585,8 +585,8 @@ public:
 
 private:
     ShowCreateTagIndex(int64_t id,
-                  PlanNode* input,
-                  std::string indexName)
+                       PlanNode* input,
+                       std::string indexName)
         : DescIndexNode(id, input, Kind::kShowCreateTagIndex, std::move(indexName)) {
     }
 };
@@ -594,8 +594,8 @@ private:
 class ShowCreateEdgeIndex final : public DescIndexNode {
 public:
     static ShowCreateEdgeIndex* make(QueryContext* qctx,
-                                PlanNode* input,
-                                std::string indexName) {
+                                     PlanNode* input,
+                                     std::string indexName) {
         return qctx->objPool()->add(new ShowCreateEdgeIndex(qctx->genId(),
                                                             input,
                                                             std::move(indexName)));
@@ -603,8 +603,8 @@ public:
 
 private:
     ShowCreateEdgeIndex(int64_t id,
-                   PlanNode* input,
-                   std::string indexName)
+                        PlanNode* input,
+                        std::string indexName)
         : DescIndexNode(id, input, Kind::kShowCreateEdgeIndex, std::move(indexName)) {}
 };
 
