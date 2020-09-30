@@ -434,6 +434,8 @@ public:
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
+    IndexScan* clone(QueryContext* qctx) const;
+
     const std::vector<storage::cpp2::IndexQueryContext>* queryContext() const {
         return contexts_.get();
     }

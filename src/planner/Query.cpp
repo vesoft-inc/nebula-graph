@@ -35,6 +35,7 @@ GetNeighbors* GetNeighbors::clone(QueryContext* qctx) const {
     newGN->setDedup(dedup_);
     newGN->setRandom(random_);
     newGN->setLimit(limit_);
+    newGN->setOrderBy(orderBy_);
     newGN->setInputVar(inputVar());
     newGN->setOutputVar(outputVar());
 
@@ -99,6 +100,13 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetEdges::explain() const {
     addDescription("props", folly::toJson(util::toJson(props_)), desc.get());
     addDescription("exprs", folly::toJson(util::toJson(exprs_)), desc.get());
     return desc;
+}
+
+IndexScan* IndexScan::clone(QueryContext* qctx) const {
+    auto ctx = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
+    auto returnCols = std::make_unique<std::vector<std::string>>(*returnColumns());
+    return IndexScan::make(
+        qctx, nullptr, space(), std::move(ctx), std::move(returnCols), isEdge(), schemaId());
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> IndexScan::explain() const {
