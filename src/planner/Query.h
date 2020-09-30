@@ -895,6 +895,7 @@ private:
                 qctx_->symTable()->addDerivative(var, output->name);
                 qctx_->symTable()->addDependency(output->name, var);
             }
+            qctx_->symTable()->readBy(var, this);
         }
     }
 
@@ -964,6 +965,7 @@ private:
             qctx_->symTable()->addDerivative(leftVar_.first, output->name);
             qctx_->symTable()->addDependency(output->name, leftVar_.first);
         }
+        qctx_->symTable()->readBy(leftVarPtr->name, this);
 
         auto* rightVarPtr = qctx_->symTable()->getVar(rightVar_.first);
         DCHECK(rightVarPtr != nullptr);
@@ -973,6 +975,7 @@ private:
             qctx_->symTable()->addDerivative(rightVar_.first, output->name);
             qctx_->symTable()->addDependency(output->name, rightVar_.first);
         }
+        qctx_->symTable()->readBy(rightVarPtr->name, this);
     }
 
 private:

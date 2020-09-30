@@ -73,6 +73,14 @@ public:
         VLOG(1) << "dependencies size: " << dependencies_.size();
     }
 
+    void readBy(std::string varName, PlanNode* node) {
+        readBy_[varName].emplace(node);
+    }
+
+    void writtenBy(std::string varName, PlanNode* node) {
+        writtenBy_[varName].emplace(node);
+    }
+
     void deleteDerivative(std::string varName, std::string derivative) {
         auto derivatives = derivatives_.find(varName);
         if (derivatives != derivatives_.end()) {
@@ -84,6 +92,20 @@ public:
         auto dependencies = dependencies_.find(varName);
         if (dependencies != dependencies_.end()) {
             dependencies->second.erase(dependency);
+        }
+    }
+
+    void deleteRead(std::string varName, PlanNode* node) {
+        auto readBy = readBy_.find(varName);
+        if (readBy != readBy_.end()) {
+            readBy->second.erase(node);
+        }
+    }
+
+    void deleteWritten(std::string varName, PlanNode* node) {
+        auto writtenBy = writtenBy_.find(varName);
+        if (writtenBy != writtenBy_.end()) {
+            writtenBy->second.erase(node);
         }
     }
 
@@ -154,6 +176,26 @@ public:
         }
     }
 
+    std::unordered_set<PlanNode*>& getReadBy(const std::string& varName) {
+        static std::unordered_set<PlanNode*> emptyReadBy;
+        auto readBy = readBy_.find(varName);
+        if (readBy == readBy_.end()) {
+            return emptyReadBy;
+        } else {
+            return readBy->second;
+        }
+    }
+
+    std::unordered_set<PlanNode*>& getWrittenBy(const std::string& varName) {
+        static std::unordered_set<PlanNode*> emptyWrittenBy;
+        auto writtenBy = writtenBy_.find(varName);
+        if (writtenBy == writtenBy_.end()) {
+            return emptyWrittenBy;
+        } else {
+            return writtenBy->second;
+        }
+    }
+
 private:
     ObjectPool*                                                             objPool_{nullptr};
     // var name -> plan node
@@ -164,6 +206,10 @@ private:
     std::unordered_map<std::string, std::unordered_set<std::string>>        derivatives_;
     // var name -> dependencies
     std::unordered_map<std::string, std::unordered_set<std::string>>        dependencies_;
+    // var name -> read by nodes
+    std::unordered_map<std::string, std::unordered_set<PlanNode*>>          readBy_;
+    // var name -> written by nodes
+    std::unordered_map<std::string, std::unordered_set<PlanNode*>>          writtenBy_;
 };
 }  // namespace graph
 }  // namespace nebula

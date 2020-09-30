@@ -21,6 +21,7 @@ PlanNode::PlanNode(QueryContext* qctx, Kind kind) : qctx_(qctx), kind_(kind) {
     VLOG(1) << "New variable: " << varName;
     outputVars_.emplace_back(variable);
     qctx_->symTable()->addOrigin(varName, this);
+    qctx_->symTable()->writtenBy(varName, this);
 }
 
 // static

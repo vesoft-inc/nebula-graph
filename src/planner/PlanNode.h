@@ -134,8 +134,9 @@ public:
         auto oldVar = outputVars_[0]->name;
         outputVarPtr->colNames = outputVars_[0]->colNames;
         outputVars_[0] = outputVarPtr;
-        qctx_->symTable()->addOrigin(outputVarPtr->name, this);
-        qctx_->symTable()->updateAllOccurence(oldVar, outputVarPtr->name);
+        qctx_->symTable()->deleteWritten(oldVar, this);
+        qctx_->symTable()->writtenBy(var, this);
+        qctx_->symTable()->updateAllOccurence(oldVar, var);
     }
 
     std::string outputVar(size_t index = 0) const {
@@ -247,12 +248,15 @@ public:
                 qctx_->symTable()->deleteDependency(output->name, oldVar);
                 qctx_->symTable()->addDependency(output->name, inputVar);
             }
+            qctx_->symTable()->deleteRead(oldVar, this);
+            qctx_->symTable()->readBy(inputVar, this);
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
                 qctx_->symTable()->addDerivative(inputVar, output->name);
                 qctx_->symTable()->addDependency(output->name, inputVar);
             }
+            qctx_->symTable()->readBy(inputVar, this);
         }
     }
 
@@ -278,6 +282,7 @@ protected:
                 qctx_->symTable()->addDerivative(inputVarPtr->name, output->name);
                 qctx_->symTable()->addDependency(output->name, inputVarPtr->name);
             }
+            qctx_->symTable()->readBy(inputVarPtr->name, this);
         } else {
             inputVars_.emplace_back(nullptr);
         }
@@ -310,12 +315,15 @@ public:
                 qctx_->symTable()->deleteDependency(output->name, oldVar);
                 qctx_->symTable()->addDependency(output->name, leftVar);
             }
+            qctx_->symTable()->deleteRead(oldVar, this);
+            qctx_->symTable()->readBy(leftVar, this);
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
                 qctx_->symTable()->addDerivative(leftVar, output->name);
                 qctx_->symTable()->addDependency(output->name, leftVar);
             }
+            qctx_->symTable()->readBy(leftVar, this);
         }
     }
 
@@ -335,12 +343,15 @@ public:
                 qctx_->symTable()->deleteDependency(output->name, oldVar);
                 qctx_->symTable()->addDependency(output->name, rightVar);
             }
+            qctx_->symTable()->deleteRead(oldVar, this);
+            qctx_->symTable()->readBy(rightVar, this);
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
                 qctx_->symTable()->addDerivative(rightVar, output->name);
                 qctx_->symTable()->addDependency(output->name, rightVar);
             }
+            qctx_->symTable()->readBy(rightVar, this);
         }
     }
 
@@ -376,6 +387,7 @@ protected:
             qctx_->symTable()->addDerivative(leftVarPtr->name, output->name);
             qctx_->symTable()->addDependency(output->name, leftVarPtr->name);
         }
+        qctx_->symTable()->readBy(leftVarPtr->name, this);
 
         dependencies_.emplace_back(right);
         auto* rightVarPtr = right->outputVarPtr();
@@ -385,6 +397,7 @@ protected:
             qctx_->symTable()->addDerivative(rightVarPtr->name, output->name);
             qctx_->symTable()->addDependency(output->name, rightVarPtr->name);
         }
+        qctx_->symTable()->readBy(rightVarPtr->name, this);
     }
 };
 
