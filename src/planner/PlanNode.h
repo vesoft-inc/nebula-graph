@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
+#include "context/QueryContext.h"
 #include "context/Symbols.h"
 
 namespace nebula {
@@ -109,7 +110,7 @@ public:
         kConjunctPath,
     };
 
-    PlanNode(int64_t id, Kind kind, SymbolTable* symTable);
+    PlanNode(QueryContext* qctx, Kind kind);
 
     virtual ~PlanNode() = default;
 
@@ -128,13 +129,13 @@ public:
 
     void setOutputVar(std::string var) {
         DCHECK_EQ(1, outputVars_.size());
-        auto* outputVarPtr = symTable_->getVar(var);
+        auto* outputVarPtr = qctx_->symTable()->getVar(var);
         DCHECK(outputVarPtr != nullptr);
         auto oldVar = outputVars_[0]->name;
         outputVarPtr->colNames = outputVars_[0]->colNames;
         outputVars_[0] = outputVarPtr;
-        symTable_->addOrigin(outputVarPtr->name, this);
-        symTable_->updateAllOccurence(oldVar, outputVarPtr->name);
+        qctx_->symTable()->addOrigin(outputVarPtr->name, this);
+        qctx_->symTable()->updateAllOccurence(oldVar, outputVarPtr->name);
     }
 
     std::string outputVar(size_t index = 0) const {
@@ -198,9 +199,9 @@ public:
 protected:
     static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);
 
+    QueryContext*                            qctx_{nullptr};
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
-    SymbolTable*                             symTable_{nullptr};
     double                                   cost_{0.0};
     std::vector<const PlanNode*>             dependencies_;
     std::vector<Variable*>                   inputVars_;
@@ -220,8 +221,8 @@ public:
     }
 
 protected:
-    SingleDependencyNode(int64_t id, Kind kind, const PlanNode* dep, SymbolTable* symTable)
-        : PlanNode(id, kind, symTable) {
+    SingleDependencyNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
+        : PlanNode(qctx, kind) {
         dependencies_.emplace_back(dep);
     }
 
@@ -232,7 +233,7 @@ class SingleInputNode : public SingleDependencyNode {
 public:
     void setInputVar(std::string inputVar) {
         DCHECK(!inputVars_.empty());
-        auto* inputVarPtr = symTable_->getVar(inputVar);
+        auto* inputVarPtr = qctx_->symTable()->getVar(inputVar);
         DCHECK(inputVarPtr != nullptr);
         std::string oldVar;
         if (inputVars_[0] != nullptr) {
@@ -241,16 +242,16 @@ public:
         inputVars_[0] = inputVarPtr;
         if (!oldVar.empty()) {
             for (auto& output : outputVars_) {
-                symTable_->deleteDerivative(oldVar, output->name);
-                symTable_->addDerivative(inputVar, output->name);
-                symTable_->deleteDependency(output->name, oldVar);
-                symTable_->addDependency(output->name, inputVar);
+                qctx_->symTable()->deleteDerivative(oldVar, output->name);
+                qctx_->symTable()->addDerivative(inputVar, output->name);
+                qctx_->symTable()->deleteDependency(output->name, oldVar);
+                qctx_->symTable()->addDependency(output->name, inputVar);
             }
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
-                symTable_->addDerivative(inputVar, output->name);
-                symTable_->addDependency(output->name, inputVar);
+                qctx_->symTable()->addDerivative(inputVar, output->name);
+                qctx_->symTable()->addDependency(output->name, inputVar);
             }
         }
     }
@@ -267,15 +268,15 @@ public:
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
-    SingleInputNode(int64_t id, Kind kind, const PlanNode* dep, SymbolTable* symTable)
-        : SingleDependencyNode(id, kind, dep, symTable) {
+    SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
+        : SingleDependencyNode(qctx, kind, dep) {
         if (dep != nullptr) {
             auto* inputVarPtr = dep->outputVarPtr();
             inputVars_.emplace_back(inputVarPtr);
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
-                symTable_->addDerivative(inputVarPtr->name, output->name);
-                symTable_->addDependency(output->name, inputVarPtr->name);
+                qctx_->symTable()->addDerivative(inputVarPtr->name, output->name);
+                qctx_->symTable()->addDependency(output->name, inputVarPtr->name);
             }
         } else {
             inputVars_.emplace_back(nullptr);
@@ -295,7 +296,7 @@ public:
 
     void setLeftVar(std::string leftVar) {
         DCHECK_GE(inputVars_.size(), 1);
-        auto* leftVarPtr = symTable_->getVar(leftVar);
+        auto* leftVarPtr = qctx_->symTable()->getVar(leftVar);
         DCHECK(leftVarPtr != nullptr);
         std::string oldVar;
         if (inputVars_[0] != nullptr) {
@@ -304,23 +305,23 @@ public:
         inputVars_[0] = leftVarPtr;
         if (!oldVar.empty()) {
             for (auto& output : outputVars_) {
-                symTable_->deleteDerivative(oldVar, output->name);
-                symTable_->addDerivative(leftVar, output->name);
-                symTable_->deleteDependency(output->name, oldVar);
-                symTable_->addDependency(output->name, leftVar);
+                qctx_->symTable()->deleteDerivative(oldVar, output->name);
+                qctx_->symTable()->addDerivative(leftVar, output->name);
+                qctx_->symTable()->deleteDependency(output->name, oldVar);
+                qctx_->symTable()->addDependency(output->name, leftVar);
             }
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
-                symTable_->addDerivative(leftVar, output->name);
-                symTable_->addDependency(output->name, leftVar);
+                qctx_->symTable()->addDerivative(leftVar, output->name);
+                qctx_->symTable()->addDependency(output->name, leftVar);
             }
         }
     }
 
     void setRightVar(std::string rightVar) {
         DCHECK_EQ(inputVars_.size(), 2);
-        auto* rightVarPtr = symTable_->getVar(rightVar);
+        auto* rightVarPtr = qctx_->symTable()->getVar(rightVar);
         DCHECK(rightVarPtr != nullptr);
         std::string oldVar;
         if (inputVars_[1] != nullptr) {
@@ -329,16 +330,16 @@ public:
         inputVars_[1] = rightVarPtr;
         if (!oldVar.empty()) {
             for (auto& output : outputVars_) {
-                symTable_->deleteDerivative(oldVar, output->name);
-                symTable_->addDerivative(rightVar, output->name);
-                symTable_->deleteDependency(output->name, oldVar);
-                symTable_->addDependency(output->name, rightVar);
+                qctx_->symTable()->deleteDerivative(oldVar, output->name);
+                qctx_->symTable()->addDerivative(rightVar, output->name);
+                qctx_->symTable()->deleteDependency(output->name, oldVar);
+                qctx_->symTable()->addDependency(output->name, rightVar);
             }
         } else {
             for (auto& output : outputVars_) {
                 DCHECK(output != nullptr);
-                symTable_->addDerivative(rightVar, output->name);
-                symTable_->addDependency(output->name, rightVar);
+                qctx_->symTable()->addDerivative(rightVar, output->name);
+                qctx_->symTable()->addDependency(output->name, rightVar);
             }
         }
     }
@@ -362,8 +363,8 @@ public:
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
-    BiInputNode(int64_t id, Kind kind, PlanNode* left, PlanNode* right, SymbolTable* symTable)
-        : PlanNode(id, kind, symTable) {
+    BiInputNode(QueryContext* qctx, Kind kind, PlanNode* left, PlanNode* right)
+        : PlanNode(qctx, kind) {
         DCHECK(left != nullptr);
         DCHECK(right != nullptr);
 
@@ -372,8 +373,8 @@ protected:
         inputVars_.emplace_back(leftVarPtr);
         for (auto& output : outputVars_) {
             DCHECK(output != nullptr);
-            symTable_->addDerivative(leftVarPtr->name, output->name);
-            symTable_->addDependency(output->name, leftVarPtr->name);
+            qctx_->symTable()->addDerivative(leftVarPtr->name, output->name);
+            qctx_->symTable()->addDependency(output->name, leftVarPtr->name);
         }
 
         dependencies_.emplace_back(right);
@@ -381,8 +382,8 @@ protected:
         inputVars_.emplace_back(rightVarPtr);
         for (auto& output : outputVars_) {
             DCHECK(output != nullptr);
-            symTable_->addDerivative(rightVarPtr->name, output->name);
-            symTable_->addDependency(output->name, rightVarPtr->name);
+            qctx_->symTable()->addDerivative(rightVarPtr->name, output->name);
+            qctx_->symTable()->addDependency(output->name, rightVarPtr->name);
         }
     }
 };

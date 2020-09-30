@@ -13,15 +13,14 @@
 namespace nebula {
 namespace graph {
 
-PlanNode::PlanNode(int64_t id, Kind kind, SymbolTable* symTable)
-    : kind_(kind), id_(id), symTable_(symTable) {
-    DCHECK_GE(id_, 0);
-    DCHECK(symTable != nullptr);
+PlanNode::PlanNode(QueryContext* qctx, Kind kind) : qctx_(qctx), kind_(kind) {
+    DCHECK(qctx != nullptr);
+    id_ = qctx_->genId();
     auto varName = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
-    auto* variable = symTable->newVariable(varName);
+    auto* variable = qctx_->symTable()->newVariable(varName);
     VLOG(1) << "New variable: " << varName;
     outputVars_.emplace_back(variable);
-    symTable_->addOrigin(varName, this);
+    qctx_->symTable()->addOrigin(varName, this);
 }
 
 // static

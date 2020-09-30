@@ -16,12 +16,12 @@ namespace graph {
 class StartNode final : public PlanNode {
 public:
     static StartNode* make(QueryContext* qctx) {
-        return qctx->objPool()->add(new StartNode(qctx->genId(), qctx->symTable()));
+        return qctx->objPool()->add(new StartNode(qctx));
     }
 
 private:
-    explicit StartNode(int64_t id, SymbolTable* symTable)
-        : PlanNode(id, Kind::kStart, symTable) {}
+    explicit StartNode(QueryContext* qctx)
+        : PlanNode(qctx, Kind::kStart) {}
 };
 
 class BinarySelect : public SingleInputNode {
@@ -33,12 +33,11 @@ public:
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
 protected:
-    BinarySelect(int64_t id,
+    BinarySelect(QueryContext* qctx,
                  Kind kind,
                  PlanNode* input,
-                 Expression* condition,
-                 SymbolTable* symTable)
-        : SingleInputNode(id, kind, input, symTable), condition_(condition) {}
+                 Expression* condition)
+        : SingleInputNode(qctx, kind, input), condition_(condition) {}
 
     Expression* condition_{nullptr};
 };
@@ -50,8 +49,7 @@ public:
                         PlanNode* ifBranch,
                         PlanNode* elseBranch,
                         Expression* condition) {
-        return qctx->objPool()->add(
-            new Select(qctx->genId(), input, ifBranch, elseBranch, condition, qctx->symTable()));
+        return qctx->objPool()->add(new Select(qctx, input, ifBranch, elseBranch, condition));
     }
 
     void setIf(PlanNode* ifBranch) {
@@ -71,13 +69,12 @@ public:
     }
 
 private:
-    Select(int64_t id,
+    Select(QueryContext* qctx,
            PlanNode* input,
            PlanNode* ifBranch,
            PlanNode* elseBranch,
-           Expression* condition,
-           SymbolTable* symTable)
-        : BinarySelect(id, Kind::kSelect, input, condition, symTable),
+           Expression* condition)
+        : BinarySelect(qctx, Kind::kSelect, input, condition),
           if_(ifBranch),
           else_(elseBranch) {}
 
@@ -89,8 +86,7 @@ private:
 class Loop final : public BinarySelect {
 public:
     static Loop* make(QueryContext* qctx, PlanNode* input, PlanNode* body, Expression* condition) {
-        return qctx->objPool()->add(
-            new Loop(qctx->genId(), input, body, condition, qctx->symTable()));
+        return qctx->objPool()->add(new Loop(qctx, input, body, condition));
     }
 
     void setBody(PlanNode* body) {
@@ -102,8 +98,8 @@ public:
     }
 
 private:
-    Loop(int64_t id, PlanNode* input, PlanNode* body, Expression* condition, SymbolTable* symTable)
-        : BinarySelect(id, Kind::kLoop, input, condition, symTable), body_(body) {}
+    Loop(QueryContext* qctx, PlanNode* input, PlanNode* body, Expression* condition)
+        : BinarySelect(qctx, Kind::kLoop, input, condition), body_(body) {}
 
     PlanNode* body_{nullptr};
 };
@@ -114,12 +110,12 @@ private:
 class PassThroughNode final : public SingleInputNode {
 public:
     static PassThroughNode* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new PassThroughNode(qctx->genId(), input, qctx->symTable()));
+        return qctx->objPool()->add(new PassThroughNode(qctx, input));
     }
 
 private:
-    PassThroughNode(int64_t id, PlanNode* input, SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kPassThrough, input, symTable) {}
+    PassThroughNode(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kPassThrough, input) {}
 };
 
 }   // namespace graph

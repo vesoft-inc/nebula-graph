@@ -24,12 +24,11 @@ namespace graph {
 // Fit the conflict create process
 class CreateNode : public SingleDependencyNode {
 protected:
-    CreateNode(int64_t id,
+    CreateNode(QueryContext* qctx,
                Kind kind,
                PlanNode* input,
-               bool ifNotExist,
-               SymbolTable* symTable)
-        : SingleDependencyNode(id, kind, input, symTable), ifNotExist_(ifNotExist) {}
+               bool ifNotExist)
+        : SingleDependencyNode(qctx, kind, input), ifNotExist_(ifNotExist) {}
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
@@ -44,8 +43,8 @@ private:
 
 class DropNode : public SingleDependencyNode {
 protected:
-    DropNode(int64_t id, Kind kind, PlanNode* input, bool ifExist, SymbolTable* symTable)
-        : SingleDependencyNode(id, kind, input, symTable), ifExist_(ifExist) {}
+    DropNode(QueryContext* qctx, Kind kind, PlanNode* input, bool ifExist)
+        : SingleDependencyNode(qctx, kind, input), ifExist_(ifExist) {}
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
@@ -62,12 +61,12 @@ class ShowHosts final : public SingleDependencyNode {
     // TODO(shylock) meta/storage/graph enumerate
 public:
     static ShowHosts* make(QueryContext* qctx, PlanNode* dep) {
-        return qctx->objPool()->add(new ShowHosts(qctx->genId(), dep, qctx->symTable()));
+        return qctx->objPool()->add(new ShowHosts(qctx, dep));
     }
 
 private:
-    ShowHosts(int64_t id, PlanNode* dep, SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kShowHosts, dep, symTable) {}
+    ShowHosts(QueryContext* qctx, PlanNode* dep)
+        : SingleDependencyNode(qctx, Kind::kShowHosts, dep) {}
 };
 
 class CreateSpace final : public SingleInputNode {
@@ -76,8 +75,8 @@ public:
                              PlanNode* input,
                              meta::cpp2::SpaceDesc spaceDesc,
                              bool ifNotExists) {
-        return qctx->objPool()->add(new CreateSpace(
-            qctx->genId(), input, std::move(spaceDesc), ifNotExists, qctx->symTable()));
+        return qctx->objPool()->add(
+            new CreateSpace(qctx, input, std::move(spaceDesc), ifNotExists));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -92,12 +91,11 @@ public:
     }
 
 private:
-    CreateSpace(int64_t id,
+    CreateSpace(QueryContext* qctx,
                 PlanNode* input,
                 meta::cpp2::SpaceDesc spaceDesc,
-                bool ifNotExists,
-                SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kCreateSpace, input, symTable) {
+                bool ifNotExists)
+        : SingleInputNode(qctx, Kind::kCreateSpace, input) {
         spaceDesc_ = std::move(spaceDesc);
         ifNotExists_ = ifNotExists;
     }
@@ -114,7 +112,7 @@ public:
                            std::string spaceName,
                            bool ifExists) {
         return qctx->objPool()->add(new DropSpace(
-            qctx->genId(), input, std::move(spaceName), ifExists, qctx->symTable()));
+            qctx, input, std::move(spaceName), ifExists));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -128,12 +126,11 @@ public:
     }
 
 private:
-    DropSpace(int64_t id,
+    DropSpace(QueryContext* qctx,
               PlanNode* input,
               std::string spaceName,
-              bool ifExists,
-              SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kDropSpace, input, symTable) {
+              bool ifExists)
+        : SingleInputNode(qctx, Kind::kDropSpace, input) {
         spaceName_ = std::move(spaceName);
         ifExists_ = ifExists;
     }
@@ -146,8 +143,7 @@ private:
 class DescSpace final : public SingleInputNode {
 public:
     static DescSpace* make(QueryContext* qctx, PlanNode* input, std::string spaceName) {
-        return qctx->objPool()->add(
-            new DescSpace(qctx->genId(), input, std::move(spaceName), qctx->symTable()));
+        return qctx->objPool()->add(new DescSpace(qctx, input, std::move(spaceName)));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -157,11 +153,10 @@ public:
     }
 
 private:
-    DescSpace(int64_t id,
+    DescSpace(QueryContext* qctx,
               PlanNode* input,
-              std::string spaceName,
-              SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kDescSpace, input, symTable) {
+              std::string spaceName)
+        : SingleInputNode(qctx, Kind::kDescSpace, input) {
         spaceName_ = std::move(spaceName);
     }
 
@@ -172,19 +167,18 @@ private:
 class ShowSpaces final : public SingleInputNode {
 public:
     static ShowSpaces* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new ShowSpaces(qctx->genId(), input, qctx->symTable()));
+        return qctx->objPool()->add(new ShowSpaces(qctx, input));
     }
 
 private:
-    explicit ShowSpaces(int64_t id, PlanNode* input, SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kShowSpaces, input, symTable) {}
+    explicit ShowSpaces(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kShowSpaces, input) {}
 };
 
 class ShowConfigs final : public SingleInputNode {
 public:
     static ShowConfigs* make(QueryContext* qctx, PlanNode* input, meta::cpp2::ConfigModule module) {
-        return qctx->objPool()->add(
-            new ShowConfigs(qctx->genId(), input, module, qctx->symTable()));
+        return qctx->objPool()->add(new ShowConfigs(qctx, input, module));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -194,11 +188,10 @@ public:
     }
 
 private:
-    ShowConfigs(int64_t id,
+    ShowConfigs(QueryContext* qctx,
                 PlanNode* input,
-                meta::cpp2::ConfigModule module,
-                SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kShowConfigs, input, symTable)
+                meta::cpp2::ConfigModule module)
+        : SingleInputNode(qctx, Kind::kShowConfigs, input)
         , module_(module) {}
 
 private:
@@ -212,8 +205,8 @@ public:
                            meta::cpp2::ConfigModule module,
                            std::string name,
                            Value value) {
-        return qctx->objPool()->add(new SetConfig(
-            qctx->genId(), input, module, std::move(name), std::move(value), qctx->symTable()));
+        return qctx->objPool()->add(
+            new SetConfig(qctx, input, module, std::move(name), std::move(value)));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -231,13 +224,12 @@ public:
     }
 
 private:
-    SetConfig(int64_t id,
+    SetConfig(QueryContext* qctx,
               PlanNode* input,
               meta::cpp2::ConfigModule module,
               std::string name,
-              Value value,
-              SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kSetConfig, input, symTable),
+              Value value)
+        : SingleInputNode(qctx, Kind::kSetConfig, input),
           module_(module),
           name_(std::move(name)),
           value_(std::move(value)) {}
@@ -255,7 +247,7 @@ public:
                            meta::cpp2::ConfigModule module,
                            std::string name) {
         return qctx->objPool()->add(
-            new GetConfig(qctx->genId(), input, module, std::move(name), qctx->symTable()));
+            new GetConfig(qctx, input, module, std::move(name)));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -269,12 +261,11 @@ public:
     }
 
 private:
-    explicit GetConfig(int64_t id,
+    explicit GetConfig(QueryContext* qctx,
                        PlanNode* input,
                        meta::cpp2::ConfigModule module,
-                       std::string name,
-                       SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kGetConfig, input, symTable),
+                       std::string name)
+        : SingleInputNode(qctx, Kind::kGetConfig, input),
           module_(module),
           name_(std::move(name)) {}
 
@@ -287,7 +278,7 @@ class ShowCreateSpace final : public SingleInputNode {
 public:
     static ShowCreateSpace* make(QueryContext* qctx, PlanNode* input, std::string spaceName) {
         return qctx->objPool()->add(
-            new ShowCreateSpace(qctx->genId(), input, std::move(spaceName), qctx->symTable()));
+            new ShowCreateSpace(qctx, input, std::move(spaceName)));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -297,8 +288,8 @@ public:
     }
 
 private:
-    ShowCreateSpace(int64_t id, PlanNode* input, std::string spaceName, SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kShowCreateSpace, input, symTable) {
+    ShowCreateSpace(QueryContext* qctx, PlanNode* input, std::string spaceName)
+        : SingleInputNode(qctx, Kind::kShowCreateSpace, input) {
         spaceName_ = std::move(spaceName);
     }
 
@@ -309,19 +300,19 @@ private:
 class CreateSnapshot final : public SingleInputNode {
 public:
     static CreateSnapshot* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new CreateSnapshot(qctx->genId(), input, qctx->symTable()));
+        return qctx->objPool()->add(new CreateSnapshot(qctx, input));
     }
 
 private:
-    explicit CreateSnapshot(int64_t id, PlanNode* input, SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kCreateSnapshot, input, symTable) {}
+    explicit CreateSnapshot(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kCreateSnapshot, input) {}
 };
 
 class DropSnapshot final : public SingleInputNode {
 public:
     static DropSnapshot* make(QueryContext* qctx, PlanNode* input, std::string snapshotName) {
         return qctx->objPool()->add(
-            new DropSnapshot(qctx->genId(), input, std::move(snapshotName), qctx->symTable()));
+            new DropSnapshot(qctx, input, std::move(snapshotName)));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -331,11 +322,10 @@ public:
     }
 
 private:
-    explicit DropSnapshot(int64_t id,
+    explicit DropSnapshot(QueryContext* qctx,
                           PlanNode* input,
-                          std::string snapshotName,
-                          SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kDropSnapshot, input, symTable) {
+                          std::string snapshotName)
+        : SingleInputNode(qctx, Kind::kDropSnapshot, input) {
         snapshotName_ = std::move(snapshotName);
     }
 
@@ -346,12 +336,12 @@ private:
 class ShowSnapshots final : public SingleInputNode {
 public:
     static ShowSnapshots* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new ShowSnapshots(qctx->genId(), input, qctx->symTable()));
+        return qctx->objPool()->add(new ShowSnapshots(qctx, input));
     }
 
 private:
-    explicit ShowSnapshots(int64_t id, PlanNode* input, SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kShowSnapshots, input, symTable) {}
+    explicit ShowSnapshots(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kShowSnapshots, input) {}
 };
 
 class Download final : public SingleInputNode {
@@ -370,8 +360,7 @@ public:
                             const std::string* username,
                             const std::string* password,
                             bool ifNotExists) {
-        return qctx->objPool()->add(
-            new CreateUser(qctx->genId(), dep, username, password, ifNotExists, qctx->symTable()));
+        return qctx->objPool()->add(new CreateUser(qctx, dep, username, password, ifNotExists));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -385,13 +374,12 @@ public:
     }
 
 private:
-    CreateUser(int64_t id,
+    CreateUser(QueryContext* qctx,
                PlanNode* dep,
                const std::string* username,
                const std::string* password,
-               bool ifNotExists,
-               SymbolTable* symTable)
-        : CreateNode(id, Kind::kCreateUser, dep, ifNotExists, symTable),
+               bool ifNotExists)
+        : CreateNode(qctx, Kind::kCreateUser, dep, ifNotExists),
           username_(username),
           password_(password) {}
 
@@ -406,8 +394,7 @@ public:
                           PlanNode* dep,
                           const std::string* username,
                           bool ifNotExists) {
-        return qctx->objPool()->add(
-            new DropUser(qctx->genId(), dep, username, ifNotExists, qctx->symTable()));
+        return qctx->objPool()->add(new DropUser(qctx, dep, username, ifNotExists));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -417,12 +404,11 @@ public:
     }
 
 private:
-    DropUser(int64_t id,
+    DropUser(QueryContext* qctx,
              PlanNode* dep,
              const std::string* username,
-             bool ifNotExists,
-             SymbolTable* symTable)
-        : DropNode(id, Kind::kDropUser, dep, ifNotExists, symTable), username_(username) {}
+             bool ifNotExists)
+        : DropNode(qctx, Kind::kDropUser, dep, ifNotExists), username_(username) {}
 
 private:
     const std::string* username_;
@@ -434,8 +420,7 @@ public:
                             PlanNode* dep,
                             const std::string* username,
                             const std::string* password) {
-        return qctx->objPool()->add(
-            new UpdateUser(qctx->genId(), dep, username, password, qctx->symTable()));
+        return qctx->objPool()->add(new UpdateUser(qctx, dep, username, password));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -449,12 +434,11 @@ public:
     }
 
 private:
-    UpdateUser(int64_t id,
+    UpdateUser(QueryContext* qctx,
                PlanNode* dep,
                const std::string* username,
-               const std::string* password,
-               SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kUpdateUser, dep, symTable),
+               const std::string* password)
+        : SingleDependencyNode(qctx, Kind::kUpdateUser, dep),
           username_(username),
           password_(password) {}
 
@@ -470,8 +454,7 @@ public:
                            const std::string* username,
                            const std::string* spaceName,
                            meta::cpp2::RoleType role) {
-        return qctx->objPool()->add(
-            new GrantRole(qctx->genId(), dep, username, spaceName, role, qctx->symTable()));
+        return qctx->objPool()->add(new GrantRole(qctx, dep, username, spaceName, role));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -489,13 +472,12 @@ public:
     }
 
 private:
-    GrantRole(int64_t id,
+    GrantRole(QueryContext* qctx,
               PlanNode* dep,
               const std::string* username,
               const std::string* spaceName,
-              meta::cpp2::RoleType role,
-              SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kGrantRole, dep, symTable),
+              meta::cpp2::RoleType role)
+        : SingleDependencyNode(qctx, Kind::kGrantRole, dep),
           username_(username),
           spaceName_(spaceName),
           role_(role) {}
@@ -514,7 +496,7 @@ public:
                             const std::string* spaceName,
                             meta::cpp2::RoleType role) {
         return qctx->objPool()->add(
-            new RevokeRole(qctx->genId(), dep, username, spaceName, role, qctx->symTable()));
+            new RevokeRole(qctx, dep, username, spaceName, role));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -532,13 +514,12 @@ public:
     }
 
 private:
-    RevokeRole(int64_t id,
+    RevokeRole(QueryContext* qctx,
                PlanNode* dep,
                const std::string* username,
                const std::string* spaceName,
-               meta::cpp2::RoleType role,
-               SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kRevokeRole, dep, symTable),
+               meta::cpp2::RoleType role)
+        : SingleDependencyNode(qctx, Kind::kRevokeRole, dep),
           username_(username),
           spaceName_(spaceName),
           role_(role) {}
@@ -556,8 +537,7 @@ public:
                                 const std::string* username,
                                 const std::string* password,
                                 const std::string* newPassword) {
-        return qctx->objPool()->add(new ChangePassword(
-            qctx->genId(), dep, username, password, newPassword, qctx->symTable()));
+        return qctx->objPool()->add(new ChangePassword(qctx, dep, username, password, newPassword));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -575,13 +555,12 @@ public:
     }
 
 private:
-    ChangePassword(int64_t id,
+    ChangePassword(QueryContext* qctx,
                    PlanNode* dep,
                    const std::string* username,
                    const std::string* password,
-                   const std::string* newPassword,
-                   SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kChangePassword, dep, symTable),
+                   const std::string* newPassword)
+        : SingleDependencyNode(qctx, Kind::kChangePassword, dep),
           username_(username),
           password_(password),
           newPassword_(newPassword) {}
@@ -595,8 +574,7 @@ private:
 class ListUserRoles final : public SingleDependencyNode {
 public:
     static ListUserRoles* make(QueryContext* qctx, PlanNode* dep, const std::string* username) {
-        return qctx->objPool()->add(
-            new ListUserRoles(qctx->genId(), dep, username, qctx->symTable()));
+        return qctx->objPool()->add(new ListUserRoles(qctx, dep, username));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -606,8 +584,8 @@ public:
     }
 
 private:
-    ListUserRoles(int64_t id, PlanNode* dep, const std::string* username, SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kListUserRoles, dep, symTable),
+    ListUserRoles(QueryContext* qctx, PlanNode* dep, const std::string* username)
+        : SingleDependencyNode(qctx, Kind::kListUserRoles, dep),
           username_(username) {}
 
 private:
@@ -617,18 +595,18 @@ private:
 class ListUsers final : public SingleDependencyNode {
 public:
     static ListUsers* make(QueryContext* qctx, PlanNode* dep) {
-        return qctx->objPool()->add(new ListUsers(qctx->genId(), dep, qctx->symTable()));
+        return qctx->objPool()->add(new ListUsers(qctx, dep));
     }
 
 private:
-    explicit ListUsers(int64_t id, PlanNode* dep, SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kListUsers, dep, symTable) {}
+    explicit ListUsers(QueryContext* qctx, PlanNode* dep)
+        : SingleDependencyNode(qctx, Kind::kListUsers, dep) {}
 };
 
 class ListRoles final : public SingleDependencyNode {
 public:
     static ListRoles* make(QueryContext* qctx, PlanNode* dep, GraphSpaceID space) {
-        return qctx->objPool()->add(new ListRoles(qctx->genId(), dep, space, qctx->symTable()));
+        return qctx->objPool()->add(new ListRoles(qctx, dep, space));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -638,8 +616,8 @@ public:
     }
 
 private:
-    explicit ListRoles(int64_t id, PlanNode* dep, GraphSpaceID space, SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kListRoles, dep, symTable), space_(space) {}
+    explicit ListRoles(QueryContext* qctx, PlanNode* dep, GraphSpaceID space)
+        : SingleDependencyNode(qctx, Kind::kListRoles, dep), space_(space) {}
 
     GraphSpaceID space_{-1};
 };
@@ -650,8 +628,7 @@ public:
                            PlanNode* input,
                            GraphSpaceID spaceId,
                            std::vector<PartitionID> partIds) {
-        return qctx->objPool()->add(
-            new ShowParts(qctx->genId(), input, spaceId, std::move(partIds), qctx->symTable()));
+        return qctx->objPool()->add(new ShowParts(qctx, input, spaceId, std::move(partIds)));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -665,12 +642,11 @@ public:
     }
 
 private:
-    explicit ShowParts(int64_t id,
+    explicit ShowParts(QueryContext* qctx,
                        PlanNode* input,
                        GraphSpaceID spaceId,
-                       std::vector<PartitionID> partIds,
-                       SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kShowParts, input, symTable) {
+                       std::vector<PartitionID> partIds)
+        : SingleInputNode(qctx, Kind::kShowParts, input) {
         spaceId_ = spaceId;
         partIds_ = std::move(partIds);
     }
@@ -686,8 +662,7 @@ public:
                            PlanNode* dep,
                            meta::cpp2::AdminJobOp op,
                            const std::vector<std::string>& params) {
-        return qctx->objPool()->add(
-            new SubmitJob(qctx->genId(), dep, op, params, qctx->symTable()));
+        return qctx->objPool()->add(new SubmitJob(qctx, dep, op, params));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -706,12 +681,11 @@ public:
     }
 
 private:
-    SubmitJob(int64_t id,
+    SubmitJob(QueryContext* qctx,
               PlanNode* dep,
               meta::cpp2::AdminJobOp op,
-              const std::vector<std::string> &params,
-              SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kSubmitJob, dep, symTable),
+              const std::vector<std::string> &params)
+        : SingleDependencyNode(qctx, Kind::kSubmitJob, dep),
           op_(op),
           params_(params) {}
 
@@ -725,19 +699,18 @@ private:
 class BalanceLeaders final : public SingleDependencyNode {
 public:
     static BalanceLeaders* make(QueryContext* qctx, PlanNode* dep) {
-        return qctx->objPool()->add(new BalanceLeaders(qctx->genId(), dep, qctx->symTable()));
+        return qctx->objPool()->add(new BalanceLeaders(qctx, dep));
     }
 
 private:
-    explicit BalanceLeaders(int64_t id, PlanNode* dep, SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kBalanceLeaders, dep, symTable) {}
+    explicit BalanceLeaders(QueryContext* qctx, PlanNode* dep)
+        : SingleDependencyNode(qctx, Kind::kBalanceLeaders, dep) {}
 };
 
 class Balance final : public SingleDependencyNode {
 public:
     static Balance* make(QueryContext* qctx, PlanNode* dep, std::vector<HostAddr> deleteHosts) {
-        return qctx->objPool()->add(
-            new Balance(qctx->genId(), dep, std::move(deleteHosts), qctx->symTable()));
+        return qctx->objPool()->add(new Balance(qctx, dep, std::move(deleteHosts)));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -747,8 +720,8 @@ public:
     }
 
 private:
-    Balance(int64_t id, PlanNode* dep, std::vector<HostAddr> deleteHosts, SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kBalance, dep, symTable),
+    Balance(QueryContext* qctx, PlanNode* dep, std::vector<HostAddr> deleteHosts)
+        : SingleDependencyNode(qctx, Kind::kBalance, dep),
           deleteHosts_(std::move(deleteHosts)) {}
 
     std::vector<HostAddr> deleteHosts_;
@@ -757,18 +730,18 @@ private:
 class StopBalance final : public SingleDependencyNode {
 public:
     static StopBalance* make(QueryContext* qctx, PlanNode* dep) {
-        return qctx->objPool()->add(new StopBalance(qctx->genId(), dep, qctx->symTable()));
+        return qctx->objPool()->add(new StopBalance(qctx, dep));
     }
 
 private:
-    explicit StopBalance(int64_t id, PlanNode* dep, SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kStopBalance, dep, symTable) {}
+    explicit StopBalance(QueryContext* qctx, PlanNode* dep)
+        : SingleDependencyNode(qctx, Kind::kStopBalance, dep) {}
 };
 
 class ShowBalance final : public SingleDependencyNode {
 public:
     static ShowBalance* make(QueryContext* qctx, PlanNode* dep, int64_t jobId) {
-        return qctx->objPool()->add(new ShowBalance(qctx->genId(), dep, jobId, qctx->symTable()));
+        return qctx->objPool()->add(new ShowBalance(qctx, dep, jobId));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -778,8 +751,8 @@ public:
     }
 
 private:
-    ShowBalance(int64_t id, PlanNode* dep, int64_t jobId, SymbolTable* symTable)
-        : SingleDependencyNode(id, Kind::kShowBalance, dep, symTable), jobId_(jobId) {}
+    ShowBalance(QueryContext* qctx, PlanNode* dep, int64_t jobId)
+        : SingleDependencyNode(qctx, Kind::kShowBalance, dep), jobId_(jobId) {}
 
     int64_t jobId_;
 };
@@ -787,23 +760,23 @@ private:
 class ShowCharset final : public SingleInputNode {
 public:
     static ShowCharset* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new ShowCharset(qctx->genId(), input, qctx->symTable()));
+        return qctx->objPool()->add(new ShowCharset(qctx, input));
     }
 
 private:
-    explicit ShowCharset(int64_t id, PlanNode* input, SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kShowCharset, input, symTable) {}
+    explicit ShowCharset(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kShowCharset, input) {}
 };
 
 class ShowCollation final : public SingleInputNode {
 public:
     static ShowCollation* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new ShowCollation(qctx->genId(), input, qctx->symTable()));
+        return qctx->objPool()->add(new ShowCollation(qctx, input));
     }
 
 private:
-    explicit ShowCollation(int64_t id, PlanNode* input, SymbolTable* symTable)
-        : SingleInputNode(id, Kind::kShowCollation, input, symTable) {}
+    explicit ShowCollation(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kShowCollation, input) {}
 };
 }  // namespace graph
 }  // namespace nebula
