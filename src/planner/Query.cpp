@@ -27,6 +27,43 @@ std::unique_ptr<cpp2::PlanNodeDescription> Explore::explain() const {
     return desc;
 }
 
+GetNeighbors* GetNeighbors::clone(QueryContext* qctx) const {
+    auto newGN = GetNeighbors::make(qctx, nullptr, space_);
+    newGN->setSrc(qctx->objPool()->add(src_->clone().release()));
+    newGN->setEdgeTypes(edgeTypes_);
+    newGN->setEdgeDirection(edgeDirection_);
+    newGN->setDedup(dedup_);
+    newGN->setRandom(random_);
+    newGN->setLimit(limit_);
+    newGN->setInputVar(inputVar());
+    newGN->setOutputVar(outputVar());
+
+    if (vertexProps_) {
+        auto vertexProps = *vertexProps_;
+        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(vertexProps);
+        newGN->setVertexProps(std::move(vertexPropsPtr));
+    }
+
+    if (edgeProps_) {
+        auto edgeProps = *edgeProps_;
+        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(std::move(edgeProps));
+        newGN->setEdgeProps(std::move(edgePropsPtr));
+    }
+
+    if (statProps_) {
+        auto statProps = *statProps_;
+        auto statPropsPtr = std::make_unique<decltype(statProps)>(std::move(statProps));
+        newGN->setStatProps(std::move(statPropsPtr));
+    }
+
+    if (exprs_) {
+        auto exprs = *exprs_;
+        auto exprsPtr = std::make_unique<decltype(exprs)>(exprs);
+        newGN->setExprs(std::move(exprsPtr));
+    }
+    return newGN;
+}
+
 std::unique_ptr<cpp2::PlanNodeDescription> GetNeighbors::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
@@ -107,7 +144,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> Aggregate::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("groupKeys", folly::toJson(util::toJson(groupKeys_)), desc.get());
     folly::dynamic itemArr = folly::dynamic::array();
-    for (const auto &item : groupItems_) {
+    for (const auto& item : groupItems_) {
         folly::dynamic itemObj = folly::dynamic::object();
         itemObj.insert("distinct", util::toJson(item.distinct));
         itemObj.insert("funcType", static_cast<uint8_t>(item.func));

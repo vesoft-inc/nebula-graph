@@ -144,6 +144,8 @@ public:
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
+    GetNeighbors* clone(QueryContext* qctx) const;
+
     Expression* src() const {
         return src_;
     }
