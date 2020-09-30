@@ -139,13 +139,15 @@ Status OptGroupExpr::explore(const OptRule *rule) {
     setExplored(rule);
 
     for (auto dep : dependencies_) {
-        if (dep && !dep->isExplored(rule)) {
+        DCHECK(dep != nullptr);
+        while (!dep->isExplored(rule)) {
             NG_RETURN_IF_ERROR(dep->explore(rule));
         }
     }
 
     for (auto body : bodies_) {
-        if (body && !body->isExplored(rule)) {
+        DCHECK(body != nullptr);
+        while (!body->isExplored(rule)) {
             NG_RETURN_IF_ERROR(body->explore(rule));
         }
     }

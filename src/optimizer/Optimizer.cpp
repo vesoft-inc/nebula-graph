@@ -43,7 +43,6 @@ Status Optimizer::prepare() {
 }
 
 Status Optimizer::doExploration() {
-    // TODO(yee): Apply all rules recursively, not only once round
     for (auto ruleSet : ruleSets_) {
         for (auto rule : ruleSet->rules()) {
             while (!rootGroup_->isExplored(rule)) {
