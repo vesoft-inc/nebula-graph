@@ -528,8 +528,8 @@ Status RebuildEdgeIndexValidator::validateImpl() {
 Status RebuildEdgeIndexValidator::toPlan() {
     auto sentence = static_cast<RebuildEdgeIndexSentence*>(sentence_);
     auto *doNode = RebuildEdgeIndex::make(qctx_,
-                                        nullptr,
-                                        *sentence->indexName());
+                                          nullptr,
+                                          *sentence->indexName());
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

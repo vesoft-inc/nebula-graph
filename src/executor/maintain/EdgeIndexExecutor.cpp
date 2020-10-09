@@ -23,8 +23,8 @@ folly::Future<Status> CreateEdgeIndexExecutor::execute() {
             .then([ceiNode, spaceId](StatusOr<IndexID> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Create index`" << ceiNode->getIndexName()
-                               << " at edge: " << ceiNode->getSchemaName()
+                               << ", Create index `" << ceiNode->getIndexName()
+                               << "' at edge: `" << ceiNode->getSchemaName()
                                << "' failed: " << resp.status();
                     return resp.status();
                 }

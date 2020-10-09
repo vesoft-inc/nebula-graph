@@ -24,7 +24,7 @@ folly::Future<Status> CreateTagIndexExecutor::execute() {
                 if (!resp.ok()) {
                     LOG(ERROR) << "SpaceId: " << spaceId
                                << ", Create index `" << ctiNode->getIndexName()
-                               << " at tag: " << ctiNode->getSchemaName()
+                               << "' at tag: `" << ctiNode->getSchemaName()
                                << "' failed: " << resp.status();
                     return resp.status();
                 }

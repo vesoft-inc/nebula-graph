@@ -219,7 +219,7 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
                                                  const meta::cpp2::Schema &schema) {
     DataSet dataSet;
     std::string createStr;
-    createStr.resize(1024);
+    createStr.reserve(1024);
     if (isTag) {
         dataSet.colNames = {"Tag", "Create Tag"};
         createStr = "CREATE TAG `" + name + "` (\n";
@@ -285,15 +285,11 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
 }
 
 StatusOr<DataSet> SchemaUtil::toDescIndex(const meta::cpp2::IndexItem &indexItem) {
-    DataSet dataSet({"Field", "Type", "Null", "Default"});
+    DataSet dataSet({"Field", "Type"});
     for (auto &col : indexItem.get_fields()) {
         Row row;
         row.values.emplace_back(Value(col.get_name()));
         row.values.emplace_back(typeToString(col));
-        auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
-        row.values.emplace_back(nullable ? "YES" : "NO");
-        auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
-        row.values.emplace_back(std::move(defaultValue));
         dataSet.emplace_back(std::move(row));
     }
     return dataSet;
@@ -304,7 +300,7 @@ StatusOr<DataSet> SchemaUtil::toShowCreateIndex(bool isTagIndex,
                                                 const meta::cpp2::IndexItem &indexItem) {
     DataSet dataSet;
     std::string createStr;
-    createStr.resize(1024);
+    createStr.reserve(1024);
     std::string schemaName = indexItem.get_schema_name();
     if (isTagIndex) {
         dataSet.colNames = {"Tag Index", "Create Tag Index"};
