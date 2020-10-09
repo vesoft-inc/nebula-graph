@@ -37,6 +37,12 @@ struct Variable {
     Value::Type type{Value::Type::DATASET};
     // Valid if type is dataset.
     std::vector<std::string> colNames;
+
+    PlanNode* origin;
+    std::unordered_set<Variable*> derivatives;
+    std::unordered_set<Variable*> dependencies;
+    std::unordered_set<PlanNode*> readBy;
+    std::unordered_set<PlanNode*> writtenBy;
 };
 
 class SymbolTable final {
@@ -53,89 +59,130 @@ public:
         return variable;
     }
 
-    void addOrigin(std::string varName, PlanNode* node) {
-        origins_.emplace(std::move(varName), node);
-    }
-
     void addVar(std::string varName, Variable* variable) {
         vars_.emplace(std::move(varName), variable);
     }
 
-    void addDerivative(std::string varName, std::string derivative) {
+    bool addDerivative(std::string varName, std::string derivative) {
         VLOG(1) << "Add derivative: " << varName << " -> " << derivative;
-        derivatives_[varName].emplace(derivative);
-        VLOG(1) << "derivative size: " << derivatives_.size();
-    }
-
-    void addDependency(std::string varName, std::string dependency) {
-        VLOG(1) << "Add deoendency: " << varName << " <- " << dependency;
-        dependencies_[varName].emplace(dependency);
-        VLOG(1) << "dependencies size: " << dependencies_.size();
-    }
-
-    void readBy(std::string varName, PlanNode* node) {
-        readBy_[varName].emplace(node);
-    }
-
-    void writtenBy(std::string varName, PlanNode* node) {
-        writtenBy_[varName].emplace(node);
-    }
-
-    void deleteDerivative(std::string varName, std::string derivative) {
-        auto derivatives = derivatives_.find(varName);
-        if (derivatives != derivatives_.end()) {
-            derivatives->second.erase(derivative);
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return false;
         }
-    }
-
-    void deleteDependency(std::string varName, std::string dependency) {
-        auto dependencies = dependencies_.find(varName);
-        if (dependencies != dependencies_.end()) {
-            dependencies->second.erase(dependency);
+        auto der = vars_.find(derivative);
+        if (der == vars_.end()) {
+            return false;
         }
+        var->second->derivatives.emplace(der->second);
+        return true;
     }
 
-    void deleteRead(std::string varName, PlanNode* node) {
-        auto readBy = readBy_.find(varName);
-        if (readBy != readBy_.end()) {
-            readBy->second.erase(node);
+    bool addDependency(std::string varName, std::string dependency) {
+        VLOG(1) << "Add dependency: " << varName << " <- " << dependency;
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return false;
         }
-    }
-
-    void deleteWritten(std::string varName, PlanNode* node) {
-        auto writtenBy = writtenBy_.find(varName);
-        if (writtenBy != writtenBy_.end()) {
-            writtenBy->second.erase(node);
+        auto dep = vars_.find(dependency);
+        if (dep == vars_.end()) {
+            return false;
         }
+        var->second->dependencies.emplace(dep->second);
+        return true;
     }
 
-    void updateAllOccurence(std::string oldVar, std::string newVar) {
+    bool readBy(std::string varName, PlanNode* node) {
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return false;
+        }
+        var->second->readBy.emplace(node);
+        return true;
+    }
+
+    bool writtenBy(std::string varName, PlanNode* node) {
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return false;
+        }
+        var->second->writtenBy.emplace(node);
+        return true;
+    }
+
+    bool deleteDerivative(std::string varName, std::string derivative) {
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return false;
+        }
+        auto der = vars_.find(derivative);
+        if (der == vars_.end()) {
+            return false;
+        }
+        var->second->derivatives.erase(der->second);
+        return true;
+    }
+
+    bool deleteDependency(std::string varName, std::string dependency) {
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return false;
+        }
+        auto dep = vars_.find(dependency);
+        if (dep == vars_.end()) {
+            return false;
+        }
+        var->second->dependencies.erase(dep->second);
+        return true;
+    }
+
+    bool deleteRead(std::string varName, PlanNode* node) {
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return false;
+        }
+        var->second->readBy.erase(node);
+        return true;
+    }
+
+    bool deleteWritten(std::string varName, PlanNode* node) {
+        auto var = vars_.find(varName);
+        if (var == vars_.end()) {
+            return false;
+        }
+        var->second->writtenBy.erase(node);
+        return true;
+    }
+
+    bool updateAllOccurence(std::string oldVar, std::string newVar) {
         VLOG(1) << "Update ocur: " << oldVar << " -> " << newVar;
         if (oldVar == newVar) {
-            return;
+            return true;
         }
 
-        auto oldDerivative = derivatives_.find(oldVar);
-        if (oldDerivative != derivatives_.end()) {
-            derivatives_.emplace(newVar, std::move(oldDerivative->second));
-            derivatives_.erase(oldVar);
+        auto old = vars_.find(oldVar);
+        if (old == vars_.end()) {
+            return false;
         }
-        for (auto& derivative : derivatives_) {
-            if (derivative.second.erase(oldVar) > 0) {
-                derivative.second.emplace(newVar);
-            }
+        auto newVariable = vars_.find(newVar);
+        if (newVariable == vars_.end()) {
+            return false;
         }
 
-        auto oldDependency = dependencies_.find(oldVar);
-        if (oldDependency != dependencies_.end()) {
-            dependencies_.emplace(newVar, std::move(oldDependency->second));
-            dependencies_.erase(oldVar);
-        }
-        for (auto& dependency : dependencies_) {
-            if (dependency.second.erase(oldVar) > 0) {
-                dependency.second.emplace(newVar);
+        newVariable->second->derivatives.insert(old->second->derivatives.begin(),
+                                                old->second->derivatives.end());
+        old->second->derivatives.clear();
+        newVariable->second->dependencies.insert(old->second->dependencies.begin(),
+                                                 old->second->dependencies.begin());
+        old->second->dependencies.clear();
+        for (auto& var : vars_) {
+            if (var.second->derivatives.erase(old->second) > 0) {
+                var.second->derivatives.emplace(newVariable->second);
+            }
+            if (var.second->dependencies.erase(old->second) > 0) {
+                var.second->dependencies.emplace(newVariable->second);
             }
         }
+        return true;
     }
 
     Variable* getVar(const std::string& varName) {
@@ -147,69 +194,10 @@ public:
         }
     }
 
-    PlanNode* getOrigin(const std::string& varName) {
-        auto node = origins_.find(varName);
-        if (node == origins_.end()) {
-            return nullptr;
-        } else {
-            return node->second;
-        }
-    }
-
-    std::unordered_set<std::string>& getDerivatives(const std::string& varName) {
-        static std::unordered_set<std::string> emptyDerivatives;
-        auto derivatives = derivatives_.find(varName);
-        if (derivatives == derivatives_.end()) {
-            return emptyDerivatives;
-        } else {
-            return derivatives->second;
-        }
-    }
-
-    std::unordered_set<std::string>& getDependencies(const std::string& varName) {
-        static std::unordered_set<std::string> emptyDependencies;
-        auto dependencies = dependencies_.find(varName);
-        if (dependencies == dependencies_.end()) {
-            return emptyDependencies;
-        } else {
-            return dependencies->second;
-        }
-    }
-
-    std::unordered_set<PlanNode*>& getReadBy(const std::string& varName) {
-        static std::unordered_set<PlanNode*> emptyReadBy;
-        auto readBy = readBy_.find(varName);
-        if (readBy == readBy_.end()) {
-            return emptyReadBy;
-        } else {
-            return readBy->second;
-        }
-    }
-
-    std::unordered_set<PlanNode*>& getWrittenBy(const std::string& varName) {
-        static std::unordered_set<PlanNode*> emptyWrittenBy;
-        auto writtenBy = writtenBy_.find(varName);
-        if (writtenBy == writtenBy_.end()) {
-            return emptyWrittenBy;
-        } else {
-            return writtenBy->second;
-        }
-    }
-
 private:
     ObjectPool*                                                             objPool_{nullptr};
-    // var name -> plan node
-    std::unordered_map<std::string, PlanNode*>                              origins_;
     // var name -> variable
     std::unordered_map<std::string, Variable*>                              vars_;
-    // var name -> derivatives
-    std::unordered_map<std::string, std::unordered_set<std::string>>        derivatives_;
-    // var name -> dependencies
-    std::unordered_map<std::string, std::unordered_set<std::string>>        dependencies_;
-    // var name -> read by nodes
-    std::unordered_map<std::string, std::unordered_set<PlanNode*>>          readBy_;
-    // var name -> written by nodes
-    std::unordered_map<std::string, std::unordered_set<PlanNode*>>          writtenBy_;
 };
 }  // namespace graph
 }  // namespace nebula

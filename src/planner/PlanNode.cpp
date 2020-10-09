@@ -18,9 +18,9 @@ PlanNode::PlanNode(QueryContext* qctx, Kind kind) : qctx_(qctx), kind_(kind) {
     id_ = qctx_->genId();
     auto varName = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
     auto* variable = qctx_->symTable()->newVariable(varName);
+    variable->origin = this;
     VLOG(1) << "New variable: " << varName;
     outputVars_.emplace_back(variable);
-    qctx_->symTable()->addOrigin(varName, this);
     qctx_->symTable()->writtenBy(varName, this);
 }
 
