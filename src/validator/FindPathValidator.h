@@ -38,7 +38,6 @@ private:
 
 private:
     bool            isShortest_{false};
-    Starts          from_;
     Starts          to_;
     Over            over_;
     Steps           steps_;

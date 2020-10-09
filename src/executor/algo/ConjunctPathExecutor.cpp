@@ -37,7 +37,7 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
     VLOG(1) << "backward, size: " << backward_.size();
     forward_.emplace_back();
     for (; lIter->valid(); lIter->next()) {
-        auto& dst = lIter->getColumn("_vid");
+        auto& dst = lIter->getColumn(kVid);
         auto& edge = lIter->getColumn("edge");
         VLOG(1) << "dst: " << dst << " edge: " << edge;
         if (!edge.isEdge()) {
@@ -77,7 +77,7 @@ std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
     std::multimap<Value, const Edge*>& table) {
     std::unordered_set<Value> meets;
     for (; iter->valid(); iter->next()) {
-        auto& dst = iter->getColumn("_vid");
+        auto& dst = iter->getColumn(kVid);
         if (isLatest) {
             auto& edge = iter->getColumn("edge");
             VLOG(1) << "dst: " << dst << " edge: " << edge;
@@ -180,7 +180,7 @@ folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
 
     std::multimap<Value, const Path*> table;
     for (; lIter->valid(); lIter->next()) {
-        auto& dst = lIter->getColumn("_vid");
+        auto& dst = lIter->getColumn(kVid);
         auto& path = lIter->getColumn("path");
         if (path.isPath() && !path.getPath().steps.empty()) {
             VLOG(1) << "Forward dst: " << dst;
@@ -206,7 +206,7 @@ bool ConjunctPathExecutor::findPath(Iterator* iter,
                                     DataSet& ds) {
     bool found = false;
     for (; iter->valid(); iter->next()) {
-        auto& dst = iter->getColumn("_vid");
+        auto& dst = iter->getColumn(kVid);
         VLOG(1) << "Backward dst: " << dst;
         auto& path = iter->getColumn("path");
         if (path.isPath()) {

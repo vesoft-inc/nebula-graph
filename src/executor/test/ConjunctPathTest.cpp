@@ -20,7 +20,7 @@ protected:
             // 1->2
             // 1->3
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"1", Value::kEmpty};
@@ -29,7 +29,7 @@ protected:
             qctx_->ectx()->setResult("forward1", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
-            ds2.colNames = {"_vid", "edge"};
+            ds2.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"2", Edge("1", "2", 1, "edge1", 0, {})};
@@ -45,7 +45,7 @@ protected:
         {
             // 4
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"4", Value::kEmpty};
@@ -54,13 +54,13 @@ protected:
             qctx_->ectx()->setResult("backward1", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
-            ds2.colNames = {"_vid", "edge"};
+            ds2.colNames = {kVid, "edge"};
             qctx_->ectx()->setResult("backward1", ResultBuilder().value(ds2).finish());
         }
         {
             // 2
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"2", Value::kEmpty};
@@ -69,13 +69,13 @@ protected:
             qctx_->ectx()->setResult("backward2", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
-            ds2.colNames = {"_vid", "edge"};
+            ds2.colNames = {kVid, "edge"};
             qctx_->ectx()->setResult("backward2", ResultBuilder().value(ds2).finish());
         }
         {
             // 4->3
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"4", Value::kEmpty};
@@ -84,7 +84,7 @@ protected:
             qctx_->ectx()->setResult("backward3", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
-            ds2.colNames = {"_vid", "edge"};
+            ds2.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"3", Edge("4", "3", -1, "edge1", 0, {})};
@@ -95,7 +95,7 @@ protected:
         {
             // 5->4
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"5", Value::kEmpty};
@@ -104,7 +104,7 @@ protected:
             qctx_->ectx()->setResult("backward4", ResultBuilder().value(ds1).finish());
 
             DataSet ds2;
-            ds2.colNames = {"_vid", "edge"};
+            ds2.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"4", Edge("5", "4", -1, "edge1", 0, {})};
@@ -216,7 +216,7 @@ TEST_F(ConjunctPathTest, BiBFSThreeStepsPath) {
             // 2->4@0
             // 2->4@1
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"4", Edge("2", "4", 1, "edge1", 0, {})};
@@ -232,7 +232,7 @@ TEST_F(ConjunctPathTest, BiBFSThreeStepsPath) {
         {
             // 4->6@0
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"6", Edge("4", "6", -1, "edge1", 0, {})};
@@ -299,7 +299,7 @@ TEST_F(ConjunctPathTest, BiBFSFourStepsPath) {
             // 2->6@0
             // 2->6@1
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"6", Edge("2", "6", 1, "edge1", 0, {})};
@@ -315,7 +315,7 @@ TEST_F(ConjunctPathTest, BiBFSFourStepsPath) {
         {
             // 4->6@0
             DataSet ds1;
-            ds1.colNames = {"_vid", "edge"};
+            ds1.colNames = {kVid, "edge"};
             {
                 Row row;
                 row.values = {"6", Edge("4", "6", -1, "edge1", 0, {})};

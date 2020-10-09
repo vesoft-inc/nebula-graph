@@ -152,24 +152,8 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
 }
 
 Status DataCollectExecutor::collectBFSShortest(const std::vector<std::string>& vars) {
-    DataSet ds;
-    ds.colNames = std::move(colNames_);
-    DCHECK(!ds.colNames.empty());
-    for (auto& var : vars) {
-        auto iter = ectx_->getResult(var).iter();
-        if (iter->isSequentialIter()) {
-            auto* seqIter = static_cast<SequentialIter*>(iter.get());
-            for (; seqIter->valid(); seqIter->next()) {
-                ds.rows.emplace_back(seqIter->moveRow());
-            }
-        } else {
-            std::stringstream msg;
-            msg << "Iterator should be kind of SequentialIter, but was: " << iter->kind();
-            return Status::Error(msg.str());
-        }
-    }
-    result_.setDataSet(std::move(ds));
-    return Status::OK();
+    // Will rewrite this method once we implement returning the props for the path.
+    return rowBasedMove(vars);
 }
 }  // namespace graph
 }  // namespace nebula
