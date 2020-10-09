@@ -627,7 +627,7 @@ public:
 
 private:
     ShowEdgeIndexes(int64_t id, PlanNode* input)
-        : SingleInputNode(id, Kind::kShowEdges, input) {
+        : SingleInputNode(id, Kind::kShowEdgeIndexes, input) {
     }
 };
 
