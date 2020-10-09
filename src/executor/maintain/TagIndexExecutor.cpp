@@ -6,7 +6,7 @@
 
 #include "executor/maintain/TagIndexExecutor.h"
 #include "planner/Maintain.h"
-#include "util/SchemaUtil.h"
+#include "util/IndexUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -68,7 +68,7 @@ folly::Future<Status> DescTagIndexExecutor::execute() {
                 return resp.status();
             }
 
-            auto ret = SchemaUtil::toDescIndex(resp.value());
+            auto ret = IndexUtil::toDescIndex(resp.value());
             if (!ret.ok()) {
                 LOG(ERROR) << ret.status();
                 return ret.status();
@@ -94,7 +94,7 @@ folly::Future<Status> ShowCreateTagIndexExecutor::execute() {
                                << "' failed: " << resp.status();
                     return resp.status();
                 }
-                auto ret = SchemaUtil::toShowCreateIndex(true,
+                auto ret = IndexUtil::toShowCreateIndex(true,
                                                          sctiNode->getIndexName(),
                                                          resp.value());
                 if (!ret.ok()) {

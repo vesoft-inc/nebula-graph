@@ -196,8 +196,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      name_;
-    std::string                      index_;
+    std::string                      tagName_;
+    std::string                      indexName_;
     std::vector<std::string>         fields_;
     bool                             ifNotExist_;
 };
@@ -213,8 +213,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      name_;
-    std::string                      index_;
+    std::string                      edgeName_;
+    std::string                      indexName_;
     std::vector<std::string>         fields_;
     bool                             ifNotExist_;
 };
@@ -230,7 +230,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
+    bool                             ifExist_;
 };
 
 class DropEdgeIndexValidator final : public Validator {
@@ -244,7 +245,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
+    bool                             ifExist_;
 };
 
 class DescribeTagIndexValidator final : public Validator {
@@ -258,7 +260,7 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
 };
 
 class DescribeEdgeIndexValidator final : public Validator {
@@ -272,7 +274,7 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
 };
 
 class ShowCreateTagIndexValidator final : public Validator {
@@ -286,7 +288,7 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
 };
 
 
@@ -301,7 +303,7 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
 };
 
 class ShowTagIndexesValidator final : public Validator {
@@ -313,9 +315,6 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    std::string                      index_;
 };
 
 class ShowEdgeIndexesValidator final : public Validator {
@@ -338,6 +337,9 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
+private:
+    std::string                      indexName_;
 };
 
 class RebuildEdgeIndexValidator final : public Validator {
@@ -349,6 +351,9 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
+private:
+    std::string                      indexName_;
 };
 
 }  // namespace graph

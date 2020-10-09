@@ -284,47 +284,6 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
     return dataSet;
 }
 
-StatusOr<DataSet> SchemaUtil::toDescIndex(const meta::cpp2::IndexItem &indexItem) {
-    DataSet dataSet({"Field", "Type"});
-    for (auto &col : indexItem.get_fields()) {
-        Row row;
-        row.values.emplace_back(Value(col.get_name()));
-        row.values.emplace_back(typeToString(col));
-        dataSet.emplace_back(std::move(row));
-    }
-    return dataSet;
-}
-
-StatusOr<DataSet> SchemaUtil::toShowCreateIndex(bool isTagIndex,
-                                                const std::string &indexName,
-                                                const meta::cpp2::IndexItem &indexItem) {
-    DataSet dataSet;
-    std::string createStr;
-    createStr.reserve(1024);
-    std::string schemaName = indexItem.get_schema_name();
-    if (isTagIndex) {
-        dataSet.colNames = {"Tag Index", "Create Tag Index"};
-        createStr = "CREATE TAG INDEX `" + indexName +  "` ON `" + schemaName + "` (\n";
-    } else {
-        dataSet.colNames = {"Edge Index", "Create Edge Index"};
-        createStr = "CREATE EDGE INDEX `" + indexName + "` ON `" + schemaName + "` (\n";
-    }
-    Row row;
-    row.emplace_back(indexName);
-    for (auto &col : indexItem.get_fields()) {
-        createStr += " `" + col.get_name() + "`";
-        createStr += ",\n";
-    }
-    if (!indexItem.fields.empty()) {
-        createStr.resize(createStr.size() -2);
-        createStr += "\n";
-    }
-    createStr += ")";
-    row.emplace_back(std::move(createStr));
-    dataSet.rows.emplace_back(std::move(row));
-    return dataSet;
-}
-
 std::string SchemaUtil::typeToString(const meta::cpp2::ColumnTypeDef &col) {
     auto type = meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(col.get_type());
     if (col.get_type() == meta::cpp2::PropertyType::FIXED_STRING) {
