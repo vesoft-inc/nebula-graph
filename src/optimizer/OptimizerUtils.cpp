@@ -437,5 +437,49 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col, const 
     return Value(NullType::BAD_TYPE);
 }
 
+Value OptimizerUtils::normalizeValue(const meta::cpp2::ColumnDef& col, const Value& v) {
+    auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
+    switch (type) {
+        case Value::Type::INT:
+        case Value::Type::FLOAT:
+        case Value::Type::BOOL:
+        case Value::Type::DATE:
+        case Value::Type::TIME:
+        case Value::Type::DATETIME: {
+            return v;
+        }
+        case Value::Type::STRING : {
+            if (!col.type.__isset.type_length ||
+                col.get_type().get_type_length() == nullptr) {
+                return Value(NullType::BAD_TYPE);
+            }
+            auto len = static_cast<size_t>(*col.get_type().get_type_length());
+            if (v.getStr().size() > len) {
+                return Value(v.getStr().substr(0, len));
+            } else {
+                std::string s;
+                s.reserve(len);
+                s.append(v.getStr()).append(len - v.getStr().size(), '\0');
+                return Value(std::move(s));
+            }
+        }
+        case Value::Type::__EMPTY__:
+        case Value::Type::NULLVALUE:
+        case Value::Type::VERTEX:
+        case Value::Type::EDGE:
+        case Value::Type::LIST:
+        case Value::Type::SET:
+        case Value::Type::MAP:
+        case Value::Type::DATASET:
+        case Value::Type::PATH: {
+            DLOG(FATAL) << "Not supported value type " << type
+                        << "for index.";
+            return Value(NullType::BAD_TYPE);
+        }
+    }
+    DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
+    return Value(NullType::BAD_TYPE);
+}
+
 }  // namespace graph
 }  // namespace nebula
