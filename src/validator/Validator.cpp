@@ -173,8 +173,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescribeTagIndexValidator>(sentence, context);
         case Sentence::Kind::kShowTagIndexes:
             return std::make_unique<ShowTagIndexesValidator>(sentence, context);
-        case Sentence::Kind::kRebuildTagIndex:
-            return std::make_unique<RebuildTagIndexValidator>(sentence, context);
         case Sentence::Kind::kDropTagIndex:
             return std::make_unique<DropTagIndexValidator>(sentence, context);
         case Sentence::Kind::kCreateEdgeIndex:
@@ -185,8 +183,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescribeEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kShowEdgeIndexes:
             return std::make_unique<ShowEdgeIndexesValidator>(sentence, context);
-        case Sentence::Kind::kRebuildEdgeIndex:
-            return std::make_unique<RebuildEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kDropEdgeIndex:
             return std::make_unique<DropEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kLookup:
