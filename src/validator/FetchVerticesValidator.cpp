@@ -99,7 +99,7 @@ Status FetchVerticesValidator::prepareVertices() {
     // from ref, eval when execute
     if (sentence->isRef()) {
         srcRef_ = sentence->ref();
-        auto result = checkRef(srcRef_, Value::Type::STRING);
+        auto result = checkInputVarProperty(srcRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         inputVar_ = std::move(result).value();
         return Status::OK();

@@ -11,7 +11,7 @@
 
 #include "common/base/Status.h"
 #include "planner/Query.h"
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 
 namespace nebula {
 
@@ -26,7 +26,7 @@ namespace graph {
 
 class QueryContext;
 
-class YieldValidator final : public Validator {
+class YieldValidator final : public QueryValidator {
 public:
     YieldValidator(Sentence *sentence, QueryContext *qctx);
 

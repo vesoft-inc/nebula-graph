@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/MutateSentences.h"
 #include "parser/TraverseSentences.h"
@@ -66,10 +67,10 @@ private:
     std::vector<storage::cpp2::NewEdge>               edges_;
 };
 
-class DeleteVerticesValidator final : public Validator {
+class DeleteVerticesValidator final : public QueryValidator {
 public:
     DeleteVerticesValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
+        : QueryValidator(sentence, context) {
     }
 
 private:
@@ -90,10 +91,10 @@ private:
     std::vector<EdgeKeyRef*>                      edgeKeyRefs_;
 };
 
-class DeleteEdgesValidator final : public Validator {
+class DeleteEdgesValidator final : public QueryValidator {
 public:
     DeleteEdgesValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {
+        : QueryValidator(sentence, context) {
     }
 
 private:

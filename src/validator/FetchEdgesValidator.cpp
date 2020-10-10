@@ -90,19 +90,19 @@ Status FetchEdgesValidator::prepareEdges() {
     // from ref, eval in execute
     if (sentence->isRef()) {
         srcRef_ = sentence->ref()->srcid();
-        auto result = checkRef(srcRef_, Value::Type::STRING);
+        auto result = checkInputVarProperty(srcRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         inputVar_ = std::move(result).value();
         rankRef_ = sentence->ref()->rank();
         if (rankRef_->kind() != Expression::Kind::kConstant) {
-            result = checkRef(rankRef_, Value::Type::INT);
+            result = checkInputVarProperty(rankRef_, Value::Type::INT);
             NG_RETURN_IF_ERROR(result);
             if (inputVar_ != result.value()) {
                 return Status::Error("Can't refer to different variable as key at same time.");
             }
         }
         dstRef_ = sentence->ref()->dstid();
-        result = checkRef(dstRef_, Value::Type::STRING);
+        result = checkInputVarProperty(dstRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         if (inputVar_ != result.value()) {
             return Status::Error("Can't refer to different variable as key at same time.");

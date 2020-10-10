@@ -7,6 +7,7 @@ nebula_add_library(
     validator_obj OBJECT
     ExpressionProps.cpp
     Validator.cpp
+    QueryValidator.cpp
     AssignmentValidator.cpp
     GoValidator.cpp
     PipeValidator.cpp

@@ -8,17 +8,17 @@
 #define VALIDATOR_GROUPBY_VALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 #include "planner/Query.h"
 
 
 namespace nebula {
 namespace graph {
 
-class GroupByValidator final : public Validator {
+class GroupByValidator final : public QueryValidator {
 public:
     GroupByValidator(Sentence *sentence, QueryContext *context)
-        : Validator(sentence, context) {}
+        : QueryValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;

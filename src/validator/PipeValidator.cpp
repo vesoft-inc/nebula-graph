@@ -16,13 +16,13 @@ namespace graph {
 Status PipeValidator::validateImpl() {
     auto pipeSentence = static_cast<PipedSentence*>(sentence_);
     auto left = pipeSentence->left();
-    lValidator_ = makeValidator(left, qctx_);
+    lValidator_.reset(static_cast<QueryValidator*>(makeValidator(left, qctx_).release()));
     lValidator_->setInputCols(std::move(inputs_));
     lValidator_->setInputVarName(inputVarName_);
     NG_RETURN_IF_ERROR(lValidator_->validate());
 
     auto right = pipeSentence->right();
-    rValidator_ = makeValidator(right, qctx_);
+    rValidator_.reset(static_cast<QueryValidator*>(makeValidator(right, qctx_).release()));
     rValidator_->setInputCols(lValidator_->outputCols());
     rValidator_->setInputVarName(lValidator_->root()->outputVar());
     NG_RETURN_IF_ERROR(rValidator_->validate());

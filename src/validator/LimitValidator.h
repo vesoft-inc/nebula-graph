@@ -8,14 +8,14 @@
 #define VALIDATOR_LIMITVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 
 namespace nebula {
 namespace graph {
-class LimitValidator final : public Validator {
+class LimitValidator final : public QueryValidator {
 public:
     LimitValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+        : QueryValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;

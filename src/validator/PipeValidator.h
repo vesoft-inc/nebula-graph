@@ -8,15 +8,15 @@
 #define VALIDATOR_PIPEVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 
 namespace nebula {
 namespace graph {
 
-class PipeValidator final : public Validator {
+class PipeValidator final : public QueryValidator {
 public:
     PipeValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+        : QueryValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -35,8 +35,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::unique_ptr<Validator>  lValidator_;
-    std::unique_ptr<Validator>  rValidator_;
+    std::unique_ptr<QueryValidator>  lValidator_;
+    std::unique_ptr<QueryValidator>  rValidator_;
 };
 }  // namespace graph
 }  // namespace nebula

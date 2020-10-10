@@ -8,14 +8,14 @@
 #define VALIDATOR_TRAVERSALVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 #include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
 
 // some utils for the validator to traverse the graph
-class TraversalValidator : public Validator {
+class TraversalValidator : public QueryValidator {
 protected:
     enum FromType {
         kInstantExpr,
@@ -44,7 +44,7 @@ protected:
     };
 
 protected:
-    TraversalValidator(Sentence* sentence, QueryContext* qctx) : Validator(sentence, qctx) {
+    TraversalValidator(Sentence* sentence, QueryContext* qctx) : QueryValidator(sentence, qctx) {
         startVidList_.reset(new ExpressionList());
     }
 

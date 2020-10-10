@@ -7,16 +7,16 @@
 #ifndef VALIDATOR_SETVALIDATOR_H_
 #define VALIDATOR_SETVALIDATOR_H_
 
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 #include "parser/TraverseSentences.h"
 
 namespace nebula {
 namespace graph {
 
-class SetValidator final : public Validator {
+class SetValidator final : public QueryValidator {
 public:
     SetValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+        : QueryValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -36,8 +36,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::unique_ptr<Validator>  lValidator_;
-    std::unique_ptr<Validator>  rValidator_;
+    std::unique_ptr<QueryValidator>  lValidator_;
+    std::unique_ptr<QueryValidator>  rValidator_;
 };
 
 }  // namespace graph

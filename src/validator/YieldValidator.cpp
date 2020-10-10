@@ -18,7 +18,7 @@ namespace nebula {
 namespace graph {
 
 YieldValidator::YieldValidator(Sentence *sentence, QueryContext *qctx)
-    : Validator(sentence, qctx) {}
+    : QueryValidator(sentence, qctx) {}
 
 Status YieldValidator::validateImpl() {
     auto yield = static_cast<YieldSentence *>(sentence_);

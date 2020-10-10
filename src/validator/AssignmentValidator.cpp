@@ -4,6 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
+#include "validator/QueryValidator.h"
 #include "validator/AssignmentValidator.h"
 
 #include "parser/TraverseSentences.h"
@@ -14,7 +15,8 @@ namespace graph {
 
 Status AssignmentValidator::validateImpl() {
     auto* assignSentence = static_cast<AssignmentSentence*>(sentence_);
-    validator_ = makeValidator(assignSentence->sentence(), qctx_);
+    validator_.reset(static_cast<QueryValidator*>(makeValidator(assignSentence->sentence(),
+                                                                qctx_).release()));
     NG_RETURN_IF_ERROR(validator_->validate());
 
     auto outputs = validator_->outputCols();

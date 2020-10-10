@@ -8,14 +8,14 @@
 #define VALIDATOR_ORDERBYVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 
 namespace nebula {
 namespace graph {
-class OrderByValidator final : public Validator {
+class OrderByValidator final : public QueryValidator {
 public:
     OrderByValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+        : QueryValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;

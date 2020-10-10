@@ -10,15 +10,15 @@
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "parser/TraverseSentences.h"
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 
 namespace nebula {
 namespace graph {
 
-class FetchEdgesValidator final : public Validator {
+class FetchEdgesValidator final : public QueryValidator {
 public:
     FetchEdgesValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+        : QueryValidator(sentence, context) {}
 
 private:
     Status validateImpl() override;

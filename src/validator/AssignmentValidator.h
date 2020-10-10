@@ -8,7 +8,7 @@
 #define VALIDATOR_ASSIGNMENTVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "validator/QueryValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -23,8 +23,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::unique_ptr<Validator>  validator_;
-    std::string                 var_;
+    std::unique_ptr<QueryValidator>  validator_;
+    std::string                      var_;
 };
 }  // namespace graph
 }  // namespace nebula

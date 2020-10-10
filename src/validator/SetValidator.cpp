@@ -14,9 +14,11 @@ namespace graph {
 
 Status SetValidator::validateImpl() {
     auto setSentence = static_cast<SetSentence *>(sentence_);
-    lValidator_ = makeValidator(setSentence->left(), qctx_);
+    lValidator_.reset(static_cast<QueryValidator*>(makeValidator(setSentence->left(),
+                                                                 qctx_).release()));
     NG_RETURN_IF_ERROR(lValidator_->validate());
-    rValidator_ = makeValidator(setSentence->right(), qctx_);
+    rValidator_.reset(static_cast<QueryValidator*>(makeValidator(setSentence->right(),
+                                                                 qctx_).release()));
     NG_RETURN_IF_ERROR(rValidator_->validate());
 
     auto lCols = lValidator_->outputCols();
