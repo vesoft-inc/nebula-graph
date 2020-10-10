@@ -6,17 +6,12 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 from tests.common.nebula_test_suite import NebulaTestSuite
-from tests.common.nebula_test_suite import T_NULL, T_EMPTY
-import pytest
+
 
 class TestSubGraph(NebulaTestSuite):
     @classmethod
     def prepare(cls):
         cls.use_nba()
-        cls.load_vertex_edge()
-
-    def cleanup():
-        pass
 
     def test_invalid_input(self):
         stmt = 'GET SUBGRAPH FROM $-.id'
@@ -47,9 +42,8 @@ class TestSubGraph(NebulaTestSuite):
         # resp = self.execute_query(stmt)
         # self.check_resp_failed(resp)
 
-    def test_zero_step(self):
-        VERTEXS = self.VERTEXS
-        EDGES = self.EDGES
+    def test_zero_step(self, load_vertex_edge):
+        VERTEXS, EDGES = load_vertex_edge(self.data_dir)
 
         stmt = 'GET SUBGRAPH 0 STEPS FROM "Tim Duncan"'
         resp = self.execute_query(stmt)
@@ -59,8 +53,8 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
@@ -75,8 +69,8 @@ class TestSubGraph(NebulaTestSuite):
                     VERTEXS['Spurs'],
                    ]
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
@@ -92,8 +86,8 @@ class TestSubGraph(NebulaTestSuite):
                     VERTEXS['Tim Duncan'],
                    ]
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
@@ -108,8 +102,8 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
@@ -125,8 +119,8 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
@@ -142,8 +136,8 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
@@ -160,17 +154,16 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_subgraph_result(resp, expected_data["rows"])
 
-    def test_subgraph(self):
-        VERTEXS = self.VERTEXS
-        EDGES = self.EDGES
+    def test_subgraph(self, load_vertex_edge):
+        VERTEXS, EDGES = load_vertex_edge(self.data_dir)
 
         stmt = "GET SUBGRAPH FROM 'Tim Duncan'"
         resp = self.execute_query(stmt)
@@ -243,8 +236,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2]
             ]
@@ -279,7 +272,6 @@ class TestSubGraph(NebulaTestSuite):
                     EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
                     EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0']
                 ]
-
 
         vertex2 = [
                     VERTEXS['Danny Green'],
@@ -445,8 +437,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3]
@@ -525,8 +517,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3]
@@ -678,8 +670,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3]
@@ -733,8 +725,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3]
@@ -837,8 +829,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3],
@@ -895,8 +887,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2]
             ]
@@ -975,8 +967,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2]
             ]
@@ -1057,8 +1049,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2]
             ]
