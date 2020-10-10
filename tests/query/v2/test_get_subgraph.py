@@ -5,9 +5,12 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
+import pytest
+
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 
+@pytest.mark.usefixtures('set_vertices_and_edges')
 class TestSubGraph(NebulaTestSuite):
     @classmethod
     def prepare(cls):
@@ -42,8 +45,8 @@ class TestSubGraph(NebulaTestSuite):
         # resp = self.execute_query(stmt)
         # self.check_resp_failed(resp)
 
-    def test_zero_step(self, load_vertex_edge):
-        VERTEXS, EDGES = load_vertex_edge(self.data_dir)
+    def test_zero_step(self):
+        VERTEXS = self.VERTEXS
 
         stmt = 'GET SUBGRAPH 0 STEPS FROM "Tim Duncan"'
         resp = self.execute_query(stmt)
@@ -162,8 +165,8 @@ class TestSubGraph(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_subgraph_result(resp, expected_data["rows"])
 
-    def test_subgraph(self, load_vertex_edge):
-        VERTEXS, EDGES = load_vertex_edge(self.data_dir)
+    def test_subgraph(self):
+        VERTEXS, EDGES = self.VERTEXS, self.EDGES
 
         stmt = "GET SUBGRAPH FROM 'Tim Duncan'"
         resp = self.execute_query(stmt)

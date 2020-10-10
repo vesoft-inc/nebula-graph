@@ -222,31 +222,31 @@ def parse_line(line, dataType, VERTEXS, EDGES):
 
 
 @pytest.fixture(scope="class")
-def load_vertex_edge():
-    def load_ve_fun(data_dir: str):
-        VERTEXS = {}
-        EDGES = {}
-        nba_file = data_dir + '/data/nba.ngql'
-        print("load will open ", nba_file)
-        with open(nba_file, 'r') as data_file:
-            lines = data_file.readlines()
-            ddl = False
-            dataType = ['none']
-            for line in lines:
-                strip_line = line.strip()
-                if len(strip_line) == 0:
-                    continue
-                elif strip_line.startswith('--'):
-                    comment = strip_line[2:]
-                    if comment == 'DDL':
-                        ddl = True
-                    elif comment == 'END':
-                        if ddl:
-                            ddl = False
-                else:
-                    if not ddl:
-                        parse_line(line.strip(), dataType, VERTEXS, EDGES)
-                    if line.endswith(';'):
-                        dataType[0] = 'none'
-        return VERTEXS, EDGES
-    return load_ve_fun
+def set_vertices_and_edges(request):
+    VERTEXS = {}
+    EDGES = {}
+    nba_file = request.cls.data_dir + '/data/nba.ngql'
+    print("load will open ", nba_file)
+    with open(nba_file, 'r') as data_file:
+        lines = data_file.readlines()
+        ddl = False
+        dataType = ['none']
+        for line in lines:
+            strip_line = line.strip()
+            if len(strip_line) == 0:
+                continue
+            elif strip_line.startswith('--'):
+                comment = strip_line[2:]
+                if comment == 'DDL':
+                    ddl = True
+                elif comment == 'END':
+                    if ddl:
+                        ddl = False
+            else:
+                if not ddl:
+                    parse_line(line.strip(), dataType, VERTEXS, EDGES)
+                if line.endswith(';'):
+                    dataType[0] = 'none'
+
+    request.cls.VERTEXS = VERTEXS
+    request.cls.EDGES = EDGES
