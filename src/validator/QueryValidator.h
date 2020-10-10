@@ -33,7 +33,23 @@ public:
     }
 
 protected:
-    QueryValidator(Sentence* sentence, QueryContext* qctx) : Validator(sentence, qctx) {}
+    enum FromType {
+        kInstantExpr,
+        kVariable,
+        kPipe,
+    };
+
+    struct Starts {
+        FromType                fromType{kInstantExpr};
+        Expression*             srcRef{nullptr};
+        std::string             userDefinedVarName;
+        std::string             firstBeginningSrcVidColName;
+        std::vector<Value>      vids;
+    };
+
+
+    QueryValidator(Sentence* sentence, QueryContext* qctx) : Validator(sentence, qctx),
+                                                             startVidList_(new ExpressionList()) {}
 
     // Check the variable or input property reference
     // return the input variable
@@ -42,12 +58,18 @@ protected:
 
     StatusOr<Value::Type> deduceExprType(const Expression* expr) const;
 
+    Status validateVertices(const VerticesClause* clause, Starts& starts);
+
+    std::string buildConstantInput(Expression* &src, Starts &starts);
+
 protected:
     // The input columns and output columns of a sentence.
     ColsDef                         outputs_;
     ColsDef                         inputs_;
     // The variable name of the input node.
     std::string                     inputVarName_;
+
+    std::unique_ptr<ExpressionList>  startVidList_;
 };
 
 }  // namespace graph

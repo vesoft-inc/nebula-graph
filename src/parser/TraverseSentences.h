@@ -6,6 +6,7 @@
 #ifndef PARSER_TRAVERSESENTENCES_H_
 #define PARSER_TRAVERSESENTENCES_H_
 
+#include <memory>
 #include "common/base/Base.h"
 #include "parser/Clauses.h"
 #include "parser/EdgeKey.h"
@@ -291,35 +292,29 @@ class FetchVerticesSentence final : public Sentence {
 public:
     FetchVerticesSentence(std::string  *tag,
                           VertexIDList *vidList,
-                          YieldClause  *clause) {
-        kind_ = Kind::kFetchVertices;
-        tag_.reset(tag);
-        vidList_.reset(vidList);
-        yieldClause_.reset(clause);
-    }
+                          YieldClause  *clause) : Sentence(Kind::kFetchVertices),
+                                                  tag_(tag),
+                                                  vClause_(new VerticesClause(vidList)),
+                                                  yieldClause_(clause) {}
 
     FetchVerticesSentence(std::string  *tag,
                           Expression   *ref,
-                          YieldClause  *clause) {
-        kind_ = Kind::kFetchVertices;
-        tag_.reset(tag);
-        vidRef_.reset(ref);
-        yieldClause_.reset(clause);
-    }
+                          YieldClause  *clause) : Sentence(Kind::kFetchVertices),
+                                                  tag_(tag),
+                                                  vClause_(new VerticesClause(ref)),
+                                                  yieldClause_(clause) {}
 
-    explicit FetchVerticesSentence(Expression *ref, YieldClause  *clause) {
-        kind_ = Kind::kFetchVertices;
-        tag_ = std::make_unique<std::string>("*");
-        vidRef_.reset(ref);
-        yieldClause_.reset(clause);
-    }
+    explicit FetchVerticesSentence(Expression *ref, YieldClause  *clause)
+        : Sentence(Kind::kFetchVertices),
+          tag_(new std::string("*")),
+          vClause_(new VerticesClause(ref)),
+          yieldClause_(clause) {}
 
-    explicit FetchVerticesSentence(VertexIDList *vidList, YieldClause  *clause) {
-        kind_ = Kind::kFetchVertices;
-        tag_ = std::make_unique<std::string>("*");
-        vidList_.reset(vidList);
-        yieldClause_.reset(clause);
-    }
+    explicit FetchVerticesSentence(VertexIDList *vidList, YieldClause  *clause)
+        : Sentence(Kind::kFetchVertices),
+          tag_(new std::string("*")),
+          vClause_(new VerticesClause(vidList)),
+          yieldClause_(clause) {}
 
     bool isAllTagProps() {
         return *tag_ == "*";
@@ -329,16 +324,8 @@ public:
         return tag_.get();
     }
 
-    auto vidList() const {
-        return vidList_->vidList();
-    }
-
-    bool isRef() const {
-        return vidRef_ != nullptr;
-    }
-
-    Expression* ref() const {
-        return vidRef_.get();
+    const VerticesClause* verticesClause() const {
+        return vClause_.get();
     }
 
     YieldClause* yieldClause() const {
@@ -353,8 +340,7 @@ public:
 
 private:
     std::unique_ptr<std::string>    tag_;
-    std::unique_ptr<VertexIDList>   vidList_;
-    std::unique_ptr<Expression>     vidRef_;
+    std::unique_ptr<VerticesClause> vClause_;
     std::unique_ptr<YieldClause>    yieldClause_;
 };
 

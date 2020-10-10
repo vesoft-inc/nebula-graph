@@ -11,60 +11,6 @@
 namespace nebula {
 namespace graph {
 
-Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& starts) {
-    if (clause == nullptr) {
-        return Status::Error("From clause nullptr.");
-    }
-    if (clause->isRef()) {
-        auto* src = clause->ref();
-        if (src->kind() != Expression::Kind::kInputProperty
-                && src->kind() != Expression::Kind::kVarProperty) {
-            return Status::Error(
-                    "`%s', Only input and variable expression is acceptable"
-                    " when starts are evaluated at runtime.", src->toString().c_str());
-        } else {
-            starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
-            auto type = deduceExprType(src);
-            if (!type.ok()) {
-                return type.status();
-            }
-            auto vidType = space_.spaceDesc.vid_type.get_type();
-            if (type.value() != SchemaUtil::propTypeToValueType(vidType)) {
-                std::stringstream ss;
-                ss << "`" << src->toString() << "', the srcs should be type of "
-                   << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
-                   << type.value() << "'";
-                return Status::Error(ss.str());
-            }
-            starts.srcRef = src;
-            auto* propExpr = static_cast<PropertyExpression*>(src);
-            if (starts.fromType == kVariable) {
-                starts.userDefinedVarName = *(propExpr->sym());
-            }
-            starts.firstBeginningSrcVidColName = *(propExpr->prop());
-        }
-    } else {
-        auto vidList = clause->vidList();
-        QueryExpressionContext ctx;
-        for (auto* expr : vidList) {
-            if (!evaluableExpr(expr)) {
-                return Status::Error("`%s' is not an evaluable expression.",
-                        expr->toString().c_str());
-            }
-            auto vid = expr->eval(ctx(nullptr));
-            auto vidType = space_.spaceDesc.vid_type.get_type();
-            if (!SchemaUtil::isValidVid(vid, vidType)) {
-                std::stringstream ss;
-                ss << "Vid should be a " << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType);
-                return Status::Error(ss.str());
-            }
-            starts.vids.emplace_back(std::move(vid));
-            startVidList_->add(expr->clone().release());
-        }
-    }
-    return Status::OK();
-}
-
 Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
     if (clause == nullptr) {
         return Status::Error("Over clause nullptr.");
@@ -165,24 +111,6 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
     dedupDstVids->setOutputVar(outputVar);
     dedupDstVids->setColNames(project->colNames());
     return dedupDstVids;
-}
-
-std::string TraversalValidator::buildConstantInput() {
-    auto input = vctx_->anonVarGen()->getVar();
-    DataSet ds;
-    ds.colNames.emplace_back(kVid);
-    for (auto& vid : from_.vids) {
-        Row row;
-        row.values.emplace_back(vid);
-        ds.rows.emplace_back(std::move(row));
-    }
-    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
-
-    auto* vids = new VariablePropertyExpression(new std::string(input),
-                                                new std::string(kVid));
-    qctx_->objPool()->add(vids);
-    src_ = vids;
-    return input;
 }
 
 PlanNode* TraversalValidator::buildRuntimeInput() {

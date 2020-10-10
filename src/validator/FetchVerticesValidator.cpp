@@ -23,7 +23,9 @@ Status FetchVerticesValidator::validateImpl() {
 
 Status FetchVerticesValidator::toPlan() {
     // Start [-> some input] -> GetVertices [-> Project] [-> Dedup] [-> next stage] -> End
-    std::string vidsVar = (srcRef_ == nullptr ? buildConstantInput() : buildRuntimeInput());
+    std::string vidsVar = (starts_.fromType == FromType::kInstantExpr ?
+                           buildConstantInput() :
+                           buildRuntimeInput());
     auto *getVerticesNode = GetVertices::make(qctx_,
                                               nullptr,
                                               space_.id,
@@ -90,33 +92,6 @@ Status FetchVerticesValidator::check() {
             NG_RETURN_IF_ERROR(tagNameResult);
             tags_.emplace(std::move(tagNameResult).value(), tagSchema.first);
         }
-    }
-    return Status::OK();
-}
-
-Status FetchVerticesValidator::prepareVertices() {
-    auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
-    // from ref, eval when execute
-    if (sentence->isRef()) {
-        srcRef_ = sentence->ref();
-        auto result = checkInputVarProperty(srcRef_, Value::Type::STRING);
-        NG_RETURN_IF_ERROR(result);
-        inputVar_ = std::move(result).value();
-        return Status::OK();
-    }
-
-    // from constant, eval now
-    // TODO(shylock) add eval() method for expression
-    QueryExpressionContext dummy(nullptr);
-    auto vids = sentence->vidList();
-    srcVids_.rows.reserve(vids.size());
-    for (const auto vid : vids) {
-        DCHECK(ExpressionUtils::isConstExpr(vid));
-        auto v = vid->eval(dummy);
-        if (!SchemaUtil::isValidVid(v, space_.spaceDesc.vid_type)) {
-            return Status::NotSupported("Not a vertex id");
-        }
-        srcVids_.emplace_back(nebula::Row({std::move(v).getStr()}));
     }
     return Status::OK();
 }
@@ -236,19 +211,9 @@ Status FetchVerticesValidator::preparePropertiesWithoutYield() {
     return Status::OK();
 }
 
-// TODO(shylock) optimize dedup input when distinct given
-std::string FetchVerticesValidator::buildConstantInput() {
-    auto input = vctx_->anonVarGen()->getVar();
-    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(srcVids_))).finish());
-
-    src_ = qctx_->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                                    new std::string(kVid));
-    return input;
-}
-
 std::string FetchVerticesValidator::buildRuntimeInput() {
-    src_ = DCHECK_NOTNULL(srcRef_);
-    return inputVar_;
+    src_ = DCHECK_NOTNULL(starts_.srcRef);
+    return starts_.userDefinedVarName;
 }
 
 }   // namespace graph

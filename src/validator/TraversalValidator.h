@@ -17,20 +17,6 @@ namespace graph {
 // some utils for the validator to traverse the graph
 class TraversalValidator : public QueryValidator {
 protected:
-    enum FromType {
-        kInstantExpr,
-        kVariable,
-        kPipe,
-    };
-
-    struct Starts {
-        FromType                fromType{kInstantExpr};
-        Expression*             srcRef{nullptr};
-        std::string             userDefinedVarName;
-        std::string             firstBeginningSrcVidColName;
-        std::vector<Value>      vids;
-    };
-
     struct Over {
         bool                            isOverAll{false};
         std::vector<EdgeType>           edgeTypes;
@@ -44,11 +30,11 @@ protected:
     };
 
 protected:
-    TraversalValidator(Sentence* sentence, QueryContext* qctx) : QueryValidator(sentence, qctx) {
-        startVidList_.reset(new ExpressionList());
-    }
+    TraversalValidator(Sentence* sentence, QueryContext* qctx) : QueryValidator(sentence, qctx) {}
 
-    Status validateStarts(const VerticesClause* clause, Starts& starts);
+    Status validateStarts(const VerticesClause* clause, Starts& starts) {
+        return validateVertices(clause, starts);
+    }
 
     Status validateOver(const OverClause* clause, Over& over);
 
@@ -56,7 +42,9 @@ protected:
 
     PlanNode* projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar);
 
-    std::string buildConstantInput();
+    std::string buildConstantInput() {
+        return QueryValidator::buildConstantInput(src_, from_);
+    }
 
     PlanNode* buildRuntimeInput();
 
@@ -69,9 +57,6 @@ protected:
     Expression*           src_{nullptr};
     ExpressionProps       exprProps_;
     PlanNode*             projectStartVid_{nullptr};
-
-
-    std::unique_ptr<ExpressionList>  startVidList_;
 };
 
 }  // namespace graph

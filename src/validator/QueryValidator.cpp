@@ -7,6 +7,7 @@
 #include "common/expression/Expression.h"
 #include "validator/QueryValidator.h"
 #include "visitor/DeduceTypeVisitor.h"
+#include "util/SchemaUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -50,6 +51,72 @@ StatusOr<Value::Type> QueryValidator::deduceExprType(const Expression* expr) con
         return std::move(visitor).status();
     }
     return visitor.type();
+}
+
+Status QueryValidator::validateVertices(const VerticesClause* clause, Starts& starts) {
+    if (clause == nullptr) {
+        return Status::Error("From clause nullptr.");
+    }
+    if (clause->isRef()) {
+        auto* src = clause->ref();
+        if (src->kind() != Expression::Kind::kInputProperty
+                && src->kind() != Expression::Kind::kVarProperty) {
+            return Status::Error(
+                    "`%s', Only input and variable expression is acceptable"
+                    " when starts are evaluated at runtime.", src->toString().c_str());
+        } else {
+            starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
+            auto type = deduceExprType(src);
+            if (!type.ok()) {
+                return type.status();
+            }
+            auto vidType = space_.spaceDesc.vid_type.get_type();
+            if (type.value() != SchemaUtil::propTypeToValueType(vidType)) {
+                std::stringstream ss;
+                ss << "`" << src->toString() << "', the srcs should be type of "
+                   << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
+                   << type.value() << "'";
+                return Status::Error(ss.str());
+            }
+            starts.srcRef = src;
+            auto* propExpr = static_cast<PropertyExpression*>(src);
+            if (starts.fromType == kVariable) {
+                starts.userDefinedVarName = *(propExpr->sym());
+            }
+            starts.firstBeginningSrcVidColName = *(propExpr->prop());
+        }
+    } else {
+        auto vidList = clause->vidList();
+        QueryExpressionContext ctx;
+        for (auto* expr : vidList) {
+            // It's guranteed by parser so only check when debug
+            DCHECK(evaluableExpr(expr));
+            auto vid = expr->eval(ctx(nullptr));
+            auto vidType = space_.spaceDesc.vid_type.get_type();
+            if (!SchemaUtil::isValidVid(vid, vidType)) {
+                std::stringstream ss;
+                ss << "Vid should be a " << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType);
+                return Status::Error(ss.str());
+            }
+            starts.vids.emplace_back(std::move(vid));
+            startVidList_->add(expr->clone().release());
+        }
+    }
+    return Status::OK();
+}
+
+std::string QueryValidator::buildConstantInput(Expression* &src, Starts &starts) {
+    auto input = vctx_->anonVarGen()->getVar();
+    DataSet ds({kVid});
+    for (auto& vid : starts.vids) {
+        ds.emplace_back(Row({std::move(vid)}));
+    }
+    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
+
+    auto *vids = qctx_->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
+                                                                          new std::string(kVid));
+    src = vids;
+    return input;
 }
 
 

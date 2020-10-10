@@ -27,20 +27,24 @@ private:
 
     Status check();
 
-    Status prepareVertices();
+    Status prepareVertices() {
+        auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
+        return validateVertices(sentence->verticesClause(), starts_);
+    }
 
     Status preparePropertiesWithYield(const YieldClause *yield);
     Status preparePropertiesWithoutYield();
     Status prepareProperties();
 
     // TODO(shylock) merge the code
-    std::string buildConstantInput();
+    std::string buildConstantInput() {
+        return QueryValidator::buildConstantInput(src_, starts_);
+    }
     std::string buildRuntimeInput();
 
 private:
-    DataSet srcVids_{{kVid}};  // src from constant
-    Expression* srcRef_{nullptr};  // src from runtime
     Expression* src_{nullptr};  // src in total
+    Starts starts_;
     bool onStar_{false};
     std::unordered_map<std::string, TagID> tags_;
     std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema_;
