@@ -279,28 +279,7 @@ Status InsertEdgesValidator::prepareEdges() {;
 Status DeleteVerticesValidator::validateImpl() {
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
-    if (sentence->isRef()) {
-        vidRef_ = sentence->vidRef();
-        auto type = deduceExprType(vidRef_);
-        if (!type.ok()) {
-            return type.status();
-        }
-        if (type.value() != Value::Type::STRING) {
-            std::stringstream ss;
-            ss << "The vid should be string type, "
-               << "but input is `" << type.value() << "'";
-            return Status::Error(ss.str());
-        }
-    } else {
-        auto vIds = sentence->vidList()->vidList();
-        for (auto vId : vIds) {
-            auto idStatus = SchemaUtil::toVertexID(vId);
-            if (!idStatus.ok()) {
-                return idStatus.status();
-            }
-            vertices_.emplace_back(std::move(idStatus).value());
-        }
-    }
+    NG_RETURN_IF_ERROR(validateVertices(sentence->verticesClause(), starts_));
 
     auto ret = qctx_->schemaMng()->getAllEdge(spaceId_);
     if (!ret.ok()) {
@@ -318,32 +297,11 @@ Status DeleteVerticesValidator::validateImpl() {
     return Status::OK();
 }
 
-std::string DeleteVerticesValidator::buildVIds() {
-    auto input = vctx_->anonVarGen()->getVar();
-    DataSet ds;
-    ds.colNames.emplace_back(kVid);
-    for (auto& vid : vertices_) {
-        Row row;
-        row.values.emplace_back(vid);
-        ds.rows.emplace_back(std::move(row));
-    }
-    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
-
-    auto* vIds = new VariablePropertyExpression(
-            new std::string(input),
-            new std::string(kVid));
-    qctx_->objPool()->add(vIds);
-    vidRef_ = vIds;
-    return input;
-}
-
 Status DeleteVerticesValidator::toPlan() {
-    std::string vidVar;
-    if (!vertices_.empty() && vidRef_ == nullptr) {
-        vidVar = buildVIds();
-    } else if (vidRef_ != nullptr && vidRef_->kind() == Expression::Kind::kVarProperty) {
-        vidVar = *static_cast<PropertyExpression*>(vidRef_)->sym();
-    }
+    std::string vidVar = (starts_.fromType == FromType::kInstantExpr ?
+                          buildConstantInput() :
+                          buildRuntimeInput());
+
 
     std::vector<storage::cpp2::EdgeProp> edgeProps;
     // make edgeRefs and edgeProp
@@ -378,7 +336,7 @@ Status DeleteVerticesValidator::toPlan() {
     auto* getNeighbors = GetNeighbors::make(qctx_,
                                             nullptr,
                                             spaceId_,
-                                            vidRef_,
+                                            src_,
                                             edgeTypes_,
                                             storage::cpp2::EdgeDirection::BOTH,
                                             nullptr,
@@ -398,7 +356,7 @@ Status DeleteVerticesValidator::toPlan() {
     auto *dvNode = DeleteVertices::make(qctx_,
                                         deNode,
                                         spaceId_,
-                                        vidRef_);
+                                        src_);
 
     dvNode->setInputVar(vidVar);
     root_ = dvNode;

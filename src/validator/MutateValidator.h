@@ -76,16 +76,20 @@ public:
 private:
     Status validateImpl() override;
 
-    std::string buildVIds();
+    std::string buildConstantInput() {
+        return QueryValidator::buildConstantInput(src_, starts_);
+    }
+    std::string buildRuntimeInput() {
+        src_ = DCHECK_NOTNULL(starts_.srcRef);
+        return starts_.userDefinedVarName;
+    }
 
     Status toPlan() override;
 
 private:
     GraphSpaceID                                  spaceId_{-1};
-    // From ConstantExpression
-    std::vector<VertexID>                         vertices_;
-    // From InputPropertyExpression or InputPropertyExpression
-    Expression*                                   vidRef_{nullptr};
+    Expression*                                   src_;
+    Starts                                        starts_;
     std::vector<EdgeType>                         edgeTypes_;
     std::vector<std::string>                      edgeNames_;
     std::vector<EdgeKeyRef*>                      edgeKeyRefs_;
