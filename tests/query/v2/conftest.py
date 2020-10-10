@@ -8,7 +8,7 @@
 import re
 import pytest
 
-from nebula2.common import ttypes as CommonTtypes
+from nebula2.common import ttypes
 
 
 def edgekey(edge):
@@ -26,14 +26,14 @@ def utf8s(b):
 
 def create_vertex_team(line):
     assert len(line) == 2
-    vertex = CommonTtypes.Vertex()
+    vertex = ttypes.Vertex()
     vertex.vid = utf8b(line[0])
     tags = []
-    tag = CommonTtypes.Tag()
+    tag = ttypes.Tag()
     tag.name = utf8b('team')
 
     props = dict()
-    name = CommonTtypes.Value()
+    name = ttypes.Value()
     name.set_sVal(utf8b(line[1]))
     props[utf8b('name')] = name
     tag.props = props
@@ -44,17 +44,17 @@ def create_vertex_team(line):
 
 def create_vertex_player(line):
     assert len(line) == 3
-    vertex = CommonTtypes.Vertex()
+    vertex = ttypes.Vertex()
     vertex.vid = utf8b(line[0])
     tags = []
-    tag = CommonTtypes.Tag()
+    tag = ttypes.Tag()
     tag.name = utf8b('player')
 
     props = dict()
-    name = CommonTtypes.Value()
+    name = ttypes.Value()
     name.set_sVal(utf8b(line[1]))
     props[utf8b('name')] = name
-    age = CommonTtypes.Value()
+    age = ttypes.Value()
     age.set_iVal(int(line[2]))
     props[utf8b('age')] = age
     tag.props = props
@@ -65,17 +65,17 @@ def create_vertex_player(line):
 
 def create_vertex_bachelor(line):
     assert len(line) == 3
-    vertex = CommonTtypes.Vertex()
+    vertex = ttypes.Vertex()
     vertex.vid = utf8b(line[0])
     tags = []
-    tag = CommonTtypes.Tag()
+    tag = ttypes.Tag()
     tag.name = utf8b('bachelor')
 
     props = dict()
-    name = CommonTtypes.Value()
+    name = ttypes.Value()
     name.set_sVal(utf8b(line[1]))
     props[utf8b('name')] = name
-    speciality = CommonTtypes.Value()
+    speciality = ttypes.Value()
     speciality.set_sVal(utf8b(line[2]))
     props[utf8b('speciality')] = speciality
     tag.props = props
@@ -86,7 +86,7 @@ def create_vertex_bachelor(line):
 
 def create_edge_serve(line):
     assert len(line) == 4
-    edge = CommonTtypes.Edge()
+    edge = ttypes.Edge()
     edge.src = utf8b(line[0])
     if '@' in line[1]:
         temp = list(map(lambda i: i.strip('"'), re.split('@', line[1])))
@@ -98,9 +98,9 @@ def create_edge_serve(line):
     edge.type = 1
     edge.name = utf8b('serve')
     props = dict()
-    start_year = CommonTtypes.Value()
+    start_year = ttypes.Value()
     start_year.set_iVal(int(line[2]))
-    end_year = CommonTtypes.Value()
+    end_year = ttypes.Value()
     end_year.set_iVal(int(line[3]))
     props[utf8b('start_year')] = start_year
     props[utf8b('end_year')] = end_year
@@ -110,7 +110,7 @@ def create_edge_serve(line):
 
 def create_edge_like(line):
     assert len(line) == 3
-    edge = CommonTtypes.Edge()
+    edge = ttypes.Edge()
 
     edge.src = utf8b(line[0])
     edge.dst = utf8b(line[1])
@@ -118,7 +118,7 @@ def create_edge_like(line):
     edge.ranking = 0
     edge.name = utf8b('like')
     props = dict()
-    likeness = CommonTtypes.Value()
+    likeness = ttypes.Value()
     likeness.set_iVal(int(line[2]))
     props[utf8b('likeness')] = likeness
     edge.props = props
@@ -127,16 +127,16 @@ def create_edge_like(line):
 
 def create_edge_teammate(line):
     assert len(line) == 4
-    edge = CommonTtypes.Edge()
+    edge = ttypes.Edge()
     edge.src = utf8b(line[0])
     edge.dst = utf8b(line[1])
     edge.type = 1
     edge.ranking = 0
     edge.name = utf8b('teammate')
     props = dict()
-    start_year = CommonTtypes.Value()
+    start_year = ttypes.Value()
     start_year.set_iVal(int(line[2]))
-    end_year = CommonTtypes.Value()
+    end_year = ttypes.Value()
     end_year.set_iVal(int(line[3]))
     props[utf8b('start_year')] = start_year
     props[utf8b('end_year')] = end_year
@@ -146,79 +146,82 @@ def create_edge_teammate(line):
 
 def get_datatype(line):
     if line.startswith('VERTEX player'):
-        return True, 'player'
+        return 'player'
     elif line.startswith('VERTEX team'):
-        return True, 'team'
+        return 'team'
     elif line.startswith('VERTEX bachelor'):
-        return True, 'bachelor'
+        return 'bachelor'
     elif line.startswith('EDGE serve'):
-        return True, 'serve'
+        return 'serve'
     elif line.startswith('EDGE like'):
-        return True, 'like'
+        return 'like'
     elif line.startswith('EDGE teammate'):
-        return True, 'teammate'
-    return False, None
+        return 'teammate'
+    return None
+
+
+def fill_ve(line, datatype: str, VERTEXS, EDGES):
+    line = re.split(':|,|->', line.strip(',; \t'))
+    line = list(map(lambda i: i.strip(' ()"'), line))
+    value = ttypes.Value()
+    assert datatype != 'none'
+    if datatype == 'player':
+        vertex = create_vertex_player(line)
+        key = utf8s(vertex.vid)
+        if key in VERTEXS:
+            temp = VERTEXS[key].get_vVal()
+            temp.tags.append(vertex.tags[0])
+            temp.tags.sort(key=lambda x: x.name)
+            value.set_vVal(temp)
+            VERTEXS[key] = value
+        else:
+            value.set_vVal(vertex)
+            VERTEXS[key] = value
+    elif datatype == 'team':
+        vertex = create_vertex_team(line)
+        value.set_vVal(vertex)
+        key = utf8s(vertex.vid)
+        VERTEXS[key] = value
+    elif datatype == 'bachelor':
+        vertex = create_vertex_bachelor(line)
+        key = utf8s(vertex.vid)
+        if key in VERTEXS:
+            temp = VERTEXS[key].get_vVal()
+            temp.tags.append(vertex.tags[0])
+            temp.tags.sort(key=lambda x: x.name)
+            value.set_vVal(temp)
+            VERTEXS[key] = value
+        else:
+            value.set_vVal(vertex)
+            VERTEXS[key] = value
+    elif datatype == 'serve':
+        edge = create_edge_serve(line)
+        value.set_eVal(edge)
+        key = edgekey(edge)
+        EDGES[key] = value
+    elif datatype == 'like':
+        edge = create_edge_like(line)
+        value.set_eVal(edge)
+        key = edgekey(edge)
+        EDGES[key] = value
+    elif datatype == 'teammate':
+        edge = create_edge_teammate(line)
+        value.set_eVal(edge)
+        key = edgekey(edge)
+        EDGES[key] = value
+    else:
+        raise ValueError('datatype is {}'.format(datatype))
 
 
 def parse_line(line, dataType, VERTEXS, EDGES):
     if line.startswith('INSERT') or line.startswith('VALUES'):
         return ''
 
-    ok, dt = get_datatype(line)
-    if ok:
+    dt = get_datatype(line)
+    if dt is not None:
         dataType[0] = dt
     else:
-        line = re.split(':|,|->', line.strip(',; \t'))
-        line = list(map(lambda i: i.strip(' ()"'), line))
-        value = CommonTtypes.Value()
-        if dataType[0] == 'none':
-            assert False
-        elif dataType[0] == 'player':
-            vertex = create_vertex_player(line)
-            key = utf8s(vertex.vid)
-            if key in VERTEXS:
-                temp = VERTEXS[key].get_vVal()
-                temp.tags.append(vertex.tags[0])
-                temp.tags.sort(key=lambda x: x.name)
-                value.set_vVal(temp)
-                VERTEXS[key] = value
-            else:
-                value.set_vVal(vertex)
-                VERTEXS[key] = value
-        elif dataType[0] == 'team':
-            vertex = create_vertex_team(line)
-            value.set_vVal(vertex)
-            key = utf8s(vertex.vid)
-            VERTEXS[key] = value
-        elif dataType[0] == 'bachelor':
-            vertex = create_vertex_bachelor(line)
-            key = utf8s(vertex.vid)
-            if key in VERTEXS:
-                temp = VERTEXS[key].get_vVal()
-                temp.tags.append(vertex.tags[0])
-                temp.tags.sort(key=lambda x: x.name)
-                value.set_vVal(temp)
-                VERTEXS[key] = value
-            else:
-                value.set_vVal(vertex)
-                VERTEXS[key] = value
-        elif dataType[0] == 'serve':
-            edge = create_edge_serve(line)
-            value.set_eVal(edge)
-            key = edgekey(edge)
-            EDGES[key] = value
-        elif dataType[0] == 'like':
-            edge = create_edge_like(line)
-            value.set_eVal(edge)
-            key = edgekey(edge)
-            EDGES[key] = value
-        elif dataType[0] == 'teammate':
-            edge = create_edge_teammate(line)
-            value.set_eVal(edge)
-            key = edgekey(edge)
-            EDGES[key] = value
-        else:
-            assert False
+        fill_ve(line, dataType[0], VERTEXS, EDGES)
 
 
 @pytest.fixture(scope="class")

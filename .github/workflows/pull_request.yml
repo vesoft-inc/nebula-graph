@@ -52,6 +52,8 @@ jobs:
       options: --mount type=tmpfs,destination=/tmp/ccache/nebula-graph,tmpfs-size=1073741824 --cap-add=SYS_PTRACE
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
       - name: Checkout nebula-python
         uses: actions/checkout@v2
         with:
