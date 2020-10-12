@@ -842,6 +842,7 @@ public:
         kSubgraph,
         kRowBasedMove,
         kMToN,
+        kBFSShortest,
     };
 
     static DataCollect* make(QueryContext* qctx,
@@ -950,15 +951,6 @@ private:
     std::vector<Expression*>                hashKeys_;
     std::vector<Expression*>                probeKeys_;
 };
-
-class ProduceSemiShortestPath : public PlanNode {
-public:
-};
-
-class ConjunctPath : public PlanNode {
-public:
-};
-
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_QUERY_H_
