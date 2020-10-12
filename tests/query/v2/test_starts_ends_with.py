@@ -9,7 +9,7 @@ from tests.common.nebula_test_suite import NebulaTestSuite
 from tests.common.nebula_test_suite import T_NULL, T_EMPTY, T_NULL_BAD_TYPE
 import pytest
 
-class TestINandNotIn(NebulaTestSuite):
+class TestStartsWithAndEndsWith(NebulaTestSuite):
     @classmethod
     def prepare(self):
         self.use_nba()
