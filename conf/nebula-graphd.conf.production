@@ -53,6 +53,7 @@
 # HTTP2 service port
 --ws_h2_port=13002
 
+# Heartbeat interval of communication between meta client and graphd service
 --heartbeat_interval_secs=10
 
 ########## authorization ##########
