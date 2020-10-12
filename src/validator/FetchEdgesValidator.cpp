@@ -44,9 +44,13 @@ Status FetchEdgesValidator::toPlan() {
                                         std::move(orderBy_),
                                         std::move(filter_));
     getEdgesNode->setInputVar(edgeKeysVar);
-    getEdgesNode->setColNames(std::move(geColNames_));
+    getEdgesNode->setColNames(geColNames_);
     // the pipe will set the input variable
     PlanNode *current = getEdgesNode;
+
+    // filter when the edge key is empty which means not exists edge in fact
+    auto *notExistEdgeFilter = Filter::make(qctx_, current, emptyEdgeKeyFilter(current));
+    current = notExistEdgeFilter;
 
     if (withProject_) {
         auto *projectNode = Project::make(qctx_, current, newYield_->yields());
@@ -282,6 +286,31 @@ std::string FetchEdgesValidator::buildRuntimeInput() {
     rank_ = DCHECK_NOTNULL(rankRef_);
     dst_ = DCHECK_NOTNULL(dstRef_);
     return inputVar_;
+}
+
+Expression* FetchEdgesValidator::emptyEdgeKeyFilter(const PlanNode *input) {
+    // _src != empty && _dst != empty && _rank != empty
+    DCHECK_GE(geColNames_.size(), 3);
+    auto *colEmptyExpr1 = new RelationalExpression(
+        Expression::Kind::kRelNE,
+        new ConstantExpression(Value()),
+        new VariablePropertyExpression(new std::string(input->outputVar()),
+                                       new std::string(geColNames_[0])));
+    auto *colEmptyExpr2 = new RelationalExpression(
+        Expression::Kind::kRelNE,
+        new ConstantExpression(Value()),
+        new VariablePropertyExpression(new std::string(input->outputVar()),
+                                       new std::string(geColNames_[1])));
+    auto *colEmptyExpr3 = new RelationalExpression(
+        Expression::Kind::kRelNE,
+        new ConstantExpression(Value()),
+        new VariablePropertyExpression(new std::string(input->outputVar()),
+                                       new std::string(geColNames_[2])));
+    auto *edgeKeyEmptyExpr = qctx_->objPool()->makeAndAdd<LogicalExpression>(
+        Expression::Kind::kLogicalAnd,
+        colEmptyExpr3,
+        new LogicalExpression(Expression::Kind::kLogicalAnd, colEmptyExpr1, colEmptyExpr2));
+    return edgeKeyEmptyExpr;
 }
 
 }   // namespace graph

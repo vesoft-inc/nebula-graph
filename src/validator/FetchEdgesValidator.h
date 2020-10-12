@@ -39,6 +39,8 @@ private:
     std::string buildConstantInput();
     std::string buildRuntimeInput();
 
+    Expression* emptyEdgeKeyFilter(const PlanNode *input);
+
     static const std::unordered_set<std::string> reservedProperties;
 
 private:
