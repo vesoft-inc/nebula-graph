@@ -512,31 +512,17 @@ Status ShowEdgeIndexesValidator::toPlan() {
 }
 
 Status RebuildTagIndexValidator::validateImpl() {
-    auto sentence = static_cast<RebuildTagIndexSentence*>(sentence_);
-    indexName_ = *sentence->indexName();
     return Status::OK();
 }
 
 Status RebuildTagIndexValidator::toPlan() {
-    auto *doNode = RebuildTagIndex::make(qctx_,
-                                         nullptr,
-                                         indexName_);
-    root_ = doNode;
-    tail_ = root_;
     return Status::OK();
 }
 Status RebuildEdgeIndexValidator::validateImpl() {
-    auto sentence = static_cast<RebuildEdgeIndexSentence*>(sentence_);
-    indexName_ = *sentence->indexName();
     return Status::OK();
 }
 
 Status RebuildEdgeIndexValidator::toPlan() {
-    auto *doNode = RebuildEdgeIndex::make(qctx_,
-                                          nullptr,
-                                          indexName_);
-    root_ = doNode;
-    tail_ = root_;
     return Status::OK();
 }
 

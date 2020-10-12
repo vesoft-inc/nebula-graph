@@ -631,26 +631,6 @@ private:
     }
 };
 
-class RebuildIndexNode : public SingleInputNode {
-protected:
-    RebuildIndexNode(QueryContext* qctx,
-                     Kind kind,
-                     PlanNode* input,
-                     std::string indexName)
-        : SingleInputNode(qctx, kind, input)
-        , indexName_(std::move(indexName)) {}
-
-public:
-    const std::string& getIndexName() const {
-        return indexName_;
-    }
-
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
-
-protected:
-    std::string            indexName_;
-};
-
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_MAINTAIN_H_

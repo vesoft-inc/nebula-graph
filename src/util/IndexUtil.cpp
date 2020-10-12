@@ -41,10 +41,10 @@ StatusOr<DataSet> IndexUtil::toShowCreateIndex(bool isTagIndex,
     createStr.reserve(1024);
     std::string schemaName = indexItem.get_schema_name();
     if (isTagIndex) {
-        dataSet.colNames = {"Tag Index", "Create Tag Index"};
+        dataSet.colNames = {"Tag Index Name", "Create Tag Index"};
         createStr = "CREATE TAG INDEX `" + indexName +  "` ON `" + schemaName + "` (\n";
     } else {
-        dataSet.colNames = {"Edge Index", "Create Edge Index"};
+        dataSet.colNames = {"Edge Index Name", "Create Edge Index"};
         createStr = "CREATE EDGE INDEX `" + indexName + "` ON `" + schemaName + "` (\n";
     }
     Row row;

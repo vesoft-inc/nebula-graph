@@ -42,22 +42,22 @@ class TestIndex(NebulaTestSuite):
         resp = self.client.execute('CREATE EDGE INDEX edge_index2 ON edge_1(col3)')
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'101\':(\'Tom\', 18, 35.4, \'2010-09-01 08:00:00\')')
-        self.check_resp_succeeded(resp)
+        # resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'101\':(\'Tom\', 18, 35.4, \'2010-09-01 08:00:00\')')
+        # self.check_resp_succeeded(resp)
 
-        resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'102\':(\'Jerry\', 22, 38.4, \'2011-09-01 08:00:00\')')
-        self.check_resp_succeeded(resp)
+        # resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'102\':(\'Jerry\', 22, 38.4, \'2011-09-01 08:00:00\')')
+        # self.check_resp_succeeded(resp)
 
-        resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'103\':(\'Bob\', 19, 36.4, \'2010-09-01 12:00:00\')')
-        self.check_resp_succeeded(resp)
+        # resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'103\':(\'Bob\', 19, 36.4, \'2010-09-01 12:00:00\')')
+        # self.check_resp_succeeded(resp)
 
-        resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'101\'->\'102\':(\'Red\', 81, 45.3, \'2010-09-01 08:00:00\')')
-        self.check_resp_succeeded(resp)
+        # resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'101\'->\'102\':(\'Red\', 81, 45.3, \'2010-09-01 08:00:00\')')
+        # self.check_resp_succeeded(resp)
 
-        resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'102\'->\'103\':(\'Yellow\', 22, 423.8, \'2011-09-01 08:00:00\')')
-        self.check_resp_succeeded(resp)
+        # resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'102\'->\'103\':(\'Yellow\', 22, 423.8, \'2011-09-01 08:00:00\')')
+        # self.check_resp_succeeded(resp)
 
-        resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'103\'->\'101\':(\'Blue\', 91, 43.1, \'2010-09-01 12:00:00\')')
+        # resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'103\'->\'101\':(\'Blue\', 91, 43.1, \'2010-09-01 12:00:00\')')
         self.check_resp_succeeded(resp)
     
     @classmethod
@@ -268,15 +268,22 @@ class TestIndex(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, [['edge_index'], ['edge_index2']])
 
-    def test_rebuild_index(self):
-        resp = self.client.execute_query('REBUILD TAG INDEX tag_index')
-        self.check_resp_succeeded(resp)
+    # def test_rebuild_index(self):
+    #     resp = self.client.execute_query('REBUILD TAG INDEX tag_index')
+    #     self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('REBUILD EDGE INDEX edge_index')
-        self.check_resp_succeeded(resp)
+    #     resp = self.client.execute_query('REBUILD EDGE INDEX edge_index')
+    #     self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('REBUILD TAG INDEX non_existent_tag_index')
-        self.check_resp.failed(resp)
+    #     resp = self.client.execute_query('REBUILD TAG INDEX non_existent_tag_index')
+    #     self.check_resp.failed(resp)
 
+<<<<<<< HEAD
         resp = self.client.execute_query('REBUILD EDGE INDEX non_existent_edge_index')
         self.check_resp.failed(resp)
+=======
+    #     resp = self.client.execute_query('REBUILD EDGE INDEX non_existent_edge_index')
+    #     self.check_resp.failed(resp)
+
+
+>>>>>>> remove rebuild index
