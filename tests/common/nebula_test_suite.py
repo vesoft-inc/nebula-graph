@@ -424,8 +424,9 @@ class NebulaTestSuite(object):
             assert False, 'resp.data is None'
         rows = resp.data.rows
         
-        msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
-        assert len(rows) == len(expect), msg
+        if not is_regex:
+            msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
+            assert len(rows) == len(expect), msg
 
         new_expect = expect
         if not is_regex:
