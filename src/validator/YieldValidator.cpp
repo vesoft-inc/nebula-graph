@@ -129,7 +129,7 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
             }
         } else if (expr->kind() == Expression::Kind::kVarProperty) {
             auto vpe = static_cast<const VariablePropertyExpression *>(expr);
-            userDefinedVarNameList_.push_back(*vpe->sym());
+            // userDefinedVarNameList_.push_back(*vpe->sym());
             // Get all props of variable expression is same as above input property expression.
             if (*vpe->prop() == "*") {
                 auto var = DCHECK_NOTNULL(vpe->sym());

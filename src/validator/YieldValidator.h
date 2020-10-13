@@ -46,7 +46,6 @@ private:
     YieldColumns *columns_{nullptr};
     std::vector<std::string> outputColumnNames_;
     std::vector<Aggregate::GroupItem> groupItems_;
-    ExpressionProps exprProps_;
     std::string constantExprVar_;
     Expression *filterCondition_{nullptr};
 };

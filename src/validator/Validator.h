@@ -150,8 +150,10 @@ protected:
     // root and tail of a subplan.
     PlanNode*                       root_{nullptr};
     PlanNode*                       tail_{nullptr};
+
+    ExpressionProps                 exprProps_;
     // user define Variable name list
-    std::vector<std::string>        userDefinedVarNameList_;
+    std::set<std::string>           userDefinedVarNameList_;
 };
 
 }  // namespace graph

@@ -67,7 +67,7 @@ protected:
     Steps                 steps_;
     std::string           srcVidColName_;
     Expression*           src_{nullptr};
-    ExpressionProps       exprProps_;
+    // ExpressionProps       exprProps_;
     PlanNode*             projectStartVid_{nullptr};
 
 

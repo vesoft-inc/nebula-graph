@@ -304,7 +304,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
 }
 
 Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps) {
-    DeducePropsVisitor visitor(qctx_, space_.id, &exprProps);
+    DeducePropsVisitor visitor(qctx_, space_.id, &exprProps, &userDefinedVarNameList_);
     const_cast<Expression*>(expr)->accept(&visitor);
     return std::move(visitor).status();
 }
@@ -329,7 +329,7 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         ColDef col(*propExpr->prop(), type);
 
         const auto &outputVar = *propExpr->sym();
-        userDefinedVarNameList_.emplace_back(std::string(outputVar));
+        userDefinedVarNameList_.emplace(std::string(outputVar));
         const auto &var = vctx_->getVar(outputVar);
         if (var.empty()) {
             return Status::SemanticError("No variable `%s'", outputVar.c_str());

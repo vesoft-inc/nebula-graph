@@ -60,7 +60,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
         auto* propExpr = static_cast<PropertyExpression*>(src);
         if (starts.fromType == kVariable) {
             starts.userDefinedVarName = *(propExpr->sym());
-            userDefinedVarNameList_.push_back(starts.userDefinedVarName);
+            userDefinedVarNameList_.emplace(starts.userDefinedVarName);
         }
         starts.firstBeginningSrcVidColName = *(propExpr->prop());
 

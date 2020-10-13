@@ -48,10 +48,10 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
             }
         }
 
-        if (col->expr()->kind() == Expression::Kind::kVarProperty) {
-            auto varExpr = static_cast<PropertyExpression* >(col->expr());
-            userDefinedVarNameList_.push_back(*(varExpr->sym()));
-        }
+        // if (col->expr()->kind() == Expression::Kind::kVarProperty) {
+        //     auto varExpr = static_cast<PropertyExpression* >(col->expr());
+        //     userDefinedVarNameList_.push_back(*(varExpr->sym()));
+        // }
 
         // todo(jmq) count(distinct)
         groupItems_.emplace_back(Aggregate::GroupItem{col->expr(), AggFun::nameIdMap_[fun], false});
@@ -116,10 +116,10 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
         groupCols_.emplace_back(col);
         groupKeys_.emplace_back(col->expr());
 
-        if (col->expr()->kind() == Expression::Kind::kVarProperty) {
-            auto varExpr = static_cast<PropertyExpression* >(col->expr());
-            userDefinedVarNameList_.push_back(*(varExpr->sym()));
-        }
+        // if (col->expr()->kind() == Expression::Kind::kVarProperty) {
+        //     auto varExpr = static_cast<PropertyExpression* >(col->expr());
+        //     userDefinedVarNameList_.push_back(*(varExpr->sym()));
+        // }
     }
     return Status::OK();
 }
