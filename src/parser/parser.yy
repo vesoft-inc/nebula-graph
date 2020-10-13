@@ -374,7 +374,6 @@ unreserved_keyword
     | KW_STARTS_WITH        { $$ = new std::string("starts_with"); }
     | KW_ENDS_WITH          { $$ = new std::string("ends_with"); }
     | KW_VID_TYPE           { $$ = new std::string("vid_type"); }
-    | KW_NOT_IN             { $$ = new std::string("not_in"); }
     ;
 
 agg_function
