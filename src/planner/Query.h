@@ -144,6 +144,8 @@ public:
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
 
+    GetNeighbors* clone(QueryContext* qctx) const;
+
     Expression* src() const {
         return src_;
     }
@@ -431,6 +433,8 @@ public:
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+
+    IndexScan* clone(QueryContext* qctx) const;
 
     const std::vector<storage::cpp2::IndexQueryContext>* queryContext() const {
         return contexts_.get();
@@ -838,6 +842,7 @@ public:
         kSubgraph,
         kRowBasedMove,
         kMToN,
+        kBFSShortest,
     };
 
     static DataCollect* make(QueryContext* qctx,
@@ -946,15 +951,6 @@ private:
     std::vector<Expression*>                hashKeys_;
     std::vector<Expression*>                probeKeys_;
 };
-
-class ProduceSemiShortestPath : public PlanNode {
-public:
-};
-
-class ConjunctPath : public PlanNode {
-public:
-};
-
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_QUERY_H_
