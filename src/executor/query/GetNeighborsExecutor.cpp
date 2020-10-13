@@ -47,13 +47,21 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
     reqDs_.colNames = {kVid};
     reqDs_.rows.reserve(iter->size());
     auto* src = gn_->src();
+    std::unordered_set<Value> uniqueVid;
     const auto& spaceInfo = qctx()->rctx()->session()->space();
     for (; iter->valid(); iter->next()) {
         auto val = Expression::eval(src, ctx(iter.get()));
         if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vid_type)) {
             continue;
         }
-        reqDs_.rows.emplace_back(Row({std::move(val)}));
+        if (gn_->dedup()) {
+            auto ret = uniqueVid.emplace(val);
+            if (ret.second) {
+                reqDs_.rows.emplace_back(Row({std::move(val)}));
+            }
+        } else {
+            reqDs_.rows.emplace_back(Row({std::move(val)}));
+        }
     }
     return Status::OK();
 }
