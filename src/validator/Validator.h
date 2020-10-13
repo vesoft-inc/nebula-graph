@@ -13,7 +13,7 @@
 #include "parser/Sentence.h"
 #include "context/ValidateContext.h"
 #include "context/QueryContext.h"
-#include "validator/ExpressionProps.h"
+#include "visitor/DeducePropsVisitor.h"
 
 namespace nebula {
 
