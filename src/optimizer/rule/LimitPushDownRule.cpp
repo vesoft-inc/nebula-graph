@@ -55,14 +55,14 @@ Status LimitPushDownRule::transform(QueryContext *qctx,
 
     int64_t limitRows = limit->offset() + limit->count();
 
-    auto newLimit = cloneLimit(qctx, limit);
+    auto newLimit = limit->clone(qctx);
     auto newLimitExpr = OptGroupExpr::create(qctx, newLimit, groupExpr->group());
 
-    auto newProj = cloneProj(qctx, proj);
+    auto newProj = proj->clone(qctx);
     auto newProjGroup = OptGroup::create(qctx);
     auto newProjExpr = newProjGroup->makeGroupExpr(qctx, newProj);
 
-    auto newGn = cloneGetNbrs(qctx, gn);
+    auto newGn = gn->clone(qctx);
     newGn->setLimit(limitRows);
     auto newGnGroup = OptGroup::create(qctx);
     auto newGnExpr = newGnGroup->makeGroupExpr(qctx, newGn);
@@ -134,66 +134,6 @@ std::pair<bool, std::vector<const OptGroupExpr *>> LimitPushDownRule::findMatche
     matched.push_back(projExpr);
     matched.push_back(gnExpr);
     return std::make_pair(true, matched);
-}
-
-Limit *LimitPushDownRule::cloneLimit(QueryContext *qctx,
-                                     const Limit *limit) const {
-    auto newLimit = Limit::make(qctx, nullptr, limit->offset(), limit->count());
-    newLimit->setInputVar(limit->inputVar());
-    newLimit->setOutputVar(limit->outputVar());
-    return newLimit;
-}
-
-Project *LimitPushDownRule::cloneProj(QueryContext *qctx,
-                                      const Project *proj) const {
-    auto cols = qctx->objPool()->add(new YieldColumns());
-    for (auto col : proj->columns()->columns()) {
-        cols->addColumn((col->clone()).release());
-    }
-
-    auto newProj = Project::make(qctx, nullptr, cols);
-    newProj->setInputVar(proj->inputVar());
-    newProj->setOutputVar(proj->outputVar());
-    return newProj;
-}
-
-GetNeighbors *LimitPushDownRule::cloneGetNbrs(QueryContext *qctx,
-                                              const GetNeighbors *gn) const {
-    auto newGn = GetNeighbors::make(qctx, nullptr, gn->space());
-    newGn->setSrc(gn->src());
-    newGn->setEdgeTypes(gn->edgeTypes());
-    newGn->setEdgeDirection(gn->edgeDirection());
-    newGn->setDedup(gn->dedup());
-    newGn->setRandom(gn->random());
-    newGn->setFilter(gn->filter());
-    newGn->setLimit(gn->limit());
-    newGn->setInputVar(gn->inputVar());
-    newGn->setOutputVar(gn->outputVar());
-
-    if (gn->vertexProps()) {
-        auto vertexProps = *gn->vertexProps();
-        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(std::move(vertexProps));
-        newGn->setVertexProps(std::move(vertexPropsPtr));
-    }
-
-    if (gn->edgeProps()) {
-        auto edgeProps = *gn->edgeProps();
-        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(std::move(edgeProps));
-        newGn->setEdgeProps(std::move(edgePropsPtr));
-    }
-
-    if (gn->statProps()) {
-        auto statProps = *gn->statProps();
-        auto statPropsPtr = std::make_unique<decltype(statProps)>(std::move(statProps));
-        newGn->setStatProps(std::move(statPropsPtr));
-    }
-
-    if (gn->exprs()) {
-        auto exprs = *gn->exprs();
-        auto exprsPtr = std::make_unique<decltype(exprs)>(std::move(exprs));
-        newGn->setExprs(std::move(exprsPtr));
-    }
-    return newGn;
 }
 
 }   // namespace opt
