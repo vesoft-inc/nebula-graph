@@ -200,6 +200,10 @@ public:
 protected:
     static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);
 
+    void buildVarRelationships(std::string& var);
+
+    void updateVarRelationships(std::string& oldVar, std::string& newVar);
+
     QueryContext*                            qctx_{nullptr};
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
@@ -242,21 +246,9 @@ public:
         }
         inputVars_[0] = inputVarPtr;
         if (!oldVar.empty()) {
-            for (auto& output : outputVars_) {
-                qctx_->symTable()->deleteDerivative(oldVar, output->name);
-                qctx_->symTable()->addDerivative(inputVar, output->name);
-                qctx_->symTable()->deleteDependency(output->name, oldVar);
-                qctx_->symTable()->addDependency(output->name, inputVar);
-            }
-            qctx_->symTable()->deleteRead(oldVar, this);
-            qctx_->symTable()->readBy(inputVar, this);
+            updateVarRelationships(oldVar, inputVar);
         } else {
-            for (auto& output : outputVars_) {
-                DCHECK(output != nullptr);
-                qctx_->symTable()->addDerivative(inputVar, output->name);
-                qctx_->symTable()->addDependency(output->name, inputVar);
-            }
-            qctx_->symTable()->readBy(inputVar, this);
+            buildVarRelationships(inputVar);
         }
     }
 
@@ -277,12 +269,7 @@ protected:
         if (dep != nullptr) {
             auto* inputVarPtr = dep->outputVarPtr();
             inputVars_.emplace_back(inputVarPtr);
-            for (auto& output : outputVars_) {
-                DCHECK(output != nullptr);
-                qctx_->symTable()->addDerivative(inputVarPtr->name, output->name);
-                qctx_->symTable()->addDependency(output->name, inputVarPtr->name);
-            }
-            qctx_->symTable()->readBy(inputVarPtr->name, this);
+            buildVarRelationships(inputVarPtr->name);
         } else {
             inputVars_.emplace_back(nullptr);
         }
@@ -309,21 +296,9 @@ public:
         }
         inputVars_[0] = leftVarPtr;
         if (!oldVar.empty()) {
-            for (auto& output : outputVars_) {
-                qctx_->symTable()->deleteDerivative(oldVar, output->name);
-                qctx_->symTable()->addDerivative(leftVar, output->name);
-                qctx_->symTable()->deleteDependency(output->name, oldVar);
-                qctx_->symTable()->addDependency(output->name, leftVar);
-            }
-            qctx_->symTable()->deleteRead(oldVar, this);
-            qctx_->symTable()->readBy(leftVar, this);
+            updateVarRelationships(oldVar, leftVar);
         } else {
-            for (auto& output : outputVars_) {
-                DCHECK(output != nullptr);
-                qctx_->symTable()->addDerivative(leftVar, output->name);
-                qctx_->symTable()->addDependency(output->name, leftVar);
-            }
-            qctx_->symTable()->readBy(leftVar, this);
+            buildVarRelationships(leftVar);
         }
     }
 
@@ -337,21 +312,9 @@ public:
         }
         inputVars_[1] = rightVarPtr;
         if (!oldVar.empty()) {
-            for (auto& output : outputVars_) {
-                qctx_->symTable()->deleteDerivative(oldVar, output->name);
-                qctx_->symTable()->addDerivative(rightVar, output->name);
-                qctx_->symTable()->deleteDependency(output->name, oldVar);
-                qctx_->symTable()->addDependency(output->name, rightVar);
-            }
-            qctx_->symTable()->deleteRead(oldVar, this);
-            qctx_->symTable()->readBy(rightVar, this);
+            updateVarRelationships(oldVar, rightVar);
         } else {
-            for (auto& output : outputVars_) {
-                DCHECK(output != nullptr);
-                qctx_->symTable()->addDerivative(rightVar, output->name);
-                qctx_->symTable()->addDependency(output->name, rightVar);
-            }
-            qctx_->symTable()->readBy(rightVar, this);
+            buildVarRelationships(rightVar);
         }
     }
 
@@ -382,22 +345,12 @@ protected:
         dependencies_.emplace_back(left);
         auto* leftVarPtr = left->outputVarPtr();
         inputVars_.emplace_back(leftVarPtr);
-        for (auto& output : outputVars_) {
-            DCHECK(output != nullptr);
-            qctx_->symTable()->addDerivative(leftVarPtr->name, output->name);
-            qctx_->symTable()->addDependency(output->name, leftVarPtr->name);
-        }
-        qctx_->symTable()->readBy(leftVarPtr->name, this);
+        buildVarRelationships(leftVarPtr->name);
 
         dependencies_.emplace_back(right);
         auto* rightVarPtr = right->outputVarPtr();
         inputVars_.emplace_back(rightVarPtr);
-        for (auto& output : outputVars_) {
-            DCHECK(output != nullptr);
-            qctx_->symTable()->addDerivative(rightVarPtr->name, output->name);
-            qctx_->symTable()->addDependency(output->name, rightVarPtr->name);
-        }
-        qctx_->symTable()->readBy(rightVarPtr->name, this);
+        buildVarRelationships(rightVarPtr->name);
     }
 };
 
