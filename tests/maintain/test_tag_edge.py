@@ -548,7 +548,7 @@ class TestSchema(NebulaTestSuite):
 
         # insert without default prop, failed
         resp = self.client.execute('INSERT EDGE e() VALUES "1"->"2":()')
-        self.check_resp_failed(resp)
+        self.check_resp_succeeded(resp)
 
     def test_alter_edge_with_timestamp_default(self):
         resp = self.client.execute('CREATE SPACE issue2009(vid_type = FIXED_STRING(20)); USE issue2009')
