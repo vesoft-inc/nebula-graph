@@ -47,7 +47,7 @@ class Expr;
 }   // namespace storage
 
 namespace graph {
-class Variable;
+struct Variable;
 }  // namespace graph
 namespace util {
 
