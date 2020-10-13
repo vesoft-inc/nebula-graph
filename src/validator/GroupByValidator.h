@@ -38,8 +38,6 @@ private:
 
     std::vector<std::string>                          outputColumnNames_;
 
-    // ExpressionProps                                   exprProps_;
-
     std::vector<Expression*>                          groupKeys_;
     std::vector<Aggregate::GroupItem>                 groupItems_;
 };
