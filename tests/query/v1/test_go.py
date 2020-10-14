@@ -978,15 +978,10 @@ class TestGoQuery(NebulaTestSuite):
             "column_names" : ["like._dst"],
             "rows" : [
                 ["Tony Parker"],
-                ["Tony Parker"],
-                ["Manu Ginobili"],
-                ["Manu Ginobili"],
                 ["Manu Ginobili"],
                 ["Manu Ginobili"],
                 ["Tim Duncan"],
                 ["Tim Duncan"],
-                ["Tim Duncan"],
-                ["LaMarcus Aldridge"],
                 ["LaMarcus Aldridge"],
             ]
         }
