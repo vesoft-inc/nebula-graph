@@ -11,9 +11,9 @@ import pytest
 
 class TestSubGraph(NebulaTestSuite):
     @classmethod
-    def prepare(self):
-        self.use_nba()
-        self.load_vertex_edge()
+    def prepare(cls):
+        cls.use_nba()
+        cls.load_vertex_edge()
 
     def cleanup():
         pass

@@ -486,10 +486,8 @@ class NebulaTestSuite(object):
             empty = True
         assert empty, msg
 
-    @classmethod
     def compare_vertex(self, vertex1, vertex2):
-        if not isinstance(vertex1, CommonTtypes.Vertex) or not isinstance(vertex2, CommonTtypes.Vertex):
-            assert False, "Error Type {}, {}".format(type(vertex1), type(vertex2))
+        assert isinstance(vertex1, CommonTtypes.Vertex) and isinstance(vertex2, CommonTtypes.Vertex)
         if vertex1.vid != vertex2.vid:
             if vertex1.vid < vertex2.vid:
                 return -1
@@ -498,10 +496,8 @@ class NebulaTestSuite(object):
             return len(vertex1.tags) - len(vertex2.tags)
         return 0
 
-    @classmethod
     def compare_edge(self, edge1, edge2):
-        if not isinstance(edge1, CommonTtypes.Edge) or not isinstance(edge2, CommonTtypes.Edge):
-            assert False, "Error Type {}, {}".format(type(edge1), type(edge2))
+        assert isinstance(edge1, CommonTtypes.Edge) and isinstance(edge2, CommonTtypes.Edge)
         if edge1.src != edge2.src:
             if edge1.src < edge2.src:
                 return -1
@@ -518,7 +514,6 @@ class NebulaTestSuite(object):
             return len(edge1.props) - len(edge2.props)
         return 0
 
-    @classmethod
     def sort_vertex_list(self, rows):
         assert len(rows) == 1
         if isinstance(rows[0], CommonTtypes.Row):
@@ -531,7 +526,6 @@ class NebulaTestSuite(object):
             assert False
         return sort_vertex_list
 
-    @classmethod
     def sort_vertex_edge_list(self, rows):
         new_rows = list()
         for row in rows:
@@ -558,7 +552,6 @@ class NebulaTestSuite(object):
             new_rows.append(new_row)
         return new_rows
 
-    @classmethod
     def check_subgraph_result(self, resp, expect):
         if resp.data is None and len(expect) == 0:
             return True
