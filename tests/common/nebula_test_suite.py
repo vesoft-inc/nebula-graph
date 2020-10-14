@@ -406,7 +406,7 @@ class NebulaTestSuite(object):
         if resp.data is None:
             assert False, 'resp.data is None'
         rows = resp.data.rows
-        
+
         msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
         assert len(rows) == len(expect), msg
 
