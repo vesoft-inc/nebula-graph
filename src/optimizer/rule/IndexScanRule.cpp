@@ -26,11 +26,6 @@ const Pattern& IndexScanRule::pattern() const {
     return pattern;
 }
 
-bool IndexScanRule::match(const MatchedResult& matched) const {
-    UNUSED(matched);
-    return true;
-}
-
 StatusOr<OptRule::TransformResult> IndexScanRule::transform(graph::QueryContext* qctx,
                                                             const MatchedResult& matched) const {
     auto groupExpr = matched.node;

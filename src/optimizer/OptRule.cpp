@@ -57,6 +57,24 @@ StatusOr<MatchedResult> Pattern::match(const OptGroup *group) const {
     return Status::Error();
 }
 
+StatusOr<MatchedResult> OptRule::match(const OptGroupExpr *groupExpr) const {
+    const auto &pattern = this->pattern();
+    auto status = pattern.match(groupExpr);
+    NG_RETURN_IF_ERROR(status);
+    auto matched = std::move(status).value();
+    if (!this->match(matched)) {
+        return Status::Error();
+    }
+    return matched;
+}
+
+bool OptRule::match(const MatchedResult &matched) const {
+    UNUSED(matched);
+    // Return true if subclass doesn't override this interface,
+    // so optimizer will only check whether pattern is matched
+    return true;
+}
+
 RuleSet &RuleSet::DefaultRules() {
     static RuleSet kDefaultRules("DefaultRuleSet");
     return kDefaultRules;

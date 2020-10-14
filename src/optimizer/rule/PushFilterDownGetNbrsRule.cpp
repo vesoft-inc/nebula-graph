@@ -38,11 +38,6 @@ const Pattern &PushFilterDownGetNbrsRule::pattern() const {
     return pattern;
 }
 
-bool PushFilterDownGetNbrsRule::match(const MatchedResult &matched) const {
-    UNUSED(matched);
-    return true;
-}
-
 StatusOr<OptRule::TransformResult> PushFilterDownGetNbrsRule::transform(
     QueryContext *qctx,
     const MatchedResult &matched) const {

@@ -59,17 +59,12 @@ Status OptGroup::explore(const OptRule *rule) {
         NG_RETURN_IF_ERROR(groupExpr->explore(rule));
 
         // Find more equivalents
-        auto &pattern = rule->pattern();
-        auto status = pattern.match(groupExpr);
+        auto status = rule->match(groupExpr);
         if (!status.ok()) {
             ++iter;
             continue;
         }
         auto matched = std::move(status).value();
-        if (!rule->match(matched)) {
-            ++iter;
-            continue;
-        }
         auto resStatus = rule->transform(qctx_, matched);
         NG_RETURN_IF_ERROR(resStatus);
         auto result = std::move(resStatus).value();

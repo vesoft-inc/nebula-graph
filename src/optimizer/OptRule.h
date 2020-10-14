@@ -52,10 +52,12 @@ public:
         std::vector<OptGroupExpr *> newGroupExprs;
     };
 
+    StatusOr<MatchedResult> match(const OptGroupExpr *groupExpr) const;
+
     virtual ~OptRule() = default;
 
     virtual const Pattern &pattern() const = 0;
-    virtual bool match(const MatchedResult &matched) const = 0;
+    virtual bool match(const MatchedResult &matched) const;
     virtual StatusOr<TransformResult> transform(graph::QueryContext *qctx,
                                                 const MatchedResult &matched) const = 0;
     virtual std::string toString() const = 0;
