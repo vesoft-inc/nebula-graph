@@ -59,10 +59,10 @@ public:
         return !srcTagProps_.empty() || !dstTagProps_.empty();
     }
 
-    bool notAllPropsEmpty() const {
-        return !inputProps_.empty() || !varProps_.empty() ||
-               !srcTagProps_.empty() || !edgeProps_.empty() ||
-               !dstTagProps_.empty();
+    bool isAllPropsEmpty() const {
+        return inputProps_.empty() && varProps_.empty() &&
+               srcTagProps_.empty() && edgeProps_.empty() &&
+               dstTagProps_.empty();
     }
 
     void insertInputProp(folly::StringPiece prop);

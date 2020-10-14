@@ -754,7 +754,7 @@ Status GoValidator::buildColumns() {
     }
 
     auto pool = qctx_->objPool();
-    if (exprProps_.notAllPropsEmpty() || from_.fromType != FromType::kInstantExpr) {
+    if (!exprProps_.isAllPropsEmpty() || from_.fromType != FromType::kInstantExpr) {
         srcAndEdgePropCols_ = pool->add(new YieldColumns());
     }
 
