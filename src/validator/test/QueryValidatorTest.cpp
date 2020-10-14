@@ -1038,6 +1038,8 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kDataJoin,
             PK::kDedup,
             PK::kProject,
+            PK::kDedup,
+            PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
         };
