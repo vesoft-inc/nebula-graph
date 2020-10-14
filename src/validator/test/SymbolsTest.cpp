@@ -144,7 +144,7 @@ TEST_F(SymbolsTest, Variables) {
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
-            EXPECT_EQ(variable->colNames, std::vector<std::string>({"_vid"}));
+            EXPECT_EQ(variable->colNames, std::vector<std::string>({"_vid", "__UNAMED_COL_2"}));
             EXPECT_EQ(variable->origin->kind(), PlanNode::Kind::kDedup);
             EXPECT_TRUE(
                 checkVariables(variable->derivatives,
@@ -220,7 +220,7 @@ TEST_F(SymbolsTest, Variables) {
             EXPECT_NE(variable, nullptr);
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
-            EXPECT_EQ(variable->colNames, std::vector<std::string>({"_vid"}));
+            EXPECT_EQ(variable->colNames, std::vector<std::string>({"_vid", "__UNAMED_COL_2"}));
             EXPECT_EQ(variable->origin->kind(), PlanNode::Kind::kProject);
             EXPECT_TRUE(checkVariables(variable->derivatives,
                                        std::unordered_set<std::string>({"__Dedup_4"})));
@@ -236,7 +236,7 @@ TEST_F(SymbolsTest, Variables) {
             EXPECT_EQ(variable->name, varName);
             EXPECT_EQ(variable->type, Value::Type::DATASET);
             EXPECT_EQ(variable->colNames,
-                      std::vector<std::string>({"id", "__UNAMED_COL_1", "_vid"}));
+                      std::vector<std::string>({"id", "__UNAMED_COL_1", "_vid", "__UNAMED_COL_2"}));
             EXPECT_EQ(variable->origin->kind(), PlanNode::Kind::kDataJoin);
             EXPECT_TRUE(checkVariables(variable->derivatives,
                                        std::unordered_set<std::string>({"__Project_11"})));
