@@ -38,9 +38,6 @@ struct Variable {
     // Valid if type is dataset.
     std::vector<std::string> colNames;
 
-    PlanNode* origin;
-    std::unordered_set<Variable*> derivatives;
-    std::unordered_set<Variable*> dependencies;
     std::unordered_set<PlanNode*> readBy;
     std::unordered_set<PlanNode*> writtenBy;
 };
@@ -63,35 +60,7 @@ public:
         vars_.emplace(std::move(varName), variable);
     }
 
-    bool addDerivative(std::string varName, std::string derivative) {
-        VLOG(1) << "Add derivative: " << varName << " -> " << derivative;
-        auto var = vars_.find(varName);
-        if (var == vars_.end()) {
-            return false;
-        }
-        auto der = vars_.find(derivative);
-        if (der == vars_.end()) {
-            return false;
-        }
-        var->second->derivatives.emplace(der->second);
-        return true;
-    }
-
-    bool addDependency(std::string varName, std::string dependency) {
-        VLOG(1) << "Add dependency: " << varName << " <- " << dependency;
-        auto var = vars_.find(varName);
-        if (var == vars_.end()) {
-            return false;
-        }
-        auto dep = vars_.find(dependency);
-        if (dep == vars_.end()) {
-            return false;
-        }
-        var->second->dependencies.emplace(dep->second);
-        return true;
-    }
-
-    bool readBy(std::string varName, PlanNode* node) {
+    bool readBy(const std::string& varName, PlanNode* node) {
         auto var = vars_.find(varName);
         if (var == vars_.end()) {
             return false;
@@ -100,7 +69,7 @@ public:
         return true;
     }
 
-    bool writtenBy(std::string varName, PlanNode* node) {
+    bool writtenBy(const std::string& varName, PlanNode* node) {
         auto var = vars_.find(varName);
         if (var == vars_.end()) {
             return false;
@@ -109,33 +78,7 @@ public:
         return true;
     }
 
-    bool deleteDerivative(std::string varName, std::string derivative) {
-        auto var = vars_.find(varName);
-        if (var == vars_.end()) {
-            return false;
-        }
-        auto der = vars_.find(derivative);
-        if (der == vars_.end()) {
-            return false;
-        }
-        var->second->derivatives.erase(der->second);
-        return true;
-    }
-
-    bool deleteDependency(std::string varName, std::string dependency) {
-        auto var = vars_.find(varName);
-        if (var == vars_.end()) {
-            return false;
-        }
-        auto dep = vars_.find(dependency);
-        if (dep == vars_.end()) {
-            return false;
-        }
-        var->second->dependencies.erase(dep->second);
-        return true;
-    }
-
-    bool deleteRead(std::string varName, PlanNode* node) {
+    bool deleteReadBy(const std::string& varName, PlanNode* node) {
         auto var = vars_.find(varName);
         if (var == vars_.end()) {
             return false;
@@ -144,7 +87,7 @@ public:
         return true;
     }
 
-    bool deleteWritten(std::string varName, PlanNode* node) {
+    bool deleteWrittenBy(const std::string& varName, PlanNode* node) {
         auto var = vars_.find(varName);
         if (var == vars_.end()) {
             return false;
@@ -153,36 +96,12 @@ public:
         return true;
     }
 
-    bool updateAllOccurence(std::string oldVar, std::string newVar) {
-        VLOG(1) << "Update ocur: " << oldVar << " -> " << newVar;
-        if (oldVar == newVar) {
-            return true;
-        }
+    bool updateReadBy(const std::string& oldVar, const std::string& newVar, PlanNode* node) {
+        return deleteReadBy(oldVar, node) && readBy(newVar, node);
+    }
 
-        auto old = vars_.find(oldVar);
-        if (old == vars_.end()) {
-            return false;
-        }
-        auto newVariable = vars_.find(newVar);
-        if (newVariable == vars_.end()) {
-            return false;
-        }
-
-        newVariable->second->derivatives.insert(old->second->derivatives.begin(),
-                                                old->second->derivatives.end());
-        old->second->derivatives.clear();
-        newVariable->second->dependencies.insert(old->second->dependencies.begin(),
-                                                 old->second->dependencies.begin());
-        old->second->dependencies.clear();
-        for (auto& var : vars_) {
-            if (var.second->derivatives.erase(old->second) > 0) {
-                var.second->derivatives.emplace(newVariable->second);
-            }
-            if (var.second->dependencies.erase(old->second) > 0) {
-                var.second->dependencies.emplace(newVariable->second);
-            }
-        }
-        return true;
+    bool updateWrittenBy(const std::string& oldVar, const std::string& newVar, PlanNode* node) {
+        return deleteWrittenBy(oldVar, node) && writtenBy(newVar, node);
     }
 
     Variable* getVar(const std::string& varName) {

@@ -134,9 +134,7 @@ public:
         auto oldVar = outputVars_[0]->name;
         outputVarPtr->colNames = outputVars_[0]->colNames;
         outputVars_[0] = outputVarPtr;
-        qctx_->symTable()->deleteWritten(oldVar, this);
-        qctx_->symTable()->writtenBy(var, this);
-        qctx_->symTable()->updateAllOccurence(oldVar, var);
+        qctx_->symTable()->updateWrittenBy(oldVar, var, this);
     }
 
     std::string outputVar(size_t index = 0) const {
@@ -200,10 +198,6 @@ public:
 protected:
     static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);
 
-    void buildVarRelationships(std::string& var);
-
-    void updateVarRelationships(std::string& oldVar, std::string& newVar);
-
     QueryContext*                            qctx_{nullptr};
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
@@ -246,9 +240,9 @@ public:
         }
         inputVars_[0] = inputVarPtr;
         if (!oldVar.empty()) {
-            updateVarRelationships(oldVar, inputVar);
+            qctx_->symTable()->updateReadBy(oldVar, inputVar, this);
         } else {
-            buildVarRelationships(inputVar);
+            qctx_->symTable()->readBy(inputVar, this);
         }
     }
 
@@ -269,7 +263,7 @@ protected:
         if (dep != nullptr) {
             auto* inputVarPtr = dep->outputVarPtr();
             inputVars_.emplace_back(inputVarPtr);
-            buildVarRelationships(inputVarPtr->name);
+            qctx_->symTable()->readBy(inputVarPtr->name, this);
         } else {
             inputVars_.emplace_back(nullptr);
         }
@@ -296,9 +290,9 @@ public:
         }
         inputVars_[0] = leftVarPtr;
         if (!oldVar.empty()) {
-            updateVarRelationships(oldVar, leftVar);
+            qctx_->symTable()->updateReadBy(oldVar, leftVar, this);
         } else {
-            buildVarRelationships(leftVar);
+            qctx_->symTable()->readBy(leftVar, this);
         }
     }
 
@@ -312,9 +306,9 @@ public:
         }
         inputVars_[1] = rightVarPtr;
         if (!oldVar.empty()) {
-            updateVarRelationships(oldVar, rightVar);
+            qctx_->symTable()->updateReadBy(oldVar, rightVar, this);
         } else {
-            buildVarRelationships(rightVar);
+            qctx_->symTable()->readBy(rightVar, this);
         }
     }
 
@@ -345,12 +339,12 @@ protected:
         dependencies_.emplace_back(left);
         auto* leftVarPtr = left->outputVarPtr();
         inputVars_.emplace_back(leftVarPtr);
-        buildVarRelationships(leftVarPtr->name);
+        qctx_->symTable()->readBy(leftVarPtr->name, this);
 
         dependencies_.emplace_back(right);
         auto* rightVarPtr = right->outputVarPtr();
         inputVars_.emplace_back(rightVarPtr);
-        buildVarRelationships(rightVarPtr->name);
+        qctx_->symTable()->readBy(rightVarPtr->name, this);
     }
 };
 

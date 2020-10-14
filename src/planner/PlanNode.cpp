@@ -18,7 +18,6 @@ PlanNode::PlanNode(QueryContext* qctx, Kind kind) : qctx_(qctx), kind_(kind) {
     id_ = qctx_->genId();
     auto varName = folly::stringPrintf("__%s_%ld", toString(kind_), id_);
     auto* variable = qctx_->symTable()->newVariable(varName);
-    variable->origin = this;
     VLOG(1) << "New variable: " << varName;
     outputVars_.emplace_back(variable);
     qctx_->symTable()->writtenBy(varName, this);
@@ -204,26 +203,6 @@ void PlanNode::addDescription(std::string key, std::string value, cpp2::PlanNode
 
 void PlanNode::calcCost() {
     VLOG(1) << "unimplemented cost calculation.";
-}
-
-void PlanNode::buildVarRelationships(std::string& var) {
-    for (auto& output : outputVars_) {
-        DCHECK(output != nullptr);
-        qctx_->symTable()->addDerivative(var, output->name);
-        qctx_->symTable()->addDependency(output->name, var);
-    }
-    qctx_->symTable()->readBy(var, this);
-}
-
-void PlanNode::updateVarRelationships(std::string& oldVar, std::string& newVar) {
-    for (auto& output : outputVars_) {
-        qctx_->symTable()->deleteDerivative(oldVar, output->name);
-        qctx_->symTable()->addDerivative(newVar, output->name);
-        qctx_->symTable()->deleteDependency(output->name, oldVar);
-        qctx_->symTable()->addDependency(output->name, newVar);
-    }
-    qctx_->symTable()->deleteRead(oldVar, this);
-    qctx_->symTable()->readBy(newVar, this);
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> PlanNode::explain() const {

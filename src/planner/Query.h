@@ -890,12 +890,7 @@ private:
             auto* inputVarPtr = qctx_->symTable()->getVar(var);
             DCHECK(inputVarPtr != nullptr);
             inputVars_.emplace_back(inputVarPtr);
-            for (auto& output : outputVars_) {
-                DCHECK(output != nullptr);
-                qctx_->symTable()->addDerivative(var, output->name);
-                qctx_->symTable()->addDependency(output->name, var);
-            }
-            qctx_->symTable()->readBy(var, this);
+            qctx_->symTable()->readBy(inputVarPtr->name, this);
         }
     }
 
@@ -960,21 +955,11 @@ private:
         auto* leftVarPtr = qctx_->symTable()->getVar(leftVar_.first);
         DCHECK(leftVarPtr != nullptr);
         inputVars_.emplace_back(leftVarPtr);
-        for (auto& output : outputVars_) {
-            DCHECK(output != nullptr);
-            qctx_->symTable()->addDerivative(leftVar_.first, output->name);
-            qctx_->symTable()->addDependency(output->name, leftVar_.first);
-        }
         qctx_->symTable()->readBy(leftVarPtr->name, this);
 
         auto* rightVarPtr = qctx_->symTable()->getVar(rightVar_.first);
         DCHECK(rightVarPtr != nullptr);
         inputVars_.emplace_back(rightVarPtr);
-        for (auto& output : outputVars_) {
-            DCHECK(output != nullptr);
-            qctx_->symTable()->addDerivative(rightVar_.first, output->name);
-            qctx_->symTable()->addDependency(output->name, rightVar_.first);
-        }
         qctx_->symTable()->readBy(rightVarPtr->name, this);
     }
 
