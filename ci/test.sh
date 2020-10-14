@@ -15,8 +15,10 @@ mkdir -p $BUILD_DIR
 
 function get_py_client() {
     git clone -b v2.0 https://github.com/vesoft-inc/nebula-python.git
-    cd nebula-python
+    pushd nebula-python
     python3 setup.py install --user
+    popd
+    rm -rf nebula-python
 }
 
 function prepare() {
