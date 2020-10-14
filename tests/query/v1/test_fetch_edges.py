@@ -255,8 +255,7 @@ class TestFetchEdges(NebulaTestSuite):
 
         query = 'FETCH PROP ON serve "Zion Williamson"->"Spurs" YIELD serve.start_year'
         resp = self.execute_query(query)
-        # TODO:: here must return empty
-        expect_result = [[T_EMPTY, T_EMPTY, T_EMPTY, T_EMPTY]]
+        expect_result = []
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, expect_result)
 
