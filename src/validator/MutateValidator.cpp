@@ -652,6 +652,9 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
         case Expression::Kind::kContains:
         case Expression::Kind::kStartsWith:
         case Expression::Kind::kEndsWith:
+        case Expression::Kind::kNotContains:
+        case Expression::Kind::kNotStartsWith:
+        case Expression::Kind::kNotEndsWith:
         case Expression::Kind::kLogicalAnd:
         case Expression::Kind::kLogicalOr:
         case Expression::Kind::kLogicalXor: {
