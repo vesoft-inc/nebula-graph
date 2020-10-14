@@ -94,6 +94,19 @@ Status OptGroup::explore(const OptRule *rule) {
     return Status::OK();
 }
 
+Status OptGroup::exploreUtilMaxRound(const OptRule *rule) {
+    auto maxRound = kMaxExplorationRound;
+    while (!isExplored(rule)) {
+        if (0 < maxRound--) {
+            NG_RETURN_IF_ERROR(explore(rule));
+        } else {
+            setExplored(rule);
+            break;
+        }
+    }
+    return Status::OK();
+}
+
 std::pair<double, const OptGroupExpr *> OptGroup::findMinCostGroupExpr() const {
     double minCost = std::numeric_limits<double>::max();
     const OptGroupExpr *minGroupExpr = nullptr;
@@ -135,16 +148,12 @@ Status OptGroupExpr::explore(const OptRule *rule) {
 
     for (auto dep : dependencies_) {
         DCHECK(dep != nullptr);
-        while (!dep->isExplored(rule)) {
-            NG_RETURN_IF_ERROR(dep->explore(rule));
-        }
+        NG_RETURN_IF_ERROR(dep->exploreUtilMaxRound(rule));
     }
 
     for (auto body : bodies_) {
         DCHECK(body != nullptr);
-        while (!body->isExplored(rule)) {
-            NG_RETURN_IF_ERROR(body->explore(rule));
-        }
+        NG_RETURN_IF_ERROR(body->exploreUtilMaxRound(rule));
     }
     return Status::OK();
 }

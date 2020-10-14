@@ -50,11 +50,14 @@ public:
     }
 
     Status explore(const OptRule *rule);
+    Status exploreUtilMaxRound(const OptRule *rule);
     double getCost() const;
     const graph::PlanNode *getPlan() const;
 
 private:
     explicit OptGroup(graph::QueryContext *qctx) noexcept;
+
+    static constexpr int16_t kMaxExplorationRound = 128;
 
     std::pair<double, const OptGroupExpr *> findMinCostGroupExpr() const;
 

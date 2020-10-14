@@ -51,7 +51,7 @@ StatusOr<OptRule::TransformResult> IndexScanRule::transform(graph::QueryContext*
     newGroupExpr->dependsOn(groupExpr->dependencies()[0]);
     TransformResult result;
     result.newGroupExprs.emplace_back(newGroupExpr);
-    result.eraseCurr = true;
+    result.eraseAll = true;
     return result;
 }
 
@@ -258,6 +258,7 @@ IndexScanRule::filterExpr(const OptGroupExpr *groupExpr) const {
     auto in = static_cast<const IndexScan *>(groupExpr->node());
     auto qct = in->queryContext();
     // The initial IndexScan plan node has only one queryContext.
+    // TODO(yee): Move this condition to match interface
     if (qct->size() != 1) {
         LOG(ERROR) << "Index Scan plan node error";
         return nullptr;

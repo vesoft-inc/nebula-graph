@@ -45,9 +45,7 @@ Status Optimizer::prepare() {
 Status Optimizer::doExploration() {
     for (auto ruleSet : ruleSets_) {
         for (auto rule : ruleSet->rules()) {
-            while (!rootGroup_->isExplored(rule)) {
-                NG_RETURN_IF_ERROR(rootGroup_->explore(rule));
-            }
+            NG_RETURN_IF_ERROR(rootGroup_->exploreUtilMaxRound(rule));
         }
     }
     return Status::OK();
