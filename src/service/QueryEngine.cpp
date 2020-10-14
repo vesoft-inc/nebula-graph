@@ -9,10 +9,10 @@
 #include "common/base/Base.h"
 #include "context/QueryContext.h"
 #include "optimizer/OptRule.h"
-#include "service/GraphFlags.h"
 #include "service/QueryInstance.h"
 
 DECLARE_bool(local_config);
+DECLARE_bool(enable_optimizer);
 DECLARE_string(meta_server_addrs);
 
 namespace nebula {
@@ -47,9 +47,9 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
                                                              metaClient_.get());
     charsetInfo_ = CharsetInfo::instance();
 
-    std::vector<const opt::RuleSet*> rulesets{&opt::RuleSet::defaultRules()};
+    std::vector<const opt::RuleSet*> rulesets{&opt::RuleSet::DefaultRules()};
     if (FLAGS_enable_optimizer) {
-        rulesets.emplace_back(&opt::RuleSet::queryRules());
+        rulesets.emplace_back(&opt::RuleSet::QueryRules());
     }
     optimizer_ = std::make_unique<opt::Optimizer>(rulesets);
 

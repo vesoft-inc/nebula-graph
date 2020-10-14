@@ -45,7 +45,7 @@ StatusOr<OptGroup *> Optimizer::prepare(QueryContext *qctx, PlanNode *root) {
 Status Optimizer::doExploration(OptGroup *rootGroup) {
     for (auto ruleSet : ruleSets_) {
         for (auto rule : ruleSet->rules()) {
-            NG_RETURN_IF_ERROR(rootGroup_->exploreUtilMaxRound(rule));
+            NG_RETURN_IF_ERROR(rootGroup->exploreUntilMaxRound(rule));
         }
     }
     return Status::OK();
