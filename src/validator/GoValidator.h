@@ -65,8 +65,6 @@ private:
 
     PlanNode* buildJoinDstProps(PlanNode* projectSrcDstProps);
 
-    bool notAllPropsEmpty();
-
 private:
     Over                                                    over_;
     Expression*                                             filter_{nullptr};
