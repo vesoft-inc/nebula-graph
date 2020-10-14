@@ -306,11 +306,17 @@ Status GoValidator::buildMToNPlan() {
 
     PlanNode* dependencyForProjectResult = dedupDstVids;
 
-    // Trace to the start vid if $-.prop was declared.
+    PlanNode* dedupSrcDstVids = nullptr;
+    if (from_.fromType != FromType::kInstantExpr) {
+        dedupSrcDstVids = projectSrcDstVidsFromGN(dedupDstVids, gn);
+        dependencyForProjectResult = dedupSrcDstVids;
+    }
+
+    // Trace to the start vid if starts from a runtime start vid.
     PlanNode* projectFromJoin = nullptr;
-    if ((!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) &&
-            projectLeftVarForJoin != nullptr && dedupDstVids != nullptr) {
-        projectFromJoin = traceToStartVid(projectLeftVarForJoin, dedupDstVids);
+    if (from_.fromType != FromType::kInstantExpr  &&
+        projectLeftVarForJoin != nullptr && dedupSrcDstVids != nullptr) {
+        projectFromJoin = traceToStartVid(projectLeftVarForJoin, dedupSrcDstVids);
     }
 
     // Get the src props and edge props if $-.prop, $var.prop, $$.tag.prop were declared.
@@ -318,6 +324,9 @@ Status GoValidator::buildMToNPlan() {
     if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty() ||
         !exprProps_.dstTagProps().empty()) {
         PlanNode* depForProject = dedupDstVids;
+        if (dedupSrcDstVids != nullptr) {
+            depForProject = projectFromJoin;
+        }
         if (projectFromJoin != nullptr) {
             depForProject = projectFromJoin;
         }
@@ -346,9 +355,12 @@ Status GoValidator::buildMToNPlan() {
     if (filter_ != nullptr) {
         auto* filterNode = Filter::make(qctx_, dependencyForProjectResult,
                     newFilter_ != nullptr ? newFilter_ : filter_);
-        filterNode->setInputVar(
-            dependencyForProjectResult == dedupDstVids ?
-                gn->outputVar() : dependencyForProjectResult->outputVar());
+        if (dependencyForProjectResult == dedupDstVids ||
+            dependencyForProjectResult == dedupSrcDstVids) {
+            filterNode->setInputVar(gn->outputVar());
+        } else {
+            filterNode->setInputVar(dependencyForProjectResult->outputVar());
+        }
         filterNode->setColNames(dependencyForProjectResult->colNames());
         dependencyForProjectResult = filterNode;
     }
@@ -356,9 +368,12 @@ Status GoValidator::buildMToNPlan() {
     SingleInputNode* projectResult =
         Project::make(qctx_, dependencyForProjectResult,
         newYieldCols_ != nullptr ? newYieldCols_ : yields_);
-    projectResult->setInputVar(
-            dependencyForProjectResult == dedupDstVids ?
-                gn->outputVar() : dependencyForProjectResult->outputVar());
+    if (dependencyForProjectResult == dedupDstVids ||
+        dependencyForProjectResult == dedupSrcDstVids) {
+        projectResult->setInputVar(gn->outputVar());
+    } else {
+        projectResult->setInputVar(dependencyForProjectResult->outputVar());
+    }
     projectResult->setColNames(std::vector<std::string>(colNames_));
 
     SingleInputNode* dedupNode = nullptr;
