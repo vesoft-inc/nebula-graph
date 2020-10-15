@@ -361,9 +361,9 @@ Status Validator::checkDuplicateColName() {
     if (!inputs_.empty()) {
         std::unordered_map<std::string, bool> names;
         for (auto& item : inputs_) {
-            auto ret = names.emplace(item.first, true);
+            auto ret = names.emplace(item.name, true);
             if (!ret.second) {
-                return Status::SemanticError("Duplicate Column Name : `%s'", item.first.c_str());
+                return Status::SemanticError("Duplicate Column Name : `%s'", item.name.c_str());
             }
         }
     }
@@ -375,10 +375,10 @@ Status Validator::checkDuplicateColName() {
         if (!varProps.empty()) {
             std::unordered_map<std::string, bool> names;
             for (auto& item : varProps) {
-                auto ret = names.emplace(item.first, true);
+                auto ret = names.emplace(item.name, true);
                 if (!ret.second) {
                     return Status::SemanticError("Duplicate Column Name : `%s'",
-                                                 item.first.c_str());
+                                                 item.name.c_str());
                 }
             }
         }

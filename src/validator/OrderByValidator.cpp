@@ -22,7 +22,7 @@ Status OrderByValidator::validateImpl() {
         auto expr = static_cast<InputPropertyExpression*>(factor->expr());
         NG_RETURN_IF_ERROR(deduceExprType(expr));
         auto* name = expr->prop();
-        auto eq = [&](const ColDef& col) { return col.first == *name; };
+        auto eq = [&](const ColDef& col) { return col.name == *name; };
         auto iter = std::find_if(outputs_.cbegin(), outputs_.cend(), eq);
         size_t colIdx = std::distance(outputs_.cbegin(), iter);
         colOrderTypes_.emplace_back(std::make_pair(colIdx, factor->orderType()));
