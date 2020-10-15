@@ -27,9 +27,9 @@ namespace graph {
 QueryInstance::QueryInstance(std::unique_ptr<QueryContext> qctx) {
     qctx_ = std::move(qctx);
     scheduler_ = std::make_unique<Scheduler>(qctx_.get());
-    std::vector<const RuleSet *> rulesets{&RuleSet::defaultRules()};
+    std::vector<const RuleSet *> rulesets{&RuleSet::DefaultRules()};
     if (FLAGS_enable_optimizer) {
-        rulesets.emplace_back(&RuleSet::queryRules());
+        rulesets.emplace_back(&RuleSet::QueryRules());
     }
     optimizer_ = std::make_unique<Optimizer>(qctx_.get(), std::move(rulesets));
 }
@@ -122,14 +122,38 @@ void QueryInstance::onFinish() {
 void QueryInstance::onError(Status status) {
     LOG(ERROR) << status;
     auto *rctx = qctx()->rctx();
-    if (status.isSyntaxError()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);
-    } else if (status.isStatementEmpty()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_STATEMENT_EMTPY);
-    } else if (status.isSemanticError()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_SEMANTIC_ERROR);
-    } else {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
+    switch (status.code()) {
+        case Status::Code::kOk:
+            rctx->resp().set_error_code(cpp2::ErrorCode::SUCCEEDED);
+            break;
+        case Status::Code::kSyntaxError:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);
+            break;
+        case Status::Code::kStatementEmpty:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_STATEMENT_EMTPY);
+            break;
+        case Status::Code::kSemanticError:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_SEMANTIC_ERROR);
+            break;
+        case Status::Code::kPermissionError:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_BAD_PERMISSION);
+            break;
+        case Status::Code::kBalanced:
+        case Status::Code::kEdgeNotFound:
+        case Status::Code::kError:
+        case Status::Code::kHostNotFound:
+        case Status::Code::kIndexNotFound:
+        case Status::Code::kInserted:
+        case Status::Code::kKeyNotFound:
+        case Status::Code::kLeaderChanged:
+        case Status::Code::kNoSuchFile:
+        case Status::Code::kNotSupported:
+        case Status::Code::kPartNotFound:
+        case Status::Code::kSpaceNotFound:
+        case Status::Code::kTagNotFound:
+        case Status::Code::kUserNotFound:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
+            break;
     }
     auto &spaceName = rctx->session()->space().name;
     rctx->resp().set_space_name(spaceName);

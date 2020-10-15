@@ -59,6 +59,7 @@ class NebulaService(object):
                                     ports[1], ports[2])
         if name == 'graphd':
             param += ' --enable_optimizer=true'
+            param += ' --enable_authorize=true'
         if name == 'storaged':
             param += ' --raft_heartbeat_interval_secs=30'
         if debug_log:
@@ -110,7 +111,6 @@ class NebulaService(object):
                 return True
             time.sleep(1)
         return False
-
 
     def start(self, debug_log=True):
         os.chdir(self.work_dir)
