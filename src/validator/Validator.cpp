@@ -28,7 +28,6 @@
 #include "validator/MutateValidator.h"
 #include "validator/OrderByValidator.h"
 #include "validator/PipeValidator.h"
-#include "validator/ReportError.h"
 #include "validator/SequentialValidator.h"
 #include "validator/SetValidator.h"
 #include "validator/UseValidator.h"
@@ -197,11 +196,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
         case Sentence::Kind::kIngest:
         case Sentence::Kind::kReturn: {
             // nothing
-            DLOG(FATAL) << "Unimplemented sentence " << kind;
+            LOG(FATAL) << "Unimplemented sentence " << kind;
         }
     }
-    DLOG(FATAL) << "Unknown sentence " << static_cast<int>(kind);
-    return std::make_unique<ReportError>(sentence, context);
+    LOG(FATAL) << "Unknown sentence " << static_cast<int>(kind);
 }
 
 // static
