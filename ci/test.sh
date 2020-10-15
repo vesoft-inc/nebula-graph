@@ -15,8 +15,10 @@ mkdir -p $BUILD_DIR
 
 function get_py_client() {
     git clone -b v2.0 https://github.com/vesoft-inc/nebula-python.git
-    cd nebula-python
+    pushd nebula-python
     python3 setup.py install --user
+    popd
+    rm -rf nebula-python
 }
 
 function prepare() {
@@ -100,7 +102,8 @@ function run_test() {
         $PROJ_DIR/tests/query/stateless/test_range.py \
         $PROJ_DIR/tests/query/stateless/test_go.py \
         $PROJ_DIR/tests/query/stateless/test_simple_query.py \
-        $PROJ_DIR/tests/query/stateless/test_keyword.py
+        $PROJ_DIR/tests/query/stateless/test_keyword.py \
+        $PROJ_DIR/tests/query/stateless/test_lookup.py
 }
 
 case "$1" in

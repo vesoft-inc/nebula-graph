@@ -8,11 +8,12 @@
 #define VALIDATOR_VALIDATOR_H_
 
 #include "common/base/Base.h"
+#include "service/PermissionCheck.h"
 #include "planner/ExecutionPlan.h"
 #include "parser/Sentence.h"
 #include "context/ValidateContext.h"
 #include "context/QueryContext.h"
-#include "validator/ExpressionProps.h"
+#include "visitor/DeducePropsVisitor.h"
 
 namespace nebula {
 
@@ -64,10 +65,19 @@ public:
 protected:
     Validator(Sentence* sentence, QueryContext* qctx);
 
+    // So the validate call `spaceChosen` -> `validateImpl` -> `checkPermission` -> `toPlan`
+    // in order
+
     /**
      * Check if a space is chosen for this sentence.
      */
     virtual bool spaceChosen();
+
+    // Do all permission checking in validator except which need execute
+    // TODO(shylock) do all permission which don't need execute in here
+    virtual Status checkPermission() {
+        return PermissionCheck::permissionCheck(qctx_->rctx()->session(), sentence_, space_.id);
+    }
 
     /**
      * Validate the sentence.

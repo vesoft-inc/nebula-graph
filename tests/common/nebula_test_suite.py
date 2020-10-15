@@ -16,6 +16,7 @@ from nebula2.common import ttypes as CommonTtypes
 from nebula2.ConnectionPool import ConnectionPool
 from nebula2.graph import ttypes
 from tests.common.configs import get_delay_time
+import functools
 import re
 
 
@@ -29,7 +30,7 @@ T_NULL_BAD_DATA.set_nVal(CommonTtypes.NullType.BAD_DATA)
 T_NULL_BAD_TYPE = CommonTtypes.Value()
 T_NULL_BAD_TYPE.set_nVal(CommonTtypes.NullType.BAD_TYPE)
 T_NULL_UNKNOWN_PROP = CommonTtypes.Value()
-T_NULL_BAD_TYPE.set_nVal(CommonTtypes.NullType.UNKNOWN_PROP)
+T_NULL_UNKNOWN_PROP.set_nVal(CommonTtypes.NullType.UNKNOWN_PROP)
 T_NULL_UNKNOWN_DIV_BY_ZERO = CommonTtypes.Value()
 T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.DIV_BY_ZERO)
 
@@ -146,9 +147,18 @@ class NebulaTestSuite(object):
     def create_nebula_clients(self):
         self.client_pool = ConnectionPool(ip=self.host,
                                           port=self.port,
+                                          socket_num=16,
                                           network_timeout=0)
         self.client = GraphClient(self.client_pool)
         self.client.authenticate(self.user, self.password)
+
+    @classmethod
+    def spawn_nebula_client(self):
+        return GraphClient(self.client_pool)
+
+    @classmethod
+    def close_nebula_client(self, client):
+        client.sign_out()
 
     @classmethod
     def close_nebula_clients(self):
@@ -423,9 +433,9 @@ class NebulaTestSuite(object):
         if resp.data is None:
             assert False, 'resp.data is None'
         rows = resp.data.rows
-        if not is_regex:
-            msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
-            assert len(rows) == len(expect), msg
+        
+        msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
+        assert len(rows) == len(expect), msg
 
         new_expect = expect
         if not is_regex:
@@ -485,41 +495,142 @@ class NebulaTestSuite(object):
             empty = True
         assert empty, msg
 
+    def compare_vertex(self, vertex1, vertex2):
+        assert isinstance(vertex1, CommonTtypes.Vertex) and isinstance(vertex2, CommonTtypes.Vertex)
+        if vertex1.vid != vertex2.vid:
+            if vertex1.vid < vertex2.vid:
+                return -1
+            return 1
+        if len(vertex1.tags) != len(vertex2.tags):
+            return len(vertex1.tags) - len(vertex2.tags)
+        return 0
+
+    def compare_edge(self, edge1, edge2):
+        assert isinstance(edge1, CommonTtypes.Edge) and isinstance(edge2, CommonTtypes.Edge)
+        if edge1.src != edge2.src:
+            if edge1.src < edge2.src:
+                return -1
+            return 1
+        if edge1.dst != edge2.dst:
+            if edge1.dst < edge2.dst:
+                return -1
+            return 1
+        if edge1.type != edge2.type:
+            return edge1.type - edge2.type
+        if edge1.ranking != edge2.ranking:
+            return edge1.ranking - edge2.ranking
+        if len(edge1.props) != len(edge2.props):
+            return len(edge1.props) - len(edge2.props)
+        return 0
+
+    def sort_vertex_list(self, rows):
+        assert len(rows) == 1
+        if isinstance(rows[0], CommonTtypes.Row):
+            vertex_list = list(map(lambda v : v.get_vVal(), rows[0].values[0].get_lVal().values))
+            sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
+        elif isinstance(rows[0], list):
+            vertex_list = list(map(lambda v : v.get_vVal(), rows[0][0]))
+            sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
+        else:
+            assert False
+        return sort_vertex_list
+
+    def sort_vertex_edge_list(self, rows):
+        new_rows = list()
+        for row in rows:
+            new_row = list()
+            if isinstance(row, CommonTtypes.Row):
+                vertex_list = row.values[0].get_lVal().values
+                new_vertex_list = list(map(lambda v : v.get_vVal(), vertex_list))
+                new_row.extend(sorted(new_vertex_list, key = functools.cmp_to_key(self.compare_vertex)))
+
+                edge_list = row.values[1].get_lVal().values
+                new_edge_list = list(map(lambda e : e.get_eVal(), edge_list))
+                new_row.extend(sorted(new_edge_list, key = functools.cmp_to_key(self.compare_edge)))
+            elif isinstance(row, list):
+                vertex_list = list(map(lambda v : v.get_vVal(), row[0]))
+                sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
+                new_row.extend(sort_vertex_list)
+
+                edge_list = list(map(lambda e: e.get_eVal(), row[1]))
+                sort_edge_list = sorted(edge_list, key = functools.cmp_to_key(self.compare_edge))
+                new_row.extend(sort_edge_list)
+            else:
+                assert False, "Unsupport type : {}".format(type(row))
+
+            new_rows.append(new_row)
+        return new_rows
+
+    def check_subgraph_result(self, resp, expect):
+        if resp.data is None and len(expect) == 0:
+            return True
+
+        if resp.data is None:
+            return False, 'resp.data is None'
+
+        rows = resp.data.rows
+
+        msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
+        assert len(rows) == len(expect), msg
+
+        if len(resp.data.column_names) == 1:
+            new_rows = self.sort_vertex_list(rows)
+            new_expect = self.sort_vertex_list(expect)
+        else:
+            new_rows = self.sort_vertex_edge_list(rows)
+            new_expect = self.sort_vertex_edge_list(expect)
+
+        for exp in new_expect:
+            find = False
+            for row in new_rows:
+                if row == exp:
+                    find = True
+                    new_rows.remove(row)
+                    break
+            assert find, 'Can not find {}'.format(exp)
+
+        assert len(new_rows) == 0
+
+
     @classmethod
-    def check_path_result(self, rows, expect):
+    def check_path_result_without_prop(self, rows, expect):
         msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
         assert len(rows) == len(expect), msg
         for exp in expect:
-            path = ttypes.Path()
-            path.entry_list = []
-            for ecol, j in zip(exp, range(len(exp))):
-                if j % 2 == 0 or j == len(exp):
-                    pathEntry = ttypes.PathEntry()
-                    vertex = ttypes.Vertex()
-                    vertex.id = ecol
-                    pathEntry.set_vertex(vertex)
-                    path.entry_list.append(pathEntry)
+            path = CommonTtypes.Path()
+            path.steps = []
+            for col, j in zip(exp, range(len(exp))):
+                if j == 0:
+                    src = CommonTtypes.Vertex()
+                    src.vid = col
+                    src.tags = []
+                    path.src = src
                 else:
-                    assert len(ecol) == 2, \
-                        "invalid values size in expect result"
-                    pathEntry = ttypes.PathEntry()
-                    edge = ttypes.Edge()
-                    edge.type = ecol[0]
-                    edge.ranking = ecol[1]
-                    pathEntry.set_edge(edge)
-                    path.entry_list.append(pathEntry)
+                    assert len(col) == 3, \
+                        "{} invalid values size in expect result".format(exp.__repr__())
+                    step = CommonTtypes.Step()
+                    step.name = col[0]
+                    step.ranking = col[1]
+                    step.type = 1
+                    dst = CommonTtypes.Vertex()
+                    dst.vid = col[2]
+                    dst.tags = []
+                    step.dst = dst
+                    step.props = {}
+                    path.steps.append(step)
             find = False
             for row in rows:
                 assert len(row.values) == 1, \
                     "invalid values size in rows: {}".format(row)
-                assert row.values[0].getType()() == ttypes.Value.PATH, \
+                assert row.values[0].getType() == CommonTtypes.Value.PVAL, \
                     "invalid column path type: {}".format(row.values[0].getType()())
-                if row.values[0].get_path() == path:
+                if row.values[0].get_pVal() == path:
                     find = True
                     break
-            msg = self.check_format_str.format(row.values[0].get_path(), path)
+            msg = self.check_format_str.format(row.values[0].get_pVal(), path)
             assert find, msg
             rows.remove(row)
+        assert len(rows) == 0
 
     @classmethod
     def check_error_msg(self, resp, expect):

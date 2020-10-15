@@ -31,13 +31,10 @@ class IndexScanRule final : public OptRule {
     FRIEND_TEST(IndexScanRuleTest, IQCtxTest);
 
 public:
-    static std::unique_ptr<OptRule> kInstance;
+    const Pattern& pattern() const override;
 
-    bool match(const OptGroupExpr *groupExpr) const override;
-
-    Status transform(graph::QueryContext *qctx,
-                     const OptGroupExpr *groupExpr,
-                     TransformResult *result) const override;
+    StatusOr<TransformResult> transform(graph::QueryContext* qctx,
+                                        const MatchedResult& matched) const override;
 
     std::string toString() const override;
 
@@ -100,6 +97,8 @@ private:
         }
     };
 
+    static std::unique_ptr<OptRule> kInstance;
+
     IndexScanRule();
 
     Status createIndexQueryCtx(IndexQueryCtx &iqctx,
@@ -129,8 +128,6 @@ private:
     Status boundValue(const FilterItem& item,
                       const meta::cpp2::ColumnDef& col,
                       Value& begin, Value& end) const;
-
-    IndexScan* cloneIndexScan(graph::QueryContext *qctx, const OptGroupExpr *groupExpr) const;
 
     bool isEdge(const OptGroupExpr *groupExpr) const;
 

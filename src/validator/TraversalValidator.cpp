@@ -137,8 +137,6 @@ Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
     return Status::OK();
 }
 
-
-
 PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
     Project* project = nullptr;
     auto* columns = qctx_->objPool()->add(new YieldColumns());
@@ -146,14 +144,6 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
         new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
         new std::string(kVid));
     columns->addColumn(column);
-
-    srcVidColName_ = vctx_->anonColGen()->getCol();
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
-        column =
-            new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
-                            new std::string(srcVidColName_));
-        columns->addColumn(column);
-    }
 
     project = Project::make(qctx_, gn, columns);
     project->setInputVar(gn->outputVar());
@@ -167,22 +157,21 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
     return dedupDstVids;
 }
 
-std::string TraversalValidator::buildConstantInput() {
-    auto input = vctx_->anonVarGen()->getVar();
+void TraversalValidator::buildConstantInput(const Starts& starts,
+                                            std::string& startVidsVar,
+                                            Expression*& vids) {
+    startVidsVar = vctx_->anonVarGen()->getVar();
     DataSet ds;
     ds.colNames.emplace_back(kVid);
-    for (auto& vid : from_.vids) {
+    for (auto& vid : starts.vids) {
         Row row;
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
+    qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
-    auto* vids = new VariablePropertyExpression(new std::string(input),
-                                                new std::string(kVid));
+    vids = new VariablePropertyExpression(new std::string(startVidsVar), new std::string(kVid));
     qctx_->objPool()->add(vids);
-    src_ = vids;
-    return input;
 }
 
 PlanNode* TraversalValidator::buildRuntimeInput() {
