@@ -291,25 +291,25 @@ std::string FetchEdgesValidator::buildRuntimeInput() {
 Expression* FetchEdgesValidator::emptyEdgeKeyFilter(const PlanNode *input) {
     // _src != empty && _dst != empty && _rank != empty
     DCHECK_GE(geColNames_.size(), 3);
-    auto *colEmptyExpr1 = new RelationalExpression(
+    auto *srcEmptyExpr = new RelationalExpression(
         Expression::Kind::kRelNE,
         new ConstantExpression(Value::kEmpty),
         new VariablePropertyExpression(new std::string(input->outputVar()),
                                        new std::string(geColNames_[0])));
-    auto *colEmptyExpr2 = new RelationalExpression(
+    auto *dstEmptyExpr = new RelationalExpression(
         Expression::Kind::kRelNE,
         new ConstantExpression(Value::kEmpty),
         new VariablePropertyExpression(new std::string(input->outputVar()),
                                        new std::string(geColNames_[1])));
-    auto *colEmptyExpr3 = new RelationalExpression(
+    auto *rankEmptyExpr = new RelationalExpression(
         Expression::Kind::kRelNE,
         new ConstantExpression(Value::kEmpty),
         new VariablePropertyExpression(new std::string(input->outputVar()),
                                        new std::string(geColNames_[2])));
     auto *edgeKeyEmptyExpr = qctx_->objPool()->makeAndAdd<LogicalExpression>(
         Expression::Kind::kLogicalAnd,
-        colEmptyExpr3,
-        new LogicalExpression(Expression::Kind::kLogicalAnd, colEmptyExpr1, colEmptyExpr2));
+        srcEmptyExpr,
+        new LogicalExpression(Expression::Kind::kLogicalAnd, dstEmptyExpr, rankEmptyExpr));
     return edgeKeyEmptyExpr;
 }
 
