@@ -38,7 +38,7 @@ Status GetNeighborsExecutor::close() {
 
 Status GetNeighborsExecutor::buildRequestDataSet() {
     SCOPED_TIMER(&execTime_);
-    auto& inputVar = gn_->inputVar();
+    auto inputVar = gn_->inputVar();
     VLOG(1) << node()->outputVar() << " : " << inputVar;
     auto& inputResult = ectx_->getResult(inputVar);
     auto iter = inputResult.iter();
@@ -54,8 +54,12 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
         if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vid_type)) {
             continue;
         }
-        auto ret = uniqueVid.emplace(val);
-        if (ret.second) {
+        if (gn_->dedup()) {
+            auto ret = uniqueVid.emplace(val);
+            if (ret.second) {
+                reqDs_.rows.emplace_back(Row({std::move(val)}));
+            }
+        } else {
             reqDs_.rows.emplace_back(Row({std::move(val)}));
         }
     }

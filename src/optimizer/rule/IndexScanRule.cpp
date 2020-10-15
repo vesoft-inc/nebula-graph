@@ -10,28 +10,31 @@
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
 
+using nebula::graph::IndexScan;
+
 namespace nebula {
 namespace opt {
 std::unique_ptr<OptRule> IndexScanRule::kInstance =
     std::unique_ptr<IndexScanRule>(new IndexScanRule());
 
 IndexScanRule::IndexScanRule() {
-    RuleSet::defaultRules().addRule(this);
+    RuleSet::DefaultRules().addRule(this);
 }
 
-bool IndexScanRule::match(const OptGroupExpr *groupExpr) const {
-    return groupExpr->node()->kind() == PlanNode::Kind::kIndexScan;
+const Pattern& IndexScanRule::pattern() const {
+    static Pattern pattern = Pattern::create(graph::PlanNode::Kind::kIndexScan);
+    return pattern;
 }
 
-Status IndexScanRule::transform(graph::QueryContext *qctx,
-                                const OptGroupExpr *groupExpr,
-                                TransformResult *result) const {
-    FilterItems items;
-    ScanKind kind;
+StatusOr<OptRule::TransformResult> IndexScanRule::transform(graph::QueryContext* qctx,
+                                                            const MatchedResult& matched) const {
+    auto groupExpr = matched.node;
     auto filter = filterExpr(groupExpr);
     if (filter == nullptr) {
         return Status::SemanticError("WHERE clause error");
     }
+    FilterItems items;
+    ScanKind kind;
     auto ret = analyzeExpression(filter.get(), &items, &kind, isEdge(groupExpr));
     NG_RETURN_IF_ERROR(ret);
 
@@ -39,16 +42,17 @@ Status IndexScanRule::transform(graph::QueryContext *qctx,
     ret = createIndexQueryCtx(iqctx, kind, items, qctx, groupExpr);
     NG_RETURN_IF_ERROR(ret);
 
-    auto newIN = cloneIndexScan(qctx, groupExpr);
+    auto newIN = static_cast<const IndexScan*>(groupExpr->node())->clone(qctx);
     newIN->setIndexQueryContext(std::move(iqctx));
     auto newGroupExpr = OptGroupExpr::create(qctx, newIN, groupExpr->group());
     if (groupExpr->dependencies().size() != 1) {
         return Status::Error("Plan node dependencies error");
     }
     newGroupExpr->dependsOn(groupExpr->dependencies()[0]);
-    result->newGroupExprs.emplace_back(newGroupExpr);
-    result->eraseAll = true;
-    return Status::OK();
+    TransformResult result;
+    result.newGroupExprs.emplace_back(newGroupExpr);
+    result.eraseAll = true;
+    return result;
 }
 
 std::string IndexScanRule::toString() const {
@@ -234,21 +238,6 @@ Status IndexScanRule::boundValue(const FilterItem& item,
     return Status::OK();
 }
 
-IndexScan* IndexScanRule::cloneIndexScan(graph::QueryContext *qctx,
-                                         const OptGroupExpr *groupExpr) const {
-    auto in = static_cast<const IndexScan *>(groupExpr->node());
-    auto ctx = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
-    auto returnCols = std::make_unique<std::vector<std::string>>(*in->returnColumns());
-    auto indexScan = IndexScan::make(qctx,
-                                     nullptr,
-                                     in->space(),
-                                     std::move(ctx),
-                                     std::move(returnCols),
-                                     in->isEdge(),
-                                     in->schemaId());
-    return indexScan;
-}
-
 bool IndexScanRule::isEdge(const OptGroupExpr *groupExpr) const {
     auto in = static_cast<const IndexScan *>(groupExpr->node());
     return in->isEdge();
@@ -269,6 +258,7 @@ IndexScanRule::filterExpr(const OptGroupExpr *groupExpr) const {
     auto in = static_cast<const IndexScan *>(groupExpr->node());
     auto qct = in->queryContext();
     // The initial IndexScan plan node has only one queryContext.
+    // TODO(yee): Move this condition to match interface
     if (qct->size() != 1) {
         LOG(ERROR) << "Index Scan plan node error";
         return nullptr;
