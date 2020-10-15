@@ -22,28 +22,17 @@ namespace opt {
 
 class LimitPushDownRule final : public OptRule {
 public:
-    static std::unique_ptr<OptRule> kInstance;
+    const Pattern &pattern() const override;
 
-    bool match(const OptGroupExpr *groupExpr) const override;
-    Status transform(graph::QueryContext *qctx,
-                     const OptGroupExpr *groupExpr,
-                     TransformResult *result) const override;
+    StatusOr<OptRule::TransformResult> transform(graph::QueryContext *qctx,
+                                                 const MatchedResult &matched) const override;
+
     std::string toString() const override;
 
 private:
     LimitPushDownRule();
 
-    graph::Limit *cloneLimit(graph::QueryContext *qctx,
-                             const graph::Limit *limit) const;
-
-    graph::Project *cloneProj(graph::QueryContext *qctx,
-                              const graph::Project *proj) const;
-
-    graph::GetNeighbors *cloneGetNbrs(graph::QueryContext *qctx,
-                                      const graph::GetNeighbors *getNbrs) const;
-
-    std::pair<bool, std::vector<const OptGroupExpr *>>
-    findMatchedGroupExpr(const OptGroupExpr *groupExpr) const;
+    static std::unique_ptr<OptRule> kInstance;
 };
 
 }   // namespace opt
