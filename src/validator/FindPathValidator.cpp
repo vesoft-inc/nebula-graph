@@ -9,6 +9,7 @@
 #include "common/expression/VariableExpression.h"
 #include "planner/Algo.h"
 #include "planner/Logic.h"
+#include "util/PathWeight.h"
 
 namespace nebula {
 namespace graph {

@@ -13,6 +13,7 @@ nebula_add_library(
     
     GroupUtil.cpp
     ToJson.cpp
+    PathWeight.cpp
 )
 
 nebula_add_library(

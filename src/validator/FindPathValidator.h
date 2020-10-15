@@ -58,6 +58,7 @@ private:
 private:
     bool isShortest_{false};
     bool isWeight_{false};
+    Value weightProp_;
     Starts to_;
     Over over_;
     Steps steps_;

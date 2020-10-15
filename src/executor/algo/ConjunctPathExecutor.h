@@ -8,6 +8,7 @@
 #define EXECUTOR_ALGO_CONJUNCTPATHEXECUTOR_H_
 
 #include "executor/Executor.h"
+#include "util/PathWeight.h"
 
 namespace nebula {
 namespace graph {
@@ -60,6 +61,7 @@ private:
     // startVid : {endVid, cost}
     std::unordered_map<Value, std::unordered_map<Value, Value>> historyCostMap_;
     std::string conditionalVar_;
+    std::unique_ptr<IWeight>  weight_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula
