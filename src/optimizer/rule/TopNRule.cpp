@@ -30,67 +30,46 @@ std::unique_ptr<OptRule> TopNRule::kInstance =
     std::unique_ptr<TopNRule>(new TopNRule());
 
 TopNRule::TopNRule() {
-    RuleSet::queryRules().addRule(this);
+    RuleSet::QueryRules().addRule(this);
 }
 
-bool TopNRule::match(const OptGroupExpr *groupExpr) const {
-    auto pair = findMatchedGroupExpr(groupExpr);
-    if (!pair.first) {
-        return false;
+const Pattern &TopNRule::pattern() const {
+    static Pattern pattern = Pattern::create(
+        graph::PlanNode::Kind::kLimit, {Pattern::create(graph::PlanNode::Kind::kSort)});
+    return pattern;
+}
+
+StatusOr<OptRule::TransformResult> TopNRule::transform(QueryContext *qctx,
+                                                       const MatchedResult &matched) const {
+    auto limitExpr = matched.node;
+    auto sortExpr = matched.dependencies.front().node;
+    auto limit = static_cast<const Limit *>(limitExpr->node());
+    auto sort = static_cast<const Sort *>(sortExpr->node());
+
+    // Currently, we cannot know the total amount of input data,
+    // so only apply topn rule when offset of limit is 0
+    if (limit->offset() != 0) {
+        return TransformResult{false, false, {}};
     }
-
-    return true;
-}
-
-Status TopNRule::transform(QueryContext *qctx,
-                           const OptGroupExpr *groupExpr,
-                           TransformResult *result) const {
-    auto pair = findMatchedGroupExpr(groupExpr);
-    auto limit = static_cast<const Limit *>(groupExpr->node());
-    auto sort = static_cast<const Sort *>(pair.second->node());
 
     auto topn = TopN::make(qctx, nullptr, sort->factors(), limit->offset(), limit->count());
     topn->setOutputVar(limit->outputVar());
     topn->setInputVar(sort->inputVar());
     topn->setColNames(sort->colNames());
-    auto topnExpr = OptGroupExpr::create(qctx, topn, groupExpr->group());
-    for (auto dep : pair.second->dependencies()) {
+    auto topnExpr = OptGroupExpr::create(qctx, topn, limitExpr->group());
+    for (auto dep : sortExpr->dependencies()) {
         topnExpr->dependsOn(dep);
     }
 
-    result->newGroupExprs.emplace_back(topnExpr);
-    result->eraseAll = true;
-    result->eraseCurr = true;
-
-    return Status::OK();
+    TransformResult result;
+    result.newGroupExprs.emplace_back(topnExpr);
+    result.eraseAll = true;
+    result.eraseCurr = true;
+    return result;
 }
 
 std::string TopNRule::toString() const {
     return "TopNRule";
-}
-
-std::pair<bool, const OptGroupExpr *> TopNRule::findMatchedGroupExpr(
-    const OptGroupExpr *groupExpr) const {
-    auto node = groupExpr->node();
-    if (node->kind() != PlanNode::Kind::kLimit) {
-        return std::make_pair(false, nullptr);
-    }
-
-    auto limit = static_cast<const Limit *>(groupExpr->node());
-    // Currently, we cannot know the total amount of input data,
-    // so only apply topn rule when offset of limit is 0
-    if (limit->offset() != 0) {
-        return std::make_pair(false, nullptr);
-    }
-
-    for (auto dep : groupExpr->dependencies()) {
-        for (auto expr : dep->groupExprs()) {
-            if (expr->node()->kind() == PlanNode::Kind::kSort) {
-                return std::make_pair(true, expr);
-            }
-        }
-    }
-    return std::make_pair(false, nullptr);
 }
 
 }   // namespace opt
