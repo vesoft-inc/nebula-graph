@@ -293,17 +293,17 @@ Expression* FetchEdgesValidator::emptyEdgeKeyFilter(const PlanNode *input) {
     DCHECK_GE(geColNames_.size(), 3);
     auto *colEmptyExpr1 = new RelationalExpression(
         Expression::Kind::kRelNE,
-        new ConstantExpression(Value()),
+        new ConstantExpression(Value::kEmpty),
         new VariablePropertyExpression(new std::string(input->outputVar()),
                                        new std::string(geColNames_[0])));
     auto *colEmptyExpr2 = new RelationalExpression(
         Expression::Kind::kRelNE,
-        new ConstantExpression(Value()),
+        new ConstantExpression(Value::kEmpty),
         new VariablePropertyExpression(new std::string(input->outputVar()),
                                        new std::string(geColNames_[1])));
     auto *colEmptyExpr3 = new RelationalExpression(
         Expression::Kind::kRelNE,
-        new ConstantExpression(Value()),
+        new ConstantExpression(Value::kEmpty),
         new VariablePropertyExpression(new std::string(input->outputVar()),
                                        new std::string(geColNames_[2])));
     auto *edgeKeyEmptyExpr = qctx_->objPool()->makeAndAdd<LogicalExpression>(
