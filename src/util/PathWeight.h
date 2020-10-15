@@ -28,7 +28,7 @@ protected:
 class NoWeight final : public IWeight {
 public:
     explicit NoWeight(QueryContext* qctx) : IWeight(qctx) {}
-    int64_t getWeight(const Value &src, const Value& dst) {
+    int64_t getWeight(const Value &src, const Value& dst)  override {
         UNUSED(src);
         UNUSED(dst);
         return 1;
@@ -38,7 +38,7 @@ public:
 class TagWeight final : public IWeight {
 public:
     explicit TagWeight(QueryContext* qctx) : IWeight(qctx) {}
-    int64_t getWeight(const Value& src, const Value& dst) {
+    int64_t getWeight(const Value& src, const Value& dst) override {
         // todo
         LOG(FATAL) << "not implement " << src << " " << dst;
     }
@@ -55,7 +55,7 @@ private:
 class EdgeWeight final : public IWeight {
 public:
     explicit EdgeWeight(QueryContext* qctx) : IWeight(qctx) {}
-    int64_t getWeight(const Value& src, const Value& dst) {
+    int64_t getWeight(const Value& src, const Value& dst) override {
         // todo
         LOG(FATAL) << "not implement " << src << " " << dst;
     }
