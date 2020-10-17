@@ -62,6 +62,10 @@ public:
         noSpaceRequired_ = true;
     }
 
+    const Sentence* sentence() const {
+        return sentence_;
+    }
+
 protected:
     Validator(Sentence* sentence, QueryContext* qctx);
 
@@ -123,9 +127,6 @@ protected:
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
     ValidateContext*                vctx_{nullptr};
-    // root and tail of a subplan.
-    PlanNode*                       root_{nullptr};
-    PlanNode*                       tail_{nullptr};
     // The input columns and output columns of a sentence.
     ColsDef                         outputs_;
     ColsDef                         inputs_;
@@ -133,6 +134,10 @@ protected:
     std::string                     inputVarName_;
     // Admin sentences do not requires a space to be chosen.
     bool                            noSpaceRequired_{false};
+
+    // root and tail of a subplan.
+    PlanNode*                       root_{nullptr};
+    PlanNode*                       tail_{nullptr};
 };
 
 }  // namespace graph
