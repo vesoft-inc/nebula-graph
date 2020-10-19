@@ -15,12 +15,12 @@ class ProduceSemiShortestPathExecutor final : public Executor {
 public:
     ProduceSemiShortestPathExecutor(const PlanNode* node, QueryContext* qctx)
         : Executor("ProduceSemiShortestPath", node, qctx) {
-            setStartsVid();
+            init();
         }
 
     folly::Future<Status> execute() override;
 
-    void setStartsVid();
+    void init();
 
 private:
     void updateSrcDstCostPath(const Value& src, const Edge& edge);
@@ -29,7 +29,7 @@ private:
 private:
     // origin vids
     std::vector<Value> starts_;
-    //  src : {dst : <cost, path>}
+    //  src : {dst : {cost, {edge}}}
     std::unordered_map<Value, std::unordered_map<Value, std::pair<int64_t, std::shared_ptr<Path>>>>
         costPathMap_;
 
