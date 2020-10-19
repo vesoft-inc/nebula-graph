@@ -116,7 +116,6 @@ class TestOptimizer(NebulaTestSuite):
         self.check_exec_plan(resp, expected_plan)
         self.check_out_of_order_result(resp, expected_data)
 
-
     def test_TopNRule(self):
         resp = self.execute_query('''
             GO 1 STEPS FROM "Marco Belinelli" OVER like
