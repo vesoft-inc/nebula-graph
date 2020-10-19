@@ -116,6 +116,76 @@ class TestOptimizer(NebulaTestSuite):
         self.check_exec_plan(resp, expected_plan)
         self.check_out_of_order_result(resp, expected_data)
 
+    def test_TopNRule(self):
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Marco Belinelli" OVER like
+            YIELD like.likeness AS likeness
+             | ORDER BY likeness
+             | LIMIT 2
+        ''')
+        expected_plan = [
+            ["DataCollect", [1]],
+            ["TopN", [2]],
+            ["Project", [3]],
+            ["GetNeighbors", [4]],
+            ["Start", []]
+        ]
+        expected_data = [[50], [55]]
+        self.check_exec_plan(resp, expected_plan)
+        self.check_result(resp, expected_data)
+
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Marco Belinelli" OVER like REVERSELY
+            YIELD like.likeness AS likeness |
+            ORDER BY likeness |
+            LIMIT 1
+        ''')
+        expected_plan = [
+            ["DataCollect", [1]],
+            ["TopN", [2]],
+            ["Project", [3]],
+            ["GetNeighbors", [4]],
+            ["Start", []]
+        ]
+        expected_data = [[83]]
+        self.check_exec_plan(resp, expected_plan)
+        self.check_result(resp, expected_data)
+
+    def test_TopNRule_Failed(self):
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Marco Belinelli" OVER like
+            YIELD like.likeness as likeness
+             | ORDER BY likeness
+             | LIMIT 2, 3
+        ''')
+        expected_plan = [
+            ["DataCollect", [1]],
+            ["Limit", [2]],
+            ["Sort", [3]],
+            ["Project", [4]],
+            ["GetNeighbors", [5]],
+            ["Start", []]
+        ]
+        expected_data = [[60]]
+        self.check_exec_plan(resp, expected_plan)
+        self.check_result(resp, expected_data)
+
+        resp = self.execute_query('''
+            GO 1 STEPS FROM "Marco Belinelli" OVER like
+            YIELD like.likeness AS likeness
+             | ORDER BY likeness
+        ''')
+        expected_plan = [
+            ["DataCollect", [1]],
+            ["Sort", [2]],
+            ["Project", [3]],
+            ["GetNeighbors", [4]],
+            ["Start", []]
+        ]
+        expected_data = [[50], [55], [60]]
+        self.check_exec_plan(resp, expected_plan)
+        self.check_result(resp, expected_data)
+
     def test_LimitPushDownRule(self):
         resp = self.execute_query('''
             GO 1 STEPS FROM "James Harden" OVER like REVERSELY

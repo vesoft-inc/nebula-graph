@@ -751,7 +751,6 @@ private:
     int64_t     count_{-1};
 };
 
-
 /**
  * Do Aggregation with the given set of records,
  * such as AVG(), COUNT()...
