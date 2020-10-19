@@ -51,8 +51,8 @@ public:
         bool eraseAll{false};
         std::vector<OptGroupExpr *> newGroupExprs;
         static const TransformResult &noTransform() {
-            static TransformResult knoTransform{false, false, {}};
-            return knoTransform;
+            static TransformResult kNoTrans{false, false, {}};
+            return kNoTrans;
         }
     };
 
