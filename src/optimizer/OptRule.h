@@ -47,13 +47,13 @@ private:
 class OptRule {
 public:
     struct TransformResult {
-        bool eraseCurr{false};
-        bool eraseAll{false};
-        std::vector<OptGroupExpr *> newGroupExprs;
         static const TransformResult &noTransform() {
             static TransformResult kNoTrans{false, false, {}};
             return kNoTrans;
         }
+        bool eraseCurr{false};
+        bool eraseAll{false};
+        std::vector<OptGroupExpr *> newGroupExprs;
     };
 
     StatusOr<MatchedResult> match(const OptGroupExpr *groupExpr) const;
