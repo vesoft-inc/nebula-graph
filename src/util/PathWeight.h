@@ -13,12 +13,13 @@
 namespace nebula {
 namespace graph {
 
+
 class QueryContext;
 
 class IWeight {
 public:
     explicit IWeight(QueryContext* qctx) : qctx_(qctx) {}
-    virtual int64_t getWeight(const Value& src, const Value& dst) = 0;
+    virtual int64_t getWeight(const Value& src, const Value& dst, const Value& edge) = 0;
     virtual ~IWeight() = default;
 
 protected:
@@ -28,9 +29,10 @@ protected:
 class NoWeight final : public IWeight {
 public:
     explicit NoWeight(QueryContext* qctx) : IWeight(qctx) {}
-    int64_t getWeight(const Value &src, const Value& dst)  override {
+    int64_t getWeight(const Value &src, const Value& dst, const Value& edge)  override {
         UNUSED(src);
         UNUSED(dst);
+        UNUSED(edge);
         return 1;
     }
 };
@@ -38,7 +40,7 @@ public:
 class TagWeight final : public IWeight {
 public:
     explicit TagWeight(QueryContext* qctx) : IWeight(qctx) {}
-    int64_t getWeight(const Value& src, const Value& dst) override {
+    int64_t getWeight(const Value& src, const Value& dst, const Value& edge) override {
         // todo
         LOG(FATAL) << "not implement " << src << " " << dst;
     }
