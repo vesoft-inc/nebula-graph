@@ -23,15 +23,10 @@ public:
     void init();
 
 private:
-    void updateSrcDstCostPath(const Value& src, const Edge& edge);
-    void updateJumpDstCostPath(const Edge& edge);
-
-private:
     // origin vids
     std::vector<Value> starts_;
-    //  src : {dst : {cost, {edge}}}
-    std::unordered_map<Value, std::unordered_map<Value, std::pair<int64_t, std::shared_ptr<Path>>>>
-        costPathMap_;
+    // dst : {<cost, Path*>}
+    std::unordered_map<Value, std::vector<std::pair<int64_t, Path*>>> costPathMap_;
 
     // std::unique_ptr<IWeight> weight_;
 };
