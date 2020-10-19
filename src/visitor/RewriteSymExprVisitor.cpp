@@ -105,21 +105,35 @@ void RewriteSymExprVisitor::visit(VersionedVariableExpression *expr) {
 
 // container expression
 void RewriteSymExprVisitor::visit(ListExpression *expr) {
-    // FIXME(dutor)
-    UNUSED(expr);
-    hasWrongType_ = true;
+    const auto &items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        const_cast<Expression *>(items[i])->accept(this);
+        if (expr_) {
+            expr->setItem(i, expr_.release());
+        }
+    }
 }
 
 void RewriteSymExprVisitor::visit(SetExpression *expr) {
-    // FIXME(dutor)
-    UNUSED(expr);
-    hasWrongType_ = true;
+    const auto &items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        const_cast<Expression *>(items[i])->accept(this);
+        if (expr_) {
+            expr->setItem(i, expr_.release());
+        }
+    }
 }
 
 void RewriteSymExprVisitor::visit(MapExpression *expr) {
-    // FIXME(dutor)
-    UNUSED(expr);
-    hasWrongType_ = true;
+    const auto &items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        const auto &key = items[i].first;
+        const auto &value = items[i].second;
+        const_cast<Expression *>(value)->accept(this);
+        if (expr_) {
+            expr->setItem(i, std::make_pair(std::make_unique<std::string>(*key), std::move(expr_)));
+        }
+    }
 }
 
 // property Expression
