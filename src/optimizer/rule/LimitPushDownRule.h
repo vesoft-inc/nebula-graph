@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef OPTIMIZER_RULE_PUSHFILTERDOWNGETNBRSRULE_H_
-#define OPTIMIZER_RULE_PUSHFILTERDOWNGETNBRSRULE_H_
+#ifndef OPTIMIZER_RULE_LIMITPUSHDOWN_H_
+#define OPTIMIZER_RULE_LIMITPUSHDOWN_H_
 
 #include <memory>
 
@@ -13,22 +13,24 @@
 
 namespace nebula {
 namespace graph {
+class Limit;
+class Project;
 class GetNeighbors;
 }   // namespace graph
 
 namespace opt {
 
-class PushFilterDownGetNbrsRule final : public OptRule {
+class LimitPushDownRule final : public OptRule {
 public:
     const Pattern &pattern() const override;
 
-    StatusOr<TransformResult> transform(graph::QueryContext *qctx,
-                                        const MatchedResult &matched) const override;
+    StatusOr<OptRule::TransformResult> transform(graph::QueryContext *qctx,
+                                                 const MatchedResult &matched) const override;
 
     std::string toString() const override;
 
 private:
-    PushFilterDownGetNbrsRule();
+    LimitPushDownRule();
 
     static std::unique_ptr<OptRule> kInstance;
 };
@@ -36,4 +38,4 @@ private:
 }   // namespace opt
 }   // namespace nebula
 
-#endif   // OPTIMIZER_RULE_PUSHFILTERDOWNGETNBRSRULE_H_
+#endif   // OPTIMIZER_RULE_LIMITPUSHDOWN_H_
