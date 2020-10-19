@@ -50,9 +50,9 @@ public:
         bool eraseCurr{false};
         bool eraseAll{false};
         std::vector<OptGroupExpr *> newGroupExprs;
-        static const TransformResult &NoTransform() {
-            static TransformResult kNoTransform{false, false, {}};
-            return kNoTransform;
+        static const TransformResult &noTransform() {
+            static TransformResult knoTransform{false, false, {}};
+            return knoTransform;
         }
     };
 
