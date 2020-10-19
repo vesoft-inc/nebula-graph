@@ -54,7 +54,7 @@ StatusOr<OptRule::TransformResult> LimitPushDownRule::transform(
 
     int64_t limitRows = limit->offset() + limit->count();
     if (limitRows >= gn->limit()) {
-        return TransformResult::NoTransform();
+        return TransformResult::noTransform();
     }
 
     auto newLimit = limit->clone(qctx);
