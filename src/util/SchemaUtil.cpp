@@ -202,8 +202,8 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
                 break;
             }
             if (expr->kind() == Expression::Kind::kConstant) {
-                QueryExpressionContext ctx(nullptr, nullptr);
-                defaultValue = Expression::eval(expr.get(), ctx);
+                QueryExpressionContext ctx;
+                defaultValue = Expression::eval(expr.get(), ctx(nullptr));
             } else {
                 defaultValue = Value(expr->toString());
             }
@@ -247,8 +247,8 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
                 break;
             }
             if (expr->kind() == Expression::Kind::kConstant) {
-                QueryExpressionContext ctx(nullptr, nullptr);
-                auto& value = expr->eval(ctx);
+                QueryExpressionContext ctx;
+                auto& value = expr->eval(ctx(nullptr));
                 auto toStr = value.toString();
                 if (value.isNumeric() || value.isBool()) {
                     createStr += " DEFAULT " + toStr;

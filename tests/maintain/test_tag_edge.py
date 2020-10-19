@@ -566,7 +566,7 @@ class TestSchema(NebulaTestSuite):
         self.check_result(resp, expect_result)
 
         current_timestamp = int(time.time())
-        time.sleep(1)
+        time.sleep(self.delay)
         # insert successed
         resp = self.client.execute('INSERT VERTEX tag_function() VALUES "a":()')
         self.check_resp_succeeded(resp)
@@ -599,7 +599,7 @@ class TestSchema(NebulaTestSuite):
         self.check_result(resp, expect_result)
 
         current_timestamp = int(time.time())
-        time.sleep(1)
+        time.sleep(self.delay)
         # insert successed
         resp = self.client.execute('INSERT EDGE edge_function() VALUES "a"->"b":()')
         self.check_resp_succeeded(resp)

@@ -83,8 +83,8 @@ folly::dynamic toJson(const meta::cpp2::ColumnDef &column) {
         obj.insert("nullable", folly::to<std::string>(*column.get_nullable()));
     }
     if (column.__isset.default_value) {
-        graph::QueryExpressionContext ctx(nullptr, nullptr);
-        auto value = Expression::decode(*column.get_default_value())->eval(ctx);
+        graph::QueryExpressionContext ctx;
+        auto value = Expression::decode(*column.get_default_value())->eval(ctx(nullptr));
         obj.insert("defaultValue", value.toString());
     }
     return obj;

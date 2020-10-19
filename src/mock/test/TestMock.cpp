@@ -77,7 +77,7 @@ TEST_F(MockServerTest, TestMeta) {
         expected.emplace_back(spaceId1, spaceName1);
         ASSERT_EQ(expected, spaces);
     }
-    QueryExpressionContext ctx(nullptr, nullptr);
+    QueryExpressionContext ctx;
     // Test tag
     {
         // Create tag
@@ -85,7 +85,7 @@ TEST_F(MockServerTest, TestMeta) {
             meta::cpp2::Schema tagSchema;
             meta::cpp2::ColumnDef col;
             col.set_name(folly::stringPrintf("col_%d", i));
-            col.set_type(meta::cpp2::PropertyType::STRING);
+            col.type.set_type(meta::cpp2::PropertyType::STRING);
             ConstantExpression defaultValue("NULL");
             col.set_default_value(defaultValue.encode());
             std::vector<meta::cpp2::ColumnDef> cols;
@@ -104,9 +104,10 @@ TEST_F(MockServerTest, TestMeta) {
             auto schema = status.value();
             ASSERT_EQ(1, schema.get_columns().size());
             ASSERT_EQ(folly::stringPrintf("col_%d", i), schema.get_columns()[0].get_name());
-            ASSERT_EQ(meta::cpp2::PropertyType::STRING, schema.get_columns()[0].get_type());
+            ASSERT_EQ(meta::cpp2::PropertyType::STRING,
+                      schema.get_columns()[0].get_type().get_type());
             ASSERT_EQ("NULL", Expression::decode(
-                    *schema.get_columns()[0].get_default_value())->eval(ctx).getStr());
+                    *schema.get_columns()[0].get_default_value())->eval(ctx(nullptr)).getStr());
         }
 
         // List tags
@@ -134,7 +135,7 @@ TEST_F(MockServerTest, TestMeta) {
             meta::cpp2::Schema edgeSchema;
             meta::cpp2::ColumnDef col;
             col.set_name(folly::stringPrintf("col_%d", i));
-            col.set_type(meta::cpp2::PropertyType::STRING);
+            col.type.set_type(meta::cpp2::PropertyType::STRING);
             ConstantExpression defaultValue("NULL");
             col.set_default_value(defaultValue.encode());
             std::vector<meta::cpp2::ColumnDef> cols;
@@ -153,9 +154,10 @@ TEST_F(MockServerTest, TestMeta) {
             auto schema = status.value();
             ASSERT_EQ(1, schema.get_columns().size());
             ASSERT_EQ(folly::stringPrintf("col_%d", i), schema.get_columns()[0].get_name());
-            ASSERT_EQ(meta::cpp2::PropertyType::STRING, schema.get_columns()[0].get_type());
+            ASSERT_EQ(meta::cpp2::PropertyType::STRING,
+                      schema.get_columns()[0].get_type().get_type());
             ASSERT_EQ("NULL", Expression::decode(
-                    *schema.get_columns()[0].get_default_value())->eval(ctx).getStr());
+                    *schema.get_columns()[0].get_default_value())->eval(ctx(nullptr)).getStr());
         }
 
         // List edges

@@ -46,9 +46,9 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification*> 
                 return Status::SemanticError("Wrong default value experssion `%s'",
                                               spec->getDefaultValue()->toString().c_str());
             }
-            QueryExpressionContext ctx(nullptr, nullptr);
+            QueryExpressionContext ctx;
             auto defaultValueExpr = spec->getDefaultValue();
-            auto& value = defaultValueExpr->eval(ctx);
+            auto& value = defaultValueExpr->eval(ctx(nullptr));
             auto valStatus = SchemaUtil::toSchemaValue(type, value);
             if (!valStatus.ok()) {
                 return valStatus.status();
