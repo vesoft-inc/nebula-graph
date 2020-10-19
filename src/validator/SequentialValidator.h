@@ -32,6 +32,10 @@ public:
      */
     Status toPlan() override;
 
+    const std::vector<std::unique_ptr<Validator>>& validators() const {
+        return validators_;
+    }
+
 private:
     /**
      * Will not check the space from the beginning of a query.

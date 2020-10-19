@@ -23,7 +23,8 @@ bool GoOneStepPlanner::match(Validator* validator) {
     return false;
 }
 
-SubPlan GoOneStepPlanner::transform() {
+StatusOr<SubPlan> GoOneStepPlanner::transform(Validator* validator) {
+    UNUSED(validator);
     // TODO:
     SubPlan subPlan;
     return subPlan;

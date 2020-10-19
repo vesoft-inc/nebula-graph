@@ -42,6 +42,10 @@ public:
         inputs_ = std::move(inputs);
     }
 
+    QueryContext* qctx() {
+        return qctx_;
+    }
+
     PlanNode* root() const {
         return root_;
     }

@@ -11,7 +11,7 @@
 
 namespace nebula {
 namespace graph {
-class GoValidator : public Planner {
+class GoPlanner : public Planner {
 };
 }  // namespace graph
 }  // namespace nebula

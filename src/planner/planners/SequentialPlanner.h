@@ -4,24 +4,27 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_PLANNERS_GOONESTEPPLANNER_H_
-#define PLANNER_PLANNERS_GOONESTEPPLANNER_H_
+#ifndef PLANNER_PLANNERS_SEQUENTIALPLANNER_H_
+#define PLANNER_PLANNERS_SEQUENTIALPLANNER_H_
 
-#include "planner/planners/GoPlanner.h"
+#include "planner/Planner.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
-class GoOneStepPlanner final : public GoPlanner {
+class SequentialPlanner final : public Planner {
 public:
     bool match(Validator* validator) override;
 
     StatusOr<SubPlan> transform(Validator* validator) override;
 
-private:
-    GoOneStepPlanner();
+    void ifBuildDataCollect(SubPlan& subPlan, QueryContext* qctx);
 
-    static std::unique_ptr<GoOneStepPlanner>   instance_;
+private:
+    SequentialPlanner();
+
+    static std::unique_ptr<SequentialPlanner>    instance_;
 };
 }  // namespace graph
 }  // namespace nebula
-#endif  // PLANNER_PLANNERS_GOONESTEPPLANNER_H_
+#endif  // PLANNER_PLANNERS_SEQUENTIALPLANNER_H_

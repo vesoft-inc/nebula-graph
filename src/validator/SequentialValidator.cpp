@@ -4,12 +4,14 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "common/base/Base.h"
 #include "validator/SequentialValidator.h"
+
+#include "common/base/Base.h"
+#include "planner/Logic.h"
+#include "planner/Planner.h"
+#include "planner/Query.h"
 #include "service/GraphFlags.h"
 #include "service/PermissionCheck.h"
-#include "planner/Logic.h"
-#include "planner/Query.h"
 
 DECLARE_uint32(max_allowed_statements);
 
@@ -51,13 +53,13 @@ Status SequentialValidator::validateImpl() {
 }
 
 Status SequentialValidator::toPlan() {
-    root_ = validators_.back()->root();
-    ifBuildDataCollectForRoot(root_);
-    for (auto iter = validators_.begin(); iter < validators_.end() - 1; ++iter) {
-        NG_RETURN_IF_ERROR((iter + 1)->get()->appendPlan(iter->get()->root()));
+    auto subPlanStatus = Planner::toPlan(this);
+    if (!subPlanStatus.ok()) {
+        return subPlanStatus.status();
     }
-    tail_ = StartNode::make(qctx_);
-    NG_RETURN_IF_ERROR(validators_.front()->appendPlan(tail_));
+    auto subPlan = std::move(subPlanStatus).value();
+    root_ = subPlan.root;
+    tail_ = subPlan.tail;
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }

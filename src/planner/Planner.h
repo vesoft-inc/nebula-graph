@@ -28,7 +28,7 @@ public:
 
     virtual bool match(Validator* validator) = 0;
 
-    virtual SubPlan transform() = 0;
+    virtual StatusOr<SubPlan> transform(Validator* validator) = 0;
 
     auto& plannersMap() {
         return plannersMap_;
