@@ -92,7 +92,7 @@ StatusOr<OptRule::TransformResult> PushFilterDownGetNbrsRule::transform(
 
     TransformResult result;
     result.eraseCurr = true;
-    result.newGroupExprs.emplace_back(newFilterGroupNode ? newFilterGroupNode : newGnGroupNode);
+    result.newGroupNodes.emplace_back(newFilterGroupNode ? newFilterGroupNode : newGnGroupNode);
     return result;
 }
 
