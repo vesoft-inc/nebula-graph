@@ -53,7 +53,8 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification*> 
             if (!valStatus.ok()) {
                 return valStatus.status();
             }
-            // When the timestamp value is string, need to save the int value
+            // When the timestamp value is string, need to save the int value,
+            // TODO: if support timestamp value is an expression, need to remove the code
             if (type == meta::cpp2::PropertyType::TIMESTAMP && value.isStr()) {
                 ConstantExpression newExpr(std::move(valStatus).value());
                 column.set_default_value(newExpr.encode());

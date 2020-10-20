@@ -84,8 +84,8 @@ folly::dynamic toJson(const meta::cpp2::ColumnDef &column) {
     }
     if (column.__isset.default_value) {
         graph::QueryExpressionContext ctx;
-        auto value = Expression::decode(*column.get_default_value())->eval(ctx(nullptr));
-        obj.insert("defaultValue", value.toString());
+        auto value = Expression::decode(*column.get_default_value());
+        obj.insert("defaultValue", value->toString());
     }
     return obj;
 }

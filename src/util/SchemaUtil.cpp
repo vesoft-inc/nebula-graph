@@ -199,7 +199,7 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
             if (expr == nullptr) {
                 LOG(ERROR) << "Internal error: Wrong default value expression.";
                 defaultValue = Value();
-                break;
+                continue;
             }
             if (expr->kind() == Expression::Kind::kConstant) {
                 QueryExpressionContext ctx;
@@ -244,7 +244,7 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
             auto expr = Expression::decode(encodeStr);
             if (expr == nullptr) {
                 LOG(ERROR) << "Internal error: the default value is wrong expression.";
-                break;
+                continue;
             }
             if (expr->kind() == Expression::Kind::kConstant) {
                 QueryExpressionContext ctx;
