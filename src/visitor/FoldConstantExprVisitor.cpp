@@ -159,6 +159,45 @@ void FoldConstantExprVisitor::visit(MapExpression *expr) {
     canBeFolded_ = canBeFolded;
 }
 
+// case Expression
+void FoldConstantExprVisitor::visit(CaseExpression *expr) {
+    bool canBeFolded = true;
+    if (expr->hasCondition()) {
+        expr->condition()->accept(this);
+        if (!canBeFolded_) {
+            canBeFolded = false;
+        }
+    }
+    if (expr->hasDefault()) {
+        expr->defaultResult()->accept(this);
+        if (!canBeFolded_) {
+            canBeFolded = false;
+        }
+    }
+    auto &cases = expr->cases();
+    for (size_t i = 0; i < cases.size(); ++i) {
+        auto when = cases[i].when.get();
+        auto then = cases[i].then.get();
+        when->accept(this);
+        if (!canBeFolded_) {
+            canBeFolded = false;
+            continue;
+        }
+        then->accept(this);
+        if (!canBeFolded_) {
+            canBeFolded = false;
+            continue;
+        }
+        if (when->kind() != Expression::Kind::kConstant) {
+            expr->setWhen(i, fold(when));
+        }
+        if (then->kind() != Expression::Kind::kConstant) {
+            expr->setThen(i, fold(then));
+        }
+    }
+    canBeFolded_ = canBeFolded;
+}
+
 // property Expression
 void FoldConstantExprVisitor::visit(TagPropertyExpression *expr) {
     UNUSED(expr);

@@ -32,6 +32,7 @@ private:
     void visit(ListExpression *expr) override;
     void visit(SetExpression *expr) override;
     void visit(MapExpression *expr) override;
+    void visit(CaseExpression *) override;
     void visit(ConstantExpression *) override {}
     void visit(LabelExpression *) override {}
     void visit(UUIDExpression *) override {}
