@@ -13,31 +13,31 @@ namespace graph {
 
 void FoldConstantExprVisitor::visit(ConstantExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = true;
+    foldable_ = true;
 }
 
 void FoldConstantExprVisitor::visit(UnaryExpression *expr) {
     expr->operand()->accept(this);
-    if (canBeFolded_ && expr->operand()->kind() != Expression::Kind::kConstant) {
+    if (foldable_ && expr->operand()->kind() != Expression::Kind::kConstant) {
         expr->setOperand(fold(expr->operand()));
     }
 }
 
 void FoldConstantExprVisitor::visit(TypeCastingExpression *expr) {
     expr->operand()->accept(this);
-    if (canBeFolded_ && expr->operand()->kind() != Expression::Kind::kConstant) {
+    if (foldable_ && expr->operand()->kind() != Expression::Kind::kConstant) {
         expr->setOperand(fold(expr->operand()));
     }
 }
 
 void FoldConstantExprVisitor::visit(LabelExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(LabelAttributeExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 // binary expression
@@ -55,7 +55,7 @@ void FoldConstantExprVisitor::visit(SubscriptExpression *expr) {
 
 void FoldConstantExprVisitor::visit(AttributeExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(LogicalExpression *expr) {
@@ -64,79 +64,79 @@ void FoldConstantExprVisitor::visit(LogicalExpression *expr) {
 
 // function call
 void FoldConstantExprVisitor::visit(FunctionCallExpression *expr) {
-    bool canBeFolded = true;
+    bool foldable = true;
     for (auto &arg : expr->args()->args()) {
         if (arg->kind() != Expression::Kind::kConstant) {
             arg->accept(this);
-            if (canBeFolded_) {
+            if (foldable_) {
                 arg.reset(fold(arg.get()));
             } else {
-                canBeFolded = false;
+                foldable = false;
             }
         }
     }
-    canBeFolded_ = canBeFolded;
+    foldable_ = foldable;
 }
 
 void FoldConstantExprVisitor::visit(UUIDExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 // variable expression
 void FoldConstantExprVisitor::visit(VariableExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(VersionedVariableExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 // container expression
 void FoldConstantExprVisitor::visit(ListExpression *expr) {
-    auto items = expr->items();
-    bool canBeFolded = true;
+    auto &items = expr->items();
+    bool foldable = true;
     for (size_t i = 0; i < items.size(); ++i) {
-        auto item = const_cast<Expression *>(items[i]);
+        auto item = items[i].get();
         item->accept(this);
-        if (!canBeFolded_) {
-            canBeFolded = false;
+        if (!foldable_) {
+            foldable = false;
             continue;
         }
         if (item->kind() != Expression::Kind::kConstant) {
-            expr->setItem(i, fold(item));
+            expr->setItem(i, std::unique_ptr<Expression>{fold(item)});
         }
     }
-    canBeFolded_ = canBeFolded;
+    foldable_ = foldable;
 }
 
 void FoldConstantExprVisitor::visit(SetExpression *expr) {
-    auto items = expr->items();
-    bool canBeFolded = true;
+    auto &items = expr->items();
+    bool foldable = true;
     for (size_t i = 0; i < items.size(); ++i) {
-        auto item = const_cast<Expression *>(items[i]);
+        auto item = items[i].get();
         item->accept(this);
-        if (!canBeFolded_) {
-            canBeFolded = false;
+        if (!foldable_) {
+            foldable = false;
             continue;
         }
         if (item->kind() != Expression::Kind::kConstant) {
-            expr->setItem(i, fold(item));
+            expr->setItem(i, std::unique_ptr<Expression>{fold(item)});
         }
     }
-    canBeFolded_ = canBeFolded;
+    foldable_ = foldable;
 }
 
 void FoldConstantExprVisitor::visit(MapExpression *expr) {
-    auto items = expr->items();
-    bool canBeFolded = true;
+    auto &items = expr->items();
+    bool foldable = true;
     for (size_t i = 0; i < items.size(); ++i) {
         auto &pair = items[i];
-        auto item = const_cast<Expression *>(pair.second);
-        if (!canBeFolded_) {
-            canBeFolded = false;
+        auto item = const_cast<Expression *>(pair.second.get());
+        if (!foldable_) {
+            foldable = false;
             continue;
         }
         if (item->kind() != Expression::Kind::kConstant) {
@@ -145,83 +145,83 @@ void FoldConstantExprVisitor::visit(MapExpression *expr) {
             expr->setItem(i, std::make_pair(std::move(key), std::move(val)));
         }
     }
-    canBeFolded_ = canBeFolded;
+    foldable_ = foldable;
 }
 
 // property Expression
 void FoldConstantExprVisitor::visit(TagPropertyExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(EdgePropertyExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(InputPropertyExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(VariablePropertyExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(DestPropertyExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(SourcePropertyExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(EdgeSrcIdExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(EdgeTypeExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(EdgeRankExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(EdgeDstIdExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 // vertex/edge expression
 void FoldConstantExprVisitor::visit(VertexExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visit(EdgeExpression *expr) {
     UNUSED(expr);
-    canBeFolded_ = false;
+    foldable_ = false;
 }
 
 void FoldConstantExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
     expr->left()->accept(this);
-    auto leftCanBeFolded = canBeFolded_;
+    auto leftCanBeFolded = foldable_;
     if (leftCanBeFolded && expr->left()->kind() != Expression::Kind::kConstant) {
         expr->setLeft(fold(expr->left()));
     }
     expr->right()->accept(this);
-    auto rightCanBeFolded = canBeFolded_;
+    auto rightCanBeFolded = foldable_;
     if (rightCanBeFolded && expr->right()->kind() != Expression::Kind::kConstant) {
         expr->setRight(fold(expr->right()));
     }
-    canBeFolded_ = leftCanBeFolded && rightCanBeFolded;
+    foldable_ = leftCanBeFolded && rightCanBeFolded;
 }
 
 Expression *FoldConstantExprVisitor::fold(Expression *expr) const {

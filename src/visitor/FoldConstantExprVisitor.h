@@ -15,7 +15,7 @@ namespace graph {
 class FoldConstantExprVisitor final : public ExprVisitor {
 public:
     bool canBeFolded() const {
-        return canBeFolded_;
+        return foldable_;
     }
 
     void visit(ConstantExpression *expr) override;
@@ -58,7 +58,7 @@ public:
     Expression *fold(Expression *expr) const;
 
 private:
-    bool canBeFolded_{false};
+    bool foldable_{false};
 };
 
 }   // namespace graph
