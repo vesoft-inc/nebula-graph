@@ -21,6 +21,7 @@
 #include "service/RequestContext.h"
 #include "util/IdGenerator.h"
 #include "util/ObjectPool.h"
+#include "context/Symbols.h"
 
 namespace nebula {
 namespace graph {
@@ -105,6 +106,10 @@ public:
         return sm_;
     }
 
+    meta::IndexManager* indexMng() const {
+        return im_;
+    }
+
     storage::GraphStorageClient* getStorageClient() const {
         return storageClient_;
     }
@@ -137,6 +142,10 @@ public:
 
     void fillPlanDescription();
 
+    SymbolTable* symTable() const {
+        return symTable_.get();
+    }
+
 private:
     void init();
 
@@ -157,6 +166,7 @@ private:
     // plan description for explain and profile query
     std::unique_ptr<cpp2::PlanDescription>                  planDescription_;
     std::unique_ptr<IdGenerator>                            idGen_;
+    std::unique_ptr<SymbolTable>                            symTable_;
 };
 
 }   // namespace graph

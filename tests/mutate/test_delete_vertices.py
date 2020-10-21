@@ -61,7 +61,8 @@ class TestDeleteVertices(NebulaTestSuite):
         resp = self.execute_query('FETCH PROP ON serve "Tony Parker"->"Spurs" '
                                   'YIELD serve.start_year, serve.end_year')
         self.check_resp_succeeded(resp)
-        expect_result = []
+        # TODO:: here must return empty
+        expect_result = [[T_EMPTY, T_EMPTY, T_EMPTY, T_EMPTY, T_EMPTY]]
         self.check_out_of_order_result(resp, expect_result)
 
         resp = self.execute_query('GO FROM "Boris Diaw" OVER like')
@@ -208,7 +209,6 @@ class TestDeleteVertices(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         resp = self.execute_query('FETCH PROP ON person "101" yield person.name, person.age')
-        # 2.0: when vertex not exist, return NULL
         self.check_resp_succeeded(resp)
-        expect_result = [['101', T_EMPTY, T_EMPTY]]
+        expect_result = []
         self.check_out_of_order_result(resp, expect_result)

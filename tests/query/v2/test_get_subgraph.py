@@ -5,18 +5,16 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-from tests.common.nebula_test_suite import NebulaTestSuite
-from tests.common.nebula_test_suite import T_NULL, T_EMPTY
 import pytest
 
+from tests.common.nebula_test_suite import NebulaTestSuite
+
+
+@pytest.mark.usefixtures('set_vertices_and_edges')
 class TestSubGraph(NebulaTestSuite):
     @classmethod
-    def prepare(self):
-        self.use_nba()
-        self.load_vertex_edge()
-
-    def cleanup():
-        pass
+    def prepare(cls):
+        cls.use_nba()
 
     def test_invalid_input(self):
         stmt = 'GET SUBGRAPH FROM $-.id'
@@ -49,7 +47,6 @@ class TestSubGraph(NebulaTestSuite):
 
     def test_zero_step(self):
         VERTEXS = self.VERTEXS
-        EDGES = self.EDGES
 
         stmt = 'GET SUBGRAPH 0 STEPS FROM "Tim Duncan"'
         resp = self.execute_query(stmt)
@@ -59,46 +56,46 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = 'GET SUBGRAPH 0 STEPS FROM "Tim Duncan", "Spurs"'
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         vertices = [
+                    VERTEXS['Tim Duncan'],
                     VERTEXS['Spurs'],
-                    VERTEXS['Tim Duncan']
                    ]
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = 'GET SUBGRAPH 0 STEPS FROM "Tim Duncan", "Tony Parker", "Spurs"'
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         vertices = [
+                    VERTEXS['Tony Parker'],
                     VERTEXS['Spurs'],
                     VERTEXS['Tim Duncan'],
-                    VERTEXS['Tony Parker'],
                    ]
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GO FROM 'Tim Duncan' over serve YIELD serve._dst AS id | GET SUBGRAPH 0 STEPS FROM $-.id"
         resp = self.execute_query(stmt)
@@ -108,13 +105,13 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GO FROM 'Tim Duncan' over like YIELD like._dst AS id | GET SUBGRAPH 0 STEPS FROM $-.id"
         resp = self.execute_query(stmt)
@@ -125,13 +122,13 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = '''$a = GO FROM 'Tim Duncan' over serve YIELD serve._dst AS id;
                   GET SUBGRAPH 0 STEPS FROM $a.id'''
@@ -142,13 +139,13 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = '''$a = GO FROM 'Tim Duncan' over like YIELD like._dst AS id;
                   GET SUBGRAPH 0 STEPS FROM $a.id'''
@@ -160,17 +157,16 @@ class TestSubGraph(NebulaTestSuite):
                    ]
 
         expected_data = {
-            "column_names" : ['_vertices'],
-            "rows" : [
+            "column_names": ['_vertices'],
+            "rows": [
                 [vertices]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
     def test_subgraph(self):
-        VERTEXS = self.VERTEXS
-        EDGES = self.EDGES
+        VERTEXS, EDGES = self.VERTEXS, self.EDGES
 
         stmt = "GET SUBGRAPH FROM 'Tim Duncan'"
         resp = self.execute_query(stmt)
@@ -215,10 +211,6 @@ class TestSubGraph(NebulaTestSuite):
                   ]
 
         edge2 = [
-                    EDGES['Dejounte Murray'+'Danny Green'+'like'+'0'],
-                    EDGES['Marco Belinelli'+'Danny Green'+'like'+'0'],
-                    EDGES['Danny Green'+'Marco Belinelli'+'like'+'0'],
-                    EDGES['Danny Green'+'Spurs'+'serve'+'0'],
                     EDGES['Tony Parker'+'Manu Ginobili'+'teammate'+'0'],
                     EDGES['Dejounte Murray'+'Manu Ginobili'+'like'+'0'],
                     EDGES['Tiago Splitter'+'Manu Ginobili'+'like'+'0'],
@@ -239,18 +231,22 @@ class TestSubGraph(NebulaTestSuite):
                     EDGES['Marco Belinelli'+'Spurs'+'serve'+'0'],
                     EDGES['Tiago Splitter'+'Spurs'+'serve'+'0'],
                     EDGES['Marco Belinelli'+'Spurs'+'serve'+'1'],
-                    EDGES['Dejounte Murray'+'Marco Belinelli'+'like'+'0']
+                    EDGES['Dejounte Murray'+'Marco Belinelli'+'like'+'0'],
+                    EDGES['Dejounte Murray'+'Danny Green'+'like'+'0'],
+                    EDGES['Marco Belinelli'+'Danny Green'+'like'+'0'],
+                    EDGES['Danny Green'+'Marco Belinelli'+'like'+'0'],
+                    EDGES['Danny Green'+'Spurs'+'serve'+'0'],
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan'"
         resp = self.execute_query(stmt)
@@ -279,7 +275,6 @@ class TestSubGraph(NebulaTestSuite):
                     EDGES['Tim Duncan'+'Manu Ginobili'+'teammate'+'0'],
                     EDGES['Tim Duncan'+'Tony Parker'+'teammate'+'0']
                 ]
-
 
         vertex2 = [
                     VERTEXS['Danny Green'],
@@ -445,15 +440,15 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan' IN like, serve"
         resp = self.execute_query(stmt)
@@ -525,15 +520,15 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan' IN like OUT serve"
         resp = self.execute_query(stmt)
@@ -678,15 +673,15 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 2 STEPS FROM 'Tim Duncan', 'James Harden' IN teammate OUT serve"
         resp = self.execute_query(stmt)
@@ -733,15 +728,15 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH 3 STEPS FROM 'Paul George' OUT serve BOTH like"
         resp = self.execute_query(stmt)
@@ -837,8 +832,8 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2],
                 [vertex3, edge3],
@@ -846,7 +841,7 @@ class TestSubGraph(NebulaTestSuite):
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GET SUBGRAPH FROM 'Tony Parker' BOTH like"
         resp = self.execute_query(stmt)
@@ -895,14 +890,14 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = "GO FROM 'Tim Duncan' over serve YIELD serve._src AS id | GET SUBGRAPH FROM $-.id"
         resp = self.execute_query(stmt)
@@ -975,15 +970,15 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2]
             ]
         }
 
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
 
         stmt = '''$a = GO FROM 'Tim Duncan' over serve YIELD serve._src AS id;
                   GET SUBGRAPH FROM $a.id'''
@@ -1057,12 +1052,12 @@ class TestSubGraph(NebulaTestSuite):
                 ]
 
         expected_data = {
-            "column_names" : ["_vertices", "_edges"],
-            "rows" : [
+            "column_names": ["_vertices", "_edges"],
+            "rows": [
                 [vertex1, edge1],
                 [vertex2, edge2]
             ]
         }
 
         self.check_column_names(resp, expected_data["column_names"])
-        self.check_out_of_order_result(resp, expected_data["rows"])
+        self.check_subgraph_result(resp, expected_data["rows"])
