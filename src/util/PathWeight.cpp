@@ -9,5 +9,24 @@
 namespace nebula {
 namespace graph {
 
-}  // namnspace graph
+double EdgeWeight::getWeight(Edge& edge, Value& src, const Value& dst) {
+    UNUSED(src);
+    UNUSED(dst);
+    if (edge.name != edgeName_) {
+        LOG(FATAL) << "Wrong Edge Name : " << edge.name << " should be " << edgeName_;
+    }
+    auto& props = edge.props;
+    auto result = props[propName_];
+
+    switch (result.type()) {
+        case Value::Type::INT:
+            return result.getInt();
+        case Value::Type::FLOAT:
+            return result.getFloat();
+        default :
+            LOG(FATAL) << "Wrong data type :" << result.typeName();
+    }
+}
+
+}  // namespace graph
 }  // namespace nebula

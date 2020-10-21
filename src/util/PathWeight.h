@@ -9,17 +9,16 @@
 
 #include "common/base/Base.h"
 #include "common/datatypes/Value.h"
+#include "common/datatypes/Edge.h"
 
 namespace nebula {
 namespace graph {
 
-
 class QueryContext;
-
 class IWeight {
 public:
     explicit IWeight(QueryContext* qctx) : qctx_(qctx) {}
-    virtual int64_t getWeight(const Value& src, const Value& dst, const Value& edge) = 0;
+    virtual double getWeight(Edge& edge, Value& src, const Value& dst) = 0;
     virtual ~IWeight() = default;
 
 protected:
@@ -29,7 +28,7 @@ protected:
 class NoWeight final : public IWeight {
 public:
     explicit NoWeight(QueryContext* qctx) : IWeight(qctx) {}
-    int64_t getWeight(const Value &src, const Value& dst, const Value& edge)  override {
+    double getWeight(Edge& edge, Value& src, const Value& dst) override {
         UNUSED(src);
         UNUSED(dst);
         UNUSED(edge);
@@ -40,9 +39,9 @@ public:
 class TagWeight final : public IWeight {
 public:
     explicit TagWeight(QueryContext* qctx) : IWeight(qctx) {}
-    int64_t getWeight(const Value& src, const Value& dst, const Value& edge) override {
+    double getWeight(Edge& edge, Value& src, const Value& dst) override {
         // todo
-        LOG(FATAL) << "not implement " << src << " " << dst;
+        LOG(FATAL) << "not implement " << src << " " << dst << " " << edge;
     }
     void setProp(const std::string& tagName, const std::string& propName) {
         tagName_ = std::move(tagName);
@@ -57,10 +56,7 @@ private:
 class EdgeWeight final : public IWeight {
 public:
     explicit EdgeWeight(QueryContext* qctx) : IWeight(qctx) {}
-    int64_t getWeight(const Value& src, const Value& dst) override {
-        // todo
-        LOG(FATAL) << "not implement " << src << " " << dst;
-    }
+    double getWeight(Edge& edge, Value& src, const Value& dst) override;
     void setProp(const std::string& edgeName, const std::string& propName) {
         edgeName_ = std::move(edgeName);
         propName_ = std::move(propName);
