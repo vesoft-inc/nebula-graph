@@ -18,11 +18,29 @@ public:
 
     folly::Future<Status> execute() override;
 
-    using CostPathMapType =
-        std::unordered_map<Value, std::unordered_map<Value, std::pair<int64_t, std::vector<Path>>>>;
-    using CostPathMapPtr =
-        std::unordered_map<Value,
-                           std::unordered_map<Value, std::pair<int64_t, std::vector<Path*>>>>;
+    struct CostPaths {
+        double cost_;
+        std::vector<Path> paths_;
+        CostPaths() = default;
+        CostPaths(double cost, std::vector<Path>& paths) : cost_(cost) {
+            paths_.swap(paths);
+        }
+        CostPaths(double cost, std::vector<Path>&& paths) : cost_(cost) {
+            paths_.swap(paths);
+        }
+    };
+
+    struct CostPathsPtr {
+        CostPathsPtr() = default;
+        CostPathsPtr(double cost, std::vector<const Path*>& paths) : cost_(cost) {
+            paths_.swap(paths);
+        }
+        double cost_;
+        std::vector<const Path*> paths_;
+    };
+
+    using CostPathMapType = std::unordered_map<Value, std::unordered_map<Value, CostPaths>>;
+    using CostPathMapPtr = std::unordered_map<Value, std::unordered_map<Value, CostPathsPtr>>;
 
 private:
     void dstNotInHistory(const Edge& edge, CostPathMapType&);
@@ -31,9 +49,9 @@ private:
 
     void dstInCurrent(const Edge& edge, CostPathMapType&);
 
-    void updateHistory(CostPathMapType&);
+    void updateHistory(const Value& dst, const Value& src, double cost, Value& paths);
 
-    std::vector<Path> createPaths(const std::vector<Path*>& paths, const Edge& edge);
+    std::vector<Path> createPaths(const std::vector<const Path*>& paths, const Edge& edge);
 
 private:
     // dst : {src : <cost, {Path*}>}
