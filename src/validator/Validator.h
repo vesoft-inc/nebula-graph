@@ -8,11 +8,13 @@
 #define VALIDATOR_VALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "service/PermissionCheck.h"
-#include "planner/ExecutionPlan.h"
-#include "parser/Sentence.h"
-#include "context/ValidateContext.h"
+#include "context/AstContext.h"
 #include "context/QueryContext.h"
+#include "context/ValidateContext.h"
+#include "parser/Sentence.h"
+#include "planner/ExecutionPlan.h"
+#include "planner/Planner.h"
+#include "service/PermissionCheck.h"
 #include "visitor/DeducePropsVisitor.h"
 
 namespace nebula {
@@ -28,6 +30,8 @@ public:
     static std::unique_ptr<Validator> makeValidator(Sentence* sentence,
                                                     QueryContext* context);
 
+    // validate will call `spaceChosen` -> `validateImpl` -> `checkPermission` -> `toPlan`
+    // in order
     static Status validate(Sentence* sentence, QueryContext* qctx);
 
     Status validate();
@@ -73,9 +77,6 @@ public:
 protected:
     Validator(Sentence* sentence, QueryContext* qctx);
 
-    // So the validate call `spaceChosen` -> `validateImpl` -> `checkPermission` -> `toPlan`
-    // in order
-
     /**
      * Check if a space is chosen for this sentence.
      */
@@ -95,7 +96,11 @@ protected:
     /**
      * Convert an ast to plan.
      */
-    virtual Status toPlan() = 0;
+    virtual Status toPlan();
+
+    virtual AstContext* getAstContext() {
+        return nullptr;
+    }
 
     std::vector<std::string> deduceColNames(const YieldColumns* cols) const;
 

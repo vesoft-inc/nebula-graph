@@ -8,7 +8,6 @@
 
 #include "common/base/Base.h"
 #include "planner/Logic.h"
-#include "planner/Planner.h"
 #include "planner/Query.h"
 #include "service/GraphFlags.h"
 #include "service/PermissionCheck.h"
@@ -49,18 +48,6 @@ Status SequentialValidator::validateImpl() {
         seqAstCtx_->validators.emplace_back(std::move(validator));
     }
 
-    return Status::OK();
-}
-
-Status SequentialValidator::toPlan() {
-    auto subPlanStatus = Planner::toPlan(seqAstCtx_.get());
-    if (!subPlanStatus.ok()) {
-        return subPlanStatus.status();
-    }
-    auto subPlan = std::move(subPlanStatus).value();
-    root_ = subPlan.root;
-    tail_ = subPlan.tail;
-    VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
     return Status::OK();
 }
 

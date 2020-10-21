@@ -30,12 +30,12 @@ public:
 
     virtual StatusOr<SubPlan> transform(AstContext* astCtx) = 0;
 
-    auto& plannersMap() {
-        return plannersMap_;
-    }
-
 protected:
     Planner() = default;
+
+    static auto& plannersMap() {
+        return plannersMap_;
+    }
 
 private:
     static std::unordered_map<Sentence::Kind, std::vector<Planner*>> plannersMap_;

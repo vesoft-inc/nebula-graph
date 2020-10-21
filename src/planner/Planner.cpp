@@ -10,12 +10,17 @@
 
 namespace nebula {
 namespace graph {
+
 std::unordered_map<Sentence::Kind, std::vector<Planner*>> Planner::plannersMap_;
 
 StatusOr<SubPlan> Planner::toPlan(AstContext* astCtx) {
+    if (astCtx == nullptr) {
+        return Status::Error("AstContext nullptr.");
+    }
     const auto* sentence = astCtx->sentence;
-    auto planners = plannersMap_.find(sentence->kind());
-    if (planners == plannersMap_.end()) {
+    DCHECK(sentence != nullptr);
+    auto planners = plannersMap().find(sentence->kind());
+    if (planners == plannersMap().end()) {
         return Status::Error("No planners for sentence: %s", sentence->toString().c_str());
     }
     for (auto* planner : planners->second) {

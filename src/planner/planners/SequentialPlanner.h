@@ -16,6 +16,10 @@ class SequentialPlanner final : public Planner {
 public:
     bool match(AstContext* astCtx) override;
 
+    /**
+     * Each sentence would be converted to a sub-plan, and they would
+     * be cascaded together into a complete execution plan.
+     */
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
     void ifBuildDataCollect(SubPlan& subPlan, QueryContext* qctx);

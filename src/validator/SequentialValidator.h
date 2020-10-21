@@ -8,7 +8,6 @@
 #define VALIDATOR_SEQUENTIALVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "context/AstContext.h"
 #include "parser/SequentialSentences.h"
 #include "validator/Validator.h"
 
@@ -35,11 +34,9 @@ public:
 
     Status validateImpl() override;
 
-    /**
-     * Each sentence would be converted to a sub-plan, and they would
-     * be cascaded together into a complete execution plan.
-     */
-    Status toPlan() override;
+    AstContext* getAstContext() override {
+        return seqAstCtx_.get();
+    }
 
 private:
     /**
@@ -51,7 +48,6 @@ private:
 
     const Sentence* getFirstSentence(const Sentence* sentence) const;
 
-private:
     std::unique_ptr<SequentialAstContext>   seqAstCtx_;
 };
 }  // namespace graph
