@@ -8,7 +8,6 @@
 #define EXECUTOR_ALGO_CONJUNCTPATHEXECUTOR_H_
 
 #include "executor/Executor.h"
-#include "util/PathWeight.h"
 
 namespace nebula {
 namespace graph {
