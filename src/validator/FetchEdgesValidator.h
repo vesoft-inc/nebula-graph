@@ -48,7 +48,7 @@ private:
             Expression::Kind::kLogicalAnd, DCHECK_NOTNULL(left), DCHECK_NOTNULL(right));
     }
 
-    Expression* emptyEdgeKeyFilter(const PlanNode* input);
+    Expression* emptyEdgeKeyFilter();
 
     static const std::unordered_set<std::string> reservedProperties;
 

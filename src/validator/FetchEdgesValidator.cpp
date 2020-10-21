@@ -49,7 +49,8 @@ Status FetchEdgesValidator::toPlan() {
     PlanNode *current = getEdgesNode;
 
     // filter when the edge key is empty which means not exists edge in fact
-    auto *notExistEdgeFilter = Filter::make(qctx_, current, emptyEdgeKeyFilter(current));
+    auto *notExistEdgeFilter = Filter::make(qctx_, current, emptyEdgeKeyFilter());
+    notExistEdgeFilter->setInputVar(current->outputVar());
     current = notExistEdgeFilter;
 
     if (withProject_) {
@@ -288,15 +289,12 @@ std::string FetchEdgesValidator::buildRuntimeInput() {
     return inputVar_;
 }
 
-Expression *FetchEdgesValidator::emptyEdgeKeyFilter(const PlanNode *input) {
+Expression *FetchEdgesValidator::emptyEdgeKeyFilter() {
     // _src != empty && _dst != empty && _rank != empty
     DCHECK_GE(geColNames_.size(), 3);
-    auto *srcNotEmptyExpr = notEmpty(new VariablePropertyExpression(
-        new std::string(input->outputVar()), new std::string(geColNames_[0])));
-    auto *dstNotEmptyExpr = notEmpty(new VariablePropertyExpression(
-        new std::string(input->outputVar()), new std::string(geColNames_[1])));
-    auto *rankNotEmptyExpr = notEmpty(new VariablePropertyExpression(
-        new std::string(input->outputVar()), new std::string(geColNames_[2])));
+    auto *srcNotEmptyExpr = notEmpty(new EdgeSrcIdExpression(new std::string(edgeTypeName_)));
+    auto *dstNotEmptyExpr = notEmpty(new EdgeDstIdExpression(new std::string(edgeTypeName_)));
+    auto *rankNotEmptyExpr = notEmpty(new EdgeRankExpression(new std::string(edgeTypeName_)));
     auto *edgeKeyNotEmptyExpr =
         qctx_->objPool()->add(lgAnd(srcNotEmptyExpr, lgAnd(dstNotEmptyExpr, rankNotEmptyExpr)));
     return edgeKeyNotEmptyExpr;
