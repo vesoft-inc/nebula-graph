@@ -14,7 +14,6 @@
 #include "planner/ExecutionPlan.h"
 #include "planner/PlanNode.h"
 #include "scheduler/Scheduler.h"
-#include "service/GraphFlags.h"
 #include "validator/Validator.h"
 
 using nebula::opt::Optimizer;
@@ -24,14 +23,10 @@ using nebula::opt::RuleSet;
 namespace nebula {
 namespace graph {
 
-QueryInstance::QueryInstance(std::unique_ptr<QueryContext> qctx) {
+QueryInstance::QueryInstance(std::unique_ptr<QueryContext> qctx, Optimizer *optimizer) {
     qctx_ = std::move(qctx);
+    optimizer_ = DCHECK_NOTNULL(optimizer);
     scheduler_ = std::make_unique<Scheduler>(qctx_.get());
-    std::vector<const RuleSet *> rulesets{&RuleSet::defaultRules()};
-    if (FLAGS_enable_optimizer) {
-        rulesets.emplace_back(&RuleSet::queryRules());
-    }
-    optimizer_ = std::make_unique<Optimizer>(qctx_.get(), std::move(rulesets));
 }
 
 void QueryInstance::execute() {
@@ -67,7 +62,7 @@ Status QueryInstance::validateAndOptimize() {
 
     NG_RETURN_IF_ERROR(Validator::validate(sentence_.get(), qctx()));
 
-    auto rootStatus = optimizer_->findBestPlan(qctx_->plan()->root());
+    auto rootStatus = optimizer_->findBestPlan(qctx_.get());
     NG_RETURN_IF_ERROR(rootStatus);
     auto newRoot = std::move(rootStatus).value();
     qctx_->setPlan(std::make_unique<ExecutionPlan>(const_cast<PlanNode *>(newRoot)));
@@ -122,14 +117,40 @@ void QueryInstance::onFinish() {
 void QueryInstance::onError(Status status) {
     LOG(ERROR) << status;
     auto *rctx = qctx()->rctx();
-    if (status.isSyntaxError()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);
-    } else if (status.isStatementEmpty()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_STATEMENT_EMTPY);
-    } else if (status.isSemanticError()) {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_SEMANTIC_ERROR);
-    } else {
-        rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
+    switch (status.code()) {
+        case Status::Code::kOk:
+            rctx->resp().set_error_code(cpp2::ErrorCode::SUCCEEDED);
+            break;
+        case Status::Code::kSyntaxError:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_SYNTAX_ERROR);
+            break;
+        case Status::Code::kStatementEmpty:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_STATEMENT_EMTPY);
+            break;
+        case Status::Code::kSemanticError:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_SEMANTIC_ERROR);
+            break;
+        case Status::Code::kPermissionError:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_BAD_PERMISSION);
+            break;
+        case Status::Code::kBalanced:
+        case Status::Code::kEdgeNotFound:
+        case Status::Code::kGroupNotFound:
+        case Status::Code::kZoneNotFound:
+        case Status::Code::kError:
+        case Status::Code::kHostNotFound:
+        case Status::Code::kIndexNotFound:
+        case Status::Code::kInserted:
+        case Status::Code::kKeyNotFound:
+        case Status::Code::kLeaderChanged:
+        case Status::Code::kNoSuchFile:
+        case Status::Code::kNotSupported:
+        case Status::Code::kPartNotFound:
+        case Status::Code::kSpaceNotFound:
+        case Status::Code::kTagNotFound:
+        case Status::Code::kUserNotFound:
+            rctx->resp().set_error_code(cpp2::ErrorCode::E_EXECUTION_ERROR);
+            break;
     }
     auto &spaceName = rctx->session()->space().name;
     rctx->resp().set_space_name(spaceName);
