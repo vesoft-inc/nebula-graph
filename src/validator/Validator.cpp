@@ -260,16 +260,23 @@ Status Validator::validate() {
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
-        VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name
-                << " id: " << space_.id;
+        VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name << " id: " << space_.id;
     }
 
-    auto status = validateImpl();
-    if (!status.ok()) {
+    auto getStatus = [](Status status) -> Status {
         if (status.isSemanticError() || status.isPermissionError()) {
             return status;
         }
-        return Status::SemanticError(status.message());
+        auto msg = status.message();
+        if (msg.empty()) {
+            msg = status.toString();
+        }
+        return Status::SemanticError(msg);
+    };
+
+    auto status = validateImpl();
+    if (!status.ok()) {
+        return getStatus(std::move(status));
     }
 
     // Execute after validateImpl because need field from it
@@ -279,8 +286,7 @@ Status Validator::validate() {
 
     status = toPlan();
     if (!status.ok()) {
-        if (status.isSemanticError()) return status;
-        return Status::SemanticError(status.message());
+        return getStatus(std::move(status));
     }
 
     return Status::OK();
