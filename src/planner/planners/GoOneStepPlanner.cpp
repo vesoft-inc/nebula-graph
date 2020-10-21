@@ -17,14 +17,14 @@ GoOneStepPlanner::GoOneStepPlanner() {
     plannersMap()[Sentence::Kind::kGo].emplace_back(this);
 }
 
-bool GoOneStepPlanner::match(Validator* validator) {
-    UNUSED(validator);
+bool GoOneStepPlanner::match(AstContext* astCtx) {
+    UNUSED(astCtx);
     // TODO:
     return false;
 }
 
-StatusOr<SubPlan> GoOneStepPlanner::transform(Validator* validator) {
-    UNUSED(validator);
+StatusOr<SubPlan> GoOneStepPlanner::transform(AstContext* astCtx) {
+    UNUSED(astCtx);
     // TODO:
     SubPlan subPlan;
     return subPlan;

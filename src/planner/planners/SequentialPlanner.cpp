@@ -10,7 +10,6 @@
 #include "planner/Logic.h"
 #include "planner/Query.h"
 #include "validator/SequentialValidator.h"
-#include "validator/Validator.h"
 
 namespace nebula {
 namespace graph {
@@ -21,19 +20,19 @@ SequentialPlanner::SequentialPlanner() {
     plannersMap()[Sentence::Kind::kSequential].emplace_back(this);
 }
 
-bool SequentialPlanner::match(Validator* validator) {
-    if (validator->sentence()->kind() == Sentence::Kind::kSequential) {
+bool SequentialPlanner::match(AstContext* astCtx) {
+    if (astCtx->sentence->kind() == Sentence::Kind::kSequential) {
         return true;
     } else {
         return false;
     }
 }
 
-StatusOr<SubPlan> SequentialPlanner::transform(Validator* validator) {
+StatusOr<SubPlan> SequentialPlanner::transform(AstContext* astCtx) {
     SubPlan subPlan;
-    auto* seqValidator = static_cast<SequentialValidator*>(validator);
-    auto* qctx = seqValidator->qctx();
-    const auto& validators = seqValidator->validators();
+    auto* seqCtx = static_cast<SequentialAstContext*>(astCtx);
+    auto* qctx = seqCtx->qctx;
+    const auto& validators = seqCtx->validators;
     subPlan.root = validators.back()->root();
     ifBuildDataCollect(subPlan, qctx);
     for (auto iter = validators.begin(); iter < validators.end() - 1; ++iter) {
@@ -52,7 +51,8 @@ void SequentialPlanner::ifBuildDataCollect(SubPlan& subPlan, QueryContext* qctx)
         case PlanNode::Kind::kDedup:
         case PlanNode::Kind::kUnion:
         case PlanNode::Kind::kIntersect:
-        case PlanNode::Kind::kMinus: {
+        case PlanNode::Kind::kMinus:
+        case PlanNode::Kind::kFilter: {
             auto* dc = DataCollect::make(qctx,
                                          subPlan.root,
                                          DataCollect::CollectKind::kRowBasedMove,

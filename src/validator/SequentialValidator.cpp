@@ -46,14 +46,14 @@ Status SequentialValidator::validateImpl() {
     for (auto* sentence : sentences) {
         auto validator = makeValidator(sentence, qctx_);
         NG_RETURN_IF_ERROR(validator->validate());
-        validators_.emplace_back(std::move(validator));
+        seqAstCtx_->validators.emplace_back(std::move(validator));
     }
 
     return Status::OK();
 }
 
 Status SequentialValidator::toPlan() {
-    auto subPlanStatus = Planner::toPlan(this);
+    auto subPlanStatus = Planner::toPlan(seqAstCtx_.get());
     if (!subPlanStatus.ok()) {
         return subPlanStatus.status();
     }
@@ -70,26 +70,6 @@ const Sentence* SequentialValidator::getFirstSentence(const Sentence* sentence) 
     }
     auto pipe = static_cast<const PipedSentence *>(sentence);
     return getFirstSentence(pipe->left());
-}
-
-void SequentialValidator::ifBuildDataCollectForRoot(PlanNode* root) {
-    switch (root->kind()) {
-        case PlanNode::Kind::kSort:
-        case PlanNode::Kind::kLimit:
-        case PlanNode::Kind::kDedup:
-        case PlanNode::Kind::kUnion:
-        case PlanNode::Kind::kIntersect:
-        case PlanNode::Kind::kMinus:
-        case PlanNode::Kind::kFilter: {
-            auto* dc = DataCollect::make(
-                qctx_, root, DataCollect::CollectKind::kRowBasedMove, {root->outputVar()});
-            dc->setColNames(root->colNames());
-            root_ = dc;
-            break;
-        }
-        default:
-            break;
-    }
 }
 }  // namespace graph
 }  // namespace nebula

@@ -9,10 +9,10 @@
 
 #include "common/base/Base.h"
 #include "planner/PlanNode.h"
+#include "context/AstContext.h"
 
 namespace nebula {
 namespace graph {
-class Validator;
 
 struct SubPlan {
     // root and tail of a subplan.
@@ -24,11 +24,11 @@ class Planner {
 public:
     virtual ~Planner() = default;
 
-    static StatusOr<SubPlan> toPlan(Validator* validator);
+    static StatusOr<SubPlan> toPlan(AstContext* astCtx);
 
-    virtual bool match(Validator* validator) = 0;
+    virtual bool match(AstContext* astCtx) = 0;
 
-    virtual StatusOr<SubPlan> transform(Validator* validator) = 0;
+    virtual StatusOr<SubPlan> transform(AstContext* astCtx) = 0;
 
     auto& plannersMap() {
         return plannersMap_;

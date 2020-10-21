@@ -14,9 +14,9 @@ namespace nebula {
 namespace graph {
 class SequentialPlanner final : public Planner {
 public:
-    bool match(Validator* validator) override;
+    bool match(AstContext* astCtx) override;
 
-    StatusOr<SubPlan> transform(Validator* validator) override;
+    StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
     void ifBuildDataCollect(SubPlan& subPlan, QueryContext* qctx);
 

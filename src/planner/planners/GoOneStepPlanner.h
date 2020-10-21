@@ -13,9 +13,9 @@ namespace nebula {
 namespace graph {
 class GoOneStepPlanner final : public GoPlanner {
 public:
-    bool match(Validator* validator) override;
+    bool match(AstContext* astCtx) override;
 
-    StatusOr<SubPlan> transform(Validator* validator) override;
+    StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
 private:
     GoOneStepPlanner();

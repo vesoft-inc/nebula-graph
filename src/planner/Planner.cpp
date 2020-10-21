@@ -12,15 +12,15 @@ namespace nebula {
 namespace graph {
 std::unordered_map<Sentence::Kind, std::vector<Planner*>> Planner::plannersMap_;
 
-StatusOr<SubPlan> Planner::toPlan(Validator* validator) {
-    const auto* sentence = validator->sentence();
+StatusOr<SubPlan> Planner::toPlan(AstContext* astCtx) {
+    const auto* sentence = astCtx->sentence;
     auto planners = plannersMap_.find(sentence->kind());
     if (planners == plannersMap_.end()) {
         return Status::Error("No planners for sentence: %s", sentence->toString().c_str());
     }
     for (auto* planner : planners->second) {
-        if (planner->match(validator)) {
-            return planner->transform(validator);
+        if (planner->match(astCtx)) {
+            return planner->transform(astCtx);
         }
     }
     return Status::Error("No planner matches sentence: %s", sentence->toString().c_str());

@@ -8,11 +8,17 @@
 #define VALIDATOR_SEQUENTIALVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "validator/Validator.h"
+#include "context/AstContext.h"
 #include "parser/SequentialSentences.h"
+#include "validator/Validator.h"
 
 namespace nebula {
 namespace graph {
+
+struct SequentialAstContext final : AstContext {
+    QueryContext*                               qctx;
+    std::vector<std::unique_ptr<Validator>>     validators;
+};
 
 /**
  * A SequentialValidator is the entrance of validators.
@@ -22,6 +28,9 @@ public:
     SequentialValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
         setNoSpaceRequired();
+        seqAstCtx_ = std::make_unique<SequentialAstContext>();
+        seqAstCtx_->sentence = sentence;
+        seqAstCtx_->qctx = context;
     }
 
     Status validateImpl() override;
@@ -31,10 +40,6 @@ public:
      * be cascaded together into a complete execution plan.
      */
     Status toPlan() override;
-
-    const std::vector<std::unique_ptr<Validator>>& validators() const {
-        return validators_;
-    }
 
 private:
     /**
@@ -46,10 +51,8 @@ private:
 
     const Sentence* getFirstSentence(const Sentence* sentence) const;
 
-    void ifBuildDataCollectForRoot(PlanNode* root);
-
 private:
-    std::vector<std::unique_ptr<Validator>>     validators_;
+    std::unique_ptr<SequentialAstContext>   seqAstCtx_;
 };
 }  // namespace graph
 }  // namespace nebula
