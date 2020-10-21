@@ -5,7 +5,6 @@
  */
 
 #include "common/base/Base.h"
-
 #include "validator/test/ValidatorTestBase.h"
 
 DECLARE_uint32(max_allowed_statements);
@@ -172,8 +171,10 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kDedup,
             PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -288,8 +289,10 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kDedup,
             PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -317,8 +320,10 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kDedup,
             PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -348,8 +353,10 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kDedup,
             PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -465,11 +472,13 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kDataJoin,
-            PK::kGetNeighbors,
-            PK::kProject,
-            PK::kStart,
-            PK::kGetVertices,
             PK::kDedup,
+            PK::kProject,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kStart,
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
@@ -507,11 +516,13 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kDataJoin,
-            PK::kGetNeighbors,
-            PK::kProject,
-            PK::kStart,
-            PK::kGetVertices,
             PK::kDedup,
+            PK::kProject,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kStart,
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
@@ -1025,6 +1036,8 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kProject,
             PK::kStart,
             PK::kDataJoin,
+            PK::kDedup,
+            PK::kProject,
             PK::kDedup,
             PK::kProject,
             PK::kGetNeighbors,
