@@ -17,8 +17,7 @@ namespace graph {
 
 class FetchEdgesValidator final : public Validator {
 public:
-    FetchEdgesValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+    FetchEdgesValidator(Sentence* sentence, QueryContext* context) : Validator(sentence, context) {}
 
 private:
     Status validateImpl() override;
@@ -29,7 +28,7 @@ private:
 
     Status prepareEdges();
 
-    Status preparePropertiesWithYield(const YieldClause *yield);
+    Status preparePropertiesWithYield(const YieldClause* yield);
     Status preparePropertiesWithoutYield();
     Status prepareProperties();
 
@@ -39,7 +38,17 @@ private:
     std::string buildConstantInput();
     std::string buildRuntimeInput();
 
-    Expression* emptyEdgeKeyFilter(const PlanNode *input);
+    Expression* notEmpty(Expression* expr) {
+        return new RelationalExpression(
+            Expression::Kind::kRelNE, new ConstantExpression(Value::kEmpty), DCHECK_NOTNULL(expr));
+    }
+
+    Expression* lgAnd(Expression* left, Expression* right) {
+        return new LogicalExpression(
+            Expression::Kind::kLogicalAnd, DCHECK_NOTNULL(left), DCHECK_NOTNULL(right));
+    }
+
+    Expression* emptyEdgeKeyFilter(const PlanNode* input);
 
     static const std::unordered_set<std::string> reservedProperties;
 
@@ -57,7 +66,7 @@ private:
     EdgeType edgeType_{0};
     std::shared_ptr<const meta::SchemaProviderIf> schema_;
     std::vector<storage::cpp2::EdgeProp> props_;
-    std::vector<storage::cpp2::Expr>     exprs_;
+    std::vector<storage::cpp2::Expr> exprs_;
     bool dedup_{false};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
     std::vector<storage::cpp2::OrderBy> orderBy_{};
@@ -77,4 +86,4 @@ private:
 }   // namespace graph
 }   // namespace nebula
 
-#endif  // _VALIDATOR_FETCH_EDGES_VALIDATOR_H_
+#endif   // _VALIDATOR_FETCH_EDGES_VALIDATOR_H_

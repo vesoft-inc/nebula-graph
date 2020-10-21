@@ -288,29 +288,18 @@ std::string FetchEdgesValidator::buildRuntimeInput() {
     return inputVar_;
 }
 
-Expression* FetchEdgesValidator::emptyEdgeKeyFilter(const PlanNode *input) {
+Expression *FetchEdgesValidator::emptyEdgeKeyFilter(const PlanNode *input) {
     // _src != empty && _dst != empty && _rank != empty
     DCHECK_GE(geColNames_.size(), 3);
-    auto *srcEmptyExpr = new RelationalExpression(
-        Expression::Kind::kRelNE,
-        new ConstantExpression(Value::kEmpty),
-        new VariablePropertyExpression(new std::string(input->outputVar()),
-                                       new std::string(geColNames_[0])));
-    auto *dstEmptyExpr = new RelationalExpression(
-        Expression::Kind::kRelNE,
-        new ConstantExpression(Value::kEmpty),
-        new VariablePropertyExpression(new std::string(input->outputVar()),
-                                       new std::string(geColNames_[1])));
-    auto *rankEmptyExpr = new RelationalExpression(
-        Expression::Kind::kRelNE,
-        new ConstantExpression(Value::kEmpty),
-        new VariablePropertyExpression(new std::string(input->outputVar()),
-                                       new std::string(geColNames_[2])));
-    auto *edgeKeyEmptyExpr = qctx_->objPool()->makeAndAdd<LogicalExpression>(
-        Expression::Kind::kLogicalAnd,
-        srcEmptyExpr,
-        new LogicalExpression(Expression::Kind::kLogicalAnd, dstEmptyExpr, rankEmptyExpr));
-    return edgeKeyEmptyExpr;
+    auto *srcNotEmptyExpr = notEmpty(new VariablePropertyExpression(
+        new std::string(input->outputVar()), new std::string(geColNames_[0])));
+    auto *dstNotEmptyExpr = notEmpty(new VariablePropertyExpression(
+        new std::string(input->outputVar()), new std::string(geColNames_[1])));
+    auto *rankNotEmptyExpr = notEmpty(new VariablePropertyExpression(
+        new std::string(input->outputVar()), new std::string(geColNames_[2])));
+    auto *edgeKeyNotEmptyExpr =
+        qctx_->objPool()->add(lgAnd(srcNotEmptyExpr, lgAnd(dstNotEmptyExpr, rankNotEmptyExpr)));
+    return edgeKeyNotEmptyExpr;
 }
 
 }   // namespace graph
