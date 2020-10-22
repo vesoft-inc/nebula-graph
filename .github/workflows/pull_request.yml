@@ -134,7 +134,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: ${{ failure() }}
         with:	
-          name: nebula-test-logs
+          name: ${{ matrix.os }}-${{ matrix.compiler }}-nebula-test-logs
           path:  /tmp/nebula-*/logs/
       - name: Cleanup
         if: ${{ always() }}
