@@ -39,15 +39,15 @@ void ProduceSemiShortestPathExecutor::dstInCurrent(const Edge& edge,
             if (newCost > oldCost) {
                 continue;
             } else if (newCost < oldCost) {
-                // update (dst->startVid)'s path
+                // update (dst, startVid)'s path
                 std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
                 currentCostPathMap[dst][srcPath.first].cost_ = newCost;
                 currentCostPathMap[dst][srcPath.first].paths_.swap(newPaths);
             } else {
-                // add (dst->startVid)'s path
+                // add (dst, startVid)'s path
                 std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
                 for (auto& p : newPaths) {
-                    // todo(jmq) maybe duplicate path
+                    // (TODO) maybe duplicate path, judge by step
                     currentCostPathMap[dst][srcPath.first].paths_.emplace_back(std::move(p));
                 }
             }
@@ -94,18 +94,18 @@ void ProduceSemiShortestPathExecutor::dstInHistory(const Edge& edge,
         // dst not in current but in history
         for (auto& srcPath : srcPaths) {
             if (historyCostPathMap_[dst].find(srcPath.first) == historyCostPathMap_[dst].end()) {
-                //  (dst->startVid)'s path not in history
+                //  (dst, startVid)'s path not in history
                 auto newCost = srcPath.second.cost_ + weight;
                 std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
                 currentCostPathMap[dst].emplace(srcPath.first, CostPaths(newCost, newPaths));
             } else {
-                //  (dst->startVid)'s path in history, compare cost
+                //  (dst, startVid)'s path in history, compare cost
                 auto newCost = srcPath.second.cost_ + weight;
                 auto oldCost = historyCostPathMap_[dst][srcPath.first].cost_;
                 if (newCost > oldCost) {
                     continue;
                 } else {
-                    // update (dst->startVid)'s path
+                    // update (dst, startVid)'s path
                     std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
                     currentCostPathMap[dst].emplace(srcPath.first, CostPaths(newCost, newPaths));
                 }
@@ -121,28 +121,29 @@ void ProduceSemiShortestPathExecutor::updateHistory(const Value& dst,
                                                     const Value& src,
                                                     double cost,
                                                     Value& paths) {
-    List pathList = paths.getList();
-    std::vector<const Path*> tempPath;
-    tempPath.reserve(pathList.size());
+    const List& pathList = paths.getList();
+    std::vector<const Path*> tempPathsPtr;
+    tempPathsPtr.reserve(pathList.size());
     for (auto& p : pathList.values) {
-        tempPath.emplace_back(p.getPathPtr());
+        tempPathsPtr.emplace_back(&p.getPath());
     }
+
     if (historyCostPathMap_.find(dst) == historyCostPathMap_.end()) {
         // insert path to history
-        std::unordered_map<Value, CostPathsPtr> temp = {{src, CostPathsPtr(cost, tempPath)}};
+        std::unordered_map<Value, CostPathsPtr> temp = {{src, CostPathsPtr(cost, tempPathsPtr)}};
         historyCostPathMap_.emplace(dst, std::move(temp));
     } else {
         if (historyCostPathMap_[dst].find(src) == historyCostPathMap_[dst].end()) {
             // startVid not in history ; insert it
-            historyCostPathMap_[dst].emplace(src, CostPathsPtr(cost, tempPath));
+            historyCostPathMap_[dst].emplace(src, CostPathsPtr(cost, tempPathsPtr));
         } else {
             // startVid in history; compare cost
             auto historyCost = historyCostPathMap_[dst][src].cost_;
             if (cost < historyCost) {
                 historyCostPathMap_[dst][src].cost_ = cost;
-                historyCostPathMap_[dst][src].paths_.swap(tempPath);
+                historyCostPathMap_[dst][src].paths_.swap(tempPathsPtr);
             } else if (cost == historyCost) {
-                for (auto p : tempPath) {
+                for (auto p : tempPathsPtr) {
                     historyCostPathMap_[dst][src].paths_.emplace_back(p);
                 }
             } else {
@@ -211,14 +212,13 @@ folly::Future<Status> ProduceSemiShortestPathExecutor::execute() {
             row.values.emplace_back(std::move(paths));
             ds.rows.emplace_back(std::move(row));
 
-            // update (dst->startVid)'s paths to history
+            // update (dst, startVid)'s paths to history
             updateHistory(dst, srcPath.first, cost, ds.rows.back().values.back());
         }
     }
 
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
-
 
 
 }   // namespace graph
