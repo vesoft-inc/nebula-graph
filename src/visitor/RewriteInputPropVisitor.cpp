@@ -158,7 +158,7 @@ void RewriteInputPropVisitor::visit(FunctionCallExpression* expr) {
     for (size_t i = 0; i < args.size(); ++i) {
         args[i]->accept(this);
         if (ok()) {
-            expr->args()->setArg(i, std::move(std::move(result_)));
+            expr->args()->setArg(i, std::move(result_));
         }
     }
 }
