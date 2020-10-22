@@ -442,44 +442,6 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
         expected.colNames = {"_dst", "_cost", "_paths"};
         auto cost = 3;
         {
-            // 1->5->7, 1->6->7
-            List paths;
-            {
-                Path path;
-                path.src = Vertex("1", {});
-                path.steps.emplace_back(Step(Vertex("5", {}), 1, "edge1", 0, {}));
-                path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
-                paths.values.emplace_back(std::move(path));
-            }
-            {
-                Path path;
-                path.src = Vertex("1", {});
-                path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
-                path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
-                paths.values.emplace_back(std::move(path));
-            }
-            Row row;
-            row.values.emplace_back("7");
-            row.values.emplace_back(2);
-            row.values.emplace_back(std::move(paths));
-            expected.rows.emplace_back(std::move(row));
-        }
-        {
-            // 2->6->7
-            Row row;
-            Path path;
-            path.src = Vertex("2", {});
-            path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
-
-            List paths;
-            paths.values.emplace_back(std::move(path));
-            row.values.emplace_back("7");
-            row.values.emplace_back(2);
-            row.values.emplace_back(std::move(paths));
-            expected.rows.emplace_back(std::move(row));
-        }
-        {
             // 0->1->5->7, 0->1->6->7
             List paths;
             {

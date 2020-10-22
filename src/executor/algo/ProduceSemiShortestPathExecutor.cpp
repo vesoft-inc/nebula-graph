@@ -47,16 +47,24 @@ void ProduceSemiShortestPathExecutor::dstInCurrent(const Edge& edge,
                 // add (dst, startVid)'s path
                 std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
                 for (auto& p : newPaths) {
-                    // (TODO) maybe duplicate path, judge by step
                     currentCostPathMap[dst][srcPath.first].paths_.emplace_back(std::move(p));
                 }
             }
         } else {
-            // startVid not in currentCostPathMap[dst], insert it
+            // startVid not in currentCostPathMap[dst]
             auto newCost = srcPath.second.cost_ + weight;
             std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
-            CostPaths temp(newCost, newPaths);
-            currentCostPathMap[dst].emplace(srcPath.first, std::move(temp));
+            // dst in history
+            if (historyCostPathMap_.find(dst) != historyCostPathMap_.end()) {
+                if (historyCostPathMap_[dst].find(srcPath.first) !=
+                    historyCostPathMap_[dst].end()) {
+                    removeSamePath(newPaths, historyCostPathMap_[dst][srcPath.first].paths_);
+                }
+            }
+            if (!newPaths.empty()) {
+                CostPaths temp(newCost, newPaths);
+                currentCostPathMap[dst].emplace(srcPath.first, std::move(temp));
+            }
         }
     }
 }
@@ -78,8 +86,22 @@ void ProduceSemiShortestPathExecutor::dstNotInHistory(const Edge& edge,
             currentCostPathMap.emplace(dst, std::move(temp));
         }
     } else {
-        // dst not in history but in current
+        // dst in current
         dstInCurrent(edge, currentCostPathMap);
+    }
+}
+
+void ProduceSemiShortestPathExecutor::removeSamePath(std::vector<Path>& paths,
+                                                     std::vector<const Path*>& historyPathsPtr) {
+    for (auto ptr : historyPathsPtr) {
+        auto iter = paths.begin();
+        while (iter != paths.end()) {
+            if (*iter == *ptr) {
+                iter = paths.erase(iter);
+            } else {
+                ++iter;
+            }
+        }
     }
 }
 
@@ -97,22 +119,36 @@ void ProduceSemiShortestPathExecutor::dstInHistory(const Edge& edge,
                 //  (dst, startVid)'s path not in history
                 auto newCost = srcPath.second.cost_ + weight;
                 std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
-                currentCostPathMap[dst].emplace(srcPath.first, CostPaths(newCost, newPaths));
+                std::unordered_map<Value, CostPaths> temp = {
+                    {srcPath.first, CostPaths(newCost, newPaths)}};
+                currentCostPathMap.emplace(dst, std::move(temp));
             } else {
                 //  (dst, startVid)'s path in history, compare cost
                 auto newCost = srcPath.second.cost_ + weight;
-                auto oldCost = historyCostPathMap_[dst][srcPath.first].cost_;
-                if (newCost > oldCost) {
+                auto historyCost = historyCostPathMap_[dst][srcPath.first].cost_;
+                if (newCost > historyCost) {
                     continue;
-                } else {
+                } else if (newCost < historyCost) {
                     // update (dst, startVid)'s path
                     std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
-                    currentCostPathMap[dst].emplace(srcPath.first, CostPaths(newCost, newPaths));
+                    std::unordered_map<Value, CostPaths> temp = {
+                        {srcPath.first, CostPaths(newCost, newPaths)}};
+                    currentCostPathMap.emplace(dst, std::move(temp));
+                } else {
+                    std::vector<Path> newPaths = createPaths(srcPath.second.paths_, edge);
+                    // if same path in history, remove it
+                    removeSamePath(newPaths, historyCostPathMap_[dst][srcPath.first].paths_);
+                    if (newPaths.empty()) {
+                        continue;
+                    }
+                    std::unordered_map<Value, CostPaths> temp = {
+                        {srcPath.first, CostPaths(newCost, newPaths)}};
+                    currentCostPathMap.emplace(dst, std::move(temp));
                 }
             }
         }
     } else {
-        // dst in hostory and in current
+        // dst in current
         dstInCurrent(edge, currentCostPathMap);
     }
 }

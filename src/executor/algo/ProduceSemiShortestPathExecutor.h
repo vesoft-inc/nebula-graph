@@ -53,6 +53,8 @@ private:
 
     std::vector<Path> createPaths(const std::vector<const Path*>& paths, const Edge& edge);
 
+    void removeSamePath(std::vector<Path>& paths, std::vector<const Path*> &historyPaths);
+
 private:
     // dst : {src : <cost, {Path*}>}
     CostPathMapPtr historyCostPathMap_;
