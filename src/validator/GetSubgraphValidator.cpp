@@ -18,7 +18,6 @@ namespace nebula {
 namespace graph {
 
 Status GetSubgraphValidator::validateImpl() {
-    Status status;
     auto* gsSentence = static_cast<GetSubgraphSentence*>(sentence_);
 
     NG_RETURN_IF_ERROR(validateStep(gsSentence->step(), steps_));
