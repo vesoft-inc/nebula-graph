@@ -12,39 +12,18 @@ namespace nebula {
 namespace graph {
 
 Status MatchValidator::toPlan() {
-    auto status = Status::OK();
-    do {
-        status = buildScanNode();
-        if (!status.ok()) {
-            break;
-        }
-        if (!edgeInfos_.empty()) {
-            status = buildSteps();
-            if (!status.ok()) {
-                break;
-            }
-        }
-        status = buildGetTailVertices();
-        if (!status.ok()) {
-            break;
-        }
-        if (!edgeInfos_.empty()) {
-            status = buildTailJoin();
-            if (!status.ok()) {
-                break;
-            }
-        }
-        status = buildFilter();
-        if (!status.ok()) {
-            break;
-        }
-        status = buildReturn();
-        if (!status.ok()) {
-            break;
-        }
-    } while (false);
+    NG_RETURN_IF_ERROR(buildScanNode());
+    if (!edgeInfos_.empty()) {
+        NG_RETURN_IF_ERROR(buildSteps());
+    }
+    NG_RETURN_IF_ERROR(buildGetTailVertices());
+    if (!edgeInfos_.empty()) {
+        NG_RETURN_IF_ERROR(buildTailJoin());
+    }
+    NG_RETURN_IF_ERROR(buildFilter());
+    NG_RETURN_IF_ERROR(buildReturn());
 
-    return status;
+    return Status::OK();
 }
 
 
@@ -232,16 +211,27 @@ Status MatchValidator::analyzeStartPoint() {
     if (head.props == nullptr) {
         return Status::Error("Head node must have a filter");
     }
+    if (head.props->items().size() == 0) {
+        return Status::Error("No props found in the head node");
+    }
 
-    auto items = head.props->items();
-    DCHECK_EQ(items.size(), 1UL);
-    auto *indexFilter = new RelationalExpression(Expression::Kind::kRelEQ,
+    auto &items = head.props->items();
+    Expression *root = new RelationalExpression(Expression::Kind::kRelEQ,
             new TagPropertyExpression(
                 new std::string(*head.label),
                 new std::string(*items[0].first)),
             items[0].second->clone().release());
-    saveObject(indexFilter);
-    scanInfo_.filter = indexFilter;
+    for (auto i = 0u; i < items.size(); i++) {
+        auto *left = root;
+        auto *right = new RelationalExpression(Expression::Kind::kRelEQ,
+                new TagPropertyExpression(
+                    new std::string(*head.label),
+                    new std::string(*items[i].first)),
+                items[i].second->clone().release());
+        root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, right);
+    }
+    saveObject(root);
+    scanInfo_.filter = root;
     scanInfo_.schemaId = head.tid;
 
     return Status::OK();
@@ -250,8 +240,8 @@ Status MatchValidator::analyzeStartPoint() {
 
 Expression* MatchValidator::createSubFilter(const std::string &alias,
         const MapExpression *map) const {
-    DCHECK_NOTNULL(map);
-    auto items = map->items();
+    DCHECK(map != nullptr);
+    auto &items = map->items();
     DCHECK(!items.empty());
     Expression *root = nullptr;
     root = new RelationalExpression(Expression::Kind::kRelEQ,
@@ -500,7 +490,7 @@ Status MatchValidator::buildFilter() {
     // TODO(dutor) Find a better way to identify where an expr is a boolean one
     if (kind == Expression::Kind::kLabel ||
             kind == Expression::Kind::kLabelAttribute) {
-        return Status::SemanticError("Filter should be a bllean expression");
+        return Status::SemanticError("Filter should be a boolean expression");
     }
 
     auto newFilter = filter->clone();

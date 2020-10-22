@@ -308,7 +308,7 @@ public:
     }
 
     bool empty() const {
-        return size() == 0;
+        return columns_.empty();
     }
 
     std::string toString() const;

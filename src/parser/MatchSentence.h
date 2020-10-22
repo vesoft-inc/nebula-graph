@@ -116,22 +116,12 @@ public:
         nodes_.emplace_back(node);
     }
 
-    std::vector<const MatchNode*> nodes() const {
-        std::vector<const MatchNode*> result;
-        result.reserve(nodes_.size());
-        for (auto &node : nodes_) {
-            result.emplace_back(node.get());
-        }
-        return result;
+    const auto& nodes() const {
+        return nodes_;
     }
 
-    std::vector<const MatchEdge*> edges() const {
-        std::vector<const MatchEdge*> result;
-        result.reserve(edges_.size());
-        for (auto &edge : edges_) {
-            result.emplace_back(edge.get());
-        }
-        return result;
+    const auto& edges() const {
+        return edges_;
     }
 
     size_t steps() const {

@@ -61,7 +61,7 @@ private:
     void visitBinaryExpr(BinaryExpression *) override;
 
     std::vector<std::unique_ptr<Expression>>
-    rewriteExprList(const std::vector<const Expression*> &list);
+    rewriteExprList(const std::vector<std::unique_ptr<Expression>> &list);
 
 private:
     Rewriter                            rewriter_;

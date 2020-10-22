@@ -55,9 +55,9 @@ void RewriteMatchLabelVisitor::visit(SetExpression *expr) {
 
 
 void RewriteMatchLabelVisitor::visit(MapExpression *expr) {
-    auto items = expr->items();
+    auto &items = expr->items();
     auto iter = std::find_if(items.cbegin(), items.cend(), [] (auto &pair) {
-        return isLabel(pair.second);
+        return isLabel(pair.second.get());
     });
     if (iter == items.cend()) {
         return;
@@ -68,8 +68,8 @@ void RewriteMatchLabelVisitor::visit(MapExpression *expr) {
     for (auto &pair : items) {
         MapExpression::Item newItem;
         newItem.first.reset(new std::string(*pair.first));
-        if (isLabel(pair.second)) {
-            newItem.second.reset(rewriter_(pair.second));
+        if (isLabel(pair.second.get())) {
+            newItem.second.reset(rewriter_(pair.second.get()));
         } else {
             newItem.second = pair.second->clone();
             newItem.second->accept(this);
@@ -96,20 +96,22 @@ void RewriteMatchLabelVisitor::visitBinaryExpr(BinaryExpression *expr) {
 
 
 std::vector<std::unique_ptr<Expression>>
-RewriteMatchLabelVisitor::rewriteExprList(const std::vector<const Expression*> &list) {
+RewriteMatchLabelVisitor::rewriteExprList(const std::vector<std::unique_ptr<Expression>> &list) {
     std::vector<std::unique_ptr<Expression>> newList;
-    auto iter = std::find_if(list.cbegin(), list.cend(), isLabel);
+    auto iter = std::find_if(list.cbegin(), list.cend(), [] (auto &expr) {
+            return isLabel(expr.get());
+    });
     if (iter != list.cend()) {
-        std::for_each(list.cbegin(), list.cend(), [this] (auto expr) {
-            const_cast<Expression*>(expr)->accept(this);
+        std::for_each(list.cbegin(), list.cend(), [this] (auto &expr) {
+            const_cast<Expression*>(expr.get())->accept(this);
         });
         return newList;
     }
 
     newList.reserve(list.size());
-    for (auto expr : list) {
-        if (isLabel(expr)) {
-            newList.emplace_back(rewriter_(expr));
+    for (auto &expr : list) {
+        if (isLabel(expr.get())) {
+            newList.emplace_back(rewriter_(expr.get()));
         } else {
             auto newExpr = expr->clone();
             newExpr->accept(this);
