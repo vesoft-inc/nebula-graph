@@ -221,7 +221,7 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
 
     auto root = validator->root();
     if (!root) {
-        return Status::Error("Get null plan from sequential validator");
+        return Status::SemanticError("Get null plan from sequential validator");
     }
     qctx->plan()->setRoot(root);
     return Status::OK();
@@ -263,31 +263,14 @@ Status Validator::validate() {
         VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name << " id: " << space_.id;
     }
 
-    auto getStatus = [](Status status) -> Status {
-        if (status.isSemanticError() || status.isPermissionError()) {
-            return status;
-        }
-        auto msg = status.message();
-        if (msg.empty()) {
-            msg = status.toString();
-        }
-        return Status::SemanticError(msg);
-    };
-
-    auto status = validateImpl();
-    if (!status.ok()) {
-        return getStatus(std::move(status));
-    }
+    NG_RETURN_IF_ERROR(validateImpl());
 
     // Execute after validateImpl because need field from it
     if (FLAGS_enable_authorize) {
         NG_RETURN_IF_ERROR(checkPermission());
     }
 
-    status = toPlan();
-    if (!status.ok()) {
-        return getStatus(std::move(status));
-    }
+    NG_RETURN_IF_ERROR(toPlan());
 
     return Status::OK();
 }
@@ -360,28 +343,27 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
         ColDef col(*propExpr->prop(), type);
         const auto find = std::find(inputs_.begin(), inputs_.end(), col);
         if (find == inputs_.end()) {
-            return Status::Error("No input property %s", propExpr->prop()->c_str());
+            return Status::SemanticError("No input property `%s'", propExpr->prop()->c_str());
         }
         return inputVarName_;
     } else if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
         ColDef col(*propExpr->prop(), type);
-        const auto &outputVar = *propExpr->sym();
-        const auto &var = vctx_->getVar(outputVar);
+        const auto& outputVar = *propExpr->sym();
+        const auto& var = vctx_->getVar(outputVar);
         if (var.empty()) {
-            return Status::Error("No variable %s", outputVar.c_str());
+            return Status::SemanticError("No variable `%s'", outputVar.c_str());
         }
         const auto find = std::find(var.begin(), var.end(), col);
         if (find == var.end()) {
-            return Status::Error("No property %s in variable %s",
-                                 propExpr->prop()->c_str(),
-                                 outputVar.c_str());
+            return Status::SemanticError(
+                "No property `%s' in variable `%s'", propExpr->prop()->c_str(), outputVar.c_str());
         }
         return outputVar;
     } else {
         // it's guranteed by parser
         DLOG(FATAL) << "Unexpected expression " << ref->kind();
-        return Status::Error("Unexpected expression.");
+        return Status::SemanticError("Unexpected expression.");
     }
 }
 
