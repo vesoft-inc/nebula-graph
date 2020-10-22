@@ -369,13 +369,8 @@ unreserved_keyword
     | KW_SHORTEST           { $$ = new std::string("shortest"); }
     | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
     | KW_CONTAINS           { $$ = new std::string("contains"); }
-    | KW_NOT_CONTAINS       { $$ = new std::string("not_contains"); }
     | KW_STARTS             { $$ = new std::string("starts"); }
     | KW_ENDS               { $$ = new std::string("ends"); }
-    | KW_STARTS_WITH        { $$ = new std::string("starts_with"); }
-    | KW_ENDS_WITH          { $$ = new std::string("ends_with"); }
-    | KW_NOT_STARTS_WITH    { $$ = new std::string("not starts_with"); }
-    | KW_NOT_ENDS_WITH      { $$ = new std::string("not ends_with"); }
     | KW_VID_TYPE           { $$ = new std::string("vid_type"); }
     ;
 
