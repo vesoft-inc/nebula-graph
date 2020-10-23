@@ -661,8 +661,9 @@ public:
     static SubmitJob* make(QueryContext* qctx,
                            PlanNode* dep,
                            meta::cpp2::AdminJobOp op,
+                           meta::cpp2::AdminCmd cmd,
                            const std::vector<std::string>& params) {
-        return qctx->objPool()->add(new SubmitJob(qctx, dep, op, params));
+        return qctx->objPool()->add(new SubmitJob(qctx, dep, op, cmd, params));
     }
 
     std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
@@ -684,14 +685,17 @@ private:
     SubmitJob(QueryContext* qctx,
               PlanNode* dep,
               meta::cpp2::AdminJobOp op,
+              meta::cpp2::AdminCmd cmd,
               const std::vector<std::string> &params)
         : SingleDependencyNode(qctx, Kind::kSubmitJob, dep),
           op_(op),
+          cmd_(cmd),
           params_(params) {}
 
 
 private:
     meta::cpp2::AdminJobOp         op_;
+    // only used when create job
     meta::cpp2::AdminCmd           cmd_;
     const std::vector<std::string> params_;
 };

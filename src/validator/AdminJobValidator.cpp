@@ -15,7 +15,23 @@ Status AdminJobValidator::validateImpl() {
 }
 
 Status AdminJobValidator::toPlan() {
-    auto *doNode = SubmitJob::make(qctx_, nullptr, sentence_->getType(), sentence_->getParas());
+    meta::cpp2::AdminCmd cmd = meta::cpp2::AdminCmd::UNKNOWN;
+    std::vector<std::string> params;
+    if (!sentence_->getParas().empty()) {
+        folly::split(" ", sentence_->getParas().front(), params, true);
+    }
+    if (sentence_->getType() == meta::cpp2::AdminJobOp::ADD) {
+        if (params.front() == "compact") {
+            cmd = meta::cpp2::AdminCmd::COMPACT;
+        } else if (params.front() == "flush") {
+            cmd = meta::cpp2::AdminCmd::FLUSH;
+        } else {
+            DLOG(FATAL) << "Unknown job command " << params.front();
+            return Status::Error("Unknown job command %s", params.front().c_str());
+        }
+        params.erase(params.begin());
+    }
+    auto *doNode = SubmitJob::make(qctx_, nullptr, sentence_->getType(), cmd, std::move(params));
     root_ = doNode;
     tail_ = root_;
     return Status::OK();

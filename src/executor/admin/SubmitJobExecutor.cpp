@@ -17,23 +17,9 @@ folly::Future<Status> SubmitJobExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *sjNode = asNode<SubmitJob>(node());
-    auto jobOp = sjNode->jobOp();
-    meta::cpp2::AdminCmd cmd = meta::cpp2::AdminCmd::COMPACT;
-    if (jobOp == meta::cpp2::AdminJobOp::ADD) {
-        std::vector<std::string> params;
-        folly::split(" ", sjNode->params().front(), params, true);
-        if (params.front() == "compact") {
-            cmd = meta::cpp2::AdminCmd::COMPACT;
-        } else if (params.front() == "flush") {
-            cmd = meta::cpp2::AdminCmd::FLUSH;
-        } else {
-            DLOG(FATAL) << "Unknown job command " << params.front();
-            return Status::Error("Unknown job command %s", params.front().c_str());
-        }
-    }
-    return qctx()->getMetaClient()->submitJob(jobOp, cmd, sjNode->params())
+    return qctx()->getMetaClient()->submitJob(sjNode->jobOp(), sjNode->cmd(), sjNode->params())
         .via(runner())
-        .then([jobOp, this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
+        .then([jobOp = sjNode->jobOp(), this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
             SCOPED_TIMER(&execTime_);
 
             if (!resp.ok()) {
