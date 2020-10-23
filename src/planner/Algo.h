@@ -48,7 +48,7 @@ public:
         kBiBFS,
         kBiDijkstra,
         kFloyd,
-        kAllPath,
+        kAllPaths,
     };
 
     static ConjunctPath* make(QueryContext* qctx,

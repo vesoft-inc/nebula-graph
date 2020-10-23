@@ -16,6 +16,8 @@ folly::Future<Status> ConjunctPathExecutor::execute() {
     switch (conjunct->pathKind()) {
         case ConjunctPath::PathKind::kBiBFS:
             return bfsShortestPath();
+        case ConjunctPath::PathKind::kAllPaths:
+            return allPaths();
         default:
             LOG(FATAL) << "Not implement.";
     }
@@ -221,6 +223,66 @@ bool ConjunctPathExecutor::findPath(Iterator* iter,
                     backward.reverse();
                     VLOG(1) << "Backward reverse path:" << backward;
                     forward.append(std::move(backward));
+                    VLOG(1) << "Found path: " << forward;
+                    row.values.emplace_back(std::move(forward));
+                    ds.rows.emplace_back(std::move(row));
+                }
+                found = true;
+            }
+        }
+    }
+    return found;
+}
+
+folly::Future<Status> ConjunctPathExecutor::allPaths() {
+    auto* conjunct = asNode<ConjunctPath>(node());
+    auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
+    const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
+    VLOG(1) << "current: " << node()->outputVar();
+    VLOG(1) << "left input: " << conjunct->leftInputVar()
+            << " right input: " << conjunct->rightInputVar();
+    DCHECK(!!lIter);
+
+    DataSet ds;
+    ds.colNames = conjunct->colNames();
+
+    std::multimap<Value, const Path*> table;
+    for (; lIter->valid(); lIter->next()) {
+        auto& dst = lIter->getColumn(kVid);
+        auto& path = lIter->getColumn("path");
+        if (path.isPath() && !path.getPath().steps.empty()) {
+            VLOG(1) << "Forward dst: " << dst;
+            table.emplace(dst, &path.getPath());
+        }
+    }
+
+    if (rHist.size() >= 2) {
+        auto previous = rHist[rHist.size() - 2].iter();
+        findPath(previous.get(), table, ds);
+    } else if (rHist.size() == 1) {
+        auto latest = rHist.back().iter();
+        findOneStepPath(latest.get(), table, ds);
+    }
+
+    auto latest = rHist.back().iter();
+    findPath(latest.get(), table, ds);
+
+    return finish(ResultBuilder().value(Value(std::move(ds))).finish());
+}
+
+bool ConjunctPathExecutor::findOneStepPath(Iterator* iter,
+                                           std::multimap<Value, const Path*>& table,
+                                           DataSet& ds) {
+    bool found = false;
+    for (; iter->valid(); iter->next()) {
+        auto& path = iter->getColumn("path");
+        if (path.isPath()) {
+            auto& src = path.getPath().src.vid;
+            auto paths = table.equal_range(src);
+            if (paths.first != paths.second) {
+                for (auto i = paths.first; i != paths.second; ++i) {
+                    Row row;
+                    auto forward = *i->second;
                     VLOG(1) << "Found path: " << forward;
                     row.values.emplace_back(std::move(forward));
                     ds.rows.emplace_back(std::move(row));
