@@ -19,21 +19,17 @@ public:
     folly::Future<Status> execute() override;
 
 private:
+    // k: dst, v: paths to dst
     using HistoryPaths = std::unordered_map<Value, std::vector<const Path*>>;
 
-    struct PathToDst {
-        PathToDst(Value&& d, Path&& p) : dst(std::move(d)), path(std::move(p)) {}
-        Value dst;
-        Path path;
-    };
-
-    using Interims = std::vector<PathToDst>;
+    // k: dst, v: paths to dst
+    using Interims = std::unordered_map<Value, std::vector<Value>>;
 
     void createPaths(const Edge& edge, Interims& interims);
 
     void buildPaths(const std::vector<const Path*>& history, const Edge& edge, Interims& interims);
 
-    size_t       count_{0};
+    size_t count_{0};
     HistoryPaths historyPaths_;
 };
 }  // namespace graph

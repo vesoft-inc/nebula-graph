@@ -20,6 +20,10 @@ folly::Future<Status> ProduceAllPathsExecutor::execute() {
     ds.colNames = node()->colNames();
     Interims interims;
 
+    if (!iter->isGetNeighborsIter()) {
+        return Status::Error("Only accept GetNeighbotsIter.");
+    }
+    VLOG(1) << "Edge size: " << iter->size();
     for (; iter->valid(); iter->next()) {
         auto edgeVal = iter->getEdge();
         if (!edgeVal.isEdge()) {
@@ -36,21 +40,27 @@ folly::Future<Status> ProduceAllPathsExecutor::execute() {
 
     for (auto& interim : interims) {
         Row row;
-        row.values.emplace_back(std::move(interim.dst));
-        row.values.emplace_back(std::move(interim.path));
+        auto& dst = interim.first;
+        auto& paths = interim.second;
+        row.values.emplace_back(std::move(dst));
+        row.values.emplace_back(List(std::move(paths)));
         ds.rows.emplace_back(std::move(row));
-        auto& dst = ds.rows.back().values.front();
-        historyPaths_[dst].emplace_back(&ds.rows.back().values.back().getPath());
+
+        const auto& dstInDs = ds.rows.back().values.front();
+        for (auto& path : ds.rows.back().values.back().getList().values) {
+            historyPaths_[dstInDs].emplace_back(&path.getPath());
+        }
     }
     count_++;
-    return Status::OK();
+    return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
 void ProduceAllPathsExecutor::createPaths(const Edge& edge, Interims& interims) {
     Path path;
     path.src = Vertex(edge.src, {});
     path.steps.emplace_back(Step(Vertex(edge.dst, {}), edge.type, edge.name, edge.ranking, {}));
-    interims.emplace_back(edge.dst, std::move(path));
+    VLOG(1) << "Create path: " << path;
+    interims[edge.dst].emplace_back(std::move(path));
 }
 
 void ProduceAllPathsExecutor::buildPaths(const std::vector<const Path*>& history,
@@ -63,7 +73,8 @@ void ProduceAllPathsExecutor::buildPaths(const std::vector<const Path*>& history
             Path path = *histPath;
             path.steps.emplace_back(
                 Step(Vertex(edge.dst, {}), edge.type, edge.name, edge.ranking, {}));
-            interims.emplace_back(edge.dst, std::move(path));
+            VLOG(1) << "Build path: " << path;
+            interims[edge.dst].emplace_back(std::move(path));
         }
     }
 }
