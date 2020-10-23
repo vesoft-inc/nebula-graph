@@ -277,13 +277,3 @@ class TestIndex(NebulaTestSuite):
 
     #     resp = self.client.execute_query('REBUILD TAG INDEX non_existent_tag_index')
     #     self.check_resp.failed(resp)
-
-<<<<<<< HEAD
-        resp = self.client.execute_query('REBUILD EDGE INDEX non_existent_edge_index')
-        self.check_resp.failed(resp)
-=======
-    #     resp = self.client.execute_query('REBUILD EDGE INDEX non_existent_edge_index')
-    #     self.check_resp.failed(resp)
-
-
->>>>>>> remove rebuild index
