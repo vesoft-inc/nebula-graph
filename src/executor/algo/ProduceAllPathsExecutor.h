@@ -17,6 +17,24 @@ public:
         : Executor("ProduceAllPaths", node, qctx) {}
 
     folly::Future<Status> execute() override;
+
+private:
+    using HistoryPaths = std::unordered_map<Value, std::vector<const Path*>>;
+
+    struct PathToDst {
+        PathToDst(Value&& d, Path&& p) : dst(std::move(d)), path(std::move(p)) {}
+        Value dst;
+        Path path;
+    };
+
+    using Interims = std::vector<PathToDst>;
+
+    void createPaths(const Edge& edge, Interims& interims);
+
+    void buildPaths(const std::vector<const Path*>& history, const Edge& edge, Interims& interims);
+
+    size_t       count_{0};
+    HistoryPaths historyPaths_;
 };
 }  // namespace graph
 }  // namespace nebula
