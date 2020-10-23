@@ -74,11 +74,10 @@ public:
         return new SetExpression(exprList);
     }
 
-    static MapExpression *map_(
-        std::initializer_list<std::pair<std::string *, Expression *>> exprs) {
+    static MapExpression *map_(std::initializer_list<std::pair<std::string, Expression *>> exprs) {
         auto mapItemList = new MapItemList;
         for (auto expr : exprs) {
-            mapItemList->add(expr.first, expr.second);
+            mapItemList->add(new std::string(expr.first), expr.second);
         }
         return new MapExpression(mapItemList);
     }
@@ -194,15 +193,11 @@ TEST_F(FoldConstantExprVisitorTest, TestSetExpr) {
 
 TEST_F(FoldConstantExprVisitorTest, TestMapExpr) {
     // {"jack":1, "tom":pow(2, 2+1), "jerry":5-1} => {"jack":1, "tom":8, "jerry":4}
-    auto jack = new std::string("jack"), jack2 = new std::string("jack");
-    auto tom = new std::string("tom"), tom2 = new std::string("tom");
-    auto jerry = new std::string("jerry"), jerry2 = new std::string("jerry");
-
-    auto expr = pool.add(map_({{jack, constant(1)},
-                               {tom, fn("pow", {constant(2), add(constant(2), constant(1))})},
-                               {jerry, minus(constant(5), constant(1))}}));
+    auto expr = pool.add(map_({{"jack", constant(1)},
+                               {"tom", fn("pow", {constant(2), add(constant(2), constant(1))})},
+                               {"jerry", minus(constant(5), constant(1))}}));
     auto expected =
-        pool.add(map_({{jack2, constant(1)}, {tom2, constant(8)}, {jerry2, constant(4)}}));
+        pool.add(map_({{"jack", constant(1)}, {"tom", constant(8)}, {"jerry", constant(4)}}));
     FoldConstantExprVisitor visitor;
     expr->accept(&visitor);
     ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
