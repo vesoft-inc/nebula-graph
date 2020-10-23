@@ -71,6 +71,16 @@ private:
     PathKind pathKind_;
 };
 
+class ProduceAllPaths final : public SingleInputNode {
+ public:
+    static ProduceAllPaths* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ProduceAllPaths(qctx, input));
+    }
+
+ private:
+    ProduceAllPaths(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kProduceAllPaths, input) {}
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ALGO_H_
