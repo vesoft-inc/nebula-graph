@@ -66,6 +66,23 @@ public:
         return new ListExpression(exprList);
     }
 
+    static SetExpression *set_(std::initializer_list<Expression *> exprs) {
+        auto exprList = new ExpressionList;
+        for (auto expr : exprs) {
+            exprList->add(expr);
+        }
+        return new SetExpression(exprList);
+    }
+
+    static MapExpression *map_(
+        std::initializer_list<std::pair<std::string *, Expression *>> exprs) {
+        auto mapItemList = new MapItemList;
+        for (auto expr : exprs) {
+            mapItemList->add(expr.first, expr.second);
+        }
+        return new MapExpression(mapItemList);
+    }
+
     static SubscriptExpression *sub(Expression *lhs, Expression *rhs) {
         return new SubscriptExpression(lhs, rhs);
     }
@@ -149,6 +166,47 @@ TEST_F(FoldConstantExprVisitorTest, TestSubscriptExpr) {
     auto root = pool.add(visitor.fold(expr));
     auto rootExpected = pool.add(constant(9));
     ASSERT_EQ(*root, *rootExpected) << root->toString() << " vs. " << rootExpected->toString();
+}
+
+TEST_F(FoldConstantExprVisitorTest, TestListExpr) {
+    // [3+4, pow(2, 2+1), 2] => [7, 8, 2]
+    auto expr = pool.add(list_({add(constant(3), constant(4)),
+                                fn("pow", {constant(2), add(constant(2), constant(1))}),
+                                constant(2)}));
+    auto expected = pool.add(list_({constant(7), constant(8), constant(2)}));
+    FoldConstantExprVisitor visitor;
+    expr->accept(&visitor);
+    ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
+    ASSERT(visitor.canBeFolded());
+}
+
+TEST_F(FoldConstantExprVisitorTest, TestSetExpr) {
+    // {sqrt(19-3), pow(2, 3+1), 2} => {4, 16, 2}
+    auto expr = pool.add(set_({fn("sqrt", {minus(constant(19), constant(3))}),
+                               fn("pow", {constant(2), add(constant(3), constant(1))}),
+                               constant(2)}));
+    auto expected = pool.add(set_({constant(4), constant(16), constant(2)}));
+    FoldConstantExprVisitor visitor;
+    expr->accept(&visitor);
+    ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
+    ASSERT(visitor.canBeFolded());
+}
+
+TEST_F(FoldConstantExprVisitorTest, TestMapExpr) {
+    // {"jack":1, "tom":pow(2, 2+1), "jerry":5-1} => {"jack":1, "tom":8, "jerry":4}
+    auto jack = new std::string("jack"), jack2 = new std::string("jack");
+    auto tom = new std::string("tom"), tom2 = new std::string("tom");
+    auto jerry = new std::string("jerry"), jerry2 = new std::string("jerry");
+
+    auto expr = pool.add(map_({{jack, constant(1)},
+                               {tom, fn("pow", {constant(2), add(constant(2), constant(1))})},
+                               {jerry, minus(constant(5), constant(1))}}));
+    auto expected =
+        pool.add(map_({{jack2, constant(1)}, {tom2, constant(8)}, {jerry2, constant(4)}}));
+    FoldConstantExprVisitor visitor;
+    expr->accept(&visitor);
+    ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
+    ASSERT(visitor.canBeFolded());
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestFoldFailed) {
