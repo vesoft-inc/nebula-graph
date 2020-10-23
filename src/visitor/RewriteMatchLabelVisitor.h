@@ -41,6 +41,7 @@ private:
     void visit(MapExpression*) override;
     void visit(ConstantExpression*) override {}
     void visit(LabelExpression*) override {}
+    void visit(AttributeExpression*) override;
     void visit(UUIDExpression*) override {}
     void visit(LabelAttributeExpression*) override {}
     void visit(VariableExpression*) override {}

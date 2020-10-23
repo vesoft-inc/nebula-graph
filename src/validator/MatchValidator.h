@@ -37,7 +37,15 @@ private:
 
     Status analyzeStartPoint();
 
-    Expression* createSubFilter(const std::string &alias, const MapExpression *map) const;
+    Status ananyzeFilterForIndexing();
+
+    Expression* makeSubFilter(const std::string &alias, const MapExpression *map) const;
+
+    Expression* makeIndexFilter(const std::string &label,
+                                const MapExpression *map) const;
+    Expression* makeIndexFilter(const std::string &label,
+                                const std::string &alias,
+                                const Expression *filter) const;
 
     Status buildScanNode();
 

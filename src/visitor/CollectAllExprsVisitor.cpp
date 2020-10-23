@@ -115,6 +115,10 @@ void CollectAllExprsVisitor::visit(LabelAttributeExpression *expr) {
     collectExpr(expr);
 }
 
+void CollectAllExprsVisitor::visit(AttributeExpression *expr) {
+    collectExpr(expr);
+}
+
 void CollectAllExprsVisitor::visit(VertexExpression *expr) {
     collectExpr(expr);
 }

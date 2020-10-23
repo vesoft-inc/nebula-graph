@@ -60,22 +60,6 @@ nebula_add_test(
 
 nebula_add_test(
     NAME
-        logical_expr_pull_test
-    SOURCES
-        LogicalExprPullTest.cpp
-    OBJECTS
-        ${OPTIMIZER_TEST_LIB}
-    LIBRARIES
-        proxygenhttpserver
-        proxygenlib
-        ${THRIFT_LIBRARIES}
-        wangle
-        gtest
-        gtest_main
-)
-
-nebula_add_test(
-    NAME
         index_scan_rule_test
     SOURCES
         IndexScanRuleTest.cpp

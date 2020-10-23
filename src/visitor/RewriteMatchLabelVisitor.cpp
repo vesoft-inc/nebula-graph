@@ -38,6 +38,15 @@ void RewriteMatchLabelVisitor::visit(FunctionCallExpression *expr) {
 }
 
 
+void RewriteMatchLabelVisitor::visit(AttributeExpression *expr) {
+    if (isLabel(expr->left())) {
+        expr->setLeft(rewriter_(expr->left()));
+    } else {
+        expr->left()->accept(this);
+    }
+}
+
+
 void RewriteMatchLabelVisitor::visit(ListExpression *expr) {
     auto newItems = rewriteExprList(expr->items());
     if (!newItems.empty()) {

@@ -34,7 +34,7 @@ Status MatchValidator::validateImpl() {
         NG_RETURN_IF_ERROR(validateFilter(sentence->where()->filter()));
     }
     NG_RETURN_IF_ERROR(validateReturn(sentence->ret()));
-    return Status::OK();
+    return analyzeStartPoint();
 }
 
 
@@ -66,7 +66,7 @@ Status MatchValidator::validatePath(const MatchPath *path) {
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            filter = createSubFilter(*alias, props);
+            filter = makeSubFilter(*alias, props);
         }
         nodeInfos_[i].anonymous = anonymous;
         nodeInfos_[i].label = label;
@@ -101,7 +101,7 @@ Status MatchValidator::validatePath(const MatchPath *path) {
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            filter = createSubFilter(*alias, props);
+            filter = makeSubFilter(*alias, props);
         }
         edgeInfos_[i].anonymous = anonymous;
         edgeInfos_[i].direction = direction;
@@ -111,7 +111,7 @@ Status MatchValidator::validatePath(const MatchPath *path) {
         edgeInfos_[i].filter = filter;
     }
 
-    return analyzeStartPoint();
+    return Status::OK();
 }
 
 
@@ -206,39 +206,130 @@ Status MatchValidator::analyzeStartPoint() {
     auto &head = nodeInfos_[0];
 
     if (head.label == nullptr) {
-        return Status::Error("Head node must have a label");
-    }
-    if (head.props == nullptr) {
-        return Status::Error("Head node must have a filter");
-    }
-    if (head.props->items().size() == 0) {
-        return Status::Error("No props found in the head node");
+        return Status::SemanticError("Head node must have a label");
     }
 
-    auto &items = head.props->items();
-    Expression *root = new RelationalExpression(Expression::Kind::kRelEQ,
-            new TagPropertyExpression(
-                new std::string(*head.label),
-                new std::string(*items[0].first)),
-            items[0].second->clone().release());
-    for (auto i = 0u; i < items.size(); i++) {
-        auto *left = root;
-        auto *right = new RelationalExpression(Expression::Kind::kRelEQ,
-                new TagPropertyExpression(
-                    new std::string(*head.label),
-                    new std::string(*items[i].first)),
-                items[i].second->clone().release());
-        root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, right);
+    Expression *filter = nullptr;
+    if (filter_ != nullptr) {
+        filter = makeIndexFilter(*head.label, *head.alias, filter_.get());
     }
-    saveObject(root);
-    scanInfo_.filter = root;
+    if (filter == nullptr) {
+        if (head.props != nullptr && !head.props->items().empty()) {
+            filter = makeIndexFilter(*head.label, head.props);
+        }
+    }
+    if (filter == nullptr) {
+        return Status::SemanticError("Index cannot be deduced in props or filter");
+    }
+
+
+    scanInfo_.filter = filter;
     scanInfo_.schemaId = head.tid;
 
     return Status::OK();
 }
 
 
-Expression* MatchValidator::createSubFilter(const std::string &alias,
+Expression*
+MatchValidator::makeIndexFilter(const std::string &label, const MapExpression *map) const {
+    auto &items = map->items();
+    Expression *root = new RelationalExpression(Expression::Kind::kRelEQ,
+            new TagPropertyExpression(
+                new std::string(label),
+                new std::string(*items[0].first)),
+            items[0].second->clone().release());
+    for (auto i = 1u; i < items.size(); i++) {
+        auto *left = root;
+        auto *right = new RelationalExpression(Expression::Kind::kRelEQ,
+                new TagPropertyExpression(
+                    new std::string(label),
+                    new std::string(*items[i].first)),
+                items[i].second->clone().release());
+        root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, right);
+    }
+    saveObject(root);
+
+    return root;
+}
+
+Expression*
+MatchValidator::makeIndexFilter(const std::string &label,
+                                const std::string &alias,
+                                const Expression *filter) const {
+    static const std::unordered_set<Expression::Kind> kinds = {
+        Expression::Kind::kRelEQ,
+        Expression::Kind::kRelLT,
+        Expression::Kind::kRelLE,
+        Expression::Kind::kRelGT,
+        Expression::Kind::kRelGE
+    };
+
+    std::vector<const Expression*> ands;
+    auto kind = filter->kind();
+    if (kinds.count(kind) == 1) {
+        ands.emplace_back(filter);
+    } else if (kind == Expression::Kind::kLogicalAnd) {
+        ands = ExpressionUtils::pullAnds(filter);
+    } else {
+        return nullptr;
+    }
+
+    std::vector<Expression*> relationals;
+    for (auto *item : ands) {
+        if (kinds.count(item->kind()) != 1) {
+            continue;
+        }
+
+        auto *binary = static_cast<const BinaryExpression*>(item);
+        auto *left = binary->left();
+        auto *right = binary->right();
+        const LabelAttributeExpression *la = nullptr;
+        const ConstantExpression *constant = nullptr;
+        if (left->kind() == Expression::Kind::kLabelAttribute &&
+                right->kind() == Expression::Kind::kConstant) {
+            la = static_cast<const LabelAttributeExpression*>(left);
+            constant = static_cast<const ConstantExpression*>(right);
+        } else if (right->kind() == Expression::Kind::kLabelAttribute &&
+                left->kind() == Expression::Kind::kConstant) {
+            la = static_cast<const LabelAttributeExpression*>(right);
+            constant = static_cast<const ConstantExpression*>(left);
+        } else {
+            continue;
+        }
+
+        if (*la->left()->name() != alias) {
+            continue;
+        }
+
+        auto *tpExpr = new TagPropertyExpression(
+                new std::string(label),
+                new std::string(*la->right()->name()));
+        auto *newConstant = constant->clone().release();
+        if (left->kind() == Expression::Kind::kLabelAttribute) {
+            auto *rel = new RelationalExpression(item->kind(), tpExpr, newConstant);
+            relationals.emplace_back(rel);
+        } else {
+            auto *rel = new RelationalExpression(item->kind(), newConstant, tpExpr);
+            relationals.emplace_back(rel);
+        }
+    }
+
+    if (relationals.empty()) {
+        return nullptr;
+    }
+
+    auto *root = relationals[0];
+    for (auto i = 1u; i < relationals.size(); i++) {
+        auto *left = root;
+        root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, relationals[i]);
+    }
+
+    saveObject(root);
+    return root;
+}
+
+
+Expression* MatchValidator::makeSubFilter(const std::string &alias,
         const MapExpression *map) const {
     DCHECK(map != nullptr);
     auto &items = map->items();

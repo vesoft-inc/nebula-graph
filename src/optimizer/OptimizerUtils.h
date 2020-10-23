@@ -36,10 +36,6 @@ public:
     static Value boundValueWithMax(const meta::cpp2::ColumnDef& col, const Value& v);
 
     static Value boundValueWithMin(const meta::cpp2::ColumnDef& col, const Value& v);
-
-    static std::vector<const Expression*> pullAnds(const Expression *expr);
-
-    static std::vector<const Expression*> pullOrs(const Expression *expr);
 };
 
 }  // namespace graph
