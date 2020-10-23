@@ -30,6 +30,7 @@ private:
     Status collectBFSShortest(const std::vector<std::string>& vars);
 
     Status collectAllPaths(const std::vector<std::string>& vars);
+    Status collectMultipleSourceShortestPath(const std::vector<std::string>& vars);
 
     std::vector<std::string>    colNames_;
     Value                       result_;

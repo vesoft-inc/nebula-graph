@@ -164,6 +164,7 @@ Status DataCollectExecutor::collectAllPaths(const std::vector<std::string>& vars
     DataSet ds;
     ds.colNames = std::move(colNames_);
     DCHECK(!ds.colNames.empty());
+
     for (auto& var : vars) {
         auto& hist = ectx_->getHistory(var);
         for (auto& result : hist) {
@@ -183,5 +184,44 @@ Status DataCollectExecutor::collectAllPaths(const std::vector<std::string>& vars
     result_.setDataSet(std::move(ds));
     return Status::OK();
 }
+
+Status DataCollectExecutor::collectMultipleSourceShortestPath(
+    const std::vector<std::string>& vars) {
+    DataSet ds;
+    ds.colNames = std::move(colNames_);
+    DCHECK(!ds.colNames.empty());
+
+    std::unordered_map<Value, std::unordered_map<Value, std::pair<Value, Path>> shortestPath;
+    for (auto& var : vars) {
+        auto& hist = ectx_->getHistory(var);
+        for (auto& result : hist) {
+            auto iter = result.iter();
+            if (!iter->isSequentialIter()) {
+                std::stringstream msg;
+                msg << "Iterator should be kind of SequentialIter, but was: " << iter->kind();
+                return Status::Error(msg.str());
+            }
+            auto* seqIter = static_cast<SequentialIter*>(iter.get());
+            for (; seqIter->valid(); seqIter->next()) {
+                auto& pathVal = seqIter->getColumn("_path");
+                auto cost = seqIter->getColumn("cost");
+                if (!pathVal.isPath()) {
+                    return Status::Error("Type error `%s', should be PATH",
+                                         pathVal.typeName().c_str());
+                }
+                auto& path = pathVal.getPath();
+                auto& src = path.src.vid;
+                auto& dst = path.steps.back().dst.vid;
+                if (shortestPath.find(src) == shortestPath.end()) {
+                    auto& dstHist = shortestPath[src];
+                    dstHist.emplace(dst, std::make_pair(cost, std::move(path)));
+                }
+            }
+        }
+    }
+
+    // collect result
+}
+
 }  // namespace graph
 }  // namespace nebula
