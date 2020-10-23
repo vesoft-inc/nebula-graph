@@ -1952,10 +1952,10 @@ show_sentence
         $$ = new ShowCreateEdgeIndexSentence($5);
     }
     | KW_SHOW KW_TAG KW_INDEX KW_STATUS {
-        $$ = new ShowTagIndexesSentence();
+        $$ = new ShowTagIndexStatusSentence();
     }
     | KW_SHOW KW_EDGE KW_INDEX KW_STATUS {
-        $$ = new ShowEdgeIndexesSentence();
+        $$ = new ShowEdgeIndexStatusSentence();
     }
     | KW_SHOW KW_SNAPSHOTS {
         $$ = new ShowSnapshotsSentence();

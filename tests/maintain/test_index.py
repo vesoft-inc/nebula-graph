@@ -28,37 +28,6 @@ class TestIndex(NebulaTestSuite):
         resp = self.client.execute('CREATE EDGE edge_1(col1 string, col2 int, col3 double, col4 timestamp)')
         self.check_resp_succeeded(resp)
         time.sleep(self.delay)
-
-        # prepare for test_desc_index, test_show_create_index, test_show_indexes, test_rebuild_index
-        resp = self.client.execute('CREATE TAG INDEX tag_index ON tag_1(col2, col3)')
-        self.check_resp_succeeded(resp)
-
-        resp = self.client.execute('CREATE TAG INDEX tag_index2 ON tag_1(col4)')
-        self.check_resp_succeeded(resp)
-
-        resp = self.client.execute('CREATE EDGE INDEX edge_index ON edge_1(col2, col4)')
-        self.check_resp_succeeded(resp)
-
-        resp = self.client.execute('CREATE EDGE INDEX edge_index2 ON edge_1(col3)')
-        self.check_resp_succeeded(resp)
-
-        # resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'101\':(\'Tom\', 18, 35.4, \'2010-09-01 08:00:00\')')
-        # self.check_resp_succeeded(resp)
-
-        # resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'102\':(\'Jerry\', 22, 38.4, \'2011-09-01 08:00:00\')')
-        # self.check_resp_succeeded(resp)
-
-        # resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'103\':(\'Bob\', 19, 36.4, \'2010-09-01 12:00:00\')')
-        # self.check_resp_succeeded(resp)
-
-        # resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'101\'->\'102\':(\'Red\', 81, 45.3, \'2010-09-01 08:00:00\')')
-        # self.check_resp_succeeded(resp)
-
-        # resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'102\'->\'103\':(\'Yellow\', 22, 423.8, \'2011-09-01 08:00:00\')')
-        # self.check_resp_succeeded(resp)
-
-        # resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'103\'->\'101\':(\'Blue\', 91, 43.1, \'2010-09-01 12:00:00\')')
-        self.check_resp_succeeded(resp)
     
     @classmethod
     def cleanup(self):
@@ -111,18 +80,18 @@ class TestIndex(NebulaTestSuite):
         resp = self.client.execute('INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES \'103\':(\'Bob\', 19, 36.4, \'2010-09-01 12:00:00\')')
         self.check_resp_succeeded(resp)
 
-        # Rebuild Tag Index
-        resp = self.client.execute_query('REBUILD TAG INDEX single_tag_index')
-        self.check_resp_succeeded(resp)
+        # # Rebuild Tag Index
+        # resp = self.client.execute_query('REBUILD TAG INDEX single_tag_index')
+        # self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('REBUILD TAG INDEX multi_tag_index')
-        self.check_resp_succeeded(resp)
+        # resp = self.client.execute_query('REBUILD TAG INDEX multi_tag_index')
+        # self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('REBUILD TAG INDEX disorder_tag_index')
-        self.check_resp_succeeded(resp)
+        # resp = self.client.execute_query('REBUILD TAG INDEX disorder_tag_index')
+        # self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('REBUILD TAG INDEX non_existent_tag_index')
-        self.check_resp.failed(resp)
+        # resp = self.client.execute_query('REBUILD TAG INDEX non_existent_tag_index')
+        # self.check_resp.succeeded(resp) # need to check if index exists in validator in future
 
         # Show Tag Index Status
         resp = self.client.execute_query('SHOW TAG INDEXE STATUS')
@@ -223,57 +192,88 @@ class TestIndex(NebulaTestSuite):
         resp = self.client.execute('CREATE EDGE INDEX disorder_edge_1_index ON edge_1(col3, col2)')
         self.check_resp_succeeded(resp)
 
-    def test_desc_index(self):
-        resp = self.client.execute_query('DESC TAG INDEX tag_index')
+        # Insert some data
+        resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'101\'->\'102\':(\'Red\', 81, 45.3, \'2010-09-01 08:00:00\')')
+        self.check_resp_succeeded(resp)
+
+        resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'102\'->\'103\':(\'Yellow\', 22, 423.8, \'2011-09-01 08:00:00\')')
+        self.check_resp_succeeded(resp)
+
+        resp = self.client.execute('INSERT EDGE edge_1(col1, col2, col3, col4) VALUES \'103\'->\'101\':(\'Blue\', 91, 43.1, \'2010-09-01 12:00:00\')')
+        self.check_resp_succeeded(resp)
+
+        # # Rebuild Edge Index
+        # resp = self.client.execute_query('REBUILD EDGE INDEX single_edge_index')
+        # self.check_resp_succeeded(resp)
+
+        # resp = self.client.execute_query('REBUILD EDGE INDEX multi_edge_1_index')
+        # self.check_resp_succeeded(resp)
+
+        # resp = self.client.execute_query('REBUILD EDGE INDEX disorder_edge_1_index')
+        # self.check_resp_succeeded(resp)
+
+        # resp = self.client.execute_query('REBUILD EDGE INDEX non_existent_edge_index')
+        # self.check_resp.failed(resp)
+
+        # Show Edge Index Status
+        resp = self.client.execute_query('SHOW Edge INDEXE STATUS')
+        self.check_resp_succeeded(resp)
+        self.check_out_of_order_result(resp, [['single_edge_index', 'SUCCEEDED'], ['multi_edge_1_index', 'SUCCEEDED'], ['disorder_edge_1_index', 'SUCCEEDED']])
+
+        # Describe Edge Index
+        resp = self.client.execute_query('DESC EDGE INDEX single_edge_index')
+        self.check_resp_succeeded(resp)
+        expect = [['col2', 'int64']]
+        self.check_result(resp, expect)
+
+        resp = self.client.execute_query('DESC EDGE INDEX multi_edge_1_index')
         self.check_resp_succeeded(resp)
         expect = [['col2', 'int64'],
                   ['col3', 'double']]
         self.check_result(resp, expect)
 
-        resp = self.client.execute_query('DESC EDGE INDEX edge_index')
+        resp = self.client.execute_query('DESC EDGE INDEX disorder_edge_1_index')
         self.check_resp_succeeded(resp)
-        expect = [['col2', 'int64'],
-                  ['col4', 'timestamp']]
+        expect = [['col3', 'double'],
+                  ['col2', 'int64']]
         self.check_result(resp, expect)
-
-        resp = self.client.execute_query('DESC TAG INDEX non_existent_tag_index')
-        self.check_resp_failed(resp)
 
         resp = self.client.execute_query('DESC EDGE INDEX non_existent_edge_index')
         self.check_resp_failed(resp)
 
-    def test_show_create_index(self):
-        resp = self.client.execute_query('SHOW CREATE TAG INDEX tag_index')
+        # Show Create Edge Index
+        resp = self.client.execute_query('SHOW CREATE EDGE INDEX single_edge_index')
         self.check_resp_succeeded(resp)
-        expect = [['tag_index', 'CREATE TAG INDEX `tag_index` ON `tag_1` (\n `col2`,\n `col3`\n)']]
+        expect = [['single_edge_index', 'CREATE EDGE INDEX `single_edge_index` ON `edge_1` (\n `col2`\n)']]
         self.check_result(resp, expect)
 
-        resp = self.client.execute_query('SHOW CREATE EDGE INDEX edge_index')
+        resp = self.client.execute_query('SHOW CREATE EDGE INDEX multi_edge_1_index')
         self.check_resp_succeeded(resp)
-        expect = [['edge_index', 'CREATE EDGE INDEX `edge_index` ON `edge_1` (\n `col2`,\n `col4`\n)']]
+        expect = [['multi_edge_1_index', 'CREATE EDGE INDEX `multi_edge_1_index` ON `edge_1` (\n `col2`,\n `col3`\n)']]
         self.check_result(resp, expect)
 
-        resp = self.client.execute_query('SHOW CREATE TAG INDEX non_existent_tag_index')
-        self.check_resp_failed(resp)
+        resp = self.client.execute_query('SHOW CREATE EDGE INDEX disorder_edge_1_index')
+        self.check_resp_succeeded(resp)
+        expect = [['disorder_edge_1_index', 'CREATE EDGE INDEX `disorder_edge_1_index` ON `edge_1` (\n `col3`,\n `col2`\n)']]
+        self.check_result(resp, expect)
 
         resp = self.client.execute_query('SHOW CREATE EDGE INDEX non_existent_edge_index')
         self.check_resp_failed(resp)
 
-    def test_show_indexes(self):
-        resp = self.client.execute_query('SHOW TAG INDEXES')
-        self.check_resp_succeeded(resp)
-        self.check_out_of_order_result(resp, [['tag_index'], ['tag_index2']])
-
+        # Show Edge Indexes
         resp = self.client.execute_query('SHOW EDGE INDEXES')
         self.check_resp_succeeded(resp)
-        self.check_out_of_order_result(resp, [['edge_index'], ['edge_index2']])
+        self.check_out_of_order_result(resp, [['single_edge_index'], ['multi_edge_1_index'], ['disorder_edge_1_index']])
 
-    # def test_rebuild_index(self):
-    #     resp = self.client.execute_query('REBUILD TAG INDEX tag_index')
-    #     self.check_resp_succeeded(resp)
+        # Drop Edge Index
+        resp = self.client.execute_query('DROP EDGE INDEX single_edge_index')
+        self.check_resp_succeeded(resp)
 
-    #     resp = self.client.execute_query('REBUILD EDGE INDEX edge_index')
-    #     self.check_resp_succeeded(resp)
+        resp = self.client.execute_query('DROP EDGE INDEX multi_edge_1_index')
+        self.check_resp_succeeded(resp)
 
-    #     resp = self.client.execute_query('REBUILD TAG INDEX non_existent_tag_index')
-    #     self.check_resp.failed(resp)
+        resp = self.client.execute_query('DROP EDGE INDEX disorder_edge_1_index')
+        self.check_resp_succeeded(resp)
+
+        resp = self.client.execute_query('DROP EDGE INDEX non_existent_edge_index')
+        self.check_resp_failed(resp)

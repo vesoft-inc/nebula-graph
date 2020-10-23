@@ -143,5 +143,42 @@ folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
         });
 }
 
+folly::Future<Status> ShowEdgeIndexStatusExecutor::execute() {
+    SCOPED_TIMER(&execTime_);
+
+    return qctx()
+        ->getMetaClient()
+        ->submitJob(meta::cpp2::AdminJobOp::SHOW_All,
+                    meta::cpp2::AdminCmd::COMPACT,
+                    std::vector<std::string>{})
+        .via(runner())
+        .then([this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
+            SCOPED_TIMER(&execTime_);
+
+            if (!resp.ok()) {
+                LOG(ERROR) << resp.status().toString();
+                return std::move(resp).status();
+            }
+
+            nebula::DataSet v({"Job Id", "Command", "Status", "Start Time", "Stop Time"});
+            DCHECK(resp.value().__isset.job_desc);
+            if (!resp.value().__isset.job_desc) {
+                return Status::Error("Response unexpected");
+            }
+            const auto &jobsDesc = *resp.value().get_job_desc();
+            for (const auto &jobDesc : jobsDesc) {
+                if (jobDesc.get_cmd() == meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX) {
+                    v.emplace_back(nebula::Row({
+                        jobDesc.get_id(),
+                        meta::cpp2::_AdminCmd_VALUES_TO_NAMES.at(jobDesc.get_cmd()),
+                        meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(jobDesc.get_status()),
+                        jobDesc.get_start_time(),
+                        jobDesc.get_stop_time(),
+                    }));
+                }
+            }
+            return finish(std::move(v));
+        });
+}
 }   // namespace graph
 }   // namespace nebula
