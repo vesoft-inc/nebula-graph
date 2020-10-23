@@ -30,6 +30,7 @@ Status AdminJobValidator::toPlan() {
             return Status::Error("Unknown job command %s", params.front().c_str());
         }
         params.erase(params.begin());
+        params.emplace_back(qctx_->rctx()->session()->space().name);
     }
     auto *doNode = SubmitJob::make(qctx_, nullptr, sentence_->getType(), cmd, std::move(params));
     root_ = doNode;
