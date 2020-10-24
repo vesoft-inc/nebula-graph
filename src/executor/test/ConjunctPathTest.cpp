@@ -168,6 +168,20 @@ protected:
             qctx_->ectx()->setResult("all_paths_backward1", ResultBuilder().value(ds2).finish());
         }
         {
+            // 2
+            DataSet ds1;
+            ds1.colNames = {kVid, "path"};
+            {
+                Row row;
+                List paths;
+                Path path;
+                path.src = Vertex("2", {});
+                paths.values.emplace_back(std::move(path));
+                row.values = {"2", std::move(paths)};
+                ds1.rows.emplace_back(std::move(row));
+            }
+            qctx_->ectx()->setResult("all_paths_backward2", ResultBuilder().value(ds1).finish());
+
             // 2->7
             DataSet ds2;
             ds2.colNames = {kVid, "path"};

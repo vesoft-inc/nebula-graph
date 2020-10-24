@@ -259,15 +259,14 @@ folly::Future<Status> ConjunctPathExecutor::allPaths() {
         }
     }
 
-    if (count_ >= 2) {
+    if (rHist.size() >= 2) {
+        VLOG(1) << "Find odd length path.";
         auto previous = rHist[rHist.size() - 2].iter();
         findAllPaths(previous.get(), table, ds);
-    } else if (count_ == 1) {
-        auto latest = rHist.back().iter();
-        findOneStepPaths(latest.get(), table, ds);
     }
 
     if (count_ * 2 <= steps) {
+        VLOG(1) << "Find even length path.";
         auto latest = rHist.back().iter();
         findAllPaths(latest.get(), table, ds);
     }

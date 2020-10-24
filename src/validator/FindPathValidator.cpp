@@ -190,6 +190,21 @@ PlanNode* FindPathValidator::allPaths(PlanNode* dep, const Starts& starts, bool 
     allPaths->setColNames({"_vid", "path"});
     allPaths->setOutputVar(startVidsVar);
 
+    DataSet ds;
+    ds.colNames = {"_vid", "path"};
+    for (auto& vid : starts.vids) {
+        Row row;
+        row.values.emplace_back(vid);
+
+        List paths;
+        Path path;
+        path.src = Vertex(vid.getStr(), {});
+        paths.values.emplace_back(std::move(path));
+        row.values.emplace_back(std::move(paths));
+        ds.rows.emplace_back(std::move(row));
+    }
+    qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
+
     return allPaths;
 }
 
