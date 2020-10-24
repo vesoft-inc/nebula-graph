@@ -7,12 +7,14 @@
 #ifndef CONTEXT_ASTCONTEXT_H_
 #define CONTEXT_ASTCONTEXT_H_
 
+#include "context/QueryContext.h"
 #include "parser/Sentence.h"
 
 namespace nebula {
 namespace graph {
 struct AstContext {
-    Sentence* sentence;
+    QueryContext*   qctx;
+    Sentence*       sentence;
 };
 }  // namespace graph
 }  // namespace nebula

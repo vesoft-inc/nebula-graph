@@ -13,12 +13,7 @@
 
 namespace nebula {
 namespace graph {
-std::unique_ptr<SequentialPlanner> SequentialPlanner::instance_ =
-    std::unique_ptr<SequentialPlanner>(new SequentialPlanner());
-
-SequentialPlanner::SequentialPlanner() {
-    plannersMap()[Sentence::Kind::kSequential].emplace_back(this);
-}
+SequentialPlannerRegister SequentialPlannerRegister::instance_;
 
 bool SequentialPlanner::match(AstContext* astCtx) {
     if (astCtx->sentence->kind() == Sentence::Kind::kSequential) {

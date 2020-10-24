@@ -14,5 +14,4 @@ nebula_add_library(
     Maintain.cpp
     Planner.cpp
     planners/SequentialPlanner.cpp
-    planners/GoOneStepPlanner.cpp
 )

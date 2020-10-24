@@ -14,7 +14,11 @@ namespace nebula {
 namespace graph {
 class SequentialPlanner final : public Planner {
 public:
-    bool match(AstContext* astCtx) override;
+    static std::unique_ptr<SequentialPlanner> Instance() {
+        return std::unique_ptr<SequentialPlanner>(new SequentialPlanner());
+    }
+
+    static bool match(AstContext* astCtx);
 
     /**
      * Each sentence would be converted to a sub-plan, and they would
@@ -25,9 +29,17 @@ public:
     void ifBuildDataCollect(SubPlan& subPlan, QueryContext* qctx);
 
 private:
-    SequentialPlanner();
+    SequentialPlanner() = default;
+};
 
-    static std::unique_ptr<SequentialPlanner>    instance_;
+class SequentialPlannerRegister final {
+private:
+    SequentialPlannerRegister() {
+        auto& planners = Planner::plannersMap()[Sentence::Kind::kSequential];
+        planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::Instance);
+    }
+
+    static SequentialPlannerRegister instance_;
 };
 }  // namespace graph
 }  // namespace nebula

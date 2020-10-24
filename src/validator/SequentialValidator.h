@@ -15,7 +15,6 @@ namespace nebula {
 namespace graph {
 
 struct SequentialAstContext final : AstContext {
-    QueryContext*                               qctx;
     std::vector<std::unique_ptr<Validator>>     validators;
 };
 

@@ -13,6 +13,7 @@
 
 namespace nebula {
 namespace graph {
+class Planner;
 
 struct SubPlan {
     // root and tail of a subplan.
@@ -20,25 +21,32 @@ struct SubPlan {
     PlanNode*   tail{nullptr};
 };
 
+using MatchFunc = std::function<bool(AstContext* astContext)>;
+using PlannerInstanceFunc = std::function<std::unique_ptr<Planner>()>;
+struct MatchAndInstance {
+    MatchAndInstance(MatchFunc m, PlannerInstanceFunc p)
+        : match(std::move(m)), instance(std::move(p)) {}
+    MatchFunc match;
+    PlannerInstanceFunc instance;
+};
+
 class Planner {
 public:
     virtual ~Planner() = default;
 
-    static StatusOr<SubPlan> toPlan(AstContext* astCtx);
+    static auto& plannersMap() {
+        return plannersMap_;
+    }
 
-    virtual bool match(AstContext* astCtx) = 0;
+    static StatusOr<SubPlan> toPlan(AstContext* astCtx);
 
     virtual StatusOr<SubPlan> transform(AstContext* astCtx) = 0;
 
 protected:
     Planner() = default;
 
-    static auto& plannersMap() {
-        return plannersMap_;
-    }
-
 private:
-    static std::unordered_map<Sentence::Kind, std::vector<Planner*>> plannersMap_;
+    static std::unordered_map<Sentence::Kind, std::vector<MatchAndInstance>> plannersMap_;
 };
 }  // namespace graph
 }  // namespace nebula
