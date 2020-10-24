@@ -131,18 +131,22 @@ protected:
             ds.colNames = {kVid, "path"};
             {
                 Row row;
+                List paths;
                 Path path;
                 path.src = Vertex("1", {});
                 path.steps.emplace_back(Step(Vertex("2", {}), 1, "edge1", 0, {}));
-                row.values = {"2", std::move(path)};
+                paths.values.emplace_back(std::move(path));
+                row.values = {"2", std::move(paths)};
                 ds.rows.emplace_back(std::move(row));
             }
             {
                 Row row;
+                List paths;
                 Path path;
                 path.src = Vertex("1", {});
                 path.steps.emplace_back(Step(Vertex("3", {}), 1, "edge1", 0, {}));
-                row.values = {"3", std::move(path)};
+                paths.values.emplace_back(std::move(path));
+                row.values = {"3", std::move(paths)};
                 ds.rows.emplace_back(std::move(row));
             }
             qctx_->ectx()->setResult("all_paths_forward1", ResultBuilder().value(ds).finish());
@@ -153,10 +157,12 @@ protected:
             ds2.colNames = {kVid, "path"};
             {
                 Row row;
+                List paths;
                 Path path;
                 path.src = Vertex("4", {});
                 path.steps.emplace_back(Step(Vertex("7", {}), -1, "edge1", 0, {}));
-                row.values = {"7", std::move(path)};
+                paths.values.emplace_back(std::move(path));
+                row.values = {"7", std::move(paths)};
                 ds2.rows.emplace_back(std::move(row));
             }
             qctx_->ectx()->setResult("all_paths_backward1", ResultBuilder().value(ds2).finish());
@@ -167,10 +173,12 @@ protected:
             ds2.colNames = {kVid, "path"};
             {
                 Row row;
+                List paths;
                 Path path;
                 path.src = Vertex("2", {});
                 path.steps.emplace_back(Step(Vertex("7", {}), -1, "edge1", 0, {}));
-                row.values = {"7", std::move(path)};
+                paths.values.emplace_back(std::move(path));
+                row.values = {"7", std::move(paths)};
                 ds2.rows.emplace_back(std::move(row));
             }
             qctx_->ectx()->setResult("all_paths_backward2", ResultBuilder().value(ds2).finish());
@@ -181,10 +189,12 @@ protected:
             ds2.colNames = {kVid, "path"};
             {
                 Row row;
+                List paths;
                 Path path;
                 path.src = Vertex("4", {});
                 path.steps.emplace_back(Step(Vertex("3", {}), -1, "edge1", 0, {}));
-                row.values = {"3", std::move(path)};
+                paths.values.emplace_back(std::move(path));
+                row.values = {"3", std::move(paths)};
                 ds2.rows.emplace_back(std::move(row));
             }
             qctx_->ectx()->setResult("all_paths_backward3", ResultBuilder().value(ds2).finish());
@@ -195,10 +205,12 @@ protected:
             ds.colNames = {kVid, "path"};
             {
                 Row row;
+                List paths;
                 Path path;
                 path.src = Vertex("5", {});
                 path.steps.emplace_back(Step(Vertex("4", {}), -1, "edge1", 0, {}));
-                row.values = {"4", std::move(path)};
+                paths.values.emplace_back(std::move(path));
+                row.values = {"4", std::move(paths)};
                 ds.rows.emplace_back(std::move(row));
             }
             qctx_->ectx()->setResult("all_paths_backward4", ResultBuilder().value(ds).finish());
@@ -566,24 +578,25 @@ TEST_F(ConjunctPathTest, AllPathsThreeStepsPath) {
             // 1->2->4@1
             DataSet ds1;
             ds1.colNames = {kVid, "path"};
+
+            Row row;
+            List paths;
             {
-                Row row;
                 Path path;
                 path.src = Vertex("1", {});
                 path.steps.emplace_back(Step(Vertex("2", {}), 1, "edge1", 0, {}));
                 path.steps.emplace_back(Step(Vertex("4", {}), 1, "edge1", 0, {}));
-                row.values = {"4", std::move(path)};
-                ds1.rows.emplace_back(std::move(row));
+                paths.values.emplace_back(std::move(path));
             }
             {
-                Row row;
                 Path path;
                 path.src = Vertex("1", {});
                 path.steps.emplace_back(Step(Vertex("2", {}), 1, "edge1", 0, {}));
                 path.steps.emplace_back(Step(Vertex("4", {}), 1, "edge1", 1, {}));
-                row.values = {"4", std::move(path)};
-                ds1.rows.emplace_back(std::move(row));
+                paths.values.emplace_back(std::move(path));
             }
+            row.values = {"4", std::move(paths)};
+            ds1.rows.emplace_back(std::move(row));
             qctx_->ectx()->setResult("all_paths_forward1", ResultBuilder().value(ds1).finish());
         }
         auto future = conjunctExe->execute();
@@ -648,39 +661,43 @@ TEST_F(ConjunctPathTest, AllPathsFourStepsPath) {
             // 1->2->6@1
             DataSet ds1;
             ds1.colNames = {kVid, "path"};
+
+            Row row;
+            List paths;
             {
-                Row row;
                 Path path;
                 path.src = Vertex("1", {});
                 path.steps.emplace_back(Step(Vertex("2", {}), 1, "edge1", 0, {}));
                 path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
-                row.values = {"6", std::move(path)};
-                ds1.rows.emplace_back(std::move(row));
+                paths.values.emplace_back(std::move(path));
             }
             {
-                Row row;
                 Path path;
                 path.src = Vertex("1", {});
                 path.steps.emplace_back(Step(Vertex("2", {}), 1, "edge1", 0, {}));
                 path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 1, {}));
-                row.values = {"6", std::move(path)};
-                ds1.rows.emplace_back(std::move(row));
+                paths.values.emplace_back(std::move(path));
             }
+            row.values = {"6", std::move(paths)};
+            ds1.rows.emplace_back(std::move(row));
             qctx_->ectx()->setResult("all_paths_forward1", ResultBuilder().value(ds1).finish());
         }
         {
             // 5->4->6@0
             DataSet ds1;
             ds1.colNames = {kVid, "path"};
+
+            Row row;
+            List paths;
             {
-                Row row;
                 Path path;
                 path.src = Vertex("5", {});
                 path.steps.emplace_back(Step(Vertex("4", {}), -1, "edge1", 0, {}));
                 path.steps.emplace_back(Step(Vertex("6", {}), -1, "edge1", 0, {}));
-                row.values = {"6", std::move(path)};
-                ds1.rows.emplace_back(std::move(row));
+                paths.values.emplace_back(std::move(path));
             }
+            row.values = {"6", std::move(paths)};
+            ds1.rows.emplace_back(std::move(row));
             qctx_->ectx()->setResult("all_paths_backward4", ResultBuilder().value(ds1).finish());
         }
         auto future = conjunctExe->execute();

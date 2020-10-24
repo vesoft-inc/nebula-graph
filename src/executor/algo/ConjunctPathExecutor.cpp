@@ -246,52 +246,106 @@ folly::Future<Status> ConjunctPathExecutor::allPaths() {
     DataSet ds;
     ds.colNames = conjunct->colNames();
 
-    std::multimap<Value, const Path*> table;
+    std::unordered_map<Value, const List&> table;
     for (; lIter->valid(); lIter->next()) {
         auto& dst = lIter->getColumn(kVid);
         auto& path = lIter->getColumn("path");
-        if (path.isPath() && !path.getPath().steps.empty()) {
+        if (path.isList()) {
             VLOG(1) << "Forward dst: " << dst;
-            table.emplace(dst, &path.getPath());
+            table.emplace(dst, path.getList());
         }
     }
 
     if (rHist.size() >= 2) {
         auto previous = rHist[rHist.size() - 2].iter();
-        findPath(previous.get(), table, ds);
+        findAllPaths(previous.get(), table, ds);
     } else if (rHist.size() == 1) {
         auto latest = rHist.back().iter();
-        findOneStepPath(latest.get(), table, ds);
+        findOneStepPaths(latest.get(), table, ds);
     }
 
     auto latest = rHist.back().iter();
-    findPath(latest.get(), table, ds);
+    findAllPaths(latest.get(), table, ds);
 
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
-bool ConjunctPathExecutor::findOneStepPath(Iterator* iter,
-                                           std::multimap<Value, const Path*>& table,
-                                           DataSet& ds) {
+bool ConjunctPathExecutor::findOneStepPaths(
+    Iterator* backwardPathsIter,
+    std::unordered_map<Value, const List&>& forwardPathsTable,
+    DataSet& ds) {
     bool found = false;
-    for (; iter->valid(); iter->next()) {
-        auto& path = iter->getColumn("path");
-        if (path.isPath()) {
-            auto& src = path.getPath().src.vid;
-            auto paths = table.equal_range(src);
-            if (paths.first != paths.second) {
-                for (auto i = paths.first; i != paths.second; ++i) {
-                    Row row;
-                    auto forward = *i->second;
-                    VLOG(1) << "Found path: " << forward;
-                    row.values.emplace_back(std::move(forward));
-                    ds.rows.emplace_back(std::move(row));
-                }
-                found = true;
-            }
+    for (; backwardPathsIter->valid(); backwardPathsIter->next()) {
+        auto& pathList = backwardPathsIter->getColumn("path");
+        if (!pathList.isList()) {
+            continue;
         }
-    }
+        for (const auto& path : pathList.getList().values) {
+            if (!path.isPath()) {
+                continue;
+            }
+            auto& src = path.getPath().src.vid;
+            auto forwardPaths = forwardPathsTable.find(src);
+            if (forwardPaths == forwardPathsTable.end()) {
+                continue;
+            }
+            for (const auto& i : forwardPaths->second.values) {
+                if (!i.isPath()) {
+                    continue;
+                }
+                Row row;
+                auto forward = i;
+                VLOG(1) << "Found path: " << forward;
+                row.values.emplace_back(std::move(forward));
+                ds.rows.emplace_back(std::move(row));
+            }  // `i'
+            found = true;
+        }  // `path'
+    }  // `backwardPathsTable'
     return found;
 }
+
+bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
+                                        std::unordered_map<Value, const List&>& forwardPathsTable,
+                                        DataSet& ds) {
+    bool found = false;
+    for (; backwardPathsIter->valid(); backwardPathsIter->next()) {
+        auto& dst = backwardPathsIter->getColumn(kVid);
+        VLOG(1) << "Backward dst: " << dst;
+        auto& pathList = backwardPathsIter->getColumn("path");
+        if (!pathList.isList()) {
+            continue;
+        }
+        for (const auto& path : pathList.getList().values) {
+            if (!path.isPath()) {
+                continue;
+            }
+            auto forwardPaths = forwardPathsTable.find(dst);
+            if (forwardPaths == forwardPathsTable.end()) {
+                continue;
+            }
+
+            for (const auto& i : forwardPaths->second.values) {
+                if (!i.isPath()) {
+                    continue;
+                }
+                Row row;
+                auto forward = i.getPath();
+                Path backward = path.getPath();
+                VLOG(1) << "Forward path:" << forward;
+                VLOG(1) << "Backward path:" << backward;
+                backward.reverse();
+                VLOG(1) << "Backward reverse path:" << backward;
+                forward.append(std::move(backward));
+                VLOG(1) << "Found path: " << forward;
+                row.values.emplace_back(std::move(forward));
+                ds.rows.emplace_back(std::move(row));
+            }  // `i'
+            found = true;
+        }  // `path'
+    }  // `backwardPathsIter'
+    return found;
+}
+
 }  // namespace graph
 }  // namespace nebula
