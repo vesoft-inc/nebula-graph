@@ -94,7 +94,7 @@ class TestIndex(NebulaTestSuite):
         # self.check_resp.succeeded(resp) # need to check if index exists in validator in future
 
         # Show Tag Index Status
-        resp = self.client.execute_query('SHOW TAG INDEXE STATUS')
+        resp = self.client.execute_query('SHOW TAG INDEX STATUS')
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, [['single_tag_index', 'SUCCEEDED'], ['multi_tag_index', 'SUCCEEDED'], ['disorder_tag_index', 'SUCCEEDED']])
 
@@ -216,7 +216,7 @@ class TestIndex(NebulaTestSuite):
         # self.check_resp.failed(resp)
 
         # Show Edge Index Status
-        resp = self.client.execute_query('SHOW Edge INDEXE STATUS')
+        resp = self.client.execute_query('SHOW EDGE INDEX STATUS')
         self.check_resp_succeeded(resp)
         self.check_out_of_order_result(resp, [['single_edge_index', 'SUCCEEDED'], ['multi_edge_1_index', 'SUCCEEDED'], ['disorder_edge_1_index', 'SUCCEEDED']])
 

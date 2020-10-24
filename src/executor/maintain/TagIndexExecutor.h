@@ -58,6 +58,9 @@ public:
         : Executor("ShowTagIndexStatusExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
+
+private:
+    std::unordered_map<std::string, std::string> indexesStatus_;
 };
 
 }   // namespace graph
