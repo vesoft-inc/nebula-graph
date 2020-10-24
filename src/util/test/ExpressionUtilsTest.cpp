@@ -203,7 +203,7 @@ TEST_F(ExpressionUtilsTest, CheckComponent) {
     }
 }
 
-TEST(ExpressionUtilsTest, PullAnds) {
+TEST_F(ExpressionUtilsTest, PullAnds) {
     using Kind = Expression::Kind;
     // true AND false
     {
