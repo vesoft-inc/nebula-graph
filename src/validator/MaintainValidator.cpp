@@ -311,12 +311,12 @@ Status CreateTagIndexValidator::validateImpl() {
 
     auto status = Status::OK();
     do {
-        auto tagStatus = qctx_->schemaMng()->toTagID(space_.id, name_);
+        auto tagStatus = qctx_->schemaMng()->toTagID(space_.id, tagName_);
         NG_RETURN_IF_ERROR(tagStatus);
 
         auto schema_ = qctx_->schemaMng()->getTagSchema(space_.id, tagStatus.value());
         if (schema_ == nullptr) {
-            return Status::SemanticError("No schema found for '%s'", name_.c_str());
+            return Status::SemanticError("No schema found for '%s'", tagName_.c_str());
         }
 
         status = IndexUtil::validateColumns(fields_);
@@ -343,11 +343,11 @@ Status CreateEdgeIndexValidator::validateImpl() {
     fields_ = sentence->columns();
     ifNotExist_ = sentence->isIfNotExist();
 
-    auto edgeStatus = qctx_->schemaMng()->toEdgeType(space_.id, name_);
+    auto edgeStatus = qctx_->schemaMng()->toEdgeType(space_.id, edgeName_);
     NG_RETURN_IF_ERROR(edgeStatus);
     auto schema_ = qctx_->schemaMng()->getEdgeSchema(space_.id, edgeStatus.value());
     if (schema_ == nullptr) {
-        return Status::SemanticError("No schema found for '%s'", name_.c_str());
+        return Status::SemanticError("No schema found for '%s'", edgeName_.c_str());
     }
 
     NG_RETURN_IF_ERROR(IndexUtil::validateColumns(fields_));
