@@ -45,6 +45,7 @@ private:
 
     std::vector<std::multimap<Value, const Edge*>>  forward_;
     std::vector<std::multimap<Value, const Edge*>>  backward_;
+    size_t                                          count_{0};
 };
 }  // namespace graph
 }  // namespace nebula

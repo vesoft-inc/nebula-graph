@@ -241,7 +241,10 @@ folly::Future<Status> ConjunctPathExecutor::allPaths() {
     VLOG(1) << "current: " << node()->outputVar();
     VLOG(1) << "left input: " << conjunct->leftInputVar()
             << " right input: " << conjunct->rightInputVar();
+    VLOG(1) << "right hist size: " << rHist.size();
     DCHECK(!!lIter);
+    auto steps = conjunct->steps();
+    count_++;
 
     DataSet ds;
     ds.colNames = conjunct->colNames();
@@ -256,16 +259,18 @@ folly::Future<Status> ConjunctPathExecutor::allPaths() {
         }
     }
 
-    if (rHist.size() >= 2) {
+    if (count_ >= 2) {
         auto previous = rHist[rHist.size() - 2].iter();
         findAllPaths(previous.get(), table, ds);
-    } else if (rHist.size() == 1) {
+    } else if (count_ == 1) {
         auto latest = rHist.back().iter();
         findOneStepPaths(latest.get(), table, ds);
     }
 
-    auto latest = rHist.back().iter();
-    findAllPaths(latest.get(), table, ds);
+    if (count_ * 2 <= steps) {
+        auto latest = rHist.back().iter();
+        findAllPaths(latest.get(), table, ds);
+    }
 
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
@@ -285,6 +290,7 @@ bool ConjunctPathExecutor::findOneStepPaths(
                 continue;
             }
             auto& src = path.getPath().src.vid;
+            VLOG(1) << "Backward start: " << src;
             auto forwardPaths = forwardPathsTable.find(src);
             if (forwardPaths == forwardPathsTable.end()) {
                 continue;

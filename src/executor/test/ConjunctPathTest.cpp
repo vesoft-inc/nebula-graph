@@ -225,7 +225,8 @@ TEST_F(ConjunctPathTest, BiBFSNoPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kBiBFS);
+                                        ConjunctPath::PathKind::kBiBFS,
+                                        5);
     conjunct->setLeftVar("forward1");
     conjunct->setRightVar("backward1");
     conjunct->setColNames({"_path"});
@@ -246,7 +247,8 @@ TEST_F(ConjunctPathTest, BiBFSOneStepPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kBiBFS);
+                                        ConjunctPath::PathKind::kBiBFS,
+                                        5);
     conjunct->setLeftVar("forward1");
     conjunct->setRightVar("backward2");
     conjunct->setColNames({"_path"});
@@ -274,7 +276,8 @@ TEST_F(ConjunctPathTest, BiBFSTwoStepsPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kBiBFS);
+                                        ConjunctPath::PathKind::kBiBFS,
+                                        5);
     conjunct->setLeftVar("forward1");
     conjunct->setRightVar("backward3");
     conjunct->setColNames({"_path"});
@@ -303,7 +306,8 @@ TEST_F(ConjunctPathTest, BiBFSThreeStepsPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kBiBFS);
+                                        ConjunctPath::PathKind::kBiBFS,
+                                        5);
     conjunct->setLeftVar("forward1");
     conjunct->setRightVar("backward4");
     conjunct->setColNames({"_path"});
@@ -388,7 +392,8 @@ TEST_F(ConjunctPathTest, BiBFSFourStepsPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kBiBFS);
+                                        ConjunctPath::PathKind::kBiBFS,
+                                        5);
     conjunct->setLeftVar("forward1");
     conjunct->setRightVar("backward4");
     conjunct->setColNames({"_path"});
@@ -475,7 +480,8 @@ TEST_F(ConjunctPathTest, AllPathsNoPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kAllPaths);
+                                        ConjunctPath::PathKind::kAllPaths,
+                                        5);
     conjunct->setLeftVar("all_paths_forward1");
     conjunct->setRightVar("all_paths_backward1");
     conjunct->setColNames({"_path"});
@@ -496,7 +502,8 @@ TEST_F(ConjunctPathTest, AllPathsOneStepPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kAllPaths);
+                                        ConjunctPath::PathKind::kAllPaths,
+                                        5);
     conjunct->setLeftVar("all_paths_forward1");
     conjunct->setRightVar("all_paths_backward2");
     conjunct->setColNames({"_path"});
@@ -524,7 +531,8 @@ TEST_F(ConjunctPathTest, AllPathsTwoStepsPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kAllPaths);
+                                        ConjunctPath::PathKind::kAllPaths,
+                                        5);
     conjunct->setLeftVar("all_paths_forward1");
     conjunct->setRightVar("all_paths_backward3");
     conjunct->setColNames({"_path"});
@@ -553,7 +561,8 @@ TEST_F(ConjunctPathTest, AllPathsThreeStepsPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kAllPaths);
+                                        ConjunctPath::PathKind::kAllPaths,
+                                        5);
     conjunct->setLeftVar("all_paths_forward1");
     conjunct->setRightVar("all_paths_backward4");
     conjunct->setColNames({"_path"});
@@ -636,7 +645,8 @@ TEST_F(ConjunctPathTest, AllPathsFourStepsPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
                                         StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kAllPaths);
+                                        ConjunctPath::PathKind::kAllPaths,
+                                        5);
     conjunct->setLeftVar("all_paths_forward1");
     conjunct->setRightVar("all_paths_backward4");
     conjunct->setColNames({"_path"});
