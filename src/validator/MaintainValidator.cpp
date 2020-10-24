@@ -67,24 +67,9 @@ Status SchemaValidator::validateColumns(const std::vector<ColumnSpecification *>
 }
 
 Status CreateTagValidator::validateImpl() {
-<<<<<<< HEAD
-    auto sentence = static_cast<CreateTagSentence*>(sentence_);
-    name_ = *sentence->name();
-    ifNotExist_ = sentence->isIfNotExist();
-=======
     auto sentence = static_cast<CreateTagSentence *>(sentence_);
-    auto status = Status::OK();
     name_ = *sentence->name();
     ifNotExist_ = sentence->isIfNotExist();
-    do {
-        // Check the validateContext has the same name schema
-        auto pro = vctx_->getSchema(name_);
-        if (pro != nullptr) {
-            status =
-                Status::Error("Has the same name `%s' in the SequentialSentences", name_.c_str());
-            break;
-        }
->>>>>>> update code
 
     // Check the validateContext has the same name schema
     auto pro = vctx_->getSchema(name_);
@@ -114,39 +99,11 @@ Status CreateEdgeValidator::validateImpl() {
     auto status = Status::OK();
     name_ = *sentence->name();
     ifNotExist_ = sentence->isIfNotExist();
-<<<<<<< HEAD
     // Check the validateContext has the same name schema
     auto pro = vctx_->getSchema(name_);
     if (pro != nullptr) {
         return Status::SemanticError("Has the same name `%s' in the SequentialSentences",
                                      name_.c_str());
-=======
-    do {
-        // Check the validateContext has the same name schema
-        auto pro = vctx_->getSchema(name_);
-        if (pro != nullptr) {
-            status =
-                Status::Error("Has the same name `%s' in the SequentialSentences", name_.c_str());
-            break;
-        }
-
-        status = validateColumns(sentence->columnSpecs(), schema_);
-        if (!status.ok()) {
-            VLOG(1) << status;
-            break;
-        }
-        status = SchemaUtil::validateProps(sentence->getSchemaProps(), schema_);
-        if (!status.ok()) {
-            VLOG(1) << status;
-            break;
-        }
-    } while (false);
-
-    // Save the schema in validateContext
-    if (status.ok()) {
-        auto schemaPro = SchemaUtil::generateSchemaProvider(0, schema_);
-        vctx_->addSchema(name_, schemaPro);
->>>>>>> update code
     }
     NG_RETURN_IF_ERROR(validateColumns(sentence->columnSpecs(), schema_));
     NG_RETURN_IF_ERROR(SchemaUtil::validateProps(sentence->getSchemaProps(), schema_));
@@ -210,29 +167,6 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem *> &sche
             NG_LOG_AND_RETURN_IF_ERROR(validateColumns(specs, schema));
         }
 
-<<<<<<< HEAD
-        for (auto& schemaProp : schemaProps) {
-            auto propType = schemaProp->getPropType();
-            StatusOr<int64_t> retInt;
-            StatusOr<std::string> retStr;
-            int ttlDuration;
-            switch (propType) {
-                case SchemaPropItem::TTL_DURATION:
-                    retInt = schemaProp->getTtlDuration();
-                    NG_RETURN_IF_ERROR(retInt);
-                    ttlDuration = retInt.value();
-                    schemaProp_.set_ttl_duration(ttlDuration);
-                    break;
-                case SchemaPropItem::TTL_COL:
-                    // Check the legality of the column in meta
-                    retStr = schemaProp->getTtlCol();
-                    NG_RETURN_IF_ERROR(retStr);
-                    schemaProp_.set_ttl_col(retStr.value());
-                    break;
-                default:
-                    return Status::SemanticError("Property type not support");
-            }
-=======
         schemaItem.set_schema(std::move(schema));
         schemaItems_.emplace_back(std::move(schemaItem));
     }
@@ -245,23 +179,18 @@ Status AlterValidator::alterSchema(const std::vector<AlterSchemaOptItem *> &sche
         switch (propType) {
             case SchemaPropItem::TTL_DURATION:
                 retInt = schemaProp->getTtlDuration();
-                if (!retInt.ok()) {
-                    return retInt.status();
-                }
+                NG_RETURN_IF_ERROR(retInt);
                 ttlDuration = retInt.value();
                 schemaProp_.set_ttl_duration(ttlDuration);
                 break;
             case SchemaPropItem::TTL_COL:
                 // Check the legality of the column in meta
                 retStr = schemaProp->getTtlCol();
-                if (!retStr.ok()) {
-                    return retStr.status();
-                }
+                NG_RETURN_IF_ERROR(retStr);
                 schemaProp_.set_ttl_col(retStr.value());
                 break;
             default:
-                return Status::Error("Property type not support");
->>>>>>> update code
+                return Status::SemanticError("Property type not support");
         }
     }
     return Status::OK();
