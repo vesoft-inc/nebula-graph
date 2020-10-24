@@ -19,6 +19,7 @@
 #include "common/expression/UUIDExpression.h"
 #include "common/expression/LabelExpression.h"
 #include "common/interface/gen-cpp2/meta_types.h"
+#include "common/expression/TextSearchExpression.h"
 
 namespace nebula {
 
@@ -74,6 +75,7 @@ public:
         kShowCollation,
         kShowGroups,
         kShowZones,
+        kShowTSClients,
         kDeleteVertices,
         kDeleteEdges,
         kLookup,
@@ -116,6 +118,8 @@ public:
         kListZones,
         kAddHostIntoZone,
         kDropHostFromZone,
+        kSignInTSService,
+        kSignOutTSService,
     };
 
     Kind kind() const {

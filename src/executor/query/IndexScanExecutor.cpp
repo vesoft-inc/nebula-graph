@@ -23,6 +23,9 @@ folly::Future<Status> IndexScanExecutor::execute() {
 folly::Future<Status> IndexScanExecutor::indexScan() {
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     auto *lookup = asNode<IndexScan>(node());
+    if (lookup->isEmptyResultSet()) {
+        return finish(ResultBuilder().value(Value(DataSet())).finish());
+    }
     return storageClient->lookupIndex(lookup->space(),
                                       *lookup->queryContext(),
                                       lookup->isEdge(),

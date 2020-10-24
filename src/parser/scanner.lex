@@ -219,6 +219,18 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "ZONE"                      { return TokenType::KW_ZONE; }
 "ZONES"                     { return TokenType::KW_ZONES; }
 "INTO"                      { return TokenType::KW_INTO; }
+"AUTO"                      { return TokenType::KW_AUTO; }
+"FUZZY"                     { return TokenType::KW_FUZZY; }
+"PREFIX"                    { return TokenType::KW_PREFIX; }
+"REGEXP"                    { return TokenType::KW_REGEXP; }
+"WILDCARD"                  { return TokenType::KW_WILDCARD; }
+"TEXT"                      { return TokenType::KW_TEXT; }
+"SEARCH"                    { return TokenType::KW_SEARCH; }
+"CLIENTS"                   { return TokenType::KW_CLIENTS; }
+"SIGN"                      { return TokenType::KW_SIGN; }
+"SERVICE"                   { return TokenType::KW_SERVICE; }
+"TEXT_SEARCH"               { return TokenType::KW_TEXT_SEARCH; }
+
 
 "TRUE"                      { yylval->boolval = true; return TokenType::BOOL; }
 "FALSE"                     { yylval->boolval = false; return TokenType::BOOL; }

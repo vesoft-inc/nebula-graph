@@ -97,6 +97,10 @@ StatusOr<GraphSpaceID> MockSchemaManager::toGraphSpaceID(folly::StringPiece spac
     return Status::Error("Space `%s' not found", spaceName.str().c_str());
 }
 
+StatusOr<std::string> MockSchemaManager::toGraphSpaceName(GraphSpaceID) {
+    return "default_space";
+}
+
 StatusOr<TagID> MockSchemaManager::toTagID(GraphSpaceID space, const folly::StringPiece tagName) {
     auto findIt = tagSchemas_.find(space);
     if (findIt == tagSchemas_.end()) {

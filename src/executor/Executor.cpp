@@ -36,6 +36,9 @@
 #include "executor/admin/UpdateUserExecutor.h"
 #include "executor/admin/GroupExecutor.h"
 #include "executor/admin/ZoneExecutor.h"
+#include "executor/admin/ShowTSClientsExecutor.h"
+#include "executor/admin/SignInTSServiceExecutor.h"
+#include "executor/admin/SignOutTSServiceExecutor.h"
 #include "executor/algo/BFSShortestPathExecutor.h"
 #include "executor/algo/ProduceSemiShortestPathExecutor.h"
 #include "executor/algo/ConjunctPathExecutor.h"
@@ -428,6 +431,15 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kShowZones: {
             return pool->add(new ListZonesExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowTSClients: {
+            return pool->add(new ShowTSClientsExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kSignInTSService: {
+            return pool->add(new SignInTSServiceExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kSignOutTSService: {
+            return pool->add(new SignOutTSServiceExecutor(node, qctx));
         }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());

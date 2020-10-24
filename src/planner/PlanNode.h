@@ -126,6 +126,10 @@ public:
         kDescribeZone,
         kAddHostIntoZone,
         kDropHostFromZone,
+        // text service related
+        kShowTSClients,
+        kSignInTSService,
+        kSignOutTSService,
     };
 
     PlanNode(QueryContext* qctx, Kind kind);

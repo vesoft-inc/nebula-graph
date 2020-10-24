@@ -8,6 +8,9 @@
 #include "planner/Query.h"
 #include "util/ExpressionUtils.h"
 #include "util/SchemaUtil.h"
+#include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
+
+DECLARE_uint32(ft_request_retry_times);
 
 namespace nebula {
 namespace graph {
@@ -15,6 +18,7 @@ namespace graph {
 Status IndexScanValidator::validateImpl() {
     NG_RETURN_IF_ERROR(prepareFrom());
     NG_RETURN_IF_ERROR(prepareYield());
+    NG_RETURN_IF_ERROR(prepareTSService());
     NG_RETURN_IF_ERROR(prepareFilter());
     return Status::OK();
 }
@@ -24,7 +28,20 @@ Status IndexScanValidator::toPlan() {
                                         std::move(contexts_),
                                         std::move(returnCols_),
                                         isEdge_,
-                                        schemaId_);
+                                        schemaId_,
+                                        isEmptyResultSet_);
+}
+
+Status IndexScanValidator::prepareTSService() {
+    if (space_.spaceDesc.text_search) {
+        auto tcs = qctx_->getMetaClient()->getFTClientsFromCache();
+        if (!tcs.ok() || tcs.value().empty()) {
+            Status::Error("Text Search service not ready");
+        }
+        textSearchReady = true;
+        tsClients_ = std::move(tcs).value();
+    }
+    return Status::OK();
 }
 
 Status IndexScanValidator::prepareFrom() {
@@ -93,13 +110,154 @@ Status IndexScanValidator::prepareFilter() {
     }
 
     auto *filter = sentence->whereClause()->filter();
-    auto ret = checkFilter(filter, *sentence->from());
-    NG_RETURN_IF_ERROR(ret);
     storage::cpp2::IndexQueryContext ctx;
-    ctx.set_filter(Expression::encode(*filter));
+    if (needTextSearch(filter)) {
+        if (!textSearchReady) {
+            return Status::Error("Text search service not ready");
+        }
+        auto retExpr = rewriteTSFilter(filter);
+        if (!retExpr.ok()) {
+            return retExpr.status();
+        }
+        if (isEmptyResultSet_) {
+            // return empty result direct.
+            return Status::OK();
+        }
+        auto ret = checkFilter(retExpr.value().get(), *sentence->from());
+        NG_RETURN_IF_ERROR(ret);
+        ctx.set_filter(Expression::encode(*std::move(retExpr.value()).get()));
+    } else {
+        auto ret = checkFilter(filter, *sentence->from());
+        NG_RETURN_IF_ERROR(ret);
+        ctx.set_filter(Expression::encode(*filter));
+    }
     contexts_ = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
     contexts_->emplace_back(std::move(ctx));
     return Status::OK();
+}
+
+StatusOr<std::unique_ptr<Expression>>
+IndexScanValidator::rewriteTSFilter(Expression* expr) {
+    std::vector<std::string> values;
+    auto tsExpr = static_cast<TextSearchExpression*>(expr);
+    auto vRet = textSearch(tsExpr);
+    if (!vRet.ok()) {
+        return Status::Error("Text search error.");
+    }
+    if (vRet.value().empty()) {
+        isEmptyResultSet_ = true;
+        return Status::OK();
+    } else if (vRet.value().size() == 1) {
+        auto relExpr = std::make_unique<RelationalExpression>(
+            Expression::Kind::kRelEQ,
+            new LabelAttributeExpression(new LabelExpression(*tsExpr->arg()->from()),
+                                         new LabelExpression(*tsExpr->arg()->prop())),
+            new ConstantExpression(Value(vRet.value()[0])));
+        return relExpr;
+    } else {
+        return genOrFilterFromList(tsExpr, vRet.value());
+    }
+    return Status::OK();
+}
+
+std::unique_ptr<Expression> IndexScanValidator::genOrFilterFromList(
+    TextSearchExpression* expr, const std::vector<std::string>& values) {
+    auto filter = std::make_unique<LogicalExpression>(
+        Expression::Kind::kLogicalOr,
+        new RelationalExpression(
+            Expression::Kind::kRelEQ,
+            new LabelAttributeExpression(new LabelExpression(*expr->arg()->from()),
+                                         new LabelExpression(*expr->arg()->prop())),
+            new ConstantExpression(Value(values[0]))),
+        new RelationalExpression(
+            Expression::Kind::kRelEQ,
+            new LabelAttributeExpression(new LabelExpression(*expr->arg()->from()),
+                                         new LabelExpression(*expr->arg()->prop())),
+            new ConstantExpression(Value(values[1]))));
+    for (size_t i = 2; values.size() > 2 && i < values.size(); i++) {
+        auto left = new LogicalExpression(Expression::Kind::kLogicalOr,
+        new RelationalExpression(
+            Expression::Kind::kRelEQ,
+            new LabelAttributeExpression(new LabelExpression(*expr->arg()->from()),
+                                         new LabelExpression(*expr->arg()->prop())),
+            new ConstantExpression(Value(values[i]))), filter.get());
+        filter.reset(left);
+    }
+    return filter;
+}
+
+StatusOr<std::vector<std::string>> IndexScanValidator::textSearch(TextSearchExpression* expr) {
+    auto index = nebula::plugin::IndexTraits::indexName(space_.spaceDesc.space_name, isEdge_);
+    nebula::plugin::DocItem doc(index, *expr->arg()->prop(), schemaId_, *expr->arg()->val());
+    nebula::plugin::LimitItem limit(expr->arg()->timeout(), expr->arg()->limit());
+    std::vector<std::string> result;
+    // TODO (sky) : External index load balancing
+    auto retryCnt = FLAGS_ft_request_retry_times;
+    while (--retryCnt > 0) {
+        auto i = folly::Random::rand32(tsClients_.size() - 1);
+        nebula::plugin::HttpClient ftc;
+        ftc.host = tsClients_[i].host;
+        if (tsClients_[i].__isset.user) {
+            ftc.user = tsClients_[i].user;
+        }
+        if (tsClients_[i].__isset.pwd) {
+            ftc.password = tsClients_[i].pwd;
+        }
+        StatusOr<bool> ret = Status::Error();
+        switch (expr->kind()) {
+            case Expression::Kind::kTSFuzzy: {
+                folly::dynamic fuzz = folly::dynamic::object();
+                if (expr->arg()->fuzziness() == -1) {
+                    fuzz = "AUTO";
+                } else {
+                    fuzz = expr->arg()->fuzziness();
+                }
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->fuzzy(ftc,
+                                                                      doc,
+                                                                      limit,
+                                                                      fuzz,
+                                                                      *expr->arg()->op(),
+                                                                      result);
+                break;
+            }
+            case Expression::Kind::kTSPrefix: {
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->prefix(ftc, doc, limit, result);
+                break;
+            }
+            case Expression::Kind::kTSRegexp: {
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->regexp(ftc, doc, limit, result);
+                break;
+            }
+            case Expression::Kind::kTSWildcard: {
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->wildcard(ftc, doc, limit, result);
+                break;
+            }
+            default:
+                return Status::Error("text search expression error");
+        }
+        if (!ret.ok()) {
+            continue;
+        } else if (ret.value()) {
+            return result;
+        } else {
+            return Status::Error("External index error. "
+                                 "please check the status of fulltext cluster");
+        }
+    }
+    return Status::Error("scan external index failed");
+}
+
+bool IndexScanValidator::needTextSearch(Expression* expr) {
+    switch (expr->kind()) {
+        case Expression::Kind::kTSFuzzy:
+        case Expression::Kind::kTSPrefix:
+        case Expression::Kind::kTSRegexp:
+        case Expression::Kind::kTSWildcard: {
+            return true;
+        }
+        default:
+            return false;
+    }
 }
 
 Status IndexScanValidator::checkFilter(Expression* expr, const std::string& from) {
@@ -216,6 +374,5 @@ StatusOr<Value> IndexScanValidator::checkConstExpr(Expression* expr,
     }
     return v;
 }
-
-}   // namespace graph
-}   // namespace nebula
+}  // namespace graph
+}  // namespace nebula
