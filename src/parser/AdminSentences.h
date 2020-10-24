@@ -134,14 +134,15 @@ public:
 
 class SpaceOptItem final {
 public:
-    using Value = boost::variant<int64_t, std::string, meta::cpp2::ColumnTypeDef>;
+    using Value = boost::variant<bool, int64_t, std::string, meta::cpp2::ColumnTypeDef>;
 
     enum OptionType : uint8_t {
         PARTITION_NUM,
         REPLICA_FACTOR,
         VID_TYPE,
         CHARSET,
-        COLLATE
+        COLLATE,
+        TEXT_SEARCH,
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -159,6 +160,15 @@ public:
         optValue_ = std::move(val);
     }
 
+    SpaceOptItem(OptionType op, bool val) {
+        optType_ = op;
+        optValue_ = std::move(val);
+    }
+
+    bool asBool() const {
+        return boost::get<bool>(optValue_);
+    }
+
     int64_t asInt() const {
         return boost::get<int64_t>(optValue_);
     }
@@ -171,16 +181,20 @@ public:
         return boost::get<meta::cpp2::ColumnTypeDef>(optValue_);
     }
 
-    bool isInt() const {
+    bool isBool() const {
         return optValue_.which() == 0;
     }
 
-    bool isString() const {
+    bool isInt() const {
         return optValue_.which() == 1;
     }
 
-    bool isTypeDef() const {
+    bool isString() const {
         return optValue_.which() == 2;
+    }
+
+    bool isTypeDef() const {
+        return optValue_.which() == 3;
     }
 
     int64_t getPartitionNum() const {
@@ -227,6 +241,15 @@ public:
         } else {
             LOG(ERROR) << "collate value illage.";
             return 0;
+        }
+    }
+
+    bool getTextSearch() const {
+        if (isBool()) {
+            return asBool();
+        } else {
+            LOG(ERROR) << "text search value illage.";
+            return false;
         }
     }
 
@@ -585,6 +608,61 @@ public:
     std::string toString() const override;
 };
 
+class TSClientList final {
+public:
+    TSClientList() {}
+    void addClient(nebula::meta::cpp2::FTClient *client) {
+        clients_.emplace_back(client);
+    }
+
+    std::string toString() const;
+
+    std::vector<nebula::meta::cpp2::FTClient> clients() const {
+        std::vector<nebula::meta::cpp2::FTClient> result;
+        result.reserve(clients_.size());
+        for (auto &client : clients_) {
+            result.emplace_back(*client);
+        }
+        return result;
+    }
+
+private:
+    std::vector<std::unique_ptr<nebula::meta::cpp2::FTClient>> clients_;
+};
+
+class ShowTSClientsSentence final : public Sentence {
+public:
+    ShowTSClientsSentence() {
+        kind_ = Kind::kShowTSClients;
+    }
+    std::string toString() const override;
+};
+
+class SignInTextServiceSentence final : public Sentence {
+public:
+    explicit SignInTextServiceSentence(TSClientList *clients) {
+        kind_ = Kind::kSignInTSService;
+        clients_.reset(clients);
+    }
+
+    std::string toString() const override;
+
+    TSClientList* clients() const {
+        return clients_.get();
+    }
+
+private:
+    std::unique_ptr<TSClientList>       clients_;
+};
+
+class SignOutTextServiceSentence final : public Sentence {
+public:
+    SignOutTextServiceSentence() {
+        kind_ = Kind::kSignOutTSService;
+    }
+
+    std::string toString() const override;
+};
 }   // namespace nebula
 
 #endif  // PARSER_ADMINSENTENCES_H_

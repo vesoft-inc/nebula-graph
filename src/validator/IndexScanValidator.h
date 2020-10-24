@@ -12,7 +12,6 @@
 #include "parser/TraverseSentences.h"
 #include "validator/Validator.h"
 
-
 namespace nebula {
 namespace graph {
 
@@ -26,11 +25,22 @@ private:
 
     Status toPlan() override;
 
+    Status prepareTSService();
+
     Status prepareFrom();
 
     Status prepareYield();
 
     Status prepareFilter();
+
+    StatusOr<std::unique_ptr<Expression>> rewriteTSFilter(Expression* expr);
+
+    std::unique_ptr<Expression> genOrFilterFromList(
+        TextSearchExpression* expr, const std::vector<std::string>& values);
+
+    StatusOr<std::vector<std::string>> textSearch(TextSearchExpression* expr);
+
+    bool needTextSearch(Expression* expr);
 
     Status checkFilter(Expression* expr, const std::string& from);
 
@@ -41,11 +51,14 @@ private:
     StatusOr<Value> checkConstExpr(Expression* expr, const std::string& prop);
 
 private:
-    GraphSpaceID               spaceId_{0};
-    IndexScan::IndexQueryCtx   contexts_{nullptr};
-    IndexScan::IndexReturnCols returnCols_{};
-    bool                       isEdge_{false};
-    int32_t                    schemaId_;
+    GraphSpaceID                      spaceId_{0};
+    IndexScan::IndexQueryCtx          contexts_{};
+    IndexScan::IndexReturnCols        returnCols_{};
+    bool                              isEdge_{false};
+    int32_t                           schemaId_;
+    bool                              isEmptyResultSet_;
+    bool                              textSearchReady{false};
+    std::vector<meta::cpp2::FTClient> tsClients_;
 };
 
 }   // namespace graph

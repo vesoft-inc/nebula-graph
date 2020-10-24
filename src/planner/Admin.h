@@ -1213,6 +1213,29 @@ private:
         : SingleInputNode(qctx, Kind::kShowStats, input) {}
 };
 
+class SignInTSService final : public SingleInputNode {
+public:
+    static SignInTSService* make(QueryContext* qctx,
+                                  PlanNode* input,
+                                  std::vector<meta::cpp2::FTClient> clients) {
+        return qctx->objPool()->add(new SignInTSService(qctx, input, std::move(clients)));
+    }
+
+    const std::vector<meta::cpp2::FTClient> &clients() const {
+        return clients_;
+    }
+
+    meta::cpp2::FTServiceType type() const {
+        return meta::cpp2::FTServiceType::ELASTICSEARCH;
+    }
+
+private:
+    SignInTSService(QueryContext* qctx, PlanNode* input, std::vector<meta::cpp2::FTClient> clients)
+        : SingleInputNode(qctx, Kind::kSignInTSService, input),
+          clients_(std::move(clients)) {}
+
+    std::vector<meta::cpp2::FTClient> clients_;
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_
