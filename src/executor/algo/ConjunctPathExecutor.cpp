@@ -274,42 +274,6 @@ folly::Future<Status> ConjunctPathExecutor::allPaths() {
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
-bool ConjunctPathExecutor::findOneStepPaths(
-    Iterator* backwardPathsIter,
-    std::unordered_map<Value, const List&>& forwardPathsTable,
-    DataSet& ds) {
-    bool found = false;
-    for (; backwardPathsIter->valid(); backwardPathsIter->next()) {
-        auto& pathList = backwardPathsIter->getColumn("path");
-        if (!pathList.isList()) {
-            continue;
-        }
-        for (const auto& path : pathList.getList().values) {
-            if (!path.isPath()) {
-                continue;
-            }
-            auto& src = path.getPath().src.vid;
-            VLOG(1) << "Backward start: " << src;
-            auto forwardPaths = forwardPathsTable.find(src);
-            if (forwardPaths == forwardPathsTable.end()) {
-                continue;
-            }
-            for (const auto& i : forwardPaths->second.values) {
-                if (!i.isPath()) {
-                    continue;
-                }
-                Row row;
-                auto forward = i;
-                VLOG(1) << "Found path: " << forward;
-                row.values.emplace_back(std::move(forward));
-                ds.rows.emplace_back(std::move(row));
-            }  // `i'
-            found = true;
-        }  // `path'
-    }  // `backwardPathsTable'
-    return found;
-}
-
 bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
                                         std::unordered_map<Value, const List&>& forwardPathsTable,
                                         DataSet& ds) {

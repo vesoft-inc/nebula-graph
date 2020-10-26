@@ -35,10 +35,6 @@ private:
 
     bool findPath(Iterator* iter, std::multimap<Value, const Path*>& table, DataSet& ds);
 
-    bool findOneStepPaths(Iterator* backwardPathsIter,
-                          std::unordered_map<Value, const List&>& forwardPathsTable,
-                          DataSet& ds);
-
     bool findAllPaths(Iterator* backwardPathsIter,
                       std::unordered_map<Value, const List&>& forwardPathsTable,
                       DataSet& ds);
