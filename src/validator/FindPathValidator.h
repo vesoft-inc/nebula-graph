@@ -36,7 +36,7 @@ private:
 
     Status multiPairPlan();
 
-    Expression* buildMultiPairLoopCondition(uint32_t steps, const std::string& pathVar);
+    Expression* buildMultiPairLoopCondition(uint32_t steps);
 
     Expression* buildBfsLoopCondition(uint32_t steps, const std::string& pathVar);
 

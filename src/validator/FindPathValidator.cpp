@@ -230,14 +230,14 @@ Status FindPathValidator::multiPairPlan() {
     auto* backward = multiPairShortestPath(passThrough, to_, true);
     VLOG(1) << "backward: " << backward->outputVar();
 
-    auto* conjunct = ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kFloyd);
+    auto* conjunct =
+        ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kFloyd, steps_.steps);
     conjunct->setLeftVar(forward->outputVar());
     conjunct->setRightVar(backward->outputVar());
     conjunct->setColNames({"_path", "cost"});
 
-    // todo(jmq)
-    auto* loop = Loop::make(
-        qctx_, nullptr, conjunct, buildMultiPairLoopCondition(steps_.steps, conjunct->outputVar()));
+    // todo(jmq) optimize condition
+    auto* loop = Loop::make(qctx_, nullptr, conjunct, buildMultiPairLoopCondition(steps_.steps));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kMultiplePairShortest, {conjunct->outputVar()});
@@ -304,9 +304,19 @@ PlanNode* FindPathValidator::multiPairShortestPath(PlanNode* dep,
     return pssp;
 }
 
-Expression* FindPathValidator::buildMultiPairLoopCondition(uint32_t steps,
-                                                           const std::string& pathVar) {
-    // todo
+Expression* FindPathValidator::buildMultiPairLoopCondition(uint32_t steps) {
+    // ++loopSteps{0} <= (steps/2+steps%2) && size(pathVar) == 0
+    auto loopSteps = vctx_->anonVarGen()->getVar();
+    qctx_->ectx()->setValue(loopSteps, 0);
+
+    auto* nSteps = new RelationalExpression(
+        Expression::Kind::kRelLE,
+        new UnaryExpression(
+            Expression::Kind::kUnaryIncr,
+            new VersionedVariableExpression(new std::string(loopSteps), new ConstantExpression(0))),
+        new ConstantExpression(static_cast<int32_t>(steps / 2 + steps % 2)));
+
+    return qctx_->objPool()->add(nSteps);
 }
 
 }  // namespace graph
