@@ -1,0 +1,14 @@
+name: cluster
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+
+jobs:
+  k8s:
+    name: Run pytest in kubernetes cluster
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run tests
+        run:

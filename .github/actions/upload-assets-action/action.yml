@@ -1,0 +1,21 @@
+name: 'Upload file to release assets'
+description: 'Upload file to release assets'
+inputs:
+  tag:
+    description: 'git tag'
+    required: true
+    default: ${{ github.ref }}
+  file-path:
+    description: 'file path to be uploaded'
+    required: true
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        ${{ github.action_path }}/upload.sh \
+          github_token=${{ github.token }} \
+          repo=${{ github.repository }} \
+          tag=${{ inputs.tag }} \
+          filepath=${{ inputs.file-path }}
+      shell: bash

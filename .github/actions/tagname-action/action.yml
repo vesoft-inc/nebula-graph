@@ -1,0 +1,10 @@
+name: 'Extract tag name'
+description: 'Extract tag name'
+outputs:
+  tag:
+    description: 'tag name'
+runs:
+  using: "composite"
+  steps:
+    - run: echo ${{ github.ref }} | rev | cut -d/ -f1 | rev
+      shell: bash
