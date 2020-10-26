@@ -185,7 +185,7 @@ folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
     DataSet ds;
     ds.colNames = conjunct->colNames();
 
-    CostPathsValMap forWardCostPathMap;
+    CostPathsValMap forwardCostPathMap;
     for (; lIter->valid(); lIter->next()) {
         auto& dst = lIter->getColumn(kDst);
         auto& src = lIter->getColumn(kSrc);
@@ -195,20 +195,20 @@ folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
         if (!pathList.isList()) {
             continue;
         }
-        auto& srcPaths = forWardCostPathMap[dst];
-        srcPaths.emplace(src, std::make_pair(cost, pathList.getList()));
+        auto& srcPaths = forwardCostPathMap[dst];
+        srcPaths.emplace(src, CostPaths(cost, pathList.getList()));
     }
 
     if (rHist.size() >= 2) {
         auto previous = rHist[rHist.size() - 2].iter();
         VLOG(1) << "Find odd length path.";
-        findPath(previous.get(), forWardCostPathMap, ds);
+        findPath(previous.get(), forwardCostPathMap, ds);
     }
 
     if (count_ * 2 < steps) {
         VLOG(1) << "Find even length path.";
         auto latest = rHist.back().iter();
-        findPath(latest.get(), forWardCostPathMap, ds);
+        findPath(latest.get(), forwardCostPathMap, ds);
     }
 
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
@@ -216,7 +216,7 @@ folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
 
 Status ConjunctPathExecutor::unionPath(const List& forwardPaths,
                                        const List& backwardPaths,
-                                       double cost,
+                                       Value& cost,
                                        DataSet& ds) {
     for (auto& i : forwardPaths.values) {
         if (!i.isPath()) {
@@ -262,7 +262,7 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
         }
         for (auto& srcPaths : forwardPaths->second) {
             auto& startVid = srcPaths.first;
-            auto totalCost = cost + srcPaths.second.first;
+            auto totalCost = cost + srcPaths.second.cost_;
             if (historyCostMap_.find(startVid) != historyCostMap_.end() &&
                 historyCostMap_[startVid].find(endVid) != historyCostMap_[startVid].end() &&
                 historyCostMap_[startVid][endVid] < totalCost) {
@@ -271,7 +271,7 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
             // update history cost
             auto& hist = historyCostMap_[startVid];
             hist[endVid] = totalCost;
-            unionPath(srcPaths.second.second, pathList.getList(), totalCost.getFloat(), ds);
+            unionPath(srcPaths.second.paths_, pathList.getList(), totalCost, ds);
             found = true;
         }
     }

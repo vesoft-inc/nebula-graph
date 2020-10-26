@@ -18,9 +18,14 @@ public:
 
     folly::Future<Status> execute() override;
 
+    struct CostPaths {
+        CostPaths(Value& cost, const List& paths) : cost_(cost), paths_(paths) {}
+        Value cost_;
+        const List& paths_;
+    };
+
 private:
-    using CostPathsValMap =
-        std::unordered_map<Value, std::unordered_map<Value, std::pair<Value, const List&>>>;
+    using CostPathsValMap = std::unordered_map<Value, std::unordered_map<Value, CostPaths>>;
 
     folly::Future<Status> bfsShortestPath();
 
@@ -38,10 +43,7 @@ private:
 
     bool findPath(Iterator* backwardPathIter, CostPathsValMap& forwardPathtable, DataSet& ds);
 
-    Status unionPath(const List& forwardPaths, const List& backwardPaths, double cost, DataSet& ds);
-
-    std::vector<std::multimap<Value, const Edge*>> forward_;
-    std::vector<std::multimap<Value, const Edge*>> backward_;
+    Status unionPath(const List& forwardPaths, const List& backwardPaths, Value& cost, DataSet& ds);
 
     // startVid : {endVid, cost}
     std::unordered_map<Value, std::unordered_map<Value, Value>> historyCostMap_;

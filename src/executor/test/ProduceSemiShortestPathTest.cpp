@@ -452,7 +452,7 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
         auto& result = qctx_->ectx()->getResult(pssp->outputVar());
 
         DataSet expected;
-        expected.colNames = {"_dst", "_cost", "_paths"};
+        expected.colNames = {"_dst", "_src", "cost", "paths"};
         auto cost = 3;
         {
             // 0->1->5->7, 0->1->6->7

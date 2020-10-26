@@ -185,14 +185,14 @@ Status DataCollectExecutor::collectAllPaths(const std::vector<std::string>& vars
     return Status::OK();
 }
 
-Status DataCollectExecutor::collectMultipleSourceShortestPath(
-    const std::vector<std::string>& vars) {
+Status DataCollectExecutor::collectMultiplePairShortestPath(const std::vector<std::string>& vars) {
     DataSet ds;
     ds.colNames = std::move(colNames_);
     DCHECK(!ds.colNames.empty());
 
-    std::unordered_map < Value,
-        std::unordered_map<Value, std::pair<Value, std::vector<Path>>> shortestPath;
+    // src : {dst : <cost, {path}>}
+    std::unordered_map<Value, std::unordered_map<Value, std::pair<Value, std::vector<Path>>>>
+        shortestPath;
 
     for (auto& var : vars) {
         auto& hist = ectx_->getHistory(var);
@@ -217,11 +217,13 @@ Status DataCollectExecutor::collectMultipleSourceShortestPath(
                 if (shortestPath.find(src) == shortestPath.end() ||
                     shortestPath[src].find(dst) == shortestPath[src].end()) {
                     auto& dstHist = shortestPath[src];
-                    dstHist.emplace(dst, std::make_pair(cost, {std::move(path)}));
+                    std::vector<Path> tempPaths = {std::move(path)};
+                    dstHist.emplace(dst, std::make_pair(cost, std::move(tempPaths)));
                 } else {
                     auto oldCost = shortestPath[src][dst].first;
                     if (cost < oldCost) {
-                        shortestPath[src][dst].second.swap({std::move(path)});
+                        std::vector<Path> tempPaths = {std::move(path)};
+                        shortestPath[src][dst].second.swap(tempPaths);
                     } else if (cost == oldCost) {
                         shortestPath[src][dst].second.emplace_back(std::move(path));
                     } else {
@@ -233,9 +235,13 @@ Status DataCollectExecutor::collectMultipleSourceShortestPath(
     }
 
     // collect result
-    for (auto& dstPath : shortestPath) {
-        for (auto& path : dstPath.second.second) {
-            ds.rows.emplace_back(std::move(path));
+    for (auto& srcPath : shortestPath) {
+        for (auto& dstPath : srcPath.second) {
+            for (auto& path : dstPath.second.second) {
+                Row row;
+                row.values.emplace_back(std::move(path));
+                ds.rows.emplace_back(std::move(row));
+            }
         }
     }
     result_.setDataSet(std::move(ds));

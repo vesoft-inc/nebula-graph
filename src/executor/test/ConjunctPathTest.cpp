@@ -15,7 +15,14 @@ namespace nebula {
 namespace graph {
 class ConjunctPathTest : public testing::Test {
 protected:
-void multipleSourcePathInit() {
+static bool comparePath(Row& row1, Row& row2) {
+    // row : path|  cost |
+    if (row1.values[1] != row2.values[1]) {
+        return row1.values[0] < row2.values[0];
+    }
+    return row1[0] < row2[0];
+}
+void multiplePairPathInit() {
     /*
      *  overall path is :
      *  0->1->5->7->8->9
@@ -116,7 +123,7 @@ void multipleSourcePathInit() {
     {
         DataSet ds;
         auto cost = 2;
-        ds.colNames = {"_dst", "_src", "cost", "_paths"};
+        ds.colNames = {"_dst", "_src", "cost", "paths"};
         {
             // 0->1->5
             Row row;
@@ -369,7 +376,7 @@ void multipleSourcePathInit() {
             Row row;
             Path path;
             path.src = Vertex("9", {});
-            path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("8", {}), -1, "edge1", 0, {}));
 
             List paths;
             paths.values.emplace_back(std::move(path));
@@ -384,7 +391,7 @@ void multipleSourcePathInit() {
             Row row;
             Path path;
             path.src = Vertex("12", {});
-            path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("11", {}), -1, "edge1", 0, {}));
 
             List paths;
             paths.values.emplace_back(std::move(path));
@@ -395,6 +402,7 @@ void multipleSourcePathInit() {
             ds1.rows.emplace_back(std::move(row));
         }
         qctx_->ectx()->setResult("backwardPath1", ResultBuilder().value(ds1).finish());
+        qctx_->ectx()->setResult("backwardPath2", ResultBuilder().value(ds1).finish());
     }
     {
         DataSet ds;
@@ -405,8 +413,8 @@ void multipleSourcePathInit() {
             Row row;
             Path path;
             path.src = Vertex("9", {});
-            path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("8", {}), -1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("7", {}), -1, "edge1", 0, {}));
 
             List paths;
             paths.values.emplace_back(std::move(path));
@@ -421,8 +429,8 @@ void multipleSourcePathInit() {
             Row row;
             Path path;
             path.src = Vertex("12", {});
-            path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("11", {}), -1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("10", {}), -1, "edge1", 0, {}));
 
             List paths;
             paths.values.emplace_back(std::move(path));
@@ -433,6 +441,7 @@ void multipleSourcePathInit() {
             ds.rows.emplace_back(std::move(row));
         }
         qctx_->ectx()->setResult("backwardPath2", ResultBuilder().value(ds).finish());
+        qctx_->ectx()->setResult("backwardPath3", ResultBuilder().value(ds).finish());
     }
     {
         DataSet ds;
@@ -444,10 +453,10 @@ void multipleSourcePathInit() {
                 Row row;
                 Path path;
                 path.src = Vertex("9", {});
-                path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
-                path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+                path.steps.emplace_back(Step(Vertex("8", {}), -1, "edge1", 0, {}));
+                path.steps.emplace_back(Step(Vertex("7", {}), -1, "edge1", 0, {}));
                 path.steps.emplace_back(
-                    Step(Vertex(folly::to<std::string>(i), {}), 1, "edge1", 0, {}));
+                    Step(Vertex(folly::to<std::string>(i), {}), -1, "edge1", 0, {}));
 
                 List paths;
                 paths.values.emplace_back(std::move(path));
@@ -463,9 +472,9 @@ void multipleSourcePathInit() {
             List paths;
             Path path;
             path.src = Vertex("12", {});
-            path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("11", {}), -1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("10", {}), -1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("7", {}), -1, "edge1", 0, {}));
             paths.values.emplace_back(std::move(path));
             Row row;
             row.values.emplace_back("7");
@@ -581,10 +590,7 @@ void biBfsInit() {
     }
 }
 
-void SetUp() override {
-    qctx_ = std::make_unique<QueryContext>();
-    biBfsInit();
-    multipleSourcePathInit();
+void allPathInit() {
     qctx_->symTable()->newVariable("all_paths_forward1");
     qctx_->symTable()->newVariable("all_paths_backward1");
     qctx_->symTable()->newVariable("all_paths_backward2");
@@ -695,6 +701,13 @@ void SetUp() override {
         }
         qctx_->ectx()->setResult("all_paths_backward4", ResultBuilder().value(ds).finish());
     }
+}
+
+void SetUp() override {
+    qctx_ = std::make_unique<QueryContext>();
+    biBfsInit();
+    multiplePairPathInit();
+    allPathInit();
 }
 
 protected:
@@ -970,27 +983,8 @@ TEST_F(ConjunctPathTest, AllPathsNoPath) {
     auto status = std::move(future).get();
     EXPECT_TRUE(status.ok());
     auto& result = qctx_->ectx()->getResult(conjunct->outputVar());
-    expected.colNames = {"_path"};
-    EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state(), Result::State::kSuccess);
-}
-
-TEST_F(ConjunctPathTest, multipleSourceOneStep) {
-    auto* conjunct = ConjunctPath::make(qctx_.get(),
-                                        StartNode::make(qctx_.get()),
-                                        StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kFloyd);
-    conjunct->setLeftVar("forwardPath1");
-    conjunct->setRightVar("backwardPath1");
-    conjunct->setColNames({"_path", "cost"});
-    auto conjunctExe = std::make_unique<ConjunctPathExecutor>(conjunct, qctx_.get());
-    auto future = conjunctExe->execute();
-    auto status = std::move(future).get();
-    EXPECT_TRUE(status.ok());
-    auto& result = qctx_->ectx()->getResult(conjunct->outputVar());
-
     DataSet expected;
-    expected.colNames = {"_path", "cost"};
+    expected.colNames = {"_path"};
     EXPECT_EQ(result.value().getDataSet(), expected);
     EXPECT_EQ(result.state(), Result::State::kSuccess);
 }
@@ -1022,68 +1016,6 @@ TEST_F(ConjunctPathTest, AllPathsOneStepPath) {
     EXPECT_EQ(result.state(), Result::State::kSuccess);
 }
 
-TEST_F(ConjunctPathTest, multipleSourceTwoSteps) {
-    auto* conjunct = ConjunctPath::make(qctx_.get(),
-                                        StartNode::make(qctx_.get()),
-                                        StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kFloyd);
-    conjunct->setLeftVar("forwardPath2");
-    conjunct->setRightVar("backwardPath2");
-    conjunct->setColNames({"_path", "cost"});
-
-    auto conjunctExe = std::make_unique<ConjunctPathExecutor>(conjunct, qctx_.get());
-    auto future = conjunctExe->execute();
-    auto status = std::move(future).get();
-    EXPECT_TRUE(status.ok());
-    auto& result = qctx_->ectx()->getResult(conjunct->outputVar());
-
-    DataSet expected;
-    expected.colNames = {"_path", "cost"};
-    {
-        // 1->5->7->8->9, 1->6->7->8->9
-        for (auto i = 5; i < 7; i++) {
-            Row row;
-            Path path;
-            path.src = Vertex("1", {});
-            path.steps.emplace_back(Step(Vertex(folly::to<std::string>(i), {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 1, {}));
-            path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("9", {}), 1, "edge1", 0, {}));
-            row.values.emplace_back(std::move(path));
-            row.values.emplace_back(4);
-            expected.rows.emplace_back(std::move(row));
-        }
-    }
-    {
-        // 2->6->7->8->9
-        Row row;
-        Path path;
-        path.src = Vertex("2", {});
-        path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 1, {}));
-        path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("9", {}), 1, "edge1", 0, {}));
-        row.values.emplace_back(std::move(path));
-        row.values.emplace_back(4);
-        expected.rows.emplace_back(std::move(row));
-    }
-    {
-        // 3->4->7->8->9
-        Row row;
-        Path path;
-        path.src = Vertex("3", {});
-        path.steps.emplace_back(Step(Vertex("4", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 1, {}));
-        path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("9", {}), 1, "edge1", 0, {}));
-        row.values.emplace_back(std::move(path));
-        row.values.emplace_back(4);
-        expected.rows.emplace_back(std::move(row));
-    }
-    EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state(), Result::State::kSuccess);
-}
-
 TEST_F(ConjunctPathTest, AllPathsTwoStepsPath) {
     auto* conjunct = ConjunctPath::make(qctx_.get(),
                                         StartNode::make(qctx_.get()),
@@ -1109,86 +1041,6 @@ TEST_F(ConjunctPathTest, AllPathsTwoStepsPath) {
     row.values.emplace_back(std::move(path));
     expected.rows.emplace_back(std::move(row));
 
-    EXPECT_EQ(result.value().getDataSet(), expected);
-    EXPECT_EQ(result.state(), Result::State::kSuccess);
-}
-
-TEST_F(ConjunctPathTest, multipleSourceThreeSteps) {
-    auto* conjunct = ConjunctPath::make(qctx_.get(),
-                                        StartNode::make(qctx_.get()),
-                                        StartNode::make(qctx_.get()),
-                                        ConjunctPath::PathKind::kFloyd);
-    conjunct->setLeftVar("forwardPath3");
-    conjunct->setRightVar("backwardPath3");
-    conjunct->setColNames({"_path", "cost"});
-    auto conjunctExe = std::make_unique<ConjunctPathExecutor>(conjunct, qctx_.get());
-    auto future = conjunctExe->execute();
-    auto status = std::move(future).get();
-    EXPECT_TRUE(status.ok());
-    auto& result = qctx_->ectx()->getResult(conjunct->outputVar());
-
-    DataSet expected;
-    expected.colNames = {"_path", "cost"};
-    {
-        // 1->5->7->10->11->12, 1->6->7->10->11->12
-        for (auto i = 5; i < 7; i++) {
-            Row row;
-            Path path;
-            path.src = Vertex("1", {});
-            path.steps.emplace_back(Step(Vertex(folly::to<std::string>(i), {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 1, {}));
-            path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("12", {}), 1, "edge1", 0, {}));
-            row.values.emplace_back(std::move(path));
-            row.values.emplace_back(5);
-            expected.rows.emplace_back(std::move(row));
-        }
-    }
-    {
-        // 0->1->5->7->8->9, 0->1->6->7->8->9
-        for (auto i = 5; i < 7; i++) {
-            Row row;
-            Path path;
-            path.src = Vertex("0", {});
-            path.steps.emplace_back(Step(Vertex("1", {}), 1, "edge1", 1, {}));
-            path.steps.emplace_back(Step(Vertex(folly::to<std::string>(i), {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("9", {}), 1, "edge1", 0, {}));
-            row.values.emplace_back(std::move(path));
-            row.values.emplace_back(5);
-            expected.rows.emplace_back(std::move(row));
-        }
-    }
-    {
-        // 2->6->7->10->11->12
-        Row row;
-        Path path;
-        path.src = Vertex("2", {});
-        path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 1, {}));
-        path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("12", {}), 1, "edge1", 0, {}));
-        row.values.emplace_back(std::move(path));
-        row.values.emplace_back(5);
-        expected.rows.emplace_back(std::move(row));
-    }
-    {
-        // 3->4->7->10->11->12
-        Row row;
-        Path path;
-        path.src = Vertex("3", {});
-        path.steps.emplace_back(Step(Vertex("4", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 1, {}));
-        path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
-        path.steps.emplace_back(Step(Vertex("12", {}), 1, "edge1", 0, {}));
-        row.values.emplace_back(std::move(path));
-        row.values.emplace_back(5);
-        expected.rows.emplace_back(std::move(row));
-    }
     EXPECT_EQ(result.value().getDataSet(), expected);
     EXPECT_EQ(result.state(), Result::State::kSuccess);
 }
@@ -1380,5 +1232,194 @@ TEST_F(ConjunctPathTest, AllPathsFourStepsPath) {
         EXPECT_EQ(result.state(), Result::State::kSuccess);
     }
 }
+
+TEST_F(ConjunctPathTest, multiplePairOneStep) {
+    auto* conjunct = ConjunctPath::make(qctx_.get(),
+                                        StartNode::make(qctx_.get()),
+                                        StartNode::make(qctx_.get()),
+                                        ConjunctPath::PathKind::kFloyd,
+                                        5);
+    conjunct->setLeftVar("forwardPath1");
+    conjunct->setRightVar("backwardPath1");
+    conjunct->setColNames({"_path", "cost"});
+    auto conjunctExe = std::make_unique<ConjunctPathExecutor>(conjunct, qctx_.get());
+    auto future = conjunctExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+    auto& result = qctx_->ectx()->getResult(conjunct->outputVar());
+
+    DataSet expected;
+    expected.colNames = {"_path", "cost"};
+    EXPECT_EQ(result.value().getDataSet(), expected);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
+}
+
+TEST_F(ConjunctPathTest, multiplePairTwoSteps) {
+    auto* conjunct = ConjunctPath::make(qctx_.get(),
+                                        StartNode::make(qctx_.get()),
+                                        StartNode::make(qctx_.get()),
+                                        ConjunctPath::PathKind::kFloyd,
+                                        5);
+    conjunct->setLeftVar("forwardPath2");
+    conjunct->setRightVar("backwardPath2");
+    conjunct->setColNames({"_path", "cost"});
+
+    auto conjunctExe = std::make_unique<ConjunctPathExecutor>(conjunct, qctx_.get());
+    auto future = conjunctExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+    auto& result = qctx_->ectx()->getResult(conjunct->outputVar());
+
+    DataSet expected;
+    expected.colNames = {"_path", "cost"};
+    {
+        // 1->5->7->8->9, 1->6->7->8->9
+        for (auto i = 5; i < 7; i++) {
+            Row row;
+            Path path;
+            path.src = Vertex("1", {});
+            path.steps.emplace_back(Step(Vertex(folly::to<std::string>(i), {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("9", {}), 1, "edge1", 0, {}));
+            row.values.emplace_back(std::move(path));
+            row.values.emplace_back(4);
+            expected.rows.emplace_back(std::move(row));
+        }
+    }
+    {
+        // 2->6->7->8->9
+        Row row;
+        Path path;
+        path.src = Vertex("2", {});
+        path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("9", {}), 1, "edge1", 0, {}));
+        row.values.emplace_back(std::move(path));
+        row.values.emplace_back(4);
+        expected.rows.emplace_back(std::move(row));
+    }
+    {
+        // 3->4->7->8->9
+        Row row;
+        Path path;
+        path.src = Vertex("3", {});
+        path.steps.emplace_back(Step(Vertex("4", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("9", {}), 1, "edge1", 0, {}));
+        row.values.emplace_back(std::move(path));
+        row.values.emplace_back(4);
+        expected.rows.emplace_back(std::move(row));
+    }
+    std::sort(expected.rows.begin(), expected.rows.end(), comparePath);
+    auto resultDs = result.value().getDataSet();
+    std::sort(resultDs.rows.begin(), resultDs.rows.end(), comparePath);
+    EXPECT_EQ(resultDs, expected);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
+}
+
+TEST_F(ConjunctPathTest, multiplePairThreeSteps) {
+    auto* conjunct = ConjunctPath::make(qctx_.get(),
+                                        StartNode::make(qctx_.get()),
+                                        StartNode::make(qctx_.get()),
+                                        ConjunctPath::PathKind::kFloyd,
+                                        5);
+    conjunct->setLeftVar("forwardPath3");
+    conjunct->setRightVar("backwardPath3");
+    conjunct->setColNames({"_path", "cost"});
+    auto conjunctExe = std::make_unique<ConjunctPathExecutor>(conjunct, qctx_.get());
+    auto future = conjunctExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+    auto& result = qctx_->ectx()->getResult(conjunct->outputVar());
+
+    DataSet expected;
+    expected.colNames = {"_path", "cost"};
+    {
+        // 1->5->7->10->11->12, 1->6->7->10->11->12
+        for (auto i = 5; i < 7; i++) {
+            Row row;
+            Path path;
+            path.src = Vertex("1", {});
+            path.steps.emplace_back(Step(Vertex(folly::to<std::string>(i), {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("12", {}), 1, "edge1", 0, {}));
+            row.values.emplace_back(std::move(path));
+            row.values.emplace_back(5);
+            expected.rows.emplace_back(std::move(row));
+        }
+    }
+    {
+        // 0->1->5->7->8->9, 0->1->6->7->8->9
+        for (auto i = 5; i < 7; i++) {
+            Row row;
+            Path path;
+            path.src = Vertex("0", {});
+            path.steps.emplace_back(Step(Vertex("1", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex(folly::to<std::string>(i), {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("8", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("9", {}), 1, "edge1", 0, {}));
+            row.values.emplace_back(std::move(path));
+            row.values.emplace_back(5);
+            expected.rows.emplace_back(std::move(row));
+        }
+    }
+    {
+        // 2->6->7->10->11->12
+        Row row;
+        Path path;
+        path.src = Vertex("2", {});
+        path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("12", {}), 1, "edge1", 0, {}));
+        row.values.emplace_back(std::move(path));
+        row.values.emplace_back(5);
+        expected.rows.emplace_back(std::move(row));
+    }
+    {
+        // 3->4->7->10->11->12
+        Row row;
+        Path path;
+        path.src = Vertex("3", {});
+        path.steps.emplace_back(Step(Vertex("4", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
+        path.steps.emplace_back(Step(Vertex("12", {}), 1, "edge1", 0, {}));
+        row.values.emplace_back(std::move(path));
+        row.values.emplace_back(5);
+        expected.rows.emplace_back(std::move(row));
+    }
+    {
+        // 0->1->5->10->11->12, 0->1->6->7->10->11->12
+        for (auto i = 5; i < 7; i++) {
+            Row row;
+            Path path;
+            path.src = Vertex("0", {});
+            path.steps.emplace_back(Step(Vertex("1", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex(folly::to<std::string>(i), {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("10", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("11", {}), 1, "edge1", 0, {}));
+            path.steps.emplace_back(Step(Vertex("12", {}), 1, "edge1", 0, {}));
+            row.values.emplace_back(std::move(path));
+            row.values.emplace_back(6);
+            expected.rows.emplace_back(std::move(row));
+        }
+    }
+    std::sort(expected.rows.begin(), expected.rows.end(), comparePath);
+    auto resultDs = result.value().getDataSet();
+    std::sort(resultDs.rows.begin(), resultDs.rows.end(), comparePath);
+    EXPECT_EQ(resultDs, expected);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
+}
+
 }  // namespace graph
 }  // namespace nebula
