@@ -39,22 +39,25 @@ private:
         std::unordered_set<Value>& meets,
         std::vector<std::multimap<Value, const Edge*>>& hist);
 
-    folly::Future<Status> conjunctPath();
+    folly::Future<Status> floydShortestPath();
 
     bool findPath(Iterator* backwardPathIter, CostPathsValMap& forwardPathtable, DataSet& ds);
 
-    Status unionPath(const List& forwardPaths, const List& backwardPaths, Value& cost, DataSet& ds);
-
-    // startVid : {endVid, cost}
-    std::unordered_map<Value, std::unordered_map<Value, Value>> historyCostMap_;
+    Status conjunctPath(const List& forwardPaths,
+                        const List& backwardPaths,
+                        Value& cost,
+                        DataSet& ds);
 
     bool findAllPaths(Iterator* backwardPathsIter,
                       std::unordered_map<Value, const List&>& forwardPathsTable,
                       DataSet& ds);
 
-    std::vector<std::multimap<Value, const Edge*>>  forward_;
-    std::vector<std::multimap<Value, const Edge*>>  backward_;
-    size_t                                          count_{0};
+private:
+    std::vector<std::multimap<Value, const Edge*>> forward_;
+    std::vector<std::multimap<Value, const Edge*>> backward_;
+    size_t count_{0};
+    // startVid : {endVid, cost}
+    std::unordered_map<Value, std::unordered_map<Value, Value>> historyCostMap_;
 };
 }  // namespace graph
 }  // namespace nebula

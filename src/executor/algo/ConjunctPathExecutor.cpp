@@ -19,7 +19,7 @@ folly::Future<Status> ConjunctPathExecutor::execute() {
         case ConjunctPath::PathKind::kAllPaths:
             return allPaths();
         case ConjunctPath::PathKind::kFloyd:
-            return conjunctPath();
+            return floydShortestPath();
         default:
             LOG(FATAL) << "Not implement.";
     }
@@ -171,7 +171,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
 }
 
 
-folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
+folly::Future<Status> ConjunctPathExecutor::floydShortestPath() {
     auto* conjunct = asNode<ConjunctPath>(node());
     auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
     const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
@@ -214,10 +214,10 @@ folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
-Status ConjunctPathExecutor::unionPath(const List& forwardPaths,
-                                       const List& backwardPaths,
-                                       Value& cost,
-                                       DataSet& ds) {
+Status ConjunctPathExecutor::conjunctPath(const List& forwardPaths,
+                                          const List& backwardPaths,
+                                          Value& cost,
+                                          DataSet& ds) {
     for (auto& i : forwardPaths.values) {
         if (!i.isPath()) {
             return Status::Error("Forward Path Type Error");
@@ -271,7 +271,7 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
             // update history cost
             auto& hist = historyCostMap_[startVid];
             hist[endVid] = totalCost;
-            unionPath(srcPaths.second.paths_, pathList.getList(), totalCost, ds);
+            conjunctPath(srcPaths.second.paths_, pathList.getList(), totalCost, ds);
             found = true;
         }
     }
