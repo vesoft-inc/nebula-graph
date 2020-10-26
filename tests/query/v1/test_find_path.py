@@ -150,3 +150,31 @@ class TestFindPath(NebulaTestSuite):
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
+
+
+        def test_multi_source_shortest_path(self):
+            stmt = 'FIND SHORTEST PATH FROM "Tim Duncan" TO "Tony Parker","Spurs" OVER like,serve UPTO 3 STEPS'
+            resp = self.execute_query(stmt)
+            self.check_resp_succeeded(resp)
+            expected_data = {
+                "column_names": ["_path"],
+                "rows": [
+                    [b"Tim Duncan", (b"like", 0, b"Tony Parker")],
+                    [b"Tim Duncan", (b"serve", 0, b"Spurs")],
+                ]
+            }
+            self.check_column_names(resp, expected_data["column_names"])
+            self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
+
+            stmt = 'FIND SHORTEST PATH FROM "Tim Duncan" TO "Tony Parker","LaMarcus Aldridge" OVER like UPTO 3 STEPS'
+            resp = self.execute_query(stmt)
+            self.check_resp_succeeded(resp)
+            expected_data = {
+                "column_names": ["_path"],
+                "rows": [
+                    [b"Tim Duncan", (b"like", 0, b"Tony Parker")],
+                    [b"Tim Duncan", (b"like", 0, b"Tony Parker"), (b"like", 0, b"LaMarcus Aldridge")],
+                ]
+            }
+            self.check_column_names(resp, expected_data["column_names"])
+            self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
