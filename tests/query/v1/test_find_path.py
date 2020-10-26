@@ -286,3 +286,4 @@ class TestFindPath(NebulaTestSuite):
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_empty_result(resp)
+
