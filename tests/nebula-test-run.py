@@ -101,7 +101,6 @@ if __name__ == "__main__":
 
         if len(configs.data_dir) == 0:
             args.extend(['--data_dir', TEST_DIR])
-        args.extend(['-s'])
         print("Running TestExecutor with args: {} ".format(args))
 
         # load nba data

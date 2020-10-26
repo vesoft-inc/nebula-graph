@@ -35,11 +35,6 @@ def init_configs():
                           dest = 'dist',
                           default = 'loadfile',
                           help = 'pytest use it')
-
-    opt_parser.add_option('-s',
-                          dest = 's',
-                          default = '',
-                          help = 'pytest use it')
     return opt_parser
 
 
