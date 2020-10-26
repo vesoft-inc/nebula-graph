@@ -164,8 +164,6 @@ Status DataCollectExecutor::collectAllPaths(const std::vector<std::string>& vars
     DataSet ds;
     ds.colNames = std::move(colNames_);
     DCHECK(!ds.colNames.empty());
-    // itersHolder keep life cycle of iters util this method return.
-    std::vector<std::unique_ptr<Iterator>> itersHolder;
     for (auto& var : vars) {
         auto& hist = ectx_->getHistory(var);
         for (auto& result : hist) {
@@ -180,7 +178,6 @@ Status DataCollectExecutor::collectAllPaths(const std::vector<std::string>& vars
                 msg << "Iterator should be kind of SequentialIter, but was: " << iter->kind();
                 return Status::Error(msg.str());
             }
-            itersHolder.emplace_back(std::move(iter));
         }
     }
     result_.setDataSet(std::move(ds));

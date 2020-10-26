@@ -187,11 +187,11 @@ PlanNode* FindPathValidator::allPaths(PlanNode* dep, const Starts& starts, bool 
 
     auto* allPaths = ProduceAllPaths::make(qctx_, gn);
     allPaths->setInputVar(gn->outputVar());
-    allPaths->setColNames({"_vid", "path"});
+    allPaths->setColNames({kVid, "path"});
     allPaths->setOutputVar(startVidsVar);
 
     DataSet ds;
-    ds.colNames = {"_vid", "path"};
+    ds.colNames = {kVid, "path"};
     for (auto& vid : starts.vids) {
         Row row;
         row.values.emplace_back(vid);
