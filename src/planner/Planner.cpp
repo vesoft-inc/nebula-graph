@@ -11,8 +11,6 @@
 namespace nebula {
 namespace graph {
 
-std::unordered_map<Sentence::Kind, std::vector<MatchAndInstance>> Planner::plannersMap_;
-
 StatusOr<SubPlan> Planner::toPlan(AstContext* astCtx) {
     if (astCtx == nullptr) {
         return Status::Error("AstContext nullptr.");

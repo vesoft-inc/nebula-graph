@@ -35,7 +35,8 @@ public:
     virtual ~Planner() = default;
 
     static auto& plannersMap() {
-        return plannersMap_;
+        static std::unordered_map<Sentence::Kind, std::vector<MatchAndInstance>> plannersMap;
+        return plannersMap;
     }
 
     static StatusOr<SubPlan> toPlan(AstContext* astCtx);
@@ -44,9 +45,6 @@ public:
 
 protected:
     Planner() = default;
-
-private:
-    static std::unordered_map<Sentence::Kind, std::vector<MatchAndInstance>> plannersMap_;
 };
 }  // namespace graph
 }  // namespace nebula
