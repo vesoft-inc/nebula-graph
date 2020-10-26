@@ -35,6 +35,8 @@
 #include "validator/YieldValidator.h"
 #include "visitor/DeducePropsVisitor.h"
 #include "visitor/DeduceTypeVisitor.h"
+#include "validator/GroupByValidator.h"
+#include "validator/MatchValidator.h"
 #include "visitor/EvaluableExprVisitor.h"
 #include "validator/IndexScanValidator.h"
 
@@ -165,6 +167,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<ShowConfigsValidator>(sentence, context);
         case Sentence::Kind::kFindPath:
             return std::make_unique<FindPathValidator>(sentence, context);
+        case Sentence::Kind::kMatch:
+            return std::make_unique<MatchValidator>(sentence, context);
         case Sentence::Kind::kCreateTagIndex:
             return std::make_unique<CreateTagIndexValidator>(sentence, context);
         case Sentence::Kind::kShowCreateTagIndex:
@@ -173,8 +177,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescribeTagIndexValidator>(sentence, context);
         case Sentence::Kind::kShowTagIndexes:
             return std::make_unique<ShowTagIndexesValidator>(sentence, context);
-        case Sentence::Kind::kRebuildTagIndex:
-            return std::make_unique<RebuildTagIndexValidator>(sentence, context);
         case Sentence::Kind::kDropTagIndex:
             return std::make_unique<DropTagIndexValidator>(sentence, context);
         case Sentence::Kind::kCreateEdgeIndex:
@@ -185,13 +187,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescribeEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kShowEdgeIndexes:
             return std::make_unique<ShowEdgeIndexesValidator>(sentence, context);
-        case Sentence::Kind::kRebuildEdgeIndex:
-            return std::make_unique<RebuildEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kDropEdgeIndex:
             return std::make_unique<DropEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kLookup:
             return std::make_unique<IndexScanValidator>(sentence, context);
-        case Sentence::Kind::kMatch:
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kIngest:
