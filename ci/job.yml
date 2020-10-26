@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nebula-test
+spec:
+  template:
+    metadata:
+      name: nebula-test
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: nebula-test
+        image: vesoft/nebula-dev:centos7
+        command:
+        - "/opt/nebula/ci/test.sh"
+        - "prepare"
+        - "&&"
+        - "/opt/nebula/ci/test.sh"
+        - "test"
+        volumeMounts:
+        - name: test-volume
+          mountPath: /opt/nebula
+      volumes:
+      - name: test-volume
+        hostPath:
+          path: /mnt
