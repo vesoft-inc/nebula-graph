@@ -558,27 +558,27 @@ private:
         : SingleInputNode(qctx, Kind::kShowEdgeIndexes, input) {}
 };
 
-class ShowTagIndexStatus final : public SingleInputNode {
-public:
-    static ShowTagIndexStatus* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new ShowTagIndexStatus(qctx, input));
-    }
+// class ShowTagIndexStatus final : public SingleInputNode {
+// public:
+//     static ShowTagIndexStatus* make(QueryContext* qctx, PlanNode* input) {
+//         return qctx->objPool()->add(new ShowTagIndexStatus(qctx, input));
+//     }
 
-private:
-    ShowTagIndexStatus(QueryContext* qctx, PlanNode* input)
-        : SingleInputNode(qctx, Kind::kShowTagIndexStatus, input) {}
-};
+// private:
+//     ShowTagIndexStatus(QueryContext* qctx, PlanNode* input)
+//         : SingleInputNode(qctx, Kind::kShowTagIndexStatus, input) {}
+// };
 
-class ShowEdgeIndexStatus final : public SingleInputNode {
-public:
-    static ShowEdgeIndexStatus* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new ShowEdgeIndexStatus(qctx, input));
-    }
+// class ShowEdgeIndexStatus final : public SingleInputNode {
+// public:
+//     static ShowEdgeIndexStatus* make(QueryContext* qctx, PlanNode* input) {
+//         return qctx->objPool()->add(new ShowEdgeIndexStatus(qctx, input));
+//     }
 
-private:
-    ShowEdgeIndexStatus(QueryContext* qctx, PlanNode* input)
-        : SingleInputNode(qctx, Kind::kShowEdgeIndexStatus, input) {}
-};
+// private:
+//     ShowEdgeIndexStatus(QueryContext* qctx, PlanNode* input)
+//         : SingleInputNode(qctx, Kind::kShowEdgeIndexStatus, input) {}
+// };
 
 }   // namespace graph
 }   // namespace nebula

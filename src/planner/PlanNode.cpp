@@ -145,10 +145,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "kShowTagIndexes";
         case Kind::kShowEdgeIndexes:
             return "kShowEdgeIndexes";
-        case Kind::kShowTagIndexStatus:
-            return "kShowTagIndexStatus";
-        case Kind::kShowEdgeIndexStatus:
-            return "kShowEdgeIndexStatus";
+        // case Kind::kShowTagIndexStatus:
+        //     return "kShowTagIndexStatus";
+        // case Kind::kShowEdgeIndexStatus:
+        //     return "kShowEdgeIndexStatus";
         case Kind::kCreateSnapshot:
             return "CreateSnapshot";
         case Kind::kDropSnapshot:

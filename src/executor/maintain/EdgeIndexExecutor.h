@@ -52,13 +52,13 @@ public:
     folly::Future<Status> execute() override;
 };
 
-class ShowEdgeIndexStatusExecutor final : public Executor {
-public:
-    ShowEdgeIndexStatusExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("ShowEdgeIndexStatusExecutor", node, qctx) {}
+// class ShowEdgeIndexStatusExecutor final : public Executor {
+// public:
+//     ShowEdgeIndexStatusExecutor(const PlanNode *node, QueryContext *qctx)
+//         : Executor("ShowEdgeIndexStatusExecutor", node, qctx) {}
 
-    folly::Future<Status> execute() override;
-};
+//     folly::Future<Status> execute() override;
+// };
 
 }   // namespace graph
 }   // namespace nebula

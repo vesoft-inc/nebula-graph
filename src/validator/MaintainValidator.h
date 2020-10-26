@@ -328,27 +328,27 @@ private:
     Status toPlan() override;
 };
 
-class ShowTagIndexStatusValidator final : public Validator {
-public:
-    ShowTagIndexStatusValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+// class ShowTagIndexStatusValidator final : public Validator {
+// public:
+//     ShowTagIndexStatusValidator(Sentence* sentence, QueryContext* context)
+//         : Validator(sentence, context) {}
 
-private:
-    Status validateImpl() override;
+// private:
+//     Status validateImpl() override;
 
-    Status toPlan() override;
-};
+//     Status toPlan() override;
+// };
 
-class ShowEdgeIndexStatusValidator final : public Validator {
-public:
-    ShowEdgeIndexStatusValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
+// class ShowEdgeIndexStatusValidator final : public Validator {
+// public:
+//     ShowEdgeIndexStatusValidator(Sentence* sentence, QueryContext* context)
+//         : Validator(sentence, context) {}
 
-private:
-    Status validateImpl() override;
+// private:
+//     Status validateImpl() override;
 
-    Status toPlan() override;
-};
+//     Status toPlan() override;
+// };
 
 class RebuildTagIndexValidator final : public Validator {
 public:

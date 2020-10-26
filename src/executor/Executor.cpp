@@ -279,12 +279,12 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kShowEdgeIndexes: {
             return pool->add(new ShowEdgeIndexesExecutor(node, qctx));
         }
-        case PlanNode::Kind::kShowTagIndexStatus: {
-            return pool->add(new ShowTagIndexStatusExecutor(node, qctx));
-        }
-        case PlanNode::Kind::kShowEdgeIndexStatus: {
-            return pool->add(new ShowEdgeIndexStatusExecutor(node, qctx));
-        }
+        // case PlanNode::Kind::kShowTagIndexStatus: {
+        //     return pool->add(new ShowTagIndexStatusExecutor(node, qctx));
+        // }
+        // case PlanNode::Kind::kShowEdgeIndexStatus: {
+        //     return pool->add(new ShowEdgeIndexStatusExecutor(node, qctx));
+        // }
         // case PlanNode::Kind::kRebuildTagIndex: {
         //     return pool->add(new RebuildTagIndexExecutor(node, qctx));
         // }
