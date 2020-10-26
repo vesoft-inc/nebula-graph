@@ -172,8 +172,9 @@ folly::Future<Status> ShowTagIndexStatusExecutor::execute() {
             for (const auto &jobDesc : jobsDesc) {
                 if (jobDesc.get_paras()[0] == spaceName &&
                     jobDesc.get_cmd() == meta::cpp2::AdminCmd::REBUILD_TAG_INDEX) {
-                    v.emplace_back(jobDesc.get_paras()[1],
-                                   meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(jobDesc.get_status()));
+                    v.emplace_back(nebula::Row(
+                        {jobDesc.get_paras()[1],
+                         meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(jobDesc.get_status())}));
                 }
             }
             return finish(std::move(v));
