@@ -7,8 +7,18 @@ on:
 jobs:
   k8s:
     name: Run pytest in kubernetes cluster
-    runs-on: self-hosted
+    runs-on: [self-hosted, k8s-master]
     steps:
+      - name: Upgrade cluster
+        run: |
+          sudo kubectl get pods
+          sudo kubectl delete sts.apps.nebula.io nebulaclusters-graphd
+          sudo kubectl delete sts.apps.nebula.io nebulaclusters-storaged
+          sudo kubectl delete sts.apps.nebula.io nebulaclusters-metad
+          while [[ "$(sudo kubectl get nebulaclusters -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}')" != "True" ]]; do
+            sleep 1
+          done
       - uses: actions/checkout@v2
-      - name: Run tests
-        run:
+      - name: Test inside cluster
+        run: |
+          sudo kubectl get pods
