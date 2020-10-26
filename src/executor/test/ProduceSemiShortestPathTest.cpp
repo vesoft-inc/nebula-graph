@@ -15,29 +15,29 @@ namespace graph {
 
 class ProduceSemiShortestPathTest : public testing::Test {
 protected:
-static bool compareShortestPath(Row& row1, Row& row2) {
-    // row : dst | src | cost | {paths}
-    if (row1.values[0] != row2.values[0]) {
-        return row1.values[0] < row2.values[0];
-    }
-    if (row1.values[1] != row2.values[1]) {
-        return row1.values[1] < row2.values[1];
-    }
-    if (row1.values[2] != row2.values[2]) {
-        return row1.values[2] < row2.values[2];
-    }
-    auto& pathList1 = row1.values[3].getList();
-    auto& pathList2 = row2.values[3].getList();
-    if (pathList1.size() != pathList2.size()) {
-        return pathList1.size() < pathList2.size();
-    }
-    for (size_t i = 0; i < pathList1.size(); i++) {
-        if (pathList1.values[i] != pathList2.values[i]) {
-            return pathList1.values[i] < pathList2.values[i];
+    static bool compareShortestPath(Row& row1, Row& row2) {
+        // row : dst | src | cost | {paths}
+        if (row1.values[0] != row2.values[0]) {
+            return row1.values[0] < row2.values[0];
         }
+        if (row1.values[1] != row2.values[1]) {
+            return row1.values[1] < row2.values[1];
+        }
+        if (row1.values[2] != row2.values[2]) {
+            return row1.values[2] < row2.values[2];
+        }
+        auto& pathList1 = row1.values[3].getList();
+        auto& pathList2 = row2.values[3].getList();
+        if (pathList1.size() != pathList2.size()) {
+            return pathList1.size() < pathList2.size();
+        }
+        for (size_t i = 0; i < pathList1.size(); i++) {
+            if (pathList1.values[i] != pathList2.values[i]) {
+                return pathList1.values[i] < pathList2.values[i];
+            }
+        }
+        return false;
     }
-    return false;
-}
 
     void SetUp() override {
         qctx_ = std::make_unique<QueryContext>();
