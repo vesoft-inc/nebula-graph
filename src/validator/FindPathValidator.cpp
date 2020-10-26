@@ -220,7 +220,7 @@ Expression* FindPathValidator::buildAllPathsLoopCondition(uint32_t steps) {
             new VersionedVariableExpression(new std::string(loopSteps), new ConstantExpression(0))),
         new ConstantExpression(static_cast<int32_t>(steps / 2 + steps % 2)));
 
-    return nSteps;
+    return qctx_->objPool()->add(nSteps);
 }
 }  // namespace graph
 }  // namespace nebula
