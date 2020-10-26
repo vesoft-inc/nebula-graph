@@ -98,6 +98,7 @@ int main(int argc, char *argv[]) {
     // won't affect the process timezone.
     status = nebula::time::TimeUtils::initializeGlobalTimezone();
     if (!status.ok()) {
+        LOG(ERROR) << status;
         return EXIT_FAILURE;
     }
 
