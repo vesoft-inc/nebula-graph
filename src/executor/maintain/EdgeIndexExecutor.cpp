@@ -16,20 +16,23 @@ folly::Future<Status> CreateEdgeIndexExecutor::execute() {
 
     auto *ceiNode = asNode<CreateEdgeIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
-    return qctx()->getMetaClient()->createEdgeIndex(spaceId,
-            ceiNode->getIndexName(), ceiNode->getSchemaName(),
-            ceiNode->getFields(), ceiNode->getIfNotExists())
-            .via(runner())
-            .then([ceiNode, spaceId](StatusOr<IndexID> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Create index `" << ceiNode->getIndexName()
-                               << "' at edge: `" << ceiNode->getSchemaName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
-                }
-                return Status::OK();
-            });
+    return qctx()
+        ->getMetaClient()
+        ->createEdgeIndex(spaceId,
+                          ceiNode->getIndexName(),
+                          ceiNode->getSchemaName(),
+                          ceiNode->getFields(),
+                          ceiNode->getIfNotExists())
+        .via(runner())
+        .then([ceiNode, spaceId](StatusOr<IndexID> resp) {
+            if (!resp.ok()) {
+                LOG(ERROR) << "SpaceId: " << spaceId << ", Create index `"
+                           << ceiNode->getIndexName() << "' at edge: `" << ceiNode->getSchemaName()
+                           << "' failed: " << resp.status();
+                return resp.status();
+            }
+            return Status::OK();
+        });
 }
 
 folly::Future<Status> DropEdgeIndexExecutor::execute() {
@@ -37,18 +40,18 @@ folly::Future<Status> DropEdgeIndexExecutor::execute() {
 
     auto *deiNode = asNode<DropEdgeIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
-    return qctx()->getMetaClient()->dropEdgeIndex(spaceId,
-            deiNode->getIndexName(), deiNode->getIfExists())
-            .via(runner())
-            .then([deiNode, spaceId](StatusOr<IndexID> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Drop edge index`" << deiNode->getIndexName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
-                }
-                return Status::OK();
-            });
+    return qctx()
+        ->getMetaClient()
+        ->dropEdgeIndex(spaceId, deiNode->getIndexName(), deiNode->getIfExists())
+        .via(runner())
+        .then([deiNode, spaceId](StatusOr<IndexID> resp) {
+            if (!resp.ok()) {
+                LOG(ERROR) << "SpaceId: " << spaceId << ", Drop edge index`"
+                           << deiNode->getIndexName() << "' failed: " << resp.status();
+                return resp.status();
+            }
+            return Status::OK();
+        });
 }
 
 folly::Future<Status> DescEdgeIndexExecutor::execute() {
@@ -62,9 +65,8 @@ folly::Future<Status> DescEdgeIndexExecutor::execute() {
         .via(runner())
         .then([this, deiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
             if (!resp.ok()) {
-                LOG(ERROR) << "SpaceId: " << spaceId
-                           << ", Desc edge index`" << deiNode->getIndexName()
-                           << "' failed: " << resp.status();
+                LOG(ERROR) << "SpaceId: " << spaceId << ", Desc edge index`"
+                           << deiNode->getIndexName() << "' failed: " << resp.status();
                 return resp.status();
             }
 
@@ -85,41 +87,37 @@ folly::Future<Status> ShowCreateEdgeIndexExecutor::execute() {
 
     auto *sceiNode = asNode<ShowCreateEdgeIndex>(node());
     auto spaceId = qctx()->rctx()->session()->space().id;
-    return qctx()->getMetaClient()->getEdgeIndex(spaceId, sceiNode->getIndexName())
-            .via(runner())
-            .then([this, sceiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId
-                               << ", Show create edge index `" << sceiNode->getIndexName()
-                               << "' failed: " << resp.status();
-                    return resp.status();
-                }
-                auto ret = IndexUtil::toShowCreateIndex(false,
-                                                         sceiNode->getIndexName(),
-                                                         resp.value());
-                if (!ret.ok()) {
-                    LOG(ERROR) << ret.status();
-                    return ret.status();
-                }
-                return finish(ResultBuilder()
-                                  .value(std::move(ret).value())
-                                  .iter(Iterator::Kind::kDefault)
-                                  .finish());
-            });
+    return qctx()
+        ->getMetaClient()
+        ->getEdgeIndex(spaceId, sceiNode->getIndexName())
+        .via(runner())
+        .then([this, sceiNode, spaceId](StatusOr<meta::cpp2::IndexItem> resp) {
+            if (!resp.ok()) {
+                LOG(ERROR) << "SpaceId: " << spaceId << ", Show create edge index `"
+                           << sceiNode->getIndexName() << "' failed: " << resp.status();
+                return resp.status();
+            }
+            auto ret = IndexUtil::toShowCreateIndex(false, sceiNode->getIndexName(), resp.value());
+            if (!ret.ok()) {
+                LOG(ERROR) << ret.status();
+                return ret.status();
+            }
+            return finish(ResultBuilder()
+                              .value(std::move(ret).value())
+                              .iter(Iterator::Kind::kDefault)
+                              .finish());
+        });
 }
 
 folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto spaceId = qctx()->rctx()->session()->space().id;
-    return qctx()
-        ->getMetaClient()
-        ->listEdgeIndexes(spaceId)
-        .via(runner())
-        .then([this, spaceId](StatusOr<std::vector<meta::cpp2::IndexItem>> resp) {
+    return qctx()->getMetaClient()->listEdgeIndexes(spaceId).via(runner()).then(
+        [this, spaceId](StatusOr<std::vector<meta::cpp2::IndexItem>> resp) {
             if (!resp.ok()) {
-                LOG(ERROR) << "SpaceId: " << spaceId
-                           << ", Show edge indexes failed" << resp.status();
+                LOG(ERROR) << "SpaceId: " << spaceId << ", Show edge indexes failed"
+                           << resp.status();
                 return resp.status();
             }
 
@@ -137,9 +135,9 @@ folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
                 dataSet.rows.emplace_back(std::move(row));
             }
             return finish(ResultBuilder()
-                            .value(Value(std::move(dataSet)))
-                            .iter(Iterator::Kind::kDefault)
-                            .finish());
+                              .value(Value(std::move(dataSet)))
+                              .iter(Iterator::Kind::kDefault)
+                              .finish());
         });
 }
 
@@ -149,52 +147,34 @@ folly::Future<Status> ShowEdgeIndexStatusExecutor::execute() {
     auto spaceInfo = qctx()->rctx()->session()->space();
     auto spaceName = spaceInfo.name;
     auto spaceId = spaceInfo.id;
-    auto status = qctx()
-            ->getMetaClient()
-            ->submitJob(meta::cpp2::AdminJobOp::SHOW_All,
-                        meta::cpp2::AdminCmd::COMPACT,
-                        std::vector<std::string>{})
-            .via(runner())
-            .then([this, spaceName, spaceId](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
-                SCOPED_TIMER(&execTime_);
+    return qctx()
+        ->getMetaClient()
+        ->submitJob(meta::cpp2::AdminJobOp::SHOW_All,
+                    meta::cpp2::AdminCmd::COMPACT,
+                    std::vector<std::string>{})
+        .via(runner())
+        .then([this, spaceName, spaceId](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
+            SCOPED_TIMER(&execTime_);
 
-                if (!resp.ok()) {
-                    LOG(ERROR) << "SpaceId: " << spaceId << ", Show edge index status failed"
-                               << resp.status();
-                    return resp.status();
-                }
-
-                DCHECK(resp.value().__isset.job_desc);
-                if (!resp.value().__isset.job_desc) {
-                    return Status::Error("Response unexpected");
-                }
-                const auto &jobsDesc = *resp.value().get_job_desc();
-                for (const auto &jobDesc : jobsDesc) {
-                    if (jobDesc.get_paras()[0] == spaceName &&
-                        jobDesc.get_cmd() == meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX) {
-                        indexesStatus_.emplace(
-                            jobDesc.get_paras()[1],
-                            meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(jobDesc.get_status()));
-                    }
-                }
-                return Status::OK();
-            });
-
-    return qctx()->getMetaClient()->listEdgeIndexes(spaceId).via(runner()).then(
-        [this, spaceId](StatusOr<std::vector<meta::cpp2::IndexItem>> resp) {
             if (!resp.ok()) {
-                LOG(ERROR) << "SpaceId: " << spaceId << ", Show edge indexe Status failed"
+                LOG(ERROR) << "SpaceId: " << spaceId << ", Show edge index status failed"
                            << resp.status();
                 return resp.status();
             }
 
-            auto edgeIndexItems = std::move(resp).value();
-            nebula::DataSet v({"Name", "Edge Index Status"});
-            for (auto &edgeIndex : edgeIndexItems) {
-                indexesStatus_.emplace(edgeIndex.get_index_name(), "SUCCEEDED");
+            DCHECK(resp.value().__isset.job_desc);
+            if (!resp.value().__isset.job_desc) {
+                return Status::Error("Response unexpected");
             }
-            for (const auto &indexStatus : indexesStatus_) {
-                v.emplace_back(nebula::Row({indexStatus.first, indexStatus.second}));
+
+            nebula::DataSet v({"Name", "Tag Index Status"});
+            const auto &jobsDesc = *resp.value().get_job_desc();
+            for (const auto &jobDesc : jobsDesc) {
+                if (jobDesc.get_paras()[0] == spaceName &&
+                    jobDesc.get_cmd() == meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX) {
+                    v.emplace_back(jobDesc.get_paras()[1],
+                                   meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(jobDesc.get_status()));
+                }
             }
             return finish(std::move(v));
         });
