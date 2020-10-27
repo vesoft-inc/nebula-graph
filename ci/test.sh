@@ -96,7 +96,7 @@ function run_test() {
         -n=8 \
         --dist=loadfile \
         --debug_log=false \
-        $(cat $PROJECT_DIR/ci/tests.txt | tr '\n' ' ')
+        $(cat $PROJ_DIR/ci/tests.txt | tr '\n' ' ')
 }
 
 function test_in_cluster() {
@@ -107,7 +107,7 @@ function test_in_cluster() {
         --dist=loadfile \
         --debug_log=false \
         --address="nebulaclusters-graphd:3699" \
-        $(cat $PROJECT_DIR/ci/tests.txt | tr '\n' ' ')
+        $(cat $PROJ_DIR/ci/tests.txt | tr '\n' ' ')
 }
 
 case "$1" in
