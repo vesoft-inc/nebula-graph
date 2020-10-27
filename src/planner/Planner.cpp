@@ -23,7 +23,7 @@ StatusOr<SubPlan> Planner::toPlan(AstContext* astCtx) {
     }
     for (auto& planner : planners->second) {
         if (planner.match(astCtx)) {
-            return planner.instance()->transform(astCtx);
+            return planner.instantiate()->transform(astCtx);
         }
     }
     return Status::Error("No planner matches sentence: %s", sentence->toString().c_str());

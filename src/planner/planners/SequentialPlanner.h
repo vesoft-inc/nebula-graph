@@ -14,7 +14,7 @@ namespace nebula {
 namespace graph {
 class SequentialPlanner final : public Planner {
 public:
-    static std::unique_ptr<SequentialPlanner> Instance() {
+    static std::unique_ptr<SequentialPlanner> make() {
         return std::unique_ptr<SequentialPlanner>(new SequentialPlanner());
     }
 
@@ -36,7 +36,7 @@ class SequentialPlannerRegister final {
 private:
     SequentialPlannerRegister() {
         auto& planners = Planner::plannersMap()[Sentence::Kind::kSequential];
-        planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::Instance);
+        planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::make);
     }
 
     static SequentialPlannerRegister instance_;

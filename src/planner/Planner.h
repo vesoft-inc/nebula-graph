@@ -22,12 +22,12 @@ struct SubPlan {
 };
 
 using MatchFunc = std::function<bool(AstContext* astContext)>;
-using PlannerInstanceFunc = std::function<std::unique_ptr<Planner>()>;
-struct MatchAndInstance {
-    MatchAndInstance(MatchFunc m, PlannerInstanceFunc p)
-        : match(std::move(m)), instance(std::move(p)) {}
+using PlannerInstantiateFunc = std::function<std::unique_ptr<Planner>()>;
+struct MatchAndInstantiate {
+    MatchAndInstantiate(MatchFunc m, PlannerInstantiateFunc p)
+        : match(std::move(m)), instantiate(std::move(p)) {}
     MatchFunc match;
-    PlannerInstanceFunc instance;
+    PlannerInstantiateFunc instantiate;
 };
 
 class Planner {
@@ -35,7 +35,7 @@ public:
     virtual ~Planner() = default;
 
     static auto& plannersMap() {
-        static std::unordered_map<Sentence::Kind, std::vector<MatchAndInstance>> plannersMap;
+        static std::unordered_map<Sentence::Kind, std::vector<MatchAndInstantiate>> plannersMap;
         return plannersMap;
     }
 
