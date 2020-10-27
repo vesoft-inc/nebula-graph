@@ -6,5 +6,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - run: echo ${{ github.ref }} | rev | cut -d/ -f1 | rev
+    - run: |
+        tag=$(echo ${{ github.ref }} | rev | cut -d/ -f1 | rev)
+        echo "::set-output name=tag::$tag"
       shell: bash
