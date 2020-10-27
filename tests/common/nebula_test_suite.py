@@ -375,6 +375,12 @@ class NebulaTestSuite(object):
             list_val = CommonTtypes.List()
             list_val.values = col
             value.set_lVal(list_val)
+        elif isinstance(col, CommonTtypes.Date):
+            value.set_dVal(col)
+        elif isinstance(col, CommonTtypes.Time):
+            value.set_tVal(col)
+        elif isinstance(col, CommonTtypes.DateTime):
+            value.set_dtVal(col)
         else:
             return False, 'Wrong val type'
         return True, value

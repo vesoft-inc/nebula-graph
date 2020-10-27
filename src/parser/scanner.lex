@@ -74,6 +74,7 @@ STRING                      ([Ss][Tt][Rr][Ii][Nn][Gg])
 FIXED_STRING                ([Ff][Ii][Xx][Ee][Dd][_][Ss][Tt][Rr][Ii][Nn][Gg])
 TIMESTAMP                   ([Tt][Ii][Mm][Ee][Ss][Tt][Aa][Mm][Pp])
 DATE                        ([Dd][Aa][Tt][Ee])
+TIME                        ([Tt][Ii][Mm][Ee])
 DATETIME                    ([Dd][Aa][Tt][Ee][Tt][Ii][Mm][Ee])
 TAG                         ([Tt][Aa][Gg])
 TAGS                        ([Tt][Aa][Gg][Ss])
@@ -239,6 +240,7 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 {FIXED_STRING}              { return TokenType::KW_FIXED_STRING; }
 {TIMESTAMP}                 { return TokenType::KW_TIMESTAMP; }
 {DATE}                      { return TokenType::KW_DATE; }
+{TIME}                      { return TokenType::KW_TIME; }
 {DATETIME}                  { return TokenType::KW_DATETIME; }
 {TAG}                       { return TokenType::KW_TAG; }
 {TAGS}                      { return TokenType::KW_TAGS; }
