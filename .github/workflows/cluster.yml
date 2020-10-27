@@ -29,5 +29,4 @@ jobs:
       - uses: actions/checkout@v2
       - name: Test inside cluster
         run: |
-          sudo kubectl get pods
-          sudo kubectl apply -f ./ci/job.yml
+          sudo kubectl apply -f ./ci/nebula-test-job.yml
