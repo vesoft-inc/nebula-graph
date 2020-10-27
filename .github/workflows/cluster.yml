@@ -16,9 +16,9 @@ jobs:
       - name: Upgrade cluster
         run: |
           sudo kubectl get pods
-          sudo kubectl delete sts.apps.nebula.io nebulaclusters-graphd
-          sudo kubectl delete sts.apps.nebula.io nebulaclusters-storaged
           sudo kubectl delete sts.apps.nebula.io nebulaclusters-metad
+          suds kubectl delete sts.apps.nebula.io nebulaclusters-storaged
+          sudo kubectl delete sts.apps.nebula.io nebulaclusters-graphd
           while true; do
             status=$(sudo kubectl get nebulaclusters -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}')
             if [[ "$status" == "True" ]]; then
