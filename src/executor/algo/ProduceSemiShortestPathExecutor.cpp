@@ -220,10 +220,16 @@ folly::Future<Status> ProduceSemiShortestPathExecutor::execute() {
             // (todo) can't get dst's vertex
             path.src = Vertex(src, {});
             path.steps.emplace_back(Step(Vertex(dst, {}), edge.type, edge.name, edge.ranking, {}));
-            CostPaths costPaths(weight, {std::move(path)});
             if (currentCostPathMap.find(dst) != currentCostPathMap.end()) {
-                currentCostPathMap[dst].emplace(src, std::move(costPaths));
+                // same edge type different edge rank
+                if (currentCostPathMap[dst].find(src) == currentCostPathMap[dst].end()) {
+                    CostPaths costPaths(weight, {std::move(path)});
+                    currentCostPathMap[dst].emplace(src, std::move(costPaths));
+                } else {
+                    currentCostPathMap[dst][src].paths_.emplace_back(std::move(path));
+                }
             } else {
+                CostPaths costPaths(weight, {std::move(path)});
                 std::unordered_map<Value, CostPaths> temp = {{src, std::move(costPaths)}};
                 currentCostPathMap.emplace(dst, std::move(temp));
             }
