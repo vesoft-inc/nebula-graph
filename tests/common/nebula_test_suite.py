@@ -346,6 +346,8 @@ class NebulaTestSuite(object):
 
     @classmethod
     def check_column_names(self, resp, expect):
+        if len(resp.data.column_names) != len(expect):
+            assert False, 'Column names does not match, expected: {}, actual: {}'.format(expect, resp.data.column_names)
         for i in range(len(expect)):
             result = bytes.decode(resp.data.column_names[i])
             ok = (expect[i] == result)

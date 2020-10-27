@@ -76,7 +76,7 @@ class TestMatch(NebulaTestSuite):
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected = {
-            "column_names": ['Name'],
+            "column_names": ['Name', 'Age'],
             "rows": [
                 ['Paul Gasol', 38],
                 ['Kobe Bryant', 40],
