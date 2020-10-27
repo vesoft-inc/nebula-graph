@@ -15,4 +15,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Upgrade and test in cluster
-        run: ./ci/test-k8s-cluster.sh
+        run: sudo ./ci/test-k8s-cluster.sh

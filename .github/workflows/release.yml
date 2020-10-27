@@ -12,7 +12,7 @@ defaults:
 jobs:
   package:
     name: package
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -42,7 +42,7 @@ jobs:
 
   docker_build_graph:
     name: docker-graph
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/tagname-action
@@ -63,7 +63,7 @@ jobs:
 
   docker_build_storage:
     name: docker-storage
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
