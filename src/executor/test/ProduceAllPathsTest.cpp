@@ -8,35 +8,42 @@
 
 #include "context/QueryContext.h"
 #include "planner/Algo.h"
-#include "executor/algo/ProduceSemiShortestPathExecutor.h"
+#include "executor/algo/ProduceAllPathsExecutor.h"
 
 namespace nebula {
 namespace graph {
-
-class ProduceSemiShortestPathTest : public testing::Test {
+class ProduceAllPathsTest : public testing::Test {
 protected:
-    static bool compareShortestPath(Row& row1, Row& row2) {
-        // row : dst | src | cost | {paths}
-        if (row1.values[0] != row2.values[0]) {
-            return row1.values[0] < row2.values[0];
+    static bool compareAllPathRow(Row& lhs, Row& rhs) {
+        auto& lDst = lhs.values[0];
+        auto& rDst = rhs.values[0];
+        if (lDst != rDst) {
+            return lDst < rDst;
         }
-        if (row1.values[1] != row2.values[1]) {
-            return row1.values[1] < row2.values[1];
-        }
-        if (row1.values[2] != row2.values[2]) {
-            return row1.values[2] < row2.values[2];
-        }
-        auto& pathList1 = row1.values[3].getList();
-        auto& pathList2 = row2.values[3].getList();
-        if (pathList1.size() != pathList2.size()) {
-            return pathList1.size() < pathList2.size();
-        }
-        for (size_t i = 0; i < pathList1.size(); i++) {
-            if (pathList1.values[i] != pathList2.values[i]) {
-                return pathList1.values[i] < pathList2.values[i];
-            }
+
+        auto& lEdges = lhs.values[1].getList();
+        auto& rEdges = rhs.values[1].getList();
+        if (lEdges != rEdges) {
+            return lEdges < rEdges;
         }
         return false;
+    }
+
+    static ::testing::AssertionResult verifyAllPaths(DataSet& result, DataSet& expected) {
+        std::sort(expected.rows.begin(), expected.rows.end(), compareAllPathRow);
+        for (auto& row : expected.rows) {
+            auto& edges = row.values[1].mutableList().values;
+            std::sort(edges.begin(), edges.end());
+        }
+        std::sort(result.rows.begin(), result.rows.end(), compareAllPathRow);
+        for (auto& row : result.rows) {
+            auto& edges = row.values[1].mutableList().values;
+            std::sort(edges.begin(), edges.end());
+        }
+        EXPECT_EQ(result, expected);
+        return result == expected
+                   ? ::testing::AssertionSuccess()
+                   : (::testing::AssertionFailure() << result << " vs. " << expected);
     }
 
     void SetUp() override {
@@ -219,15 +226,16 @@ protected:
     DataSet thridStepResult_;
 };
 
-TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
+TEST_F(ProduceAllPathsTest, AllPath) {
     qctx_->symTable()->newVariable("input");
 
-    auto* pssp = ProduceSemiShortestPath::make(qctx_.get(), nullptr);
-    pssp->setInputVar("input");
-    pssp->setColNames({"_dst", "_src", "cost", "paths"});
+    auto* allPathsNode = ProduceAllPaths::make(qctx_.get(), nullptr);
+    allPathsNode->setInputVar("input");
+    allPathsNode->setColNames({kDst, "_paths"});
 
-    auto psspExe = std::make_unique<ProduceSemiShortestPathExecutor>(pssp, qctx_.get());
-    // Step 1
+    auto allPathsExe = std::make_unique<ProduceAllPathsExecutor>(allPathsNode, qctx_.get());
+
+    // Step1
     {
         ResultBuilder builder;
         List datasets;
@@ -235,14 +243,13 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
         builder.value(std::move(datasets)).iter(Iterator::Kind::kGetNeighbors);
         qctx_->ectx()->setResult("input", builder.finish());
 
-        auto future = psspExe->execute();
+        auto future = allPathsExe->execute();
         auto status = std::move(future).get();
         EXPECT_TRUE(status.ok());
-        auto& result = qctx_->ectx()->getResult(pssp->outputVar());
+        auto& result = qctx_->ectx()->getResult(allPathsNode->outputVar());
 
         DataSet expected;
-        expected.colNames = {"_dst", "_src", "cost", "paths"};
-        auto cost = 1;
+        expected.colNames = {kDst, "_paths"};
         {
             // 0->1
             Row row;
@@ -253,8 +260,6 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
             List paths;
             paths.values.emplace_back(std::move(path));
             row.values.emplace_back("1");
-            row.values.emplace_back("0");
-            row.values.emplace_back(cost);
             row.values.emplace_back(std::move(paths));
             expected.rows.emplace_back(std::move(row));
         }
@@ -268,38 +273,28 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
             List paths;
             paths.values.emplace_back(std::move(path));
             row.values.emplace_back("5");
-            row.values.emplace_back("1");
-            row.values.emplace_back(cost);
             row.values.emplace_back(std::move(paths));
             expected.rows.emplace_back(std::move(row));
         }
         {
             // 1->6
             Row row;
-            Path path;
-            path.src = Vertex("1", {});
-            path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
-
             List paths;
-            paths.values.emplace_back(std::move(path));
-            row.values.emplace_back("6");
-            row.values.emplace_back("1");
-            row.values.emplace_back(cost);
-            row.values.emplace_back(std::move(paths));
-            expected.rows.emplace_back(std::move(row));
-        }
-        {
-            // 2->6
-            Row row;
-            Path path;
-            path.src = Vertex("2", {});
-            path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
 
-            List paths;
-            paths.values.emplace_back(std::move(path));
+            {
+                Path path;
+                path.src = Vertex("1", {});
+                path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
+                paths.values.emplace_back(std::move(path));
+            }
+            {
+                Path path;
+                path.src = Vertex("2", {});
+                path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
+                paths.values.emplace_back(std::move(path));
+            }
+
             row.values.emplace_back("6");
-            row.values.emplace_back("2");
-            row.values.emplace_back(cost);
             row.values.emplace_back(std::move(paths));
             expected.rows.emplace_back(std::move(row));
         }
@@ -313,19 +308,14 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
             List paths;
             paths.values.emplace_back(std::move(path));
             row.values.emplace_back("4");
-            row.values.emplace_back("3");
-            row.values.emplace_back(cost);
             row.values.emplace_back(std::move(paths));
             expected.rows.emplace_back(std::move(row));
         }
 
-        std::sort(expected.rows.begin(), expected.rows.end(), compareShortestPath);
         auto resultDs = result.value().getDataSet();
-        std::sort(resultDs.rows.begin(), resultDs.rows.end(), compareShortestPath);
-        EXPECT_EQ(resultDs, expected);
+        EXPECT_TRUE(verifyAllPaths(resultDs, expected));
         EXPECT_EQ(result.state(), Result::State::kSuccess);
     }
-
     // Step 2
     {
         ResultBuilder builder;
@@ -334,14 +324,13 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
         builder.value(std::move(datasets)).iter(Iterator::Kind::kGetNeighbors);
         qctx_->ectx()->setResult("input", builder.finish());
 
-        auto future = psspExe->execute();
+        auto future = allPathsExe->execute();
         auto status = std::move(future).get();
         EXPECT_TRUE(status.ok());
-        auto& result = qctx_->ectx()->getResult(pssp->outputVar());
+        auto& result = qctx_->ectx()->getResult(allPathsNode->outputVar());
 
         DataSet expected;
-        expected.colNames = {"_dst", "_src", "cost", "paths"};
-        auto cost = 2;
+        expected.colNames = {kDst, "_paths"};
         {
             // 0->1->5
             Row row;
@@ -353,8 +342,6 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
             List paths;
             paths.values.emplace_back(std::move(path));
             row.values.emplace_back("5");
-            row.values.emplace_back("0");
-            row.values.emplace_back(cost);
             row.values.emplace_back(std::move(paths));
             expected.rows.emplace_back(std::move(row));
         }
@@ -369,46 +356,30 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
             List paths;
             paths.values.emplace_back(std::move(path));
             row.values.emplace_back("6");
-            row.values.emplace_back("0");
-            row.values.emplace_back(cost);
             row.values.emplace_back(std::move(paths));
             expected.rows.emplace_back(std::move(row));
         }
         {
+            Row row;
+            List paths;
+
             // 2->6->7
-            Row row;
-            Path path;
-            path.src = Vertex("2", {});
-            path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
-
-            List paths;
-            paths.values.emplace_back(std::move(path));
-            row.values.emplace_back("7");
-            row.values.emplace_back("2");
-            row.values.emplace_back(cost);
-            row.values.emplace_back(std::move(paths));
-            expected.rows.emplace_back(std::move(row));
-        }
-        {
+            {
+                Path path;
+                path.src = Vertex("2", {});
+                path.steps.emplace_back(Step(Vertex("6", {}), 1, "edge1", 0, {}));
+                path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+                paths.values.emplace_back(std::move(path));
+            }
             // 3->4->7
-            Row row;
-            Path path;
-            path.src = Vertex("3", {});
-            path.steps.emplace_back(Step(Vertex("4", {}), 1, "edge1", 0, {}));
-            path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
-
-            List paths;
-            paths.values.emplace_back(std::move(path));
-            row.values.emplace_back("7");
-            row.values.emplace_back("3");
-            row.values.emplace_back(cost);
-            row.values.emplace_back(std::move(paths));
-            expected.rows.emplace_back(std::move(row));
-        }
-        {
-            // 1->5->7, 1->6->7
-            List paths;
+            {
+                Path path;
+                path.src = Vertex("3", {});
+                path.steps.emplace_back(Step(Vertex("4", {}), 1, "edge1", 0, {}));
+                path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
+                paths.values.emplace_back(std::move(path));
+            }
+            // 1->5->7
             {
                 Path path;
                 path.src = Vertex("1", {});
@@ -416,6 +387,7 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
                 path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
                 paths.values.emplace_back(std::move(path));
             }
+            // 1->6->7
             {
                 Path path;
                 path.src = Vertex("1", {});
@@ -423,18 +395,14 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
                 path.steps.emplace_back(Step(Vertex("7", {}), 1, "edge1", 0, {}));
                 paths.values.emplace_back(std::move(path));
             }
-            Row row;
+
             row.values.emplace_back("7");
-            row.values.emplace_back("1");
-            row.values.emplace_back(cost);
             row.values.emplace_back(std::move(paths));
             expected.rows.emplace_back(std::move(row));
         }
 
-        std::sort(expected.rows.begin(), expected.rows.end(), compareShortestPath);
         auto resultDs = result.value().getDataSet();
-        std::sort(resultDs.rows.begin(), resultDs.rows.end(), compareShortestPath);
-        EXPECT_EQ(resultDs, expected);
+        EXPECT_TRUE(verifyAllPaths(resultDs, expected));
         EXPECT_EQ(result.state(), Result::State::kSuccess);
     }
 
@@ -446,14 +414,13 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
         builder.value(std::move(datasets)).iter(Iterator::Kind::kGetNeighbors);
         qctx_->ectx()->setResult("input", builder.finish());
 
-        auto future = psspExe->execute();
+        auto future = allPathsExe->execute();
         auto status = std::move(future).get();
         EXPECT_TRUE(status.ok());
-        auto& result = qctx_->ectx()->getResult(pssp->outputVar());
+        auto& result = qctx_->ectx()->getResult(allPathsNode->outputVar());
 
         DataSet expected;
-        expected.colNames = {"_dst", "_src", "cost", "paths"};
-        auto cost = 3;
+        expected.colNames = {"_dst", "_paths"};
         {
             // 0->1->5->7, 0->1->6->7
             List paths;
@@ -475,36 +442,31 @@ TEST_F(ProduceSemiShortestPathTest, ShortestPath) {
             }
             Row row;
             row.values.emplace_back("7");
-            row.values.emplace_back("0");
-            row.values.emplace_back(cost);
             row.values.emplace_back(std::move(paths));
             expected.rows.emplace_back(std::move(row));
         }
 
-        std::sort(expected.rows.begin(), expected.rows.end(), compareShortestPath);
         auto resultDs = result.value().getDataSet();
-        std::sort(resultDs.rows.begin(), resultDs.rows.end(), compareShortestPath);
-        EXPECT_EQ(resultDs, expected);
+        EXPECT_TRUE(verifyAllPaths(resultDs, expected));
         EXPECT_EQ(result.state(), Result::State::kSuccess);
     }
 }
 
-TEST_F(ProduceSemiShortestPathTest, EmptyInput) {
-    auto* pssp = ProduceSemiShortestPath::make(qctx_.get(), nullptr);
-    pssp->setInputVar("empty_get_neighbors");
-    pssp->setColNames({"_dst", "_src", "cost", "paths"});
+TEST_F(ProduceAllPathsTest, EmptyInput) {
+    auto* allPathsNode = ProduceAllPaths::make(qctx_.get(), nullptr);
+    allPathsNode->setInputVar("empty_get_neighbors");
+    allPathsNode->setColNames({kDst, "_paths"});
 
-    auto psspExe = std::make_unique<ProduceSemiShortestPathExecutor>(pssp, qctx_.get());
-    auto future = psspExe->execute();
+    auto allPathsExe = std::make_unique<ProduceAllPathsExecutor>(allPathsNode, qctx_.get());
+    auto future = allPathsExe->execute();
     auto status = std::move(future).get();
     EXPECT_TRUE(status.ok());
-    auto& result = qctx_->ectx()->getResult(pssp->outputVar());
+    auto& result = qctx_->ectx()->getResult(allPathsNode->outputVar());
 
     DataSet expected;
-    expected.colNames = {"_dst", "_src", "cost", "paths"};
+    expected.colNames = {"_dst", "_paths"};
     EXPECT_EQ(result.value().getDataSet(), expected);
     EXPECT_EQ(result.state(), Result::State::kSuccess);
 }
-
-}   // namespace graph
-}   // namespace nebula
+}  // namespace graph
+}  // namespace nebula
