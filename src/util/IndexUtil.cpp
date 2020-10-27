@@ -34,8 +34,8 @@ StatusOr<DataSet> IndexUtil::toDescIndex(const meta::cpp2::IndexItem &indexItem)
 }
 
 StatusOr<DataSet> IndexUtil::toShowCreateIndex(bool isTagIndex,
-                                                const std::string &indexName,
-                                                const meta::cpp2::IndexItem &indexItem) {
+                                               const std::string &indexName,
+                                               const meta::cpp2::IndexItem &indexItem) {
     DataSet dataSet;
     std::string createStr;
     createStr.reserve(1024);
