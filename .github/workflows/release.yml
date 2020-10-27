@@ -58,6 +58,8 @@ jobs:
           file: ./Dockerfile
           tags: vesoft/nebula-graphd:${{ steps.tagname.outputs.tag }}
           push: true
+          build-args: |
+            BRANCH=${{ steps.tagname.outputs.tag }}
 
   docker_build_storage:
     name: docker-storage
@@ -87,3 +89,5 @@ jobs:
           file: ./modules/nebula-storage/docker/Dockerfile.${{ matrix.service }}
           tags: vesoft/nebula-${{ matrix.service }}:${{ steps.tagname.outputs.tag }}
           push: true
+          build-args: |
+            BRANCH=${{ steps.tagname.outputs.tag }}
