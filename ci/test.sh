@@ -92,22 +92,24 @@ function run_ctest() {
 function run_test() {
     cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
+    testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
     ./ntr \
         -n=8 \
         --dist=loadfile \
         --debug_log=false \
-        $(cat $PROJ_DIR/ci/tests.txt | tr '\n' ' ')
+        $testpath
 }
 
 function test_in_cluster() {
     cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
+    testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
     ./ntr \
         -n=8 \
         --dist=loadfile \
         --debug_log=false \
         --address="nebulaclusters-graphd:3699" \
-        $(cat $PROJ_DIR/ci/tests.txt | tr '\n' ' ')
+        $testpath
 }
 
 case "$1" in
