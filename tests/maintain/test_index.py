@@ -124,16 +124,12 @@ class TestIndex(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect = [['single_tag_index', 'CREATE TAG INDEX `single_tag_index` ON `tag_1` (\n `col2`\n)']]
         self.check_result(resp, expect)
-        # Check if show create tag index works well
-        resp = self.client.execute_query('DROP TAG INDEX single_tag_index')
-        self.check_resp_succeeded(resp)
-        resp = self.client.execute_query(expect[0][1])
-        self.check_resp_succeeded(resp)
 
         resp = self.client.execute_query('SHOW CREATE TAG INDEX multi_tag_index')
         self.check_resp_succeeded(resp)
         expect = [['multi_tag_index', 'CREATE TAG INDEX `multi_tag_index` ON `tag_1` (\n `col2`,\n `col3`\n)']]
         self.check_result(resp, expect)
+        # Check if show create tag index works well
         resp = self.client.execute_query('DROP TAG INDEX multi_tag_index')
         self.check_resp_succeeded(resp)
         resp = self.client.execute_query(expect[0][1])
@@ -143,6 +139,7 @@ class TestIndex(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect = [['disorder_tag_index', 'CREATE TAG INDEX `disorder_tag_index` ON `tag_1` (\n `col3`,\n `col2`\n)']]
         self.check_result(resp, expect)
+        # Check if show create tag index works well
         resp = self.client.execute_query('DROP TAG INDEX disorder_tag_index')
         self.check_resp_succeeded(resp)
         resp = self.client.execute_query(expect[0][1])
@@ -161,7 +158,7 @@ class TestIndex(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         # Check if the index is truly dropped
         resp = self.client.execute_query('DESC TAG INDEX single_tag_index')
-        self.check_resp_faild(resp)
+        self.check_resp_failed(resp)
 
         resp = self.client.execute_query('DROP TAG INDEX multi_tag_index')
         self.check_resp_succeeded(resp)
@@ -266,16 +263,12 @@ class TestIndex(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect = [['single_edge_index', 'CREATE EDGE INDEX `single_edge_index` ON `edge_1` (\n `col2`\n)']]
         self.check_result(resp, expect)
-        # Check if show create edge index works well
-        resp = self.client.execute_query('DROP EDGE INDEX single_edge_index')
-        self.check_resp_succeeded(resp)
-        resp = self.client.execute_query(expect[0][1])
-        self.check_resp_succeeded(resp)
 
         resp = self.client.execute_query('SHOW CREATE EDGE INDEX multi_edge_1_index')
         self.check_resp_succeeded(resp)
         expect = [['multi_edge_1_index', 'CREATE EDGE INDEX `multi_edge_1_index` ON `edge_1` (\n `col2`,\n `col3`\n)']]
         self.check_result(resp, expect)
+        # Check if show create edge index works well
         resp = self.client.execute_query('DROP EDGE INDEX multi_edge_1_index')
         self.check_resp_succeeded(resp)
         resp = self.client.execute_query(expect[0][1])
@@ -285,6 +278,7 @@ class TestIndex(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect = [['disorder_edge_1_index', 'CREATE EDGE INDEX `disorder_edge_1_index` ON `edge_1` (\n `col3`,\n `col2`\n)']]
         self.check_result(resp, expect)
+        # Check if show create edge index works well
         resp = self.client.execute_query('DROP EDGE INDEX disorder_edge_1_index')
         self.check_resp_succeeded(resp)
         resp = self.client.execute_query(expect[0][1])
