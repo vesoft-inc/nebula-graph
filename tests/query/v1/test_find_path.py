@@ -325,6 +325,7 @@ class TestFindPath(NebulaTestSuite):
                 [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"serve", 0, b"Spurs")],
                 [b"Shaquile O\'Neal", (b"serve", 0, b"Lakers")],
                 [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"like", 0, b"Manu Ginobili")],
+                [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"teammate", 0, b"Manu Ginobili")],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -339,6 +340,7 @@ class TestFindPath(NebulaTestSuite):
                 [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"serve", 0, b"Spurs")],
                 [b"Shaquile O\'Neal", (b"serve", 0, b"Lakers")],
                 [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"like", 0, b"Manu Ginobili")],
+                [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"teammate", 0, b"Manu Ginobili")],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
