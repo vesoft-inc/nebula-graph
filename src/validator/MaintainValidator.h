@@ -328,56 +328,6 @@ private:
     Status toPlan() override;
 };
 
-// class ShowTagIndexStatusValidator final : public Validator {
-// public:
-//     ShowTagIndexStatusValidator(Sentence* sentence, QueryContext* context)
-//         : Validator(sentence, context) {}
-
-// private:
-//     Status validateImpl() override;
-
-//     Status toPlan() override;
-// };
-
-// class ShowEdgeIndexStatusValidator final : public Validator {
-// public:
-//     ShowEdgeIndexStatusValidator(Sentence* sentence, QueryContext* context)
-//         : Validator(sentence, context) {}
-
-// private:
-//     Status validateImpl() override;
-
-//     Status toPlan() override;
-// };
-
-class RebuildTagIndexValidator final : public Validator {
-public:
-    RebuildTagIndexValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
-
-private:
-    Status validateImpl() override;
-
-    Status toPlan() override;
-
-private:
-    std::string                      indexName_;
-};
-
-class RebuildEdgeIndexValidator final : public Validator {
-public:
-    RebuildEdgeIndexValidator(Sentence* sentence, QueryContext* context)
-        : Validator(sentence, context) {}
-
-private:
-    Status validateImpl() override;
-
-    Status toPlan() override;
-
-private:
-    std::string                      indexName_;
-};
-
 }  // namespace graph
 }  // namespace nebula
 #endif  // VALIDATOR_MAINTAINVALIDATOR_H_

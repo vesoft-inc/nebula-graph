@@ -141,45 +141,5 @@ folly::Future<Status> ShowEdgeIndexesExecutor::execute() {
         });
 }
 
-// folly::Future<Status> ShowEdgeIndexStatusExecutor::execute() {
-//     SCOPED_TIMER(&execTime_);
-
-//     auto spaceInfo = qctx()->rctx()->session()->space();
-//     auto spaceName = spaceInfo.name;
-//     auto spaceId = spaceInfo.id;
-//     return qctx()
-//         ->getMetaClient()
-//         ->submitJob(meta::cpp2::AdminJobOp::SHOW_All,
-//                     meta::cpp2::AdminCmd::COMPACT,
-//                     std::vector<std::string>{})
-//         .via(runner())
-//         .then([this, spaceName, spaceId](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
-//             SCOPED_TIMER(&execTime_);
-
-//             if (!resp.ok()) {
-//                 LOG(ERROR) << "SpaceId: " << spaceId << ", Show edge index status failed"
-//                            << resp.status();
-//                 return resp.status();
-//             }
-
-//             DCHECK(resp.value().__isset.job_desc);
-//             if (!resp.value().__isset.job_desc) {
-//                 return Status::Error("Response unexpected");
-//             }
-
-//             nebula::DataSet v({"Name", "Tag Index Status"});
-//             const auto &jobsDesc = *resp.value().get_job_desc();
-//             for (const auto &jobDesc : jobsDesc) {
-//                 if (jobDesc.get_paras()[0] == spaceName &&
-//                     jobDesc.get_cmd() == meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX) {
-//                     v.emplace_back(nebula::Row(
-//                         {jobDesc.get_paras()[1],
-//                          meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(jobDesc.get_status())}));
-//                 }
-//             }
-//             return finish(std::move(v));
-//         });
-// }
-
 }   // namespace graph
 }   // namespace nebula

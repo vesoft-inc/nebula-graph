@@ -465,42 +465,5 @@ Status ShowEdgeIndexesValidator::toPlan() {
     return Status::OK();
 }
 
-// Status ShowTagIndexStatusValidator::validateImpl() {
-//     return Status::OK();
-// }
-
-// Status ShowTagIndexStatusValidator::toPlan() {
-//     auto *doNode = ShowTagIndexStatus::make(qctx_, nullptr);
-//     root_ = doNode;
-//     tail_ = root_;
-//     return Status::OK();
-// }
-
-// Status ShowEdgeIndexStatusValidator::validateImpl() {
-//     return Status::OK();
-// }
-
-// Status ShowEdgeIndexStatusValidator::toPlan() {
-//     auto *doNode = ShowEdgeIndexStatus::make(qctx_, nullptr);
-//     root_ = doNode;
-//     tail_ = root_;
-//     return Status::OK();
-// }
-
-Status RebuildTagIndexValidator::validateImpl() {
-    return Status::OK();
-}
-
-Status RebuildTagIndexValidator::toPlan() {
-    return Status::OK();
-}
-Status RebuildEdgeIndexValidator::validateImpl() {
-    return Status::OK();
-}
-
-Status RebuildEdgeIndexValidator::toPlan() {
-    return Status::OK();
-}
-
 }   // namespace graph
 }   // namespace nebula

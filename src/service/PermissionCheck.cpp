@@ -129,8 +129,6 @@ Status PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kShowCreateEdge:
         case Sentence::Kind::kShowCreateTagIndex:
         case Sentence::Kind::kShowCreateEdgeIndex: {
-        // case Sentence::Kind::kShowTagIndexStatus:
-        // case Sentence::Kind::kShowEdgeIndexStatus: {
             /**
              * Above operations can get the space id via session,
              * so the permission same with canReadSchemaOrData.
