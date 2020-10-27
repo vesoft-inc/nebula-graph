@@ -23,7 +23,7 @@ static_sanitizer="OFF"
 build_type="Release"
 branch="master"
 
-while getopts v:n:s:d: opt;
+while getopts v:n:s:b:d: opt;
 do
     case $opt in
         v)
@@ -35,15 +35,15 @@ do
         s)
             strip_enable=$OPTARG
             ;;
+        b)
+            branch=$OPTARG
+            ;;
         d)
             enablesanitizer="ON"
             if [ "$OPTARG" == "static" ]; then
                 static_sanitizer="ON"
             fi
             build_type="RelWithDebInfo"
-            ;;
-        b)
-            branch=$OPTARG
             ;;
         ?)
             echo "Invalid option, use default arguments"
@@ -77,6 +77,7 @@ function build {
     san=$2
     ssan=$3
     build_type=$4
+    branch=$5
     modules_dir=${project_dir}/modules
     if [[ -d $build_dir ]]; then
         rm -rf ${build_dir}/*
@@ -174,5 +175,5 @@ function package {
 
 
 # The main
-build $version $enablesanitizer $static_sanitizer $build_type
+build $version $enablesanitizer $static_sanitizer $build_type $branch
 package $strip_enable
