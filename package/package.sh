@@ -7,7 +7,7 @@
 #   -n: Package to one or multi packages, `ON` means one package, `OFF` means multi packages, default value is `ON`
 #   -s: Whether to strip the package, default value is `FALSE`
 #
-# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE>
+# usage: ./package.sh -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH>
 #
 
 set -e
@@ -15,12 +15,13 @@ set -e
 version=""
 package_one=ON
 strip_enable="FALSE"
-usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE>"
+usage="Usage: ${0} -v <version> -n <ON/OFF> -s <TRUE/FALSE> -b <BRANCH>"
 project_dir="$(cd "$(dirname "$0")" && pwd)/.."
 build_dir=${project_dir}/build
 enablesanitizer="OFF"
 static_sanitizer="OFF"
 build_type="Release"
+branch="master"
 
 while getopts v:n:s:d: opt;
 do
@@ -40,6 +41,9 @@ do
                 static_sanitizer="ON"
             fi
             build_type="RelWithDebInfo"
+            ;;
+        b)
+            branch=$OPTARG
             ;;
         ?)
             echo "Invalid option, use default arguments"
@@ -95,6 +99,8 @@ function build {
           -DENABLE_STATIC_ASAN=${ssan} \
           -DENABLE_STATIC_UBSAN=${ssan} \
           -DCMAKE_INSTALL_PREFIX=/usr/local/nebula \
+          -DNEBULA_COMMON_REPO_TAG=${branch} \
+          -DNEBULA_STORAGE_REPO_TAG=${branch} \
           -DENABLE_TESTING=OFF \
           -DENABLE_BUILD_STORAGE=ON \
           -DENABLE_PACK_ONE=${package_one} \

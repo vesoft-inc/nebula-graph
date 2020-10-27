@@ -26,10 +26,10 @@ jobs:
       image: vesoft/nebula-dev:${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - name: package
-        run: ./package/package.sh
       - uses: ./.github/actions/tagname-action
         id: tag
+      - name: package
+        run: ./package/package.sh -b ${{ steps.tag.outputs.tag }}
       - name: Get package name
         id: pkg
         run: |
