@@ -54,8 +54,15 @@ class TestBasicTypeCrud(NebulaTestSuite):
         result = [['edge_date', create_str]]
         self.check_out_of_order_result(resp, result)
 
-        # insert date
         time.sleep(self.delay)
+        # insert invalid type
+        resp = self.execute('INSERT VERTEX tag_date(f_date, f_datetime) VALUES "test":("2017-03-04", 1234)')
+        self.check_resp_failed(resp)
+
+        resp = self.execute('INSERT EDGE edge_date(f_date, f_datetime) VALUES "test_src"->"test_dst":(true, "2017-03-04T22:30:40")')
+        self.check_resp_failed(resp)
+
+        # insert date
         # TODO(shylock) add us
         resp = self.execute('INSERT VERTEX tag_date(f_date, f_datetime) VALUES "test":(date("2017-03-04"), datetime("2017-03-04T22:30:40"))')
         self.check_resp_succeeded(resp)
