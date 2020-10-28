@@ -27,7 +27,6 @@ Status OrderByValidator::validateImpl() {
         size_t colIdx = std::distance(outputs_.cbegin(), iter);
         colOrderTypes_.emplace_back(std::make_pair(colIdx, factor->orderType()));
     }
-    NG_RETURN_IF_ERROR(checkDuplicateColName());
 
     return Status::OK();
 }

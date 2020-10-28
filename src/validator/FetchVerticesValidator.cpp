@@ -18,7 +18,6 @@ Status FetchVerticesValidator::validateImpl() {
     NG_RETURN_IF_ERROR(check());
     NG_RETURN_IF_ERROR(prepareVertices());
     NG_RETURN_IF_ERROR(prepareProperties());
-    // NG_RETURN_IF_ERROR(checkDuplicateColName());
     return Status::OK();
 }
 

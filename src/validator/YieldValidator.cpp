@@ -24,7 +24,6 @@ Status YieldValidator::validateImpl() {
     auto yield = static_cast<YieldSentence *>(sentence_);
     NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
-    // NG_RETURN_IF_ERROR(checkDuplicateColName());
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
         !exprProps_.edgeProps().empty()) {

@@ -264,7 +264,7 @@ Status Validator::validate() {
 
     NG_RETURN_IF_ERROR(validateImpl());
 
-    // check duplicate
+    // Check for duplicate reference column names in pipe or var statement
     NG_RETURN_IF_ERROR(checkDuplicateColName());
 
     // Execute after validateImpl because need field from it
