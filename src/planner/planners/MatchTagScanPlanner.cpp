@@ -4,17 +4,17 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/planners/MatchVertexIdSeekPlanner.h"
+#include "planner/planners/MatchTagScanPlanner.h"
 
 namespace nebula {
 namespace graph {
-bool MatchVertexIdSeekPlanner::match(AstContext* astCtx) {
+bool MatchTagScanPlanner::match(AstContext* astCtx) {
     // TODO:
     UNUSED(astCtx);
     return false;
 }
 
-StatusOr<SubPlan> MatchVertexIdSeekPlanner::transform(AstContext* astCtx) {
+StatusOr<SubPlan> MatchTagScanPlanner::transform(AstContext* astCtx) {
     // TODO:
     UNUSED(astCtx);
     return Status::Error();

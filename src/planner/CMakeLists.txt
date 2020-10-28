@@ -15,5 +15,7 @@ nebula_add_library(
     Planner.cpp
     PlannersRegister.cpp
     planners/SequentialPlanner.cpp
+    planners/MatchVertexIdSeekPlanner.cpp
     planners/MatchVertexIndexSeekPlanner.cpp
+    planners/MatchTagScanPlanner.cpp
 )

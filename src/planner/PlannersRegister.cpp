@@ -7,8 +7,10 @@
 #include "planner/PlannersRegister.h"
 
 #include "planner/Planner.h"
+#include "planner/planners/MatchTagScanPlanner.h"
+#include "planner/planners/MatchVertexIdSeekPlanner.h"
+#include "planner/planners/MatchVertexIndexSeekPlanner.h"
 #include "planner/planners/SequentialPlanner.h"
-#include "planner/planners/MatchVertexIdSeekPlannerPlanner.h"
 
 namespace nebula {
 namespace graph {
@@ -30,6 +32,9 @@ void PlannersRegister::registMatch() {
     // MATCH(n:Tag{prop:value}) RETURN n
     // MATCH(n:Tag) WHERE n.prop = value RETURN n
     planners.emplace_back(&MatchVertexIndexSeekPlanner::match, &MatchVertexIndexSeekPlanner::make);
+
+    // MATCH(n:Tag) RETURN n;
+    planners.emplace_back(&MatchTagScanPlanner::match, &MatchTagScanPlanner::make);
 }
 }  // namespace graph
 }  // namespace nebula
