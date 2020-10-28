@@ -31,16 +31,6 @@ public:
 private:
     SequentialPlanner() = default;
 };
-
-class SequentialPlannerRegister final {
-private:
-    SequentialPlannerRegister() {
-        auto& planners = Planner::plannersMap()[Sentence::Kind::kSequential];
-        planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::make);
-    }
-
-    static SequentialPlannerRegister instance_;
-};
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLANNERS_SEQUENTIALPLANNER_H_
