@@ -264,6 +264,9 @@ Status Validator::validate() {
 
     NG_RETURN_IF_ERROR(validateImpl());
 
+    // check duplicate
+    NG_RETURN_IF_ERROR(checkDuplicateColName());
+
     // Execute after validateImpl because need field from it
     if (FLAGS_enable_authorize) {
         NG_RETURN_IF_ERROR(checkPermission());
@@ -324,12 +327,12 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
             return Status::SemanticError("No input property `%s'", propExpr->prop()->c_str());
         }
         return inputVarName_;
-    } else if (ref->kind() == Expression::Kind::kVarProperty) {
+    }
+    if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
         ColDef col(*propExpr->prop(), type);
 
         const auto &outputVar = *propExpr->sym();
-        userDefinedVarNameList_.emplace(std::string(outputVar));
         const auto &var = vctx_->getVar(outputVar);
         if (var.empty()) {
             return Status::SemanticError("No variable `%s'", outputVar.c_str());
@@ -339,12 +342,12 @@ StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type typ
             return Status::SemanticError(
                 "No property `%s' in variable `%s'", propExpr->prop()->c_str(), outputVar.c_str());
         }
+        userDefinedVarNameList_.emplace(outputVar);
         return outputVar;
-    } else {
-        // it's guranteed by parser
-        DLOG(FATAL) << "Unexpected expression " << ref->kind();
-        return Status::SemanticError("Unexpected expression.");
     }
+    // it's guranteed by parser
+    DLOG(FATAL) << "Unexpected expression " << ref->kind();
+    return Status::SemanticError("Unexpected expression.");
 }
 
 Status Validator::toPlan() {
@@ -358,14 +361,18 @@ Status Validator::toPlan() {
 }
 
 Status Validator::checkDuplicateColName() {
-    if (!inputs_.empty()) {
+    auto checkColName = [] (const ColsDef& nameList) {
         std::unordered_map<std::string, bool> names;
-        for (auto& item : inputs_) {
+        for (auto& item : nameList) {
             auto ret = names.emplace(item.name, true);
             if (!ret.second) {
                 return Status::SemanticError("Duplicate Column Name : `%s'", item.name.c_str());
             }
         }
+        return Status::OK();
+    };
+    if (!inputs_.empty()) {
+        return checkColName(inputs_);
     }
     if (userDefinedVarNameList_.empty()) {
         return Status::OK();
@@ -373,13 +380,9 @@ Status Validator::checkDuplicateColName() {
     for (const auto& varName : userDefinedVarNameList_) {
         auto& varProps = vctx_->getVar(varName);
         if (!varProps.empty()) {
-            std::unordered_map<std::string, bool> names;
-            for (auto& item : varProps) {
-                auto ret = names.emplace(item.name, true);
-                if (!ret.second) {
-                    return Status::SemanticError("Duplicate Column Name : `%s'",
-                                                 item.name.c_str());
-                }
+            auto res = checkColName(varProps);
+            if (!res.ok()) {
+                return res;
             }
         }
     }

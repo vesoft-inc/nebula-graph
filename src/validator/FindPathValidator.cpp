@@ -18,7 +18,7 @@ Status FindPathValidator::validateImpl() {
 
     NG_RETURN_IF_ERROR(validateStarts(fpSentence->from(), from_));
     NG_RETURN_IF_ERROR(validateStarts(fpSentence->to(), to_));
-    NG_RETURN_IF_ERROR(checkDuplicateColName());
+    // NG_RETURN_IF_ERROR(checkDuplicateColName());
     NG_RETURN_IF_ERROR(validateOver(fpSentence->over(), over_));
     NG_RETURN_IF_ERROR(validateStep(fpSentence->step(), steps_));
     return Status::OK();

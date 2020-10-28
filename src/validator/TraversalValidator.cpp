@@ -22,26 +22,6 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             return Status::SemanticError(
                     "`%s', Only input and variable expression is acceptable"
                     " when starts are evaluated at runtime.", src->toString().c_str());
-        } else {
-            starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
-            auto type = deduceExprType(src);
-            if (!type.ok()) {
-                return type.status();
-            }
-            auto vidType = space_.spaceDesc.vid_type.get_type();
-            if (type.value() != SchemaUtil::propTypeToValueType(vidType)) {
-                std::stringstream ss;
-                ss << "`" << src->toString() << "', the srcs should be type of "
-                   << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
-                   << type.value() << "'";
-                return Status::SemanticError(ss.str());
-            }
-            starts.srcRef = src;
-            auto* propExpr = static_cast<PropertyExpression*>(src);
-            if (starts.fromType == kVariable) {
-                starts.userDefinedVarName = *(propExpr->sym());
-            }
-            starts.firstBeginningSrcVidColName = *(propExpr->prop());
         }
         starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
         auto type = deduceExprType(src);
@@ -54,7 +34,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             ss << "`" << src->toString() << "', the srcs should be type of "
                 << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
                 << type.value() << "'";
-            return Status::Error(ss.str());
+            return Status::SemanticError(ss.str());
         }
         starts.srcRef = src;
         auto* propExpr = static_cast<PropertyExpression*>(src);
@@ -63,7 +43,6 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             userDefinedVarNameList_.emplace(starts.userDefinedVarName);
         }
         starts.firstBeginningSrcVidColName = *(propExpr->prop());
-
     } else {
         auto vidList = clause->vidList();
         QueryExpressionContext ctx;

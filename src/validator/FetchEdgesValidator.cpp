@@ -23,7 +23,7 @@ Status FetchEdgesValidator::validateImpl() {
     NG_RETURN_IF_ERROR(check());
     NG_RETURN_IF_ERROR(prepareEdges());
     NG_RETURN_IF_ERROR(prepareProperties());
-    NG_RETURN_IF_ERROR(checkDuplicateColName());
+    // NG_RETURN_IF_ERROR(checkDuplicateColName());
     return Status::OK();
 }
 

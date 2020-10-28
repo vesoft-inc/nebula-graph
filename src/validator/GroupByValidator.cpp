@@ -15,7 +15,7 @@ Status GroupByValidator::validateImpl() {
     auto *groupBySentence = static_cast<GroupBySentence*>(sentence_);
     NG_RETURN_IF_ERROR(validateGroup(groupBySentence->groupClause()));
     NG_RETURN_IF_ERROR(validateYield(groupBySentence->yieldClause()));
-    NG_RETURN_IF_ERROR(checkDuplicateColName());
+    // NG_RETURN_IF_ERROR(checkDuplicateColName());
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty()) {
         return Status::SemanticError("Only support input and variable in GroupBy sentence.");
