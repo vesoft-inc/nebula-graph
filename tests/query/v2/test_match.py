@@ -184,6 +184,85 @@ class TestMatch(NebulaTestSuite):
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
 
+    def test_match_by_id(self):
+        # single node
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'James Harden' RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['n']
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['James Harden']]]
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        # with expr
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN id(n)
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['id(n)']
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        # multi nodes
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['not_exist_vertex']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['n']
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['LaMarcus Aldridge']],
+                  [self.VERTEXS['Tony Parker']]]
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['LaMarcus Aldridge']],
+                  [self.VERTEXS['Tony Parker']]]
+        self.check_out_of_order_result(resp, result)
+
+        # with expr
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex']
+                    RETURN id(n)
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['id(n)']
+        self.check_column_names(resp, columns_name)
+        result = [['LaMarcus Aldridge'],
+                  ['Tony Parker']]
+        self.check_out_of_order_result(resp, result)
+
     def test_failures(self):
         # No RETURN
         stmt = 'MATCH (v:player{name:"abc")'
