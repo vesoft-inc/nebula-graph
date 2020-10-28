@@ -6,24 +6,16 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 from tests.common.nebula_test_suite import NebulaTestSuite
-from tests.common.nebula_test_suite import T_NULL, T_EMPTY
-import pytest
+
 
 class TestINandNotIn(NebulaTestSuite):
-    @classmethod
-    def prepare(self):
-        self.use_nba()
-
-    def cleanup():
-        pass
-
     def test_in_list(self):
         stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN ['Tim Duncan', 'Danny Green'] YIELD $$.player.name"
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
-            "column_names" : ['$$.player.name'],
-            "rows" : [
+            "column_names": ['$$.player.name'],
+            "rows": [
                 ['Tim Duncan']
             ]
         }
@@ -35,8 +27,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['like._dst'],
-            "rows" : []
+            "column_names": ['like._dst'],
+            "rows": []
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -46,8 +38,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['like._dst'],
-            "rows" : [
+            "column_names": ['like._dst'],
+            "rows": [
                 ['Tim Duncan'],
                 ['Manu Ginobili'],
             ]
@@ -61,8 +53,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['like._dst'],
-            "rows" : [
+            "column_names": ['like._dst'],
+            "rows": [
                 ['Tony Parker'],
                 ['Manu Ginobili'],
             ]
@@ -75,8 +67,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [True]
             ]
         }
@@ -87,8 +79,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [False]
             ]
         }
@@ -99,8 +91,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [True]
             ]
         }
@@ -112,8 +104,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
-            "rows" : [
+            "column_names": ['$$.player.name'],
+            "rows": [
                 ['LaMarcus Aldridge'],
                 ['Manu Ginobili'],
                 ['Tim Duncan'],
@@ -127,8 +119,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['like._dst'],
-            "rows" : [
+            "column_names": ['like._dst'],
+            "rows": [
                 ['LaMarcus Aldridge'],
                 ['Manu Ginobili'],
                 ['Tim Duncan'],
@@ -142,8 +134,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name', 'like.likeness'],
-            "rows" : [
+            "column_names": ['$$.player.name', 'like.likeness'],
+            "rows": [
                 ['LaMarcus Aldridge', 90]
             ]
         }
@@ -157,8 +149,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$^.player.name', '$$.player.name', 'like.likeness'],
-            "rows" : [
+            "column_names": ['$^.player.name', '$$.player.name', 'like.likeness'],
+            "rows": [
                 ['Manu Ginobili', 'Tim Duncan', 90],
                 ['LaMarcus Aldridge', 'Tim Duncan', 75],
                 ['LaMarcus Aldridge', 'Tony Parker', 75],
@@ -172,8 +164,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [False]
             ]
         }
@@ -184,8 +176,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [True]
             ]
         }
@@ -196,8 +188,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [False]
             ]
         }
@@ -209,8 +201,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
-            "rows" : [
+            "column_names": ['$$.player.name'],
+            "rows": [
                 ['Tim Duncan']
             ]
         }
@@ -222,8 +214,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['like._dst'],
-            "rows" : []
+            "column_names": ['like._dst'],
+            "rows": []
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_out_of_order_result(resp, expected_data["rows"])
@@ -233,8 +225,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name', 'like.likeness'],
-            "rows" : [
+            "column_names": ['$$.player.name', 'like.likeness'],
+            "rows": [
                 ['LaMarcus Aldridge', 90],
                 ['Manu Ginobili', 95],
                 ['Tim Duncan', 95],
@@ -248,8 +240,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [True]
             ]
         }
@@ -260,8 +252,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [False]
             ]
         }
@@ -272,8 +264,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [True]
             ]
         }
@@ -285,8 +277,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name'],
-            "rows" : [
+            "column_names": ['$$.player.name'],
+            "rows": [
                 ['LaMarcus Aldridge'],
                 ['Manu Ginobili'],
                 ['Tim Duncan'],
@@ -300,8 +292,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['like._dst'],
-            "rows" : [
+            "column_names": ['like._dst'],
+            "rows": [
                 ['LaMarcus Aldridge'],
                 ['Manu Ginobili'],
                 ['Tim Duncan'],
@@ -315,8 +307,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : ['$$.player.name', 'like.likeness'],
-            "rows" : [
+            "column_names": ['$$.player.name', 'like.likeness'],
+            "rows": [
                 ['LaMarcus Aldridge', 90]
             ]
         }
@@ -328,8 +320,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [False]
             ]
         }
@@ -340,8 +332,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [True]
             ]
         }
@@ -352,8 +344,8 @@ class TestINandNotIn(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names" : [],
-            "rows" : [
+            "column_names": [],
+            "rows": [
                 [False]
             ]
         }
