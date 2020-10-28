@@ -107,7 +107,7 @@ function run_test() {
         wait $pid
         status=$?
         if [ $status != 0 ];then
-            exit 1
+            exit $status
         fi
     done
 }
@@ -119,11 +119,10 @@ function test_in_cluster() {
     ./ntr \
         -n=8 \
         --dist=loadfile \
-        --debug_log=false \
         --address="nebulaclusters-graphd:3699" \
         $testpath
 
-    ./ntr --debug_log=false $PROJ_DIR/tests/job/*
+    ./ntr --address="nebulaclusters-graphd:3699" $PROJ_DIR/tests/job/*
 }
 
 case "$1" in
