@@ -1225,26 +1225,14 @@ lookup_sentence
     ;
 
 order_factor
-    : input_prop_expression {
+    : expression {
         $$ = new OrderFactor($1, OrderFactor::ASCEND);
     }
-    | input_prop_expression KW_ASC {
+    | expression KW_ASC {
         $$ = new OrderFactor($1, OrderFactor::ASCEND);
     }
-    | input_prop_expression KW_DESC {
+    | expression KW_DESC {
         $$ = new OrderFactor($1, OrderFactor::DESCEND);
-    }
-    | LABEL {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::ASCEND);
-    }
-    | LABEL KW_ASC {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::ASCEND);
-    }
-    | LABEL KW_DESC {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::DESCEND);
     }
     ;
 
