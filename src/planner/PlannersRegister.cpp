@@ -18,7 +18,14 @@ void PlannersRegister::registPlanners() {
 void PlannersRegister::registSequential() {
     auto& planners = Planner::plannersMap()[Sentence::Kind::kSequential];
     planners.emplace_back(&SequentialPlanner::match, &SequentialPlanner::make);
-    VLOG(1) << "Regist seq.";
+}
+
+void PlannersRegister::registMatch() {
+    auto& planners = Planner::plannersMap()[Sentence::Kind::kMatch];
+
+    // MATCH(n:Tag{prop:value}) RETURN n
+    // MATCH(n:Tag) WHERE n.prop = value RETURN n
+    planners.emplace_back(&MatchVertexIndexSeekPlanner::match, &MatchVertexIndexSeekPlanner::make);
 }
 }  // namespace graph
 }  // namespace nebula

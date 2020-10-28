@@ -25,17 +25,6 @@ public:
 private:
     MatchVertexIndexSeekPlanner() = default;
 };
-
-class MatchVertexIndexSeekPlannerRegister final {
-private:
-    MatchVertexIndexSeekPlannerRegister() {
-        auto& planners = Planner::plannersMap()[Sentence::Kind::kMatch];
-        planners.emplace_back(&MatchVertexIndexSeekPlanner::match,
-                              &MatchVertexIndexSeekPlanner::make);
-    }
-
-    static MatchVertexIndexSeekPlannerRegister instance_;
-};
 }  // namespace graph
 }  // namespace nebula
 #endif

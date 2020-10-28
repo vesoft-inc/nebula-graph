@@ -8,14 +8,14 @@
 
 namespace nebula {
 namespace graph {
-MatchVertexIndexSeekPlannerRegister MatchVertexIndexSeekPlannerRegister::instance_;
-
 bool MatchVertexIndexSeekPlanner::match(AstContext* astCtx) {
+    // TODO:
     UNUSED(astCtx);
     return false;
 }
 
 StatusOr<SubPlan> MatchVertexIndexSeekPlanner::transform(AstContext* astCtx) {
+    // TODO:
     UNUSED(astCtx);
     return Status::Error();
 }
