@@ -4,18 +4,18 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_PLANNERS_MATCHVERTEXINDEXSEEKPLANNER_H_
-#define PLANNER_PLANNERS_MATCHVERTEXINDEXSEEKPLANNER_H_
+#ifndef PLANNER_PLANNERS_MATCHVERTEXIDSEEK_H_
+#define PLANNER_PLANNERS_MATCHVERTEXIDSEEK_H_
 
 #include "context/QueryContext.h"
 #include "planner/Planner.h"
 
 namespace nebula {
 namespace graph {
-class MatchVertexIndexSeekPlanner final : public Planner {
+class MatchVertexIdSeekPlanner final : public Planner {
 public:
-    static std::unique_ptr<MatchVertexIndexSeekPlanner> make() {
-        return std::unique_ptr<MatchVertexIndexSeekPlanner>(new MatchVertexIndexSeekPlanner());
+    static std::unique_ptr<MatchVertexIdSeekPlanner> make() {
+        return std::unique_ptr<MatchVertexIdSeekPlanner>(new MatchVertexIdSeekPlanner());
     }
 
     static bool match(AstContext* astCtx);
@@ -23,8 +23,8 @@ public:
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
 private:
-    MatchVertexIndexSeekPlanner() = default;
+    MatchVertexIdSeekPlanner() = default;
 };
 }  // namespace graph
 }  // namespace nebula
-#endif
+#endif  // PLANNER_PLANNERS_MATCHVERTEXIDSEEK_H_

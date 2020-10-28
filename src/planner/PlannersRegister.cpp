@@ -8,6 +8,7 @@
 
 #include "planner/Planner.h"
 #include "planner/planners/SequentialPlanner.h"
+#include "planner/planners/MatchVertexIdSeekPlannerPlanner.h"
 
 namespace nebula {
 namespace graph {
@@ -22,6 +23,9 @@ void PlannersRegister::registSequential() {
 
 void PlannersRegister::registMatch() {
     auto& planners = Planner::plannersMap()[Sentence::Kind::kMatch];
+
+    // MATCH(n) WHERE id(n) = value RETURN n
+    planners.emplace_back(&MatchVertexIdSeekPlanner::match, &MatchVertexIdSeekPlanner::make);
 
     // MATCH(n:Tag{prop:value}) RETURN n
     // MATCH(n:Tag) WHERE n.prop = value RETURN n

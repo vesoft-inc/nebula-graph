@@ -7,8 +7,8 @@
 #ifndef PLANNER_PLANNERS_SEQUENTIALPLANNER_H_
 #define PLANNER_PLANNERS_SEQUENTIALPLANNER_H_
 
-#include "planner/Planner.h"
 #include "context/QueryContext.h"
+#include "planner/Planner.h"
 
 namespace nebula {
 namespace graph {
