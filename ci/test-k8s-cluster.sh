@@ -29,7 +29,7 @@ echo "Upgrade nebula cluster successfully."
 
 kubectl delete job nebula-test || true
 
-sleep 5 # wait graphd service starting
+sleep 10 # wait graphd service starting
 kubectl apply -f $PROJ_DIR/ci/nebula-test-job.yml
 sleep 5 # wait nebula-test job dumping logs
 kubectl logs -f jobs/nebula-test
