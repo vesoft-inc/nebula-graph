@@ -3,6 +3,7 @@ kind: Job
 metadata:
   name: nebula-test
 spec:
+  ttlSecondsAfterFinished: 100
   template:
     metadata:
       name: nebula-test
