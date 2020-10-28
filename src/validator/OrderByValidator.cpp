@@ -17,7 +17,7 @@ Status OrderByValidator::validateImpl() {
     auto factors = sentence->factors();
     for (auto &factor : factors) {
         if (factor->expr()->kind() == Expression::Kind::kLabel) {
-            auto *label = static_cast<const LabelExpressin*>(factor->expr());
+            auto *label = static_cast<const LabelExpression*>(factor->expr());
             auto *expr = new InputPropertyExpression(new std::string(*label->name()));
             factor->setExpr(expr);
         }
