@@ -13,13 +13,13 @@ namespace graph {
 MatchValidator::MatchValidator(Sentence *sentence, QueryContext *context)
     : TraversalValidator(sentence, context) {
     anon_ = vctx_->anonVarGen();
-    matchAstCtx_ = std::make_unique<MatchAstContext>();
-    matchAstCtx_->sentence = sentence;
-    matchAstCtx_->qctx = context;
+    matchCtx_ = std::make_unique<MatchAstContext>();
+    matchCtx_->sentence = sentence;
+    matchCtx_->qctx = context;
 }
 
 AstContext* MatchValidator::getAstContext() {
-    return matchAstCtx_.get();
+    return matchCtx_.get();
 }
 
 Status MatchValidator::toPlan() {
@@ -79,8 +79,8 @@ Status MatchValidator::validatePath(const MatchPath *path) {
     auto *sm = qctx_->schemaMng();
     auto steps = path->steps();
 
-    auto& nodeInfos = matchAstCtx_->nodeInfos;
-    auto& edgeInfos = matchAstCtx_->edgeInfos;
+    auto& nodeInfos = matchCtx_->nodeInfos;
+    auto& edgeInfos = matchCtx_->edgeInfos;
 
     nodeInfos.resize(steps + 1);
     edgeInfos.resize(steps);
@@ -101,7 +101,7 @@ Status MatchValidator::validatePath(const MatchPath *path) {
             anonymous = true;
             alias = saveObject(new std::string(anon_->getVar()));
         }
-        if (!matchAstCtx_->aliases.emplace(*alias, kNode).second) {
+        if (!matchCtx_->aliases.emplace(*alias, kNode).second) {
             return Status::Error("`%s': Redefined alias", alias->c_str());
         }
         Expression *filter = nullptr;
@@ -145,7 +145,7 @@ Status MatchValidator::validatePath(const MatchPath *path) {
             anonymous = true;
             alias = saveObject(new std::string(anon_->getVar()));
         }
-        if (!matchAstCtx_->aliases.emplace(*alias, kEdge).second) {
+        if (!matchCtx_->aliases.emplace(*alias, kEdge).second) {
             return Status::SemanticError("`%s': Redefined alias", alias->c_str());
         }
         Expression *filter = nullptr;
@@ -166,8 +166,9 @@ Status MatchValidator::validatePath(const MatchPath *path) {
 
 
 Status MatchValidator::validateFilter(const Expression *filter) {
-    matchAstCtx_->filter = ExpressionUtils::foldConstantExpr(filter);
-    NG_RETURN_IF_ERROR(validateAliases({matchAstCtx_->filter.get()}));
+    // TODO: validate filter result type.
+    matchCtx_->filter = ExpressionUtils::foldConstantExpr(filter);
+    NG_RETURN_IF_ERROR(validateAliases({matchCtx_->filter.get()}));
 
     return Status::OK();
 }
@@ -187,6 +188,8 @@ Status MatchValidator::validateReturn(MatchReturn *ret) {
     if (ret->limit() != nullptr) {
         return Status::SemanticError("LIMIT not supported");
     }
+
+    YieldColumns* columns = nullptr;
     if (ret->isAll()) {
         auto makeColumn = [] (const std::string &name) {
             auto *expr = new LabelExpression(name);
@@ -194,33 +197,37 @@ Status MatchValidator::validateReturn(MatchReturn *ret) {
             return new YieldColumn(expr, alias);
         };
 
-        auto columns = new YieldColumns();
-        auto steps = matchAstCtx_->edgeInfos.size();
+        columns = new YieldColumns();
+        saveObject(columns);
+        auto steps = matchCtx_->edgeInfos.size();
 
-        if (!matchAstCtx_->nodeInfos[0].anonymous) {
-            columns->addColumn(makeColumn(*matchAstCtx_->nodeInfos[0].alias));
+        if (!matchCtx_->nodeInfos[0].anonymous) {
+            columns->addColumn(makeColumn(*matchCtx_->nodeInfos[0].alias));
         }
 
         for (auto i = 0u; i < steps; i++) {
-            if (!matchAstCtx_->edgeInfos[i].anonymous) {
-                columns->addColumn(makeColumn(*matchAstCtx_->edgeInfos[i].alias));
+            if (!matchCtx_->edgeInfos[i].anonymous) {
+                columns->addColumn(makeColumn(*matchCtx_->edgeInfos[i].alias));
             }
-            if (!matchAstCtx_->nodeInfos[i+1].anonymous) {
-                columns->addColumn(makeColumn(*matchAstCtx_->nodeInfos[i+1].alias));
+            if (!matchCtx_->nodeInfos[i+1].anonymous) {
+                columns->addColumn(makeColumn(*matchCtx_->nodeInfos[i+1].alias));
             }
         }
 
         if (columns->empty()) {
             return Status::SemanticError("`RETURN *' not allowed if there is no alias");
         }
-
-        ret->setColumns(columns);
     }
 
+    if (columns == nullptr) {
+        matchCtx_->yieldColumns = ret->columns();
+    } else {
+        matchCtx_->yieldColumns = columns;
+    }
     // Check all referencing expressions are valid
     std::vector<const Expression*> exprs;
-    exprs.reserve(ret->columns()->size());
-    for (auto *col : ret->columns()->columns()) {
+    exprs.reserve(columns->size());
+    for (auto *col : matchCtx_->yieldColumns->columns()) {
         exprs.push_back(col->expr());
     }
     NG_RETURN_IF_ERROR(validateAliases(exprs));
@@ -250,7 +257,7 @@ Status MatchValidator::validateAliases(const std::vector<const Expression*> &exp
                 name = static_cast<const LabelAttributeExpression*>(refExpr)->left()->name();
             }
             DCHECK(name != nullptr);
-            if (matchAstCtx_->aliases.count(*name) != 1) {
+            if (matchCtx_->aliases.count(*name) != 1) {
                 return Status::SemanticError("Alias used but not defined: `%s'", name->c_str());
             }
         }

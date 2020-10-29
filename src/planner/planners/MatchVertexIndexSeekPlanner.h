@@ -7,8 +7,10 @@
 #ifndef PLANNER_PLANNERS_MATCHVERTEXINDEXSEEKPLANNER_H_
 #define PLANNER_PLANNERS_MATCHVERTEXINDEXSEEKPLANNER_H_
 
+#include "common/expression/LabelExpression.h"
 #include "context/QueryContext.h"
 #include "planner/Planner.h"
+#include "validator/MatchValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -23,6 +25,9 @@ public:
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
 private:
+    using VertexProp = nebula::storage::cpp2::VertexProp;
+    using EdgeProp = nebula::storage::cpp2::EdgeProp;
+
     static Expression* makeIndexFilter(const std::string& label,
                                        const MapExpression* map,
                                        QueryContext* qctx);
@@ -33,6 +38,42 @@ private:
                                        QueryContext* qctx);
 
     MatchVertexIndexSeekPlanner() = default;
+
+    Status buildScanNode();
+
+    Status buildSteps();
+
+    Status buildStep();
+
+    Status buildGetTailVertices();
+
+    Status buildStepJoin();
+
+    Status buildTailJoin();
+
+    Status buildFilter();
+
+    Status buildReturn();
+
+    Expression* rewrite(const LabelExpression*) const;
+
+    Expression* rewrite(const LabelAttributeExpression*) const;
+
+    template <typename T>
+    T* saveObject(T *obj) const {
+        return matchCtx_->qctx->objPool()->add(obj);
+    }
+
+    SubPlan                                     subPlan_;
+    MatchAstContext                            *matchCtx_;
+    bool                                        startFromNode_{true};
+    int32_t                                     startIndex_{0};
+    int32_t                                     curStep_{-1};
+    PlanNode                                   *thisStepRoot_{nullptr};
+    PlanNode                                   *prevStepRoot_{nullptr};
+    Expression                                 *startExpr_{nullptr};
+    Expression                                 *gnSrcExpr_{nullptr};
+    AnonVarGenerator                           *anon_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

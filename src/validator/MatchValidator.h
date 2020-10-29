@@ -19,8 +19,6 @@ struct MatchAstContext;
 
 class MatchValidator final : public TraversalValidator {
 public:
-    using VertexProp = nebula::storage::cpp2::VertexProp;
-    using EdgeProp = nebula::storage::cpp2::EdgeProp;
     using Direction = MatchEdge::Direction;
     struct NodeInfo {
         TagID                                   tid{0};
@@ -132,7 +130,7 @@ private:
     AnonVarGenerator                           *anon_{nullptr};
     QueryEntry                                  entry_{QueryEntry::kId};
 
-    std::unique_ptr<MatchAstContext>            matchAstCtx_;
+    std::unique_ptr<MatchAstContext>            matchCtx_;
 };
 
 struct MatchAstContext final : AstContext {
@@ -141,6 +139,7 @@ struct MatchAstContext final : AstContext {
     MatchValidator::ScanInfo                                    scanInfo;
     std::unordered_map<std::string, MatchValidator::AliasType>  aliases;
     std::unique_ptr<Expression>                                 filter;
+    const YieldColumns                                         *yieldColumns;
 };
 }   // namespace graph
 }   // namespace nebula
