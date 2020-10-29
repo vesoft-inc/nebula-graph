@@ -255,6 +255,9 @@ Status MatchValidator::analyzeStartPoint() {
         if (filter_ == nullptr) {
             return Status::SemanticError("Query nodes without limit is not supported.");
         } else {
+            if (!edgeInfos_.empty()) {
+                return Status::SemanticError("Query by id not support extension.");
+            }
             // query from id instead of index
             entry_ = QueryEntry::kId;
             return Status::OK();

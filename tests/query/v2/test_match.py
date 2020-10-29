@@ -336,10 +336,10 @@ class TestMatch(NebulaTestSuite):
         self.check_resp_failed(resp)
 
         # query edge by id
-        stmt = 'MATCH (start)-[edge]-(end) WHERE id(start) = "Paul George" RETURN *'
+        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) == "Paul George" RETURN *'
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
 
-        stmt = 'MATCH (start)-[edge]-(end) WHERE id(start) IN ["Paul George", "not_exist_vertex"] RETURN *'
+        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) IN ["Paul George", "not_exist_vertex"] RETURN *'
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
