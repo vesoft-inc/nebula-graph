@@ -1119,11 +1119,9 @@ match_edge_prop
         $$ = nullptr;
     }
     | L_BRACKET match_alias opt_match_edge_type_list match_step_range R_BRACKET {
-        UNUSED($4);
         $$ = new MatchEdgeProp($2, $3, $4, nullptr);
     }
     | L_BRACKET match_alias opt_match_edge_type_list match_step_range map_expression R_BRACKET {
-        UNUSED($4);
         $$ = new MatchEdgeProp($2, $3, $4, $5);
     }
     ;

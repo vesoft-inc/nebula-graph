@@ -53,6 +53,7 @@ std::string WithClause::toString() const {
 
     if (orderFactors_ != nullptr) {
         buf += " ";
+        buf += "ORDER BY ";
         buf += orderFactors_->toString();
     }
 
@@ -189,6 +190,7 @@ std::string MatchReturn::toString() const {
 
     if (orderFactors_ != nullptr) {
         buf += " ";
+        buf += "ORDER BY";
         buf += orderFactors_->toString();
     }
 

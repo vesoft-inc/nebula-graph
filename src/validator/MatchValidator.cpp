@@ -100,9 +100,6 @@ Status MatchValidator::validatePath(const MatchPath *path) {
         auto *props = edge->props();
         auto direction = edge->direction();
         auto anonymous = false;
-        if (direction != Direction::OUT_EDGE) {
-            return Status::SemanticError("Only outbound traversal supported");
-        }
         if (!types.empty()) {
             for (auto &type : types) {
                 auto etype = sm->toEdgeType(space_.id, *type);
