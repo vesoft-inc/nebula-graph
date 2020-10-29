@@ -68,6 +68,17 @@ private:
 
     Expression* rewrite(const LabelAttributeExpression*) const;
 
+    Status buildQueryById();
+
+    Status buildProjectVertices();
+
+    // extract vids from filter
+    StatusOr<std::pair<std::string, Expression*>> extractVids(const Expression *filter) const;
+
+    // TODO using unwind
+    std::pair<std::string, Expression*> listToAnnoVarVid(const List &list) const;
+    std::pair<std::string, Expression*> constToAnnoVarVid(const Value &list) const;
+
     template <typename T>
     T* saveObject(T *obj) const {
         return qctx_->objPool()->add(obj);
@@ -88,9 +99,9 @@ private:
 
     struct EdgeInfo {
         bool                                    anonymous{false};
-        EdgeType                                edgeType{0};
+        std::vector<EdgeType>                   edgeTypes;
         MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
-        const std::string                      *type{nullptr};
+        std::vector<std::string>                types;
         const std::string                      *alias{nullptr};
         const MapExpression                    *props{nullptr};
         Expression                             *filter{nullptr};
@@ -103,6 +114,11 @@ private:
     struct ScanInfo {
         Expression                             *filter{nullptr};
         int32_t                                 schemaId{0};
+    };
+
+    enum class QueryEntry {
+        kId,  // query start by id
+        kIndex  // query start by index scan
     };
 
 private:
@@ -119,6 +135,7 @@ private:
     std::unordered_map<std::string, AliasType>  aliases_;
     AnonVarGenerator                           *anon_{nullptr};
     std::unique_ptr<Expression>                 filter_;
+    QueryEntry                                  entry_{QueryEntry::kId};
 };
 
 }   // namespace graph
