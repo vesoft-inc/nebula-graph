@@ -362,9 +362,9 @@ Status Validator::toPlan() {
 
 Status Validator::checkDuplicateColName() {
     auto checkColName = [] (const ColsDef& nameList) {
-        std::unordered_map<std::string, bool> names;
+        std::unordered_set<std::string> names;
         for (auto& item : nameList) {
-            auto ret = names.emplace(item.name, true);
+            auto ret = names.emplace(item.name);
             if (!ret.second) {
                 return Status::SemanticError("Duplicate Column Name : `%s'", item.name.c_str());
             }

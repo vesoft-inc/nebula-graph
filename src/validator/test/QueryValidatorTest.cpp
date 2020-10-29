@@ -1101,6 +1101,19 @@ TEST_F(QueryValidatorTest, GoInvalid) {
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
     }
+    {
+        std::string query = "GO FROM \"1\" OVER like, serve YIELD like._dst AS id, serve._src AS "
+                            "id, serve._dst AS DST | GO FROM $-.DST OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
+    {
+        std::string query =
+            "$a = GO FROM \"1\" OVER * YIELD like._dst AS id, like._src AS id, serve._dst as DST; "
+            "GO FROM $a.DST OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
 }
 
 TEST_F(QueryValidatorTest, Limit) {
