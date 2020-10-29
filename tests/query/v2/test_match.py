@@ -193,6 +193,29 @@ class TestMatch(NebulaTestSuite):
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
 
+        stmt = '''
+                  MATCH (v1:player{name: 'Tony Parker'}) -[r1:serve]-> (v2) <-[r2:serve]- (v3)
+                  WHERE r1.start_year <= r2.end_year AND
+                        r1.end_year >= r2.start_year AND
+                        v1.name <> v3.name AND
+                        v3.name STARTS WITH 'D'
+                  RETURN v1.name AS Player, v2.name AS Team, v3.name AS Teammate
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Player', 'Team', 'Teammate'],
+            'rows': [
+                ['Tony Parker', 'Hornets', 'Dwight Howard'],
+                ['Tony Parker', 'Spurs', 'Danny Green'],
+                ['Tony Parker', 'Spurs', 'Dejounte Murray'],
+                ['Tony Parker', 'Spurs', 'David West'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+
     def test_match_by_id(self):
         # single node
         stmt = '''
@@ -306,16 +329,6 @@ class TestMatch(NebulaTestSuite):
 
         # start from middle
         stmt = 'MATCH () --> (v) --> () return *'
-        resp = self.execute_query(stmt)
-        self.check_resp_failed(resp)
-
-        # in bound
-        stmt = 'MATCH (v:player) -[]-> () return *'
-        resp = self.execute_query(stmt)
-        self.check_resp_failed(resp)
-
-        # bidirectly
-        stmt = 'MATCH (v:player) -[]- () return *'
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
 
