@@ -5,18 +5,16 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-from tests.common.nebula_test_suite import NebulaTestSuite
-from tests.common.nebula_test_suite import T_NULL, T_EMPTY
 import pytest
+
+from tests.common.nebula_test_suite import NebulaTestSuite
+
 
 @pytest.mark.usefixtures('set_vertices_and_edges')
 class TestMatch(NebulaTestSuite):
     @classmethod
     def prepare(self):
         self.use_nba()
-
-    def cleanup():
-        pass
 
     def test_single_node(self):
         VERTICES = self.VERTEXS
@@ -93,11 +91,24 @@ class TestMatch(NebulaTestSuite):
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
 
-
     def test_one_step(self):
-        VERTICES = self.VERTEXS
-
         stmt = 'MATCH (v1:player{name: "LeBron James"}) -[r]-> (v2) RETURN type(r) AS Type, v2.name AS Name'
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Type', 'Name'],
+            'rows': [
+                ['like', 'Ray Allen'],
+                ['serve', 'Cavaliers'],
+                ['serve', 'Heat'],
+                ['serve', 'Cavaliers'],
+                ['serve', 'Lakers'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = 'MATCH (v1:player{name: "LeBron James"}) -[r:serve|:like]-> (v2) RETURN type(r) AS Type, v2.name AS Name'
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected = {
@@ -164,8 +175,6 @@ class TestMatch(NebulaTestSuite):
         self.check_out_of_order_result(resp, expected['rows'])
 
     def test_two_steps(self):
-        VERTICES = self.VERTEXS
-
         stmt = '''
                   MATCH (v1:player{age: 28}) -[:like]-> (v2) -[:like]-> (v3)
                   RETURN v1.name AS Player, v2.name AS Friend, v3.name AS FoF
@@ -183,6 +192,85 @@ class TestMatch(NebulaTestSuite):
         }
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
+
+    def test_match_by_id(self):
+        # single node
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'James Harden' RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['n']
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['James Harden']]]
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        # with expr
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN id(n)
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['id(n)']
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        # multi nodes
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['not_exist_vertex']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['n']
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['LaMarcus Aldridge']],
+                  [self.VERTEXS['Tony Parker']]]
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['LaMarcus Aldridge']],
+                  [self.VERTEXS['Tony Parker']]]
+        self.check_out_of_order_result(resp, result)
+
+        # with expr
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex']
+                    RETURN id(n)
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['id(n)']
+        self.check_column_names(resp, columns_name)
+        result = [['LaMarcus Aldridge'],
+                  ['Tony Parker']]
+        self.check_out_of_order_result(resp, result)
 
     def test_failures(self):
         # No RETURN
@@ -244,5 +332,14 @@ class TestMatch(NebulaTestSuite):
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
         stmt = 'MATCH (v:player:{name: "abc"}) -[r*1..]-> () return *'
+        resp = self.execute_query(stmt)
+        self.check_resp_failed(resp)
+
+        # query edge by id
+        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) == "Paul George" RETURN *'
+        resp = self.execute_query(stmt)
+        self.check_resp_failed(resp)
+
+        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) IN ["Paul George", "not_exist_vertex"] RETURN *'
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
