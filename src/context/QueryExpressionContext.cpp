@@ -94,6 +94,13 @@ Value QueryExpressionContext::getEdge() const {
     return iter_->getEdge();
 }
 
+std::regex QueryExpressionContext::getRegex(const std::string& pattern) {
+    if (regex_.find(pattern) == regex_.end()) {
+        regex_[pattern] = std::regex(pattern);
+    }
+    return regex_[pattern];
+}
+
 void QueryExpressionContext::setVar(const std::string& var, Value val) {
     if (ectx_ == nullptr) {
         LOG(ERROR) << "Execution context was not provided.";
