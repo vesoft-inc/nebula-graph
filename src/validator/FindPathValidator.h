@@ -25,7 +25,9 @@ private:
 
     Status singlePairPlan();
 
-    void buildStart(Starts& starts, std::string& startVidsVar, PlanNode* dedupStartVid);
+    void buildStart(Starts& starts, std::string& startVidsVar, bool reverse);
+
+    void getRunTimeRootTailPlanNode(PlanNode*& root, PlanNode*& tail);
 
     PlanNode* bfs(PlanNode* dep, Starts& starts, bool reverse);
 
@@ -50,6 +52,10 @@ private:
     Starts          to_;
     Over            over_;
     Steps           steps_;
+    // runtime
+    PlanNode* toProjectStartVid_{nullptr};
+    PlanNode* fromDedupStartVid_{nullptr};
+    PlanNode* toDedupStartVid_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

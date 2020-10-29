@@ -66,12 +66,17 @@ Status FindPathValidator::singlePairPlan() {
 
 void FindPathValidator::buildStart(Starts& starts,
                                    std::string& startVidsVar,
-                                   PlanNode* dedupStartVid) {
-    if (!starts.vids.empty() && starts.originalSrc == nullptr) {
+                                   bool reverse) {
+    if (!starts.vids.empty() && starts.srcRef == nullptr) {
         buildConstantInput(starts, startVidsVar);
     } else {
-        dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
-        startVidsVar = dedupStartVid->outputVar();
+        if (reverse) {
+            toDedupStartVid_ = buildRuntimeInput(starts, toProjectStartVid_);
+            startVidsVar = toDedupStartVid_->outputVar();
+        } else {
+            fromDedupStartVid_ = buildRuntimeInput(starts, projectStartVid_);
+            startVidsVar = fromDedupStartVid_->outputVar();
+        }
     }
 }
 
@@ -157,21 +162,25 @@ Status FindPathValidator::allPairPaths() {
     conjunct->setRightVar(backward->outputVar());
     conjunct->setColNames({"_path"});
 
+    PlanNode* projectStartVid = nullptr;
+    PlanNode* dedupStartVid = nullptr;
+    getRunTimeRootTailPlanNode(projectStartVid, dedupStartVid);
+
     auto* loop = Loop::make(
-        qctx_, nullptr, conjunct, buildAllPathsLoopCondition(steps_.steps));
+        qctx_, dedupStartVid, conjunct, buildAllPathsLoopCondition(steps_.steps));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kAllPaths, {conjunct->outputVar()});
     dataCollect->setColNames({"_path"});
 
     root_ = dataCollect;
-    tail_ = loop;
+    tail_ = projectStartVid == nullptr ? loop : projectStartVid;
     return Status::OK();
 }
 
 PlanNode* FindPathValidator::allPaths(PlanNode* dep, Starts& starts, bool reverse) {
     std::string startVidsVar;
-    buildConstantInput(starts, startVidsVar);
+    buildStart(starts, startVidsVar, reverse);
 
     auto* gn = GetNeighbors::make(qctx_, dep, space_.id);
     gn->setSrc(starts.src);
@@ -216,6 +225,26 @@ Expression* FindPathValidator::buildAllPathsLoopCondition(uint32_t steps) {
     return qctx_->objPool()->add(nSteps);
 }
 
+void FindPathValidator::getRunTimeRootTailPlanNode(PlanNode*& root, PlanNode*& tail) {
+    if (!from_.vids.empty() && from_.srcRef == nullptr) {
+        if (!to_.vids.empty() && to_.srcRef == nullptr) {
+            return;
+        }
+        root = toProjectStartVid_;
+        tail = toDedupStartVid_;
+    } else {
+        if (!to_.vids.empty() && to_.srcRef == nullptr) {
+            root = projectStartVid_;
+            tail = fromDedupStartVid_;
+        } else {
+            auto* temp = static_cast<SingleDependencyNode *>(toProjectStartVid_);
+            temp->dependsOn(fromDedupStartVid_);
+            root = projectStartVid_;
+            tail = toDedupStartVid_;
+        }
+    }
+}
+
 Status FindPathValidator::multiPairPlan() {
     auto* bodyStart = StartNode::make(qctx_);
     auto* passThrough = PassThroughNode::make(qctx_, bodyStart);
@@ -232,15 +261,20 @@ Status FindPathValidator::multiPairPlan() {
     conjunct->setRightVar(backward->outputVar());
     conjunct->setColNames({"_path", "cost"});
 
+    PlanNode* projectStartVid = nullptr;
+    PlanNode* dedupStartVid = nullptr;
+    getRunTimeRootTailPlanNode(projectStartVid, dedupStartVid);
+
     // todo(jmq) optimize condition
-    auto* loop = Loop::make(qctx_, nullptr, conjunct, buildMultiPairLoopCondition(steps_.steps));
+    auto* loop =
+        Loop::make(qctx_, dedupStartVid, conjunct, buildMultiPairLoopCondition(steps_.steps));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kMultiplePairShortest, {conjunct->outputVar()});
     dataCollect->setColNames({"_path"});
 
     root_ = dataCollect;
-    tail_ = loop;
+    tail_ = projectStartVid == nullptr ? loop : projectStartVid;
     return Status::OK();
 }
 
@@ -248,7 +282,7 @@ PlanNode* FindPathValidator::multiPairShortestPath(PlanNode* dep,
                                                    Starts& starts,
                                                    bool reverse) {
     std::string startVidsVar;
-    buildConstantInput(starts, startVidsVar);
+    buildStart(starts, startVidsVar, reverse);
 
     auto* gn = GetNeighbors::make(qctx_, dep, space_.id);
     gn->setSrc(starts.src);
