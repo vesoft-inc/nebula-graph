@@ -94,22 +94,13 @@ function run_test() {
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
     testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
 
-    ./ntr --debug_log=false $PROJ_DIR/tests/job/* &
-
     ./ntr \
         -n=8 \
         --dist=loadfile \
         --debug_log=false \
-        $testpath &
+        $testpath
 
-    for pid in $(jobs -p)
-    do
-        wait $pid
-        status=$?
-        if [ $status != 0 ];then
-            exit $status
-        fi
-    done
+    ./ntr --debug_log=false $PROJ_DIR/tests/job/*
 }
 
 function test_in_cluster() {
