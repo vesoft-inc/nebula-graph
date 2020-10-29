@@ -23,6 +23,15 @@ public:
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
 private:
+    static Expression* makeIndexFilter(const std::string& label,
+                                       const MapExpression* map,
+                                       QueryContext* qctx);
+
+    static Expression* makeIndexFilter(const std::string& label,
+                                       const std::string& alias,
+                                       const Expression* filter,
+                                       QueryContext* qctx);
+
     MatchVertexIndexSeekPlanner() = default;
 };
 }  // namespace graph
