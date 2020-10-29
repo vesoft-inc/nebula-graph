@@ -216,7 +216,7 @@ TEST_F(FoldConstantExprVisitorTest, TestMapExpr) {
 }
 
 TEST_F(FoldConstantExprVisitorTest, TestFoldFunction) {
-    // stateless
+    // pure function
     // abs(-1) + 1 => 1 + 1
     {
         auto expr = pool.add(addExpr(fnExpr("abs", {constantExpr(-1)}), constantExpr(1)));
@@ -226,7 +226,7 @@ TEST_F(FoldConstantExprVisitorTest, TestFoldFunction) {
         ASSERT_TRUE(visitor.canBeFolded());
         ASSERT_EQ(*expr, *expected) << expr->toString() << " vs. " << expected->toString();
     }
-    // stateful
+    // not pure function
     // rand32(4) + 1 => rand32(4) + 1
     {
         auto expr = pool.add(addExpr(fnExpr("rand32", {constantExpr(4)}), constantExpr(1)));

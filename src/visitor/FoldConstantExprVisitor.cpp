@@ -77,7 +77,7 @@ void FoldConstantExprVisitor::visit(FunctionCallExpression *expr) {
             }
         }
     }
-    auto result = FunctionManager::getStateless(*expr->name(), expr->args()->args().size());
+    auto result = FunctionManager::getIsPure(*expr->name(), expr->args()->args().size());
     if (!result.ok()) {
         canBeFolded = false;
     }
