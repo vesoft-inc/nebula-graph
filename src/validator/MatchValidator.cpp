@@ -482,6 +482,9 @@ Status MatchValidator::buildStep() {
     if (!edgeInfo.edgeTypes.empty()) {
         for (auto edgeType : edgeInfo.edgeTypes) {
             EdgeProp edgeProp;
+            if (edgeInfo.direction == Direction::IN_EDGE) {
+                edgeType = -edgeType;
+            }
             edgeProp.set_type(edgeType);
             edgeProps->emplace_back(std::move(edgeProp));
         }
