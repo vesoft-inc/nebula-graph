@@ -153,7 +153,7 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
                             const std::string& inputVarNameForGN,
                             PlanNode* projectFromJoin) {
     auto* gn = GetNeighbors::make(qctx_, dependencyForGn, space_.id);
-    gn->setSrc(src_);
+    gn->setSrc(from_.src);
     gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(inputVarNameForGN);
@@ -215,9 +215,9 @@ Status GoValidator::buildNStepsPlan() {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
     if (!from_.vids.empty() && from_.srcRef == nullptr) {
-        buildConstantInput(from_, startVidsVar, src_);
+        buildConstantInput(from_, startVidsVar);
     } else {
-        dedupStartVid = buildRuntimeInput();
+        dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
         startVidsVar = dedupStartVid->outputVar();
     }
 
@@ -227,7 +227,7 @@ Status GoValidator::buildNStepsPlan() {
     }
 
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space_.id);
-    gn->setSrc(src_);
+    gn->setSrc(from_.src);
     gn->setEdgeProps(buildEdgeDst());
     gn->setInputVar(startVidsVar);
     VLOG(1) << gn->outputVar();
@@ -274,9 +274,9 @@ Status GoValidator::buildMToNPlan() {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
     if (!from_.vids.empty() && from_.srcRef == nullptr) {
-        buildConstantInput(from_, startVidsVar, src_);
+        buildConstantInput(from_, startVidsVar);
     } else {
-        dedupStartVid = buildRuntimeInput();
+        dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
         startVidsVar = dedupStartVid->outputVar();
     }
 
@@ -286,7 +286,7 @@ Status GoValidator::buildMToNPlan() {
     }
 
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space_.id);
-    gn->setSrc(src_);
+    gn->setSrc(from_.src);
     gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(startVidsVar);
@@ -600,9 +600,9 @@ Status GoValidator::buildOneStepPlan() {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
     if (!from_.vids.empty() && from_.srcRef == nullptr) {
-        buildConstantInput(from_, startVidsVar, src_);
+        buildConstantInput(from_, startVidsVar);
     } else {
-        dedupStartVid = buildRuntimeInput();
+        dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
         startVidsVar = dedupStartVid->outputVar();
     }
 
