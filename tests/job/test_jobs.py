@@ -6,6 +6,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import re
+import time
 
 from nebula2.graph import ttypes
 from tests.common.nebula_test_suite import NebulaTestSuite
@@ -41,13 +42,13 @@ class TestJobs(NebulaTestSuite):
         expect_values = [[re.compile(r'\d+')]]
         self.check_result(resp, expect_values, is_regex=True)
 
+        time.sleep(3)
         resp = self.client.execute_query('SHOW JOBS;')
         self.check_resp_succeeded(resp)
         expect_col_names = ['Job Id', 'Command', 'Status', 'Start Time', 'Stop Time']
         self.check_column_names(resp, expect_col_names)
         expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT'), re.compile(r'\S+'), re.compile(r'\d+'), re.compile(r'\d+')],
                          [re.compile(r'\d+'), re.compile(r'FLUSH'), re.compile(r'\S+'), re.compile(r'\d+'), re.compile(r'\d+')]]
-        print(resp)
         self.search_result(resp, expect_values, is_regex=True)
 
         job_id = resp.data.rows[0].values[0].get_iVal()
