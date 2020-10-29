@@ -10,8 +10,20 @@
 
 namespace nebula {
 namespace graph {
+MatchValidator::MatchValidator(Sentence *sentence, QueryContext *context)
+    : TraversalValidator(sentence, context) {
+    anon_ = vctx_->anonVarGen();
+    matchAstCtx_ = std::make_unique<MatchAstContext>();
+    matchAstCtx_->sentence = sentence;
+    matchAstCtx_->qctx = context;
+}
+
+AstContext* MatchValidator::getAstContext() {
+    return matchAstCtx_.get();
+}
 
 Status MatchValidator::toPlan() {
+    /*
     switch (entry_) {
         case QueryEntry::kId:
             NG_RETURN_IF_ERROR(buildQueryById());
@@ -30,6 +42,7 @@ Status MatchValidator::toPlan() {
             break;
     }
     NG_RETURN_IF_ERROR(buildReturn());
+    */
 
     return Status::OK();
 }
@@ -66,8 +79,11 @@ Status MatchValidator::validatePath(const MatchPath *path) {
     auto *sm = qctx_->schemaMng();
     auto steps = path->steps();
 
-    nodeInfos_.resize(steps + 1);
-    edgeInfos_.resize(steps);
+    auto& nodeInfos = matchAstCtx_->nodeInfos;
+    auto& edgeInfos = matchAstCtx_->edgeInfos;
+
+    nodeInfos.resize(steps + 1);
+    edgeInfos.resize(steps);
     for (auto i = 0u; i <= steps; i++) {
         auto *node = path->node(i);
         auto *label = node->label();
@@ -79,13 +95,13 @@ Status MatchValidator::validatePath(const MatchPath *path) {
             if (!tid.ok()) {
                 return Status::Error("`%s': Unknown tag", label->c_str());
             }
-            nodeInfos_[i].tid = tid.value();
+            nodeInfos[i].tid = tid.value();
         }
         if (alias == nullptr) {
             anonymous = true;
             alias = saveObject(new std::string(anon_->getVar()));
         }
-        if (!aliases_.emplace(*alias, kNode).second) {
+        if (!matchAstCtx_->aliases.emplace(*alias, kNode).second) {
             return Status::Error("`%s': Redefined alias", alias->c_str());
         }
         Expression *filter = nullptr;
@@ -94,11 +110,11 @@ Status MatchValidator::validatePath(const MatchPath *path) {
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         }
-        nodeInfos_[i].anonymous = anonymous;
-        nodeInfos_[i].label = label;
-        nodeInfos_[i].alias = alias;
-        nodeInfos_[i].props = props;
-        nodeInfos_[i].filter = filter;
+        nodeInfos[i].anonymous = anonymous;
+        nodeInfos[i].label = label;
+        nodeInfos[i].alias = alias;
+        nodeInfos[i].props = props;
+        nodeInfos[i].filter = filter;
     }
 
     for (auto i = 0u; i < steps; i++) {
@@ -114,8 +130,8 @@ Status MatchValidator::validatePath(const MatchPath *path) {
                 if (!etype.ok()) {
                     return Status::SemanticError("`%s': Unknown edge type", type->c_str());
                 }
-                edgeInfos_[i].edgeTypes.emplace_back(etype.value());
-                edgeInfos_[i].types.emplace_back(*type);
+                edgeInfos[i].edgeTypes.emplace_back(etype.value());
+                edgeInfos[i].types.emplace_back(*type);
             }
         }
         auto *stepRange = edge->range();
@@ -129,7 +145,7 @@ Status MatchValidator::validatePath(const MatchPath *path) {
             anonymous = true;
             alias = saveObject(new std::string(anon_->getVar()));
         }
-        if (!aliases_.emplace(*alias, kEdge).second) {
+        if (!matchAstCtx_->aliases.emplace(*alias, kEdge).second) {
             return Status::SemanticError("`%s': Redefined alias", alias->c_str());
         }
         Expression *filter = nullptr;
@@ -138,11 +154,11 @@ Status MatchValidator::validatePath(const MatchPath *path) {
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         }
-        edgeInfos_[i].anonymous = anonymous;
-        edgeInfos_[i].direction = direction;
-        edgeInfos_[i].alias = alias;
-        edgeInfos_[i].props = props;
-        edgeInfos_[i].filter = filter;
+        edgeInfos[i].anonymous = anonymous;
+        edgeInfos[i].direction = direction;
+        edgeInfos[i].alias = alias;
+        edgeInfos[i].props = props;
+        edgeInfos[i].filter = filter;
     }
 
     return Status::OK();
@@ -150,8 +166,8 @@ Status MatchValidator::validatePath(const MatchPath *path) {
 
 
 Status MatchValidator::validateFilter(const Expression *filter) {
-    filter_ = ExpressionUtils::foldConstantExpr(filter);
-    NG_RETURN_IF_ERROR(validateAliases({filter_.get()}));
+    matchAstCtx_->filter = ExpressionUtils::foldConstantExpr(filter);
+    NG_RETURN_IF_ERROR(validateAliases({matchAstCtx_->filter.get()}));
 
     return Status::OK();
 }
@@ -179,18 +195,18 @@ Status MatchValidator::validateReturn(MatchReturn *ret) {
         };
 
         auto columns = new YieldColumns();
-        auto steps = edgeInfos_.size();
+        auto steps = matchAstCtx_->edgeInfos.size();
 
-        if (!nodeInfos_[0].anonymous) {
-            columns->addColumn(makeColumn(*nodeInfos_[0].alias));
+        if (!matchAstCtx_->nodeInfos[0].anonymous) {
+            columns->addColumn(makeColumn(*matchAstCtx_->nodeInfos[0].alias));
         }
 
         for (auto i = 0u; i < steps; i++) {
-            if (!edgeInfos_[i].anonymous) {
-                columns->addColumn(makeColumn(*edgeInfos_[i].alias));
+            if (!matchAstCtx_->edgeInfos[i].anonymous) {
+                columns->addColumn(makeColumn(*matchAstCtx_->edgeInfos[i].alias));
             }
-            if (!nodeInfos_[i+1].anonymous) {
-                columns->addColumn(makeColumn(*nodeInfos_[i+1].alias));
+            if (!matchAstCtx_->nodeInfos[i+1].anonymous) {
+                columns->addColumn(makeColumn(*matchAstCtx_->nodeInfos[i+1].alias));
             }
         }
 
@@ -234,7 +250,7 @@ Status MatchValidator::validateAliases(const std::vector<const Expression*> &exp
                 name = static_cast<const LabelAttributeExpression*>(refExpr)->left()->name();
             }
             DCHECK(name != nullptr);
-            if (aliases_.count(*name) != 1) {
+            if (matchAstCtx_->aliases.count(*name) != 1) {
                 return Status::SemanticError("Alias used but not defined: `%s'", name->c_str());
             }
         }
@@ -242,7 +258,10 @@ Status MatchValidator::validateAliases(const std::vector<const Expression*> &exp
     return Status::OK();
 }
 
-
+Status MatchValidator::analyzeStartPoint() {
+    return Status::OK();
+}
+/*
 Status MatchValidator::analyzeStartPoint() {
     // TODO(dutor) Originate from either node or edge at any position
     startFromNode_ = true;
@@ -383,7 +402,7 @@ MatchValidator::makeIndexFilter(const std::string &label,
     saveObject(root);
     return root;
 }
-
+*/
 
 StatusOr<Expression*>
 MatchValidator::makeSubFilter(const std::string &alias,
@@ -422,7 +441,7 @@ MatchValidator::makeSubFilter(const std::string &alias,
     return root;
 }
 
-
+/*
 Status MatchValidator::buildScanNode() {
     if (!startFromNode_) {
         return Status::SemanticError("Scan from edge not supported now");
@@ -738,7 +757,6 @@ Status MatchValidator::buildReturn() {
     return Status::OK();
 }
 
-
 Expression* MatchValidator::rewrite(const LabelExpression *label) const {
     auto *expr = new VariablePropertyExpression(
             new std::string(),
@@ -837,5 +855,6 @@ std::pair<std::string, Expression*> MatchValidator::constToAnnoVarVid(const Valu
     return std::pair<std::string, Expression*>(input, src);
 }
 
+*/
 }   // namespace graph
 }   // namespace nebula

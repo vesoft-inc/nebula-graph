@@ -6,12 +6,22 @@
 
 #include "planner/planners/MatchVertexIndexSeekPlanner.h"
 
+#include "validator/MatchValidator.h"
+
 namespace nebula {
 namespace graph {
 bool MatchVertexIndexSeekPlanner::match(AstContext* astCtx) {
-    // TODO:
-    UNUSED(astCtx);
-    return false;
+    if (astCtx->sentence->kind() != Sentence::Kind::kMatch) {
+        return false;
+    }
+    auto* matchCtx = static_cast<MatchAstContext*>(astCtx);
+
+    auto& head = matchCtx->nodeInfos[0];
+    if (head.label == nullptr) {
+        return false;
+    }
+
+    return true;
 }
 
 StatusOr<SubPlan> MatchVertexIndexSeekPlanner::transform(AstContext* astCtx) {

@@ -15,17 +15,54 @@
 namespace nebula {
 namespace graph {
 
+struct MatchAstContext;
+
 class MatchValidator final : public TraversalValidator {
 public:
-    MatchValidator(Sentence *sentence, QueryContext *context)
-        : TraversalValidator(sentence, context) {
-        anon_ = vctx_->anonVarGen();
-    }
+    using VertexProp = nebula::storage::cpp2::VertexProp;
+    using EdgeProp = nebula::storage::cpp2::EdgeProp;
+    using Direction = MatchEdge::Direction;
+    struct NodeInfo {
+        TagID                                   tid{0};
+        bool                                    anonymous{false};
+        const std::string                      *label{nullptr};
+        const std::string                      *alias{nullptr};
+        const MapExpression                    *props{nullptr};
+        Expression                             *filter{nullptr};
+    };
+
+    struct EdgeInfo {
+        bool                                    anonymous{false};
+        std::vector<EdgeType>                   edgeTypes;
+        MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
+        std::vector<std::string>                types;
+        const std::string                      *alias{nullptr};
+        const MapExpression                    *props{nullptr};
+        Expression                             *filter{nullptr};
+    };
+
+    enum AliasType {
+        kNode, kEdge, kPath
+    };
+
+    struct ScanInfo {
+        Expression                             *filter{nullptr};
+        int32_t                                 schemaId{0};
+    };
+
+    enum class QueryEntry {
+        kId,  // query start by id
+        kIndex  // query start by index scan
+    };
+
+    MatchValidator(Sentence *sentence, QueryContext *context);
 
 private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
+    AstContext* getAstContext() override;
 
     Status validatePath(const MatchPath *path);
 
@@ -85,43 +122,6 @@ private:
     }
 
 private:
-    using VertexProp = nebula::storage::cpp2::VertexProp;
-    using EdgeProp = nebula::storage::cpp2::EdgeProp;
-    using Direction = MatchEdge::Direction;
-    struct NodeInfo {
-        TagID                                   tid{0};
-        bool                                    anonymous{false};
-        const std::string                      *label{nullptr};
-        const std::string                      *alias{nullptr};
-        const MapExpression                    *props{nullptr};
-        Expression                             *filter{nullptr};
-    };
-
-    struct EdgeInfo {
-        bool                                    anonymous{false};
-        std::vector<EdgeType>                   edgeTypes;
-        MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
-        std::vector<std::string>                types;
-        const std::string                      *alias{nullptr};
-        const MapExpression                    *props{nullptr};
-        Expression                             *filter{nullptr};
-    };
-
-    enum AliasType {
-        kNode, kEdge, kPath
-    };
-
-    struct ScanInfo {
-        Expression                             *filter{nullptr};
-        int32_t                                 schemaId{0};
-    };
-
-    enum class QueryEntry {
-        kId,  // query start by id
-        kIndex  // query start by index scan
-    };
-
-private:
     bool                                        startFromNode_{true};
     int32_t                                     startIndex_{0};
     int32_t                                     curStep_{-1};
@@ -129,15 +129,19 @@ private:
     PlanNode                                   *prevStepRoot_{nullptr};
     Expression                                 *startExpr_{nullptr};
     Expression                                 *gnSrcExpr_{nullptr};
-    std::vector<NodeInfo>                       nodeInfos_;
-    std::vector<EdgeInfo>                       edgeInfos_;
-    ScanInfo                                    scanInfo_;
-    std::unordered_map<std::string, AliasType>  aliases_;
     AnonVarGenerator                           *anon_{nullptr};
-    std::unique_ptr<Expression>                 filter_;
     QueryEntry                                  entry_{QueryEntry::kId};
+
+    std::unique_ptr<MatchAstContext>            matchAstCtx_;
 };
 
+struct MatchAstContext final : AstContext {
+    std::vector<MatchValidator::NodeInfo>                       nodeInfos;
+    std::vector<MatchValidator::EdgeInfo>                       edgeInfos;
+    MatchValidator::ScanInfo                                    scanInfo;
+    std::unordered_map<std::string, MatchValidator::AliasType>  aliases;
+    std::unique_ptr<Expression>                                 filter;
+};
 }   // namespace graph
 }   // namespace nebula
 
