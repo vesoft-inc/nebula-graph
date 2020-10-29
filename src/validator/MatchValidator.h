@@ -75,6 +75,7 @@ private:
     // extract vids from filter
     StatusOr<std::pair<std::string, Expression*>> extractVids(const Expression *filter) const;
 
+    // TODO using unwind
     std::pair<std::string, Expression*> listToAnnoVarVid(const List &list) const;
     std::pair<std::string, Expression*> constToAnnoVarVid(const Value &list) const;
 
