@@ -20,6 +20,15 @@ public:
 
     static bool match(AstContext* astCtx);
 
+    static StatusOr<std::pair<std::string, Expression*>> extractVids(const Expression* filter,
+                                                                     QueryContext* qctx);
+
+    static std::pair<std::string, Expression*> listToAnnoVarVid(const List& list,
+                                                                QueryContext* qctx);
+
+    static std::pair<std::string, Expression*> constToAnnoVarVid(const Value& v,
+                                                                 QueryContext* qctx);
+
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
 private:

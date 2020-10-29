@@ -705,65 +705,6 @@ Status MatchValidator::buildProjectVertices() {
     return Status::OK();
 }
 
-StatusOr<std::pair<std::string, Expression*>>
-MatchValidator::extractVids(const Expression *filter) const {
-    QueryExpressionContext dummy;
-    if (filter->kind() == Expression::Kind::kRelIn) {
-        const auto *inExpr = static_cast<const RelationalExpression*>(filter);
-        if (inExpr->left()->kind() != Expression::Kind::kFunctionCall ||
-            inExpr->right()->kind() != Expression::Kind::kConstant) {
-            return Status::SemanticError("Not supported expression.");
-        }
-        const auto *fCallExpr = static_cast<const FunctionCallExpression*>(inExpr->left());
-        if (*fCallExpr->name() != "id") {
-            return Status::SemanticError("Require id limit.");
-        }
-        auto *constExpr = const_cast<Expression*>(inExpr->right());
-        return listToAnnoVarVid(constExpr->eval(dummy).getList());
-    } else if (filter->kind() == Expression::Kind::kRelEQ) {
-        const auto *eqExpr = static_cast<const RelationalExpression*>(filter);
-        if (eqExpr->left()->kind() != Expression::Kind::kFunctionCall ||
-            eqExpr->right()->kind() != Expression::Kind::kConstant) {
-            return Status::SemanticError("Not supported expression.");
-        }
-        const auto *fCallExpr = static_cast<const FunctionCallExpression*>(eqExpr->left());
-        if (*fCallExpr->name() != "id") {
-            return Status::SemanticError("Require id limit.");
-        }
-        auto *constExpr = const_cast<Expression*>(eqExpr->right());
-        return constToAnnoVarVid(constExpr->eval(dummy));
-    } else {
-        return Status::SemanticError("Not supported expression.");
-    }
-}
-
-std::pair<std::string, Expression*> MatchValidator::listToAnnoVarVid(const List &list) const {
-    auto input = vctx_->anonVarGen()->getVar();
-    DataSet vids({kVid});
-    QueryExpressionContext dummy;
-    for (auto &v : list.values) {
-        vids.emplace_back(Row({std::move(v)}));
-    }
-
-    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(vids))).finish());
-
-    auto *src = qctx_->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                                         new std::string(kVid));
-    return std::pair<std::string, Expression*>(input, src);
-}
-
-std::pair<std::string, Expression*> MatchValidator::constToAnnoVarVid(const Value &v) const {
-    auto input = vctx_->anonVarGen()->getVar();
-    DataSet vids({kVid});
-    QueryExpressionContext dummy;
-    vids.emplace_back(Row({v}));
-
-    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(vids))).finish());
-
-    auto *src = qctx_->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                                         new std::string(kVid));
-    return std::pair<std::string, Expression*>(input, src);
-}
 
 */
 }   // namespace graph
