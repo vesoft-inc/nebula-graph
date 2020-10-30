@@ -26,47 +26,50 @@ bool MatchVertexIdSeekPlanner::match(AstContext* astCtx) {
         return false;
     }
 
-    auto vidResult = extractVids(matchCtx->filter.get(), matchCtx->qctx);
-    UNUSED(vidResult);
+    auto vidResult = extractVids(matchCtx->filter.get());
+    if (!vidResult.ok()) {
+        return false;
+    }
+
+    matchCtx->ids = vidResult.value();
     return true;
 }
 
-StatusOr<std::pair<std::string, Expression *>> MatchVertexIdSeekPlanner::extractVids(
-    const Expression *filter,
-    QueryContext *qctx) {
+StatusOr<const Expression*> MatchVertexIdSeekPlanner::extractVids(
+    const Expression *filter) {
     QueryExpressionContext dummy;
     if (filter->kind() == Expression::Kind::kRelIn) {
         const auto *inExpr = static_cast<const RelationalExpression*>(filter);
         if (inExpr->left()->kind() != Expression::Kind::kFunctionCall ||
             inExpr->right()->kind() != Expression::Kind::kConstant) {
-            return Status::SemanticError("Not supported expression.");
+            return Status::Error("Not supported expression.");
         }
         const auto *fCallExpr = static_cast<const FunctionCallExpression*>(inExpr->left());
         if (*fCallExpr->name() != "id") {
-            return Status::SemanticError("Require id limit.");
+            return Status::Error("Require id limit.");
         }
         auto *constExpr = const_cast<Expression*>(inExpr->right());
-        return listToAnnoVarVid(constExpr->eval(dummy).getList(), qctx);
+        return constExpr;
     } else if (filter->kind() == Expression::Kind::kRelEQ) {
         const auto *eqExpr = static_cast<const RelationalExpression*>(filter);
         if (eqExpr->left()->kind() != Expression::Kind::kFunctionCall ||
             eqExpr->right()->kind() != Expression::Kind::kConstant) {
-            return Status::SemanticError("Not supported expression.");
+            return Status::Error("Not supported expression.");
         }
         const auto *fCallExpr = static_cast<const FunctionCallExpression*>(eqExpr->left());
         if (*fCallExpr->name() != "id") {
-            return Status::SemanticError("Require id limit.");
+            return Status::Error("Require id limit.");
         }
         auto *constExpr = const_cast<Expression*>(eqExpr->right());
-        return constToAnnoVarVid(constExpr->eval(dummy), qctx);
+        return constExpr;
     } else {
-        return Status::SemanticError("Not supported expression.");
+        return Status::Error("Not supported expression.");
     }
 }
 
 std::pair<std::string, Expression *> MatchVertexIdSeekPlanner::listToAnnoVarVid(
-    const List &list,
-    QueryContext *qctx) {
+    const List &list) {
+    auto *qctx = matchCtx_->qctx;
     auto input = qctx->vctx()->anonVarGen()->getVar();
     DataSet vids({kVid});
     QueryExpressionContext dummy;
@@ -78,12 +81,12 @@ std::pair<std::string, Expression *> MatchVertexIdSeekPlanner::listToAnnoVarVid(
 
     auto *src = qctx->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
                                                                         new std::string(kVid));
-    return std::pair<std::string, Expression*>(input, src);
+    return std::pair<std::string, Expression *>(input, src);
 }
 
 std::pair<std::string, Expression *> MatchVertexIdSeekPlanner::constToAnnoVarVid(
-    const Value &v,
-    QueryContext *qctx) {
+    const Value &v) {
+    auto *qctx = matchCtx_->qctx;
     auto input = qctx->vctx()->anonVarGen()->getVar();
     DataSet vids({kVid});
     QueryExpressionContext dummy;
@@ -93,7 +96,7 @@ std::pair<std::string, Expression *> MatchVertexIdSeekPlanner::constToAnnoVarVid
 
     auto *src = qctx->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
                                                                         new std::string(kVid));
-    return std::pair<std::string, Expression*>(input, src);
+    return std::pair<std::string, Expression *>(input, src);
 }
 
 StatusOr<SubPlan> MatchVertexIdSeekPlanner::transform(AstContext* astCtx) {

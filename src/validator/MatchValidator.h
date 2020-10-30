@@ -136,10 +136,11 @@ private:
 struct MatchAstContext final : AstContext {
     std::vector<MatchValidator::NodeInfo>                       nodeInfos;
     std::vector<MatchValidator::EdgeInfo>                       edgeInfos;
-    MatchValidator::ScanInfo                                    scanInfo;
     std::unordered_map<std::string, MatchValidator::AliasType>  aliases;
     std::unique_ptr<Expression>                                 filter;
     const YieldColumns                                         *yieldColumns;
+    MatchValidator::ScanInfo                                    scanInfo;
+    const Expression                                           *ids;
 };
 }   // namespace graph
 }   // namespace nebula

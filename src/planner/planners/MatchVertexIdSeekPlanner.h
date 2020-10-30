@@ -9,6 +9,7 @@
 
 #include "context/QueryContext.h"
 #include "planner/Planner.h"
+#include "validator/MatchValidator.h"
 
 namespace nebula {
 namespace graph {
@@ -20,19 +21,19 @@ public:
 
     static bool match(AstContext* astCtx);
 
-    static StatusOr<std::pair<std::string, Expression*>> extractVids(const Expression* filter,
-                                                                     QueryContext* qctx);
+    static StatusOr<const Expression*> extractVids(const Expression* filter);
 
-    static std::pair<std::string, Expression*> listToAnnoVarVid(const List& list,
-                                                                QueryContext* qctx);
+    std::pair<std::string, Expression*> listToAnnoVarVid(const List& list);
 
-    static std::pair<std::string, Expression*> constToAnnoVarVid(const Value& v,
-                                                                 QueryContext* qctx);
+    std::pair<std::string, Expression*> constToAnnoVarVid(const Value& v);
 
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
 
 private:
     MatchVertexIdSeekPlanner() = default;
+
+    SubPlan             subPlan_;
+    MatchAstContext*    matchCtx_;
 };
 }  // namespace graph
 }  // namespace nebula
