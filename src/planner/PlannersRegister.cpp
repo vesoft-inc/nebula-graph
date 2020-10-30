@@ -16,6 +16,7 @@ namespace nebula {
 namespace graph {
 void PlannersRegister::registPlanners() {
     registSequential();
+    registMatch();
 }
 
 void PlannersRegister::registSequential() {
