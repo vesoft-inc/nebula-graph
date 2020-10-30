@@ -12,7 +12,6 @@ namespace nebula {
 namespace graph {
 MatchValidator::MatchValidator(Sentence *sentence, QueryContext *context)
     : TraversalValidator(sentence, context) {
-    anon_ = vctx_->anonVarGen();
     matchCtx_ = std::make_unique<MatchAstContext>();
     matchCtx_->sentence = sentence;
     matchCtx_->qctx = context;
@@ -75,7 +74,7 @@ Status MatchValidator::validatePath(const MatchPath *path) {
         }
         if (alias == nullptr) {
             anonymous = true;
-            alias = saveObject(new std::string(anon_->getVar()));
+            alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
         }
         if (!matchCtx_->aliases.emplace(*alias, kNode).second) {
             return Status::Error("`%s': Redefined alias", alias->c_str());
@@ -119,7 +118,7 @@ Status MatchValidator::validatePath(const MatchPath *path) {
         }
         if (alias == nullptr) {
             anonymous = true;
-            alias = saveObject(new std::string(anon_->getVar()));
+            alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
         }
         if (!matchCtx_->aliases.emplace(*alias, kEdge).second) {
             return Status::SemanticError("`%s': Redefined alias", alias->c_str());

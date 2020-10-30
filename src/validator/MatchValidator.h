@@ -86,7 +86,6 @@ private:
     PlanNode                                   *prevStepRoot_{nullptr};
     Expression                                 *startExpr_{nullptr};
     Expression                                 *gnSrcExpr_{nullptr};
-    AnonVarGenerator                           *anon_{nullptr};
     QueryEntry                                  entry_{QueryEntry::kId};
 
     std::unique_ptr<MatchAstContext>            matchCtx_;

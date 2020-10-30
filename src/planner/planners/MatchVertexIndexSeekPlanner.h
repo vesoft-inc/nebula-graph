@@ -67,7 +67,6 @@ private:
     PlanNode                                   *prevStepRoot_{nullptr};
     Expression                                 *startExpr_{nullptr};
     Expression                                 *gnSrcExpr_{nullptr};
-    AnonVarGenerator                           *anon_{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula
