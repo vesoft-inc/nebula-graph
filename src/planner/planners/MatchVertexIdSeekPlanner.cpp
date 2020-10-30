@@ -17,7 +17,12 @@ bool MatchVertexIdSeekPlanner::match(AstContext* astCtx) {
     auto* matchCtx = static_cast<MatchAstContext*>(astCtx);
 
     auto& head = matchCtx->nodeInfos[0];
-    if (head.label == nullptr && matchCtx->filter == nullptr) {
+    if (matchCtx->filter == nullptr) {
+        return false;
+    }
+
+    if (head.label != nullptr) {
+        // TODO: Only support all tags for now.
         return false;
     }
 
@@ -104,7 +109,8 @@ StatusOr<SubPlan> MatchVertexIdSeekPlanner::transform(AstContext* astCtx) {
     NG_RETURN_IF_ERROR(buildQueryById());
     NG_RETURN_IF_ERROR(buildProjectVertices());
     NG_RETURN_IF_ERROR(buildReturn());
-    return Status::OK();
+    VLOG(1) << "root: " << subPlan_.root->kind() << " tail: " << subPlan_.tail->kind();
+    return subPlan_;
 }
 
 Status MatchVertexIdSeekPlanner::buildQueryById() {

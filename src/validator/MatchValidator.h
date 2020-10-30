@@ -58,8 +58,6 @@ public:
 private:
     Status validateImpl() override;
 
-    Status toPlan() override;
-
     AstContext* getAstContext() override;
 
     Status validatePath(const MatchPath *path);
@@ -72,47 +70,8 @@ private:
 
     Status analyzeStartPoint();
 
-    Status ananyzeFilterForIndexing();
-
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map) const;
-
-    Expression* makeIndexFilter(const std::string &label,
-                                const MapExpression *map) const;
-    Expression* makeIndexFilter(const std::string &label,
-                                const std::string &alias,
-                                const Expression *filter) const;
-
-    Status buildScanNode();
-
-    Status buildSteps();
-
-    Status buildStep();
-
-    Status buildGetTailVertices();
-
-    Status buildStepJoin();
-
-    Status buildTailJoin();
-
-    Status buildFilter();
-
-    Status buildReturn();
-
-    Expression* rewrite(const LabelExpression*) const;
-
-    Expression* rewrite(const LabelAttributeExpression*) const;
-
-    Status buildQueryById();
-
-    Status buildProjectVertices();
-
-    // extract vids from filter
-    StatusOr<std::pair<std::string, Expression*>> extractVids(const Expression *filter) const;
-
-    // TODO using unwind
-    std::pair<std::string, Expression*> listToAnnoVarVid(const List &list) const;
-    std::pair<std::string, Expression*> constToAnnoVarVid(const Value &list) const;
 
     template <typename T>
     T* saveObject(T *obj) const {

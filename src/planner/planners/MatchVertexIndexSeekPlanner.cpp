@@ -23,7 +23,7 @@ bool MatchVertexIndexSeekPlanner::match(AstContext* astCtx) {
     }
 
     Expression *filter = nullptr;
-    if (filter != nullptr) {
+    if (matchCtx->filter != nullptr) {
         filter = makeIndexFilter(*head.label, *head.alias, matchCtx->filter.get(), matchCtx->qctx);
     }
     if (filter == nullptr) {
@@ -387,6 +387,9 @@ Status MatchVertexIndexSeekPlanner::buildTailJoin() {
 
 
 Status MatchVertexIndexSeekPlanner::buildFilter() {
+    if (matchCtx_->filter == nullptr) {
+        return Status::OK();
+    }
     auto newFilter = matchCtx_->filter->clone();
     auto rewriter = [this] (const Expression *expr) {
         if (expr->kind() == Expression::Kind::kLabel) {
