@@ -53,12 +53,6 @@ private:
 
     Status buildFilter();
 
-    Status buildReturn();
-
-    Expression* rewrite(const LabelExpression*) const;
-
-    Expression* rewrite(const LabelAttributeExpression*) const;
-
     template <typename T>
     T* saveObject(T *obj) const {
         return matchCtx_->qctx->objPool()->add(obj);

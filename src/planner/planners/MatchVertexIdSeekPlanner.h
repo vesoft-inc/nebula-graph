@@ -28,8 +28,6 @@ private:
 
     MatchVertexIdSeekPlanner() = default;
 
-    Status buildReturn();
-
     std::pair<std::string, Expression*> listToAnnoVarVid(const List& list);
 
     std::pair<std::string, Expression*> constToAnnoVarVid(const Value& v);
@@ -37,10 +35,6 @@ private:
     Status buildQueryById();
 
     Status buildProjectVertices();
-
-    Expression* rewrite(const LabelExpression *label) const;
-
-    Expression* rewrite(const LabelAttributeExpression *la) const;
 
     SubPlan             subPlan_;
     MatchAstContext*    matchCtx_;

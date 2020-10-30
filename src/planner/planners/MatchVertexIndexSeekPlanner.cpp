@@ -6,6 +6,7 @@
 
 #include "planner/planners/MatchVertexIndexSeekPlanner.h"
 
+#include "planner/planners/MatchSolver.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
@@ -150,7 +151,7 @@ StatusOr<SubPlan> MatchVertexIndexSeekPlanner::transform(AstContext* astCtx) {
         NG_RETURN_IF_ERROR(buildTailJoin());
     }
     NG_RETURN_IF_ERROR(buildFilter());
-    NG_RETURN_IF_ERROR(buildReturn());
+    NG_RETURN_IF_ERROR(MatchSolver::buildReturn(matchCtx_, subPlan_));
     return subPlan_;
 }
 
@@ -231,7 +232,7 @@ Status MatchVertexIndexSeekPlanner::buildStep() {
 
     auto rewriter = [this] (const Expression *expr) {
         DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
-        return rewrite(static_cast<const LabelAttributeExpression*>(expr));
+        return MatchSolver::rewrite(static_cast<const LabelAttributeExpression*>(expr));
     };
 
     if (srcNodeInfo.filter != nullptr) {
@@ -305,7 +306,7 @@ Status MatchVertexIndexSeekPlanner::buildGetTailVertices() {
         auto newFilter = nodeInfo.filter->clone();
         RewriteMatchLabelVisitor visitor([this](auto *expr) {
                 DCHECK(expr->kind() == Expression::Kind::kLabelAttribute);
-                return rewrite(static_cast<const LabelAttributeExpression*>(expr));
+                return MatchSolver::rewrite(static_cast<const LabelAttributeExpression*>(expr));
             });
         newFilter->accept(&visitor);
         auto *filter =
@@ -393,9 +394,9 @@ Status MatchVertexIndexSeekPlanner::buildFilter() {
     auto newFilter = matchCtx_->filter->clone();
     auto rewriter = [this] (const Expression *expr) {
         if (expr->kind() == Expression::Kind::kLabel) {
-            return rewrite(static_cast<const LabelExpression*>(expr));
+            return MatchSolver::rewrite(static_cast<const LabelExpression*>(expr));
         } else {
-            return rewrite(static_cast<const LabelAttributeExpression*>(expr));
+            return MatchSolver::rewrite(static_cast<const LabelAttributeExpression*>(expr));
         }
     };
     RewriteMatchLabelVisitor visitor(std::move(rewriter));
@@ -408,66 +409,6 @@ Status MatchVertexIndexSeekPlanner::buildFilter() {
     subPlan_.root = node;
 
     return Status::OK();
-}
-
-
-Status MatchVertexIndexSeekPlanner::buildReturn() {
-    auto *yields = new YieldColumns();
-    std::vector<std::string> colNames;
-
-    for (auto *col : matchCtx_->yieldColumns->columns()) {
-        auto kind = col->expr()->kind();
-        YieldColumn *newColumn = nullptr;
-        if (kind == Expression::Kind::kLabel) {
-            auto *label = static_cast<const LabelExpression*>(col->expr());
-            newColumn = new YieldColumn(rewrite(label));
-        } else if (kind == Expression::Kind::kLabelAttribute) {
-            auto *la = static_cast<const LabelAttributeExpression*>(col->expr());
-            newColumn = new YieldColumn(rewrite(la));
-        } else {
-            auto newExpr = col->expr()->clone();
-            auto rewriter = [this] (const Expression *expr) {
-                if (expr->kind() == Expression::Kind::kLabel) {
-                    return rewrite(static_cast<const LabelExpression*>(expr));
-                } else {
-                    return rewrite(static_cast<const LabelAttributeExpression*>(expr));
-                }
-            };
-            RewriteMatchLabelVisitor visitor(std::move(rewriter));
-            newExpr->accept(&visitor);
-            newColumn = new YieldColumn(newExpr.release());
-        }
-        yields->addColumn(newColumn);
-        if (col->alias() != nullptr) {
-            colNames.emplace_back(*col->alias());
-        } else {
-            colNames.emplace_back(col->expr()->toString());
-        }
-    }
-
-    auto *project = Project::make(matchCtx_->qctx, subPlan_.root, yields);
-    project->setInputVar(subPlan_.root->outputVar());
-    project->setColNames(std::move(colNames));
-    subPlan_.root = project;
-
-    return Status::OK();
-}
-
-Expression* MatchVertexIndexSeekPlanner::rewrite(const LabelExpression *label) const {
-    auto *expr = new VariablePropertyExpression(
-            new std::string(),
-            new std::string(*label->name()));
-    return expr;
-}
-
-
-Expression* MatchVertexIndexSeekPlanner::rewrite(const LabelAttributeExpression *la) const {
-    auto *expr = new AttributeExpression(
-            new VariablePropertyExpression(
-                new std::string(),
-                new std::string(*la->left()->name())),
-            new LabelExpression(*la->right()->name()));
-    return expr;
 }
 }  // namespace graph
 }  // namespace nebula
