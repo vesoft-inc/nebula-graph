@@ -237,8 +237,10 @@ void FindPathValidator::getRunTimeRootTailPlanNode(PlanNode*& root, PlanNode*& t
             root = projectStartVid_;
             tail = fromDedupStartVid_;
         } else {
-            auto* temp = static_cast<SingleDependencyNode *>(toProjectStartVid_);
-            temp->dependsOn(fromDedupStartVid_);
+            auto* toProject = static_cast<SingleInputNode*>(toProjectStartVid_);
+            toProject->dependsOn(fromDedupStartVid_);
+            auto inputVarName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;
+            toProject->setInputVar(inputVarName);
             root = projectStartVid_;
             tail = toDedupStartVid_;
         }

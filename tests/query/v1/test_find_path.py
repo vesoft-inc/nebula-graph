@@ -379,3 +379,60 @@ class TestFindPath(NebulaTestSuite):
         }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_empty_result(resp)
+
+    def test_run_time_input(self):
+        stmt = '''YIELD "Yao Ming" AS src, "Tony Parker" AS dst
+                | FIND SHORTEST PATH FROM $-.src TO $-.dst OVER like, serve UPTO 5 STEPS'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names": ["_path"],
+            "rows": [
+                [b"Yao Ming", (b"like", 0, b"Shaquile O'Neal"), (b"like", 0, b"Tim Duncan"), (b"like", 0, b"Tony Parker")],
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
+
+        stmt = '''YIELD "Shaquile O\'Neal" AS src
+                | FIND SHORTEST PATH FROM $-.src TO "Manu Ginobili" OVER * UPTO 5 STEPS'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names": ["_path"],
+            "rows": [
+                [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"like", 0, b"Manu Ginobili")],
+                [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"teammate", 0, b"Manu Ginobili")],
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
+
+        stmt = '''YIELD "Manu Ginobili" AS dst
+                | FIND SHORTEST PATH FROM "Shaquile O\'Neal" TO $-.dst OVER * UPTO 5 STEPS'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names": ["_path"],
+            "rows": [
+                [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"like", 0, b"Manu Ginobili")],
+                [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"teammate", 0, b"Manu Ginobili")],
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
+
+        stmt = '''GO FROM "Yao Ming" over like YIELD like._dst AS src
+                | FIND SHORTEST PATH FROM $-.src TO "Tony Parker" OVER like, serve UPTO 5 STEPS'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names": ["_path"],
+            "rows": [
+               [b"Tracy McGrady", (b"like", 0, b"Rudy Gay"), (b"like", 0, b"LaMarcus Aldridge"), (b"like", 0, b"Tony Parker")],
+               [b"Shaquile O\'Neal", (b"like", 0, b"Tim Duncan"), (b"like", 0, b"Tony Parker")],
+            ]
+        }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
+
