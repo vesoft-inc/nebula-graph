@@ -21,16 +21,26 @@ public:
 
     static bool match(AstContext* astCtx);
 
+    StatusOr<SubPlan> transform(AstContext* astCtx) override;
+
+private:
     static StatusOr<const Expression*> extractVids(const Expression* filter);
+
+    MatchVertexIdSeekPlanner() = default;
+
+    Status buildReturn();
 
     std::pair<std::string, Expression*> listToAnnoVarVid(const List& list);
 
     std::pair<std::string, Expression*> constToAnnoVarVid(const Value& v);
 
-    StatusOr<SubPlan> transform(AstContext* astCtx) override;
+    Status buildQueryById();
 
-private:
-    MatchVertexIdSeekPlanner() = default;
+    Status buildProjectVertices();
+
+    Expression* rewrite(const LabelExpression *label) const;
+
+    Expression* rewrite(const LabelAttributeExpression *la) const;
 
     SubPlan             subPlan_;
     MatchAstContext*    matchCtx_;

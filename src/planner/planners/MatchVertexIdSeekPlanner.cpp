@@ -6,7 +6,7 @@
 
 #include "planner/planners/MatchVertexIdSeekPlanner.h"
 
-#include "validator/MatchValidator.h"
+#include "visitor/RewriteMatchLabelVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -37,7 +37,6 @@ bool MatchVertexIdSeekPlanner::match(AstContext* astCtx) {
 
 StatusOr<const Expression*> MatchVertexIdSeekPlanner::extractVids(
     const Expression *filter) {
-    QueryExpressionContext dummy;
     if (filter->kind() == Expression::Kind::kRelIn) {
         const auto *inExpr = static_cast<const RelationalExpression*>(filter);
         if (inExpr->left()->kind() != Expression::Kind::kFunctionCall ||
@@ -100,9 +99,101 @@ std::pair<std::string, Expression *> MatchVertexIdSeekPlanner::constToAnnoVarVid
 }
 
 StatusOr<SubPlan> MatchVertexIdSeekPlanner::transform(AstContext* astCtx) {
-    // TODO:
-    UNUSED(astCtx);
-    return Status::Error();
+    matchCtx_ = static_cast<MatchAstContext*>(astCtx);
+
+    NG_RETURN_IF_ERROR(buildQueryById());
+    NG_RETURN_IF_ERROR(buildProjectVertices());
+    NG_RETURN_IF_ERROR(buildReturn());
+    return Status::OK();
+}
+
+Status MatchVertexIdSeekPlanner::buildQueryById() {
+    auto* ids = const_cast<Expression*>(matchCtx_->ids);
+    QueryExpressionContext dummy;
+    const auto& value = ids->eval(dummy);
+    std::pair<std::string, Expression*> vidsResult;
+    if (value.isList()) {
+        vidsResult = listToAnnoVarVid(value.getList());
+    } else {
+        vidsResult = constToAnnoVarVid(value);
+    }
+
+    auto *ge =
+        GetVertices::make(matchCtx_->qctx, nullptr, matchCtx_->space.id, vidsResult.second, {}, {});
+    ge->setInputVar(vidsResult.first);
+    subPlan_.root = ge;
+    subPlan_.tail = ge;
+    return Status::OK();
+}
+
+Status MatchVertexIdSeekPlanner::buildProjectVertices() {
+    auto &srcNodeInfo = matchCtx_->nodeInfos.front();
+    auto *columns = matchCtx_->qctx->objPool()->makeAndAdd<YieldColumns>();
+    columns->addColumn(new YieldColumn(new VertexExpression()));
+    auto *project = Project::make(matchCtx_->qctx, subPlan_.root, columns);
+    project->setInputVar(subPlan_.root->outputVar());
+    project->setColNames({*srcNodeInfo.alias});
+    subPlan_.root = project;
+    return Status::OK();
+}
+
+Status MatchVertexIdSeekPlanner::buildReturn() {
+    auto *yields = new YieldColumns();
+    std::vector<std::string> colNames;
+
+    for (auto *col : matchCtx_->yieldColumns->columns()) {
+        auto kind = col->expr()->kind();
+        YieldColumn *newColumn = nullptr;
+        if (kind == Expression::Kind::kLabel) {
+            auto *label = static_cast<const LabelExpression*>(col->expr());
+            newColumn = new YieldColumn(rewrite(label));
+        } else if (kind == Expression::Kind::kLabelAttribute) {
+            auto *la = static_cast<const LabelAttributeExpression*>(col->expr());
+            newColumn = new YieldColumn(rewrite(la));
+        } else {
+            auto newExpr = col->expr()->clone();
+            auto rewriter = [this] (const Expression *expr) {
+                if (expr->kind() == Expression::Kind::kLabel) {
+                    return rewrite(static_cast<const LabelExpression*>(expr));
+                } else {
+                    return rewrite(static_cast<const LabelAttributeExpression*>(expr));
+                }
+            };
+            RewriteMatchLabelVisitor visitor(std::move(rewriter));
+            newExpr->accept(&visitor);
+            newColumn = new YieldColumn(newExpr.release());
+        }
+        yields->addColumn(newColumn);
+        if (col->alias() != nullptr) {
+            colNames.emplace_back(*col->alias());
+        } else {
+            colNames.emplace_back(col->expr()->toString());
+        }
+    }
+
+    auto *project = Project::make(matchCtx_->qctx, subPlan_.root, yields);
+    project->setInputVar(subPlan_.root->outputVar());
+    project->setColNames(std::move(colNames));
+    subPlan_.root = project;
+
+    return Status::OK();
+}
+
+Expression* MatchVertexIdSeekPlanner::rewrite(const LabelExpression *label) const {
+    auto *expr = new VariablePropertyExpression(
+            new std::string(),
+            new std::string(*label->name()));
+    return expr;
+}
+
+
+Expression* MatchVertexIdSeekPlanner::rewrite(const LabelAttributeExpression *la) const {
+    auto *expr = new AttributeExpression(
+            new VariablePropertyExpression(
+                new std::string(),
+                new std::string(*la->left()->name())),
+            new LabelExpression(*la->right()->name()));
+    return expr;
 }
 }  // namespace graph
 }  // namespace nebula

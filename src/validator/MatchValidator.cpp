@@ -684,26 +684,7 @@ Expression *MatchValidator::rewrite(const LabelAttributeExpression *la) const {
     return expr;
 }
 
-Status MatchValidator::buildQueryById() {
-    auto vidsResult = extractVids(filter_.get());
-    NG_RETURN_IF_ERROR(vidsResult);
-    auto *ge = GetVertices::make(qctx_, nullptr, space_.id, vidsResult.value().second, {}, {});
-    ge->setInputVar(vidsResult.value().first);
-    root_ = ge;
-    tail_ = ge;
-    return Status::OK();
-}
 
-Status MatchValidator::buildProjectVertices() {
-    auto &srcNodeInfo = nodeInfos_.front();
-    auto *columns = qctx_->objPool()->makeAndAdd<YieldColumns>();
-    columns->addColumn(new YieldColumn(new VertexExpression()));
-    auto *project = Project::make(qctx_, root_, columns);
-    project->setInputVar(root_->outputVar());
-    project->setColNames({*srcNodeInfo.alias});
-    root_ = project;
-    return Status::OK();
-}
 
 
 */

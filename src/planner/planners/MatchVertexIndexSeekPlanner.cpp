@@ -5,6 +5,7 @@
  */
 
 #include "planner/planners/MatchVertexIndexSeekPlanner.h"
+
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
