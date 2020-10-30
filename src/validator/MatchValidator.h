@@ -79,15 +79,6 @@ private:
     }
 
 private:
-    bool                                        startFromNode_{true};
-    int32_t                                     startIndex_{0};
-    int32_t                                     curStep_{-1};
-    PlanNode                                   *thisStepRoot_{nullptr};
-    PlanNode                                   *prevStepRoot_{nullptr};
-    Expression                                 *startExpr_{nullptr};
-    Expression                                 *gnSrcExpr_{nullptr};
-    QueryEntry                                  entry_{QueryEntry::kId};
-
     std::unique_ptr<MatchAstContext>            matchCtx_;
 };
 

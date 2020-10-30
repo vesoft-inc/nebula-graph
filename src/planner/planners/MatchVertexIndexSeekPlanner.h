@@ -65,7 +65,6 @@ private:
     int32_t                                     curStep_{-1};
     PlanNode                                   *thisStepRoot_{nullptr};
     PlanNode                                   *prevStepRoot_{nullptr};
-    Expression                                 *startExpr_{nullptr};
     Expression                                 *gnSrcExpr_{nullptr};
 };
 }  // namespace graph

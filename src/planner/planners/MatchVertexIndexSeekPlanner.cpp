@@ -230,7 +230,7 @@ Status MatchVertexIndexSeekPlanner::buildStep() {
 
     subPlan_.root = project;
 
-    auto rewriter = [this] (const Expression *expr) {
+    auto rewriter = [] (const Expression *expr) {
         DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
         return MatchSolver::rewrite(static_cast<const LabelAttributeExpression*>(expr));
     };
@@ -304,7 +304,7 @@ Status MatchVertexIndexSeekPlanner::buildGetTailVertices() {
 
     if (nodeInfo.filter != nullptr) {
         auto newFilter = nodeInfo.filter->clone();
-        RewriteMatchLabelVisitor visitor([this](auto *expr) {
+        RewriteMatchLabelVisitor visitor([](auto *expr) {
                 DCHECK(expr->kind() == Expression::Kind::kLabelAttribute);
                 return MatchSolver::rewrite(static_cast<const LabelAttributeExpression*>(expr));
             });
@@ -392,7 +392,7 @@ Status MatchVertexIndexSeekPlanner::buildFilter() {
         return Status::OK();
     }
     auto newFilter = matchCtx_->filter->clone();
-    auto rewriter = [this] (const Expression *expr) {
+    auto rewriter = [] (const Expression *expr) {
         if (expr->kind() == Expression::Kind::kLabel) {
             return MatchSolver::rewrite(static_cast<const LabelExpression*>(expr));
         } else {
