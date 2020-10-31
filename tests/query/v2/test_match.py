@@ -419,6 +419,38 @@ class TestMatch(NebulaTestSuite):
         }
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
+        # SKIP all rows
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY Age DESC, Name ASC
+                  SKIP 11
+                  LIMIT 3
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Age'],
+            'rows': []
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        # LIMIT 0
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY Age DESC, Name ASC
+                  LIMIT 0
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Age'],
+            'rows': []
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
 
         # ORDER BY expr
         stmt = '''
