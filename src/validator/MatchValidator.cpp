@@ -151,20 +151,6 @@ Status MatchValidator::validateFilter(const Expression *filter) {
 
 Status MatchValidator::validateReturn(MatchReturn *ret) {
     // `RETURN *': return all named nodes or edges
-    if (ret->isDistinct()) {
-        return Status::SemanticError("DISTINCT not supported");
-    }
-    if (ret->orderFactors() != nullptr) {
-        return Status::SemanticError("ORDER BY not supported");
-    }
-    if (ret->skip() != nullptr) {
-        return Status::SemanticError("SKIP not supported");
-    }
-    if (ret->limit() != nullptr) {
-        return Status::SemanticError("LIMIT not supported");
-    }
-
-    YieldColumns* columns = nullptr;
     if (ret->isAll()) {
         auto makeColumn = [] (const std::string &name) {
             auto *expr = new LabelExpression(name);
