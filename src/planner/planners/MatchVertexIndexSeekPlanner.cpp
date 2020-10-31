@@ -213,6 +213,13 @@ Status MatchVertexIndexSeekPlanner::buildStep() {
     auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     if (!edgeInfo.edgeTypes.empty()) {
         for (auto edgeType : edgeInfo.edgeTypes) {
+            if (edgeInfo.direction == MatchValidator::Direction::IN_EDGE) {
+                edgeType = -edgeType;
+            } else if (edgeInfo.direction == MatchValidator::Direction::BOTH) {
+                EdgeProp edgeProp;
+                edgeProp.set_type(-edgeType);
+                edgeProps->emplace_back(std::move(edgeProp));
+            }
             EdgeProp edgeProp;
             edgeProp.set_type(edgeType);
             edgeProps->emplace_back(std::move(edgeProp));
