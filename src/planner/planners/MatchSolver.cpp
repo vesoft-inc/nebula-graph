@@ -14,6 +14,8 @@ namespace graph {
 Status MatchSolver::buildReturn(MatchAstContext* matchCtx, SubPlan& subPlan) {
     auto *yields = new YieldColumns();
     std::vector<std::string> colNames;
+    auto *sentence = static_cast<MatchSentence*>(matchCtx->sentence);
+    PlanNode *current = subPlan.root;
 
     for (auto *col : matchCtx->yieldColumns->columns()) {
         auto kind = col->expr()->kind();
@@ -45,10 +47,71 @@ Status MatchSolver::buildReturn(MatchAstContext* matchCtx, SubPlan& subPlan) {
         }
     }
 
-    auto *project = Project::make(matchCtx->qctx, subPlan.root, yields);
-    project->setInputVar(subPlan.root->outputVar());
+    auto *project = Project::make(matchCtx->qctx, current, yields);
+    project->setInputVar(current->outputVar());
     project->setColNames(std::move(colNames));
-    subPlan.root = project;
+
+    current = project;
+    if (sentence->ret()->isDistinct()) {
+        auto *dedup = Dedup::make(matchCtx->qctx, current);
+        dedup->setInputVar(current->outputVar());
+        dedup->setColNames(current->colNames());
+        current = dedup;
+    }
+
+    if (sentence->ret()->orderFactors() != nullptr) {
+        auto inputColList = current->colNames();
+        std::unordered_map<std::string, size_t> inputColIndices;
+        for (auto i = 0u; i < inputColList.size(); i++) {
+            if (!inputColIndices.emplace(inputColList[i], i).second) {
+                return Status::SemanticError("Duplicated columns not allowed: %s",
+                        inputColList[i].c_str());
+            }
+        }
+
+        std::vector<std::pair<size_t, OrderFactor::OrderType>> indexedFactors;
+        auto *factors = sentence->ret()->orderFactors();
+        for (auto &factor : factors->factors()) {
+            if (factor->expr()->kind() != Expression::Kind::kLabel) {
+                return Status::SemanticError("Only column name can be used as sort item");
+            }
+            auto *name = static_cast<const LabelExpression*>(factor->expr())->name();
+            auto iter = inputColIndices.find(*name);
+            if (iter == inputColIndices.end()) {
+                return Status::SemanticError("Column `%s' not found", name->c_str());
+            }
+            indexedFactors.emplace_back(iter->second, factor->orderType());
+        }
+
+        auto *sort = Sort::make(matchCtx->qctx, current, std::move(indexedFactors));
+        sort->setInputVar(current->outputVar());
+        sort->setColNames(current->colNames());
+        current = sort;
+    }
+
+    auto *skipExpr = sentence->ret()->skip();
+    auto *limitExpr = sentence->ret()->limit();
+    if (skipExpr != nullptr || limitExpr != nullptr) {
+        int64_t offset = 0;
+        int64_t count = 0;
+        if (skipExpr != nullptr) {
+            auto *constant = static_cast<const ConstantExpression*>(skipExpr);
+            offset = constant->value().getInt();
+        }
+        if (limitExpr != nullptr) {
+            auto *constant = static_cast<const ConstantExpression*>(limitExpr);
+            count = constant->value().getInt();
+        }
+        if (count == 0) {
+            count = std::numeric_limits<int64_t>::max();
+        }
+        auto *limit = Limit::make(matchCtx->qctx, current, offset, count);
+        limit->setInputVar(current->outputVar());
+        limit->setColNames(current->colNames());
+        current = limit;
+    }
+
+    subPlan.root = current;
 
     return Status::OK();
 }

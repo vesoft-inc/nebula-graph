@@ -151,6 +151,7 @@ Status MatchValidator::validateFilter(const Expression *filter) {
 
 Status MatchValidator::validateReturn(MatchReturn *ret) {
     // `RETURN *': return all named nodes or edges
+    YieldColumns *columns = nullptr;
     if (ret->isAll()) {
         auto makeColumn = [] (const std::string &name) {
             auto *expr = new LabelExpression(name);
@@ -192,6 +193,29 @@ Status MatchValidator::validateReturn(MatchReturn *ret) {
         exprs.push_back(col->expr());
     }
     NG_RETURN_IF_ERROR(validateAliases(exprs));
+
+    auto *skipExpr = ret->skip();
+    auto *limitExpr = ret->limit();
+
+    if (skipExpr != nullptr) {
+        if (skipExpr->kind() != Expression::Kind::kConstant) {
+            return Status::SemanticError("SKIP should be an integral constant");
+        }
+        auto *constant = static_cast<const ConstantExpression*>(skipExpr);
+        if (!constant->value().isInt()) {
+            return Status::SemanticError("SKIP should be an integral constant");
+        }
+    }
+
+    if (limitExpr != nullptr) {
+        if (limitExpr->kind() != Expression::Kind::kConstant) {
+            return Status::SemanticError("LIMIT should be an integral constant");
+        }
+        auto *constant = static_cast<const ConstantExpression*>(limitExpr);
+        if (!constant->value().isInt()) {
+            return Status::SemanticError("LIMIT should be an integral constant");
+        }
+    }
 
     return Status::OK();
 }
