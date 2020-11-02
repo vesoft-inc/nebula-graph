@@ -13,7 +13,22 @@
 
 namespace nebula {
 namespace graph {
-class ProduceSemiShortestPath : public PlanNode {
+class ProduceSemiShortestPath : public SingleInputNode {
+public:
+    static ProduceSemiShortestPath* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ProduceSemiShortestPath(qctx, input));
+    }
+    void setStartsVid(std::vector<Value> starts);
+
+    std::vector<Value> getStartsVid() const {
+        return starts_;
+    }
+
+private:
+    ProduceSemiShortestPath(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kProduceSemiShortestPath, input) {}
+
+    std::vector<Value> starts_;
 };
 
 class BFSShortestPath : public SingleInputNode {
@@ -33,29 +48,50 @@ public:
         kBiBFS,
         kBiDijkstra,
         kFloyd,
-        kAllPath,
+        kAllPaths,
     };
 
     static ConjunctPath* make(QueryContext* qctx,
                               PlanNode* left,
                               PlanNode* right,
-                              PathKind pathKind) {
-        return qctx->objPool()->add(new ConjunctPath(qctx, left, right, pathKind));
+                              PathKind pathKind,
+                              size_t steps) {
+        return qctx->objPool()->add(new ConjunctPath(qctx, left, right, pathKind, steps));
     }
 
     PathKind pathKind() const {
         return pathKind_;
     }
 
+    size_t steps() const {
+        return steps_;
+    }
+
 private:
-    ConjunctPath(QueryContext* qctx, PlanNode* left, PlanNode* right, PathKind pathKind)
+    ConjunctPath(QueryContext* qctx,
+                 PlanNode* left,
+                 PlanNode* right,
+                 PathKind pathKind,
+                 size_t steps)
         : BiInputNode(qctx, Kind::kConjunctPath, left, right) {
         pathKind_ = pathKind;
+        steps_ = steps;
     }
 
     PathKind pathKind_;
+    size_t   steps_{0};
 };
 
+class ProduceAllPaths final : public SingleInputNode {
+ public:
+    static ProduceAllPaths* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ProduceAllPaths(qctx, input));
+    }
+
+ private:
+    ProduceAllPaths(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kProduceAllPaths, input) {}
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ALGO_H_

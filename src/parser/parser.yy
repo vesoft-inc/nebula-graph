@@ -110,7 +110,11 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     MatchNode                              *match_node;
     MatchEdge                              *match_edge;
     MatchEdgeProp                          *match_edge_prop;
+    MatchEdgeTypeList                      *match_edge_type_list;
     MatchReturn                            *match_return;
+    ReadingClause                          *reading_clause;
+    MatchClauseList                        *match_clause_list;
+    MatchStepRange                         *match_step_range;
 }
 
 /* destructors */
@@ -123,7 +127,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_STRING KW_FIXED_STRING KW_TIMESTAMP KW_DATE KW_DATETIME
 %token KW_GO KW_AS KW_TO KW_USE KW_SET KW_FROM KW_WHERE KW_ALTER
 %token KW_MATCH KW_INSERT KW_VALUES KW_YIELD KW_RETURN KW_CREATE KW_VERTEX
-%token KW_EDGE KW_EDGES KW_STEPS KW_OVER KW_UPTO KW_REVERSELY KW_SPACE KW_DELETE KW_FIND KW_REBUILD
+%token KW_EDGE KW_EDGES KW_STEPS KW_OVER KW_UPTO KW_REVERSELY KW_SPACE KW_DELETE KW_FIND
 %token KW_TAG KW_TAGS KW_UNION KW_INTERSECT KW_MINUS
 %token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOSTS KW_PART KW_PARTS KW_ADD
 %token KW_PARTITION_NUM KW_REPLICA_FACTOR KW_CHARSET KW_COLLATE KW_COLLATION KW_VID_TYPE
@@ -140,7 +144,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_SHORTEST KW_PATH
 %token KW_IS KW_NULL KW_DEFAULT
 %token KW_SNAPSHOT KW_SNAPSHOTS KW_LOOKUP
-%token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_SUBMIT
+%token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT
 %token KW_BIDIRECT
 %token KW_USER KW_USERS KW_ACCOUNT
 %token KW_PASSWORD KW_CHANGE KW_ROLE KW_ROLES
@@ -148,13 +152,13 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_OUT KW_BOTH KW_SUBGRAPH
 %token KW_EXPLAIN KW_PROFILE KW_FORMAT
 %token KW_CONTAINS
-%token KW_STARTS_WITH
-%token KW_ENDS_WITH
+%token KW_STARTS KW_ENDS
+%token KW_UNWIND KW_SKIP KW_OPTIONAL
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
 %token PIPE ASSIGN
-%token DOT COLON SEMICOLON L_ARROW R_ARROW AT
+%token DOT DOT_DOT COLON SEMICOLON L_ARROW R_ARROW AT
 %token ID_PROP TYPE_PROP SRC_ID_PROP DST_ID_PROP RANK_PROP INPUT_REF DST_REF SRC_REF
 
 /* token type specification */
@@ -232,13 +236,21 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expression_list> expression_list
 %type <map_item_list> map_item_list
 
+%type <match_path> match_path_pattern
 %type <match_path> match_path
 %type <match_node> match_node
 %type <match_edge> match_edge
 %type <match_edge_prop> match_edge_prop
 %type <match_return> match_return
+%type <expr> match_skip
+%type <expr> match_limit
 %type <strval> match_alias
-%type <strval> match_edge_type
+%type <match_edge_type_list> match_edge_type_list
+%type <match_edge_type_list> opt_match_edge_type_list
+%type <reading_clause> unwind_clause with_clause match_clause reading_clause
+%type <match_clause_list> reading_clauses reading_with_clause reading_with_clauses
+%type <match_step_range> match_step_range
+%type <order_factors> match_order_by
 
 %type <intval> legal_integer unary_integer rank port
 
@@ -289,12 +301,13 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <boolval> opt_if_not_exists
 %type <boolval> opt_if_exists
 
-%left OR KW_OR KW_XOR
-%left AND KW_AND
-%left EQ NE LT LE GT GE KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH
+%left KW_OR KW_XOR
+%left KW_AND
+%right KW_NOT
+%left EQ NE LT LE GT GE KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH
 %left PLUS MINUS
 %left STAR DIV MOD
-%right NOT KW_NOT
+%right NOT
 %nonassoc UNARY_PLUS
 %nonassoc UNARY_MINUS
 %nonassoc CASTING
@@ -369,11 +382,16 @@ unreserved_keyword
     | KW_ALL                { $$ = new std::string("all"); }
     | KW_SHORTEST           { $$ = new std::string("shortest"); }
     | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
-    | KW_NOT_CONTAINS       { $$ = new std::string("not_contains"); }
     | KW_CONTAINS           { $$ = new std::string("contains"); }
-    | KW_STARTS_WITH        { $$ = new std::string("starts_with"); }
-    | KW_ENDS_WITH          { $$ = new std::string("ends_with"); }
+    | KW_STARTS             { $$ = new std::string("starts"); }
+    | KW_ENDS               { $$ = new std::string("ends"); }
     | KW_VID_TYPE           { $$ = new std::string("vid_type"); }
+    | KW_LIMIT              { $$ = new std::string("limit"); }
+    | KW_SKIP               { $$ = new std::string("skip"); }
+    | KW_OPTIONAL           { $$ = new std::string("optional"); }
+    | KW_OFFSET             { $$ = new std::string("offset"); }
+    | KW_FORMAT             { $$ = new std::string("format"); }
+    | KW_PROFILE            { $$ = new std::string("profile"); }
     ;
 
 agg_function
@@ -470,11 +488,20 @@ expression
     | expression KW_CONTAINS expression {
         $$ = new RelationalExpression(Expression::Kind::kContains, $1, $3);
     }
+    | expression KW_NOT_CONTAINS expression {
+        $$ = new RelationalExpression(Expression::Kind::kNotContains, $1, $3);
+    }
     | expression KW_STARTS_WITH expression {
         $$ = new RelationalExpression(Expression::Kind::kStartsWith, $1, $3);
     }
+    | expression KW_NOT_STARTS_WITH expression {
+        $$ = new RelationalExpression(Expression::Kind::kNotStartsWith, $1, $3);
+    }
     | expression KW_ENDS_WITH expression {
         $$ = new RelationalExpression(Expression::Kind::kEndsWith, $1, $3);
+    }
+    | expression KW_NOT_ENDS_WITH expression {
+        $$ = new RelationalExpression(Expression::Kind::kNotEndsWith, $1, $3);
     }
     | expression EQ expression {
         $$ = new RelationalExpression(Expression::Kind::kRelEQ, $1, $3);
@@ -482,14 +509,8 @@ expression
     | expression NE expression {
         $$ = new RelationalExpression(Expression::Kind::kRelNE, $1, $3);
     }
-    | expression AND expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalAnd, $1, $3);
-    }
     | expression KW_AND expression {
         $$ = new LogicalExpression(Expression::Kind::kLogicalAnd, $1, $3);
-    }
-    | expression OR expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalOr, $1, $3);
     }
     | expression KW_OR expression {
         $$ = new LogicalExpression(Expression::Kind::kLogicalOr, $1, $3);
@@ -956,19 +977,101 @@ yield_sentence
     }
     ;
 
+unwind_clause
+    : KW_UNWIND expression KW_AS name_label {
+        $$ = new UnwindClause($2, $4);
+    }
+    ;
+
+with_clause
+    : KW_WITH yield_columns match_order_by match_skip match_limit where_clause {
+        $$ = new WithClause($2, $3, $4, $5, $6, false/*distinct*/);
+    }
+    | KW_WITH KW_DISTINCT yield_columns match_order_by match_skip match_limit where_clause {
+        $$ = new WithClause($3, $4, $5, $6, $7, true);
+    }
+    ;
+
+match_clause
+    : KW_MATCH match_path where_clause {
+        $$ = new MatchClause($2, $3, false/*optinal*/);
+    }
+    | KW_OPTIONAL KW_MATCH match_path where_clause {
+        $$ = new MatchClause($3, $4, true);
+    }
+    ;
+
+reading_clause
+    : unwind_clause {
+        $$ = $1;
+    }
+    | match_clause {
+        $$ = $1;
+    }
+    ;
+
+reading_clauses
+    : reading_clause {
+        $$ = new MatchClauseList();
+        $$->add($1);
+    }
+    | reading_clauses reading_clause {
+        $$ = $1;
+        $$->add($2);
+    }
+    ;
+
+reading_with_clause
+    : with_clause {
+        $$ = new MatchClauseList();
+        $$->add($1);
+    }
+    | reading_clauses with_clause {
+        $$ = $1;
+        $$->add($2);
+    }
+    ;
+
+reading_with_clauses
+    : reading_with_clause {
+        $$ = $1;
+    }
+    | reading_with_clauses reading_with_clause {
+        $$ = $1;
+        $$->add($2);
+    }
+    ;
+
 match_sentence
-    : KW_MATCH match_path where_clause match_return {
-        $$ = new MatchSentence($2, $3, $4);
+    : reading_clauses match_return {
+        $$ = new MatchSentence($1, $2);
+    }
+    | reading_with_clauses match_return {
+        $$ = new MatchSentence($1, $2);
+    }
+    | reading_with_clauses reading_clauses match_return {
+        $1->add($2);
+        $$ = new MatchSentence($1, $3);
+    }
+    ;
+
+match_path_pattern
+    : match_node {
+        $$ = new MatchPath($1);
+    }
+    | match_path_pattern match_edge match_node {
+        $$ = $1;
+        $$->add($2, $3);
     }
     ;
 
 match_path
-    : match_node {
-        $$ = new MatchPath($1);
-    }
-    | match_path match_edge match_node {
+    : match_path_pattern {
         $$ = $1;
-        $$->add($2, $3);
+    }
+    | name_label ASSIGN match_path_pattern {
+        $$ = $3;
+        $$->setAlias($1);
     }
     ;
 
@@ -981,6 +1084,9 @@ match_node
     }
     | L_PAREN match_alias COLON name_label map_expression R_PAREN {
         $$ = new MatchNode($2, $4, $5);
+    }
+    | L_PAREN match_alias map_expression R_PAREN {
+        $$ = new MatchNode($2, nullptr, $3);
     }
     ;
 
@@ -1012,29 +1118,98 @@ match_edge_prop
     : %empty {
         $$ = nullptr;
     }
-    | L_BRACKET match_alias match_edge_type R_BRACKET {
-        $$ = new MatchEdgeProp($2, $3, nullptr);
+    | L_BRACKET match_alias opt_match_edge_type_list match_step_range R_BRACKET {
+        $$ = new MatchEdgeProp($2, $3, $4, nullptr);
     }
-    | L_BRACKET match_alias match_edge_type map_expression R_BRACKET {
-        $$ = new MatchEdgeProp($2, $3, $4);
+    | L_BRACKET match_alias opt_match_edge_type_list match_step_range map_expression R_BRACKET {
+        $$ = new MatchEdgeProp($2, $3, $4, $5);
     }
     ;
 
-match_edge_type
+opt_match_edge_type_list
     : %empty {
         $$ = nullptr;
     }
-    | COLON name_label {
-        $$ = $2;
+    | match_edge_type_list {
+        $$ = $1;
+    }
+    ;
+
+match_step_range
+    : %empty {
+        $$ = nullptr;
+    }
+    | STAR {
+        $$ = new MatchStepRange(1);
+    }
+    | STAR legal_integer {
+        $$ = new MatchStepRange($2, $2);
+    }
+    | STAR DOT_DOT legal_integer {
+        $$ = new MatchStepRange(1, $3);
+    }
+    | STAR legal_integer DOT_DOT {
+        $$ = new MatchStepRange($2);
+    }
+    | STAR legal_integer DOT_DOT legal_integer {
+        $$ = new MatchStepRange($2, $4);
+    }
+    ;
+
+match_edge_type_list
+    : COLON name_label {
+        $$ = new MatchEdgeTypeList();
+        $$->add($2);
+    }
+    | match_edge_type_list PIPE name_label {
+        $$ = $1;
+        $$->add($3);
+    }
+    | match_edge_type_list PIPE COLON name_label {
+        $$ = $1;
+        $$->add($4);
     }
     ;
 
 match_return
-    : KW_RETURN yield_columns  {
-        $$ = new MatchReturn($2);
+    : KW_RETURN yield_columns match_order_by match_skip match_limit {
+        $$ = new MatchReturn($2, $3, $4, $5);
     }
-    | KW_RETURN STAR  {
-        $$ = new MatchReturn();
+    | KW_RETURN KW_DISTINCT yield_columns match_order_by match_skip match_limit {
+        $$ = new MatchReturn($3, $4, $5, $6, true);
+    }
+    | KW_RETURN STAR match_order_by match_skip match_limit {
+        $$ = new MatchReturn(nullptr, $3, $4, $5);
+    }
+    | KW_RETURN KW_DISTINCT STAR match_order_by match_skip match_limit {
+        $$ = new MatchReturn(nullptr, $4, $5, $6, true);
+    }
+    ;
+
+match_order_by
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_ORDER KW_BY order_factors {
+        $$ = $3;
+    }
+    ;
+
+match_skip
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_SKIP expression {
+        $$ = $2;
+    }
+    ;
+
+match_limit
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_LIMIT expression {
+        $$ = $2;
     }
     ;
 
@@ -1048,26 +1223,14 @@ lookup_sentence
     ;
 
 order_factor
-    : input_prop_expression {
+    : expression {
         $$ = new OrderFactor($1, OrderFactor::ASCEND);
     }
-    | input_prop_expression KW_ASC {
+    | expression KW_ASC {
         $$ = new OrderFactor($1, OrderFactor::ASCEND);
     }
-    | input_prop_expression KW_DESC {
+    | expression KW_DESC {
         $$ = new OrderFactor($1, OrderFactor::DESCEND);
-    }
-    | LABEL {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::ASCEND);
-    }
-    | LABEL KW_ASC {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::ASCEND);
-    }
-    | LABEL KW_DESC {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::DESCEND);
     }
     ;
 
@@ -1513,13 +1676,25 @@ describe_edge_index_sentence
 
 rebuild_tag_index_sentence
     : KW_REBUILD KW_TAG KW_INDEX name_label {
-        $$ = new RebuildTagIndexSentence($4, false);
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
+        sentence->addPara("rebuild");
+        sentence->addPara("tag");
+        sentence->addPara("index");
+        sentence->addPara(*$4);
+        delete $4;
+        $$ = sentence;
     }
     ;
 
 rebuild_edge_index_sentence
     : KW_REBUILD KW_EDGE KW_INDEX name_label {
-        $$ = new RebuildEdgeIndexSentence($4, false);
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
+        sentence->addPara("rebuild");
+        sentence->addPara("edge");
+        sentence->addPara("index");
+        sentence->addPara(*$4);
+        delete $4;
+        $$ = sentence;
     }
     ;
 
@@ -1859,8 +2034,10 @@ admin_job_sentence
     ;
 
 admin_job_operation
-    : KW_COMPACT { $$ = new std::string("compact"); }
-    | KW_FLUSH   { $$ = new std::string("flush"); }
+    : KW_COMPACT         { $$ = new std::string("compact"); }
+    | KW_FLUSH           { $$ = new std::string("flush"); }
+    | KW_REBUILD KW_TAG  { $$ = new std::string("rebuild tag"); }
+    | KW_REBUILD KW_EDGE { $$ = new std::string("rebuild edge"); }
     | admin_job_operation admin_job_para {
         $$ = new std::string(*$1 + " " + *$2);
     }
@@ -1925,12 +2102,6 @@ show_sentence
     }
     | KW_SHOW KW_CREATE KW_EDGE KW_INDEX name_label {
         $$ = new ShowCreateEdgeIndexSentence($5);
-    }
-    | KW_SHOW KW_TAG KW_INDEX KW_STATUS {
-        $$ = new ShowTagIndexesSentence();
-    }
-    | KW_SHOW KW_EDGE KW_INDEX KW_STATUS {
-        $$ = new ShowEdgeIndexesSentence();
     }
     | KW_SHOW KW_SNAPSHOTS {
         $$ = new ShowSnapshotsSentence();

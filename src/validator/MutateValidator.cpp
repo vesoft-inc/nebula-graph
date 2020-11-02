@@ -9,9 +9,11 @@
 #include "planner/Mutate.h"
 #include "planner/Query.h"
 #include "util/SchemaUtil.h"
+#include "visitor/RewriteSymExprVisitor.h"
 
 namespace nebula {
 namespace graph {
+
 Status InsertVerticesValidator::validateImpl() {
     spaceId_ = vctx_->whichSpace().id;
     auto status = Status::OK();
@@ -44,7 +46,7 @@ Status InsertVerticesValidator::check() {
     auto sentence = static_cast<InsertVerticesSentence*>(sentence_);
     rows_ = sentence->rows();
     if (rows_.empty()) {
-        return Status::Error("VALUES cannot be empty");
+        return Status::SemanticError("VALUES cannot be empty");
     }
 
     auto tagItems = sentence->tagItems();
@@ -57,14 +59,14 @@ Status InsertVerticesValidator::check() {
         auto tagStatus = qctx_->schemaMng()->toTagID(spaceId_, *tagName);
         if (!tagStatus.ok()) {
             LOG(ERROR) << "No schema found for " << *tagName;
-            return Status::Error("No schema found for `%s'", tagName->c_str());
+            return Status::SemanticError("No schema found for `%s'", tagName->c_str());
         }
 
         auto tagId = tagStatus.value();
         auto schema = qctx_->schemaMng()->getTagSchema(spaceId_, tagId);
         if (schema == nullptr) {
             LOG(ERROR) << "No schema found for " << *tagName;
-            return Status::Error("No schema found for `%s'", tagName->c_str());
+            return Status::SemanticError("No schema found for `%s'", tagName->c_str());
         }
 
         std::vector<std::string> names;
@@ -73,7 +75,7 @@ Status InsertVerticesValidator::check() {
         for (auto *it : props) {
             if (schema->getFieldIndex(*it) < 0) {
                 LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-                return Status::Error("Unknown column `%s' in schema", it->c_str());
+                return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
             }
             propSize_++;
             names.emplace_back(*it);
@@ -89,29 +91,27 @@ Status InsertVerticesValidator::prepareVertices() {
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propSize_ != row->values().size()) {
-            return Status::Error("Column count doesn't match value count.");
+            return Status::SemanticError("Column count doesn't match value count.");
         }
         if (!evaluableExpr(row->id())) {
             LOG(ERROR) << "Wrong vid expression `" << row->id()->toString() << "\"";
-            return Status::Error("Wrong vid expression `%s'", row->id()->toString().c_str());
+            return Status::SemanticError("Wrong vid expression `%s'",
+                                         row->id()->toString().c_str());
         }
         auto idStatus = SchemaUtil::toVertexID(row->id());
-        if (!idStatus.ok()) {
-            return idStatus.status();
-        }
+        NG_RETURN_IF_ERROR(idStatus);
         auto vertexId = std::move(idStatus).value();
 
         // check value expr
         for (auto &value : row->values()) {
             if (!evaluableExpr(value)) {
                 LOG(ERROR) << "Insert wrong value: `" << value->toString() << "'.";
-                return Status::Error("Insert wrong value: `%s'.", value->toString().c_str());
+                return Status::SemanticError("Insert wrong value: `%s'.",
+                                             value->toString().c_str());
             }
         }
         auto valsRet = SchemaUtil::toValueVec(row->values());
-        if (!valsRet.ok()) {
-            return valsRet.status();
-        }
+        NG_RETURN_IF_ERROR(valsRet);
         auto values = std::move(valsRet).value();
 
         std::vector<storage::cpp2::NewTag> tags(schemas_.size());
@@ -125,9 +125,7 @@ Status InsertVerticesValidator::prepareVertices() {
             for (auto index = 0u; index < propNames.size(); index++) {
                 auto schemaType = schema->getFieldType(propNames[index]);
                 auto valueStatus = SchemaUtil::toSchemaValue(schemaType, values[handleValueNum]);
-                if (!valueStatus.ok()) {
-                    return valueStatus.status();
-                }
+                NG_RETURN_IF_ERROR(valueStatus);
                 props.emplace_back(std::move(valueStatus).value());
                 handleValueNum++;
             }
@@ -146,19 +144,9 @@ Status InsertVerticesValidator::prepareVertices() {
 
 Status InsertEdgesValidator::validateImpl() {
     spaceId_ = vctx_->whichSpace().id;
-    auto status = Status::OK();
-    do {
-        status = check();
-        if (!status.ok()) {
-            break;
-        }
-
-        status = prepareEdges();
-        if (!status.ok()) {
-            break;
-        }
-    } while (false);
-    return status;
+    NG_RETURN_IF_ERROR(check());
+    NG_RETURN_IF_ERROR(prepareEdges());
+    return Status::OK();
 }
 
 Status InsertEdgesValidator::toPlan() {
@@ -177,9 +165,7 @@ Status InsertEdgesValidator::check() {
     auto sentence = static_cast<InsertEdgesSentence*>(sentence_);
     overwritable_ = sentence->overwritable();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, *sentence->edge());
-    if (!edgeStatus.ok()) {
-        return edgeStatus.status();
-    }
+    NG_RETURN_IF_ERROR(edgeStatus);
     edgeType_ = edgeStatus.value();
     auto props = sentence->properties();
     rows_ = sentence->rows();
@@ -187,14 +173,14 @@ Status InsertEdgesValidator::check() {
     schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
     if (schema_ == nullptr) {
         LOG(ERROR) << "No schema found for " << sentence->edge();
-        return Status::Error("No schema found for `%s'", sentence->edge()->c_str());
+        return Status::SemanticError("No schema found for `%s'", sentence->edge()->c_str());
     }
 
     // Check prop name is in schema
     for (auto *it : props) {
         if (schema_->getFieldIndex(*it) < 0) {
             LOG(ERROR) << "Unknown column `" << *it << "' in schema";
-            return Status::Error("Unknown column `%s' in schema", it->c_str());
+            return Status::SemanticError("Unknown column `%s' in schema", it->c_str());
         }
         propNames_.emplace_back(*it);
     }
@@ -207,27 +193,25 @@ Status InsertEdgesValidator::prepareEdges() {;
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propNames_.size() != row->values().size()) {
-            return Status::Error("Column count doesn't match value count.");
+            return Status::SemanticError("Column count doesn't match value count.");
         }
         if (!evaluableExpr(row->srcid())) {
             LOG(ERROR) << "Wrong src vid expression `" << row->srcid()->toString() << "\"";
-            return Status::Error("Wrong src vid expression `%s'", row->srcid()->toString().c_str());
+            return Status::SemanticError("Wrong src vid expression `%s'",
+                                         row->srcid()->toString().c_str());
         }
 
         if (!evaluableExpr(row->dstid())) {
             LOG(ERROR) << "Wrong dst vid expression `" << row->dstid()->toString() << "\"";
-            return Status::Error("Wrong dst vid expression `%s'", row->dstid()->toString().c_str());
+            return Status::SemanticError("Wrong dst vid expression `%s'",
+                                         row->dstid()->toString().c_str());
         }
 
         auto idStatus = SchemaUtil::toVertexID(row->srcid());
-        if (!idStatus.ok()) {
-            return idStatus.status();
-        }
+        NG_RETURN_IF_ERROR(idStatus);
         auto srcId = std::move(idStatus).value();
         idStatus = SchemaUtil::toVertexID(row->dstid());
-        if (!idStatus.ok()) {
-            return idStatus.status();
-        }
+        NG_RETURN_IF_ERROR(idStatus);
         auto dstId = std::move(idStatus).value();
 
         int64_t rank = row->rank();
@@ -236,22 +220,19 @@ Status InsertEdgesValidator::prepareEdges() {;
         for (auto &value : row->values()) {
             if (!evaluableExpr(value)) {
                 LOG(ERROR) << "Insert wrong value: `" << value->toString() << "'.";
-                return Status::Error("Insert wrong value: `%s'.", value->toString().c_str());
+                return Status::SemanticError("Insert wrong value: `%s'.",
+                                             value->toString().c_str());
             }
         }
 
         auto valsRet = SchemaUtil::toValueVec(row->values());
-        if (!valsRet.ok()) {
-            return valsRet.status();
-        }
+        NG_RETURN_IF_ERROR(valsRet);
         auto values = std::move(valsRet).value();
         std::vector<Value> props;
         for (auto index = 0u; index < propNames_.size(); index++) {
             auto schemaType = schema_->getFieldType(propNames_[index]);
             auto valueStatus = SchemaUtil::toSchemaValue(schemaType, values[index]);
-            if (!valueStatus.ok()) {
-                return valueStatus.status();
-            }
+            NG_RETURN_IF_ERROR(valueStatus);
             props.emplace_back(std::move(valueStatus).value());
         }
 
@@ -282,36 +263,28 @@ Status DeleteVerticesValidator::validateImpl() {
     if (sentence->isRef()) {
         vidRef_ = sentence->vidRef();
         auto type = deduceExprType(vidRef_);
-        if (!type.ok()) {
-            return type.status();
-        }
+        NG_RETURN_IF_ERROR(type);
         if (type.value() != Value::Type::STRING) {
             std::stringstream ss;
             ss << "The vid should be string type, "
                << "but input is `" << type.value() << "'";
-            return Status::Error(ss.str());
+            return Status::SemanticError(ss.str());
         }
     } else {
         auto vIds = sentence->vidList()->vidList();
         for (auto vId : vIds) {
             auto idStatus = SchemaUtil::toVertexID(vId);
-            if (!idStatus.ok()) {
-                return idStatus.status();
-            }
+            NG_RETURN_IF_ERROR(idStatus);
             vertices_.emplace_back(std::move(idStatus).value());
         }
     }
 
     auto ret = qctx_->schemaMng()->getAllEdge(spaceId_);
-    if (!ret.ok()) {
-        return ret.status();
-    }
+    NG_RETURN_IF_ERROR(ret);
     edgeNames_ = std::move(ret).value();
     for (auto &name : edgeNames_) {
         auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, name);
-        if (!edgeStatus.ok()) {
-            return edgeStatus.status();
-        }
+        NG_RETURN_IF_ERROR(edgeStatus);
         auto edgeType = edgeStatus.value();
         edgeTypes_.emplace_back(edgeType);
     }
@@ -412,17 +385,12 @@ Status DeleteEdgesValidator::validateImpl() {
     auto sentence = static_cast<DeleteEdgesSentence*>(sentence_);
     auto spaceId = vctx_->whichSpace().id;
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId, *sentence->edge());
-    if (!edgeStatus.ok()) {
-        return edgeStatus.status();
-    }
+    NG_RETURN_IF_ERROR(edgeStatus);
     auto edgeType = edgeStatus.value();
     if (sentence->isRef()) {
         edgeKeyRefs_.emplace_back(sentence->edgeKeyRef());
         (*edgeKeyRefs_.begin())->setType(new ConstantExpression(edgeType));
-        auto status = checkInput();
-        if (!status.ok()) {
-            return status;
-        }
+        NG_RETURN_IF_ERROR(checkInput());
     } else {
         return buildEdgeKeyRef(sentence->edgeKeys()->keys(), edgeType);
     }
@@ -438,13 +406,9 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
         Row row;
         storage::cpp2::EdgeKey key;
         auto srcIdStatus = SchemaUtil::toVertexID(edgeKey->srcid());
-        if (!srcIdStatus.ok()) {
-            return srcIdStatus.status();
-        }
+        NG_RETURN_IF_ERROR(srcIdStatus);
         auto dstIdStatus = SchemaUtil::toVertexID(edgeKey->dstid());
-        if (!dstIdStatus.ok()) {
-            return dstIdStatus.status();
-        }
+        NG_RETURN_IF_ERROR(dstIdStatus);
 
         auto srcId = std::move(srcIdStatus).value();
         auto dstId = std::move(dstIdStatus).value();
@@ -482,11 +446,11 @@ Status DeleteEdgesValidator::checkInput() {
     }
 
     if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
-        return Status::Error("Not support both input and variable.");
+        return Status::SemanticError("Not support both input and variable.");
     }
 
     if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
-        return Status::Error("Only one variable allowed to use.");
+        return Status::SemanticError("Only one variable allowed to use.");
     }
 
     auto status = deduceExprType(edgeKeyRef->srcid());
@@ -599,7 +563,7 @@ Status UpdateValidator::getUpdateProps() {
     if (symNames.size() != 1) {
         auto errorMsg = "Multi schema name: " + folly::join(",", symNames);
         LOG(ERROR) << errorMsg;
-        return Status::Error(std::move(errorMsg));
+        return Status::SemanticError(std::move(errorMsg));
     }
     if (symName != nullptr) {
         name_ = *symName;
@@ -614,7 +578,7 @@ Status UpdateValidator::checkAndResetSymExpr(Expression* inExpr,
     bool hasWrongType = false;
     auto symExpr = rewriteSymExpr(inExpr, symName, hasWrongType, isEdge_);
     if (hasWrongType) {
-        return Status::Error("Has wrong expr in `%s'",
+        return Status::SemanticError("Has wrong expr in `%s'",
                              inExpr->toString().c_str());
     }
     if (symExpr != nullptr) {
@@ -626,135 +590,15 @@ Status UpdateValidator::checkAndResetSymExpr(Expression* inExpr,
 }
 
 // rewrite the expr which has kSymProperty expr to toExpr
-std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression* expr,
+std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression *expr,
                                                             const std::string &sym,
                                                             bool &hasWrongType,
                                                             bool isEdge) {
-    switch (expr->kind()) {
-        case Expression::Kind::kVertex:
-        case Expression::Kind::kEdge:
-        case Expression::Kind::kConstant: {
-            break;
-        }
-        case Expression::Kind::kAdd:
-        case Expression::Kind::kMinus:
-        case Expression::Kind::kMultiply:
-        case Expression::Kind::kDivision:
-        case Expression::Kind::kMod:
-        case Expression::Kind::kRelEQ:
-        case Expression::Kind::kRelNE:
-        case Expression::Kind::kRelLT:
-        case Expression::Kind::kRelLE:
-        case Expression::Kind::kRelGT:
-        case Expression::Kind::kRelGE:
-        case Expression::Kind::kRelIn:
-        case Expression::Kind::kRelNotIn:
-        case Expression::Kind::kContains:
-        case Expression::Kind::kStartsWith:
-        case Expression::Kind::kEndsWith:
-        case Expression::Kind::kLogicalAnd:
-        case Expression::Kind::kLogicalOr:
-        case Expression::Kind::kLogicalXor: {
-            auto biExpr = static_cast<BinaryExpression*>(expr);
-            auto left = rewriteSymExpr(biExpr->left(), sym, hasWrongType, isEdge);
-            if (left != nullptr) {
-                biExpr->setLeft(left.release());
-            }
-            auto right = rewriteSymExpr(biExpr->right(), sym, hasWrongType, isEdge);
-            if (right != nullptr) {
-                biExpr->setRight(right.release());
-            }
-            break;
-        }
-        case Expression::Kind::kUnaryPlus:
-        case Expression::Kind::kUnaryNegate:
-        case Expression::Kind::kUnaryNot: {
-            auto unaryExpr = static_cast<UnaryExpression*>(expr);
-            auto rewrite = rewriteSymExpr(unaryExpr->operand(), sym, hasWrongType, isEdge);
-            if (rewrite != nullptr) {
-                unaryExpr->setOperand(rewrite.release());
-            }
-            break;
-        }
-        case Expression::Kind::kFunctionCall: {
-            auto funcExpr = static_cast<FunctionCallExpression*>(expr);
-            auto* argList = const_cast<ArgumentList*>(funcExpr->args());
-            auto args = argList->moveArgs();
-            for (auto iter = args.begin(); iter < args.end(); ++iter) {
-                auto rewrite = rewriteSymExpr(iter->get(), sym, hasWrongType, isEdge);
-                if (rewrite != nullptr) {
-                    *iter = std::move(rewrite);
-                }
-            }
-            argList->setArgs(std::move(args));
-            break;
-        }
-        case Expression::Kind::kTypeCasting: {
-            auto castExpr = static_cast<TypeCastingExpression*>(expr);
-            auto operand = rewriteSymExpr(castExpr->operand(), sym, hasWrongType, isEdge);
-            if (operand != nullptr) {
-                castExpr->setOperand(operand.release());
-            }
-            break;
-        }
-        case Expression::Kind::kLabelAttribute: {
-            auto laExpr = static_cast<LabelAttributeExpression*>(expr);
-            if (isEdge) {
-                return std::make_unique<EdgePropertyExpression>(
-                        new std::string(*laExpr->left()->name()),
-                        new std::string(*laExpr->right()->name()));
-            } else {
-                hasWrongType = true;
-                return nullptr;
-            }
-        }
-        case Expression::Kind::kLabel: {
-            auto labelExpr = static_cast<LabelExpression*>(expr);
-            if (isEdge) {
-                return std::make_unique<EdgePropertyExpression>(
-                        new std::string(sym), new std::string(*labelExpr->name()));
-            } else {
-                return std::make_unique<SourcePropertyExpression>(
-                        new std::string(sym), new std::string(*labelExpr->name()));
-            }
-        }
-        case Expression::Kind::kSrcProperty: {
-            if (isEdge) {
-                hasWrongType = true;
-            }
-            break;
-        }
-        case Expression::Kind::kEdgeProperty: {
-            if (!isEdge) {
-                hasWrongType = true;
-            }
-            break;
-        }
-        case Expression::Kind::kDstProperty:
-        case Expression::Kind::kTagProperty:
-        case Expression::Kind::kEdgeSrc:
-        case Expression::Kind::kEdgeRank:
-        case Expression::Kind::kEdgeDst:
-        case Expression::Kind::kEdgeType:
-        case Expression::Kind::kUUID:
-        case Expression::Kind::kVar:
-        case Expression::Kind::kVersionedVar:
-        case Expression::Kind::kVarProperty:
-        case Expression::Kind::kInputProperty:
-        case Expression::Kind::kUnaryIncr:
-        case Expression::Kind::kUnaryDecr:
-        case Expression::Kind::kList:   // FIXME(dutor)
-        case Expression::Kind::kSet:
-        case Expression::Kind::kMap:
-        case Expression::Kind::kAttribute:
-        case Expression::Kind::kSubscript: {
-            hasWrongType = true;
-            break;
-        }
-    }
-    return nullptr;
+    RewriteSymExprVisitor visitor(sym, isEdge);
+    expr->accept(&visitor);
+    hasWrongType = visitor.hasWrongType();
+    return std::move(visitor).expr();
 }
-
 
 Status UpdateVertexValidator::validateImpl() {
     auto sentence = static_cast<UpdateVertexSentence*>(sentence_);
@@ -768,7 +612,7 @@ Status UpdateVertexValidator::validateImpl() {
     auto ret = qctx_->schemaMng()->toTagID(spaceId_, name_);
     if (!ret.ok()) {
         LOG(ERROR) << "No schema found for " << name_;
-        return Status::Error("No schema found for `%s'", name_.c_str());
+        return Status::SemanticError("No schema found for `%s'", name_.c_str());
     }
     tagId_ = ret.value();
     return Status::OK();
@@ -810,7 +654,7 @@ Status UpdateEdgeValidator::validateImpl() {
     auto ret = qctx_->schemaMng()->toEdgeType(spaceId_, name_);
     if (!ret.ok()) {
         LOG(ERROR) << "No schema found for " << name_;
-        return Status::Error("No schema found for `%s'", name_.c_str());
+        return Status::SemanticError("No schema found for `%s'", name_.c_str());
     }
     edgeType_ = ret.value();
     return Status::OK();

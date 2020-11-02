@@ -32,9 +32,21 @@ private:
 
     PlanNode* bfs(PlanNode* dep, const Starts& starts, bool reverse);
 
+    PlanNode* multiPairShortestPath(PlanNode* dep, const Starts& starts, bool reverse);
+
+    Status multiPairPlan();
+
+    Expression* buildMultiPairLoopCondition(uint32_t steps);
+
     Expression* buildBfsLoopCondition(uint32_t steps, const std::string& pathVar);
 
     GetNeighbors::EdgeProps buildEdgeKey(bool reverse);
+
+    Status allPairPaths();
+
+    PlanNode* allPaths(PlanNode* dep, const Starts& starts, bool reverse);
+
+    Expression* buildAllPathsLoopCondition(uint32_t steps);
 
 private:
     bool            isShortest_{false};

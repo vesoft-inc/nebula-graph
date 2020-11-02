@@ -15,6 +15,8 @@ nebula_add_library(
     FoldConstantExprVisitor.cpp
     RewriteLabelAttrVisitor.cpp
     RewriteInputPropVisitor.cpp
+    RewriteSymExprVisitor.cpp
+    RewriteMatchLabelVisitor.cpp
 )
 
 nebula_add_subdirectory(test)

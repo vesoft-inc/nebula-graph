@@ -50,6 +50,7 @@ set(GRAPH_TEST_LIB
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_agg_function_obj>
+    $<TARGET_OBJECTS:common_time_utils_obj>
 )
 
 nebula_add_test(
@@ -73,22 +74,6 @@ nebula_add_test(
         schema_test
     SOURCES
         SchemaTest.cpp
-    OBJECTS
-        ${GRAPH_TEST_LIB}
-    LIBRARIES
-        ${THRIFT_LIBRARIES}
-        proxygenhttpserver
-        proxygenlib
-        wangle
-        gtest
-        gtest_main
-)
-
-nebula_add_test(
-    NAME
-        index_test
-    SOURCES
-        IndexTest.cpp
     OBJECTS
         ${GRAPH_TEST_LIB}
     LIBRARIES

@@ -16,6 +16,10 @@ folly::Future<Status> ConjunctPathExecutor::execute() {
     switch (conjunct->pathKind()) {
         case ConjunctPath::PathKind::kBiBFS:
             return bfsShortestPath();
+        case ConjunctPath::PathKind::kAllPaths:
+            return allPaths();
+        case ConjunctPath::PathKind::kFloyd:
+            return floydShortestPath();
         default:
             LOG(FATAL) << "Not implement.";
     }
@@ -166,7 +170,8 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
     return results;
 }
 
-folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
+
+folly::Future<Status> ConjunctPathExecutor::floydShortestPath() {
     auto* conjunct = asNode<ConjunctPath>(node());
     auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
     const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
@@ -174,62 +179,186 @@ folly::Future<Status> ConjunctPathExecutor::conjunctPath() {
     VLOG(1) << "left input: " << conjunct->leftInputVar()
             << " right input: " << conjunct->rightInputVar();
     DCHECK(!!lIter);
+    auto steps = conjunct->steps();
+    count_++;
 
     DataSet ds;
     ds.colNames = conjunct->colNames();
 
-    std::multimap<Value, const Path*> table;
+    CostPathsValMap forwardCostPathMap;
     for (; lIter->valid(); lIter->next()) {
-        auto& dst = lIter->getColumn(kVid);
-        auto& path = lIter->getColumn("path");
-        if (path.isPath() && !path.getPath().steps.empty()) {
-            VLOG(1) << "Forward dst: " << dst;
-            table.emplace(dst, &path.getPath());
+        auto& dst = lIter->getColumn(kDst);
+        auto& src = lIter->getColumn(kSrc);
+        auto cost = lIter->getColumn("cost");
+
+        auto& pathList = lIter->getColumn("paths");
+        if (!pathList.isList()) {
+            continue;
         }
+        auto& srcPaths = forwardCostPathMap[dst];
+        srcPaths.emplace(src, CostPaths(cost, pathList.getList()));
     }
 
     if (rHist.size() >= 2) {
         auto previous = rHist[rHist.size() - 2].iter();
-        if (findPath(previous.get(), table, ds)) {
-            VLOG(1) << "Meet odd length path.";
-            return finish(ResultBuilder().value(Value(std::move(ds))).finish());
-        }
+        VLOG(1) << "Find odd length path.";
+        findPath(previous.get(), forwardCostPathMap, ds);
     }
 
-    auto latest = rHist.back().iter();
-    findPath(latest.get(), table, ds);
+    if (count_ * 2 < steps) {
+        VLOG(1) << "Find even length path.";
+        auto latest = rHist.back().iter();
+        findPath(latest.get(), forwardCostPathMap, ds);
+    }
+
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
-bool ConjunctPathExecutor::findPath(Iterator* iter,
-                                    std::multimap<Value, const Path*>& table,
+Status ConjunctPathExecutor::conjunctPath(const List& forwardPaths,
+                                          const List& backwardPaths,
+                                          Value& cost,
+                                          DataSet& ds) {
+    for (auto& i : forwardPaths.values) {
+        if (!i.isPath()) {
+            return Status::Error("Forward Path Type Error");
+        }
+        for (auto& j : backwardPaths.values) {
+            if (!j.isPath()) {
+                return Status::Error("Forward Path Type Error");
+            }
+            Row row;
+            auto forward = i.getPath();
+            auto backward = j.getPath();
+            VLOG(1) << "Forward path:" << forward;
+            VLOG(1) << "Backward path:" << backward;
+            backward.reverse();
+            VLOG(1) << "Backward reverse path:" << backward;
+            forward.append(std::move(backward));
+            VLOG(1) << "Found path: " << forward;
+            row.values.emplace_back(std::move(forward));
+            row.values.emplace_back(cost);
+            ds.rows.emplace_back(std::move(row));
+        }
+    }
+    return Status::OK();
+}
+
+bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
+                                    CostPathsValMap& forwardPathTable,
                                     DataSet& ds) {
     bool found = false;
-    for (; iter->valid(); iter->next()) {
-        auto& dst = iter->getColumn(kVid);
+    for (; backwardPathIter->valid(); backwardPathIter->next()) {
+        auto& dst = backwardPathIter->getColumn(kDst);
+        auto& endVid = backwardPathIter->getColumn(kSrc);
+        auto cost = backwardPathIter->getColumn("cost");
         VLOG(1) << "Backward dst: " << dst;
-        auto& path = iter->getColumn("path");
-        if (path.isPath()) {
-            auto paths = table.equal_range(dst);
-            if (paths.first != paths.second) {
-                for (auto i = paths.first; i != paths.second; ++i) {
-                    Row row;
-                    auto forward = *i->second;
-                    Path backward = path.getPath();
-                    VLOG(1) << "Forward path:" << forward;
-                    VLOG(1) << "Backward path:" << backward;
-                    backward.reverse();
-                    VLOG(1) << "Backward reverse path:" << backward;
-                    forward.append(std::move(backward));
-                    VLOG(1) << "Found path: " << forward;
-                    row.values.emplace_back(std::move(forward));
-                    ds.rows.emplace_back(std::move(row));
-                }
-                found = true;
+        auto& pathList = backwardPathIter->getColumn("paths");
+        if (!pathList.isList()) {
+            continue;
+        }
+        auto forwardPaths = forwardPathTable.find(dst);
+        if (forwardPaths == forwardPathTable.end()) {
+            continue;
+        }
+        for (auto& srcPaths : forwardPaths->second) {
+            auto& startVid = srcPaths.first;
+            auto totalCost = cost + srcPaths.second.cost_;
+            if (historyCostMap_.find(startVid) != historyCostMap_.end() &&
+                historyCostMap_[startVid].find(endVid) != historyCostMap_[startVid].end() &&
+                historyCostMap_[startVid][endVid] < totalCost) {
+                continue;
             }
+            // update history cost
+            auto& hist = historyCostMap_[startVid];
+            hist[endVid] = totalCost;
+            conjunctPath(srcPaths.second.paths_, pathList.getList(), totalCost, ds);
+            found = true;
         }
     }
     return found;
 }
+
+folly::Future<Status> ConjunctPathExecutor::allPaths() {
+    auto* conjunct = asNode<ConjunctPath>(node());
+    auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
+    const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
+    VLOG(1) << "current: " << node()->outputVar();
+    VLOG(1) << "left input: " << conjunct->leftInputVar()
+            << " right input: " << conjunct->rightInputVar();
+    VLOG(1) << "right hist size: " << rHist.size();
+    DCHECK(!!lIter);
+    auto steps = conjunct->steps();
+    count_++;
+
+    DataSet ds;
+    ds.colNames = conjunct->colNames();
+
+    std::unordered_map<Value, const List&> table;
+    for (; lIter->valid(); lIter->next()) {
+        auto& dst = lIter->getColumn(kVid);
+        auto& path = lIter->getColumn("path");
+        if (path.isList()) {
+            VLOG(1) << "Forward dst: " << dst;
+            table.emplace(dst, path.getList());
+        }
+    }
+
+    if (rHist.size() >= 2) {
+        VLOG(1) << "Find odd length path.";
+        auto previous = rHist[rHist.size() - 2].iter();
+        findAllPaths(previous.get(), table, ds);
+    }
+
+    if (count_ * 2 <= steps) {
+        VLOG(1) << "Find even length path.";
+        auto latest = rHist.back().iter();
+        findAllPaths(latest.get(), table, ds);
+    }
+
+    return finish(ResultBuilder().value(Value(std::move(ds))).finish());
+}
+
+bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
+                                        std::unordered_map<Value, const List&>& forwardPathsTable,
+                                        DataSet& ds) {
+    bool found = false;
+    for (; backwardPathsIter->valid(); backwardPathsIter->next()) {
+        auto& dst = backwardPathsIter->getColumn(kVid);
+        VLOG(1) << "Backward dst: " << dst;
+        auto& pathList = backwardPathsIter->getColumn("path");
+        if (!pathList.isList()) {
+            continue;
+        }
+        for (const auto& path : pathList.getList().values) {
+            if (!path.isPath()) {
+                continue;
+            }
+            auto forwardPaths = forwardPathsTable.find(dst);
+            if (forwardPaths == forwardPathsTable.end()) {
+                continue;
+            }
+
+            for (const auto& i : forwardPaths->second.values) {
+                if (!i.isPath()) {
+                    continue;
+                }
+                Row row;
+                auto forward = i.getPath();
+                Path backward = path.getPath();
+                VLOG(1) << "Forward path:" << forward;
+                VLOG(1) << "Backward path:" << backward;
+                backward.reverse();
+                VLOG(1) << "Backward reverse path:" << backward;
+                forward.append(std::move(backward));
+                VLOG(1) << "Found path: " << forward;
+                row.values.emplace_back(std::move(forward));
+                ds.rows.emplace_back(std::move(row));
+            }  // `i'
+            found = true;
+        }  // `path'
+    }  // `backwardPathsIter'
+    return found;
+}
+
 }  // namespace graph
 }  // namespace nebula

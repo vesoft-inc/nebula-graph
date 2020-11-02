@@ -525,6 +525,7 @@ private:
     }
 
 private:
+    // Remain result when true
     Expression*                 condition_{nullptr};
 };
 
@@ -841,6 +842,8 @@ public:
         kRowBasedMove,
         kMToN,
         kBFSShortest,
+        kAllPaths,
+        kMultiplePairShortest,
     };
 
     static DataCollect* make(QueryContext* qctx,

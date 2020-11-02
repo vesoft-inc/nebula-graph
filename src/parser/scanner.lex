@@ -13,8 +13,6 @@
     yylloc->step();                     \
     yylloc->columns(yyleng);
 
-using TokenType = nebula::GraphParser::token;
-
 static constexpr size_t MAX_STRING = 4096;
 
 %}
@@ -170,8 +168,15 @@ BOTH                        ([Bb][Oo][Tt][Hh])
 SUBGRAPH                    ([Ss][Uu][Bb][Gg][Rr][Aa][Pp][Hh])
 CONTAINS                    ([Cc][Oo][Nn][Tt][Aa][Ii][Nn][Ss])
 NOT_CONTAINS                ({NOT}{blanks}{CONTAINS})
-STARTS_WITH                 ([Ss][Tt][Aa][Rr][Tt][Ss]{blanks}[Ww][Ii][Tt][Hh])
-ENDS_WITH                   ([Ee][Nn][Dd][Ss]{blanks}[Ww][Ii][Tt][Hh])
+STARTS                      ([Ss][Tt][Aa][Rr][Tt][Ss])
+STARTS_WITH                 ({STARTS}{blanks}{WITH})
+NOT_STARTS_WITH             ({NOT}{blanks}{STARTS}{blanks}{WITH})
+ENDS                        ([Ee][Nn][Dd][Ss])
+ENDS_WITH                   ({ENDS}{blanks}{WITH})
+NOT_ENDS_WITH               ({NOT}{blanks}{ENDS}{blanks}{WITH})
+UNWIND                      ([Uu][Nn][Ww][Ii][Nn][Dd])
+SKIP                        ([Ss][Kk][Ii][Pp])
+OPTIONAL                    ([Oo][Pp][Tt][Ii][Oo][Nn][Aa][Ll])
 
 LABEL                       ([a-zA-Z][_a-zA-Z0-9]*)
 DEC                         ([0-9])
@@ -342,14 +347,22 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 {SUBGRAPH}                  { return TokenType::KW_SUBGRAPH; }
 {CONTAINS}                  { return TokenType::KW_CONTAINS; }
 {NOT_CONTAINS}              { return TokenType::KW_NOT_CONTAINS; }
+{STARTS}                    { return TokenType::KW_STARTS;}
 {STARTS_WITH}               { return TokenType::KW_STARTS_WITH;}
+{NOT_STARTS_WITH}           { return TokenType::KW_NOT_STARTS_WITH;}
+{ENDS}                      { return TokenType::KW_ENDS;}
 {ENDS_WITH}                 { return TokenType::KW_ENDS_WITH;}
+{NOT_ENDS_WITH}             { return TokenType::KW_NOT_ENDS_WITH;}
+{UNWIND}                    { return TokenType::KW_UNWIND;}
+{SKIP}                      { return TokenType::KW_SKIP;}
+{OPTIONAL}                  { return TokenType::KW_OPTIONAL;}
 
 
 {TRUE}                      { yylval->boolval = true; return TokenType::BOOL; }
 {FALSE}                     { yylval->boolval = false; return TokenType::BOOL; }
 
 "."                         { return TokenType::DOT; }
+".."                        { return TokenType::DOT_DOT; }
 ","                         { return TokenType::COMMA; }
 ":"                         { return TokenType::COLON; }
 ";"                         { return TokenType::SEMICOLON; }
@@ -368,9 +381,8 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
 ">="                        { return TokenType::GE; }
 "=="                        { return TokenType::EQ; }
 "!="                        { return TokenType::NE; }
+"<>"                        { return TokenType::NE; }
 
-"||"                        { return TokenType::OR; }
-"&&"                        { return TokenType::AND; }
 "|"                         { return TokenType::PIPE; }
 
 "="                         { return TokenType::ASSIGN; }
@@ -420,84 +432,29 @@ FORMAT                      ([Ff][Oo][Rr][Mm][Aa][Tt])
                                 return TokenType::IPV4;
                             }
 0[Xx]{HEX}+                 {
-                                if (yyleng > 18) {
-                                    auto i = 2;
-                                    while (i < yyleng && yytext[i] == '0') {
-                                        i++;
-                                    }
-                                    if (yyleng - i > 16) {
-                                        throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                    }
-                                }
-                                uint64_t val = 0;
-                                sscanf(yytext, "%lx", &val);
-                                if (val > MAX_ABS_INTEGER) {
-                                    throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                }
-                                if (val == MAX_ABS_INTEGER && !hasUnaryMinus()) {
-                                    throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                }
-                                yylval->intval = static_cast<int64_t>(val);
-                                return TokenType::INTEGER;
+                                return parseHex();
                             }
 0{OCT}+                     {
-                                if (yyleng > 22) {
-                                    auto i = 1;
-                                    while (i < yyleng && yytext[i] == '0') {
-                                        i++;
-                                    }
-                                    if (yyleng - i > 22 ||
-                                            (yyleng - i == 22 && yytext[i] != '1')) {
-                                        throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                    }
-                                }
-                                uint64_t val = 0;
-                                sscanf(yytext, "%lo", &val);
-                                if (val > MAX_ABS_INTEGER) {
-                                    throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                }
-                                if (val == MAX_ABS_INTEGER && !hasUnaryMinus()) {
-                                    throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                }
-                                yylval->intval = static_cast<int64_t>(val);
-                                return TokenType::INTEGER;
-                            }
-{DEC}+                      {
-                                try {
-                                    folly::StringPiece text(yytext, yyleng);
-                                    uint64_t val = folly::to<uint64_t>(text);
-                                    if (val > MAX_ABS_INTEGER) {
-                                        throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                    }
-                                    if (val == MAX_ABS_INTEGER && !hasUnaryMinus()) {
-                                        throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                    }
-                                    yylval->intval = val;
-                                } catch (...) {
-                                    throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                }
-                                return TokenType::INTEGER;
-                            }
-{DEC}+\.{DEC}*              {
-                                try {
-                                    folly::StringPiece text(yytext, yyleng);
-                                    yylval->doubleval = folly::to<double>(text);
-                                } catch (...) {
-                                    throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                }
-                                return TokenType::DOUBLE;
-                            }
-{DEC}*\.{DEC}+              {
-                                try {
-                                    folly::StringPiece text(yytext, yyleng);
-                                    yylval->doubleval = folly::to<double>(text);
-                                } catch (...) {
-                                    throw GraphParser::syntax_error(*yylloc, "Out of range:");
-                                }
-                                return TokenType::DOUBLE;
+                                return parseOct();
                             }
 
-\${LABEL}                   { yylval->strval = new std::string(yytext + 1, yyleng - 1); return TokenType::VARIABLE; }
+{DEC}+\.\.                  {
+                                yyless(yyleng - 2);
+                                return parseDecimal();
+                            }
+{DEC}+                      {
+                                return parseDecimal();
+                            }
+
+{DEC}*\.{DEC}+              |
+{DEC}+\.{DEC}*              {
+                                return parseDouble();
+                            }
+
+\${LABEL}                   {
+                                yylval->strval = new std::string(yytext + 1, yyleng - 1);
+                                return TokenType::VARIABLE;
+                            }
 
 
 \"                          { BEGIN(DQ_STR); sbufPos_ = 0; }
