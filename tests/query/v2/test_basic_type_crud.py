@@ -58,18 +58,30 @@ class TestBasicTypeCrud(NebulaTestSuite):
 
         time.sleep(self.delay)
         # insert invalid type
-        resp = self.execute('INSERT VERTEX tag_date(f_date, f_time, f_datetime) VALUES "test":("2017-03-04", "23:01:00", 1234)')
+        resp = self.execute('''
+                            INSERT VERTEX tag_date(f_date, f_time, f_datetime)
+                            VALUES "test":("2017-03-04", "23:01:00", 1234)
+                            ''')
         self.check_resp_failed(resp)
 
-        resp = self.execute('INSERT EDGE edge_date(f_date, f_time, f_datetime) VALUES "test_src"->"test_dst":(true, "23:01:00", "2017-03-04T22:30:40")')
+        resp = self.execute('''
+                            INSERT EDGE edge_date(f_date, f_time, f_datetime)
+                            VALUES "test_src"->"test_dst":(true, "23:01:00", "2017-03-04T22:30:40")
+                            ''')
         self.check_resp_failed(resp)
 
         # insert date
         # TODO(shylock) add us
-        resp = self.execute('INSERT VERTEX tag_date(f_date, f_time, f_datetime) VALUES "test":(date("2017-03-04"), time("23:01:00"), datetime("2017-03-04T22:30:40"))')
+        resp = self.execute('''
+                            INSERT VERTEX tag_date(f_date, f_time, f_datetime)
+                            VALUES "test":(date("2017-03-04"), time("23:01:00"), datetime("2017-03-04T22:30:40"))
+                            ''')
         self.check_resp_succeeded(resp)
 
-        resp = self.execute('INSERT EDGE edge_date(f_date, f_time, f_datetime) VALUES "test_src"->"test_dst":(date("2017-03-04"), time("23:01:00"), datetime("2017-03-04T22:30:40"))')
+        resp = self.execute('''
+                            INSERT EDGE edge_date(f_date, f_time, f_datetime)
+                            VALUES "test_src"->"test_dst":(date("2017-03-04"), time("23:01:00"), datetime("2017-03-04T22:30:40"))
+                            ''')
         self.check_resp_succeeded(resp)
 
         # query
@@ -84,12 +96,20 @@ class TestBasicTypeCrud(NebulaTestSuite):
         self.check_out_of_order_result(resp, result)
 
         # update
-        resp = self.execute_query('UPDATE VERTEX "test" SET tag_date.f_date = Date("2018-03-04"), tag_date.f_time = Time("22:01:00"), tag_date.f_datetime = DateTime("2018-03-04T22:30:40") YIELD f_date, f_time, f_datetime')
+        resp = self.execute_query('''
+                                  UPDATE VERTEX "test"
+                                  SET tag_date.f_date = Date("2018-03-04"), tag_date.f_time = Time("22:01:00"), tag_date.f_datetime = DateTime("2018-03-04T22:30:40")
+                                  YIELD f_date, f_time, f_datetime
+                                  ''')
         self.check_resp_succeeded(resp)
         result = [[CommonTtypes.Date(2018, 3, 4), CommonTtypes.Time(22, 1, 0, 0), CommonTtypes.DateTime(2018, 3, 4, 22, 30, 40, 0)]]
         self.check_out_of_order_result(resp, result)
 
-        resp = self.execute_query('UPDATE EDGE "test_src"->"test_dst" OF edge_date SET edge_date.f_date = Date("2018-03-04"), edge_date.f_time = Time("22:01:00"), edge_date.f_datetime = DateTime("2018-03-04T22:30:40") YIELD f_date, f_time, f_datetime')
+        resp = self.execute_query('''
+                                  UPDATE EDGE "test_src"->"test_dst" OF edge_date
+                                  SET edge_date.f_date = Date("2018-03-04"), edge_date.f_time = Time("22:01:00"), edge_date.f_datetime = DateTime("2018-03-04T22:30:40")
+                                  YIELD f_date, f_time, f_datetime
+                                  ''')
         self.check_resp_succeeded(resp)
         result = [[CommonTtypes.Date(2018, 3, 4), CommonTtypes.Time(22, 1, 0, 0), CommonTtypes.DateTime(2018, 3, 4, 22, 30, 40, 0)]]
         self.check_out_of_order_result(resp, result)
