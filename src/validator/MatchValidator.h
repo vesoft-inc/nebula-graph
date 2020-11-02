@@ -15,67 +15,10 @@
 namespace nebula {
 namespace graph {
 
+struct MatchAstContext;
+
 class MatchValidator final : public TraversalValidator {
 public:
-    MatchValidator(Sentence *sentence, QueryContext *context)
-        : TraversalValidator(sentence, context) {
-        anon_ = vctx_->anonVarGen();
-    }
-
-private:
-    Status validateImpl() override;
-
-    Status toPlan() override;
-
-    Status validatePath(const MatchPath *path);
-
-    Status validateFilter(const Expression *filter);
-
-    Status validateReturn(MatchReturn *ret);
-
-    Status validateAliases(const std::vector<const Expression*> &exprs) const;
-
-    Status analyzeStartPoint();
-
-    Status ananyzeFilterForIndexing();
-
-    StatusOr<Expression*> makeSubFilter(const std::string &alias,
-                                        const MapExpression *map) const;
-
-    Expression* makeIndexFilter(const std::string &label,
-                                const MapExpression *map) const;
-    Expression* makeIndexFilter(const std::string &label,
-                                const std::string &alias,
-                                const Expression *filter) const;
-
-    Status buildScanNode();
-
-    Status buildSteps();
-
-    Status buildStep();
-
-    Status buildGetTailVertices();
-
-    Status buildStepJoin();
-
-    Status buildTailJoin();
-
-    Status buildFilter();
-
-    Status buildReturn();
-
-    Expression* rewrite(const LabelExpression*) const;
-
-    Expression* rewrite(const LabelAttributeExpression*) const;
-
-    template <typename T>
-    T* saveObject(T *obj) const {
-        return qctx_->objPool()->add(obj);
-    }
-
-private:
-    using VertexProp = nebula::storage::cpp2::VertexProp;
-    using EdgeProp = nebula::storage::cpp2::EdgeProp;
     using Direction = MatchEdge::Direction;
     struct NodeInfo {
         TagID                                   tid{0};
@@ -88,9 +31,9 @@ private:
 
     struct EdgeInfo {
         bool                                    anonymous{false};
-        EdgeType                                edgeType{0};
+        std::vector<EdgeType>                   edgeTypes;
         MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
-        const std::string                      *type{nullptr};
+        std::vector<std::string>                types;
         const std::string                      *alias{nullptr};
         const MapExpression                    *props{nullptr};
         Expression                             *filter{nullptr};
@@ -105,22 +48,49 @@ private:
         int32_t                                 schemaId{0};
     };
 
+    enum class QueryEntry {
+        kId,  // query start by id
+        kIndex  // query start by index scan
+    };
+
+    MatchValidator(Sentence *sentence, QueryContext *context);
+
 private:
-    bool                                        startFromNode_{true};
-    int32_t                                     startIndex_{0};
-    int32_t                                     curStep_{-1};
-    PlanNode                                   *thisStepRoot_{nullptr};
-    PlanNode                                   *prevStepRoot_{nullptr};
-    Expression                                 *startExpr_{nullptr};
-    Expression                                 *gnSrcExpr_{nullptr};
-    std::vector<NodeInfo>                       nodeInfos_;
-    std::vector<EdgeInfo>                       edgeInfos_;
-    ScanInfo                                    scanInfo_;
-    std::unordered_map<std::string, AliasType>  aliases_;
-    AnonVarGenerator                           *anon_{nullptr};
-    std::unique_ptr<Expression>                 filter_;
+    Status validateImpl() override;
+
+    AstContext* getAstContext() override;
+
+    Status validatePath(const MatchPath *path);
+
+    Status validateFilter(const Expression *filter);
+
+    Status validateReturn(MatchReturn *ret);
+
+    Status validateAliases(const std::vector<const Expression*> &exprs) const;
+
+    Status analyzeStartPoint();
+
+    StatusOr<Expression*> makeSubFilter(const std::string &alias,
+                                        const MapExpression *map) const;
+
+    template <typename T>
+    T* saveObject(T *obj) const {
+        return qctx_->objPool()->add(obj);
+    }
+
+private:
+    std::unique_ptr<MatchAstContext>            matchCtx_;
 };
 
+struct MatchAstContext final : AstContext {
+    std::vector<MatchValidator::NodeInfo>                       nodeInfos;
+    std::vector<MatchValidator::EdgeInfo>                       edgeInfos;
+    std::unordered_map<std::string, MatchValidator::AliasType>  aliases;
+    std::unique_ptr<Expression>                                 filter;
+    const YieldColumns                                         *yieldColumns;
+    MatchValidator::ScanInfo                                    scanInfo;
+    const Expression                                           *ids;
+};
 }   // namespace graph
 }   // namespace nebula
 
