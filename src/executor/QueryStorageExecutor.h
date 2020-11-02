@@ -34,15 +34,15 @@ protected:
                            << it->first;
             }
             if (completeness == 0 || isCompleteRequire) {
-                LOG(ERROR) << "Request to storage failed in executor `" << name_ << "'";
-                return Status::Error("Request to storage failed in executor.");
+                return handleErrorCode(failedCodes.begin()->second,
+                                       failedCodes.begin()->first);
             }
             return Result::State::kPartialSuccess;
         }
         return Result::State::kSuccess;
     }
 
-    Status handleErrorCode(nebula::storage::cpp2::ErrorCode code, PartitionID partId) {
+    Status handleErrorCode(nebula::storage::cpp2::ErrorCode code, PartitionID partId) const {
         switch (code) {
             case storage::cpp2::ErrorCode::E_INVALID_VID:
                 return Status::Error("Invalid vid.");
