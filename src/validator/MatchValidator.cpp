@@ -196,7 +196,8 @@ Status MatchValidator::validateReturn(MatchReturn *ret) {
 
     auto *skipExpr = ret->skip();
     auto *limitExpr = ret->limit();
-
+    int64_t skip = 0;
+    int64_t limit = std::numeric_limits<int64_t>::max();
     if (skipExpr != nullptr) {
         if (skipExpr->kind() != Expression::Kind::kConstant) {
             return Status::SemanticError("SKIP should be an integral constant");
@@ -205,6 +206,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret) {
         if (!constant->value().isInt()) {
             return Status::SemanticError("SKIP should be an integral constant");
         }
+        skip = constant->value().getInt();
     }
 
     if (limitExpr != nullptr) {
@@ -214,6 +216,41 @@ Status MatchValidator::validateReturn(MatchReturn *ret) {
         auto *constant = static_cast<const ConstantExpression*>(limitExpr);
         if (!constant->value().isInt()) {
             return Status::SemanticError("LIMIT should be an integral constant");
+        }
+        limit = constant->value().getInt();
+    }
+    matchCtx_->skip = skip;
+    matchCtx_->limit = limit;
+
+    if (ret->orderFactors() != nullptr) {
+        std::vector<std::string> inputColList;
+        inputColList.reserve(matchCtx_->yieldColumns->columns().size());
+        for (auto *col : matchCtx_->yieldColumns->columns()) {
+            if (col->alias() != nullptr) {
+                inputColList.emplace_back(*col->alias());
+            } else {
+                inputColList.emplace_back(col->expr()->toString());
+            }
+        }
+        std::unordered_map<std::string, size_t> inputColIndices;
+        for (auto i = 0u; i < inputColList.size(); i++) {
+            if (!inputColIndices.emplace(inputColList[i], i).second) {
+                return Status::SemanticError("Duplicated columns not allowed: %s",
+                        inputColList[i].c_str());
+            }
+        }
+
+        auto *factors = ret->orderFactors();
+        for (auto &factor : factors->factors()) {
+            if (factor->expr()->kind() != Expression::Kind::kLabel) {
+                return Status::SemanticError("Only column name can be used as sort item");
+            }
+            auto *name = static_cast<const LabelExpression*>(factor->expr())->name();
+            auto iter = inputColIndices.find(*name);
+            if (iter == inputColIndices.end()) {
+                return Status::SemanticError("Column `%s' not found", name->c_str());
+            }
+            matchCtx_->indexedOrderFactors.emplace_back(iter->second, factor->orderType());
         }
     }
 
