@@ -67,7 +67,6 @@ protected:
     Starts                from_;
     Steps                 steps_;
     std::string           srcVidColName_;
-    ExpressionProps       exprProps_;
     PlanNode*             projectStartVid_{nullptr};
 
     std::unique_ptr<ExpressionList>  startVidList_;
