@@ -108,6 +108,22 @@ class TestMatch(NebulaTestSuite):
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
 
+        stmt = 'MATCH (v1:player{name: "LeBron James"}) -[r:serve|:like]-> (v2) RETURN type(r) AS Type, v2.name AS Name'
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Type', 'Name'],
+            'rows': [
+                ['like', 'Ray Allen'],
+                ['serve', 'Cavaliers'],
+                ['serve', 'Heat'],
+                ['serve', 'Cavaliers'],
+                ['serve', 'Lakers'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
         stmt = '''
                   MATCH (v1:player{name: "LeBron James"}) -[r:serve]-> (v2)
                   RETURN type(r) AS Type, v2.name AS Name
@@ -158,6 +174,76 @@ class TestMatch(NebulaTestSuite):
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
 
+        stmt = '''
+                  MATCH (v1:player{name: "Danny Green"}) -[:like]-> (v2)
+                  RETURN v1.name AS Name, v2.name AS Friend
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Friend'],
+            'rows': [
+                ['Danny Green', 'LeBron James'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'Tim Duncan'],
+            ]
+        }
+
+        stmt = '''
+                  MATCH (v1:player{name: "Danny Green"}) <-[:like]- (v2)
+                  RETURN v1.name AS Name, v2.name AS Friend
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Friend'],
+            'rows': [
+                ['Danny Green', 'Dejounte Murray'],
+                ['Danny Green', 'Marco Belinelli'],
+            ]
+        }
+
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = '''
+                  MATCH (v1:player{name: "Danny Green"}) <-[:like]-> (v2)
+                  RETURN v1.name AS Name, v2.name AS Friend
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Friend'],
+            'rows': [
+                ['Danny Green', 'Dejounte Murray'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'LeBron James'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'Tim Duncan'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = '''
+                  MATCH (v1:player{name: "Danny Green"}) -[:like]- (v2)
+                  RETURN v1.name AS Name, v2.name AS Friend
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Friend'],
+            'rows': [
+                ['Danny Green', 'Dejounte Murray'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'LeBron James'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'Tim Duncan'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
     def test_two_steps(self):
         stmt = '''
                   MATCH (v1:player{age: 28}) -[:like]-> (v2) -[:like]-> (v3)
@@ -176,6 +262,108 @@ class TestMatch(NebulaTestSuite):
         }
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = '''
+                  MATCH (v1:player{name: 'Tony Parker'}) -[r1:serve]-> (v2) <-[r2:serve]- (v3)
+                  WHERE r1.start_year <= r2.end_year AND
+                        r1.end_year >= r2.start_year AND
+                        v1.name <> v3.name AND
+                        v3.name STARTS WITH 'D'
+                  RETURN v1.name AS Player, v2.name AS Team, v3.name AS Teammate
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Player', 'Team', 'Teammate'],
+            'rows': [
+                ['Tony Parker', 'Hornets', 'Dwight Howard'],
+                ['Tony Parker', 'Spurs', 'Danny Green'],
+                ['Tony Parker', 'Spurs', 'Dejounte Murray'],
+                ['Tony Parker', 'Spurs', 'David West'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+
+    def test_match_by_id(self):
+        # single node
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'James Harden' RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['n']
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['James Harden']]]
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        # with expr
+        stmt = '''
+                    MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN id(n)
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['id(n)']
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        # multi nodes
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['not_exist_vertex']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['n']
+        self.check_column_names(resp, columns_name)
+        result = []
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['LaMarcus Aldridge']],
+                  [self.VERTEXS['Tony Parker']]]
+        self.check_out_of_order_result(resp, result)
+
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex']
+                    RETURN n
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        self.check_column_names(resp, columns_name)
+        result = [[self.VERTEXS['LaMarcus Aldridge']],
+                  [self.VERTEXS['Tony Parker']]]
+        self.check_out_of_order_result(resp, result)
+
+        # with expr
+        stmt = '''
+                    MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex']
+                    RETURN id(n)
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        columns_name = ['id(n)']
+        self.check_column_names(resp, columns_name)
+        result = [['LaMarcus Aldridge'],
+                  ['Tony Parker']]
+        self.check_out_of_order_result(resp, result)
 
     def test_failures(self):
         # No RETURN
@@ -214,16 +402,6 @@ class TestMatch(NebulaTestSuite):
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
 
-        # in bound
-        stmt = 'MATCH (v:player) -[]-> () return *'
-        resp = self.execute_query(stmt)
-        self.check_resp_failed(resp)
-
-        # bidirectly
-        stmt = 'MATCH (v:player) -[]- () return *'
-        resp = self.execute_query(stmt)
-        self.check_resp_failed(resp)
-
         # multiple steps
         stmt = 'MATCH (v:player:{name: "abc"}) -[r*2]-> () return *'
         resp = self.execute_query(stmt)
@@ -237,5 +415,14 @@ class TestMatch(NebulaTestSuite):
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
         stmt = 'MATCH (v:player:{name: "abc"}) -[r*1..]-> () return *'
+        resp = self.execute_query(stmt)
+        self.check_resp_failed(resp)
+
+        # query edge by id
+        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) == "Paul George" RETURN *'
+        resp = self.execute_query(stmt)
+        self.check_resp_failed(resp)
+
+        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) IN ["Paul George", "not_exist_vertex"] RETURN *'
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
