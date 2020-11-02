@@ -23,36 +23,39 @@ private:
 
     Status toPlan() override;
 
-    Status singlePairPlan();
-
     void buildStart(Starts& starts, std::string& startVidsVar, bool reverse);
-
-    void getRunTimeRootTailPlanNode(PlanNode*& root, PlanNode*& tail);
-
+    GetNeighbors::EdgeProps buildEdgeKey(bool reverse);
+    void linkLoopDepFromTo(PlanNode*& projectDep);
+    // bfs
+    Status singlePairPlan();
     PlanNode* bfs(PlanNode* dep, Starts& starts, bool reverse);
-
-    PlanNode* multiPairShortestPath(PlanNode* dep, Starts& starts, bool reverse);
-
-    Status multiPairPlan();
-
-    Expression* buildMultiPairLoopCondition(uint32_t steps);
-
     Expression* buildBfsLoopCondition(uint32_t steps, const std::string& pathVar);
 
-    GetNeighbors::EdgeProps buildEdgeKey(bool reverse);
-
+    // allPath
     Status allPairPaths();
-
-    PlanNode* allPaths(PlanNode* dep, Starts& starts, bool reverse);
-
+    PlanNode* allPaths(PlanNode* dep, Starts& starts, std::string& startVidsVar, bool reverse);
     Expression* buildAllPathsLoopCondition(uint32_t steps);
+    PlanNode* buildAllPairFirstDataSet(PlanNode* dep, const std::string& inputVar);
+
+    // multi-pair
+    Status multiPairPlan();
+    PlanNode* multiPairShortestPath(PlanNode* dep,
+                                    Starts& starts,
+                                    std::string& startVidsVar,
+                                    bool reverse);
+    Expression* buildMultiPairLoopCondition(uint32_t steps);
+    PlanNode* buildMultiPairFirstDataSet(PlanNode* dep,
+                                         const std::string& inputVar,
+                                         const std::string& outputVar);
 
 private:
-    bool            isShortest_{false};
-    Starts          to_;
-    Over            over_;
-    Steps           steps_;
+    bool isShortest_{false};
+    Starts to_;
+    Over over_;
+    Steps steps_;
+
     // runtime
+    PlanNode* loopDepTail_{nullptr};
     PlanNode* toProjectStartVid_{nullptr};
     PlanNode* fromDedupStartVid_{nullptr};
     PlanNode* toDedupStartVid_{nullptr};
