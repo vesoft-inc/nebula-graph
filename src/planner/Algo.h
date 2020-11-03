@@ -92,6 +92,28 @@ class ProduceAllPaths final : public SingleInputNode {
     ProduceAllPaths(QueryContext* qctx, PlanNode* input)
         : SingleInputNode(qctx, Kind::kProduceAllPaths, input) {}
 };
+
+class CartesianProduct final : public SingleInputNode {
+public:
+    static CartesianProduct* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new CartesianProduct(qctx, input));
+    }
+
+    void addVars(std::string name) {
+        varNames_.emplace_back(std::move(name));
+    }
+
+    const std::vector<std::string>& vars() const {
+        return varNames_;
+    }
+
+private:
+    CartesianProduct(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kCartesianProduct, input) {}
+
+    std::vector<std::string> varNames_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ALGO_H_
