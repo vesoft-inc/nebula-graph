@@ -507,6 +507,56 @@ private:
     std::unique_ptr<std::string>    name_;
 };
 
+class AddListenerSentence final : public Sentence {
+public:
+    AddListenerSentence(std::string *type, HostList* hosts) {
+        kind_ = Kind::kAddListener;
+        type_.reset(type);
+        listeners_.reset(hosts);
+    }
+
+    std::string* type() const {
+        return type_.get();
+    }
+
+    HostList* listeners() const {
+        return listeners_.get();
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>    type_;
+    std::unique_ptr<HostList>       listeners_;
+};
+
+class RemoveListenerSentence final : public Sentence {
+public:
+    explicit RemoveListenerSentence(std::string *type) {
+        kind_ = Kind::kRemoveListener;
+        type_.reset(type);
+    }
+
+    std::string* type() const {
+        return type_.get();
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>    type_;
+    std::unique_ptr<std::string>    space_;
+};
+
+class ShowListenerSentence final : public Sentence {
+public:
+    ShowListenerSentence() {
+        kind_ = Kind::kShowListener;
+    }
+
+    std::string toString() const override;
+};
+
 class AdminJobSentence final : public Sentence {
 public:
     explicit AdminJobSentence(meta::cpp2::AdminJobOp op) : op_(op) {

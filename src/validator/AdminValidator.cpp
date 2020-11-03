@@ -221,6 +221,63 @@ Status ShowSnapshotsValidator::toPlan() {
     return Status::OK();
 }
 
+Status AddListenerValidator::validateImpl() {
+    auto sentence = static_cast<AddListenerSentence*>(sentence_);
+    auto type = *sentence->type();
+    std::transform(type.begin(), type.end(), type.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
+    if (type == "ELASTICSEARCH") {
+        type_ = meta::cpp2::ListenerType::ELASTICSEARCH;
+    } else {
+        return Status::SemanticError("Invalid listener type");
+    }
+    if (sentence->listeners()->hosts().empty()) {
+        return Status::SemanticError("Listener hosts should not be emptry");
+    }
+    hosts_ = sentence->listeners()->hosts();
+    return Status::OK();
+}
+
+Status AddListenerValidator::toPlan() {
+    auto *doNode = AddListener::make(qctx_, nullptr, std::move(type_), std::move(hosts_));
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status RemoveListenerValidator::validateImpl() {
+    auto sentence = static_cast<RemoveListenerSentence*>(sentence_);
+    auto type = *sentence->type();
+    std::transform(type.begin(), type.end(), type.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
+    if (type == "ELASTICSEARCH") {
+        type_ = meta::cpp2::ListenerType::ELASTICSEARCH;
+    } else {
+        return Status::SemanticError("Invalid listener type");
+    }
+    return Status::OK();
+}
+
+Status RemoveListenerValidator::toPlan() {
+    auto *doNode = RemoveListener::make(qctx_, nullptr, type_);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowListenerValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowListenerValidator::toPlan() {
+    auto *doNode = ShowListener::make(qctx_, nullptr);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
 Status ShowHostsValidator::validateImpl() {
     return Status::OK();
 }
