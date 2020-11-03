@@ -167,12 +167,14 @@ void FoldConstantExprVisitor::visit(CaseExpression *expr) {
         if (!canBeFolded_) {
             canBeFolded = false;
         }
+        expr->setCondition(fold(expr->condition()));
     }
     if (expr->hasDefault()) {
         expr->defaultResult()->accept(this);
         if (!canBeFolded_) {
             canBeFolded = false;
         }
+        expr->setDefault(fold(expr->defaultResult()));
     }
     auto &cases = expr->cases();
     for (size_t i = 0; i < cases.size(); ++i) {
@@ -183,13 +185,13 @@ void FoldConstantExprVisitor::visit(CaseExpression *expr) {
             canBeFolded = false;
             continue;
         }
+        if (when->kind() != Expression::Kind::kConstant) {
+            expr->setWhen(i, fold(when));
+        }
         then->accept(this);
         if (!canBeFolded_) {
             canBeFolded = false;
             continue;
-        }
-        if (when->kind() != Expression::Kind::kConstant) {
-            expr->setWhen(i, fold(when));
         }
         if (then->kind() != Expression::Kind::kConstant) {
             expr->setThen(i, fold(then));
