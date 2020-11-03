@@ -199,25 +199,33 @@ Status MatchValidator::validateReturn(MatchReturn *ret) {
     int64_t skip = 0;
     int64_t limit = std::numeric_limits<int64_t>::max();
     if (skipExpr != nullptr) {
-        if (skipExpr->kind() != Expression::Kind::kConstant) {
-            return Status::SemanticError("SKIP should be an integral constant");
+        if (!evaluableExpr(skipExpr)) {
+            return Status::SemanticError("SKIP should be instantly evaluable");
         }
-        auto *constant = static_cast<const ConstantExpression*>(skipExpr);
-        if (!constant->value().isInt()) {
-            return Status::SemanticError("SKIP should be an integral constant");
+        QueryExpressionContext ctx;
+        auto value = const_cast<Expression*>(skipExpr)->eval(ctx);
+        if (!value.isInt()) {
+            return Status::SemanticError("SKIP should be of type integer");
         }
-        skip = constant->value().getInt();
+        if (value.getInt() < 0) {
+            return Status::SemanticError("SKIP should not be negative");
+        }
+        skip = value.getInt();
     }
 
     if (limitExpr != nullptr) {
-        if (limitExpr->kind() != Expression::Kind::kConstant) {
-            return Status::SemanticError("LIMIT should be an integral constant");
+        if (!evaluableExpr(limitExpr)) {
+            return Status::SemanticError("SKIP should be instantly evaluable");
         }
-        auto *constant = static_cast<const ConstantExpression*>(limitExpr);
-        if (!constant->value().isInt()) {
-            return Status::SemanticError("LIMIT should be an integral constant");
+        QueryExpressionContext ctx;
+        auto value = const_cast<Expression*>(limitExpr)->eval(ctx);
+        if (!value.isInt()) {
+            return Status::SemanticError("LIMIT should be of type integer");
         }
-        limit = constant->value().getInt();
+        if (value.getInt() < 0) {
+            return Status::SemanticError("LIMIT should not be negative");
+        }
+        limit = value.getInt();
     }
     matchCtx_->skip = skip;
     matchCtx_->limit = limit;
