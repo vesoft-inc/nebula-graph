@@ -296,5 +296,21 @@ Expression *FoldConstantExprVisitor::fold(Expression *expr) const {
     return new ConstantExpression(std::move(value));
 }
 
+void FoldConstantExprVisitor::visit(PathBuildExpression *expr) {
+    auto &items = expr->items();
+    bool canBeFolded = true;
+    for (size_t i = 0; i < items.size(); ++i) {
+        auto item = items[i].get();
+        item->accept(this);
+        if (!canBeFolded_) {
+            canBeFolded = false;
+            continue;
+        }
+        if (item->kind() != Expression::Kind::kConstant) {
+            expr->setItem(i, std::unique_ptr<Expression>{fold(item)});
+        }
+    }
+    canBeFolded_ = canBeFolded;
+}
 }   // namespace graph
 }   // namespace nebula
