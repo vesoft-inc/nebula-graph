@@ -154,7 +154,8 @@ public:
         VID_TYPE,
         CHARSET,
         COLLATE,
-        ATOMIC_EDGE
+        ATOMIC_EDGE,
+        GROUP_NAME
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -248,6 +249,15 @@ public:
         }
     }
 
+    std::string getGroupName() const {
+        if (isString()) {
+            return asString();
+        } else {
+            LOG(ERROR) << "group name value illage.";
+            return 0;
+        }
+    }
+
     OptionType getOptType() const {
         return optType_;
     }
@@ -305,6 +315,11 @@ public:
         spaceOpts_.reset(spaceOpts);
     }
 
+    void setGroupName(std::string* name) {
+        auto *item = new SpaceOptItem(SpaceOptItem::OptionType::GROUP_NAME, *name);
+        spaceOpts_->addOpt(std::move(item));
+    }
+
     std::vector<SpaceOptItem*> getOpts() {
         if (spaceOpts_ == nullptr) {
             return {};
@@ -354,23 +369,14 @@ public:
         kind_ = Kind::kDescribeSpace;
     }
 
-    void setClusterName(std::string* clusterName) {
-        clusterName_.reset(clusterName);
-    }
-
     const std::string* spaceName() const {
         return spaceName_.get();
-    }
-
-    const std::string* clusterName() const {
-        return clusterName_.get();
     }
 
     std::string toString() const override;
 
 private:
     std::unique_ptr<std::string>     spaceName_;
-    std::unique_ptr<std::string>     clusterName_;
 };
 
 class ConfigRowItem {
