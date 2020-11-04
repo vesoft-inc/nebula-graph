@@ -18,6 +18,10 @@ public:
         return canBeFolded_;
     }
 
+    bool isConstant(Expression *expr) const {
+        return expr->kind() == Expression::Kind::kConstant;
+    }
+
     void visit(ConstantExpression *expr) override;
     void visit(UnaryExpression *expr) override;
     void visit(TypeCastingExpression *expr) override;

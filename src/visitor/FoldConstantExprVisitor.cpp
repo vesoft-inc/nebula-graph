@@ -19,16 +19,20 @@ void FoldConstantExprVisitor::visit(ConstantExpression *expr) {
 }
 
 void FoldConstantExprVisitor::visit(UnaryExpression *expr) {
-    expr->operand()->accept(this);
-    if (canBeFolded_ && expr->operand()->kind() != Expression::Kind::kConstant) {
-        expr->setOperand(fold(expr->operand()));
+    if (!isConstant(expr->operand())) {
+        expr->operand()->accept(this);
+        if (canBeFolded_) {
+            expr->setOperand(fold(expr->operand()));
+        }
     }
 }
 
 void FoldConstantExprVisitor::visit(TypeCastingExpression *expr) {
-    expr->operand()->accept(this);
-    if (canBeFolded_ && expr->operand()->kind() != Expression::Kind::kConstant) {
-        expr->setOperand(fold(expr->operand()));
+    if (!isConstant(expr->operand())) {
+        expr->operand()->accept(this);
+        if (canBeFolded_) {
+            expr->setOperand(fold(expr->operand()));
+        }
     }
 }
 
@@ -68,7 +72,7 @@ void FoldConstantExprVisitor::visit(LogicalExpression *expr) {
 void FoldConstantExprVisitor::visit(FunctionCallExpression *expr) {
     bool canBeFolded = true;
     for (auto &arg : expr->args()->args()) {
-        if (arg->kind() != Expression::Kind::kConstant) {
+        if (!isConstant(arg.get())) {
             arg->accept(this);
             if (canBeFolded_) {
                 arg.reset(fold(arg.get()));
@@ -110,13 +114,14 @@ void FoldConstantExprVisitor::visit(ListExpression *expr) {
     bool canBeFolded = true;
     for (size_t i = 0; i < items.size(); ++i) {
         auto item = items[i].get();
-        item->accept(this);
-        if (!canBeFolded_) {
-            canBeFolded = false;
+        if (isConstant(item)) {
             continue;
         }
-        if (item->kind() != Expression::Kind::kConstant) {
+        item->accept(this);
+        if (canBeFolded_) {
             expr->setItem(i, std::unique_ptr<Expression>{fold(item)});
+        } else {
+            canBeFolded = false;
         }
     }
     canBeFolded_ = canBeFolded;
@@ -127,13 +132,14 @@ void FoldConstantExprVisitor::visit(SetExpression *expr) {
     bool canBeFolded = true;
     for (size_t i = 0; i < items.size(); ++i) {
         auto item = items[i].get();
-        item->accept(this);
-        if (!canBeFolded_) {
-            canBeFolded = false;
+        if (isConstant(item)) {
             continue;
         }
-        if (item->kind() != Expression::Kind::kConstant) {
+        item->accept(this);
+        if (canBeFolded_) {
             expr->setItem(i, std::unique_ptr<Expression>{fold(item)});
+        } else {
+            canBeFolded = false;
         }
     }
     canBeFolded_ = canBeFolded;
@@ -145,15 +151,16 @@ void FoldConstantExprVisitor::visit(MapExpression *expr) {
     for (size_t i = 0; i < items.size(); ++i) {
         auto &pair = items[i];
         auto item = const_cast<Expression *>(pair.second.get());
-        item->accept(this);
-        if (!canBeFolded_) {
-            canBeFolded = false;
+        if (isConstant(item)) {
             continue;
         }
-        if (item->kind() != Expression::Kind::kConstant) {
+        item->accept(this);
+        if (canBeFolded_) {
             auto key = std::make_unique<std::string>(*pair.first);
             auto val = std::unique_ptr<Expression>(fold(item));
             expr->setItem(i, std::make_pair(std::move(key), std::move(val)));
+        } else {
+            canBeFolded = false;
         }
     }
     canBeFolded_ = canBeFolded;
@@ -162,39 +169,41 @@ void FoldConstantExprVisitor::visit(MapExpression *expr) {
 // case Expression
 void FoldConstantExprVisitor::visit(CaseExpression *expr) {
     bool canBeFolded = true;
-    if (expr->hasCondition()) {
+    if (expr->hasCondition() && !isConstant(expr->condition())) {
         expr->condition()->accept(this);
-        if (!canBeFolded_) {
+        if (canBeFolded_) {
+            expr->setCondition(fold(expr->condition()));
+        } else {
             canBeFolded = false;
         }
-        expr->setCondition(fold(expr->condition()));
     }
-    if (expr->hasDefault()) {
+    if (expr->hasDefault() && !isConstant(expr->defaultResult())) {
         expr->defaultResult()->accept(this);
-        if (!canBeFolded_) {
+        if (canBeFolded_) {
+            expr->setDefault(fold(expr->defaultResult()));
+        } else {
             canBeFolded = false;
         }
-        expr->setDefault(fold(expr->defaultResult()));
     }
     auto &cases = expr->cases();
     for (size_t i = 0; i < cases.size(); ++i) {
         auto when = cases[i].when.get();
         auto then = cases[i].then.get();
-        when->accept(this);
-        if (!canBeFolded_) {
-            canBeFolded = false;
-            continue;
+        if (!isConstant(when)) {
+            when->accept(this);
+            if (canBeFolded_) {
+                expr->setWhen(i, fold(when));
+            } else {
+                canBeFolded = false;
+            }
         }
-        if (when->kind() != Expression::Kind::kConstant) {
-            expr->setWhen(i, fold(when));
-        }
-        then->accept(this);
-        if (!canBeFolded_) {
-            canBeFolded = false;
-            continue;
-        }
-        if (then->kind() != Expression::Kind::kConstant) {
-            expr->setThen(i, fold(then));
+        if (!isConstant(then)) {
+            then->accept(this);
+            if (canBeFolded_) {
+                expr->setThen(i, fold(then));
+            } else {
+                canBeFolded = false;
+            }
         }
     }
     canBeFolded_ = canBeFolded;
@@ -263,15 +272,20 @@ void FoldConstantExprVisitor::visit(EdgeExpression *expr) {
 }
 
 void FoldConstantExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
-    expr->left()->accept(this);
-    auto leftCanBeFolded = canBeFolded_;
-    if (leftCanBeFolded && expr->left()->kind() != Expression::Kind::kConstant) {
-        expr->setLeft(fold(expr->left()));
+    bool leftCanBeFolded = true, rightCanBeFolded = true;
+    if (!isConstant(expr->left())) {
+        expr->left()->accept(this);
+        leftCanBeFolded = canBeFolded_;
+        if (leftCanBeFolded) {
+            expr->setLeft(fold(expr->left()));
+        }
     }
-    expr->right()->accept(this);
-    auto rightCanBeFolded = canBeFolded_;
-    if (rightCanBeFolded && expr->right()->kind() != Expression::Kind::kConstant) {
-        expr->setRight(fold(expr->right()));
+    if (!isConstant(expr->right())) {
+        expr->right()->accept(this);
+        rightCanBeFolded = canBeFolded_;
+        if (rightCanBeFolded) {
+            expr->setRight(fold(expr->right()));
+        }
     }
     canBeFolded_ = leftCanBeFolded && rightCanBeFolded;
 }
