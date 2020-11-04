@@ -150,7 +150,7 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
 
 #define CHECK_BOUND_VALUE(v, name)                                                                 \
     do {                                                                                           \
-        if (v == Value(NullType::BAD_TYPE)) {                                                      \
+        if (v == Value::kNullBadType;) {                                                      \
             LOG(ERROR) << "Get bound value error. field : "  << name;                              \
             return Status::Error("Get bound value error. field : %s", name.c_str());               \
         }                                                                                          \
