@@ -212,8 +212,27 @@ void DeduceTypeVisitor::visit(RelationalExpression *expr) {
     type_ = Value::Type::BOOL;
 }
 
-void DeduceTypeVisitor::visit(SubscriptExpression *) {
-    type_ = Value::Type::LIST;   // FIXME(dutor)
+void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
+    expr->left()->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::LIST) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "'expected LIST but was " << type_ << ": "
+           << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+    }
+
+    expr->right()->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::INT) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "'expected Integer but was " << type_ << ": "
+           << expr->right()->toString();
+        status_ = Status::SemanticError(ss.str());
+    }
+
+    // Will not deduce the actual type of the value in list.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(AttributeExpression *) {
@@ -399,7 +418,8 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         whenThen.then->accept(this);
         if (!ok()) return;
     }
-    // NOTE: we are not able to deduce the return type of case expression currently
+
+    // Will not deduce the actual value type returned by case expression.
     type_ = Value::Type::__EMPTY__;
 }
 
