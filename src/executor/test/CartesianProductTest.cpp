@@ -35,7 +35,7 @@ protected:
             ds2.colNames = {kDst};
             for (auto i = 0; i < 3; ++i) {
                 Row row;
-                row.values.emplace_back(folly::to<std::string>(i + 'a'));
+                row.values.emplace_back(folly::to<std::string>(static_cast<char>(i + 'a')));
                 ds2.rows.emplace_back(std::move(row));
             }
 
@@ -45,7 +45,42 @@ protected:
                                          .value(Value(std::move(ds2)))
                                          .iter(Iterator::Kind::kSequential)
                                          .finish());
+
+            DataSet ds3;
+            ds3.colNames = {"col1", "col2"};
+            for (auto i = 0; i < 3; ++i) {
+                Row row;
+                row.values.emplace_back(folly::to<std::string>(static_cast<char>(i + 'x')));
+                row.values.emplace_back(folly::to<std::string>(static_cast<char>(i + 'X')));
+                ds3.rows.emplace_back(std::move(row));
+            }
+
+            qctx_->symTable()->newVariable("ds3");
+            qctx_->ectx()->setResult("ds3",
+                                     ResultBuilder()
+                                         .value(Value(std::move(ds3)))
+                                         .iter(Iterator::Kind::kSequential)
+                                         .finish());
         }
+    }
+
+    void checkResult(DataSet& expected, const std::string& output) {
+        auto& result = qctx_->ectx()->getResult(output);
+        DataSet resultDs;
+        resultDs.colNames = expected.colNames;
+        auto iter = result.iter();
+        for (; iter->valid(); iter->next()) {
+            const auto& cols = *iter->row();
+            Row row;
+            for (size_t i = 0; i < cols.size(); ++i) {
+                Value col = cols[i];
+                row.values.emplace_back(std::move(col));
+            }
+            resultDs.rows.emplace_back(std::move(row));
+        }
+
+        EXPECT_EQ(resultDs, expected);
+        EXPECT_EQ(result.state(), Result::State::kSuccess);
     }
 
 protected:
@@ -53,45 +88,87 @@ protected:
 };
 
 TEST_F(CartesianProductTest, test) {
-    auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
-    cp->addVars("ds1");
-    cp->addVars("ds2");
-    std::vector<std::string> colNames = {kSrc, kDst};
-    cp->setColNames(colNames);
+    {
+        auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
+        cp->addVars("ds1");
+        cp->addVars("ds2");
+        std::vector<std::string> colNames = {kSrc, kDst};
+        cp->setColNames(colNames);
 
-    auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
-    auto future = cpExe->execute();
-    auto status = std::move(future).get();
-    EXPECT_TRUE(status.ok());
-    auto& result = qctx_->ectx()->getResult(cp->outputVar());
+        auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
+        auto future = cpExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
 
-    DataSet expected;
-    expected.colNames = {kSrc, kDst};
-    for (size_t i = 0; i < 5; ++i) {
-        for (size_t j = 0; j < 3; ++j) {
-            Row row;
-            row.values.emplace_back(folly::to<std::string>(i));
-            row.values.emplace_back(folly::to<std::string>(j + 'a'));
-            expected.rows.emplace_back(std::move(row));
+        DataSet expected;
+        expected.colNames = colNames;
+        for (size_t i = 0; i < 5; ++i) {
+            for (size_t j = 0; j < 3; ++j) {
+                Row row;
+                row.values.emplace_back(folly::to<std::string>(i));
+                row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'a')));
+                expected.rows.emplace_back(std::move(row));
+            }
         }
+        checkResult(expected, cp->outputVar());
     }
+    {
+        auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
+        cp->addVars("ds1");
+        cp->addVars("ds3");
+        std::vector<std::string> colNames = {kSrc, "col1", "col2"};
+        cp->setColNames(colNames);
 
-    DataSet resultDs;
-    resultDs.colNames = colNames;
-    auto iter = result.iter();
-    for (; iter->valid(); iter->next()) {
-        const auto& cols = *iter->row();
-        Row row;
-        for (size_t i = 0; i < cols.size(); ++i) {
-            Value col = cols[i];
-            row.values.emplace_back(std::move(col));
+        auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
+        auto future = cpExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+
+        DataSet expected;
+        expected.colNames = colNames;
+        for (size_t i = 0; i < 5; ++i) {
+            for (size_t j = 0; j < 3; ++j) {
+                    Row row;
+                    row.values.emplace_back(folly::to<std::string>(i));
+                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'x')));
+                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'X')));
+                    expected.rows.emplace_back(std::move(row));
+            }
         }
-        resultDs.rows.emplace_back(std::move(row));
+        checkResult(expected, cp->outputVar());
     }
+    {
+        auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
+        cp->addVars("ds1");
+        cp->addVars("ds2");
+        cp->addVars("ds3");
+        std::vector<std::string> colNames = {kSrc, kDst, "col1", "col2"};
+        cp->setColNames(colNames);
 
-    EXPECT_EQ(resultDs, expected);
-    EXPECT_EQ(result.state(), Result::State::kSuccess);
+        auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
+        auto future = cpExe->execute();
+        auto status = std::move(future).get();
+        EXPECT_TRUE(status.ok());
+
+        DataSet expected;
+        expected.colNames = colNames;
+        for (size_t i = 0; i < 5; ++i) {
+            for (size_t j = 0; j < 3; ++j) {
+                for (size_t k = 0; k < 3; ++k) {
+                    Row row;
+                    row.values.emplace_back(folly::to<std::string>(i));
+                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'a')));
+                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(k + 'x')));
+                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(k + 'X')));
+                    expected.rows.emplace_back(std::move(row));
+                }
+            }
+        }
+        checkResult(expected, cp->outputVar());
+    }
 }
+
+
 
 }   // namespace graph
 }   // namespace nebula
