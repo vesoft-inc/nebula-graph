@@ -160,7 +160,7 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(LabelExpression *) {
-    status_ = Status::SemanticError("LabelExpression can not be instantiated.");
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(ArithmeticExpression *expr) {
@@ -289,8 +289,29 @@ void DeduceTypeVisitor::visit(LogicalExpression *expr) {
     }
 }
 
-void DeduceTypeVisitor::visit(LabelAttributeExpression *) {
-    status_ = Status::SemanticError("LabelAtrributeExpression can not be instantiated.");
+void DeduceTypeVisitor::visit(LabelAttributeExpression *expr) {
+    const_cast<LabelExpression*>(expr->left())->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::STRING && !isSuperiorType(type_)) {
+        std::stringstream ss;
+        ss << "`" << expr->toString()
+           << "', expected an valid identifier: " << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    const_cast<LabelExpression*>(expr->right())->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::STRING && !isSuperiorType(type_)) {
+        std::stringstream ss;
+        ss << "`" << expr->toString()
+           << "', expected an valid identifier: " << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    // Will not deduce the actual type of the attribute.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
