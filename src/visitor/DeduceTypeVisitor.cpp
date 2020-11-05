@@ -215,7 +215,7 @@ void DeduceTypeVisitor::visit(RelationalExpression *expr) {
 void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
     expr->left()->accept(this);
     if (!ok()) return;
-    if (type_ != Value::Type::LIST || isSuperiorType(type_)) {
+    if (type_ != Value::Type::LIST && !isSuperiorType(type_)) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected LIST but was " << type_ << ": "
            << expr->left()->toString();
@@ -224,7 +224,7 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
 
     expr->right()->accept(this);
     if (!ok()) return;
-    if (type_ != Value::Type::INT || isSuperiorType(type_)) {
+    if (type_ != Value::Type::INT && !isSuperiorType(type_)) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected Integer but was " << type_ << ": "
            << expr->right()->toString();
@@ -239,8 +239,8 @@ void DeduceTypeVisitor::visit(AttributeExpression *expr) {
     expr->left()->accept(this);
     if (!ok()) return;
     // TODO: Time, DateTime, Date
-    if (type_ != Value::Type::MAP || type_ != Value::Type::VERTEX || type_ != Value::Type::EDGE ||
-        isSuperiorType(type_)) {
+    if (type_ != Value::Type::MAP && type_ != Value::Type::VERTEX && type_ != Value::Type::EDGE &&
+        !isSuperiorType(type_)) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected Map, Vertex or Edge but was " << type_ << ": "
            << expr->left()->toString();

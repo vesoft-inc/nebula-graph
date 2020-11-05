@@ -8,6 +8,7 @@ nebula_add_test(
         expr_visitor_test
     SOURCES
         FoldConstantExprVisitorTest.cpp
+        DeduceTypeVisitorTest.cpp
     OBJECTS
         $<TARGET_OBJECTS:mock_schema_obj>
         $<TARGET_OBJECTS:util_obj>
