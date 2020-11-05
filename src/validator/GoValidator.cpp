@@ -62,7 +62,8 @@ Status GoValidator::validateWhere(WhereClause* where) {
     auto typeStatus = deduceExprType(filter_);
     NG_RETURN_IF_ERROR(typeStatus);
     auto type = typeStatus.value();
-    if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE) {
+    if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE &&
+        type != Value::Type::__EMPTY__) {
         std::stringstream ss;
         ss << "`" << filter_->toString() << "', Filter only accpet bool/null value, "
            << "but was `" << type << "'";
