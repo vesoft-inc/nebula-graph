@@ -99,7 +99,7 @@ public:
         return qctx->objPool()->add(new CartesianProduct(qctx, input));
     }
 
-    Status addVars(std::string varName, std::vector<std::string> colNames) {
+    Status addVarsAndColNames(std::string varName, std::vector<std::string> colNames) {
         auto* varPtr = qctx_->symTable()->getVar(varName);
         if (varPtr != nullptr) {
             return Status::SemanticError("Duplicate Var: %s", varName.c_str());
