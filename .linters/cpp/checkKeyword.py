@@ -105,6 +105,7 @@ reserved_key_words = [
     'KW_RECOVER',
     'KW_EXPLAIN',
     'KW_UNWIND',
+    'KW_CASE',
 ]
 
 

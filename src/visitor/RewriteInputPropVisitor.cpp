@@ -168,6 +168,32 @@ void RewriteInputPropVisitor::visit(TypeCastingExpression* expr) {
     }
 }
 
+void RewriteInputPropVisitor::visit(CaseExpression* expr) {
+    if (expr->hasCondition()) {
+        expr->condition()->accept(this);
+        if (ok()) {
+            expr->setCondition(result_.release());
+        }
+    }
+    if (expr->hasDefault()) {
+        expr->defaultResult()->accept(this);
+        if (ok()) {
+            expr->setDefault(result_.release());
+        }
+    }
+    for (size_t i = 0; i < expr->cases().size(); ++i) {
+        const auto& whenThen = expr->cases()[i];
+        whenThen.when->accept(this);
+        if (ok()) {
+            expr->setWhen(i, result_.release());
+        }
+        whenThen.then->accept(this);
+        if (ok()) {
+            expr->setThen(i, result_.release());
+        }
+    }
+}
+
 void RewriteInputPropVisitor::visitBinaryExpr(BinaryExpression* expr) {
     expr->left()->accept(this);
     if (ok()) {
@@ -199,5 +225,14 @@ void RewriteInputPropVisitor::reportError(const Expression* expr) {
     status_ = Status::SemanticError(ss.str());
 }
 
+void RewriteInputPropVisitor::visit(PathBuildExpression* expr) {
+    const auto& items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i]->accept(this);
+        if (ok()) {
+            expr->setItem(i, std::move(result_));
+        }
+    }
+}
 }   // namespace graph
 }   // namespace nebula
