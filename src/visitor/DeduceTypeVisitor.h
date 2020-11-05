@@ -80,6 +80,11 @@ private:
 
     void visitVertexPropertyExpr(PropertyExpression *expr);
 
+    // All NULL or EMPTY will be legal in any situation.
+    bool isSuperiorType(Value::Type type) {
+        return type == Value::Type::NULLVALUE || type == Value::Type::__EMPTY__;
+    }
+
     const QueryContext *qctx_;
     const ValidateContext *vctx_;
     const ColsDef &inputs_;

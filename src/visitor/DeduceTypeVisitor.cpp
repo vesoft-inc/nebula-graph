@@ -215,18 +215,18 @@ void DeduceTypeVisitor::visit(RelationalExpression *expr) {
 void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
     expr->left()->accept(this);
     if (!ok()) return;
-    if (type_ != Value::Type::LIST) {
+    if (type_ != Value::Type::LIST || isSuperiorType(type_)) {
         std::stringstream ss;
-        ss << "`" << expr->toString() << "'expected LIST but was " << type_ << ": "
+        ss << "`" << expr->toString() << "', expected LIST but was " << type_ << ": "
            << expr->left()->toString();
         status_ = Status::SemanticError(ss.str());
     }
 
     expr->right()->accept(this);
     if (!ok()) return;
-    if (type_ != Value::Type::INT) {
+    if (type_ != Value::Type::INT || isSuperiorType(type_)) {
         std::stringstream ss;
-        ss << "`" << expr->toString() << "'expected Integer but was " << type_ << ": "
+        ss << "`" << expr->toString() << "', expected Integer but was " << type_ << ": "
            << expr->right()->toString();
         status_ = Status::SemanticError(ss.str());
     }
@@ -235,8 +235,23 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
     type_ = Value::Type::__EMPTY__;
 }
 
-void DeduceTypeVisitor::visit(AttributeExpression *) {
-    type_ = Value::Type::LIST;   // FIXME(dutor)
+void DeduceTypeVisitor::visit(AttributeExpression *expr) {
+    expr->left()->accept(this);
+    if (!ok()) return;
+    // TODO: Time, DateTime, Date
+    if (type_ != Value::Type::MAP || type_ != Value::Type::VERTEX || type_ != Value::Type::EDGE ||
+        isSuperiorType(type_)) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "', expected Map, Vertex or Edge but was " << type_ << ": "
+           << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+    }
+
+    expr->right()->accept(this);
+    if (!ok()) return;
+
+    // Will not deduce the actual type of the attribute.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(LogicalExpression *expr) {
