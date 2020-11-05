@@ -24,7 +24,6 @@ protected:
                 row.values.emplace_back(folly::to<std::string>(i));
                 ds1.rows.emplace_back(std::move(row));
             }
-            qctx_->symTable()->newVariable("ds1");
             qctx_->ectx()->setResult("ds1",
                                      ResultBuilder()
                                          .value(Value(std::move(ds1)))
@@ -38,8 +37,6 @@ protected:
                 row.values.emplace_back(folly::to<std::string>(static_cast<char>(i + 'a')));
                 ds2.rows.emplace_back(std::move(row));
             }
-
-            qctx_->symTable()->newVariable("ds2");
             qctx_->ectx()->setResult("ds2",
                                      ResultBuilder()
                                          .value(Value(std::move(ds2)))
@@ -55,7 +52,6 @@ protected:
                 ds3.rows.emplace_back(std::move(row));
             }
 
-            qctx_->symTable()->newVariable("ds3");
             qctx_->ectx()->setResult("ds3",
                                      ResultBuilder()
                                          .value(Value(std::move(ds3)))
@@ -87,88 +83,86 @@ protected:
     std::unique_ptr<QueryContext> qctx_;
 };
 
-TEST_F(CartesianProductTest, test) {
-    {
-        auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
-        cp->addVars("ds1");
-        cp->addVars("ds2");
-        std::vector<std::string> colNames = {kSrc, kDst};
-        cp->setColNames(colNames);
+TEST_F(CartesianProductTest, twoVars) {
+    auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
+    std::vector<std::string> colNames = {kSrc, kDst};
+    cp->addVarsAndColNames("ds1", {kSrc});
+    cp->addVarsAndColNames("ds2", {kDst});
+    cp->setColNames(colNames);
 
-        auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
-        auto future = cpExe->execute();
-        auto status = std::move(future).get();
-        EXPECT_TRUE(status.ok());
+    auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
+    auto future = cpExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
 
-        DataSet expected;
-        expected.colNames = colNames;
-        for (size_t i = 0; i < 5; ++i) {
-            for (size_t j = 0; j < 3; ++j) {
+    DataSet expected;
+    expected.colNames = colNames;
+    for (size_t i = 0; i < 5; ++i) {
+        for (size_t j = 0; j < 3; ++j) {
+            Row row;
+            row.values.emplace_back(folly::to<std::string>(i));
+            row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'a')));
+            expected.rows.emplace_back(std::move(row));
+        }
+    }
+    checkResult(expected, cp->outputVar());
+}
+
+TEST_F(CartesianProductTest, thressVars) {
+    auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
+    cp->addVarsAndColNames("ds1", {kSrc});
+    cp->addVarsAndColNames("ds2", {kDst});
+    cp->addVarsAndColNames("ds3", {"col1", "col2"});
+    std::vector<std::string> colNames = {kSrc, kDst, "col1", "col2"};
+    cp->setColNames(colNames);
+
+    auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
+    auto future = cpExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+
+    DataSet expected;
+    expected.colNames = colNames;
+    for (size_t i = 0; i < 5; ++i) {
+        for (size_t j = 0; j < 3; ++j) {
+            for (size_t k = 0; k < 3; ++k) {
                 Row row;
                 row.values.emplace_back(folly::to<std::string>(i));
                 row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'a')));
+                row.values.emplace_back(folly::to<std::string>(static_cast<char>(k + 'x')));
+                row.values.emplace_back(folly::to<std::string>(static_cast<char>(k + 'X')));
                 expected.rows.emplace_back(std::move(row));
             }
         }
-        checkResult(expected, cp->outputVar());
     }
-    {
-        auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
-        cp->addVars("ds1");
-        cp->addVars("ds3");
-        std::vector<std::string> colNames = {kSrc, "col1", "col2"};
-        cp->setColNames(colNames);
-
-        auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
-        auto future = cpExe->execute();
-        auto status = std::move(future).get();
-        EXPECT_TRUE(status.ok());
-
-        DataSet expected;
-        expected.colNames = colNames;
-        for (size_t i = 0; i < 5; ++i) {
-            for (size_t j = 0; j < 3; ++j) {
-                    Row row;
-                    row.values.emplace_back(folly::to<std::string>(i));
-                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'x')));
-                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'X')));
-                    expected.rows.emplace_back(std::move(row));
-            }
-        }
-        checkResult(expected, cp->outputVar());
-    }
-    {
-        auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
-        cp->addVars("ds1");
-        cp->addVars("ds2");
-        cp->addVars("ds3");
-        std::vector<std::string> colNames = {kSrc, kDst, "col1", "col2"};
-        cp->setColNames(colNames);
-
-        auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
-        auto future = cpExe->execute();
-        auto status = std::move(future).get();
-        EXPECT_TRUE(status.ok());
-
-        DataSet expected;
-        expected.colNames = colNames;
-        for (size_t i = 0; i < 5; ++i) {
-            for (size_t j = 0; j < 3; ++j) {
-                for (size_t k = 0; k < 3; ++k) {
-                    Row row;
-                    row.values.emplace_back(folly::to<std::string>(i));
-                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'a')));
-                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(k + 'x')));
-                    row.values.emplace_back(folly::to<std::string>(static_cast<char>(k + 'X')));
-                    expected.rows.emplace_back(std::move(row));
-                }
-            }
-        }
-        checkResult(expected, cp->outputVar());
-    }
+    checkResult(expected, cp->outputVar());
 }
 
+TEST_F(CartesianProductTest, otherTwoVar) {
+    auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
+    cp->addVarsAndColNames("ds1", {kSrc});
+    cp->addVarsAndColNames("ds3", {"col1", "col2"});
+    std::vector<std::string> colNames = {kSrc, "col1", "col2"};
+    cp->setColNames(colNames);
 
+    auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
+    auto future = cpExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+
+    DataSet expected;
+    expected.colNames = colNames;
+    for (size_t i = 0; i < 5; ++i) {
+        for (size_t j = 0; j < 3; ++j) {
+            Row row;
+            row.values.emplace_back(folly::to<std::string>(i));
+            row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'x')));
+            row.values.emplace_back(folly::to<std::string>(static_cast<char>(j + 'X')));
+            expected.rows.emplace_back(std::move(row));
+        }
+    }
+    checkResult(expected, cp->outputVar());
+}
 
 }   // namespace graph
 }   // namespace nebula

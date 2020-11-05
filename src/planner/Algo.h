@@ -93,25 +93,47 @@ class ProduceAllPaths final : public SingleInputNode {
         : SingleInputNode(qctx, Kind::kProduceAllPaths, input) {}
 };
 
-class CartesianProduct final : public SingleInputNode {
+class CartesianProduct final : public SingleDependencyNode {
 public:
     static CartesianProduct* make(QueryContext* qctx, PlanNode* input) {
         return qctx->objPool()->add(new CartesianProduct(qctx, input));
     }
 
-    void addVars(std::string name) {
-        varNames_.emplace_back(std::move(name));
+    Status addVars(std::string varName, std::vector<std::string> colNames) {
+        auto* varPtr = qctx_->symTable()->getVar(varName);
+        if (varPtr != nullptr) {
+            return Status::SemanticError("Duplicate Var: %s", varName.c_str());
+        }
+        for (const auto& name : colNames) {
+            if (std::find(allColNames_.begin(), allColNames_.end(), name) != allColNames_.end()) {
+                return Status::SemanticError(
+                    "Var : %s , exist duplicate ColName : %s", varName.c_str(), name.c_str());
+            }
+            allColNames_.emplace_back(name);
+        }
+        varPtr = qctx_->symTable()->newVariable(varName);
+        varPtr->name = varName;
+        varPtr->colNames = colNames;
+        qctx_->symTable()->readBy(varName, this);
+
+        inputVars_.emplace_back(varPtr);
+        return Status::OK();
     }
 
-    const std::vector<std::string>& vars() const {
-        return varNames_;
+    const std::vector<std::string> inputVars() const {
+        std::vector<std::string> varNames;
+        varNames.reserve(inputVars_.size());
+        for (auto i : inputVars_) {
+            varNames.emplace_back(i->name);
+        }
+        return varNames;
     }
 
 private:
     CartesianProduct(QueryContext* qctx, PlanNode* input)
-        : SingleInputNode(qctx, Kind::kCartesianProduct, input) {}
+        : SingleDependencyNode(qctx, Kind::kCartesianProduct, input) {}
 
-    std::vector<std::string> varNames_;
+    std::vector<std::string> allColNames_;
 };
 
 }  // namespace graph

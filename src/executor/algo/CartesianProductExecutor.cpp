@@ -16,7 +16,7 @@ folly::Future<Status> CartesianProductExecutor::execute() {
 
     auto* cartesianProduct = asNode<CartesianProduct>(node());
     colNames_ = cartesianProduct->colNames();
-    auto vars = cartesianProduct->vars();
+    auto vars = cartesianProduct->inputVars();
     if (vars.size() < 2) {
         return Status::Error("vars's size : %zu, must be greater than 2", vars.size());
     }
