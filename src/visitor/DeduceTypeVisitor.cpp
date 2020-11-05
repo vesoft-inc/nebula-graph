@@ -215,9 +215,11 @@ void DeduceTypeVisitor::visit(RelationalExpression *expr) {
 void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
     expr->left()->accept(this);
     if (!ok()) return;
-    if (type_ != Value::Type::LIST && !isSuperiorType(type_)) {
+    auto leftType = type_;
+    if (leftType != Value::Type::LIST && leftType != Value::Type::MAP &&
+        !isSuperiorType(leftType)) {
         std::stringstream ss;
-        ss << "`" << expr->toString() << "', expected LIST but was " << type_ << ": "
+        ss << "`" << expr->toString() << "', expected LIST but was " << leftType << ": "
            << expr->left()->toString();
         status_ = Status::SemanticError(ss.str());
         return;
@@ -225,9 +227,14 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
 
     expr->right()->accept(this);
     if (!ok()) return;
-    if (type_ != Value::Type::INT && !isSuperiorType(type_)) {
+    auto rightType = type_;
+    if (((leftType == Value::Type::LIST || isSuperiorType(rightType)) &&
+         rightType != Value::Type::INT) &&
+        ((leftType == Value::Type::MAP || isSuperiorType(rightType)) &&
+         rightType != Value::Type::STRING) &&
+        !isSuperiorType(rightType)) {
         std::stringstream ss;
-        ss << "`" << expr->toString() << "', expected Integer but was " << type_ << ": "
+        ss << "`" << expr->toString() << "', expected Integer but was " << rightType << ": "
            << expr->right()->toString();
         status_ = Status::SemanticError(ss.str());
         return;

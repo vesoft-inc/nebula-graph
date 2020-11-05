@@ -65,7 +65,7 @@ Status GoValidator::validateWhere(WhereClause* where) {
     if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE &&
         type != Value::Type::__EMPTY__) {
         std::stringstream ss;
-        ss << "`" << filter_->toString() << "', Filter only accpet bool/null value, "
+        ss << "`" << filter_->toString() << "', expected Boolean, "
            << "but was `" << type << "'";
         return Status::SemanticError(ss.str());
     }
