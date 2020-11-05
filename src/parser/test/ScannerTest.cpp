@@ -134,6 +134,7 @@ TEST(Scanner, Basic) {
 
     std::vector<Validator> validators = {
         CHECK_SEMANTIC_TYPE(".", TokenType::DOT),
+        CHECK_SEMANTIC_TYPE("..", TokenType::DOT_DOT),
         CHECK_SEMANTIC_TYPE(",", TokenType::COMMA),
         CHECK_SEMANTIC_TYPE(":", TokenType::COLON),
         CHECK_SEMANTIC_TYPE(";", TokenType::SEMICOLON),
@@ -151,9 +152,8 @@ TEST(Scanner, Basic) {
         CHECK_SEMANTIC_TYPE(">=", TokenType::GE),
         CHECK_SEMANTIC_TYPE("==", TokenType::EQ),
         CHECK_SEMANTIC_TYPE("!=", TokenType::NE),
+        CHECK_SEMANTIC_TYPE("<>", TokenType::NE),
 
-        CHECK_SEMANTIC_TYPE("||", TokenType::OR),
-        CHECK_SEMANTIC_TYPE("&&", TokenType::AND),
         CHECK_SEMANTIC_TYPE("|", TokenType::PIPE),
         CHECK_SEMANTIC_TYPE("=", TokenType::ASSIGN),
         CHECK_SEMANTIC_TYPE("(", TokenType::L_PAREN),
@@ -441,6 +441,12 @@ TEST(Scanner, Basic) {
         CHECK_SEMANTIC_TYPE("STORAGE", TokenType::KW_STORAGE),
         CHECK_SEMANTIC_TYPE("Storage", TokenType::KW_STORAGE),
         CHECK_SEMANTIC_TYPE("storage", TokenType::KW_STORAGE),
+        CHECK_SEMANTIC_TYPE("UNWIND", TokenType::KW_UNWIND),
+        CHECK_SEMANTIC_TYPE("unwind", TokenType::KW_UNWIND),
+        CHECK_SEMANTIC_TYPE("SKIP", TokenType::KW_SKIP),
+        CHECK_SEMANTIC_TYPE("skip", TokenType::KW_SKIP),
+        CHECK_SEMANTIC_TYPE("OPTIONAL", TokenType::KW_OPTIONAL),
+        CHECK_SEMANTIC_TYPE("optional", TokenType::KW_OPTIONAL),
 
         CHECK_SEMANTIC_TYPE("_type", TokenType::TYPE_PROP),
         CHECK_SEMANTIC_TYPE("_id", TokenType::ID_PROP),

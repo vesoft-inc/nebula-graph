@@ -94,10 +94,6 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "DescTagIndex";
         case Kind::kDescEdgeIndex:
             return "DescEdgeIndex";
-        case Kind::kRebuildTagIndex:
-            return "RebuildTagIndex";
-        case Kind::kRebuildEdgeIndex:
-            return "RebuildEdgeIndex";
         case Kind::kInsertVertices:
             return "InsertVertices";
         case Kind::kInsertEdges:
@@ -129,6 +125,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowCreateTag";
         case Kind::kShowCreateEdge:
             return "ShowCreateEdge";
+        case Kind::kShowCreateTagIndex:
+            return "ShowCreateTagIndex";
+        case Kind::kShowCreateEdgeIndex:
+            return "ShowCreateEdgeIndex";
         case Kind::kDropSpace:
             return "DropSpace";
         case Kind::kDropTag:
@@ -141,6 +141,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowTags";
         case Kind::kShowEdges:
             return "ShowEdges";
+        case Kind::kShowTagIndexes:
+            return "kShowTagIndexes";
+        case Kind::kShowEdgeIndexes:
+            return "kShowEdgeIndexes";
         case Kind::kCreateSnapshot:
             return "CreateSnapshot";
         case Kind::kDropSnapshot:
@@ -187,6 +191,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ProduceSemiShortestPath";
         case Kind::kConjunctPath:
             return "ConjunctPath";
+        case Kind::kProduceAllPaths:
+            return "ProduceAllPaths";
             // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
