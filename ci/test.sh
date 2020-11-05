@@ -93,11 +93,14 @@ function run_test() {
     cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
     testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
+
     ./ntr \
         -n=8 \
         --dist=loadfile \
         --debug_log=false \
         $testpath
+
+    ./ntr --debug_log=false $PROJ_DIR/tests/job/*
 }
 
 function test_in_cluster() {
@@ -107,9 +110,10 @@ function test_in_cluster() {
     ./ntr \
         -n=8 \
         --dist=loadfile \
-        --debug_log=false \
         --address="nebulaclusters-graphd:3699" \
         $testpath
+
+    ./ntr --address="nebulaclusters-graphd:3699" $PROJ_DIR/tests/job/*
 }
 
 case "$1" in

@@ -161,14 +161,84 @@ class TestMatch(NebulaTestSuite):
         stmt = '''
                   MATCH (v1:player{name: "LeBron James"}) -[r:serve]-> (v2 {name: "Cavaliers"})
                   WHERE r.start_year <= 2005 AND r.end_year >= 2005
-                  RETURN r.start_year AS Start, r.end_year AS End
+                  RETURN r.start_year AS Start_Year, r.end_year AS Start_Year
                '''
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected = {
-            'column_names': ['Start', 'End'],
+            'column_names': ['Start_Year', 'Start_Year'],
             'rows': [
                 [2003, 2010],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = '''
+                  MATCH (v1:player{name: "Danny Green"}) -[:like]-> (v2)
+                  RETURN v1.name AS Name, v2.name AS Friend
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Friend'],
+            'rows': [
+                ['Danny Green', 'LeBron James'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'Tim Duncan'],
+            ]
+        }
+
+        stmt = '''
+                  MATCH (v1:player{name: "Danny Green"}) <-[:like]- (v2)
+                  RETURN v1.name AS Name, v2.name AS Friend
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Friend'],
+            'rows': [
+                ['Danny Green', 'Dejounte Murray'],
+                ['Danny Green', 'Marco Belinelli'],
+            ]
+        }
+
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = '''
+                  MATCH (v1:player{name: "Danny Green"}) <-[:like]-> (v2)
+                  RETURN v1.name AS Name, v2.name AS Friend
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Friend'],
+            'rows': [
+                ['Danny Green', 'Dejounte Murray'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'LeBron James'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'Tim Duncan'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = '''
+                  MATCH (v1:player{name: "Danny Green"}) -[:like]- (v2)
+                  RETURN v1.name AS Name, v2.name AS Friend
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Friend'],
+            'rows': [
+                ['Danny Green', 'Dejounte Murray'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'LeBron James'],
+                ['Danny Green', 'Marco Belinelli'],
+                ['Danny Green', 'Tim Duncan'],
             ]
         }
         self.check_column_names(resp, expected['column_names'])
@@ -192,6 +262,204 @@ class TestMatch(NebulaTestSuite):
         }
         self.check_column_names(resp, expected['column_names'])
         self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = '''
+                  MATCH (v1:player{name: 'Tony Parker'}) -[r1:serve]-> (v2) <-[r2:serve]- (v3)
+                  WHERE r1.start_year <= r2.end_year AND
+                        r1.end_year >= r2.start_year AND
+                        v1.name <> v3.name AND
+                        v3.name STARTS WITH 'D'
+                  RETURN v1.name AS Player, v2.name AS Team, v3.name AS Teammate
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Player', 'Team', 'Teammate'],
+            'rows': [
+                ['Tony Parker', 'Hornets', 'Dwight Howard'],
+                ['Tony Parker', 'Spurs', 'Danny Green'],
+                ['Tony Parker', 'Spurs', 'Dejounte Murray'],
+                ['Tony Parker', 'Spurs', 'David West'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+    def test_distinct(self):
+        stmt = '''
+                  MATCH (:player{name:'Dwyane Wade'}) -[:like]-> () -[:like]-> (v3)
+                  RETURN v3.name AS Name
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name'],
+            'rows': [
+                ['Carmelo Anthony'],
+                ['Dwyane Wade'],
+                ['Dwyane Wade'],
+                ['LeBron James'],
+                ['LeBron James'],
+                ['Chris Paul'],
+                ['Ray Allen'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        stmt = '''
+                  MATCH (:player{name:'Dwyane Wade'}) -[:like]-> () -[:like]-> (v3)
+                  RETURN DISTINCT v3.name AS Name
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name'],
+            'rows': [
+                ['Carmelo Anthony'],
+                ['Dwyane Wade'],
+                ['LeBron James'],
+                ['Chris Paul'],
+                ['Ray Allen'],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+    def test_order_skip_limit(self):
+        # ORDER BY
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY Age DESC, Name ASC
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Age'],
+            'rows': [
+                ['Tim Duncan', 42],
+                ['Manu Ginobili', 41],
+                ['Tony Parker', 36],
+                ['LeBron James', 34],
+                ['Chris Paul', 33],
+                ['Marco Belinelli', 32],
+                ['Danny Green', 31],
+                ['Kevin Durant', 30],
+                ['Russell Westbrook', 30],
+                ['James Harden', 29],
+                ['Kyle Anderson', 25],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        # ORDER BY LIMIT
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY Age DESC, Name ASC
+                  LIMIT 3
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Age'],
+            'rows': [
+                ['Tim Duncan', 42],
+                ['Manu Ginobili', 41],
+                ['Tony Parker', 36],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        # ORDER BY SKIP
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY Age DESC, Name ASC
+                  SKIP 3
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Age'],
+            'rows': [
+                ['LeBron James', 34],
+                ['Chris Paul', 33],
+                ['Marco Belinelli', 32],
+                ['Danny Green', 31],
+                ['Kevin Durant', 30],
+                ['Russell Westbrook', 30],
+                ['James Harden', 29],
+                ['Kyle Anderson', 25],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        # ORDER BY SKIP LIMIT
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY Age DESC, Name ASC
+                  SKIP 3
+                  LIMIT 3
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Age'],
+            'rows': [
+                ['LeBron James', 34],
+                ['Chris Paul', 33],
+                ['Marco Belinelli', 32],
+            ]
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+        # SKIP all rows
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY Age DESC, Name ASC
+                  SKIP 11
+                  LIMIT 3
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Age'],
+            'rows': []
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        # LIMIT 0
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY Age DESC, Name ASC
+                  LIMIT 0
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected = {
+            'column_names': ['Name', 'Age'],
+            'rows': []
+        }
+        self.check_column_names(resp, expected['column_names'])
+        self.check_out_of_order_result(resp, expected['rows'])
+
+        # ORDER BY expr
+        stmt = '''
+                  MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
+                  RETURN v.name AS Name, v.age AS Age
+                  ORDER BY v.age DESC, v.name ASC
+               '''
+        resp = self.execute_query(stmt)
+        self.check_resp_failed(resp)
 
     def test_match_by_id(self):
         # single node
@@ -338,16 +606,6 @@ class TestMatch(NebulaTestSuite):
 
         # start from middle
         stmt = 'MATCH () --> (v) --> () return *'
-        resp = self.execute_query(stmt)
-        self.check_resp_failed(resp)
-
-        # in bound
-        stmt = 'MATCH (v:player) -[]-> () return *'
-        resp = self.execute_query(stmt)
-        self.check_resp_failed(resp)
-
-        # bidirectly
-        stmt = 'MATCH (v:player) -[]- () return *'
         resp = self.execute_query(stmt)
         self.check_resp_failed(resp)
 

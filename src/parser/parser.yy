@@ -20,6 +20,7 @@
 #include "common/expression/AttributeExpression.h"
 #include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/VariableExpression.h"
+#include "common/expression/CaseExpression.h"
 #include "util/SchemaUtil.h"
 
 namespace nebula {
@@ -115,6 +116,9 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     ReadingClause                          *reading_clause;
     MatchClauseList                        *match_clause_list;
     MatchStepRange                         *match_step_range;
+    nebula::meta::cpp2::IndexFieldDef      *index_field;
+    nebula::IndexFieldList                 *index_field_list;
+    CaseList                               *case_list;
 }
 
 /* destructors */
@@ -154,11 +158,12 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_CONTAINS
 %token KW_STARTS KW_ENDS
 %token KW_UNWIND KW_SKIP KW_OPTIONAL
+%token KW_CASE KW_THEN KW_ELSE KW_END
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
 %token PIPE ASSIGN
-%token DOT COLON SEMICOLON L_ARROW R_ARROW AT
+%token DOT DOT_DOT COLON QM SEMICOLON L_ARROW R_ARROW AT
 %token ID_PROP TYPE_PROP SRC_ID_PROP DST_ID_PROP RANK_PROP INPUT_REF DST_REF SRC_REF
 
 /* token type specification */
@@ -175,6 +180,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> edge_prop_expression
 %type <expr> input_prop_expression
 %type <expr> var_prop_expression
+%type <expr> generic_case_expression
+%type <expr> conditional_expression
 %type <expr> vid_ref_expression
 %type <expr> vid
 %type <expr> function_call_expression
@@ -185,6 +192,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> container_expression
 %type <expr> subscript_expression
 %type <expr> attribute_expression
+%type <expr> case_expression
 %type <expr> compound_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
@@ -235,6 +243,9 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <both_in_out_clause> both_in_out_clause
 %type <expression_list> expression_list
 %type <map_item_list> map_item_list
+%type <case_list> when_then_list
+%type <expr> case_condition
+%type <expr> case_default
 
 %type <match_path> match_path_pattern
 %type <match_path> match_path
@@ -260,6 +271,9 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 %type <role_type_clause> role_type_clause
 %type <acl_item_clause> acl_item_clause
+
+%type <index_field> index_field
+%type <index_field_list> index_field_list
 
 %type <sentence> maintain_sentence
 %type <sentence> create_space_sentence describe_space_sentence drop_space_sentence
@@ -301,6 +315,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <boolval> opt_if_not_exists
 %type <boolval> opt_if_exists
 
+%left QM COLON
 %left KW_OR KW_XOR
 %left KW_AND
 %right KW_NOT
@@ -328,6 +343,9 @@ legal_integer
     }
     ;
 
+/**
+ * TODO(dutor) Tweak the scanner to keep the original text along the unreserved keywords
+ */
 unreserved_keyword
     : KW_SPACE              { $$ = new std::string("space"); }
     | KW_VALUES             { $$ = new std::string("values"); }
@@ -392,6 +410,12 @@ unreserved_keyword
     | KW_OFFSET             { $$ = new std::string("offset"); }
     | KW_FORMAT             { $$ = new std::string("format"); }
     | KW_PROFILE            { $$ = new std::string("profile"); }
+    | KW_BOTH               { $$ = new std::string("both"); }
+    | KW_OUT                { $$ = new std::string("out"); }
+    | KW_SUBGRAPH           { $$ = new std::string("subgraph"); }
+    | KW_THEN               { $$ = new std::string("then"); }
+    | KW_ELSE               { $$ = new std::string("else"); }
+    | KW_END                { $$ = new std::string("end"); }
     ;
 
 agg_function
@@ -518,6 +542,9 @@ expression
     | expression KW_XOR expression {
         $$ = new LogicalExpression(Expression::Kind::kLogicalXor, $1, $3);
     }
+    | case_expression {
+        $$ = $1;
+    }
     ;
 
 compound_expression
@@ -575,6 +602,63 @@ attribute_expression
     }
     | compound_expression DOT name_label {
         $$ = new AttributeExpression($1, new LabelExpression($3));
+    }
+    ;
+
+case_expression
+    : generic_case_expression {
+        $$ = $1;
+    }
+    | conditional_expression {
+        $$ = $1;
+    }
+    ;
+
+generic_case_expression
+    : KW_CASE case_condition when_then_list case_default KW_END {
+        auto expr = new CaseExpression($3);
+        expr->setCondition($2);
+        expr->setDefault($4);
+        $$ = expr;
+    }
+    ;
+
+conditional_expression
+    : expression QM expression COLON expression {
+        auto cases = new CaseList();
+        cases->add($1, $3);
+        auto expr = new CaseExpression(cases, false);
+        expr->setDefault($5);
+        $$ = expr;
+    }
+    ;
+
+case_condition
+    : %empty {
+        $$ = nullptr;
+    }
+    | expression {
+        $$ = $1;
+    }
+    ;
+
+case_default
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_ELSE expression {
+        $$ = $2;
+    }
+    ;
+
+when_then_list
+    : KW_WHEN expression KW_THEN expression {
+        $$ = new CaseList();
+        $$->add($2, $4);
+    }
+    | when_then_list KW_WHEN expression KW_THEN expression {
+        $1->add($3, $5);
+        $$ = $1;
     }
     ;
 
@@ -1145,14 +1229,14 @@ match_step_range
     | STAR legal_integer {
         $$ = new MatchStepRange($2, $2);
     }
-    | STAR DOT DOT legal_integer {
-        $$ = new MatchStepRange(1, $4);
+    | STAR DOT_DOT legal_integer {
+        $$ = new MatchStepRange(1, $3);
     }
-    | STAR legal_integer DOT DOT {
+    | STAR legal_integer DOT_DOT {
         $$ = new MatchStepRange($2);
     }
-    | STAR legal_integer DOT DOT legal_integer {
-        $$ = new MatchStepRange($2, $5);
+    | STAR legal_integer DOT_DOT legal_integer {
+        $$ = new MatchStepRange($2, $4);
     }
     ;
 
@@ -1632,14 +1716,46 @@ drop_edge_sentence
     }
     ;
 
+index_field
+    : name_label {
+        $$ = new meta::cpp2::IndexFieldDef();
+        $$->set_name($1->c_str());
+        delete $1;
+    }
+    | name_label L_PAREN INTEGER R_PAREN {
+        if ($3 > std::numeric_limits<int16_t>::max()) {
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = new meta::cpp2::IndexFieldDef();
+        $$->set_name($1->c_str());
+        $$->set_type_length($3);
+        delete $1;
+    }
+    ;
+
+index_field_list
+    : index_field {
+        $$ = new IndexFieldList();
+        std::unique_ptr<meta::cpp2::IndexFieldDef> field;
+        field.reset($1);
+        $$->addField(std::move(field));
+    }
+    | index_field_list COMMA index_field {
+        $$ = $1;
+        std::unique_ptr<meta::cpp2::IndexFieldDef> field;
+        field.reset($3);
+        $$->addField(std::move(field));
+    }
+    ;
+
 create_tag_index_sentence
-    : KW_CREATE KW_TAG KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN column_name_list R_PAREN {
+    : KW_CREATE KW_TAG KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN index_field_list R_PAREN {
         $$ = new CreateTagIndexSentence($5, $7, $9, $4);
     }
     ;
 
 create_edge_index_sentence
-    : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN column_name_list R_PAREN {
+    : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN index_field_list R_PAREN {
         $$ = new CreateEdgeIndexSentence($5, $7, $9, $4);
     }
     ;
@@ -2102,12 +2218,6 @@ show_sentence
     }
     | KW_SHOW KW_CREATE KW_EDGE KW_INDEX name_label {
         $$ = new ShowCreateEdgeIndexSentence($5);
-    }
-    | KW_SHOW KW_TAG KW_INDEX KW_STATUS {
-        $$ = new ShowTagIndexesSentence();
-    }
-    | KW_SHOW KW_EDGE KW_INDEX KW_STATUS {
-        $$ = new ShowEdgeIndexesSentence();
     }
     | KW_SHOW KW_SNAPSHOTS {
         $$ = new ShowSnapshotsSentence();
