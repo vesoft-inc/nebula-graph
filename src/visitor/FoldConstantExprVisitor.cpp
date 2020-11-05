@@ -301,14 +301,15 @@ void FoldConstantExprVisitor::visit(PathBuildExpression *expr) {
     bool canBeFolded = true;
     for (size_t i = 0; i < items.size(); ++i) {
         auto item = items[i].get();
+        if (isConstant(item)) {
+            continue;
+        }
         item->accept(this);
         if (!canBeFolded_) {
             canBeFolded = false;
             continue;
         }
-        if (item->kind() != Expression::Kind::kConstant) {
-            expr->setItem(i, std::unique_ptr<Expression>{fold(item)});
-        }
+        expr->setItem(i, std::unique_ptr<Expression>{fold(item)});
     }
     canBeFolded_ = canBeFolded;
 }
