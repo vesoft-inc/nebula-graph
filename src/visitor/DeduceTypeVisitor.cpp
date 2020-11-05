@@ -220,6 +220,7 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
         ss << "`" << expr->toString() << "', expected LIST but was " << type_ << ": "
            << expr->left()->toString();
         status_ = Status::SemanticError(ss.str());
+        return;
     }
 
     expr->right()->accept(this);
@@ -229,6 +230,7 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
         ss << "`" << expr->toString() << "', expected Integer but was " << type_ << ": "
            << expr->right()->toString();
         status_ = Status::SemanticError(ss.str());
+        return;
     }
 
     // Will not deduce the actual type of the value in list.
@@ -245,10 +247,18 @@ void DeduceTypeVisitor::visit(AttributeExpression *expr) {
         ss << "`" << expr->toString() << "', expected Map, Vertex or Edge but was " << type_ << ": "
            << expr->left()->toString();
         status_ = Status::SemanticError(ss.str());
+        return;
     }
 
     expr->right()->accept(this);
     if (!ok()) return;
+    if (type_ != Value::Type::STRING && !isSuperiorType(type_)) {
+        std::stringstream ss;
+        ss << "`" << expr->toString()
+           << "', expected an valid identifier: " << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
 
     // Will not deduce the actual type of the attribute.
     type_ = Value::Type::__EMPTY__;
