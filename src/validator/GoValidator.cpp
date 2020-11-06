@@ -214,7 +214,7 @@ Status GoValidator::buildNStepsPlan() {
 
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
-    if (!from_.vids.empty() && from_.srcRef == nullptr) {
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
         buildConstantInput(from_, startVidsVar);
     } else {
         dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
@@ -273,7 +273,7 @@ Status GoValidator::buildMToNPlan() {
 
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
-    if (!from_.vids.empty() && from_.srcRef == nullptr) {
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
         buildConstantInput(from_, startVidsVar);
     } else {
         dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
@@ -517,7 +517,7 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                         ExecutionContext::kLatestVersion},
                         {from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName,
                         ExecutionContext::kLatestVersion},
-                        {joinHashKey}, {from_.srcRef});
+                        {joinHashKey}, {from_.originalSrc});
     std::vector<std::string> colNames = dependencyForJoinInput->colNames();
     for (auto& col : outputs_) {
         colNames.emplace_back(col.name);
@@ -579,10 +579,10 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
     auto* pool = qctx_->objPool();
     dstVidColName_ = vctx_->anonColGen()->getCol();
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(from_.srcRef->clone().release(),
+    auto* column = new YieldColumn(from_.originalSrc->clone().release(),
                                    new std::string(from_.firstBeginningSrcVidColName));
     columns->addColumn(column);
-    column = new YieldColumn(from_.srcRef->clone().release(), new std::string(dstVidColName_));
+    column = new YieldColumn(from_.originalSrc->clone().release(), new std::string(dstVidColName_));
     columns->addColumn(column);
     // dedupStartVid could be nullptr, that means no input for this project.
     auto* projectLeftVarForJoin = Project::make(qctx_, dedupStartVid, columns);
@@ -599,7 +599,7 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
 Status GoValidator::buildOneStepPlan() {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
-    if (!from_.vids.empty() && from_.srcRef == nullptr) {
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
         buildConstantInput(from_, startVidsVar);
     } else {
         dedupStartVid = buildRuntimeInput(from_, projectStartVid_);

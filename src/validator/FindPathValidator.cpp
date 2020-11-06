@@ -67,7 +67,7 @@ Status FindPathValidator::singlePairPlan() {
 void FindPathValidator::buildStart(Starts& starts,
                                    std::string& startVidsVar,
                                    PlanNode* dedupStartVid) {
-    if (!starts.vids.empty() && starts.srcRef == nullptr) {
+    if (!starts.vids.empty() && starts.originalSrc == nullptr) {
         buildConstantInput(starts, startVidsVar);
     } else {
         dedupStartVid = buildRuntimeInput(from_, projectStartVid_);

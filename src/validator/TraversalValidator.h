@@ -25,8 +25,8 @@ protected:
 
     struct Starts {
         FromType                fromType{kInstantExpr};
-        Expression*             srcRef{nullptr};
         Expression*             src{nullptr};
+        Expression*             originalSrc{nullptr};
         std::string             userDefinedVarName;
         std::string             firstBeginningSrcVidColName;
         std::vector<Value>      vids;

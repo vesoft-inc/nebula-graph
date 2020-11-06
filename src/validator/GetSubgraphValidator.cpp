@@ -197,7 +197,7 @@ Status GetSubgraphValidator::toPlan() {
 
     std::string startVidsVar;
     SingleInputNode* collectRunTimeStartVids = nullptr;
-    if (!from_.vids.empty() && from_.srcRef == nullptr) {
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
         buildConstantInput(from_, startVidsVar);
     } else {
         PlanNode* dedupStartVid = buildRuntimeInput(from_, projectStartVid_);

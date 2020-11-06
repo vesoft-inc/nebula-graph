@@ -36,7 +36,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                 << type.value() << "'";
             return Status::SemanticError(ss.str());
         }
-        starts.srcRef = src;
+        starts.originalSrc = src;
         auto* propExpr = static_cast<PropertyExpression*>(src);
         if (starts.fromType == kVariable) {
             starts.userDefinedVarName = *(propExpr->sym());
@@ -177,7 +177,7 @@ void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVi
 PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& projectStartVid) {
     auto pool = qctx_->objPool();
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(starts.srcRef->clone().release(), new std::string(kVid));
+    auto* column = new YieldColumn(starts.originalSrc->clone().release(), new std::string(kVid));
     columns->addColumn(column);
 
     auto* project = Project::make(qctx_, nullptr, columns);
