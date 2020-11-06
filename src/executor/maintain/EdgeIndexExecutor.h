@@ -36,10 +36,18 @@ public:
     folly::Future<Status> execute() override;
 };
 
-class RebuildEdgeIndexExecutor final : public Executor {
+class ShowCreateEdgeIndexExecutor final : public Executor {
 public:
-    RebuildEdgeIndexExecutor(const PlanNode *node, QueryContext *qctx)
-        : Executor("RebuildEdgeIndexExecutor", node, qctx) {}
+    ShowCreateEdgeIndexExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("ShowCreateEdgeIndexExecutor", node, qctx) {}
+
+    folly::Future<Status> execute() override;
+};
+
+class ShowEdgeIndexesExecutor final : public Executor {
+public:
+    ShowEdgeIndexesExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("ShowEdgeIndexesExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };

@@ -121,36 +121,34 @@ void RewriteInputPropVisitor::visit(VariablePropertyExpression* expr) {
 }
 
 void RewriteInputPropVisitor::visit(ListExpression* expr) {
-    auto items = std::move(*expr).get();
-    for (auto iter = items.begin(); iter < items.end(); ++iter) {
-        iter->get()->accept(this);
+    const auto& items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i]->accept(this);
         if (ok()) {
-            *iter = std::move(result_);
+            expr->setItem(i, std::move(result_));
         }
     }
-    expr->setItems(std::move(items));
 }
 
 void RewriteInputPropVisitor::visit(SetExpression* expr) {
-    auto items = std::move(*expr).get();
-    for (auto iter = items.begin(); iter < items.end(); ++iter) {
-        iter->get()->accept(this);
+    const auto& items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i]->accept(this);
         if (ok()) {
-            *iter = std::move(result_);
+            expr->setItem(i, std::move(result_));
         }
     }
-    expr->setItems(std::move(items));
 }
 
 void RewriteInputPropVisitor::visit(MapExpression* expr) {
-    auto items = std::move(*expr).get();
-    for (auto iter = items.begin(); iter < items.end(); ++iter) {
-        iter->second.get()->accept(this);
+    const auto& items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i].second->accept(this);
         if (ok()) {
-            *iter = std::make_pair(std::move(iter->first), std::move(result_));
+            auto key = std::make_unique<std::string>(*items[i].first);
+            expr->setItem(i, {std::move(key), std::move(result_)});
         }
     }
-    expr->setItems(std::move(items));
 }
 
 void RewriteInputPropVisitor::visit(FunctionCallExpression* expr) {
@@ -167,6 +165,32 @@ void RewriteInputPropVisitor::visit(TypeCastingExpression* expr) {
     expr->operand()->accept(this);
     if (ok()) {
         expr->setOperand(result_.release());
+    }
+}
+
+void RewriteInputPropVisitor::visit(CaseExpression* expr) {
+    if (expr->hasCondition()) {
+        expr->condition()->accept(this);
+        if (ok()) {
+            expr->setCondition(result_.release());
+        }
+    }
+    if (expr->hasDefault()) {
+        expr->defaultResult()->accept(this);
+        if (ok()) {
+            expr->setDefault(result_.release());
+        }
+    }
+    for (size_t i = 0; i < expr->cases().size(); ++i) {
+        const auto& whenThen = expr->cases()[i];
+        whenThen.when->accept(this);
+        if (ok()) {
+            expr->setWhen(i, result_.release());
+        }
+        whenThen.then->accept(this);
+        if (ok()) {
+            expr->setThen(i, result_.release());
+        }
     }
 }
 
@@ -189,49 +213,7 @@ void RewriteInputPropVisitor::visitUnaryExpr(UnaryExpression* expr) {
 }
 
 void RewriteInputPropVisitor::visitVertexEdgePropExpr(PropertyExpression* expr) {
-    PropertyExpression* propExpr = nullptr;
-    switch (expr->kind()) {
-        case Expression::Kind::kTagProperty: {
-            propExpr = static_cast<TagPropertyExpression*>(expr);
-            break;
-        }
-        case Expression::Kind::kSrcProperty: {
-            propExpr = static_cast<SourcePropertyExpression*>(expr);
-            break;
-        }
-        case Expression::Kind::kDstProperty: {
-            propExpr = static_cast<DestPropertyExpression*>(expr);
-            break;
-        }
-        case Expression::Kind::kEdgeProperty: {
-            propExpr = static_cast<EdgePropertyExpression*>(expr);
-            break;
-        }
-        case Expression::Kind::kEdgeSrc: {
-            propExpr = static_cast<EdgeSrcIdExpression*>(expr);
-            break;
-        }
-        case Expression::Kind::kEdgeType: {
-            propExpr = static_cast<EdgeTypeExpression*>(expr);
-            break;
-        }
-        case Expression::Kind::kEdgeRank: {
-            propExpr = static_cast<EdgeRankExpression*>(expr);
-            break;
-        }
-        case Expression::Kind::kEdgeDst: {
-            propExpr = static_cast<EdgeDstIdExpression*>(expr);
-            break;
-        }
-        case Expression::Kind::kVarProperty: {
-            propExpr = static_cast<VariablePropertyExpression*>(expr);
-            break;
-        }
-        default: {
-            LOG(FATAL) << "Invalid Kind " << expr->kind();
-        }
-    }
-    auto found = propExprColMap_.find(propExpr->toString());
+    auto found = propExprColMap_.find(expr->toString());
     DCHECK(found != propExprColMap_.end());
     auto alias = new std::string(*(found->second->alias()));
     result_ = std::make_unique<InputPropertyExpression>(alias);
@@ -243,5 +225,14 @@ void RewriteInputPropVisitor::reportError(const Expression* expr) {
     status_ = Status::SemanticError(ss.str());
 }
 
+void RewriteInputPropVisitor::visit(PathBuildExpression* expr) {
+    const auto& items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i]->accept(this);
+        if (ok()) {
+            expr->setItem(i, std::move(result_));
+        }
+    }
+}
 }   // namespace graph
 }   // namespace nebula

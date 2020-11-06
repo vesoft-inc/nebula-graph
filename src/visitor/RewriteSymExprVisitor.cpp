@@ -199,6 +199,34 @@ void RewriteSymExprVisitor::visit(EdgeExpression *expr) {
     expr_.reset();
 }
 
+void RewriteSymExprVisitor::visit(CaseExpression *expr) {
+    if (expr->hasCondition()) {
+        expr->condition()->accept(this);
+        if (expr_) {
+            expr->setCondition(expr_.release());
+        }
+    }
+    if (expr->hasDefault()) {
+        expr->defaultResult()->accept(this);
+        if (expr_) {
+            expr->setDefault(expr_.release());
+        }
+    }
+    auto &cases = expr->cases();
+    for (size_t i = 0; i < cases.size(); ++i) {
+        auto when = cases[i].when.get();
+        auto then = cases[i].then.get();
+        when->accept(this);
+        if (expr_) {
+            expr->setWhen(i, expr_.release());
+        }
+        then->accept(this);
+        if (expr_) {
+            expr->setThen(i, expr_.release());
+        }
+    }
+}
+
 void RewriteSymExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
     expr->left()->accept(this);
     if (expr_) {
@@ -210,5 +238,14 @@ void RewriteSymExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
     }
 }
 
+void RewriteSymExprVisitor::visit(PathBuildExpression *expr) {
+    const auto &items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i]->accept(this);
+        if (expr_) {
+            expr->setItem(i, std::move(expr_));
+        }
+    }
+}
 }   // namespace graph
 }   // namespace nebula

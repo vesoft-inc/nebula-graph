@@ -111,12 +111,34 @@ void CollectAllExprsVisitor::visit(LabelExpression *expr) {
     collectExpr(expr);
 }
 
+void CollectAllExprsVisitor::visit(LabelAttributeExpression *expr) {
+    collectExpr(expr);
+}
+
+void CollectAllExprsVisitor::visit(AttributeExpression *expr) {
+    collectExpr(expr);
+}
+
 void CollectAllExprsVisitor::visit(VertexExpression *expr) {
     collectExpr(expr);
 }
 
 void CollectAllExprsVisitor::visit(EdgeExpression *expr) {
     collectExpr(expr);
+}
+
+void CollectAllExprsVisitor::visit(CaseExpression *expr) {
+    collectExpr(expr);
+    if (expr->hasCondition()) {
+        expr->condition()->accept(this);
+    }
+    if (expr->hasDefault()) {
+        expr->defaultResult()->accept(this);
+    }
+    for (const auto &whenThen : expr->cases()) {
+        whenThen.when->accept(this);
+        whenThen.then->accept(this);
+    }
 }
 
 void CollectAllExprsVisitor::visitBinaryExpr(BinaryExpression *expr) {

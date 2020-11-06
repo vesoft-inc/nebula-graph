@@ -118,10 +118,10 @@ class NebulaTestSuite(object):
 
     @classmethod
     def create_nebula_clients(self):
-        self.client_pool = ConnectionPool(ip=self.host,
+        self.client_pool = ConnectionPool(host=self.host,
                                           port=self.port,
                                           socket_num=16,
-                                          network_timeout=0)
+                                          network_timeout=60000)
         self.client = GraphClient(self.client_pool)
         self.client.authenticate(self.user, self.password)
 
@@ -346,6 +346,8 @@ class NebulaTestSuite(object):
 
     @classmethod
     def check_column_names(self, resp, expect):
+        assert len(resp.data.column_names) == len(expect), \
+            f'Column names does not match, expected: {expect}, actual: {resp.data.column_names}'
         for i in range(len(expect)):
             result = bytes.decode(resp.data.column_names[i])
             ok = (expect[i] == result)
@@ -372,9 +374,21 @@ class NebulaTestSuite(object):
                 map_val.kvs[key.encode('utf-8')] = temp
             value.set_mVal(map_val)
         elif isinstance(col, list):
-            list_val = CommonTtypes.List()
-            list_val.values = col
+            list_val = CommonTtypes.List(list())
+            for i in col:
+                ok, temp = self.to_value(i)
+                if not ok:
+                    return ok, temp
+                list_val.values.append(temp)
             value.set_lVal(list_val)
+        elif isinstance(col, set):
+            set_val = CommonTtypes.Set(set())
+            for i in col:
+                ok, temp = self.to_value(i)
+                if not ok:
+                    return ok, temp
+                set_val.values.add(temp)
+            value.set_uVal(set_val)
         else:
             return False, 'Wrong val type'
         return True, value

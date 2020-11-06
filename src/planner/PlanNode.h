@@ -71,8 +71,10 @@ public:
         kDropEdgeIndex,
         kDescTagIndex,
         kDescEdgeIndex,
-        kRebuildTagIndex,
-        kRebuildEdgeIndex,
+        kShowCreateTagIndex,
+        kShowCreateEdgeIndex,
+        kShowTagIndexes,
+        kShowEdgeIndexes,
         kInsertVertices,
         kInsertEdges,
         kBalanceLeaders,
@@ -107,7 +109,9 @@ public:
         kSetConfig,
         kGetConfig,
         kBFSShortest,
+        kProduceSemiShortestPath,
         kConjunctPath,
+        kProduceAllPaths,
     };
 
     PlanNode(QueryContext* qctx, Kind kind);
