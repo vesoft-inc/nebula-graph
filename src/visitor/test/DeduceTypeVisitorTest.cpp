@@ -67,6 +67,24 @@ TEST_F(DeduceTypeVisitorTest, SubscriptExpr) {
         EXPECT_TRUE(visitor.ok());
         EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
     }
+    {
+        auto expr = SubscriptExpression(new ConstantExpression(Value::kEmpty),
+                                new ConstantExpression("test"));
+
+        DeduceTypeVisitor visitor(emptyInput_, -1);
+        expr.accept(&visitor);
+        EXPECT_TRUE(visitor.ok());
+        EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
+    }
+    {
+        auto expr = SubscriptExpression(new ConstantExpression(Value::kNullValue),
+                                        new ConstantExpression("test"));
+
+        DeduceTypeVisitor visitor(emptyInput_, -1);
+        expr.accept(&visitor);
+        EXPECT_TRUE(visitor.ok()) << std::move(visitor).status();
+        EXPECT_EQ(visitor.type(), Value::Type::__EMPTY__);
+    }
 
     // exceptions
     {
