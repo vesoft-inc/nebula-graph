@@ -1717,7 +1717,10 @@ drop_edge_sentence
     ;
 
 index_field
-    : name_label {
+    : %empty {
+        $$ = nullptr;
+    }
+    | name_label {
         $$ = new meta::cpp2::IndexFieldDef();
         $$->set_name($1->c_str());
         delete $1;
@@ -1736,9 +1739,11 @@ index_field
 index_field_list
     : index_field {
         $$ = new IndexFieldList();
-        std::unique_ptr<meta::cpp2::IndexFieldDef> field;
-        field.reset($1);
-        $$->addField(std::move(field));
+        if ($1) {
+            std::unique_ptr<meta::cpp2::IndexFieldDef> field;
+            field.reset($1);
+            $$->addField(std::move(field));
+        }
     }
     | index_field_list COMMA index_field {
         $$ = $1;
