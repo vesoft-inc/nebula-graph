@@ -216,8 +216,10 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
     expr->left()->accept(this);
     if (!ok()) return;
     auto leftType = type_;
-    if (leftType != Value::Type::LIST && leftType != Value::Type::MAP &&
-        !isSuperiorType(leftType)) {
+    static auto leftCandidate =
+        Value::Type::LIST | Value::Type::MAP | Value::Type::NULLVALUE | Value::Type::__EMPTY__;
+    auto isLeftCandidate = leftType & leftCandidate;
+    if (!isLeftCandidate) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected LIST but was " << leftType << ": "
            << expr->left()->toString();
@@ -228,14 +230,39 @@ void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
     expr->right()->accept(this);
     if (!ok()) return;
     auto rightType = type_;
-    if (((leftType == Value::Type::LIST || isSuperiorType(rightType)) &&
-         rightType != Value::Type::INT) &&
-        ((leftType == Value::Type::MAP || isSuperiorType(rightType)) &&
-         rightType != Value::Type::STRING) &&
-        !isSuperiorType(rightType)) {
+
+    static auto leftListCandidate = Value::Type::LIST;
+    static auto rightListSubCandidate =
+        Value::Type::INT | Value::Type::NULLVALUE | Value::Type::__EMPTY__;
+    auto notValidListCandidate =
+        (leftListCandidate & leftType) && !(rightListSubCandidate & rightType);
+    if (notValidListCandidate) {
         std::stringstream ss;
         ss << "`" << expr->toString() << "', expected Integer but was " << rightType << ": "
            << expr->right()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    static auto leftMapCandidate = Value::Type::MAP;
+    static auto rightMapSubCandidate =
+        Value::Type::STRING | Value::Type::NULLVALUE | Value::Type::__EMPTY__;
+    auto notValidMapCandidate =
+        (leftMapCandidate & leftType) && !(rightMapSubCandidate & rightType);
+    if (notValidMapCandidate) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "', expected Identifier but was " << rightType << ": "
+           << expr->right()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    static auto rightCandidate =
+        Value::Type::INT | Value::Type::STRING | Value::Type::NULLVALUE | Value::Type::__EMPTY__;
+    if (isSuperiorType(leftType) && !rightCandidate) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "', expected Integer Or Identifier but was " << rightType
+           << ": " << expr->right()->toString();
         status_ = Status::SemanticError(ss.str());
         return;
     }

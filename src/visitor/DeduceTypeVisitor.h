@@ -19,6 +19,10 @@ class QueryContext;
 
 class DeduceTypeVisitor final : public ExprVisitor {
 public:
+    // For testing.
+    DeduceTypeVisitor(const ColsDef &inputs, GraphSpaceID space)
+        : inputs_(inputs), space_(space) {}
+
     DeduceTypeVisitor(QueryContext *qctx,
                       ValidateContext *vctx,
                       const ColsDef &inputs,
