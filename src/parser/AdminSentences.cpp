@@ -82,7 +82,7 @@ std::string SpaceOptList::toString() const {
         buf += ",";
     }
     if (!buf.empty()) {
-        buf.resize(buf.size()-1);
+        buf.pop_back();
     }
     return buf;
 }
@@ -96,7 +96,7 @@ std::string ZoneList::toString() const {
         buf += ",";
     }
     if (!buf.empty()) {
-        buf.resize(buf.size() - 1);
+        buf.pop_back();
     }
     return buf;
 }
@@ -161,7 +161,7 @@ std::string HostList::toString() const {
         buf += ",";
     }
     if (!buf.empty()) {
-        buf.resize(buf.size() - 1);
+        buf.pop_back();
     }
     return buf;
 }

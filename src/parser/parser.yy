@@ -2403,22 +2403,11 @@ create_space_sentence
         auto sentence = new CreateSpaceSentence($4, $3);
         $$ = sentence;
     }
-    // | KW_CREATE KW_SPACE opt_if_not_exists name_label KW_ON zone_list {
-    //     auto sentence = new CreateSpaceSentence($4, $3);
-    //     sentence->setZones($6);
-    //     $$ = sentence;
-    // }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN {
         auto sentence = new CreateSpaceSentence($4, $3);
         sentence->setOpts($6);
         $$ = sentence;
     }
-    // | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN KW_ON zone_list {
-    //     auto sentence = new CreateSpaceSentence($4, $3);
-    //     sentence->setOpts($6);
-    //     sentence->setZones($9);
-    //     $$ = sentence;
-    // }
     ;
 
 describe_space_sentence

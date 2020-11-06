@@ -181,10 +181,6 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowCollation";
         case Kind::kShowConfigs:
             return "ShowConfigs";
-        case Kind::kShowGroups:
-            return "ShowGroups";
-        case Kind::kShowZones:
-            return "ShowZones";
         case Kind::kSetConfig:
             return "SetConfig";
         case Kind::kGetConfig:
@@ -220,6 +216,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "AddHostIntoZone";
         case Kind::kDropHostFromZone:
             return "DropHostFromZone";
+        case Kind::kShowGroups:
+            return "ShowGroups";
+        case Kind::kShowZones:
+            return "ShowZones";
         // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
