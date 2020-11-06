@@ -99,24 +99,21 @@ public:
         return qctx->objPool()->add(new CartesianProduct(qctx, input));
     }
 
-    Status addVarsAndColNames(std::string varName, std::vector<std::string> colNames) {
-        auto* varPtr = qctx_->symTable()->getVar(varName);
-        if (varPtr != nullptr) {
+    Status addVar(std::string varName) {
+        auto checkName = [&varName](auto var) { return var->name == varName; };
+        if (std::find_if(inputVars_.begin(), inputVars_.end(), checkName) != inputVars_.end()) {
             return Status::SemanticError("Duplicate Var: %s", varName.c_str());
         }
-        for (const auto& name : colNames) {
+        auto* varPtr = qctx_->symTable()->getVar(varName);
+        DCHECK(varPtr != nullptr);
+        inputVars_.emplace_back(varPtr);
+        for (const auto& name : varPtr->colNames) {
             if (std::find(allColNames_.begin(), allColNames_.end(), name) != allColNames_.end()) {
                 return Status::SemanticError(
                     "Var : %s , exist duplicate ColName : %s", varName.c_str(), name.c_str());
             }
             allColNames_.emplace_back(name);
         }
-        varPtr = qctx_->symTable()->newVariable(varName);
-        varPtr->name = varName;
-        varPtr->colNames = colNames;
-        qctx_->symTable()->readBy(varName, this);
-
-        inputVars_.emplace_back(varPtr);
         return Status::OK();
     }
 

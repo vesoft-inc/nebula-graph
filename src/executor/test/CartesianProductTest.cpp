@@ -24,6 +24,8 @@ protected:
                 row.values.emplace_back(folly::to<std::string>(i));
                 ds1.rows.emplace_back(std::move(row));
             }
+            auto* var1 = qctx_->symTable()->newVariable("ds1");
+            var1->colNames = ds1.colNames;
             qctx_->ectx()->setResult("ds1",
                                      ResultBuilder()
                                          .value(Value(std::move(ds1)))
@@ -37,6 +39,8 @@ protected:
                 row.values.emplace_back(folly::to<std::string>(static_cast<char>(i + 'a')));
                 ds2.rows.emplace_back(std::move(row));
             }
+            auto* var2 = qctx_->symTable()->newVariable("ds2");
+            var2->colNames = ds2.colNames;
             qctx_->ectx()->setResult("ds2",
                                      ResultBuilder()
                                          .value(Value(std::move(ds2)))
@@ -51,7 +55,8 @@ protected:
                 row.values.emplace_back(folly::to<std::string>(static_cast<char>(i + 'X')));
                 ds3.rows.emplace_back(std::move(row));
             }
-
+            auto* var3 = qctx_->symTable()->newVariable("ds3");
+            var3->colNames = ds3.colNames;
             qctx_->ectx()->setResult("ds3",
                                      ResultBuilder()
                                          .value(Value(std::move(ds3)))
@@ -86,8 +91,8 @@ protected:
 TEST_F(CartesianProductTest, twoVars) {
     auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
     std::vector<std::string> colNames = {kSrc, kDst};
-    cp->addVarsAndColNames("ds1", {kSrc});
-    cp->addVarsAndColNames("ds2", {kDst});
+    cp->addVar("ds1");
+    cp->addVar("ds2");
     cp->setColNames(colNames);
 
     auto cpExe = std::make_unique<CartesianProductExecutor>(cp, qctx_.get());
@@ -110,9 +115,9 @@ TEST_F(CartesianProductTest, twoVars) {
 
 TEST_F(CartesianProductTest, thressVars) {
     auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
-    cp->addVarsAndColNames("ds1", {kSrc});
-    cp->addVarsAndColNames("ds2", {kDst});
-    cp->addVarsAndColNames("ds3", {"col1", "col2"});
+    cp->addVar("ds1");
+    cp->addVar("ds2");
+    cp->addVar("ds3");
     std::vector<std::string> colNames = {kSrc, kDst, "col1", "col2"};
     cp->setColNames(colNames);
 
@@ -140,8 +145,8 @@ TEST_F(CartesianProductTest, thressVars) {
 
 TEST_F(CartesianProductTest, otherTwoVar) {
     auto* cp = CartesianProduct::make(qctx_.get(), nullptr);
-    cp->addVarsAndColNames("ds1", {kSrc});
-    cp->addVarsAndColNames("ds3", {"col1", "col2"});
+    cp->addVar("ds1");
+    cp->addVar("ds3");
     std::vector<std::string> colNames = {kSrc, "col1", "col2"};
     cp->setColNames(colNames);
 
