@@ -98,6 +98,8 @@ Status GoValidator::validateYield(YieldClause* yield) {
         yields_ = newCols;
     } else {
         for (auto col : cols) {
+            NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+
             if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
                 auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());
                 col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(
