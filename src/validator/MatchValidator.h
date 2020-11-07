@@ -78,6 +78,12 @@ private:
         return qctx_->objPool()->add(obj);
     }
 
+    Status buildNodeInfo(const MatchPath *path);
+
+    Status buildEdgeInfo(const MatchPath *path);
+
+    Status buildPathExpr(const MatchPath *path);
+
 private:
     std::unique_ptr<MatchAstContext>            matchCtx_;
 };
