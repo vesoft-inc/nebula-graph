@@ -150,7 +150,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_SHORTEST KW_PATH
 %token KW_IS KW_NULL KW_DEFAULT
 %token KW_SNAPSHOT KW_SNAPSHOTS KW_LOOKUP
-%token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT
+%token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT KW_STATIS
 %token KW_BIDIRECT
 %token KW_USER KW_USERS KW_ACCOUNT
 %token KW_PASSWORD KW_CHANGE KW_ROLE KW_ROLES
@@ -2282,6 +2282,7 @@ admin_job_sentence
 admin_job_operation
     : KW_COMPACT         { $$ = new std::string("compact"); }
     | KW_FLUSH           { $$ = new std::string("flush"); }
+    | KW_STATIS          { $$ = new std::string("statis"); }
     | KW_REBUILD KW_TAG  { $$ = new std::string("rebuild tag"); }
     | KW_REBUILD KW_EDGE { $$ = new std::string("rebuild edge"); }
     | admin_job_operation admin_job_para {
