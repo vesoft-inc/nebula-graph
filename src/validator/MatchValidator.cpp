@@ -47,7 +47,7 @@ Status MatchValidator::validateImpl() {
         NG_RETURN_IF_ERROR(validateFilter(matchClause->where()->filter()));
     }
     NG_RETURN_IF_ERROR(validateReturn(sentence->ret()));
-    return analyzeStartPoint();
+    return Status::OK();
 }
 
 
@@ -64,6 +64,9 @@ Status MatchValidator::buildPathExpr(const MatchPath *path) {
     if (pathAlias == nullptr) {
         return Status::OK();
     }
+    if (!matchCtx_->aliases.emplace(*pathAlias, kPath).second) {
+        return Status::SemanticError("`%s': Redefined alias", pathAlias->c_str());
+    }
 
     auto& nodeInfos = matchCtx_->nodeInfos;
     auto& edgeInfos = matchCtx_->edgeInfos;
@@ -77,6 +80,7 @@ Status MatchValidator::buildPathExpr(const MatchPath *path) {
     }
     pathBuild->add(std::make_unique<VariablePropertyExpression>(
         new std::string(), new std::string(*nodeInfos.back().alias)));
+    matchCtx_->pathBuild = std::move(pathBuild);
     return Status::OK();
 }
 
@@ -340,10 +344,6 @@ Status MatchValidator::validateAliases(const std::vector<const Expression*> &exp
             }
         }
     }
-    return Status::OK();
-}
-
-Status MatchValidator::analyzeStartPoint() {
     return Status::OK();
 }
 

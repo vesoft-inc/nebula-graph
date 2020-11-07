@@ -68,8 +68,6 @@ private:
 
     Status validateAliases(const std::vector<const Expression*> &exprs) const;
 
-    Status analyzeStartPoint();
-
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map) const;
 
@@ -92,6 +90,7 @@ struct MatchAstContext final : AstContext {
     std::vector<MatchValidator::NodeInfo>                       nodeInfos;
     std::vector<MatchValidator::EdgeInfo>                       edgeInfos;
     std::unordered_map<std::string, MatchValidator::AliasType>  aliases;
+    std::unique_ptr<PathBuildExpression>                        pathBuild;
     std::unique_ptr<Expression>                                 filter;
     const YieldColumns                                         *yieldColumns;
     MatchValidator::ScanInfo                                    scanInfo;
