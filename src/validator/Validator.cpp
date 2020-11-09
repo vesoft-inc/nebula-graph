@@ -247,6 +247,10 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DropFTIndexValidator>(sentence, context);
         case Sentence::Kind::kShowGroups:
         case Sentence::Kind::kShowZones:
+        case Sentence::Kind::kShowSessions:
+            return std::make_unique<ShowSessionsValidator>(sentence, context);
+        case Sentence::Kind::kGetSession:
+            return std::make_unique<GetSessionValidator>(sentence, context);
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kReturn: {
             // nothing

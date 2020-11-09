@@ -18,11 +18,37 @@
 namespace nebula {
 namespace graph {
 
-Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor) {
-    sessionManager_ = std::make_unique<SessionManager>();
+Status GraphService::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor,
+                          const HostAddr &hostAddr) {
+    auto addrs = network::NetworkUtils::toHosts(FLAGS_meta_server_addrs);
+    if (!addrs.ok()) {
+        return addrs.status();
+    }
+
+    meta::MetaClientOptions options;
+    options.serviceName_ = "graph";
+    options.skipConfig_ = FLAGS_local_config;
+    options.role_ = meta::cpp2::HostRole::GRAPH;
+    std::string localIP = network::NetworkUtils::getIPv4FromDevice(FLAGS_listen_netdev).value();
+    options.localHost_ = hostAddr;
+    options.gitInfoSHA_ = nebula::graph::gitInfoSha();
+
+    metaClient_ = std::make_unique<meta::MetaClient>(ioExecutor,
+                                                     std::move(addrs.value()),
+                                                     options);
+
+    // load data try 3 time
+    bool loadDataOk = metaClient_->waitForMetadReady(3);
+    if (!loadDataOk) {
+        // Resort to retrying in the background
+        LOG(WARNING) << "Failed to synchronously wait for meta service ready";
+    }
+
+    sessionManager_ = std::make_unique<SessionManager>(metaClient_.get(), hostAddr);
     queryEngine_ = std::make_unique<QueryEngine>();
 
-    return queryEngine_->init(std::move(ioExecutor));
+    myAddr_ = hostAddr;
+    return queryEngine_->init(std::move(ioExecutor), metaClient_.get());
 }
 
 
@@ -30,27 +56,20 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
         const std::string& username,
         const std::string& password) {
     auto *peer = getRequestContext()->getPeerAddress();
+    auto clientIp = peer->getAddressStr();
     LOG(INFO) << "Authenticating user " << username << " from " <<  peer->describe();
 
-    RequestContext<AuthResponse> ctx;
-    auto session = sessionManager_->createSession();
-    session->setAccount(username);
-    ctx.setSession(std::move(session));
-
-    if (!FLAGS_enable_authorize) {
-        onHandle(ctx, ErrorCode::SUCCEEDED);
-    } else if (auth(username, password)) {
-        auto roles = queryEngine_->metaClient()->getRolesByUserFromCache(username);
-        for (const auto& role : roles) {
-            ctx.session()->setRole(role.get_space_id(), role.get_role_type());
-        }
-        onHandle(ctx, ErrorCode::SUCCEEDED);
-    } else {
-        onHandle(ctx, ErrorCode::E_BAD_USERNAME_PASSWORD);
+    auto ctx = std::make_unique<RequestContext<cpp2::AuthResponse>>();
+    // check username and password failed
+    if (!auth(username, password)) {
+        onHandle(*ctx, cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD);
+        ctx->finish();
+        return ctx->future();
     }
 
-    ctx.finish();
-    return ctx.future();
+    auto future = ctx->future();
+    sessionManager_->createSession(username, clientIp, getThreadManager(), std::move(ctx));
+    return future;
 }
 
 
@@ -68,25 +87,28 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     auto future = ctx->future();
     stats::StatsManager::addValue(kNumQueries);
 
-    {
-        // When the sessionId is 0, it means the clients to ping the connection is ok
-        if (sessionId == 0) {
-            ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            ctx->resp().errorMsg = std::make_unique<std::string>("Invalid session id");
-            ctx->finish();
-            return future;
-        }
-        auto result = sessionManager_->findSession(sessionId);
-        if (!result.ok()) {
-            FLOG_ERROR("Session not found, id[%ld]", sessionId);
-            ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            ctx->resp().errorMsg = std::make_unique<std::string>(result.status().toString());
-            ctx->finish();
-            return future;
-        }
-        ctx->setSession(std::move(result).value());
+    // When the sessionId is 0, it means the clients to ping the connection is ok
+    if (sessionId == 0) {
+        ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+        ctx->resp().errorMsg = std::make_unique<std::string>("Invalid session id");
+        ctx->finish();
+        return future;
     }
-    queryEngine_->execute(std::move(ctx));
+
+    auto session = sessionManager_->findSessionFromCache(sessionId);
+    if (session != nullptr) {
+        session->updateGraphAddr(myAddr_);
+        ctx->setSession(std::move(session));
+        queryEngine_->execute(std::move(ctx));
+    } else {
+        auto cb = [this](std::unique_ptr<RequestContext<ExecutionResponse>> rctx){
+            queryEngine_->execute(std::move(rctx));
+        };
+        sessionManager_->findSessionFromMetad(sessionId,
+                                              getThreadManager(),
+                                              std::move(ctx),
+                                              cb);
+    }
 
     return future;
 }
@@ -137,7 +159,6 @@ const char* GraphService::getErrorStr(ErrorCode result) {
 void GraphService::onHandle(RequestContext<AuthResponse>& ctx, ErrorCode code) {
     ctx.resp().errorCode = code;
     if (code != ErrorCode::SUCCEEDED) {
-        sessionManager_->removeSession(ctx.session()->id());
         ctx.resp().errorMsg.reset(new std::string(getErrorStr(code)));
     } else {
         ctx.resp().sessionId.reset(new int64_t(ctx.session()->id()));

@@ -191,6 +191,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %token KW_TEXT KW_SEARCH KW_CLIENTS KW_SIGN KW_SERVICE KW_TEXT_SEARCH
 %token KW_ANY KW_SINGLE KW_NONE
 %token KW_REDUCE
+%token KW_SESSIONS KW_SESSION
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -362,6 +363,10 @@ static constexpr size_t kCommentLengthLimit = 256;
 
 %type <sentence> grant_sentence revoke_sentence
 %type <sentence> set_config_sentence get_config_sentence balance_sentence
+%type <sentence> process_control_sentence return_sentence
+
+%type <sentence> get_session_sentence
+
 %type <sentence> sentence
 %type <seq_sentences> seq_sentences
 %type <explain_sentence> explain_sentence
@@ -503,6 +508,8 @@ unreserved_keyword
     | KW_RESET              { $$ = new std::string("reset"); }
     | KW_PLAN               { $$ = new std::string("plan"); }
     | KW_COMMENT            { $$ = new std::string("comment"); }
+    | KW_SESSION            { $$ = new std::string("session"); }
+    | KW_SESSIONS           { $$ = new std::string("sessions"); }
     ;
 
 expression
@@ -2941,6 +2948,9 @@ show_sentence
     | KW_SHOW KW_FULLTEXT KW_INDEXES {
         $$ = new ShowFTIndexesSentence();
     }
+    | KW_SHOW KW_SESSIONS {
+        $$ = new ShowSessionsSentence();
+    }
     ;
 
 list_host_type
@@ -3284,6 +3294,12 @@ list_listener_sentence
     }
     ;
 
+get_session_sentence
+    : KW_GET KW_SESSION legal_integer {
+        $$ = new GetSessionSentence($3);
+    }
+    ;
+
 mutate_sentence
     : insert_vertex_sentence { $$ = $1; }
     | insert_edge_sentence { $$ = $1; }
@@ -3343,6 +3359,7 @@ maintain_sentence
     | drop_snapshot_sentence { $$ = $1; }
     | sign_in_text_search_service_sentence { $$ = $1; }
     | sign_out_text_search_service_sentence { $$ = $1; }
+    | get_session_sentence { $$ = $1; };
     ;
 
 sentence

@@ -3,8 +3,8 @@
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
-#ifndef COMMON_SESSION_H_
-#define COMMON_SESSION_H_
+#ifndef SESSION_CLIENTSESSION_H_
+#define SESSION_CLIENTSESSION_H_
 
 #include "common/clients/meta/MetaClient.h"
 #include "common/interface/gen-cpp2/meta_types.h"
@@ -22,16 +22,20 @@ struct SpaceInfo {
     meta::cpp2::SpaceDesc spaceDesc;
 };
 
-class Session final {
+class ClientSession final {
 public:
-    static std::shared_ptr<Session> create(int64_t id);
+    enum class ClientStatus : uint8_t {
+        kUnknown = 0,
+        kIdle,
+        kOnline,
+        kRemove,
+    };
+
+    static std::shared_ptr<ClientSession> create(meta::cpp2::Session &&session,
+                                                 meta::MetaClient* metaClient);
 
     int64_t id() const {
-        return id_;
-    }
-
-    void setId(int64_t id) {
-        id_ = id;
+        return session_.session_id;
     }
 
     const SpaceInfo& space() const {
@@ -40,14 +44,15 @@ public:
 
     void setSpace(SpaceInfo space) {
         space_ = std::move(space);
+        session_.space_name = space_.name;
+    }
+
+    const std::string& spaceName() const {
+        return session_.space_name;
     }
 
     const std::string& user() const {
-        return account_;
-    }
-
-    void setAccount(std::string account) {
-        account_ = std::move(account);
+        return session_.user_name;
     }
 
     std::unordered_map<GraphSpaceID, meta::cpp2::RoleType> roles() const {
@@ -80,16 +85,47 @@ public:
 
     void charge();
 
+    void updateStatus(ClientStatus status) {
+        status_ = status;
+    }
+
+    ClientStatus getClientStatus() const {
+        return status_;
+    }
+
+    int32_t getTimezone() {
+        return session_.timezone;
+    }
+
+    void setTimezone(int32_t timezone) {
+        session_.timezone = timezone;
+        // TODO: if support ngql to set client's timezone,
+        //  need to update the timezone config to metad when timezone executor
+    }
+
+    void updateGraphAddr(const HostAddr &hostAddr) {
+        if (session_.graph_addr == hostAddr) {
+            return;
+        }
+        session_.graph_addr = hostAddr;
+    }
+
+    const meta::cpp2::Session& getSession() const {
+        return session_;
+    }
+
 private:
-    Session() = default;
-    explicit Session(int64_t id);
+    ClientSession() = default;
+
+    explicit ClientSession(meta::cpp2::Session &&session, meta::MetaClient* metaClient);
 
 
 private:
-    int64_t           id_{kInvalidSessionID};
-    SpaceInfo         space_;
-    std::string       account_;
-    time::Duration    idleDuration_;
+    SpaceInfo               space_;
+    time::Duration          idleDuration_;
+    ClientStatus            status_{ClientStatus::kUnknown};
+    meta::cpp2::Session     session_;
+    meta::MetaClient*       metaClient_{ nullptr};
     /*
      * map<spaceId, role>
      * One user can have roles in multiple spaces
@@ -101,4 +137,4 @@ private:
 }  // namespace graph
 }  // namespace nebula
 
-#endif   // COMMON_SESSION_H_
+#endif   // SESSION_CLIENTSESSION_H_

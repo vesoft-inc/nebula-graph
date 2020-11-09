@@ -504,5 +504,21 @@ Status SignOutTSServiceValidator::toPlan() {
     tail_ = root_;
     return Status::OK();
 }
+
+Status ShowSessionsValidator::toPlan() {
+    auto *node = ShowSessions::make(qctx_, nullptr);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status GetSessionValidator::toPlan() {
+    auto sentence = static_cast<GetSessionSentence*>(sentence_);
+    auto id = sentence->sessionId();
+    auto *node = GetSession::make(qctx_, nullptr, id);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
 }  // namespace graph
 }  // namespace nebula
