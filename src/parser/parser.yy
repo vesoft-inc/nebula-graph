@@ -450,6 +450,7 @@ unreserved_keyword
     | KW_ZONES              { $$ = new std::string("zones"); }
     | KW_LISTENER           { $$ = new std::string("listener"); }
     | KW_ELASTICSEARCH      { $$ = new std::string("elasticsearch"); }
+    | KW_STATIS             { $$ = new std::string("statis"); }
     ;
 
 agg_function
@@ -2364,6 +2365,9 @@ show_sentence
     }
     | KW_SHOW KW_ZONES {
         $$ = new ListZonesSentence();
+    }
+    | KW_SHOW KW_STATUS {
+        $$ = new ShowStatusSentence();
     }
     ;
 
