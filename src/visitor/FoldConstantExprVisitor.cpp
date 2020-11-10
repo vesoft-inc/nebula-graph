@@ -65,7 +65,31 @@ void FoldConstantExprVisitor::visit(AttributeExpression *expr) {
 }
 
 void FoldConstantExprVisitor::visit(LogicalExpression *expr) {
-    visitBinaryExpr(expr);
+    auto &operands = expr->operands();
+    auto foldable = true;
+    // auto shortCircuit = false;
+    for (auto i = 0u; i < operands.size(); i++) {
+        auto *operand = operands[i].get();
+        operand->accept(this);
+        if (canBeFolded_) {
+            auto *newExpr = fold(operand);
+            expr->setOperand(i, newExpr);
+            /*
+            if (newExpr->value().isBool()) {
+                auto value = newExpr->value().getBool();
+                if ((value && expr->kind() == Expression::Kind::kLogicalOr) ||
+                        (!value && expr->kind() == Expression::Kind::kLogicalAnd)) {
+                    shortCircuit = true;
+                    break;
+                }
+            }
+            */
+        } else {
+            foldable = false;
+        }
+    }
+    // canBeFolded_ = foldable || shortCircuit;
+    canBeFolded_ = foldable;
 }
 
 // function call
@@ -296,5 +320,22 @@ Expression *FoldConstantExprVisitor::fold(Expression *expr) const {
     return new ConstantExpression(std::move(value));
 }
 
+void FoldConstantExprVisitor::visit(PathBuildExpression *expr) {
+    auto &items = expr->items();
+    bool canBeFolded = true;
+    for (size_t i = 0; i < items.size(); ++i) {
+        auto item = items[i].get();
+        if (isConstant(item)) {
+            continue;
+        }
+        item->accept(this);
+        if (!canBeFolded_) {
+            canBeFolded = false;
+            continue;
+        }
+        expr->setItem(i, std::unique_ptr<Expression>{fold(item)});
+    }
+    canBeFolded_ = canBeFolded;
+}
 }   // namespace graph
 }   // namespace nebula

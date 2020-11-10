@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2020 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
@@ -296,5 +295,15 @@ TEST_F(FoldConstantExprVisitorTest, TestFoldFailed) {
     }
 }
 
+TEST_F(FoldConstantExprVisitorTest, TestPathBuild) {
+    auto expr = pool.makeAndAdd<PathBuildExpression>();
+    expr->add(std::unique_ptr<FunctionCallExpression>(fnExpr("upper", {constantExpr("tom")})));
+    FoldConstantExprVisitor fold;
+    expr->accept(&fold);
+
+    auto expected = pool.makeAndAdd<PathBuildExpression>();
+    expected->add(std::unique_ptr<ConstantExpression>(constantExpr("TOM")));
+    ASSERT_EQ(*expr, *expected);
+}
 }   // namespace graph
 }   // namespace nebula

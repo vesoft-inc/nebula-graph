@@ -37,7 +37,12 @@ void ExprVisitorImpl::visit(AttributeExpression *expr) {
 }
 
 void ExprVisitorImpl::visit(LogicalExpression *expr) {
-    visitBinaryExpr(expr);
+    for (auto &operand : expr->operands()) {
+        operand->accept(this);
+        if (!ok()) {
+            break;
+        }
+    }
 }
 
 void ExprVisitorImpl::visit(LabelAttributeExpression *expr) {
@@ -125,5 +130,14 @@ void ExprVisitorImpl::visitBinaryExpr(BinaryExpression *expr) {
     }
 }
 
+void ExprVisitorImpl::visit(PathBuildExpression *expr) {
+    DCHECK(ok());
+    for (auto &item : expr->items()) {
+        item->accept(this);
+        if (!ok()) {
+            break;
+        }
+    }
+}
 }   // namespace graph
 }   // namespace nebula

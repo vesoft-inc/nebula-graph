@@ -62,7 +62,13 @@ void RewriteInputPropVisitor::visit(RelationalExpression* expr) {
 }
 
 void RewriteInputPropVisitor::visit(LogicalExpression* expr) {
-    visitBinaryExpr(expr);
+    auto &operands = expr->operands();
+    for (auto i = 0u; i < operands.size(); i++) {
+        operands[i]->accept(this);
+        if (ok()) {
+            expr->setOperand(i, result_.release());
+        }
+    }
 }
 
 void RewriteInputPropVisitor::visit(UnaryExpression* expr) {
@@ -225,5 +231,14 @@ void RewriteInputPropVisitor::reportError(const Expression* expr) {
     status_ = Status::SemanticError(ss.str());
 }
 
+void RewriteInputPropVisitor::visit(PathBuildExpression* expr) {
+    const auto& items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i]->accept(this);
+        if (ok()) {
+            expr->setItem(i, std::move(result_));
+        }
+    }
+}
 }   // namespace graph
 }   // namespace nebula

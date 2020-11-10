@@ -34,6 +34,11 @@ T_NULL_UNKNOWN_PROP.set_nVal(CommonTtypes.NullType.UNKNOWN_PROP)
 T_NULL_UNKNOWN_DIV_BY_ZERO = CommonTtypes.Value()
 T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.DIV_BY_ZERO)
 
+class PathVal:
+    items = []
+
+    def __init__(self, items):
+        self.items = items
 
 class NebulaTestSuite(object):
     @classmethod
@@ -354,6 +359,26 @@ class NebulaTestSuite(object):
             assert ok, "different column name, expect: {} vs. result: {}".format(expect[i], result)
 
     @classmethod
+    def to_path_value(self, col):
+        path = CommonTtypes.Path()
+        path.steps = []
+        for col, j in zip(col.items, range(len(col.items))):
+            if j == 0:
+                path.src = col.get_vVal()
+            elif (j % 2) == 1:
+                edge = col[0].get_eVal()
+                step = CommonTtypes.Step()
+                step.name = edge.name
+                step.ranking = edge.ranking
+                step.type = col[1]
+                step.props = edge.props
+                path.steps.append(step)
+            else:
+                print("step: %d", len(path.steps))
+                path.steps[-1].dst = col.get_vVal()
+        return path
+
+    @classmethod
     def to_value(self, col):
         value = CommonTtypes.Value()
         if isinstance(col, bool):
@@ -374,9 +399,23 @@ class NebulaTestSuite(object):
                 map_val.kvs[key.encode('utf-8')] = temp
             value.set_mVal(map_val)
         elif isinstance(col, list):
-            list_val = CommonTtypes.List()
-            list_val.values = col
+            list_val = CommonTtypes.List(list())
+            for i in col:
+                ok, temp = self.to_value(i)
+                if not ok:
+                    return ok, temp
+                list_val.values.append(temp)
             value.set_lVal(list_val)
+        elif isinstance(col, set):
+            set_val = CommonTtypes.Set(set())
+            for i in col:
+                ok, temp = self.to_value(i)
+                if not ok:
+                    return ok, temp
+                set_val.values.add(temp)
+            value.set_uVal(set_val)
+        elif isinstance(col, PathVal):
+            value.set_pVal(self.to_path_value(col))
         else:
             return False, 'Wrong val type'
         return True, value

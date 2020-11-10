@@ -71,7 +71,13 @@ void RewriteSymExprVisitor::visit(AttributeExpression *expr) {
 }
 
 void RewriteSymExprVisitor::visit(LogicalExpression *expr) {
-    visitBinaryExpr(expr);
+    auto &operands = expr->operands();
+    for (auto i = 0u; i < operands.size(); i++) {
+        operands[i]->accept(this);
+        if (expr_) {
+            expr->setOperand(i, expr_.release());
+        }
+    }
 }
 
 // function call
@@ -238,5 +244,14 @@ void RewriteSymExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
     }
 }
 
+void RewriteSymExprVisitor::visit(PathBuildExpression *expr) {
+    const auto &items = expr->items();
+    for (size_t i = 0; i < items.size(); ++i) {
+        items[i]->accept(this);
+        if (expr_) {
+            expr->setItem(i, std::move(expr_));
+        }
+    }
+}
 }   // namespace graph
 }   // namespace nebula
