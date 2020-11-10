@@ -60,6 +60,29 @@ static const std::unordered_map<Value::Type, Value> kConstantValues = {
     }                                                                                              \
     type_ = detectVal.type()
 
+#define DETECT_NARYEXPR_TYPE(OP)                                                                   \
+    do {                                                                                           \
+        auto &operands = expr->operands();                                                         \
+        operands[0]->accept(this);                                                                 \
+        if (!ok()) return;                                                                         \
+        auto prev = type_;                                                                         \
+        for (auto i = 1u; i < operands.size(); i++) {                                              \
+            operands[i]->accept(this);                                                             \
+            if (!ok()) return;                                                                     \
+            auto current = type_;                                                                  \
+            auto detectValue = kConstantValues.at(prev) OP kConstantValues.at(current);            \
+            if (detectValue.isBadNull()) {                                                         \
+                std::stringstream ss;                                                              \
+                ss << "`" << expr->toString() << "' is not a valid expression, "                   \
+                << "can not apply `" << #OP << "' to `" << prev << "' and `" << current << "'.";   \
+                status_ = Status::SemanticError(ss.str());                                         \
+                return;                                                                            \
+            }                                                                                      \
+            prev = detectValue.type();                                                             \
+        }                                                                                          \
+        type_ = prev;                                                                              \
+    } while (false)
+
 #define DETECT_UNARYEXPR_TYPE(OP)                                                                  \
     auto detectVal = OP kConstantValues.at(type_);                                                 \
     if (detectVal.isBadNull()) {                                                                   \
@@ -160,7 +183,7 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(LabelExpression *) {
-    status_ = Status::SemanticError("LabelExpression can not be instantiated.");
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(ArithmeticExpression *expr) {
@@ -212,23 +235,101 @@ void DeduceTypeVisitor::visit(RelationalExpression *expr) {
     type_ = Value::Type::BOOL;
 }
 
-void DeduceTypeVisitor::visit(SubscriptExpression *) {
-    type_ = Value::Type::LIST;   // FIXME(dutor)
+void DeduceTypeVisitor::visit(SubscriptExpression *expr) {
+    expr->left()->accept(this);
+    if (!ok()) return;
+    auto leftType = type_;
+    static auto leftCandidate =
+        Value::Type::LIST | Value::Type::MAP | Value::Type::NULLVALUE | Value::Type::__EMPTY__;
+    auto isLeftCandidate = leftType & leftCandidate;
+    if (!isLeftCandidate) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "', expected LIST but was " << leftType << ": "
+           << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    expr->right()->accept(this);
+    if (!ok()) return;
+    auto rightType = type_;
+
+    static auto leftListCandidate = Value::Type::LIST;
+    static auto rightListSubCandidate =
+        Value::Type::INT | Value::Type::NULLVALUE | Value::Type::__EMPTY__;
+    auto notValidListCandidate =
+        (leftListCandidate & leftType) && !(rightListSubCandidate & rightType);
+    if (notValidListCandidate) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "', expected Integer but was " << rightType << ": "
+           << expr->right()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    static auto leftMapCandidate = Value::Type::MAP;
+    static auto rightMapSubCandidate =
+        Value::Type::STRING | Value::Type::NULLVALUE | Value::Type::__EMPTY__;
+    auto notValidMapCandidate =
+        (leftMapCandidate & leftType) && !(rightMapSubCandidate & rightType);
+    if (notValidMapCandidate) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "', expected Identifier but was " << rightType << ": "
+           << expr->right()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    static auto rightCandidate =
+        Value::Type::INT | Value::Type::STRING | Value::Type::NULLVALUE | Value::Type::__EMPTY__;
+    if (isSuperiorType(leftType) && !rightCandidate) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "', expected Integer Or Identifier but was " << rightType
+           << ": " << expr->right()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    // Will not deduce the actual type of the value in list.
+    type_ = Value::Type::__EMPTY__;
 }
 
-void DeduceTypeVisitor::visit(AttributeExpression *) {
-    type_ = Value::Type::LIST;   // FIXME(dutor)
+void DeduceTypeVisitor::visit(AttributeExpression *expr) {
+    expr->left()->accept(this);
+    if (!ok()) return;
+    // TODO: Time, DateTime, Date
+    if (type_ != Value::Type::MAP && type_ != Value::Type::VERTEX && type_ != Value::Type::EDGE &&
+        !isSuperiorType(type_)) {
+        std::stringstream ss;
+        ss << "`" << expr->toString() << "', expected Map, Vertex or Edge but was " << type_ << ": "
+           << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    expr->right()->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::STRING && !isSuperiorType(type_)) {
+        std::stringstream ss;
+        ss << "`" << expr->toString()
+           << "', expected an valid identifier: " << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    // Will not deduce the actual type of the attribute.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(LogicalExpression *expr) {
     switch (expr->kind()) {
         case Expression::Kind::kLogicalAnd: {
-            DETECT_BIEXPR_TYPE(&&);
+            DETECT_NARYEXPR_TYPE(&&);
             break;
         }
         case Expression::Kind::kLogicalXor:
         case Expression::Kind::kLogicalOr: {
-            DETECT_BIEXPR_TYPE(||);
+            DETECT_NARYEXPR_TYPE(||);
             break;
         }
         default: {
@@ -238,8 +339,29 @@ void DeduceTypeVisitor::visit(LogicalExpression *expr) {
     }
 }
 
-void DeduceTypeVisitor::visit(LabelAttributeExpression *) {
-    status_ = Status::SemanticError("LabelAtrributeExpression can not be instantiated.");
+void DeduceTypeVisitor::visit(LabelAttributeExpression *expr) {
+    const_cast<LabelExpression*>(expr->left())->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::STRING && !isSuperiorType(type_)) {
+        std::stringstream ss;
+        ss << "`" << expr->toString()
+           << "', expected an valid identifier: " << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    const_cast<LabelExpression*>(expr->right())->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::STRING && !isSuperiorType(type_)) {
+        std::stringstream ss;
+        ss << "`" << expr->toString()
+           << "', expected an valid identifier: " << expr->left()->toString();
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    // Will not deduce the actual type of the attribute.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
@@ -399,7 +521,8 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
         whenThen.then->accept(this);
         if (!ok()) return;
     }
-    // NOTE: we are not able to deduce the return type of case expression currently
+
+    // Will not deduce the actual value type returned by case expression.
     type_ = Value::Type::__EMPTY__;
 }
 
@@ -429,6 +552,7 @@ void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {
 void DeduceTypeVisitor::visit(PathBuildExpression *) {
     type_ = Value::Type::PATH;
 }
+#undef DETECT_NARYEXPR_TYPE
 #undef DETECT_UNARYEXPR_TYPE
 #undef DETECT_BIEXPR_TYPE
 
