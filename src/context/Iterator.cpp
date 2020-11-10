@@ -373,17 +373,16 @@ size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
         return nextSeg;
     }
 
-    for (auto& col : iter->getColIndices()) {
+    for (auto& col : iter->getColIdxIndices()) {
         auto oldSeg = col.second.first;
         size_t newSeg = oldSeg + segIdx;
         if (newSeg > nextSeg) {
             nextSeg = newSeg;
         }
-        colIndices_.emplace(col.first, std::make_pair(newSeg, col.second.second));
-    }
-    for (auto& col : iter->getColIdxIndices()) {
-        colIdxIndices_.emplace(col.first + colIdxStart,
-                               std::make_pair(col.second.first + segIdx, col.second.second));
+        DCHECK_LT(col.first + colIdxStart, colNames_.size());
+        auto& colName = colNames_[col.first + colIdxStart];
+        colIndices_.emplace(colName, std::make_pair(newSeg, col.second.second));
+        colIdxIndices_.emplace(col.first + colIdxStart, std::make_pair(newSeg, col.second.second));
     }
     return nextSeg + 1;
 }
