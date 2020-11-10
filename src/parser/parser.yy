@@ -101,7 +101,6 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::GroupClause                    *group_clause;
     nebula::HostList                       *host_list;
     nebula::HostAddr                       *host_item;
-    // nebula::ZoneList                       *zone_list;
     nebula::ZoneNameList                   *zone_name_list;
     std::vector<int32_t>                   *integer_list;
     nebula::InBoundClause                  *in_bound_clause;
@@ -240,7 +239,6 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <group_clause> group_clause
 %type <host_list> host_list
 %type <host_item> host_item
-// %type <zone_list> zone_list
 %type <integer_list> integer_list
 %type <in_bound_clause> in_bound_clause
 %type <out_bound_clause> out_bound_clause
@@ -2372,20 +2370,6 @@ show_config_item
         $$ = new ConfigRowItem($1);
     }
     ;
-
-// zone_list
-//     : zone {
-//         $$ = new ZoneList();
-//         $$->addZone($1);
-//     }
-//     | zone_list COMMA zone {
-//         $$ = $1;
-//         $$->addZone($3);
-//     }
-//     | zone_list COMMA {
-//         $$ = $1;
-//     }
-//     ;
 
 zone_name_list
     : name_label {

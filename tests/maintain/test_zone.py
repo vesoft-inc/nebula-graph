@@ -17,12 +17,12 @@ class TestZone(NebulaTestSuite):
 
     def test_zone(self):
         # Add Zone
-        resp = self.client.execute('ADD ZONE zone_0 127.0.0.1:35435')
+        resp = self.client.execute('ADD ZONE zone_0 127.0.0.1:' + str(self.storage_port))
         self.check_resp_succeeded(resp)
 
         # Get Zone
         resp = self.client.execute('DESC ZONE zone_0')
-        self.check_resp_succeeded(resp)
+        self.check_resp_succeeded(resp) 
 
         resp = self.client.execute('DESCRIBE ZONE zone_0')
         self.check_resp_succeeded(resp)

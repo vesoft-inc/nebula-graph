@@ -88,20 +88,6 @@ std::string SpaceOptList::toString() const {
 }
 
 
-std::string ZoneList::toString() const {
-    std::string buf;
-    buf.reserve(256);
-    for (auto &zone : zones_) {
-        buf += std::to_string(zone);
-        buf += ",";
-    }
-    if (!buf.empty()) {
-        buf.pop_back();
-    }
-    return buf;
-}
-
-
 std::string CreateSpaceSentence::toString() const {
     std::string buf;
     buf.reserve(256);

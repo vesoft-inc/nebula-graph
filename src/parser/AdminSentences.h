@@ -262,53 +262,6 @@ private:
     std::vector<std::unique_ptr<SpaceOptItem>>    items_;
 };
 
-
-class ZoneList final {
-public:
-    void addZone(int32_t zone) {
-        zones_.emplace_back(zone);
-    }
-
-    std::string toString() const;
-
-    std::vector<int32_t> zones() const {
-        return zones_;
-    }
-
-private:
-    std::vector<int32_t> zones_;
-};
-
-
-class ClusterItem final {
-public:
-    ClusterItem(std::string* clusterName, ZoneList* zones) {
-        clusterName_.reset(clusterName);
-        zones_.reset(zones);
-    }
-
-private:
-    std::unique_ptr<std::string>     clusterName_;
-    std::unique_ptr<ZoneList>        zones_;
-};
-
-
-class ClusterList final {
-public:
-    void addItem(ClusterItem *item) {
-        item_.emplace_back(item);
-    }
-
-    std::vector<ClusterItem*> getItems() const {
-        std::vector<ClusterItem*> items;
-        return items;
-    }
-
-private:
-    std::vector<std::unique_ptr<ClusterItem>> item_;
-};
-
-
 class CreateSpaceSentence final : public CreateSentence {
 public:
     CreateSpaceSentence(std::string* spaceName, bool ifNotExist)
@@ -332,20 +285,11 @@ public:
         return spaceOpts_->getOpts();
     }
 
-    void setZones(ZoneList *zones) {
-        zones_.reset(zones);
-    }
-
-    std::vector<int32_t> getZones() {
-        return zones_->zones();
-    }
-
     std::string toString() const override;
 
 private:
     std::unique_ptr<std::string>     spaceName_;
     std::unique_ptr<SpaceOptList>    spaceOpts_;
-    std::unique_ptr<ZoneList>        zones_;
 };
 
 
