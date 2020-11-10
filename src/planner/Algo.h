@@ -96,11 +96,15 @@ public:
 
     std::vector<std::string> inputVars() const;
 
+    std::vector<std::vector<std::string>> allColNames() const {
+        return allColNames_;
+    }
+
 private:
     CartesianProduct(QueryContext* qctx, PlanNode* input)
         : SingleDependencyNode(qctx, Kind::kCartesianProduct, input) {}
 
-    std::vector<std::string> allColNames_;
+    std::vector<std::vector<std::string>> allColNames_;
 };
 
 }  // namespace graph

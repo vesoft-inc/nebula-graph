@@ -476,6 +476,11 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
             {joinHashKey}, {probeKey});
     VLOG(1) << joinDst->outputVar() << " hash key: " << joinHashKey->toString()
         << " probe key: " << probeKey->toString();
+    std::vector<std::string> colNames = projectSrcDstProps->colNames();
+    for (auto& col : project->colNames()) {
+        colNames.emplace_back(col);
+    }
+    joinDst->setColNames(std::move(colNames));
 
     return joinDst;
 }
