@@ -273,7 +273,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <acl_item_clause> acl_item_clause
 
 %type <index_field> index_field
-%type <index_field_list> index_field_list
+%type <index_field_list> index_field_list opt_index_field_list
 
 %type <sentence> maintain_sentence
 %type <sentence> create_space_sentence describe_space_sentence drop_space_sentence
@@ -1717,10 +1717,7 @@ drop_edge_sentence
     ;
 
 index_field
-    : %empty {
-        $$ = nullptr;
-    }
-    | name_label {
+    : name_label {
         $$ = new meta::cpp2::IndexFieldDef();
         $$->set_name($1->c_str());
         delete $1;
@@ -1739,11 +1736,9 @@ index_field
 index_field_list
     : index_field {
         $$ = new IndexFieldList();
-        if ($1) {
-            std::unique_ptr<meta::cpp2::IndexFieldDef> field;
-            field.reset($1);
-            $$->addField(std::move(field));
-        }
+        std::unique_ptr<meta::cpp2::IndexFieldDef> field;
+        field.reset($1);
+        $$->addField(std::move(field));
     }
     | index_field_list COMMA index_field {
         $$ = $1;
@@ -1753,14 +1748,23 @@ index_field_list
     }
     ;
 
+opt_index_field_list
+    : %empty {
+        $$ = nullptr;
+    }
+    | index_field_list {
+        $$ = $1;
+    }
+    ;
+
 create_tag_index_sentence
-    : KW_CREATE KW_TAG KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN index_field_list R_PAREN {
+    : KW_CREATE KW_TAG KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN {
         $$ = new CreateTagIndexSentence($5, $7, $9, $4);
     }
     ;
 
 create_edge_index_sentence
-    : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN index_field_list R_PAREN {
+    : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN {
         $$ = new CreateEdgeIndexSentence($5, $7, $9, $4);
     }
     ;
