@@ -81,15 +81,20 @@ Status MatchSolver::buildReturn(MatchAstContext* mctx, SubPlan& subPlan) {
     return Status::OK();
 }
 
-Status MatchSolver::buildUnwind(MatchAstContext* mctx, UnwindClause& clause, SubPlan& subPlan) {
+Status MatchSolver::buildUnwind(MatchAstContext *mctx, UnwindClause &clause, SubPlan &subPlan) {
     auto *expr = clause.expr();
     auto *alias = clause.alias();
     PlanNode *current = subPlan.root;
 
-    auto *unwind = Unwind::make(mctx->qctx, current, expr);
+    auto *newExpr = expr;
+    if (expr->kind() == Expression::Kind::kLabel) {
+        auto *labelExpr = static_cast<const LabelExpression *>(expr);
+        newExpr = rewrite(labelExpr);
+    }
+    auto *unwind = Unwind::make(mctx->qctx, current, newExpr);
     unwind->setInputVar(current->outputVar());
     unwind->setOutputVar(*alias);
-    unwind->setColNames({*alias})
+    unwind->setColNames({*alias});
     current = unwind;
 
     subPlan.root = current;

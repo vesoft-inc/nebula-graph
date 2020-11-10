@@ -5,7 +5,6 @@
  */
 
 #include "executor/query/UnwindExecutor.h"
-
 #include "context/QueryExpressionContext.h"
 #include "parser/Clauses.h"
 #include "planner/Query.h"
@@ -18,7 +17,7 @@ folly::Future<Status> UnwindExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *unwind = asNode<Unwind>(node());
-    auto *expr = unwind->expr();
+    auto *expr = const_cast<Expression *>(unwind->expr());
 
     auto iter = ectx_->getResult(unwind->inputVar()).iter();
     DCHECK(!!iter);
@@ -26,29 +25,24 @@ folly::Future<Status> UnwindExecutor::execute() {
 
     DataSet ds;
     ds.colNames = unwind->colNames();
-    if (expr->kind() == Expression::Kind::kLabel) {   // UNWIND var AS r
-        const auto *labelExpr = static_cast<const LabelExpression *>(expr);
-        auto *vp = rewrite(labelExpr);
+    if (expr->kind() == Expression::Kind::kVarProperty) {   // UNWIND var AS r
+        auto *vp = static_cast<VariablePropertyExpression *>(expr);
         for (; iter->valid(); iter->next()) {
             Value val = vp->eval(ctx(iter.get()));
-            std::vector<Value> &vals = extractList(val);
+            std::vector<Value> vals = std::move(extractList(val));
             for (const auto &v : vals) {
                 ds.rows.emplace_back(Row({std::move(v)}));
             }
         }
     } else {   // UNWIND [1, 2, 3] AS r
         Value val = expr->eval(ctx);
+        std::vector<Value> vals = std::move(extractList(val));
         for (const auto &v : vals) {
             ds.rows.emplace_back(Row({std::move(v)}));
         }
     }
 
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
-}
-
-Expression *UnwindExecutor::rewrite(const LabelExpression *label) {
-    auto *expr = new VariablePropertyExpression(new std::string(), new std::string(*label->name()));
-    return expr;
 }
 
 std::vector<Value> UnwindExecutor::extractList(Value &val) {
@@ -63,6 +57,8 @@ std::vector<Value> UnwindExecutor::extractList(Value &val) {
             ret.emplace_back(std::move(val));
         }
     }
+
+    return ret;
 }
 
 }   // namespace graph

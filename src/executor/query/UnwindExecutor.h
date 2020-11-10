@@ -20,9 +20,7 @@ public:
     folly::Future<Status> execute() override;
 
 private:
-    Expression* rewrite(const LabelExpression *label);
-
-    std::vector<Value> extractList(Value& val);
+    std::vector<Value> extractList(Value &val);
 };
 
 }   // namespace graph
