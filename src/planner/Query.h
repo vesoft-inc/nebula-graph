@@ -621,6 +621,29 @@ private:
     YieldColumns*               cols_{nullptr};
 };
 
+class Unwind final : public SingleInputNode {
+public:
+    static Unwind* make(QueryContext* qctx,
+                        PlanNode* input,
+                        Expression* expr) {
+        return qctx->objPool()->add(new Unwind(qctx, input, expr));
+    }
+
+    const Expression* expr() {
+        return expr_;
+    }
+
+private:
+    Unwind(QueryContext* qctx,
+           PlanNode* input,
+           Expression* expr)
+        : SingleInputNode(qctx, Kind::kUnwind, input), expr_(expr) {
+    }
+
+private:
+    Expression* expr_{nullptr};
+};
+
 /**
  * Sort the given record set.
  */
@@ -985,6 +1008,7 @@ private:
     std::vector<Expression*>                hashKeys_;
     std::vector<Expression*>                probeKeys_;
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_QUERY_H_
