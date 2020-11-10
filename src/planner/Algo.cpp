@@ -10,7 +10,6 @@ namespace nebula {
 namespace graph {
 
 Status CartesianProduct::addVar(std::string varName) {
-    std::unordered_set<std::string> uniqueNames;
     auto checkName = [&varName](auto var) { return var->name == varName; };
     if (std::find_if(inputVars_.begin(), inputVars_.end(), checkName) != inputVars_.end()) {
         return Status::SemanticError("Duplicate Var: %s", varName.c_str());
@@ -18,11 +17,11 @@ Status CartesianProduct::addVar(std::string varName) {
     auto* varPtr = qctx_->symTable()->getVar(varName);
     DCHECK(varPtr != nullptr);
     for (const auto& name : varPtr->colNames) {
-        if (uniqueNames.find(name) != uniqueNames.end()) {
+        if (uniqueNames_.find(name) != uniqueNames_.end()) {
             return Status::SemanticError(
                 "Var : %s , exist duplicate ColName : %s", varName.c_str(), name.c_str());
         }
-        uniqueNames.emplace(name);
+        uniqueNames_.emplace(name);
     }
     allColNames_.emplace_back(varPtr->colNames);
     inputVars_.emplace_back(varPtr);

@@ -105,6 +105,7 @@ private:
         : SingleDependencyNode(qctx, Kind::kCartesianProduct, input) {}
 
     std::vector<std::vector<std::string>> allColNames_;
+    std::unordered_set<std::string> uniqueNames_;
 };
 
 }  // namespace graph
