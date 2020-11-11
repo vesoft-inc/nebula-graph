@@ -93,7 +93,6 @@ Status MatchSolver::buildUnwind(MatchAstContext *mctx, UnwindClause &clause, Sub
     }
     auto *unwind = Unwind::make(mctx->qctx, current, newExpr);
     unwind->setInputVar(current->outputVar());
-    unwind->setOutputVar(*alias);
     unwind->setColNames({*alias});
     current = unwind;
 
