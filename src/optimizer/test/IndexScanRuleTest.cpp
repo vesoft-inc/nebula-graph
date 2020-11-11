@@ -438,7 +438,7 @@ TEST(IndexScanRuleTest, BoundValueRangeTest) {
             EXPECT_EQ("col_str", hint.column_name);
             EXPECT_EQ(storage::cpp2::ScanType::RANGE, hint.scan_type);
             std::string begin = std::string(3, 'c').append(6, 0x00).append(1, 0x01);
-            std::string end = std::string(len, 0xFF);
+            std::string end = std::string(len, static_cast<char>(0xFF));
             EXPECT_EQ(begin, hint.begin_value);
             EXPECT_EQ(end, hint.end_value);
         }
