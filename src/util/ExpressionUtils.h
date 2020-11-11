@@ -117,6 +117,9 @@ public:
     static Expression* pullOrs(Expression *expr);
     static void pullOrsImpl(LogicalExpression *expr,
                             std::vector<std::unique_ptr<Expression>> &operands);
+
+    static VariablePropertyExpression* newVarPropExpr(const std::string& prop,
+                                                      const std::string& var = "");
 };
 
 }   // namespace graph

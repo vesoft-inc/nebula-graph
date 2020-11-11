@@ -160,6 +160,7 @@ StatusOr<SubPlan> MatchVertexIndexSeekPlanner::transform(AstContext* astCtx) {
 }
 
 Status MatchVertexIndexSeekPlanner::buildScanNode() {
+    // FIXME: Move following validation to MatchValidator
     if (!startFromNode_) {
         return Status::SemanticError("Scan from edge not supported now");
     }
@@ -403,12 +404,8 @@ Status MatchVertexIndexSeekPlanner::buildFilter() {
         return Status::OK();
     }
     auto newFilter = matchCtx_->filter->clone();
-    auto rewriter = [] (const Expression *expr) {
-        if (expr->kind() == Expression::Kind::kLabel) {
-            return MatchSolver::rewrite(static_cast<const LabelExpression*>(expr));
-        } else {
-            return MatchSolver::rewrite(static_cast<const LabelAttributeExpression*>(expr));
-        }
+    auto rewriter = [this](const Expression *expr) {
+        return MatchSolver::doRewrite(matchCtx_, expr);
     };
     RewriteMatchLabelVisitor visitor(std::move(rewriter));
     newFilter->accept(&visitor);

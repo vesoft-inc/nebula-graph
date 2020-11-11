@@ -22,6 +22,8 @@ public:
     static Expression* rewrite(const LabelExpression *label);
 
     static Expression* rewrite(const LabelAttributeExpression *la);
+
+    static Expression* doRewrite(const MatchAstContext* mctx, const Expression* expr);
 };
 }  // namespace graph
 }  // namespace nebula

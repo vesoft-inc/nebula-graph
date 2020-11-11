@@ -190,7 +190,7 @@ std::unique_ptr<PlanNodeDescription> SwitchSpace::explain() const {
 
 std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
     auto desc = SingleDependencyNode::explain();
-    addDescription("inputVars", folly::toJson(util::toJson(inputVars_)), desc.get());
+    addDescription("inputVar", folly::toJson(util::toJson(inputVars_)), desc.get());
     switch (collectKind_) {
         case CollectKind::kSubgraph: {
             addDescription("kind", "SUBGRAPH", desc.get());
@@ -222,8 +222,10 @@ std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
 
 std::unique_ptr<PlanNodeDescription> DataJoin::explain() const {
     auto desc = SingleDependencyNode::explain();
-    addDescription("leftVar", folly::toJson(util::toJson(leftVar_)), desc.get());
-    addDescription("rightVar", folly::toJson(util::toJson(rightVar_)), desc.get());
+    folly::dynamic inputVar = folly::dynamic::object();
+    inputVar.insert("leftVar", util::toJson(leftVar_));
+    inputVar.insert("rightVar", util::toJson(rightVar_));
+    addDescription("inputVar", folly::toJson(inputVar), desc.get());
     addDescription("hashKeys", folly::toJson(util::toJson(hashKeys_)), desc.get());
     addDescription("probeKeys", folly::toJson(util::toJson(probeKeys_)), desc.get());
     return desc;

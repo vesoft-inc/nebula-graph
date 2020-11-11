@@ -63,5 +63,10 @@ ExpressionUtils::pullOrsImpl(LogicalExpression *expr,
     }
 }
 
+VariablePropertyExpression *ExpressionUtils::newVarPropExpr(const std::string &prop,
+                                                            const std::string &var) {
+    return new VariablePropertyExpression(new std::string(var), new std::string(prop));
+}
+
 }   // namespace graph
 }   // namespace nebula

@@ -20,19 +20,8 @@ Status MatchSolver::buildReturn(MatchAstContext* mctx, SubPlan& subPlan) {
     for (auto *col : mctx->yieldColumns->columns()) {
         auto kind = col->expr()->kind();
         YieldColumn *newColumn = nullptr;
-        auto rewriter = [mctx] (const Expression *expr) {
-            if (expr->kind() == Expression::Kind::kLabel) {
-                auto* labelExpr = static_cast<const LabelExpression*>(expr);
-                auto alias = mctx->aliases.find(*labelExpr->name());
-                DCHECK(alias != mctx->aliases.end());
-                if (alias->second == MatchValidator::AliasType::kPath) {
-                    return mctx->pathBuild->clone().release();
-                } else {
-                    return rewrite(labelExpr);
-                }
-            } else {
-                return rewrite(static_cast<const LabelAttributeExpression*>(expr));
-            }
+        auto rewriter = [mctx](const Expression *expr) {
+            return MatchSolver::doRewrite(mctx, expr);
         };
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
             newColumn = new YieldColumn(rewriter(col->expr()));
@@ -96,5 +85,21 @@ Expression* MatchSolver::rewrite(const LabelAttributeExpression *la) {
             new LabelExpression(*la->right()->name()));
     return expr;
 }
+
+Expression *MatchSolver::doRewrite(const MatchAstContext *mctx, const Expression *expr) {
+    if (expr->kind() != Expression::Kind::kLabel) {
+        return rewrite(static_cast<const LabelAttributeExpression *>(expr));
+    }
+
+    auto *labelExpr = static_cast<const LabelExpression *>(expr);
+    auto alias = mctx->aliases.find(*labelExpr->name());
+    DCHECK(alias != mctx->aliases.end());
+    if (alias->second == MatchValidator::AliasType::kPath) {
+        return mctx->pathBuild->clone().release();
+    } else {
+        return rewrite(labelExpr);
+    }
+}
+
 }  // namespace graph
 }  // namespace nebula

@@ -68,6 +68,8 @@ private:
 
     Status validateAliases(const std::vector<const Expression*> &exprs) const;
 
+    Status validateStepRange(const MatchStepRange *range) const;
+
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map) const;
 
