@@ -135,7 +135,7 @@ jobs:
         if: ${{ failure() }}
         with:	
           name: ${{ matrix.os }}-${{ matrix.compiler }}-nebula-test-logs
-          path:  /tmp/nebula-*/logs/
+          path:  build/server_*/logs/
       - name: Cleanup
         if: ${{ always() }}
         run: rm -rf build modules && rm -rf /tmp/nebula-*
