@@ -10,6 +10,9 @@
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
+using nebula::storage::cpp2::EdgeProp;
+using nebula::storage::cpp2::VertexProp;
+
 namespace nebula {
 namespace graph {
 bool MatchVertexIndexSeekPlanner::match(AstContext* astCtx) {
@@ -418,5 +421,88 @@ Status MatchVertexIndexSeekPlanner::buildFilter() {
 
     return Status::OK();
 }
-}  // namespace graph
-}  // namespace nebula
+
+static std::unique_ptr<std::vector<VertexProp>> genVertexProps(
+    const MatchValidator::NodeInfo *node) {
+    auto vertexProps = std::make_unique<std::vector<VertexProp>>();
+    if (node->label != nullptr) {
+        VertexProp vertexProp;
+        vertexProp.set_tag(node->tid);
+        vertexProps->emplace_back(std::move(vertexProp));
+    }
+    return vertexProps;
+}
+
+static std::unique_ptr<std::vector<EdgeProp>> genEdgeProps(const MatchValidator::EdgeInfo *edge) {
+    auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
+    if (edge->edgeTypes.empty()) {
+        return edgeProps;
+    }
+
+    for (auto edgeType : edge->edgeTypes) {
+        if (edge->direction == MatchValidator::Direction::IN_EDGE) {
+            edgeType = -edgeType;
+        } else if (edge->direction == MatchValidator::Direction::BOTH) {
+            EdgeProp edgeProp;
+            edgeProp.set_type(-edgeType);
+            edgeProps->emplace_back(std::move(edgeProp));
+        }
+        EdgeProp edgeProp;
+        edgeProp.set_type(edgeType);
+        edgeProps->emplace_back(std::move(edgeProp));
+    }
+    return edgeProps;
+}
+
+// build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
+StatusOr<SubPlan> MatchVertexIndexSeekPlanner::expandStep(const MatchValidator::NodeInfo *node,
+                                                          const MatchValidator::EdgeInfo *edge,
+                                                          const PlanNode *planRoot) {
+    auto qctx = matchCtx_->qctx;
+    auto colGen = qctx->vctx()->anonColGen();
+
+    // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
+    // expr: __Project_2[0] => [v1, e1,..., vn, en]
+    auto columnExpr = ExpressionUtils::columnExpr(planRoot->outputVar(), 0);
+    // expr: [v1, e1, ..., vn, en][-1] => en
+    auto lastEdgeExpr = new SubscriptExpression(columnExpr, new ConstantExpression(-1));
+    // expr: en[_dst] => dst vid
+    auto extractDstExpr = new AttributeExpression(lastEdgeExpr, new ConstantExpression(kDst));
+    auto columns = saveObject(new YieldColumns);
+    columns->addColumn(new YieldColumn(extractDstExpr, new std::string(colGen->getCol())));
+    auto project = Project::make(qctx, const_cast<PlanNode *>(planRoot), columns);
+
+    auto dedup = Dedup::make(qctx, project);
+
+    auto gn = GetNeighbors::make(qctx, dedup, matchCtx_->space.id);
+    gn->setSrc(ExpressionUtils::columnExpr(dedup->outputVar(), 0));
+    gn->setVertexProps(genVertexProps(node));
+    gn->setEdgeProps(genEdgeProps(edge));
+    gn->setEdgeDirection(edge->direction);
+
+    PlanNode *root = gn;
+    if (node->filter != nullptr) {
+        // FIXME: Maybe need to rewrite label expression
+        root = Filter::make(qctx, gn, node->filter);
+    }
+    if (edge->filter != nullptr) {
+        // FIXME
+        root = Filter::make(qctx, root, edge->filter);
+    }
+
+    auto listColumns = saveObject(new YieldColumns);
+    auto listItems = std::make_unique<ExpressionList>();
+    listItems->add(ExpressionUtils::columnExpr(root->outputVar(), 0));
+    listItems->add(ExpressionUtils::columnExpr(root->outputVar(), 1));
+    auto listExpr = new ListExpression(listItems.release());
+    listColumns->addColumn(new YieldColumn(listExpr, new std::string(colGen->getCol())));
+    root = Project::make(qctx, root, listColumns);
+
+    SubPlan plan;
+    plan.root = root;
+    plan.tail = project;
+    return plan;
+}
+
+}   // namespace graph
+}   // namespace nebula

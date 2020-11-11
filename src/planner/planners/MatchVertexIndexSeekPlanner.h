@@ -53,6 +53,10 @@ private:
 
     Status buildFilter();
 
+    StatusOr<SubPlan> expandStep(const MatchValidator::NodeInfo* node,
+                                 const MatchValidator::EdgeInfo* edge,
+                                 const PlanNode* planRoot);
+
     template <typename T>
     T* saveObject(T *obj) const {
         return matchCtx_->qctx->objPool()->add(obj);

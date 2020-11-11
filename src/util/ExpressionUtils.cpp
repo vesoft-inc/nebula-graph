@@ -68,5 +68,10 @@ VariablePropertyExpression *ExpressionUtils::newVarPropExpr(const std::string &p
     return new VariablePropertyExpression(new std::string(var), new std::string(prop));
 }
 
+SubscriptExpression *ExpressionUtils::columnExpr(const std::string &varname, int columnIndex) {
+    auto varExpr = new VariableExpression(new std::string(varname));
+    return new SubscriptExpression(varExpr, new ConstantExpression(columnIndex));
+}
+
 }   // namespace graph
 }   // namespace nebula
