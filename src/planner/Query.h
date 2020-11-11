@@ -629,7 +629,7 @@ public:
         return qctx->objPool()->add(new Unwind(qctx, input, expr));
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     const Expression* expr() const {
         return expr_;
