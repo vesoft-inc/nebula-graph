@@ -153,7 +153,10 @@ PlanNode* FindPathValidator::buildAllPairFirstDataSet(PlanNode* dep, const std::
     auto* pathExpr = new PathBuildExpression();
     pathExpr->add(
         std::make_unique<VariablePropertyExpression>(new std::string("*"), new std::string(kVid)));
-    auto* path = new YieldColumn(pathExpr, new std::string("path"));
+    auto* exprList = new ExpressionList();
+    exprList->add(pathExpr);
+    auto* listExprssion = new ListExpression(exprList);
+    auto* path = new YieldColumn(listExprssion, new std::string("path"));
 
     auto* columns = qctx_->objPool()->add(new YieldColumns());
     columns->addColumn(vid);
@@ -192,12 +195,8 @@ Status FindPathValidator::allPairPaths() {
     auto* projectFrom = buildAllPairFirstDataSet(projectFromDep, fromStartVidsVar);
     auto* projectTo = buildAllPairFirstDataSet(projectFrom, toStartVidsVar);
 
-    auto* cartesianProduct = CartesianProduct::make(qctx_, projectTo);
-    NG_RETURN_IF_ERROR(cartesianProduct->addVar(fromStartVidsVar));
-    NG_RETURN_IF_ERROR(cartesianProduct->addVar(toStartVidsVar));
-
     auto* loop =
-        Loop::make(qctx_, cartesianProduct, conjunct, buildAllPathsLoopCondition(steps_.steps));
+        Loop::make(qctx_, projectTo, conjunct, buildAllPathsLoopCondition(steps_.steps));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kAllPaths, {conjunct->outputVar()});
@@ -221,21 +220,6 @@ PlanNode* FindPathValidator::allPaths(PlanNode* dep,
     allPaths->setInputVar(gn->outputVar());
     allPaths->setColNames({kVid, "path"});
     allPaths->setOutputVar(startVidsVar);
-
-    // DataSet ds;
-    // ds.colNames = {kVid, "path"};
-    // for (auto& vid : starts.vids) {
-    //     Row row;
-    //     row.values.emplace_back(vid);
-
-    //     List paths;
-    //     Path path;
-    //     path.src = Vertex(vid.getStr(), {});
-    //     paths.values.emplace_back(std::move(path));
-    //     row.values.emplace_back(std::move(paths));
-    //     ds.rows.emplace_back(std::move(row));
-    // }
-    // qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
     return allPaths;
 }
@@ -281,7 +265,7 @@ PlanNode* FindPathValidator::buildMultiPairFirstDataSet(PlanNode* dep,
                                                         const std::string& inputVar,
                                                         const std::string& outputVar) {
     auto* dst =
-        new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kDst)),
+        new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
                         new std::string(kDst));
     auto* src =
         new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kSrc)),
@@ -289,8 +273,11 @@ PlanNode* FindPathValidator::buildMultiPairFirstDataSet(PlanNode* dep,
     auto* cost = new YieldColumn(new ConstantExpression(0), new std::string("cost"));
     auto* pathExpr = new PathBuildExpression();
     pathExpr->add(
-        std::make_unique<VariablePropertyExpression>(new std::string("*"), new std::string(kDst)));
-    auto* paths = new YieldColumn(pathExpr, new std::string("paths"));
+        std::make_unique<VariablePropertyExpression>(new std::string("*"), new std::string(kVid)));
+    auto* exprList = new ExpressionList();
+    exprList->add(pathExpr);
+    auto* listExprssion = new ListExpression(exprList);
+    auto* paths = new YieldColumn(listExprssion, new std::string("paths"));
 
     auto* columns = qctx_->objPool()->add(new YieldColumns());
     columns->addColumn(dst);
@@ -335,13 +322,9 @@ Status FindPathValidator::multiPairPlan() {
     auto* projectTo =
         buildMultiPairFirstDataSet(projectFrom, toStartVidsVar, backward->outputVar());
 
-    auto* cartesianProduct = CartesianProduct::make(qctx_, projectTo);
-    NG_RETURN_IF_ERROR(cartesianProduct->addVar(fromStartVidsVar));
-    NG_RETURN_IF_ERROR(cartesianProduct->addVar(toStartVidsVar));
-
     // todo(jmq) optimize condition
     auto* loop =
-        Loop::make(qctx_, cartesianProduct, conjunct, buildMultiPairLoopCondition(steps_.steps));
+        Loop::make(qctx_, projectTo, conjunct, buildMultiPairLoopCondition(steps_.steps));
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kMultiplePairShortest, {conjunct->outputVar()});
