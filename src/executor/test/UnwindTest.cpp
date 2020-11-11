@@ -36,7 +36,7 @@ TEST_F(UnwindTest, UnwindList) {
 
     auto expr = std::make_unique<ListExpression>(exprList.release());
 
-    auto* unwind = Unwind::make(qctx_.get(), start_, expr.release());
+    auto* unwind = Unwind::make(qctx_.get(), start_, expr.get());
     unwind->setColNames(std::vector<std::string>{"r"});
 
     auto unwExe = Executor::create(unwind, qctx_.get());
@@ -71,7 +71,7 @@ TEST_F(UnwindTest, UnwindNestedList) {
     exprList->add(new ConstantExpression(Value::kNullValue));
     auto expr = std::make_unique<ListExpression>(exprList.release());
 
-    auto* unwind = Unwind::make(qctx_.get(), start_, expr.release());
+    auto* unwind = Unwind::make(qctx_.get(), start_, expr.get());
     unwind->setColNames(std::vector<std::string>{"r"});
 
     auto unwExe = Executor::create(unwind, qctx_.get());
@@ -105,17 +105,16 @@ TEST_F(UnwindTest, UnwindLabel) {
     exprList->add(new ConstantExpression(Value::kNullValue));
     auto expr = std::make_unique<ListExpression>(exprList.release());
 
-    auto* unwind1 = Unwind::make(qctx_.get(), start_, expr.release());
+    auto* unwind1 = Unwind::make(qctx_.get(), start_, expr.get());
     unwind1->setColNames(std::vector<std::string>{"r1"});
     auto unwExe = Executor::create(unwind1, qctx_.get());
     auto future = unwExe->execute();
     auto status = std::move(future).get();
     EXPECT_TRUE(status.ok());
 
-    auto* unwind2 =
-        Unwind::make(qctx_.get(),
-                     unwind1,
-                     new VariablePropertyExpression(new std::string(), new std::string("r1")));
+    auto vp =
+        std::make_unique<VariablePropertyExpression>(new std::string(), new std::string("r1"));
+    auto* unwind2 = Unwind::make(qctx_.get(), unwind1, vp.get());
     unwind2->setInputVar(unwind1->outputVar());
     unwind2->setColNames(std::vector<std::string>{"r2"});
     unwExe = Executor::create(unwind2, qctx_.get());
