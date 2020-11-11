@@ -78,21 +78,14 @@ TEST(IndexBoundValueTest, BoolTest) {
         typeDef.set_type(meta::cpp2::PropertyType::BOOL);
         col.set_type(std::move(typeDef));
     }
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MIN, Value(true)).getBool());
+    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MIN, Value(true)).getBool());
     EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MAX, Value(true)).getBool());
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(true)).getBool());
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(true)).getBool());
 
     EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MIN, Value(false)).getBool());
-    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MAX, Value(false)).getBool());
-    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(false)).getBool());
-    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(false)).getBool());
+    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MAX, Value(false)).getBool());
 
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MIN, Value(NullType::__NULL__)).isNull());
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MAX, Value(NullType::__NULL__)).isNull());
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::GREATER_THAN,
-                                           Value(NullType::__NULL__)).isNull());
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(NullType::__NULL__)).isNull());
+    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MIN, Value(NullType::__NULL__)).isNull());
+    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MAX, Value(NullType::__NULL__)).isNull());
 }
 
 TEST(IndexBoundValueTest, IntTest) {
@@ -345,3 +338,10 @@ TEST(IndexBoundValueTest, DateTimeTest) {
 
 }   // namespace graph
 }   // namespace nebula
+
+int main(int argc, char** argv) {
+    testing::InitGoogleTest(&argc, argv);
+    folly::init(&argc, &argv, true);
+    google::SetStderrLogging(google::INFO);
+    return RUN_ALL_TESTS();
+}
