@@ -92,7 +92,7 @@ public:
         return qctx->objPool()->add(new CartesianProduct(qctx, input));
     }
 
-    Status addVar(std::string varName);
+    Status addVarAndColNames(std::string varName, std::vector<std::string> colNames);
 
     std::vector<std::string> inputVars() const;
 
