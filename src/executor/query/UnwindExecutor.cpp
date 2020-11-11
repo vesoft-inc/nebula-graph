@@ -29,14 +29,14 @@ folly::Future<Status> UnwindExecutor::execute() {
         auto *vp = static_cast<VariablePropertyExpression *>(expr);
         for (; iter->valid(); iter->next()) {
             Value val = vp->eval(ctx(iter.get()));
-            std::vector<Value> vals = std::move(extractList(val));
+            std::vector<Value> vals = extractList(val);
             for (const auto &v : vals) {
                 ds.rows.emplace_back(Row({std::move(v)}));
             }
         }
     } else {   // UNWIND [1, 2, 3] AS r
         Value val = expr->eval(ctx);
-        std::vector<Value> vals = std::move(extractList(val));
+        std::vector<Value> vals = extractList(val);
         for (const auto &v : vals) {
             ds.rows.emplace_back(Row({std::move(v)}));
         }
