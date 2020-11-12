@@ -530,9 +530,7 @@ class TestFindPath(NebulaTestSuite):
             "rows": [
                 [b"Tim Duncan", (b"like", 0, b"Manu Ginobili")],
                 [b"Tim Duncan", (b"like", 0, b"Tony Parker"), (b"like", 0, b"LaMarcus Aldridge")],
-                [b"Tim Duncan", (b"like", 0, b"Manu Ginobili"), (b"like", 0, b"Tim Duncan")],
-                [b"Tim Duncan", (b"like", 0, b"Tony Parker"), (b"like", 0, b"Tim Duncan")],
             ]
-            }
+        }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])

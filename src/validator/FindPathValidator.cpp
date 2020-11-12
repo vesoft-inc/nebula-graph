@@ -239,6 +239,14 @@ Expression* FindPathValidator::buildAllPathsLoopCondition(uint32_t steps) {
     return qctx_->objPool()->add(nSteps);
 }
 
+/*
+ * The plan of From subtree's would be:
+ * Project(from) <- Dedup(from)
+ * and the To would be:
+ * Project(to) <- Dedup(to)
+ * After connecting, it would be:
+ * Project(from) <- Dedup(from) <- Project(to) <- Dedup(to)
+ */
 void FindPathValidator::linkLoopDepFromTo(PlanNode*& projectDep) {
     if (!from_.vids.empty() && from_.originalSrc == nullptr) {
         if (!to_.vids.empty() && to_.originalSrc == nullptr) {
@@ -268,7 +276,7 @@ PlanNode* FindPathValidator::buildMultiPairFirstDataSet(PlanNode* dep,
         new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
                         new std::string(kDst));
     auto* src =
-        new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kSrc)),
+        new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
                         new std::string(kSrc));
     auto* cost = new YieldColumn(new ConstantExpression(0), new std::string("cost"));
     auto* pathExpr = new PathBuildExpression();
