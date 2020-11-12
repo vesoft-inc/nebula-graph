@@ -333,9 +333,6 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col) {
         case Value::Type::FLOAT : {
             return Value(std::numeric_limits<double>::max());
         }
-        case Value::Type::BOOL: {
-            return Value(true);
-        }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length ||
                 col.get_type().get_type_length() == nullptr) {
@@ -370,6 +367,7 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col) {
             return Value(dt);
         }
         case Value::Type::__EMPTY__:
+        case Value::Type::BOOL:
         case Value::Type::NULLVALUE:
         case Value::Type::VERTEX:
         case Value::Type::EDGE:
@@ -396,9 +394,6 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col) {
         case Value::Type::FLOAT : {
             return Value(-std::numeric_limits<double>::max());
         }
-        case Value::Type::BOOL: {
-            return Value(false);
-        }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length ||
                 col.get_type().get_type_length() == nullptr) {
@@ -416,6 +411,7 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col) {
             return Value(DateTime());
         }
         case Value::Type::__EMPTY__:
+        case Value::Type::BOOL:
         case Value::Type::NULLVALUE:
         case Value::Type::VERTEX:
         case Value::Type::EDGE:

@@ -71,23 +71,6 @@ TEST(IndexBoundValueTest, StringTest) {
     }
 }
 
-TEST(IndexBoundValueTest, BoolTest) {
-    meta::cpp2::ColumnDef col;
-    {
-        meta::cpp2::ColumnTypeDef typeDef;
-        typeDef.set_type(meta::cpp2::PropertyType::BOOL);
-        col.set_type(std::move(typeDef));
-    }
-    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MIN, Value(true)).getBool());
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MAX, Value(true)).getBool());
-
-    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MIN, Value(false)).getBool());
-    EXPECT_TRUE(OptimizerUtils::boundValue(col, OP::MAX, Value(false)).getBool());
-
-    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MIN, Value(NullType::__NULL__)).isNull());
-    EXPECT_FALSE(OptimizerUtils::boundValue(col, OP::MAX, Value(NullType::__NULL__)).isNull());
-}
-
 TEST(IndexBoundValueTest, IntTest) {
     meta::cpp2::ColumnDef col;
     {
