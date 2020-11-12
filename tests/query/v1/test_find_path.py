@@ -519,3 +519,20 @@ class TestFindPath(NebulaTestSuite):
             }
         self.check_column_names(resp, expected_data["column_names"])
         self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
+
+        stmt = '''$a = GO FROM "Tim Duncan" over like YIELD like._src AS src;
+                GO FROM "Tony Parker" OVER like YIELD like._src AS src, like._dst AS dst
+                | FIND SHORTEST PATH FROM $a.src TO $-.dst OVER like UPTO 5 STEPS'''
+        resp = self.execute_query(stmt)
+        self.check_resp_succeeded(resp)
+        expected_data = {
+            "column_names": ["_path"],
+            "rows": [
+                [b"Tim Duncan", (b"like", 0, b"Manu Ginobili")],
+                [b"Tim Duncan", (b"like", 0, b"Tony Parker"), (b"like", 0, b"LaMarcus Aldridge")],
+                [b"Tim Duncan", (b"like", 0, b"Manu Ginobili"), (b"like", 0, b"Tim Duncan")],
+                [b"Tim Duncan", (b"like", 0, b"Tony Parker"), (b"like", 0, b"Tim Duncan")],
+            ]
+            }
+        self.check_column_names(resp, expected_data["column_names"])
+        self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])

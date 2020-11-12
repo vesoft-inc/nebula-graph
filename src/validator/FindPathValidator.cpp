@@ -253,7 +253,7 @@ void FindPathValidator::linkLoopDepFromTo(PlanNode*& projectDep) {
         } else {
             auto* toProject = static_cast<SingleInputNode*>(toProjectStartVid_);
             toProject->dependsOn(fromDedupStartVid_);
-            auto inputVarName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;
+            auto inputVarName = to_.fromType == kPipe ? inputVarName_ : to_.userDefinedVarName;
             toProject->setInputVar(inputVarName);
             loopDepTail_ = projectStartVid_;
             projectDep = toDedupStartVid_;
