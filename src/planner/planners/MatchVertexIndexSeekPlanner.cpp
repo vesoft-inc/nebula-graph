@@ -474,7 +474,7 @@ static Expression *mergeColumnsExpr(const std::string &varname, int col1Idx, int
     return new ListExpression(listItems.release());
 }
 
-Status MatchVertexIndexSeekPlanner::composePlan() {
+Status MatchVertexIndexSeekPlanner::composePlan(SubPlan *finalPlan) {
     auto &nodeInfos = matchCtx_->nodeInfos;
     auto &edgeInfos = matchCtx_->edgeInfos;
     if (edgeInfos.empty()) {
@@ -484,25 +484,57 @@ Status MatchVertexIndexSeekPlanner::composePlan() {
     }
     DCHECK_GT(nodeInfos.size(), edgeInfos.size());
 
-    auto qctx = matchCtx_->qctx;
-
     // FIXME(yee): scan node subplan
     PlanNode *root = nullptr;
     SubPlan plan;
     NG_RETURN_IF_ERROR(filterFinalDataset(edgeInfos[0], root, &plan));
+    finalPlan->tail = plan.tail;
     for (size_t i = 1; i < edgeInfos.size(); ++i) {
         SubPlan curr;
         NG_RETURN_IF_ERROR(filterFinalDataset(edgeInfos[i], plan.root, &curr));
-
-        auto leftKey = plan.root->outputVar();
-        auto rightKey = curr.root->outputVar();
-        auto buildExpr = getLastEdgeDstExprInLastColumn(leftKey);
-        auto probeExpr = getFirstVertexVidInFistColumn(rightKey);
-        plan.root =
-            DataJoin::make(qctx, curr.root, {leftKey, 0}, {rightKey, 0}, {buildExpr}, {probeExpr});
+        plan.root = joinDataSet(curr.root, plan.root);
     }
 
+    SubPlan curr;
+    NG_RETURN_IF_ERROR(appendFetchVertexPlan(plan.root, &curr));
+    finalPlan->root = joinDataSet(curr.root, plan.root);
+
     return Status::OK();
+}
+
+PlanNode *MatchVertexIndexSeekPlanner::joinDataSet(const PlanNode *right, const PlanNode *left) {
+    auto leftKey = left->outputVar();
+    auto rightKey = right->outputVar();
+    auto buildExpr = getLastEdgeDstExprInFirstColumn(leftKey);
+    auto probeExpr = getFirstVertexVidInFistColumn(rightKey);
+    return DataJoin::make(matchCtx_->qctx,
+                          const_cast<PlanNode *>(right),
+                          {leftKey, 0},
+                          {rightKey, 0},
+                          {buildExpr},
+                          {probeExpr});
+}
+
+Status MatchVertexIndexSeekPlanner::appendFetchVertexPlan(const PlanNode *input, SubPlan *plan) {
+    auto qctx = matchCtx_->qctx;
+
+    auto columns = saveObject(new YieldColumns);
+    auto expr = getLastEdgeDstExprInLastColumn(input->outputVar());
+    columns->addColumn(new YieldColumn(expr, new std::string()));
+    auto project = Project::make(qctx, const_cast<PlanNode *>(input), columns);
+
+    auto dedup = Dedup::make(qctx, project);
+
+    auto srcExpr = ExpressionUtils::columnExpr(dedup->outputVar(), 0);
+    // FIXME(yee): fill in expr for GV
+    auto gv = GetVertices::make(qctx, dedup, matchCtx_->space.id, srcExpr, {}, {});
+
+    // normalize all columns to one
+    columns = saveObject(new YieldColumns);
+    // FIXME(yee)
+    Expression *listExpr = nullptr;
+    columns->addColumn(new YieldColumn(listExpr, new std::string()));
+    plan->root = Project::make(qctx, gv, columns);
 }
 
 Status MatchVertexIndexSeekPlanner::filterFinalDataset(const EdgeInfo &edge,
@@ -589,15 +621,7 @@ Status MatchVertexIndexSeekPlanner::collectData(const PlanNode *joinLeft,
                                                 PlanNode **passThrough,
                                                 SubPlan *plan) {
     auto qctx = matchCtx_->qctx;
-
-    auto buildExpr = getLastEdgeDstExprInLastColumn(joinLeft->outputVar());
-    auto probeExpr = getFirstVertexVidInFistColumn(joinRight->outputVar());
-    auto join = DataJoin::make(qctx,
-                               const_cast<PlanNode *>(joinRight),
-                               {joinLeft->outputVar(), 0},
-                               {joinRight->outputVar(), 0},
-                               {buildExpr},
-                               {probeExpr});
+    auto join = joinDataSet(joinRight, joinLeft);
     plan->tail = join;
 
     auto columns = saveObject(new YieldColumns);

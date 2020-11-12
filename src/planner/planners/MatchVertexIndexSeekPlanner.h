@@ -55,7 +55,13 @@ private:
 
     // Generate plan:
     //  (v)-[e:et*m..n]- + (n)-[e1:et2*k..l]-
-    Status composePlan();
+    Status composePlan(SubPlan* finalPlan);
+
+    // Generate data join plan node
+    PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
+
+    // Generate fetch final vertex props sub-plan
+    Status appendFetchVertexPlan(const PlanNode* input, SubPlan* plan);
 
     // (v)-[e:et*m..n]- plan + Filter + PassThroughNode
     Status filterFinalDataset(const MatchValidator::EdgeInfo& edge,
