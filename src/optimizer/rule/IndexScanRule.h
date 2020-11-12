@@ -161,8 +161,8 @@ private:
                                const OptGroupNode *groupNode,
                                const FilterItems& items) const;
 
-    IndexItem findOptimalIndex(graph::QueryContext *qctx,
-                               const OptGroupNode *groupNode) const;
+    IndexItem findLightestIndex(graph::QueryContext *qctx,
+                                const OptGroupNode *groupNode) const;
 
     std::vector<IndexItem>
     allIndexesBySchema(graph::QueryContext *qctx, const OptGroupNode *groupNode) const;

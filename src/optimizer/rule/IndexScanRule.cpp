@@ -72,7 +72,7 @@ Status IndexScanRule::createIndexQueryCtx(IndexQueryCtx &iqctx,
 Status IndexScanRule::createIndexQueryCtx(IndexQueryCtx &iqctx,
                                           graph::QueryContext *qctx,
                                           const OptGroupNode *groupNode) const {
-    auto index = findOptimalIndex(qctx, groupNode);
+    auto index = findLightestIndex(qctx, groupNode);
     if (index == nullptr) {
         return Status::IndexNotFound("No valid index found");
     }
@@ -430,14 +430,22 @@ IndexItem IndexScanRule::findOptimalIndex(graph::QueryContext *qctx,
     return indexesRange[0];
 }
 
+// Find the index with the fewest fields
 // Only use "lookup on tagname"
-IndexItem IndexScanRule::findOptimalIndex(graph::QueryContext *qctx,
-                                          const OptGroupNode *groupNode) const {
+IndexItem IndexScanRule::findLightestIndex(graph::QueryContext *qctx,
+                                           const OptGroupNode *groupNode) const {
     auto indexes = allIndexesBySchema(qctx, groupNode);
     if (indexes.empty()) {
         return nullptr;
     }
-    return indexes[0];
+
+    auto result = indexes[0];
+    for (size_t i = 1; i < indexes.size(); i++) {
+        if (result->get_fields().size() > indexes[i]->get_fields().size()) {
+            result = indexes[i];
+        }
+    }
+    return result;
 }
 
 std::vector<IndexItem>
