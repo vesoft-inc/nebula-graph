@@ -6,12 +6,16 @@
 
 #include "planner/planners/MatchVertexIndexSeekPlanner.h"
 
+#include "planner/Logic.h"
 #include "planner/planners/MatchSolver.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
 using nebula::storage::cpp2::EdgeProp;
 using nebula::storage::cpp2::VertexProp;
+using PNKind = nebula::graph::PlanNode::Kind;
+using EdgeInfo = nebula::graph::EdgeInfo;
+using NodeInfo = nebula::graph::MatchValidator::NodeInfo;
 
 namespace nebula {
 namespace graph {
@@ -203,7 +207,6 @@ Status MatchVertexIndexSeekPlanner::buildSteps() {
     return Status::OK();
 }
 
-
 Status MatchVertexIndexSeekPlanner::buildStep() {
     curStep_++;
 
@@ -280,7 +283,6 @@ Status MatchVertexIndexSeekPlanner::buildStep() {
 
     return Status::OK();
 }
-
 
 Status MatchVertexIndexSeekPlanner::buildGetTailVertices() {
     Expression *src = nullptr;
@@ -422,27 +424,20 @@ Status MatchVertexIndexSeekPlanner::buildFilter() {
     return Status::OK();
 }
 
-static std::unique_ptr<std::vector<VertexProp>> genVertexProps(
-    const MatchValidator::NodeInfo *node) {
-    auto vertexProps = std::make_unique<std::vector<VertexProp>>();
-    if (node->label != nullptr) {
-        VertexProp vertexProp;
-        vertexProp.set_tag(node->tid);
-        vertexProps->emplace_back(std::move(vertexProp));
-    }
-    return vertexProps;
+static std::unique_ptr<std::vector<VertexProp>> genVertexProps() {
+    return std::make_unique<std::vector<VertexProp>>();
 }
 
-static std::unique_ptr<std::vector<EdgeProp>> genEdgeProps(const MatchValidator::EdgeInfo *edge) {
+static std::unique_ptr<std::vector<EdgeProp>> genEdgeProps(const EdgeInfo &edge) {
     auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
-    if (edge->edgeTypes.empty()) {
+    if (edge.edgeTypes.empty()) {
         return edgeProps;
     }
 
-    for (auto edgeType : edge->edgeTypes) {
-        if (edge->direction == MatchValidator::Direction::IN_EDGE) {
+    for (auto edgeType : edge.edgeTypes) {
+        if (edge.direction == MatchValidator::Direction::IN_EDGE) {
             edgeType = -edgeType;
-        } else if (edge->direction == MatchValidator::Direction::BOTH) {
+        } else if (edge.direction == MatchValidator::Direction::BOTH) {
             EdgeProp edgeProp;
             edgeProp.set_type(-edgeType);
             edgeProps->emplace_back(std::move(edgeProp));
@@ -454,54 +449,168 @@ static std::unique_ptr<std::vector<EdgeProp>> genEdgeProps(const MatchValidator:
     return edgeProps;
 }
 
+static Expression *getLastEdgeDstExprInLastColumn(const std::string &varname) {
+    // expr: __Project_2[-1] => [v1, e1,..., vn, en]
+    auto columnExpr = ExpressionUtils::columnExpr(varname, -1);
+    // expr: [v1, e1, ..., vn, en][-1] => en
+    auto lastEdgeExpr = new SubscriptExpression(columnExpr, new ConstantExpression(-1));
+    // expr: en[_dst] => dst vid
+    return new AttributeExpression(lastEdgeExpr, new ConstantExpression(kDst));
+}
+
+static Expression *getFirstVertexVidInFistColumn(const std::string &varname) {
+    // expr: __Project_2[0] => [v1, e1,..., vn, en]
+    auto columnExpr = ExpressionUtils::columnExpr(varname, 0);
+    // expr: [v1, e1, ..., vn, en][-1] => v1
+    auto firstVertexExpr = new SubscriptExpression(columnExpr, new ConstantExpression(0));
+    // expr: v1[_vid] => vid
+    return new AttributeExpression(firstVertexExpr, new ConstantExpression(kVid));
+}
+
+static Expression *mergeColumnsExpr(const std::string &varname, int col1Idx, int col2Idx) {
+    auto listItems = std::make_unique<ExpressionList>();
+    listItems->add(ExpressionUtils::columnExpr(varname, col1Idx));
+    listItems->add(ExpressionUtils::columnExpr(varname, col2Idx));
+    return new ListExpression(listItems.release());
+}
+
+Status MatchVertexIndexSeekPlanner::composePlan() {
+    auto &nodeInfos = matchCtx_->nodeInfos;
+    auto &edgeInfos = matchCtx_->edgeInfos;
+    if (edgeInfos.empty()) {
+        DCHECK(!nodeInfos.empty());
+        // FIXME(yee): only return source vertex
+        return Status::OK();
+    }
+    DCHECK_GT(nodeInfos.size(), edgeInfos.size());
+
+    auto qctx = matchCtx_->qctx;
+
+    // FIXME(yee): scan node subplan
+    PlanNode *root = nullptr;
+    SubPlan plan;
+    NG_RETURN_IF_ERROR(filterFinalDataset(edgeInfos[0], root, &plan));
+    for (size_t i = 1; i < edgeInfos.size(); ++i) {
+        SubPlan curr;
+        NG_RETURN_IF_ERROR(filterFinalDataset(edgeInfos[i], plan.root, &curr));
+
+        auto leftKey = plan.root->outputVar();
+        auto rightKey = curr.root->outputVar();
+        auto buildExpr = getLastEdgeDstExprInLastColumn(leftKey);
+        auto probeExpr = getFirstVertexVidInFistColumn(rightKey);
+        plan.root =
+            DataJoin::make(qctx, curr.root, {leftKey, 0}, {rightKey, 0}, {buildExpr}, {probeExpr});
+    }
+
+    return Status::OK();
+}
+
+Status MatchVertexIndexSeekPlanner::filterFinalDataset(const EdgeInfo &edge,
+                                                       const PlanNode *input,
+                                                       SubPlan *plan) {
+    auto qctx = matchCtx_->qctx;
+
+    SubPlan curr;
+    NG_RETURN_IF_ERROR(composeSubPlan(edge, input, &curr));
+    // filter rows whose edges number less than min hop
+    auto args = new ArgumentList;
+    auto listExpr = ExpressionUtils::columnExpr(input->outputVar(), 0);
+    args->addArgument(std::unique_ptr<Expression>(listExpr));
+    auto edgeExpr = new FunctionCallExpression(new std::string("size"), args);
+    auto minHopExpr = new ConstantExpression(2 * edge.minHop);
+    auto expr = new RelationalExpression(Expression::Kind::kRelGE, edgeExpr, minHopExpr);
+    saveObject(expr);
+    auto filter = Filter::make(qctx, curr.root, expr);
+
+    plan->root = PassThroughNode::make(qctx, filter);
+    plan->tail = curr.tail;
+}
+
+Status MatchVertexIndexSeekPlanner::composeSubPlan(const EdgeInfo &edge,
+                                                   const PlanNode *input,
+                                                   SubPlan *plan) {
+    SubPlan subplan;
+    NG_RETURN_IF_ERROR(expandStep(edge, input, &subplan));
+    plan->tail = subplan.tail;
+    PlanNode *passThrough = subplan.root;
+    for (int64_t i = 1; i <= edge.maxHop; ++i) {
+        SubPlan curr;
+        NG_RETURN_IF_ERROR(expandStep(edge, passThrough, &curr));
+        auto rNode = subplan.root;
+        DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kProject);
+        NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
+    }
+    plan->root = subplan.root;
+    return Status::OK();
+}
+
 // build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
-StatusOr<SubPlan> MatchVertexIndexSeekPlanner::expandStep(const MatchValidator::NodeInfo *node,
-                                                          const MatchValidator::EdgeInfo *edge,
-                                                          const PlanNode *planRoot) {
+Status MatchVertexIndexSeekPlanner::expandStep(const EdgeInfo &edge,
+                                               const PlanNode *input,
+                                               SubPlan *plan) {
+    DCHECK(input != nullptr);
     auto qctx = matchCtx_->qctx;
     auto colGen = qctx->vctx()->anonColGen();
 
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
-    // expr: __Project_2[0] => [v1, e1,..., vn, en]
-    auto columnExpr = ExpressionUtils::columnExpr(planRoot->outputVar(), 0);
-    // expr: [v1, e1, ..., vn, en][-1] => en
-    auto lastEdgeExpr = new SubscriptExpression(columnExpr, new ConstantExpression(-1));
-    // expr: en[_dst] => dst vid
-    auto extractDstExpr = new AttributeExpression(lastEdgeExpr, new ConstantExpression(kDst));
     auto columns = saveObject(new YieldColumns);
+    auto extractDstExpr = getLastEdgeDstExprInLastColumn(input->outputVar());
     columns->addColumn(new YieldColumn(extractDstExpr, new std::string(colGen->getCol())));
-    auto project = Project::make(qctx, const_cast<PlanNode *>(planRoot), columns);
+    auto project = Project::make(qctx, const_cast<PlanNode *>(input), columns);
 
     auto dedup = Dedup::make(qctx, project);
 
     auto gn = GetNeighbors::make(qctx, dedup, matchCtx_->space.id);
     gn->setSrc(ExpressionUtils::columnExpr(dedup->outputVar(), 0));
-    gn->setVertexProps(genVertexProps(node));
+    gn->setVertexProps(genVertexProps());
     gn->setEdgeProps(genEdgeProps(edge));
-    gn->setEdgeDirection(edge->direction);
+    gn->setEdgeDirection(edge.direction);
 
     PlanNode *root = gn;
-    if (node->filter != nullptr) {
-        // FIXME: Maybe need to rewrite label expression
-        root = Filter::make(qctx, gn, node->filter);
-    }
-    if (edge->filter != nullptr) {
+    if (edge.filter != nullptr) {
         // FIXME
-        root = Filter::make(qctx, root, edge->filter);
+        root = Filter::make(qctx, root, edge.filter);
     }
 
     auto listColumns = saveObject(new YieldColumns);
-    auto listItems = std::make_unique<ExpressionList>();
-    listItems->add(ExpressionUtils::columnExpr(root->outputVar(), 0));
-    listItems->add(ExpressionUtils::columnExpr(root->outputVar(), 1));
-    auto listExpr = new ListExpression(listItems.release());
+    auto listExpr = mergeColumnsExpr(root->outputVar(), 0, 1);
     listColumns->addColumn(new YieldColumn(listExpr, new std::string(colGen->getCol())));
     root = Project::make(qctx, root, listColumns);
+    root->setColNames({"_path"});
 
-    SubPlan plan;
-    plan.root = root;
-    plan.tail = project;
-    return plan;
+    plan->root = root;
+    plan->tail = project;
+    return Status::OK();
+}
+
+Status MatchVertexIndexSeekPlanner::collectData(const PlanNode *joinLeft,
+                                                const PlanNode *joinRight,
+                                                const PlanNode *inUnionNode,
+                                                PlanNode **passThrough,
+                                                SubPlan *plan) {
+    auto qctx = matchCtx_->qctx;
+
+    auto buildExpr = getLastEdgeDstExprInLastColumn(joinLeft->outputVar());
+    auto probeExpr = getFirstVertexVidInFistColumn(joinRight->outputVar());
+    auto join = DataJoin::make(qctx,
+                               const_cast<PlanNode *>(joinRight),
+                               {joinLeft->outputVar(), 0},
+                               {joinRight->outputVar(), 0},
+                               {buildExpr},
+                               {probeExpr});
+    plan->tail = join;
+
+    auto columns = saveObject(new YieldColumns);
+    auto listExpr = mergeColumnsExpr(join->outputVar(), 0, 1);
+    columns->addColumn(new YieldColumn(listExpr, new std::string("_path")));
+    auto project = Project::make(qctx, join, columns);
+
+    *passThrough = PassThroughNode::make(qctx, project);
+    (*passThrough)->setOutputVar(project->outputVar());
+    (*passThrough)->setColNames(project->colNames());
+
+    plan->root = Union::make(qctx, *passThrough, const_cast<PlanNode *>(inUnionNode));
+    return Status::OK();
 }
 
 }   // namespace graph

@@ -53,9 +53,32 @@ private:
 
     Status buildFilter();
 
-    StatusOr<SubPlan> expandStep(const MatchValidator::NodeInfo* node,
-                                 const MatchValidator::EdgeInfo* edge,
-                                 const PlanNode* planRoot);
+    // Generate plan:
+    //  (v)-[e:et*m..n]- + (n)-[e1:et2*k..l]-
+    Status composePlan();
+
+    // (v)-[e:et*m..n]- plan + Filter + PassThroughNode
+    Status filterFinalDataset(const MatchValidator::EdgeInfo& edge,
+                              const PlanNode* input,
+                              SubPlan* plan);
+
+    // Generate subplan for pattern which is like:
+    //   (v)-[e:edgetype*m..n{prop: value}]-
+    Status composeSubPlan(const MatchValidator::EdgeInfo& edge,
+                          const PlanNode* input,
+                          SubPlan* plan);
+
+    // Generate subplan composite of following nodes:
+    //   Project -> Dedup -> GetNeighbors -> [Filter ->] [Filter ->] Project
+    Status expandStep(const MatchValidator::EdgeInfo& edge, const PlanNode* input, SubPlan* plan);
+
+    // Generate subplan composite of following nodes:
+    //   DataJoin -> Project -> PassThroughNode -> Union
+    Status collectData(const PlanNode* joinLeft,
+                       const PlanNode* joinRight,
+                       const PlanNode* inUnionNode,
+                       PlanNode** passThrough,
+                       SubPlan* plan);
 
     template <typename T>
     T* saveObject(T *obj) const {

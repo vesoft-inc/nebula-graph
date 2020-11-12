@@ -31,6 +31,8 @@ public:
 
     struct EdgeInfo {
         bool                                    anonymous{false};
+        int64_t                                 minHop{1};
+        int64_t                                 maxHop{1};
         std::vector<EdgeType>                   edgeTypes;
         MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
         std::vector<std::string>                types;
