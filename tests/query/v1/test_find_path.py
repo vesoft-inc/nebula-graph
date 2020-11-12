@@ -479,7 +479,7 @@ class TestFindPath(NebulaTestSuite):
         self.check_path_result_without_prop(resp.data.rows, expected_data["rows"])
 
         stmt = '''GO FROM "Tim Duncan" over * YIELD like._dst AS src, serve._src AS dst
-                | FIND ALL PATH FROM $-.src TO $-.dst OVER like UPTO 5 STEPS'''
+                | FIND ALL PATH FROM $-.src TO $-.dst OVER like UPTO 3 STEPS'''
         resp = self.execute_query(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
