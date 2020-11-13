@@ -27,6 +27,8 @@ public:
 private:
     MatchVariableLengthPatternIndexScanPlanner() = default;
 
+    Status scanIndex(SubPlan* plan);
+
     // Generate plan:
     //  (v)-[e:et*m..n]- + (n)-[e1:et2*k..l]-
     Status composePlan(SubPlan* finalPlan);
@@ -35,7 +37,7 @@ private:
     PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
 
     // Generate fetch final vertex props sub-plan
-    void appendFetchVertexPlan(const PlanNode* input, SubPlan* plan);
+    Status appendFetchVertexPlan(const PlanNode* input, SubPlan* plan);
 
     // (v)-[e:et*m..n]- plan + Filter + PassThroughNode
     Status filterFinalDataset(const MatchValidator::EdgeInfo& edge,

@@ -60,6 +60,7 @@ bool MatchVariableLengthPatternIndexScanPlanner::match(AstContext *astCtx) {
 StatusOr<SubPlan> MatchVariableLengthPatternIndexScanPlanner::transform(AstContext *astCtx) {
     matchCtx_ = static_cast<MatchAstContext *>(astCtx);
     SubPlan plan;
+    NG_RETURN_IF_ERROR(scanIndex(&plan));
     NG_RETURN_IF_ERROR(composePlan(&plan));
     return plan;
 }
@@ -124,10 +125,8 @@ Status MatchVariableLengthPatternIndexScanPlanner::composePlan(SubPlan *finalPla
     }
     DCHECK_GT(nodeInfos.size(), edgeInfos.size());
 
-    // FIXME(yee): scan node subplan
-    PlanNode *root = nullptr;
     SubPlan plan;
-    NG_RETURN_IF_ERROR(filterFinalDataset(edgeInfos[0], root, &plan));
+    NG_RETURN_IF_ERROR(filterFinalDataset(edgeInfos[0], finalPlan->root, &plan));
     finalPlan->tail = plan.tail;
     for (size_t i = 1; i < edgeInfos.size(); ++i) {
         SubPlan curr;
@@ -136,9 +135,28 @@ Status MatchVariableLengthPatternIndexScanPlanner::composePlan(SubPlan *finalPla
     }
 
     SubPlan curr;
-    appendFetchVertexPlan(plan.root, &curr);
+    NG_RETURN_IF_ERROR(appendFetchVertexPlan(plan.root, &curr));
     finalPlan->root = joinDataSet(curr.root, plan.root);
 
+    return Status::OK();
+}
+
+Status MatchVariableLengthPatternIndexScanPlanner::scanIndex(SubPlan *plan) {
+    using IQC = nebula::storage::cpp2::IndexQueryContext;
+    IQC iqctx;
+    iqctx.set_filter(Expression::encode(*matchCtx_->scanInfo.filter));
+    auto contexts = std::make_unique<std::vector<IQC>>();
+    contexts->emplace_back(std::move(iqctx));
+    auto columns = std::make_unique<std::vector<std::string>>();
+    auto scan = IndexScan::make(matchCtx_->qctx,
+                                nullptr,
+                                matchCtx_->space.id,
+                                std::move(contexts),
+                                std::move(columns),
+                                false,
+                                matchCtx_->scanInfo.schemaId);
+    plan->tail = scan;
+    plan->root = scan;
     return Status::OK();
 }
 
@@ -156,8 +174,8 @@ PlanNode *MatchVariableLengthPatternIndexScanPlanner::joinDataSet(const PlanNode
                           {probeExpr});
 }
 
-void MatchVariableLengthPatternIndexScanPlanner::appendFetchVertexPlan(const PlanNode *input,
-                                                                       SubPlan *plan) {
+Status MatchVariableLengthPatternIndexScanPlanner::appendFetchVertexPlan(const PlanNode *input,
+                                                                         SubPlan *plan) {
     auto qctx = matchCtx_->qctx;
 
     auto columns = saveObject(new YieldColumns);
@@ -177,6 +195,7 @@ void MatchVariableLengthPatternIndexScanPlanner::appendFetchVertexPlan(const Pla
     Expression *listExpr = nullptr;
     columns->addColumn(new YieldColumn(listExpr, new std::string()));
     plan->root = Project::make(qctx, gv, columns);
+    return Status::OK();
 }
 
 Status MatchVariableLengthPatternIndexScanPlanner::filterFinalDataset(const EdgeInfo &edge,
