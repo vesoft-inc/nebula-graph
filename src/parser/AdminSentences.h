@@ -134,15 +134,14 @@ public:
 
 class SpaceOptItem final {
 public:
-    using Value = boost::variant<bool, int64_t, std::string, meta::cpp2::ColumnTypeDef>;
+    using Value = boost::variant<int64_t, std::string, meta::cpp2::ColumnTypeDef>;
 
     enum OptionType : uint8_t {
         PARTITION_NUM,
         REPLICA_FACTOR,
         VID_TYPE,
         CHARSET,
-        COLLATE,
-        TEXT_SEARCH,
+        COLLATE
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -160,15 +159,6 @@ public:
         optValue_ = std::move(val);
     }
 
-    SpaceOptItem(OptionType op, bool val) {
-        optType_ = op;
-        optValue_ = std::move(val);
-    }
-
-    bool asBool() const {
-        return boost::get<bool>(optValue_);
-    }
-
     int64_t asInt() const {
         return boost::get<int64_t>(optValue_);
     }
@@ -181,20 +171,16 @@ public:
         return boost::get<meta::cpp2::ColumnTypeDef>(optValue_);
     }
 
-    bool isBool() const {
+    bool isInt() const {
         return optValue_.which() == 0;
     }
 
-    bool isInt() const {
+    bool isString() const {
         return optValue_.which() == 1;
     }
 
-    bool isString() const {
-        return optValue_.which() == 2;
-    }
-
     bool isTypeDef() const {
-        return optValue_.which() == 3;
+        return optValue_.which() == 2;
     }
 
     int64_t getPartitionNum() const {
@@ -241,15 +227,6 @@ public:
         } else {
             LOG(ERROR) << "collate value illage.";
             return 0;
-        }
-    }
-
-    bool getTextSearch() const {
-        if (isBool()) {
-            return asBool();
-        } else {
-            LOG(ERROR) << "text search value illage.";
-            return false;
         }
     }
 

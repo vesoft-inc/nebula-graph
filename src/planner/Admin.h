@@ -1213,6 +1213,17 @@ private:
         : SingleInputNode(qctx, Kind::kShowStats, input) {}
 };
 
+class ShowTSClients final : public SingleInputNode {
+public:
+    static ShowTSClients* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ShowTSClients(qctx, input));
+    }
+
+private:
+    ShowTSClients(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kShowTSClients, input) {}
+};
+
 class SignInTSService final : public SingleInputNode {
 public:
     static SignInTSService* make(QueryContext* qctx,
@@ -1235,6 +1246,18 @@ private:
           clients_(std::move(clients)) {}
 
     std::vector<meta::cpp2::FTClient> clients_;
+};
+
+class SignOutTSService final : public SingleInputNode {
+public:
+    static SignOutTSService* make(QueryContext* qctx,
+                                  PlanNode* input) {
+        return qctx->objPool()->add(new SignOutTSService(qctx, input));
+    }
+
+private:
+    SignOutTSService(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kSignOutTSService, input) {}
 };
 }  // namespace graph
 }  // namespace nebula

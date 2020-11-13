@@ -124,6 +124,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::IndexFieldList                 *index_field_list;
     CaseList                               *case_list;
     nebula::TextSearchArgument             *text_search_argument;
+    nebula::TextSearchArgument             *base_text_search_argument;
+    nebula::TextSearchArgument             *fuzzy_text_search_argument;
     nebula::meta::cpp2::FTClient           *text_search_client_item;
     nebula::TSClientList                   *text_search_client_list;
 }
@@ -275,6 +277,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <match_step_range> match_step_range
 %type <order_factors> match_order_by
 %type <text_search_argument> text_search_argument
+%type <base_text_search_argument> base_text_search_argument
+%type <fuzzy_text_search_argument> fuzzy_text_search_argument
 %type <text_search_client_item> text_search_client_item
 %type <text_search_client_list> text_search_client_list
 
@@ -1370,12 +1374,12 @@ match_limit
 
 
 text_search_client_item
-    : L_PAREN host_item L_PAREN {
+    : L_PAREN host_item R_PAREN {
         $$ = new nebula::meta::cpp2::FTClient();
         $$->set_host(*$2);
         delete $2;
     }
-    | L_PAREN host_item COMMA STRING COMMA STRING L_PAREN {
+    | L_PAREN host_item COMMA STRING COMMA STRING R_PAREN {
         $$ = new nebula::meta::cpp2::FTClient();
         $$->set_host(*$2);
         $$->set_user(*$4);
@@ -1412,165 +1416,83 @@ sign_out_text_search_service_sentence
     }
     ;
 
-text_search_argument
+base_text_search_argument
     : name_label DOT name_label COMMA STRING {
         auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("or"));
         $$ = arg;
     }
-    | name_label DOT name_label COMMA STRING COMMA legal_integer {
-        if ($7 < 1) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
+    ;
+
+fuzzy_text_search_argument
+   : base_text_search_argument COMMA KW_AUTO COMMA KW_AND {
+        $$ = $1;
+        $$->setFuzziness(-1);
+        $$->setOP(new std::string("and"));
+   }
+   | base_text_search_argument COMMA KW_AUTO COMMA KW_OR {
+        $$ = $1;
+        $$->setFuzziness(-1);
+        $$->setOP(new std::string("or"));
+   }
+   | base_text_search_argument COMMA legal_integer COMMA KW_AND {
+        if ($3 != 0 && $3 != 1 && $3 != 2) {
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("or"));
-        arg->setLimit($7);
-        $$ = arg;
+        $$ = $1;
+        $$->setFuzziness($3);
+        $$->setOP(new std::string("and"));
+   }
+   | base_text_search_argument COMMA legal_integer COMMA KW_OR {
+        if ($3 != 0 && $3 != 1 && $3 != 2) {
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setFuzziness($3);
+        $$->setOP(new std::string("or"));
+   }
+
+text_search_argument
+    : base_text_search_argument {
+        $$ = $1;
     }
-    | name_label DOT name_label COMMA STRING COMMA legal_integer COMMA legal_integer {
-        if ($7 < 1) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
-        }
-        if ($7 < 1) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
-        }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("or"));
-        arg->setLimit($7);
-        arg->setTimeout($9);
-        $$ = arg;
+    | fuzzy_text_search_argument {
+        $$ = $1;
     }
-    | name_label DOT name_label COMMA STRING COMMA KW_AUTO COMMA KW_AND {
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("and"));
-        $$ = arg;
+    | base_text_search_argument COMMA legal_integer {
+        if ($3 < 1) {
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
     }
-    | name_label DOT name_label COMMA STRING COMMA KW_AUTO COMMA KW_OR {
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("or"));
-        $$ = arg;
+    | base_text_search_argument COMMA legal_integer COMMA legal_integer {
+        if ($3 < 1) {
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        if ($5 < 1) {
+            throw nebula::GraphParser::syntax_error(@5, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+        $$->setTimeout($5);
     }
-    | name_label DOT name_label COMMA STRING COMMA legal_integer COMMA KW_AND {
-        if ($7 != 0 || $7 != 1 || $7 != 2) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
+    | fuzzy_text_search_argument COMMA legal_integer {
+        if ($3 < 1) {
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setFuzziness($7);
-        arg->setOP(new std::string("and"));
-        $$ = arg;
+        $$ = $1;
+        $$->setLimit($3);
     }
-    | name_label DOT name_label COMMA STRING COMMA legal_integer COMMA KW_OR {
-        if ($7 != 0 || $7 != 1 || $7 != 2) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
+    | fuzzy_text_search_argument COMMA legal_integer COMMA legal_integer {
+        if ($3 < 1) {
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setFuzziness($7);
-        arg->setOP(new std::string("or"));
-        $$ = arg;
-    }
-    | name_label DOT name_label COMMA STRING COMMA KW_AUTO COMMA KW_AND COMMA legal_integer {
-        if ($11 < 1) {
-            throw nebula::GraphParser::syntax_error(@11, "Out of range:");
+        if ($5 < 1) {
+            throw nebula::GraphParser::syntax_error(@5, "Out of range:");
         }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("and"));
-        arg->setLimit($11);
-        $$ = arg;
-    }
-    | name_label DOT name_label COMMA STRING COMMA KW_AUTO COMMA KW_OR COMMA legal_integer {
-        if ($11 < 1) {
-            throw nebula::GraphParser::syntax_error(@11, "Out of range:");
-        }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("or"));
-        arg->setLimit($11);
-        $$ = arg;
-    }
-    | name_label DOT name_label COMMA STRING COMMA legal_integer COMMA KW_AND COMMA legal_integer {
-        if ($11 < 1) {
-            throw nebula::GraphParser::syntax_error(@11, "Out of range:");
-        }
-        if ($7 != 0 || $7 != 1 || $7 != 2) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
-        }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setFuzziness($7);
-        arg->setOP(new std::string("and"));
-        arg->setLimit($11);
-        $$ = arg;
-    }
-    | name_label DOT name_label COMMA STRING COMMA legal_integer COMMA KW_OR COMMA legal_integer {
-        if ($11 < 1) {
-            throw nebula::GraphParser::syntax_error(@11, "Out of range:");
-        }
-        if ($7 != 0 || $7 != 1 || $7 != 2) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
-        }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setFuzziness($7);
-        arg->setOP(new std::string("or"));
-        arg->setLimit($11);
-        $$ = arg;
-    }
-    | name_label DOT name_label COMMA STRING COMMA KW_AUTO COMMA KW_AND COMMA legal_integer COMMA legal_integer {
-        if ($11 < 1) {
-            throw nebula::GraphParser::syntax_error(@11, "Out of range:");
-        }
-        if ($13 < 1) {
-            throw nebula::GraphParser::syntax_error(@13, "Out of range:");
-        }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("and"));
-        arg->setLimit($11);
-        arg->setTimeout($13);
-        $$ = arg;
-    }
-    | name_label DOT name_label COMMA STRING COMMA KW_AUTO COMMA KW_OR COMMA legal_integer COMMA legal_integer {
-        if ($11 < 1) {
-            throw nebula::GraphParser::syntax_error(@11, "Out of range:");
-        }
-        if ($13 < 1) {
-            throw nebula::GraphParser::syntax_error(@13, "Out of range:");
-        }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setOP(new std::string("or"));
-        arg->setLimit($11);
-        arg->setTimeout($13);
-        $$ = arg;
-    }
-    | name_label DOT name_label COMMA STRING COMMA legal_integer COMMA KW_AND COMMA legal_integer COMMA legal_integer {
-        if ($11 < 1) {
-            throw nebula::GraphParser::syntax_error(@11, "Out of range:");
-        }
-        if ($13 < 1) {
-            throw nebula::GraphParser::syntax_error(@13, "Out of range:");
-        }
-        if ($7 != 0 || $7 != 1 || $7 != 2) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
-        }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setFuzziness($7);
-        arg->setOP(new std::string("and"));
-        arg->setLimit($11);
-        arg->setTimeout($13);
-        $$ = arg;
-    }
-    | name_label DOT name_label COMMA STRING COMMA legal_integer COMMA KW_OR COMMA legal_integer COMMA legal_integer {
-        if ($11 < 1) {
-            throw nebula::GraphParser::syntax_error(@11, "Out of range:");
-        }
-        if ($13 < 1) {
-            throw nebula::GraphParser::syntax_error(@13, "Out of range:");
-        }
-        if ($7 != 0 || $7 != 1 || $7 != 2) {
-            throw nebula::GraphParser::syntax_error(@7, "Out of range:");
-        }
-        auto arg = new TextSearchArgument($1, $3, $5);
-        arg->setFuzziness($7);
-        arg->setOP(new std::string("or"));
-        arg->setLimit($11);
-        arg->setTimeout($13);
-        $$ = arg;
+        $$ = $1;
+        $$->setLimit($3);
+        $$->setTimeout($5);
     }
     ;
 
@@ -1579,16 +1501,25 @@ text_search_expression
         if ($3->op() != nullptr) {
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
+        if ($3->fuzziness() != -2) {
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
         $$ = new TextSearchExpression(Expression::Kind::kTSPrefix, $3);
     }
     | KW_WILDCARD L_PAREN text_search_argument R_PAREN {
         if ($3->op() != nullptr) {
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
+        if ($3->fuzziness() != -2) {
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
         $$ = new TextSearchExpression(Expression::Kind::kTSWildcard, $3);
     }
     | KW_REGEXP L_PAREN text_search_argument R_PAREN {
         if ($3->op() != nullptr) {
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        if ($3->fuzziness() != -2) {
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         $$ = new TextSearchExpression(Expression::Kind::kTSRegexp, $3);
@@ -1601,7 +1532,8 @@ text_search_expression
     // TODO : unfiy the text_search_expression into expression in the future
     // The current version only support independent text_search_expression for lookup_sentence
 lookup_where_clause
-    : KW_WHERE text_search_expression { $$ = new WhereClause($2); }
+    : %empty { $$ = nullptr; }
+    | KW_WHERE text_search_expression { $$ = new WhereClause($2); }
     | KW_WHERE expression { $$ = new WhereClause($2); }
     ;
 
@@ -2751,9 +2683,6 @@ space_opt_item
     | KW_VID_TYPE ASSIGN type_spec {
         $$ = new SpaceOptItem(SpaceOptItem::VID_TYPE, *$3);
         delete $3;
-    }
-    | KW_TEXT_SEARCH ASSIGN BOOL {
-        $$ = new SpaceOptItem(SpaceOptItem::TEXT_SEARCH, $3);
     }
     // TODO(YT) Create Spaces for different engines
     // KW_ENGINE_TYPE ASSIGN name_label

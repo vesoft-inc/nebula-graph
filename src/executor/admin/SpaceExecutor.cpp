@@ -10,9 +10,6 @@
 #include "planner/Admin.h"
 #include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
-#include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
-
-DECLARE_uint32(ft_request_retry_times);
 
 namespace nebula {
 namespace graph {
@@ -20,56 +17,17 @@ folly::Future<Status> CreateSpaceExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *csNode = asNode<CreateSpace>(node());
-    meta::MetaClient *client = qctx()->getMetaClient();
-    return client->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
-            .via(runner())
-            .then([this, csNode, client](StatusOr<bool> resp) {
+    return qctx()->getMetaClient()->createSpace(csNode->getSpaceDesc(), csNode->getIfNotExists())
+                .via(runner())
+            .then([](StatusOr<bool> resp) {
                 if (!resp.ok()) {
                     LOG(ERROR) << resp.status();
                     return resp.status();
-                }
-                if (csNode->getSpaceDesc().text_search) {
-                    auto ret = client->getFTClientsFromCache();
-                    if (!ret.ok() || ret.value().empty()) {
-                        return Status::Error("text search clients not found");
-                    }
-                    auto spaceName = csNode->getSpaceDesc().space_name;
-                    auto edgeTSIndex = nebula::plugin::IndexTraits::indexName(spaceName, true);
-                    if (createTSIndex(ret.value(), edgeTSIndex)) {
-                        return Status::Error("external index create failed : %s",
-                                             edgeTSIndex.c_str());
-                    }
-
-                    auto tagTSIndex = nebula::plugin::IndexTraits::indexName(spaceName, false);
-                    if (createTSIndex(ret.value(), tagTSIndex)) {
-                        return Status::Error("external index create failed : %s",
-                                             tagTSIndex.c_str());
-                    }
                 }
                 return Status::OK();
             });
 }
 
-bool CreateSpaceExecutor::createTSIndex(const std::vector<meta::cpp2::FTClient>& clients,
-                                        const std::string& index) {
-    auto retryCnt = FLAGS_ft_request_retry_times;
-    while (--retryCnt > 0) {
-        auto i = folly::Random::rand32(clients.size() - 1);
-        nebula::plugin::HttpClient ftc;
-        ftc.host = clients[i].host;
-        if (clients[i].__isset.user) {
-            ftc.user = clients[i].user;
-        }
-        if (clients[i].__isset.pwd) {
-            ftc.password = clients[i].pwd;
-        }
-        auto ret = nebula::plugin::ESGraphAdapter::kAdapter->createIndex(std::move(ftc), index);
-        if (ret.ok()) {
-            return true;
-        }
-    }
-    return false;
-}
 
 folly::Future<Status> DescSpaceExecutor::execute() {
     SCOPED_TIMER(&execTime_);

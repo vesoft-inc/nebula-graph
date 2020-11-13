@@ -8,7 +8,6 @@
 #include "planner/Query.h"
 #include "util/ExpressionUtils.h"
 #include "util/SchemaUtil.h"
-#include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
 
 DECLARE_uint32(ft_request_retry_times);
 
@@ -18,7 +17,6 @@ namespace graph {
 Status IndexScanValidator::validateImpl() {
     NG_RETURN_IF_ERROR(prepareFrom());
     NG_RETURN_IF_ERROR(prepareYield());
-    NG_RETURN_IF_ERROR(prepareTSService());
     NG_RETURN_IF_ERROR(prepareFilter());
     return Status::OK();
 }
@@ -32,23 +30,11 @@ Status IndexScanValidator::toPlan() {
                                         isEmptyResultSet_);
 }
 
-Status IndexScanValidator::prepareTSService() {
-    if (space_.spaceDesc.text_search) {
-        auto tcs = qctx_->getMetaClient()->getFTClientsFromCache();
-        if (!tcs.ok() || tcs.value().empty()) {
-            Status::Error("Text Search service not ready");
-        }
-        textSearchReady = true;
-        tsClients_ = std::move(tcs).value();
-    }
-    return Status::OK();
-}
-
 Status IndexScanValidator::prepareFrom() {
     auto *sentence = static_cast<const LookupSentence *>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
-    const auto* from = sentence->from();
-    auto ret = qctx_->schemaMng()->getSchemaIDByName(spaceId_, *from);
+    from_ = *sentence->from();
+    auto ret = qctx_->schemaMng()->getSchemaIDByName(spaceId_, from_);
     if (!ret.ok()) {
         return ret.status();
     }
@@ -73,11 +59,10 @@ Status IndexScanValidator::prepareYield() {
     auto schema = isEdge_
                   ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
                   : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
-    const auto* from = sentence->from();
     if (schema == nullptr) {
         return isEdge_
-               ? Status::EdgeNotFound("Edge schema not found : %s", from->c_str())
-               : Status::TagNotFound("Tag schema not found : %s", from->c_str());
+               ? Status::EdgeNotFound("Edge schema not found : %s", from_.c_str())
+               : Status::TagNotFound("Tag schema not found : %s", from_.c_str());
     }
     for (auto col : columns) {
         std::string schemaName, colName;
@@ -90,13 +75,13 @@ Status IndexScanValidator::prepareYield() {
                                          col->expr()->toString().c_str());
         }
 
-        if (schemaName != *from) {
+        if (schemaName != from_) {
             return Status::SemanticError("Schema name error : %s", schemaName.c_str());
         }
         auto ret = schema->getFieldType(colName);
         if (ret == meta::cpp2::PropertyType::UNKNOWN) {
             return Status::SemanticError("Column %s not found in schema %s",
-                                         colName.c_str(), from->c_str());
+                                         colName.c_str(), from_.c_str());
         }
         returnCols_->emplace_back(colName);
     }
@@ -112,7 +97,8 @@ Status IndexScanValidator::prepareFilter() {
     auto *filter = sentence->whereClause()->filter();
     storage::cpp2::IndexQueryContext ctx;
     if (needTextSearch(filter)) {
-        if (!textSearchReady) {
+        NG_RETURN_IF_ERROR(checkTSService());
+        if (!textSearchReady_) {
             return Status::Error("Text search service not ready");
         }
         auto retExpr = rewriteTSFilter(filter);
@@ -123,11 +109,11 @@ Status IndexScanValidator::prepareFilter() {
             // return empty result direct.
             return Status::OK();
         }
-        auto ret = checkFilter(retExpr.value().get(), *sentence->from());
+        auto ret = checkFilter(retExpr.value().get());
         NG_RETURN_IF_ERROR(ret);
         ctx.set_filter(Expression::encode(*std::move(retExpr.value()).get()));
     } else {
-        auto ret = checkFilter(filter, *sentence->from());
+        auto ret = checkFilter(filter);
         NG_RETURN_IF_ERROR(ret);
         ctx.set_filter(Expression::encode(*filter));
     }
@@ -187,6 +173,9 @@ std::unique_ptr<Expression> IndexScanValidator::genOrFilterFromList(
 }
 
 StatusOr<std::vector<std::string>> IndexScanValidator::textSearch(TextSearchExpression* expr) {
+    if (*expr->arg()->from() != from_) {
+        return Status::SemanticError("Schema name error : %s", expr->arg()->from()->c_str());
+    }
     auto index = nebula::plugin::IndexTraits::indexName(space_.spaceDesc.space_name, isEdge_);
     nebula::plugin::DocItem doc(index, *expr->arg()->prop(), schemaId_, *expr->arg()->val());
     nebula::plugin::LimitItem limit(expr->arg()->timeout(), expr->arg()->limit());
@@ -194,42 +183,44 @@ StatusOr<std::vector<std::string>> IndexScanValidator::textSearch(TextSearchExpr
     // TODO (sky) : External index load balancing
     auto retryCnt = FLAGS_ft_request_retry_times;
     while (--retryCnt > 0) {
-        auto i = folly::Random::rand32(tsClients_.size() - 1);
-        nebula::plugin::HttpClient ftc;
-        ftc.host = tsClients_[i].host;
-        if (tsClients_[i].__isset.user) {
-            ftc.user = tsClients_[i].user;
-        }
-        if (tsClients_[i].__isset.pwd) {
-            ftc.password = tsClients_[i].pwd;
-        }
+        auto ftc = randomFTClient();
         StatusOr<bool> ret = Status::Error();
         switch (expr->kind()) {
             case Expression::Kind::kTSFuzzy: {
                 folly::dynamic fuzz = folly::dynamic::object();
-                if (expr->arg()->fuzziness() == -1) {
+                if (expr->arg()->fuzziness() < 0) {
                     fuzz = "AUTO";
                 } else {
                     fuzz = expr->arg()->fuzziness();
                 }
-                ret = nebula::plugin::ESGraphAdapter::kAdapter->fuzzy(ftc,
+                std::string op = (expr->arg()->op() == nullptr) ? "or" : *expr->arg()->op();
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->fuzzy(std::move(ftc),
                                                                       doc,
                                                                       limit,
                                                                       fuzz,
-                                                                      *expr->arg()->op(),
+                                                                      op,
                                                                       result);
                 break;
             }
             case Expression::Kind::kTSPrefix: {
-                ret = nebula::plugin::ESGraphAdapter::kAdapter->prefix(ftc, doc, limit, result);
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->prefix(std::move(ftc),
+                                                                       doc,
+                                                                       limit,
+                                                                       result);
                 break;
             }
             case Expression::Kind::kTSRegexp: {
-                ret = nebula::plugin::ESGraphAdapter::kAdapter->regexp(ftc, doc, limit, result);
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->regexp(std::move(ftc),
+                                                                       doc,
+                                                                       limit,
+                                                                       result);
                 break;
             }
             case Expression::Kind::kTSWildcard: {
-                ret = nebula::plugin::ESGraphAdapter::kAdapter->wildcard(ftc, doc, limit, result);
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->wildcard(std::move(ftc),
+                                                                         doc,
+                                                                         limit,
+                                                                         result);
                 break;
             }
             default:
@@ -260,7 +251,7 @@ bool IndexScanValidator::needTextSearch(Expression* expr) {
     }
 }
 
-Status IndexScanValidator::checkFilter(Expression* expr, const std::string& from) {
+Status IndexScanValidator::checkFilter(Expression* expr) {
     // TODO (sky) : Rewrite simple expressions,
     //              for example rewrite expr from col1 > 1 + 2 to col > 3
     switch (expr->kind()) {
@@ -268,9 +259,9 @@ Status IndexScanValidator::checkFilter(Expression* expr, const std::string& from
         case Expression::Kind::kLogicalAnd : {
             // TODO(dutor) Deal with n-ary operands
             auto lExpr = static_cast<LogicalExpression*>(expr);
-            auto ret = checkFilter(lExpr->operand(0), from);
+            auto ret = checkFilter(lExpr->operand(0));
             NG_RETURN_IF_ERROR(ret);
-            ret = checkFilter(lExpr->operand(1), from);
+            ret = checkFilter(lExpr->operand(1));
             NG_RETURN_IF_ERROR(ret);
             break;
         }
@@ -281,7 +272,7 @@ Status IndexScanValidator::checkFilter(Expression* expr, const std::string& from
         case Expression::Kind::kRelGT:
         case Expression::Kind::kRelNE: {
             auto* rExpr = static_cast<RelationalExpression*>(expr);
-            return checkRelExpr(rExpr, from);
+            return checkRelExpr(rExpr);
         }
         default: {
             return Status::NotSupported("Expression %s not supported yet",
@@ -291,8 +282,7 @@ Status IndexScanValidator::checkFilter(Expression* expr, const std::string& from
     return Status::OK();
 }
 
-Status IndexScanValidator::checkRelExpr(RelationalExpression* expr,
-                                        const std::string& from) {
+Status IndexScanValidator::checkRelExpr(RelationalExpression* expr) {
     auto* left = expr->left();
     auto* right = expr->right();
     // Does not support filter : schema.col1 > schema.col2
@@ -302,7 +292,7 @@ Status IndexScanValidator::checkRelExpr(RelationalExpression* expr,
                                     expr->toString().c_str());
     } else if (left->kind() == Expression::Kind::kLabelAttribute ||
                right->kind() == Expression::Kind::kLabelAttribute) {
-        auto ret = rewriteRelExpr(expr, from);
+        auto ret = rewriteRelExpr(expr);
         NG_RETURN_IF_ERROR(ret);
     } else {
         return Status::NotSupported("Expression %s not supported yet",
@@ -311,24 +301,20 @@ Status IndexScanValidator::checkRelExpr(RelationalExpression* expr,
     return Status::OK();
 }
 
-Status IndexScanValidator::rewriteRelExpr(RelationalExpression* expr,
-                                          const std::string& from) {
+Status IndexScanValidator::rewriteRelExpr(RelationalExpression* expr) {
     auto* left = expr->left();
     auto* right = expr->right();
     auto leftIsAE = left->kind() == Expression::Kind::kLabelAttribute;
 
-    std::string ref, prop;
     auto* la = leftIsAE
                ? static_cast<LabelAttributeExpression *>(left)
                : static_cast<LabelAttributeExpression *>(right);
-    if (*la->left()->name() != from) {
+    if (*la->left()->name() != from_) {
         return Status::SemanticError("Schema name error : %s",
                                      la->left()->name()->c_str());
     }
 
-    ref = *la->left()->name();
-    prop = *la->right()->name();
-
+    std::string prop = *la->right()->name();
     // rewrite ConstantExpression
     auto c = leftIsAE
              ? checkConstExpr(right, prop)
@@ -373,6 +359,50 @@ StatusOr<Value> IndexScanValidator::checkConstExpr(Expression* expr,
         return Status::SemanticError("Column type error : %s", prop.c_str());
     }
     return v;
+}
+
+Status IndexScanValidator::checkTSService() {
+    auto tcs = qctx_->getMetaClient()->getFTClientsFromCache();
+    if (!tcs.ok()) {
+        return tcs.status();
+    }
+    if (tcs.value().empty()) {
+        return Status::Error("No full text client found");
+    }
+    textSearchReady_ = true;
+    tsClients_ = std::move(tcs).value();
+    return checkTSIndex();
+}
+
+Status IndexScanValidator::checkTSIndex() {
+    auto ftIndex = nebula::plugin::IndexTraits::indexName(space_.name, isEdge_);
+    auto retryCnt = FLAGS_ft_request_retry_times;
+    StatusOr<bool> ret = Status::Error("fulltext index not found : %s", ftIndex.c_str());
+    while (--retryCnt > 0) {
+        auto ftc = randomFTClient();
+        ret = nebula::plugin::ESGraphAdapter::kAdapter->indexExists(std::move(ftc), ftIndex);
+        if (!ret.ok()) {
+            continue;
+        } else if (ret.value()) {
+            return Status::OK();
+        } else {
+            return Status::Error("fulltext index not found : %s", ftIndex.c_str());
+        }
+    }
+    return ret.status();
+}
+
+nebula::plugin::HttpClient IndexScanValidator::randomFTClient() {
+    auto i = folly::Random::rand32(tsClients_.size() - 1);
+    nebula::plugin::HttpClient ftc;
+    ftc.host = tsClients_[i].host;
+    if (tsClients_[i].__isset.user) {
+        ftc.user = tsClients_[i].user;
+    }
+    if (tsClients_[i].__isset.pwd) {
+        ftc.password = tsClients_[i].pwd;
+    }
+    return ftc;
 }
 }  // namespace graph
 }  // namespace nebula
