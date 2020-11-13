@@ -11,6 +11,9 @@
 #include "validator/MatchValidator.h"
 
 namespace nebula {
+
+class YieldColumn;
+
 namespace graph {
 
 class PlanNode;
@@ -32,6 +35,9 @@ private:
     // Generate plan:
     //  (v)-[e:et*m..n]- + (n)-[e1:et2*k..l]-
     Status composePlan(SubPlan* finalPlan);
+
+    // Produce columns according to symbols in pattern
+    Status projectColumnsBySymbols(const PlanNode* input, SubPlan* plan);
 
     // Generate data join plan node
     PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
@@ -66,6 +72,9 @@ private:
                        SubPlan* plan);
 
     Expression* initialExprOrEdgeDstExpr(const std::string& varname);
+
+    YieldColumn* buildVertexColumn(const std::string& varname, int colIdx) const;
+    YieldColumn* buildEdgeColumn(const std::string& varname, int colIdx) const;
 
     template <typename T>
     T* saveObject(T* obj) const {

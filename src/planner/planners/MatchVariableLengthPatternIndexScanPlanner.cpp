@@ -6,6 +6,11 @@
 
 #include "planner/planners/MatchVariableLengthPatternIndexScanPlanner.h"
 
+#include "common/expression/ConstantExpression.h"
+#include "common/expression/ContainerExpression.h"
+#include "common/expression/SubscriptExpression.h"
+#include "parser/Clauses.h"
+#include "parser/MatchSentence.h"
 #include "planner/Logic.h"
 #include "planner/planners/MatchSolver.h"
 #include "util/ExpressionUtils.h"
@@ -99,11 +104,15 @@ static Expression *getLastEdgeDstExprInLastColumn(const std::string &varname) {
     return new AttributeExpression(lastEdgeExpr, new ConstantExpression(kDst));
 }
 
-static Expression *getFirstVertexVidInFistColumn(const std::string &varname) {
+static Expression *getFirstVertexInFirstColumn(const std::string &varname) {
     // expr: __Project_2[0] => [v1, e1,..., vn, en]
     auto columnExpr = ExpressionUtils::columnExpr(varname, 0);
-    // expr: [v1, e1, ..., vn, en][-1] => v1
-    auto firstVertexExpr = new SubscriptExpression(columnExpr, new ConstantExpression(0));
+    // expr: [v1, e1, ..., vn, en][0] => v1
+    return new SubscriptExpression(columnExpr, new ConstantExpression(0));
+}
+
+static Expression *getFirstVertexVidInFistColumn(const std::string &varname) {
+    auto firstVertexExpr = getFirstVertexInFirstColumn(varname);
     // expr: v1[_vid] => vid
     return new AttributeExpression(firstVertexExpr, new ConstantExpression(kVid));
 }
@@ -143,6 +152,29 @@ Status MatchVariableLengthPatternIndexScanPlanner::composePlan(SubPlan *finalPla
     NG_RETURN_IF_ERROR(appendFetchVertexPlan(plan.root, &curr));
     finalPlan->root = joinDataSet(curr.root, plan.root);
 
+    return Status::OK();
+}
+
+Status MatchVariableLengthPatternIndexScanPlanner::projectColumnsBySymbols(const PlanNode *input,
+                                                                           SubPlan *plan) {
+    auto qctx = matchCtx_->qctx;
+    auto &nodeInfos = matchCtx_->nodeInfos;
+    auto &edgeInfos = matchCtx_->edgeInfos;
+    auto columns = saveObject(new YieldColumns);
+    for (size_t i = 0; i < edgeInfos.size(); i++) {
+        auto &nodeInfo = nodeInfos[i];
+        if (nodeInfo.alias != nullptr) {
+            columns->addColumn(buildVertexColumn(input->outputVar(), i));
+        }
+        auto &edgeInfo = edgeInfos[i];
+        if (edgeInfo.alias != nullptr) {
+            columns->addColumn(buildEdgeColumn(input->outputVar(), i));
+        }
+    }
+
+    auto project = Project::make(qctx, const_cast<PlanNode *>(input), columns);
+
+    plan->root = project;
     return Status::OK();
 }
 
@@ -219,7 +251,8 @@ Status MatchVariableLengthPatternIndexScanPlanner::filterFinalDataset(const Edge
     auto listExpr = ExpressionUtils::columnExpr(input->outputVar(), 0);
     args->addArgument(std::unique_ptr<Expression>(listExpr));
     auto edgeExpr = new FunctionCallExpression(new std::string("size"), args);
-    auto minHopExpr = new ConstantExpression(2 * edge.minHop);
+    auto minHop = edge.range == nullptr ? 1 : edge.range->min();
+    auto minHopExpr = new ConstantExpression(2 * minHop);
     auto expr = new RelationalExpression(Expression::Kind::kRelGE, edgeExpr, minHopExpr);
     saveObject(expr);
     plan->root = Filter::make(qctx, curr.root, expr);
@@ -234,7 +267,8 @@ Status MatchVariableLengthPatternIndexScanPlanner::composeSubPlan(const EdgeInfo
     NG_RETURN_IF_ERROR(expandStep(edge, input, true, &subplan));
     plan->tail = subplan.tail;
     PlanNode *passThrough = subplan.root;
-    for (int64_t i = 1; i < edge.maxHop; ++i) {
+    auto maxHop = edge.range ? edge.range->max() : 1;
+    for (int64_t i = 1; i < maxHop; ++i) {
         SubPlan curr;
         NG_RETURN_IF_ERROR(expandStep(edge, passThrough, false, &curr));
         auto rNode = subplan.root;
@@ -324,6 +358,33 @@ Expression *MatchVariableLengthPatternIndexScanPlanner::initialExprOrEdgeDstExpr
         vidExpr = getLastEdgeDstExprInLastColumn(varname);
     }
     return vidExpr;
+}
+
+YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildVertexColumn(
+    const std::string &varname,
+    int colIdx) const {
+    auto colExpr = ExpressionUtils::columnExpr(varname, colIdx);
+    auto firstVertexExpr = new SubscriptExpression(colExpr, new ConstantExpression(0));
+    auto alias = matchCtx_->nodeInfos[colIdx].alias;
+    return new YieldColumn(firstVertexExpr, new std::string(*alias));
+}
+
+YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildEdgeColumn(const std::string &varname,
+                                                                         int colIdx) const {
+    auto &edge = matchCtx_->edgeInfos[colIdx];
+    bool variable = edge.range != nullptr;
+    Expression *expr = nullptr;
+    if (variable) {
+        auto exprList = new ExpressionList;
+        // FIXME
+        // map(is_edge, [v1, e1, v2, e2,...]) => [e1, e2, ...]
+        expr = new ListExpression(exprList);
+    } else {
+        auto colExpr = ExpressionUtils::columnExpr(varname, colIdx);
+        // Get first edge in path list [v1, e1, v2, ...]
+        expr = new SubscriptExpression(colExpr, new ConstantExpression(1));
+    }
+    return new YieldColumn(nullptr, new std::string(*edge.alias));
 }
 
 }   // namespace graph

@@ -153,8 +153,7 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path) {
         auto *stepRange = edge->range();
         if (stepRange != nullptr) {
             NG_RETURN_IF_ERROR(validateStepRange(stepRange));
-            edgeInfos[i].minHop = stepRange->min();
-            edgeInfos[i].maxHop = stepRange->max();
+            edgeInfos[i].range = stepRange;
         }
         if (alias == nullptr) {
             anonymous = true;

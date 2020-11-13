@@ -8,6 +8,7 @@
 #define VALIDATOR_MATCHVALIDATOR_H_
 
 #include "common/base/Base.h"
+#include "parser/MatchSentence.h"
 #include "validator/TraversalValidator.h"
 #include "util/AnonVarGenerator.h"
 #include "planner/Query.h"
@@ -31,8 +32,7 @@ public:
 
     struct EdgeInfo {
         bool                                    anonymous{false};
-        int64_t                                 minHop{1};
-        int64_t                                 maxHop{1};
+        MatchStepRange                         *range{nullptr};
         std::vector<EdgeType>                   edgeTypes;
         MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
         std::vector<std::string>                types;
