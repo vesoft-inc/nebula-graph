@@ -9,6 +9,7 @@
 #include <planner/Query.h>
 #include "common/base/Base.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
 #include "parser/TraverseSentences.h"
 #include "validator/Validator.h"
 
@@ -25,8 +26,6 @@ private:
 
     Status toPlan() override;
 
-    Status prepareTSService();
-
     Status prepareFrom();
 
     Status prepareYield();
@@ -42,13 +41,19 @@ private:
 
     bool needTextSearch(Expression* expr);
 
-    Status checkFilter(Expression* expr, const std::string& from);
+    Status checkFilter(Expression* expr);
 
-    Status checkRelExpr(RelationalExpression* expr, const std::string& from);
+    Status checkRelExpr(RelationalExpression* expr);
 
-    Status rewriteRelExpr(RelationalExpression* expr, const std::string& from);
+    Status rewriteRelExpr(RelationalExpression* expr);
 
     StatusOr<Value> checkConstExpr(Expression* expr, const std::string& prop);
+
+    Status checkTSService();
+
+    Status checkTSIndex();
+
+    nebula::plugin::HttpClient randomFTClient();
 
 private:
     GraphSpaceID                      spaceId_{0};
@@ -56,9 +61,10 @@ private:
     IndexScan::IndexReturnCols        returnCols_{};
     bool                              isEdge_{false};
     int32_t                           schemaId_;
-    bool                              isEmptyResultSet_;
-    bool                              textSearchReady{false};
+    bool                              isEmptyResultSet_{false};
+    bool                              textSearchReady_{false};
     std::vector<meta::cpp2::FTClient> tsClients_;
+    std::string                       from_;
 };
 
 }   // namespace graph

@@ -14,7 +14,6 @@
 #include "planner/Query.h"
 #include "service/GraphFlags.h"
 #include "util/SchemaUtil.h"
-#include "util/IndexUtil.h"
 
 namespace nebula {
 namespace graph {
@@ -83,11 +82,6 @@ Status CreateSpaceValidator::validateImpl() {
                 spaceDesc_.collate_name = std::move(result);
                 break;
             }
-            case SpaceOptItem::TEXT_SEARCH: {
-                if (item->getTextSearch()) {
-                    spaceDesc_.text_search = true;
-                }
-            }
         }
     }
 
@@ -125,26 +119,6 @@ Status CreateSpaceValidator::validateImpl() {
                     spaceDesc_.collate_name));
     }
 
-    if (spaceDesc_.text_search) {
-        auto ftRet = qctx_->getMetaClient()->getFTClientsFromCache();
-        if (!ftRet.ok()) {
-            return ftRet.status();
-        }
-        if (ftRet.value().empty()) {
-            return Status::Error("text service not ready");
-        }
-
-        auto edgeTSIndex = nebula::plugin::IndexTraits::indexName(spaceDesc_.space_name, true);
-        if (checkTSIndex(ftRet.value(), edgeTSIndex)) {
-            return Status::Error("external index already exists : %s", edgeTSIndex.c_str());
-        }
-
-        auto tagTSIndex = nebula::plugin::IndexTraits::indexName(spaceDesc_.space_name, false);
-        if (checkTSIndex(ftRet.value(), tagTSIndex)) {
-            return Status::Error("external index already exists : %s", tagTSIndex.c_str());
-        }
-    }
-
     // add to validate context
     vctx_->addSpace(spaceDesc_.space_name);
     return status;
@@ -155,25 +129,6 @@ Status CreateSpaceValidator::toPlan() {
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
-}
-
-bool CreateSpaceValidator::checkTSIndex(const std::vector<meta::cpp2::FTClient>& clients,
-                                        const std::string& index) {
-    for (auto& c : clients) {
-        nebula::plugin::HttpClient ftc;
-        ftc.host = c.host;
-        if (c.__isset.user) {
-            ftc.user = c.user;
-        }
-        if (c.__isset.pwd) {
-            ftc.password = c.pwd;
-        }
-        auto ret = nebula::plugin::ESGraphAdapter::kAdapter->indexExists(std::move(ftc), index);
-        if (ret) {
-            return true;
-        }
-    }
-    return false;
 }
 
 Status DescSpaceValidator::validateImpl() {
@@ -423,6 +378,9 @@ Status ShowTSClientsValidator::validateImpl() {
 }
 
 Status ShowTSClientsValidator::toPlan() {
+    auto *doNode = ShowTSClients::make(qctx_, nullptr);
+    root_ = doNode;
+    tail_ = root_;
     return Status::OK();
 }
 
@@ -436,9 +394,7 @@ Status SignInTSServiceValidator::toPlan() {
     if (sentence->clients() != nullptr) {
         clients = sentence->clients()->clients();
     }
-    auto *node = SignInTSService::make(qctx_,
-                                       nullptr,
-                                       std::move(clients));
+    auto *node = SignInTSService::make(qctx_, nullptr, std::move(clients));
     root_ = node;
     tail_ = root_;
     return Status::OK();
@@ -449,6 +405,9 @@ Status SignOutTSServiceValidator::validateImpl() {
 }
 
 Status SignOutTSServiceValidator::toPlan() {
+    auto *node = SignOutTSService::make(qctx_, nullptr);
+    root_ = node;
+    tail_ = root_;
     return Status::OK();
 }
 }  // namespace graph

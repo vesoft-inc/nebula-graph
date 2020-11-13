@@ -231,7 +231,9 @@ private:
 class ShowTSClientsValidator final : public Validator {
 public:
     ShowTSClientsValidator(Sentence* sentence, QueryContext* context)
-        :Validator(sentence, context) {}
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
 
 private:
     Status validateImpl() override;
@@ -242,7 +244,9 @@ private:
 class SignInTSServiceValidator final : public Validator {
 public:
     SignInTSServiceValidator(Sentence* sentence, QueryContext* context)
-        :Validator(sentence, context) {}
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
 
 private:
     Status validateImpl() override;
@@ -253,7 +257,9 @@ private:
 class SignOutTSServiceValidator final : public Validator {
 public:
     SignOutTSServiceValidator(Sentence* sentence, QueryContext* context)
-        :Validator(sentence, context) {}
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
 
 private:
     Status validateImpl() override;

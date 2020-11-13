@@ -24,7 +24,8 @@ folly::Future<Status> IndexScanExecutor::indexScan() {
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     auto *lookup = asNode<IndexScan>(node());
     if (lookup->isEmptyResultSet()) {
-        return finish(ResultBuilder().value(Value(DataSet())).finish());
+        DataSet dataSet({"dummy"});
+        return finish(ResultBuilder().value(Value(std::move(dataSet))).finish());
     }
     return storageClient->lookupIndex(lookup->space(),
                                       *lookup->queryContext(),
