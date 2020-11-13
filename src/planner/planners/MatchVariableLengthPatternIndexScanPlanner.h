@@ -62,12 +62,15 @@ private:
                        PlanNode** passThrough,
                        SubPlan* plan);
 
+    Expression* initialExprOrEdgeDstExpr(const std::string& varname);
+
     template <typename T>
     T* saveObject(T* obj) const {
         return matchCtx_->qctx->objPool()->add(obj);
     }
 
     MatchAstContext* matchCtx_{nullptr};
+    Expression* initialExpr_{nullptr};
 };
 
 }   // namespace graph
