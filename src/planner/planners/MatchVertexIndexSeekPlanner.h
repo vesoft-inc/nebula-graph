@@ -28,15 +28,6 @@ private:
     using VertexProp = nebula::storage::cpp2::VertexProp;
     using EdgeProp = nebula::storage::cpp2::EdgeProp;
 
-    static Expression* makeIndexFilter(const std::string& label,
-                                       const MapExpression* map,
-                                       QueryContext* qctx);
-
-    static Expression* makeIndexFilter(const std::string& label,
-                                       const std::string& alias,
-                                       Expression* filter,
-                                       QueryContext* qctx);
-
     MatchVertexIndexSeekPlanner() = default;
 
     Status buildScanNode();
@@ -52,39 +43,6 @@ private:
     Status buildTailJoin();
 
     Status buildFilter();
-
-    // Generate plan:
-    //  (v)-[e:et*m..n]- + (n)-[e1:et2*k..l]-
-    Status composePlan(SubPlan* finalPlan);
-
-    // Generate data join plan node
-    PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
-
-    // Generate fetch final vertex props sub-plan
-    Status appendFetchVertexPlan(const PlanNode* input, SubPlan* plan);
-
-    // (v)-[e:et*m..n]- plan + Filter + PassThroughNode
-    Status filterFinalDataset(const MatchValidator::EdgeInfo& edge,
-                              const PlanNode* input,
-                              SubPlan* plan);
-
-    // Generate subplan for pattern which is like:
-    //   (v)-[e:edgetype*m..n{prop: value}]-
-    Status composeSubPlan(const MatchValidator::EdgeInfo& edge,
-                          const PlanNode* input,
-                          SubPlan* plan);
-
-    // Generate subplan composite of following nodes:
-    //   Project -> Dedup -> GetNeighbors -> [Filter ->] [Filter ->] Project
-    Status expandStep(const MatchValidator::EdgeInfo& edge, const PlanNode* input, SubPlan* plan);
-
-    // Generate subplan composite of following nodes:
-    //   DataJoin -> Project -> PassThroughNode -> Union
-    Status collectData(const PlanNode* joinLeft,
-                       const PlanNode* joinRight,
-                       const PlanNode* inUnionNode,
-                       PlanNode** passThrough,
-                       SubPlan* plan);
 
     template <typename T>
     T* saveObject(T *obj) const {

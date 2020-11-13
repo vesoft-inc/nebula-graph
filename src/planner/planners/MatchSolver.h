@@ -24,6 +24,15 @@ public:
     static Expression* rewrite(const LabelAttributeExpression *la);
 
     static Expression* doRewrite(const MatchAstContext* mctx, const Expression* expr);
+
+    static Expression* makeIndexFilter(const std::string& label,
+                                       const MapExpression* map,
+                                       QueryContext* qctx);
+
+    static Expression* makeIndexFilter(const std::string& label,
+                                       const std::string& alias,
+                                       const Expression* filter,
+                                       QueryContext* qctx);
 };
 }  // namespace graph
 }  // namespace nebula
