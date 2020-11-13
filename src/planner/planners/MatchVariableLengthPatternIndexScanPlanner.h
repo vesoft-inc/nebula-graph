@@ -52,7 +52,10 @@ private:
 
     // Generate subplan composite of following nodes:
     //   Project -> Dedup -> GetNeighbors -> [Filter ->] [Filter ->] Project
-    Status expandStep(const MatchValidator::EdgeInfo& edge, const PlanNode* input, SubPlan* plan);
+    Status expandStep(const MatchValidator::EdgeInfo& edge,
+                      const PlanNode* input,
+                      bool needPassThrough,
+                      SubPlan* plan);
 
     // Generate subplan composite of following nodes:
     //   DataJoin -> Project -> PassThroughNode -> Union

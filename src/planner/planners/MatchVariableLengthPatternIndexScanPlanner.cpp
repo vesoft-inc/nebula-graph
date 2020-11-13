@@ -133,7 +133,6 @@ Status MatchVariableLengthPatternIndexScanPlanner::composePlan(SubPlan *finalPla
 
     SubPlan plan;
     NG_RETURN_IF_ERROR(filterFinalDataset(edgeInfos[0], finalPlan->root, &plan));
-    finalPlan->tail = plan.tail;
     for (size_t i = 1; i < edgeInfos.size(); ++i) {
         SubPlan curr;
         NG_RETURN_IF_ERROR(filterFinalDataset(edgeInfos[i], plan.root, &curr));
@@ -223,9 +222,7 @@ Status MatchVariableLengthPatternIndexScanPlanner::filterFinalDataset(const Edge
     auto minHopExpr = new ConstantExpression(2 * edge.minHop);
     auto expr = new RelationalExpression(Expression::Kind::kRelGE, edgeExpr, minHopExpr);
     saveObject(expr);
-    auto filter = Filter::make(qctx, curr.root, expr);
-
-    plan->root = PassThroughNode::make(qctx, filter);
+    plan->root = Filter::make(qctx, curr.root, expr);
     plan->tail = curr.tail;
     return Status::OK();
 }
@@ -234,14 +231,14 @@ Status MatchVariableLengthPatternIndexScanPlanner::composeSubPlan(const EdgeInfo
                                                                   const PlanNode *input,
                                                                   SubPlan *plan) {
     SubPlan subplan;
-    NG_RETURN_IF_ERROR(expandStep(edge, input, &subplan));
+    NG_RETURN_IF_ERROR(expandStep(edge, input, true, &subplan));
     plan->tail = subplan.tail;
     PlanNode *passThrough = subplan.root;
-    for (int64_t i = 1; i <= edge.maxHop; ++i) {
+    for (int64_t i = 1; i < edge.maxHop; ++i) {
         SubPlan curr;
-        NG_RETURN_IF_ERROR(expandStep(edge, passThrough, &curr));
+        NG_RETURN_IF_ERROR(expandStep(edge, passThrough, false, &curr));
         auto rNode = subplan.root;
-        DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kProject);
+        DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
         NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
     }
     plan->root = subplan.root;
@@ -251,6 +248,7 @@ Status MatchVariableLengthPatternIndexScanPlanner::composeSubPlan(const EdgeInfo
 // build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
 Status MatchVariableLengthPatternIndexScanPlanner::expandStep(const EdgeInfo &edge,
                                                               const PlanNode *input,
+                                                              bool needPassThrough,
                                                               SubPlan *plan) {
     DCHECK(input != nullptr);
     auto qctx = matchCtx_->qctx;
@@ -280,6 +278,12 @@ Status MatchVariableLengthPatternIndexScanPlanner::expandStep(const EdgeInfo &ed
     root = Project::make(qctx, root, listColumns);
     root->setColNames({"_path"});
 
+    if (needPassThrough) {
+        auto pt = PassThroughNode::make(qctx, root);
+        pt->setColNames(root->colNames());
+        root = pt;
+    }
+
     plan->root = root;
     plan->tail = project;
     return Status::OK();
@@ -304,7 +308,10 @@ Status MatchVariableLengthPatternIndexScanPlanner::collectData(const PlanNode *j
     (*passThrough)->setOutputVar(project->outputVar());
     (*passThrough)->setColNames(project->colNames());
 
-    plan->root = Union::make(qctx, *passThrough, const_cast<PlanNode *>(inUnionNode));
+    auto uNode = Union::make(qctx, *passThrough, const_cast<PlanNode *>(inUnionNode));
+    uNode->setColNames({"_path"});
+    plan->root = uNode;
+
     return Status::OK();
 }
 
