@@ -43,10 +43,10 @@ void QueryContext::addProfilingData(int64_t planNodeId, ProfilingStats&& profili
     // return directly if not enable profile
     if (!planDescription_) return;
 
-    auto found = planDescription_->node_index_map.find(planNodeId);
-    DCHECK(found != planDescription_->node_index_map.end());
+    auto found = planDescription_->nodeIndexMap.find(planNodeId);
+    DCHECK(found != planDescription_->nodeIndexMap.end());
     auto idx = found->second;
-    auto& planNodeDesc = planDescription_->plan_node_descs[idx];
+    auto& planNodeDesc = planDescription_->planNodeDescs[idx];
     if (planNodeDesc.profiles == nullptr) {
         planNodeDesc.profiles.reset(new std::vector<ProfilingStats>());
     }

@@ -218,7 +218,7 @@ std::unique_ptr<PlanNodeDescription> PlanNode::explain() const {
     auto desc = std::make_unique<PlanNodeDescription>();
     desc->id = id_;
     desc->name = toString(kind_);
-    desc->output_var = folly::toJson(util::toJson(outputVars_));
+    desc->outputVar = folly::toJson(util::toJson(outputVars_));
     return desc;
 }
 

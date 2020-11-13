@@ -423,9 +423,9 @@ Status Executor::open() {
 
 Status Executor::close() {
     ProfilingStats stats;
-    stats.total_duration_in_us = totalDuration_.elapsedInUSec();
+    stats.totalDurationInUs = totalDuration_.elapsedInUSec();
     stats.rows = numRows_;
-    stats.exec_duration_in_us = execTime_;
+    stats.execDurationInUs = execTime_;
     qctx()->addProfilingData(node_->id(), std::move(stats));
     return Status::OK();
 }

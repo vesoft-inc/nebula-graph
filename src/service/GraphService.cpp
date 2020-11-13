@@ -69,7 +69,7 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
         auto result = sessionManager_->findSession(sessionId);
         if (!result.ok()) {
             FLOG_ERROR("Session not found, id[%ld]", sessionId);
-            ctx->resp().error_code = ErrorCode::E_SESSION_INVALID;
+            ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
             // ctx->resp().set_error_msg(result.status().toString());
             ctx->finish();
             return future;
@@ -122,12 +122,12 @@ const char* GraphService::getErrorStr(ErrorCode result) {
 }
 
 void GraphService::onHandle(RequestContext<AuthResponse>& ctx, ErrorCode code) {
-    ctx.resp().error_code = code;
+    ctx.resp().errorCode = code;
     if (code != ErrorCode::SUCCEEDED) {
         sessionManager_->removeSession(ctx.session()->id());
-        ctx.resp().error_msg.reset(new std::string(getErrorStr(code)));
+        ctx.resp().errorMsg.reset(new std::string(getErrorStr(code)));
     } else {
-        ctx.resp().session_id.reset(new int64_t(ctx.session()->id()));
+        ctx.resp().sessionId.reset(new int64_t(ctx.session()->id()));
     }
 }
 

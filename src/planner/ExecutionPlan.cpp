@@ -20,15 +20,15 @@ ExecutionPlan::ExecutionPlan(PlanNode* root) : id_(EPIdGenerator::instance().id(
 ExecutionPlan::~ExecutionPlan() {}
 
 static size_t makePlanNodeDesc(const PlanNode* node, PlanDescription* planDesc) {
-    auto found = planDesc->node_index_map.find(node->id());
-    if (found != planDesc->node_index_map.end()) {
+    auto found = planDesc->nodeIndexMap.find(node->id());
+    if (found != planDesc->nodeIndexMap.end()) {
         return found->second;
     }
 
-    size_t planNodeDescPos = planDesc->plan_node_descs.size();
-    planDesc->node_index_map.emplace(node->id(), planNodeDescPos);
-    planDesc->plan_node_descs.emplace_back(std::move(*node->explain()));
-    auto& planNodeDesc = planDesc->plan_node_descs.back();
+    size_t planNodeDescPos = planDesc->planNodeDescs.size();
+    planDesc->nodeIndexMap.emplace(node->id(), planNodeDescPos);
+    planDesc->planNodeDescs.emplace_back(std::move(*node->explain()));
+    auto& planNodeDesc = planDesc->planNodeDescs.back();
 
     switch (node->kind()) {
         case PlanNode::Kind::kStart: {
@@ -48,15 +48,15 @@ static size_t makePlanNodeDesc(const PlanNode* node, PlanDescription* planDesc) 
             planNodeDesc.dependencies.reset(new std::vector<int64_t>{select->dep()->id()});
             auto thenPos = makePlanNodeDesc(select->then(), planDesc);
             PlanNodeBranchInfo thenInfo;
-            thenInfo.is_do_branch = true;
-            thenInfo.condition_node_id = select->id();
-            planDesc->plan_node_descs[thenPos].branch_info =
+            thenInfo.isDoBranch = true;
+            thenInfo.conditionNodeId = select->id();
+            planDesc->planNodeDescs[thenPos].branchInfo =
                 std::make_unique<PlanNodeBranchInfo>(std::move(thenInfo));
             auto otherwisePos = makePlanNodeDesc(select->otherwise(), planDesc);
             PlanNodeBranchInfo elseInfo;
-            elseInfo.is_do_branch = false;
-            elseInfo.condition_node_id = select->id();
-            planDesc->plan_node_descs[otherwisePos].branch_info =
+            elseInfo.isDoBranch = false;
+            elseInfo.conditionNodeId = select->id();
+            planDesc->planNodeDescs[otherwisePos].branchInfo =
                 std::make_unique<PlanNodeBranchInfo>(std::move(elseInfo));
             makePlanNodeDesc(select->dep(), planDesc);
             break;
@@ -66,9 +66,9 @@ static size_t makePlanNodeDesc(const PlanNode* node, PlanDescription* planDesc) 
             planNodeDesc.dependencies.reset(new std::vector<int64_t>{loop->dep()->id()});
             auto bodyPos = makePlanNodeDesc(loop->body(), planDesc);
             PlanNodeBranchInfo info;
-            info.is_do_branch = true;
-            info.condition_node_id = loop->id();
-            planDesc->plan_node_descs[bodyPos].branch_info =
+            info.isDoBranch = true;
+            info.conditionNodeId = loop->id();
+            planDesc->planNodeDescs[bodyPos].branchInfo =
                 std::make_unique<PlanNodeBranchInfo>(std::move(info));
             makePlanNodeDesc(loop->dep(), planDesc);
             break;
