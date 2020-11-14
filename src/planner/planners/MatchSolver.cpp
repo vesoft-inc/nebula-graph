@@ -125,11 +125,13 @@ Expression *MatchSolver::makeIndexFilter(const std::string &label,
                                          const std::string &alias,
                                          Expression *filter,
                                          QueryContext *qctx) {
-    static const std::unordered_set<Expression::Kind> kinds = {Expression::Kind::kRelEQ,
-                                                               Expression::Kind::kRelLT,
-                                                               Expression::Kind::kRelLE,
-                                                               Expression::Kind::kRelGT,
-                                                               Expression::Kind::kRelGE};
+    static const std::unordered_set<Expression::Kind> kinds = {
+        Expression::Kind::kRelEQ,
+        Expression::Kind::kRelLT,
+        Expression::Kind::kRelLE,
+        Expression::Kind::kRelGT,
+        Expression::Kind::kRelGE,
+    };
 
     std::vector<const Expression *> ands;
     auto kind = filter->kind();
