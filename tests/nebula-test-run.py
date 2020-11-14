@@ -89,10 +89,11 @@ if __name__ == "__main__":
         nebula_port = 0
         if len(configs.address) == 0:
             nebula_svc.install()
-            port = nebula_svc.start(configs.debug_log)
-            args.extend(['--address', '127.0.0.1:' + str(port)])
+            storage_port, graph_port = nebula_svc.start(configs.debug_log)
+            args.extend(['--address', '127.0.0.1:' + str(graph_port)])
+            args.extend(['--storage', '127.0.0.1:' + str(storage_port)])
             nebula_ip = '127.0.0.1'
-            nebula_port = port
+            nebula_port = graph_port
         else:
             stop_nebula = False
             addr = configs.address.split(':')
@@ -104,15 +105,16 @@ if __name__ == "__main__":
         print("Running TestExecutor with args: {} ".format(args))
 
         # load nba data
-        data_loader = GlobalDataLoader(TEST_DIR, nebula_ip, nebula_port, configs.user, configs.password)
-        data_loader.load_all_test_data()
+        with GlobalDataLoader(TEST_DIR, nebula_ip, nebula_port, configs.user, configs.password) as data_loader:
+            data_loader.load_all_test_data()
 
-        # Switch to your $src_dir/tests
-        os.chdir(TEST_DIR)
-        error_code = executor.run_tests(args)
-        data_loader.drop_data()
+            # Switch to your $src_dir/tests
+            os.chdir(TEST_DIR)
+            error_code = executor.run_tests(args)
     except Exception as x:
         print('\033[31m' + str(x) + '\033[0m')
+        import traceback
+        print(traceback.format_exc())
 
     finally:
         if stop_nebula and configs.stop_nebula.lower() == 'true':

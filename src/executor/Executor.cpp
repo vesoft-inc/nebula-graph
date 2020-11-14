@@ -34,6 +34,13 @@
 #include "executor/admin/SubmitJobExecutor.h"
 #include "executor/admin/SwitchSpaceExecutor.h"
 #include "executor/admin/UpdateUserExecutor.h"
+#include "executor/admin/GroupExecutor.h"
+#include "executor/admin/ZoneExecutor.h"
+#include "executor/algo/BFSShortestPathExecutor.h"
+#include "executor/algo/ProduceSemiShortestPathExecutor.h"
+#include "executor/algo/ConjunctPathExecutor.h"
+#include "executor/algo/ProduceAllPathsExecutor.h"
+#include "executor/algo/CartesianProductExecutor.h"
 #include "executor/logic/LoopExecutor.h"
 #include "executor/logic/PassThroughExecutor.h"
 #include "executor/logic/SelectExecutor.h"
@@ -67,7 +74,7 @@
 #include "planner/Mutate.h"
 #include "planner/PlanNode.h"
 #include "planner/Query.h"
-#include "util/ObjectPool.h"
+#include "common/base/ObjectPool.h"
 #include "util/ScopedTimer.h"
 
 using folly::stringPrintf;
@@ -263,11 +270,17 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kDescEdgeIndex: {
             return pool->add(new DescEdgeIndexExecutor(node, qctx));
         }
-        case PlanNode::Kind::kRebuildTagIndex: {
-            return pool->add(new RebuildTagIndexExecutor(node, qctx));
+        case PlanNode::Kind::kShowCreateTagIndex: {
+            return pool->add(new ShowCreateTagIndexExecutor(node, qctx));
         }
-        case PlanNode::Kind::kRebuildEdgeIndex: {
-            return pool->add(new RebuildEdgeIndexExecutor(node, qctx));
+        case PlanNode::Kind::kShowCreateEdgeIndex: {
+            return pool->add(new ShowCreateEdgeIndexExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowTagIndexes: {
+            return pool->add(new ShowTagIndexesExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowEdgeIndexes: {
+            return pool->add(new ShowEdgeIndexesExecutor(node, qctx));
         }
         case PlanNode::Kind::kInsertVertices: {
             return pool->add(new InsertVerticesExecutor(node, qctx));
@@ -365,11 +378,62 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kShowCollation: {
             return pool->add(new ShowCollationExecutor(node, qctx));
         }
+        case PlanNode::Kind::kBFSShortest: {
+            return pool->add(new BFSShortestPathExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kProduceSemiShortestPath: {
+            return pool->add(new ProduceSemiShortestPathExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kConjunctPath: {
+            return pool->add(new ConjunctPathExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kProduceAllPaths: {
+            return pool->add(new ProduceAllPathsExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kCartesianProduct: {
+            return pool->add(new CartesianProductExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kAddGroup: {
+            return pool->add(new AddGroupExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDropGroup: {
+            return pool->add(new DropGroupExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDescribeGroup: {
+            return pool->add(new DescribeGroupExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kAddZoneIntoGroup: {
+            return pool->add(new AddZoneIntoGroupExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDropZoneFromGroup: {
+            return pool->add(new DropZoneFromGroupExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowGroups: {
+            return pool->add(new ListGroupsExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kAddZone: {
+            return pool->add(new AddZoneExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDropZone: {
+            return pool->add(new DropZoneExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDescribeZone: {
+            return pool->add(new DescribeZoneExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kAddHostIntoZone: {
+            return pool->add(new AddHostIntoZoneExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDropHostFromZone: {
+            return pool->add(new DropHostFromZoneExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowZones: {
+            return pool->add(new ListZonesExecutor(node, qctx));
+        }
         case PlanNode::Kind::kUnknown: {
+            LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
             break;
         }
     }
-    LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
     return nullptr;
 }
 

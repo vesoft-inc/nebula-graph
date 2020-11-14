@@ -44,9 +44,15 @@ Status FetchEdgesValidator::toPlan() {
                                         std::move(orderBy_),
                                         std::move(filter_));
     getEdgesNode->setInputVar(edgeKeysVar);
-    getEdgesNode->setColNames(std::move(geColNames_));
+    getEdgesNode->setColNames(geColNames_);
     // the pipe will set the input variable
     PlanNode *current = getEdgesNode;
+
+    // filter when the edge key is empty which means not exists edge in fact
+    auto *notExistEdgeFilter = Filter::make(qctx_, current, emptyEdgeKeyFilter());
+    notExistEdgeFilter->setInputVar(current->outputVar());
+    notExistEdgeFilter->setColNames(geColNames_);
+    current = notExistEdgeFilter;
 
     if (withProject_) {
         auto *projectNode = Project::make(qctx_, current, newYield_->yields());
@@ -79,7 +85,7 @@ Status FetchEdgesValidator::check() {
     schema_ = qctx_->schemaMng()->getEdgeSchema(spaceId_, edgeType_);
     if (schema_ == nullptr) {
         LOG(ERROR) << "No schema found for " << sentence->edge();
-        return Status::Error("No schema found for `%s'", sentence->edge()->c_str());
+        return Status::SemanticError("No schema found for `%s'", sentence->edge()->c_str());
     }
 
     return Status::OK();
@@ -98,14 +104,15 @@ Status FetchEdgesValidator::prepareEdges() {
             result = checkRef(rankRef_, Value::Type::INT);
             NG_RETURN_IF_ERROR(result);
             if (inputVar_ != result.value()) {
-                return Status::Error("Can't refer to different variable as key at same time.");
+                return Status::SemanticError(
+                    "Can't refer to different variable as key at same time.");
             }
         }
         dstRef_ = sentence->ref()->dstid();
         result = checkRef(dstRef_, Value::Type::STRING);
         NG_RETURN_IF_ERROR(result);
         if (inputVar_ != result.value()) {
-            return Status::Error("Can't refer to different variable as key at same time.");
+            return Status::SemanticError("Can't refer to different variable as key at same time.");
         }
         return Status::OK();
     }
@@ -172,6 +179,8 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
     propsName.reserve(newYield_->columns().size());
     dedup_ = newYield_->isDistinct();
     for (auto col : newYield_->columns()) {
+        NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
             auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
             col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr));
@@ -180,8 +189,8 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
         }
         const auto *invalidExpr = findInvalidYieldExpression(col->expr());
         if (invalidExpr != nullptr) {
-            return Status::Error("Invalid newYield_ expression `%s'.",
-                                 col->expr()->toString().c_str());
+            return Status::SemanticError("Invalid newYield_ expression `%s'.",
+                                         col->expr()->toString().c_str());
         }
         // The properties from storage directly push down only
         // The other will be computed in Project Executor
@@ -189,16 +198,16 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
         for (const auto &storageExpr : storageExprs) {
             const auto *expr = static_cast<const PropertyExpression *>(storageExpr);
             if (*expr->sym() != edgeTypeName_) {
-                return Status::Error("Mismatched edge type name");
+                return Status::SemanticError("Mismatched edge type name");
             }
             // Check is prop name in schema
             if (schema_->getFieldIndex(*expr->prop()) < 0 &&
                 reservedProperties.find(*expr->prop()) == reservedProperties.end()) {
                 LOG(ERROR) << "Unknown column `" << *expr->prop() << "' in edge `" << edgeTypeName_
                            << "'.";
-                return Status::Error("Unknown column `%s' in edge `%s'",
-                                     expr->prop()->c_str(),
-                                     edgeTypeName_.c_str());
+                return Status::SemanticError("Unknown column `%s' in edge `%s'",
+                                             expr->prop()->c_str(),
+                                             edgeTypeName_.c_str());
             }
             propsName.emplace_back(*expr->prop());
             geColNames_.emplace_back(*expr->sym() + "." + *expr->prop());
@@ -281,6 +290,17 @@ std::string FetchEdgesValidator::buildRuntimeInput() {
     rank_ = DCHECK_NOTNULL(rankRef_);
     dst_ = DCHECK_NOTNULL(dstRef_);
     return inputVar_;
+}
+
+Expression *FetchEdgesValidator::emptyEdgeKeyFilter() {
+    // _src != empty && _dst != empty && _rank != empty
+    DCHECK_GE(geColNames_.size(), 3);
+    auto *srcNotEmptyExpr = notEmpty(new EdgeSrcIdExpression(new std::string(edgeTypeName_)));
+    auto *dstNotEmptyExpr = notEmpty(new EdgeDstIdExpression(new std::string(edgeTypeName_)));
+    auto *rankNotEmptyExpr = notEmpty(new EdgeRankExpression(new std::string(edgeTypeName_)));
+    auto *edgeKeyNotEmptyExpr =
+        qctx_->objPool()->add(lgAnd(srcNotEmptyExpr, lgAnd(dstNotEmptyExpr, rankNotEmptyExpr)));
+    return edgeKeyNotEmptyExpr;
 }
 
 }   // namespace graph

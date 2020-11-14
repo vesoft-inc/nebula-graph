@@ -57,13 +57,13 @@ void RewriteLabelAttrVisitor::visit(SetExpression* expr) {
 }
 
 void RewriteLabelAttrVisitor::visit(MapExpression* expr) {
-    auto items = expr->items();
-    auto found = std::find_if(
-        items.cbegin(), items.cend(), [](auto& pair) { return isLabelAttrExpr(pair.second); });
+    auto& items = expr->items();
+    auto found = std::find_if(items.cbegin(), items.cend(), [](auto& pair) {
+        return isLabelAttrExpr(pair.second.get());
+    });
     if (found == items.cend()) {
-        std::for_each(items.begin(), items.end(), [this](auto& pair) {
-            const_cast<Expression*>(pair.second)->accept(this);
-        });
+        std::for_each(
+            items.begin(), items.end(), [this](auto& pair) { pair.second->accept(this); });
         return;
     }
 
@@ -72,8 +72,8 @@ void RewriteLabelAttrVisitor::visit(MapExpression* expr) {
     for (auto& pair : items) {
         MapExpression::Item newItem;
         newItem.first.reset(new std::string(*pair.first));
-        if (isLabelAttrExpr(pair.second)) {
-            auto symExpr = static_cast<const LabelAttributeExpression*>(pair.second);
+        if (isLabelAttrExpr(pair.second.get())) {
+            auto symExpr = static_cast<const LabelAttributeExpression*>(pair.second.get());
             newItem.second.reset(createExpr(symExpr));
         } else {
             newItem.second = pair.second->clone();
@@ -82,6 +82,42 @@ void RewriteLabelAttrVisitor::visit(MapExpression* expr) {
         newItems.emplace_back(std::move(newItem));
     }
     expr->setItems(std::move(newItems));
+}
+
+void RewriteLabelAttrVisitor::visit(CaseExpression* expr) {
+    if (expr->hasCondition()) {
+        if (isLabelAttrExpr(expr->condition())) {
+            auto newExpr = static_cast<LabelAttributeExpression*>(expr->condition());
+            expr->setCondition(createExpr(newExpr));
+        } else {
+            expr->condition()->accept(this);
+        }
+    }
+    if (expr->hasDefault()) {
+        if (isLabelAttrExpr(expr->defaultResult())) {
+            auto newExpr = static_cast<LabelAttributeExpression*>(expr->defaultResult());
+            expr->setDefault(createExpr(newExpr));
+        } else {
+            expr->defaultResult()->accept(this);
+        }
+    }
+    auto& cases = expr->cases();
+    for (size_t i = 0; i < cases.size(); ++i) {
+        auto when = cases[i].when.get();
+        auto then = cases[i].then.get();
+        if (isLabelAttrExpr(when)) {
+            auto newExpr = static_cast<LabelAttributeExpression*>(when);
+            expr->setWhen(i, createExpr(newExpr));
+        } else {
+            when->accept(this);
+        }
+        if (isLabelAttrExpr(then)) {
+            auto newExpr = static_cast<LabelAttributeExpression*>(then);
+            expr->setThen(i, createExpr(newExpr));
+        } else {
+            then->accept(this);
+        }
+    }
 }
 
 void RewriteLabelAttrVisitor::visitBinaryExpr(BinaryExpression* expr) {
@@ -100,21 +136,20 @@ void RewriteLabelAttrVisitor::visitBinaryExpr(BinaryExpression* expr) {
 }
 
 std::vector<std::unique_ptr<Expression>> RewriteLabelAttrVisitor::rewriteExprList(
-    const std::vector<const Expression*>& exprs) {
+    const std::vector<std::unique_ptr<Expression>>& exprs) {
     std::vector<std::unique_ptr<Expression>> newExprs;
 
-    auto found = std::find_if(exprs.cbegin(), exprs.cend(), isLabelAttrExpr);
+    auto found = std::find_if(
+        exprs.cbegin(), exprs.cend(), [](auto& expr) { return isLabelAttrExpr(expr.get()); });
     if (found == exprs.cend()) {
-        std::for_each(exprs.cbegin(), exprs.cend(), [this](auto expr) {
-            const_cast<Expression*>(expr)->accept(this);
-        });
+        std::for_each(exprs.cbegin(), exprs.cend(), [this](auto& expr) { expr->accept(this); });
         return newExprs;
     }
 
     newExprs.reserve(exprs.size());
-    for (auto item : exprs) {
-        if (isLabelAttrExpr(item)) {
-            auto symExpr = static_cast<const LabelAttributeExpression*>(item);
+    for (auto& item : exprs) {
+        if (isLabelAttrExpr(item.get())) {
+            auto symExpr = static_cast<const LabelAttributeExpression*>(item.get());
             newExprs.emplace_back(createExpr(symExpr));
         } else {
             auto newExpr = item->clone();

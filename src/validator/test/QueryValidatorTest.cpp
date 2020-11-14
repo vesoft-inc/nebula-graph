@@ -5,7 +5,6 @@
  */
 
 #include "common/base/Base.h"
-
 #include "validator/test/ValidatorTestBase.h"
 
 DECLARE_uint32(max_allowed_statements);
@@ -172,8 +171,10 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kDedup,
             PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -288,8 +289,10 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kDedup,
             PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -317,8 +320,10 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kDedup,
             PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -348,8 +353,10 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kDedup,
             PK::kStart,
+            PK::kProject,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -465,11 +472,13 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kDataJoin,
-            PK::kGetNeighbors,
-            PK::kProject,
-            PK::kStart,
-            PK::kGetVertices,
             PK::kDedup,
+            PK::kProject,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kStart,
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
@@ -507,11 +516,13 @@ TEST_F(QueryValidatorTest, GoWithPipe) {
             PK::kProject,
             PK::kProject,
             PK::kDataJoin,
-            PK::kGetNeighbors,
-            PK::kProject,
-            PK::kStart,
-            PK::kGetVertices,
             PK::kDedup,
+            PK::kProject,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kStart,
             PK::kProject,
             PK::kProject,
             PK::kGetNeighbors,
@@ -1027,6 +1038,8 @@ TEST_F(QueryValidatorTest, GoMToN) {
             PK::kDataJoin,
             PK::kDedup,
             PK::kProject,
+            PK::kDedup,
+            PK::kProject,
             PK::kGetNeighbors,
             PK::kStart,
         };
@@ -1075,6 +1088,31 @@ TEST_F(QueryValidatorTest, GoInvalid) {
     {
         std::string query = "GO FROM \"2\" OVER like YIELD COUNT(123);";
         EXPECT_FALSE(checkResult(query));
+    }
+    {
+        std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, like._src AS id | GO "
+                            "FROM $-.id OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
+    {
+        std::string query = "$a = GO FROM \"1\" OVER like YIELD like._dst AS id, like._src AS id; "
+                            "GO FROM $a.id OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
+    {
+        std::string query = "GO FROM \"1\" OVER like, serve YIELD like._dst AS id, serve._src AS "
+                            "id, serve._dst AS DST | GO FROM $-.DST OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
+    {
+        std::string query =
+            "$a = GO FROM \"1\" OVER * YIELD like._dst AS id, like._src AS id, serve._dst as DST; "
+            "GO FROM $a.DST OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
     }
 }
 

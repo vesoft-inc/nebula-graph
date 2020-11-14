@@ -51,8 +51,11 @@ private:
     void visit(VariableExpression* expr) override;
     void visit(VersionedVariableExpression* expr) override;
     void visit(LabelExpression* expr) override;
+    void visit(LabelAttributeExpression* expr) override;
+    void visit(AttributeExpression* expr) override;
     void visit(VertexExpression* expr) override;
     void visit(EdgeExpression* expr) override;
+    void visit(CaseExpression* expr) override;
 
     void visitBinaryExpr(BinaryExpression* expr) override;
     void collectExpr(const Expression* expr);

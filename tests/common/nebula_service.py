@@ -22,8 +22,7 @@ class NebulaService(object):
     def __init__(self, build_dir, src_dir):
         self.build_dir = build_dir
         self.src_dir = src_dir
-        self.work_dir = "/tmp/nebula-" + str(
-            random.randrange(1000000, 100000000))
+        self.work_dir = os.path.join(self.build_dir, 'server_' + time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()))
         self.pids = {}
 
     def set_work_dir(self, work_dir):
@@ -59,6 +58,7 @@ class NebulaService(object):
                                     ports[1], ports[2])
         if name == 'graphd':
             param += ' --enable_optimizer=true'
+            param += ' --enable_authorize=true'
         if name == 'storaged':
             param += ' --raft_heartbeat_interval_secs=30'
         if debug_log:
@@ -77,12 +77,14 @@ class NebulaService(object):
         return ports
 
     def _telnet_port(self, port):
-        sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sk.settimeout(1)
-        result = sk.connect_ex(('127.0.0.1', port))
-        return result == 0
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sk:
+            sk.settimeout(1)
+            result = sk.connect_ex(('127.0.0.1', port))
+            return result == 0
 
     def install(self):
+        if os.path.exists(self.work_dir):
+            shutil.rmtree(self.work_dir)
         os.mkdir(self.work_dir)
         print("work directory: " + self.work_dir)
         os.chdir(self.work_dir)
@@ -111,12 +113,12 @@ class NebulaService(object):
             time.sleep(1)
         return False
 
-
     def start(self, debug_log=True):
         os.chdir(self.work_dir)
 
         metad_ports = self._find_free_port()
         command = ''
+        storage_port = 0
         graph_port = 0
         server_ports = []
         for server_name in ['metad', 'storaged', 'graphd']:
@@ -126,6 +128,8 @@ class NebulaService(object):
             else:
                 ports = metad_ports
             server_ports.append(ports[0])
+            if server_name == 'storaged':
+                storage_port = ports[0]
             command = self._format_nebula_command(server_name,
                                                   metad_ports[0],
                                                   ports,
@@ -148,7 +152,7 @@ class NebulaService(object):
             with open(pf) as f:
                 self.pids[f.name] = int(f.readline())
 
-        return graph_port
+        return (storage_port, graph_port)
 
     def stop(self, cleanup):
         print("try to stop nebula services...")

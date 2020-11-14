@@ -46,10 +46,12 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_process_obj>
+    $<TARGET_OBJECTS:common_time_utils_obj>
 )
 
 nebula_add_test(
-    NAME validator_test
+    NAME
+        validator_test
     SOURCES
         ACLValidatorTest.cpp
         FetchVerticesTest.cpp
@@ -64,7 +66,9 @@ nebula_add_test(
         ValidatorTestBase.cpp
         ExplainValidatorTest.cpp
         GroupByValidatorTest.cpp
-    OBJECTS ${VALIDATOR_TEST_LIBS}
+        SymbolsTest.cpp
+    OBJECTS
+        ${VALIDATOR_TEST_LIBS}
     LIBRARIES
         gtest
         ${THRIFT_LIBRARIES}

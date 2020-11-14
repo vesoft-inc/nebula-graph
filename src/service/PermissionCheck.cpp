@@ -31,68 +31,78 @@ namespace graph {
  */
 
 // static
-bool PermissionCheck::permissionCheck(Session *session,
+Status PermissionCheck::permissionCheck(Session *session,
                                       Sentence* sentence,
                                       GraphSpaceID targetSpace) {
     if (!FLAGS_enable_authorize) {
-        return true;
+        return Status::OK();
     }
     auto kind = sentence->kind();
     switch (kind) {
-        case Sentence::Kind::kUnknown : {
-            return false;
+        case Sentence::Kind::kUnknown: {
+            return Status::Error("Unknown sentence");
         }
-        case Sentence::Kind::kUse :
-        case Sentence::Kind::kDescribeSpace : {
+        case Sentence::Kind::kUse:
+        case Sentence::Kind::kDescribeSpace: {
             /**
              * Use space and Describe space are special operations.
              * Permission checking needs to be done in their executor.
              * skip the check at here.
              */
-            return true;
+            return Status::OK();
         }
-        case Sentence::Kind::kCreateSpace :
-        case Sentence::Kind::kDropSpace :
-        case Sentence::Kind::kCreateSnapshot :
-        case Sentence::Kind::kDropSnapshot :
-        case Sentence::Kind::kBalance :
-        case Sentence::Kind::kAdminJob :
-        case Sentence::Kind::kShowConfigs :
-        case Sentence::Kind::kSetConfig :
-        case Sentence::Kind::kGetConfig :
-        case Sentence::Kind::kIngest :
-        case Sentence::Kind::kDownload : {
+        case Sentence::Kind::kCreateSpace:
+        case Sentence::Kind::kDropSpace:
+        case Sentence::Kind::kCreateSnapshot:
+        case Sentence::Kind::kDropSnapshot:
+        case Sentence::Kind::kAddGroup:
+        case Sentence::Kind::kDropGroup:
+        case Sentence::Kind::kDescribeGroup:
+        case Sentence::Kind::kListGroups:
+        case Sentence::Kind::kAddZoneIntoGroup:
+        case Sentence::Kind::kDropZoneFromGroup:
+        case Sentence::Kind::kAddZone:
+        case Sentence::Kind::kDropZone:
+        case Sentence::Kind::kDescribeZone:
+        case Sentence::Kind::kListZones:
+        case Sentence::Kind::kAddHostIntoZone:
+        case Sentence::Kind::kDropHostFromZone:
+        case Sentence::Kind::kBalance:
+        case Sentence::Kind::kAdminJob:
+        case Sentence::Kind::kShowConfigs:
+        case Sentence::Kind::kSetConfig:
+        case Sentence::Kind::kGetConfig:
+        case Sentence::Kind::kIngest:
+        case Sentence::Kind::kDownload: {
             return PermissionManager::canWriteSpace(session);
         }
-        case Sentence::Kind::kCreateTag :
-        case Sentence::Kind::kAlterTag :
-        case Sentence::Kind::kCreateEdge :
-        case Sentence::Kind::kAlterEdge :
-        case Sentence::Kind::kDropTag :
-        case Sentence::Kind::kDropEdge :
-        case Sentence::Kind::kCreateTagIndex :
-        case Sentence::Kind::kCreateEdgeIndex :
-        case Sentence::Kind::kDropTagIndex :
-        case Sentence::Kind::kDropEdgeIndex : {
+        case Sentence::Kind::kCreateTag:
+        case Sentence::Kind::kAlterTag:
+        case Sentence::Kind::kCreateEdge:
+        case Sentence::Kind::kAlterEdge:
+        case Sentence::Kind::kDropTag:
+        case Sentence::Kind::kDropEdge:
+        case Sentence::Kind::kCreateTagIndex:
+        case Sentence::Kind::kCreateEdgeIndex:
+        case Sentence::Kind::kDropTagIndex:
+        case Sentence::Kind::kDropEdgeIndex: {
             return PermissionManager::canWriteSchema(session);
         }
-        case Sentence::Kind::kCreateUser :
-        case Sentence::Kind::kDropUser :
-        case Sentence::Kind::kAlterUser : {
+        case Sentence::Kind::kCreateUser:
+        case Sentence::Kind::kDropUser:
+        case Sentence::Kind::kAlterUser: {
             return PermissionManager::canWriteUser(session);
         }
-        case Sentence::Kind::kRevoke :
-        case Sentence::Kind::kGrant : {
+        case Sentence::Kind::kRevoke:
+        case Sentence::Kind::kGrant: {
             /**
              * Use grant and revoke are special operations.
              * Because have not found the target space id and target role
              * so permission checking needs to be done in their executor.
              * skip the check at here.
              */
-            return true;
+            return Status::OK();
         }
-        case Sentence::Kind::kRebuildTagIndex :
-        case Sentence::Kind::kRebuildEdgeIndex :
         case Sentence::Kind::kInsertVertices :
         case Sentence::Kind::kUpdateVertex :
         case Sentence::Kind::kInsertEdges :
@@ -101,25 +111,25 @@ bool PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kDeleteEdges : {
             return PermissionManager::canWriteData(session);
         }
-        case Sentence::Kind::kDescribeTag :
-        case Sentence::Kind::kDescribeEdge :
-        case Sentence::Kind::kDescribeTagIndex :
-        case Sentence::Kind::kDescribeEdgeIndex :
-        case Sentence::Kind::kGo :
-        case Sentence::Kind::kSet :
-        case Sentence::Kind::kPipe :
-        case Sentence::Kind::kMatch :
-        case Sentence::Kind::kAssignment :
-        case Sentence::Kind::kLookup :
-        case Sentence::Kind::kYield :
-        case Sentence::Kind::kOrderBy :
-        case Sentence::Kind::kFetchVertices :
-        case Sentence::Kind::kFetchEdges :
-        case Sentence::Kind::kFindPath :
+        case Sentence::Kind::kDescribeTag:
+        case Sentence::Kind::kDescribeEdge:
+        case Sentence::Kind::kDescribeTagIndex:
+        case Sentence::Kind::kDescribeEdgeIndex:
+        case Sentence::Kind::kGo:
+        case Sentence::Kind::kSet:
+        case Sentence::Kind::kPipe:
+        case Sentence::Kind::kMatch:
+        case Sentence::Kind::kAssignment:
+        case Sentence::Kind::kLookup:
+        case Sentence::Kind::kYield:
+        case Sentence::Kind::kOrderBy:
+        case Sentence::Kind::kFetchVertices:
+        case Sentence::Kind::kFetchEdges:
+        case Sentence::Kind::kFindPath:
         case Sentence::Kind::kGetSubgraph:
-        case Sentence::Kind::kLimit :
-        case Sentence::Kind::kGroupBy :
-        case Sentence::Kind::kReturn : {
+        case Sentence::Kind::kLimit:
+        case Sentence::Kind::kGroupBy:
+        case Sentence::Kind::kReturn: {
             return PermissionManager::canReadSchemaOrData(session);
         }
         case Sentence::Kind::kShowParts:
@@ -136,24 +146,28 @@ bool PermissionCheck::permissionCheck(Session *session,
              * so the permission same with canReadSchemaOrData.
              * They've been checked by "USE SPACE", so here skip the check.
              */
-            return true;
+            return Status::OK();
         }
         case Sentence::Kind::kShowCharset:
         case Sentence::Kind::kShowCollation:
+        case Sentence::Kind::kShowGroups:
+        case Sentence::Kind::kShowZones:
         case Sentence::Kind::kShowHosts: {
             /**
              * all roles can be show for above operations.
              */
-            return true;
+            return Status::OK();
         }
-        case Sentence::Kind::kShowSpaces:
-        case Sentence::Kind::kShowCreateSpace:
-        case Sentence::Kind::kShowRoles: {
+        case Sentence::Kind::kShowSpaces: {
             /*
              * Above operations are special operation.
              * can not get the space id via session,
              * Permission checking needs to be done in their executor.
              */
+            return Status::OK();
+        }
+        case Sentence::Kind::kShowCreateSpace:
+        case Sentence::Kind::kShowRoles: {
             return PermissionManager::canReadSpace(session, targetSpace);
         }
         case Sentence::Kind::kShowUsers:
@@ -161,16 +175,26 @@ bool PermissionCheck::permissionCheck(Session *session,
             /**
              * Only GOD role can be show.
              */
-            return session->isGod();
+            if (session->isGod()) {
+                return Status::OK();
+            } else {
+                return Status::PermissionError("No permission to show users/snapshots");
+            }
         }
-        case Sentence::Kind::kChangePassword : {
-            return true;
+        case Sentence::Kind::kChangePassword: {
+            return Status::OK();
         }
         case Sentence::Kind::kExplain:
-        case Sentence::Kind::kSequential:
-            LOG(FATAL) << "Impossible sequential sentences permission checking";
+            // everyone could explain
+            return Status::OK();
+        case Sentence::Kind::kSequential: {
+            // No permission checking for sequential sentence.
+            return Status::OK();
+        }
     }
-    return false;
+    LOG(ERROR) << "Impossible permission checking for sentence " << sentence->kind();
+    return Status::Error("Impossible permission checking for sentence %d.",
+                         static_cast<int>(sentence->kind()));
 }
 }  // namespace graph
 }  // namespace nebula

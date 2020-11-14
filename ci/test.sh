@@ -15,8 +15,10 @@ mkdir -p $BUILD_DIR
 
 function get_py_client() {
     git clone -b v2.0 https://github.com/vesoft-inc/nebula-python.git
-    cd nebula-python
+    pushd nebula-python
     python3 setup.py install --user
+    popd
+    rm -rf nebula-python
 }
 
 function prepare() {
@@ -57,7 +59,7 @@ function gcc_compile() {
     cmake --build $BUILD_DIR -j$(nproc)
 }
 
-function clang_compile() {
+function configure_clang() {
     cd $PROJ_DIR
     cmake \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=on \
@@ -70,6 +72,11 @@ function clang_compile() {
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
         -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
         -B $BUILD_DIR
+}
+
+function clang_compile() {
+    configure_clang
+    cd $PROJ_DIR
     build_common
     build_storage
     cmake --build $BUILD_DIR -j$(nproc)
@@ -83,24 +90,29 @@ function run_ctest() {
 }
 
 function run_test() {
-    cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
-    ./ntr \
+    testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
+
+    $BUILD_DIR/tests/ntr \
         -n=8 \
         --dist=loadfile \
         --debug_log=false \
-        $PROJ_DIR/tests/admin/* \
-        $PROJ_DIR/tests/maintain/* \
-        $PROJ_DIR/tests/mutate/* \
-        $PROJ_DIR/tests/query/v1/* \
-        $PROJ_DIR/tests/query/v2/* \
-        $PROJ_DIR/tests/query/stateless/test_schema.py \
-        $PROJ_DIR/tests/query/stateless/test_admin.py \
-        $PROJ_DIR/tests/query/stateless/test_if_exists.py \
-        $PROJ_DIR/tests/query/stateless/test_range.py \
-        $PROJ_DIR/tests/query/stateless/test_go.py \
-        $PROJ_DIR/tests/query/stateless/test_simple_query.py \
-        $PROJ_DIR/tests/query/stateless/test_keyword.py
+        $testpath
+
+    $BUILD_DIR/tests/ntr --debug_log=false $PROJ_DIR/tests/job/*
+}
+
+function test_in_cluster() {
+    cd $BUILD_DIR/tests
+    export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
+    testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
+    ./ntr \
+        -n=8 \
+        --dist=loadfile \
+        --address="nebulaclusters-graphd:3699" \
+        $testpath
+
+    ./ntr --address="nebulaclusters-graphd:3699" $PROJ_DIR/tests/job/*
 }
 
 case "$1" in
@@ -121,6 +133,11 @@ case "$1" in
         ;;
     test)
         run_test
+        ;;
+    k8s)
+        prepare
+        configure_clang
+        test_in_cluster
         ;;
     *)
         prepare

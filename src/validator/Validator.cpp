@@ -35,6 +35,8 @@
 #include "validator/YieldValidator.h"
 #include "visitor/DeducePropsVisitor.h"
 #include "visitor/DeduceTypeVisitor.h"
+#include "validator/GroupByValidator.h"
+#include "validator/MatchValidator.h"
 #include "visitor/EvaluableExprVisitor.h"
 #include "validator/IndexScanValidator.h"
 
@@ -165,6 +167,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<ShowConfigsValidator>(sentence, context);
         case Sentence::Kind::kFindPath:
             return std::make_unique<FindPathValidator>(sentence, context);
+        case Sentence::Kind::kMatch:
+            return std::make_unique<MatchValidator>(sentence, context);
         case Sentence::Kind::kCreateTagIndex:
             return std::make_unique<CreateTagIndexValidator>(sentence, context);
         case Sentence::Kind::kShowCreateTagIndex:
@@ -173,8 +177,6 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescribeTagIndexValidator>(sentence, context);
         case Sentence::Kind::kShowTagIndexes:
             return std::make_unique<ShowTagIndexesValidator>(sentence, context);
-        case Sentence::Kind::kRebuildTagIndex:
-            return std::make_unique<RebuildTagIndexValidator>(sentence, context);
         case Sentence::Kind::kDropTagIndex:
             return std::make_unique<DropTagIndexValidator>(sentence, context);
         case Sentence::Kind::kCreateEdgeIndex:
@@ -185,13 +187,36 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescribeEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kShowEdgeIndexes:
             return std::make_unique<ShowEdgeIndexesValidator>(sentence, context);
-        case Sentence::Kind::kRebuildEdgeIndex:
-            return std::make_unique<RebuildEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kDropEdgeIndex:
             return std::make_unique<DropEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kLookup:
             return std::make_unique<IndexScanValidator>(sentence, context);
-        case Sentence::Kind::kMatch:
+        case Sentence::Kind::kAddGroup:
+            return std::make_unique<AddGroupValidator>(sentence, context);
+        case Sentence::Kind::kDropGroup:
+            return std::make_unique<DropGroupValidator>(sentence, context);
+        case Sentence::Kind::kDescribeGroup:
+            return std::make_unique<DescribeGroupValidator>(sentence, context);
+        case Sentence::Kind::kListGroups:
+            return std::make_unique<ListGroupsValidator>(sentence, context);
+        case Sentence::Kind::kAddZoneIntoGroup:
+            return std::make_unique<AddZoneIntoGroupValidator>(sentence, context);
+        case Sentence::Kind::kDropZoneFromGroup:
+            return std::make_unique<DropZoneFromGroupValidator>(sentence, context);
+        case Sentence::Kind::kAddZone:
+            return std::make_unique<AddZoneValidator>(sentence, context);
+        case Sentence::Kind::kDropZone:
+            return std::make_unique<DropZoneValidator>(sentence, context);
+        case Sentence::Kind::kDescribeZone:
+            return std::make_unique<DescribeZoneValidator>(sentence, context);
+        case Sentence::Kind::kListZones:
+            return std::make_unique<ListZonesValidator>(sentence, context);
+        case Sentence::Kind::kAddHostIntoZone:
+            return std::make_unique<AddHostIntoZoneValidator>(sentence, context);
+        case Sentence::Kind::kDropHostFromZone:
+            return std::make_unique<DropHostFromZoneValidator>(sentence, context);
+        case Sentence::Kind::kShowGroups:
+        case Sentence::Kind::kShowZones:
         case Sentence::Kind::kUnknown:
         case Sentence::Kind::kDownload:
         case Sentence::Kind::kIngest:
@@ -221,7 +246,7 @@ Status Validator::validate(Sentence* sentence, QueryContext* qctx) {
 
     auto root = validator->root();
     if (!root) {
-        return Status::Error("Get null plan from sequential validator");
+        return Status::SemanticError("Get null plan from sequential validator");
     }
     qctx->plan()->setRoot(root);
     return Status::OK();
@@ -260,21 +285,20 @@ Status Validator::validate() {
 
     if (!noSpaceRequired_) {
         space_ = vctx_->whichSpace();
-        VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name
-                << " id: " << space_.id;
+        VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name << " id: " << space_.id;
     }
 
-    auto status = validateImpl();
-    if (!status.ok()) {
-        if (status.isSemanticError()) return status;
-        return Status::SemanticError(status.message());
+    NG_RETURN_IF_ERROR(validateImpl());
+
+    // Check for duplicate reference column names in pipe or var statement
+    NG_RETURN_IF_ERROR(checkDuplicateColName());
+
+    // Execute after validateImpl because need field from it
+    if (FLAGS_enable_authorize) {
+        NG_RETURN_IF_ERROR(checkPermission());
     }
 
-    status = toPlan();
-    if (!status.ok()) {
-        if (status.isSemanticError()) return status;
-        return Status::SemanticError(status.message());
-    }
+    NG_RETURN_IF_ERROR(toPlan());
 
     return Status::OK();
 }
@@ -309,7 +333,7 @@ StatusOr<Value::Type> Validator::deduceExprType(const Expression* expr) const {
 }
 
 Status Validator::deduceProps(const Expression* expr, ExpressionProps& exprProps) {
-    DeducePropsVisitor visitor(qctx_, space_.id, &exprProps);
+    DeducePropsVisitor visitor(qctx_, space_.id, &exprProps, &userDefinedVarNameList_);
     const_cast<Expression*>(expr)->accept(&visitor);
     return std::move(visitor).status();
 }
@@ -320,57 +344,95 @@ bool Validator::evaluableExpr(const Expression* expr) const {
     return visitor.ok();
 }
 
-// static
-StatusOr<size_t> Validator::checkPropNonexistOrDuplicate(const ColsDef& cols,
-                                               folly::StringPiece prop,
-                                               const std::string& validator) {
-    auto eq = [&](const ColDef& col) { return col.first == prop.str(); };
-    auto iter = std::find_if(cols.cbegin(), cols.cend(), eq);
-    if (iter == cols.cend()) {
-        return Status::SemanticError(
-            "%s: prop `%s' not exists", validator.c_str(), prop.str().c_str());
-    }
-
-    size_t colIdx = std::distance(cols.cbegin(), iter);
-    iter = std::find_if(iter + 1, cols.cend(), eq);
-    if (iter != cols.cend()) {
-        return Status::SemanticError(
-            "%s: duplicate prop `%s'", validator.c_str(), prop.str().c_str());
-    }
-
-    return colIdx;
-}
-
-StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) const {
+StatusOr<std::string> Validator::checkRef(const Expression* ref, Value::Type type) {
     if (ref->kind() == Expression::Kind::kInputProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
         ColDef col(*propExpr->prop(), type);
         const auto find = std::find(inputs_.begin(), inputs_.end(), col);
         if (find == inputs_.end()) {
-            return Status::Error("No input property %s", propExpr->prop()->c_str());
+            return Status::SemanticError("No input property `%s'", propExpr->prop()->c_str());
         }
-        return std::string();
-    } else if (ref->kind() == Expression::Kind::kVarProperty) {
+        return inputVarName_;
+    }
+    if (ref->kind() == Expression::Kind::kVarProperty) {
         const auto* propExpr = static_cast<const PropertyExpression*>(ref);
         ColDef col(*propExpr->prop(), type);
+
         const auto &outputVar = *propExpr->sym();
         const auto &var = vctx_->getVar(outputVar);
         if (var.empty()) {
-            return Status::Error("No variable %s", outputVar.c_str());
+            return Status::SemanticError("No variable `%s'", outputVar.c_str());
         }
         const auto find = std::find(var.begin(), var.end(), col);
         if (find == var.end()) {
-            return Status::Error("No property %s in variable %s",
-                                 propExpr->prop()->c_str(),
-                                 outputVar.c_str());
+            return Status::SemanticError(
+                "No property `%s' in variable `%s'", propExpr->prop()->c_str(), outputVar.c_str());
         }
+        userDefinedVarNameList_.emplace(outputVar);
         return outputVar;
-    } else {
-        // it's guranteed by parser
-        DLOG(FATAL) << "Unexpected expression " << ref->kind();
-        return Status::Error("Unexpected expression.");
     }
+    // it's guranteed by parser
+    DLOG(FATAL) << "Unexpected expression " << ref->kind();
+    return Status::SemanticError("Unexpected expression.");
 }
 
+Status Validator::toPlan() {
+    auto* astCtx = getAstContext();
+    if (astCtx != nullptr) {
+        astCtx->space = space_;
+    }
+    auto subPlanStatus = Planner::toPlan(astCtx);
+    NG_RETURN_IF_ERROR(subPlanStatus);
+    auto subPlan = std::move(subPlanStatus).value();
+    root_ = subPlan.root;
+    tail_ = subPlan.tail;
+    VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
+    return Status::OK();
+}
+
+Status Validator::checkDuplicateColName() {
+    auto checkColName = [] (const ColsDef& nameList) {
+        std::unordered_set<std::string> names;
+        for (auto& item : nameList) {
+            auto ret = names.emplace(item.name);
+            if (!ret.second) {
+                return Status::SemanticError("Duplicate Column Name : `%s'", item.name.c_str());
+            }
+        }
+        return Status::OK();
+    };
+    if (!inputs_.empty()) {
+        return checkColName(inputs_);
+    }
+    if (userDefinedVarNameList_.empty()) {
+        return Status::OK();
+    }
+    for (const auto& varName : userDefinedVarNameList_) {
+        auto& varProps = vctx_->getVar(varName);
+        if (!varProps.empty()) {
+            auto res = checkColName(varProps);
+            if (!res.ok()) {
+                return res;
+            }
+        }
+    }
+    return Status::OK();
+}
+
+Status Validator::invalidLabelIdentifiers(const Expression* expr) const {
+    auto labelExprs = ExpressionUtils::collectAll(expr, {Expression::Kind::kLabel});
+    if (!labelExprs.empty()) {
+        std::stringstream ss;
+        ss << "Invalid label identifiers: ";
+        for (auto* label : labelExprs) {
+            ss << label->toString() << ",";
+        }
+        auto errMsg = ss.str();
+        errMsg.pop_back();
+        return Status::SemanticError(std::move(errMsg));
+    }
+
+    return Status::OK();
+}
 }   // namespace graph
 }   // namespace nebula

@@ -13,7 +13,6 @@
 namespace nebula {
 namespace graph {
 
-
 class FindPathValidator final : public TraversalValidator {
 public:
     FindPathValidator(Sentence* sentence, QueryContext* context)
@@ -24,9 +23,30 @@ private:
 
     Status toPlan() override;
 
+    Status singlePairPlan();
+
+    void buildStart(Starts& starts, std::string& startVidsVar, PlanNode* dedupStartVid);
+
+    PlanNode* bfs(PlanNode* dep, Starts& starts, bool reverse);
+
+    PlanNode* multiPairShortestPath(PlanNode* dep, Starts& starts, bool reverse);
+
+    Status multiPairPlan();
+
+    Expression* buildMultiPairLoopCondition(uint32_t steps);
+
+    Expression* buildBfsLoopCondition(uint32_t steps, const std::string& pathVar);
+
+    GetNeighbors::EdgeProps buildEdgeKey(bool reverse);
+
+    Status allPairPaths();
+
+    PlanNode* allPaths(PlanNode* dep, Starts& starts, bool reverse);
+
+    Expression* buildAllPathsLoopCondition(uint32_t steps);
+
 private:
     bool            isShortest_{false};
-    Starts          from_;
     Starts          to_;
     Over            over_;
     Steps           steps_;

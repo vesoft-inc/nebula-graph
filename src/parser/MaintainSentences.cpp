@@ -238,9 +238,15 @@ std::string CreateTagIndexSentence::toString() const {
     buf += " ON ";
     buf += *tagName_;
     buf += " (";
-    std::string columns;
-    folly::join(", ", this->columns(), columns);
-    buf += columns;
+    std::vector<std::string> fieldDefs;
+    for (const auto& field : this->fields()) {
+        std::string f = field.get_name();
+        if (field.__isset.type_length) f + "(" +field.get_type_length() + ")";
+        fieldDefs.emplace_back(std::move(f));
+    }
+    std::string fields;
+    folly::join(", ", fieldDefs, fields);
+    buf += fields;
     buf += ")";
     return buf;
 }
@@ -254,9 +260,15 @@ std::string CreateEdgeIndexSentence::toString() const {
     buf += " ON ";
     buf += *edgeName_;
     buf += " (";
-    std::string columns;
-    folly::join(", ", this->columns(), columns);
-    buf += columns;
+    std::vector<std::string> fieldDefs;
+    for (const auto& field : this->fields()) {
+        std::string f = field.get_name();
+        if (field.__isset.type_length) f + "(" +field.get_type_length() + ")";
+        fieldDefs.emplace_back(std::move(f));
+    }
+    std::string fields;
+    folly::join(", ", fieldDefs, fields);
+    buf += fields;
     buf += ")";
     return buf;
 }
@@ -281,15 +293,6 @@ std::string DropEdgeIndexSentence::toString() const {
     return folly::stringPrintf("DROP EDGE INDEX %s", indexName_.get()->c_str());
 }
 
-
-std::string RebuildTagIndexSentence::toString() const {
-    return folly::stringPrintf("BUILD TAG INDEX %s", indexName_.get()->c_str());
-}
-
-
-std::string RebuildEdgeIndexSentence::toString() const {
-    return folly::stringPrintf("BUILD EDGE INDEX %s", indexName_.get()->c_str());
-}
 
 std::string ShowTagsSentence::toString() const {
     return folly::stringPrintf("SHOW TAGS");
@@ -321,6 +324,58 @@ std::string ShowCreateTagIndexSentence::toString() const {
 
 std::string ShowCreateEdgeIndexSentence::toString() const {
     return folly::stringPrintf("SHOW CREATE EDGE INDEX %s", indexName_.get()->c_str());
+}
+
+std::string AddGroupSentence::toString() const {
+    return folly::stringPrintf("ADD GROUP %s", groupName_.get()->c_str());
+}
+
+std::string AddZoneSentence::toString() const {
+    return folly::stringPrintf("ADD ZONE %s", zoneName_.get()->c_str());
+}
+
+std::string DropGroupSentence::toString() const {
+    return folly::stringPrintf("DROP GROUP %s", groupName_.get()->c_str());
+}
+
+std::string DropZoneSentence::toString() const {
+    return folly::stringPrintf("DROP ZONE %s", zoneName_.get()->c_str());
+}
+
+std::string DescribeGroupSentence::toString() const {
+    return folly::stringPrintf("DESCRIBE GROUP %s", groupName_.get()->c_str());
+}
+
+std::string DescribeZoneSentence::toString() const {
+    return folly::stringPrintf("DESCRIBE ZONE %s", zoneName_.get()->c_str());
+}
+
+std::string ListGroupsSentence::toString() const {
+    return folly::stringPrintf("SHOW GROUPS");
+}
+
+std::string ListZonesSentence::toString() const {
+    return folly::stringPrintf("SHOW ZONES");
+}
+
+std::string AddZoneIntoGroupSentence::toString() const {
+    return folly::stringPrintf("Add Zone %s Into Group %s",
+                               zoneName_.get()->c_str(),
+                               groupName_.get()->c_str());
+}
+
+std::string AddHostIntoZoneSentence::toString() const {
+    return folly::stringPrintf("Add Host Into Zone %s", zoneName_.get()->c_str());
+}
+
+std::string DropZoneFromGroupSentence::toString() const {
+    return folly::stringPrintf("Drop Zone %s From Group %s",
+                               zoneName_.get()->c_str(),
+                               groupName_.get()->c_str());
+}
+
+std::string DropHostFromZoneSentence::toString() const {
+    return folly::stringPrintf("Drop Host From Zone %s", zoneName_.get()->c_str());
 }
 
 }   // namespace nebula

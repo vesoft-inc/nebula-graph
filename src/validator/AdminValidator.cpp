@@ -30,25 +30,26 @@ Status CreateSpaceValidator::validateImpl() {
             case SpaceOptItem::PARTITION_NUM: {
                 spaceDesc_.partition_num = item->getPartitionNum();
                 if (spaceDesc_.partition_num <= 0) {
-                    return Status::Error("Partition_num value should be greater than zero");
+                    return Status::SemanticError("Partition_num value should be greater than zero");
                 }
                 break;
             }
             case SpaceOptItem::REPLICA_FACTOR: {
                 spaceDesc_.replica_factor = item->getReplicaFactor();
                 if (spaceDesc_.replica_factor <= 0) {
-                    return Status::Error("Replica_factor value should be greater than zero");
+                    return Status::SemanticError(
+                        "Replica_factor value should be greater than zero");
                 }
                 break;
             }
             case SpaceOptItem::VID_TYPE: {
                 auto typeDef = item->getVidType();
                 if (typeDef.type != meta::cpp2::PropertyType::INT64 &&
-                        typeDef.type != meta::cpp2::PropertyType::FIXED_STRING) {
+                    typeDef.type != meta::cpp2::PropertyType::FIXED_STRING) {
                     std::stringstream ss;
                     ss << "Only support FIXED_STRING or INT64 vid type, but was given "
                        << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(typeDef.type);
-                    return Status::Error(ss.str());
+                    return Status::SemanticError(ss.str());
                 }
                 spaceDesc_.vid_type.set_type(typeDef.type);
 
@@ -56,11 +57,12 @@ Status CreateSpaceValidator::validateImpl() {
                     spaceDesc_.vid_type.set_type_length(8);
                 } else {
                     if (!typeDef.__isset.type_length) {
-                        return Status::Error("type length is not set for fixed string type");
+                        return Status::SemanticError(
+                            "type length is not set for fixed string type");
                     }
                     if (*typeDef.get_type_length() <= 0) {
-                        return Status::Error("Vid size should be a positive number: %d",
-                                             *typeDef.get_type_length());
+                        return Status::SemanticError("Vid size should be a positive number: %d",
+                                                     *typeDef.get_type_length());
                     }
                     spaceDesc_.vid_type.set_type_length(*typeDef.get_type_length());
                 }
@@ -166,6 +168,14 @@ Status DropSpaceValidator::toPlan() {
 
 Status ShowCreateSpaceValidator::validateImpl() {
     return Status::OK();
+}
+
+Status ShowCreateSpaceValidator::checkPermission() {
+    auto sentence = static_cast<ShowCreateSpaceSentence*>(sentence_);
+    auto spaceIdResult = qctx_->schemaMng()->toGraphSpaceID(*sentence->spaceName());
+    NG_RETURN_IF_ERROR(spaceIdResult);
+    auto targetSpaceId = spaceIdResult.value();
+    return PermissionManager::canReadSpace(qctx_->rctx()->session(), targetSpaceId);
 }
 
 Status ShowCreateSpaceValidator::toPlan() {
@@ -286,7 +296,7 @@ Status SetConfigValidator::validateImpl() {
     auto sentence = static_cast<SetConfigSentence*>(sentence_);
     auto item = sentence->configItem();
     if (item == nullptr) {
-        return Status::Error("Empty config item");
+        return Status::SemanticError("Empty config item");
     }
     if (item->getName() != nullptr) {
         name_ = *item->getName();
@@ -310,14 +320,14 @@ Status SetConfigValidator::validateImpl() {
             std::string name;
             Value value;
             if (updateItem->getFieldName() == nullptr || updateItem->value() == nullptr) {
-                return Status::Error("Empty item");
+                return Status::SemanticError("Empty item");
             }
             name = *updateItem->getFieldName();
 
             value = Expression::eval(const_cast<Expression*>(updateItem->value()), ctx(nullptr));
 
             if (value.isNull() || (!value.isNumeric() && !value.isStr() && !value.isBool())) {
-                return Status::Error("Wrong value: %s", name.c_str());
+                return Status::SemanticError("Wrong value: `%s'", name.c_str());
             }
             configs.kvs.emplace(std::move(name), std::move(value));
         }
@@ -342,7 +352,7 @@ Status GetConfigValidator::validateImpl() {
     auto sentence = static_cast<GetConfigSentence*>(sentence_);
     auto item = sentence->configItem();
     if (item == nullptr) {
-        return Status::Error("Empty config item");
+        return Status::SemanticError("Empty config item");
     }
 
     module_ = item->getModule();

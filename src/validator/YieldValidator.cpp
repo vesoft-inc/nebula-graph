@@ -38,10 +38,6 @@ Status YieldValidator::validateImpl() {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
-    // TODO(yee): following check maybe not make sense
-    NG_RETURN_IF_ERROR(checkInputProps());
-    NG_RETURN_IF_ERROR(checkVarProps());
-
     if (hasAggFun_) {
         NG_RETURN_IF_ERROR(checkAggFunAndBuildGroupItems(yield->yield()));
     }
@@ -67,34 +63,6 @@ Status YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) 
         }
 
         groupItems_.emplace_back(Aggregate::GroupItem{expr, AggFun::nameIdMap_[fun], false});
-    }
-    return Status::OK();
-}
-
-Status YieldValidator::checkInputProps() const {
-    auto &inputProps = const_cast<ExpressionProps *>(&exprProps_)->inputProps();
-    if (inputs_.empty() && !inputProps.empty()) {
-        return Status::SemanticError("no inputs for yield columns.");
-    }
-    for (auto &prop : inputProps) {
-        DCHECK_NE(prop, "*");
-        NG_RETURN_IF_ERROR(checkPropNonexistOrDuplicate(inputs_, prop, "Yield sentence"));
-    }
-    return Status::OK();
-}
-
-Status YieldValidator::checkVarProps() const {
-    auto &varProps = const_cast<ExpressionProps *>(&exprProps_)->varProps();
-    for (auto &pair : varProps) {
-        auto &var = pair.first;
-        if (!vctx_->existVar(var)) {
-            return Status::SemanticError("variable `%s' not exist.", var.c_str());
-        }
-        auto &props = vctx_->getVar(var);
-        for (auto &prop : pair.second) {
-            DCHECK_NE(prop, "*");
-            NG_RETURN_IF_ERROR(checkPropNonexistOrDuplicate(props, prop, "Yield sentence"));
-        }
     }
     return Status::OK();
 }
@@ -144,13 +112,15 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
     columns_ = qctx_->objPool()->add(new YieldColumns);
     for (auto column : columns) {
         auto expr = DCHECK_NOTNULL(column->expr());
+        NG_RETURN_IF_ERROR(invalidLabelIdentifiers(expr));
+
         if (expr->kind() == Expression::Kind::kInputProperty) {
             auto ipe = static_cast<const InputPropertyExpression *>(expr);
             // Get all props of input expression could NOT be a part of another expression. So
             // it's always a root of expression.
             if (*ipe->prop() == "*") {
                 for (auto &colDef : inputs_) {
-                    auto newExpr = new InputPropertyExpression(new std::string(colDef.first));
+                    auto newExpr = new InputPropertyExpression(new std::string(colDef.name));
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
                 }
                 if (!column->getAggFunName().empty()) {
@@ -169,7 +139,7 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
                 auto &varColDefs = vctx_->getVar(*var);
                 for (auto &colDef : varColDefs) {
                     auto newExpr = new VariablePropertyExpression(new std::string(*var),
-                                                                  new std::string(colDef.first));
+                                                                  new std::string(colDef.name));
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
                 }
                 if (!column->getAggFunName().empty()) {
@@ -216,7 +186,7 @@ Status YieldValidator::toPlan() {
         filter = Filter::make(qctx_, nullptr, filterCondition_);
         std::vector<std::string> colNames(inputs_.size());
         std::transform(
-            inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &in) { return in.first; });
+            inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &col) { return col.name; });
         filter->setColNames(std::move(colNames));
         if (!constantExprVar_.empty()) {
             filter->setInputVar(constantExprVar_);

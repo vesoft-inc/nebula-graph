@@ -42,22 +42,26 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
         prop.set_props({kSrc, kDst, kRank, "start", "end", "likeness"});
         std::vector<storage::cpp2::EdgeProp> props;
         props.emplace_back(std::move(prop));
-        auto *ge = GetEdges::make(qctx,
-                                  start,
-                                  1,
-                                  src.get(),
-                                  type.get(),
-                                  rank.get(),
-                                  dst.get(),
-                                  std::move(props),
-                                  {});
-        ge->setColNames({std::string("like.") + kSrc,
-                         std::string("like.") + kDst,
-                         std::string("like.") + kRank,
-                         "like.start",
-                         "like.end",
-                         "like.likeness"});
-        auto result = Eq(qctx->plan()->root(), ge);
+        auto *ge = GetEdges::make(
+            qctx, start, 1, src.get(), type.get(), rank.get(), dst.get(), std::move(props), {});
+        std::vector<std::string> colNames{std::string("like.") + kSrc,
+                                          std::string("like.") + kDst,
+                                          std::string("like.") + kRank,
+                                          "like.start",
+                                          "like.end",
+                                          "like.likeness"};
+        ge->setColNames(colNames);
+
+        // filter
+        auto *filter = Filter::make(qctx, ge, nullptr /*TODO*/);
+        filter->setColNames(colNames);
+
+        // data collect
+        auto *dataCollect = DataCollect::make(
+            qctx, filter, DataCollect::CollectKind::kRowBasedMove, {filter->outputVar()});
+        dataCollect->setColNames(colNames);
+
+        auto result = Eq(qctx->plan()->root(), dataCollect);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD
@@ -92,11 +96,16 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   dst.get(),
                                   std::move(props),
                                   std::move(exprs));
-        ge->setColNames({std::string("like.") + kSrc,
-                         std::string("like.") + kDst,
-                         std::string("like.") + kRank,
-                         "like.start",
-                         "like.end"});
+        std::vector<std::string> colNames{std::string("like.") + kSrc,
+                                          std::string("like.") + kDst,
+                                          std::string("like.") + kRank,
+                                          "like.start",
+                                          "like.end"};
+        ge->setColNames(colNames);
+
+        // filter
+        auto *filter = Filter::make(qctx, ge, nullptr /*TODO*/);
+        filter->setColNames(colNames);
 
         // Project
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -107,7 +116,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
-        auto *project = Project::make(qctx, ge, yieldColumns.get());
+        auto *project = Project::make(qctx, filter, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,
                               std::string("like.") + kDst,
                               std::string("like.") + kRank,
@@ -149,11 +158,16 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   dst.get(),
                                   std::move(props),
                                   std::move(exprs));
-        ge->setColNames({std::string("like.") + kSrc,
-                         std::string("like.") + kDst,
-                         std::string("like.") + kRank,
-                         "like.start",
-                         "like.end"});
+        std::vector<std::string> colNames{std::string("like.") + kSrc,
+                                          std::string("like.") + kDst,
+                                          std::string("like.") + kRank,
+                                          "like.start",
+                                          "like.end"};
+        ge->setColNames(colNames);
+
+        // filter
+        auto *filter = Filter::make(qctx, ge, nullptr /*TODO*/);
+        filter->setColNames(colNames);
 
         // Project
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -166,7 +180,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             Expression::Kind::kAdd, new ConstantExpression(1), new ConstantExpression(1))));
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
-        auto *project = Project::make(qctx, ge, yieldColumns.get());
+        auto *project = Project::make(qctx, filter, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,
                               std::string("like.") + kDst,
                               std::string("like.") + kRank,
@@ -209,11 +223,16 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                   dst.get(),
                                   std::move(props),
                                   std::move(exprs));
-        ge->setColNames({std::string("like.") + kSrc,
-                         std::string("like.") + kDst,
-                         std::string("like.") + kRank,
-                         "like.start",
-                         "like.end"});
+        std::vector<std::string> colNames{std::string("like.") + kSrc,
+                                          std::string("like.") + kDst,
+                                          std::string("like.") + kRank,
+                                          "like.start",
+                                          "like.end"};
+        ge->setColNames(colNames);
+
+        // filter
+        auto *filter = Filter::make(qctx, ge, nullptr /*TODO*/);
+        filter->setColNames(colNames);
 
         // project, TODO(shylock) it's could push-down to storage if it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
@@ -224,7 +243,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             Expression::Kind::kRelGT,
             new EdgePropertyExpression(new std::string("like"), new std::string("start")),
             new EdgePropertyExpression(new std::string("like"), new std::string("end")))));
-        auto *project = Project::make(qctx, ge, yieldColumns.get());
+        auto *project = Project::make(qctx, filter, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,
                               std::string("like.") + kDst,
                               std::string("like.") + kRank,
@@ -273,6 +292,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
                                           "like.end"};
         ge->setColNames(colNames);
 
+        // filter
+        auto *filter = Filter::make(qctx, ge, nullptr /*TODO*/);
+        filter->setColNames(colNames);
+
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(new EdgeSrcIdExpression(new std::string("like"))));
@@ -282,7 +305,7 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesProp) {
             new EdgePropertyExpression(new std::string("like"), new std::string("start"))));
         yieldColumns->addColumn(new YieldColumn(
             new EdgePropertyExpression(new std::string("like"), new std::string("end"))));
-        auto *project = Project::make(qctx, ge, yieldColumns.get());
+        auto *project = Project::make(qctx, filter, yieldColumns.get());
         project->setColNames({std::string("like.") + kSrc,
                               std::string("like.") + kDst,
                               std::string("like.") + kRank,
@@ -310,8 +333,11 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
                                   "FETCH PROP ON like $a.src->$a.dst";
         EXPECT_TRUE(checkResult(query,
                                 {
+                                    PlanNode::Kind::kDataCollect,
+                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -323,8 +349,11 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
                                   " | FETCH PROP ON like $-.src->$-.dst@$-.rank";
         EXPECT_TRUE(checkResult(query,
                                 {
+                                    PlanNode::Kind::kDataCollect,
+                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -341,8 +370,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));
@@ -356,8 +387,10 @@ TEST_F(FetchEdgesValidatorTest, FetchEdgesInputOutput) {
         EXPECT_TRUE(checkResult(query,
                                 {
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kProject,
+                                    PlanNode::Kind::kFilter,
                                     PlanNode::Kind::kGetEdges,
                                     PlanNode::Kind::kStart,
                                 }));

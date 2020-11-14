@@ -5,7 +5,6 @@
 
 nebula_add_library(
     validator_obj OBJECT
-    ExpressionProps.cpp
     Validator.cpp
     AssignmentValidator.cpp
     GoValidator.cpp
@@ -30,6 +29,7 @@ nebula_add_library(
     GroupByValidator.cpp
     FindPathValidator.cpp
     IndexScanValidator.cpp
+    MatchValidator.cpp
 )
 
 nebula_add_subdirectory(test)

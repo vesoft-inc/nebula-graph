@@ -19,6 +19,10 @@ class QueryContext;
 
 class DeduceTypeVisitor final : public ExprVisitor {
 public:
+    // For testing.
+    DeduceTypeVisitor(const ColsDef &inputs, GraphSpaceID space)
+        : inputs_(inputs), space_(space) {}
+
     DeduceTypeVisitor(QueryContext *qctx,
                       ValidateContext *vctx,
                       const ColsDef &inputs,
@@ -73,8 +77,17 @@ private:
     // vertex/edge expression
     void visit(VertexExpression *expr) override;
     void visit(EdgeExpression *expr) override;
+    // case expression
+    void visit(CaseExpression *expr) override;
+    // path build expression
+    void visit(PathBuildExpression *expr) override;
 
     void visitVertexPropertyExpr(PropertyExpression *expr);
+
+    // All NULL or EMPTY will be legal in any situation.
+    bool isSuperiorType(Value::Type type) {
+        return type == Value::Type::NULLVALUE || type == Value::Type::__EMPTY__;
+    }
 
     const QueryContext *qctx_;
     const ValidateContext *vctx_;

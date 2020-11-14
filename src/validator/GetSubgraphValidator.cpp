@@ -18,32 +18,19 @@ namespace nebula {
 namespace graph {
 
 Status GetSubgraphValidator::validateImpl() {
-    Status status;
     auto* gsSentence = static_cast<GetSubgraphSentence*>(sentence_);
 
-    status = validateStep(gsSentence->step(), steps_);
-    if (!status.ok()) {
-        return status;
-    }
+    NG_RETURN_IF_ERROR(validateStep(gsSentence->step(), steps_));
+    NG_RETURN_IF_ERROR(validateStarts(gsSentence->from(), from_));
+    NG_RETURN_IF_ERROR(validateInBound(gsSentence->in()));
+    NG_RETURN_IF_ERROR(validateOutBound(gsSentence->out()));
+    NG_RETURN_IF_ERROR(validateBothInOutBound(gsSentence->both()));
 
-    status = validateStarts(gsSentence->from(), from_);
-    if (!status.ok()) {
-        return status;
+    if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty()) {
+        return Status::SemanticError("Only support input and variable in Subgraph sentence.");
     }
-
-    status = validateInBound(gsSentence->in());
-    if (!status.ok()) {
-        return status;
-    }
-
-    status = validateOutBound(gsSentence->out());
-    if (!status.ok()) {
-        return status;
-    }
-
-    status = validateBothInOutBound(gsSentence->both());
-    if (!status.ok()) {
-        return status;
+    if (!exprProps_.inputProps().empty() && !exprProps_.varProps().empty()) {
+        return Status::SemanticError("Not support both input and variable in Subgraph sentence.");
     }
 
     return Status::OK();
@@ -56,13 +43,11 @@ Status GetSubgraphValidator::validateInBound(InBoundClause* in) {
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : edges) {
             if (e->alias() != nullptr) {
-                return Status::Error("Get Subgraph not support rename edge name.");
+                return Status::SemanticError("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
-            if (!et.ok()) {
-                return et.status();
-            }
+            NG_RETURN_IF_ERROR(et);
 
             auto v = -et.value();
             edgeTypes_.emplace(v);
@@ -79,13 +64,11 @@ Status GetSubgraphValidator::validateOutBound(OutBoundClause* out) {
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
-                return Status::Error("Get Subgraph not support rename edge name.");
+                return Status::SemanticError("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
-            if (!et.ok()) {
-                return et.status();
-            }
+            NG_RETURN_IF_ERROR(et);
 
             edgeTypes_.emplace(et.value());
         }
@@ -101,13 +84,11 @@ Status GetSubgraphValidator::validateBothInOutBound(BothInOutClause* out) {
         edgeTypes_.reserve(edgeTypes_.size() + edges.size());
         for (auto* e : out->edges()) {
             if (e->alias() != nullptr) {
-                return Status::Error("Get Subgraph not support rename edge name.");
+                return Status::SemanticError("Get Subgraph not support rename edge name.");
             }
 
             auto et = qctx_->schemaMng()->toEdgeType(space.id, *e->edge());
-            if (!et.ok()) {
-                return et.status();
-            }
+            NG_RETURN_IF_ERROR(et);
 
             auto v = et.value();
             edgeTypes_.emplace(v);
@@ -143,7 +124,7 @@ Expression* GetSubgraphValidator::buildFilterCondition(int64_t step) {
         } else {
             left = new RelationalExpression(Expression::Kind::kRelIn,
                                             new EdgeDstIdExpression(new std::string("*")),
-                                            new ListExpression(startVidList_.release()));
+                                            new SetExpression(startVidList_.release()));
         }
         auto* lastestVidsDataSet = new VersionedVariableExpression(new std::string(collectVar_),
                                                                    new ConstantExpression(0));
@@ -186,7 +167,7 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
     std::vector<storage::cpp2::Expr> exprs;
     std::vector<storage::cpp2::VertexProp> vertexProps;
     auto* getVertex = GetVertices::make(
-        qctx_, depend, space.id, src_, std::move(vertexProps), std::move(exprs), true);
+        qctx_, depend, space.id, from_.src, std::move(vertexProps), std::move(exprs), true);
     getVertex->setInputVar(inputVar);
 
     auto var = vctx_->anonVarGen()->getVar();
@@ -198,7 +179,7 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
         Aggregate::make(qctx_,
                         getVertex,
                         {},
-                        {Aggregate::GroupItem(column->expr(), AggFun::nameIdMap_[fun], true)});
+                        {Aggregate::GroupItem(column->expr(), AggFun::nameIdMap_[fun], false)});
     collectVertex->setInputVar(getVertex->outputVar());
     collectVertex->setColNames({"_vertices"});
 
@@ -216,10 +197,10 @@ Status GetSubgraphValidator::toPlan() {
 
     std::string startVidsVar;
     SingleInputNode* collectRunTimeStartVids = nullptr;
-    if (!from_.vids.empty() && from_.srcRef == nullptr) {
-        startVidsVar = buildConstantInput();
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
+        buildConstantInput(from_, startVidsVar);
     } else {
-        PlanNode* dedupStartVid = buildRuntimeInput();
+        PlanNode* dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
         startVidsVar = dedupStartVid->outputVar();
         // collect runtime startVids
         auto var = vctx_->anonVarGen()->getVar();
@@ -227,7 +208,7 @@ Status GetSubgraphValidator::toPlan() {
             new VariablePropertyExpression(new std::string(var), new std::string(kVid)),
             new std::string(kVid));
         qctx_->objPool()->add(column);
-        column->setAggFunction(new std::string("COLLECT"));
+        column->setAggFunction(new std::string("COLLECT_SET"));
         auto fun = column->getAggFunName();
         collectRunTimeStartVids =
             Aggregate::make(qctx_,
@@ -248,7 +229,7 @@ Status GetSubgraphValidator::toPlan() {
 
     auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space.id);
-    gn->setSrc(src_);
+    gn->setSrc(from_.src);
     gn->setVertexProps(std::move(vertexProps));
     gn->setEdgeProps(buildEdgeProps());
     gn->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
@@ -261,7 +242,7 @@ Status GetSubgraphValidator::toPlan() {
         new VariablePropertyExpression(new std::string(var), new std::string(kVid)),
         new std::string(kVid));
     qctx_->objPool()->add(column);
-    column->setAggFunction(new std::string("COLLECT"));
+    column->setAggFunction(new std::string("COLLECT_SET"));
     auto fun = column->getAggFunName();
     auto* collect =
         Aggregate::make(qctx_,
@@ -279,7 +260,7 @@ Status GetSubgraphValidator::toPlan() {
     vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     auto* gn1 = GetNeighbors::make(qctx_, loop, space.id);
-    gn1->setSrc(src_);
+    gn1->setSrc(from_.src);
     gn1->setVertexProps(std::move(vertexProps));
     gn1->setEdgeProps(std::move(edgeProps));
     gn1->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);

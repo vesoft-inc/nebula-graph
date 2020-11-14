@@ -20,13 +20,13 @@ Value OptimizerUtils::boundValue(const meta::cpp2::ColumnDef& col,
             return boundValueWithLT(col, v);
         }
         case BoundValueOperator::MAX : {
-            return boundValueWithMax(col, v);
+            return boundValueWithMax(col);
         }
         case BoundValueOperator::MIN : {
-            return boundValueWithMin(col, v);
+            return boundValueWithMin(col);
         }
     }
-    return Value(NullType::BAD_TYPE);
+    return Value::kNullBadType;
 }
 
 Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const Value& v) {
@@ -51,15 +51,12 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
                     return Value(0.0);
                 }
             }
-            return v.getFloat() + 0.0000000000000001;
-        }
-        case Value::Type::BOOL: {
-            return v;
+            return v.getFloat() + kEpsilon;
         }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length ||
                 col.get_type().get_type_length() == nullptr) {
-                return Value(NullType::BAD_TYPE);
+                return Value::kNullBadType;
             }
             std::vector<unsigned char> bytes(v.getStr().begin(), v.getStr().end());
             bytes.resize(*col.get_type().get_type_length());
@@ -162,6 +159,7 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             return Value(dt);
         }
         case Value::Type::__EMPTY__:
+        case Value::Type::BOOL:
         case Value::Type::NULLVALUE:
         case Value::Type::VERTEX:
         case Value::Type::EDGE:
@@ -172,11 +170,11 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
         case Value::Type::PATH: {
             DLOG(FATAL) << "Not supported value type " << type
                         << "for index.";
-            return Value(NullType::BAD_TYPE);
+            return Value::kNullBadType;
         }
     }
     DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
-    return Value(NullType::BAD_TYPE);
+    return Value::kNullBadType;
 }
 
 Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const Value& v) {
@@ -199,14 +197,11 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             } else if (v.getFloat() == 0.0) {
                 return Value(-std::numeric_limits<double_t>::min());
             }
-            return v.getFloat() - 0.0000000000000001;
-        }
-        case Value::Type::BOOL: {
-            return v;
+            return v.getFloat() - kEpsilon;
         }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length || col.get_type().get_type_length() == nullptr) {
-                return Value(NullType::BAD_TYPE);
+                return Value::kNullBadType;
             }
             std::vector<unsigned char> bytes(v.getStr().begin(), v.getStr().end());
             bytes.resize(*col.get_type().get_type_length());
@@ -311,6 +306,7 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             return Value(dt);
         }
         case Value::Type::__EMPTY__:
+        case Value::Type::BOOL:
         case Value::Type::NULLVALUE:
         case Value::Type::VERTEX:
         case Value::Type::EDGE:
@@ -321,14 +317,14 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
         case Value::Type::PATH: {
             DLOG(FATAL) << "Not supported value type " << type
                         << "for index.";
-            return Value(NullType::BAD_TYPE);
+            return Value::kNullBadType;
         }
     }
     DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
-    return Value(NullType::BAD_TYPE);
+    return Value::kNullBadType;
 }
 
-Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col, const Value& v) {
+Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col) {
     auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
     switch (type) {
         case Value::Type::INT : {
@@ -337,13 +333,10 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col, const 
         case Value::Type::FLOAT : {
             return Value(std::numeric_limits<double>::max());
         }
-        case Value::Type::BOOL: {
-            return v;
-        }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length ||
                 col.get_type().get_type_length() == nullptr) {
-                return Value(NullType::BAD_TYPE);
+                return Value::kNullBadType;
             }
             return Value(std::string(*col.get_type().get_type_length(), '\377'));
         }
@@ -374,6 +367,7 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col, const 
             return Value(dt);
         }
         case Value::Type::__EMPTY__:
+        case Value::Type::BOOL:
         case Value::Type::NULLVALUE:
         case Value::Type::VERTEX:
         case Value::Type::EDGE:
@@ -384,14 +378,14 @@ Value OptimizerUtils::boundValueWithMax(const meta::cpp2::ColumnDef& col, const 
         case Value::Type::PATH: {
             DLOG(FATAL) << "Not supported value type " << type
                         << "for index.";
-            return Value(NullType::BAD_TYPE);
+            return Value::kNullBadType;
         }
     }
     DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
-    return Value(NullType::BAD_TYPE);
+    return Value::kNullBadType;
 }
 
-Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col, const Value& v) {
+Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col) {
     auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
     switch (type) {
         case Value::Type::INT : {
@@ -400,13 +394,10 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col, const 
         case Value::Type::FLOAT : {
             return Value(-std::numeric_limits<double>::max());
         }
-        case Value::Type::BOOL: {
-            return v;
-        }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length ||
                 col.get_type().get_type_length() == nullptr) {
-                return Value(NullType::BAD_TYPE);
+                return Value::kNullBadType;
             }
             return Value(std::string(*col.get_type().get_type_length(), '\0'));
         }
@@ -420,6 +411,7 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col, const 
             return Value(DateTime());
         }
         case Value::Type::__EMPTY__:
+        case Value::Type::BOOL:
         case Value::Type::NULLVALUE:
         case Value::Type::VERTEX:
         case Value::Type::EDGE:
@@ -430,11 +422,55 @@ Value OptimizerUtils::boundValueWithMin(const meta::cpp2::ColumnDef& col, const 
         case Value::Type::PATH: {
             DLOG(FATAL) << "Not supported value type " << type
                         << "for index.";
-            return Value(NullType::BAD_TYPE);
+            return Value::kNullBadType;
         }
     }
     DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
-    return Value(NullType::BAD_TYPE);
+    return Value::kNullBadType;
+}
+
+Value OptimizerUtils::normalizeValue(const meta::cpp2::ColumnDef& col, const Value& v) {
+    auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
+    switch (type) {
+        case Value::Type::INT:
+        case Value::Type::FLOAT:
+        case Value::Type::BOOL:
+        case Value::Type::DATE:
+        case Value::Type::TIME:
+        case Value::Type::DATETIME: {
+            return v;
+        }
+        case Value::Type::STRING : {
+            if (!col.type.__isset.type_length ||
+                col.get_type().get_type_length() == nullptr) {
+                return Value::kNullBadType;
+            }
+            auto len = static_cast<size_t>(*col.get_type().get_type_length());
+            if (v.getStr().size() > len) {
+                return Value(v.getStr().substr(0, len));
+            } else {
+                std::string s;
+                s.reserve(len);
+                s.append(v.getStr()).append(len - v.getStr().size(), '\0');
+                return Value(std::move(s));
+            }
+        }
+        case Value::Type::__EMPTY__:
+        case Value::Type::NULLVALUE:
+        case Value::Type::VERTEX:
+        case Value::Type::EDGE:
+        case Value::Type::LIST:
+        case Value::Type::SET:
+        case Value::Type::MAP:
+        case Value::Type::DATASET:
+        case Value::Type::PATH: {
+            DLOG(FATAL) << "Not supported value type " << type
+                        << "for index.";
+            return Value::kNullBadType;
+        }
+    }
+    DLOG(FATAL) << "Unknown value type " << static_cast<int>(type);
+    return Value::kNullBadType;;
 }
 
 }  // namespace graph

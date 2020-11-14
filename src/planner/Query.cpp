@@ -27,6 +27,44 @@ std::unique_ptr<cpp2::PlanNodeDescription> Explore::explain() const {
     return desc;
 }
 
+GetNeighbors* GetNeighbors::clone(QueryContext* qctx) const {
+    auto newGN = GetNeighbors::make(qctx, nullptr, space_);
+    newGN->setSrc(qctx->objPool()->add(src_->clone().release()));
+    newGN->setEdgeTypes(edgeTypes_);
+    newGN->setEdgeDirection(edgeDirection_);
+    newGN->setDedup(dedup_);
+    newGN->setRandom(random_);
+    newGN->setLimit(limit_);
+    newGN->setOrderBy(orderBy_);
+    newGN->setInputVar(inputVar());
+    newGN->setOutputVar(outputVar());
+
+    if (vertexProps_) {
+        auto vertexProps = *vertexProps_;
+        auto vertexPropsPtr = std::make_unique<decltype(vertexProps)>(vertexProps);
+        newGN->setVertexProps(std::move(vertexPropsPtr));
+    }
+
+    if (edgeProps_) {
+        auto edgeProps = *edgeProps_;
+        auto edgePropsPtr = std::make_unique<decltype(edgeProps)>(std::move(edgeProps));
+        newGN->setEdgeProps(std::move(edgePropsPtr));
+    }
+
+    if (statProps_) {
+        auto statProps = *statProps_;
+        auto statPropsPtr = std::make_unique<decltype(statProps)>(std::move(statProps));
+        newGN->setStatProps(std::move(statPropsPtr));
+    }
+
+    if (exprs_) {
+        auto exprs = *exprs_;
+        auto exprsPtr = std::make_unique<decltype(exprs)>(exprs);
+        newGN->setExprs(std::move(exprsPtr));
+    }
+    return newGN;
+}
+
 std::unique_ptr<cpp2::PlanNodeDescription> GetNeighbors::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
@@ -64,6 +102,15 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetEdges::explain() const {
     return desc;
 }
 
+IndexScan* IndexScan::clone(QueryContext* qctx) const {
+    auto ctx = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
+    auto returnCols = std::make_unique<std::vector<std::string>>(*returnColumns());
+    auto *scan = IndexScan::make(
+        qctx, nullptr, space(), std::move(ctx), std::move(returnCols), isEdge(), schemaId());
+    scan->setOutputVar(this->outputVar());
+    return scan;
+}
+
 std::unique_ptr<cpp2::PlanNodeDescription> IndexScan::explain() const {
     auto desc = Explore::explain();
     // TODO
@@ -76,6 +123,18 @@ std::unique_ptr<cpp2::PlanNodeDescription> Filter::explain() const {
     return desc;
 }
 
+Project* Project::clone(QueryContext* qctx) const {
+    auto cols = qctx->objPool()->add(new YieldColumns());
+    for (auto col : columns()->columns()) {
+        cols->addColumn((col->clone()).release());
+    }
+
+    auto newProj = Project::make(qctx, nullptr, cols);
+    newProj->setInputVar(inputVar());
+    newProj->setOutputVar(outputVar());
+    return newProj;
+}
+
 std::unique_ptr<cpp2::PlanNodeDescription> Project::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("columns", cols_ ? cols_->toString() : "", desc.get());
@@ -86,6 +145,13 @@ std::unique_ptr<cpp2::PlanNodeDescription> Sort::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("factors", folly::toJson(util::toJson(factorsString())), desc.get());
     return desc;
+}
+
+Limit* Limit::clone(QueryContext* qctx) const {
+    auto newLimit = Limit::make(qctx, nullptr, offset_, count_);
+    newLimit->setInputVar(inputVar());
+    newLimit->setOutputVar(outputVar());
+    return newLimit;
 }
 
 std::unique_ptr<cpp2::PlanNodeDescription> Limit::explain() const {
@@ -107,7 +173,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> Aggregate::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("groupKeys", folly::toJson(util::toJson(groupKeys_)), desc.get());
     folly::dynamic itemArr = folly::dynamic::array();
-    for (const auto &item : groupItems_) {
+    for (const auto& item : groupItems_) {
         folly::dynamic itemObj = folly::dynamic::object();
         itemObj.insert("distinct", util::toJson(item.distinct));
         itemObj.insert("funcType", static_cast<uint8_t>(item.func));
@@ -128,15 +194,27 @@ std::unique_ptr<cpp2::PlanNodeDescription> DataCollect::explain() const {
     addDescription("inputVars", folly::toJson(util::toJson(inputVars_)), desc.get());
     switch (collectKind_) {
         case CollectKind::kSubgraph: {
-            addDescription("kind", "subgraph", desc.get());
+            addDescription("kind", "SUBGRAPH", desc.get());
             break;
         }
         case CollectKind::kRowBasedMove: {
-            addDescription("kind", "row", desc.get());
+            addDescription("kind", "ROW", desc.get());
             break;
         }
         case CollectKind::kMToN: {
-            addDescription("kind", "m to n", desc.get());
+            addDescription("kind", "M TO N", desc.get());
+            break;
+        }
+        case CollectKind::kBFSShortest: {
+            addDescription("kind", "BFS SHORTEST", desc.get());
+            break;
+        }
+        case CollectKind::kAllPaths: {
+            addDescription("kind", "ALL PATHS", desc.get());
+            break;
+        }
+        case CollectKind::kMultiplePairShortest: {
+            addDescription("kind", "Multiple Pair Shortest", desc.get());
             break;
         }
     }

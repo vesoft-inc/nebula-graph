@@ -32,22 +32,22 @@ void CollectAllExprsVisitor::visit(FunctionCallExpression *expr) {
 
 void CollectAllExprsVisitor::visit(ListExpression *expr) {
     collectExpr(expr);
-    for (auto item : expr->items()) {
-        const_cast<Expression *>(item)->accept(this);
+    for (auto &item : expr->items()) {
+        item->accept(this);
     }
 }
 
 void CollectAllExprsVisitor::visit(SetExpression *expr) {
     collectExpr(expr);
-    for (auto item : expr->items()) {
-        const_cast<Expression *>(item)->accept(this);
+    for (auto &item : expr->items()) {
+        item->accept(this);
     }
 }
 
 void CollectAllExprsVisitor::visit(MapExpression *expr) {
     collectExpr(expr);
     for (const auto &pair : expr->items()) {
-        const_cast<Expression *>(pair.second)->accept(this);
+        pair.second->accept(this);
     }
 }
 
@@ -111,12 +111,34 @@ void CollectAllExprsVisitor::visit(LabelExpression *expr) {
     collectExpr(expr);
 }
 
+void CollectAllExprsVisitor::visit(LabelAttributeExpression *expr) {
+    collectExpr(expr);
+}
+
+void CollectAllExprsVisitor::visit(AttributeExpression *expr) {
+    collectExpr(expr);
+}
+
 void CollectAllExprsVisitor::visit(VertexExpression *expr) {
     collectExpr(expr);
 }
 
 void CollectAllExprsVisitor::visit(EdgeExpression *expr) {
     collectExpr(expr);
+}
+
+void CollectAllExprsVisitor::visit(CaseExpression *expr) {
+    collectExpr(expr);
+    if (expr->hasCondition()) {
+        expr->condition()->accept(this);
+    }
+    if (expr->hasDefault()) {
+        expr->defaultResult()->accept(this);
+    }
+    for (const auto &whenThen : expr->cases()) {
+        whenThen.when->accept(this);
+        whenThen.then->accept(this);
+    }
 }
 
 void CollectAllExprsVisitor::visitBinaryExpr(BinaryExpression *expr) {

@@ -58,6 +58,7 @@ reserved_key_words = [
     'KW_FIXED_STRING',
     'KW_TIMESTAMP',
     'KW_DATE',
+    'KW_TIME',
     'KW_DATETIME',
     'KW_VID_SIZE',
     'KW_TAG',
@@ -83,7 +84,6 @@ reserved_key_words = [
     'KW_BY',
     'KW_IN',
     'KW_NOT_IN',
-    'KW_NOT_CONTAINS',
     'KW_DOWNLOAD',
     'KW_GET',
     'KW_OF',
@@ -98,16 +98,14 @@ reserved_key_words = [
     'KW_PROP',
     'KW_BALANCE',
     'KW_STOP',
-    'KW_LIMIT',
-    'KW_OFFSET',
     'KW_GROUP',
     'KW_IS',
     'KW_NULL',
     'KW_FORCE',
     'KW_RECOVER',
     'KW_EXPLAIN',
-    'KW_PROFILE',
-    'KW_FORMAT'
+    'KW_UNWIND',
+    'KW_CASE',
 ]
 
 

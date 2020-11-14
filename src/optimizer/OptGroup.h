@@ -8,6 +8,7 @@
 #define OPTIMIZER_OPTGROUP_H_
 
 #include <algorithm>
+#include <list>
 #include <vector>
 #include "common/base/Status.h"
 
@@ -19,7 +20,7 @@ class QueryContext;
 
 namespace opt {
 
-class OptGroupExpr;
+class OptGroupNode;
 class OptRule;
 
 class OptGroup final {
@@ -42,29 +43,32 @@ public:
         }
     }
 
-    void addGroupExpr(OptGroupExpr *groupExpr);
-    OptGroupExpr *makeGroupExpr(graph::QueryContext *qctx, graph::PlanNode *node);
-    const std::vector<OptGroupExpr *> &groupExprs() const {
-        return groupExprs_;
+    void addGroupNode(OptGroupNode *groupNode);
+    OptGroupNode *makeGroupNode(graph::QueryContext *qctx, graph::PlanNode *node);
+    const std::list<OptGroupNode *> &groupNodes() const {
+        return groupNodes_;
     }
 
     Status explore(const OptRule *rule);
+    Status exploreUntilMaxRound(const OptRule *rule);
     double getCost() const;
     const graph::PlanNode *getPlan() const;
 
 private:
     explicit OptGroup(graph::QueryContext *qctx) noexcept;
 
-    std::pair<double, const OptGroupExpr *> findMinCostGroupExpr() const;
+    static constexpr int16_t kMaxExplorationRound = 128;
+
+    std::pair<double, const OptGroupNode *> findMinCostGroupNode() const;
 
     graph::QueryContext *qctx_{nullptr};
-    std::vector<OptGroupExpr *> groupExprs_;
+    std::list<OptGroupNode *> groupNodes_;
     std::vector<const OptRule *> exploredRules_;
 };
 
-class OptGroupExpr final {
+class OptGroupNode final {
 public:
-    static OptGroupExpr *create(graph::QueryContext *qctx,
+    static OptGroupNode *create(graph::QueryContext *qctx,
                                 graph::PlanNode *node,
                                 const OptGroup *group);
 
@@ -106,7 +110,7 @@ public:
     const graph::PlanNode *getPlan() const;
 
 private:
-    OptGroupExpr(graph::PlanNode *node, const OptGroup *group) noexcept;
+    OptGroupNode(graph::PlanNode *node, const OptGroup *group) noexcept;
 
     graph::PlanNode *node_{nullptr};
     const OptGroup *group_{nullptr};

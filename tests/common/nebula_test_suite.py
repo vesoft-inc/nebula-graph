@@ -16,6 +16,7 @@ from nebula2.common import ttypes as CommonTtypes
 from nebula2.ConnectionPool import ConnectionPool
 from nebula2.graph import ttypes
 from tests.common.configs import get_delay_time
+import functools
 import re
 
 
@@ -29,10 +30,15 @@ T_NULL_BAD_DATA.set_nVal(CommonTtypes.NullType.BAD_DATA)
 T_NULL_BAD_TYPE = CommonTtypes.Value()
 T_NULL_BAD_TYPE.set_nVal(CommonTtypes.NullType.BAD_TYPE)
 T_NULL_UNKNOWN_PROP = CommonTtypes.Value()
-T_NULL_BAD_TYPE.set_nVal(CommonTtypes.NullType.UNKNOWN_PROP)
+T_NULL_UNKNOWN_PROP.set_nVal(CommonTtypes.NullType.UNKNOWN_PROP)
 T_NULL_UNKNOWN_DIV_BY_ZERO = CommonTtypes.Value()
 T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.DIV_BY_ZERO)
 
+class PathVal:
+    items = []
+
+    def __init__(self, items):
+        self.items = items
 
 class NebulaTestSuite(object):
     @classmethod
@@ -41,10 +47,13 @@ class NebulaTestSuite(object):
 
     @classmethod
     def setup_class(self):
-        address = pytest.cmdline.address.split(':')
         self.spaces = []
+        address = pytest.cmdline.address.split(':')
         self.host = address[0]
         self.port = address[1]
+        storage_address = pytest.cmdline.storage.split(':')
+        self.storage_host = storage_address[0]
+        self.storage_port = storage_address[1]
         self.user = pytest.cmdline.user
         self.password = pytest.cmdline.password
         self.replica_factor = pytest.cmdline.replica_factor
@@ -55,33 +64,6 @@ class NebulaTestSuite(object):
         self.create_nebula_clients()
         self.set_delay()
         self.prepare()
-
-    @classmethod
-    def load_vertex_edge(self):
-        self.VERTEXS = dict()
-        self.EDGES = dict()
-        nba_file = self.data_dir + '/data/nba.ngql'
-        print("load will open ", nba_file)
-        with open(nba_file, 'r') as data_file:
-            lines = data_file.readlines()
-            ddl = False
-            dataType = ['none']
-            for line in lines:
-                strip_line = line.strip()
-                if len(strip_line) == 0:
-                    continue
-                elif strip_line.startswith('--'):
-                    comment = strip_line[2:]
-                    if comment == 'DDL':
-                        ddl = True
-                    elif comment == 'END':
-                        if ddl:
-                            ddl = False
-                else:
-                    if not ddl:
-                        self.parse_line(line.strip(), dataType)
-                    if line.endswith(';'):
-                        dataType[0] = 'none'
 
     @classmethod
     def load_data(self):
@@ -144,11 +126,20 @@ class NebulaTestSuite(object):
 
     @classmethod
     def create_nebula_clients(self):
-        self.client_pool = ConnectionPool(ip=self.host,
+        self.client_pool = ConnectionPool(host=self.host,
                                           port=self.port,
-                                          network_timeout=0)
+                                          socket_num=16,
+                                          network_timeout=60000)
         self.client = GraphClient(self.client_pool)
         self.client.authenticate(self.user, self.password)
+
+    @classmethod
+    def spawn_nebula_client(self):
+        return GraphClient(self.client_pool)
+
+    @classmethod
+    def close_nebula_client(self, client):
+        client.sign_out()
 
     @classmethod
     def close_nebula_clients(self):
@@ -363,10 +354,32 @@ class NebulaTestSuite(object):
 
     @classmethod
     def check_column_names(self, resp, expect):
+        assert len(resp.data.column_names) == len(expect), \
+            f'Column names does not match, expected: {expect}, actual: {resp.data.column_names}'
         for i in range(len(expect)):
             result = bytes.decode(resp.data.column_names[i])
             ok = (expect[i] == result)
             assert ok, "different column name, expect: {} vs. result: {}".format(expect[i], result)
+
+    @classmethod
+    def to_path_value(self, col):
+        path = CommonTtypes.Path()
+        path.steps = []
+        for col, j in zip(col.items, range(len(col.items))):
+            if j == 0:
+                path.src = col.get_vVal()
+            elif (j % 2) == 1:
+                edge = col[0].get_eVal()
+                step = CommonTtypes.Step()
+                step.name = edge.name
+                step.ranking = edge.ranking
+                step.type = col[1]
+                step.props = edge.props
+                path.steps.append(step)
+            else:
+                print("step: %d", len(path.steps))
+                path.steps[-1].dst = col.get_vVal()
+        return path
 
     @classmethod
     def to_value(self, col):
@@ -379,6 +392,12 @@ class NebulaTestSuite(object):
             value.set_fVal(col)
         elif isinstance(col, str):
             value.set_sVal(col.encode('utf-8'))
+        elif isinstance(col, CommonTtypes.Date):
+            value.set_dVal(col)
+        elif isinstance(col, CommonTtypes.Time):
+            value.set_tVal(col)
+        elif isinstance(col, CommonTtypes.DateTime):
+            value.set_dtVal(col)
         elif isinstance(col, dict):
             map_val = CommonTtypes.Map()
             map_val.kvs = dict()
@@ -389,9 +408,23 @@ class NebulaTestSuite(object):
                 map_val.kvs[key.encode('utf-8')] = temp
             value.set_mVal(map_val)
         elif isinstance(col, list):
-            list_val = CommonTtypes.List()
-            list_val.values = col
+            list_val = CommonTtypes.List(list())
+            for i in col:
+                ok, temp = self.to_value(i)
+                if not ok:
+                    return ok, temp
+                list_val.values.append(temp)
             value.set_lVal(list_val)
+        elif isinstance(col, set):
+            set_val = CommonTtypes.Set(set())
+            for i in col:
+                ok, temp = self.to_value(i)
+                if not ok:
+                    return ok, temp
+                set_val.values.add(temp)
+            value.set_uVal(set_val)
+        elif isinstance(col, PathVal):
+            value.set_pVal(self.to_path_value(col))
         else:
             return False, 'Wrong val type'
         return True, value
@@ -423,9 +456,9 @@ class NebulaTestSuite(object):
         if resp.data is None:
             assert False, 'resp.data is None'
         rows = resp.data.rows
-        if not is_regex:
-            msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
-            assert len(rows) == len(expect), msg
+
+        msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
+        assert len(rows) == len(expect), msg
 
         new_expect = expect
         if not is_regex:
@@ -485,41 +518,142 @@ class NebulaTestSuite(object):
             empty = True
         assert empty, msg
 
+    def compare_vertex(self, vertex1, vertex2):
+        assert isinstance(vertex1, CommonTtypes.Vertex) and isinstance(vertex2, CommonTtypes.Vertex)
+        if vertex1.vid != vertex2.vid:
+            if vertex1.vid < vertex2.vid:
+                return -1
+            return 1
+        if len(vertex1.tags) != len(vertex2.tags):
+            return len(vertex1.tags) - len(vertex2.tags)
+        return 0
+
+    def compare_edge(self, edge1, edge2):
+        assert isinstance(edge1, CommonTtypes.Edge) and isinstance(edge2, CommonTtypes.Edge)
+        if edge1.src != edge2.src:
+            if edge1.src < edge2.src:
+                return -1
+            return 1
+        if edge1.dst != edge2.dst:
+            if edge1.dst < edge2.dst:
+                return -1
+            return 1
+        if edge1.type != edge2.type:
+            return edge1.type - edge2.type
+        if edge1.ranking != edge2.ranking:
+            return edge1.ranking - edge2.ranking
+        if len(edge1.props) != len(edge2.props):
+            return len(edge1.props) - len(edge2.props)
+        return 0
+
+    def sort_vertex_list(self, rows):
+        assert len(rows) == 1
+        if isinstance(rows[0], CommonTtypes.Row):
+            vertex_list = list(map(lambda v : v.get_vVal(), rows[0].values[0].get_lVal().values))
+            sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
+        elif isinstance(rows[0], list):
+            vertex_list = list(map(lambda v : v.get_vVal(), rows[0][0]))
+            sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
+        else:
+            assert False
+        return sort_vertex_list
+
+    def sort_vertex_edge_list(self, rows):
+        new_rows = list()
+        for row in rows:
+            new_row = list()
+            if isinstance(row, CommonTtypes.Row):
+                vertex_list = row.values[0].get_lVal().values
+                new_vertex_list = list(map(lambda v : v.get_vVal(), vertex_list))
+                new_row.extend(sorted(new_vertex_list, key = functools.cmp_to_key(self.compare_vertex)))
+
+                edge_list = row.values[1].get_lVal().values
+                new_edge_list = list(map(lambda e : e.get_eVal(), edge_list))
+                new_row.extend(sorted(new_edge_list, key = functools.cmp_to_key(self.compare_edge)))
+            elif isinstance(row, list):
+                vertex_list = list(map(lambda v : v.get_vVal(), row[0]))
+                sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
+                new_row.extend(sort_vertex_list)
+
+                edge_list = list(map(lambda e: e.get_eVal(), row[1]))
+                sort_edge_list = sorted(edge_list, key = functools.cmp_to_key(self.compare_edge))
+                new_row.extend(sort_edge_list)
+            else:
+                assert False, "Unsupport type : {}".format(type(row))
+
+            new_rows.append(new_row)
+        return new_rows
+
+    def check_subgraph_result(self, resp, expect):
+        if resp.data is None and len(expect) == 0:
+            return True
+
+        if resp.data is None:
+            return False, 'resp.data is None'
+
+        rows = resp.data.rows
+
+        msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
+        assert len(rows) == len(expect), msg
+
+        if len(resp.data.column_names) == 1:
+            new_rows = self.sort_vertex_list(rows)
+            new_expect = self.sort_vertex_list(expect)
+        else:
+            new_rows = self.sort_vertex_edge_list(rows)
+            new_expect = self.sort_vertex_edge_list(expect)
+
+        for exp in new_expect:
+            find = False
+            for row in new_rows:
+                if row == exp:
+                    find = True
+                    new_rows.remove(row)
+                    break
+            assert find, 'Can not find {}'.format(exp)
+
+        assert len(new_rows) == 0
+
+
     @classmethod
-    def check_path_result(self, rows, expect):
+    def check_path_result_without_prop(self, rows, expect):
         msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
         assert len(rows) == len(expect), msg
         for exp in expect:
-            path = ttypes.Path()
-            path.entry_list = []
-            for ecol, j in zip(exp, range(len(exp))):
-                if j % 2 == 0 or j == len(exp):
-                    pathEntry = ttypes.PathEntry()
-                    vertex = ttypes.Vertex()
-                    vertex.id = ecol
-                    pathEntry.set_vertex(vertex)
-                    path.entry_list.append(pathEntry)
+            path = CommonTtypes.Path()
+            path.steps = []
+            for col, j in zip(exp, range(len(exp))):
+                if j == 0:
+                    src = CommonTtypes.Vertex()
+                    src.vid = col
+                    src.tags = []
+                    path.src = src
                 else:
-                    assert len(ecol) == 2, \
-                        "invalid values size in expect result"
-                    pathEntry = ttypes.PathEntry()
-                    edge = ttypes.Edge()
-                    edge.type = ecol[0]
-                    edge.ranking = ecol[1]
-                    pathEntry.set_edge(edge)
-                    path.entry_list.append(pathEntry)
+                    assert len(col) == 3, \
+                        "{} invalid values size in expect result".format(exp.__repr__())
+                    step = CommonTtypes.Step()
+                    step.name = col[0]
+                    step.ranking = col[1]
+                    step.type = 1
+                    dst = CommonTtypes.Vertex()
+                    dst.vid = col[2]
+                    dst.tags = []
+                    step.dst = dst
+                    step.props = {}
+                    path.steps.append(step)
             find = False
             for row in rows:
                 assert len(row.values) == 1, \
                     "invalid values size in rows: {}".format(row)
-                assert row.values[0].getType()() == ttypes.Value.PATH, \
+                assert row.values[0].getType() == CommonTtypes.Value.PVAL, \
                     "invalid column path type: {}".format(row.values[0].getType()())
-                if row.values[0].get_path() == path:
+                if row.values[0].get_pVal() == path:
                     find = True
                     break
-            msg = self.check_format_str.format(row.values[0].get_path(), path)
+            msg = self.check_format_str.format(row.values[0].get_pVal(), path)
             assert find, msg
             rows.remove(row)
+        assert len(rows) == 0
 
     @classmethod
     def check_error_msg(self, resp, expect):
@@ -530,204 +664,6 @@ class NebulaTestSuite(object):
             assert expect.match(err_msg), msg
         else:
             assert err_msg == expect, msg
-
-    @classmethod
-    def parse_line(self, line, dataType):
-        if line.startswith('INSERT') or line.startswith('VALUES'):
-            return ''
-
-        if line.startswith('VERTEX player'):
-            dataType[0] = 'player'
-        elif line.startswith('VERTEX team'):
-            dataType[0] = 'team'
-        elif line.startswith('VERTEX bachelor'):
-            dataType[0] = 'bachelor'
-        elif line.startswith('EDGE serve'):
-            dataType[0] = 'serve'
-        elif line.startswith('EDGE like'):
-            dataType[0] = 'like'
-        elif line.startswith('EDGE teammate'):
-            dataType[0] = 'teammate'
-        else:
-            line = re.split(':|,|->', line.strip(',; \t'))
-            line = list(map(lambda i: i.strip(' ()"'), line))
-            value = CommonTtypes.Value()
-            if dataType[0] == 'none':
-                assert False
-            elif dataType[0] == 'player':
-                vertex = self.create_vertex_player(line)
-                key = str(vertex.vid, encoding='utf-8')
-                if key in self.VERTEXS:
-                    temp = self.VERTEXS[key].get_vVal()
-                    temp.tags.append(vertex.tags[0])
-                    temp.tags.sort(key=lambda x : x.name)
-                    value.set_vVal(temp)
-                    self.VERTEXS[key] = value
-                else:
-                    value.set_vVal(vertex)
-                    self.VERTEXS[key] = value
-            elif dataType[0] == 'team':
-                vertex = self.create_vertex_team(line)
-                value.set_vVal(vertex)
-                key = str(vertex.vid, encoding = 'utf-8')
-                self.VERTEXS[key] = value
-            elif dataType[0] == 'bachelor':
-                vertex = self.create_vertex_bachelor(line)
-                key = str(vertex.vid, encoding = 'utf-8')
-                if key in self.VERTEXS:
-                    temp = self.VERTEXS[key].get_vVal()
-                    temp.tags.append(vertex.tags[0])
-                    temp.tags.sort(key=lambda x : x.name)
-                    value.set_vVal(temp)
-                    self.VERTEXS[key] = value
-                else:
-                    value.set_vVal(vertex)
-                    self.VERTEXS[key] = value
-            elif dataType[0] == 'serve':
-                edge = self.create_edge_serve(line)
-                value.set_eVal(edge)
-                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
-                self.EDGES[key] = value
-            elif dataType[0] == 'like':
-                edge = self.create_edge_like(line)
-                value.set_eVal(edge)
-                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
-                self.EDGES[key] = value
-            elif dataType[0] == 'teammate':
-                edge = self.create_edge_teammate(line)
-                value.set_eVal(edge)
-                key = str(edge.src, encoding = 'utf-8') + str(edge.dst, encoding = 'utf-8') + str(edge.name, encoding = 'utf-8') + str(edge.ranking)
-                self.EDGES[key] = value
-            else:
-                assert False
-
-    @classmethod
-    def create_vertex_player(self, line):
-        if len(line) != 3:
-            assert False
-
-        vertex = CommonTtypes.Vertex()
-        vertex.vid = bytes(line[0], encoding = 'utf-8')
-        tags = []
-        tag = CommonTtypes.Tag()
-        tag.name = bytes('player', encoding = 'utf-8')
-
-        props = dict()
-        name = CommonTtypes.Value()
-        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
-        props[bytes('name', encoding = 'utf-8')] = name
-        age = CommonTtypes.Value()
-        age.set_iVal(int(line[2]))
-        props[bytes('age', encoding = 'utf-8')] = age
-        tag.props = props
-        tags.append(tag)
-        vertex.tags = tags
-        return vertex
-
-    @classmethod
-    def create_vertex_team(self, line):
-        if len(line) != 2:
-            assert False
-        vertex = CommonTtypes.Vertex()
-        vertex.vid = bytes(line[0], encoding = 'utf-8')
-        tags = []
-        tag = CommonTtypes.Tag()
-        tag.name = bytes('team', encoding = 'utf-8')
-
-        props = dict()
-        name = CommonTtypes.Value()
-        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
-        props[bytes('name', encoding = 'utf-8')] = name
-        tag.props = props
-        tags.append(tag)
-        vertex.tags = tags
-        return vertex
-
-    @classmethod
-    def create_vertex_bachelor(self, line):
-        if len(line) != 3:
-            assert False
-
-        vertex = CommonTtypes.Vertex()
-        vertex.vid = bytes(line[0], encoding = 'utf-8')
-        tags = []
-        tag = CommonTtypes.Tag()
-        tag.name = bytes('bachelor', encoding = 'utf-8')
-
-        props = dict()
-        name = CommonTtypes.Value()
-        name.set_sVal(bytes(line[1], encoding = 'utf-8'))
-        props[bytes('name', encoding = 'utf-8')] = name
-        speciality = CommonTtypes.Value()
-        speciality.set_sVal(bytes(line[2], encoding = 'utf-8'))
-        props[bytes('speciality', encoding = 'utf-8')] = speciality
-        tag.props = props
-        tags.append(tag)
-        vertex.tags = tags
-        return vertex
-
-    @classmethod
-    def create_edge_serve(self, line):
-        if len(line) != 4:
-            assert False
-        edge = CommonTtypes.Edge()
-        edge.src = bytes(line[0], encoding = 'utf-8')
-        if '@' in line[1]:
-            temp = list(map(lambda i: i.strip('"'), re.split('@', line[1])))
-            edge.dst = bytes(temp[0], encoding = 'utf-8')
-            edge.ranking = int(temp[1])
-        else:
-            edge.dst = bytes(line[1], encoding = 'utf-8')
-            edge.ranking = 0
-        edge.type = 1
-        edge.name = bytes('serve', encoding = 'utf-8')
-        props = dict()
-        start_year = CommonTtypes.Value()
-        start_year.set_iVal(int(line[2]))
-        end_year = CommonTtypes.Value()
-        end_year.set_iVal(int(line[3]))
-        props[bytes('start_year', encoding = 'utf-8')] = start_year
-        props[bytes('end_year', encoding = 'utf-8')] = end_year
-        edge.props = props
-        return edge
-
-    @classmethod
-    def create_edge_like(self, line):
-        if len(line) != 3:
-            assert False
-        edge = CommonTtypes.Edge()
-
-        edge.src = bytes(line[0], encoding = 'utf-8')
-        edge.dst = bytes(line[1], encoding = 'utf-8')
-        edge.type = 1
-        edge.ranking = 0
-        edge.name = bytes('like', encoding = 'utf-8')
-        props = dict()
-        likeness = CommonTtypes.Value()
-        likeness.set_iVal(int(line[2]))
-        props[bytes('likeness', encoding = 'utf-8')] = likeness
-        edge.props = props
-        return edge
-
-    @classmethod
-    def create_edge_teammate(self, line):
-        if len(line) != 4:
-            assert False
-        edge = CommonTtypes.Edge()
-        edge.src = bytes(line[0], encoding = 'utf-8')
-        edge.dst = bytes(line[1], encoding = 'utf-8')
-        edge.type = 1
-        edge.ranking = 0
-        edge.name = bytes('teammate', encoding = 'utf-8')
-        props = dict()
-        start_year = CommonTtypes.Value()
-        start_year.set_iVal(int(line[2]))
-        end_year = CommonTtypes.Value()
-        end_year.set_iVal(int(line[3]))
-        props[bytes('start_year', encoding = 'utf-8')] = start_year
-        props[bytes('end_year', encoding = 'utf-8')] = end_year
-        edge.props = props
-        return edge
 
     @classmethod
     def check_exec_plan(cls, resp, expect):
@@ -762,4 +698,3 @@ class NebulaTestSuite(object):
         for i in range(len(plan_node_desc.dependencies)):
             line_num = plan_desc.node_index_map[plan_node_desc.dependencies[i]]
             cls.diff_plan_node(plan_desc, line_num, expect, expect_node[1][i])
-

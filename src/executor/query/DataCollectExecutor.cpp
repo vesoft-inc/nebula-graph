@@ -37,6 +37,18 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
             NG_RETURN_IF_ERROR(collectMToN(vars, dc->mToN(), dc->distinct()));
             break;
         }
+        case DataCollect::CollectKind::kBFSShortest: {
+            NG_RETURN_IF_ERROR(collectBFSShortest(vars));
+            break;
+        }
+        case DataCollect::CollectKind::kAllPaths: {
+            NG_RETURN_IF_ERROR(collectAllPaths(vars));
+            break;
+        }
+        case DataCollect::CollectKind::kMultiplePairShortest: {
+            NG_RETURN_IF_ERROR(collectMultiplePairShortestPath(vars));
+            break;
+        }
         default:
             LOG(FATAL) << "Unknown data collect type: " << static_cast<int64_t>(dc->collectKind());
     }
@@ -83,7 +95,9 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                 }
                 ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
             } else {
-                return Status::Error("Iterator should be kind of GetNeighborIter.");
+                std::stringstream msg;
+                msg << "Iterator should be kind of GetNeighborIter, but was: " << iter->kind();
+                return Status::Error(msg.str());
             }
         }
     }
@@ -98,7 +112,7 @@ Status DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {
     for (auto& var : vars) {
         auto& result = ectx_->getResult(var);
         auto iter = result.iter();
-        if (iter->isSequentialIter()) {
+        if (iter->isSequentialIter() || iter->isPropIter()) {
             auto* seqIter = static_cast<SequentialIter*>(iter.get());
             for (; seqIter->valid(); seqIter->next()) {
                 ds.rows.emplace_back(seqIter->moveRow());
@@ -134,7 +148,9 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
                     ds.rows.emplace_back(seqIter->moveRow());
                 }
             } else {
-                return Status::Error("Iterator should be kind of SequentialIter.");
+                std::stringstream msg;
+                msg << "Iterator should be kind of SequentialIter, but was: " << iter->kind();
+                return Status::Error(msg.str());
             }
             itersHolder.emplace_back(std::move(iter));
         }
@@ -142,5 +158,99 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
     result_.setDataSet(std::move(ds));
     return Status::OK();
 }
+
+Status DataCollectExecutor::collectBFSShortest(const std::vector<std::string>& vars) {
+    // Will rewrite this method once we implement returning the props for the path.
+    return rowBasedMove(vars);
+}
+
+Status DataCollectExecutor::collectAllPaths(const std::vector<std::string>& vars) {
+    DataSet ds;
+    ds.colNames = std::move(colNames_);
+    DCHECK(!ds.colNames.empty());
+
+    for (auto& var : vars) {
+        auto& hist = ectx_->getHistory(var);
+        for (auto& result : hist) {
+            auto iter = result.iter();
+            if (iter->isSequentialIter()) {
+                auto* seqIter = static_cast<SequentialIter*>(iter.get());
+                for (; seqIter->valid(); seqIter->next()) {
+                    ds.rows.emplace_back(seqIter->moveRow());
+                }
+            } else {
+                std::stringstream msg;
+                msg << "Iterator should be kind of SequentialIter, but was: " << iter->kind();
+                return Status::Error(msg.str());
+            }
+        }
+    }
+    result_.setDataSet(std::move(ds));
+    return Status::OK();
+}
+
+Status DataCollectExecutor::collectMultiplePairShortestPath(const std::vector<std::string>& vars) {
+    DataSet ds;
+    ds.colNames = std::move(colNames_);
+    DCHECK(!ds.colNames.empty());
+
+    // src : {dst : <cost, {path}>}
+    std::unordered_map<Value, std::unordered_map<Value, std::pair<Value, std::vector<Path>>>>
+        shortestPath;
+
+    for (auto& var : vars) {
+        auto& hist = ectx_->getHistory(var);
+        for (auto& result : hist) {
+            auto iter = result.iter();
+            if (!iter->isSequentialIter()) {
+                std::stringstream msg;
+                msg << "Iterator should be kind of SequentialIter, but was: " << iter->kind();
+                return Status::Error(msg.str());
+            }
+            auto* seqIter = static_cast<SequentialIter*>(iter.get());
+            for (; seqIter->valid(); seqIter->next()) {
+                auto& pathVal = seqIter->getColumn("_path");
+                auto cost = seqIter->getColumn("cost");
+                if (!pathVal.isPath()) {
+                    return Status::Error("Type error `%s', should be PATH",
+                                         pathVal.typeName().c_str());
+                }
+                auto& path = pathVal.getPath();
+                auto& src = path.src.vid;
+                auto& dst = path.steps.back().dst.vid;
+                if (shortestPath.find(src) == shortestPath.end() ||
+                    shortestPath[src].find(dst) == shortestPath[src].end()) {
+                    auto& dstHist = shortestPath[src];
+                    std::vector<Path> tempPaths = {std::move(path)};
+                    dstHist.emplace(dst, std::make_pair(cost, std::move(tempPaths)));
+                } else {
+                    auto oldCost = shortestPath[src][dst].first;
+                    if (cost < oldCost) {
+                        std::vector<Path> tempPaths = {std::move(path)};
+                        shortestPath[src][dst].second.swap(tempPaths);
+                    } else if (cost == oldCost) {
+                        shortestPath[src][dst].second.emplace_back(std::move(path));
+                    } else {
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    // collect result
+    for (auto& srcPath : shortestPath) {
+        for (auto& dstPath : srcPath.second) {
+            for (auto& path : dstPath.second.second) {
+                Row row;
+                row.values.emplace_back(std::move(path));
+                ds.rows.emplace_back(std::move(row));
+            }
+        }
+    }
+    result_.setDataSet(std::move(ds));
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

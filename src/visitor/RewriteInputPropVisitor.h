@@ -15,7 +15,8 @@ namespace graph {
 
 class RewriteInputPropVisitor final : public ExprVisitor {
 public:
-    explicit RewriteInputPropVisitor(std::unordered_map<std::string, YieldColumn *> &propExprColMap)
+    explicit RewriteInputPropVisitor(
+        const std::unordered_map<std::string, YieldColumn *> &propExprColMap)
         : propExprColMap_(propExprColMap) {}
     ~RewriteInputPropVisitor() = default;
 
@@ -67,7 +68,10 @@ private:
     // vertex/edge expression
     void visit(VertexExpression *) override;
     void visit(EdgeExpression *) override;
-
+    // case expression
+    void visit(CaseExpression *) override;
+    // path build expression
+    void visit(PathBuildExpression *expr) override;
 
     void visitBinaryExpr(BinaryExpression *expr);
     void visitUnaryExpr(UnaryExpression *expr);
@@ -75,7 +79,7 @@ private:
     void reportError(const Expression *);
 
 private:
-    std::unordered_map<std::string, YieldColumn *>& propExprColMap_;
+    const std::unordered_map<std::string, YieldColumn *> &propExprColMap_;
 
     std::unique_ptr<Expression> result_;
     Status status_;

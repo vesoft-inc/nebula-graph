@@ -32,6 +32,7 @@ private:
     void visit(ListExpression *expr) override;
     void visit(SetExpression *expr) override;
     void visit(MapExpression *expr) override;
+    void visit(CaseExpression *) override;
     void visit(ConstantExpression *) override {}
     void visit(LabelExpression *) override {}
     void visit(UUIDExpression *) override {}
@@ -55,7 +56,7 @@ private:
 
     Expression *createExpr(const LabelAttributeExpression *expr);
     std::vector<std::unique_ptr<Expression>> rewriteExprList(
-        const std::vector<const Expression *> &exprs);
+        const std::vector<std::unique_ptr<Expression>> &exprs);
     static bool isLabelAttrExpr(const Expression *expr);
 
     bool isTag_{false};

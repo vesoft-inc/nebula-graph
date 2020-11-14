@@ -13,42 +13,42 @@ namespace graph {
 
 Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& starts) {
     if (clause == nullptr) {
-        return Status::Error("From clause nullptr.");
+        return Status::SemanticError("From clause nullptr.");
     }
     if (clause->isRef()) {
         auto* src = clause->ref();
         if (src->kind() != Expression::Kind::kInputProperty
                 && src->kind() != Expression::Kind::kVarProperty) {
-            return Status::Error(
+            return Status::SemanticError(
                     "`%s', Only input and variable expression is acceptable"
                     " when starts are evaluated at runtime.", src->toString().c_str());
-        } else {
-            starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
-            auto type = deduceExprType(src);
-            if (!type.ok()) {
-                return type.status();
-            }
-            auto vidType = space_.spaceDesc.vid_type.get_type();
-            if (type.value() != SchemaUtil::propTypeToValueType(vidType)) {
-                std::stringstream ss;
-                ss << "`" << src->toString() << "', the srcs should be type of "
-                   << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
-                   << type.value() << "'";
-                return Status::Error(ss.str());
-            }
-            starts.srcRef = src;
-            auto* propExpr = static_cast<PropertyExpression*>(src);
-            if (starts.fromType == kVariable) {
-                starts.userDefinedVarName = *(propExpr->sym());
-            }
-            starts.firstBeginningSrcVidColName = *(propExpr->prop());
         }
+        starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
+        auto type = deduceExprType(src);
+        if (!type.ok()) {
+            return type.status();
+        }
+        auto vidType = space_.spaceDesc.vid_type.get_type();
+        if (type.value() != SchemaUtil::propTypeToValueType(vidType)) {
+            std::stringstream ss;
+            ss << "`" << src->toString() << "', the srcs should be type of "
+                << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
+                << type.value() << "'";
+            return Status::SemanticError(ss.str());
+        }
+        starts.originalSrc = src;
+        auto* propExpr = static_cast<PropertyExpression*>(src);
+        if (starts.fromType == kVariable) {
+            starts.userDefinedVarName = *(propExpr->sym());
+            userDefinedVarNameList_.emplace(starts.userDefinedVarName);
+        }
+        starts.firstBeginningSrcVidColName = *(propExpr->prop());
     } else {
         auto vidList = clause->vidList();
         QueryExpressionContext ctx;
         for (auto* expr : vidList) {
             if (!evaluableExpr(expr)) {
-                return Status::Error("`%s' is not an evaluable expression.",
+                return Status::SemanticError("`%s' is not an evaluable expression.",
                         expr->toString().c_str());
             }
             auto vid = expr->eval(ctx(nullptr));
@@ -56,7 +56,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
             if (!SchemaUtil::isValidVid(vid, vidType)) {
                 std::stringstream ss;
                 ss << "Vid should be a " << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType);
-                return Status::Error(ss.str());
+                return Status::SemanticError(ss.str());
             }
             starts.vids.emplace_back(std::move(vid));
             startVidList_->add(expr->clone().release());
@@ -67,7 +67,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
 
 Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
     if (clause == nullptr) {
-        return Status::Error("Over clause nullptr.");
+        return Status::SemanticError("Over clause nullptr.");
     }
 
     over.direction = clause->direction();
@@ -77,13 +77,13 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
         NG_RETURN_IF_ERROR(allEdgeStatus);
         auto edges = std::move(allEdgeStatus).value();
         if (edges.empty()) {
-            return Status::Error("No edge type found in space %s",
+            return Status::SemanticError("No edge type found in space `%s'",
                     space_.name.c_str());
         }
         for (auto edge : edges) {
             auto edgeType = schemaMng->toEdgeType(space_.id, edge);
             if (!edgeType.ok()) {
-                return Status::Error("%s not found in space [%s].",
+                return Status::SemanticError("`%s' not found in space [`%s'].",
                         edge.c_str(), space_.name.c_str());
             }
             over.edgeTypes.emplace_back(edgeType.value());
@@ -96,7 +96,7 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
             auto edgeName = *edge->edge();
             auto edgeType = schemaMng->toEdgeType(space_.id, edgeName);
             if (!edgeType.ok()) {
-                return Status::Error("%s not found in space [%s].",
+                return Status::SemanticError("%s not found in space [%s].",
                         edgeName.c_str(), space_.name.c_str());
             }
             over.edgeTypes.emplace_back(edgeType.value());
@@ -107,7 +107,7 @@ Status TraversalValidator::validateOver(const OverClause* clause, Over& over) {
 
 Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
     if (clause == nullptr) {
-        return Status::Error("Step clause nullptr.");
+        return Status::SemanticError("Step clause nullptr.");
     }
     if (clause->isMToN()) {
         auto* mToN = qctx_->objPool()->makeAndAdd<StepClause::MToN>();
@@ -122,8 +122,9 @@ Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
             mToN->mSteps = 1;
         }
         if (mToN->nSteps < mToN->mSteps) {
-            return Status::Error("`%s', upper bound steps should be greater than lower bound.",
-                                 clause->toString().c_str());
+            return Status::SemanticError(
+                "`%s', upper bound steps should be greater than lower bound.",
+                clause->toString().c_str());
         }
         if (mToN->mSteps == mToN->nSteps) {
             steps_.steps = mToN->mSteps;
@@ -137,8 +138,6 @@ Status TraversalValidator::validateStep(const StepClause* clause, Steps& step) {
     return Status::OK();
 }
 
-
-
 PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::string& outputVar) {
     Project* project = nullptr;
     auto* columns = qctx_->objPool()->add(new YieldColumns());
@@ -146,14 +145,6 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
         new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
         new std::string(kVid));
     columns->addColumn(column);
-
-    srcVidColName_ = vctx_->anonColGen()->getCol();
-    if (!exprProps_.inputProps().empty() || !exprProps_.varProps().empty()) {
-        column =
-            new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
-                            new std::string(srcVidColName_));
-        columns->addColumn(column);
-    }
 
     project = Project::make(qctx_, gn, columns);
     project->setInputVar(gn->outputVar());
@@ -167,42 +158,41 @@ PlanNode* TraversalValidator::projectDstVidsFromGN(PlanNode* gn, const std::stri
     return dedupDstVids;
 }
 
-std::string TraversalValidator::buildConstantInput() {
-    auto input = vctx_->anonVarGen()->getVar();
+void TraversalValidator::buildConstantInput(Starts& starts, std::string& startVidsVar) {
+    startVidsVar = vctx_->anonVarGen()->getVar();
     DataSet ds;
     ds.colNames.emplace_back(kVid);
-    for (auto& vid : from_.vids) {
+    for (auto& vid : starts.vids) {
         Row row;
         row.values.emplace_back(vid);
         ds.rows.emplace_back(std::move(row));
     }
-    qctx_->ectx()->setResult(input, ResultBuilder().value(Value(std::move(ds))).finish());
+    qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
-    auto* vids = new VariablePropertyExpression(new std::string(input),
-                                                new std::string(kVid));
-    qctx_->objPool()->add(vids);
-    src_ = vids;
-    return input;
+    starts.src =
+        new VariablePropertyExpression(new std::string(startVidsVar), new std::string(kVid));
+    qctx_->objPool()->add(starts.src);
 }
 
-PlanNode* TraversalValidator::buildRuntimeInput() {
+PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& projectStartVid) {
     auto pool = qctx_->objPool();
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(from_.srcRef->clone().release(), new std::string(kVid));
+    auto* column = new YieldColumn(starts.originalSrc->clone().release(), new std::string(kVid));
     columns->addColumn(column);
+
     auto* project = Project::make(qctx_, nullptr, columns);
-    if (from_.fromType == kVariable) {
-        project->setInputVar(from_.userDefinedVarName);
+    if (starts.fromType == kVariable) {
+        project->setInputVar(starts.userDefinedVarName);
     }
-    project->setColNames({ kVid });
+    project->setColNames({kVid});
     VLOG(1) << project->outputVar() << " input: " << project->inputVar();
-    src_ = pool->add(new InputPropertyExpression(new std::string(kVid)));
+    starts.src = pool->add(new InputPropertyExpression(new std::string(kVid)));
 
     auto* dedupVids = Dedup::make(qctx_, project);
     dedupVids->setInputVar(project->outputVar());
     dedupVids->setColNames(project->colNames());
 
-    projectStartVid_ = project;
+    projectStartVid = project;
     return dedupVids;
 }
 

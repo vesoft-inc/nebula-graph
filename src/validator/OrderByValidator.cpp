@@ -7,23 +7,31 @@
 #include "validator/OrderByValidator.h"
 #include "parser/TraverseSentences.h"
 #include "planner/Query.h"
+#include "common/expression/LabelExpression.h"
 
 namespace nebula {
 namespace graph {
 Status OrderByValidator::validateImpl() {
     auto sentence = static_cast<OrderBySentence*>(sentence_);
     outputs_ = inputCols();
-    auto factors = sentence->factors();
+    auto &factors = sentence->factors();
     for (auto &factor : factors) {
+        if (factor->expr()->kind() == Expression::Kind::kLabel) {
+            auto *label = static_cast<const LabelExpression*>(factor->expr());
+            auto *expr = new InputPropertyExpression(new std::string(*label->name()));
+            factor->setExpr(expr);
+        }
         if (factor->expr()->kind() != Expression::Kind::kInputProperty) {
             return Status::SemanticError("Order by with invalid expression `%s'",
                                           factor->expr()->toString().c_str());
         }
         auto expr = static_cast<InputPropertyExpression*>(factor->expr());
-        auto *name = expr->prop();
-        auto colIdx = checkPropNonexistOrDuplicate(outputs_, *name, "Order by");
-        NG_RETURN_IF_ERROR(colIdx);
-        colOrderTypes_.emplace_back(std::make_pair(colIdx.value(), factor->orderType()));
+        NG_RETURN_IF_ERROR(deduceExprType(expr));
+        auto* name = expr->prop();
+        auto eq = [&](const ColDef& col) { return col.name == *name; };
+        auto iter = std::find_if(outputs_.cbegin(), outputs_.cend(), eq);
+        size_t colIdx = std::distance(outputs_.cbegin(), iter);
+        colOrderTypes_.emplace_back(std::make_pair(colIdx, factor->orderType()));
     }
 
     return Status::OK();
@@ -34,7 +42,7 @@ Status OrderByValidator::toPlan() {
     auto *sortNode = Sort::make(qctx_, plan->root(), std::move(colOrderTypes_));
     std::vector<std::string> colNames;
     for (auto &col : outputs_) {
-        colNames.emplace_back(col.first);
+        colNames.emplace_back(col.name);
     }
     sortNode->setColNames(std::move(colNames));
     root_ = sortNode;

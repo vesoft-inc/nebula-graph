@@ -13,41 +13,6 @@ namespace nebula {
 namespace graph {
 
 // static
-Status SchemaUtil::validateColumns(const std::vector<ColumnSpecification*> &columnSpecs,
-                                   meta::cpp2::Schema &schema) {
-    auto status = Status::OK();
-    std::unordered_set<std::string> nameSet;
-    for (auto& spec : columnSpecs) {
-        if (nameSet.find(*spec->name()) != nameSet.end()) {
-            return Status::Error("Duplicate column name `%s'", spec->name()->c_str());
-        }
-        nameSet.emplace(*spec->name());
-        meta::cpp2::ColumnDef column;
-        column.set_name(*spec->name());
-        auto type = spec->type();
-        meta::cpp2::ColumnTypeDef typeDef;
-        typeDef.set_type(type);
-        column.set_type(std::move(typeDef));
-        column.set_nullable(spec->isNull());
-        if (meta::cpp2::PropertyType::FIXED_STRING == type) {
-            column.type.set_type_length(spec->typeLen());
-        }
-
-        if (spec->hasDefaultValue()) {
-            auto value = spec->getDefaultValue();
-            auto valStatus = toSchemaValue(type, value);
-            if (!valStatus.ok()) {
-                return valStatus.status();
-            }
-            column.set_default_value(std::move(valStatus).value());
-        }
-        schema.columns.emplace_back(std::move(column));
-    }
-
-    return Status::OK();
-}
-
-// static
 Status SchemaUtil::validateProps(const std::vector<SchemaPropItem*> &schemaProps,
                                  meta::cpp2::Schema &schema) {
     auto status = Status::OK();
@@ -88,11 +53,15 @@ SchemaUtil::generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema
     auto schemaPtr = std::make_shared<meta::NebulaSchemaProvider>(ver);
     for (auto col : schema.get_columns()) {
         bool hasDef = col.__isset.default_value;
+        std::unique_ptr<Expression> defaultValueExpr;
+        if (hasDef) {
+            defaultValueExpr = Expression::decode(*col.get_default_value());
+        }
         schemaPtr->addField(col.get_name(),
                             col.get_type().get_type(),
                             col.type.__isset.type_length ? *col.get_type().get_type_length() : 0,
                             col.__isset.nullable ? *col.get_nullable() : false,
-                            hasDef ? *col.get_default_value() : Value());
+                            hasDef ? defaultValueExpr.release() : nullptr);
     }
     return schemaPtr;
 }
@@ -115,30 +84,31 @@ StatusOr<nebula::Value> SchemaUtil::toSchemaValue(const meta::cpp2::PropertyType
             return Value(timestamp.value());
         }
         case meta::cpp2::PropertyType::DATE: {
-            if (v.type() != Value::Type::INT && v.type() != Value::Type::STRING) {
+            if (v.type() != Value::Type::DATE) {
                 LOG(ERROR) << "ValueType is wrong, input type "
                            << static_cast<int32_t>(type)
                            << ", v type " <<  v.type();
                 return Status::Error("Wrong type");
             }
-            auto date = TimeFunction::toDate(v);
-            if (!date.ok()) {
-                return date.status();
+            return v;
+        }
+        case meta::cpp2::PropertyType::TIME: {
+            if (v.type() != Value::Type::TIME) {
+                LOG(ERROR) << "ValueType is wrong, input type "
+                           << static_cast<int32_t>(type)
+                           << ", v type " <<  v.type();
+                return Status::Error("Wrong type");
             }
-            return Value(date.value());
+            return v;
         }
         case meta::cpp2::PropertyType::DATETIME: {
-            if (v.type() != Value::Type::INT && v.type() != Value::Type::STRING) {
+            if (v.type() != Value::Type::DATETIME) {
                 LOG(ERROR) << "ValueType is wrong, input type "
                            << static_cast<int32_t>(type)
                            << ", v type " <<  v.type();
                 return Status::Error("Wrong type");
             }
-            auto datetime = TimeFunction::toDateTime(v);
-            if (!datetime.ok()) {
-                return datetime.status();
-            }
-            return Value(datetime.value());
+            return v;
         }
         default: {
             return v;
@@ -224,7 +194,21 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
         row.values.emplace_back(typeToString(col));
         auto nullable = col.__isset.nullable ? *col.get_nullable() : false;
         row.values.emplace_back(nullable ? "YES" : "NO");
-        auto defaultValue = col.__isset.default_value ? *col.get_default_value() : Value();
+        auto defaultValue = Value::kEmpty;
+        if (col.__isset.default_value) {
+            auto expr = Expression::decode(*col.get_default_value());
+            if (expr == nullptr) {
+                LOG(ERROR) << "Internal error: Wrong default value expression.";
+                defaultValue = Value();
+                continue;
+            }
+            if (expr->kind() == Expression::Kind::kConstant) {
+                QueryExpressionContext ctx;
+                defaultValue = Expression::eval(expr.get(), ctx(nullptr));
+            } else {
+                defaultValue = Value(expr->toString());
+            }
+        }
         row.values.emplace_back(std::move(defaultValue));
         dataSet.emplace_back(std::move(row));
     }
@@ -236,7 +220,7 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
                                                  const meta::cpp2::Schema &schema) {
     DataSet dataSet;
     std::string createStr;
-    createStr.resize(1024);
+    createStr.reserve(1024);
     if (isTag) {
         dataSet.colNames = {"Tag", "Create Tag"};
         createStr = "CREATE TAG `" + name + "` (\n";
@@ -257,12 +241,23 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
         }
 
         if (col.__isset.default_value) {
-            auto value = col.get_default_value();
-            auto toStr = value->toString();
-            if (value->isNumeric() || value->isBool()) {
-                createStr += " DEFAULT " + toStr;
+            auto encodeStr = *col.get_default_value();
+            auto expr = Expression::decode(encodeStr);
+            if (expr == nullptr) {
+                LOG(ERROR) << "Internal error: the default value is wrong expression.";
+                continue;
+            }
+            if (expr->kind() == Expression::Kind::kConstant) {
+                QueryExpressionContext ctx;
+                auto& value = expr->eval(ctx(nullptr));
+                auto toStr = value.toString();
+                if (value.isNumeric() || value.isBool()) {
+                    createStr += " DEFAULT " + toStr;
+                } else {
+                    createStr += " DEFAULT \"" + toStr + "\"";
+                }
             } else {
-                createStr += " DEFAULT \"" + toStr + "\"";
+                createStr += " DEFAULT " + expr->toString();
             }
         }
         createStr += ",\n";
@@ -341,16 +336,14 @@ bool SchemaUtil::isValidVid(const Value &value, const meta::cpp2::ColumnTypeDef 
 
 bool SchemaUtil::isValidVid(const Value &value, meta::cpp2::PropertyType type) {
     auto vidType = propTypeToValueType(type);
-    if ((vidType != Value::Type::STRING
-            && vidType != Value::Type::INT)  // compatible with 1.0
-            || value.type() != vidType) {
+    if (!isValidVid(value) || value.type() != vidType) {
         return false;
     }
     return true;
 }
 
 bool SchemaUtil::isValidVid(const Value &value) {
-    if (!value.isStr() && !value.isInt()) {
+    if (!value.isStr() && !value.isInt()) {  // compatible with 1.0
         return false;
     }
     return true;

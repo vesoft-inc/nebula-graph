@@ -37,7 +37,12 @@ void ExprVisitorImpl::visit(AttributeExpression *expr) {
 }
 
 void ExprVisitorImpl::visit(LogicalExpression *expr) {
-    visitBinaryExpr(expr);
+    for (auto &operand : expr->operands()) {
+        operand->accept(this);
+        if (!ok()) {
+            break;
+        }
+    }
 }
 
 void ExprVisitorImpl::visit(LabelAttributeExpression *expr) {
@@ -62,8 +67,8 @@ void ExprVisitorImpl::visit(FunctionCallExpression *expr) {
 // container expression
 void ExprVisitorImpl::visit(ListExpression *expr) {
     DCHECK(ok());
-    for (auto item : expr->items()) {
-        const_cast<Expression *>(item)->accept(this);
+    for (auto &item : expr->items()) {
+        item->accept(this);
         if (!ok()) {
             break;
         }
@@ -72,8 +77,8 @@ void ExprVisitorImpl::visit(ListExpression *expr) {
 
 void ExprVisitorImpl::visit(SetExpression *expr) {
     DCHECK(ok());
-    for (auto item : expr->items()) {
-        const_cast<Expression *>(item)->accept(this);
+    for (auto &item : expr->items()) {
+        item->accept(this);
         if (!ok()) {
             break;
         }
@@ -83,7 +88,34 @@ void ExprVisitorImpl::visit(SetExpression *expr) {
 void ExprVisitorImpl::visit(MapExpression *expr) {
     DCHECK(ok());
     for (auto &pair : expr->items()) {
-        const_cast<Expression *>(pair.second)->accept(this);
+        pair.second->accept(this);
+        if (!ok()) {
+            break;
+        }
+    }
+}
+
+// case expression
+void ExprVisitorImpl::visit(CaseExpression *expr) {
+    DCHECK(ok());
+    if (expr->hasCondition()) {
+        expr->condition()->accept(this);
+        if (!ok()) {
+            return;
+        }
+    }
+    if (expr->hasDefault()) {
+        expr->defaultResult()->accept(this);
+        if (!ok()) {
+            return;
+        }
+    }
+    for (const auto &whenThen : expr->cases()) {
+        whenThen.when->accept(this);
+        if (!ok()) {
+            break;
+        }
+        whenThen.then->accept(this);
         if (!ok()) {
             break;
         }
@@ -98,5 +130,14 @@ void ExprVisitorImpl::visitBinaryExpr(BinaryExpression *expr) {
     }
 }
 
+void ExprVisitorImpl::visit(PathBuildExpression *expr) {
+    DCHECK(ok());
+    for (auto &item : expr->items()) {
+        item->accept(this);
+        if (!ok()) {
+            break;
+        }
+    }
+}
 }   // namespace graph
 }   // namespace nebula
