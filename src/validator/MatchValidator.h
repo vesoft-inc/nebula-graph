@@ -8,12 +8,14 @@
 #define VALIDATOR_MATCHVALIDATOR_H_
 
 #include "common/base/Base.h"
-#include "parser/MatchSentence.h"
 #include "validator/TraversalValidator.h"
 #include "util/AnonVarGenerator.h"
 #include "planner/Query.h"
 
 namespace nebula {
+
+class MatchStepRange;
+
 namespace graph {
 
 struct MatchAstContext;

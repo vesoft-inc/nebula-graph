@@ -39,6 +39,9 @@ private:
     // Produce columns according to symbols in pattern
     Status projectColumnsBySymbols(const PlanNode* input, SubPlan* plan);
 
+    // Append filter in where
+    Status buildFilter(const PlanNode* input, SubPlan* plan);
+
     // Generate data join plan node
     PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
 
@@ -73,13 +76,18 @@ private:
 
     Expression* initialExprOrEdgeDstExpr(const std::string& varname);
 
+    void projectVid(const PlanNode* input, SubPlan* plan);
+
     YieldColumn* buildVertexColumn(const std::string& varname, int colIdx) const;
     YieldColumn* buildEdgeColumn(const std::string& varname, int colIdx) const;
+    YieldColumn* buildPathColumn(const std::string& varname, const std::string& alias) const;
 
     template <typename T>
     T* saveObject(T* obj) const {
         return matchCtx_->qctx->objPool()->add(obj);
     }
+
+    static constexpr const char* kPath = "_path";
 
     MatchAstContext* matchCtx_{nullptr};
     Expression* initialExpr_{nullptr};

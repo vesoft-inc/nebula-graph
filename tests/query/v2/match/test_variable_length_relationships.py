@@ -636,3 +636,34 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
             ],
         }
         self.check_rows_with_header(stmt, expected)
+
+    def test_more_cases(self):
+        stmt = '''
+        MATCH (v:player{name: 'Tim Duncan'})-[e:like*0]-()
+        RETURN e
+        '''
+
+        stmt = '''
+        MATCH (v:player{name: 'Tim Duncan'})-[e:like*1]-()
+        RETURN e
+        '''
+
+        stmt = '''
+        MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()
+        RETURN e
+        '''
+
+        stmt = '''
+        MATCH (v:player{name: 'Tim Duncan'})-[e:like*1..1]-()
+        RETURN e
+        '''
+
+        stmt = '''
+        MATCH (v:player{name: 'Tim Duncan'})-[e:like*]-()
+        RETURN e
+        '''
+
+        stmt = '''
+        MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()-[e2:like*0..0]-()
+        RETURN e, e2
+        '''
