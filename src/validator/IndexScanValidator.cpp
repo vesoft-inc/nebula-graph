@@ -46,6 +46,12 @@ Status IndexScanValidator::prepareYield() {
     if (sentence->yieldClause() == nullptr) {
         return Status::OK();
     }
+    // When whereClause is nullptr, yieldClause is not nullptr,
+    // only return vid for tag. return src, ranking, dst for edge
+    if (sentence->whereClause() == nullptr) {
+        return Status::SemanticError("Yield clauses are not supported "
+                                     "when WHERE clause does not exist");
+    }
     auto columns = sentence->yieldClause()->columns();
     auto schema = isEdge_
                   ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
@@ -82,6 +88,10 @@ Status IndexScanValidator::prepareYield() {
 
 Status IndexScanValidator::prepareFilter() {
     auto *sentence = static_cast<const LookupSentence *>(sentence_);
+    if (sentence->whereClause() == nullptr) {
+        return Status::OK();
+    }
+
     auto *filter = sentence->whereClause()->filter();
     auto ret = checkFilter(filter, *sentence->from());
     NG_RETURN_IF_ERROR(ret);
@@ -98,10 +108,11 @@ Status IndexScanValidator::checkFilter(Expression* expr, const std::string& from
     switch (expr->kind()) {
         case Expression::Kind::kLogicalOr :
         case Expression::Kind::kLogicalAnd : {
+            // TODO(dutor) Deal with n-ary operands
             auto lExpr = static_cast<LogicalExpression*>(expr);
-            auto ret = checkFilter(lExpr->left(), from);
+            auto ret = checkFilter(lExpr->operand(0), from);
             NG_RETURN_IF_ERROR(ret);
-            ret = checkFilter(lExpr->right(), from);
+            ret = checkFilter(lExpr->operand(1), from);
             NG_RETURN_IF_ERROR(ret);
             break;
         }

@@ -31,15 +31,16 @@ StatusOr<OptRule::TransformResult> IndexScanRule::transform(graph::QueryContext*
                                                             const MatchedResult& matched) const {
     auto groupNode = matched.node;
     auto filter = filterExpr(groupNode);
-    if (filter == nullptr) {
-        return Status::SemanticError("WHERE clause error");
-    }
-    FilterItems items;
-    ScanKind kind;
-    NG_RETURN_IF_ERROR(analyzeExpression(filter.get(), &items, &kind, isEdge(groupNode)));
-
     IndexQueryCtx iqctx = std::make_unique<std::vector<IndexQueryContext>>();
-    NG_RETURN_IF_ERROR(createIndexQueryCtx(iqctx, kind, items, qctx, groupNode));
+    if (filter == nullptr) {
+        // Only filter is nullptr when lookup on tagname
+        NG_RETURN_IF_ERROR(createIndexQueryCtx(iqctx, qctx, groupNode));
+    } else {
+        FilterItems items;
+        ScanKind kind;
+        NG_RETURN_IF_ERROR(analyzeExpression(filter.get(), &items, &kind, isEdge(groupNode)));
+        NG_RETURN_IF_ERROR(createIndexQueryCtx(iqctx, kind, items, qctx, groupNode));
+    }
 
     auto newIN = static_cast<const IndexScan*>(groupNode->node())->clone(qctx);
     newIN->setIndexQueryContext(std::move(iqctx));
@@ -67,6 +68,20 @@ Status IndexScanRule::createIndexQueryCtx(IndexQueryCtx &iqctx,
            ? createIQCWithLogicAnd(iqctx, items, qctx, groupNode)
            : createIQCWithLogicOR(iqctx, items, qctx, groupNode);
 }
+
+Status IndexScanRule::createIndexQueryCtx(IndexQueryCtx &iqctx,
+                                          graph::QueryContext *qctx,
+                                          const OptGroupNode *groupNode) const {
+    auto index = findLightestIndex(qctx, groupNode);
+    if (index == nullptr) {
+        return Status::IndexNotFound("No valid index found");
+    }
+    auto ret = appendIQCtx(index, iqctx);
+    NG_RETURN_IF_ERROR(ret);
+
+    return Status::OK();
+}
+
 
 Status IndexScanRule::createIQCWithLogicAnd(IndexQueryCtx &iqctx,
                                             const FilterItems& items,
@@ -148,6 +163,15 @@ Status IndexScanRule::appendIQCtx(const IndexItem& index,
     return Status::OK();
 }
 
+Status IndexScanRule::appendIQCtx(const IndexItem& index,
+                                  IndexQueryCtx &iqctx) const {
+    IndexQueryContext ctx;
+    ctx.set_index_id(index->get_index_id());
+    ctx.set_filter("");
+    iqctx->emplace_back(std::move(ctx));
+    return Status::OK();
+}
+
 #define CHECK_BOUND_VALUE(v, name)                                                                 \
     do {                                                                                           \
         if (v == Value::kNullBadType) {                                                      \
@@ -172,6 +196,10 @@ Status IndexScanRule::appendColHint(std::vector<IndexColumnHint>& hints,
             isRangeScan = false;
             begin = OptimizerUtils::normalizeValue(col, item.value_);
             break;
+        }
+        // because only type for bool is true/false, which can not satisify [start, end)
+        if (col.get_type().get_type() == meta::cpp2::PropertyType::BOOL) {
+            return Status::SemanticError("Range scan for bool type is illegal");
         }
         NG_RETURN_IF_ERROR(boundValue(item, col, begin, end));
     }
@@ -273,8 +301,12 @@ std::unique_ptr<Expression>
 IndexScanRule::filterExpr(const OptGroupNode *groupNode) const {
     auto in = static_cast<const IndexScan *>(groupNode->node());
     auto qct = in->queryContext();
-    // The initial IndexScan plan node has only one queryContext.
+    // The initial IndexScan plan node has only zeor or one queryContext.
     // TODO(yee): Move this condition to match interface
+    if (qct == nullptr) {
+        return nullptr;
+    }
+
     if (qct->size() != 1) {
         LOG(ERROR) << "Index Scan plan node error";
         return nullptr;
@@ -308,8 +340,9 @@ Status IndexScanRule::analyzeExpression(Expression* expr,
                                                    Expression::encode(*expr).c_str());
                 return Status::NotSupported(errorMsg);
             }
-            NG_RETURN_IF_ERROR(analyzeExpression(lExpr->left(), items, kind, isEdge));
-            NG_RETURN_IF_ERROR(analyzeExpression(lExpr->right(), items, kind, isEdge));
+            // TODO(dutor) Deal with n-ary operands
+            NG_RETURN_IF_ERROR(analyzeExpression(lExpr->operand(0), items, kind, isEdge));
+            NG_RETURN_IF_ERROR(analyzeExpression(lExpr->operand(1), items, kind, isEdge));
             break;
         }
         case Expression::Kind::kRelLE:
@@ -399,6 +432,24 @@ IndexItem IndexScanRule::findOptimalIndex(graph::QueryContext *qctx,
     // At this stage, all the optimizations are done.
     // Because the storage layer only needs one. So return first one of indexesRange.
     return indexesRange[0];
+}
+
+// Find the index with the fewest fields
+// Only use "lookup on tagname"
+IndexItem IndexScanRule::findLightestIndex(graph::QueryContext *qctx,
+                                           const OptGroupNode *groupNode) const {
+    auto indexes = allIndexesBySchema(qctx, groupNode);
+    if (indexes.empty()) {
+        return nullptr;
+    }
+
+    auto result = indexes[0];
+    for (size_t i = 1; i < indexes.size(); i++) {
+        if (result->get_fields().size() > indexes[i]->get_fields().size()) {
+            result = indexes[i];
+        }
+    }
+    return result;
 }
 
 std::vector<IndexItem>

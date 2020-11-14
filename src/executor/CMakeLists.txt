@@ -32,6 +32,7 @@ nebula_add_library(
     algo/BFSShortestPathExecutor.cpp
     algo/ProduceSemiShortestPathExecutor.cpp
     algo/ProduceAllPathsExecutor.cpp
+    algo/CartesianProductExecutor.cpp
     admin/SwitchSpaceExecutor.cpp
     admin/CreateUserExecutor.cpp
     admin/DropUserExecutor.cpp
@@ -60,6 +61,8 @@ nebula_add_library(
     mutate/DeleteExecutor.cpp
     mutate/UpdateExecutor.cpp
     admin/ConfigExecutor.cpp
+    admin/GroupExecutor.cpp
+    admin/ZoneExecutor.cpp
 )
 
 nebula_add_subdirectory(test)

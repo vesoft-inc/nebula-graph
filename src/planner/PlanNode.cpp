@@ -193,7 +193,34 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ConjunctPath";
         case Kind::kProduceAllPaths:
             return "ProduceAllPaths";
-            // no default so the compiler will warning when lack
+        case Kind::kCartesianProduct:
+            return "CartesianProduct";
+        // Group and Zone
+        case Kind::kAddGroup:
+            return "AddGroup";
+        case Kind::kDropGroup:
+            return "DropGroup";
+        case Kind::kAddZone:
+            return "AddZone";
+        case Kind::kDropZone:
+            return "DropZone";
+        case Kind::kDescribeGroup:
+            return "DescribeGroup";
+        case Kind::kAddZoneIntoGroup:
+            return "AddZoneIntoGroup";
+        case Kind::kDropZoneFromGroup:
+            return "DropZoneFromGroup";
+        case Kind::kDescribeZone:
+            return "DescribeZone";
+        case Kind::kAddHostIntoZone:
+            return "AddHostIntoZone";
+        case Kind::kDropHostFromZone:
+            return "DropHostFromZone";
+        case Kind::kShowGroups:
+            return "ShowGroups";
+        case Kind::kShowZones:
+            return "ShowZones";
+        // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);
 }
