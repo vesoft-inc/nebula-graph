@@ -103,6 +103,8 @@ public:
         kShowCharset,
         kShowCollation,
         kShowConfigs,
+        kShowGroups,
+        kShowZones,
         kSetConfig,
         kGetConfig,
         kBFSShortest,
@@ -110,6 +112,17 @@ public:
         kConjunctPath,
         kProduceAllPaths,
         kCartesianProduct,
+        // zone related
+        kAddGroup,
+        kDropGroup,
+        kDescribeGroup,
+        kAddZoneIntoGroup,
+        kDropZoneFromGroup,
+        kAddZone,
+        kDropZone,
+        kDescribeZone,
+        kAddHostIntoZone,
+        kDropHostFromZone,
     };
 
     PlanNode(QueryContext* qctx, Kind kind);
