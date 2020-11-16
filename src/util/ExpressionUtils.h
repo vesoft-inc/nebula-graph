@@ -121,7 +121,8 @@ public:
     static VariablePropertyExpression* newVarPropExpr(const std::string& prop,
                                                       const std::string& var = "");
 
-    static SubscriptExpression* columnExpr(const std::string& varname, int columnIndex);
+    static std::unique_ptr<SubscriptExpression> columnExpr(const std::string& varname,
+                                                           int columnIndex);
 };
 
 }   // namespace graph

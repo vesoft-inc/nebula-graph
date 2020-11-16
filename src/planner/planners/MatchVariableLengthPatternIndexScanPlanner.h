@@ -34,7 +34,7 @@ private:
 
     // Generate plan:
     //  (v)-[e:et*m..n]- + (n)-[e1:et2*k..l]-
-    Status composePlan(SubPlan* finalPlan);
+    Status combinePlans(SubPlan* finalPlan);
 
     // Produce columns according to symbols in pattern
     Status projectColumnsBySymbols(const PlanNode* input, SubPlan* plan);
@@ -49,13 +49,13 @@ private:
     Status appendFetchVertexPlan(const PlanNode* input, SubPlan* plan);
 
     // (v)-[e:et*m..n]- plan + Filter + PassThroughNode
-    Status filterFinalDataset(const MatchValidator::EdgeInfo& edge,
-                              const PlanNode* input,
-                              SubPlan* plan);
+    Status filterDatasetByPathLength(const MatchValidator::EdgeInfo& edge,
+                                     const PlanNode* input,
+                                     SubPlan* plan);
 
     // Generate subplan for pattern which is like:
     //   (v)-[e:edgetype*m..n{prop: value}]-
-    Status composeSubPlan(const MatchValidator::EdgeInfo& edge,
+    Status combineSubPlan(const MatchValidator::EdgeInfo& edge,
                           const PlanNode* input,
                           SubPlan* plan);
 
@@ -76,7 +76,7 @@ private:
 
     Expression* initialExprOrEdgeDstExpr(const std::string& varname);
 
-    void projectVid(const PlanNode* input, SubPlan* plan);
+    void extractAndDedupVidColumn(const PlanNode* input, SubPlan* plan);
 
     YieldColumn* buildVertexColumn(const std::string& varname, int colIdx) const;
     YieldColumn* buildEdgeColumn(const std::string& varname, int colIdx) const;
