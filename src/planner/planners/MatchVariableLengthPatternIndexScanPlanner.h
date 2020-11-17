@@ -43,7 +43,7 @@ private:
     PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
 
     // Generate fetch final vertex props sub-plan
-    Status appendFetchVertexPlan(const PlanNode* input, SubPlan* plan);
+    Status appendFetchVertexPlan(SubPlan* plan);
 
     // (v)-[e:et*m..n]- plan + Filter + PassThroughNode
     Status filterDatasetByPathLength(const MatchValidator::EdgeInfo& edge,

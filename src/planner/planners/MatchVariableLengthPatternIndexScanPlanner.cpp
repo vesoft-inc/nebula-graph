@@ -126,7 +126,7 @@ Status MatchVariableLengthPatternIndexScanPlanner::combinePlans(SubPlan *finalPl
     auto &edgeInfos = matchCtx_->edgeInfos;
     DCHECK(!nodeInfos.empty());
     if (edgeInfos.empty()) {
-        return appendFetchVertexPlan(finalPlan->root, finalPlan);
+        return appendFetchVertexPlan(finalPlan);
     }
     DCHECK_GT(nodeInfos.size(), edgeInfos.size());
 
@@ -138,9 +138,9 @@ Status MatchVariableLengthPatternIndexScanPlanner::combinePlans(SubPlan *finalPl
         plan.root = joinDataSet(curr.root, plan.root);
     }
 
-    SubPlan curr;
-    NG_RETURN_IF_ERROR(appendFetchVertexPlan(plan.root, &curr));
-    finalPlan->root = joinDataSet(curr.root, plan.root);
+    auto left = plan.root;
+    NG_RETURN_IF_ERROR(appendFetchVertexPlan(&plan));
+    finalPlan->root = joinDataSet(plan.root, left);
 
     return Status::OK();
 }
@@ -155,12 +155,12 @@ Status MatchVariableLengthPatternIndexScanPlanner::projectColumnsBySymbols(SubPl
     std::vector<std::string> colNames;
     for (size_t i = 0; i < edgeInfos.size(); i++) {
         auto &nodeInfo = nodeInfos[i];
-        if (nodeInfo.alias != nullptr) {
+        if (nodeInfo.alias != nullptr && !nodeInfo.anonymous) {
             columns->addColumn(buildVertexColumn(varname, i));
             colNames.emplace_back(*nodeInfo.alias);
         }
         auto &edgeInfo = edgeInfos[i];
-        if (edgeInfo.alias != nullptr) {
+        if (edgeInfo.alias != nullptr && !nodeInfo.anonymous) {
             columns->addColumn(buildEdgeColumn(varname, i));
             colNames.emplace_back(*edgeInfo.alias);
         }
@@ -221,9 +221,9 @@ PlanNode *MatchVariableLengthPatternIndexScanPlanner::joinDataSet(const PlanNode
     return join;
 }
 
-Status MatchVariableLengthPatternIndexScanPlanner::appendFetchVertexPlan(const PlanNode *input,
-                                                                         SubPlan *plan) {
+Status MatchVariableLengthPatternIndexScanPlanner::appendFetchVertexPlan(SubPlan *plan) {
     auto qctx = matchCtx_->qctx;
+    auto input = plan->root;
 
     SubPlan curr;
     extractAndDedupVidColumn(input, &curr);
