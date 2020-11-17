@@ -43,16 +43,18 @@ private:
     PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
 
     // Generate fetch final vertex props sub-plan
-    Status appendFetchVertexPlan(SubPlan* plan);
+    Status appendFetchVertexPlan(const Expression* nodeFilter, SubPlan* plan);
 
     // (v)-[e:et*m..n]- plan + Filter + PassThroughNode
-    Status filterDatasetByPathLength(const MatchValidator::EdgeInfo& edge,
+    Status filterDatasetByPathLength(const MatchValidator::NodeInfo& node,
+                                     const MatchValidator::EdgeInfo& edge,
                                      const PlanNode* input,
                                      SubPlan* plan);
 
     // Generate subplan for pattern which is like:
     //   (v)-[e:edgetype*m..n{prop: value}]-
-    Status combineSubPlan(const MatchValidator::EdgeInfo& edge,
+    Status combineSubPlan(const MatchValidator::NodeInfo& node,
+                          const MatchValidator::EdgeInfo& edge,
                           const PlanNode* input,
                           SubPlan* plan);
 
@@ -60,6 +62,7 @@ private:
     //   Project -> Dedup -> GetNeighbors -> [Filter ->] [Filter ->] Project
     Status expandStep(const MatchValidator::EdgeInfo& edge,
                       const PlanNode* input,
+                      const Expression* nodeFilter,
                       bool needPassThrough,
                       SubPlan* plan);
 

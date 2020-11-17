@@ -129,23 +129,24 @@ Status MatchVariableLengthPatternIndexScanPlanner::combinePlans(SubPlan *finalPl
     auto &edgeInfos = matchCtx_->edgeInfos;
     DCHECK(!nodeInfos.empty());
     if (edgeInfos.empty()) {
-        return appendFetchVertexPlan(finalPlan);
+        return appendFetchVertexPlan(nodeInfos.front().filter, finalPlan);
     }
     DCHECK_GT(nodeInfos.size(), edgeInfos.size());
 
     SubPlan plan;
-    NG_RETURN_IF_ERROR(filterDatasetByPathLength(edgeInfos[0], finalPlan->root, &plan));
+    NG_RETURN_IF_ERROR(
+        filterDatasetByPathLength(nodeInfos[0], edgeInfos[0], finalPlan->root, &plan));
     std::vector<std::string> joinColNames = {folly::stringPrintf("%s_%d", kPath, 0)};
     for (size_t i = 1; i < edgeInfos.size(); ++i) {
         SubPlan curr;
-        NG_RETURN_IF_ERROR(filterDatasetByPathLength(edgeInfos[i], plan.root, &curr));
+        NG_RETURN_IF_ERROR(filterDatasetByPathLength(nodeInfos[i], edgeInfos[i], plan.root, &curr));
         plan.root = joinDataSet(curr.root, plan.root);
         joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPath, i));
         plan.root->setColNames(joinColNames);
     }
 
     auto left = plan.root;
-    NG_RETURN_IF_ERROR(appendFetchVertexPlan(&plan));
+    NG_RETURN_IF_ERROR(appendFetchVertexPlan(nodeInfos.back().filter, &plan));
     finalPlan->root = joinDataSet(plan.root, left);
     joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPath, edgeInfos.size()));
     finalPlan->root->setColNames(joinColNames);
@@ -240,30 +241,46 @@ PlanNode *MatchVariableLengthPatternIndexScanPlanner::joinDataSet(const PlanNode
     return join;
 }
 
-Status MatchVariableLengthPatternIndexScanPlanner::appendFetchVertexPlan(SubPlan *plan) {
+Status MatchVariableLengthPatternIndexScanPlanner::appendFetchVertexPlan(
+    const Expression *nodeFilter,
+    SubPlan *plan) {
     auto qctx = matchCtx_->qctx;
 
     extractAndDedupVidColumn(plan);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
     auto gv = GetVertices::make(qctx, plan->root, matchCtx_->space.id, srcExpr.release(), {}, {});
 
+    PlanNode *root = gv;
+    if (nodeFilter != nullptr) {
+        auto filter = nodeFilter->clone().release();
+        RewriteMatchLabelVisitor visitor([](const Expression *expr) {
+            DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
+            auto la = static_cast<const LabelAttributeExpression *>(expr);
+            auto attr = new LabelExpression(*la->right()->name());
+            return new AttributeExpression(new VertexExpression(), attr);
+        });
+        filter->accept(&visitor);
+        root = Filter::make(matchCtx_->qctx, root, filter);
+    }
+
     // normalize all columns to one
     auto columns = saveObject(new YieldColumns);
     auto pathExpr = std::make_unique<PathBuildExpression>();
     pathExpr->add(std::make_unique<VertexExpression>());
     columns->addColumn(new YieldColumn(pathExpr.release()));
-    plan->root = Project::make(qctx, gv, columns);
+    plan->root = Project::make(qctx, root, columns);
     plan->root->setColNames({kPath});
     return Status::OK();
 }
 
-Status MatchVariableLengthPatternIndexScanPlanner::filterDatasetByPathLength(const EdgeInfo &edge,
+Status MatchVariableLengthPatternIndexScanPlanner::filterDatasetByPathLength(const NodeInfo &node,
+                                                                             const EdgeInfo &edge,
                                                                              const PlanNode *input,
                                                                              SubPlan *plan) {
     auto qctx = matchCtx_->qctx;
 
     SubPlan curr;
-    NG_RETURN_IF_ERROR(combineSubPlan(edge, input, &curr));
+    NG_RETURN_IF_ERROR(combineSubPlan(node, edge, input, &curr));
     // filter rows whose edges number less than min hop
     auto args = std::make_unique<ArgumentList>();
     // expr: length(relationships(p)) >= minHop
@@ -282,17 +299,18 @@ Status MatchVariableLengthPatternIndexScanPlanner::filterDatasetByPathLength(con
     return Status::OK();
 }
 
-Status MatchVariableLengthPatternIndexScanPlanner::combineSubPlan(const EdgeInfo &edge,
+Status MatchVariableLengthPatternIndexScanPlanner::combineSubPlan(const NodeInfo &node,
+                                                                  const EdgeInfo &edge,
                                                                   const PlanNode *input,
                                                                   SubPlan *plan) {
     SubPlan subplan;
-    NG_RETURN_IF_ERROR(expandStep(edge, input, true, &subplan));
+    NG_RETURN_IF_ERROR(expandStep(edge, input, node.filter, true, &subplan));
     plan->tail = subplan.tail;
     PlanNode *passThrough = subplan.root;
     auto maxHop = edge.range ? edge.range->max() : 1;
     for (int64_t i = 1; i < maxHop; ++i) {
         SubPlan curr;
-        NG_RETURN_IF_ERROR(expandStep(edge, passThrough, false, &curr));
+        NG_RETURN_IF_ERROR(expandStep(edge, passThrough, nullptr, false, &curr));
         auto rNode = subplan.root;
         DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
         NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
@@ -304,6 +322,7 @@ Status MatchVariableLengthPatternIndexScanPlanner::combineSubPlan(const EdgeInfo
 // build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
 Status MatchVariableLengthPatternIndexScanPlanner::expandStep(const EdgeInfo &edge,
                                                               const PlanNode *input,
+                                                              const Expression *nodeFilter,
                                                               bool needPassThrough,
                                                               SubPlan *plan) {
     DCHECK(input != nullptr);
@@ -322,6 +341,21 @@ Status MatchVariableLengthPatternIndexScanPlanner::expandStep(const EdgeInfo &ed
     gn->setEdgeDirection(edge.direction);
 
     PlanNode *root = gn;
+
+    if (nodeFilter != nullptr) {
+        auto filter = nodeFilter->clone().release();
+        RewriteMatchLabelVisitor visitor([](const Expression *expr) {
+            DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
+            auto la = static_cast<const LabelAttributeExpression *>(expr);
+            auto attr = new LabelExpression(*la->right()->name());
+            return new AttributeExpression(new VertexExpression(), attr);
+        });
+        filter->accept(&visitor);
+        auto filterNode = Filter::make(matchCtx_->qctx, root, filter);
+        filterNode->setColNames(root->colNames());
+        root = filterNode;
+    }
+
     if (edge.filter != nullptr) {
         RewriteMatchLabelVisitor visitor([](const Expression *expr) {
             DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
@@ -331,7 +365,9 @@ Status MatchVariableLengthPatternIndexScanPlanner::expandStep(const EdgeInfo &ed
         });
         auto filter = edge.filter->clone().release();
         filter->accept(&visitor);
-        root = Filter::make(qctx, root, filter);
+        auto filterNode = Filter::make(qctx, root, filter);
+        filterNode->setColNames(root->colNames());
+        root = filterNode;
     }
 
     auto listColumns = saveObject(new YieldColumns);
