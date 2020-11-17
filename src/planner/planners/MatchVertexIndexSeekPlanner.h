@@ -42,8 +42,6 @@ private:
 
     Status buildTailJoin();
 
-    Status buildFilter();
-
     template <typename T>
     T* saveObject(T *obj) const {
         return matchCtx_->qctx->objPool()->add(obj);

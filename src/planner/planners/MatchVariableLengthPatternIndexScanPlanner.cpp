@@ -80,7 +80,7 @@ StatusOr<SubPlan> MatchVariableLengthPatternIndexScanPlanner::transform(AstConte
     NG_RETURN_IF_ERROR(scanIndex(&plan));
     NG_RETURN_IF_ERROR(combinePlans(&plan));
     NG_RETURN_IF_ERROR(projectColumnsBySymbols(plan.root, &plan));
-    NG_RETURN_IF_ERROR(buildFilter(plan.root, &plan));
+    NG_RETURN_IF_ERROR(MatchSolver::buildFilter(matchCtx_, &plan));
     NG_RETURN_IF_ERROR(MatchSolver::buildReturn(matchCtx_, plan));
     return plan;
 }
@@ -204,25 +204,6 @@ Status MatchVariableLengthPatternIndexScanPlanner::projectColumnsBySymbols(const
     project->setColNames(std::move(colNames));
 
     plan->root = project;
-    return Status::OK();
-}
-
-Status MatchVariableLengthPatternIndexScanPlanner::buildFilter(const PlanNode *input,
-                                                               SubPlan *plan) {
-    if (matchCtx_->filter == nullptr) {
-        return Status::OK();
-    }
-    auto newFilter = matchCtx_->filter->clone();
-    auto rewriter = [this](const Expression *expr) {
-        return MatchSolver::doRewrite(matchCtx_, expr);
-    };
-    RewriteMatchLabelVisitor visitor(std::move(rewriter));
-    newFilter->accept(&visitor);
-    auto cond = saveObject(newFilter.release());
-    auto *node = Filter::make(matchCtx_->qctx, const_cast<PlanNode *>(input), cond);
-    node->setInputVar(input->outputVar());
-    node->setColNames(input->colNames());
-    plan->root = node;
     return Status::OK();
 }
 

@@ -55,7 +55,7 @@ StatusOr<SubPlan> MatchVertexIndexSeekPlanner::transform(AstContext* astCtx) {
     if (!matchCtx_->edgeInfos.empty()) {
         NG_RETURN_IF_ERROR(buildTailJoin());
     }
-    NG_RETURN_IF_ERROR(buildFilter());
+    NG_RETURN_IF_ERROR(MatchSolver::buildFilter(matchCtx_, &subPlan_));
     NG_RETURN_IF_ERROR(MatchSolver::buildReturn(matchCtx_, subPlan_));
     return subPlan_;
 }
@@ -293,27 +293,6 @@ Status MatchVertexIndexSeekPlanner::buildTailJoin() {
     colNames.emplace_back(*matchCtx_->nodeInfos[curStep_ + 1].alias);
     join->setColNames(std::move(colNames));
     subPlan_.root = join;
-
-    return Status::OK();
-}
-
-
-Status MatchVertexIndexSeekPlanner::buildFilter() {
-    if (matchCtx_->filter == nullptr) {
-        return Status::OK();
-    }
-    auto newFilter = matchCtx_->filter->clone();
-    auto rewriter = [this](const Expression *expr) {
-        return MatchSolver::doRewrite(matchCtx_, expr);
-    };
-    RewriteMatchLabelVisitor visitor(std::move(rewriter));
-    newFilter->accept(&visitor);
-
-    auto *node = Filter::make(matchCtx_->qctx, subPlan_.root, saveObject(newFilter.release()));
-    node->setInputVar(subPlan_.root->outputVar());
-    node->setColNames(subPlan_.root->colNames());
-
-    subPlan_.root = node;
 
     return Status::OK();
 }

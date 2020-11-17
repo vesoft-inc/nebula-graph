@@ -33,6 +33,8 @@ public:
                                        const std::string& alias,
                                        Expression* filter,
                                        QueryContext* qctx);
+
+    static Status buildFilter(const MatchAstContext* mctx, SubPlan* plan);
 };
 }  // namespace graph
 }  // namespace nebula

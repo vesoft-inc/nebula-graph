@@ -199,5 +199,22 @@ Expression *MatchSolver::makeIndexFilter(const std::string &label,
     return qctx->objPool()->add(root);
 }
 
+Status MatchSolver::buildFilter(const MatchAstContext *mctx, SubPlan *plan) {
+    if (mctx->filter == nullptr) {
+        return Status::OK();
+    }
+    auto newFilter = mctx->filter->clone();
+    auto rewriter = [mctx](const Expression *expr) { return MatchSolver::doRewrite(mctx, expr); };
+    RewriteMatchLabelVisitor visitor(std::move(rewriter));
+    newFilter->accept(&visitor);
+    auto cond = mctx->qctx->objPool()->add(newFilter.release());
+    auto input = plan->root;
+    auto *node = Filter::make(mctx->qctx, input, cond);
+    node->setInputVar(input->outputVar());
+    node->setColNames(input->colNames());
+    plan->root = node;
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

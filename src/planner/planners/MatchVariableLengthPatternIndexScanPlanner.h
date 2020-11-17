@@ -39,9 +39,6 @@ private:
     // Produce columns according to symbols in pattern
     Status projectColumnsBySymbols(const PlanNode* input, SubPlan* plan);
 
-    // Append filter in where
-    Status buildFilter(const PlanNode* input, SubPlan* plan);
-
     // Generate data join plan node
     PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
 
