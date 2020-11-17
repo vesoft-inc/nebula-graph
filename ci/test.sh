@@ -97,7 +97,6 @@ function run_test() {
         -n=8 \
         --dist=loadfile \
         --debug_log=false \
-        --rm_dir=false \
         $testpath
 
     $BUILD_DIR/tests/ntr --debug_log=false $PROJ_DIR/tests/job/*
