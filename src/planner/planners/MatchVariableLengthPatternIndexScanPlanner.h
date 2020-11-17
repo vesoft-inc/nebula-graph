@@ -37,7 +37,7 @@ private:
     Status combinePlans(SubPlan* finalPlan);
 
     // Produce columns according to symbols in pattern
-    Status projectColumnsBySymbols(const PlanNode* input, SubPlan* plan);
+    Status projectColumnsBySymbols(SubPlan* plan);
 
     // Generate data join plan node
     PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);

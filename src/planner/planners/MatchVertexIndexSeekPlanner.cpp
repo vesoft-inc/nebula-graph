@@ -12,36 +12,8 @@
 
 namespace nebula {
 namespace graph {
-bool MatchVertexIndexSeekPlanner::match(AstContext* astCtx) {
-    if (astCtx->sentence->kind() != Sentence::Kind::kMatch) {
-        return false;
-    }
-    auto* matchCtx = static_cast<MatchAstContext*>(astCtx);
-
-    auto& head = matchCtx->nodeInfos[0];
-    if (head.label == nullptr) {
-        return false;
-    }
-
-    Expression *filter = nullptr;
-    if (matchCtx->filter != nullptr) {
-        filter = MatchSolver::makeIndexFilter(
-            *head.label, *head.alias, matchCtx->filter.get(), matchCtx->qctx);
-    }
-    if (filter == nullptr) {
-        if (head.props != nullptr && !head.props->items().empty()) {
-            filter = MatchSolver::makeIndexFilter(*head.label, head.props, matchCtx->qctx);
-        }
-    }
-
-    if (filter == nullptr) {
-        return false;
-    }
-
-    matchCtx->scanInfo.filter = filter;
-    matchCtx->scanInfo.schemaId = head.tid;
-
-    return true;
+bool MatchVertexIndexSeekPlanner::match(AstContext *astCtx) {
+    return MatchSolver::match(astCtx);
 }
 
 StatusOr<SubPlan> MatchVertexIndexSeekPlanner::transform(AstContext* astCtx) {

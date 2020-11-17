@@ -43,35 +43,7 @@ MatchVariableLengthPatternIndexScanPlanner::make() {
 }
 
 bool MatchVariableLengthPatternIndexScanPlanner::match(AstContext *astCtx) {
-    if (astCtx->sentence->kind() != Sentence::Kind::kMatch) {
-        return false;
-    }
-    auto *matchCtx = static_cast<MatchAstContext *>(astCtx);
-
-    auto &head = matchCtx->nodeInfos[0];
-    if (head.label == nullptr) {
-        return false;
-    }
-
-    Expression *filter = nullptr;
-    if (matchCtx->filter != nullptr) {
-        filter = MatchSolver::makeIndexFilter(
-            *head.label, *head.alias, matchCtx->filter.get(), matchCtx->qctx);
-    }
-    if (filter == nullptr) {
-        if (head.props != nullptr && !head.props->items().empty()) {
-            filter = MatchSolver::makeIndexFilter(*head.label, head.props, matchCtx->qctx);
-        }
-    }
-
-    if (filter == nullptr) {
-        return false;
-    }
-
-    matchCtx->scanInfo.filter = filter;
-    matchCtx->scanInfo.schemaId = head.tid;
-
-    return true;
+    return MatchSolver::match(astCtx);
 }
 
 StatusOr<SubPlan> MatchVariableLengthPatternIndexScanPlanner::transform(AstContext *astCtx) {
@@ -79,7 +51,7 @@ StatusOr<SubPlan> MatchVariableLengthPatternIndexScanPlanner::transform(AstConte
     SubPlan plan;
     NG_RETURN_IF_ERROR(scanIndex(&plan));
     NG_RETURN_IF_ERROR(combinePlans(&plan));
-    NG_RETURN_IF_ERROR(projectColumnsBySymbols(plan.root, &plan));
+    NG_RETURN_IF_ERROR(projectColumnsBySymbols(&plan));
     NG_RETURN_IF_ERROR(MatchSolver::buildFilter(matchCtx_, &plan));
     NG_RETURN_IF_ERROR(MatchSolver::buildReturn(matchCtx_, plan));
     return plan;
@@ -173,12 +145,12 @@ Status MatchVariableLengthPatternIndexScanPlanner::combinePlans(SubPlan *finalPl
     return Status::OK();
 }
 
-Status MatchVariableLengthPatternIndexScanPlanner::projectColumnsBySymbols(const PlanNode *input,
-                                                                           SubPlan *plan) {
+Status MatchVariableLengthPatternIndexScanPlanner::projectColumnsBySymbols(SubPlan *plan) {
     auto qctx = matchCtx_->qctx;
     auto &nodeInfos = matchCtx_->nodeInfos;
     auto &edgeInfos = matchCtx_->edgeInfos;
     auto columns = saveObject(new YieldColumns);
+    auto input = plan->root;
     const auto &varname = input->outputVar();
     std::vector<std::string> colNames;
     for (size_t i = 0; i < edgeInfos.size(); i++) {
@@ -200,7 +172,7 @@ Status MatchVariableLengthPatternIndexScanPlanner::projectColumnsBySymbols(const
         }
     }
 
-    auto project = Project::make(qctx, const_cast<PlanNode *>(input), columns);
+    auto project = Project::make(qctx, input, columns);
     project->setColNames(std::move(colNames));
 
     plan->root = project;
