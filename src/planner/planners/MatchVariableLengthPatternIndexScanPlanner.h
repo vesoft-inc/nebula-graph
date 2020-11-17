@@ -71,13 +71,15 @@ private:
                        PlanNode** passThrough,
                        SubPlan* plan);
 
-    Expression* initialExprOrEdgeDstExpr(const std::string& varname);
+    Expression* initialExprOrEdgeDstExpr(const PlanNode* node);
 
-    void extractAndDedupVidColumn(const PlanNode* input, SubPlan* plan);
+    void extractAndDedupVidColumn(SubPlan* plan);
 
-    YieldColumn* buildVertexColumn(const std::string& varname, int colIdx) const;
-    YieldColumn* buildEdgeColumn(const std::string& varname, int colIdx) const;
-    YieldColumn* buildPathColumn(const std::string& varname, const std::string& alias) const;
+    YieldColumn* buildVertexColumn(int colIdx) const;
+    YieldColumn* buildEdgeColumn(int colIdx) const;
+    YieldColumn* buildPathColumn(const std::string& alias) const;
+
+    std::unique_ptr<Expression> getNthPathExpr(size_t colIdx) const;
 
     template <typename T>
     T* saveObject(T* obj) const {

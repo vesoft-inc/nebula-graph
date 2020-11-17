@@ -6,6 +6,9 @@
 
 #include "util/ExpressionUtils.h"
 
+#include <memory>
+
+#include "common/expression/PropertyExpression.h"
 #include "visitor/FoldConstantExprVisitor.h"
 
 namespace nebula {
@@ -68,12 +71,8 @@ VariablePropertyExpression *ExpressionUtils::newVarPropExpr(const std::string &p
     return new VariablePropertyExpression(new std::string(var), new std::string(prop));
 }
 
-std::unique_ptr<SubscriptExpression> ExpressionUtils::columnExpr(const std::string &varname,
-                                                                 int columnIndex) {
-    auto name = std::make_unique<std::string>(varname);
-    auto varExpr = std::make_unique<VariableExpression>(name.release());
-    auto idxExpr = std::make_unique<ConstantExpression>(columnIndex);
-    return std::make_unique<SubscriptExpression>(varExpr.release(), idxExpr.release());
+std::unique_ptr<InputPropertyExpression> ExpressionUtils::inputPropExpr(const std::string &prop) {
+    return std::make_unique<InputPropertyExpression>(new std::string(prop));
 }
 
 }   // namespace graph

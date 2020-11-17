@@ -96,7 +96,7 @@ Expression *MatchSolver::doRewrite(const MatchAstContext *mctx, const Expression
     auto *labelExpr = static_cast<const LabelExpression *>(expr);
     auto alias = mctx->aliases.find(*labelExpr->name());
     DCHECK(alias != mctx->aliases.end());
-    if (alias->second == MatchValidator::AliasType::kPath) {
+    if (false /* alias->second == MatchValidator::AliasType::kPath */) {
         return mctx->pathBuild->clone().release();
     } else {
         return rewrite(labelExpr);

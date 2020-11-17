@@ -667,3 +667,9 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
         MATCH (v:player{name: 'Tim Duncan'})-[e:like*0..0]-()-[e2:like*0..0]-()
         RETURN e, e2
         '''
+
+        stmt = '''
+        MATCH (v:player{name: 'Tim Duncan'})-[e:like*2..3]-()
+        WHERE e[0].likeness > 80
+        RETURN e
+        '''

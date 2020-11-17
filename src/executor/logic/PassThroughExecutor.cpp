@@ -14,10 +14,7 @@ namespace graph {
 
 folly::Future<Status> PassThroughExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-
-    DataSet ds;
-    ds.colNames = node()->colNames();
-    return finish(ResultBuilder().value(Value(std::move(ds))).finish());
+    return Status::OK();
 }
 
 }   // namespace graph
