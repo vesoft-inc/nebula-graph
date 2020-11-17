@@ -75,11 +75,9 @@ private:
 
     void extractAndDedupVidColumn(SubPlan* plan);
 
-    YieldColumn* buildVertexColumn(int colIdx) const;
-    YieldColumn* buildEdgeColumn(int colIdx) const;
-    YieldColumn* buildPathColumn(const std::string& alias) const;
-
-    std::unique_ptr<Expression> getNthPathExpr(size_t colIdx) const;
+    YieldColumn* buildVertexColumn(const std::string& colName, const std::string& alias) const;
+    YieldColumn* buildEdgeColumn(int colIdx, const std::string& colName) const;
+    YieldColumn* buildPathColumn(const std::string& alias, const PlanNode* input) const;
 
     template <typename T>
     T* saveObject(T* obj) const {

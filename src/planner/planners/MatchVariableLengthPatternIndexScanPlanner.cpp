@@ -101,7 +101,7 @@ static Expression *getLastEdgeDstExprInLastPath(const std::string &colName) {
 static Expression *getFirstVertexVidInFistPath(const std::string &colName) {
     // expr: __Project_2[0] => path
     auto columnExpr = ExpressionUtils::inputPropExpr(colName);
-    // expr: [v1, e1, ..., vn, en][0] => v1
+    // expr: startNode(path) => v1
     auto args = std::make_unique<ArgumentList>();
     args->addArgument(std::move(columnExpr));
     auto fn = std::make_unique<std::string>("startNode");
@@ -159,22 +159,34 @@ Status MatchVariableLengthPatternIndexScanPlanner::projectColumnsBySymbols(SubPl
     auto &edgeInfos = matchCtx_->edgeInfos;
     auto columns = saveObject(new YieldColumns);
     auto input = plan->root;
+    const auto &inColNames = input->colNamesRef();
+    DCHECK_EQ(inColNames.size(), nodeInfos.size());
     std::vector<std::string> colNames;
-    for (size_t i = 0; i < edgeInfos.size(); i++) {
+
+    auto addNode = [&, this](size_t i) {
         auto &nodeInfo = nodeInfos[i];
         if (nodeInfo.alias != nullptr && !nodeInfo.anonymous) {
-            columns->addColumn(buildVertexColumn(i));
+            columns->addColumn(buildVertexColumn(inColNames[i], *nodeInfo.alias));
             colNames.emplace_back(*nodeInfo.alias);
         }
+    };
+
+    for (size_t i = 0; i < edgeInfos.size(); i++) {
+        addNode(i);
         auto &edgeInfo = edgeInfos[i];
         if (edgeInfo.alias != nullptr && !edgeInfo.anonymous) {
-            columns->addColumn(buildEdgeColumn(i));
+            columns->addColumn(buildEdgeColumn(i, inColNames[i]));
             colNames.emplace_back(*edgeInfo.alias);
         }
     }
+
+    // last vertex
+    DCHECK(!nodeInfos.empty());
+    addNode(nodeInfos.size() - 1);
+
     for (auto &alias : matchCtx_->aliases) {
         if (alias.second == MatchValidator::AliasType::kPath) {
-            columns->addColumn(buildPathColumn(alias.first));
+            columns->addColumn(buildPathColumn(alias.first, input));
             colNames.emplace_back(alias.first);
         }
     }
@@ -394,20 +406,23 @@ void MatchVariableLengthPatternIndexScanPlanner::extractAndDedupVidColumn(SubPla
     plan->root = dedup;
 }
 
-YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildVertexColumn(int colIdx) const {
-    auto colExpr = getNthPathExpr(colIdx);
+YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildVertexColumn(
+    const std::string &colName,
+    const std::string &alias) const {
+    auto colExpr = ExpressionUtils::inputPropExpr(colName);
     // startNode(path) => head node of path
     auto args = std::make_unique<ArgumentList>();
     args->addArgument(std::move(colExpr));
     auto fn = std::make_unique<std::string>("startNode");
     auto firstVertexExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
-    auto alias = matchCtx_->nodeInfos[colIdx].alias;
-    return new YieldColumn(firstVertexExpr.release(), new std::string(*alias));
+    return new YieldColumn(firstVertexExpr.release(), new std::string(alias));
 }
 
-YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildEdgeColumn(int colIdx) const {
+YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildEdgeColumn(
+    int colIdx,
+    const std::string &colName) const {
     auto &edge = matchCtx_->edgeInfos[colIdx];
-    auto colExpr = getNthPathExpr(colIdx);
+    auto colExpr = ExpressionUtils::inputPropExpr(colName);
     // relationships(p)
     auto args = std::make_unique<ArgumentList>();
     args->addArgument(std::move(colExpr));
@@ -426,23 +441,13 @@ YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildEdgeColumn(int col
 }
 
 YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildPathColumn(
-    const std::string &alias) const {
-    auto &nodeInfos = matchCtx_->nodeInfos;
-    auto &edgeInfos = matchCtx_->edgeInfos;
+    const std::string &alias,
+    const PlanNode *input) const {
     auto pathExpr = std::make_unique<PathBuildExpression>();
-    for (size_t i = 0; i < edgeInfos.size(); ++i) {
-        auto colExpr = getNthPathExpr(i);
-        pathExpr->add(std::move(colExpr));
+    for (const auto &colName : input->colNamesRef()) {
+        pathExpr->add(ExpressionUtils::inputPropExpr(colName));
     }
-    auto colExpr = getNthPathExpr(nodeInfos.size() - 1);
-    pathExpr->add(std::move(colExpr));
     return new YieldColumn(pathExpr.release(), new std::string(alias));
-}
-
-std::unique_ptr<Expression> MatchVariableLengthPatternIndexScanPlanner::getNthPathExpr(
-    size_t colIdx) const {
-    auto colName = folly::stringPrintf("%s_%lu", kPath, colIdx);
-    return ExpressionUtils::inputPropExpr(colName);
 }
 
 }   // namespace graph
