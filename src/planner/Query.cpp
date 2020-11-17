@@ -7,6 +7,7 @@
 #include "planner/Query.h"
 
 #include <folly/String.h>
+#include <folly/json.h>
 
 #include "util/ToJson.h"
 
@@ -104,7 +105,7 @@ std::unique_ptr<PlanNodeDescription> GetEdges::explain() const {
 IndexScan* IndexScan::clone(QueryContext* qctx) const {
     auto ctx = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
     auto returnCols = std::make_unique<std::vector<std::string>>(*returnColumns());
-    auto *scan = IndexScan::make(
+    auto* scan = IndexScan::make(
         qctx, nullptr, space(), std::move(ctx), std::move(returnCols), isEdge(), schemaId());
     scan->setOutputVar(this->outputVar());
     return scan;
@@ -112,7 +113,10 @@ IndexScan* IndexScan::clone(QueryContext* qctx) const {
 
 std::unique_ptr<PlanNodeDescription> IndexScan::explain() const {
     auto desc = Explore::explain();
-    // TODO
+    addDescription("schemaId", util::toJson(schemaId_), desc.get());
+    addDescription("isEdge", util::toJson(isEdge_), desc.get());
+    addDescription("returnCols", folly::toJson(util::toJson(*returnCols_)), desc.get());
+    addDescription("indexCtx", folly::toJson(util::toJson(*contexts_)), desc.get());
     return desc;
 }
 
