@@ -97,9 +97,10 @@ function run_test() {
         -n=8 \
         --dist=loadfile \
         --debug_log=false \
+        ${@:1} \
         $testpath
 
-    $BUILD_DIR/tests/ntr --debug_log=false $PROJ_DIR/tests/job/*
+    $BUILD_DIR/tests/ntr --debug_log=false ${@:1} $PROJ_DIR/tests/job/*
 }
 
 function test_in_cluster() {
@@ -132,7 +133,7 @@ case "$1" in
         run_ctest
         ;;
     test)
-        run_test
+        run_test "${@:2}"
         ;;
     k8s)
         prepare
