@@ -19,6 +19,7 @@
 #include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/PathBuildExpression.h"
 #include "common/expression/PropertyExpression.h"
+#include "common/expression/RelationalExpression.h"
 #include "common/expression/SubscriptExpression.h"
 #include "common/expression/VertexExpression.h"
 #include "parser/Clauses.h"
@@ -405,8 +406,19 @@ Status MatchVariableLengthPatternIndexScanPlanner::collectData(const PlanNode *j
     auto project = Project::make(qctx, join, columns);
     project->setColNames({kPath});
 
-    auto pt = PassThroughNode::make(qctx, project);
-    pt->setOutputVar(project->outputVar());
+    // Filter both direction step out over same edge
+    auto args = std::make_unique<ArgumentList>();
+    args->addArgument(ExpressionUtils::inputPropExpr(kPath));
+    auto fn = std::make_unique<std::string>("cyclePath");
+    auto fnCall = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    auto falseConst = std::make_unique<ConstantExpression>(false);
+    auto cond = std::make_unique<RelationalExpression>(
+        Expression::Kind::kRelEQ, fnCall.release(), falseConst.release());
+    auto filter = Filter::make(qctx, project, saveObject(cond.release()));
+    filter->setColNames({kPath});
+
+    auto pt = PassThroughNode::make(qctx, filter);
+    pt->setOutputVar(filter->outputVar());
     pt->setColNames({kPath});
 
     auto uNode = Union::make(qctx, pt, const_cast<PlanNode *>(inUnionNode));
