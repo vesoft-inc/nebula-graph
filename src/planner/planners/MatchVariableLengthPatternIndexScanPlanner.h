@@ -74,6 +74,9 @@ private:
                        PlanNode** passThrough,
                        SubPlan* plan);
 
+    // Filter both direction step out over same edge
+    PlanNode* filterCyclePath(PlanNode* input, const std::string& column);
+
     Expression* initialExprOrEdgeDstExpr(const PlanNode* node);
 
     void extractAndDedupVidColumn(SubPlan* plan);

@@ -7,6 +7,7 @@
 #include "planner/planners/MatchVariableLengthPatternIndexScanPlanner.h"
 #include <folly/String.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -186,17 +187,18 @@ Status MatchVariableLengthPatternIndexScanPlanner::projectColumnsBySymbols(SubPl
     DCHECK(!nodeInfos.empty());
     addNode(nodeInfos.size() - 1);
 
-    for (auto &alias : matchCtx_->aliases) {
-        if (alias.second == MatchValidator::AliasType::kPath) {
-            columns->addColumn(buildPathColumn(alias.first, input));
-            colNames.emplace_back(alias.first);
-        }
-    }
+    const auto &aliases = matchCtx_->aliases;
+    auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto &alias) {
+        return alias.second == MatchValidator::AliasType::kPath;
+    });
+    std::string alias = iter != aliases.end() ? iter->first : qctx->vctx()->anonColGen()->getCol();
+    columns->addColumn(buildPathColumn(alias, input));
+    colNames.emplace_back(alias);
 
     auto project = Project::make(qctx, input, columns);
     project->setColNames(std::move(colNames));
 
-    plan->root = project;
+    plan->root = filterCyclePath(project, alias);
     return Status::OK();
 }
 
@@ -406,16 +408,7 @@ Status MatchVariableLengthPatternIndexScanPlanner::collectData(const PlanNode *j
     auto project = Project::make(qctx, join, columns);
     project->setColNames({kPath});
 
-    // Filter both direction step out over same edge
-    auto args = std::make_unique<ArgumentList>();
-    args->addArgument(ExpressionUtils::inputPropExpr(kPath));
-    auto fn = std::make_unique<std::string>("cyclePath");
-    auto fnCall = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
-    auto falseConst = std::make_unique<ConstantExpression>(false);
-    auto cond = std::make_unique<RelationalExpression>(
-        Expression::Kind::kRelEQ, fnCall.release(), falseConst.release());
-    auto filter = Filter::make(qctx, project, saveObject(cond.release()));
-    filter->setColNames({kPath});
+    auto filter = filterCyclePath(project, kPath);
 
     auto pt = PassThroughNode::make(qctx, filter);
     pt->setOutputVar(filter->outputVar());
@@ -427,6 +420,20 @@ Status MatchVariableLengthPatternIndexScanPlanner::collectData(const PlanNode *j
     *passThrough = pt;
     plan->root = uNode;
     return Status::OK();
+}
+
+PlanNode *MatchVariableLengthPatternIndexScanPlanner::filterCyclePath(PlanNode *input,
+                                                                      const std::string &column) {
+    auto args = std::make_unique<ArgumentList>();
+    args->addArgument(ExpressionUtils::inputPropExpr(column));
+    auto fn = std::make_unique<std::string>("cyclePath");
+    auto fnCall = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    auto falseConst = std::make_unique<ConstantExpression>(false);
+    auto cond = std::make_unique<RelationalExpression>(
+        Expression::Kind::kRelEQ, fnCall.release(), falseConst.release());
+    auto filter = Filter::make(matchCtx_->qctx, input, saveObject(cond.release()));
+    filter->setColNames(input->colNames());
+    return filter;
 }
 
 Expression *MatchVariableLengthPatternIndexScanPlanner::initialExprOrEdgeDstExpr(
