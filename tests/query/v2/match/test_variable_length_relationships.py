@@ -263,15 +263,15 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
     def test_hops_m_to_n(self,
                          like,
                          serve,
-                         like_row_2hop_start_with,
-                         like_row_3hop_start_with):
+                         like_2hop,
+                         like_3hop):
         VERTICES = self.VERTEXS
 
-        def like_row_2hop(dst1: str, dst2: str):
-            return like_row_2hop_start_with('Tim Duncan')(dst1, dst2) + [VERTICES[dst2]]
+        def like_row_2hop(src: str, dst1: str, dst2: str):
+            return like_2hop(src, dst1, dst2) + [VERTICES[dst2]]
 
-        def like_row_3hop(dst1: str, dst2: str, dst3: str):
-            return like_row_3hop_start_with('Tim Duncan')(dst1, dst2, dst3) + [VERTICES[dst3]]
+        def like_row_3hop(src: str, dst1: str, dst2: str, dst3: str):
+            return like_3hop(src, dst1, dst2, dst3) + [VERTICES[dst3]]
 
         def serve_row_2hop(dst1, dst2):
             return [[serve('Tim Duncan', dst1), serve(dst1, dst2)], VERTICES[dst2]]
@@ -330,7 +330,9 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
         '''
         expected = {
             "column_names": ['e', 'v'],
-            "rows": [like_row_2hop("Manu Ginobili", "Tiago Splitter")],
+            "rows": [
+                like_2hop("Tiago Splitter", "Manu Ginobili", "Tim Duncan") + [VERTICES["Tiago Splitter"]],
+            ],
         }
         self.check_rows_with_header(stmt, expected)
 
@@ -600,9 +602,9 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
         self.check_rows_with_header(stmt, expected)
 
     @pytest.mark.skip
-    def test_return_all(self, like_row_2hop_start_with, like_row_3hop_start_with):
-        like_row_2hop = like_row_2hop_start_with('Tim Duncan')
-        like_row_3hop = like_row_3hop_start_with('Tim Duncan')
+    def test_return_all(self, like_2hop_start_with, like_3hop_start_with):
+        like_row_2hop = like_2hop_start_with('Tim Duncan')
+        like_row_3hop = like_3hop_start_with('Tim Duncan')
         stmt = '''
         MATCH (:player{name:"Tim Duncan"})-[e:like*2..3]->()
         RETURN *
@@ -623,7 +625,7 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
         }
         self.check_rows_with_header(stmt, expected)
 
-    def test_more_cases(self, like, serve, like_row_2hop):
+    def test_more_cases(self, like, serve, like_2hop):
         # stmt = '''
         # MATCH (v:player{name: 'Tim Duncan'})-[e:like*0]-()
         # RETURN e
@@ -636,18 +638,18 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
         expected = {
             "column_names": ['e'],
             "rows": [
-                [like('Tim Duncan', 'Dejounte Murray')],
-                [like('Tim Duncan', 'Shaquile O\'Neal')],
-                [like('Tim Duncan', 'Manu Ginobili')],
-                [like('Tim Duncan', 'Tony Parker')],
-                [like('Tim Duncan', 'Marco Belinelli')],
-                [like('Tim Duncan', 'Boris Diaw')],
-                [like('Manu Ginobili', 'Tim Duncan')],
-                [like('Tim Duncan', 'Danny Green')],
-                [like('Tim Duncan', 'Tiago Splitter')],
-                [like('Tim Duncan', 'Aron Baynes')],
-                [like('Tony Parker', 'Tim Duncan')],
-                [like('Tim Duncan', 'LaMarcus Aldridge')],
+                [[like('Tim Duncan', 'Manu Ginobili')]],
+                [[like('Tim Duncan', 'Tony Parker')]],
+                [[like('Dejounte Murray', 'Tim Duncan')]],
+                [[like('Shaquile O\'Neal', 'Tim Duncan')]],
+                [[like('Marco Belinelli', 'Tim Duncan')]],
+                [[like('Boris Diaw', 'Tim Duncan')]],
+                [[like('Manu Ginobili', 'Tim Duncan')]],
+                [[like('Danny Green', 'Tim Duncan')]],
+                [[like('Tiago Splitter', 'Tim Duncan')]],
+                [[like('Aron Baynes', 'Tim Duncan')]],
+                [[like('Tony Parker', 'Tim Duncan')]],
+                [[like('LaMarcus Aldridge', 'Tim Duncan')]],
             ],
         }
         self.check_rows_with_header(stmt, expected)
@@ -664,18 +666,18 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
         expected = {
             "column_names": ['e'],
             "rows": [
-                [like('Tim Duncan', 'Dejounte Murray')],
-                [like('Tim Duncan', 'Shaquile O\'Neal')],
-                [like('Tim Duncan', 'Manu Ginobili')],
-                [like('Tim Duncan', 'Tony Parker')],
-                [like('Tim Duncan', 'Marco Belinelli')],
-                [like('Tim Duncan', 'Boris Diaw')],
-                [like('Manu Ginobili', 'Tim Duncan')],
-                [like('Tim Duncan', 'Danny Green')],
-                [like('Tim Duncan', 'Tiago Splitter')],
-                [like('Tim Duncan', 'Aron Baynes')],
-                [like('Tony Parker', 'Tim Duncan')],
-                [like('Tim Duncan', 'LaMarcus Aldridge')],
+                [[like('Tim Duncan', 'Dejounte Murray')]],
+                [[like('Tim Duncan', 'Shaquile O\'Neal')]],
+                [[like('Tim Duncan', 'Manu Ginobili')]],
+                [[like('Tim Duncan', 'Tony Parker')]],
+                [[like('Tim Duncan', 'Marco Belinelli')]],
+                [[like('Tim Duncan', 'Boris Diaw')]],
+                [[like('Manu Ginobili', 'Tim Duncan')]],
+                [[like('Tim Duncan', 'Danny Green')]],
+                [[like('Tim Duncan', 'Tiago Splitter')]],
+                [[like('Tim Duncan', 'Aron Baynes')]],
+                [[like('Tony Parker', 'Tim Duncan')]],
+                [[like('Tim Duncan', 'LaMarcus Aldridge')]],
             ],
         }
         self.check_rows_with_header(stmt, expected)
@@ -719,13 +721,13 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
         expected = {
             "column_names": ['e'],
             "rows": [
-                like_row_2hop('Tim Duncan', 'Dejounte Murray', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
-                like_row_2hop('Tim Duncan', 'Manu Ginobili', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
-                like_row_2hop('Tim Duncan', 'Marco Belinelli', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
-                like_row_2hop('Tim Duncan', 'Boris Diaw', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
-                like_row_2hop('Tim Duncan', 'Manu Ginobili', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
-                like_row_2hop('Tim Duncan', 'LaMarcus Aldridge', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
-                like_row_2hop('Tim Duncan', 'LaMarcus Aldridge', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
+                like_2hop('Tim Duncan', 'Dejounte Murray', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
+                like_2hop('Tim Duncan', 'Manu Ginobili', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
+                like_2hop('Tim Duncan', 'Marco Belinelli', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
+                like_2hop('Tim Duncan', 'Boris Diaw', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
+                like_2hop('Tim Duncan', 'Manu Ginobili', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
+                like_2hop('Tim Duncan', 'LaMarcus Aldridge', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
+                like_2hop('Tim Duncan', 'LaMarcus Aldridge', 'Tony Parker') + [serve('Tony Parker', 'Spurs')],
                 [like('Tim Duncan', 'Tony Parker')] + [serve('Tony Parker', 'Spurs')],
                 [like('Tim Duncan', 'Tony Parker')] + [serve('Tony Parker', 'Spurs')],
             ],
