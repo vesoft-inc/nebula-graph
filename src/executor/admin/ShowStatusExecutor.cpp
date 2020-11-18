@@ -28,15 +28,12 @@ folly::Future<Status> ShowStatusExecutor::execute() {
             auto statisItem = std::move(resp).value();
 
             DataSet dataSet({"Type", "Name", "Count"});
-
-
             std::vector<std::pair<std::string, int64_t>> tagCount;
             std::vector<std::pair<std::string, int64_t>> edgeCount;
 
             for (auto &tag : statisItem.get_tag_vertices()) {
                 tagCount.emplace_back(std::make_pair(tag.first, tag.second));
             }
-
             for (auto &edge : statisItem.get_edges()) {
                 edgeCount.emplace_back(std::make_pair(edge.first, edge.second));
             }
@@ -44,7 +41,6 @@ folly::Future<Status> ShowStatusExecutor::execute() {
             std::sort(tagCount.begin(), tagCount.end(), [](const auto& l, const auto& r) {
                 return l.first < r.first;
             });
-
             std::sort(edgeCount.begin(), edgeCount.end(), [](const auto& l, const auto& r) {
                 return l.first < r.first;
             });
@@ -66,13 +62,13 @@ folly::Future<Status> ShowStatusExecutor::execute() {
             }
 
             Row verticeRow;
-            verticeRow.values.emplace_back("space");
+            verticeRow.values.emplace_back("Space");
             verticeRow.values.emplace_back("vertices");
             verticeRow.values.emplace_back(statisItem.space_vertices);
             dataSet.rows.emplace_back(std::move(verticeRow));
 
             Row edgeRow;
-            edgeRow.values.emplace_back("space");
+            edgeRow.values.emplace_back("Space");
             edgeRow.values.emplace_back("edges");
             edgeRow.values.emplace_back(statisItem.space_edges);
             dataSet.rows.emplace_back(std::move(edgeRow));
