@@ -274,6 +274,7 @@ class NebulaTestSuite(object):
                     continue
                 exp_val = columns[j - ignored_col_count]
                 expect_to_string = row_to_string(columns)
+
                 assert compare_value(col, exp_val), \
                     'The returned row from nebula could not be found, row: {}, expect: {}'.format(
                         row_to_string(row), expect_to_string)
