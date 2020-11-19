@@ -75,5 +75,14 @@ std::unique_ptr<InputPropertyExpression> ExpressionUtils::inputPropExpr(const st
     return std::make_unique<InputPropertyExpression>(new std::string(prop));
 }
 
+Expression*
+ExpressionUtils::pushOrs(std::vector<RelationalExpression*> rels) {
+    DCHECK_GT(rels.size(), 1);
+    auto *root = new LogicalExpression(Expression::Kind::kLogicalOr, rels[0], rels[1]);
+    for (size_t i = 2; i < rels.size(); i++) {
+        root = new LogicalExpression(Expression::Kind::kLogicalOr, root, rels[i]);
+    }
+    return root;
+}
 }   // namespace graph
 }   // namespace nebula

@@ -32,10 +32,7 @@ private:
 
     Status prepareFilter();
 
-    StatusOr<std::unique_ptr<Expression>> rewriteTSFilter(Expression* expr);
-
-    std::unique_ptr<Expression> genOrFilterFromList(
-        TextSearchExpression* expr, const std::vector<std::string>& values);
+    StatusOr<Expression*> rewriteTSFilter(Expression* expr);
 
     StatusOr<std::vector<std::string>> textSearch(TextSearchExpression* expr);
 

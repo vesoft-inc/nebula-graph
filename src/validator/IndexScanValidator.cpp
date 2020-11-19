@@ -109,9 +109,10 @@ Status IndexScanValidator::prepareFilter() {
             // return empty result direct.
             return Status::OK();
         }
-        auto ret = checkFilter(retExpr.value().get());
+        auto ret = checkFilter(retExpr.value());
         NG_RETURN_IF_ERROR(ret);
-        ctx.set_filter(Expression::encode(*std::move(retExpr.value()).get()));
+        ctx.set_filter(retExpr.value()->encode());
+        delete retExpr.value();
     } else {
         auto ret = checkFilter(filter);
         NG_RETURN_IF_ERROR(ret);
@@ -122,7 +123,7 @@ Status IndexScanValidator::prepareFilter() {
     return Status::OK();
 }
 
-StatusOr<std::unique_ptr<Expression>>
+StatusOr<Expression*>
 IndexScanValidator::rewriteTSFilter(Expression* expr) {
     std::vector<std::string> values;
     auto tsExpr = static_cast<TextSearchExpression*>(expr);
@@ -133,43 +134,17 @@ IndexScanValidator::rewriteTSFilter(Expression* expr) {
     if (vRet.value().empty()) {
         isEmptyResultSet_ = true;
         return Status::OK();
-    } else if (vRet.value().size() == 1) {
-        auto relExpr = std::make_unique<RelationalExpression>(
+    }
+    std::vector<RelationalExpression*> rels;
+    for (const auto& row : vRet.value()) {
+        auto* r = new RelationalExpression(
             Expression::Kind::kRelEQ,
             new LabelAttributeExpression(new LabelExpression(*tsExpr->arg()->from()),
                                          new LabelExpression(*tsExpr->arg()->prop())),
-            new ConstantExpression(Value(vRet.value()[0])));
-        return relExpr;
-    } else {
-        return genOrFilterFromList(tsExpr, vRet.value());
+            new ConstantExpression(Value(row)));
+        rels.emplace_back(r);
     }
-    return Status::OK();
-}
-
-std::unique_ptr<Expression> IndexScanValidator::genOrFilterFromList(
-    TextSearchExpression* expr, const std::vector<std::string>& values) {
-    auto filter = std::make_unique<LogicalExpression>(
-        Expression::Kind::kLogicalOr,
-        new RelationalExpression(
-            Expression::Kind::kRelEQ,
-            new LabelAttributeExpression(new LabelExpression(*expr->arg()->from()),
-                                         new LabelExpression(*expr->arg()->prop())),
-            new ConstantExpression(Value(values[0]))),
-        new RelationalExpression(
-            Expression::Kind::kRelEQ,
-            new LabelAttributeExpression(new LabelExpression(*expr->arg()->from()),
-                                         new LabelExpression(*expr->arg()->prop())),
-            new ConstantExpression(Value(values[1]))));
-    for (size_t i = 2; values.size() > 2 && i < values.size(); i++) {
-        auto left = new LogicalExpression(Expression::Kind::kLogicalOr,
-        new RelationalExpression(
-            Expression::Kind::kRelEQ,
-            new LabelAttributeExpression(new LabelExpression(*expr->arg()->from()),
-                                         new LabelExpression(*expr->arg()->prop())),
-            new ConstantExpression(Value(values[i]))), filter.get());
-        filter.reset(left);
-    }
-    return filter;
+    return rels.size() == 1 ? rels[0] : ExpressionUtils::pushOrs(rels);
 }
 
 StatusOr<std::vector<std::string>> IndexScanValidator::textSearch(TextSearchExpression* expr) {

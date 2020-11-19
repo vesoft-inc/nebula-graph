@@ -587,7 +587,6 @@ public:
 
 class TSClientList final {
 public:
-    TSClientList() {}
     void addClient(nebula::meta::cpp2::FTClient *client) {
         clients_.emplace_back(client);
     }

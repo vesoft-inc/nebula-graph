@@ -1436,6 +1436,7 @@ fuzzy_text_search_argument
    }
    | base_text_search_argument COMMA legal_integer COMMA KW_AND {
         if ($3 != 0 && $3 != 1 && $3 != 2) {
+            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = $1;
@@ -1444,6 +1445,7 @@ fuzzy_text_search_argument
    }
    | base_text_search_argument COMMA legal_integer COMMA KW_OR {
         if ($3 != 0 && $3 != 1 && $3 != 2) {
+            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = $1;
@@ -1460,6 +1462,7 @@ text_search_argument
     }
     | base_text_search_argument COMMA legal_integer {
         if ($3 < 1) {
+            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = $1;
@@ -1467,9 +1470,11 @@ text_search_argument
     }
     | base_text_search_argument COMMA legal_integer COMMA legal_integer {
         if ($3 < 1) {
+            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         if ($5 < 1) {
+            delete $1;
             throw nebula::GraphParser::syntax_error(@5, "Out of range:");
         }
         $$ = $1;
@@ -1478,6 +1483,7 @@ text_search_argument
     }
     | fuzzy_text_search_argument COMMA legal_integer {
         if ($3 < 1) {
+            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         $$ = $1;
@@ -1485,9 +1491,11 @@ text_search_argument
     }
     | fuzzy_text_search_argument COMMA legal_integer COMMA legal_integer {
         if ($3 < 1) {
+            delete $1;
             throw nebula::GraphParser::syntax_error(@3, "Out of range:");
         }
         if ($5 < 1) {
+            delete $1;
             throw nebula::GraphParser::syntax_error(@5, "Out of range:");
         }
         $$ = $1;
@@ -1499,27 +1507,33 @@ text_search_argument
 text_search_expression
     : KW_PREFIX L_PAREN text_search_argument R_PAREN {
         if ($3->op() != nullptr) {
+            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         if ($3->fuzziness() != -2) {
+            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         $$ = new TextSearchExpression(Expression::Kind::kTSPrefix, $3);
     }
     | KW_WILDCARD L_PAREN text_search_argument R_PAREN {
         if ($3->op() != nullptr) {
+            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         if ($3->fuzziness() != -2) {
+            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         $$ = new TextSearchExpression(Expression::Kind::kTSWildcard, $3);
     }
     | KW_REGEXP L_PAREN text_search_argument R_PAREN {
         if ($3->op() != nullptr) {
+            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         if ($3->fuzziness() != -2) {
+            delete $3;
             throw nebula::GraphParser::syntax_error(@3, "argument error:");
         }
         $$ = new TextSearchExpression(Expression::Kind::kTSRegexp, $3);
