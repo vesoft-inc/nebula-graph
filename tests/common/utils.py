@@ -232,26 +232,6 @@ def dataset_to_string(dataset):
 
 
 # Conversation to Value
-def to_path_value(col):
-    path = CommonTtypes.Path()
-    path.steps = []
-    for col, j in zip(col.items, range(len(col.items))):
-        if j == 0:
-            path.src = col.get_vVal()
-        elif (j % 2) == 1:
-            edge = col[0].get_eVal()
-            step = CommonTtypes.Step()
-            step.name = edge.name
-            step.ranking = edge.ranking
-            step.type = col[1]
-            step.props = edge.props
-            path.steps.append(step)
-        else:
-            print("step: %d", len(path.steps))
-            path.steps[-1].dst = col.get_vVal()
-    return path
-
-
 def to_value(col):
     if isinstance(col, CommonTtypes.Value):
         return col
@@ -290,7 +270,7 @@ def to_value(col):
     elif isinstance(col, CommonTtypes.Path):
         value.set_pVal(col)
     elif isinstance(col, PathVal):
-        value.set_pVal(to_path_value(col))
+        value.set_pVal(col.to_value())
     else:
         raise ValueError(f'Wrong val type: {str(col)}')
     return value
