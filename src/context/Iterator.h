@@ -663,21 +663,18 @@ public:
         return rows_.size();
     }
 
-    const Value& getColumn(const std::string& col) const override {
-        if (!valid()) {
-            return Value::kNullValue;
+    const Value& getColumn(const std::string&) const override {
+        DLOG(FATAL) << "This method should not be invoked";
+        return Value::kEmpty;
+    }
+
+    const Value& getColumn(int32_t index) const {
+        auto size = iter_->size();
+        if (static_cast<size_t>(std::abs(index)) >= size) {
+            return Value::kNullBadType;
         }
-        auto row = *iter_;
-        auto index = colIndices_.find(col);
-        if (index == colIndices_.end()) {
-            return Value::kNullValue;
-        } else {
-            auto segIdx = index->second.first;
-            auto colIdx = index->second.second;
-            DCHECK_LT(segIdx, row.values_.size());
-            DCHECK_LT(colIdx, row.values_[segIdx]->values.size());
-            return row.values_[segIdx]->values[colIdx];
-        }
+        auto currentRow = *iter_;
+        return currentRow[(size + index) % size];
     }
 
     const LogicalRow* row() const override {
