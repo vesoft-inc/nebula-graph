@@ -108,6 +108,9 @@ def compare_value(real, expect):
 
 # Value to String conversation
 def value_to_string(value):
+    if not isinstance(value, CommonTtypes.Value):
+        return str(value)
+
     if value.getType() == CommonTtypes.Value.__EMPTY__:
         return '__EMPTY__'
     elif value.getType() == CommonTtypes.Value.NVAL:
