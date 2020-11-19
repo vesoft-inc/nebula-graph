@@ -37,6 +37,7 @@ T_NULL_UNKNOWN_DIV_BY_ZERO = CommonTtypes.Value()
 T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.DIV_BY_ZERO)
 
 
+
 class NebulaTestSuite(object):
     @classmethod
     def set_delay(self):

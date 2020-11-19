@@ -52,7 +52,21 @@ def like_3hop_start_with(like, like_2hop_start_with):
 
 @pytest.fixture
 def serve(request):
-    def _serve(src: str, dst: str):
+    def _serve(src: str, dst: str, rank=0):
         EDGES = request.cls.EDGES
-        return EDGES[src+dst+'serve'+str(0)]
+        return EDGES[src+dst+'serve'+str(rank)]
     return _serve
+
+
+@pytest.fixture
+def serve_2hop(serve):
+    def _serve_2hop(src: str, dst: str, dst2: str):
+        return [serve(src, dst), serve(dst, dst2)]
+    return _serve_2hop
+
+
+@pytest.fixture
+def serve_3hop(serve):
+    def _serve_3hop(src: str, dst: str, dst2: str, dst3: str):
+        return [serve(src, dst), serve(dst, dst2), serve(dst2, dst3)]
+    return _serve_3hop
