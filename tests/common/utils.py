@@ -4,10 +4,14 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
+
 import pdb
+
 from typing import Pattern
 
 from nebula2.common import ttypes as CommonTtypes
+
+from tests.common.path_value import PathVal
 
 
 def _compare_values_by_pattern(real, expect):
@@ -102,6 +106,7 @@ def compare_value(real, expect):
     return real == expect
 
 
+# Value to String conversation
 def value_to_string(value):
     if value.getType() == CommonTtypes.Value.__EMPTY__:
         return '__EMPTY__'
@@ -146,7 +151,8 @@ def value_to_string(value):
 
 
 def row_to_string(row):
-    value_list = map(value_to_string, row.values)
+    columns = row if type(row) is list else row.values
+    value_list = map(value_to_string, columns)
     return '[' + ','.join(value_list) + ']'
 
 
@@ -223,3 +229,68 @@ def dataset_to_string(dataset):
     column_names = ','.join(map(lambda x: x.decode('utf-8'), dataset.column_names))
     rows = '\n'.join(map(row_to_string, dataset.rows))
     return '\n'.join([column_names, rows])
+
+
+# Conversation to Value
+def to_path_value(col):
+    path = CommonTtypes.Path()
+    path.steps = []
+    for col, j in zip(col.items, range(len(col.items))):
+        if j == 0:
+            path.src = col.get_vVal()
+        elif (j % 2) == 1:
+            edge = col[0].get_eVal()
+            step = CommonTtypes.Step()
+            step.name = edge.name
+            step.ranking = edge.ranking
+            step.type = col[1]
+            step.props = edge.props
+            path.steps.append(step)
+        else:
+            print("step: %d", len(path.steps))
+            path.steps[-1].dst = col.get_vVal()
+    return path
+
+
+def to_value(col):
+    if isinstance(col, CommonTtypes.Value):
+        return col
+
+    value = CommonTtypes.Value()
+    if type(col) is bool:
+        value.set_bVal(col)
+    elif type(col) is int:
+        value.set_iVal(col)
+    elif type(col) is float:
+        value.set_fVal(col)
+    elif type(col) is str:
+        value.set_sVal(col.encode('utf-8'))
+    elif isinstance(col, CommonTtypes.Date):
+        value.set_dVal(col)
+    elif isinstance(col, CommonTtypes.Time):
+        value.set_tVal(col)
+    elif isinstance(col, CommonTtypes.DateTime):
+        value.set_dtVal(col)
+    elif type(col) is dict:
+        map_val = CommonTtypes.Map()
+        map_val.kvs = {k.encode('utf-8'): to_value(v) for k, v in col.items()}
+        value.set_mVal(map_val)
+    elif type(col) is list:
+        list_val = CommonTtypes.List()
+        list_val.values = list(map(to_value, col))
+        value.set_lVal(list_val)
+    elif type(col) is set:
+        set_val = CommonTtypes.Set()
+        set_val.values = set(map(to_value, col))
+        value.set_uVal(set_val)
+    elif isinstance(col, CommonTtypes.Edge):
+        value.set_eVal(col)
+    elif isinstance(col, CommonTtypes.Vertex):
+        value.set_vVal(col)
+    elif isinstance(col, CommonTtypes.Path):
+        value.set_pVal(col)
+    elif isinstance(col, PathVal):
+        value.set_pVal(to_path_value(col))
+    else:
+        raise ValueError(f'Wrong val type: {str(col)}')
+    return value

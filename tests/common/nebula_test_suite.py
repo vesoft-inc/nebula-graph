@@ -7,7 +7,6 @@
 
 import time
 import datetime
-import functools
 import pytest
 import re
 
@@ -19,8 +18,7 @@ from nebula2.common import ttypes as CommonTtypes
 from nebula2.ConnectionPool import ConnectionPool
 from nebula2.graph import ttypes
 from tests.common.configs import get_delay_time
-from tests.common.path_value import PathVal
-from tests.common.utils import compare_value, row_to_string
+from tests.common.utils import compare_value, row_to_string, to_value
 
 
 T_EMPTY = CommonTtypes.Value()
@@ -252,87 +250,12 @@ class NebulaTestSuite(object):
             assert ok, "different column name, expect: {} vs. result: {}".format(expect[i], result)
 
     @classmethod
-    def to_path_value(self, col):
-        path = CommonTtypes.Path()
-        path.steps = []
-        for col, j in zip(col.items, range(len(col.items))):
-            if j == 0:
-                path.src = col.get_vVal()
-            elif (j % 2) == 1:
-                edge = col[0].get_eVal()
-                step = CommonTtypes.Step()
-                step.name = edge.name
-                step.ranking = edge.ranking
-                step.type = col[1]
-                step.props = edge.props
-                path.steps.append(step)
-            else:
-                print("step: %d", len(path.steps))
-                path.steps[-1].dst = col.get_vVal()
-        return path
-
-    @classmethod
-    def to_value(self, col):
-        if isinstance(col, CommonTtypes.Value):
-            return col
-
-        value = CommonTtypes.Value()
-        if isinstance(col, bool):
-            value.set_bVal(col)
-        elif isinstance(col, int):
-            value.set_iVal(col)
-        elif isinstance(col, float):
-            value.set_fVal(col)
-        elif isinstance(col, str):
-            value.set_sVal(col.encode('utf-8'))
-        elif isinstance(col, CommonTtypes.Date):
-            value.set_dVal(col)
-        elif isinstance(col, CommonTtypes.Time):
-            value.set_tVal(col)
-        elif isinstance(col, CommonTtypes.DateTime):
-            value.set_dtVal(col)
-        elif isinstance(col, dict):
-            map_val = CommonTtypes.Map()
-            map_val.kvs = dict()
-            for key in col:
-                temp = self.to_value(col[key])
-                map_val.kvs[key.encode('utf-8')] = temp
-            value.set_mVal(map_val)
-        elif isinstance(col, list):
-            list_val = CommonTtypes.List(list())
-            for i in col:
-                temp = self.to_value(i)
-                list_val.values.append(temp)
-            value.set_lVal(list_val)
-        elif isinstance(col, set):
-            set_val = CommonTtypes.Set(set())
-            for i in col:
-                temp = self.to_value(i)
-                set_val.values.add(temp)
-            value.set_uVal(set_val)
-        elif isinstance(col, PathVal):
-            value.set_pVal(self.to_path_value(col))
-        elif isinstance(col, CommonTtypes.Edge):
-            value.set_eVal(col)
-        elif isinstance(col, CommonTtypes.Vertex):
-            value.set_vVal(col)
-        else:
-            raise ValueError(f'Wrong val type: {str(col)}')
-        return value
-
-    @classmethod
     def convert_expect(self, expect):
         result = []
         for row in expect:
             assert type(row) is list, f'{str(row)} is not list type'
             new_row = CommonTtypes.Row()
-            new_row.values = []
-            for col in row:
-                if isinstance(col, CommonTtypes.Value):
-                    new_row.values.append(col)
-                else:
-                    value = self.to_value(col)
-                    new_row.values.append(value)
+            new_row.values = list(map(to_value, row))
             result.append(new_row)
         return result
 
@@ -351,24 +274,15 @@ class NebulaTestSuite(object):
             # convert expect to thrift value
             new_expect = self.convert_expect(expect)
         for row, i in zip(rows, range(0, len(new_expect))):
-            if isinstance(new_expect[i], CommonTtypes.Row):
-                assert len(row.values) - len(ignore_col) == len(new_expect[i].values), \
-                    '{}, {}, {}'.format(len(row.values), len(ignore_col), len(new_expect[i].values))
-            else:
-                assert len(row.values) - len(ignore_col) == len(new_expect[i])
+            columns = new_expect[i].values if isinstance(new_expect[i], CommonTtypes.Row) else new_expect[i]
+            assert len(row.values) - len(ignore_col) == len(columns)
             ignored_col_count = 0
             for j, col in enumerate(row.values):
                 if j in ignore_col:
                     ignored_col_count += 1
                     continue
-                exp_val = None
-                expect_to_string = ''
-                if isinstance(new_expect[i], CommonTtypes.Row):
-                    exp_val = new_expect[i].values[j - ignored_col_count]
-                    expect_to_string = row_to_string(new_expect[i])
-                else:
-                    exp_val = new_expect[i][j - ignored_col_count]
-                    expect_to_string = str(new_expect[i])
+                exp_val = columns[j - ignored_col_count]
+                expect_to_string = row_to_string(columns)
                 assert compare_value(col, exp_val), \
                     'The returned row from nebula could not be found, row: {}, expect: {}'.format(
                         row_to_string(row), expect_to_string)
@@ -398,103 +312,6 @@ class NebulaTestSuite(object):
         elif len(resp.data.rows) == 0:
             empty = True
         assert empty, msg
-
-    def compare_vertex(self, vertex1, vertex2):
-        assert isinstance(vertex1, CommonTtypes.Vertex) and isinstance(vertex2, CommonTtypes.Vertex)
-        if vertex1.vid != vertex2.vid:
-            if vertex1.vid < vertex2.vid:
-                return -1
-            return 1
-        if len(vertex1.tags) != len(vertex2.tags):
-            return len(vertex1.tags) - len(vertex2.tags)
-        return 0
-
-    def compare_edge(self, edge1, edge2):
-        assert isinstance(edge1, CommonTtypes.Edge) and isinstance(edge2, CommonTtypes.Edge)
-        if edge1.src != edge2.src:
-            if edge1.src < edge2.src:
-                return -1
-            return 1
-        if edge1.dst != edge2.dst:
-            if edge1.dst < edge2.dst:
-                return -1
-            return 1
-        if edge1.type != edge2.type:
-            return edge1.type - edge2.type
-        if edge1.ranking != edge2.ranking:
-            return edge1.ranking - edge2.ranking
-        if len(edge1.props) != len(edge2.props):
-            return len(edge1.props) - len(edge2.props)
-        return 0
-
-    def sort_vertex_list(self, rows):
-        assert len(rows) == 1
-        if isinstance(rows[0], CommonTtypes.Row):
-            vertex_list = list(map(lambda v : v.get_vVal(), rows[0].values[0].get_lVal().values))
-            sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
-        elif isinstance(rows[0], list):
-            vertex_list = list(map(lambda v : v.get_vVal(), rows[0][0]))
-            sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
-        else:
-            assert False
-        return sort_vertex_list
-
-    def sort_vertex_edge_list(self, rows):
-        new_rows = list()
-        for row in rows:
-            new_row = list()
-            if isinstance(row, CommonTtypes.Row):
-                vertex_list = row.values[0].get_lVal().values
-                new_vertex_list = list(map(lambda v : v.get_vVal(), vertex_list))
-                new_row.extend(sorted(new_vertex_list, key = functools.cmp_to_key(self.compare_vertex)))
-
-                edge_list = row.values[1].get_lVal().values
-                new_edge_list = list(map(lambda e : e.get_eVal(), edge_list))
-                new_row.extend(sorted(new_edge_list, key = functools.cmp_to_key(self.compare_edge)))
-            elif isinstance(row, list):
-                vertex_list = list(map(lambda v : v.get_vVal(), row[0]))
-                sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(self.compare_vertex))
-                new_row.extend(sort_vertex_list)
-
-                edge_list = list(map(lambda e: e.get_eVal(), row[1]))
-                sort_edge_list = sorted(edge_list, key = functools.cmp_to_key(self.compare_edge))
-                new_row.extend(sort_edge_list)
-            else:
-                assert False, "Unsupport type : {}".format(type(row))
-
-            new_rows.append(new_row)
-        return new_rows
-
-    def check_subgraph_result(self, resp, expect):
-        if resp.data is None and len(expect) == 0:
-            return True
-
-        if resp.data is None:
-            return False, 'resp.data is None'
-
-        rows = resp.data.rows
-
-        msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
-        assert len(rows) == len(expect), msg
-
-        if len(resp.data.column_names) == 1:
-            new_rows = self.sort_vertex_list(rows)
-            new_expect = self.sort_vertex_list(expect)
-        else:
-            new_rows = self.sort_vertex_edge_list(rows)
-            new_expect = self.sort_vertex_edge_list(expect)
-
-        for exp in new_expect:
-            find = False
-            for row in new_rows:
-                if row == exp:
-                    find = True
-                    new_rows.remove(row)
-                    break
-            assert find, 'Can not find {}'.format(exp)
-
-        assert len(new_rows) == 0
-
 
     @classmethod
     def check_path_result_without_prop(self, rows, expect):
