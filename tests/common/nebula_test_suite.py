@@ -18,7 +18,7 @@ from nebula2.common import ttypes as CommonTtypes
 from nebula2.ConnectionPool import ConnectionPool
 from nebula2.graph import ttypes
 from tests.common.configs import get_delay_time
-from tests.common.utils import compare_value, row_to_string, to_value
+from tests.common.utils import compare_value, row_to_string, to_value, value_to_string
 
 
 T_EMPTY = CommonTtypes.Value()
@@ -223,13 +223,10 @@ class NebulaTestSuite(object):
             # convert expect to thrift value
             new_expect = self.convert_expect(expect)
 
-        msg = 'Returned row from nebula could not be found, row: {}'
+        msg = 'Returned row from nebula could not be found, row: {}, resp: {}'
         for exp in new_expect:
-            if not is_regex:
-                assert self._find_in_rows(exp.values, rows), \
-                    msg.format(row_to_string(exp))
-            else:
-                assert self._find_in_rows(exp, rows), msg.format(str(exp))
+            values, exp_str = (exp, str(exp)) if is_regex else (exp.values, row_to_string(exp))
+            assert self._find_in_rows(values, rows), msg.format(exp_str, value_to_string(rows))
 
     @classmethod
     def _find_in_rows(cls, row, rows):

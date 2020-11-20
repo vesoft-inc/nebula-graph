@@ -107,10 +107,7 @@ def compare_value(real, expect):
 
 
 # Value to String conversation
-def value_to_string(value):
-    if not isinstance(value, CommonTtypes.Value):
-        return str(value)
-
+def _value_to_string(value):
     if value.getType() == CommonTtypes.Value.__EMPTY__:
         return '__EMPTY__'
     elif value.getType() == CommonTtypes.Value.NVAL:
@@ -143,12 +140,25 @@ def value_to_string(value):
         return path_to_string(value.get_pVal())
     elif value.getType() == CommonTtypes.Value.GVAL:
         return dataset_to_string(value.get_gVal())
+    else:
+        raise ValueError(f"{value} is not a value")
+
+
+def value_to_string(value):
+    if isinstance(value, CommonTtypes.Value):
+        return _value_to_string(value)
     elif type(value) is CommonTtypes.Tag:
         return tag_to_string(value)
     elif type(value) is CommonTtypes.Row:
-        return list_to_string(value.values)
+        return row_to_string(value.values)
     elif type(value) is CommonTtypes.Step:
         return step_to_string(value)
+    elif type(value) is list:
+        return list_to_string(value)
+    elif type(value) is dict:
+        return map_to_string(value)
+    elif type(value) is set:
+        return set_to_string(value)
     else:
         return value.__repr__()
 
@@ -177,19 +187,22 @@ def _kv_to_string(kv):
 
 
 def map_to_string(map_val):
-    values = list(map(_kv_to_string, map_val.kvs.items()))
+    kvs = map_val if type(map_val) is dict else map_val.kvs
+    values = list(map(_kv_to_string, kvs.items()))
     sorted_keys = sorted(values)
     return '{' + ", ".join(sorted_keys) + '}'
 
 
 def list_to_string(lst):
-    values = map(value_to_string, lst.values)
+    val_list = lst if type(lst) is list else lst.values
+    values = map(value_to_string, val_list)
     sorted_values = sorted(values)
     return '[' + ', '.join(sorted_values) + ']'
 
 
 def set_to_string(set_val):
-    values = map(value_to_string, set_val.values)
+    val_set = set_val if type(set_val) is set else set_val.values
+    values = map(value_to_string, val_set)
     sorted_values = sorted(values)
     return '{' + ', '.join(sorted_values) + '}'
 

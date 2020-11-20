@@ -10,7 +10,7 @@ import pytest
 
 from nebula2.common import ttypes
 
-from tests.query.v2.utils import check_subgraph_result
+from tests.query.v2.utils import check_subgraph
 
 
 def edgekey(edge):
@@ -255,4 +255,8 @@ def set_vertices_and_edges(request):
 
     request.cls.VERTEXS = VERTEXS
     request.cls.EDGES = EDGES
-    request.cls.check_subgraph_result = check_subgraph_result
+
+
+@pytest.fixture
+def check_subgraph_result():
+    return check_subgraph

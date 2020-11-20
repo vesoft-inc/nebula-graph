@@ -12,10 +12,10 @@ class PathVal:
     def __init__(self, items):
         self.items = items
 
-    def to_value(self, col):
+    def to_value(self):
         path = CommonTtypes.Path()
         path.steps = []
-        for col, j in zip(col.items, range(len(col.items))):
+        for col, j in zip(self.items, range(len(self.items))):
             if j == 0:
                 path.src = col.get_vVal()
             elif (j % 2) == 1:

@@ -43,11 +43,11 @@ def compare_edge(edge1, edge2):
 def sort_vertex_list(rows):
     assert len(rows) == 1
     if isinstance(rows[0], CommonTtypes.Row):
-        vertex_list = list(map(lambda v : v.get_vVal(), rows[0].values[0].get_lVal().values))
-        sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(compare_vertex))
+        vertex_list = list(map(lambda v: v.get_vVal(), rows[0].values[0].get_lVal().values))
+        sort_vertex_list = sorted(vertex_list, key=functools.cmp_to_key(compare_vertex))
     elif isinstance(rows[0], list):
-        vertex_list = list(map(lambda v : v.get_vVal(), rows[0][0]))
-        sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(compare_vertex))
+        vertex_list = list(map(lambda v: v.get_vVal(), rows[0][0]))
+        sort_vertex_list = sorted(vertex_list, key=functools.cmp_to_key(compare_vertex))
     else:
         assert False
     return sort_vertex_list
@@ -59,19 +59,19 @@ def sort_vertex_edge_list(rows):
         new_row = list()
         if isinstance(row, CommonTtypes.Row):
             vertex_list = row.values[0].get_lVal().values
-            new_vertex_list = list(map(lambda v : v.get_vVal(), vertex_list))
-            new_row.extend(sorted(new_vertex_list, key = functools.cmp_to_key(compare_vertex)))
+            new_vertex_list = list(map(lambda v: v.get_vVal(), vertex_list))
+            new_row.extend(sorted(new_vertex_list, key=functools.cmp_to_key(compare_vertex)))
 
             edge_list = row.values[1].get_lVal().values
-            new_edge_list = list(map(lambda e : e.get_eVal(), edge_list))
-            new_row.extend(sorted(new_edge_list, key = functools.cmp_to_key(compare_edge)))
+            new_edge_list = list(map(lambda e: e.get_eVal(), edge_list))
+            new_row.extend(sorted(new_edge_list, key=functools.cmp_to_key(compare_edge)))
         elif isinstance(row, list):
-            vertex_list = list(map(lambda v : v.get_vVal(), row[0]))
-            sort_vertex_list = sorted(vertex_list, key = functools.cmp_to_key(compare_vertex))
+            vertex_list = list(map(lambda v: v.get_vVal(), row[0]))
+            sort_vertex_list = sorted(vertex_list, key=functools.cmp_to_key(compare_vertex))
             new_row.extend(sort_vertex_list)
 
             edge_list = list(map(lambda e: e.get_eVal(), row[1]))
-            sort_edge_list = sorted(edge_list, key = functools.cmp_to_key(compare_edge))
+            sort_edge_list = sorted(edge_list, key=functools.cmp_to_key(compare_edge))
             new_row.extend(sort_edge_list)
         else:
             assert False, "Unsupport type : {}".format(type(row))
@@ -80,7 +80,7 @@ def sort_vertex_edge_list(rows):
     return new_rows
 
 
-def check_subgraph_result(resp, expect):
+def check_subgraph(resp, expect):
     if resp.data is None and len(expect) == 0:
         return True
 
