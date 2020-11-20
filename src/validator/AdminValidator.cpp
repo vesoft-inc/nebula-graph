@@ -82,6 +82,19 @@ Status CreateSpaceValidator::validateImpl() {
                 spaceDesc_.collate_name = std::move(result);
                 break;
             }
+            case SpaceOptItem::ATOMIC_EDGE: {
+                switch (item->getAtomicEdge()) {
+                    case 0:
+                        spaceDesc_.isolation_level = meta::cpp2::IsolationLevel::DEFAULT;
+                        break;
+                    case 1:
+                        spaceDesc_.isolation_level = meta::cpp2::IsolationLevel::TOSS;
+                        break;
+                    default:
+                        return Status::SemanticError("atomic_edge value should be 0 or 1");
+                }
+                break;
+            }
         }
     }
 
