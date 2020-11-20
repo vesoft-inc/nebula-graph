@@ -188,8 +188,10 @@ Status InsertEdgesValidator::check() {
     return Status::OK();
 }
 
-Status InsertEdgesValidator::prepareEdges() {;
-    edges_.reserve(rows_.size()*2);
+Status InsertEdgesValidator::prepareEdges() {
+    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    auto size = useToss ? rows_.size() : rows_.size() * 2;
+    edges_.reserve(size);
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propNames_.size() != row->values().size()) {
@@ -247,11 +249,13 @@ Status InsertEdgesValidator::prepareEdges() {;
         edge.__isset.props = true;
         edges_.emplace_back(edge);
 
-        // inbound
-        edge.key.set_src(dstId);
-        edge.key.set_dst(srcId);
-        edge.key.set_edge_type(-edgeType_);
-        edges_.emplace_back(std::move(edge));
+        if (!useToss) {
+            // inbound
+            edge.key.set_src(dstId);
+            edge.key.set_dst(srcId);
+            edge.key.set_edge_type(-edgeType_);
+            edges_.emplace_back(std::move(edge));
+        }
     }
 
     return Status::OK();
