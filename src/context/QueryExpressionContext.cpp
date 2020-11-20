@@ -30,69 +30,68 @@ const Value& QueryExpressionContext::getVarProp(const std::string& var,
     UNUSED(var);
     if (iter_ != nullptr) {
         return iter_->getColumn(prop);
-    } else {
-        return Value::kEmpty;
     }
+    return Value::kEmpty;
 }
 
 Value QueryExpressionContext::getTagProp(const std::string& tag,
                     const std::string& prop) const {
     if (iter_ != nullptr) {
         return iter_->getTagProp(tag, prop);
-    } else {
-        return Value::kEmpty;
     }
+    return Value::kEmpty;
 }
 
 Value QueryExpressionContext::getEdgeProp(const std::string& edge,
                                          const std::string& prop) const {
     if (iter_ != nullptr) {
         return iter_->getEdgeProp(edge, prop);
-    } else {
-        return Value::kEmpty;
     }
+    return Value::kEmpty;
 }
 
 Value QueryExpressionContext::getSrcProp(const std::string& tag,
                                         const std::string& prop) const {
     if (iter_ != nullptr) {
         return iter_->getTagProp(tag, prop);
-    } else {
-        return Value::kEmpty;
     }
+    return Value::kEmpty;
 }
 
 const Value& QueryExpressionContext::getDstProp(const std::string& tag,
                                                const std::string& prop) const {
     if (iter_ != nullptr) {
         return iter_->getTagProp(tag, prop);
-    } else {
-        return Value::kEmpty;
     }
+    return Value::kEmpty;
 }
 
 const Value& QueryExpressionContext::getInputProp(const std::string& prop) const {
     if (iter_ != nullptr) {
         return iter_->getColumn(prop);
-    } else {
-        return Value::kEmpty;
     }
+    return Value::kEmpty;
+}
+
+Value QueryExpressionContext::getColumn(int32_t index) const {
+    if (iter_ != nullptr) {
+        return iter_->getColumn(index);
+    }
+    return Value::kEmpty;
 }
 
 Value QueryExpressionContext::getVertex() const {
     if (iter_ != nullptr) {
         return iter_->getVertex();
-    } else {
-        return Value::kEmpty;
     }
+    return Value::kEmpty;
 }
 
 Value QueryExpressionContext::getEdge() const {
     if (iter_ != nullptr) {
         return iter_->getEdge();
-    } else {
-        return Value::kEmpty;
     }
+    return Value::kEmpty;
 }
 
 void QueryExpressionContext::setVar(const std::string& var, Value val) {

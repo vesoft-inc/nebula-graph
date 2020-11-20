@@ -197,6 +197,15 @@ const Value& GetNeighborsIter::getColumn(const std::string& col) const {
     return iter_->row_->values[found->second];
 }
 
+const Value& GetNeighborsIter::getColumn(int32_t index) const {
+    auto size = iter_->size();
+    if (static_cast<size_t>(std::abs(index)) >= size) {
+        return Value::kNullBadType;
+    }
+    auto currentRow = *iter_;
+    return currentRow[(size + index) % size];
+}
+
 const Value& GetNeighborsIter::getTagProp(const std::string& tag,
                                           const std::string& prop) const {
     if (!valid()) {
@@ -338,6 +347,15 @@ Value GetNeighborsIter::getEdge() const {
     return Value(std::move(edge));
 }
 
+const Value& SequentialIter::getColumn(int32_t index) const {
+    auto size = iter_->size();
+    if (static_cast<size_t>(std::abs(index)) >= size) {
+        return Value::kNullBadType;
+    }
+    auto currentRow = *iter_;
+    return currentRow[(size + index) % size];
+}
+
 void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
     size_t nextSeg = 0;
     if (lhs != nullptr && lhs->isSequentialIter()) {
@@ -385,6 +403,15 @@ size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
         colIdxIndices_.emplace(col.first + colIdxStart, std::make_pair(newSeg, col.second.second));
     }
     return nextSeg + 1;
+}
+
+const Value& JoinIter::getColumn(int32_t index) const {
+    auto size = iter_->size();
+    if (static_cast<size_t>(std::abs(index)) >= size) {
+        return Value::kNullBadType;
+    }
+    auto currentRow = *iter_;
+    return currentRow[(size + index) % size];
 }
 
 PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) {
@@ -587,6 +614,15 @@ List PropIter::getEdges() {
     }
     reset();
     return edges;
+}
+
+const Value& PropIter::getColumn(int32_t index) const {
+    auto size = iter_->size();
+    if (static_cast<size_t>(std::abs(index)) >= size) {
+        return Value::kNullBadType;
+    }
+    auto currentRow = *iter_;
+    return currentRow[(size + index) % size];
 }
 
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {

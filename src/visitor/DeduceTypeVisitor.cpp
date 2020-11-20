@@ -499,7 +499,7 @@ void DeduceTypeVisitor::visit(EdgeExpression *) {
     type_ = Value::Type::EDGE;
 }
 
-void DeduceTypeVisitor::visit(ColumnExpression * expr) {
+void DeduceTypeVisitor::visit(ColumnExpression *) {
     type_ = Value::Type::__EMPTY__;
 }
 

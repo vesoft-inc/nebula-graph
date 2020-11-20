@@ -119,6 +119,8 @@ public:
     // The derived class should rewrite get prop if the Value is kind of dataset.
     virtual const Value& getColumn(const std::string& col) const = 0;
 
+    virtual const Value& getColumn(int32_t index) const = 0;
+
     virtual const Value& getTagProp(const std::string&,
                                     const std::string&) const {
         DLOG(FATAL) << "Shouldn't call the unimplemented method";
@@ -180,6 +182,11 @@ public:
     }
 
     const Value& getColumn(const std::string& /* col */) const override {
+        DLOG(FATAL) << "This method should not be invoked";
+        return Value::kEmpty;
+    }
+
+    const Value& getColumn(int32_t) const override {
         DLOG(FATAL) << "This method should not be invoked";
         return Value::kEmpty;
     }
@@ -246,6 +253,8 @@ public:
     }
 
     const Value& getColumn(const std::string& col) const override;
+
+    const Value& getColumn(int32_t index) const override;
 
     const Value& getTagProp(const std::string& tag,
                             const std::string& prop) const override;
@@ -506,6 +515,8 @@ public:
         }
     }
 
+    const Value& getColumn(int32_t index) const override;
+
     // TODO: We should build new iter for get props, the seq iter will
     // not meet the requirements of match any more.
     const Value& getTagProp(const std::string& tag,
@@ -663,19 +674,24 @@ public:
         return rows_.size();
     }
 
-    const Value& getColumn(const std::string&) const override {
-        DLOG(FATAL) << "This method should not be invoked";
-        return Value::kEmpty;
+    const Value& getColumn(const std::string& col) const override {
+        if (!valid()) {
+            return Value::kNullValue;
+        }
+        auto row = *iter_;
+        auto index = colIndices_.find(col);
+        if (index == colIndices_.end()) {
+            return Value::kNullValue;
+        } else {
+            auto segIdx = index->second.first;
+            auto colIdx = index->second.second;
+            DCHECK_LT(segIdx, row.values_.size());
+            DCHECK_LT(colIdx, row.values_[segIdx]->values.size());
+            return row.values_[segIdx]->values[colIdx];
+        }
     }
 
-    const Value& getColumn(int32_t index) const {
-        auto size = iter_->size();
-        if (static_cast<size_t>(std::abs(index)) >= size) {
-            return Value::kNullBadType;
-        }
-        auto currentRow = *iter_;
-        return currentRow[(size + index) % size];
-    }
+    const Value& getColumn(int32_t index) const override;
 
     const LogicalRow* row() const override {
         if (!valid()) {
@@ -795,6 +811,8 @@ public:
     }
 
     const Value& getColumn(const std::string& col) const override;
+
+    const Value& getColumn(int32_t index) const override;
 
     Value getVertex() const override;
 
