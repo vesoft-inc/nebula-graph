@@ -509,14 +509,14 @@ private:
 
 class AddListenerSentence final : public Sentence {
 public:
-    AddListenerSentence(std::string *type, HostList* hosts) {
+    AddListenerSentence(const meta::cpp2::ListenerType& type, HostList* hosts) {
         kind_ = Kind::kAddListener;
-        type_.reset(type);
+        type_ = type;
         listeners_.reset(hosts);
     }
 
-    std::string* type() const {
-        return type_.get();
+    meta::cpp2::ListenerType type() const {
+        return type_;
     }
 
     HostList* listeners() const {
@@ -526,26 +526,25 @@ public:
     std::string toString() const override;
 
 private:
-    std::unique_ptr<std::string>    type_;
+    meta::cpp2::ListenerType        type_;
     std::unique_ptr<HostList>       listeners_;
 };
 
 class RemoveListenerSentence final : public Sentence {
 public:
-    explicit RemoveListenerSentence(std::string *type) {
+    explicit RemoveListenerSentence(const meta::cpp2::ListenerType& type) {
         kind_ = Kind::kRemoveListener;
-        type_.reset(type);
+        type_ = type;
     }
 
-    std::string* type() const {
-        return type_.get();
+    meta::cpp2::ListenerType type() const {
+        return type_;
     }
 
     std::string toString() const override;
 
 private:
-    std::unique_ptr<std::string>    type_;
-    std::unique_ptr<std::string>    space_;
+    meta::cpp2::ListenerType        type_;
 };
 
 class ShowListenerSentence final : public Sentence {

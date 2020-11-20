@@ -135,10 +135,6 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    meta::cpp2::ListenerType type_;
-    std::vector<HostAddr> hosts_;
 };
 
 class RemoveListenerValidator final : public Validator {
@@ -151,9 +147,6 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
-private:
-    meta::cpp2::ListenerType type_;
 };
 
 class ShowListenerValidator final : public Validator {

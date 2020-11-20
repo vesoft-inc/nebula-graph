@@ -2643,14 +2643,14 @@ drop_snapshot_sentence
     ;
 
 add_listener_sentence
-    : KW_ADD KW_LISTENER name_label host_list {
-        $$ = new AddListenerSentence($3, $4);
+    : KW_ADD KW_LISTENER KW_ELASTICSEARCH host_list {
+        $$ = new AddListenerSentence(meta::cpp2::ListenerType::ELASTICSEARCH, $4);
     }
     ;
 
 remove_listener_sentence
-    : KW_REMOVE KW_LISTENER name_label {
-        $$ = new RemoveListenerSentence($3);
+    : KW_REMOVE KW_LISTENER KW_ELASTICSEARCH {
+        $$ = new RemoveListenerSentence(meta::cpp2::ListenerType::ELASTICSEARCH);
     }
     ;
 

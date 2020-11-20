@@ -23,7 +23,7 @@ public:
 class RemoveListenerExecutor final : public Executor {
 public:
     RemoveListenerExecutor(const PlanNode *node, QueryContext *qctx)
-            : Executor("RemoveListenerExecutor", node, qctx) {}
+        : Executor("RemoveListenerExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
 };
