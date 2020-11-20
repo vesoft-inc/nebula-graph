@@ -18,7 +18,8 @@ from nebula2.common import ttypes as CommonTtypes
 from nebula2.ConnectionPool import ConnectionPool
 from nebula2.graph import ttypes
 from tests.common.configs import get_delay_time
-from tests.common.utils import compare_value, row_to_string, to_value, value_to_string
+from tests.common.utils import compare_value, \
+    row_to_string, to_value, value_to_string, find_in_rows
 
 
 T_EMPTY = CommonTtypes.Value()
@@ -206,10 +207,10 @@ class NebulaTestSuite(object):
 
     @classmethod
     def search_not_exist(self, resp, expect, is_regex=False):
-        self.search(resp, expect, is_regex)
+        self.search(resp, expect, is_regex, False)
 
     @classmethod
-    def search(self, resp, expect, is_regex=False):
+    def search(self, resp, expect, is_regex=False, exist=True):
         if resp.data is None and len(expect) == 0:
             return
 
@@ -226,25 +227,18 @@ class NebulaTestSuite(object):
         msg = 'Returned row from nebula could not be found, row: {}, resp: {}'
         for exp in new_expect:
             values, exp_str = (exp, str(exp)) if is_regex else (exp.values, row_to_string(exp))
-            assert self._find_in_rows(values, rows), msg.format(exp_str, value_to_string(rows))
-
-    @classmethod
-    def _find_in_rows(cls, row, rows):
-        for r in rows:
-            assert len(r.values) == len(row)
-            for col1, col2 in zip(r.values, row):
-                if compare_value(col1, col2):
-                    return True
-        return False
+            assert find_in_rows(values, rows) == exist, \
+                msg.format(exp_str, value_to_string(rows))
 
     @classmethod
     def check_column_names(self, resp, expect):
-        assert len(resp.data.column_names) == len(expect), \
-            f'Column names does not match, expected: {expect}, actual: {resp.data.column_names}'
+        column_names = resp.data.column_names
+        assert len(column_names) == len(expect), \
+            f'Column names does not match, expected: {expect}, actual: {column_names}'
         for i in range(len(expect)):
-            result = bytes.decode(resp.data.column_names[i])
-            ok = (expect[i] == result)
-            assert ok, "different column name, expect: {} vs. result: {}".format(expect[i], result)
+            result = bytes.decode(column_names[i])
+            assert expect[i] == result, \
+                f"different column name, expect: {expect[i]} vs. result: {result}"
 
     @classmethod
     def convert_expect(self, expect):

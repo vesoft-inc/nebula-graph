@@ -290,3 +290,12 @@ def to_value(col):
     else:
         raise ValueError(f'Wrong val type: {str(col)}')
     return value
+
+
+def find_in_rows(row, rows):
+    for r in rows:
+        assert len(r.values) == len(row)
+        for col1, col2 in zip(r.values, row):
+            if compare_value(col1, col2):
+                return True
+    return False
