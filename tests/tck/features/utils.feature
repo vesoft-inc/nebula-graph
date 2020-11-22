@@ -4,7 +4,9 @@ Feature: Value parsing
     Given A set of string
         | string                                                | typename  |
         | 123                                                   | int       |
+        | -123                                                  | int       |
         | 3.14                                                  | float     |
+        | -3.14                                                 | float     |
         | true                                                  | bool      |
         | false                                                 | bool      |
         | 'string'                                              | str       |
@@ -19,9 +21,9 @@ Feature: Value parsing
         | {k1: 1, k2:true}                                      | dict      |
         | ('vid':t{p1:0,p2:' '})                                | Node      |
         | -[:e{p1:0,p2:true}]-                                  | Edge      |
-        | <-[:e{p1:0,p2:true}]-                                 | Edge      |
+        | <-[:e@0{p1:0,p2:true}]-                               | Edge      |
         | -[:e{p1:0,p2:true}]->                                 | Edge      |
-        | <-[:e{p1:0,p2:true}]->                                | Edge      |
+        | <-[:e@-1{p1:0,p2:true}]->                                | Edge      |
         | <('v1':t{})>                                          | Path      |
         | <('v1':t{})-[:e1{}]-('v2':t{})<-[:e2{}]->('v3':t{})>  | Path      |
         | len([1, 2, 3])                                        | int      |

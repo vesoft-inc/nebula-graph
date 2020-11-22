@@ -16,6 +16,7 @@ tokens = (
     'LBRACE', 'RBRACE',
     'LT', 'GT',
     'COLON',
+    'AT',
     'DASH',
     'COMMA',
     'LABEL',
@@ -29,6 +30,7 @@ t_LBRACE = r'\{'
 t_RBRACE = r'\}'
 t_LT = r'<'
 t_GT = r'>'
+t_AT = r'@'
 t_DASH = r'-'
 t_COLON = r':'
 t_COMMA = r','
@@ -38,12 +40,12 @@ t_ignore = ' \t\n'
 t_sstr_dstr_ignore = ''
 
 def t_FLOAT(t):
-    r'\d+\.\d+'
+    r'-?\d+\.\d+'
     t.value = float(t.value)
     return t
 
 def t_INT(t):
-    r'\d+'
+    r'-?\d+'
     t.value = int(t.value)
     return t
 
@@ -135,13 +137,14 @@ class Tag:
         return self.__str__()
 
 class Edge:
-    def __init__(self, name, props, direct):
+    def __init__(self, name, rank, props, direct):
         self.name = name
+        self.rank = rank
         self.props = props
         self.direct = direct
 
     def __str__(self):
-        s = "-[:%s %s]-" % (self.name, str(self.props))
+        s = "-[:%s @%d %s]-" % (self.name, self.rank, str(self.props))
         if self.direct == ">":
             return s + ">"
         elif self.direct == "<":
@@ -273,15 +276,30 @@ def p_edge(p):
              | DASH LBRACKET COLON LABEL map RBRACKET DASH GT
              | LT DASH LBRACKET COLON LABEL map RBRACKET DASH
              | LT DASH LBRACKET COLON LABEL map RBRACKET DASH GT
+             | DASH LBRACKET COLON LABEL AT INT map RBRACKET DASH
+             | DASH LBRACKET COLON LABEL AT INT map RBRACKET DASH GT
+             | LT DASH LBRACKET COLON LABEL AT INT map RBRACKET DASH
+             | LT DASH LBRACKET COLON LABEL AT INT map RBRACKET DASH GT
     '''
     if len(p) == 8:
-        p[0] = Edge(p[4], p[5], None)
+        p[0] = Edge(p[4], 0, p[5], None)
+    elif len(p) == 9:
+        if p[1] == '<':
+            p[0] = Edge(p[5], 0, p[6], '<')
+        else:
+            p[0] = Edge(p[4], 0, p[5], '>')
     elif len(p) == 10:
-        p[0] = Edge(p[5], p[6], None)
-    elif p[1] == '<':
-        p[0] = Edge(p[5], p[6], '<')
-    else:
-        p[0] = Edge(p[4], p[5], '>')
+        if p[1] == '<':
+            p[0] = Edge(p[5], 0, p[6], None)
+        else:
+            p[0] = Edge(p[4], p[6], p[7], None)
+    elif len(p) == 11:
+        if p[1] == '<':
+            p[0] = Edge(p[5], p[7], p[8], '<')
+        else:
+            p[0] = Edge(p[4], p[6], p[7], '>')
+    elif len(p) == 12:
+            p[0] = Edge(p[5], p[7], p[8], None)
 
 def p_path(p):
     '''
