@@ -11,29 +11,11 @@ tokens = (
     'INT',
     'STRING',
     'BOOLEAN',
-    'LPAREN', 'RPAREN',
-    'LBRACKET', 'RBRACKET',
-    'LBRACE', 'RBRACE',
-    'LT', 'GT',
-    'COLON',
-    'AT',
-    'DASH',
-    'COMMA',
     'LABEL',
 )
 
-t_LPAREN = r'\('
-t_RPAREN = r'\)'
-t_LBRACKET = r'\['
-t_RBRACKET = r'\]'
-t_LBRACE = r'\{'
-t_RBRACE = r'\}'
-t_LT = r'<'
-t_GT = r'>'
-t_AT = r'@'
-t_DASH = r'-'
-t_COLON = r':'
-t_COMMA = r','
+literals = ['(', ')', '[', ']', '{', '}', '<', '>', '@', '-', ':', ',']
+
 t_LABEL = r'[_a-zA-Z][_a-zA-Z0-9]*'
 
 t_ignore = ' \t\n'
@@ -199,8 +181,8 @@ def p_expr(p):
 
 def p_list(p):
     '''
-        list : LBRACKET list_item RBRACKET
-             | LBRACKET RBRACKET
+        list : '[' list_item ']'
+             | '[' ']'
     '''
     if len(p) == 4:
         p[0] = p[2]
@@ -209,14 +191,14 @@ def p_list(p):
 
 def p_set(p):
     '''
-        set : LBRACE list_item RBRACE
+        set : '{' list_item '}'
     '''
     p[0] = set(p[2])
 
 def p_list_item(p):
     '''
         list_item : expr
-                  | list_item COMMA expr
+                  | list_item ',' expr
     '''
     if len(p) == 2:
         p[0] = [p[1]]
@@ -226,8 +208,8 @@ def p_list_item(p):
 
 def p_map(p):
     '''
-        map : LBRACE map_item RBRACE
-            | LBRACE RBRACE
+        map : '{' map_item '}'
+            | '{' '}'
     '''
     if len(p) == 4:
         p[0] = p[2]
@@ -237,9 +219,9 @@ def p_map(p):
 
 def p_map_item(p):
     '''
-        map_item : LABEL COLON expr
-                 | STRING COLON expr
-                 | map_item COMMA LABEL COLON expr
+        map_item : LABEL ':' expr
+                 | STRING ':' expr
+                 | map_item ',' LABEL ':' expr
     '''
     if len(p) == 4:
         p[0] = {p[1]: p[3]}
@@ -249,7 +231,7 @@ def p_map_item(p):
 
 def p_node(p):
     '''
-        node : LPAREN STRING tag_list RPAREN
+        node : '(' STRING tag_list ')'
     '''
     p[0] = Node(p[2], p[3])
 
@@ -266,20 +248,20 @@ def p_tag_list(p):
 
 def p_tag(p):
     '''
-        tag : COLON LABEL map
+        tag : ':' LABEL map
     '''
     p[0] = Tag(p[2], p[3])
 
 def p_edge(p):
     '''
-        edge : DASH LBRACKET COLON LABEL map RBRACKET DASH
-             | DASH LBRACKET COLON LABEL map RBRACKET DASH GT
-             | LT DASH LBRACKET COLON LABEL map RBRACKET DASH
-             | LT DASH LBRACKET COLON LABEL map RBRACKET DASH GT
-             | DASH LBRACKET COLON LABEL AT INT map RBRACKET DASH
-             | DASH LBRACKET COLON LABEL AT INT map RBRACKET DASH GT
-             | LT DASH LBRACKET COLON LABEL AT INT map RBRACKET DASH
-             | LT DASH LBRACKET COLON LABEL AT INT map RBRACKET DASH GT
+        edge : '-' '[' ':' LABEL map ']' '-'
+             | '-' '[' ':' LABEL map ']' '-' '>'
+             | '<' '-' '[' ':' LABEL map ']' '-'
+             | '<' '-' '[' ':' LABEL map ']' '-' '>'
+             | '-' '[' ':' LABEL '@' INT map ']' '-'
+             | '-' '[' ':' LABEL '@' INT map ']' '-' '>'
+             | '<' '-' '[' ':' LABEL '@' INT map ']' '-'
+             | '<' '-' '[' ':' LABEL '@' INT map ']' '-' '>'
     '''
     if len(p) == 8:
         p[0] = Edge(p[4], 0, p[5], None)
@@ -303,8 +285,8 @@ def p_edge(p):
 
 def p_path(p):
     '''
-        path : LT node steps GT
-             | LT node GT
+        path : '<' node steps '>'
+             | '<' node '>'
     '''
     if len(p) == 5:
         p[0] = Path(p[2], p[3])
@@ -326,7 +308,7 @@ def p_steps(p):
 
 def p_function(p):
     '''
-        function : LABEL LPAREN list_item RPAREN
+        function : LABEL '(' list_item ')'
     '''
     p[0] = functions[p[1]](*p[3])
 

@@ -23,7 +23,7 @@ Feature: Value parsing
         | -[:e{p1:0,p2:true}]-                                  | Edge      |
         | <-[:e@0{p1:0,p2:true}]-                               | Edge      |
         | -[:e{p1:0,p2:true}]->                                 | Edge      |
-        | <-[:e@-1{p1:0,p2:true}]->                                | Edge      |
+        | <-[:e@-1{p1:0,p2:true}]->                             | Edge      |
         | <('v1':t{})>                                          | Path      |
         | <('v1':t{})-[:e1{}]-('v2':t{})<-[:e2{}]->('v3':t{})>  | Path      |
         | len([1, 2, 3])                                        | int      |
