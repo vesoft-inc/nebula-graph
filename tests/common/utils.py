@@ -1,6 +1,6 @@
 # --coding:utf-8--
 #
-# Copyright (c) 2019 vesoft inc. All rights reserved.
+# Copyright (c) 2020 vesoft inc. All rights reserved.
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
@@ -111,7 +111,8 @@ def _value_to_string(value):
     if value.getType() == CommonTtypes.Value.__EMPTY__:
         return '__EMPTY__'
     elif value.getType() == CommonTtypes.Value.NVAL:
-        return '__NULL__'
+        nval = value.get_nVal()
+        return f'__NULL__({CommonTtypes.NullType._VALUES_TO_NAMES[nval]})'
     elif value.getType() == CommonTtypes.Value.BVAL:
         return str(value.get_bVal())
     elif value.getType() == CommonTtypes.Value.IVAL:
@@ -133,7 +134,7 @@ def _value_to_string(value):
     elif value.getType() == CommonTtypes.Value.VVAL:
         return f'({value.get_vVal().vid})'
     elif value.getType() == CommonTtypes.Value.UVAL:
-        return list_to_string(value.get_uVal())
+        return set_to_string(value.get_uVal())
     elif value.getType() == CommonTtypes.Value.MVAL:
         return map_to_string(value.get_mVal())
     elif value.getType() == CommonTtypes.Value.PVAL:
@@ -160,7 +161,7 @@ def value_to_string(value):
     elif type(value) is set:
         return set_to_string(value)
     else:
-        return value.__repr__()
+        return str(value)
 
 
 def row_to_string(row):
@@ -178,7 +179,7 @@ def time_to_string(time):
 
 
 def date_time_to_string(date_time):
-    return f'{date_to_string(date_time)} {time_to_string(date_time)}'
+    return f'{date_to_string(date_time)}T{time_to_string(date_time)}'
 
 
 def _kv_to_string(kv):
@@ -294,7 +295,7 @@ def to_value(col):
 
 def find_in_rows(row, rows):
     for r in rows:
-        assert len(r.values) == len(row)
+        assert len(r.values) == len(row), f'{len(r.values)}!={len(row)}'
         for col1, col2 in zip(r.values, row):
             if compare_value(col1, col2):
                 return True
