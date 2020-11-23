@@ -61,7 +61,11 @@ public:
     }
 
     void setConditionalVar(std::string varName) {
-        conditionalVar = std::move(varName);
+        conditionalVar_ = std::move(varName);
+    }
+
+    std::string conditionalVar() const {
+        return conditionalVar_;
     }
 
 private:
@@ -77,7 +81,7 @@ private:
 
     PathKind pathKind_;
     size_t   steps_{0};
-    std::string conditionalVar;
+    std::string conditionalVar_;
 };
 
 class ProduceAllPaths final : public SingleInputNode {

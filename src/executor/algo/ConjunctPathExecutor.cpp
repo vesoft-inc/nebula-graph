@@ -173,6 +173,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
 
 folly::Future<Status> ConjunctPathExecutor::floydShortestPath() {
     auto* conjunct = asNode<ConjunctPath>(node());
+    conditionalVar_ = conjunct->conditionalVar();
     auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
     const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
     VLOG(1) << "current: " << node()->outputVar();
@@ -274,11 +275,25 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
             // update history cost
             auto& hist = historyCostMap_[startVid];
             hist[endVid] = totalCost;
+            delPathFromConditionalVar(startVid, endVid);
             conjunctPath(srcPaths.second.paths_, pathList.getList(), totalCost, ds);
             found = true;
         }
     }
     return found;
+}
+
+void ConjunctPathExecutor::delPathFromConditionalVar(std::string& start, std::string& end) {
+    //
+    auto& ds = qctx_->ectx()->getResult(conditionalVar_);
+    auto iter = ds.iter();
+    for (iter->reset(); iter->valid(); iter->next()) {
+        auto startVid = iter->getColumn(0);
+        auto endVid = iter->getColumn(1);
+        if (startVid == endVid || (startVid == start && endVid == end)) {
+            iter->erase();
+        }
+    }
 }
 
 folly::Future<Status> ConjunctPathExecutor::allPaths() {
