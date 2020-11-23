@@ -1,3 +1,9 @@
+# Copyright (c) 2020 vesoft inc. All rights reserved.
+#
+# This source code is licensed under Apache 2.0 License,
+# attached with Common Clause Condition 1.0, found in the LICENSES directory.
+#
+
 import os
 import sys
 from behave import *
@@ -5,7 +11,7 @@ from behave import *
 this_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(this_dir + '/../utils/')
 import nbv
-from nebula2.common import ttypes as nb
+from nebula2.common.ttypes import Value,NullType
 
 # You could register functions that can be invoked from the parsing text
 nbv.register_function('len', len)
@@ -41,9 +47,9 @@ def step_impl(context):
             if null == 0:
                 actual = 'NULL'
             else:
-                actual = nb.NullType._VALUES_TO_NAMES[context.values[i].get_nVal()]
+                actual = NullType._VALUES_TO_NAMES[context.values[i].get_nVal()]
         else:
-            actual = nb.Value.thrift_spec[context.values[i].getType()][2]
+            actual = Value.thrift_spec[context.values[i].getType()][2]
         expected = saved[i]['type']
         assert actual == expected, \
                        "expected: %s, actual: %s" % (expected, actual)

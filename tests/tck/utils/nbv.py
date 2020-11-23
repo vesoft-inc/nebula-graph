@@ -1,7 +1,14 @@
+# Copyright (c) 2020 vesoft inc. All rights reserved.
+#
+# This source code is licensed under Apache 2.0 License,
+# attached with Common Clause Condition 1.0, found in the LICENSES directory.
+#
+
 import ply.lex as lex
 import ply.yacc as yacc
-from nebula2.common import ttypes as nb
-nb.Value.__hash__ = lambda self: self.value.__hash__()
+
+from nebula2.common.ttypes import Value,List,NullType,Map,List,Set,Vertex,Tag,Edge,Path,Step
+Value.__hash__ = lambda self: self.value.__hash__()
 
 
 states = (
@@ -35,62 +42,62 @@ t_sstr_dstr_ignore = ''
 
 def t_EMPTY(t):
     r'EMPTY'
-    t.value = nb.Value()
+    t.value = Value()
     return t
 
 def t_NULL(t):
     r'NULL'
-    t.value = nb.Value(nVal = nb.NullType.__NULL__)
+    t.value = Value(nVal = NullType.__NULL__)
     return t
 
 def t_NaN(t):
     r'NaN'
-    t.value = nb.Value(nVal = nb.NullType.NaN)
+    t.value = Value(nVal = NullType.NaN)
     return t
 
 def t_BAD_DATA(t):
     r'BAD_DATA'
-    t.value = nb.Value(nVal = nb.NullType.BAD_DATA)
+    t.value = Value(nVal = NullType.BAD_DATA)
     return t
 
 def t_BAD_TYPE(t):
     r'BAD_TYPE'
-    t.value = nb.Value(nVal = nb.NullType.BAD_TYPE)
+    t.value = Value(nVal = NullType.BAD_TYPE)
     return t
 
 def t_OVERFLOW(t):
     r'OVERFLOW'
-    t.value = nb.Value(nVal = nb.NullType.ERR_OVERFLOW)
+    t.value = Value(nVal = NullType.ERR_OVERFLOW)
     return t
 
 def t_UNKNOWN_PROP(t):
     r'UNKNOWN_PROP'
-    t.value = nb.Value(nVal = nb.NullType.UNKNOWN_PROP)
+    t.value = Value(nVal = NullType.UNKNOWN_PROP)
     return t
 
 def t_DIV_BY_ZERO(t):
     r'DIV_BY_ZERO'
-    t.value = nb.Value(nVal = nb.NullType.DIV_BY_ZERO)
+    t.value = Value(nVal = NullType.DIV_BY_ZERO)
     return t
 
 def t_OUT_OF_RANGE(t):
     r'OUT_OF_RANGE'
-    t.value = nb.Value(nVal = nb.NullType.OUT_OF_RANGE)
+    t.value = Value(nVal = NullType.OUT_OF_RANGE)
     return t
 
 def t_FLOAT(t):
     r'-?\d+\.\d+'
-    t.value = nb.Value(fVal = float(t.value))
+    t.value = Value(fVal = float(t.value))
     return t
 
 def t_INT(t):
     r'-?\d+'
-    t.value = nb.Value(iVal = int(t.value))
+    t.value = Value(iVal = int(t.value))
     return t
 
 def t_BOOLEAN(t):
     r'(?i)true|false'
-    v = nb.Value()
+    v = Value()
     if t.value.lower() == 'true':
         v.set_bVal(True)
     else:
@@ -137,13 +144,13 @@ def t_dstr_any(t):
 
 def t_sstr_STRING(t):
     r'\''
-    t.value = nb.Value(sVal = t.lexer.string)
+    t.value = Value(sVal = t.lexer.string)
     t.lexer.begin('INITIAL')
     return t
 
 def t_dstr_STRING(t):
     r'"'
-    t.value = nb.Value(sVal = t.lexer.string)
+    t.value = Value(sVal = t.lexer.string)
     t.lexer.begin('INITIAL')
     return t
 
@@ -181,20 +188,20 @@ def p_list(p):
         list : '[' list_items ']'
              | '[' ']'
     '''
-    l = nb.List()
+    l = List()
     if len(p) == 4:
         l.values = p[2]
     else:
         l.values = []
-    p[0] = nb.Value(lVal = l)
+    p[0] = Value(lVal = l)
 
 def p_set(p):
     '''
         set : '{' list_items '}'
     '''
-    s = nb.Set()
+    s = Set()
     s.values = set(p[2])
-    p[0] = nb.Value(uVal = s)
+    p[0] = Value(uVal = s)
 
 def p_list_items(p):
     '''
@@ -212,12 +219,12 @@ def p_map(p):
         map : '{' map_items '}'
             | '{' '}'
     '''
-    m = nb.Map()
+    m = Map()
     if len(p) == 4:
         m.kvs = p[2]
     else:
         m.kvs = {}
-    p[0] = nb.Value(mVal = m)
+    p[0] = Value(mVal = m)
 
 def p_map_items(p):
     '''
@@ -228,12 +235,12 @@ def p_map_items(p):
     '''
     if len(p) == 4:
         k = p[1]
-        if isinstance(k, nb.Value):
+        if isinstance(k, Value):
             k = k.get_sVal()
         p[0] = {k: p[3]}
     else:
         k = p[3]
-        if isinstance(k, nb.Value):
+        if isinstance(k, Value):
             k = k.get_sVal()
         p[1][k] = p[5]
         p[0] = p[1]
@@ -250,8 +257,8 @@ def p_vertex(p):
     else:
         vid = p[2].get_sVal()
         tags = p[3]
-    v = nb.Vertex(vid = vid, tags = tags)
-    p[0] = nb.Value(vVal = v)
+    v = Vertex(vid = vid, tags = tags)
+    p[0] = Value(vVal = v)
 
 def p_tag_list(p):
     '''
@@ -269,7 +276,7 @@ def p_tag(p):
         tag : ':' LABEL map
             | ':' LABEL
     '''
-    tag = nb.Tag()
+    tag = Tag()
     tag.name = p[2]
     if len(p) == 4:
         tag.props = p[3].get_mVal()
@@ -286,7 +293,7 @@ def p_edge(p):
     else:
         e = p[3]
         e.type = -1
-    p[0] = nb.Value(eVal = e)
+    p[0] = Value(eVal = e)
 
 def p_edge_spec(p):
     '''
@@ -296,7 +303,7 @@ def p_edge_spec(p):
                   | '[' STRING '-' '>' STRING edge_rank edge_props ']'
                   | '[' ':' LABEL STRING '-' '>' STRING edge_rank edge_props ']'
     '''
-    e = nb.Edge()
+    e = Edge()
     if len(p) == 5:
         e.ranking = p[2]
         e.props = p[3]
@@ -342,18 +349,18 @@ def p_path(p):
         path : '<' vertex steps '>'
              | '<' vertex '>'
     '''
-    path = nb.Path()
+    path = Path()
     path.src = p[2].get_vVal()
     if len(p) == 5:
         path.steps = p[3]
-    p[0] = nb.Value(pVal = path)
+    p[0] = Value(pVal = path)
 
 def p_steps(p):
     '''
         steps : edge vertex
               | steps edge vertex
     '''
-    step = nb.Step()
+    step = Step()
     if len(p) == 3:
         step.dst = p[2].get_vVal()
         edge = p[1].get_eVal()
@@ -448,6 +455,3 @@ if __name__ == '__main__':
     for s in input:
         v = parse(s)
         print("%64s -> %-5s: %s" % (s, v.__class__.__name__, str(v)))
-    for spec in nb.Value.thrift_spec:
-        if spec is not None:
-            print(spec[2])
