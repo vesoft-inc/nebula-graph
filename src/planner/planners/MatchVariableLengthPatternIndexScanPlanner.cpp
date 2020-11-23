@@ -426,7 +426,7 @@ PlanNode *MatchVariableLengthPatternIndexScanPlanner::filterCyclePath(PlanNode *
                                                                       const std::string &column) {
     auto args = std::make_unique<ArgumentList>();
     args->addArgument(ExpressionUtils::inputPropExpr(column));
-    auto fn = std::make_unique<std::string>("cyclePath");
+    auto fn = std::make_unique<std::string>("hasSameEdgeInPath");
     auto fnCall = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
     auto falseConst = std::make_unique<ConstantExpression>(false);
     auto cond = std::make_unique<RelationalExpression>(
