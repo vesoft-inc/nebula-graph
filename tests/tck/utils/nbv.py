@@ -1,5 +1,8 @@
 import ply.lex as lex
 import ply.yacc as yacc
+from nebula2.common import ttypes as nb
+nb.Value.__hash__ = lambda self: self.value.__hash__()
+
 
 states = (
     ('sstr', 'exclusive'),
@@ -7,6 +10,15 @@ states = (
 )
 
 tokens = (
+    'EMPTY',
+    'NULL',
+    'NaN',
+    'BAD_DATA',
+    'BAD_TYPE',
+    'OVERFLOW',
+    'UNKNOWN_PROP',
+    'DIV_BY_ZERO',
+    'OUT_OF_RANGE',
     'FLOAT',
     'INT',
     'STRING',
@@ -21,22 +33,69 @@ t_LABEL = r'[_a-zA-Z][_a-zA-Z0-9]*'
 t_ignore = ' \t\n'
 t_sstr_dstr_ignore = ''
 
+def t_EMPTY(t):
+    r'EMPTY'
+    t.value = nb.Value()
+    return t
+
+def t_NULL(t):
+    r'NULL'
+    t.value = nb.Value(nVal = nb.NullType.__NULL__)
+    return t
+
+def t_NaN(t):
+    r'NaN'
+    t.value = nb.Value(nVal = nb.NullType.NaN)
+    return t
+
+def t_BAD_DATA(t):
+    r'BAD_DATA'
+    t.value = nb.Value(nVal = nb.NullType.BAD_DATA)
+    return t
+
+def t_BAD_TYPE(t):
+    r'BAD_TYPE'
+    t.value = nb.Value(nVal = nb.NullType.BAD_TYPE)
+    return t
+
+def t_OVERFLOW(t):
+    r'OVERFLOW'
+    t.value = nb.Value(nVal = nb.NullType.ERR_OVERFLOW)
+    return t
+
+def t_UNKNOWN_PROP(t):
+    r'UNKNOWN_PROP'
+    t.value = nb.Value(nVal = nb.NullType.UNKNOWN_PROP)
+    return t
+
+def t_DIV_BY_ZERO(t):
+    r'DIV_BY_ZERO'
+    t.value = nb.Value(nVal = nb.NullType.DIV_BY_ZERO)
+    return t
+
+def t_OUT_OF_RANGE(t):
+    r'OUT_OF_RANGE'
+    t.value = nb.Value(nVal = nb.NullType.OUT_OF_RANGE)
+    return t
+
 def t_FLOAT(t):
     r'-?\d+\.\d+'
-    t.value = float(t.value)
+    t.value = nb.Value(fVal = float(t.value))
     return t
 
 def t_INT(t):
     r'-?\d+'
-    t.value = int(t.value)
+    t.value = nb.Value(iVal = int(t.value))
     return t
 
 def t_BOOLEAN(t):
     r'(?i)true|false'
+    v = nb.Value()
     if t.value.lower() == 'true':
-        t.value = True
+        v.set_bVal(True)
     else:
-        t.value = False
+        v.set_bVal(False)
+    t.value = v
     return t
 
 def t_sstr(t):
@@ -78,13 +137,13 @@ def t_dstr_any(t):
 
 def t_sstr_STRING(t):
     r'\''
-    t.value = t.lexer.string
+    t.value = nb.Value(sVal = t.lexer.string)
     t.lexer.begin('INITIAL')
     return t
 
 def t_dstr_STRING(t):
     r'"'
-    t.value = t.lexer.string
+    t.value = nb.Value(sVal = t.lexer.string)
     t.lexer.begin('INITIAL')
     return t
 
@@ -92,113 +151,55 @@ def t_ANY_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
-class Node:
-    def __init__(self, vid, tags):
-        self.vid = vid
-        self.tags = tags
-
-    def __str__(self):
-        s = "('%s'" % self.vid
-        for tag in self.tags:
-            s += " %s" % str(tag)
-        s += ")"
-        return s
-
-    def __repr__(self):
-        return self.__str__()
-
-class Tag:
-    def __init__(self, name, props):
-        self.name = name
-        self.props = props
-
-    def __str__(self):
-        return ":%s %s" % (self.name, self.props)
-
-    def __repr__(self):
-        return self.__str__()
-
-class Edge:
-    def __init__(self, name, rank, props, direct):
-        self.name = name
-        self.rank = rank
-        self.props = props
-        self.direct = direct
-
-    def __str__(self):
-        s = "-[:%s @%d %s]-" % (self.name, self.rank, str(self.props))
-        if self.direct == ">":
-            return s + ">"
-        elif self.direct == "<":
-            return "<" + s
-        else:
-            return s
-
-    def __repr__(self):
-        return self.__str__()
-
-class Path:
-    def __init__(self, head, steps):
-        self.head = head
-        self.steps = steps
-
-    def __str__(self):
-        s = "<%s" % str(self.head)
-        if self.steps is not None:
-            for step in self.steps:
-                s += str(step)
-        s += ">"
-        return s
-
-    def __repr__(self):
-        return self.__str__()
-
-class Step:
-    def __init__(self, edge, node):
-        self.edge = edge
-        self.node = node
-
-    def __str__(self):
-        return "%s%s" % (str(self.edge), str(self.node))
-
-    def __repr__(self):
-        return self.__str__()
-
 def p_expr(p):
-    '''expr : INT
-            | FLOAT
-            | BOOLEAN
-            | STRING
-            | list
-            | set
-            | map
-            | node
-            | edge
-            | path
-            | function
+    '''
+        expr : EMPTY
+             | NULL
+             | NaN
+             | BAD_DATA
+             | BAD_TYPE
+             | OVERFLOW
+             | UNKNOWN_PROP
+             | DIV_BY_ZERO
+             | OUT_OF_RANGE
+             | INT
+             | FLOAT
+             | BOOLEAN
+             | STRING
+             | list
+             | set
+             | map
+             | vertex
+             | edge
+             | path
+             | function
     '''
     p[0] = p[1]
 
 def p_list(p):
     '''
-        list : '[' list_item ']'
+        list : '[' list_items ']'
              | '[' ']'
     '''
+    l = nb.List()
     if len(p) == 4:
-        p[0] = p[2]
+        l.values = p[2]
     else:
-        p[0] = []
+        l.values = []
+    p[0] = nb.Value(lVal = l)
 
 def p_set(p):
     '''
-        set : '{' list_item '}'
+        set : '{' list_items '}'
     '''
-    p[0] = set(p[2])
+    s = nb.Set()
+    s.values = set(p[2])
+    p[0] = nb.Value(uVal = s)
 
-def p_list_item(p):
+def p_list_items(p):
     '''
-        list_item : expr
-                  | list_item ',' expr
+        list_items : expr
+                   | list_items ',' expr
     '''
     if len(p) == 2:
         p[0] = [p[1]]
@@ -208,107 +209,172 @@ def p_list_item(p):
 
 def p_map(p):
     '''
-        map : '{' map_item '}'
+        map : '{' map_items '}'
             | '{' '}'
     '''
+    m = nb.Map()
     if len(p) == 4:
-        p[0] = p[2]
+        m.kvs = p[2]
     else:
-        p[0] = {}
+        m.kvs = {}
+    p[0] = nb.Value(mVal = m)
 
-
-def p_map_item(p):
+def p_map_items(p):
     '''
-        map_item : LABEL ':' expr
-                 | STRING ':' expr
-                 | map_item ',' LABEL ':' expr
+        map_items : LABEL ':' expr
+                  | STRING ':' expr
+                  | map_items ',' LABEL ':' expr
+                  | map_items ',' STRING ':' expr
     '''
     if len(p) == 4:
-        p[0] = {p[1]: p[3]}
+        k = p[1]
+        if isinstance(k, nb.Value):
+            k = k.get_sVal()
+        p[0] = {k: p[3]}
     else:
-        p[1][p[3]] = p[5]
+        k = p[3]
+        if isinstance(k, nb.Value):
+            k = k.get_sVal()
+        p[1][k] = p[5]
         p[0] = p[1]
 
-def p_node(p):
+def p_vertex(p):
     '''
-        node : '(' STRING tag_list ')'
+        vertex : '(' tag_list ')'
+               | '(' STRING tag_list ')'
     '''
-    p[0] = Node(p[2], p[3])
+    vid = None
+    tags = None
+    if len(p) == 4:
+        tags = p[2]
+    else:
+        vid = p[2].get_sVal()
+        tags = p[3]
+    v = nb.Vertex(vid = vid, tags = tags)
+    p[0] = nb.Value(vVal = v)
 
 def p_tag_list(p):
     '''
-        tag_list : tag
+        tag_list :
                  | tag_list tag
     '''
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
+    if len(p) == 3:
+        if p[1] is None:
+            p[1] = []
         p[1].append(p[2])
         p[0] = p[1]
 
 def p_tag(p):
     '''
         tag : ':' LABEL map
+            | ':' LABEL
     '''
-    p[0] = Tag(p[2], p[3])
+    tag = nb.Tag()
+    tag.name = p[2]
+    if len(p) == 4:
+        tag.props = p[3].get_mVal()
+    p[0] = tag
 
 def p_edge(p):
     '''
-        edge : '-' '[' ':' LABEL map ']' '-'
-             | '-' '[' ':' LABEL map ']' '-' '>'
-             | '<' '-' '[' ':' LABEL map ']' '-'
-             | '<' '-' '[' ':' LABEL map ']' '-' '>'
-             | '-' '[' ':' LABEL '@' INT map ']' '-'
-             | '-' '[' ':' LABEL '@' INT map ']' '-' '>'
-             | '<' '-' '[' ':' LABEL '@' INT map ']' '-'
-             | '<' '-' '[' ':' LABEL '@' INT map ']' '-' '>'
+        edge : '-' edge_spec '-' '>'
+             | '<' '-' edge_spec '-'
     '''
-    if len(p) == 8:
-        p[0] = Edge(p[4], 0, p[5], None)
+    if p[1] == '-':
+        e = p[2]
+        e.type = 1
+    else:
+        e = p[3]
+        e.type = -1
+    p[0] = nb.Value(eVal = e)
+
+def p_edge_spec(p):
+    '''
+        edge_spec :
+                  | '[' edge_rank edge_props ']'
+                  | '[' ':' LABEL edge_rank edge_props ']'
+                  | '[' STRING '-' '>' STRING edge_rank edge_props ']'
+                  | '[' ':' LABEL STRING '-' '>' STRING edge_rank edge_props ']'
+    '''
+    e = nb.Edge()
+    if len(p) == 5:
+        e.ranking = p[2]
+        e.props = p[3]
+    elif len(p) == 7:
+        e.name = p[3]
+        e.ranking = p[4]
+        e.props = p[5]
     elif len(p) == 9:
-        if p[1] == '<':
-            p[0] = Edge(p[5], 0, p[6], '<')
-        else:
-            p[0] = Edge(p[4], 0, p[5], '>')
-    elif len(p) == 10:
-        if p[1] == '<':
-            p[0] = Edge(p[5], 0, p[6], None)
-        else:
-            p[0] = Edge(p[4], p[6], p[7], None)
+        e.src = p[2].get_sVal()
+        e.dst = p[5].get_sVal()
+        e.ranking = p[6]
+        e.props = p[7]
     elif len(p) == 11:
-        if p[1] == '<':
-            p[0] = Edge(p[5], p[7], p[8], '<')
-        else:
-            p[0] = Edge(p[4], p[6], p[7], '>')
-    elif len(p) == 12:
-            p[0] = Edge(p[5], p[7], p[8], None)
+        e.name = p[3]
+        e.src = p[4].get_sVal()
+        e.dst = p[7].get_sVal()
+        e.ranking = p[8]
+        e.props = p[9]
+    p[0] = e
+
+def p_edge_rank(p):
+    '''
+        edge_rank :
+                  | '@' INT
+    '''
+    if len(p) == 1:
+        p[0] = None
+    else:
+        p[0] = p[2].get_iVal()
+
+def p_edge_props(p):
+    '''
+        edge_props :
+                   | map
+    '''
+    if len(p) == 1:
+        p[0] = None
+    else:
+        p[0] = p[1].get_mVal()
 
 def p_path(p):
     '''
-        path : '<' node steps '>'
-             | '<' node '>'
+        path : '<' vertex steps '>'
+             | '<' vertex '>'
     '''
+    path = nb.Path()
+    path.src = p[2].get_vVal()
     if len(p) == 5:
-        p[0] = Path(p[2], p[3])
-    else:
-        p[0] = Path(p[2], None)
+        path.steps = p[3]
+    p[0] = nb.Value(pVal = path)
 
 def p_steps(p):
     '''
-        steps : edge node
-              | steps edge node
+        steps : edge vertex
+              | steps edge vertex
     '''
-    if len(p) == 1:
-        p[0] = []
-    elif len(p) == 3:
-        p[0] = [Step(p[1], p[2])]
+    step = nb.Step()
+    if len(p) == 3:
+        step.dst = p[2].get_vVal()
+        edge = p[1].get_eVal()
+        step.name = edge.name
+        step.type = edge.type
+        step.ranking = edge.ranking
+        step.props = edge.props
+        p[0] = [step]
     else:
-        p[1].append(Step(p[2], p[3]))
+        step.dst = p[3].get_vVal()
+        edge = p[2].get_eVal()
+        step.name = edge.name
+        step.type = edge.type
+        step.ranking = edge.ranking
+        step.props = edge.props
+        p[1].append(step)
         p[0] = p[1]
 
 def p_function(p):
     '''
-        function : LABEL '(' list_item ')'
+        function : LABEL '(' list_items ')'
     '''
     p[0] = functions[p[1]](*p[3])
 
@@ -331,6 +397,15 @@ def parse_row(row):
 
 if __name__ == '__main__':
     input = [
+        '''EMPTY''',
+        '''NULL''',
+        '''NaN''',
+        '''BAD_DATA''',
+        '''BAD_TYPE''',
+        '''OVERFLOW''',
+        '''UNKNOWN_PROP''',
+        '''DIV_BY_ZERO''',
+        '''OUT_OF_RANGE''',
         '''123''',
         '''-123''',
         '''3.14''',
@@ -343,18 +418,36 @@ if __name__ == '__main__':
         ''' 'string"substr"' ''',
         '''[]''',
         '''[1,2,3]''',
-        '''[-[:e1{}]-,<-[:e2{}]-,-[:e3{}]->]''',
+        '''[<-[:e2{}]-,-[:e3{}]->]''',
         '''{1,2,3}''',
         '''{}''',
-        '''{k1: 1, k2:true}''',
+        '''{k1: 1, 'k2':true}''',
+        '''()''',
+        '''('vid')''',
+        '''('vid':t)''',
+        '''('vid':t:t)''',
         '''('vid':t{p1:0,p2:' '})''',
-        '''-[:e{p1:0,p2:true}]-''',
-        '''<-[:e@0{p1:0,p2:true}]-''',
+        '''('vid':t{p1:0,p2:' '}:t{})''',
+        '''-->''',
+        '''<--''',
+        '''-[]->''',
+        '''-[:e]->''',
+        '''-[@-1]->''',
+        '''-['1'->'2']->''',
+        '''-[{}]->''',
+        '''<-[:e{}]-''',
         '''-[:e{p1:0,p2:true}]->''',
-        '''<-[:e@-1{p1:0,p2:true}]->''',
+        '''<-[:e@0{p1:0,p2:true}]-''',
+        '''-[:e'1'->'2'{p1:0,p2:true}]->''',
+        '''<-[:e@-1{p1:0,p2:true}]-''',
+        '''<()>''',
+        '''<()-->()<--()>''',
         '''<('v1':t{})>''',
-        '''<('v1':t{})-[:e1{}]-('v2':t{})<-[:e2{}]->('v3':t{})>''',
+        '''<('v1':t{})-[:e1{}]->('v2':t{})<-[:e2{}]-('v3':t{})>''',
     ]
     for s in input:
         v = parse(s)
         print("%64s -> %-5s: %s" % (s, v.__class__.__name__, str(v)))
+    for spec in nb.Value.thrift_spec:
+        if spec is not None:
+            print(spec[2])

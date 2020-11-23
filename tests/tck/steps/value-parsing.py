@@ -5,6 +5,7 @@ from behave import *
 this_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(this_dir + '/../utils/')
 import nbv
+from nebula2.common import ttypes as nb
 
 # You could register functions that can be invoked from the parsing text
 nbv.register_function('len', len)
@@ -22,8 +23,8 @@ def step_impl(context):
     values = []
     saved = context.saved.rows
     for row in saved:
-        v = nbv.parse(row['string'])
-        assert v != None, "Failed to parse `%s'" % row['string']
+        v = nbv.parse(row['format'])
+        assert v != None, "Failed to parse `%s'" % row['format']
         values.append(v)
     context.values = values
 
@@ -32,7 +33,17 @@ def step_impl(context):
     n = len(context.values)
     saved = context.saved
     for i in range(n):
-        actual = context.values[i].__class__.__name__
-        expected = saved[i]['typename']
+        type = context.values[i].getType()
+        if type == 0:
+            actual = 'EMPTY'
+        elif type == 1:
+            null = context.values[i].get_nVal()
+            if null == 0:
+                actual = 'NULL'
+            else:
+                actual = nb.NullType._VALUES_TO_NAMES[context.values[i].get_nVal()]
+        else:
+            actual = nb.Value.thrift_spec[context.values[i].getType()][2]
+        expected = saved[i]['type']
         assert actual == expected, \
                        "expected: %s, actual: %s" % (expected, actual)
