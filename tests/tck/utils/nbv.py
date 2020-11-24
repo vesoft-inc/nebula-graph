@@ -402,55 +402,6 @@ def parse_row(row):
 
 
 if __name__ == '__main__':
-    input = [
-        '''EMPTY''',
-        '''NULL''',
-        '''NaN''',
-        '''BAD_DATA''',
-        '''BAD_TYPE''',
-        '''OVERFLOW''',
-        '''UNKNOWN_PROP''',
-        '''DIV_BY_ZERO''',
-        '''OUT_OF_RANGE''',
-        '''123''',
-        '''-123''',
-        '''3.14''',
-        '''-3.14''',
-        '''true''',
-        '''false''',
-        ''' 'string' ''',
-        '''"string"''',
-        '''"string'substr'"''',
-        ''' 'string"substr"' ''',
-        '''[]''',
-        '''[1,2,3]''',
-        '''[<-[:e2{}]-,-[:e3{}]->]''',
-        '''{1,2,3}''',
-        '''{}''',
-        '''{k1: 1, 'k2':true}''',
-        '''()''',
-        '''('vid')''',
-        '''('vid':t)''',
-        '''('vid':t:t)''',
-        '''('vid':t{p1:0,p2:' '})''',
-        '''('vid':t{p1:0,p2:' '}:t{})''',
-        '''-->''',
-        '''<--''',
-        '''-[]->''',
-        '''-[:e]->''',
-        '''-[@-1]->''',
-        '''-['1'->'2']->''',
-        '''-[{}]->''',
-        '''<-[:e{}]-''',
-        '''-[:e{p1:0,p2:true}]->''',
-        '''<-[:e@0{p1:0,p2:true}]-''',
-        '''-[:e'1'->'2'{p1:0,p2:true}]->''',
-        '''<-[:e@-1{p1:0,p2:true}]-''',
-        '''<()>''',
-        '''<()-->()<--()>''',
-        '''<('v1':t{})>''',
-        '''<('v1':t{})-[:e1{}]->('v2':t{})<-[:e2{}]-('v3':t{})>''',
-    ]
     expected = {}
     expected['EMPTY'] = Value()
     expected['NULL'] = Value(nVal = NullType.__NULL__)
@@ -514,8 +465,8 @@ if __name__ == '__main__':
                 steps=[Step(type=1, dst=Vertex()),Step(type=-1, dst=Vertex())]))
     expected['<("v1")-[:e1]->()<-[:e2]-("v2")>'] = Value(pVal=Path(src=Vertex(vid='v1'),\
                 steps=[Step(name='e1',type=1,dst=Vertex()),Step(name='e2',type=-1, dst=Vertex(vid='v2'))]))
-    for k in expected:
-        v = parse(k)
-        assert v is not None, "Failed to parse %s" % k
-        assert v == expected[k], \
-                  "Parsed value not as expected, str: %s, expected: %s actual: %s" % (k, expected[k], v)
+    for item in expected.items():
+        v = parse(item[0])
+        assert v is not None, "Failed to parse %s" % item[0]
+        assert v == item[1], \
+                  "Parsed value not as expected, str: %s, expected: %s actual: %s" % (item[0], item[1], v)
