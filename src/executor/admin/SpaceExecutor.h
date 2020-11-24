@@ -18,9 +18,6 @@ public:
         : Executor("CreateSpaceExecutor", node, qctx) {}
 
     folly::Future<Status> execute() override;
-private:
-    bool createTSIndex(const std::vector<meta::cpp2::FTClient>& clients,
-                       const std::string& index);
 };
 
 class DescSpaceExecutor final : public Executor {

@@ -158,7 +158,6 @@ StatusOr<std::vector<std::string>> IndexScanValidator::textSearch(TextSearchExpr
     // TODO (sky) : External index load balancing
     auto retryCnt = FLAGS_ft_request_retry_times;
     while (--retryCnt > 0) {
-        auto ftc = randomFTClient();
         StatusOr<bool> ret = Status::Error();
         switch (expr->kind()) {
             case Expression::Kind::kTSFuzzy: {
@@ -169,7 +168,7 @@ StatusOr<std::vector<std::string>> IndexScanValidator::textSearch(TextSearchExpr
                     fuzz = expr->arg()->fuzziness();
                 }
                 std::string op = (expr->arg()->op() == nullptr) ? "or" : *expr->arg()->op();
-                ret = nebula::plugin::ESGraphAdapter::kAdapter->fuzzy(std::move(ftc),
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->fuzzy(randomFTClient(),
                                                                       doc,
                                                                       limit,
                                                                       fuzz,
@@ -178,21 +177,21 @@ StatusOr<std::vector<std::string>> IndexScanValidator::textSearch(TextSearchExpr
                 break;
             }
             case Expression::Kind::kTSPrefix: {
-                ret = nebula::plugin::ESGraphAdapter::kAdapter->prefix(std::move(ftc),
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->prefix(randomFTClient(),
                                                                        doc,
                                                                        limit,
                                                                        result);
                 break;
             }
             case Expression::Kind::kTSRegexp: {
-                ret = nebula::plugin::ESGraphAdapter::kAdapter->regexp(std::move(ftc),
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->regexp(randomFTClient(),
                                                                        doc,
                                                                        limit,
                                                                        result);
                 break;
             }
             case Expression::Kind::kTSWildcard: {
-                ret = nebula::plugin::ESGraphAdapter::kAdapter->wildcard(std::move(ftc),
+                ret = nebula::plugin::ESGraphAdapter::kAdapter->wildcard(randomFTClient(),
                                                                          doc,
                                                                          limit,
                                                                          result);
@@ -345,7 +344,15 @@ Status IndexScanValidator::checkTSService() {
         return Status::Error("No full text client found");
     }
     textSearchReady_ = true;
-    tsClients_ = std::move(tcs).value();
+    for (const auto& c : tcs.value()) {
+        nebula::plugin::HttpClient hc;
+        hc.host = c.host;
+        if (c.__isset.user && c.__isset.pwd) {
+            hc.user = c.user;
+            hc.password = c.pwd;
+        }
+        esClients_.emplace_back(std::move(hc));
+    }
     return checkTSIndex();
 }
 
@@ -354,8 +361,7 @@ Status IndexScanValidator::checkTSIndex() {
     auto retryCnt = FLAGS_ft_request_retry_times;
     StatusOr<bool> ret = Status::Error("fulltext index not found : %s", ftIndex.c_str());
     while (--retryCnt > 0) {
-        auto ftc = randomFTClient();
-        ret = nebula::plugin::ESGraphAdapter::kAdapter->indexExists(std::move(ftc), ftIndex);
+        ret = nebula::plugin::ESGraphAdapter::kAdapter->indexExists(randomFTClient(), ftIndex);
         if (!ret.ok()) {
             continue;
         } else if (ret.value()) {
@@ -367,17 +373,9 @@ Status IndexScanValidator::checkTSIndex() {
     return ret.status();
 }
 
-nebula::plugin::HttpClient IndexScanValidator::randomFTClient() {
-    auto i = folly::Random::rand32(tsClients_.size() - 1);
-    nebula::plugin::HttpClient ftc;
-    ftc.host = tsClients_[i].host;
-    if (tsClients_[i].__isset.user) {
-        ftc.user = tsClients_[i].user;
-    }
-    if (tsClients_[i].__isset.pwd) {
-        ftc.password = tsClients_[i].pwd;
-    }
-    return ftc;
+const nebula::plugin::HttpClient& IndexScanValidator::randomFTClient() const {
+    auto i = folly::Random::rand32(esClients_.size() - 1);
+    return esClients_[i];
 }
 }  // namespace graph
 }  // namespace nebula

@@ -29,12 +29,12 @@ return qctx()
                 LOG(ERROR) << resp.status();
                 return resp.status();
             }
-            auto    value = std::move(resp).value();
+            auto value = std::move(resp).value();
             DataSet v({"Host", "Port"});
             for (const auto &client : value) {
                 nebula::Row r({client.host.host, client.host.port});
                 v.emplace_back(std::move(r));
-            }  // row loop
+            }
             return finish(std::move(v));
         });
 }

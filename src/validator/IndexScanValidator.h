@@ -50,7 +50,7 @@ private:
 
     Status checkTSIndex();
 
-    nebula::plugin::HttpClient randomFTClient();
+    const nebula::plugin::HttpClient& randomFTClient() const;
 
 private:
     GraphSpaceID                      spaceId_{0};
@@ -60,8 +60,8 @@ private:
     int32_t                           schemaId_;
     bool                              isEmptyResultSet_{false};
     bool                              textSearchReady_{false};
-    std::vector<meta::cpp2::FTClient> tsClients_;
     std::string                       from_;
+    std::vector<nebula::plugin::HttpClient> esClients_;
 };
 
 }   // namespace graph
