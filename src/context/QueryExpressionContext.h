@@ -61,7 +61,7 @@ public:
     Value getEdge() const override;
 
     // Get regex
-    std::regex getRegex(const std::string& pattern) override;
+    const std::regex& getRegex(const std::string& pattern) override;
 
     void setVar(const std::string&, Value val) override;
 
