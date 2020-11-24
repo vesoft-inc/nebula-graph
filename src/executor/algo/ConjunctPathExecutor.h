@@ -51,7 +51,7 @@ private:
     bool findAllPaths(Iterator* backwardPathsIter,
                       std::unordered_map<Value, const List&>& forwardPathsTable,
                       DataSet& ds);
-    void delPathFromConditionalVar(std::string& start, std::string& end);
+    void delPathFromConditionalVar(const Value& start, const Value& end);
 
 private:
     std::vector<std::multimap<Value, const Edge*>> forward_;

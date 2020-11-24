@@ -264,6 +264,7 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
         for (auto& srcPaths : forwardPaths->second) {
             auto& startVid = srcPaths.first;
             if (startVid == endVid) {
+                delPathFromConditionalVar(startVid, endVid);
                 continue;
             }
             auto totalCost = cost + srcPaths.second.cost_;
@@ -283,17 +284,28 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
     return found;
 }
 
-void ConjunctPathExecutor::delPathFromConditionalVar(std::string& start, std::string& end) {
-    //
-    auto& ds = qctx_->ectx()->getResult(conditionalVar_);
-    auto iter = ds.iter();
-    for (iter->reset(); iter->valid(); iter->next()) {
+void ConjunctPathExecutor::delPathFromConditionalVar(const Value& start, const Value& end) {
+    auto iter = qctx_->ectx()->getResult(conditionalVar_).iter();
+
+    while (iter->valid()) {
         auto startVid = iter->getColumn(0);
         auto endVid = iter->getColumn(1);
         if (startVid == endVid || (startVid == start && endVid == end)) {
             iter->erase();
+        } else {
+            iter->next();
         }
     }
+
+    DataSet ds;
+    if (iter->size() == 0) {
+        Row row;
+        row.values.emplace_back("all path are found");
+        ds.rows.emplace_back(std::move(row));
+    }
+    qctx_->ectx()->setResult(
+        conditionalVar_,
+        ResultBuilder().value(Value(std::move(ds))).iter(std::move(iter)).finish());
 }
 
 folly::Future<Status> ConjunctPathExecutor::allPaths() {

@@ -331,12 +331,11 @@ Status FindPathValidator::multiPairPlan() {
         buildMultiPairFirstDataSet(projectFrom, toStartVidsVar, backward->outputVar());
 
     auto* cartesianProduct = CartesianProduct::make(qctx_, projectTo);
-    cartesianProduct->addVar(fromStartVidsVar);
-    cartesianProduct->addVar(toStartVidsVar);
+    NG_RETURN_IF_ERROR(cartesianProduct->addVar(fromStartVidsVar));
+    NG_RETURN_IF_ERROR(cartesianProduct->addVar(toStartVidsVar));
 
-    conjunct->setConditionalVar(cartesionProduct->outputVar());
+    conjunct->setConditionalVar(cartesianProduct->outputVar());
 
-    // todo(jmq) optimize condition
     auto* loop =
         Loop::make(qctx_,
                    cartesianProduct,
@@ -388,7 +387,7 @@ PlanNode* FindPathValidator::multiPairShortestPath(PlanNode* dep,
 
 Expression* FindPathValidator::buildMultiPairLoopCondition(uint32_t steps,
                                                            std::string conditionalVar) {
-    // (++loopSteps{0} <= steps/2+steps%2) && (isWeight_ == true || size(conditionalVar) != 0)
+    // (++loopSteps{0} <= steps/2+steps%2) && (isWeight_ == true || size(conditionalVar) == 0)
     auto loopSteps = vctx_->anonVarGen()->getVar();
     qctx_->ectx()->setValue(loopSteps, 0);
 
@@ -402,7 +401,7 @@ Expression* FindPathValidator::buildMultiPairLoopCondition(uint32_t steps,
     auto* args = new ArgumentList();
     args->addArgument(std::make_unique<VariableExpression>(new std::string(conditionalVar)));
     auto* notAllPathFind =
-        new RelationalExpression(Expression::Kind::kRelNE,
+        new RelationalExpression(Expression::Kind::kRelEQ,
                                  new FunctionCallExpression(new std::string("size"), args),
                                  new ConstantExpression(0));
 
