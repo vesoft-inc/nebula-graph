@@ -47,6 +47,14 @@ bool equal_to<const nebula::graph::LogicalRow*>::operator()(
 namespace nebula {
 namespace graph {
 
+const Value& Iterator::getColumnByIndex(int32_t index, LogicalRow& row) const {
+    auto size = row.size();
+    if (static_cast<size_t>(std::abs(index)) >= size) {
+        return Value::kNullBadType;
+    }
+    return row[(size + index) % size];
+}
+
 GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
     : Iterator(value, Kind::kGetNeighbors) {
     auto status = processList(value);
@@ -198,12 +206,7 @@ const Value& GetNeighborsIter::getColumn(const std::string& col) const {
 }
 
 const Value& GetNeighborsIter::getColumn(int32_t index) const {
-    auto size = iter_->size();
-    if (static_cast<size_t>(std::abs(index)) >= size) {
-        return Value::kNullBadType;
-    }
-    auto currentRow = *iter_;
-    return currentRow[(size + index) % size];
+    return getColumnByIndex(index, *iter_);
 }
 
 const Value& GetNeighborsIter::getTagProp(const std::string& tag,
@@ -348,12 +351,7 @@ Value GetNeighborsIter::getEdge() const {
 }
 
 const Value& SequentialIter::getColumn(int32_t index) const {
-    auto size = iter_->size();
-    if (static_cast<size_t>(std::abs(index)) >= size) {
-        return Value::kNullBadType;
-    }
-    auto currentRow = *iter_;
-    return currentRow[(size + index) % size];
+    return getColumnByIndex(index, *iter_);
 }
 
 void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
@@ -406,12 +404,7 @@ size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
 }
 
 const Value& JoinIter::getColumn(int32_t index) const {
-    auto size = iter_->size();
-    if (static_cast<size_t>(std::abs(index)) >= size) {
-        return Value::kNullBadType;
-    }
-    auto currentRow = *iter_;
-    return currentRow[(size + index) % size];
+    return getColumnByIndex(index, *iter_);
 }
 
 PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) {
@@ -617,12 +610,7 @@ List PropIter::getEdges() {
 }
 
 const Value& PropIter::getColumn(int32_t index) const {
-    auto size = iter_->size();
-    if (static_cast<size_t>(std::abs(index)) >= size) {
-        return Value::kNullBadType;
-    }
-    auto currentRow = *iter_;
-    return currentRow[(size + index) % size];
+    return getColumnByIndex(index, *iter_);
 }
 
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {

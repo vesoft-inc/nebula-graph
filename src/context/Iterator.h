@@ -121,6 +121,8 @@ public:
 
     virtual const Value& getColumn(int32_t index) const = 0;
 
+    const Value& getColumnByIndex(int32_t index, LogicalRow& row) const;
+
     virtual const Value& getTagProp(const std::string&,
                                     const std::string&) const {
         DLOG(FATAL) << "Shouldn't call the unimplemented method";
