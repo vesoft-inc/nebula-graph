@@ -681,6 +681,7 @@ Status UpdateEdgeValidator::toPlan() {
                                      {});
     auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
     if (useToss) {
+        root_ = outNode;
         tail_ = root_;
     } else {
         auto *inNode = UpdateEdge::make(qctx_,
