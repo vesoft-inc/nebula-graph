@@ -276,10 +276,9 @@ def p_tag(p):
         tag : ':' LABEL map
             | ':' LABEL
     '''
-    tag = Tag()
-    tag.name = p[2]
+    tag = Tag(name = p[2])
     if len(p) == 4:
-        tag.props = p[3].get_mVal()
+        tag.props = p[3].get_mVal().kvs
     p[0] = tag
 
 def p_edge(p):
@@ -342,7 +341,7 @@ def p_edge_props(p):
     if len(p) == 1:
         p[0] = None
     else:
-        p[0] = p[1].get_mVal()
+        p[0] = p[1].get_mVal().kvs
 
 def p_path(p):
     '''
@@ -452,6 +451,71 @@ if __name__ == '__main__':
         '''<('v1':t{})>''',
         '''<('v1':t{})-[:e1{}]->('v2':t{})<-[:e2{}]-('v3':t{})>''',
     ]
-    for s in input:
-        v = parse(s)
-        print("%64s -> %-5s: %s" % (s, v.__class__.__name__, str(v)))
+    expected = {}
+    expected['EMPTY'] = Value()
+    expected['NULL'] = Value(nVal = NullType.__NULL__)
+    expected['NaN'] = Value(nVal = NullType.NaN)
+    expected['BAD_DATA'] = Value(nVal = NullType.BAD_DATA)
+    expected['BAD_TYPE'] = Value(nVal = NullType.BAD_TYPE)
+    expected['OVERFLOW'] = Value(nVal = NullType.ERR_OVERFLOW)
+    expected['UNKNOWN_PROP'] = Value(nVal = NullType.UNKNOWN_PROP)
+    expected['DIV_BY_ZERO'] = Value(nVal = NullType.DIV_BY_ZERO)
+    expected['OUT_OF_RANGE'] = Value(nVal = NullType.OUT_OF_RANGE)
+    expected['123'] = Value(iVal = 123)
+    expected['-123'] = Value(iVal = -123)
+    expected['3.14'] = Value(fVal = 3.14)
+    expected['-3.14'] = Value(fVal = -3.14)
+    expected['true'] = Value(bVal = True)
+    expected['True'] = Value(bVal = True)
+    expected['false'] = Value(bVal = False)
+    expected['fAlse'] = Value(bVal = False)
+    expected["'string'"] = Value(sVal = "string")
+    expected['"string"'] = Value(sVal = 'string')
+    expected['''"string'string'"'''] = Value(sVal = "string'string'")
+    expected['[]'] = Value(lVal = List([]))
+    expected['[1,2,3]'] = Value(lVal = List([Value(iVal=1),Value(iVal=2),Value(iVal=3)]))
+    expected['{1,2,3}'] = Value(uVal = Set(set([Value(iVal=1),Value(iVal=2),Value(iVal=3)])))
+    expected['{}'] = Value(mVal = Map({}))
+    expected['{k1:1,"k2":true}'] = Value(mVal = Map({'k1': Value(iVal=1), 'k2': Value(bVal=True)}))
+    expected['()'] = Value(vVal = Vertex())
+    expected['("vid")'] = Value(vVal = Vertex(vid = 'vid'))
+    expected['("vid":t)'] = Value(vVal=Vertex(vid='vid',tags=[Tag(name='t')]))
+    expected['("vid":t:t)'] = Value(vVal=Vertex(vid='vid',tags=[Tag(name='t'),Tag(name='t')]))
+    expected['("vid":t{p1:0,p2:" "})'] = Value(vVal=Vertex(vid='vid',\
+                tags=[Tag(name='t',props={'p1':Value(iVal=0),'p2':Value(sVal=' ')})]))
+    expected['("vid":t1{p1:0,p2:" "}:t2{})'] = Value(vVal=Vertex(vid='vid',\
+                tags=[Tag(name='t1',props={'p1':Value(iVal=0),'p2':Value(sVal=' ')}),\
+                        Tag(name='t2',props={})]))
+    expected['-->'] = Value(eVal=Edge(type=1))
+    expected['<--'] = Value(eVal=Edge(type=-1))
+    expected['-[]->'] = Value(eVal=Edge(type=1))
+    expected['<-[]-'] = Value(eVal=Edge(type=-1))
+    expected['-[:e]->'] = Value(eVal=Edge(name='e',type=1))
+    expected['<-[:e]-'] = Value(eVal=Edge(name='e',type=-1))
+    expected['-[@1]->'] = Value(eVal=Edge(type=1,ranking=1))
+    expected['-[@-1]->'] = Value(eVal=Edge(type=1,ranking=-1))
+    expected['<-[@-1]-'] = Value(eVal=Edge(type=-1,ranking=-1))
+    expected['-["1"->"2"]->'] = Value(eVal=Edge(src='1',dst='2',type=1))
+    expected['<-["1"->"2"]-'] = Value(eVal=Edge(src='1',dst='2',type=-1))
+    expected['-[{}]->'] = Value(eVal=Edge(type=1,props={}))
+    expected['<-[{}]-'] = Value(eVal=Edge(type=-1,props={}))
+    expected['-[:e{}]->'] = Value(eVal=Edge(name='e',type=1,props={}))
+    expected['<-[:e{}]-'] = Value(eVal=Edge(name='e',type=-1,props={}))
+    expected['-[:e@123{}]->'] = Value(eVal=Edge(name='e',type=1,ranking=123,props={}))
+    expected['<-[:e@123{}]-'] = Value(eVal=Edge(name='e',type=-1,ranking=123,props={}))
+    expected['-[:e"1"->"2"@123{}]->'] = Value(eVal=Edge(name='e',type=1,ranking=123,src='1',dst='2',props={}))
+    expected['<()>'] = Value(pVal=Path(src=Vertex()))
+    expected['<("vid")>'] = Value(pVal=Path(src=Vertex(vid='vid')))
+    expected['<()-->()>'] = Value(pVal=Path(src=Vertex(),steps=[Step(type=1, dst=Vertex())]))
+    expected['<()<--()>'] = Value(pVal=Path(src=Vertex(),steps=[Step(type=-1, dst=Vertex())]))
+    expected['<()-->()-->()>'] = Value(pVal=Path(src=Vertex(),\
+                steps=[Step(type=1, dst=Vertex()),Step(type=1, dst=Vertex())]))
+    expected['<()-->()<--()>'] = Value(pVal=Path(src=Vertex(),\
+                steps=[Step(type=1, dst=Vertex()),Step(type=-1, dst=Vertex())]))
+    expected['<("v1")-[:e1]->()<-[:e2]-("v2")>'] = Value(pVal=Path(src=Vertex(vid='v1'),\
+                steps=[Step(name='e1',type=1,dst=Vertex()),Step(name='e2',type=-1, dst=Vertex(vid='v2'))]))
+    for k in expected:
+        v = parse(k)
+        assert v is not None, "Failed to parse %s" % k
+        assert v == expected[k], \
+                  "Parsed value not as expected, str: %s, expected: %s actual: %s" % (k, expected[k], v)
