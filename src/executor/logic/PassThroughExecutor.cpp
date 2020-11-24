@@ -14,7 +14,17 @@ namespace graph {
 
 folly::Future<Status> PassThroughExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-    return Status::OK();
+
+    const auto &result = ectx_->getResult(node()->outputVar());
+    auto iter = result.iter();
+    if (!iter->isDefaultIter() && !iter->empty()) {
+        // Return directly if this pass through output result is not empty
+        return Status::OK();
+    }
+
+    DataSet ds;
+    ds.colNames = node()->colNames();
+    return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
 }   // namespace graph
