@@ -121,7 +121,15 @@ public:
 
     virtual const Value& getColumn(int32_t index) const = 0;
 
-    const Value& getColumnByIndex(int32_t index, LogicalRow& row) const;
+    template <typename Iter>
+    const Value& getColumnByIndex(int32_t index, Iter iter) const {
+        auto size = iter->size();
+        if (static_cast<size_t>(std::abs(index)) >= size) {
+            return Value::kNullBadType;
+        }
+        auto currentRow = *iter;
+        return currentRow[(size + index) % size];
+    }
 
     virtual const Value& getTagProp(const std::string&,
                                     const std::string&) const {
