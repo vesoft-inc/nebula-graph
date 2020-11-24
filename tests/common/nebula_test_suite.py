@@ -37,7 +37,6 @@ T_NULL_UNKNOWN_DIV_BY_ZERO = CommonTtypes.Value()
 T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.DIV_BY_ZERO)
 
 
-
 class NebulaTestSuite(object):
     @classmethod
     def set_delay(self):
@@ -275,7 +274,6 @@ class NebulaTestSuite(object):
                     continue
                 exp_val = columns[j - ignored_col_count]
                 expect_to_string = row_to_string(columns)
-
                 assert compare_value(col, exp_val), \
                     'The returned row from nebula could not be found, row: {}, expect: {}'.format(
                         row_to_string(row), expect_to_string)

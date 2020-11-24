@@ -56,48 +56,6 @@ def _compare_map(rvalues, evalues):
     return True
 
 
-def _compare_values_by_pattern(real, expect):
-    if real.getType() == CommonTtypes.Value.BVAL:
-        return expect.match(str(real.get_bVal()))
-    if real.getType() == CommonTtypes.Value.IVAL:
-        return expect.match(str(real.get_iVal()))
-    if real.getType() == CommonTtypes.Value.SVAL:
-        return expect.match(real.get_sVal().decode('utf-8'))
-    if real.getType() == CommonTtypes.Value.FVAL:
-        return expect.match(str(real.get_fVal()))
-    return False
-
-
-def _compare_list(rvalues, evalues):
-    if len(rvalues) != len(evalues):
-        pdb.set_trace()
-        return False
-
-    for rval in rvalues:
-        found = False
-        for ev in evalues:
-            if compare_value(rval, ev):
-                found = True
-                break
-        if not found:
-            pdb.set_trace()
-            return False
-    return True
-
-
-def _compare_map(rvalues, evalues):
-    for key in rvalues:
-        ev = evalues.get(key)
-        if ev is None:
-            pdb.set_trace()
-            return False
-        rv = rvalues.get(key)
-        if not compare_value(rv, ev):
-            pdb.set_trace()
-            return False
-    return True
-
-
 def compare_value(real, expect):
     if isinstance(expect, Pattern):
         return _compare_values_by_pattern(real, expect)
