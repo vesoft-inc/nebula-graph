@@ -10,20 +10,20 @@ from behave import model as bh
 
 def parse(input):
     if isinstance(input, bh.Table):
-        return parseTable(input)
+        return parse_table(input)
     elif isinstance(input, bh.Row):
-        return parseRow(input)
+        return parse_row(input)
     else:
         raise Exception('Unable to parse %s' % str(input))
 
-def parseTable(table):
+def parse_table(table):
     names = table.headings
     rows = []
     for row in table:
-        rows.append(parseRow(row))
+        rows.append(parse_row(row))
     return DataSet(column_names = table.headings, rows = rows)
 
-def parseRow(row):
+def parse_row(row):
     list = []
     for cell in row:
         v = nbv.parse(cell)
