@@ -78,7 +78,6 @@ public:
         kShowGroups,
         kShowZones,
         kShowStats,
-        kShowStatus,
         kShowTSClients,
         kDeleteVertices,
         kDeleteEdges,

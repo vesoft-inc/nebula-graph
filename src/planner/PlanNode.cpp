@@ -234,8 +234,6 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowListener";
         case Kind::kShowStats:
             return "ShowStats";
-        case Kind::kShowStatus:
-            return "ShowStatus";
         // text search
         case Kind::kShowTSClients:
             return "ShowTSClients";
