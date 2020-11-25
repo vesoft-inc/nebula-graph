@@ -32,7 +32,7 @@ private:
 
     Status prepareFilter();
 
-    StatusOr<Expression*> rewriteTSFilter(Expression* expr);
+    StatusOr<std::string> rewriteTSFilter(Expression* expr);
 
     StatusOr<std::vector<std::string>> textSearch(TextSearchExpression* expr);
 

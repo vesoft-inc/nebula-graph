@@ -101,18 +101,15 @@ Status IndexScanValidator::prepareFilter() {
         if (!textSearchReady_) {
             return Status::Error("Text search service not ready");
         }
-        auto retExpr = rewriteTSFilter(filter);
-        if (!retExpr.ok()) {
-            return retExpr.status();
+        auto retFilter = rewriteTSFilter(filter);
+        if (!retFilter.ok()) {
+            return retFilter.status();
         }
         if (isEmptyResultSet_) {
             // return empty result direct.
             return Status::OK();
         }
-        auto ret = checkFilter(retExpr.value());
-        NG_RETURN_IF_ERROR(ret);
-        ctx.set_filter(retExpr.value()->encode());
-        delete retExpr.value();
+        ctx.set_filter(std::move(retFilter).value());
     } else {
         auto ret = checkFilter(filter);
         NG_RETURN_IF_ERROR(ret);
@@ -123,7 +120,7 @@ Status IndexScanValidator::prepareFilter() {
     return Status::OK();
 }
 
-StatusOr<Expression*>
+StatusOr<std::string>
 IndexScanValidator::rewriteTSFilter(Expression* expr) {
     std::vector<std::string> values;
     auto tsExpr = static_cast<TextSearchExpression*>(expr);
@@ -135,16 +132,29 @@ IndexScanValidator::rewriteTSFilter(Expression* expr) {
         isEmptyResultSet_ = true;
         return Status::OK();
     }
-    std::vector<RelationalExpression*> rels;
+    std::vector<std::unique_ptr<RelationalExpression>> rels;
     for (const auto& row : vRet.value()) {
-        auto* r = new RelationalExpression(
-            Expression::Kind::kRelEQ,
-            new LabelAttributeExpression(new LabelExpression(*tsExpr->arg()->from()),
-                                         new LabelExpression(*tsExpr->arg()->prop())),
-            new ConstantExpression(Value(row)));
-        rels.emplace_back(r);
+        std::unique_ptr<RelationalExpression> r;
+        if (isEdge_) {
+            r = std::make_unique<RelationalExpression>(
+                Expression::Kind::kRelEQ,
+                new EdgePropertyExpression(new std::string(*tsExpr->arg()->from()),
+                                           new std::string(*tsExpr->arg()->prop())),
+                new ConstantExpression(Value(row)));
+        } else {
+            r = std::make_unique<RelationalExpression>(
+                Expression::Kind::kRelEQ,
+                new TagPropertyExpression(new std::string(*tsExpr->arg()->from()),
+                                          new std::string(*tsExpr->arg()->prop())),
+                new ConstantExpression(Value(row)));
+        }
+        rels.emplace_back(std::move(r));
     }
-    return rels.size() == 1 ? rels[0] : ExpressionUtils::pushOrs(rels);
+    if (rels.size() == 1) {
+        return rels[0]->encode();
+    }
+    auto newExpr = ExpressionUtils::pushOrs(rels);
+    return newExpr->encode();
 }
 
 StatusOr<std::vector<std::string>> IndexScanValidator::textSearch(TextSearchExpression* expr) {

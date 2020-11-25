@@ -123,7 +123,8 @@ public:
 
     static std::unique_ptr<InputPropertyExpression> inputPropExpr(const std::string& prop);
 
-    static Expression* pushOrs(std::vector<RelationalExpression*> rels);
+    static std::unique_ptr<Expression> pushOrs(
+        const std::vector<std::unique_ptr<RelationalExpression>>& rels);
 };
 
 }   // namespace graph

@@ -363,16 +363,15 @@ TEST_F(ExpressionUtilsTest, PullOrs) {
 }
 
 TEST_F(ExpressionUtilsTest, pushOrs) {
-    std::vector<RelationalExpression*> rels;
+    std::vector<std::unique_ptr<RelationalExpression>> rels;
     for (int16_t i = 0; i < 5; i++) {
-        auto* r = new RelationalExpression(
+        auto r = std::make_unique<RelationalExpression>(
             Expression::Kind::kRelEQ,
             new LabelAttributeExpression(new LabelExpression(folly::stringPrintf("tag%d", i)),
                                          new LabelExpression(folly::stringPrintf("col%d", i))),
             new ConstantExpression(Value(folly::stringPrintf("val%d", i))));
-        rels.emplace_back(r);
+        rels.emplace_back(std::move(r));
     }
-
     auto t = ExpressionUtils::pushOrs(rels);
     auto expected = std::string("(((((tag0.col0==val0) OR "
                                 "(tag1.col1==val1)) OR "
@@ -380,7 +379,6 @@ TEST_F(ExpressionUtilsTest, pushOrs) {
                                 "(tag3.col3==val3)) OR "
                                 "(tag4.col4==val4))");
     ASSERT_EQ(expected, t->toString());
-    delete(t);
 }
 
 }   // namespace graph
