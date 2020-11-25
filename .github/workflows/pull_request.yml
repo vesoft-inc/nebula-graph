@@ -138,4 +138,4 @@ jobs:
           path:  build/server_*/logs/
       - name: Cleanup
         if: ${{ always() }}
-        run: rm -rf build modules && rm -rf /tmp/nebula-*
+        run: rm -rf ${{ github.workspace }}
