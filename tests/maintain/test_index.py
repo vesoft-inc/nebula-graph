@@ -11,6 +11,7 @@ import re
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 from tests.common.nebula_test_suite import T_EMPTY, T_NULL
+from tests.common.utils import find_in_rows
 
 status_pattern = re.compile(r'FINISHED|QUEUE|RUNNING')
 
@@ -54,6 +55,26 @@ class TestIndex(NebulaTestSuite):
     def cleanup(self):
         resp = self.execute('DROP SPACE index_space;')
         self.check_resp_succeeded(resp)
+
+    @classmethod
+    def find_result(self, resp, expect):
+        if resp.data is None and len(expect) == 0:
+            return True
+
+        if resp.data is None:
+            return False
+
+        rows = resp.data.rows
+        if len(rows) < len(expect):
+            return False
+
+        new_expect = self.convert_expect(expect)
+
+        for exp in new_expect:
+            if not find_in_rows(exp.values, rows):
+                return False
+
+        return True
 
     def test_tag_index(self):
         # Single Tag Single Field
@@ -107,27 +128,30 @@ class TestIndex(NebulaTestSuite):
 
         time.sleep(3)
         # Show Tag Index Status
-        resp = self.client.execute_query('SHOW TAG INDEX STATUS')
-        self.check_resp_succeeded(resp)
-        self.search_result(resp, [[re.compile(r'single_tag_index'), status_pattern],
+        resp0 = self.client.execute_query('SHOW TAG INDEX STATUS')
+        self.check_resp_succeeded(resp0)
+        self.search_result(resp0, [[re.compile(r'single_tag_index'), status_pattern],
                                  [re.compile(r'multi_tag_index'), status_pattern],
                                  [re.compile(r'disorder_tag_index'), status_pattern]], is_regex=True)
 
         # Lookup
-        # resp = self.client.execute_query('LOOKUP ON tag_1 WHERE tag_1.col2 == 18 YIELD tag_1.col1')
-        # self.check_resp_succeeded(resp)
-        # expect = [['101', 'Tom']]
-        # self.check_out_of_order_result(resp, expect)
+        # Only run Lookup when index status is 'FINISHED'
+        if self.find_result(resp0, [['single_tag_index', 'FINISHED']]):
+            resp = self.client.execute_query('LOOKUP ON tag_1 WHERE tag_1.col2 == 18 YIELD tag_1.col1')
+            self.check_resp_succeeded(resp)
+            expect = [['101', 'Tom']]
+            self.check_out_of_order_result(resp, expect)
 
-        # resp = self.client.execute_query('LOOKUP ON tag_1 WHERE tag_1.col3 > 35.7 YIELD tag_1.col1')
-        # self.check_resp_succeeded(resp)
-        # expect = [['102', 'Jerry'], ['103', 'Bob']]
-        # self.check_out_of_order_result(resp, expect)
+        if self.find_result(resp0, [['multi_tag_index', 'FINISHED']]):
+            resp = self.client.execute_query('LOOKUP ON tag_1 WHERE tag_1.col3 > 35.7 YIELD tag_1.col1')
+            self.check_resp_succeeded(resp)
+            expect = [['102', 'Jerry'], ['103', 'Bob']]
+            self.check_out_of_order_result(resp, expect)
 
-        # resp = self.client.execute_query('LOOKUP ON tag_1 WHERE tag_1.col2 > 18 AND tag_1.col3 < 37.2 YIELD tag_1.col1')
-        # self.check_resp_succeeded(resp)
-        # expect = [['103', 'Bob']]
-        # self.check_out_of_order_result(resp, expect)
+            resp = self.client.execute_query('LOOKUP ON tag_1 WHERE tag_1.col2 > 18 AND tag_1.col3 < 37.2 YIELD tag_1.col1')
+            self.check_resp_succeeded(resp)
+            expect = [['103', 'Bob']]
+            self.check_out_of_order_result(resp, expect)
 
         # Describe Tag Index
         resp = self.client.execute_query('DESC TAG INDEX single_tag_index')
@@ -256,27 +280,32 @@ class TestIndex(NebulaTestSuite):
 
         time.sleep(3)
         # Show Edge Index Status
-        resp = self.client.execute_query('SHOW EDGE INDEX STATUS')
-        self.check_resp_succeeded(resp)
-        self.search_result(resp, [[re.compile(r'single_edge_index'), status_pattern],
+        resp0 = self.client.execute_query('SHOW EDGE INDEX STATUS')
+        self.check_resp_succeeded(resp0)
+        self.search_result(resp0, [[re.compile(r'single_edge_index'), status_pattern],
                                  [re.compile(r'multi_edge_index'), status_pattern],
                                  [re.compile(r'disorder_edge_index'), status_pattern]], is_regex=True)
 
         # Lookup
-        # resp = self.client.execute_query('LOOKUP ON edge_1 WHERE edge_1.col2 == 22 YIELD edge_1.col2')
-        # self.check_resp_succeeded(resp)
-        # expect = [['102', 0, '103', 22]]
-        # self.check_out_of_order_result(resp, expect)
+        # Only run Lookup when index status is 'FINISHED'
+        if self.find_result(resp0, [['single_edge_index', 'FINISHED']]):
+            resp = self.client.execute_query('LOOKUP ON edge_1 WHERE edge_1.col2 == 22 YIELD edge_1.col2')
+            self.check_resp_succeeded(resp)
+            print(resp0.data.rows)
+            expect = [['102', 0, '103', 22]]
+            self.check_out_of_order_result(resp, expect)
 
-        # resp = self.client.execute_query('LOOKUP ON edge_1 WHERE edge_1.col3 > 43.4 YIELD edge_1.col1')
-        # self.check_resp_succeeded(resp)
-        # expect = [['102', 0, '103', 'Yellow'], ['101', 0, '102', 'Red']]
-        # self.check_out_of_order_result(resp, expect)
 
-        # resp = self.client.execute_query('LOOKUP ON edge_1 WHERE edge_1.col2 > 45 AND edge_1.col3 < 44.3 YIELD edge_1.col1')
-        # self.check_resp_succeeded(resp)
-        # expect = [['103', 0, '101', 'Blue']]
-        # self.check_out_of_order_result(resp, expect)
+        if self.find_result(resp0, [['multi_edge_index', 'FINISHED']]):
+            resp = self.client.execute_query('LOOKUP ON edge_1 WHERE edge_1.col3 > 43.4 YIELD edge_1.col1')
+            self.check_resp_succeeded(resp)
+            expect = [['102', 0, '103', 'Yellow'], ['101', 0, '102', 'Red']]
+            self.check_out_of_order_result(resp, expect)
+
+            resp = self.client.execute_query('LOOKUP ON edge_1 WHERE edge_1.col2 > 45 AND edge_1.col3 < 44.3 YIELD edge_1.col1')
+            self.check_resp_succeeded(resp)
+            expect = [['103', 0, '101', 'Blue']]
+            self.check_out_of_order_result(resp, expect)
 
         # Describe Edge Index
         resp = self.client.execute_query('DESC EDGE INDEX single_edge_index')
