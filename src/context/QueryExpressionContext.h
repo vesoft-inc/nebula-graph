@@ -60,9 +60,6 @@ public:
     // Get Edge
     Value getEdge() const override;
 
-    // Get regex
-    const std::regex& getRegex(const std::string& pattern) override;
-
     void setVar(const std::string&, Value val) override;
 
     QueryExpressionContext& operator()(Iterator* iter) {
@@ -76,7 +73,6 @@ private:
     // could be evaluated as constant value.
     ExecutionContext*                 ectx_{nullptr};
     Iterator*                         iter_{nullptr};
-    std::unordered_map<std::string, std::regex> regex_;
 };
 
 }  // namespace graph
