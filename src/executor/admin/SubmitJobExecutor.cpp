@@ -23,7 +23,7 @@ folly::Future<Status> SubmitJobExecutor::execute() {
 
     return qctx()->getMetaClient()->submitJob(jobOp, cmd, params)
         .via(runner())
-        .then([jobOp, cmd, this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
+        .then([jobOp, this](StatusOr<meta::cpp2::AdminJobResult> &&resp) {
             SCOPED_TIMER(&execTime_);
 
             if (!resp.ok()) {
