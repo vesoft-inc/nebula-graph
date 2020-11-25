@@ -13,6 +13,13 @@ namespace graph {
  * The Expand was designed to handle the pattern expanding.
  */
 class Expand final {
+public:
+    Expand() = default;
+
+    static Status expand(SubPlan& plan) {
+        UNUSED(plan);
+        return Status::Error("TODO");
+    }
 };
 }  // namespace graph
 }  // namespace nebula

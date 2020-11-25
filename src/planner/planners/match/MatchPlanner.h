@@ -8,7 +8,6 @@
 #define PLANNER_PLANNERS_MATCHPLANNER_H_
 
 #include "planner/Planner.h"
-#include "validator/MatchValidator.h"
 
 namespace nebula {
 namespace graph {

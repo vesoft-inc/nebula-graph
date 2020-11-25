@@ -22,41 +22,6 @@ struct MatchAstContext;
 
 class MatchValidator final : public TraversalValidator {
 public:
-    using Direction = MatchEdge::Direction;
-    struct NodeInfo {
-        TagID                                   tid{0};
-        bool                                    anonymous{false};
-        const std::string                      *label{nullptr};
-        const std::string                      *alias{nullptr};
-        const MapExpression                    *props{nullptr};
-        Expression                             *filter{nullptr};
-    };
-
-    struct EdgeInfo {
-        bool                                    anonymous{false};
-        MatchStepRange                         *range{nullptr};
-        std::vector<EdgeType>                   edgeTypes;
-        MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
-        std::vector<std::string>                types;
-        const std::string                      *alias{nullptr};
-        const MapExpression                    *props{nullptr};
-        Expression                             *filter{nullptr};
-    };
-
-    enum AliasType {
-        kNode, kEdge, kPath
-    };
-
-    struct ScanInfo {
-        Expression                             *filter{nullptr};
-        int32_t                                 schemaId{0};
-    };
-
-    enum class QueryEntry {
-        kId,  // query start by id
-        kIndex  // query start by index scan
-    };
-
     MatchValidator(Sentence *sentence, QueryContext *context);
 
 private:

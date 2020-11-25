@@ -12,7 +12,14 @@ namespace graph {
 /*
  * The WithClausePlanner was designed to generate plan for with clause.
  */
-class WithClausePlanner final {
+class WithClausePlanner final : public CypherClausePlanner {
+public:
+    WithClausePlanner() = default;
+
+    StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override {
+        UNUSED(clauseCtx);
+        return Status::Error("TODO");
+    }
 };
 }  // namespace graph
 }  // namespace nebula

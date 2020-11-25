@@ -12,8 +12,15 @@ namespace graph {
 /*
  * The UnwindClausePlanner was designed to generate plan for unwind clause
  */
-class UnwindClausePlanner final {
-}
+class UnwindClausePlanner final : public CypherClausePlanner {
+public:
+    UnwindClausePlanner() = default;
+
+    StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override {
+        UNUSED(clauseCtx);
+        return Status::Error("TODO");
+    }
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_PLANNERS_MATCH_UNWINDCLAUSEPLANNER_H_

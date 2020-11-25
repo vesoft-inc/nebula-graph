@@ -6,12 +6,24 @@
 
 #ifndef PLANNER_PLANNERS_MATCH_MATCHCLAUSEPLANNER_H_
 #define PLANNER_PLANNERS_MATCH_MATCHCLAUSEPLANNER_H_
+
+#include "planner/planners/match/CypherClausePlanner.h"
+
 namespace nebula {
 namespace graph {
 /*
  * The MatchClausePlanner was designed to generate plan for match clause;
  */
-class MatchClause final {
+class MatchClausePlanner final : public CypherClausePlanner {
+public:
+    MatchClausePlanner() = default;
+
+    StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override;
+
+private:
+    Status findStartVids();
+
+    Status appendFilterPlan(SubPlan& plan);
 };
 }  // namespace graph
 }  // namespace nebula

@@ -12,7 +12,14 @@ namespace graph {
 /*
  * The ReturnClausePlanner was designed to generated plan for return clause.
  */
-class ReturnClausePlanner final {
+class ReturnClausePlanner final : public CypherClausePlanner {
+public:
+    ReturnClausePlanner() = default;
+
+    StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override {
+        UNUSED(clauseCtx);
+        return Status::Error("TODO");
+    }
 };
 }  // namespace graph
 }  // namespace nebula

@@ -4,16 +4,16 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_PLANNERS_MATCH_LIMITCLAUSEPLANNER_H_
-#define PLANNER_PLANNERS_MATCH_LIMITCLAUSEPLANNER_H_
+#ifndef PLANNER_PLANNERS_MATCH_PAGINATIONPLANNER_H_
+#define PLANNER_PLANNERS_MATCH_PAGINATIONPLANNER_H_
 
 namespace nebula {
 namespace graph {
 /*
- * The LimitClausePlanner was designed to generate subplan for limit clause.
+ * The PaginationPlanner was designed to generate subplan for skip/limit clause.
  */
-class LimitClausePlanner final {
+class PaginationPlanner final {
 };
 }  // namespace graph
 }  // namespace nebula
-#endif  // PLANNER_PLANNERS_MATCH_LIMITCLAUSE_H_
+#endif  // PLANNER_PLANNERS_MATCH_PAGINATIONPLANNER_H_
