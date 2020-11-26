@@ -150,12 +150,14 @@ Status InsertEdgesValidator::validateImpl() {
 }
 
 Status InsertEdgesValidator::toPlan() {
+    auto useChainInsert = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
     auto doNode = InsertEdges::make(qctx_,
                                     nullptr,
                                     spaceId_,
                                     std::move(edges_),
                                     std::move(propNames_),
-                                    overwritable_);
+                                    overwritable_,
+                                    useChainInsert);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
