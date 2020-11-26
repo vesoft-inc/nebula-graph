@@ -28,11 +28,9 @@ private:
     Status buildVerticesRequestDataSet();
     Status buildPathRequestDataSet();
     folly::Future<Status> getVertices();
-    folly::Future<Status> getPathVertices();
 
 private:
     DataSet               reqDs_;
-    DataSet               pathsDs_;
     const GetVertices*    gv_;
 };
 

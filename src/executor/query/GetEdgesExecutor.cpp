@@ -18,42 +18,84 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetEdgesExecutor::execute() {
+    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
+    ge_ = asNode<GetEdges>(node());
+    ds_.colNames = {kSrc, kType, kRank, kDst};
+    auto status = buildEdgeRequestDataSet();
+    if (!status.ok()) {
+        return error(std::move(status));
+    }
     return getEdges();
 }
 
-folly::Future<Status> GetEdgesExecutor::getEdges() {
+Status GetEdgesExecutor::close() {
+    // clear the members
+    reqDs_.rows.clear();
+    return Executor::close();
+}
+
+Status GetEdgesExecutor::buildEdgeRequestDataSet() {
     SCOPED_TIMER(&execTime_);
-
-    GraphStorageClient *client = qctx()->getStorageClient();
-
-    auto *ge = asNode<GetEdges>(node());
-    nebula::DataSet edges({kSrc, kType, kRank, kDst});
-    const auto& spaceInfo = qctx()->rctx()->session()->space();
-    if (ge->src() != nullptr &&
-        ge->type() != nullptr &&
-        ge->ranking() != nullptr &&
-        ge->dst() != nullptr) {
+    const auto &spaceInfo = qctx()->rctx()->session()->space();
+    auto inputVar = ge_->inputVar();
+    VLOG(1) << "GetEdges Input : " << inputVar;
+    if (ge_->src() != nullptr && ge_->type() != nullptr && ge_->ranking() != nullptr &&
+        ge_->dst() != nullptr) {
         // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
-        auto valueIter = ectx_->getResult(ge->inputVar()).iter();
-        auto expCtx = QueryExpressionContext(qctx()->ectx());
-        for (; valueIter->valid(); valueIter->next()) {
-            auto src = ge->src()->eval(expCtx(valueIter.get()));
-            auto type = ge->type()->eval(expCtx(valueIter.get()));
-            auto ranking = ge->ranking()->eval(expCtx(valueIter.get()));
-            auto dst = ge->dst()->eval(expCtx(valueIter.get()));
-            if (!SchemaUtil::isValidVid(src, *spaceInfo.spaceDesc.vid_type_ref())
-                    || !SchemaUtil::isValidVid(dst, *spaceInfo.spaceDesc.vid_type_ref())
-                    || !type.isInt() || !ranking.isInt()) {
+        auto iter = ectx_->getResult(inputVar).iter();
+        QueryExpressionContext ctx(ectx_);
+        for (; iter->valid(); iter->next()) {
+            auto src = ge_->src()->eval(ctx(iter.get()));
+            auto type = ge_->type()->eval(ctx(iter.get()));
+            auto ranking = ge_->ranking()->eval(ctx(iter.get()));
+            auto dst = ge_->dst()->eval(ctx(iter.get()));
+            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type) ||
+                !SchemaUtil::isValidVid(dst, spaceInfo.spaceDesc.vid_type) || !type.isInt() ||
+                !ranking.isInt()) {
                 LOG(WARNING) << "Mismatched edge key type";
                 continue;
             }
-            edges.emplace_back(Row({
-                std::move(src), type, ranking, std::move(dst)
-            }));
+            reqDs_.emplace_back(Row({std::move(src), type, ranking, std::move(dst)}));
         }
     }
+    return Status::OK();
+}
 
-    if (edges.rows.empty()) {
+Status GetEdgesExecutor::buildPathRequestDataSet() {
+    SCOPED_TIMER(&execTime_);
+    auto inputVar = ge_->inputVar();
+    VLOG(1) << "GetEdges Input : " << inputVar;
+    if (ge_->src() == nullptr) {
+        return Status::Error("GetEdges Path's src is nullptr");
+    }
+    auto iter = ectx_->getResult(inputVar).iter();
+    QueryExpressionContext ctx(ectx_);
+    for (; iter->valid(); iter->next()) {
+        auto path = ge_->src()->eval(ctx(iter.get()));
+        VLOG(1) << "path is :" << path;
+        if (!path.isPath()) {
+            return Status::Error("GetEdges's Type : %s, should be PATH", path.type().c_str());
+        }
+        auto pathVal = path.getPath();
+        auto src = pathVal.src.vid;
+        for (auto &step : pathVal.steps) {
+            auto type = step.type;
+            auto ranking = step.ranking;
+            auto dst = step.dst.vid;
+            if (!type.isInt() || !ranking.isInt()) {
+                LOG(WARNING) << "Mismatched edge key type";
+                continue;
+            }
+            reqDs_.emplace_back(Row({std::move(src), type, ranking, dst}));
+            src = dst;
+        }
+    }
+    return Status::OK();
+}
+
+folly::Future<Status> GetEdgesExecutor::getEdges() {
+    GraphStorageClient *client = qctx()->getStorageClient();
+    if (reqDs_.rows.empty()) {
         // TODO: add test for empty input.
         return finish(ResultBuilder()
                           .value(Value(DataSet(ge->colNames())))
@@ -63,15 +105,15 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
 
     time::Duration getPropsTime;
     return DCHECK_NOTNULL(client)
-        ->getProps(ge->space(),
-                   std::move(edges),
+        ->getProps(ge_->space(),
+                   std::move(reqDs_),
                    nullptr,
-                   &ge->props(),
-                   ge->exprs().empty() ? nullptr : &ge->exprs(),
-                   ge->dedup(),
-                   ge->orderBy(),
-                   ge->limit(),
-                   ge->filter())
+                   &ge_->props(),
+                   ge_->exprs().empty() ? nullptr : &ge_->exprs(),
+                   ge_->dedup(),
+                   ge_->orderBy(),
+                   ge_->limit(),
+                   ge_->filter())
         .via(runner())
         .ensure([this, getPropsTime]() {
             SCOPED_TIMER(&execTime_);
@@ -81,7 +123,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         .thenValue([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
-            return handleResp(std::move(rpcResp), ge->colNamesRef());
+            return handleResp(std::move(rpcResp), this->ge_->colNamesRef());
         });
 }
 

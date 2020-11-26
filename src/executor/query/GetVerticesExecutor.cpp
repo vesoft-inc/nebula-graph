@@ -16,6 +16,7 @@ namespace graph {
 folly::Future<Status> GetVerticesExecutor::execute() {
     otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     gv_ = asNode<GetVertices>(node());
+    reqDs_.colNames = {kVid};
     auto status = buildVerticesRequestDataSet();
     if (!status.ok()) {
         return error(std::move(status));
@@ -26,7 +27,6 @@ folly::Future<Status> GetVerticesExecutor::execute() {
 Status GetVerticesExecutor::close() {
     // clear the members
     reqDs_.rows.clear();
-    pathsDs_.rows.clear();
     return Executor::close();
 }
 
@@ -34,16 +34,17 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
     SCOPED_TIMER(&execTime_);
     auto inputVar = gv_->inputVar();
     VLOG(1) << "GetVertices Input : " << inputVar;
-    auto& inputResult = ectx_->getResult(inputVar);
-    auto iter = inputResult.iter();
-    pathsDs_ = inputResult.value().getDataSet();
+    if (gv_->src() == nullptr) {
+        return Status::Error("GetVertices's src is nullptr");
+    }
+    auto iter = ectx_->getResult(inputVar).iter();
     QueryExpressionContext ctx(ectx_);
     std::unordered_set<std::string> uniqueVid;
     for (; iter->valid(); iter->next()) {
         auto path = gv_->src()->eval(ctx(iter.get()));
         VLOG(1) << "path is :" << path;
         if (!path.isPath()) {
-            return Status::Error("Error Type");
+            return Status::Error("GetVertices's Type : %s, should be PATH", path.type().c_str());
         }
         auto pathVal = path.getPath();
         for (auto& step : pathVal.steps) {
@@ -57,40 +58,34 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
     return Status::OK();
 }
 
-folly::Future<Status> GetVerticesExecutor::getPathVertices() {
-    if (reqDs_.rows.empty()) {
-        return finish(ResultBuilder().value(Value(DataSet(gv_->colNames()))).finish());
-    }
-    return Status::OK();
-}
-
 Status GetVerticesExecutor::buildVerticesRequestDataSet() {
     SCOPED_TIMER(&execTime_);
     const auto& spaceInfo = qctx()->rctx()->session()->space();
-    reqDs_.colNames = {kVid};
     auto inputVar = gv_->inputVar();
     VLOG(1) << "GetVertices Input : " << inputVar;
-    if (gv_->src() != nullptr) {
-        auto iter = ectx_->getResult(inputVar).iter();
-        QueryExpressionContext ctx(qctx()->ectx());
-        std::unordered_set<Value> uniqueSet;
-        for (; iter->valid(); iter->next()) {
-            auto src = gv_->src()->eval(ctx(iter.get()));
-            VLOG(1) << "src is :" << src;
-            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
-                LOG(WARNING) << "Mismatched vid type: " << src.type();
-                continue;
+
+    if (gv_->src() == nullptr) {
+        return Status::Error("GetVertices's src is nullptr");
+    }
+    auto iter = ectx_->getResult(inputVar).iter();
+    QueryExpressionContext ctx(qctx()->ectx());
+    std::unordered_set<Value> uniqueSet;
+    for (; iter->valid(); iter->next()) {
+        auto src = gv_->src()->eval(ctx(iter.get()));
+        VLOG(1) << "src is :" << src;
+        if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
+            LOG(WARNING) << "Mismatched vid type: " << src.type();
+            continue;
+        }
+        if (gv_->dedup()) {
+            if (uniqueSet.emplace(src).second) {
+                reqDs_.rows.emplace_back(Row({std::move(src)}));
             }
-            if (gv_->dedup()) {
-                if (uniqueSet.emplace(src).second) {
-                    vertices.emplace_back(Row({std::move(src)}));
-                }
-            } else {
-                vertices.emplace_back(Row({std::move(src)}));
-            }
+        } else {
             reqDs_.rows.emplace_back(Row({std::move(src)}));
         }
     }
+
     return Status::OK();
 }
 

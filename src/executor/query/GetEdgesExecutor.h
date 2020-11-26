@@ -11,7 +11,7 @@
 
 namespace nebula {
 namespace graph {
-
+class GetEdges;
 class GetEdgesExecutor final : public GetPropExecutor {
 public:
     GetEdgesExecutor(const PlanNode *node, QueryContext *qctx)
@@ -19,8 +19,16 @@ public:
 
     folly::Future<Status> execute() override;
 
+    Status close() override;
+
 private:
     folly::Future<Status> getEdges();
+    Status buildEdgeRequestDataSet();
+    Status buildPathRequestDataSet();
+
+private:
+    const GetEdges*            ge_;
+    DataSet                   ds_;
 };
 
 }   // namespace graph
