@@ -14,9 +14,6 @@ class TestRegexMatch(NebulaTestSuite):
     def prepare(self):
         self.use_nba()
 
-    def cleanup():
-        pass
-
     def test_regex_match_with_yield(self):
         resp = self.execute_query(r'''
             YIELD "abcd\xA3g1234efgh\x49ijkl" =~ "\\w{4}\xA3g12\\d*e\\w+\x49\\w+"
