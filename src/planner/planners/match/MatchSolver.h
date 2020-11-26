@@ -7,8 +7,10 @@
 #ifndef PLANNER_PLANNERS_MATCHSOLVER_H_
 #define PLANNER_PLANNERS_MATCHSOLVER_H_
 
-#include "planner/Planner.h"
-#include "validator/MatchValidator.h"
+#include "common/expression/ContainerExpression.h"
+#include "common/expression/LabelAttributeExpression.h"
+#include "common/expression/LabelExpression.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 namespace graph {
@@ -20,15 +22,13 @@ public:
     MatchSolver() = delete;
     ~MatchSolver() = delete;
 
-    static Status buildReturn(MatchAstContext* matchCtx, SubPlan& subPlan);
+    // static Status buildReturn(MatchAstContext* matchCtx, SubPlan& subPlan);
 
     static Expression* rewrite(const LabelExpression *label);
 
     static Expression* rewrite(const LabelAttributeExpression *la);
 
-    static Expression* doRewrite(const MatchAstContext* mctx, const Expression* expr);
-
-    static bool match(AstContext* astCtx);
+    // static Expression* doRewrite(const MatchAstContext* mctx, const Expression* expr);
 
     static Expression* makeIndexFilter(const std::string& label,
                                        const MapExpression* map,
@@ -39,7 +39,7 @@ public:
                                        Expression* filter,
                                        QueryContext* qctx);
 
-    static Status buildFilter(const MatchAstContext* mctx, SubPlan* plan);
+    // static Status buildFilter(const MatchAstContext* mctx, SubPlan* plan);
 };
 }  // namespace graph
 }  // namespace nebula

@@ -61,26 +61,6 @@ struct ScanInfo {
     int32_t                                 schemaId{0};
 };
 
-struct PatternContext {
-    PatternContext(PatternKind k, Expression* f) : kind(k), matchFilter(f) {}
-    const PatternKind kind;
-    Expression* matchFilter;
-};
-
-struct NodeContext final : PatternContext {
-    NodeContext(Expression* filter, NodeInfo* i)
-        : PatternContext(PatternKind::kNode, filter), info(i) {}
-
-    NodeInfo* info;
-};
-
-struct EdgeContext final : PatternContext {
-    EdgeContext(Expression* filter, EdgeInfo* i)
-        : PatternContext(PatternKind::kEdge, filter), info(i) {}
-
-    EdgeInfo* info;
-};
-
 struct CypherClauseContextBase : AstContext {
     explicit CypherClauseContextBase(CypherClauseKind k) : kind(k) {}
 
@@ -109,7 +89,7 @@ struct PaginationContext final : CypherClauseContextBase {
 struct ReturnClauseContext final : CypherClauseContextBase {
     ReturnClauseContext() : CypherClauseContextBase(CypherClauseKind::kReturn) {}
 
-    const YieldColumns*                     yieldColumns;
+    const YieldColumns*                     yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>   order;
     std::unique_ptr<PaginationContext>      pagination;
     // TODO: grouping columns
@@ -118,7 +98,7 @@ struct ReturnClauseContext final : CypherClauseContextBase {
 struct WithClauseContext final : CypherClauseContextBase {
     WithClauseContext() : CypherClauseContextBase(CypherClauseKind::kWith) {}
 
-    const YieldColumns*                         yieldColumns;
+    const YieldColumns*                         yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>       order;
     std::unique_ptr<PaginationContext>          pagination;
     std::unique_ptr<WhereClauseContext>         where;
@@ -132,19 +112,42 @@ struct MatchClauseContext final : CypherClauseContextBase {
     std::vector<EdgeInfo>                       edgeInfos;
     std::unordered_map<std::string, AliasType>  aliases;
     std::unique_ptr<PathBuildExpression>        pathBuild;
-    ScanInfo                                    scanInfo;
-    const Expression*                           ids;
     std::unique_ptr<WhereClauseContext>         where;
 };
 
 struct UnwindClauseContext final : CypherClauseContextBase {
     UnwindClauseContext() : CypherClauseContextBase(CypherClauseKind::kUnwind) {}
-    const YieldColumns*     yieldColumns;
+    const YieldColumns*     yieldColumns{nullptr};
 };
 
 struct MatchAstContext final : AstContext {
     // Alternative of Match/Unwind/With and ends with Return.
     std::vector<std::unique_ptr<CypherClauseContextBase>>  clauses;
+};
+
+struct PatternContext {
+    PatternContext(PatternKind k, MatchClauseContext* m) : kind(k), matchClauseCtx(m) {}
+    const PatternKind kind;
+    MatchClauseContext*    matchClauseCtx{nullptr};
+};
+
+struct NodeContext final : PatternContext {
+    NodeContext(MatchClauseContext* m, NodeInfo* i)
+        : PatternContext(PatternKind::kNode, m), info(i) {}
+
+    NodeInfo*            info{nullptr};
+
+    // Output field
+    ScanInfo             scanInfo;
+    const Expression*    ids{nullptr};
+    Expression*          initialExpr{nullptr};
+};
+
+struct EdgeContext final : PatternContext {
+    EdgeContext(MatchClauseContext* m, EdgeInfo* i)
+        : PatternContext(PatternKind::kEdge, m), info(i) {}
+
+    EdgeInfo* info{nullptr};
 };
 }  // namespace graph
 }  // namespace nebula

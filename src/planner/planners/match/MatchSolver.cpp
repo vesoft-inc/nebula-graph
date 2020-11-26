@@ -4,15 +4,16 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/planners/MatchSolver.h"
+#include "planner/planners/match/MatchSolver.h"
 
-#include "context/AstContext.h"
+#include "context/ast/AstContext.h"
+#include "context/ast/QueryAstContext.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
 namespace nebula {
 namespace graph {
-
+/*
 Status MatchSolver::buildReturn(MatchAstContext* mctx, SubPlan& subPlan) {
     auto *yields = new YieldColumns();
     std::vector<std::string> colNames;
@@ -71,6 +72,7 @@ Status MatchSolver::buildReturn(MatchAstContext* mctx, SubPlan& subPlan) {
 
     return Status::OK();
 }
+*/
 
 Expression* MatchSolver::rewrite(const LabelExpression *label) {
     auto *expr = new VariablePropertyExpression(
@@ -89,6 +91,7 @@ Expression* MatchSolver::rewrite(const LabelAttributeExpression *la) {
     return expr;
 }
 
+/*
 Expression *MatchSolver::doRewrite(const MatchAstContext *mctx, const Expression *expr) {
     if (expr->kind() != Expression::Kind::kLabel) {
         return rewrite(static_cast<const LabelAttributeExpression *>(expr));
@@ -97,44 +100,13 @@ Expression *MatchSolver::doRewrite(const MatchAstContext *mctx, const Expression
     auto *labelExpr = static_cast<const LabelExpression *>(expr);
     auto alias = mctx->aliases.find(*labelExpr->name());
     DCHECK(alias != mctx->aliases.end());
-    if (false /* alias->second == MatchValidator::AliasType::kPath */) {
+    if (false) {
         return mctx->pathBuild->clone().release();
     } else {
         return rewrite(labelExpr);
     }
 }
-
-bool MatchSolver::match(AstContext *astCtx) {
-    if (astCtx->sentence->kind() != Sentence::Kind::kMatch) {
-        return false;
-    }
-    auto *matchCtx = static_cast<MatchAstContext *>(astCtx);
-
-    auto &head = matchCtx->nodeInfos[0];
-    if (head.label == nullptr) {
-        return false;
-    }
-
-    Expression *filter = nullptr;
-    if (matchCtx->filter != nullptr) {
-        filter = MatchSolver::makeIndexFilter(
-            *head.label, *head.alias, matchCtx->filter.get(), matchCtx->qctx);
-    }
-    if (filter == nullptr) {
-        if (head.props != nullptr && !head.props->items().empty()) {
-            filter = MatchSolver::makeIndexFilter(*head.label, head.props, matchCtx->qctx);
-        }
-    }
-
-    if (filter == nullptr) {
-        return false;
-    }
-
-    matchCtx->scanInfo.filter = filter;
-    matchCtx->scanInfo.schemaId = head.tid;
-
-    return true;
-}
+*/
 
 Expression *MatchSolver::makeIndexFilter(const std::string &label,
                                          const MapExpression *map,
@@ -234,6 +206,7 @@ Expression *MatchSolver::makeIndexFilter(const std::string &label,
     return qctx->objPool()->add(root);
 }
 
+/*
 Status MatchSolver::buildFilter(const MatchAstContext *mctx, SubPlan *plan) {
     if (mctx->filter == nullptr) {
         return Status::OK();
@@ -250,6 +223,7 @@ Status MatchSolver::buildFilter(const MatchAstContext *mctx, SubPlan *plan) {
     plan->root = node;
     return Status::OK();
 }
+*/
 
 }  // namespace graph
 }  // namespace nebula

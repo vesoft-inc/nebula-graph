@@ -24,11 +24,10 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
     auto& nodeInfos = matchClauseCtx->nodeInfos;
     auto& edgeInfos = matchClauseCtx->edgeInfos;
     auto& startVidFinders = StartVidFinder::finders();
-    auto* matchFilter = matchClauseCtx->where->filter.get();
     // Find the start plan node
     for (size_t i = 0; i < nodeInfos.size(); ++i) {
         for (auto& finder : startVidFinders) {
-            auto nodeCtx = NodeContext(matchFilter, &nodeInfos[i]);
+            auto nodeCtx = NodeContext(matchClauseCtx, &nodeInfos[i]);
             if (finder.match(&nodeCtx)) {
                 auto plan = finder.instantiate()->transform(&nodeCtx);
                 if (!plan.ok()) {
@@ -40,7 +39,7 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
             }
 
             if (i != nodeInfos.size() - 1) {
-                auto edgeCtx = EdgeContext(matchFilter, &edgeInfos[i]);
+                auto edgeCtx = EdgeContext(matchClauseCtx, &edgeInfos[i]);
                 if (finder.match(&edgeCtx)) {
                     auto plan = finder.instantiate()->transform(&edgeCtx);
                     if (!plan.ok()) {

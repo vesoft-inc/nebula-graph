@@ -6,6 +6,9 @@
 
 #ifndef PLANNER_PLANNERS_MATCH_STARTVIDFINDER_H_
 #define PLANNER_PLANNERS_MATCH_STARTVIDFINDER_H_
+
+#include "planner/Planner.h"
+
 namespace nebula {
 namespace graph {
 class StartVidFinder;
@@ -26,9 +29,9 @@ public:
         return finders;
     }
 
-    virtual StatusOr<SubPlan> transform(PatternContext* context) = 0;
+    virtual StatusOr<SubPlan> transform(PatternContext* patternCtx) = 0;
 
-private:
+protected:
     StartVidFinder() = default;
 };
 }  // namespace graph
