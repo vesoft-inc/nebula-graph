@@ -12,7 +12,7 @@
 
 namespace nebula {
 namespace graph {
-
+class GetVertices;
 class GetVerticesExecutor final : public GetPropExecutor {
 public:
     GetVerticesExecutor(const PlanNode *node, QueryContext *qctx)
@@ -20,10 +20,20 @@ public:
 
     folly::Future<Status> execute() override;
 
+    Status close() override;
+
 private:
     DataSet buildRequestDataSet(const GetVertices* gv);
 
+    Status buildVerticesRequestDataSet();
+    Status buildPathRequestDataSet();
     folly::Future<Status> getVertices();
+    folly::Future<Status> getPathVertices();
+
+private:
+    DataSet               reqDs_;
+    DataSet               pathsDs_;
+    const GetVertices*    gv_;
 };
 
 }   // namespace graph

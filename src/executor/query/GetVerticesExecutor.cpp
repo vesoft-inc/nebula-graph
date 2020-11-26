@@ -10,25 +10,93 @@
 #include "util/ScopedTimer.h"
 
 using nebula::storage::GraphStorageClient;
-using nebula::storage::StorageRpcResponse;
-using nebula::storage::cpp2::GetPropResponse;
-
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetVerticesExecutor::execute() {
+    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
+    gv_ = asNode<GetVertices>(node());
+    auto status = buildVerticesRequestDataSet();
+    if (!status.ok()) {
+        return error(std::move(status));
+    }
     return getVertices();
 }
 
-folly::Future<Status> GetVerticesExecutor::getVertices() {
+Status GetVerticesExecutor::close() {
+    // clear the members
+    reqDs_.rows.clear();
+    pathsDs_.rows.clear();
+    return Executor::close();
+}
+
+Status GetVerticesExecutor::buildPathRequestDataSet() {
     SCOPED_TIMER(&execTime_);
+    auto inputVar = gv_->inputVar();
+    VLOG(1) << "GetVertices Input : " << inputVar;
+    auto& inputResult = ectx_->getResult(inputVar);
+    auto iter = inputResult.iter();
+    pathsDs_ = inputResult.value().getDataSet();
+    QueryExpressionContext ctx(ectx_);
+    std::unordered_set<std::string> uniqueVid;
+    for (; iter->valid(); iter->next()) {
+        auto path = gv_->src()->eval(ctx(iter.get()));
+        VLOG(1) << "path is :" << path;
+        if (!path.isPath()) {
+            return Status::Error("Error Type");
+        }
+        auto pathVal = path.getPath();
+        for (auto& step : pathVal.steps) {
+            auto vid = step.dst.vid;
+            auto ret = uniqueVid.emplace(vid);
+            if (ret.second) {
+                reqDs_.rows.emplace_back(Row({std::move(vid)}));
+            }
+        }
+    }
+    return Status::OK();
+}
 
-    auto *gv = asNode<GetVertices>(node());
+folly::Future<Status> GetVerticesExecutor::getPathVertices() {
+    if (reqDs_.rows.empty()) {
+        return finish(ResultBuilder().value(Value(DataSet(gv_->colNames()))).finish());
+    }
+    return Status::OK();
+}
+
+Status GetVerticesExecutor::buildVerticesRequestDataSet() {
+    SCOPED_TIMER(&execTime_);
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
+    reqDs_.colNames = {kVid};
+    auto inputVar = gv_->inputVar();
+    VLOG(1) << "GetVertices Input : " << inputVar;
+    if (gv_->src() != nullptr) {
+        auto iter = ectx_->getResult(inputVar).iter();
+        QueryExpressionContext ctx(qctx()->ectx());
+        std::unordered_set<Value> uniqueSet;
+        for (; iter->valid(); iter->next()) {
+            auto src = gv_->src()->eval(ctx(iter.get()));
+            VLOG(1) << "src is :" << src;
+            if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
+                LOG(WARNING) << "Mismatched vid type: " << src.type();
+                continue;
+            }
+            if (gv_->dedup()) {
+                if (uniqueSet.emplace(src).second) {
+                    vertices.emplace_back(Row({std::move(src)}));
+                }
+            } else {
+                vertices.emplace_back(Row({std::move(src)}));
+            }
+            reqDs_.rows.emplace_back(Row({std::move(src)}));
+        }
+    }
+    return Status::OK();
+}
+
+folly::Future<Status> GetVerticesExecutor::getVertices() {
     GraphStorageClient *storageClient = qctx()->getStorageClient();
-
-    DataSet vertices = buildRequestDataSet(gv);
-    VLOG(1) << "vertices: " << vertices;
-    if (vertices.rows.empty()) {
+    if (reqDs_.rows.empty()) {
         // TODO: add test for empty input.
         return finish(ResultBuilder()
                           .value(Value(DataSet(gv->colNames())))
@@ -38,15 +106,15 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
 
     time::Duration getPropsTime;
     return DCHECK_NOTNULL(storageClient)
-        ->getProps(gv->space(),
-                   std::move(vertices),
-                   &gv->props(),
+        ->getProps(gv_->space(),
+                   std::move(reqDs_),
+                   &gv_->props(),
                    nullptr,
-                   gv->exprs().empty() ? nullptr : &gv->exprs(),
-                   gv->dedup(),
-                   gv->orderBy(),
-                   gv->limit(),
-                   gv->filter())
+                   gv_->exprs().empty() ? nullptr : &gv_->exprs(),
+                   gv_->dedup(),
+                   gv_->orderBy(),
+                   gv_->limit(),
+                   gv_->filter())
         .via(runner())
         .ensure([this, getPropsTime]() {
             SCOPED_TIMER(&execTime_);
@@ -56,7 +124,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         .thenValue([this, gv](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
-            return handleResp(std::move(rpcResp), gv->colNamesRef());
+            return handleResp(std::move(rpcResp), this->gv_->colNamesRef());
         });
 }
 
