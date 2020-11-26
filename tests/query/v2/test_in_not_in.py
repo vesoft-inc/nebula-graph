@@ -9,6 +9,10 @@ from tests.common.nebula_test_suite import NebulaTestSuite
 
 
 class TestINandNotIn(NebulaTestSuite):
+    @classmethod
+    def prepare(self):
+        self.use_nba()
+
     def test_in_list(self):
         stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN ['Tim Duncan', 'Danny Green'] YIELD $$.player.name"
         resp = self.execute_query(stmt)
