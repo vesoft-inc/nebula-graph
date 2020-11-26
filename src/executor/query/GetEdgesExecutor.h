@@ -27,8 +27,8 @@ private:
     Status buildPathRequestDataSet();
 
 private:
-    const GetEdges*            ge_;
-    DataSet                   ds_;
+    const GetEdges*  ge_;
+    DataSet          reqDs_;
 };
 
 }   // namespace graph

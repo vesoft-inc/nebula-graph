@@ -49,6 +49,10 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
             NG_RETURN_IF_ERROR(collectMultiplePairShortestPath(vars));
             break;
         }
+        case DataCollect::CollectKind::kPathProps: {
+            NG_RETURN_IF_ERROR(collectPathProps(vars));
+            break;
+        }
         default:
             LOG(FATAL) << "Unknown data collect type: " << static_cast<int64_t>(dc->collectKind());
     }
@@ -259,6 +263,72 @@ Status DataCollectExecutor::collectMultiplePairShortestPath(const std::vector<st
             }
         }
     }
+    result_.setDataSet(std::move(ds));
+    return Status::OK();
+}
+
+Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& vars) {
+    DataSet ds;
+    ds.colNames = std::move(colNames_);
+    DCHECK(!ds.colNames.empty());
+    // 0: vertices's props 1: Edges's props, 3: Paths without props
+    DCHECK_EQ(vars.size(), 3);
+
+    std::unordered_map<std::string, Value> vertexMap;
+    auto vIter = ectx_->getResult(vars[0]).iter();
+    DCHECK(vIter->kind() == Iterator::Kind::kProp);
+    for (; vIter->valid(); vIter->next()) {
+        auto vertex = vIter->getVertex();
+        if (!vertex.isVertex()) {
+            continue;
+        }
+        auto vid = vertex.getVertexPtr()->vid;
+        vertexMap[vid] = vertex;
+    }
+
+    std::unordered_map<std::string, Value> edgeMap;
+    auto eIter = ectx_->getResult(vars[1]).iter();
+    DCHECK(eIter->kind() == Iterator::Kind::kProp);
+    for (; eIter->valid(); eIter->next()) {
+        auto edge = eIter->getEdge();
+        if (!edge.isEdge()) {
+            continue;
+        }
+        auto src = edge.getEdge().src;
+        auto dst = edge.getEdge().dst;
+        auto type = edge.getEdge().type;
+        auto ranking = edge.getEdge().ranking;
+        auto edgeKey = folly::stringPrintf("%s%s%d%ld", src.c_str(), dst.c_str(), type, ranking);
+        edgeMap[edgeKey] = edge;
+    }
+
+    auto pIter = ectx_->getResult(vars[2]).iter();
+    DCHECK(pIter->kind() == Iterator::Kind::kSequential);
+    for (; pIter->valid(); pIter->next()) {
+        auto path = pIter->getColumn(0);
+        if (!path.isPath()) {
+            continue;
+        }
+        auto pathVal = path.getPath();
+        auto src = pathVal.src.vid;
+        for (auto& step : pathVal.steps) {
+            auto vid = step.dst.vid;
+            if (vertexMap.find(vid) != vertexMap.end()) {
+                step.dst = vertexMap[vid].getVertex();
+            }
+            auto dst = step.dst.vid;
+            auto type = step.type;
+            auto ranking = step.ranking;
+            auto edgeKey =
+                folly::stringPrintf("%s%s%d%ld", src.c_str(), dst.c_str(), type, ranking);
+            if (edgeMap.find(edgeKey) != edgeMap.end()) {
+                auto edge = edgeMap[edgeKey].getEdge();
+                step.props = edge.props;
+            }
+        }
+        ds.rows.emplace_back(Row({std::move(pathVal)}));
+    }
+
     result_.setDataSet(std::move(ds));
     return Status::OK();
 }

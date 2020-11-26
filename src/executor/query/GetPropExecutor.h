@@ -24,9 +24,6 @@ protected:
 
     Status handleResp(StorageRpcResponse<GetPropResponse> &&rpcResp,
                       const std::vector<std::string> &colNames);
-
-    Status handlePathVertices(StorageRpcResponse<GetPropResponse> &&rpcResp,
-                              const std::vector<std::string> &colNames);
 };
 
 }   // namespace graph

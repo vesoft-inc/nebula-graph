@@ -11,16 +11,13 @@
 #include "util/ScopedTimer.h"
 
 using nebula::storage::GraphStorageClient;
-using nebula::storage::StorageRpcResponse;
-using nebula::storage::cpp2::GetPropResponse;
-
 namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetEdgesExecutor::execute() {
     otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     ge_ = asNode<GetEdges>(node());
-    ds_.colNames = {kSrc, kType, kRank, kDst};
+    reqDs_.colNames = {kSrc, kType, kRank, kDst};
     auto status = buildEdgeRequestDataSet();
     if (!status.ok()) {
         return error(std::move(status));
@@ -74,7 +71,7 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
         auto path = ge_->src()->eval(ctx(iter.get()));
         VLOG(1) << "path is :" << path;
         if (!path.isPath()) {
-            return Status::Error("GetEdges's Type : %s, should be PATH", path.type().c_str());
+            return Status::Error("GetEdges's Type : %s, should be PATH", path.typeName().c_str());
         }
         auto pathVal = path.getPath();
         auto src = pathVal.src.vid;
@@ -82,10 +79,6 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
             auto type = step.type;
             auto ranking = step.ranking;
             auto dst = step.dst.vid;
-            if (!type.isInt() || !ranking.isInt()) {
-                LOG(WARNING) << "Mismatched edge key type";
-                continue;
-            }
             reqDs_.emplace_back(Row({std::move(src), type, ranking, dst}));
             src = dst;
         }

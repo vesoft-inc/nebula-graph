@@ -44,7 +44,7 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
         auto path = gv_->src()->eval(ctx(iter.get()));
         VLOG(1) << "path is :" << path;
         if (!path.isPath()) {
-            return Status::Error("GetVertices's Type : %s, should be PATH", path.type().c_str());
+            return Status::Error("GetVertices's Type: %s, should be PATH", path.typeName().c_str());
         }
         auto pathVal = path.getPath();
         for (auto& step : pathVal.steps) {

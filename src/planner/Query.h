@@ -911,6 +911,7 @@ public:
         kBFSShortest,
         kAllPaths,
         kMultiplePairShortest,
+        kPathProps,
     };
 
     static DataCollect* make(QueryContext* qctx,
