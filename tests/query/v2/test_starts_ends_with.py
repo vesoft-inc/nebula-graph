@@ -177,7 +177,6 @@ class TestStartsWithAndEndsWith(NebulaTestSuite):
         expected_data = {
             "column_names": ['$^.player.name'],
             "rows": [
-                ['Tony Parker'],
                 ['Tony Parker']
             ]
         }
@@ -190,9 +189,8 @@ class TestStartsWithAndEndsWith(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         expected_data = {
-            "column_names": ['$^.player.name', '$$.player.name', 'like.likeness'],
+            "column_names": ['$^.player.name'],
             "rows": [
-                ['LaMarcus Aldridge', 'Tony Parker', 75],
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
