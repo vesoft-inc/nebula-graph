@@ -262,7 +262,7 @@ TEST_F(ExpressionParsingTest, Associativity) {
 
     ast = make<AttributeExpression>(make<LabelAttributeExpression>(
                                         make<LabelExpression>("a"),
-                                        make<LabelExpression>("b")),
+                                        make<ConstantExpression>("b")),
                                     make<LabelExpression>("c"));
     add("a.b.c", ast);
 
@@ -445,7 +445,7 @@ TEST_F(ExpressionParsingTest, Precedence) {
                                           make<AttributeExpression>(
                                               make<LabelAttributeExpression>(
                                                   make<LabelExpression>("a"),
-                                                  make<LabelExpression>("b")),
+                                                  make<ConstantExpression>("b")),
                                               make<LabelExpression>("c")),
                                       make<SubscriptExpression>(
                                           make<SubscriptExpression>(
@@ -453,7 +453,7 @@ TEST_F(ExpressionParsingTest, Precedence) {
                                                   make<VariablePropertyExpression>(
                                                       new std::string("var"),
                                                       new std::string("p")),
-                                                  make<LabelExpression>("q")),
+                                                  make<ConstantExpression>("q")),
                                               make<LabelExpression>("r")),
                                           make<LabelExpression>("s")))),
                                   make<RelationalExpression>(Kind::kRelIn,
