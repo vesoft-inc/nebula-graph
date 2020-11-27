@@ -51,6 +51,7 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
             return Status::Error("GetVertices's Type: %s, should be PATH", path.typeName().c_str());
         }
         auto pathVal = path.getPath();
+        reqDs_.rows.emplace_back(Row({pathVal.src.vid}));
         for (auto& step : pathVal.steps) {
             auto vid = step.dst.vid;
             reqDs_.rows.emplace_back(Row({std::move(vid)}));

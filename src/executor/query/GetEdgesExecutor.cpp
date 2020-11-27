@@ -83,7 +83,7 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
             auto type = step.type;
             auto ranking = step.ranking;
             auto dst = step.dst.vid;
-            reqDs_.emplace_back(Row({std::move(src), type, ranking, dst}));
+            reqDs_.emplace_back(Row({src, type, ranking, dst}));
             src = dst;
         }
     }

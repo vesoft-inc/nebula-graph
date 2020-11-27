@@ -436,7 +436,9 @@ PlanNode* FindPathValidator::AddPathProps(PlanNode* dep) {
     std::vector<storage::cpp2::Expr> exprs;
     std::vector<storage::cpp2::VertexProp> vertexProps;
     std::vector<storage::cpp2::EdgeProp> edgeProps;
-    auto* src = new ColumnExpression(0);
+    // column 0 is path
+    auto pool = qctx_->objPool();
+    auto* src = pool->makeAndAdd<ColumnExpression>(0);
     // get the props of vertices in the path
     auto* gv = GetVertices::make(qctx_,
                                  dep,
@@ -449,12 +451,14 @@ PlanNode* FindPathValidator::AddPathProps(PlanNode* dep) {
 
     gv->setInputVar(dep->outputVar());
 
+    // GetEdges::explain will error when type is nullptr
+    auto* type = pool->makeAndAdd<ConstantExpression>(0);
     // get the props of edges in the path
     auto* ge = GetEdges::make(qctx_,
                               gv,
                               space_.id,
                               src,
-                              nullptr,
+                              type,
                               nullptr,
                               nullptr,
                               std::move(edgeProps),
@@ -467,6 +471,7 @@ PlanNode* FindPathValidator::AddPathProps(PlanNode* dep) {
                                  ge,
                                  DataCollect::CollectKind::kPathProps,
                                  {gv->outputVar(), ge->outputVar(), dep->outputVar()});
+    dc->setColNames({"_path"});
     return dc;
 }
 

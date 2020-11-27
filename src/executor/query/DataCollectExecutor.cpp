@@ -274,7 +274,7 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
     // 0: vertices's props 1: Edges's props, 3: Paths without props
     DCHECK_EQ(vars.size(), 3);
 
-    std::unordered_map<std::string, Value> vertexMap;
+    std::unordered_map<std::string, Vertex> vertexMap;
     auto vIter = ectx_->getResult(vars[0]).iter();
     DCHECK(vIter->kind() == Iterator::Kind::kProp);
     for (; vIter->valid(); vIter->next()) {
@@ -282,11 +282,12 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
         if (!vertex.isVertex()) {
             continue;
         }
-        auto vid = vertex.getVertexPtr()->vid;
-        vertexMap[vid] = vertex;
+        auto vertexVal = vertex.getVertex();
+        auto vid = vertexVal.vid;
+        vertexMap.insert(std::make_pair(vid, std::move(vertexVal)));
     }
 
-    std::unordered_map<std::string, Value> edgeMap;
+    std::unordered_map<std::string, Edge> edgeMap;
     auto eIter = ectx_->getResult(vars[1]).iter();
     DCHECK(eIter->kind() == Iterator::Kind::kProp);
     for (; eIter->valid(); eIter->next()) {
@@ -294,12 +295,13 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
         if (!edge.isEdge()) {
             continue;
         }
-        auto src = edge.getEdge().src;
-        auto dst = edge.getEdge().dst;
-        auto type = edge.getEdge().type;
-        auto ranking = edge.getEdge().ranking;
+        auto edgeVal = edge.getEdge();
+        auto src = edgeVal.src;
+        auto dst = edgeVal.dst;
+        auto type = edgeVal.type;
+        auto ranking = edgeVal.ranking;
         auto edgeKey = folly::stringPrintf("%s%s%d%ld", src.c_str(), dst.c_str(), type, ranking);
-        edgeMap[edgeKey] = edge;
+        edgeMap.insert(std::make_pair(edgeKey, std::move(edgeVal)));
     }
 
     auto pIter = ectx_->getResult(vars[2]).iter();
@@ -311,10 +313,15 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
         }
         auto pathVal = path.getPath();
         auto src = pathVal.src.vid;
+        auto found = vertexMap.find(src);
+        if (found != vertexMap.end()) {
+            pathVal.src = found->second;
+        }
         for (auto& step : pathVal.steps) {
             auto vid = step.dst.vid;
             if (vertexMap.find(vid) != vertexMap.end()) {
-                step.dst = vertexMap[vid].getVertex();
+                auto dst = vertexMap[vid];
+                step.dst = dst;
             }
             auto dst = step.dst.vid;
             auto type = step.type;
@@ -322,8 +329,8 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
             auto edgeKey =
                 folly::stringPrintf("%s%s%d%ld", src.c_str(), dst.c_str(), type, ranking);
             if (edgeMap.find(edgeKey) != edgeMap.end()) {
-                auto edge = edgeMap[edgeKey].getEdge();
-                step.props = edge.props;
+                auto edge = edgeMap[edgeKey];
+                step.props.swap(edge.props);
             }
         }
         ds.rows.emplace_back(Row({std::move(pathVal)}));
