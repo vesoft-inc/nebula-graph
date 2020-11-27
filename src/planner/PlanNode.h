@@ -72,6 +72,8 @@ public:
         kShowCreateEdgeIndex,
         kShowTagIndexes,
         kShowEdgeIndexes,
+        kShowTagIndexStatus,
+        kShowEdgeIndexStatus,
         kInsertVertices,
         kInsertEdges,
         kBalanceLeaders,
@@ -128,6 +130,10 @@ public:
         kAddListener,
         kRemoveListener,
         kShowListener,
+        // text service related
+        kShowTSClients,
+        kSignInTSService,
+        kSignOutTSService,
     };
 
     PlanNode(QueryContext* qctx, Kind kind);

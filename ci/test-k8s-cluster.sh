@@ -15,6 +15,8 @@ kubectl delete sts.apps.nebula.io nebulaclusters-metad
 kubectl delete sts.apps.nebula.io nebulaclusters-storaged
 kubectl delete sts.apps.nebula.io nebulaclusters-graphd
 
+sleep 15
+
 while true; do
     status=$(kubectl get nebulaclusters -o jsonpath='{.items[0].status.conditions[?(@.type=="Ready")].status}')
     if [[ "$status" == "True" ]]; then
@@ -25,6 +27,9 @@ done
 
 echo "Upgrade nebula cluster successfully."
 
-kubectl delete job nebula-test
+kubectl delete job nebula-test || true
 
+sleep 10 # wait graphd service starting
 kubectl apply -f $PROJ_DIR/ci/nebula-test-job.yml
+sleep 5 # wait nebula-test job dumping logs
+kubectl logs -f jobs/nebula-test

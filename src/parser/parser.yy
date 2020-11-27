@@ -21,6 +21,7 @@
 #include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/VariableExpression.h"
 #include "common/expression/CaseExpression.h"
+#include "common/expression/TextSearchExpression.h"
 #include "util/SchemaUtil.h"
 
 namespace nebula {
@@ -67,6 +68,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::OverEdges                      *over_edges;
     nebula::OverClause                     *over_clause;
     nebula::WhereClause                    *where_clause;
+    nebula::WhereClause                    *lookup_where_clause;
     nebula::WhenClause                     *when_clause;
     nebula::YieldClause                    *yield_clause;
     nebula::YieldColumns                   *yield_columns;
@@ -121,6 +123,11 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::meta::cpp2::IndexFieldDef      *index_field;
     nebula::IndexFieldList                 *index_field_list;
     CaseList                               *case_list;
+    nebula::TextSearchArgument             *text_search_argument;
+    nebula::TextSearchArgument             *base_text_search_argument;
+    nebula::TextSearchArgument             *fuzzy_text_search_argument;
+    nebula::meta::cpp2::FTClient           *text_search_client_item;
+    nebula::TSClientList                   *text_search_client_list;
 }
 
 /* destructors */
@@ -150,7 +157,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_SHORTEST KW_PATH
 %token KW_IS KW_NULL KW_DEFAULT
 %token KW_SNAPSHOT KW_SNAPSHOTS KW_LOOKUP
-%token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT KW_STATS
+%token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT KW_STATS KW_STATUS
 %token KW_BIDIRECT
 %token KW_USER KW_USERS KW_ACCOUNT
 %token KW_PASSWORD KW_CHANGE KW_ROLE KW_ROLES
@@ -163,6 +170,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_CASE KW_THEN KW_ELSE KW_END
 %token KW_GROUP KW_ZONE KW_GROUPS KW_ZONES KW_INTO
 %token KW_LISTENER KW_ELASTICSEARCH
+%token KW_AUTO KW_FUZZY KW_PREFIX KW_REGEXP KW_WILDCARD
+%token KW_TEXT KW_SEARCH KW_CLIENTS KW_SIGN KW_SERVICE KW_TEXT_SEARCH
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -177,7 +186,6 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token <strval> STRING VARIABLE LABEL IPV4
 
 %type <strval> name_label unreserved_keyword agg_function
-%type <strval> admin_job_operation admin_job_para
 %type <expr> expression
 %type <expr> property_expression
 %type <expr> vertex_prop_expression
@@ -198,6 +206,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> attribute_expression
 %type <expr> case_expression
 %type <expr> compound_expression
+%type <expr> text_search_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -207,6 +216,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <over_edges> over_edges
 %type <over_clause> over_clause
 %type <where_clause> where_clause
+%type <lookup_where_clause> lookup_where_clause
 %type <when_clause> when_clause
 %type <yield_clause> yield_clause
 %type <yield_columns> yield_columns
@@ -266,8 +276,13 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <match_clause_list> reading_clauses reading_with_clause reading_with_clauses
 %type <match_step_range> match_step_range
 %type <order_factors> match_order_by
+%type <text_search_argument> text_search_argument
+%type <base_text_search_argument> base_text_search_argument
+%type <fuzzy_text_search_argument> fuzzy_text_search_argument
+%type <text_search_client_item> text_search_client_item
+%type <text_search_client_list> text_search_client_list
 
-%type <intval> legal_integer unary_integer rank port
+%type <intval> legal_integer unary_integer rank port job_concurrency
 
 %type <colspec> column_spec
 %type <colspeclist> column_spec_list
@@ -322,6 +337,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <seq_sentences> seq_sentences
 %type <explain_sentence> explain_sentence
 %type <sentences> sentences
+%type <sentence> sign_in_text_search_service_sentence sign_out_text_search_service_sentence
 
 %type <boolval> opt_if_not_exists
 %type <boolval> opt_if_exists
@@ -330,7 +346,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %left KW_OR KW_XOR
 %left KW_AND
 %right KW_NOT
-%left EQ NE LT LE GT GE KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH
+%left EQ NE LT LE GT GE REG KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH
 %left PLUS MINUS
 %left STAR DIV MOD
 %right NOT
@@ -450,6 +466,18 @@ unreserved_keyword
     | KW_LISTENER           { $$ = new std::string("listener"); }
     | KW_ELASTICSEARCH      { $$ = new std::string("elasticsearch"); }
     | KW_STATS              { $$ = new std::string("stats"); }
+    | KW_STATUS             { $$ = new std::string("status"); }
+    | KW_AUTO               { $$ = new std::string("auto"); }
+    | KW_FUZZY              { $$ = new std::string("fuzzy"); }
+    | KW_PREFIX             { $$ = new std::string("prefix"); }
+    | KW_REGEXP             { $$ = new std::string("regexp"); }
+    | KW_WILDCARD           { $$ = new std::string("wildcard"); }
+    | KW_TEXT               { $$ = new std::string("text"); }
+    | KW_SEARCH             { $$ = new std::string("search"); }
+    | KW_CLIENTS            { $$ = new std::string("clients"); }
+    | KW_SIGN               { $$ = new std::string("sign"); }
+    | KW_SERVICE            { $$ = new std::string("service"); }
+    | KW_TEXT_SEARCH        { $$ = new std::string("text_search"); }
     ;
 
 agg_function
@@ -536,6 +564,9 @@ expression
     }
     | expression GE expression {
         $$ = new RelationalExpression(Expression::Kind::kRelGE, $1, $3);
+    }
+    | expression REG expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelREG, $1, $3);
     }
     | expression KW_IN expression {
         $$ = new RelationalExpression(Expression::Kind::kRelIn, $1, $3);
@@ -1344,8 +1375,187 @@ match_limit
     }
     ;
 
+
+text_search_client_item
+    : L_PAREN host_item R_PAREN {
+        $$ = new nebula::meta::cpp2::FTClient();
+        $$->set_host(*$2);
+        delete $2;
+    }
+    | L_PAREN host_item COMMA STRING COMMA STRING R_PAREN {
+        $$ = new nebula::meta::cpp2::FTClient();
+        $$->set_host(*$2);
+        $$->set_user(*$4);
+        $$->set_pwd(*$6);
+        delete $2;
+        delete $4;
+        delete $6;
+    }
+    ;
+
+text_search_client_list
+    : text_search_client_item {
+        $$ = new TSClientList();
+        $$->addClient($1);
+    }
+    | text_search_client_list COMMA text_search_client_item {
+        $$ = $1;
+        $$->addClient($3);
+    }
+    | text_search_client_list COMMA {
+        $$ = $1;
+    }
+    ;
+
+sign_in_text_search_service_sentence
+    : KW_SIGN KW_IN KW_TEXT KW_SERVICE text_search_client_list {
+        $$ = new SignInTextServiceSentence($5);
+    }
+    ;
+
+sign_out_text_search_service_sentence
+    : KW_SIGN KW_OUT KW_TEXT KW_SERVICE {
+        $$ = new SignOutTextServiceSentence();
+    }
+    ;
+
+base_text_search_argument
+    : name_label DOT name_label COMMA STRING {
+        auto arg = new TextSearchArgument($1, $3, $5);
+        $$ = arg;
+    }
+    ;
+
+fuzzy_text_search_argument
+   : base_text_search_argument COMMA KW_AUTO COMMA KW_AND {
+        $$ = $1;
+        $$->setFuzziness(-1);
+        $$->setOP(new std::string("and"));
+   }
+   | base_text_search_argument COMMA KW_AUTO COMMA KW_OR {
+        $$ = $1;
+        $$->setFuzziness(-1);
+        $$->setOP(new std::string("or"));
+   }
+   | base_text_search_argument COMMA legal_integer COMMA KW_AND {
+        if ($3 != 0 && $3 != 1 && $3 != 2) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setFuzziness($3);
+        $$->setOP(new std::string("and"));
+   }
+   | base_text_search_argument COMMA legal_integer COMMA KW_OR {
+        if ($3 != 0 && $3 != 1 && $3 != 2) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setFuzziness($3);
+        $$->setOP(new std::string("or"));
+   }
+
+text_search_argument
+    : base_text_search_argument {
+        $$ = $1;
+    }
+    | fuzzy_text_search_argument {
+        $$ = $1;
+    }
+    | base_text_search_argument COMMA legal_integer {
+        if ($3 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+    }
+    | base_text_search_argument COMMA legal_integer COMMA legal_integer {
+        if ($3 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        if ($5 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@5, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+        $$->setTimeout($5);
+    }
+    | fuzzy_text_search_argument COMMA legal_integer {
+        if ($3 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+    }
+    | fuzzy_text_search_argument COMMA legal_integer COMMA legal_integer {
+        if ($3 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        if ($5 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@5, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+        $$->setTimeout($5);
+    }
+    ;
+
+text_search_expression
+    : KW_PREFIX L_PAREN text_search_argument R_PAREN {
+        if ($3->op() != nullptr) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        if ($3->fuzziness() != -2) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        $$ = new TextSearchExpression(Expression::Kind::kTSPrefix, $3);
+    }
+    | KW_WILDCARD L_PAREN text_search_argument R_PAREN {
+        if ($3->op() != nullptr) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        if ($3->fuzziness() != -2) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        $$ = new TextSearchExpression(Expression::Kind::kTSWildcard, $3);
+    }
+    | KW_REGEXP L_PAREN text_search_argument R_PAREN {
+        if ($3->op() != nullptr) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        if ($3->fuzziness() != -2) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        $$ = new TextSearchExpression(Expression::Kind::kTSRegexp, $3);
+    }
+    | KW_FUZZY L_PAREN text_search_argument R_PAREN {
+        $$ = new TextSearchExpression(Expression::Kind::kTSFuzzy, $3);
+    }
+    ;
+
+    // TODO : unfiy the text_search_expression into expression in the future
+    // The current version only support independent text_search_expression for lookup_sentence
+lookup_where_clause
+    : %empty { $$ = nullptr; }
+    | KW_WHERE text_search_expression { $$ = new WhereClause($2); }
+    | KW_WHERE expression { $$ = new WhereClause($2); }
+    ;
+
 lookup_sentence
-    : KW_LOOKUP KW_ON name_label where_clause yield_clause {
+    : KW_LOOKUP KW_ON name_label lookup_where_clause yield_clause {
         auto sentence = new LookupSentence($3);
         sentence->setWhereClause($4);
         sentence->setYieldClause($5);
@@ -1856,10 +2066,8 @@ describe_edge_index_sentence
 
 rebuild_tag_index_sentence
     : KW_REBUILD KW_TAG KW_INDEX name_label {
-        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
-        sentence->addPara("rebuild");
-        sentence->addPara("tag");
-        sentence->addPara("index");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::REBUILD_TAG_INDEX);
         sentence->addPara(*$4);
         delete $4;
         $$ = sentence;
@@ -1868,10 +2076,8 @@ rebuild_tag_index_sentence
 
 rebuild_edge_index_sentence
     : KW_REBUILD KW_EDGE KW_INDEX name_label {
-        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
-        sentence->addPara("rebuild");
-        sentence->addPara("edge");
-        sentence->addPara("index");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX);
         sentence->addPara(*$4);
         delete $4;
         $$ = sentence;
@@ -2253,10 +2459,28 @@ ingest_sentence
     ;
 
 admin_job_sentence
-    : KW_SUBMIT KW_JOB admin_job_operation {
-        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
-        sentence->addPara(*$3);
-        delete $3;
+    : KW_SUBMIT KW_JOB KW_COMPACT job_concurrency {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::COMPACT);
+        if ($4 != 0) {
+            sentence->addPara(std::to_string($4));
+        }
+        $$ = sentence;
+    }
+    | KW_SUBMIT KW_JOB KW_FLUSH job_concurrency {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::FLUSH);
+        if ($4 != 0) {
+            sentence->addPara(std::to_string($4));
+        }
+        $$ = sentence;
+    }
+    | KW_SUBMIT KW_JOB KW_STATS job_concurrency {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::STATS);
+        if ($4 != 0) {
+            sentence->addPara(std::to_string($4));
+        }
         $$ = sentence;
     }
     | KW_SHOW KW_JOBS {
@@ -2279,22 +2503,12 @@ admin_job_sentence
     }
     ;
 
-admin_job_operation
-    : KW_COMPACT         { $$ = new std::string("compact"); }
-    | KW_FLUSH           { $$ = new std::string("flush"); }
-    | KW_STATS           { $$ = new std::string("stats"); }
-    | KW_REBUILD KW_TAG  { $$ = new std::string("rebuild tag"); }
-    | KW_REBUILD KW_EDGE { $$ = new std::string("rebuild edge"); }
-    | admin_job_operation admin_job_para {
-        $$ = new std::string(*$1 + " " + *$2);
+job_concurrency
+    : %empty {
+        $$ = 0;
     }
-    ;
-
-admin_job_para
-    : name_label ASSIGN name_label {
-        auto left = *$1;
-        auto right = *$3;
-        $$ = new std::string(*$1 + "=" + *$3);
+    | legal_integer {
+        $$ = $1;
     }
     ;
 
@@ -2350,6 +2564,14 @@ show_sentence
     | KW_SHOW KW_CREATE KW_EDGE KW_INDEX name_label {
         $$ = new ShowCreateEdgeIndexSentence($5);
     }
+    | KW_SHOW KW_TAG KW_INDEX KW_STATUS {
+        auto sentence = new ShowTagIndexStatusSentence();
+        $$ = sentence;
+    }
+    | KW_SHOW KW_EDGE KW_INDEX KW_STATUS  {
+        auto sentence = new ShowEdgeIndexStatusSentence();
+        $$ = sentence;
+    }
     | KW_SHOW KW_SNAPSHOTS {
         $$ = new ShowSnapshotsSentence();
     }
@@ -2367,6 +2589,9 @@ show_sentence
     }
     | KW_SHOW KW_STATS {
         $$ = new ShowStatsSentence();
+    }
+    | KW_SHOW KW_TEXT KW_SEARCH KW_CLIENTS {
+        $$ = new ShowTSClientsSentence();
     }
     ;
 
@@ -2705,7 +2930,6 @@ maintain_sentence
     | add_host_into_zone_sentence { $$ = $1; }
     | drop_host_from_zone_sentence { $$ = $1; }
     | show_sentence { $$ = $1; }
-    ;
     | create_user_sentence { $$ = $1; }
     | alter_user_sentence { $$ = $1; }
     | drop_user_sentence { $$ = $1; }
@@ -2715,11 +2939,13 @@ maintain_sentence
     | get_config_sentence { $$ = $1; }
     | set_config_sentence { $$ = $1; }
     | balance_sentence { $$ = $1; }
-    | create_snapshot_sentence { $$ = $1; };
-    | drop_snapshot_sentence { $$ = $1; };
     | add_listener_sentence { $$ = $1; }
     | remove_listener_sentence { $$ = $1; }
     | list_listener_sentence { $$ = $1; }
+    | create_snapshot_sentence { $$ = $1; }
+    | drop_snapshot_sentence { $$ = $1; }
+    | sign_in_text_search_service_sentence { $$ = $1; }
+    | sign_out_text_search_service_sentence { $$ = $1; }
     ;
 
 return_sentence

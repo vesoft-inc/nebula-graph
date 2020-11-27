@@ -8,10 +8,16 @@
 import pdb
 
 from typing import Pattern
-
 from nebula2.common import ttypes as CommonTtypes
-
 from tests.common.path_value import PathVal
+
+
+def utf8b(s: str):
+    return bytes(s, encoding='utf-8')
+
+
+def utf8s(b):
+    return str(b, encoding='utf-8')
 
 
 def _compare_values_by_pattern(real, expect):
@@ -296,7 +302,11 @@ def to_value(col):
 def find_in_rows(row, rows):
     for r in rows:
         assert len(r.values) == len(row), f'{len(r.values)}!={len(row)}'
+        found = True
         for col1, col2 in zip(r.values, row):
-            if compare_value(col1, col2):
-                return True
+            if not compare_value(col1, col2):
+                found = False
+                break
+        if found:
+            return True
     return False
