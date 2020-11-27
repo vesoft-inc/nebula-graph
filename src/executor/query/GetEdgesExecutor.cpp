@@ -18,7 +18,13 @@ folly::Future<Status> GetEdgesExecutor::execute() {
     otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     ge_ = asNode<GetEdges>(node());
     reqDs_.colNames = {kSrc, kType, kRank, kDst};
-    auto status = buildEdgeRequestDataSet();
+    auto status = Status::OK();
+    auto kind = ge_->dataKind();
+    if (kind == GetEdges::DataKind::kEdge) {
+        status = buildEdgeRequestDataSet();
+    } else {
+        status = buildPathRequestDataSet();
+    }
     if (!status.ok()) {
         return error(std::move(status));
     }

@@ -17,7 +17,13 @@ folly::Future<Status> GetVerticesExecutor::execute() {
     otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     gv_ = asNode<GetVertices>(node());
     reqDs_.colNames = {kVid};
-    auto status = buildVerticesRequestDataSet();
+    auto status = Status::OK();
+    auto kind = gv_->dataKind();
+    if (kind == GetVertices::DataKind::kVertex) {
+        status = buildVerticesRequestDataSet();
+    } else {
+        status = buildPathRequestDataSet();
+    }
     if (!status.ok()) {
         return error(std::move(status));
     }
@@ -39,7 +45,7 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
     }
     auto iter = ectx_->getResult(inputVar).iter();
     QueryExpressionContext ctx(ectx_);
-    std::unordered_set<std::string> uniqueVid;
+
     for (; iter->valid(); iter->next()) {
         auto path = gv_->src()->eval(ctx(iter.get()));
         VLOG(1) << "path is :" << path;
@@ -49,10 +55,7 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
         auto pathVal = path.getPath();
         for (auto& step : pathVal.steps) {
             auto vid = step.dst.vid;
-            auto ret = uniqueVid.emplace(vid);
-            if (ret.second) {
-                reqDs_.rows.emplace_back(Row({std::move(vid)}));
-            }
+            reqDs_.rows.emplace_back(Row({std::move(vid)}));
         }
     }
     return Status::OK();

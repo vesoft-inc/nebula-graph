@@ -30,6 +30,7 @@ Status FetchVerticesValidator::toPlan() {
                                               src_,
                                               std::move(props_),
                                               std::move(exprs_),
+                                              GetVertices::DataKind::kVertex,
                                               dedup_,
                                               std::move(orderBy_),
                                               limit_,

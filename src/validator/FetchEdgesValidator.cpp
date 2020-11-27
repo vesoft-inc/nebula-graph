@@ -39,6 +39,7 @@ Status FetchEdgesValidator::toPlan() {
                                         dst_,
                                         std::move(props_),
                                         std::move(exprs_),
+                                        GetEdges::DataKind::kEdge,
                                         dedup_,
                                         limit_,
                                         std::move(orderBy_),

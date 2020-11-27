@@ -243,12 +243,17 @@ private:
  */
 class GetVertices final : public Explore {
 public:
+    enum class DataKind : uint8_t {
+        kVertex,
+        kPath,
+    };
     static GetVertices* make(QueryContext* qctx,
                              PlanNode* input,
                              GraphSpaceID space,
                              Expression* src,
                              std::vector<storage::cpp2::VertexProp> props,
                              std::vector<storage::cpp2::Expr>       exprs,
+                             DataKind kind = DataKind::kVertex,
                              bool dedup = false,
                              std::vector<storage::cpp2::OrderBy> orderBy = {},
                              int64_t limit = std::numeric_limits<int64_t>::max(),
@@ -260,6 +265,7 @@ public:
                 src,
                 std::move(props),
                 std::move(exprs),
+                kind,
                 dedup,
                 std::move(orderBy),
                 limit,
@@ -286,6 +292,10 @@ public:
 
     GetVertices* clone() const;
 
+    DataKind dataKind() const {
+        return kind_;
+    }
+
 private:
     using Explore::clone;
 
@@ -295,6 +305,7 @@ private:
                 Expression* src,
                 std::vector<storage::cpp2::VertexProp> props,
                 std::vector<storage::cpp2::Expr>       exprs,
+                DataKind kind,
                 bool dedup,
                 std::vector<storage::cpp2::OrderBy> orderBy,
                 int64_t limit,
@@ -309,7 +320,8 @@ private:
                   std::move(orderBy)),
           src_(src),
           props_(std::move(props)),
-          exprs_(std::move(exprs)) { }
+          exprs_(std::move(exprs)),
+          kind_(kind) {}
 
 private:
     // vertices may be parsing from runtime.
@@ -318,6 +330,7 @@ private:
     std::vector<storage::cpp2::VertexProp>   props_;
     // expression to get
     std::vector<storage::cpp2::Expr>         exprs_;
+    DataKind                                 kind_;
 };
 
 /**
@@ -325,6 +338,10 @@ private:
  */
 class GetEdges final : public Explore {
 public:
+    enum class DataKind : uint8_t {
+        kEdge,
+        kPath,
+    };
     static GetEdges* make(QueryContext* qctx,
                           PlanNode* input,
                           GraphSpaceID space,
@@ -334,6 +351,7 @@ public:
                           Expression* dst,
                           std::vector<storage::cpp2::EdgeProp> props,
                           std::vector<storage::cpp2::Expr> exprs,
+                          DataKind kind = DataKind::kEdge,
                           bool dedup = false,
                           int64_t limit = std::numeric_limits<int64_t>::max(),
                           std::vector<storage::cpp2::OrderBy> orderBy = {},
@@ -348,6 +366,7 @@ public:
                 dst,
                 std::move(props),
                 std::move(exprs),
+                kind,
                 dedup,
                 limit,
                 std::move(orderBy),
@@ -380,6 +399,10 @@ public:
         return exprs_;
     }
 
+    DataKind dataKind() const {
+        return kind_;
+    }
+
 private:
     GetEdges(QueryContext* qctx,
              PlanNode* input,
@@ -390,6 +413,7 @@ private:
              Expression* dst,
              std::vector<storage::cpp2::EdgeProp> props,
              std::vector<storage::cpp2::Expr>     exprs,
+             DataKind kind,
              bool dedup,
              int64_t limit,
              std::vector<storage::cpp2::OrderBy> orderBy,
@@ -407,7 +431,8 @@ private:
           ranking_(ranking),
           dst_(dst),
           props_(std::move(props)),
-          exprs_(std::move(exprs)) { }
+          exprs_(std::move(exprs)),
+          kind_(kind) {}
 
 private:
     // edges_ may be parsed from runtime.
@@ -419,6 +444,7 @@ private:
     std::vector<storage::cpp2::EdgeProp>     props_;
     // expression to show
     std::vector<storage::cpp2::Expr>         exprs_;
+    DataKind                                 kind_;
 };
 
 /**

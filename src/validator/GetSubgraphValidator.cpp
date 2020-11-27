@@ -168,12 +168,14 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
     std::vector<storage::cpp2::Expr> exprs;
     auto vertexPropsResult = buildVertexProp();
     NG_RETURN_IF_ERROR(vertexPropsResult);
+
     auto* getVertex = GetVertices::make(qctx_,
                                         depend,
                                         space.id,
                                         from_.src,
                                         std::move(vertexPropsResult).value(),
                                         std::move(exprs),
+                                        GetVertices::DataKind::kVertex,
                                         true);
     getVertex->setInputVar(inputVar);
 
