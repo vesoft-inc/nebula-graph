@@ -73,7 +73,8 @@ Status FindPathValidator::singlePairPlan() {
         qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->outputVar()});
     dataCollect->setColNames({"path"});
 
-    root_ = dataCollect;
+    auto* dc = AddPathProps(dataCollect);
+    root_ = dc;
     tail_ = loop;
     return Status::OK();
 }
@@ -222,7 +223,8 @@ Status FindPathValidator::allPairPaths() {
         qctx_, loop, DataCollect::CollectKind::kAllPaths, {conjunct->outputVar()});
     dataCollect->setColNames({"path"});
 
-    root_ = dataCollect;
+    auto* dc = AddPathProps(dataCollect);
+    root_ = dc;
     tail_ = loopDepTail_ == nullptr ? projectFrom : loopDepTail_;
     return Status::OK();
 }
@@ -365,7 +367,8 @@ Status FindPathValidator::multiPairPlan() {
         qctx_, loop, DataCollect::CollectKind::kMultiplePairShortest, {conjunct->outputVar()});
     dataCollect->setColNames({"path"});
 
-    root_ = dataCollect;
+    auto* dc = AddPathProps(dataCollect);
+    root_ = dc;
     tail_ = loopDepTail_ == nullptr ? projectFrom : loopDepTail_;
     return Status::OK();
 }
@@ -427,6 +430,44 @@ Expression* FindPathValidator::buildMultiPairLoopCondition(uint32_t steps,
         new LogicalExpression(Expression::Kind::kLogicalAnd, nSteps, terminationCondition);
 
     return qctx_->objPool()->add(condition);
+}
+
+PlanNode* FindPathValidator::AddPathProps(PlanNode* dep) {
+    std::vector<storage::cpp2::Expr> exprs;
+    std::vector<storage::cpp2::VertexProp> vertexProps;
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
+    auto* src = new ColumnExpression(0);
+    // get the props of vertices in the path
+    auto* gv = GetVertices::make(qctx_,
+                                 dep,
+                                 space_.id,
+                                 src,
+                                 std::move(vertexProps),
+                                 exprs,
+                                 GetVertices::DataKind::kPath,
+                                 true);
+
+    gv->setInputVar(dep->outputVar());
+
+    // get the props of edges in the path
+    auto* ge = GetEdges::make(qctx_,
+                              gv,
+                              space_.id,
+                              src,
+                              nullptr,
+                              nullptr,
+                              nullptr,
+                              std::move(edgeProps),
+                              std::move(exprs),
+                              GetEdges::DataKind::kPath,
+                              true);
+    ge->setInputVar(dep->outputVar());
+
+    auto* dc = DataCollect::make(qctx_,
+                                 ge,
+                                 DataCollect::CollectKind::kPathProps,
+                                 {gv->outputVar(), ge->outputVar(), dep->outputVar()});
+    return dc;
 }
 
 }  // namespace graph

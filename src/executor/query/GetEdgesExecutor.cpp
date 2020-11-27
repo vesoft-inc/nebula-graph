@@ -25,9 +25,7 @@ folly::Future<Status> GetEdgesExecutor::execute() {
     } else {
         status = buildPathRequestDataSet();
     }
-    if (!status.ok()) {
-        return error(std::move(status));
-    }
+    NG_RETURN_IF_ERROR(status);
     return getEdges();
 }
 
