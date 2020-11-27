@@ -20,9 +20,12 @@ folly::Future<Status> ShowHostsExecutor::execute() {
 folly::Future<Status> ShowHostsExecutor::showHosts() {
     static constexpr char kNoPartition[]        = "No valid partition";
     static constexpr char kPartitionDelimeter[] = ", ";
+
+    auto *shNode = asNode<ShowHosts>(node());
+
     return qctx()
         ->getMetaClient()
-        ->listHosts()
+        ->listHosts(shNode->getType())
         .via(runner())
         .then([this](auto &&resp) {
             if (!resp.ok()) {
