@@ -23,6 +23,12 @@ public:
 private:
     Status findStartVids();
 
+    Status expand(const std::vector<NodeInfo>& nodeInfos,
+                  const std::vector<EdgeInfo>& edgeInfos,
+                  MatchClauseContext* matchClauseCtx,
+                  int64_t startIndex,
+                  SubPlan& subplan);
+
     Status appendFilterPlan(SubPlan& plan);
 };
 }  // namespace graph

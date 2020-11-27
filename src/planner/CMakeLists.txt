@@ -20,4 +20,5 @@ nebula_add_library(
     planners/match/MatchSolver.cpp
     planners/match/MatchClausePlanner.cpp
     planners/match/ValueIndexSeek.cpp
+    planners/match/Expand.cpp
 )

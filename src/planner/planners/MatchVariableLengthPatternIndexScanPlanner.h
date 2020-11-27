@@ -90,8 +90,6 @@ private:
         return matchCtx_->qctx->objPool()->add(obj);
     }
 
-    static constexpr const char* kPath = "_path";
-
     MatchAstContext* matchCtx_{nullptr};
     Expression* initialExpr_{nullptr};
 };

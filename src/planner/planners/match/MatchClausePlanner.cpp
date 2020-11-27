@@ -60,20 +60,33 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
                              clauseCtx->sentence->toString().c_str());
     }
 
-    // Do expand from startIndex and connect the the subplans
-    for (size_t i = 0; i < nodeInfos.size(); ++i) {
-        auto status = Expand::expand(matchClausePlan);
+    NG_RETURN_IF_ERROR(expand(nodeInfos, edgeInfos, matchClauseCtx, startIndex, matchClausePlan));
+    // TODO: append the last node plan.
+    NG_RETURN_IF_ERROR(appendFilterPlan(matchClausePlan));
+
+    return matchClausePlan;
+}
+
+Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,
+                                  const std::vector<EdgeInfo>& edgeInfos,
+                                  MatchClauseContext* matchClauseCtx,
+                                  int64_t startIndex,
+                                  SubPlan& subplan) {
+    // Do expand from startIndex and connect the the subplans.
+    // TODO: Only support start from the head node now.
+    if (startIndex != 0) {
+        return Status::Error("Only support start from the head node parttern.");
+    }
+
+    for (size_t i = 0; i < edgeInfos.size(); ++i) {
+        auto status = std::make_unique<Expand>(matchClauseCtx, nullptr)->doExpand(
+            nodeInfos[i], edgeInfos[i], subplan.root, &subplan);
         if (!status.ok()) {
             return status;
         }
     }
 
-    auto status = appendFilterPlan(matchClausePlan);
-    if (!status.ok()) {
-        return status;
-    }
-
-    return matchClausePlan;
+    return Status::OK();
 }
 
 Status MatchClausePlanner::appendFilterPlan(SubPlan& plan) {
