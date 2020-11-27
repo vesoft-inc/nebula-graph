@@ -10,7 +10,8 @@
 namespace nebula {
 namespace graph {
 /*
- * The CartersionProductStrategy was designed to connect two unrelated subplans.
+ * The CartersionProductStrategy was designed to connect two unrelated subplans
+ * by a cartesion product.
  */
 class CartesionProductStrategy final {
 };

@@ -7,12 +7,26 @@
 #ifndef PLANNER_PLANNERS_MATCH_INNERJOINSTRATEGY_H_
 #define PLANNER_PLANNERS_MATCH_INNERJOINSTRATEGY_H_
 
+#include "planner/planners/match/SegmentsConnector.h"
+#include "planner/PlanNode.h"
+
 namespace nebula {
 namespace graph {
 /*
  * The InnerJoinStrategy was designed to connect two expand part by an inner join.
  */
-class InnerJoinStrategy final {
+class InnerJoinStrategy final : public SegmentsConnectStrategy {
+public:
+    explicit InnerJoinStrategy(QueryContext* qctx) : SegmentsConnectStrategy(qctx) {}
+
+    PlanNode* connect(const PlanNode* left, const PlanNode* right) override;
+
+private:
+    PlanNode* joinDataSet(const PlanNode* left, const PlanNode* right);
+
+    Expression* getLastEdgeDstExprInLastPath(const std::string& colName);
+
+    Expression* getFirstVertexVidInFistPath(const std::string& colName);
 };
 }  // namespace graph
 }  // namespace nebula

@@ -21,4 +21,6 @@ nebula_add_library(
     planners/match/MatchClausePlanner.cpp
     planners/match/ValueIndexSeek.cpp
     planners/match/Expand.cpp
+    planners/match/SegmentsConnector.cpp
+    planners/match/InnerJoinStrategy.cpp
 )

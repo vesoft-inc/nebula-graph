@@ -8,6 +8,7 @@
 
 #include "context/ast/QueryAstContext.h"
 #include "planner/planners/match/Expand.h"
+#include "planner/planners/match/SegmentsConnector.h"
 #include "planner/planners/match/StartVidFinder.h"
 
 namespace nebula {
@@ -79,11 +80,14 @@ Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,
     }
 
     for (size_t i = 0; i < edgeInfos.size(); ++i) {
+        auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx, nullptr)->doExpand(
             nodeInfos[i], edgeInfos[i], subplan.root, &subplan);
         if (!status.ok()) {
             return status;
         }
+        auto right = subplan.root;
+        subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
     }
 
     return Status::OK();
