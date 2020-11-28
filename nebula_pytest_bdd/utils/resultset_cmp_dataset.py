@@ -51,6 +51,5 @@ def rst_cmp_dst_in_order(resultset,dataset):
             else:
                 assert 'Unsupported type, expect: {}, return: {}'.format(expect_value, value)
     return True
-    return True
    
     
