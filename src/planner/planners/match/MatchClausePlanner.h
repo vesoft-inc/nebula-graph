@@ -36,6 +36,14 @@ private:
                                  SpaceInfo& space,
                                  SubPlan* plan);
 
+    Status projectColumnsBySymbols(MatchClauseContext* matchClauseCtx, SubPlan *plan);
+
+    YieldColumn* buildVertexColumn(const std::string& colName, const std::string& alias) const;
+
+    YieldColumn* buildEdgeColumn(const std::string& colName, EdgeInfo& edge) const;
+
+    YieldColumn* buildPathColumn(const std::string& alias, const PlanNode* input) const;
+
     Status appendFilterPlan(SubPlan& plan);
 
 private:

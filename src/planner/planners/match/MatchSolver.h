@@ -49,6 +49,12 @@ public:
     static Expression* initialExprOrEdgeDstExpr(const PlanNode* node, Expression** initialExpr);
 
     static Expression* getLastEdgeDstExprInLastPath(const std::string& colName);
+
+    static Expression* getFirstVertexVidInFistPath(const std::string& colName);
+
+    static PlanNode* filterCyclePath(PlanNode* input,
+                                     const std::string& column,
+                                     QueryContext* qctx);
 };
 }  // namespace graph
 }  // namespace nebula

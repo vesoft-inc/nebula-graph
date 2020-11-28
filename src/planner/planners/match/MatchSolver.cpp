@@ -264,5 +264,33 @@ Expression* MatchSolver::getLastEdgeDstExprInLastPath(const std::string& colName
     auto vidExpr = std::make_unique<ConstantExpression>(kVid);
     return new AttributeExpression(endNode.release(), vidExpr.release());
 }
+
+Expression* MatchSolver::getFirstVertexVidInFistPath(const std::string& colName) {
+    // expr: __Project_2[0] => path
+    auto columnExpr = ExpressionUtils::inputPropExpr(colName);
+    // expr: startNode(path) => v1
+    auto args = std::make_unique<ArgumentList>();
+    args->addArgument(std::move(columnExpr));
+    auto fn = std::make_unique<std::string>("startNode");
+    auto firstVertexExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    // expr: v1[_vid] => vid
+    return new AttributeExpression(firstVertexExpr.release(), new ConstantExpression(kVid));
+}
+
+PlanNode *MatchSolver::filterCyclePath(PlanNode *input,
+                                       const std::string &column,
+                                       QueryContext *qctx) {
+    auto args = std::make_unique<ArgumentList>();
+    args->addArgument(ExpressionUtils::inputPropExpr(column));
+    auto fn = std::make_unique<std::string>("hasSameEdgeInPath");
+    auto fnCall = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    auto falseConst = std::make_unique<ConstantExpression>(false);
+    auto cond = std::make_unique<RelationalExpression>(
+        Expression::Kind::kRelEQ, fnCall.release(), falseConst.release());
+    auto filter = Filter::make(qctx, input, qctx->objPool()->add(cond.release()));
+    filter->setColNames(input->colNames());
+    return filter;
+}
+
 }  // namespace graph
 }  // namespace nebula

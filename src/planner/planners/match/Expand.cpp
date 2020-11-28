@@ -60,20 +60,6 @@ static Expression *buildPathExpr() {
     return expr.release();
 }
 
-
-
-static Expression *getFirstVertexVidInFistPath(const std::string &colName) {
-    // expr: __Project_2[0] => path
-    auto columnExpr = ExpressionUtils::inputPropExpr(colName);
-    // expr: startNode(path) => v1
-    auto args = std::make_unique<ArgumentList>();
-    args->addArgument(std::move(columnExpr));
-    auto fn = std::make_unique<std::string>("startNode");
-    auto firstVertexExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
-    // expr: v1[_vid] => vid
-    return new AttributeExpression(firstVertexExpr.release(), new ConstantExpression(kVid));
-}
-
 Status Expand::doExpand(const NodeInfo &node,
                         const EdgeInfo &edge,
                         const PlanNode *input,
@@ -189,7 +175,7 @@ Status Expand::collectData(const PlanNode *joinLeft,
     auto project = Project::make(qctx, join, columns);
     project->setColNames({kPathStr});
 
-    auto filter = filterCyclePath(project, kPathStr);
+    auto filter = MatchSolver::filterCyclePath(project, kPathStr, qctx);
 
     auto pt = PassThroughNode::make(qctx, filter);
     pt->setOutputVar(filter->outputVar());
@@ -226,35 +212,5 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo &edge,
     return Status::OK();
 }
 
-PlanNode *Expand::filterCyclePath(PlanNode *input, const std::string &column) {
-    auto args = std::make_unique<ArgumentList>();
-    args->addArgument(ExpressionUtils::inputPropExpr(column));
-    auto fn = std::make_unique<std::string>("hasSameEdgeInPath");
-    auto fnCall = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
-    auto falseConst = std::make_unique<ConstantExpression>(false);
-    auto cond = std::make_unique<RelationalExpression>(
-        Expression::Kind::kRelEQ, fnCall.release(), falseConst.release());
-    auto filter = Filter::make(matchCtx_->qctx, input, saveObject(cond.release()));
-    filter->setColNames(input->colNames());
-    return filter;
-}
-
-PlanNode *Expand::joinDataSet(const PlanNode *right, const PlanNode *left) {
-    auto &leftKey = left->colNamesRef().back();
-    auto &rightKey = right->colNamesRef().front();
-    auto buildExpr = MatchSolver::getLastEdgeDstExprInLastPath(leftKey);
-    auto probeExpr = getFirstVertexVidInFistPath(rightKey);
-    auto join = DataJoin::make(matchCtx_->qctx,
-                               const_cast<PlanNode *>(right),
-                               {left->outputVar(), 0},
-                               {right->outputVar(), 0},
-                               {buildExpr},
-                               {probeExpr});
-    std::vector<std::string> colNames = left->colNames();
-    const auto &rightColNames = right->colNamesRef();
-    colNames.insert(colNames.end(), rightColNames.begin(), rightColNames.end());
-    join->setColNames(std::move(colNames));
-    return join;
-}
 }  // namespace graph
 }  // namespace nebula

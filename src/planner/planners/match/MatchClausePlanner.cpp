@@ -30,6 +30,7 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
 
     NG_RETURN_IF_ERROR(findStarts(matchClauseCtx, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(expand(nodeInfos, edgeInfos, matchClauseCtx, startIndex, matchClausePlan));
+    NG_RETURN_IF_ERROR(projectColumnsBySymbols(matchClauseCtx, &matchClausePlan));
     NG_RETURN_IF_ERROR(appendFilterPlan(matchClausePlan));
     return matchClausePlan;
 }
@@ -145,6 +146,92 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
     plan->root = Project::make(qctx, root, columns);
     plan->root->setColNames({kPathStr});
     return Status::OK();
+}
+
+Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClauseCtx,
+                                                   SubPlan* plan) {
+    auto qctx = matchClauseCtx->qctx;
+    auto &nodeInfos = matchClauseCtx->nodeInfos;
+    auto &edgeInfos = matchClauseCtx->edgeInfos;
+    auto columns = qctx->objPool()->add(new YieldColumns);
+    auto input = plan->root;
+    const auto &inColNames = input->colNamesRef();
+    DCHECK_EQ(inColNames.size(), nodeInfos.size());
+    std::vector<std::string> colNames;
+
+    auto addNode = [&, this](size_t i) {
+        auto &nodeInfo = nodeInfos[i];
+        if (nodeInfo.alias != nullptr && !nodeInfo.anonymous) {
+            columns->addColumn(buildVertexColumn(inColNames[i], *nodeInfo.alias));
+            colNames.emplace_back(*nodeInfo.alias);
+        }
+    };
+
+    for (size_t i = 0; i < edgeInfos.size(); i++) {
+        addNode(i);
+        auto &edgeInfo = edgeInfos[i];
+        if (edgeInfo.alias != nullptr && !edgeInfo.anonymous) {
+            columns->addColumn(buildEdgeColumn(inColNames[i], edgeInfo));
+            colNames.emplace_back(*edgeInfo.alias);
+        }
+    }
+
+    // last vertex
+    DCHECK(!nodeInfos.empty());
+    addNode(nodeInfos.size() - 1);
+
+    const auto &aliases = matchClauseCtx->aliases;
+    auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto &alias) {
+        return alias.second == AliasType::kPath;
+    });
+    std::string alias = iter != aliases.end() ? iter->first : qctx->vctx()->anonColGen()->getCol();
+    columns->addColumn(buildPathColumn(alias, input));
+    colNames.emplace_back(alias);
+
+    auto project = Project::make(qctx, input, columns);
+    project->setColNames(std::move(colNames));
+
+    plan->root = MatchSolver::filterCyclePath(project, alias, qctx);
+    return Status::OK();
+}
+
+YieldColumn* MatchClausePlanner::buildVertexColumn(const std::string& colName,
+                                                   const std::string& alias) const {
+    auto colExpr = ExpressionUtils::inputPropExpr(colName);
+    // startNode(path) => head node of path
+    auto args = std::make_unique<ArgumentList>();
+    args->addArgument(std::move(colExpr));
+    auto fn = std::make_unique<std::string>("startNode");
+    auto firstVertexExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    return new YieldColumn(firstVertexExpr.release(), new std::string(alias));
+}
+
+YieldColumn* MatchClausePlanner::buildEdgeColumn(const std::string& colName, EdgeInfo& edge) const {
+    auto colExpr = ExpressionUtils::inputPropExpr(colName);
+    // relationships(p)
+    auto args = std::make_unique<ArgumentList>();
+    args->addArgument(std::move(colExpr));
+    auto fn = std::make_unique<std::string>("relationships");
+    auto relExpr = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    Expression* expr = nullptr;
+    if (edge.range != nullptr) {
+        expr = relExpr.release();
+    } else {
+        // Get first edge in path list [e1, e2, ...]
+        auto idxExpr = std::make_unique<ConstantExpression>(0);
+        auto subExpr = std::make_unique<SubscriptExpression>(relExpr.release(), idxExpr.release());
+        expr = subExpr.release();
+    }
+    return new YieldColumn(expr, new std::string(*edge.alias));
+}
+
+YieldColumn* MatchClausePlanner::buildPathColumn(const std::string& alias,
+                                                 const PlanNode* input) const {
+    auto pathExpr = std::make_unique<PathBuildExpression>();
+    for (const auto& colName : input->colNamesRef()) {
+        pathExpr->add(ExpressionUtils::inputPropExpr(colName));
+    }
+    return new YieldColumn(pathExpr.release(), new std::string(alias));
 }
 
 Status MatchClausePlanner::appendFilterPlan(SubPlan& plan) {

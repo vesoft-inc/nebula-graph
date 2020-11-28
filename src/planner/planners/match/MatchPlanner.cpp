@@ -33,33 +33,25 @@ StatusOr<SubPlan> transform(AstContext* astCtx) {
         switch (clauseCtx->kind) {
             case CypherClauseKind::kMatch: {
                 auto subplan = std::make_unique<MatchClausePlanner>()->transform(clauseCtx.get());
-                if (!subplan.ok()) {
-                    return subplan.status();
-                }
+                NG_RETURN_IF_ERROR(subplan);
                 subplans.emplace_back(std::move(subplan).value());
                 break;
             }
             case CypherClauseKind::kUnwind: {
                 auto subplan = std::make_unique<UnwindClausePlanner>()->transform(clauseCtx.get());
-                if (!subplan.ok()) {
-                    return subplan.status();
-                }
+                NG_RETURN_IF_ERROR(subplan);
                 subplans.emplace_back(std::move(subplan).value());
                 break;
             }
             case CypherClauseKind::kWith: {
                 auto subplan = std::make_unique<WithClausePlanner>()->transform(clauseCtx.get());
-                if (!subplan.ok()) {
-                    return subplan.status();
-                }
+                NG_RETURN_IF_ERROR(subplan);
                 subplans.emplace_back(std::move(subplan).value());
                 break;
             }
             case CypherClauseKind::kReturn: {
                 auto subplan = std::make_unique<ReturnClausePlanner>()->transform(clauseCtx.get());
-                if (!subplan.ok()) {
-                    return subplan.status();
-                }
+                NG_RETURN_IF_ERROR(subplan);
                 subplans.emplace_back(std::move(subplan).value());
                 break;
             }
