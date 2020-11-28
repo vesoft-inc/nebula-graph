@@ -82,16 +82,18 @@ struct OrderByClauseContext final : CypherClauseContextBase {
 struct PaginationContext final : CypherClauseContextBase {
     PaginationContext() : CypherClauseContextBase(CypherClauseKind::kPagination) {}
 
-    int64_t     skip;
-    int64_t     limit;
+    int64_t     skip{0};
+    int64_t     limit{std::numeric_limits<int64_t>::max()};
 };
 
 struct ReturnClauseContext final : CypherClauseContextBase {
     ReturnClauseContext() : CypherClauseContextBase(CypherClauseKind::kReturn) {}
 
-    const YieldColumns*                     yieldColumns{nullptr};
-    std::unique_ptr<OrderByClauseContext>   order;
-    std::unique_ptr<PaginationContext>      pagination;
+    bool                                         distinct{false};
+    const YieldColumns*                          yieldColumns{nullptr};
+    std::unique_ptr<OrderByClauseContext>        order;
+    std::unique_ptr<PaginationContext>           pagination;
+    std::unordered_map<std::string, AliasType>*  aliases{nullptr};
     // TODO: grouping columns
 };
 

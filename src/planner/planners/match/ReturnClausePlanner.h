@@ -7,6 +7,8 @@
 #ifndef PLANNER_PLANNERS_MATCH_RETURNCLAUSEPLANNER_H_
 #define PLANNER_PLANNERS_MATCH_RETURNCLAUSEPLANNER_H_
 
+#include "planner/planners/match/CypherClausePlanner.h"
+
 namespace nebula {
 namespace graph {
 /*
@@ -16,10 +18,9 @@ class ReturnClausePlanner final : public CypherClausePlanner {
 public:
     ReturnClausePlanner() = default;
 
-    StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override {
-        UNUSED(clauseCtx);
-        return Status::Error("TODO");
-    }
+    StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override;
+
+    Status buildReturn(ReturnClauseContext* rctx, SubPlan& subPlan);
 };
 }  // namespace graph
 }  // namespace nebula

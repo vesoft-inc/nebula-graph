@@ -15,67 +15,6 @@
 
 namespace nebula {
 namespace graph {
-/*
-Status MatchSolver::buildReturn(MatchAstContext* mctx, SubPlan& subPlan) {
-    auto *yields = new YieldColumns();
-    std::vector<std::string> colNames;
-    auto *sentence = static_cast<MatchSentence*>(mctx->sentence);
-    PlanNode *current = subPlan.root;
-
-    for (auto *col : mctx->yieldColumns->columns()) {
-        auto kind = col->expr()->kind();
-        YieldColumn *newColumn = nullptr;
-        auto rewriter = [mctx](const Expression *expr) {
-            return MatchSolver::doRewrite(mctx, expr);
-        };
-        if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
-            newColumn = new YieldColumn(rewriter(col->expr()));
-        } else {
-            auto newExpr = col->expr()->clone();
-            RewriteMatchLabelVisitor visitor(std::move(rewriter));
-            newExpr->accept(&visitor);
-            newColumn = new YieldColumn(newExpr.release());
-        }
-        yields->addColumn(newColumn);
-        if (col->alias() != nullptr) {
-            colNames.emplace_back(*col->alias());
-        } else {
-            colNames.emplace_back(col->expr()->toString());
-        }
-    }
-
-    auto *project = Project::make(mctx->qctx, current, yields);
-    project->setInputVar(current->outputVar());
-    project->setColNames(std::move(colNames));
-    current = project;
-
-    if (sentence->ret()->isDistinct()) {
-        auto *dedup = Dedup::make(mctx->qctx, current);
-        dedup->setInputVar(current->outputVar());
-        dedup->setColNames(current->colNames());
-        current = dedup;
-    }
-
-    if (!mctx->indexedOrderFactors.empty()) {
-        auto *sort = Sort::make(mctx->qctx, current, std::move(mctx->indexedOrderFactors));
-        sort->setInputVar(current->outputVar());
-        sort->setColNames(current->colNames());
-        current = sort;
-    }
-
-    if (mctx->skip != 0 || mctx->limit != std::numeric_limits<int64_t>::max()) {
-        auto *limit = Limit::make(mctx->qctx, current, mctx->skip, mctx->limit);
-        limit->setInputVar(current->outputVar());
-        limit->setColNames(current->colNames());
-        current = limit;
-    }
-
-    subPlan.root = current;
-
-    return Status::OK();
-}
-*/
-
 Expression* MatchSolver::rewrite(const LabelExpression* label) {
     auto* expr = new VariablePropertyExpression(
             new std::string(),
