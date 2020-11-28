@@ -11,6 +11,7 @@
 #include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/LabelExpression.h"
 #include "context/QueryContext.h"
+#include "planner/Planner.h"
 
 namespace nebula {
 namespace graph {
@@ -24,9 +25,9 @@ public:
 
     // static Status buildReturn(MatchAstContext* matchCtx, SubPlan& subPlan);
 
-    static Expression* rewrite(const LabelExpression *label);
+    static Expression* rewrite(const LabelExpression* label);
 
-    static Expression* rewrite(const LabelAttributeExpression *la);
+    static Expression* rewrite(const LabelAttributeExpression* la);
 
     // static Expression* doRewrite(const MatchAstContext* mctx, const Expression* expr);
 
@@ -40,6 +41,14 @@ public:
                                        QueryContext* qctx);
 
     // static Status buildFilter(const MatchAstContext* mctx, SubPlan* plan);
+
+    static void extractAndDedupVidColumn(QueryContext* qctx,
+                                         Expression** initialExpr,
+                                         SubPlan* plan);
+
+    static Expression* initialExprOrEdgeDstExpr(const PlanNode* node, Expression** initialExpr);
+
+    static Expression* getLastEdgeDstExprInLastPath(const std::string& colName);
 };
 }  // namespace graph
 }  // namespace nebula

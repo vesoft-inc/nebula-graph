@@ -29,7 +29,15 @@ private:
                   int64_t startIndex,
                   SubPlan& subplan);
 
+    Status appendFetchVertexPlan(const Expression* nodeFilter,
+                                 QueryContext* qctx,
+                                 SpaceInfo& space,
+                                 SubPlan* plan);
+
     Status appendFilterPlan(SubPlan& plan);
+
+private:
+    Expression* initialExpr_;
 };
 }  // namespace graph
 }  // namespace nebula

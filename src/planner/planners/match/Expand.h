@@ -50,8 +50,6 @@ public:
 
     PlanNode *filterCyclePath(PlanNode *input, const std::string &column);
 
-    void extractAndDedupVidColumn(SubPlan* plan);
-
     Expression *initialExprOrEdgeDstExpr(const PlanNode *node);
 
     PlanNode *joinDataSet(const PlanNode *right, const PlanNode *left);

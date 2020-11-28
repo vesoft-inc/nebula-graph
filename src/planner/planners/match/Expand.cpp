@@ -8,6 +8,8 @@
 
 #include "planner/Logic.h"
 #include "planner/Query.h"
+#include "planner/planners/match/MatchSolver.h"
+#include "planner/planners/match/SegmentsConnector.h"
 #include "util/AnonColGenerator.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
@@ -58,18 +60,7 @@ static Expression *buildPathExpr() {
     return expr.release();
 }
 
-static Expression *getLastEdgeDstExprInLastPath(const std::string &colName) {
-    // expr: __Project_2[-1] => path
-    auto columnExpr = ExpressionUtils::inputPropExpr(colName);
-    // expr: endNode(path) => vn
-    auto args = std::make_unique<ArgumentList>();
-    args->addArgument(std::move(columnExpr));
-    auto fn = std::make_unique<std::string>("endNode");
-    auto endNode = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
-    // expr: en[_dst] => dst vid
-    auto vidExpr = std::make_unique<ConstantExpression>(kVid);
-    return new AttributeExpression(endNode.release(), vidExpr.release());
-}
+
 
 static Expression *getFirstVertexVidInFistPath(const std::string &colName) {
     // expr: __Project_2[0] => path
@@ -124,7 +115,7 @@ Status Expand::expandStep(const EdgeInfo &edge,
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
     curr.root = const_cast<PlanNode *>(input);
-    extractAndDedupVidColumn(&curr);
+    MatchSolver::extractAndDedupVidColumn(qctx, &initialExpr_, &curr);
 
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
@@ -186,7 +177,7 @@ Status Expand::collectData(const PlanNode *joinLeft,
                            PlanNode **passThrough,
                            SubPlan *plan) {
     auto qctx = matchCtx_->qctx;
-    auto join = joinDataSet(joinRight, joinLeft);
+    auto join = SegmentsConnector::innerJoinSegments(qctx, joinLeft, joinRight);
     auto lpath = folly::stringPrintf("%s_%d", kPathStr, 0);
     auto rpath = folly::stringPrintf("%s_%d", kPathStr, 1);
     join->setColNames({lpath, rpath});
@@ -248,34 +239,10 @@ PlanNode *Expand::filterCyclePath(PlanNode *input, const std::string &column) {
     return filter;
 }
 
-void Expand::extractAndDedupVidColumn(SubPlan *plan) {
-    auto qctx = matchCtx_->qctx;
-    auto columns = saveObject(new YieldColumns);
-    auto input = plan->root;
-    Expression *vidExpr = initialExprOrEdgeDstExpr(input);
-    columns->addColumn(new YieldColumn(vidExpr));
-    auto project = Project::make(qctx, input, columns);
-    project->setColNames({kVid});
-    auto dedup = Dedup::make(qctx, project);
-    dedup->setColNames({kVid});
-
-    plan->root = dedup;
-}
-
-Expression *Expand::initialExprOrEdgeDstExpr(const PlanNode *node) {
-    Expression *vidExpr = initialExpr_;
-    if (vidExpr != nullptr) {
-        initialExpr_ = nullptr;
-    } else {
-        vidExpr = getLastEdgeDstExprInLastPath(node->colNamesRef().back());
-    }
-    return vidExpr;
-}
-
 PlanNode *Expand::joinDataSet(const PlanNode *right, const PlanNode *left) {
     auto &leftKey = left->colNamesRef().back();
     auto &rightKey = right->colNamesRef().front();
-    auto buildExpr = getLastEdgeDstExprInLastPath(leftKey);
+    auto buildExpr = MatchSolver::getLastEdgeDstExprInLastPath(leftKey);
     auto probeExpr = getFirstVertexVidInFistPath(rightKey);
     auto join = DataJoin::make(matchCtx_->qctx,
                                const_cast<PlanNode *>(right),

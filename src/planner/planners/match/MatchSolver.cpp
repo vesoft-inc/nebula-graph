@@ -10,6 +10,8 @@
 #include "context/ast/QueryAstContext.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
+#include "planner/Planner.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -225,5 +227,42 @@ Status MatchSolver::buildFilter(const MatchAstContext *mctx, SubPlan *plan) {
 }
 */
 
+void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
+                                           Expression** initialExpr,
+                                           SubPlan* plan) {
+    auto columns = qctx->objPool()->add(new YieldColumns);
+    auto input = plan->root;
+    Expression* vidExpr = initialExprOrEdgeDstExpr(input, initialExpr);
+    columns->addColumn(new YieldColumn(vidExpr));
+    auto project = Project::make(qctx, input, columns);
+    project->setColNames({kVid});
+    auto dedup = Dedup::make(qctx, project);
+    dedup->setColNames({kVid});
+
+    plan->root = dedup;
+}
+
+Expression* MatchSolver::initialExprOrEdgeDstExpr(const PlanNode* node, Expression** initialExpr) {
+    Expression* vidExpr = *initialExpr;
+    if (vidExpr != nullptr) {
+        *initialExpr = nullptr;
+    } else {
+        vidExpr = getLastEdgeDstExprInLastPath(node->colNamesRef().back());
+    }
+    return vidExpr;
+}
+
+Expression* MatchSolver::getLastEdgeDstExprInLastPath(const std::string& colName) {
+    // expr: __Project_2[-1] => path
+    auto columnExpr = ExpressionUtils::inputPropExpr(colName);
+    // expr: endNode(path) => vn
+    auto args = std::make_unique<ArgumentList>();
+    args->addArgument(std::move(columnExpr));
+    auto fn = std::make_unique<std::string>("endNode");
+    auto endNode = std::make_unique<FunctionCallExpression>(fn.release(), args.release());
+    // expr: en[_dst] => dst vid
+    auto vidExpr = std::make_unique<ConstantExpression>(kVid);
+    return new AttributeExpression(endNode.release(), vidExpr.release());
+}
 }  // namespace graph
 }  // namespace nebula
