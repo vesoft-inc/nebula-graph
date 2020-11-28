@@ -16,7 +16,6 @@ class ShowHostsExecutor final : public Executor {
 public:
     ShowHostsExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("ShowHostsExecutor", node, qctx) {
-        LOG(INFO) << "messi ShowHostsExecutor()";
         }
 
     folly::Future<Status> execute() override;

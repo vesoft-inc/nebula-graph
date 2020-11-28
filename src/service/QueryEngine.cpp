@@ -30,8 +30,6 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
     options.serviceName_ = "graph";
     options.skipConfig_ = FLAGS_local_config;
     options.role_ = meta::cpp2::HostRole::GRAPH;
-    // options.localHost_ = addrs;
-    LOG(INFO) << "messi FLAGS_listen_netdev=" << FLAGS_listen_netdev;
     std::string localIP = network::NetworkUtils::getIPv4FromDevice(FLAGS_listen_netdev).value();
     options.localHost_ = HostAddr{localIP, FLAGS_port};
     options.gitInfoSHA_ = NEBULA_STRINGIFY(GIT_INFO_SHA);
