@@ -16,12 +16,14 @@ nebula_add_library(
     Planner.cpp
     PlannersRegister.cpp
     planners/SequentialPlanner.cpp
-    planners/match/MatchPlanner.cpp
     planners/match/MatchSolver.cpp
-    planners/match/MatchClausePlanner.cpp
-    planners/match/ValueIndexSeek.cpp
-    planners/match/Expand.cpp
     planners/match/SegmentsConnector.cpp
     planners/match/InnerJoinStrategy.cpp
+    planners/match/AddDependencyStrategy.cpp
+    planners/match/MatchPlanner.cpp
+    planners/match/MatchClausePlanner.cpp
     planners/match/ReturnClausePlanner.cpp
+    planners/match/OrderByClausePlanner.cpp
+    planners/match/ValueIndexSeek.cpp
+    planners/match/Expand.cpp
 )

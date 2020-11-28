@@ -32,12 +32,15 @@ public:
     static StatusOr<SubPlan> connectSegments(SubPlan& left, SubPlan& right) {
         UNUSED(left);
         UNUSED(right);
+        // Analyse the relation of two segments and connect them.
         return Status::Error("TODO");
     }
 
     static PlanNode* innerJoinSegments(QueryContext* qctx,
                                        const PlanNode* left,
                                        const PlanNode* right);
+
+    static void addDependency(const PlanNode* left, const PlanNode* right);
 };
 
 class SegmentsConnectStrategy {

@@ -8,6 +8,8 @@
 
 #include "planner/Query.h"
 #include "planner/planners/match/MatchSolver.h"
+#include "planner/planners/match/OrderByClausePlanner.h"
+#include "planner/planners/match/SegmentsConnector.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
 namespace nebula {
@@ -63,14 +65,23 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
         dedup->setColNames(current->colNames());
         current = dedup;
     }
-/*
-    if (!mctx->indexedOrderFactors.empty()) {
-        auto *sort = Sort::make(mctx->qctx, current, std::move(mctx->indexedOrderFactors));
-        sort->setInputVar(current->outputVar());
-        sort->setColNames(current->colNames());
-        current = sort;
+
+    subPlan.root = current;
+
+    if (rctx->order != nullptr) {
+        auto orderPlan = std::make_unique<OrderByClausePlanner>()->transform(rctx->order.get());
+        NG_RETURN_IF_ERROR(orderPlan);
+        auto plan = std::move(orderPlan).value();
+        SegmentsConnector::addDependency(plan.tail, subPlan.root);
+        subPlan.root = plan.root;
     }
 
+    if (rctx->pagination != nullptr) {
+        // TODO:
+    }
+
+    // Handle grouping
+/*
     if (mctx->skip != 0 || mctx->limit != std::numeric_limits<int64_t>::max()) {
         auto *limit = Limit::make(mctx->qctx, current, mctx->skip, mctx->limit);
         limit->setInputVar(current->outputVar());
@@ -79,7 +90,6 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
     }
     */
 
-    subPlan.root = current;
 
     return Status::OK();
 }
