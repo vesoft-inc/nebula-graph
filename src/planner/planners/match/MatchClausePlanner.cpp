@@ -31,7 +31,7 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
     NG_RETURN_IF_ERROR(findStarts(matchClauseCtx, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(expand(nodeInfos, edgeInfos, matchClauseCtx, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(projectColumnsBySymbols(matchClauseCtx, &matchClausePlan));
-    NG_RETURN_IF_ERROR(appendFilterPlan(matchClausePlan));
+    NG_RETURN_IF_ERROR(MatchSolver::buildFilter(matchClauseCtx, &matchClausePlan));
     return matchClausePlan;
 }
 

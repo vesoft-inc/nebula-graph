@@ -76,8 +76,8 @@ Status MatchSolver::buildReturn(MatchAstContext* mctx, SubPlan& subPlan) {
 }
 */
 
-Expression* MatchSolver::rewrite(const LabelExpression *label) {
-    auto *expr = new VariablePropertyExpression(
+Expression* MatchSolver::rewrite(const LabelExpression* label) {
+    auto* expr = new VariablePropertyExpression(
             new std::string(),
             new std::string(*label->name()));
     return expr;
@@ -93,34 +93,29 @@ Expression* MatchSolver::rewrite(const LabelAttributeExpression *la) {
     return expr;
 }
 
-/*
-Expression *MatchSolver::doRewrite(const MatchAstContext *mctx, const Expression *expr) {
+Expression* MatchSolver::doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
+                                   const Expression* expr) {
     if (expr->kind() != Expression::Kind::kLabel) {
-        return rewrite(static_cast<const LabelAttributeExpression *>(expr));
+        return rewrite(static_cast<const LabelAttributeExpression*>(expr));
     }
 
-    auto *labelExpr = static_cast<const LabelExpression *>(expr);
-    auto alias = mctx->aliases.find(*labelExpr->name());
-    DCHECK(alias != mctx->aliases.end());
-    if (false) {
-        return mctx->pathBuild->clone().release();
-    } else {
-        return rewrite(labelExpr);
-    }
+    auto* labelExpr = static_cast<const LabelExpression*>(expr);
+    auto alias = aliases.find(*labelExpr->name());
+    DCHECK(alias != aliases.end());
+    return rewrite(labelExpr);
 }
-*/
 
-Expression *MatchSolver::makeIndexFilter(const std::string &label,
-                                         const MapExpression *map,
-                                         QueryContext *qctx) {
-    auto &items = map->items();
-    Expression *root = new RelationalExpression(
+Expression* MatchSolver::makeIndexFilter(const std::string& label,
+                                         const MapExpression* map,
+                                         QueryContext* qctx) {
+    auto& items = map->items();
+    Expression* root = new RelationalExpression(
         Expression::Kind::kRelEQ,
         new TagPropertyExpression(new std::string(label), new std::string(*items[0].first)),
         items[0].second->clone().release());
     for (auto i = 1u; i < items.size(); i++) {
-        auto *left = root;
-        auto *right = new RelationalExpression(
+        auto* left = root;
+        auto* right = new RelationalExpression(
             Expression::Kind::kRelEQ,
             new TagPropertyExpression(new std::string(label), new std::string(*items[i].first)),
             items[i].second->clone().release());
@@ -129,10 +124,10 @@ Expression *MatchSolver::makeIndexFilter(const std::string &label,
     return qctx->objPool()->add(root);
 }
 
-Expression *MatchSolver::makeIndexFilter(const std::string &label,
-                                         const std::string &alias,
-                                         Expression *filter,
-                                         QueryContext *qctx) {
+Expression* MatchSolver::makeIndexFilter(const std::string& label,
+                                         const std::string& alias,
+                                         Expression* filter,
+                                         QueryContext* qctx) {
     static const std::unordered_set<Expression::Kind> kinds = {
         Expression::Kind::kRelEQ,
         Expression::Kind::kRelLT,
@@ -141,39 +136,39 @@ Expression *MatchSolver::makeIndexFilter(const std::string &label,
         Expression::Kind::kRelGE,
     };
 
-    std::vector<const Expression *> ands;
+    std::vector<const Expression*> ands;
     auto kind = filter->kind();
     if (kinds.count(kind) == 1) {
         ands.emplace_back(filter);
     } else if (kind == Expression::Kind::kLogicalAnd) {
-        auto *logic = static_cast<LogicalExpression *>(filter);
+        auto* logic = static_cast<LogicalExpression*>(filter);
         ExpressionUtils::pullAnds(logic);
-        for (auto &operand : logic->operands()) {
+        for (auto& operand : logic->operands()) {
             ands.emplace_back(operand.get());
         }
     } else {
         return nullptr;
     }
 
-    std::vector<Expression *> relationals;
-    for (auto *item : ands) {
+    std::vector<Expression*> relationals;
+    for (auto* item : ands) {
         if (kinds.count(item->kind()) != 1) {
             continue;
         }
 
-        auto *binary = static_cast<const BinaryExpression *>(item);
-        auto *left = binary->left();
-        auto *right = binary->right();
-        const LabelAttributeExpression *la = nullptr;
-        const ConstantExpression *constant = nullptr;
+        auto* binary = static_cast<const BinaryExpression*>(item);
+        auto* left = binary->left();
+        auto* right = binary->right();
+        const LabelAttributeExpression* la = nullptr;
+        const ConstantExpression* constant = nullptr;
         if (left->kind() == Expression::Kind::kLabelAttribute &&
             right->kind() == Expression::Kind::kConstant) {
-            la = static_cast<const LabelAttributeExpression *>(left);
-            constant = static_cast<const ConstantExpression *>(right);
+            la = static_cast<const LabelAttributeExpression*>(left);
+            constant = static_cast<const ConstantExpression*>(right);
         } else if (right->kind() == Expression::Kind::kLabelAttribute &&
                    left->kind() == Expression::Kind::kConstant) {
-            la = static_cast<const LabelAttributeExpression *>(right);
-            constant = static_cast<const ConstantExpression *>(left);
+            la = static_cast<const LabelAttributeExpression*>(right);
+            constant = static_cast<const ConstantExpression*>(left);
         } else {
             continue;
         }
@@ -187,10 +182,10 @@ Expression *MatchSolver::makeIndexFilter(const std::string &label,
                                                  new std::string(value.getStr()));
         auto *newConstant = constant->clone().release();
         if (left->kind() == Expression::Kind::kLabelAttribute) {
-            auto *rel = new RelationalExpression(item->kind(), tpExpr, newConstant);
+            auto* rel = new RelationalExpression(item->kind(), tpExpr, newConstant);
             relationals.emplace_back(rel);
         } else {
-            auto *rel = new RelationalExpression(item->kind(), newConstant, tpExpr);
+            auto* rel = new RelationalExpression(item->kind(), newConstant, tpExpr);
             relationals.emplace_back(rel);
         }
     }
@@ -199,22 +194,23 @@ Expression *MatchSolver::makeIndexFilter(const std::string &label,
         return nullptr;
     }
 
-    auto *root = relationals[0];
+    auto* root = relationals[0];
     for (auto i = 1u; i < relationals.size(); i++) {
-        auto *left = root;
+        auto* left = root;
         root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, relationals[i]);
     }
 
     return qctx->objPool()->add(root);
 }
 
-/*
-Status MatchSolver::buildFilter(const MatchAstContext *mctx, SubPlan *plan) {
-    if (mctx->filter == nullptr) {
+Status MatchSolver::buildFilter(const MatchClauseContext* mctx, SubPlan* plan) {
+    if (mctx->where->filter == nullptr) {
         return Status::OK();
     }
-    auto newFilter = mctx->filter->clone();
-    auto rewriter = [mctx](const Expression *expr) { return MatchSolver::doRewrite(mctx, expr); };
+    auto newFilter = mctx->where->filter->clone();
+    auto rewriter = [mctx](const Expression* expr) {
+        return MatchSolver::doRewrite(mctx->aliases, expr);
+    };
     RewriteMatchLabelVisitor visitor(std::move(rewriter));
     newFilter->accept(&visitor);
     auto cond = mctx->qctx->objPool()->add(newFilter.release());
@@ -225,7 +221,6 @@ Status MatchSolver::buildFilter(const MatchAstContext *mctx, SubPlan *plan) {
     plan->root = node;
     return Status::OK();
 }
-*/
 
 void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
                                            Expression** initialExpr,
@@ -277,9 +272,9 @@ Expression* MatchSolver::getFirstVertexVidInFistPath(const std::string& colName)
     return new AttributeExpression(firstVertexExpr.release(), new ConstantExpression(kVid));
 }
 
-PlanNode *MatchSolver::filterCyclePath(PlanNode *input,
-                                       const std::string &column,
-                                       QueryContext *qctx) {
+PlanNode* MatchSolver::filterCyclePath(PlanNode* input,
+                                       const std::string& column,
+                                       QueryContext* qctx) {
     auto args = std::make_unique<ArgumentList>();
     args->addArgument(ExpressionUtils::inputPropExpr(column));
     auto fn = std::make_unique<std::string>("hasSameEdgeInPath");

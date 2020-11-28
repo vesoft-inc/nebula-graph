@@ -11,6 +11,7 @@
 #include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/LabelExpression.h"
 #include "context/QueryContext.h"
+#include "context/ast/QueryAstContext.h"
 #include "planner/Planner.h"
 
 namespace nebula {
@@ -29,7 +30,8 @@ public:
 
     static Expression* rewrite(const LabelAttributeExpression* la);
 
-    // static Expression* doRewrite(const MatchAstContext* mctx, const Expression* expr);
+    static Expression* doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
+                                 const Expression* expr);
 
     static Expression* makeIndexFilter(const std::string& label,
                                        const MapExpression* map,
@@ -40,7 +42,7 @@ public:
                                        Expression* filter,
                                        QueryContext* qctx);
 
-    // static Status buildFilter(const MatchAstContext* mctx, SubPlan* plan);
+    static Status buildFilter(const MatchClauseContext* mctx, SubPlan* plan);
 
     static void extractAndDedupVidColumn(QueryContext* qctx,
                                          Expression** initialExpr,
