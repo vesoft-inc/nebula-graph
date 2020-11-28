@@ -9,6 +9,7 @@
 #include "planner/Query.h"
 #include "planner/planners/match/MatchSolver.h"
 #include "planner/planners/match/OrderByClausePlanner.h"
+#include "planner/planners/match/PaginationPlanner.h"
 #include "planner/planners/match/SegmentsConnector.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
@@ -77,19 +78,15 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
     }
 
     if (rctx->pagination != nullptr) {
-        // TODO:
+        auto paginationPlan =
+            std::make_unique<PaginationPlanner>()->transform(rctx->pagination.get());
+        NG_RETURN_IF_ERROR(paginationPlan);
+        auto plan = std::move(paginationPlan).value();
+        SegmentsConnector::addDependency(plan.tail, subPlan.root);
+        subPlan.root = plan.root;
     }
 
-    // Handle grouping
-/*
-    if (mctx->skip != 0 || mctx->limit != std::numeric_limits<int64_t>::max()) {
-        auto *limit = Limit::make(mctx->qctx, current, mctx->skip, mctx->limit);
-        limit->setInputVar(current->outputVar());
-        limit->setColNames(current->colNames());
-        current = limit;
-    }
-    */
-
+    // TODO: Handle grouping
 
     return Status::OK();
 }

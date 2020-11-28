@@ -14,6 +14,7 @@ PlanNode* AddDependencyStrategy::connect(const PlanNode* left, const PlanNode* r
     auto* siLeft = static_cast<SingleInputNode*>(mutableLeft);
     siLeft->dependsOn(const_cast<PlanNode*>(right));
     siLeft->setInputVar(right->outputVar());
+    siLeft->setColNames(right->colNames());
     return nullptr;
 }
 }  // namespace graph

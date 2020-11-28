@@ -24,6 +24,7 @@ nebula_add_library(
     planners/match/MatchClausePlanner.cpp
     planners/match/ReturnClausePlanner.cpp
     planners/match/OrderByClausePlanner.cpp
+    planners/match/PaginationPlanner.cpp
     planners/match/ValueIndexSeek.cpp
     planners/match/Expand.cpp
 )
