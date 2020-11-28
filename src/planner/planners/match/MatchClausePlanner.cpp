@@ -23,9 +23,20 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
     }
 
     auto* matchClauseCtx = static_cast<MatchClauseContext*>(clauseCtx);
+    auto& nodeInfos = matchClauseCtx->nodeInfos;
+    auto& edgeInfos = matchClauseCtx->edgeInfos;
     SubPlan matchClausePlan;
+    int64_t startIndex = -1;
 
-    auto startIndex = -1;
+    NG_RETURN_IF_ERROR(findStarts(matchClauseCtx, startIndex, matchClausePlan));
+    NG_RETURN_IF_ERROR(expand(nodeInfos, edgeInfos, matchClauseCtx, startIndex, matchClausePlan));
+    NG_RETURN_IF_ERROR(appendFilterPlan(matchClausePlan));
+    return matchClausePlan;
+}
+
+Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
+                                      int64_t& startIndex,
+                                      SubPlan& matchClausePlan) {
     auto& nodeInfos = matchClauseCtx->nodeInfos;
     auto& edgeInfos = matchClauseCtx->edgeInfos;
     auto& startVidFinders = StartVidFinder::finders();
@@ -63,12 +74,10 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
     }
     if (startIndex < 0) {
         return Status::Error("Can't solve the start vids from the sentence: %s",
-                             clauseCtx->sentence->toString().c_str());
+                             matchClauseCtx->sentence->toString().c_str());
     }
 
-    NG_RETURN_IF_ERROR(expand(nodeInfos, edgeInfos, matchClauseCtx, startIndex, matchClausePlan));
-    NG_RETURN_IF_ERROR(appendFilterPlan(matchClausePlan));
-    return matchClausePlan;
+    return Status::OK();
 }
 
 Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,

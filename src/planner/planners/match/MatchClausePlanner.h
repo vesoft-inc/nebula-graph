@@ -21,7 +21,9 @@ public:
     StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override;
 
 private:
-    Status findStartVids();
+    Status findStarts(MatchClauseContext* matchClauseCtx,
+                      int64_t& startIndex,
+                      SubPlan& matchClausePlan);
 
     Status expand(const std::vector<NodeInfo>& nodeInfos,
                   const std::vector<EdgeInfo>& edgeInfos,
