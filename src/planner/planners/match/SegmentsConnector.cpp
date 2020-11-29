@@ -10,6 +10,19 @@
 
 namespace nebula {
 namespace graph {
+
+StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* leftCtx,
+                                                     CypherClauseContextBase* rightCtx,
+                                                     SubPlan& left,
+                                                     SubPlan& right) {
+    if (leftCtx->kind == CypherClauseKind::kMatch && rightCtx->kind == CypherClauseKind::kReturn) {
+        addDependency(left.tail, right.root);
+        return left;
+    }
+
+    return Status::Error("Unimplemented.");
+}
+
 PlanNode* SegmentsConnector::innerJoinSegments(QueryContext* qctx,
                                             const PlanNode* left,
                                             const PlanNode* right) {

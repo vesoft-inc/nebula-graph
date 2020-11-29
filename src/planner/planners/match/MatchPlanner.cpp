@@ -9,6 +9,7 @@
 #include "context/ast/QueryAstContext.h"
 #include "planner/planners/match/MatchClausePlanner.h"
 #include "planner/planners/match/ReturnClausePlanner.h"
+#include "planner/planners/match/SegmentsConnector.h"
 #include "planner/planners/match/UnwindClausePlanner.h"
 #include "planner/planners/match/WithClausePlanner.h"
 
@@ -22,7 +23,7 @@ bool MatchPlanner::match(AstContext* astCtx) {
     }
 }
 
-StatusOr<SubPlan> transform(AstContext* astCtx) {
+StatusOr<SubPlan> MatchPlanner::transform(AstContext* astCtx) {
     if (astCtx->sentence->kind() != Sentence::Kind::kMatch) {
         return Status::Error("Only MATCH is accepted for match planner.");
     }
@@ -59,8 +60,28 @@ StatusOr<SubPlan> transform(AstContext* astCtx) {
         }
     }
 
-    UNUSED(subplans);
-    return Status::OK();
+    auto finalPlan = connectSegments(subplans, matchCtx->clauses);
+    NG_RETURN_IF_ERROR(finalPlan);
+    return std::move(finalPlan).value();
+}
+
+StatusOr<SubPlan> MatchPlanner::connectSegments(
+    std::vector<SubPlan>& subplans,
+    std::vector<std::unique_ptr<CypherClauseContextBase>>& clauses) {
+    DCHECK(!subplans.empty());
+    if (subplans.size() == 1) {
+        return subplans.front();
+    }
+
+    SubPlan finalPlan = subplans.front();
+    for (size_t i = 1; i < subplans.size() - 1; ++i) {
+        auto interimPlan = SegmentsConnector::connectSegments(
+            clauses[i + 1].get(), clauses[i].get(), subplans[i + 1], finalPlan);
+        NG_RETURN_IF_ERROR(interimPlan);
+        finalPlan = std::move(interimPlan).value();
+    }
+
+    return finalPlan;
 }
 }  // namespace graph
 }  // namespace nebula

@@ -8,6 +8,7 @@
 #define PLANNER_PLANNERS_MATCH_SEGMENTSCONNECTOR_H_
 
 #include "context/QueryContext.h"
+#include "context/ast/QueryAstContext.h"
 #include "planner/PlanNode.h"
 #include "planner/Planner.h"
 
@@ -29,12 +30,11 @@ public:
 
     SegmentsConnector() = delete;
 
-    static StatusOr<SubPlan> connectSegments(SubPlan& left, SubPlan& right) {
-        UNUSED(left);
-        UNUSED(right);
-        // Analyse the relation of two segments and connect them.
-        return Status::Error("TODO");
-    }
+    // Analyse the relation of two segments and connect them.
+    static StatusOr<SubPlan> connectSegments(CypherClauseContextBase* leftCtx,
+                                             CypherClauseContextBase* rightCtx,
+                                             SubPlan& left,
+                                             SubPlan& right);
 
     static PlanNode* innerJoinSegments(QueryContext* qctx,
                                        const PlanNode* left,

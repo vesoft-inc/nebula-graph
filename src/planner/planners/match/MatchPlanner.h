@@ -7,6 +7,7 @@
 #ifndef PLANNER_PLANNERS_MATCHPLANNER_H_
 #define PLANNER_PLANNERS_MATCHPLANNER_H_
 
+#include "context/ast/QueryAstContext.h"
 #include "planner/Planner.h"
 
 namespace nebula {
@@ -20,6 +21,11 @@ public:
     static bool match(AstContext* astCtx);
 
     StatusOr<SubPlan> transform(AstContext* astCtx) override;
+
+private:
+    StatusOr<SubPlan> connectSegments(
+        std::vector<SubPlan>& subplans,
+        std::vector<std::unique_ptr<CypherClauseContextBase>>& clauses);
 };
 }  // namespace graph
 }  // namespace nebula
