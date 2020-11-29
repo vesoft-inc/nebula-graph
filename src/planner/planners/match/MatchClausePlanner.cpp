@@ -12,6 +12,7 @@
 #include "planner/planners/match/MatchSolver.h"
 #include "planner/planners/match/SegmentsConnector.h"
 #include "planner/planners/match/StartVidFinder.h"
+#include "planner/planners/match/WhereClausePlanner.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
@@ -31,7 +32,7 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
     NG_RETURN_IF_ERROR(findStarts(matchClauseCtx, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(expand(nodeInfos, edgeInfos, matchClauseCtx, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(projectColumnsBySymbols(matchClauseCtx, &matchClausePlan));
-    NG_RETURN_IF_ERROR(MatchSolver::buildFilter(matchClauseCtx, &matchClausePlan));
+    NG_RETURN_IF_ERROR(appendFilterPlan(matchClauseCtx, matchClausePlan));
     return matchClausePlan;
 }
 
@@ -151,16 +152,16 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
 Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClauseCtx,
                                                    SubPlan* plan) {
     auto qctx = matchClauseCtx->qctx;
-    auto &nodeInfos = matchClauseCtx->nodeInfos;
-    auto &edgeInfos = matchClauseCtx->edgeInfos;
+    auto& nodeInfos = matchClauseCtx->nodeInfos;
+    auto& edgeInfos = matchClauseCtx->edgeInfos;
     auto columns = qctx->objPool()->add(new YieldColumns);
     auto input = plan->root;
-    const auto &inColNames = input->colNamesRef();
+    const auto& inColNames = input->colNamesRef();
     DCHECK_EQ(inColNames.size(), nodeInfos.size());
     std::vector<std::string> colNames;
 
     auto addNode = [&, this](size_t i) {
-        auto &nodeInfo = nodeInfos[i];
+        auto& nodeInfo = nodeInfos[i];
         if (nodeInfo.alias != nullptr && !nodeInfo.anonymous) {
             columns->addColumn(buildVertexColumn(inColNames[i], *nodeInfo.alias));
             colNames.emplace_back(*nodeInfo.alias);
@@ -169,7 +170,7 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
 
     for (size_t i = 0; i < edgeInfos.size(); i++) {
         addNode(i);
-        auto &edgeInfo = edgeInfos[i];
+        auto& edgeInfo = edgeInfos[i];
         if (edgeInfo.alias != nullptr && !edgeInfo.anonymous) {
             columns->addColumn(buildEdgeColumn(inColNames[i], edgeInfo));
             colNames.emplace_back(*edgeInfo.alias);
@@ -180,8 +181,8 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     DCHECK(!nodeInfos.empty());
     addNode(nodeInfos.size() - 1);
 
-    const auto &aliases = matchClauseCtx->aliases;
-    auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto &alias) {
+    const auto& aliases = matchClauseCtx->aliases;
+    auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto& alias) {
         return alias.second == AliasType::kPath;
     });
     std::string alias = iter != aliases.end() ? iter->first : qctx->vctx()->anonColGen()->getCol();
@@ -234,9 +235,17 @@ YieldColumn* MatchClausePlanner::buildPathColumn(const std::string& alias,
     return new YieldColumn(pathExpr.release(), new std::string(alias));
 }
 
-Status MatchClausePlanner::appendFilterPlan(SubPlan& plan) {
-    UNUSED(plan);
-    return Status::Error("TODO");
+Status MatchClausePlanner::appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan) {
+    if (matchClauseCtx->where == nullptr) {
+        return Status::OK();
+    }
+
+    auto wherePlan = std::make_unique<WhereClausePlanner>()->transform(matchClauseCtx->where.get());
+    NG_RETURN_IF_ERROR(wherePlan);
+    auto plan = std::move(wherePlan).value();
+    SegmentsConnector::addDependency(plan.tail, subplan.root);
+    subplan.root = plan.root;
+    return Status::OK();
 }
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula

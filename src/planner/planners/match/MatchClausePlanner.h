@@ -44,7 +44,7 @@ private:
 
     YieldColumn* buildPathColumn(const std::string& alias, const PlanNode* input) const;
 
-    Status appendFilterPlan(SubPlan& plan);
+    Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
 
 private:
     Expression* initialExpr_;
