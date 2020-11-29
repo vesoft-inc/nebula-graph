@@ -68,8 +68,8 @@ def load_nba(init_client):
                     resp = client.execute(ngql_statement)
                     assert resp.error_code() == 0
                     ngql_statement = ""    
-
-
+    yield "setup load_nba"
+    
 @pytest.fixture(scope='session')
 def load_students(init_client):
     connection_pool = init_client[0];
@@ -199,4 +199,4 @@ def load_students(init_client):
                                 "2010" -> "1016":(2018,2019), \
                                 "2006" -> "1008":(2017, 2018);')
     assert resp.error_code() == 0 
-
+    yield "setup load_students"
