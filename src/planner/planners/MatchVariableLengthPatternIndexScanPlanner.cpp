@@ -355,7 +355,7 @@ Status MatchVariableLengthPatternIndexScanPlanner::expandStep(const EdgeInfo &ed
         auto filterNode = Filter::make(matchCtx_->qctx, root, filter);
         filterNode->setColNames(root->colNames());
         root = filterNode;
- }
+    }
 
     if (edge.filter != nullptr) {
         RewriteMatchLabelVisitor visitor([](const Expression *expr) {
