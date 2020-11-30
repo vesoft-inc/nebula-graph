@@ -341,6 +341,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 
 %type <boolval> opt_if_not_exists
 %type <boolval> opt_if_exists
+%type <boolval> opt_with_properites
 
 %left QM COLON
 %left KW_OR KW_XOR
@@ -1668,19 +1669,9 @@ fetch_sentence
     ;
 
 find_path_sentence
-    : KW_FIND KW_ALL KW_PATH from_clause to_clause over_clause find_path_upto_clause
+    : KW_FIND KW_ALL KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
     /* where_clause */ {
-        auto *s = new FindPathSentence(false, false);
-        s->setFrom($4);
-        s->setTo($5);
-        s->setOver($6);
-        s->setStep($7);
-        /* s->setWhere($8); */
-        $$ = s;
-    }
-    | KW_FIND KW_ALL KW_PATH KW_WITH_PROPERITES from_clause to_clause over_clause find_path_upto_clause
-    /* where_clause */ {
-        auto *s = new FindPathSentence(false, true);
+        auto *s = new FindPathSentence(false, $4);
         s->setFrom($5);
         s->setTo($6);
         s->setOver($7);
@@ -1688,19 +1679,9 @@ find_path_sentence
         /* s->setWhere($9); */
         $$ = s;
     }
-    | KW_FIND KW_SHORTEST KW_PATH from_clause to_clause over_clause find_path_upto_clause
+    | KW_FIND KW_SHORTEST KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
     /* where_clause */ {
-        auto *s = new FindPathSentence(true, false);
-        s->setFrom($4);
-        s->setTo($5);
-        s->setOver($6);
-        s->setStep($7);
-        /* s->setWhere($8); */
-        $$ = s;
-    }
-    | KW_FIND KW_SHORTEST KW_PATH KW_WITH_PROPERITES from_clause to_clause over_clause find_path_upto_clause
-    /* where_clause */ {
-        auto *s = new FindPathSentence(true, true);
+        auto *s = new FindPathSentence(true, $4);
         s->setFrom($5);
         s->setTo($6);
         s->setOver($7);
@@ -1708,6 +1689,11 @@ find_path_sentence
         /* s->setWhere($9); */
         $$ = s;
     }
+    ;
+
+opt_with_properites
+    : %empty { $$ = false; }
+    | KW_WITH_PROPERITES { $$ = true; }
     ;
 
 find_path_upto_clause

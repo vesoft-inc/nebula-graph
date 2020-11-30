@@ -433,7 +433,7 @@ private:
 
 class FindPathSentence final : public Sentence {
 public:
-    explicit FindPathSentence(bool isShortest, bool withProperites) {
+    FindPathSentence(bool isShortest, bool withProperites) {
         kind_ = Kind::kFindPath;
         isShortest_ = isShortest;
         withProperites_ = withProperites;
