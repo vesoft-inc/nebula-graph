@@ -30,7 +30,6 @@ STARTS_WITH                 (STARTS{blanks}WITH)
 NOT_STARTS_WITH             (NOT{blanks}STARTS{blanks}WITH)
 ENDS_WITH                   (ENDS{blanks}WITH)
 NOT_ENDS_WITH               (NOT{blanks}ENDS{blanks}WITH)
-WITH_PROPERITES             (WITH{blanks}PROPERITES)
 
 LABEL                       ([a-zA-Z][_a-zA-Z0-9]*)
 DEC                         ([0-9])
@@ -235,7 +234,6 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "SERVICE"                   { return TokenType::KW_SERVICE; }
 "TEXT_SEARCH"               { return TokenType::KW_TEXT_SEARCH; }
 "PROPERITES"                { return TokenType::KW_PROPERITES; }
-{WITH_PROPERITES}           { return TokenType::KW_WITH_PROPERITES; }
 "TRUE"                      { yylval->boolval = true; return TokenType::BOOL; }
 "FALSE"                     { yylval->boolval = false; return TokenType::BOOL; }
 

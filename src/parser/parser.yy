@@ -154,7 +154,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_ORDER KW_ASC KW_LIMIT KW_OFFSET
 %token KW_DISTINCT KW_ALL KW_OF
 %token KW_BALANCE KW_LEADER
-%token KW_SHORTEST KW_PATH KW_PROPERITES KW_WITH_PROPERITES
+%token KW_SHORTEST KW_PATH KW_PROPERITES
 %token KW_IS KW_NULL KW_DEFAULT
 %token KW_SNAPSHOT KW_SNAPSHOTS KW_LOOKUP
 %token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT KW_STATS KW_STATUS
@@ -480,7 +480,6 @@ unreserved_keyword
     | KW_SERVICE            { $$ = new std::string("service"); }
     | KW_TEXT_SEARCH        { $$ = new std::string("text_search"); }
     | KW_PROPERITES         { $$ = new std::string("properites"); }
-    | KW_WITH_PROPERITES    { $$ = new std::string("with properites"); }
     ;
 
 agg_function
@@ -1693,7 +1692,7 @@ find_path_sentence
 
 opt_with_properites
     : %empty { $$ = false; }
-    | KW_WITH_PROPERITES { $$ = true; }
+    | KW_WITH KW_PROPERITES { $$ = true; }
     ;
 
 find_path_upto_clause
