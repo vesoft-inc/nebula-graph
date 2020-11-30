@@ -1978,13 +1978,13 @@ TEST(Parser, FindPath) {
     }
     {
         GQLParser parser;
-        std::string query = "FIND SHORTEST PATH WITH PROPERITES FROM \"1\" TO \"2\" OVER like";
+        std::string query = "FIND SHORTEST PATH WITH PROP FROM \"1\" TO \"2\" OVER like";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "FIND ALL PATH WITH PROPERITES FROM \"1\" TO \"2\" OVER like";
+        std::string query = "FIND ALL PATH WITH PROP FROM \"1\" TO \"2\" OVER like";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
