@@ -7,6 +7,7 @@
 #ifndef PLANNER_PLANNERS_MATCH_STARTVIDFINDER_H_
 #define PLANNER_PLANNERS_MATCH_STARTVIDFINDER_H_
 
+#include "context/ast/QueryAstContext.h"
 #include "planner/Planner.h"
 
 namespace nebula {
@@ -16,6 +17,8 @@ class StartVidFinder;
 using StartVidFinderMatchFunc = std::function<bool(PatternContext* ctx)>;
 using StartVidFinderInstantiateFunc = std::function<std::unique_ptr<StartVidFinder>()>;
 struct FinderMatchAndInstantiate {
+    FinderMatchAndInstantiate(StartVidFinderMatchFunc m, StartVidFinderInstantiateFunc i)
+        : match(m), instantiate(i) {}
     StartVidFinderMatchFunc match;
     StartVidFinderInstantiateFunc instantiate;
 };

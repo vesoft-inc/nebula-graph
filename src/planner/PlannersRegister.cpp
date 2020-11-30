@@ -7,11 +7,10 @@
 #include "planner/PlannersRegister.h"
 
 #include "planner/Planner.h"
-// #include "planner/planners/MatchTagScanPlanner.h"
-// #include "planner/planners/MatchVertexIdSeekPlanner.h"
-// #include "planner/planners/MatchVertexIndexSeekPlanner.h"
-// #include "planner/planners/MatchVariableLengthPatternIndexScanPlanner.h"
 #include "planner/planners/SequentialPlanner.h"
+#include "planner/planners/match/MatchPlanner.h"
+#include "planner/planners/match/StartVidFinder.h"
+#include "planner/planners/match/ValueIndexSeek.h"
 
 namespace nebula {
 namespace graph {
@@ -26,17 +25,19 @@ void PlannersRegister::registSequential() {
 }
 
 void PlannersRegister::registMatch() {
-    // auto& planners = Planner::plannersMap()[Sentence::Kind::kMatch];
+    auto& planners = Planner::plannersMap()[Sentence::Kind::kMatch];
+
+    planners.emplace_back(&MatchPlanner::match, &MatchPlanner::make);
+
+    auto& startVidFinders = StartVidFinder::finders();
 
     // MATCH(n) WHERE id(n) = value RETURN n
     // planners.emplace_back(&MatchVertexIdSeekPlanner::match, &MatchVertexIdSeekPlanner::make);
+    // startVidFinders.emplace_back();
 
     // MATCH(n:Tag{prop:value}) RETURN n
     // MATCH(n:Tag) WHERE n.prop = value RETURN n
-    // planners.emplace_back(&MatchVertexIndexSeekPlanner::match,
-    //     &MatchVertexIndexSeekPlanner::make);
-    // planners.emplace_back(&MatchVariableLengthPatternIndexScanPlanner::match,
-    //                      &MatchVariableLengthPatternIndexScanPlanner::make);
+    startVidFinders.emplace_back(&ValueIndexSeek::match, &ValueIndexSeek::make);
 
     // MATCH(n:Tag) RETURN n;
     // planners.emplace_back(&MatchTagScanPlanner::match, &MatchTagScanPlanner::make);
