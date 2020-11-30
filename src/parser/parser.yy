@@ -154,7 +154,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_ORDER KW_ASC KW_LIMIT KW_OFFSET
 %token KW_DISTINCT KW_ALL KW_OF
 %token KW_BALANCE KW_LEADER
-%token KW_SHORTEST KW_PATH
+%token KW_SHORTEST KW_PATH KW_PROPERITES KW_WITH_PROPERITES
 %token KW_IS KW_NULL KW_DEFAULT
 %token KW_SNAPSHOT KW_SNAPSHOTS KW_LOOKUP
 %token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT KW_STATS KW_STATUS
@@ -478,6 +478,8 @@ unreserved_keyword
     | KW_SIGN               { $$ = new std::string("sign"); }
     | KW_SERVICE            { $$ = new std::string("service"); }
     | KW_TEXT_SEARCH        { $$ = new std::string("text_search"); }
+    | KW_PROPERITES         { $$ = new std::string("properites"); }
+    | KW_WITH_PROPERITES    { $$ = new std::string("with properites"); }
     ;
 
 agg_function
@@ -1668,7 +1670,7 @@ fetch_sentence
 find_path_sentence
     : KW_FIND KW_ALL KW_PATH from_clause to_clause over_clause find_path_upto_clause
     /* where_clause */ {
-        auto *s = new FindPathSentence(false);
+        auto *s = new FindPathSentence(false, false);
         s->setFrom($4);
         s->setTo($5);
         s->setOver($6);
@@ -1676,14 +1678,34 @@ find_path_sentence
         /* s->setWhere($8); */
         $$ = s;
     }
+    | KW_FIND KW_ALL KW_PATH KW_WITH_PROPERITES from_clause to_clause over_clause find_path_upto_clause
+    /* where_clause */ {
+        auto *s = new FindPathSentence(false, true);
+        s->setFrom($5);
+        s->setTo($6);
+        s->setOver($7);
+        s->setStep($8);
+        /* s->setWhere($9); */
+        $$ = s;
+    }
     | KW_FIND KW_SHORTEST KW_PATH from_clause to_clause over_clause find_path_upto_clause
     /* where_clause */ {
-        auto *s = new FindPathSentence(true);
+        auto *s = new FindPathSentence(true, false);
         s->setFrom($4);
         s->setTo($5);
         s->setOver($6);
         s->setStep($7);
         /* s->setWhere($8); */
+        $$ = s;
+    }
+    | KW_FIND KW_SHORTEST KW_PATH KW_WITH_PROPERITES from_clause to_clause over_clause find_path_upto_clause
+    /* where_clause */ {
+        auto *s = new FindPathSentence(true, true);
+        s->setFrom($5);
+        s->setTo($6);
+        s->setOver($7);
+        s->setStep($8);
+        /* s->setWhere($9); */
         $$ = s;
     }
     ;
