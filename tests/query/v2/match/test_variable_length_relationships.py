@@ -752,7 +752,7 @@ class TestVariableLengthRelationshipMatch(NebulaTestSuite):
         self.check_error_msg(resp, "SemanticError: Alias used but not defined: `e'")
 
         stmt='''
-        MATCH p=(v:player{name: 'Tim Duncan'})-[e:like|:serve*1..3]->(v1)
+        MATCH p=(v:player{name: 'Tim Duncan'})-[:like|:serve*1..3]->(v1)
         WHERE e[0].likeness+e[1].likeness>90
         RETURN p
         '''
