@@ -2729,7 +2729,7 @@ space_opt_item
         $$ = new SpaceOptItem(SpaceOptItem::VID_TYPE, *$3);
         delete $3;
     }
-    | KW_ATOMIC_EDGE ASSIGN legal_integer {
+    | KW_ATOMIC_EDGE ASSIGN BOOL {
         $$ = new SpaceOptItem(SpaceOptItem::ATOMIC_EDGE, $3);
     }
     // TODO(YT) Create Spaces for different engines

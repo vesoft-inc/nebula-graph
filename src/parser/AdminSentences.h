@@ -172,6 +172,11 @@ public:
         optValue_ = std::move(val);
     }
 
+    SpaceOptItem(OptionType op, bool val) {
+        optType_ = op;
+        optValue_ = val ? 1 : 0;
+    }
+
     int64_t asInt() const {
         return boost::get<int64_t>(optValue_);
     }
