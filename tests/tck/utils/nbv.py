@@ -7,7 +7,20 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
-from nebula2.common.ttypes import Value,List,NullType,Map,List,Set,Vertex,Tag,Edge,Path,Step
+from nebula2.common.ttypes import (
+    Value,
+    NullType,
+    Map,
+    List,
+    Set,
+    Vertex,
+    Tag,
+    Edge,
+    Path,
+    Step,
+)
+
+
 Value.__hash__ = lambda self: self.value.__hash__()
 
 
