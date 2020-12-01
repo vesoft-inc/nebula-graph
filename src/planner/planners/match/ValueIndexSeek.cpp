@@ -12,18 +12,14 @@
 
 namespace nebula {
 namespace graph {
-bool ValueIndexSeek::match(PatternContext* patternCtx) {
-    if (patternCtx->kind == PatternKind::kNode) {
-        auto* nodeCtx = static_cast<NodeContext*>(patternCtx);
-        return matchNode(nodeCtx);
-    }
-
-    if (patternCtx->kind == PatternKind::kEdge) {
-        // TODO
-        return false;
-    }
-
+bool ValueIndexSeek::matchEdge(EdgeContext* edgeCtx) {
+    UNUSED(edgeCtx);
     return false;
+}
+
+StatusOr<SubPlan> ValueIndexSeek::transformEdge(EdgeContext* edgeCtx) {
+    UNUSED(edgeCtx);
+    return Status::Error("Unimplement for edge pattern.");
 }
 
 bool ValueIndexSeek::matchNode(NodeContext* nodeCtx) {
@@ -53,20 +49,6 @@ bool ValueIndexSeek::matchNode(NodeContext* nodeCtx) {
     nodeCtx->scanInfo.schemaId = node.tid;
 
     return true;
-}
-
-StatusOr<SubPlan> ValueIndexSeek::transform(PatternContext* patternCtx) {
-    if (patternCtx->kind == PatternKind::kNode) {
-        auto* nodeCtx = static_cast<NodeContext*>(patternCtx);
-        return transformNode(nodeCtx);
-    }
-
-    if (patternCtx->kind == PatternKind::kEdge) {
-        // TODO
-        return Status::Error();
-    }
-
-    return Status::Error();
 }
 
 StatusOr<SubPlan> ValueIndexSeek::transformNode(NodeContext* nodeCtx) {

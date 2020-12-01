@@ -33,11 +33,11 @@ void PlannersRegister::registMatch() {
     auto& startVidFinders = StartVidFinder::finders();
 
     // MATCH(n) WHERE id(n) = value RETURN n
-    startVidFinders.emplace_back(&VertexIdSeek::match, &VertexIdSeek::make);
+    startVidFinders.emplace_back(&VertexIdSeek::make);
 
     // MATCH(n:Tag{prop:value}) RETURN n
     // MATCH(n:Tag) WHERE n.prop = value RETURN n
-    startVidFinders.emplace_back(&ValueIndexSeek::match, &ValueIndexSeek::make);
+    startVidFinders.emplace_back(&ValueIndexSeek::make);
 
     // MATCH(n:Tag) RETURN n;
     // planners.emplace_back(&MatchTagScanPlanner::match, &MatchTagScanPlanner::make);

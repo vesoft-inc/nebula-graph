@@ -46,8 +46,9 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
     for (size_t i = 0; i < nodeInfos.size(); ++i) {
         for (auto& finder : startVidFinders) {
             auto nodeCtx = NodeContext(matchClauseCtx, &nodeInfos[i]);
-            if (finder.match(&nodeCtx)) {
-                auto plan = finder.instantiate()->transform(&nodeCtx);
+            auto finderObj = finder();
+            if (finderObj->match(&nodeCtx)) {
+                auto plan = finderObj->transform(&nodeCtx);
                 if (!plan.ok()) {
                     return plan.status();
                 }
@@ -62,8 +63,8 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
 
             if (i != nodeInfos.size() - 1) {
                 auto edgeCtx = EdgeContext(matchClauseCtx, &edgeInfos[i]);
-                if (finder.match(&edgeCtx)) {
-                    auto plan = finder.instantiate()->transform(&edgeCtx);
+                if (finderObj->match(&edgeCtx)) {
+                    auto plan = finderObj->transform(&edgeCtx);
                     if (!plan.ok()) {
                         return plan.status();
                     }

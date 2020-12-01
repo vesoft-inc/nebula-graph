@@ -21,15 +21,15 @@ public:
         return std::unique_ptr<VertexIdSeek>(new VertexIdSeek());
     }
 
-    static bool match(PatternContext* patternCtx);
+    bool matchNode(NodeContext* nodeCtx) override;
 
-    static bool matchNode(NodeContext* nodeCtx);
+    bool matchEdge(EdgeContext* edgeCtx) override;
 
-    static StatusOr<const Expression *> extractVids(const Expression *filter);
+    StatusOr<const Expression *> extractVids(const Expression *filter);
 
-    StatusOr<SubPlan> transform(PatternContext* patternCtx) override;
+    StatusOr<SubPlan> transformNode(NodeContext* nodeCtx) override;
 
-    StatusOr<SubPlan> transformNode(NodeContext* nodeCtx);
+    StatusOr<SubPlan> transformEdge(EdgeContext* edgeCtx) override;
 
     std::pair<std::string, Expression *> listToAnnoVarVid(QueryContext *qctx, const List &list);
 

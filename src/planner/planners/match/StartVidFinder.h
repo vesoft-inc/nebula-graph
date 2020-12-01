@@ -14,25 +14,28 @@ namespace nebula {
 namespace graph {
 class StartVidFinder;
 
-using StartVidFinderMatchFunc = std::function<bool(PatternContext* ctx)>;
 using StartVidFinderInstantiateFunc = std::function<std::unique_ptr<StartVidFinder>()>;
-struct FinderMatchAndInstantiate {
-    FinderMatchAndInstantiate(StartVidFinderMatchFunc m, StartVidFinderInstantiateFunc i)
-        : match(m), instantiate(i) {}
-    StartVidFinderMatchFunc match;
-    StartVidFinderInstantiateFunc instantiate;
-};
 
 class StartVidFinder {
 public:
     virtual ~StartVidFinder() = default;
 
     static auto& finders() {
-        static std::vector<FinderMatchAndInstantiate> finders;
+        static std::vector<StartVidFinderInstantiateFunc> finders;
         return finders;
     }
 
-    virtual StatusOr<SubPlan> transform(PatternContext* patternCtx) = 0;
+    bool match(PatternContext* patternCtx);
+
+    virtual bool matchNode(NodeContext* nodeCtx) = 0;
+
+    virtual bool matchEdge(EdgeContext* nodeCtx) = 0;
+
+    StatusOr<SubPlan> transform(PatternContext* patternCtx);
+
+    virtual StatusOr<SubPlan> transformNode(NodeContext* nodeCtx) = 0;
+
+    virtual StatusOr<SubPlan> transformEdge(EdgeContext* edgeCtx) = 0;
 
 protected:
     StartVidFinder() = default;

@@ -12,18 +12,14 @@
 
 namespace nebula {
 namespace graph {
-bool VertexIdSeek::match(PatternContext* patternCtx) {
-    if (patternCtx->kind == PatternKind::kNode) {
-        auto* nodeCtx = static_cast<NodeContext*>(patternCtx);
-        return matchNode(nodeCtx);
-    }
-
-    if (patternCtx->kind == PatternKind::kEdge) {
-        // TODO
-        return false;
-    }
-
+bool VertexIdSeek::matchEdge(EdgeContext* edgeCtx) {
+    UNUSED(edgeCtx);
     return false;
+}
+
+StatusOr<SubPlan> VertexIdSeek::transformEdge(EdgeContext* edgeCtx) {
+    UNUSED(edgeCtx);
+    return Status::Error("Unimplement for edge pattern.");
 }
 
 bool VertexIdSeek::matchNode(NodeContext* nodeCtx) {
@@ -106,20 +102,6 @@ std::pair<std::string, Expression *> VertexIdSeek::constToAnnoVarVid(QueryContex
     return std::pair<std::string, Expression *>(input, src);
 }
 
-StatusOr<SubPlan> VertexIdSeek::transform(PatternContext* patternCtx) {
-    if (patternCtx->kind == PatternKind::kNode) {
-        auto* nodeCtx = static_cast<NodeContext*>(patternCtx);
-        return transformNode(nodeCtx);
-    }
-
-    if (patternCtx->kind == PatternKind::kEdge) {
-        // TODO
-        return Status::Error();
-    }
-
-    return Status::Error();
-}
-
 StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
     SubPlan plan;
     auto* matchClauseCtx = nodeCtx->matchClauseCtx;
@@ -140,8 +122,6 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
     plan.root = passThrough;
     plan.tail = passThrough;
 
-    // initialize start expression in project node
-    // initialExpr will be used by YieldColumn, so no need to handle the lifecycle by object pool.
     nodeCtx->initialExpr = vidsResult.second;
     VLOG(1) << "root: " << plan.root->kind() << " tail: " << plan.tail->kind();
     return plan;

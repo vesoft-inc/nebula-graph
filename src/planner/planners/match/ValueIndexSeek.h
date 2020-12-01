@@ -7,7 +7,6 @@
 #ifndef PLANNER_PLANNERS_MATCH_VALUEINDEXSEEK_H_
 #define PLANNER_PLANNERS_MATCH_VALUEINDEXSEEK_H_
 
-#include "context/ast/QueryAstContext.h"
 #include "planner/planners/match/StartVidFinder.h"
 
 namespace nebula {
@@ -21,13 +20,13 @@ public:
         return std::unique_ptr<ValueIndexSeek>(new ValueIndexSeek());
     }
 
-    static bool match(PatternContext* patternCtx);
+    bool matchNode(NodeContext* nodeCtx) override;
 
-    static bool matchNode(NodeContext* nodeCtx);
+    bool matchEdge(EdgeContext* edgeCtx) override;
 
-    StatusOr<SubPlan> transform(PatternContext* patternCtx) override;
+    StatusOr<SubPlan> transformNode(NodeContext* nodeCtx) override;
 
-    StatusOr<SubPlan> transformNode(NodeContext* nodeCtx);
+    StatusOr<SubPlan> transformEdge(EdgeContext* edgeCtx) override;
 
 private:
     ValueIndexSeek() = default;
