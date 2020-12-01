@@ -70,7 +70,9 @@ class DataSetWrapperComparator:
                 self.compare_list(lhs.as_list(), rhs.as_list())
         if lhs.is_set():
             return rhs.is_set() and \
-                self.compare_list(lhs.as_set(), rhs.as_set())
+                self._compare_list(lhs.as_set(),
+                                   rhs.as_set(),
+                                   self.compare_value)
         if lhs.is_map():
             return rhs.is_map() and \
                 self.compare_map(lhs.as_map(), rhs.as_map())
