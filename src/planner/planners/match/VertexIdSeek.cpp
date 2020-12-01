@@ -6,9 +6,10 @@
 
 #include "planner/planners/match/VertexIdSeek.h"
 
-#include "planner/Query.h"
+#include "planner/Logic.h"
 #include "planner/planners/match/MatchSolver.h"
 #include "util/ExpressionUtils.h"
+
 namespace nebula {
 namespace graph {
 bool VertexIdSeek::match(PatternContext* patternCtx) {
@@ -88,8 +89,7 @@ std::pair<std::string, Expression *> VertexIdSeek::listToAnnoVarVid(QueryContext
 
     qctx->ectx()->setResult(input, ResultBuilder().value(Value(std::move(vids))).finish());
 
-    auto *src = qctx->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                                        new std::string(kVid));
+    auto *src = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
     return std::pair<std::string, Expression *>(input, src);
 }
 
@@ -102,8 +102,7 @@ std::pair<std::string, Expression *> VertexIdSeek::constToAnnoVarVid(QueryContex
 
     qctx->ectx()->setResult(input, ResultBuilder().value(Value(std::move(vids))).finish());
 
-    auto *src = qctx->objPool()->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                                        new std::string(kVid));
+    auto *src = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
     return std::pair<std::string, Expression *>(input, src);
 }
 
@@ -135,14 +134,15 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
         vidsResult = constToAnnoVarVid(qctx, value);
     }
 
-    auto *ge = GetVertices::make(
-        qctx, nullptr, matchClauseCtx->space.id, vidsResult.second, {}, {});
-    ge->setInputVar(vidsResult.first);
-    plan.root = ge;
-    plan.tail = ge;
+    auto* passThrough = PassThroughNode::make(qctx, nullptr);
+    passThrough->setColNames({kVid});
+    passThrough->setOutputVar(vidsResult.first);
+    plan.root = passThrough;
+    plan.tail = passThrough;
 
     // initialize start expression in project node
-    nodeCtx->initialExpr = ExpressionUtils::newVarPropExpr(kVid);
+    // initialExpr will be used by YieldColumn, so no need to handle the lifecycle by object pool.
+    nodeCtx->initialExpr = vidsResult.second;
     VLOG(1) << "root: " << plan.root->kind() << " tail: " << plan.tail->kind();
     return plan;
 }
