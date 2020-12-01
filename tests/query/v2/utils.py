@@ -41,7 +41,7 @@ def compare_edge(edge1, edge2):
 
 
 def sort_vertex_list(rows):
-    assert len(rows) == 1
+    assert len(rows) == 1, 'rows: {}'.format(rows)
     if isinstance(rows[0], CommonTtypes.Row):
         vertex_list = list(map(lambda v: v.get_vVal(), rows[0].values[0].get_lVal().values))
         sort_vertex_list = sorted(vertex_list, key=functools.cmp_to_key(compare_vertex))
@@ -90,7 +90,7 @@ def check_subgraph(resp, expect):
     msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
     assert len(rows) == len(expect), msg
 
-    if resp.col_size():
+    if resp.col_size() == 1:
         new_rows = sort_vertex_list(rows)
         new_expect = sort_vertex_list(expect)
     else:
