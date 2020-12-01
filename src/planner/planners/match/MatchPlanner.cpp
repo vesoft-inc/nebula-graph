@@ -74,7 +74,7 @@ StatusOr<SubPlan> MatchPlanner::connectSegments(
     }
 
     SubPlan finalPlan = subplans.front();
-    for (size_t i = 1; i < subplans.size() - 1; ++i) {
+    for (size_t i = 0; i < subplans.size() - 1; ++i) {
         auto interimPlan = SegmentsConnector::connectSegments(
             clauses[i + 1].get(), clauses[i].get(), subplans[i + 1], finalPlan);
         NG_RETURN_IF_ERROR(interimPlan);

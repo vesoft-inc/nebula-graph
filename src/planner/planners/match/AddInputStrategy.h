@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_PLANNERS_MATCH_ADDDEPENDENCYSTRATEGY_H_
-#define PLANNER_PLANNERS_MATCH_ADDDEPENDENCYSTRATEGY_H_
+#ifndef PLANNER_PLANNERS_MATCH_ADDINPUTSTRATEGY_H_
+#define PLANNER_PLANNERS_MATCH_ADDINPUTSTRATEGY_H_
 
 #include "planner/PlanNode.h"
 #include "planner/planners/match/SegmentsConnector.h"
@@ -13,13 +13,17 @@
 namespace nebula {
 namespace graph {
 /*
- * The AddDependencyStrategy was designed to connect two subplan by adding dependency.
+ * The AddInputStrategy was designed to connect two subplan by adding dependency.
  */
-class AddDependencyStrategy final : public SegmentsConnectStrategy {
+class AddInputStrategy final : public SegmentsConnectStrategy {
 public:
-    AddDependencyStrategy() : SegmentsConnectStrategy(nullptr) {}
+    explicit AddInputStrategy(bool copyColNames)
+        : SegmentsConnectStrategy(nullptr), copyColNames_(copyColNames) {}
 
     PlanNode* connect(const PlanNode* left, const PlanNode* right) override;
+
+private:
+    bool copyColNames_{false};
 };
 }   // namespace graph
 }   // namespace nebula

@@ -41,6 +41,8 @@ public:
                                        const PlanNode* right);
 
     static void addDependency(const PlanNode* left, const PlanNode* right);
+
+    static void addInput(const PlanNode* left, const PlanNode* right, bool copyColNames = false);
 };
 
 class SegmentsConnectStrategy {

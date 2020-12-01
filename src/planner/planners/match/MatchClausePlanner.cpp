@@ -54,6 +54,9 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
                 matchClausePlan = std::move(plan).value();
                 startIndex = i;
                 initialExpr_ = nodeCtx.initialExpr;
+                VLOG(1) << "Find starts: " << startIndex
+                    << " node: " << matchClausePlan.root->outputVar()
+                    << " colNames: " << folly::join(",", matchClausePlan.root->colNames());
                 break;
             }
 
@@ -110,10 +113,14 @@ Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(appendFetchVertexPlan(
         nodeInfos.back().filter, matchClauseCtx->qctx, matchClauseCtx->space, &subplan));
-    auto right = subplan.root;
-    subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
-    joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, edgeInfos.size()));
-    subplan.root->setColNames(joinColNames);
+    if (!edgeInfos.empty()) {
+        auto right = subplan.root;
+        VLOG(1) << "left: " << folly::join(",", left->colNames())
+            << " right: " << folly::join(",", right->colNames());
+        subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
+        joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, edgeInfos.size()));
+        subplan.root->setColNames(joinColNames);
+    }
 
     return Status::OK();
 }
@@ -243,7 +250,7 @@ Status MatchClausePlanner::appendFilterPlan(MatchClauseContext* matchClauseCtx, 
     auto wherePlan = std::make_unique<WhereClausePlanner>()->transform(matchClauseCtx->where.get());
     NG_RETURN_IF_ERROR(wherePlan);
     auto plan = std::move(wherePlan).value();
-    SegmentsConnector::addDependency(plan.tail, subplan.root);
+    SegmentsConnector::addInput(plan.tail, subplan.root, true);
     subplan.root = plan.root;
     return Status::OK();
 }

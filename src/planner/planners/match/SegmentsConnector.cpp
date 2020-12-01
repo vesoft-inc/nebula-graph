@@ -5,8 +5,9 @@
  */
 
 #include "planner/planners/match/SegmentsConnector.h"
-#include "planner/planners/match/InnerJoinStrategy.h"
 #include "planner/planners/match/AddDependencyStrategy.h"
+#include "planner/planners/match/AddInputStrategy.h"
+#include "planner/planners/match/InnerJoinStrategy.h"
 
 namespace nebula {
 namespace graph {
@@ -15,8 +16,11 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
                                                      CypherClauseContextBase* rightCtx,
                                                      SubPlan& left,
                                                      SubPlan& right) {
-    if (leftCtx->kind == CypherClauseKind::kMatch && rightCtx->kind == CypherClauseKind::kReturn) {
-        addDependency(left.tail, right.root);
+    if (leftCtx->kind == CypherClauseKind::kReturn && rightCtx->kind == CypherClauseKind::kMatch) {
+        VLOG(1) << "left tail: " << left.tail->outputVar()
+            << "right root: " << right.root->outputVar();
+        addInput(left.tail, right.root);
+        left.tail = right.tail;
         return left;
     }
 
@@ -31,6 +35,10 @@ PlanNode* SegmentsConnector::innerJoinSegments(QueryContext* qctx,
 
 void SegmentsConnector::addDependency(const PlanNode* left, const PlanNode* right) {
     std::make_unique<AddDependencyStrategy>()->connect(left, right);
+}
+
+void SegmentsConnector::addInput(const PlanNode* left, const PlanNode* right, bool copyColNames) {
+    std::make_unique<AddInputStrategy>(copyColNames)->connect(left, right);
 }
 }  // namespace graph
 }  // namespace nebula

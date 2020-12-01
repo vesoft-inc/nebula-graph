@@ -20,6 +20,7 @@ nebula_add_library(
     planners/match/SegmentsConnector.cpp
     planners/match/InnerJoinStrategy.cpp
     planners/match/AddDependencyStrategy.cpp
+    planners/match/AddInputStrategy.cpp
     planners/match/MatchPlanner.cpp
     planners/match/MatchClausePlanner.cpp
     planners/match/ReturnClausePlanner.cpp

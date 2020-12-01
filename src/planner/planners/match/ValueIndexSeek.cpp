@@ -34,7 +34,8 @@ bool ValueIndexSeek::matchNode(NodeContext* nodeCtx) {
 
     auto* matchClauseCtx = nodeCtx->matchClauseCtx;
     Expression* filter = nullptr;
-    if (matchClauseCtx->where->filter != nullptr) {
+    if (matchClauseCtx->where != nullptr
+            && matchClauseCtx->where->filter != nullptr) {
         filter = MatchSolver::makeIndexFilter(
             *node.label, *node.alias, matchClauseCtx->where->filter.get(), matchClauseCtx->qctx);
     }

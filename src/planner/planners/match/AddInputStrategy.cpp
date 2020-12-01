@@ -4,16 +4,19 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/planners/match/AddDependencyStrategy.h"
+#include "planner/planners/match/AddInputStrategy.h"
 
 namespace nebula {
 namespace graph {
-PlanNode* AddDependencyStrategy::connect(const PlanNode* left, const PlanNode* right) {
+PlanNode* AddInputStrategy::connect(const PlanNode* left, const PlanNode* right) {
     DCHECK(left->isSingleInput());
     auto* mutableLeft = const_cast<PlanNode*>(left);
     auto* siLeft = static_cast<SingleInputNode*>(mutableLeft);
     siLeft->dependsOn(const_cast<PlanNode*>(right));
-    // siLeft->setColNames(right->colNames());
+    siLeft->setInputVar(right->outputVar());
+    if (copyColNames_) {
+        siLeft->setColNames(right->colNames());
+    }
     return nullptr;
 }
 }  // namespace graph

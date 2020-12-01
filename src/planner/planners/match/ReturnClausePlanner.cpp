@@ -29,7 +29,7 @@ StatusOr<SubPlan> ReturnClausePlanner::transform(CypherClauseContextBase* clause
 Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subPlan) {
     auto *yields = new YieldColumns();
     std::vector<std::string> colNames;
-    PlanNode *current = subPlan.root;
+    PlanNode *current = nullptr;
 
     DCHECK(rctx->aliases != nullptr);
     auto rewriter = [rctx](const Expression *expr) {
@@ -55,9 +55,10 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
         }
     }
 
-    auto *project = Project::make(rctx->qctx, current, yields);
-    project->setInputVar(current->outputVar());
+    auto *project = Project::make(rctx->qctx, nullptr, yields);
+    // project->setInputVar(current->outputVar());
     project->setColNames(std::move(colNames));
+    subPlan.tail = project;
     current = project;
 
     if (rctx->distinct) {
@@ -73,19 +74,23 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
         auto orderPlan = std::make_unique<OrderByClausePlanner>()->transform(rctx->order.get());
         NG_RETURN_IF_ERROR(orderPlan);
         auto plan = std::move(orderPlan).value();
-        SegmentsConnector::addDependency(plan.tail, subPlan.root);
+        SegmentsConnector::addInput(plan.tail, subPlan.root, true);
         subPlan.root = plan.root;
     }
 
-    if (rctx->pagination != nullptr) {
+    if (rctx->pagination != nullptr &&
+        (rctx->pagination->skip != 0 ||
+         rctx->pagination->limit != std::numeric_limits<int64_t>::max())) {
         auto paginationPlan =
             std::make_unique<PaginationPlanner>()->transform(rctx->pagination.get());
         NG_RETURN_IF_ERROR(paginationPlan);
         auto plan = std::move(paginationPlan).value();
-        SegmentsConnector::addDependency(plan.tail, subPlan.root);
+        SegmentsConnector::addInput(plan.tail, subPlan.root, true);
         subPlan.root = plan.root;
     }
 
+    VLOG(1) << "return root: " << subPlan.root->outputVar()
+            << " colNames: " << folly::join(",", subPlan.root->colNames());
     // TODO: Handle grouping
 
     return Status::OK();
