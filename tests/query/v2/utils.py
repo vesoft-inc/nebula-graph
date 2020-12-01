@@ -81,16 +81,16 @@ def sort_vertex_edge_list(rows):
 
 
 def check_subgraph(resp, expect):
-    if resp.data is None and len(expect) == 0:
+    if resp.is_empty() and len(expect) == 0:
         return True
 
-    assert resp.data is not None, 'resp.data is None'
-    rows = resp.data.rows
+    assert not resp.is_empty(), 'resp.data is None'
+    rows = resp.rows()
 
     msg = 'len(rows)[%d] != len(expect)[%d]' % (len(rows), len(expect))
     assert len(rows) == len(expect), msg
 
-    if len(resp.data.column_names) == 1:
+    if resp.col_size():
         new_rows = sort_vertex_list(rows)
         new_expect = sort_vertex_list(expect)
     else:
