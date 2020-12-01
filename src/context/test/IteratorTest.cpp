@@ -736,7 +736,7 @@ TEST(IteratorTest, EraseRange) {
 
 TEST(IteratorTest, VertexProp) {
     DataSet ds;
-    ds.colNames = {kVid, "tag1.prop1", "tag2.prop1", "tag2.prop2", "tag3.prop1", "tag3.prop2"};
+    ds.colNames = {kVid, "tag1:prop1", "tag2:prop1", "tag2:prop2", "tag3:prop1", "tag3:prop2"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         // _vid
@@ -789,14 +789,14 @@ TEST(IteratorTest, VertexProp) {
 
 TEST(IteratorTest, EdgeProp) {
     DataSet ds;
-    ds.colNames = {"like._src",
-                   "like._type",
-                   "like._rank",
-                   "like._dst",
-                   "like.prop1",
-                   "like.prop2",
-                   "serve.prop1",
-                   "serve.prop2"};
+    ds.colNames = {"like:_src",
+                   "like:_type",
+                   "like:_rank",
+                   "like:_dst",
+                   "like:prop1",
+                   "like:prop2",
+                   "serve:prop1",
+                   "serve:prop2"};
     for (auto i = 0; i < 10; ++i) {
         Row row;
         row.values.emplace_back(folly::to<std::string>(i));

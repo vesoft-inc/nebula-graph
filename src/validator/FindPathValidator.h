@@ -54,6 +54,7 @@ private:
     bool isShortest_{false};
     bool isWeight_{false};
     bool noLoop_{false};
+    bool withProperites_{false};
     Starts to_;
     Over over_;
     Steps steps_;

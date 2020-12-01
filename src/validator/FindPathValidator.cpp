@@ -16,6 +16,7 @@ Status FindPathValidator::validateImpl() {
     auto fpSentence = static_cast<FindPathSentence*>(sentence_);
     isShortest_ = fpSentence->isShortest();
     noLoop_ = fpSentence->noLoop();
+    withProperites_ = fpSentence->withProperites();
 
     NG_RETURN_IF_ERROR(validateStarts(fpSentence->from(), from_));
     NG_RETURN_IF_ERROR(validateStarts(fpSentence->to(), to_));
@@ -73,7 +74,11 @@ Status FindPathValidator::singlePairPlan() {
         qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->outputVar()});
     dataCollect->setColNames({"path"});
 
-    auto* dc = AddPathProps(dataCollect);
+    PlanNode* dc = dataCollect;
+    if (withProperites_) {
+        dc = AddPathProps(dataCollect);
+    }
+
     root_ = dc;
     tail_ = loop;
     return Status::OK();
@@ -223,7 +228,11 @@ Status FindPathValidator::allPairPaths() {
         qctx_, loop, DataCollect::CollectKind::kAllPaths, {conjunct->outputVar()});
     dataCollect->setColNames({"path"});
 
-    auto* dc = AddPathProps(dataCollect);
+    PlanNode* dc = dataCollect;
+    if (withProperites_) {
+        dc = AddPathProps(dataCollect);
+    }
+
     root_ = dc;
     tail_ = loopDepTail_ == nullptr ? projectFrom : loopDepTail_;
     return Status::OK();
@@ -367,7 +376,11 @@ Status FindPathValidator::multiPairPlan() {
         qctx_, loop, DataCollect::CollectKind::kMultiplePairShortest, {conjunct->outputVar()});
     dataCollect->setColNames({"path"});
 
-    auto* dc = AddPathProps(dataCollect);
+    PlanNode* dc = dataCollect;
+    if (withProperites_) {
+        dc = AddPathProps(dataCollect);
+    }
+
     root_ = dc;
     tail_ = loopDepTail_ == nullptr ? projectFrom : loopDepTail_;
     return Status::OK();

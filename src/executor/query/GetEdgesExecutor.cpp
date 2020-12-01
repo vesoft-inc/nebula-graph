@@ -69,6 +69,8 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
     if (ge_->src() == nullptr) {
         return Status::Error("GetEdges Path's src is nullptr");
     }
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
+    std::unordered_set<int32_t>uniqueType;
     auto iter = ectx_->getResult(inputVar).iter();
     QueryExpressionContext ctx(ectx_);
     for (; iter->valid(); iter->next()) {
@@ -84,9 +86,16 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
             auto ranking = step.ranking;
             auto dst = step.dst.vid;
             reqDs_.emplace_back(Row({src, type, ranking, dst}));
+            storage::cpp2::EdgeProp prop;
+            auto ret = uniqueType.emplace(type);
+            if (ret.second) {
+                prop.set_type(type);
+                edgeProps.emplace_back(std::move(prop));
+            }
             src = dst;
         }
     }
+    const_cast<GetEdges*>(ge_)->setProps(edgeProps);
     return Status::OK();
 }
 

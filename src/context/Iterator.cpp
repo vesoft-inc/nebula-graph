@@ -546,7 +546,7 @@ Status PropIter::makeDataSetIndex(const DataSet& ds) {
     for (size_t i = 0; i < colNames.size(); ++i) {
         dsIndex_.colIndices.emplace(colNames[i], i);
         auto& colName = colNames[i];
-        if (colName.find(".") != std::string::npos) {
+        if (colName.find(":") != std::string::npos) {
             NG_RETURN_IF_ERROR(buildPropIndex(colName, i));
         }
     }
@@ -555,7 +555,7 @@ Status PropIter::makeDataSetIndex(const DataSet& ds) {
 
 Status PropIter::buildPropIndex(const std::string& props, size_t columnId) {
     std::vector<std::string> pieces;
-    folly::split(".", props, pieces);
+    folly::split(":", props, pieces);
     if (UNLIKELY(pieces.size() != 2)) {
         return Status::Error("Bad column name format: %s", props.c_str());
     }

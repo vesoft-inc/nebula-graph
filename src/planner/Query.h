@@ -395,6 +395,10 @@ public:
         return props_;
     }
 
+    void setProps(std::vector<storage::cpp2::EdgeProp> props) {
+        props_.swap(props);
+    }
+
     const std::vector<storage::cpp2::Expr>& exprs() const {
         return exprs_;
     }

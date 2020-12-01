@@ -296,11 +296,12 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
             continue;
         }
         auto edgeVal = edge.getEdge();
-        auto src = edgeVal.src;
-        auto dst = edgeVal.dst;
+        auto srcVid = edgeVal.src;
+        auto dstVid = edgeVal.dst;
         auto type = edgeVal.type;
         auto ranking = edgeVal.ranking;
-        auto edgeKey = folly::stringPrintf("%s%s%d%ld", src.c_str(), dst.c_str(), type, ranking);
+        auto edgeKey =
+            folly::stringPrintf("%s%s%d%ld", srcVid.c_str(), dstVid.c_str(), type, ranking);
         edgeMap.insert(std::make_pair(edgeKey, std::move(edgeVal)));
     }
 
@@ -312,26 +313,26 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
             continue;
         }
         auto pathVal = path.getPath();
-        auto src = pathVal.src.vid;
-        auto found = vertexMap.find(src);
+        auto srcVid = pathVal.src.vid;
+        auto found = vertexMap.find(srcVid);
         if (found != vertexMap.end()) {
             pathVal.src = found->second;
         }
         for (auto& step : pathVal.steps) {
-            auto vid = step.dst.vid;
-            if (vertexMap.find(vid) != vertexMap.end()) {
-                auto dst = vertexMap[vid];
+            auto dstVid = step.dst.vid;
+            if (vertexMap.find(dstVid) != vertexMap.end()) {
+                auto dst = vertexMap[dstVid];
                 step.dst = dst;
             }
-            auto dst = step.dst.vid;
             auto type = step.type;
             auto ranking = step.ranking;
             auto edgeKey =
-                folly::stringPrintf("%s%s%d%ld", src.c_str(), dst.c_str(), type, ranking);
+                folly::stringPrintf("%s%s%d%ld", srcVid.c_str(), dstVid.c_str(), type, ranking);
             if (edgeMap.find(edgeKey) != edgeMap.end()) {
                 auto edge = edgeMap[edgeKey];
-                step.props.swap(edge.props);
+                step.props = edge.props;
             }
+            srcVid = dstVid;
         }
         ds.rows.emplace_back(Row({std::move(pathVal)}));
     }
