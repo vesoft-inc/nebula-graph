@@ -3,12 +3,21 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-from nebula2.data.DataObject import DataSetWrapper, Record
+import math
+
+from nebula2.data.DataObject import (
+    Node,
+    Record,
+    Relationship,
+    Path,
+    DataSetWrapper,
+    ValueWrapper,
+)
 
 
 class DataSetWrapperComparator:
-    def __init__(self, relax=False, order=False):
-        self._relax = relax
+    def __init__(self, strict=True, order=False):
+        self._strict = strict
         self._order = order
 
     def __call__(self, lhs: DataSetWrapper, rhs: DataSetWrapper):
@@ -17,32 +26,135 @@ class DataSetWrapperComparator:
     def compare(self, lhs: DataSetWrapper, rhs: DataSetWrapper):
         if lhs.get_row_size() != rhs.get_row_size():
             return False
-        if lhs.get_col_names() != rhs.get_col_names():
+        if not self._compare_list(lhs.get_col_names(),
+                                  rhs.get_col_names(),
+                                  lambda x, y: x == y):
             return False
         if self._order:
-            return self.compare_in_order(lhs, rhs)
-        return self.compare_out_of_order(lhs, rhs)
+            return all(self.compare_row(l, r) for (l, r) in zip(lhs, rhs))
+        return self._compare_list(lhs, rhs, self.compare_row)
+
+    def compare_value(self, lhs: ValueWrapper, rhs: ValueWrapper):
+        '''
+        lhs and rhs represent response data and expected data respectively
+        '''
+        if lhs.is_null():
+            return rhs.is_null()
+        if lhs.is_empty():
+            return rhs.is_empty()
+        if lhs.is_bool():
+            return rhs.is_bool() and lhs.as_bool() == rhs.as_bool()
+        if lhs.is_int():
+            return rhs.is_int() and lhs.as_int() == rhs.as_int()
+        if lhs.is_double():
+            return rhs.is_double() and \
+                math.fabs(lhs.as_double() - rhs.as_double()) < 1.0E-8
+        if lhs.is_string():
+            return rhs.is_string() and lhs.as_string() == rhs.as_string()
+        if lhs.is_date():
+            return (rhs.is_date() and lhs.as_date() == rhs.as_date()) or (
+                rhs.is_string() and str(lhs.as_date()) == rhs.as_string()
+            )
+        if lhs.is_time():
+            return (rhs.is_time() and lhs.as_time() == rhs.as_time()) or (
+                rhs.is_string() and str(lhs.as_time()) == rhs.as_string()
+            )
+        if lhs.is_datetime():
+            return (
+                rhs.is_datetime() and lhs.as_datetime() == rhs.as_datetime()
+            ) or (
+                rhs.is_string() and str(lhs.as_datetime()) == rhs.as_string()
+            )
+        if lhs.is_list():
+            return rhs.is_list() and \
+                self.compare_list(lhs.as_list(), rhs.as_list())
+        if lhs.is_set():
+            return rhs.is_set() and \
+                self.compare_list(lhs.as_set(), rhs.as_set())
+        if lhs.is_map():
+            return rhs.is_map() and \
+                self.compare_map(lhs.as_map(), rhs.as_map())
+        if lhs.is_vertex():
+            return rhs.is_vertex() and \
+                self.compare_node(lhs.as_node(), rhs.as_node())
+        if lhs.is_edge():
+            return rhs.is_edge() and \
+                self.compare_edge(lhs.as_relationship(), rhs.as_relationship())
+        if lhs.is_path():
+            return rhs.is_path() and \
+                self.compare_path(lhs.as_path(), rhs.as_path())
+        return False
+
+    def compare_path(self, lhs: Path, rhs: Path):
+        for (ls, rs) in zip(lhs, rhs):
+            if not (self.compare_node(ls.start_node, rs.start_node) and
+                    self.compare_node(ls.end_node, rs.end_node) and
+                    self.compare_edge(ls.relationship, rs.relationship)):
+                return False
+        return True
+
+    def compare_edge(self, lhs: Relationship, rhs: Relationship):
+        if not lhs == rhs:
+            return False
+        if not self._strict:
+            return True
+        return self.compare_map(lhs.propertys(), rhs.propertys())
+
+    def compare_node(self, lhs: Node, rhs: Node):
+        if lhs.get_id() != rhs.get_id():
+            return False
+        if not self._strict:
+            return True
+        for tag in lhs.tags():
+            if not rhs.has_tag(tag):
+                return False
+            lprops = lhs.propertys(tag)
+            rprops = rhs.propertys(tag)
+            if not self.compare_map(lprops, rprops):
+                return False
+        return True
+
+    def compare_map(self, lhs: dict, rhs: dict):
+        if len(lhs) != len(rhs):
+            return False
+        for lkey, lvalue in lhs.items():
+            if lkey not in rhs:
+                return False
+            rvalue = rhs[lkey]
+            if not self.compare_value(lvalue, rvalue):
+                return False
+        return True
+
+    def compare_list(self, lhs, rhs):
+        if len(lhs) != len(rhs):
+            return False
+        if self._strict:
+            return all(self.compare_value(l, r) for (l, r) in zip(lhs, rhs))
+        return self._compare_list(lhs, rhs, self.compare_value)
 
     def compare_row(self, lrecord: Record, rrecord: Record):
         if lrecord.size() == rrecord.size():
             return False
-        # TODO(yee): Add strict compare in nebula2 client
-        #   lr.eq(rr, strict=(not self._relax))
-        return all(l == r for (l, r) in zip(lrecord, rrecord))
+        for name in lrecord._names:
+            if name not in rrecord._names:
+                return False
+            lval = lrecord._record[lrecord._names.index(name)]
+            rval = rrecord._record[rrecord._names.index(name)]
+            if not self.compare_value(lval, rval):
+                return False
+        return True
 
-    def compare_in_order(self, lhs: DataSetWrapper, rhs: DataSetWrapper):
-        return all(self.compare_row(l, r) for (l, r) in zip(lhs, rhs))
-
-    def compare_out_of_order(self, lhs: DataSetWrapper, rhs: DataSetWrapper):
+    def _compare_list(self, lhs, rhs, cmp_fn):
         visited = []
+        size = 0
         for lr in lhs:
+            size += 1
             found = False
             for i, rr in enumerate(rhs):
-                if i not in visited and self.compare_row(lr, rr):
+                if i not in visited and cmp_fn(lr, rr):
                     visited.append(i)
                     found = True
                     break
             if not found:
                 return False
-        assert len(visited) == rhs.get_row_size()
-        return True
+        return len(visited) == size
