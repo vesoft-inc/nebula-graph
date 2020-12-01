@@ -43,7 +43,7 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
     }
     auto iter = ectx_->getResult(inputVar).iter();
     QueryExpressionContext ctx(ectx_);
-
+    std::unordered_set<std::string> uniqueVid;
     for (; iter->valid(); iter->next()) {
         auto path = gv_->src()->eval(ctx(iter.get()));
         VLOG(1) << "path is :" << path;
@@ -51,10 +51,17 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
             return Status::Error("GetVertices's Type: %s, should be PATH", path.typeName().c_str());
         }
         auto pathVal = path.getPath();
-        reqDs_.rows.emplace_back(Row({pathVal.src.vid}));
+        auto srcVid = pathVal.src.vid;
+        auto ret = uniqueVid.emplace(srcVid);
+        if (ret.second) {
+            reqDs_.rows.emplace_back(Row({std::move(srcVid)}));
+        }
         for (auto& step : pathVal.steps) {
             auto vid = step.dst.vid;
-            reqDs_.rows.emplace_back(Row({std::move(vid)}));
+            ret = uniqueVid.emplace(vid);
+            if (ret.second) {
+                reqDs_.rows.emplace_back(Row({std::move(vid)}));
+            }
         }
     }
     return Status::OK();
