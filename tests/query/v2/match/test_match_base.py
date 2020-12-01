@@ -574,6 +574,14 @@ class TestMatchBase(NebulaTestSuite):
                   ['Tony Parker', ['player']]]
         self.check_out_of_order_result(resp, result)
 
+        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) == "Paul George" RETURN *'
+        resp = self.execute(stmt)
+        self.check_resp_succeeded(resp)
+
+        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) IN ["Paul George", "not_exist_vertex"] RETURN *'
+        resp = self.execute(stmt)
+        self.check_resp_succeeded(resp)
+
     def test_return_path(self):
         VERTICES, EDGES = self.VERTEXS, self.EDGES
 
@@ -741,11 +749,3 @@ class TestMatchBase(NebulaTestSuite):
         resp = self.execute(stmt)
         self.check_resp_failed(resp)
 
-        # query edge by id
-        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) == "Paul George" RETURN *'
-        resp = self.execute(stmt)
-        self.check_resp_failed(resp)
-
-        stmt = 'MATCH (start)-[e]-(end) WHERE id(start) IN ["Paul George", "not_exist_vertex"] RETURN *'
-        resp = self.execute(stmt)
-        self.check_resp_failed(resp)
