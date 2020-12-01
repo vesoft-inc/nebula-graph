@@ -261,6 +261,8 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     }
     NG_RETURN_IF_ERROR(validateAliases(exprs, *retClauseCtx.aliases));
 
+    retClauseCtx.distinct = ret->isDistinct();
+
     auto *skipExpr = ret->skip();
     auto *limitExpr = ret->limit();
     int64_t skip = 0;

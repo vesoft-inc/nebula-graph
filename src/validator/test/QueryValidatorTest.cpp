@@ -1283,6 +1283,12 @@ TEST_F(QueryValidatorTest, Debug) {
         std::vector<PlanNode::Kind> expected;
         EXPECT_TRUE(checkResult(query, expected));
     }
+    {
+        std::string query = "MATCH (:person{name:'Dwyane Wade'}) -[:like]-> () -[:like]-> (v3) "
+                            "RETURN DISTINCT v3.name AS Name";
+        std::vector<PlanNode::Kind> expected;
+        EXPECT_TRUE(checkResult(query, expected));
+    }
 }
 
 
