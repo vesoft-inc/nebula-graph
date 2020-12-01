@@ -147,8 +147,7 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
         RewriteMatchLabelVisitor visitor([](const Expression* expr) {
             DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
             auto la = static_cast<const LabelAttributeExpression*>(expr);
-            auto attr = new LabelExpression(*la->right()->name());
-            return new AttributeExpression(new VertexExpression(), attr);
+            return new AttributeExpression(new VertexExpression(), la->right()->clone().release());
         });
         filter->accept(&visitor);
         root = Filter::make(qctx, root, filter);

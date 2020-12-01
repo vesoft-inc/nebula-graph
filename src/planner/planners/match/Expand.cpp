@@ -117,8 +117,7 @@ Status Expand::expandStep(const EdgeInfo &edge,
         RewriteMatchLabelVisitor visitor([](const Expression *expr) {
             DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
             auto la = static_cast<const LabelAttributeExpression *>(expr);
-            auto attr = new LabelExpression(*la->right()->name());
-            return new AttributeExpression(new VertexExpression(), attr);
+            return new AttributeExpression(new VertexExpression(), la->right()->clone().release());
         });
         filter->accept(&visitor);
         auto filterNode = Filter::make(matchCtx_->qctx, root, filter);
@@ -130,8 +129,7 @@ Status Expand::expandStep(const EdgeInfo &edge,
         RewriteMatchLabelVisitor visitor([](const Expression *expr) {
             DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
             auto la = static_cast<const LabelAttributeExpression *>(expr);
-            auto attr = new LabelExpression(*la->right()->name());
-            return new AttributeExpression(new EdgeExpression(), attr);
+            return new AttributeExpression(new EdgeExpression(), la->right()->clone().release());
         });
         auto filter = edge.filter->clone().release();
         filter->accept(&visitor);
