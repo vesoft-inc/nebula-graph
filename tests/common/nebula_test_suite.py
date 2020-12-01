@@ -121,7 +121,7 @@ class NebulaTestSuite(object):
     @classmethod
     def create_nebula_clients(self):
         config = Config()
-        config.max_connection_pool_size = 16
+        config.max_connection_pool_size = 20
         config.timeout = 60000
         # init connection pool
         self.client_pool = ConnectionPool()

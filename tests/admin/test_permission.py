@@ -73,11 +73,6 @@ class TestPermission(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
 
-        self.adminClient.release()
-        self.dbaClient.release()
-        self.userClient.release()
-        self.guestClient.release()
-
     def test_simple(self):
         # incorrect user/password
         ret, _ = self.spawn_nebula_client_and_auth('test', 'pwd')
