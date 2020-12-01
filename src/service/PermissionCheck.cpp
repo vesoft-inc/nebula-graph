@@ -73,7 +73,9 @@ Status PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kSetConfig:
         case Sentence::Kind::kGetConfig:
         case Sentence::Kind::kIngest:
-        case Sentence::Kind::kDownload: {
+        case Sentence::Kind::kDownload:
+        case Sentence::Kind::kSignOutTSService:
+        case Sentence::Kind::kSignInTSService: {
             return PermissionManager::canWriteSpace(session);
         }
         case Sentence::Kind::kCreateTag:
@@ -85,7 +87,9 @@ Status PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kCreateTagIndex:
         case Sentence::Kind::kCreateEdgeIndex:
         case Sentence::Kind::kDropTagIndex:
-        case Sentence::Kind::kDropEdgeIndex: {
+        case Sentence::Kind::kDropEdgeIndex:
+        case Sentence::Kind::kAddListener:
+        case Sentence::Kind::kRemoveListener: {
             return PermissionManager::canWriteSchema(session);
         }
         case Sentence::Kind::kCreateUser:
@@ -135,12 +139,16 @@ Status PermissionCheck::permissionCheck(Session *session,
         case Sentence::Kind::kShowParts:
         case Sentence::Kind::kShowTags:
         case Sentence::Kind::kShowEdges:
+        case Sentence::Kind::kShowStats:
         case Sentence::Kind::kShowTagIndexes:
         case Sentence::Kind::kShowEdgeIndexes:
+        case Sentence::Kind::kShowTagIndexStatus:
+        case Sentence::Kind::kShowEdgeIndexStatus:
         case Sentence::Kind::kShowCreateTag:
         case Sentence::Kind::kShowCreateEdge:
         case Sentence::Kind::kShowCreateTagIndex:
-        case Sentence::Kind::kShowCreateEdgeIndex: {
+        case Sentence::Kind::kShowCreateEdgeIndex:
+        case Sentence::Kind::kShowListener: {
             /**
              * Above operations can get the space id via session,
              * so the permission same with canReadSchemaOrData.
@@ -171,14 +179,15 @@ Status PermissionCheck::permissionCheck(Session *session,
             return PermissionManager::canReadSpace(session, targetSpace);
         }
         case Sentence::Kind::kShowUsers:
-        case Sentence::Kind::kShowSnapshots: {
+        case Sentence::Kind::kShowSnapshots:
+        case Sentence::Kind::kShowTSClients: {
             /**
              * Only GOD role can be show.
              */
             if (session->isGod()) {
                 return Status::OK();
             } else {
-                return Status::PermissionError("No permission to show users/snapshots");
+                return Status::PermissionError("No permission to show users/snapshots/textClients");
             }
         }
         case Sentence::Kind::kChangePassword: {

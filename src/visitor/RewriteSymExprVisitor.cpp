@@ -43,8 +43,9 @@ void RewriteSymExprVisitor::visit(LabelExpression *expr) {
 
 void RewriteSymExprVisitor::visit(LabelAttributeExpression *expr) {
     if (isEdge_) {
-        expr_ = std::make_unique<EdgePropertyExpression>(new std::string(*expr->left()->name()),
-                                                         new std::string(*expr->right()->name()));
+        expr_ = std::make_unique<EdgePropertyExpression>(
+            new std::string(*expr->left()->name()),
+            new std::string(expr->right()->value().getStr()));
         hasWrongType_ = false;
     } else {
         hasWrongType_ = true;
@@ -201,6 +202,11 @@ void RewriteSymExprVisitor::visit(VertexExpression *expr) {
 }
 
 void RewriteSymExprVisitor::visit(EdgeExpression *expr) {
+    UNUSED(expr);
+    expr_.reset();
+}
+
+void RewriteSymExprVisitor::visit(ColumnExpression *expr) {
     UNUSED(expr);
     expr_.reset();
 }

@@ -23,6 +23,10 @@ folly::Future<Status> IndexScanExecutor::execute() {
 folly::Future<Status> IndexScanExecutor::indexScan() {
     GraphStorageClient* storageClient = qctx_->getStorageClient();
     auto *lookup = asNode<IndexScan>(node());
+    if (lookup->isEmptyResultSet()) {
+        DataSet dataSet({"dummy"});
+        return finish(ResultBuilder().value(Value(std::move(dataSet))).finish());
+    }
     return storageClient->lookupIndex(lookup->space(),
                                       *lookup->queryContext(),
                                       lookup->isEdge(),
@@ -54,6 +58,9 @@ Status IndexScanExecutor::handleResp(storage::StorageRpcResponse<Resp> &&rpcResp
             state = Result::State::kPartialSuccess;
         }
     }
+    // TODO(yee): Unify the response structure of IndexScan and GetProps and change the following
+    // iterator to PropIter type
+    VLOG(2) << "Dataset produced by IndexScan: \n" << v << "\n";
     return finish(ResultBuilder()
                       .value(std::move(v))
                       .iter(Iterator::Kind::kSequential)

@@ -177,6 +177,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescribeTagIndexValidator>(sentence, context);
         case Sentence::Kind::kShowTagIndexes:
             return std::make_unique<ShowTagIndexesValidator>(sentence, context);
+        case Sentence::Kind::kShowTagIndexStatus:
+            return std::make_unique<ShowTagIndexStatusValidator>(sentence, context);
         case Sentence::Kind::kDropTagIndex:
             return std::make_unique<DropTagIndexValidator>(sentence, context);
         case Sentence::Kind::kCreateEdgeIndex:
@@ -187,6 +189,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<DescribeEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kShowEdgeIndexes:
             return std::make_unique<ShowEdgeIndexesValidator>(sentence, context);
+        case Sentence::Kind::kShowEdgeIndexStatus:
+            return std::make_unique<ShowEdgeIndexStatusValidator>(sentence, context);
         case Sentence::Kind::kDropEdgeIndex:
             return std::make_unique<DropEdgeIndexValidator>(sentence, context);
         case Sentence::Kind::kLookup:
@@ -215,6 +219,20 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<AddHostIntoZoneValidator>(sentence, context);
         case Sentence::Kind::kDropHostFromZone:
             return std::make_unique<DropHostFromZoneValidator>(sentence, context);
+        case Sentence::Kind::kAddListener:
+            return std::make_unique<AddListenerValidator>(sentence, context);
+        case Sentence::Kind::kRemoveListener:
+            return std::make_unique<RemoveListenerValidator>(sentence, context);
+        case Sentence::Kind::kShowListener:
+            return std::make_unique<ShowListenerValidator>(sentence, context);
+        case Sentence::Kind::kShowStats:
+            return std::make_unique<ShowStatusValidator>(sentence, context);
+        case Sentence::Kind::kShowTSClients:
+            return std::make_unique<ShowTSClientsValidator>(sentence, context);
+        case Sentence::Kind::kSignInTSService:
+            return std::make_unique<SignInTSServiceValidator>(sentence, context);
+        case Sentence::Kind::kSignOutTSService:
+            return std::make_unique<SignOutTSServiceValidator>(sentence, context);
         case Sentence::Kind::kShowGroups:
         case Sentence::Kind::kShowZones:
         case Sentence::Kind::kUnknown:

@@ -153,6 +153,7 @@ TEST(Scanner, Basic) {
         CHECK_SEMANTIC_TYPE("==", TokenType::EQ),
         CHECK_SEMANTIC_TYPE("!=", TokenType::NE),
         CHECK_SEMANTIC_TYPE("<>", TokenType::NE),
+        CHECK_SEMANTIC_TYPE("=~", TokenType::REG),
 
         CHECK_SEMANTIC_TYPE("|", TokenType::PIPE),
         CHECK_SEMANTIC_TYPE("=", TokenType::ASSIGN),
@@ -471,6 +472,9 @@ TEST(Scanner, Basic) {
         CHECK_SEMANTIC_TYPE("INTO", TokenType::KW_INTO),
         CHECK_SEMANTIC_TYPE("Into", TokenType::KW_INTO),
         CHECK_SEMANTIC_TYPE("into", TokenType::KW_INTO),
+        CHECK_SEMANTIC_TYPE("STATS", TokenType::KW_STATS),
+        CHECK_SEMANTIC_TYPE("Stats", TokenType::KW_STATS),
+        CHECK_SEMANTIC_TYPE("stats", TokenType::KW_STATS),
 
         CHECK_SEMANTIC_TYPE("_type", TokenType::TYPE_PROP),
         CHECK_SEMANTIC_TYPE("_id", TokenType::ID_PROP),

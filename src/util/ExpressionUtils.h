@@ -103,8 +103,9 @@ public:
               typename = std::enable_if_t<std::is_same<To, EdgePropertyExpression>::value ||
                                           std::is_same<To, TagPropertyExpression>::value>>
     static To* rewriteLabelAttribute(LabelAttributeExpression* expr) {
+        const auto& value = expr->right()->value();
         return new To(new std::string(std::move(*expr->left()->name())),
-                      new std::string(std::move(*expr->right()->name())));
+                      new std::string(value.getStr()));
     }
 
     // Clone and fold constant expression
@@ -117,6 +118,14 @@ public:
     static Expression* pullOrs(Expression *expr);
     static void pullOrsImpl(LogicalExpression *expr,
                             std::vector<std::unique_ptr<Expression>> &operands);
+
+    static VariablePropertyExpression* newVarPropExpr(const std::string& prop,
+                                                      const std::string& var = "");
+
+    static std::unique_ptr<InputPropertyExpression> inputPropExpr(const std::string& prop);
+
+    static std::unique_ptr<Expression> pushOrs(
+        const std::vector<std::unique_ptr<RelationalExpression>>& rels);
 };
 
 }   // namespace graph

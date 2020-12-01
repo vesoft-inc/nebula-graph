@@ -7,10 +7,13 @@ spec:
     metadata:
       name: nebula-test
     spec:
-      restartPolicy: Never
       containers:
         - name: nebula-test
           image: vesoft/nebula-dev:centos7
           command: ["bash", "-c"]
           args:
             - "git clone --single-branch -b master https://github.com/vesoft-inc/nebula-graph && ./nebula-graph/ci/test.sh k8s"
+      restartPolicy: Never
+  ttlSecondsAfterFinished: 2
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800

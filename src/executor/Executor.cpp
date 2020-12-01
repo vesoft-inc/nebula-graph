@@ -29,6 +29,7 @@
 #include "executor/admin/ShowBalanceExecutor.h"
 #include "executor/admin/ShowHostsExecutor.h"
 #include "executor/admin/SnapshotExecutor.h"
+#include "executor/admin/ListenerExecutor.h"
 #include "executor/admin/SpaceExecutor.h"
 #include "executor/admin/StopBalanceExecutor.h"
 #include "executor/admin/SubmitJobExecutor.h"
@@ -36,6 +37,10 @@
 #include "executor/admin/UpdateUserExecutor.h"
 #include "executor/admin/GroupExecutor.h"
 #include "executor/admin/ZoneExecutor.h"
+#include "executor/admin/ShowStatsExecutor.h"
+#include "executor/admin/ShowTSClientsExecutor.h"
+#include "executor/admin/SignInTSServiceExecutor.h"
+#include "executor/admin/SignOutTSServiceExecutor.h"
 #include "executor/algo/BFSShortestPathExecutor.h"
 #include "executor/algo/ProduceSemiShortestPathExecutor.h"
 #include "executor/algo/ConjunctPathExecutor.h"
@@ -282,6 +287,12 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kShowEdgeIndexes: {
             return pool->add(new ShowEdgeIndexesExecutor(node, qctx));
         }
+        case PlanNode::Kind::kShowTagIndexStatus: {
+            return pool->add(new ShowTagIndexStatusExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowEdgeIndexStatus: {
+            return pool->add(new ShowEdgeIndexStatusExecutor(node, qctx));
+        }
         case PlanNode::Kind::kInsertVertices: {
             return pool->add(new InsertVerticesExecutor(node, qctx));
         }
@@ -428,6 +439,27 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kShowZones: {
             return pool->add(new ListZonesExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kAddListener: {
+            return pool->add(new AddListenerExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kRemoveListener: {
+            return pool->add(new RemoveListenerExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowListener: {
+            return pool->add(new ShowListenerExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowStats: {
+            return pool->add(new ShowStatsExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kShowTSClients: {
+            return pool->add(new ShowTSClientsExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kSignInTSService: {
+            return pool->add(new SignInTSServiceExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kSignOutTSService: {
+            return pool->add(new SignOutTSServiceExecutor(node, qctx));
         }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());

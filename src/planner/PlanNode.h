@@ -72,6 +72,8 @@ public:
         kShowCreateEdgeIndex,
         kShowTagIndexes,
         kShowEdgeIndexes,
+        kShowTagIndexStatus,
+        kShowEdgeIndexStatus,
         kInsertVertices,
         kInsertEdges,
         kBalanceLeaders,
@@ -102,6 +104,7 @@ public:
         kShowParts,
         kShowCharset,
         kShowCollation,
+        kShowStats,
         kShowConfigs,
         kShowGroups,
         kShowZones,
@@ -123,6 +126,14 @@ public:
         kDescribeZone,
         kAddHostIntoZone,
         kDropHostFromZone,
+        // listener related
+        kAddListener,
+        kRemoveListener,
+        kShowListener,
+        // text service related
+        kShowTSClients,
+        kSignInTSService,
+        kSignOutTSService,
     };
 
     PlanNode(QueryContext* qctx, Kind kind);

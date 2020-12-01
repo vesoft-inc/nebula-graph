@@ -312,7 +312,7 @@ void DeduceTypeVisitor::visit(AttributeExpression *expr) {
     if (type_ != Value::Type::STRING && !isSuperiorType(type_)) {
         std::stringstream ss;
         ss << "`" << expr->toString()
-           << "', expected an valid identifier: " << expr->left()->toString();
+           << "', expected an valid identifier: " << expr->right()->toString();
         status_ = Status::SemanticError(ss.str());
         return;
     }
@@ -350,12 +350,12 @@ void DeduceTypeVisitor::visit(LabelAttributeExpression *expr) {
         return;
     }
 
-    const_cast<LabelExpression*>(expr->right())->accept(this);
+    const_cast<ConstantExpression*>(expr->right())->accept(this);
     if (!ok()) return;
     if (type_ != Value::Type::STRING && !isSuperiorType(type_)) {
         std::stringstream ss;
         ss << "`" << expr->toString()
-           << "', expected an valid identifier: " << expr->left()->toString();
+           << "', expected an valid identifier: " << expr->right()->toString();
         status_ = Status::SemanticError(ss.str());
         return;
     }
@@ -497,6 +497,10 @@ void DeduceTypeVisitor::visit(VertexExpression *) {
 
 void DeduceTypeVisitor::visit(EdgeExpression *) {
     type_ = Value::Type::EDGE;
+}
+
+void DeduceTypeVisitor::visit(ColumnExpression *) {
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(CaseExpression *expr) {

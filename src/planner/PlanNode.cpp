@@ -147,6 +147,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "kShowTagIndexes";
         case Kind::kShowEdgeIndexes:
             return "kShowEdgeIndexes";
+        case Kind::kShowTagIndexStatus:
+            return "kShowTagIndexStatus";
+        case Kind::kShowEdgeIndexStatus:
+            return "kShowEdgeIndexStatus";
         case Kind::kCreateSnapshot:
             return "CreateSnapshot";
         case Kind::kDropSnapshot:
@@ -222,6 +226,21 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowGroups";
         case Kind::kShowZones:
             return "ShowZones";
+        case Kind::kAddListener:
+            return "AddListener";
+        case Kind::kRemoveListener:
+            return "RemoveListener";
+        case Kind::kShowListener:
+            return "ShowListener";
+        case Kind::kShowStats:
+            return "ShowStats";
+        // text search
+        case Kind::kShowTSClients:
+            return "ShowTSClients";
+        case Kind::kSignInTSService:
+            return "SignInTSService";
+        case Kind::kSignOutTSService:
+            return "SignOutTSService";
         // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);

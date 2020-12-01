@@ -6,6 +6,9 @@
 
 #include "util/ExpressionUtils.h"
 
+#include <memory>
+
+#include "common/expression/PropertyExpression.h"
 #include "visitor/FoldConstantExprVisitor.h"
 
 namespace nebula {
@@ -63,5 +66,28 @@ ExpressionUtils::pullOrsImpl(LogicalExpression *expr,
     }
 }
 
+VariablePropertyExpression *ExpressionUtils::newVarPropExpr(const std::string &prop,
+                                                            const std::string &var) {
+    return new VariablePropertyExpression(new std::string(var), new std::string(prop));
+}
+
+std::unique_ptr<InputPropertyExpression> ExpressionUtils::inputPropExpr(const std::string &prop) {
+    return std::make_unique<InputPropertyExpression>(new std::string(prop));
+}
+
+std::unique_ptr<Expression>
+ExpressionUtils::pushOrs(const std::vector<std::unique_ptr<RelationalExpression>>& rels) {
+    DCHECK_GT(rels.size(), 1);
+    auto root = std::make_unique<LogicalExpression>(Expression::Kind::kLogicalOr);
+    root->addOperand(rels[0]->clone().release());
+    root->addOperand(rels[1]->clone().release());
+    for (size_t i = 2; i < rels.size(); i++) {
+        auto l = std::make_unique<LogicalExpression>(Expression::Kind::kLogicalOr);
+        l->addOperand(root->clone().release());
+        l->addOperand(rels[i]->clone().release());
+        root = std::move(l);
+    }
+    return root;
+}
 }   // namespace graph
 }   // namespace nebula

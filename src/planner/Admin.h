@@ -344,6 +344,72 @@ private:
         : SingleInputNode(qctx, Kind::kShowSnapshots, input) {}
 };
 
+class AddListener final : public SingleInputNode {
+public:
+    static AddListener* make(QueryContext* qctx,
+                             PlanNode* input,
+                             meta::cpp2::ListenerType type,
+                             std::vector<HostAddr> hosts) {
+        return qctx->objPool()->add(
+            new AddListener(qctx, input, std::move(type), std::move(hosts)));
+    }
+
+    const meta::cpp2::ListenerType& type() const {
+        return type_;
+    }
+
+    const std::vector<HostAddr> hosts() const {
+        return hosts_;
+    }
+
+private:
+    explicit AddListener(QueryContext* qctx,
+                         PlanNode* input,
+                         meta::cpp2::ListenerType type,
+                         std::vector<HostAddr> hosts)
+        : SingleInputNode(qctx, Kind::kAddListener, input) {
+        type_ = std::move(type);
+        hosts_ = std::move(hosts);
+    }
+
+private:
+    meta::cpp2::ListenerType type_;
+    std::vector<HostAddr> hosts_;
+};
+
+class RemoveListener final : public SingleInputNode {
+public:
+    static RemoveListener* make(QueryContext* qctx,
+                                PlanNode* input,
+                                meta::cpp2::ListenerType type) {
+        return qctx->objPool()->add(new RemoveListener(qctx, input, std::move(type)));
+    }
+
+    const meta::cpp2::ListenerType& type() const {
+        return type_;
+    }
+
+private:
+    explicit RemoveListener(QueryContext* qctx, PlanNode* input, meta::cpp2::ListenerType type)
+        : SingleInputNode(qctx, Kind::kRemoveListener, input) {
+        type_ = std::move(type);
+    }
+
+private:
+    meta::cpp2::ListenerType type_;
+};
+
+class ShowListener final : public SingleInputNode {
+public:
+    static ShowListener* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ShowListener(qctx, input));
+    }
+
+private:
+    explicit ShowListener(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kShowListener, input) {}
+};
+
 class Download final : public SingleInputNode {
 public:
 };
@@ -661,8 +727,9 @@ public:
     static SubmitJob* make(QueryContext* qctx,
                            PlanNode* dep,
                            meta::cpp2::AdminJobOp op,
+                           meta::cpp2::AdminCmd cmd,
                            const std::vector<std::string>& params) {
-        return qctx->objPool()->add(new SubmitJob(qctx, dep, op, params));
+        return qctx->objPool()->add(new SubmitJob(qctx, dep, op, cmd, params));
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
@@ -684,9 +751,11 @@ private:
     SubmitJob(QueryContext* qctx,
               PlanNode* dep,
               meta::cpp2::AdminJobOp op,
+              meta::cpp2::AdminCmd cmd,
               const std::vector<std::string> &params)
         : SingleDependencyNode(qctx, Kind::kSubmitJob, dep),
           op_(op),
+          cmd_(cmd),
           params_(params) {}
 
 
@@ -1133,6 +1202,63 @@ private:
         : SingleInputNode(qctx, Kind::kShowZones, input) {}
 };
 
+class ShowStats final : public SingleInputNode {
+public:
+    static ShowStats* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ShowStats(qctx, input));
+    }
+
+private:
+    ShowStats(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kShowStats, input) {}
+};
+
+class ShowTSClients final : public SingleInputNode {
+public:
+    static ShowTSClients* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new ShowTSClients(qctx, input));
+    }
+
+private:
+    ShowTSClients(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kShowTSClients, input) {}
+};
+
+class SignInTSService final : public SingleInputNode {
+public:
+    static SignInTSService* make(QueryContext* qctx,
+                                  PlanNode* input,
+                                  std::vector<meta::cpp2::FTClient> clients) {
+        return qctx->objPool()->add(new SignInTSService(qctx, input, std::move(clients)));
+    }
+
+    const std::vector<meta::cpp2::FTClient> &clients() const {
+        return clients_;
+    }
+
+    meta::cpp2::FTServiceType type() const {
+        return meta::cpp2::FTServiceType::ELASTICSEARCH;
+    }
+
+private:
+    SignInTSService(QueryContext* qctx, PlanNode* input, std::vector<meta::cpp2::FTClient> clients)
+        : SingleInputNode(qctx, Kind::kSignInTSService, input),
+          clients_(std::move(clients)) {}
+
+    std::vector<meta::cpp2::FTClient> clients_;
+};
+
+class SignOutTSService final : public SingleInputNode {
+public:
+    static SignOutTSService* make(QueryContext* qctx,
+                                  PlanNode* input) {
+        return qctx->objPool()->add(new SignOutTSService(qctx, input));
+    }
+
+private:
+    SignOutTSService(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kSignOutTSService, input) {}
+};
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ADMIN_H_
