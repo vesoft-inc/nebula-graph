@@ -11,6 +11,7 @@
 #include "planner/planners/match/MatchPlanner.h"
 #include "planner/planners/match/StartVidFinder.h"
 #include "planner/planners/match/ValueIndexSeek.h"
+#include "planner/planners/match/VertexIdSeek.h"
 
 namespace nebula {
 namespace graph {
@@ -32,8 +33,7 @@ void PlannersRegister::registMatch() {
     auto& startVidFinders = StartVidFinder::finders();
 
     // MATCH(n) WHERE id(n) = value RETURN n
-    // planners.emplace_back(&MatchVertexIdSeekPlanner::match, &MatchVertexIdSeekPlanner::make);
-    // startVidFinders.emplace_back();
+    startVidFinders.emplace_back(&VertexIdSeek::match, &VertexIdSeek::make);
 
     // MATCH(n:Tag{prop:value}) RETURN n
     // MATCH(n:Tag) WHERE n.prop = value RETURN n

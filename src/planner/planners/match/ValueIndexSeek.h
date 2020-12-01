@@ -28,6 +28,7 @@ public:
     StatusOr<SubPlan> transform(PatternContext* patternCtx) override;
 
     StatusOr<SubPlan> transformNode(NodeContext* nodeCtx);
+
 private:
     ValueIndexSeek() = default;
 };

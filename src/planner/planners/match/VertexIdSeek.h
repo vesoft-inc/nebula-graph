@@ -6,12 +6,37 @@
 
 #ifndef PLANNER_PLANNERS_MATCH_VERTEXIDSEEK_H_
 #define PLANNER_PLANNERS_MATCH_VERTEXIDSEEK_H_
+
+#include "context/ast/QueryAstContext.h"
+#include "planner/planners/match/StartVidFinder.h"
+
 namespace nebula {
 namespace graph {
 /*
  * The VertexIdSeek was designed to find if could get the starting vids in filter.
  */
-class VertexIdSeek final {
+class VertexIdSeek final : public StartVidFinder {
+public:
+    static std::unique_ptr<VertexIdSeek> make() {
+        return std::unique_ptr<VertexIdSeek>(new VertexIdSeek());
+    }
+
+    static bool match(PatternContext* patternCtx);
+
+    static bool matchNode(NodeContext* nodeCtx);
+
+    static StatusOr<const Expression *> extractVids(const Expression *filter);
+
+    StatusOr<SubPlan> transform(PatternContext* patternCtx) override;
+
+    StatusOr<SubPlan> transformNode(NodeContext* nodeCtx);
+
+    std::pair<std::string, Expression *> listToAnnoVarVid(QueryContext *qctx, const List &list);
+
+    std::pair<std::string, Expression *> constToAnnoVarVid(QueryContext *qctx, const Value &v);
+
+private:
+    VertexIdSeek() = default;
 };
 }  // namespace graph
 }  // namespace nebula
