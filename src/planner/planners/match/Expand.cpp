@@ -75,7 +75,7 @@ Status Expand::expandSteps(const NodeInfo &node,
                            SubPlan *plan) {
     SubPlan subplan;
     NG_RETURN_IF_ERROR(expandStep(edge, input, node.filter, true, &subplan));
-    plan->tail = subplan.tail;
+    // plan->tail = subplan.tail;
     PlanNode *passThrough = subplan.root;
     auto maxHop = edge.range ? edge.range->max() : 1;
     for (int64_t i = 1; i < maxHop; ++i) {
@@ -101,11 +101,11 @@ Status Expand::expandStep(const EdgeInfo &edge,
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
     curr.root = const_cast<PlanNode *>(input);
-    MatchSolver::extractAndDedupVidColumn(qctx, &initialExpr_, &curr);
+    MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_, &curr);
 
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
-    gn->setSrc(srcExpr.release());
+    gn->setSrc(qctx->objPool()->add(srcExpr.release()));
     gn->setVertexProps(genVertexProps());
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
@@ -113,7 +113,7 @@ Status Expand::expandStep(const EdgeInfo &edge,
     PlanNode *root = gn;
 
     if (nodeFilter != nullptr) {
-        auto filter = nodeFilter->clone().release();
+        auto filter = qctx->objPool()->add(nodeFilter->clone().release());
         RewriteMatchLabelVisitor visitor([](const Expression *expr) {
             DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
             auto la = static_cast<const LabelAttributeExpression *>(expr);

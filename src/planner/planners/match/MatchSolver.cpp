@@ -174,11 +174,13 @@ void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
     dedup->setColNames({kVid});
 
     plan->root = dedup;
+    // plan->tail = dedup;
 }
 
 Expression* MatchSolver::initialExprOrEdgeDstExpr(const PlanNode* node, Expression** initialExpr) {
     Expression* vidExpr = *initialExpr;
     if (vidExpr != nullptr) {
+        VLOG(1) << vidExpr->toString();
         *initialExpr = nullptr;
     } else {
         vidExpr = getLastEdgeDstExprInLastPath(node->colNamesRef().back());

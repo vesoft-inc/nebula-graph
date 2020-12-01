@@ -28,6 +28,7 @@ StatusOr<SubPlan> ReturnClausePlanner::transform(CypherClauseContextBase* clause
 
 Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subPlan) {
     auto *yields = new YieldColumns();
+    rctx->qctx->objPool()->add(yields);
     std::vector<std::string> colNames;
     PlanNode *current = nullptr;
 

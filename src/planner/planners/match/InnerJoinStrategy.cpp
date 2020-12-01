@@ -20,6 +20,8 @@ PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* r
     auto& rightKey = right->colNamesRef().front();
     auto buildExpr = getLastEdgeDstExprInLastPath(leftKey);
     auto probeExpr = getFirstVertexVidInFistPath(rightKey);
+    qctx_->objPool()->add(buildExpr);
+    qctx_->objPool()->add(probeExpr);
     auto join = DataJoin::make(qctx_,
                                const_cast<PlanNode*>(right),
                                {left->outputVar(), 0},

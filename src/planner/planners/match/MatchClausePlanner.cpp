@@ -99,17 +99,22 @@ Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,
     std::vector<std::string> joinColNames = {folly::stringPrintf("%s_%d", kPathStr, 0)};
     for (size_t i = 0; i < edgeInfos.size(); ++i) {
         auto left = subplan.root;
-        auto status = std::make_unique<Expand>(matchClauseCtx, initialExpr_)
+        auto status = std::make_unique<Expand>(matchClauseCtx, &initialExpr_)
                           ->doExpand(nodeInfos[i], edgeInfos[i], subplan.root, &subplan);
         if (!status.ok()) {
             return status;
         }
-        auto right = subplan.root;
-        subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
-        joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, i));
-        subplan.root->setColNames(joinColNames);
+        if (i > 0) {
+            auto right = subplan.root;
+            VLOG(1) << "left: " << folly::join(",", left->colNames())
+                << " right: " << folly::join(",", right->colNames());
+            subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
+            joinColNames.emplace_back(folly::stringPrintf("%s_%lu", kPathStr, i));
+            subplan.root->setColNames(joinColNames);
+        }
     }
 
+    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(appendFetchVertexPlan(
         nodeInfos.back().filter, matchClauseCtx->qctx, matchClauseCtx->space, &subplan));
@@ -122,6 +127,7 @@ Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,
         subplan.root->setColNames(joinColNames);
     }
 
+    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     return Status::OK();
 }
 
@@ -131,7 +137,8 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
                                                  SubPlan* plan) {
     MatchSolver::extractAndDedupVidColumn(qctx, &initialExpr_, plan);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
-    auto gv = GetVertices::make(qctx, plan->root, space.id, srcExpr.release(), {}, {});
+    auto gv = GetVertices::make(
+        qctx, plan->root, space.id, qctx->objPool()->add(srcExpr.release()), {}, {});
 
     PlanNode* root = gv;
     if (nodeFilter != nullptr) {
@@ -200,6 +207,7 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     project->setColNames(std::move(colNames));
 
     plan->root = MatchSolver::filterCyclePath(project, alias, qctx);
+    VLOG(1) << "root: " << plan->root->outputVar() << " tail: " << plan->tail->outputVar();
     return Status::OK();
 }
 
@@ -252,6 +260,7 @@ Status MatchClausePlanner::appendFilterPlan(MatchClauseContext* matchClauseCtx, 
     auto plan = std::move(wherePlan).value();
     SegmentsConnector::addInput(plan.tail, subplan.root, true);
     subplan.root = plan.root;
+    VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     return Status::OK();
 }
 }   // namespace graph

@@ -19,7 +19,7 @@ namespace graph {
  */
 class Expand final {
 public:
-    Expand(MatchClauseContext* matchCtx, Expression *initialExpr)
+    Expand(MatchClauseContext* matchCtx, Expression **initialExpr)
         : matchCtx_(matchCtx), initialExpr_(initialExpr) {}
 
     Status doExpand(const NodeInfo &node,
@@ -61,7 +61,7 @@ public:
 
 private:
     MatchClauseContext*   matchCtx_;
-    Expression*           initialExpr_;
+    Expression**          initialExpr_;
 };
 }  // namespace graph
 }  // namespace nebula

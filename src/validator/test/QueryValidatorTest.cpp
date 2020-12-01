@@ -1276,5 +1276,15 @@ TEST_F(QueryValidatorTest, TestMaxAllowedStatements) {
               "SemanticError: The maximum number of statements allowed has been exceeded");
 }
 
+TEST_F(QueryValidatorTest, Debug) {
+    {
+        std::string query = "MATCH (v1:person{name: \"LeBron James\"}) -[r]-> (v2) "
+                            "RETURN type(r) AS Type, v2.name AS Name";
+        std::vector<PlanNode::Kind> expected;
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+}
+
+
 }  // namespace graph
 }  // namespace nebula

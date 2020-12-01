@@ -63,6 +63,7 @@ struct ScanInfo {
 
 struct CypherClauseContextBase : AstContext {
     explicit CypherClauseContextBase(CypherClauseKind k) : kind(k) {}
+    virtual ~CypherClauseContextBase() = default;
 
     const CypherClauseKind  kind;
 };
