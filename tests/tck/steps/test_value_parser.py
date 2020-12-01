@@ -17,6 +17,7 @@ from pytest_bdd import (
 )
 
 from nebula2.common.ttypes import Value, NullType, DataSet, Row
+from nebula2.data.DataObject import DataSetWrapper
 from tests.tck.utils.nbv import register_function, parse
 
 # You could register functions that can be invoked from the parsing text
@@ -78,3 +79,17 @@ def parsed_as_expected(nvalues, string_table):
             actual = Value.thrift_spec[val.getType()][2]
         expected = string_table['rows'][i][column_names[1]].strip()
         assert actual == expected, f"expected: {expected}, actual: {actual}"
+
+
+@when(parsers.parse("executing query:\n{query}"))
+def executing_query(query):
+    ngql = " ".join(query.splitlines())
+    print(f'\nexecuted query is "{ngql}"\n')
+
+
+@then(parsers.parse("the result should be, in any order:\n{result}"))
+def result_should_be(result, table, dataset):
+    ds = dataset(table(result))
+    print(ds)
+    ds_wrapper = DataSetWrapper(ds)
+    print(ds_wrapper)

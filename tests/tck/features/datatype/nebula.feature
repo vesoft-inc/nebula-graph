@@ -62,3 +62,16 @@ Feature: Value parsing
     | <('v1':t{})-[:e1{}]->('v2':t{})<-[:e2{}]-('v3':t{})> | ("vid":player{name:'Tim Duncan'}:bachelor{speciality: "psychology"}) |
   When They are parsed as Nebula DataSet
   Then It must succeed
+
+  Scenario: Test executing query
+  Given A set of string:
+    | _path                                                | vertex                                                               |
+    | <('v1':t{})-[:e1{}]->('v2':t{})<-[:e2{}]-('v3':t{})> | ("vid":player{name:'Tim Duncan'}:bachelor{speciality: "psychology"}) |
+  When executing query:
+    """
+    SHOW SPACES;
+    SHOW HOSTS;
+    """
+  Then the result should be, in any order:
+    | Name  |
+    | 'nba' |
