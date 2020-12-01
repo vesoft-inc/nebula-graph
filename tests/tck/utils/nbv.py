@@ -157,13 +157,13 @@ def t_dstr_any(t):
 
 def t_sstr_STRING(t):
     r'\''
-    t.value = Value(sVal = t.lexer.string)
+    t.value = Value(sVal = bytes(t.lexer.string, 'utf-8'))
     t.lexer.begin('INITIAL')
     return t
 
 def t_dstr_STRING(t):
     r'"'
-    t.value = Value(sVal = t.lexer.string)
+    t.value = Value(sVal = bytes(t.lexer.string, 'utf-8'))
     t.lexer.begin('INITIAL')
     return t
 

@@ -19,7 +19,7 @@ def _table(text):
                         filter(lambda x: x, line.split('|'))))
 
     table = []
-    column_names = parse_line(lines[0])
+    column_names = list(map(lambda x: bytes(x, 'utf-8'), parse_line(lines[0])))
     for line in lines[1:]:
         row = {}
         cells = parse_line(line)
