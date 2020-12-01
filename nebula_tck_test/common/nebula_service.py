@@ -28,10 +28,10 @@ class NebulaService(object):
     def set_work_dir(self, work_dir):
         self.work_dir = work_dir
 
-    def _copy_nebula_conf(self):
+    def _copy_to_work_dir(self):
         graph_path = self.build_dir + '/bin'
         graph_conf_path = self.src_dir + '/conf'
-        storage_path = self.src_dir + '/build/modules/storage/bin'
+        storage_path = self.build_dir + '/modules/storage/bin'
         storage_conf_path = self.src_dir + '/modules/storage/conf'
 
         # graph
@@ -87,11 +87,10 @@ class NebulaService(object):
             shutil.rmtree(self.work_dir)
         os.mkdir(self.work_dir)
         print("work directory: " + self.work_dir)
-        os.chdir(self.work_dir)
         installed_files = ['logs', 'bin', 'conf', 'data', 'pids', 'scripts']
         for f in installed_files:
             os.mkdir(self.work_dir + '/' + f)
-        self._copy_nebula_conf()
+        self._copy_to_work_dir()
 
     def _check_servers_status(self, ports):
         ports_status = {}

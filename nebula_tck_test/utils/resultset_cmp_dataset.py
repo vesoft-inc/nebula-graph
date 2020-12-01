@@ -1,9 +1,6 @@
 import sys
-sys.path.insert(0,'../nebula-clients/python/')
-from nebula2.gclient.data.DataObject import DataSetWrapper
 from nebula2.common import ttypes
 from nebula2.common.ttypes import Value,Vertex,Edge,Path,Step,NullType,DataSet,Row,List
-from nebula2.gclient.data.ResultSet import ResultSet
 
 
 def rst_cmp_dst_in_order(resultset,dataset):

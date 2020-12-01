@@ -14,7 +14,7 @@ TOOLSET_DIR=/opt/vesoft/toolset/clang/9.0.0
 mkdir -p $BUILD_DIR
 
 function get_py_client() {
-    git clone -b v2.0 https://github.com/vesoft-inc/nebula-python.git
+    git clone https://github.com/vesoft-inc/nebula-python.git
     pushd nebula-python
     python3 setup.py install --user
     popd
@@ -24,7 +24,9 @@ function get_py_client() {
 function prepare() {
     pip3 install --user -U setuptools -i https://mirrors.aliyun.com/pypi/simple/
     pip3 install --user -r $PROJ_DIR/tests/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+    pip3 install --user -r $PROJ_DIR/nebula_tck_test/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
     get_py_client
+
 }
 
 function lint() {
@@ -103,6 +105,12 @@ function run_test() {
     $BUILD_DIR/tests/ntr --debug_log=false ${@:1} $PROJ_DIR/tests/job/*
 }
 
+function run_tck_test() {
+    export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
+    $BUILD_DIR/nebula_tck_test/tck_test
+}
+
+
 function test_in_cluster() {
     cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
@@ -135,6 +143,9 @@ case "$1" in
     test)
         run_test "${@:2}"
         ;;
+    tck_test)
+        run_tck_test
+	;;
     k8s)
         prepare
         configure_clang

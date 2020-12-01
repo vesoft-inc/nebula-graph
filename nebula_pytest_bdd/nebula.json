@@ -1,1 +1,0 @@
-{"max_retry_time": 3, "ip": "127.0.0.1", "idle_time": 300000, "pwd": "nebula", "user": "root", "timeout": 1000, "max_connection_pool_size": 4, "port": 36421}

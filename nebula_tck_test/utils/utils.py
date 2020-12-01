@@ -1,5 +1,4 @@
 import sys
-sys.path.insert(0,'../nebula-clients/python/')
 from nebula2.common.ttypes import Value,Vertex,Edge,Path,Step,NullType,DataSet,Row,List
 import nbv
 from behave import model as bh

@@ -1,5 +1,4 @@
 import sys
-sys.path.insert(0,'../nebula-clients/python/')
 import ply.lex as lex
 import ply.yacc as yacc
 

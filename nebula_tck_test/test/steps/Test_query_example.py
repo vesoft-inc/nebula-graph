@@ -10,9 +10,9 @@ resp = None
 
 scenarios('../features/query.feature')
 @given(parsers.parse("create a space {spacename} and a vertex {player}, a set of person"),target_fixture="step_001")
-def step_001(init_client,load_nba,load_students,spacename,player):
-    connection_pool = init_client[0];
-    client = connection_pool.get_session(init_client[1],init_client[2])
+def step_001(init_conn_pool,load_nba,load_students,spacename,player):
+    connection_pool = init_conn_pool[0];
+    client = connection_pool.get_session(init_conn_pool[1],init_conn_pool[2])
     assert client != None
     nGQL = "drop space if exists " + spacename + ";"
     print(nGQL)

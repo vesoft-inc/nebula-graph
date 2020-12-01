@@ -4,16 +4,20 @@ import pytest_bdd
 import pytest
 import json
 import os
-sys.path.insert(0,'./nebula-clients/python/')
 from nebula2.common import ttypes
 from nebula2.gclient.net import ConnectionPool
 from nebula2.Config import Config
 
+CURR_PATH = os.path.dirname(os.path.abspath(__file__))
+NEBULA_HOME = os.getenv('NEBULA_SOURCE_DIR', os.path.join(CURR_PATH, '..'))
+TEST_DIR = os.path.join(NEBULA_HOME, 'nebula_tck_test')
 
+UTILS_DIR = os.path.join(TEST_DIR,'utils')
+sys.path.insert(0,UTILS_DIR)
 
 
 @pytest.fixture(scope='session')
-def init_client():
+def init_conn_pool():
     conf = Config()
     jsonfile = "nebula.json"
     data = json.load(open(jsonfile))
@@ -30,12 +34,31 @@ def init_client():
     client_list.append(data['user'])
     client_list.append(data['pwd'])
     return client_list
-   #client = connection_pool.get_session(data['user'],data['pwd'])
-   
+
 @pytest.fixture(scope='session')
-def load_nba(init_client):
-    connection_pool = init_client[0];
-    client = connection_pool.get_session(init_client[1],init_client[2])
+def get_Delay_Time(init_conn_pool):
+    connection_pool = init_conn_pool[0];
+    client = connection_pool.get_session(init_conn_pool[1], init_conn_pool[2])
+    assert client != None
+    resp = client.execute_query(
+        'get configs GRAPH:heartbeat_interval_secs')
+    assert resp.is_succeeded()
+    assert len(resp.data.rows) == 1, "invalid row size: {}".format(resp.data.rows)
+    Graph_Delay = resp.data.rows[0].values[4].get_iVal() + 1
+
+    resp = client.execute_query(
+        'get configs STORAGE:heartbeat_interval_secs')
+    assert resp.is_succeeded()
+    assert len(resp.data.rows) == 1, "invalid row size: {}".format(resp.data.rows)
+    Storage_Delay = resp.data.rows[0].values[4].get_iVal() + 1
+    Delay = max(Graph_Delay, Storage_Delay) * 3
+    return Delay
+
+
+@pytest.fixture(scope='session')
+def load_nba(init_conn_pool):
+    connection_pool = init_conn_pool[0];
+    client = connection_pool.get_session(init_conn_pool[1],init_conn_pool[2])
     assert client != None
     
 
@@ -44,7 +67,7 @@ def load_nba(init_client):
     with open(nba_file, 'r') as data_file:
         resp = client.execute(
                 'DROP SPACE IF EXISTS nba; CREATE SPACE IF NOT EXISTS nba(partition_num=10, replica_factor=1, vid_type = fixed_string(30));USE nba;')
-        assert resp.error_code() == 0
+        assert resp.is_succeeded()
 
         lines = data_file.readlines()
         ddl = False
@@ -66,38 +89,38 @@ def load_nba(init_client):
                 ngql_statement += " " + line
                 if line.endswith(';'):
                     resp = client.execute(ngql_statement)
-                    assert resp.error_code() == 0
+                    assert resp.is_succeeded()
                     ngql_statement = ""    
-    yield "setup load_nba"
-    
+    yield "load_nba setup"
+
 @pytest.fixture(scope='session')
-def load_students(init_client):
-    connection_pool = init_client[0];
-    client = connection_pool.get_session(init_client[1],init_client[2])
+def load_students(init_conn_pool):
+    connection_pool = init_conn_pool[0];
+    client = connection_pool.get_session(init_conn_pool[1],init_conn_pool[2])
     resp = client.execute(
             'DROP SPACE IF EXISTS student_space;CREATE SPACE IF NOT EXISTS student_space(partition_num=10, replica_factor=1, vid_type = fixed_string(8)); USE student_space;')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('CREATE TAG IF NOT EXISTS person(name string, age int, gender string);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('CREATE TAG IF NOT EXISTS teacher(grade int, subject string);') 
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('CREATE TAG IF NOT EXISTS student(grade int, hobby string DEFAULT "");')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('CREATE EDGE IF NOT EXISTS is_schoolmate(start_year int, end_year int);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('CREATE EDGE IF NOT EXISTS is_teacher(start_year int, end_year int);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('CREATE EDGE IF NOT EXISTS is_friend(start_year int, intimacy double);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('CREATE EDGE IF NOT EXISTS is_colleagues(start_year int, end_year int);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
         # TODO: update the time when config can use
     time.sleep(5)
 
@@ -112,7 +135,7 @@ def load_students(init_client):
                                 "2008":("Ben", 24, "male", 4, "Music"), \
                                 "2009":("Helen", 24, "male", 2, "Sports") ,\
                                 "2010":("Lilan", 32, "male", 5, "Chinese");')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('INSERT VERTEX person(name, age, gender), student(grade) VALUES \
                                 "1001":("Anne", 7, "female", 2), \
@@ -135,7 +158,7 @@ def load_students(init_client):
                                 "1018":("Tom", 12, "male", 6), \
                                 "1019":("XiaMei", 11, "female", 6), \
                                 "1020":("Lily", 10, "female", 6);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('INSERT EDGE is_schoolmate(start_year, end_year) VALUES \
                                 "1001" -> "1002":(2018, 2019), \
@@ -164,7 +187,7 @@ def load_students(init_client):
                                 "1018" -> "1019":(2018, 2019), \
                                 "1017" -> "1020":(2013, 2018), \
                                 "1017" -> "1016":(2018, 2019);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('INSERT EDGE is_friend(start_year, intimacy) VALUES \
                                 "1003" -> "1004":(2017, 80.0), \
@@ -174,7 +197,7 @@ def load_students(init_client):
                                 "1017" -> "1020":(2018, 78.0), \
                                 "1018" -> "1016":(2013, 83.0), \
                                 "1018" -> "1020":(2018, 88.0);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('INSERT EDGE is_colleagues(start_year, end_year) VALUES \
                                 "2001" -> "2002":(2015, 0), \
@@ -184,7 +207,7 @@ def load_students(init_client):
                                 "2002" -> "2001":(2016, 2017), \
                                 "2007" -> "2001":(2013, 2018), \
                                 "2010" -> "2008":(2018, 0);')
-    assert resp.error_code() == 0
+    assert resp.is_succeeded()
 
     resp = client.execute('INSERT EDGE is_teacher(start_year, end_year) VALUES \
                                 "2002" -> "1004":(2018, 2019), \
@@ -198,5 +221,5 @@ def load_students(init_client):
                                 "2002" -> "1019":(2014, 2015), \
                                 "2010" -> "1016":(2018,2019), \
                                 "2006" -> "1008":(2017, 2018);')
-    assert resp.error_code() == 0 
-    yield "setup load_students"
+    assert resp.is_succeeded() 
+    yield "load_students steup"

@@ -1,6 +1,4 @@
 import sys
-sys.path.insert(0,'../nebula-clients/python/')
-from nebula2.gclient.data.DataObject import DataSetWrapper
 from nebula2.common import ttypes
 from nebula2.common.ttypes import Value,Vertex,Edge,Path,Step,NullType,DataSet,Row,List
 from behave import model as bh
@@ -19,13 +17,13 @@ def text2dataset(text):
     rows = list()
     for i in range(1,len(lines)):
         temp = lines[i].split('|')
-        value = list()
+        row = list()
         for item in temp:
             v = str.strip(item).strip('\t')
-            if v:
-                value.append(v)
-        if value:
-            rows.append(value)
+            if len(v) != 0:
+                row.append(v)
+        if len(row) != 0:
+            rows.append(row)
     print(rows)
     table = bh.Table(headings = head, rows = rows)
     dataset = parse(table)

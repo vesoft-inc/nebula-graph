@@ -16,9 +16,9 @@ scenarios('../features/test_fetch_example.feature')
 
 #@given("a empty space test02",target_fixture="step_001")
 @given("a space nba", target_fixture="step_001")
-def step_001(init_client,load_nba):
-    connection_pool = init_client[0];
-    client = connection_pool.get_session(init_client[1],init_client[2])
+def step_001(init_conn_pool,load_nba):
+    connection_pool = init_conn_pool[0];
+    client = connection_pool.get_session(init_conn_pool[1],init_conn_pool[2])
     assert client != None
     nGQL = "use nba;"
     client.execute(nGQL)

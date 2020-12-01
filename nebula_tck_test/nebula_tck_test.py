@@ -10,15 +10,13 @@ CURR_PATH = os.path.dirname(os.path.abspath(__file__))
 NEBULA_HOME = os.getenv('NEBULA_SOURCE_DIR', os.path.join(CURR_PATH, '..'))
 
 
-TEST_DIR = os.path.join(NEBULA_HOME, 'nebula_pytest_bdd')
+TEST_DIR = os.path.join(NEBULA_HOME, 'nebula_tck_test')
+COMMON_DIR = os.path.join(TEST_DIR,'common')
 sys.path.insert(0, NEBULA_HOME)
 sys.path.insert(0, TEST_DIR)
-sys.path.insert(0,'./common/')
-
-
+sys.path.insert(0,COMMON_DIR)
 
 from configs import init_configs
-#from global_data_loader import GlobalDataLoader
 from nebula_service import NebulaService
 
 
@@ -37,9 +35,6 @@ if NEBULA_SOURCE_DIR is None:
 
 
 if __name__ == '__main__':
-    if '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
-        executor.run_tests(sys.argv[1:])
-        sys.exit(0)
     nebula_svc = NebulaService(NEBULA_BUILD_DIR, NEBULA_SOURCE_DIR)
     stop_nebula = True
     error_code = 1
@@ -51,15 +46,11 @@ if __name__ == '__main__':
         (configs, opts) = parser.parse_args()
         current_time = strftime("%Y-%m-%d-%H:%M:%S", localtime())
         args = []
-        print("args")
-#        args.extend(list(commandline_args))
         nebula_ip = ''
         nebula_port = 0
         if len(configs.address) == 0:
             nebula_svc.install()
             storage_port, graph_port = nebula_svc.start(configs.debug_log)
-            args.extend(['--address', '127.0.0.1:' + str(graph_port)])
-            args.extend(['--storage', '127.0.0.1:' + str(storage_port)])
             nebula_ip = '127.0.0.1'
             nebula_port = graph_port
         else:
@@ -77,17 +68,16 @@ if __name__ == '__main__':
         with open(jsonfile,'w') as fw: 
             json.dump(data,fw)
         fw.close()
-        path_deploy=os.getcwd()
         os.chdir(TEST_DIR)
-        pytest.main()
-        os.chdir(path_deploy)
+        cmdline = []
+        pytest.main(cmdline)
     except Exception as x:
         print('\033[31m' + str(x) + '\033[0m')
         import traceback
         print(traceback.format_exc())
 
     finally:
-        if stop_nebula and configs.stop_nebula.lower() == 'true':
+        if stop_nebula:
             nebula_svc.stop(configs.rm_dir.lower() == 'true')
 
 
