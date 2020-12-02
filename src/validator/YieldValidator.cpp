@@ -118,6 +118,7 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
     columns_ = qctx_->objPool()->add(new YieldColumns);
     for (auto column : columns) {
         auto expr = DCHECK_NOTNULL(column->expr());
+
         NG_RETURN_IF_ERROR(invalidLabelIdentifiers(expr));
 
         if (expr->kind() == Expression::Kind::kInputProperty) {

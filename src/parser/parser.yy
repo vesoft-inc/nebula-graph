@@ -8,6 +8,7 @@
 %parse-param { nebula::GraphScanner& scanner }
 %parse-param { std::string &errmsg }
 %parse-param { nebula::Sentence** sentences }
+%parse-param { nebula::graph::QueryContext* qctx}
 
 %code requires {
 #include <iostream>
@@ -22,7 +23,10 @@
 #include "common/expression/VariableExpression.h"
 #include "common/expression/CaseExpression.h"
 #include "common/expression/TextSearchExpression.h"
+#include "common/expression/ListComprehensionExpression.h"
 #include "util/SchemaUtil.h"
+#include "context/QueryContext.h"
+#include "visitor/RewriteListComprehensionLabelVisitor.h"
 
 namespace nebula {
 
@@ -206,6 +210,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> subscript_expression
 %type <expr> attribute_expression
 %type <expr> case_expression
+%type <expr> list_comprehension_expression
 %type <expr> compound_expression
 %type <expr> text_search_expression
 %type <argument_list> argument_list opt_argument_list
@@ -611,6 +616,9 @@ expression
     | case_expression {
         $$ = $1;
     }
+    | list_comprehension_expression {
+        $$ = $1;
+    }
     ;
 
 compound_expression
@@ -727,6 +735,44 @@ when_then_list
     | when_then_list KW_WHEN expression KW_THEN expression {
         $1->add($3, $5);
         $$ = $1;
+    }
+    ;
+
+
+list_comprehension_expression
+    : L_BRACKET expression KW_IN expression KW_WHERE expression R_BRACKET {
+        if ($2->kind() != Expression::Kind::kLabel) {
+            throw nebula::GraphParser::syntax_error(@2, "Must be LabelExpression:");
+        }
+        auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
+        auto newVarName = qctx->vctx()->anonVarGen()->getVar(); // DCHECK type == Kind::kLabel
+        auto innerVar = new ConstantExpression(newVarName);
+        nebula::graph::RewriteListComprehensionLabelVisitor visitor(oldVarName, newVarName);
+        $6->accept(&visitor);
+        $$ = new ListComprehensionExpression(innerVar, $4, $6, nullptr);
+    }
+    | L_BRACKET expression KW_IN expression PIPE expression R_BRACKET {
+        if ($2->kind() != Expression::Kind::kLabel) {
+            throw nebula::GraphParser::syntax_error(@2, "Must be LabelExpression:");
+        }
+        auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
+        auto newVarName = qctx->vctx()->anonVarGen()->getVar(); // DCHECK type == Kind::kLabel
+        auto innerVar = new ConstantExpression(newVarName);
+        nebula::graph::RewriteListComprehensionLabelVisitor visitor(oldVarName, newVarName);
+        $6->accept(&visitor);
+        $$ = new ListComprehensionExpression(innerVar, $4, nullptr, $6);
+    }
+    | L_BRACKET expression KW_IN expression KW_WHERE expression PIPE expression R_BRACKET {
+        if ($2->kind() != Expression::Kind::kLabel) {
+            throw nebula::GraphParser::syntax_error(@2, "Must be LabelExpression:");
+        }
+        auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
+        auto newVarName = qctx->vctx()->anonVarGen()->getVar(); // DCHECK type == Kind::kLabel
+        auto innerVar = new ConstantExpression(newVarName);
+        nebula::graph::RewriteListComprehensionLabelVisitor visitor(oldVarName, newVarName);
+        $6->accept(&visitor);
+        $8->accept(&visitor);
+        $$ = new ListComprehensionExpression(innerVar, $4, $6, $8);
     }
     ;
 
