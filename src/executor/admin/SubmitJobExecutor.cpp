@@ -13,6 +13,20 @@
 namespace nebula {
 namespace graph {
 
+DateTime toDateTime(int64_t ts) {
+    std::time_t tm = ts;
+    std::tm* localTm = std::localtime(&tm);
+
+    DateTime dt;
+    dt.year = 1900 + localTm->tm_year;
+    dt.month = 1 + localTm->tm_mon;
+    dt.day = localTm->tm_mday;
+    dt.hour = localTm->tm_hour;
+    dt.minute = localTm->tm_min;
+    dt.sec = localTm->tm_sec;
+    return dt;
+}
+
 folly::Future<Status> SubmitJobExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
@@ -68,8 +82,8 @@ folly::Future<Status> SubmitJobExecutor::execute() {
                             {jobDesc.front().get_id(),
                             meta::cpp2::_AdminCmd_VALUES_TO_NAMES.at(jobDesc.front().get_cmd()),
                             meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(jobDesc.front().get_status()),
-                            jobDesc.front().get_start_time(),
-                            jobDesc.front().get_stop_time(),
+                            toDateTime(jobDesc.front().get_start_time()),
+                            toDateTime(jobDesc.front().get_stop_time()),
                             }));
                     // tasks desc
                     auto &tasksDesc = *resp.value().get_task_desc();
@@ -78,8 +92,8 @@ folly::Future<Status> SubmitJobExecutor::execute() {
                             taskDesc.get_task_id(),
                             taskDesc.get_host().host,
                             meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(taskDesc.get_status()),
-                            taskDesc.get_start_time(),
-                            taskDesc.get_stop_time(),
+                            toDateTime(taskDesc.get_start_time()),
+                            toDateTime(taskDesc.get_stop_time()),
                         }));
                     }
                     return finish(std::move(v));
@@ -96,8 +110,8 @@ folly::Future<Status> SubmitJobExecutor::execute() {
                             jobDesc.get_id(),
                             meta::cpp2::_AdminCmd_VALUES_TO_NAMES.at(jobDesc.get_cmd()),
                             meta::cpp2::_JobStatus_VALUES_TO_NAMES.at(jobDesc.get_status()),
-                            jobDesc.get_start_time(),
-                            jobDesc.get_stop_time(),
+                            toDateTime(jobDesc.get_start_time()),
+                            toDateTime(jobDesc.get_stop_time()),
                         }));
                     }
                     return finish(std::move(v));
