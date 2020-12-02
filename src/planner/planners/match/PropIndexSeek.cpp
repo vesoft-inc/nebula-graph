@@ -4,7 +4,7 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/planners/match/ValueIndexSeek.h"
+#include "planner/planners/match/PropIndexSeek.h"
 
 #include "planner/Query.h"
 #include "planner/planners/match/MatchSolver.h"
@@ -12,17 +12,17 @@
 
 namespace nebula {
 namespace graph {
-bool ValueIndexSeek::matchEdge(EdgeContext* edgeCtx) {
+bool PropIndexSeek::matchEdge(EdgeContext* edgeCtx) {
     UNUSED(edgeCtx);
     return false;
 }
 
-StatusOr<SubPlan> ValueIndexSeek::transformEdge(EdgeContext* edgeCtx) {
+StatusOr<SubPlan> PropIndexSeek::transformEdge(EdgeContext* edgeCtx) {
     UNUSED(edgeCtx);
     return Status::Error("Unimplement for edge pattern.");
 }
 
-bool ValueIndexSeek::matchNode(NodeContext* nodeCtx) {
+bool PropIndexSeek::matchNode(NodeContext* nodeCtx) {
     auto& node = *nodeCtx->info;
     if (node.label == nullptr) {
         return false;
@@ -51,7 +51,7 @@ bool ValueIndexSeek::matchNode(NodeContext* nodeCtx) {
     return true;
 }
 
-StatusOr<SubPlan> ValueIndexSeek::transformNode(NodeContext* nodeCtx) {
+StatusOr<SubPlan> PropIndexSeek::transformNode(NodeContext* nodeCtx) {
     SubPlan plan;
     auto* matchClauseCtx = nodeCtx->matchClauseCtx;
     using IQC = nebula::storage::cpp2::IndexQueryContext;

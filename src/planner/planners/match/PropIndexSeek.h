@@ -4,20 +4,20 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef PLANNER_PLANNERS_MATCH_VALUEINDEXSEEK_H_
-#define PLANNER_PLANNERS_MATCH_VALUEINDEXSEEK_H_
+#ifndef PLANNER_PLANNERS_MATCH_PROPINDEXSEEK_H_
+#define PLANNER_PLANNERS_MATCH_PROPINDEXSEEK_H_
 
 #include "planner/planners/match/StartVidFinder.h"
 
 namespace nebula {
 namespace graph {
 /*
- * The ValueIndexSeek was designed to find if could get starting vids by value index.
+ * The PropIndexSeek was designed to find if could get starting vids by tag props or edge props index.
  */
-class ValueIndexSeek final : public StartVidFinder {
+class PropIndexSeek final : public StartVidFinder {
 public:
-    static std::unique_ptr<ValueIndexSeek> make() {
-        return std::unique_ptr<ValueIndexSeek>(new ValueIndexSeek());
+    static std::unique_ptr<PropIndexSeek> make() {
+        return std::unique_ptr<PropIndexSeek>(new PropIndexSeek());
     }
 
     bool matchNode(NodeContext* nodeCtx) override;
@@ -29,8 +29,8 @@ public:
     StatusOr<SubPlan> transformEdge(EdgeContext* edgeCtx) override;
 
 private:
-    ValueIndexSeek() = default;
+    PropIndexSeek() = default;
 };
 }  // namespace graph
 }  // namespace nebula
-#endif  // PLANNER_PLANNERS_MATCH_VALUEINDEXSEEK_H_
+#endif  // PLANNER_PLANNERS_MATCH_PropIndexSeek_H_
