@@ -569,7 +569,7 @@ class TestGoQuery(NebulaTestSuite):
     def test_multi_edges_with_filter(self):
         stmt = '''GO FROM "Russell Westbrook" OVER serve, like WHERE serve.start_year > 2000 \
             YIELD serve.start_year, like.likeness'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names": [],
@@ -581,7 +581,7 @@ class TestGoQuery(NebulaTestSuite):
 
         stmt = '''GO FROM "Manu Ginobili" OVER like, teammate REVERSELY WHERE like.likeness > 90 YIELD like.likeness, \
             teammate.start_year, $$.player.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names": [],
@@ -597,7 +597,7 @@ class TestGoQuery(NebulaTestSuite):
         stmt = '''GO FROM "Manu Ginobili" OVER * \
             WHERE $$.player.age > 30 or $$.team.name not starts with "Rockets" \
             YIELD DISTINCT $$.player.age, $$.player.name, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names": [],
@@ -612,7 +612,7 @@ class TestGoQuery(NebulaTestSuite):
         stmt = '''GO FROM "Manu Ginobili" OVER like, teammate REVERSELY \
             WHERE $$.player.age > 30 and $$.player.age < 40 \
             YIELD DISTINCT $$.player.age, $$.player.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names": [],
