@@ -26,9 +26,7 @@ class DataSetWrapperComparator:
     def compare(self, lhs: DataSetWrapper, rhs: DataSetWrapper):
         if lhs.get_row_size() != rhs.get_row_size():
             return False
-        if not self._compare_list(lhs.get_col_names(),
-                                  rhs.get_col_names(),
-                                  lambda x, y: x == y):
+        if not lhs.get_col_names() == rhs.get_col_names():
             return False
         if self._order:
             return all(self.compare_row(l, r) for (l, r) in zip(lhs, rhs))
@@ -88,12 +86,10 @@ class DataSetWrapperComparator:
         return False
 
     def compare_path(self, lhs: Path, rhs: Path):
-        for (ls, rs) in zip(lhs, rhs):
-            if not (self.compare_node(ls.start_node, rs.start_node) and
-                    self.compare_node(ls.end_node, rs.end_node) and
-                    self.compare_edge(ls.relationship, rs.relationship)):
-                return False
-        return True
+        return all(self.compare_node(l.start_node, r.start_node) and
+                   self.compare_node(l.end_node, r.end_node) and
+                   self.compare_edge(l.relationship, r.relationship)
+                   for (l, r) in zip(lhs, rhs))
 
     def compare_edge(self, lhs: Relationship, rhs: Relationship):
         if not lhs == rhs:
@@ -137,14 +133,8 @@ class DataSetWrapperComparator:
     def compare_row(self, lrecord: Record, rrecord: Record):
         if lrecord.size() == rrecord.size():
             return False
-        for name in lrecord._names:
-            if name not in rrecord._names:
-                return False
-            lval = lrecord._record[lrecord._names.index(name)]
-            rval = rrecord._record[rrecord._names.index(name)]
-            if not self.compare_value(lval, rval):
-                return False
-        return True
+        return all(self.compare_value(l, r)
+                   for (l, r) in zip(lrecord, rrecord))
 
     def _compare_list(self, lhs, rhs, cmp_fn):
         visited = []
