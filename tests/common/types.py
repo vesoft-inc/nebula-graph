@@ -6,64 +6,53 @@
 
 class Column:
     def __init__(self, index: int):
-        self.index = index
+        if index < 0:
+            raise ValueError(f"Invalid index of vid: {index}")
+        self._index = index
 
     @property
     def index(self):
         return self._index
 
-    @index.setter
-    def index(self, index: int):
-        if index < 0:
-            raise ValueError(f"Invalid index of vid: {index}")
-        self._index = index
-
 
 class VID(Column):
     def __init__(self, index: int, vtype: str):
         super().__init__(index)
-        self.id_type = vtype
+        if vtype not in ['int', 'string']:
+            raise ValueError(f'Invalid vid type: {vtype}')
+        self._type = vtype
 
     @property
     def id_type(self):
         return self._type
 
-    @id_type.setter
-    def id_type(self, vtype: str):
-        if vtype not in ['int', 'string']:
-            raise ValueError(f'Invalid vid type: {vtype}')
-        self._type = vtype
+
+class Rank(Column):
+    def __init__(self, index: int):
+        super().__init__(index)
 
 
 class Prop(Column):
-    def __init__(self, name: str, index: int, ptype: str):
+    def __init__(self, index: int, name: str, ptype: str):
         super().__init__(index)
-        self.name = name
-        self.ptype = ptype
+        self._name = name
+        if ptype not in ['string', 'int']:
+            raise ValueError(f'Invalid prop type: {ptype}')
+        self._type = ptype
 
     @property
     def name(self):
         return self._name
 
-    @name.setter
-    def name(self, name: str):
-        self._name = name
-
     @property
     def ptype(self):
         return self._type
 
-    @ptype.setter
-    def ptype(self, ptype: str):
-        if ptype not in ['string', 'int']:
-            raise ValueError(f'Invalid prop type: {ptype}')
-        self._type = ptype
-
 
 class Properties:
-    def __init__(self, name: str, props: list):
-        self.name = name
-        self.props = props
+    def __init__(self):
+        self._name = ''
+        self._props = []
 
     @property
     def name(self):
@@ -79,28 +68,22 @@ class Properties:
 
     @props.setter
     def props(self, props: list):
-        for prop in props:
-            if not isinstance(prop, Prop):
-                raise ValueError(f"Invalid prop type in tag: {prop}")
+        if any(not isinstance(p, Prop) for p in props):
+            raise ValueError("Invalid prop type in props")
         self._props = props
 
 
 class Tag(Properties):
-    def __init__(self, name, props):
-        super().__init__(name, props)
+    def __init__(self):
+        super().__init__()
 
 
 class Edge(Properties):
-    def __init__(self,
-                 name: str,
-                 src: VID,
-                 dst: VID,
-                 rank: int,
-                 props: list):
-        super().__init__(name, props)
-        self.src = src
-        self.dst = dst
-        self.rank = rank
+    def __init__(self):
+        super().__init__()
+        self._src = None
+        self._dst = None
+        self._rank = None
 
     @property
     def src(self):
@@ -128,9 +111,9 @@ class Edge(Properties):
 
 
 class Vertex:
-    def __init__(self, vid: VID, tags: list):
-        self.vid = vid
-        self.tags = tags
+    def __init__(self):
+        self._vid = None
+        self.tags = []
 
     @property
     def vid(self):
@@ -146,7 +129,6 @@ class Vertex:
 
     @tags.setter
     def tags(self, tags: list):
-        for tag in tags:
-            if not isinstance(tag, Tag):
-                raise ValueError(f'Invalid tag type of vertex: {tag}')
+        if any(not isinstance(t, Tag) for t in tags):
+            raise ValueError('Invalid tag type of vertex')
         self._tags = tags
