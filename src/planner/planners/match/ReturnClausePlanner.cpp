@@ -27,19 +27,19 @@ StatusOr<SubPlan> ReturnClausePlanner::transform(CypherClauseContextBase* clause
 }
 
 Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subPlan) {
-    auto *yields = new YieldColumns();
+    auto* yields = new YieldColumns();
     rctx->qctx->objPool()->add(yields);
     std::vector<std::string> colNames;
-    PlanNode *current = nullptr;
+    PlanNode* current = nullptr;
 
     DCHECK(rctx->aliases != nullptr);
-    auto rewriter = [rctx](const Expression *expr) {
+    auto rewriter = [rctx](const Expression* expr) {
         return MatchSolver::doRewrite(*rctx->aliases, expr);
     };
 
-    for (auto *col : rctx->yieldColumns->columns()) {
+    for (auto* col : rctx->yieldColumns->columns()) {
         auto kind = col->expr()->kind();
-        YieldColumn *newColumn = nullptr;
+        YieldColumn* newColumn = nullptr;
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
             newColumn = new YieldColumn(rewriter(col->expr()));
         } else {
@@ -56,14 +56,13 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
         }
     }
 
-    auto *project = Project::make(rctx->qctx, nullptr, yields);
-    // project->setInputVar(current->outputVar());
+    auto* project = Project::make(rctx->qctx, nullptr, yields);
     project->setColNames(std::move(colNames));
     subPlan.tail = project;
     current = project;
 
     if (rctx->distinct) {
-        auto *dedup = Dedup::make(rctx->qctx, current);
+        auto* dedup = Dedup::make(rctx->qctx, current);
         dedup->setInputVar(current->outputVar());
         dedup->setColNames(current->colNames());
         current = dedup;

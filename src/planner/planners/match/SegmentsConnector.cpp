@@ -24,7 +24,7 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
         return left;
     }
 
-    return Status::Error("Unimplemented.");
+    return Status::Error("Can not solve the connect strategy of the two subplan..");
 }
 
 PlanNode* SegmentsConnector::innerJoinSegments(QueryContext* qctx,

@@ -19,40 +19,38 @@ namespace graph {
  */
 class Expand final {
 public:
-    Expand(MatchClauseContext* matchCtx, Expression **initialExpr)
+    Expand(MatchClauseContext* matchCtx, Expression** initialExpr)
         : matchCtx_(matchCtx), initialExpr_(initialExpr) {}
 
-    Status doExpand(const NodeInfo &node,
-                    const EdgeInfo &edge,
-                    const PlanNode *input,
-                    SubPlan *plan);
+    Status doExpand(const NodeInfo& node,
+                    const EdgeInfo& edge,
+                    const PlanNode* input,
+                    SubPlan* plan);
 
-    Status expandSteps(const NodeInfo &node,
-                       const EdgeInfo &edge,
-                       const PlanNode *input,
-                       SubPlan *plan);
+    Status expandSteps(const NodeInfo& node,
+                       const EdgeInfo& edge,
+                       const PlanNode* input,
+                       SubPlan* plan);
 
-    Status expandStep(const EdgeInfo &edge,
-                      const PlanNode *input,
-                      const Expression *nodeFilter,
+    Status expandStep(const EdgeInfo& edge,
+                      const PlanNode* input,
+                      const Expression* nodeFilter,
                       bool needPassThrough,
-                      SubPlan *plan);
+                      SubPlan* plan);
 
-    Status collectData(const PlanNode *joinLeft,
-                       const PlanNode *joinRight,
-                       const PlanNode *inUnionNode,
-                       PlanNode **passThrough,
-                       SubPlan *plan);
+    Status collectData(const PlanNode* joinLeft,
+                       const PlanNode* joinRight,
+                       const PlanNode* inUnionNode,
+                       PlanNode** passThrough,
+                       SubPlan* plan);
 
-    Status filterDatasetByPathLength(const EdgeInfo &edge,
-                                     PlanNode *input,
-                                     SubPlan *plan);
+    Status filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, SubPlan* plan);
 
-    PlanNode *filterCyclePath(PlanNode *input, const std::string &column);
+    PlanNode* filterCyclePath(PlanNode* input, const std::string& column);
 
-    Expression *initialExprOrEdgeDstExpr(const PlanNode *node);
+    Expression* initialExprOrEdgeDstExpr(const PlanNode* node);
 
-    PlanNode *joinDataSet(const PlanNode *right, const PlanNode *left);
+    PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
 
     template <typename T>
     T* saveObject(T* obj) const {
@@ -60,9 +58,9 @@ public:
     }
 
 private:
-    MatchClauseContext*   matchCtx_;
-    Expression**          initialExpr_;
+    MatchClauseContext* matchCtx_;
+    Expression**        initialExpr_;
 };
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula
 #endif

@@ -46,37 +46,37 @@ static std::unique_ptr<std::vector<EdgeProp>> genEdgeProps(const EdgeInfo &edge)
     return edgeProps;
 }
 
-static Expression *mergePathColumnsExpr(const std::string &lcol, const std::string &rcol) {
+static Expression* mergePathColumnsExpr(const std::string& lcol, const std::string& rcol) {
     auto expr = std::make_unique<PathBuildExpression>();
     expr->add(ExpressionUtils::inputPropExpr(lcol));
     expr->add(ExpressionUtils::inputPropExpr(rcol));
     return expr.release();
 }
 
-static Expression *buildPathExpr() {
+static Expression* buildPathExpr() {
     auto expr = std::make_unique<PathBuildExpression>();
     expr->add(std::make_unique<VertexExpression>());
     expr->add(std::make_unique<EdgeExpression>());
     return expr.release();
 }
 
-Status Expand::doExpand(const NodeInfo &node,
-                        const EdgeInfo &edge,
-                        const PlanNode *input,
-                        SubPlan *plan) {
+Status Expand::doExpand(const NodeInfo& node,
+                        const EdgeInfo& edge,
+                        const PlanNode* input,
+                        SubPlan*plan) {
     NG_RETURN_IF_ERROR(expandSteps(node, edge, input, plan));
     NG_RETURN_IF_ERROR(filterDatasetByPathLength(edge, plan->root, plan));
     return Status::OK();
 }
 
-Status Expand::expandSteps(const NodeInfo &node,
-                           const EdgeInfo &edge,
-                           const PlanNode *input,
-                           SubPlan *plan) {
+Status Expand::expandSteps(const NodeInfo& node,
+                           const EdgeInfo& edge,
+                           const PlanNode* input,
+                           SubPlan* plan) {
     SubPlan subplan;
     NG_RETURN_IF_ERROR(expandStep(edge, input, node.filter, true, &subplan));
     // plan->tail = subplan.tail;
-    PlanNode *passThrough = subplan.root;
+    PlanNode* passThrough = subplan.root;
     auto maxHop = edge.range ? edge.range->max() : 1;
     for (int64_t i = 1; i < maxHop; ++i) {
         SubPlan curr;
@@ -90,17 +90,17 @@ Status Expand::expandSteps(const NodeInfo &node,
 }
 
 // build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
-Status Expand::expandStep(const EdgeInfo &edge,
-                          const PlanNode *input,
-                          const Expression *nodeFilter,
+Status Expand::expandStep(const EdgeInfo& edge,
+                          const PlanNode* input,
+                          const Expression* nodeFilter,
                           bool needPassThrough,
-                          SubPlan *plan) {
+                          SubPlan* plan) {
     DCHECK(input != nullptr);
     auto qctx = matchCtx_->qctx;
 
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
-    curr.root = const_cast<PlanNode *>(input);
+    curr.root = const_cast<PlanNode*>(input);
     MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_, &curr);
 
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
@@ -110,13 +110,13 @@ Status Expand::expandStep(const EdgeInfo &edge,
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
 
-    PlanNode *root = gn;
+    PlanNode* root = gn;
 
     if (nodeFilter != nullptr) {
         auto filter = qctx->objPool()->add(nodeFilter->clone().release());
-        RewriteMatchLabelVisitor visitor([](const Expression *expr) {
+        RewriteMatchLabelVisitor visitor([](const Expression* expr) {
             DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
-            auto la = static_cast<const LabelAttributeExpression *>(expr);
+            auto la = static_cast<const LabelAttributeExpression*>(expr);
             return new AttributeExpression(new VertexExpression(), la->right()->clone().release());
         });
         filter->accept(&visitor);
@@ -126,9 +126,9 @@ Status Expand::expandStep(const EdgeInfo &edge,
     }
 
     if (edge.filter != nullptr) {
-        RewriteMatchLabelVisitor visitor([](const Expression *expr) {
+        RewriteMatchLabelVisitor visitor([](const Expression*expr) {
             DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
-            auto la = static_cast<const LabelAttributeExpression *>(expr);
+            auto la = static_cast<const LabelAttributeExpression*>(expr);
             return new AttributeExpression(new EdgeExpression(), la->right()->clone().release());
         });
         auto filter = edge.filter->clone().release();
@@ -155,11 +155,11 @@ Status Expand::expandStep(const EdgeInfo &edge,
     return Status::OK();
 }
 
-Status Expand::collectData(const PlanNode *joinLeft,
-                           const PlanNode *joinRight,
-                           const PlanNode *inUnionNode,
-                           PlanNode **passThrough,
-                           SubPlan *plan) {
+Status Expand::collectData(const PlanNode* joinLeft,
+                           const PlanNode* joinRight,
+                           const PlanNode* inUnionNode,
+                           PlanNode** passThrough,
+                           SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
     auto join = SegmentsConnector::innerJoinSegments(qctx, joinLeft, joinRight);
     auto lpath = folly::stringPrintf("%s_%d", kPathStr, 0);
@@ -179,7 +179,7 @@ Status Expand::collectData(const PlanNode *joinLeft,
     pt->setOutputVar(filter->outputVar());
     pt->setColNames({kPathStr});
 
-    auto uNode = Union::make(qctx, pt, const_cast<PlanNode *>(inUnionNode));
+    auto uNode = Union::make(qctx, pt, const_cast<PlanNode*>(inUnionNode));
     uNode->setColNames({kPathStr});
 
     *passThrough = pt;
@@ -187,9 +187,9 @@ Status Expand::collectData(const PlanNode *joinLeft,
     return Status::OK();
 }
 
-Status Expand::filterDatasetByPathLength(const EdgeInfo &edge,
-                                         PlanNode *input,
-                                         SubPlan *plan) {
+Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
+                                         PlanNode* input,
+                                         SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
 
     // filter rows whose edges number less than min hop

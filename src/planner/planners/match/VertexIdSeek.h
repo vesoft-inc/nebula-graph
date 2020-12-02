@@ -25,15 +25,15 @@ public:
 
     bool matchEdge(EdgeContext* edgeCtx) override;
 
-    StatusOr<const Expression *> extractVids(const Expression *filter);
+    StatusOr<const Expression*> extractVids(const Expression* filter);
 
     StatusOr<SubPlan> transformNode(NodeContext* nodeCtx) override;
 
     StatusOr<SubPlan> transformEdge(EdgeContext* edgeCtx) override;
 
-    std::pair<std::string, Expression *> listToAnnoVarVid(QueryContext *qctx, const List &list);
+    std::pair<std::string, Expression*> listToAnnoVarVid(QueryContext* qctx, const List& list);
 
-    std::pair<std::string, Expression *> constToAnnoVarVid(QueryContext *qctx, const Value &v);
+    std::pair<std::string, Expression*> constToAnnoVarVid(QueryContext* qctx, const Value& v);
 
 private:
     VertexIdSeek() = default;
