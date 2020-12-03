@@ -127,7 +127,7 @@ class DataSetWrapperComparator:
         return self._compare_list(lhs, rhs, self.compare_value)
 
     def compare_row(self, lrecord: Record, rrecord: Record):
-        if lrecord.size() == rrecord.size():
+        if not lrecord.size() == rrecord.size():
             return False
         return all(self.compare_value(l, r)
                    for (l, r) in zip(lrecord, rrecord))

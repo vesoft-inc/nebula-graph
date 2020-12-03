@@ -63,6 +63,7 @@ Feature: Value parsing
   When They are parsed as Nebula DataSet
   Then It must succeed
 
+  @skip
   Scenario: Test executing query
   Given A set of string:
     | _path                                                | vertex                                                               |

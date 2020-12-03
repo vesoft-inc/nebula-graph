@@ -9,11 +9,13 @@ import pytest
 import os
 import time
 
+from pathlib import Path
 from nebula2.gclient.net import ConnectionPool
 from nebula2.Config import Config
 
 from tests.common.configs import all_configs
 from tests.common.nebula_service import NebulaService
+from tests.common.csv_import import CSVImporter
 
 
 DOCKER_GRAPHD_DIGESTS = os.getenv('NEBULA_GRAPHD_DIGESTS')
@@ -96,7 +98,7 @@ def init_conn_pool(host: str, port: int):
     config.timeout = 60000
     # init connection pool
     pool = ConnectionPool()
-    if pool.init([(host, port)], config):
+    if not pool.init([(host, port)], config):
         raise Exception("Fail to init connection pool.")
     return pool
 
@@ -114,7 +116,7 @@ def conn_pool():
         yield client
         client.close()
     except Exception as e:
-        print(e)
+        print('fail to init conn pool: ', e)
     finally:
         nb.stop(cleanup=True)
 
@@ -149,4 +151,13 @@ CREATE TAG INDEX IF NOT EXISTS team_name_index ON team(name(64));
     sess = conn_pool.get_session(user, password)
     rs = sess.execute(ngqls)
     assert rs.is_succeeded()
+
+    time.sleep(5)
+
+    data_dir = pytest.cmdline.data_dir
+    for path in Path(data_dir).rglob('*.csv'):
+        for stmt in CSVImporter(path):
+            rs = sess.execute(stmt)
+            assert rs.is_succeeded()
+
     sess.release()

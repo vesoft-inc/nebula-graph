@@ -1,6 +1,7 @@
-Feature: Value parsing
+Feature: Variable length relationship match
 
-  Scenario: Parsing from text
+  @skip
+  Scenario: m to n
   Given a global graph with space named "nba"
   When executing query:
     """
@@ -16,6 +17,6 @@ Feature: Value parsing
     RETURN e, v
     """
   Then the result should be, in any order, with relax comparision:
-    | e                                                                                              | v                  |
-    | [("Tim Duncan")<-[:like@0]-("Manu Ginobili"), ("Manu Ginobili")<-[:like@0]-("Tiago Splitter")] | ("Tiago Splitter") |
+    | e                                                                                            | v                  |
+    | [<-[:like "Tim Duncan"->"Manu Ginobili"@0]-, <-[:like "Manu Ginobili"->"Tiago Splitter"@0]-] | ("Tiago Splitter") |
   And no side effects

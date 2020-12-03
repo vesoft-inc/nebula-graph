@@ -54,7 +54,7 @@ def parsed_as_values(nvalues):
 @when('They are parsed as Nebula DataSet')
 def parsed_as_dataset(string_table):
     ds = dataset(string_table)
-    print(ds)
+    # print(ds)
 
 
 @then('It must succeed')

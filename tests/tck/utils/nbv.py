@@ -289,7 +289,7 @@ def p_tag(p):
         tag : ':' LABEL map
             | ':' LABEL
     '''
-    tag = Tag(name = p[2])
+    tag = Tag(name = bytes(p[2], 'utf-8'))
     if len(p) == 4:
         tag.props = p[3].get_mVal().kvs
     p[0] = tag
@@ -320,7 +320,7 @@ def p_edge_spec(p):
         e.ranking = p[2]
         e.props = p[3]
     elif len(p) == 7:
-        e.name = p[3]
+        e.name = bytes(p[3], 'utf-8')
         e.ranking = p[4]
         e.props = p[5]
     elif len(p) == 9:
@@ -329,7 +329,7 @@ def p_edge_spec(p):
         e.ranking = p[6]
         e.props = p[7]
     elif len(p) == 11:
-        e.name = p[3]
+        e.name = bytes(p[3], 'utf-8')
         e.src = p[4].get_sVal()
         e.dst = p[7].get_sVal()
         e.ranking = p[8]

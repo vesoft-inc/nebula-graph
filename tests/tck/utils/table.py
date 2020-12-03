@@ -5,7 +5,6 @@
 
 from tests.tck.utils.nbv import parse
 from nebula2.common.ttypes import DataSet, Row
-from nebula2.data.DataObject import DataSetWrapper
 
 
 def table(text):
@@ -13,8 +12,8 @@ def table(text):
     assert len(lines) >= 1
 
     def parse_line(line):
-        return list(map(lambda x: x.strip(),
-                        filter(lambda x: x, line.split('|'))))
+        return list(
+            map(lambda x: x.strip(), filter(lambda x: x, line.split('|'))))
 
     table = []
     column_names = list(map(lambda x: bytes(x, 'utf-8'), parse_line(lines[0])))
@@ -40,7 +39,8 @@ def dataset(string_table):
         nrow.values = []
         for column in ds.column_names:
             value = parse(row[column])
-            assert value is not None
+            assert value is not None, \
+                    f'parse error: column is {column}:{row[column]}'
             nrow.values.append(value)
         ds.rows.append(nrow)
     return ds
