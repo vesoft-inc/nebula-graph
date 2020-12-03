@@ -10,7 +10,6 @@ import time
 
 from nebula2.gclient.net import ConnectionPool
 from nebula2.Config import Config
-from nebula2.graph import ttypes
 from tests.common.configs import get_delay_time
 
 

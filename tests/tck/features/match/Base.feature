@@ -1,5 +1,6 @@
 Feature: Basic match
 
+  @skip
   Scenario: one step
   Given a global graph with space named "nba"
   When executing query:

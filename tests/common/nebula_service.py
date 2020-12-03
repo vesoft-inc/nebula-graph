@@ -18,11 +18,19 @@ NEBULA_START_COMMAND_FORMAT = "bin/nebula-{} --flagfile conf/nebula-{}.conf {}"
 
 
 class NebulaService(object):
-    def __init__(self, build_dir, src_dir):
+    def __init__(self, build_dir, src_dir, cleanup=True):
         self.build_dir = build_dir
         self.src_dir = src_dir
         self.work_dir = os.path.join(self.build_dir, 'server_' + time.strftime("%Y-%m-%dT%H-%M-%S", time.localtime()))
         self.pids = {}
+        self._cleanup = cleanup
+
+    def __enter__(self):
+        self.install()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop(cleanup=self._cleanup)
 
     def set_work_dir(self, work_dir):
         self.work_dir = work_dir

@@ -17,17 +17,6 @@ from tests.common.configs import all_configs
 from tests.common.nebula_service import NebulaService
 from tests.common.csv_import import CSVImporter
 
-
-DOCKER_GRAPHD_DIGESTS = os.getenv('NEBULA_GRAPHD_DIGESTS')
-if DOCKER_GRAPHD_DIGESTS is None:
-    DOCKER_GRAPHD_DIGESTS = '0'
-DOCKER_METAD_DIGESTS = os.getenv('NEBULA_METAD_DIGESTS')
-if DOCKER_METAD_DIGESTS is None:
-    DOCKER_METAD_DIGESTS = '0'
-DOCKER_STORAGED_DIGESTS = os.getenv('NEBULA_STORAGED_DIGESTS')
-if DOCKER_STORAGED_DIGESTS is None:
-    DOCKER_STORAGED_DIGESTS = '0'
-
 tests_collected = set()
 tests_executed = set()
 data_dir = os.getenv('NEBULA_DATA_DIR')
@@ -87,9 +76,6 @@ def pytest_configure(config):
     pytest.cmdline.debug_log = config.getoption("debug_log")
     pytest.cmdline.build_dir = config.getoption("build_dir")
     pytest.cmdline.project_dir = config.getoption("project_dir")
-    config._metadata['graphd digest'] = DOCKER_GRAPHD_DIGESTS
-    config._metadata['metad digest'] = DOCKER_METAD_DIGESTS
-    config._metadata['storaged digest'] = DOCKER_STORAGED_DIGESTS
 
 
 def init_conn_pool(host: str, port: int):
@@ -105,20 +91,22 @@ def init_conn_pool(host: str, port: int):
 
 @pytest.fixture(scope="global")
 def conn_pool():
+    addr = pytest.cmdline.address
+    if addr:
+        addrsplit = addr.split(":")
+        assert len(addrsplit) == 2
+        pool = init_conn_pool(addrsplit[0], addrsplit[1])
+        yield pool
+        pool.close()
+        return
+
     build_dir = pytest.cmdline.build_dir
     project_dir = pytest.cmdline.project_dir
-    nb = NebulaService(build_dir, project_dir)
-    nb.install()
-    port = nb.start()
-    try:
-        time.sleep(5)
-        client = init_conn_pool("127.0.0.1", port)
-        yield client
-        client.close()
-    except Exception as e:
-        print('fail to init conn pool: ', e)
-    finally:
-        nb.stop(cleanup=True)
+    with NebulaService(build_dir, project_dir) as nb:
+        port = nb.start()
+        pool = init_conn_pool("127.0.0.1", port)
+        yield pool
+        pool.close()
 
 
 @pytest.fixture(scope="session")
@@ -130,34 +118,41 @@ def session(conn_pool):
     sess.release()
 
 
-@pytest.fixture(scope="global")
-def load_nba_data(conn_pool):
-    ngqls = """
-DROP SPACE IF EXISTS nba;
-CREATE SPACE nba(partition_num=7, replica_factor=1, vid_type=FIXED_STRING(30));
-USE nba;
-CREATE TAG IF NOT EXISTS player(name string, age int);
-CREATE TAG IF NOT EXISTS team(name string);
-CREATE TAG IF NOT EXISTS bachelor(name string, speciality string);
-CREATE EDGE IF NOT EXISTS like(likeness int);
-CREATE EDGE IF NOT EXISTS serve(start_year int, end_year int);
-CREATE EDGE IF NOT EXISTS teammate(start_year int, end_year int);
-CREATE TAG INDEX IF NOT EXISTS player_name_index ON player(name(64));
-CREATE TAG INDEX IF NOT EXISTS player_age_index ON player(age);
-CREATE TAG INDEX IF NOT EXISTS team_name_index ON team(name(64));
-    """
+def load_csv_data(conn_pool, folder: str):
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(curr_path, 'data', folder)
+    schema_path = os.path.join(data_dir, 'schema.ngql')
+
     user = pytest.cmdline.user
     password = pytest.cmdline.password
     sess = conn_pool.get_session(user, password)
-    rs = sess.execute(ngqls)
-    assert rs.is_succeeded()
+
+    with open(schema_path, 'r') as f:
+        stmts = []
+        for line in f.readlines():
+            ln = line.strip()
+            if ln.startswith('--'):
+                continue
+            stmts.append(ln)
+        rs = sess.execute(' '.join(stmts))
+        assert rs.is_succeeded()
 
     time.sleep(5)
 
-    data_dir = pytest.cmdline.data_dir
     for path in Path(data_dir).rglob('*.csv'):
         for stmt in CSVImporter(path):
             rs = sess.execute(stmt)
             assert rs.is_succeeded()
 
     sess.release()
+
+
+# TODO(yee): optimize data load fixtures
+@pytest.fixture(scope="global")
+def load_nba_data(conn_pool):
+    load_csv_data(conn_pool, "nba")
+
+
+@pytest.fixture(scope="global")
+def load_student_data(conn_pool):
+    load_csv_data(conn_pool, "student")
