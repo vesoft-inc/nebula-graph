@@ -18,7 +18,7 @@ from pytest_bdd import (
 
 from nebula2.common.ttypes import Value, NullType
 from tests.tck.utils.nbv import register_function, parse
-from tests.tck.utils.table import table, dataset
+from tests.tck.utils.table import table
 
 # You could register functions that can be invoked from the parsing text
 register_function('len', len)
@@ -26,16 +26,14 @@ register_function('len', len)
 scenarios('../features')
 
 
-@given(
-    parsers.parse("A set of string:\n{text}"),
-    target_fixture="string_table",
-)
+@given(parsers.parse("A set of string:\n{text}"),
+       target_fixture="string_table")
 def string_table(text):
     return table(text)
 
 
-@pytest.fixture
-def nvalues(string_table):
+@when('They are parsed as Nebula Value')
+def parsed_as_values(string_table):
     values = []
     column_names = string_table['column_names']
     for row in string_table['rows']:
@@ -43,27 +41,12 @@ def nvalues(string_table):
         v = parse(cell)
         assert v is not None, f"Failed to parse `{cell}'"
         values.append(v)
-    return values
-
-
-@when('They are parsed as Nebula Value')
-def parsed_as_values(nvalues):
-    pass
-
-
-@when('They are parsed as Nebula DataSet')
-def parsed_as_dataset(string_table):
-    ds = dataset(string_table)
-    # print(ds)
-
-
-@then('It must succeed')
-def it_must_succeed():
-    pass
+    string_table['values'] = values
 
 
 @then('The type of the parsed value should be as expected')
-def parsed_as_expected(nvalues, string_table):
+def parsed_as_expected(string_table):
+    nvalues = string_table['values']
     column_names = string_table['column_names']
     for i, val in enumerate(nvalues):
         type = val.getType()
@@ -77,5 +60,5 @@ def parsed_as_expected(nvalues, string_table):
                 actual = NullType._VALUES_TO_NAMES[val.get_nVal()]
         else:
             actual = Value.thrift_spec[val.getType()][2]
-        expected = string_table['rows'][i][column_names[1]].strip()
+        expected = string_table['rows'][i][column_names[1]]
         assert actual == expected, f"expected: {expected}, actual: {actual}"

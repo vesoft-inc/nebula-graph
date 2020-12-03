@@ -53,26 +53,4 @@ Feature: Value parsing
     | <('v1':t{})>                                         | pVal         |
     | <('v1':t{})-[:e1{}]->('v2':t{})<-[:e2{}]-('v3':t{})> | pVal         |
   When They are parsed as Nebula Value
-  Then It must succeed
-  And The type of the parsed value should be as expected
-
-  Scenario: Convert string table to nebula DataSet
-  Given A set of string:
-    | _path                                                | vertex                                                               |
-    | <('v1':t{})-[:e1{}]->('v2':t{})<-[:e2{}]-('v3':t{})> | ("vid":player{name:'Tim Duncan'}:bachelor{speciality: "psychology"}) |
-  When They are parsed as Nebula DataSet
-  Then It must succeed
-
-  @skip
-  Scenario: Test executing query
-  Given A set of string:
-    | _path                                                | vertex                                                               |
-    | <('v1':t{})-[:e1{}]->('v2':t{})<-[:e2{}]-('v3':t{})> | ("vid":player{name:'Tim Duncan'}:bachelor{speciality: "psychology"}) |
-  When executing query:
-    """
-    SHOW SPACES;
-    SHOW HOSTS;
-    """
-  Then the result should be, in any order:
-    | Name  |
-    | 'nba' |
+  Then The type of the parsed value should be as expected
