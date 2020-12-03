@@ -25,13 +25,14 @@ class CSVImporter:
     def __init__(self, filepath):
         self._filepath = filepath
         self._insert_stmt = ""
+        self._create_stmt = ""
         self._type = None
 
     def __iter__(self):
         with open(self._filepath, 'r') as f:
             for i, row in enumerate(csv.reader(f)):
                 if i == 0:
-                    self.parse_header(row)
+                    yield self.parse_header(row)
                 else:
                     yield self.process(row)
 
@@ -81,6 +82,7 @@ class CSVImporter:
                 break
         if self._type is None:
             raise ValueError(f'Invalid csv header: {",".join(row)}')
+        return self._create_stmt
 
     def parse_edge(self, row):
         props = []
@@ -108,7 +110,10 @@ class CSVImporter:
 
         self._type.name = name
         self._type.props = props
-        self._insert_stmt = f"INSERT EDGE {name}({','.join(p.name for p in props)}) VALUES"
+        pdecl = ','.join(p.name for p in props)
+        self._insert_stmt = f"INSERT EDGE {name}({pdecl}) VALUES"
+        pdecl = ','.join(f"`{p.name}` {p.ptype}" for p in props)
+        self._create_stmt = f"CREATE EDGE IF NOT EXISTS `{name}`({pdecl});"
 
     def parse_vertex(self, row):
         tag = Tag()
@@ -129,9 +134,12 @@ class CSVImporter:
 
         tag.props = props
         self._type.tags = [tag]
-        self._insert_stmt = f"INSERT VERTEX {tag.name}({','.join(p.name for p in tag.props)}) VALUES"
+        pdecl = ','.join(p.name for p in tag.props)
+        self._insert_stmt = f"INSERT VERTEX {tag.name}({pdecl}) VALUES"
+        pdecl = ','.join(f"`{p.name}` {p.ptype}" for p in tag.props)
+        self._create_stmt = f"CREATE TAG IF NOT EXISTS `{tag.name}`({pdecl});"
 
 
 if __name__ == '__main__':
-    for row in CSVImporter('../data/nba/like.csv'):
+    for row in CSVImporter('../data/nba/player.csv'):
         print(row)
