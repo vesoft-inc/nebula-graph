@@ -347,20 +347,44 @@ const Value& SequentialIter::getColumn(int32_t index) const {
 
 void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
     size_t nextSeg = 0;
-    if (lhs != nullptr && lhs->isSequentialIter()) {
-        nextSeg = buildIndexFromSeqIter(static_cast<const SequentialIter*>(lhs), 0);
-    } else if (lhs != nullptr && lhs->isJoinIter()) {
-        nextSeg = buildIndexFromJoinIter(static_cast<const JoinIter*>(lhs), 0);
-    } else if (lhs != nullptr && lhs->isPropIter()) {
-        nextSeg = buildIndexFromPropIter(static_cast<const PropIter*>(lhs), 0);
+    if (lhs != nullptr) {
+        switch (lhs->kind()) {
+            case Iterator::Kind::kSequential: {
+                nextSeg = buildIndexFromSeqIter(static_cast<const SequentialIter*>(lhs), 0);
+                break;
+            }
+            case Iterator::Kind::kJoin: {
+                nextSeg = buildIndexFromJoinIter(static_cast<const JoinIter*>(lhs), 0);
+                break;
+            }
+            case Iterator::Kind::kProp: {
+                nextSeg = buildIndexFromPropIter(static_cast<const PropIter*>(lhs), 0);
+                break;
+            }
+            default: {
+                LOG(FATAL) << "Join Not Support " << lhs->kind();
+            }
+        }
     }
-
-    if (rhs != nullptr && rhs->isSequentialIter()) {
-        buildIndexFromSeqIter(static_cast<const SequentialIter*>(rhs), nextSeg);
-    } else if (rhs != nullptr && rhs->isJoinIter()) {
-        buildIndexFromJoinIter(static_cast<const JoinIter*>(rhs), nextSeg);
-    } else if (rhs != nullptr && rhs->isPropIter()) {
-        buildIndexFromPropIter(static_cast<const PropIter*>(rhs), nextSeg);
+    if (rhs == nullptr) {
+        return;
+    }
+    switch (rhs->kind()) {
+        case Iterator::Kind::kSequential: {
+            buildIndexFromSeqIter(static_cast<const SequentialIter*>(rhs), nextSeg);
+            break;
+        }
+        case Iterator::Kind::kJoin: {
+            buildIndexFromJoinIter(static_cast<const JoinIter*>(rhs), nextSeg);
+            break;
+        }
+        case Iterator::Kind::kProp: {
+            buildIndexFromPropIter(static_cast<const PropIter*>(rhs), nextSeg);
+            break;
+        }
+        default: {
+            LOG(FATAL) << "Join Not Support " << rhs->kind();
+        }
     }
 }
 
