@@ -156,8 +156,6 @@ void FindAnyExprVisitor::visit(ColumnExpression *expr) {
 void FindAnyExprVisitor::visit(ListComprehensionExpression* expr) {
     findExpr(expr);
     if (found_) return;
-    expr->innerVar()->accept(this);
-    if (found_) return;
     expr->collection()->accept(this);
     if (found_) return;
     if (expr->hasFilter()) {

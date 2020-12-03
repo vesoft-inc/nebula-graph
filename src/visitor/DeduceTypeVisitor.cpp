@@ -543,18 +543,7 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
-    expr->innerVar()->accept(this);
-    if (!ok()) return;
-    expr->collection()->accept(this);
-    if (!ok()) return;
-    if (expr->hasFilter()) {
-        expr->filter()->accept(this);
-        if (!ok()) return;
-    }
-    if (expr->hasMapping()) {
-        expr->mapping()->accept(this);
-        if (!ok()) return;
-    }
+    UNUSED(expr);
     type_ = Value::Type::LIST;
 }
 

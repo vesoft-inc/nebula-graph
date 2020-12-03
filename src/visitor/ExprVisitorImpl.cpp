@@ -142,8 +142,6 @@ void ExprVisitorImpl::visit(PathBuildExpression *expr) {
 
 void ExprVisitorImpl::visit(ListComprehensionExpression *expr) {
     DCHECK(ok());
-    expr->innerVar()->accept(this);
-    if (!ok()) return;
     expr->collection()->accept(this);
     if (!ok()) return;
     if (expr->hasFilter()) {

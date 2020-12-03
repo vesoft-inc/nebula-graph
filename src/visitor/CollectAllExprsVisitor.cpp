@@ -143,7 +143,6 @@ void CollectAllExprsVisitor::visit(CaseExpression *expr) {
 
 void CollectAllExprsVisitor::visit(ListComprehensionExpression* expr) {
     collectExpr(expr);
-    expr->innerVar()->accept(this);
     expr->collection()->accept(this);
     if (expr->hasFilter()) {
         expr->filter()->accept(this);
