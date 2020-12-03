@@ -361,8 +361,10 @@ void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
                 nextSeg = buildIndexFromPropIter(static_cast<const PropIter*>(lhs), 0);
                 break;
             }
-            default: {
+            case Iterator::Kind::kDefault:
+            case Iterator::Kind::kGetNeighbors: {
                 LOG(FATAL) << "Join Not Support " << lhs->kind();
+                break;
             }
         }
     }
@@ -382,8 +384,10 @@ void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
             buildIndexFromPropIter(static_cast<const PropIter*>(rhs), nextSeg);
             break;
         }
-        default: {
-            LOG(FATAL) << "Join Not Support " << rhs->kind();
+        case Iterator::Kind::kDefault:
+        case Iterator::Kind::kGetNeighbors: {
+            LOG(FATAL) << "Join Not Support " << lhs->kind();
+            break;
         }
     }
 }
