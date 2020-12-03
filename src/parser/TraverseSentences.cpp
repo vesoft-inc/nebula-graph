@@ -185,6 +185,10 @@ std::string FindPathSentence::toString() const {
         buf += "ALL PATH ";
     }
 
+    if (withProperites_) {
+        buf += "WITH PROP ";
+    }
+
     if (from_ != nullptr) {
         buf += from_->toString();
         buf += " ";
