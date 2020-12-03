@@ -70,7 +70,7 @@ folly::Future<Status> ShowHostsExecutor::showHosts() {
     };
 
     auto makeGitInfoResult = [&](const std::vector<meta::cpp2::HostItem> &hostVec) -> DataSet {
-        DataSet v({"Host", "Port", "Status", "role", "git info sha"});
+        DataSet v({"Host", "Port", "Status", "Role", "Git Info Sha"});
         for (const auto &host : hostVec) {
             nebula::Row r({host.get_hostAddr().host,
                            host.get_hostAddr().port,
