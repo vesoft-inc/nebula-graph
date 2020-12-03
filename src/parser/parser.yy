@@ -745,7 +745,7 @@ list_comprehension_expression
             throw nebula::GraphParser::syntax_error(@2, "Must be LabelExpression:");
         }
         auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
-        auto newVarName = qctx->vctx()->anonVarGen()->getVar(); // DCHECK type == Kind::kLabel
+        auto newVarName = qctx->vctx()->anonVarGen()->getVar();
         auto innerVar = new ConstantExpression(newVarName);
         nebula::graph::RewriteListComprehensionLabelVisitor visitor(oldVarName, newVarName);
         $6->accept(&visitor);
@@ -756,7 +756,7 @@ list_comprehension_expression
             throw nebula::GraphParser::syntax_error(@2, "Must be LabelExpression:");
         }
         auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
-        auto newVarName = qctx->vctx()->anonVarGen()->getVar(); // DCHECK type == Kind::kLabel
+        auto newVarName = qctx->vctx()->anonVarGen()->getVar();
         auto innerVar = new ConstantExpression(newVarName);
         nebula::graph::RewriteListComprehensionLabelVisitor visitor(oldVarName, newVarName);
         $6->accept(&visitor);
@@ -767,7 +767,7 @@ list_comprehension_expression
             throw nebula::GraphParser::syntax_error(@2, "Must be LabelExpression:");
         }
         auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
-        auto newVarName = qctx->vctx()->anonVarGen()->getVar(); // DCHECK type == Kind::kLabel
+        auto newVarName = qctx->vctx()->anonVarGen()->getVar();
         auto innerVar = new ConstantExpression(newVarName);
         nebula::graph::RewriteListComprehensionLabelVisitor visitor(oldVarName, newVarName);
         $6->accept(&visitor);
