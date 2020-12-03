@@ -8,7 +8,6 @@
 import time
 import datetime
 import pytest
-import re
 
 from pathlib import Path
 from typing import Pattern, Set

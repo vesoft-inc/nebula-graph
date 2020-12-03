@@ -33,9 +33,9 @@ class DataSetWrapperComparator:
         return self._compare_list(lhs, rhs, self.compare_row)
 
     def compare_value(self, lhs: ValueWrapper, rhs: ValueWrapper):
-        '''
+        """
         lhs and rhs represent response data and expected data respectively
-        '''
+        """
         if lhs.is_null():
             return rhs.is_null()
         if lhs.is_empty():
@@ -45,51 +45,47 @@ class DataSetWrapperComparator:
         if lhs.is_int():
             return rhs.is_int() and lhs.as_int() == rhs.as_int()
         if lhs.is_double():
-            return rhs.is_double() and \
-                math.fabs(lhs.as_double() - rhs.as_double()) < 1.0E-8
+            return (rhs.is_double()
+                    and math.fabs(lhs.as_double() - rhs.as_double()) < 1.0E-8)
         if lhs.is_string():
             return rhs.is_string() and lhs.as_string() == rhs.as_string()
         if lhs.is_date():
             return (rhs.is_date() and lhs.as_date() == rhs.as_date()) or (
-                rhs.is_string() and str(lhs.as_date()) == rhs.as_string()
-            )
+                rhs.is_string() and str(lhs.as_date()) == rhs.as_string())
         if lhs.is_time():
             return (rhs.is_time() and lhs.as_time() == rhs.as_time()) or (
-                rhs.is_string() and str(lhs.as_time()) == rhs.as_string()
-            )
+                rhs.is_string() and str(lhs.as_time()) == rhs.as_string())
         if lhs.is_datetime():
-            return (
-                rhs.is_datetime() and lhs.as_datetime() == rhs.as_datetime()
-            ) or (
-                rhs.is_string() and str(lhs.as_datetime()) == rhs.as_string()
-            )
+            return ((rhs.is_datetime()
+                     and lhs.as_datetime() == rhs.as_datetime())
+                    or (rhs.is_string()
+                        and str(lhs.as_datetime()) == rhs.as_string()))
         if lhs.is_list():
-            return rhs.is_list() and \
-                self.compare_list(lhs.as_list(), rhs.as_list())
+            return rhs.is_list() and self.compare_list(lhs.as_list(),
+                                                       rhs.as_list())
         if lhs.is_set():
-            return rhs.is_set() and \
-                self._compare_list(lhs.as_set(),
-                                   rhs.as_set(),
-                                   self.compare_value)
+            return rhs.is_set() and self._compare_list(
+                lhs.as_set(), rhs.as_set(), self.compare_value)
         if lhs.is_map():
-            return rhs.is_map() and \
-                self.compare_map(lhs.as_map(), rhs.as_map())
+            return rhs.is_map() and self.compare_map(lhs.as_map(),
+                                                     rhs.as_map())
         if lhs.is_vertex():
-            return rhs.is_vertex() and \
-                self.compare_node(lhs.as_node(), rhs.as_node())
+            return rhs.is_vertex() and self.compare_node(
+                lhs.as_node(), rhs.as_node())
         if lhs.is_edge():
-            return rhs.is_edge() and \
-                self.compare_edge(lhs.as_relationship(), rhs.as_relationship())
+            return rhs.is_edge() and self.compare_edge(lhs.as_relationship(),
+                                                       rhs.as_relationship())
         if lhs.is_path():
-            return rhs.is_path() and \
-                self.compare_path(lhs.as_path(), rhs.as_path())
+            return rhs.is_path() and self.compare_path(lhs.as_path(),
+                                                       rhs.as_path())
         return False
 
     def compare_path(self, lhs: Path, rhs: Path):
-        return all(self.compare_node(l.start_node, r.start_node) and
-                   self.compare_node(l.end_node, r.end_node) and
-                   self.compare_edge(l.relationship, r.relationship)
-                   for (l, r) in zip(lhs, rhs))
+        return all(
+            self.compare_node(l.start_node, r.start_node)
+            and self.compare_node(l.end_node, r.end_node)
+            and self.compare_edge(l.relationship, r.relationship)
+            for (l, r) in zip(lhs, rhs))
 
     def compare_edge(self, lhs: Relationship, rhs: Relationship):
         if not lhs == rhs:

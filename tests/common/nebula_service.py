@@ -141,8 +141,9 @@ class NebulaService(object):
         # wait nebula start
         start_time = time.time()
         if not self._check_servers_status(server_ports):
-            raise Exception('nebula servers not ready in {}s'.format(time.time() - start_time))
-        print('nebula servers start ready in {}s'.format(time.time() - start_time))
+            raise Exception(
+                f'nebula servers not ready in {time.time() - start_time}s')
+        print(f'nebula servers start ready in {time.time() - start_time}s')
 
         for pf in glob.glob(self.work_dir + '/pids/*.pid'):
             with open(pf) as f:

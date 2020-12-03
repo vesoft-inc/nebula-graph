@@ -3,67 +3,56 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-import pytest
-
-from nebula2.common.ttypes import DataSet, Row
+from pytest_bdd import given, when, then, parsers
 from nebula2.data.DataObject import DataSetWrapper
-from tests.tck.utils.nbv import parse
+from tests.tck.utils.table import table, dataset
+from tests.tck.utils.comparator import DataSetWrapperComparator
 
 
-def _table(text):
-    lines = text.splitlines()
-    assert len(lines) >= 1
-
-    def parse_line(line):
-        return list(map(lambda x: x.strip(),
-                        filter(lambda x: x, line.split('|'))))
-
-    table = []
-    column_names = list(map(lambda x: bytes(x, 'utf-8'), parse_line(lines[0])))
-    for line in lines[1:]:
-        row = {}
-        cells = parse_line(line)
-        for i, cell in enumerate(cells):
-            row[column_names[i]] = cell
-        table.append(row)
-
-    return {
-        "column_names": column_names,
-        "rows": table,
-    }
+@given(
+    parsers.parse('a global graph with space named "nba"'),
+    target_fixture="nba_space",
+)
+def nba_space(load_nba_data, session):
+    rs = session.execute('USE nba')
+    assert rs.is_succeeded()
+    return {}
 
 
-@pytest.fixture
-def table():
-    return _table
+@when(parsers.parse("executing query:\n{query}"))
+def executing_query(query, nba_space, session):
+    ngql = " ".join(query.splitlines())
+    nba_space['resultset'] = session.execute(ngql)
 
 
-def _dataset(string_table):
-    ds = DataSet()
-    ds.column_names = string_table['column_names']
-    ds.rows = []
-    for row in string_table['rows']:
-        nrow = Row()
-        nrow.values = []
-        for column in ds.column_names:
-            value = parse(row[column])
-            assert value is not None
-            nrow.values.append(value)
-        ds.rows.append(nrow)
-    return ds
+@then(parsers.parse("the result should be, in any order:\n{result}"))
+def result_should_be(result, nba_space):
+    rs = nba_space['resultset']
+    assert rs.is_succeeded()
+    ds = DataSetWrapper(dataset(table(result)))
+    dscmp = DataSetWrapperComparator(strict=True, order=False)
+    assert dscmp(rs._data_set_wrapper, ds)
 
 
-@pytest.fixture
-def dataset(table):
-    return _dataset
+@then(
+    parsers.parse(
+        "the result should be, in any order, with relax comparision:\n{result}"
+    ))
+def result_should_be_relax_cmp(result, nba_space):
+    rs = nba_space['resultset']
+    assert rs.is_succeeded()
+    ds = DataSetWrapper(dataset(table(result)))
+    dscmp = DataSetWrapperComparator(strict=False, order=False)
+    assert dscmp(rs._data_set_wrapper, ds)
 
 
-def _datasetwrapper(ds: DataSet):
-    return DataSetWrapper(ds)
+@then("no side effects")
+def no_side_effects():
+    pass
 
 
-@pytest.fixture
-def datasetwrapper(dataset):
-    def _dswrapper(string_table):
-        return _datasetwrapper(dataset(string_table))
-    return _dswrapper
+@then(
+    parsers.parse(
+        "a TypeError should be raised at runtime: InvalidArgumentValue"))
+def raised_type_error():
+    pass

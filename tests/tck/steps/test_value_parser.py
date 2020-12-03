@@ -16,21 +16,21 @@ from pytest_bdd import (
     parsers,
 )
 
-from nebula2.common.ttypes import Value, NullType, DataSet, Row
-from nebula2.data.DataObject import DataSetWrapper
+from nebula2.common.ttypes import Value, NullType
 from tests.tck.utils.nbv import register_function, parse
+from tests.tck.utils.table import table, dataset
 
 # You could register functions that can be invoked from the parsing text
 register_function('len', len)
 
-scenarios('../features/datatype/nebula.feature')
+scenarios('../features')
 
 
 @given(
     parsers.parse("A set of string:\n{text}"),
     target_fixture="string_table",
 )
-def string_table(text, table):
+def string_table(text):
     return table(text)
 
 
@@ -52,7 +52,7 @@ def parsed_as_values(nvalues):
 
 
 @when('They are parsed as Nebula DataSet')
-def parsed_as_dataset(string_table, dataset):
+def parsed_as_dataset(string_table):
     ds = dataset(string_table)
     print(ds)
 
@@ -79,17 +79,3 @@ def parsed_as_expected(nvalues, string_table):
             actual = Value.thrift_spec[val.getType()][2]
         expected = string_table['rows'][i][column_names[1]].strip()
         assert actual == expected, f"expected: {expected}, actual: {actual}"
-
-
-@when(parsers.parse("executing query:\n{query}"))
-def executing_query(query):
-    ngql = " ".join(query.splitlines())
-    print(f'\nexecuted query is "{ngql}"\n')
-
-
-@then(parsers.parse("the result should be, in any order:\n{result}"))
-def result_should_be(result, table, dataset):
-    ds = dataset(table(result))
-    print(ds)
-    ds_wrapper = DataSetWrapper(ds)
-    print(ds_wrapper)
