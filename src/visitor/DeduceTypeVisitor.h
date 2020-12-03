@@ -84,7 +84,7 @@ private:
     // column expression
     void visit(ColumnExpression * expr) override;
     // list comprehension expression
-    void visit(ListComprehensionExpression *) override {}
+    void visit(ListComprehensionExpression *) override;
 
     void visitVertexPropertyExpr(PropertyExpression *expr);
 

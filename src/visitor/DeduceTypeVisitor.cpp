@@ -542,6 +542,22 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
     type_ = Value::Type::__EMPTY__;
 }
 
+void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
+    expr->innerVar()->accept(this);
+    if (!ok()) return;
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (!ok()) return;
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (!ok()) return;
+    }
+    type_ = Value::Type::LIST;
+}
+
 void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {
     auto *tag = expr->sym();
     auto tagId = qctx_->schemaMng()->toTagID(space_, *tag);

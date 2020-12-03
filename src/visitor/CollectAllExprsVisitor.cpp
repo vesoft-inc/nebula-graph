@@ -141,6 +141,18 @@ void CollectAllExprsVisitor::visit(CaseExpression *expr) {
     }
 }
 
+void CollectAllExprsVisitor::visit(ListComprehensionExpression* expr) {
+    collectExpr(expr);
+    expr->innerVar()->accept(this);
+    expr->collection()->accept(this);
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+    }
+}
+
 void CollectAllExprsVisitor::visitBinaryExpr(BinaryExpression *expr) {
     collectExpr(expr);
     expr->left()->accept(this);

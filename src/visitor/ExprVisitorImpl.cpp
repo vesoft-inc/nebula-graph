@@ -140,8 +140,20 @@ void ExprVisitorImpl::visit(PathBuildExpression *expr) {
     }
 }
 
-void ExprVisitorImpl::visit(ListComprehensionExpression *) {
+void ExprVisitorImpl::visit(ListComprehensionExpression *expr) {
     DCHECK(ok());
+    expr->innerVar()->accept(this);
+    if (!ok()) return;
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (!ok()) return;
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (!ok()) return;
+    }
 }
 
 }   // namespace graph
