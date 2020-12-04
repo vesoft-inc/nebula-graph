@@ -9,22 +9,14 @@
 #include "planner/Admin.h"
 #include "context/QueryContext.h"
 #include "util/ScopedTimer.h"
+#include "common/time/TimeUtils.h"
 
 namespace nebula {
 namespace graph {
 
 DateTime toDateTime(int64_t ts) {
-    std::time_t tm = ts;
-    std::tm* localTm = std::localtime(&tm);
-
-    DateTime dt;
-    dt.year = 1900 + localTm->tm_year;
-    dt.month = 1 + localTm->tm_mon;
-    dt.day = localTm->tm_mday;
-    dt.hour = localTm->tm_hour;
-    dt.minute = localTm->tm_min;
-    dt.sec = localTm->tm_sec;
-    return dt;
+    DateTime utc = time::TimeUtils::unixSecondsToDateTime(ts);
+    return time::TimeUtils::utcToDateTime(utc);
 }
 
 folly::Future<Status> SubmitJobExecutor::execute() {
