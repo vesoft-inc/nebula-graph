@@ -3,14 +3,18 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
+import functools
+
 from pytest_bdd import given, when, then, parsers
 from nebula2.data.DataObject import DataSetWrapper
 from tests.tck.utils.table import table, dataset
 from tests.tck.utils.comparator import DataSetWrapperComparator
 
+parse = functools.partial(parsers.parse)
+
 
 @given(
-    parsers.parse('a global graph with space named "nba"'),
+    parse('a graph with space named "nba"'),
     target_fixture="nba_space",
 )
 def nba_space(load_nba_data, session):
@@ -19,13 +23,13 @@ def nba_space(load_nba_data, session):
     return {"result_set": None}
 
 
-@when(parsers.parse("executing query:\n{query}"))
+@when(parse("executing query:\n{query}"))
 def executing_query(query, nba_space, session):
     ngql = " ".join(query.splitlines())
     nba_space['result_set'] = session.execute(ngql)
 
 
-@then(parsers.parse("the result should be, in any order:\n{result}"))
+@then(parse("the result should be, in any order:\n{result}"))
 def result_should_be(result, nba_space):
     rs = nba_space['result_set']
     assert rs.is_succeeded()
@@ -35,7 +39,7 @@ def result_should_be(result, nba_space):
 
 
 @then(
-    parsers.parse(
+    parse(
         "the result should be, in any order, with relax comparision:\n{result}"
     ))
 def result_should_be_relax_cmp(result, nba_space):
@@ -51,8 +55,6 @@ def no_side_effects():
     pass
 
 
-@then(
-    parsers.parse(
-        "a TypeError should be raised at runtime: InvalidArgumentValue"))
+@then(parse("a TypeError should be raised at runtime: InvalidArgumentValue"))
 def raised_type_error():
     pass

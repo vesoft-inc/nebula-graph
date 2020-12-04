@@ -1,8 +1,7 @@
 Feature: Variable length relationship match
 
-  @skip
   Scenario: m to n
-  Given a global graph with space named "nba"
+  Given a graph with space named "nba"
   When executing query:
     """
     MATCH (:player{name:'Tim Duncan'})-[e:serve*2..3{start_year: 2000}]-(v)

@@ -9,7 +9,7 @@ from nebula2.data.DataObject import (
     Node,
     Record,
     Relationship,
-    Path,
+    PathWrapper,
     DataSetWrapper,
     ValueWrapper,
 )
@@ -80,7 +80,7 @@ class DataSetWrapperComparator:
                                                        rhs.as_path())
         return False
 
-    def compare_path(self, lhs: Path, rhs: Path):
+    def compare_path(self, lhs: PathWrapper, rhs: PathWrapper):
         return all(
             self.compare_node(l.start_node, r.start_node)
             and self.compare_node(l.end_node, r.end_node)

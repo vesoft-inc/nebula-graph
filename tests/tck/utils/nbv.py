@@ -283,6 +283,8 @@ def p_tag_list(p):
             p[1] = []
         p[1].append(p[2])
         p[0] = p[1]
+    else:
+        p[0] = []
 
 def p_tag(p):
     '''
