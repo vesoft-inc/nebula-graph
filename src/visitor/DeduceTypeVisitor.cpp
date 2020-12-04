@@ -547,7 +547,7 @@ void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
     if (!ok()) return;
     if (type_ != Value::Type::LIST) {
         status_ = Status::SemanticError(
-            "`%s': Invalid expression type, expecting expression of type LIST",
+            "`%s': Invalid colletion type, expected type of LIST",
             expr->toString().c_str());
         return;
     }

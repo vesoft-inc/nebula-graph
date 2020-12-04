@@ -108,8 +108,7 @@ void FoldConstantExprVisitor::visit(FunctionCallExpression *expr) {
     auto result = FunctionManager::getIsPure(*expr->name(), expr->args()->args().size());
     if (!result.ok()) {
         canBeFolded = false;
-    }
-    if (!result.value()) {
+    } else if (!result.value()) {
         // stateful so can't fold
         canBeFolded = false;
     }
