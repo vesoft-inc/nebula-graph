@@ -3,6 +3,7 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
+import pdb
 import functools
 
 from pytest_bdd import given, when, then, parsers
@@ -45,9 +46,10 @@ def result_should_be(result, nba_space):
 def result_should_be_relax_cmp(result, nba_space):
     rs = nba_space['result_set']
     assert rs.is_succeeded()
-    ds = DataSetWrapper(dataset(table(result)))
+    ds = dataset(table(result))
+    dsw = DataSetWrapper(ds)
     dscmp = DataSetWrapperComparator(strict=False, order=False)
-    assert dscmp(rs._data_set_wrapper, ds)
+    assert dscmp(rs._data_set_wrapper, dsw)
 
 
 @then("no side effects")

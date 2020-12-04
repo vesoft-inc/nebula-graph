@@ -9,4 +9,5 @@ pytest-bdd==4.0.1
 pytest-mproc==4.0.4
 pytest-services==2.2.0
 pytest-variables==1.9.0
+pytest-yapf3==0.5.1
 ply==3.11

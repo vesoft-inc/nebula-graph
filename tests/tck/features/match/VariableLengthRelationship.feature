@@ -16,6 +16,6 @@ Feature: Variable length relationship match
     RETURN e, v
     """
   Then the result should be, in any order, with relax comparision:
-    | e                                                                                            | v                  |
-    | [<-[:like "Tim Duncan"->"Manu Ginobili"@0]-, <-[:like "Manu Ginobili"->"Tiago Splitter"@0]-] | ("Tiago Splitter") |
+    | e                                                                                      | v                  |
+    | [[:like "Tim Duncan"<-"Manu Ginobili"@0], [:like "Manu Ginobili"<-"Tiago Splitter"@0]] | ("Tiago Splitter") |
   And no side effects

@@ -24,7 +24,7 @@ Feature: Value parsing
     | 'string"substr"'                                     | sVal         |
     | []                                                   | lVal         |
     | [1,2,3]                                              | lVal         |
-    | [<-[:e2{}]-,-[:e3{}]->]                              | lVal         |
+    | [[:e2{}],[:e3{}]]                                    | lVal         |
     | {1,2,3}                                              | uVal         |
     | {}                                                   | mVal         |
     | {k1: 1, 'k2':true}                                   | mVal         |
@@ -36,18 +36,14 @@ Feature: Value parsing
     | ('vid':t:t)                                          | vVal         |
     | ('vid':t{p1:0,p2:' '})                               | vVal         |
     | ('vid':t{p1:0,p2:' '}:t{})                           | vVal         |
-    | -->                                                  | eVal         |
-    | <--                                                  | eVal         |
-    | -[]->                                                | eVal         |
-    | -[:e]->                                              | eVal         |
-    | -[@-1]->                                             | eVal         |
-    | -['1'->'2']->                                        | eVal         |
-    | -[{p:0}]->                                           | eVal         |
-    | <-[:e{}]-                                            | eVal         |
-    | -[:e{p1:0,p2:true}]->                                | eVal         |
-    | <-[:e@0{p1:0,p2:true}]-                              | eVal         |
-    | -[:e{p1:0,p2:true}]->                                | eVal         |
-    | <-[:e@-1{p1:0,p2:true}]-                             | eVal         |
+    | [:e]                                                 | eVal         |
+    | [@-1]                                                | eVal         |
+    | ['1'->'2']                                           | eVal         |
+    | [:e{}]                                               | eVal         |
+    | [:e{p1:0,p2:true}]                                   | eVal         |
+    | [:e@0{p1:0,p2:true}]                                 | eVal         |
+    | [:e{p1:0,p2:true}]                                   | eVal         |
+    | [:e@-1{p1:0,p2:true}]                                | eVal         |
     | <()>                                                 | pVal         |
     | <()-->()<--()>                                       | pVal         |
     | <('v1':t{})>                                         | pVal         |
