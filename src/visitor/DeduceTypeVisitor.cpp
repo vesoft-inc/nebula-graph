@@ -543,7 +543,15 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
-    UNUSED(expr);
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::LIST) {
+        status_ = Status::SemanticError(
+            "`%s': Invalid expression type, expecting expression of type LIST",
+            expr->toString().c_str());
+        return;
+    }
+
     type_ = Value::Type::LIST;
 }
 
