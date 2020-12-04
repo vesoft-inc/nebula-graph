@@ -54,9 +54,9 @@ class TestJobs(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect_col_names = ['Job Id', 'Command', 'Status', 'Start Time', 'Stop Time']
         self.check_column_names(resp, expect_col_names)
-        expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT'), re.compile(r'\S+'), re.compile(r'\S+'), re.compile(r'\S+')],
-                         [re.compile(r'\d+'), re.compile(r'FLUSH'), re.compile(r'\S+'), re.compile(r'\S+'), re.compile(r'\S+')],
-                         [re.compile(r'\d+'), re.compile(r'STATS'), re.compile(r'\S+'), re.compile(r'\S+'), re.compile(r'\S+')]]
+        expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')],
+                         [re.compile(r'\d+'), re.compile(r'FLUSH'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')],
+                         [re.compile(r'\d+'), re.compile(r'STATS'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')]]
         self.search_result(resp, expect_values, is_regex=True)
 
         job_id = resp.row_values(0)[0].as_int()
@@ -64,7 +64,7 @@ class TestJobs(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect_col_names = ['Job Id(TaskId)', 'Command(Dest)', 'Status', 'Start Time', 'Stop Time']
         self.check_column_names(resp, expect_col_names)
-        expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT|FLUSH'), re.compile(r'\S+'), re.compile(r'\S+'), re.compile(r'\S+')]]
+        expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT|FLUSH'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')]]
         self.search_result(resp, expect_values, is_regex=True)
 
         job_id = resp.row_values(0)[0].as_int()
@@ -79,9 +79,9 @@ class TestJobs(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect_col_names = ['Job Id', 'Command', 'Status', 'Start Time', 'Stop Time']
         self.check_column_names(resp, expect_col_names)
-        expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT'), re.compile(r'\S+'), re.compile(r'\S+'), re.compile(r'\S+')],
-                         [re.compile(r'\d+'), re.compile(r'FLUSH'), re.compile(r'\S+'), re.compile(r'\S+'), re.compile(r'\S+')],
-                         [re.compile(r'\d+'), re.compile(r'STATS'), re.compile(r'\S+'), re.compile(r'\S+'), re.compile(r'\S+')]]
+        expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')],
+                         [re.compile(r'\d+'), re.compile(r'FLUSH'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')],
+                         [re.compile(r'\d+'), re.compile(r'STATS'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')]]
         self.search_result(resp, expect_values, is_regex=True)
 
         resp = self.client.execute('RECOVER JOB;')
