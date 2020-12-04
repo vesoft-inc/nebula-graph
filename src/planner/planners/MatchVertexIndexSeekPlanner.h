@@ -42,6 +42,8 @@ private:
 
     Status buildTailJoin();
 
+    Expression* buildSrcExpr();
+
     template <typename T>
     T* saveObject(T *obj) const {
         return matchCtx_->qctx->objPool()->add(obj);

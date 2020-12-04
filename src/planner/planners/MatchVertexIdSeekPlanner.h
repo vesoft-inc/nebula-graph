@@ -36,6 +36,12 @@ private:
 
     Status buildProjectVertices();
 
+    StatusOr<std::vector<storage::cpp2::VertexProp>> buildVertexProp();
+
+    const QueryContext* qctx() const {
+        return matchCtx_->qctx;
+    }
+
     SubPlan             subPlan_;
     MatchAstContext*    matchCtx_;
 };

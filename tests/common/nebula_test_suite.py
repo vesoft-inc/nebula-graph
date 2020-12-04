@@ -182,7 +182,7 @@ class NebulaTestSuite(object):
     @classmethod
     def check_resp_succeeded(self, resp):
         assert (
-            resp.is_succeeded
+            resp.is_succeeded()
             or resp.error_code() == ttypes.ErrorCode.E_STATEMENT_EMTPY
         ), resp.error_msg()
 

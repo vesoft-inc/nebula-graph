@@ -35,16 +35,14 @@ Status FetchVerticesValidator::toPlan() {
                                               limit_,
                                               std::move(filter_));
     getVerticesNode->setInputVar(vidsVar);
-    getVerticesNode->setColNames(std::move(gvColNames_));
     // pipe will set the input variable
     PlanNode *current = getVerticesNode;
 
-    if (withProject_) {
-        auto *projectNode = Project::make(qctx_, current, newYieldColumns_);
-        projectNode->setInputVar(current->outputVar());
-        projectNode->setColNames(colNames_);
-        current = projectNode;
-    }
+    auto *projectNode = Project::make(qctx_, current, newYieldColumns_);
+    projectNode->setInputVar(current->outputVar());
+    projectNode->setColNames(colNames_);
+    current = projectNode;
+
     // Project select properties then dedup
     if (dedup_) {
         auto *dedupNode = Dedup::make(qctx_, current);
@@ -66,7 +64,7 @@ Status FetchVerticesValidator::check() {
     if (!sentence->isAllTagProps()) {
         onStar_ = false;
         auto tags = sentence->tags()->labels();
-        for (const auto& tag : tags) {
+        for (const auto &tag : tags) {
             auto tagStatus = qctx_->schemaMng()->toTagID(space_.id, *tag);
             NG_RETURN_IF_ERROR(tagStatus);
             auto tagId = tagStatus.value();
@@ -141,7 +139,6 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     colNames_.reserve(yieldSize + 1);
     outputs_.reserve(yieldSize + 1);
     colNames_.emplace_back(VertexID);
-    gvColNames_.emplace_back(colNames_.back());
     outputs_.emplace_back(VertexID, Value::Type::STRING);   // kVid
 
     dedup_ = yield->isDistinct();
@@ -199,7 +196,6 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
         vProp.set_tag(tagNameId.second);
         for (const auto &prop : exprProps.tagProps().at(tagNameId.second)) {
             props.emplace_back(prop.toString());
-            gvColNames_.emplace_back(tagNameId.first + "." + prop.toString());
         }
         vProp.set_props(std::move(props));
         props_.emplace_back(std::move(vProp));
@@ -209,8 +205,8 @@ Status FetchVerticesValidator::preparePropertiesWithYield(const YieldClause *yie
     // TODO(shylock) select kVid from storage
     newYieldColumns_ = qctx_->objPool()->add(new YieldColumns());
     // note eval vid by input expression
-    newYieldColumns_->addColumn(new YieldColumn(
-        new InputPropertyExpression(new std::string(VertexID)), new std::string(VertexID)));
+    newYieldColumns_->addColumn(new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
+                                                new std::string(VertexID)));
     for (auto col : yield->columns()) {
         newYieldColumns_->addColumn(col->clone().release());
     }
@@ -222,20 +218,27 @@ Status FetchVerticesValidator::preparePropertiesWithoutYield() {
     props_.clear();
     outputs_.emplace_back(VertexID, Value::Type::STRING);
     colNames_.emplace_back(VertexID);
-    gvColNames_.emplace_back(colNames_.back());
+    newYieldColumns_ = qctx_->objPool()->add(new YieldColumns());
+    // note eval vid by input expression
+    newYieldColumns_->addColumn(new YieldColumn(new InputPropertyExpression(new std::string(kVid)),
+                                                new std::string(VertexID)));
     for (const auto &tagSchema : tagsSchema_) {
         storage::cpp2::VertexProp vProp;
         vProp.set_tag(tagSchema.first);
         auto tagNameResult = qctx_->schemaMng()->toTagName(space_.id, tagSchema.first);
         NG_RETURN_IF_ERROR(tagNameResult);
         auto tagName = std::move(tagNameResult).value();
+        std::vector<std::string> props;
         for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
             outputs_.emplace_back(
                 tagSchema.second->getFieldName(i),
                 SchemaUtil::propTypeToValueType(tagSchema.second->getFieldType(i)));
             colNames_.emplace_back(tagName + "." + tagSchema.second->getFieldName(i));
-            gvColNames_.emplace_back(colNames_.back());
+            newYieldColumns_->addColumn(new YieldColumn(new TagPropertyExpression(
+                new std::string(tagName), new std::string(tagSchema.second->getFieldName(i)))));
+            props.emplace_back(tagSchema.second->getFieldName(i));
         }
+        vProp.set_props(std::move(props));
         props_.emplace_back(std::move(vProp));
     }
     return Status::OK();

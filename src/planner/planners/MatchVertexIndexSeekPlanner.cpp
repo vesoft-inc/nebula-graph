@@ -46,6 +46,7 @@ Status MatchVertexIndexSeekPlanner::buildScanNode() {
     contexts->emplace_back();
     contexts->back().set_filter(Expression::encode(*matchCtx_->scanInfo.filter));
     auto columns = std::make_unique<std::vector<std::string>>();
+    columns->emplace_back(kVid);
     auto scan = IndexScan::make(matchCtx_->qctx,
                                 nullptr,
                                 matchCtx_->space.id,
@@ -61,8 +62,7 @@ Status MatchVertexIndexSeekPlanner::buildScanNode() {
 
 
 Status MatchVertexIndexSeekPlanner::buildSteps() {
-    gnSrcExpr_ = new VariablePropertyExpression(new std::string(),
-                                                new std::string(kVid));
+    gnSrcExpr_ = buildSrcExpr();
     saveObject(gnSrcExpr_);
     NG_RETURN_IF_ERROR(buildStep());
     for (auto i = 1u; i < matchCtx_->edgeInfos.size(); i++) {
@@ -267,6 +267,22 @@ Status MatchVertexIndexSeekPlanner::buildTailJoin() {
     subPlan_.root = join;
 
     return Status::OK();
+}
+
+Expression* MatchVertexIndexSeekPlanner::buildSrcExpr() {
+    // _vid != NULL ? _vid : tag._vid
+    auto *vidExpr = new VariablePropertyExpression(new std::string(),
+                                                   new std::string(kVid));
+    auto *vidExprNotNull = new RelationalExpression(Expression::Kind::kRelNE,
+                                                    new ConstantExpression(Value::kNullValue),
+                                                    vidExpr->clone().release());
+    auto *tagVidExpr = new TagPropertyExpression(new std::string(*matchCtx_->scanInfo.schemaName),
+                                                 new std::string(kVid));
+    auto *caseList = new CaseList();
+    caseList->add(vidExprNotNull, vidExpr);
+    auto *srcExpr = new CaseExpression(caseList);
+    srcExpr->setDefault(tagVidExpr);
+    return srcExpr;
 }
 
 }   // namespace graph

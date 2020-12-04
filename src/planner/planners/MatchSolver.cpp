@@ -132,6 +132,7 @@ bool MatchSolver::match(AstContext *astCtx) {
 
     matchCtx->scanInfo.filter = filter;
     matchCtx->scanInfo.schemaId = head.tid;
+    matchCtx->scanInfo.schemaName = head.label;
 
     return true;
 }

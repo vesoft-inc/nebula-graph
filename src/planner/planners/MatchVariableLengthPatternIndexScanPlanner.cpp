@@ -62,10 +62,6 @@ StatusOr<SubPlan> MatchVariableLengthPatternIndexScanPlanner::transform(AstConte
     return plan;
 }
 
-static std::unique_ptr<std::vector<VertexProp>> genVertexProps() {
-    return std::make_unique<std::vector<VertexProp>>();
-}
-
 static std::unique_ptr<std::vector<EdgeProp>> genEdgeProps(const EdgeInfo &edge) {
     auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     if (edge.edgeTypes.empty()) {
@@ -209,6 +205,7 @@ Status MatchVariableLengthPatternIndexScanPlanner::scanIndex(SubPlan *plan) {
     auto contexts = std::make_unique<std::vector<IQC>>();
     contexts->emplace_back(std::move(iqctx));
     auto columns = std::make_unique<std::vector<std::string>>();
+    columns->emplace_back(kVid);
     auto scan = IndexScan::make(matchCtx_->qctx,
                                 nullptr,
                                 matchCtx_->space.id,
@@ -220,7 +217,8 @@ Status MatchVariableLengthPatternIndexScanPlanner::scanIndex(SubPlan *plan) {
     plan->root = scan;
 
     // initialize start expression in project node
-    initialExpr_ = ExpressionUtils::newVarPropExpr(kVid);
+    initialExpr_ = new TagPropertyExpression(new std::string(*matchCtx_->scanInfo.schemaName),
+                                             new std::string(kVid));
 
     return Status::OK();
 }
@@ -251,7 +249,14 @@ Status MatchVariableLengthPatternIndexScanPlanner::appendFetchVertexPlan(
 
     extractAndDedupVidColumn(plan);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
-    auto gv = GetVertices::make(qctx, plan->root, matchCtx_->space.id, srcExpr.release(), {}, {});
+    auto vertexPropsResult = buildVertexProp();
+    NG_RETURN_IF_ERROR(vertexPropsResult);
+    auto gv = GetVertices::make(qctx,
+                                plan->root,
+                                matchCtx_->space.id,
+                                srcExpr.release(),
+                                std::move(vertexPropsResult).value(),
+                                {});
 
     PlanNode *root = gv;
     if (nodeFilter != nullptr) {
@@ -335,10 +340,14 @@ Status MatchVariableLengthPatternIndexScanPlanner::expandStep(const EdgeInfo &ed
     curr.root = const_cast<PlanNode *>(input);
     extractAndDedupVidColumn(&curr);
 
+    auto vertexPropResult = buildVertexProp();
+    NG_RETURN_IF_ERROR(vertexPropResult);
+
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
     gn->setSrc(srcExpr.release());
-    gn->setVertexProps(genVertexProps());
+    gn->setVertexProps(std::make_unique<std::vector<storage::cpp2::VertexProp>>(
+                                            std::move(vertexPropResult).value()));
     gn->setEdgeProps(genEdgeProps(edge));
     gn->setEdgeDirection(edge.direction);
 
@@ -449,7 +458,7 @@ void MatchVariableLengthPatternIndexScanPlanner::extractAndDedupVidColumn(SubPla
     auto columns = saveObject(new YieldColumns);
     auto input = plan->root;
     Expression *vidExpr = initialExprOrEdgeDstExpr(input);
-    columns->addColumn(new YieldColumn(vidExpr));
+    columns->addColumn(new YieldColumn(vidExpr, new std::string(kVid)));
     auto project = Project::make(qctx, input, columns);
     project->setColNames({kVid});
     auto dedup = Dedup::make(qctx, project);
@@ -500,6 +509,40 @@ YieldColumn *MatchVariableLengthPatternIndexScanPlanner::buildPathColumn(
         pathExpr->add(ExpressionUtils::inputPropExpr(colName));
     }
     return new YieldColumn(pathExpr.release(), new std::string(alias));
+}
+
+StatusOr<std::vector<storage::cpp2::VertexProp>>
+MatchVariableLengthPatternIndexScanPlanner::buildVertexProp() {
+    // list all tag properties
+    std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema;
+    std::unordered_map<std::string, TagID> tags;
+    const auto allTagsResult = qctx()->schemaMng()->getAllVerTagSchema(matchCtx_->space.id);
+    NG_RETURN_IF_ERROR(allTagsResult);
+    const auto allTags = std::move(allTagsResult).value();
+    for (const auto &tag : allTags) {
+        tagsSchema.emplace(tag.first, tag.second.back());
+    }
+    for (const auto &tagSchema : tagsSchema) {
+        auto tagNameResult = qctx()->schemaMng()->toTagName(matchCtx_->space.id, tagSchema.first);
+        NG_RETURN_IF_ERROR(tagNameResult);
+        tags.emplace(std::move(tagNameResult).value(), tagSchema.first);
+    }
+
+    std::vector<storage::cpp2::VertexProp> vProps;
+    for (const auto &tagSchema : tagsSchema) {
+        storage::cpp2::VertexProp vProp;
+        vProp.set_tag(tagSchema.first);
+        auto tagNameResult = qctx()->schemaMng()->toTagName(matchCtx_->space.id, tagSchema.first);
+        NG_RETURN_IF_ERROR(tagNameResult);
+        auto tagName = std::move(tagNameResult).value();
+        std::vector<std::string> props;
+        for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
+            props.emplace_back(tagSchema.second->getFieldName(i));
+        }
+        vProp.set_props(std::move(props));
+        vProps.emplace_back(std::move(vProp));
+    }
+    return vProps;
 }
 
 }   // namespace graph

@@ -125,8 +125,15 @@ Status MatchVertexIdSeekPlanner::buildQueryById() {
         vidsResult = constToAnnoVarVid(value);
     }
 
+    auto propsResult = buildVertexProp();
+    NG_RETURN_IF_ERROR(propsResult);
     auto *ge =
-        GetVertices::make(matchCtx_->qctx, nullptr, matchCtx_->space.id, vidsResult.second, {}, {});
+        GetVertices::make(matchCtx_->qctx,
+                          nullptr,
+                          matchCtx_->space.id,
+                          vidsResult.second,
+                          std::move(propsResult).value(),
+                          {});
     ge->setInputVar(vidsResult.first);
     subPlan_.root = ge;
     subPlan_.tail = ge;
@@ -143,5 +150,39 @@ Status MatchVertexIdSeekPlanner::buildProjectVertices() {
     subPlan_.root = project;
     return Status::OK();
 }
+
+StatusOr<std::vector<storage::cpp2::VertexProp>> MatchVertexIdSeekPlanner::buildVertexProp() {
+    // list all tag properties
+    std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema;
+    std::unordered_map<std::string, TagID> tags;
+    const auto allTagsResult = qctx()->schemaMng()->getAllVerTagSchema(matchCtx_->space.id);
+    NG_RETURN_IF_ERROR(allTagsResult);
+    const auto allTags = std::move(allTagsResult).value();
+    for (const auto &tag : allTags) {
+        tagsSchema.emplace(tag.first, tag.second.back());
+    }
+    for (const auto &tagSchema : tagsSchema) {
+        auto tagNameResult = qctx()->schemaMng()->toTagName(matchCtx_->space.id, tagSchema.first);
+        NG_RETURN_IF_ERROR(tagNameResult);
+        tags.emplace(std::move(tagNameResult).value(), tagSchema.first);
+    }
+
+    std::vector<storage::cpp2::VertexProp> vProps;
+    for (const auto &tagSchema : tagsSchema) {
+        storage::cpp2::VertexProp vProp;
+        vProp.set_tag(tagSchema.first);
+        auto tagNameResult = qctx()->schemaMng()->toTagName(matchCtx_->space.id, tagSchema.first);
+        NG_RETURN_IF_ERROR(tagNameResult);
+        auto tagName = std::move(tagNameResult).value();
+        std::vector<std::string> props;
+        for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
+            props.emplace_back(tagSchema.second->getFieldName(i));
+        }
+        vProp.set_props(std::move(props));
+        vProps.emplace_back(std::move(vProp));
+    }
+    return vProps;
+}
+
 }  // namespace graph
 }  // namespace nebula

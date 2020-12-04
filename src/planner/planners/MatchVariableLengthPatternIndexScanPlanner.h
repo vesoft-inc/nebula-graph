@@ -90,6 +90,12 @@ private:
         return matchCtx_->qctx->objPool()->add(obj);
     }
 
+    StatusOr<std::vector<storage::cpp2::VertexProp>> buildVertexProp();
+
+    const QueryContext* qctx() const {
+        return matchCtx_->qctx;
+    }
+
     static constexpr const char* kPath = "_path";
 
     MatchAstContext* matchCtx_{nullptr};

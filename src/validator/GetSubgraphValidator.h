@@ -35,6 +35,10 @@ private:
 
     Status zeroStep(PlanNode* depend, const std::string& inputVar);
 
+    StatusOr<std::vector<storage::cpp2::VertexProp>> buildVertexProp();
+
+    StatusOr<std::vector<storage::cpp2::EdgeProp>> buildEdgeProp();
+
 private:
     std::unordered_set<EdgeType>                edgeTypes_;
     std::string                                 collectVar_;

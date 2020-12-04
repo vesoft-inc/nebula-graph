@@ -5,6 +5,7 @@
  */
 
 #include "validator/GetSubgraphValidator.h"
+#include <memory>
 
 #include "common/expression/UnaryExpression.h"
 #include "common/expression/VariableExpression.h"
@@ -165,9 +166,15 @@ GetNeighbors::EdgeProps GetSubgraphValidator::buildEdgeProps() {
 Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& inputVar) {
     auto& space = vctx_->whichSpace();
     std::vector<storage::cpp2::Expr> exprs;
-    std::vector<storage::cpp2::VertexProp> vertexProps;
-    auto* getVertex = GetVertices::make(
-        qctx_, depend, space.id, from_.src, std::move(vertexProps), std::move(exprs), true);
+    auto vertexPropsResult = buildVertexProp();
+    NG_RETURN_IF_ERROR(vertexPropsResult);
+    auto* getVertex = GetVertices::make(qctx_,
+                                        depend,
+                                        space.id,
+                                        from_.src,
+                                        std::move(vertexPropsResult).value(),
+                                        std::move(exprs),
+                                        true);
     getVertex->setInputVar(inputVar);
 
     auto var = vctx_->anonVarGen()->getVar();
@@ -228,10 +235,12 @@ Status GetSubgraphValidator::toPlan() {
         return zeroStep(collectRunTimeStartVids, startVidsVar);
     }
 
-    auto vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    auto vertexPropsResult = buildVertexProp();
+    NG_RETURN_IF_ERROR(vertexPropsResult);
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space.id);
     gn->setSrc(from_.src);
-    gn->setVertexProps(std::move(vertexProps));
+    gn->setVertexProps(std::make_unique<std::vector<storage::cpp2::VertexProp>>(
+        std::move(vertexPropsResult).value()));
     gn->setEdgeProps(buildEdgeProps());
     gn->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn->setInputVar(startVidsVar);
@@ -239,9 +248,9 @@ Status GetSubgraphValidator::toPlan() {
     auto* projectVids = projectDstVidsFromGN(gn, startVidsVar);
 
     auto var = vctx_->anonVarGen()->getVar();
-    auto* column = new YieldColumn(
-        new VariablePropertyExpression(new std::string(var), new std::string(kVid)),
-        new std::string(kVid));
+    auto* column =
+        new YieldColumn(new VariablePropertyExpression(new std::string(var), new std::string(kVid)),
+                        new std::string(kVid));
     qctx_->objPool()->add(column);
     column->setAggFunction(new std::string("COLLECT_SET"));
     auto fun = column->getAggFunName();
@@ -258,11 +267,13 @@ Status GetSubgraphValidator::toPlan() {
     auto* condition = buildNStepLoopCondition(steps_.steps);
     auto* loop = Loop::make(qctx_, collectRunTimeStartVids, collect, condition);
 
-    vertexProps = std::make_unique<std::vector<storage::cpp2::VertexProp>>();
+    vertexPropsResult = buildVertexProp();
+    NG_RETURN_IF_ERROR(vertexPropsResult);
     auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     auto* gn1 = GetNeighbors::make(qctx_, loop, space.id);
     gn1->setSrc(from_.src);
-    gn1->setVertexProps(std::move(vertexProps));
+    gn1->setVertexProps(std::make_unique<std::vector<storage::cpp2::VertexProp>>(
+        std::move(vertexPropsResult).value()));
     gn1->setEdgeProps(std::move(edgeProps));
     gn1->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn1->setInputVar(projectVids->outputVar());
@@ -282,5 +293,38 @@ Status GetSubgraphValidator::toPlan() {
     return Status::OK();
 }
 
-}  // namespace graph
-}  // namespace nebula
+StatusOr<std::vector<storage::cpp2::VertexProp>> GetSubgraphValidator::buildVertexProp() {
+    // list all tag properties
+    std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema;
+    std::unordered_map<std::string, TagID> tags;
+    const auto allTagsResult = qctx()->schemaMng()->getAllVerTagSchema(space_.id);
+    NG_RETURN_IF_ERROR(allTagsResult);
+    const auto allTags = std::move(allTagsResult).value();
+    for (const auto& tag : allTags) {
+        tagsSchema.emplace(tag.first, tag.second.back());
+    }
+    for (const auto& tagSchema : tagsSchema) {
+        auto tagNameResult = qctx()->schemaMng()->toTagName(space_.id, tagSchema.first);
+        NG_RETURN_IF_ERROR(tagNameResult);
+        tags.emplace(std::move(tagNameResult).value(), tagSchema.first);
+    }
+
+    std::vector<storage::cpp2::VertexProp> vProps;
+    for (const auto& tagSchema : tagsSchema) {
+        storage::cpp2::VertexProp vProp;
+        vProp.set_tag(tagSchema.first);
+        auto tagNameResult = qctx()->schemaMng()->toTagName(space_.id, tagSchema.first);
+        NG_RETURN_IF_ERROR(tagNameResult);
+        auto tagName = std::move(tagNameResult).value();
+        std::vector<std::string> props;
+        for (std::size_t i = 0; i < tagSchema.second->getNumFields(); ++i) {
+            props.emplace_back(tagSchema.second->getFieldName(i));
+        }
+        vProp.set_props(std::move(props));
+        vProps.emplace_back(std::move(vProp));
+    }
+    return vProps;
+}
+
+}   // namespace graph
+}   // namespace nebula

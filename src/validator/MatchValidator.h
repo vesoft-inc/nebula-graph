@@ -50,6 +50,7 @@ public:
     struct ScanInfo {
         Expression                             *filter{nullptr};
         int32_t                                 schemaId{0};
+        const std::string                      *schemaName{nullptr};
     };
 
     enum class QueryEntry {
