@@ -7,7 +7,6 @@
 
 import time
 import datetime
-import pytest
 
 from pathlib import Path
 from typing import Pattern, Set
@@ -41,27 +40,25 @@ class NebulaTestSuite(object):
     def set_delay(self):
         self.delay = get_delay_time(self.client)
 
-    @classmethod
-    def setup_class(self):
-        self.spaces = []
-        address = pytest.cmdline.address.split(':')
-        self.host = address[0]
-        self.port = address[1]
-        self.user = pytest.cmdline.user
-        self.password = pytest.cmdline.password
-        self.replica_factor = pytest.cmdline.replica_factor
-        self.partition_num = pytest.cmdline.partition_num
-        self.check_format_str = 'result: {}, expect: {}'
-        self.data_dir = pytest.cmdline.data_dir
-        self.data_loaded = False
-        self.create_nebula_clients()
-        self.set_delay()
-        self.prepare()
+    # @classmethod
+    # def setup_class(self):
+    #     self.spaces = []
+    #     self.user = pytest.cmdline.user
+    #     self.password = pytest.cmdline.password
+    #     self.replica_factor = pytest.cmdline.replica_factor
+    #     self.partition_num = pytest.cmdline.partition_num
+    #     self.check_format_str = 'result: {}, expect: {}'
+    #     self.data_dir = pytest.cmdline.data_dir
+    #     self.data_loaded = False
+    #     self.create_nebula_clients()
+    #     self.set_delay()
+    #     self.prepare()
 
     @classmethod
     def load_data(self):
         self.data_loaded = True
-        pathlist = Path(self.data_dir).rglob('*.ngql')
+        # pathlist = Path(self.data_dir).rglob('*.ngql')
+        pathlist = [Path(self.data_dir).joinpath("data/nba.ngql")]
         for path in pathlist:
             print("open: ", path)
             with open(path, 'r') as data_file:
@@ -114,7 +111,7 @@ class NebulaTestSuite(object):
 
     @classmethod
     def use_student_space(self):
-        resp = self.execute('USE student_space;')
+        resp = self.execute('USE student;')
         self.check_resp_succeeded(resp)
 
     @classmethod
@@ -141,18 +138,13 @@ class NebulaTestSuite(object):
     def close_nebula_clients(self):
         self.client_pool.close()
 
-    @classmethod
-    def teardown_class(self):
-        if self.client is not None:
-            self.cleanup()
-            self.drop_data()
-            self.client.release()
-        self.close_nebula_clients()
-
-    @classmethod
-    def execute(self, ngql, profile=True):
-        return self.client.execute(
-            'PROFILE {{{}}}'.format(ngql) if profile else ngql)
+    # @classmethod
+    # def teardown_class(self):
+    #     if self.client is not None:
+    #         self.cleanup()
+    #         self.drop_data()
+    #         self.client.release()
+    #     self.close_nebula_clients()
 
     @classmethod
     def execute(self, ngql, profile=True):

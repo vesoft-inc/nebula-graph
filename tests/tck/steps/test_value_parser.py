@@ -28,12 +28,12 @@ scenarios('../features')
 
 @given(parsers.parse("A set of string:\n{text}"),
        target_fixture="string_table")
-def string_table(text):
+def string_table(text, workarround_for_class):
     return table(text)
 
 
 @when('They are parsed as Nebula Value')
-def parsed_as_values(string_table):
+def parsed_as_values(string_table, workarround_for_class):
     values = []
     column_names = string_table['column_names']
     for row in string_table['rows']:
@@ -45,7 +45,7 @@ def parsed_as_values(string_table):
 
 
 @then('The type of the parsed value should be as expected')
-def parsed_as_expected(string_table):
+def parsed_as_expected(string_table, workarround_for_class):
     nvalues = string_table['values']
     column_names = string_table['column_names']
     for i, val in enumerate(nvalues):

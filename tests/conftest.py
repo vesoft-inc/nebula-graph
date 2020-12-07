@@ -24,6 +24,7 @@ tests_collected = set()
 tests_executed = set()
 data_dir = os.getenv('NEBULA_DATA_DIR')
 
+CURR_PATH = os.path.dirname(os.path.abspath(__file__))
 
 # pytest hook to handle test collection when xdist is used (parallel tests)
 # https://github.com/pytest-dev/pytest-xdist/pull/35/commits (No official documentation available)
@@ -57,11 +58,6 @@ def pytest_addoption(parser):
                      dest="build_dir",
                      default="",
                      help="Nebula Graph CMake build directory")
-
-    parser.addoption("--project_dir",
-                     dest="project_dir",
-                     default="",
-                     help="Nebula Graph CMake project directory")
 
 
 def pytest_configure(config):
@@ -102,7 +98,7 @@ def conn_pool(pytestconfig, worker_id, tmp_path_factory):
         return
 
     build_dir = pytestconfig.getoption("build_dir")
-    project_dir = pytestconfig.getoption("project_dir")
+    project_dir = os.path.dirname(CURR_PATH)
 
     root_tmp_dir = tmp_path_factory.getbasetemp().parent
     fn = root_tmp_dir / "nebula-test"
@@ -139,6 +135,7 @@ def conn_pool(pytestconfig, worker_id, tmp_path_factory):
                 nb.stop()
                 break
             time.sleep(1)
+        os.remove(str(fn))
 
 
 @pytest.fixture(scope="session")
@@ -150,13 +147,12 @@ def session(conn_pool, pytestconfig):
     sess.release()
 
 
-def load_csv_data(conn_pool, folder: str):
-    curr_path = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(curr_path, 'data', folder)
+def load_csv_data(pytestconfig, conn_pool, folder: str):
+    data_dir = os.path.join(CURR_PATH, 'data', folder)
     schema_path = os.path.join(data_dir, 'schema.ngql')
 
-    user = pytest.cmdline.user
-    password = pytest.cmdline.password
+    user = pytestconfig.getoption("user")
+    password = pytestconfig.getoption("password")
     sess = conn_pool.get_session(user, password)
 
     with open(schema_path, 'r') as f:
@@ -181,26 +177,75 @@ def load_csv_data(conn_pool, folder: str):
 
 # TODO(yee): optimize data load fixtures
 @pytest.fixture(scope="session")
-def load_nba_data(conn_pool, tmp_path_factory, worker_id):
+def load_nba_data(conn_pool, pytestconfig, tmp_path_factory, worker_id):
     root_tmp_dir = tmp_path_factory.getbasetemp().parent
     fn = root_tmp_dir / "csv-data-nba"
+    load = False
     with FileLock(str(fn) + ".lock"):
         if not fn.is_file():
-            load_csv_data(conn_pool, "nba")
+            load_csv_data(pytestconfig, conn_pool, "nba")
             fn.write_text("nba")
             logging.info(f"session-{worker_id} load nba csv data")
+            load = True
         else:
             logging.info(f"session-{worker_id} need not to load nba csv data")
+    yield
+    if load:
+        os.remove(str(fn))
 
 
 @pytest.fixture(scope="session")
-def load_student_data(conn_pool, tmp_path_factory, worker_id):
+def load_student_data(conn_pool, pytestconfig, tmp_path_factory, worker_id):
     root_tmp_dir = tmp_path_factory.getbasetemp().parent
     fn = root_tmp_dir / "csv-data-student"
+    load = False
     with FileLock(str(fn) + ".lock"):
         if not fn.is_file():
-            load_csv_data(conn_pool, "student")
-            fn.write_text("nba")
-            logging.info(f"session-{worker_id} load nba csv data")
+            load_csv_data(pytestconfig, conn_pool, "student")
+            fn.write_text("student")
+            logging.info(f"session-{worker_id} load student csv data")
+            load = True
         else:
-            logging.info(f"session-{worker_id} need not to load nba csv data")
+            logging.info(
+                f"session-{worker_id} need not to load student csv data")
+    yield
+    if load:
+        os.remove(str(fn))
+
+
+# TODO(yee): Delete this when we migrate all test cases
+@pytest.fixture(scope="class", autouse=True)
+def workarround_for_class(request, pytestconfig, tmp_path_factory, conn_pool,
+                          load_nba_data, load_student_data):
+    addr = pytestconfig.getoption("address")
+    if addr:
+        ss = addr.split(':')
+        request.cls.host = ss[0]
+        request.cls.port = ss[1]
+    else:
+        root_tmp_dir = tmp_path_factory.getbasetemp().parent
+        fn = root_tmp_dir / "nebula-test"
+        data = json.loads(fn.read_text())
+        request.cls.host = "localhost"
+        request.cls.port = data["port"]
+
+    request.cls.data_dir = os.path.dirname(os.path.abspath(__file__))
+
+    request.cls.spaces = []
+    request.cls.user = pytestconfig.getoption("user")
+    request.cls.password = pytestconfig.getoption("password")
+    request.cls.replica_factor = pytestconfig.getoption("replica_factor")
+    request.cls.partition_num = pytestconfig.getoption("partition_num")
+    request.cls.check_format_str = 'result: {}, expect: {}'
+    request.cls.data_loaded = False
+    request.cls.create_nebula_clients()
+    request.cls.set_delay()
+    request.cls.prepare()
+
+    yield
+
+    if request.cls.client is not None:
+        request.cls.cleanup()
+        request.cls.drop_data()
+        request.cls.client.release()
+    request.cls.close_nebula_clients()

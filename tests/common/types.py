@@ -36,7 +36,7 @@ class Prop(Column):
     def __init__(self, index: int, name: str, ptype: str):
         super().__init__(index)
         self._name = name
-        if ptype not in ['string', 'int']:
+        if ptype not in ['string', 'int', 'double']:
             raise ValueError(f'Invalid prop type: {ptype}')
         self._type = ptype
 

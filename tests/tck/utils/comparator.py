@@ -37,7 +37,7 @@ class DataSetWrapperComparator:
         lhs and rhs represent response data and expected data respectively
         """
         if lhs.is_null():
-            return rhs.is_null()
+            return rhs.is_null() and lhs.as_null() == rhs.as_null()
         if lhs.is_empty():
             return rhs.is_empty()
         if lhs.is_bool():

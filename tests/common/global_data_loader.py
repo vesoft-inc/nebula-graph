@@ -82,7 +82,7 @@ class GlobalDataLoader(object):
     # The whole test will load once, for the only read tests
     def load_student(self):
         resp = self.client.execute(
-            'CREATE SPACE IF NOT EXISTS student_space(partition_num=10, replica_factor=1, vid_type = fixed_string(8)); USE student_space;')
+            'CREATE SPACE IF NOT EXISTS student(partition_num=10, replica_factor=1, vid_type = fixed_string(8)); USE student;')
         assert resp.is_succeeded(), resp.error_msg()
 
         resp = self.client.execute('CREATE TAG IF NOT EXISTS person(name string, age int, gender string);')
@@ -208,5 +208,5 @@ class GlobalDataLoader(object):
         assert resp.is_succeeded(), resp.error_msg()
 
     def drop_data(self):
-        resp = self.client.execute('DROP SPACE nba; DROP SPACE student_space;')
+        resp = self.client.execute('DROP SPACE nba; DROP SPACE student;')
         assert resp.is_succeeded(), resp.error_msg()
