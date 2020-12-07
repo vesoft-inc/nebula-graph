@@ -159,7 +159,7 @@ class NebulaService(object):
 
         return graph_port
 
-    def stop(self, cleanup):
+    def stop(self):
         print("try to stop nebula services...")
         for p in self.pids:
             try:
@@ -172,7 +172,7 @@ class NebulaService(object):
             time.sleep(1)
             max_retries = max_retries-1
 
-        if cleanup:
+        if self._cleanup:
             shutil.rmtree(self.work_dir, ignore_errors=True)
 
     def check_procs_alive(self):

@@ -9,6 +9,7 @@ import pytest
 import os
 import time
 import logging
+import json
 
 from filelock import FileLock
 from pathlib import Path
@@ -76,8 +77,6 @@ def pytest_configure(config):
     pytest.cmdline.stop_nebula = config.getoption("stop_nebula")
     pytest.cmdline.rm_dir = config.getoption("rm_dir")
     pytest.cmdline.debug_log = config.getoption("debug_log")
-    pytest.cmdline.build_dir = config.getoption("build_dir")
-    pytest.cmdline.project_dir = config.getoption("project_dir")
 
 
 def get_conn_pool(host: str, port: int):
@@ -107,27 +106,45 @@ def conn_pool(pytestconfig, worker_id, tmp_path_factory):
 
     root_tmp_dir = tmp_path_factory.getbasetemp().parent
     fn = root_tmp_dir / "nebula-test"
+    nb = None
     with FileLock(str(fn) + ".lock"):
         if fn.is_file():
-            port = fn.read_text()
-            logging.debug(f"session-{worker_id} read the port: {port}")
+            data = json.loads(fn.read_text())
+            port = data["port"]
+            logging.info(f"session-{worker_id} read the port: {port}")
             pool = get_conn_pool("localhost", port)
-            yield pool
-            pool.close()
+            data["num_workers"] += 1
+            fn.write_text(json.dumps(data))
         else:
-            with NebulaService(build_dir, project_dir) as nb:
-                port = nb.start()
-                pool = get_conn_pool("localhost", port)
-                fn.write_text(str(port))
-                logging.debug(f"session-{worker_id} write the port: {port}")
-                yield pool
-                pool.close()
+            nb = NebulaService(build_dir, project_dir)
+            nb.install()
+            port = nb.start()
+            pool = get_conn_pool("localhost", port)
+            data = dict(port=port, num_workers=1, finished=0)
+            fn.write_text(json.dumps(data))
+            logging.info(f"session-{worker_id} write the port: {port}")
+
+    yield pool
+    pool.close()
+
+    if nb is None:
+        with FileLock(str(fn) + ".lock"):
+            data = json.loads(fn.read_text())
+            data["finished"] += 1
+            fn.write_text(json.dumps(data))
+    else:
+        while True:
+            data = json.loads(fn.read_text())
+            if data["finished"] + 1 == data["num_workers"]:
+                nb.stop()
+                break
+            time.sleep(1)
 
 
 @pytest.fixture(scope="session")
-def session(conn_pool):
-    user = pytest.cmdline.user
-    password = pytest.cmdline.password
+def session(conn_pool, pytestconfig):
+    user = pytestconfig.getoption("user")
+    password = pytestconfig.getoption("password")
     sess = conn_pool.get_session(user, password)
     yield sess
     sess.release()
@@ -152,7 +169,7 @@ def load_csv_data(conn_pool, folder: str):
         rs = sess.execute(' '.join(stmts))
         assert rs.is_succeeded()
 
-    time.sleep(5)
+    time.sleep(3)
 
     for path in Path(data_dir).rglob('*.csv'):
         for stmt in CSVImporter(path):
@@ -171,9 +188,9 @@ def load_nba_data(conn_pool, tmp_path_factory, worker_id):
         if not fn.is_file():
             load_csv_data(conn_pool, "nba")
             fn.write_text("nba")
-            logging.debug(f"session-{worker_id} load nba csv data")
+            logging.info(f"session-{worker_id} load nba csv data")
         else:
-            logging.debug(f"session-{worker_id} need not to load nba csv data")
+            logging.info(f"session-{worker_id} need not to load nba csv data")
 
 
 @pytest.fixture(scope="session")
@@ -184,6 +201,6 @@ def load_student_data(conn_pool, tmp_path_factory, worker_id):
         if not fn.is_file():
             load_csv_data(conn_pool, "student")
             fn.write_text("nba")
-            logging.debug(f"session-{worker_id} load nba csv data")
+            logging.info(f"session-{worker_id} load nba csv data")
         else:
-            logging.debug(f"session-{worker_id} need not to load nba csv data")
+            logging.info(f"session-{worker_id} need not to load nba csv data")
