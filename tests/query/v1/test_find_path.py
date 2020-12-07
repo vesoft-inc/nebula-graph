@@ -536,7 +536,7 @@ class TestFindPath(NebulaTestSuite):
         self.check_path_result_without_prop(resp.rows(), expected_data["rows"])
 
     def test_path_limit(self):
-        stmt = 'FIND SHORTEST PATH FROM "Tim Duncan" TO "Nobody","Spur" OVER like,serve UPTO 3 STEPS | LIMIT 3'
+        stmt = 'FIND SHORTEST PATH FROM "Tim Duncan" TO "Nobody","Spur" OVER like,serve UPTO 3 STEPS | ORDER BY _path | LIMIT 3'
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
@@ -546,7 +546,7 @@ class TestFindPath(NebulaTestSuite):
         self.check_column_names(resp, expected_data["column_names"])
         self.check_empty_result(resp)
 
-        stmt = 'FIND ALL PATH FROM "Tim Duncan" TO "Tony Parker","Spurs" OVER like,serve UPTO 3 STEPS | LIMIT 3'
+        stmt = 'FIND ALL PATH FROM "Tim Duncan" TO "Tony Parker","Spurs" OVER like,serve UPTO 3 STEPS | ORDER BY _path | LIMIT 3'
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = {
