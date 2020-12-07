@@ -15,6 +15,7 @@ namespace graph {
 Status FindPathValidator::validateImpl() {
     auto fpSentence = static_cast<FindPathSentence*>(sentence_);
     isShortest_ = fpSentence->isShortest();
+    noLoop_ = fpSentence->noLoop();
 
     NG_RETURN_IF_ERROR(validateStarts(fpSentence->from(), from_));
     NG_RETURN_IF_ERROR(validateStarts(fpSentence->to(), to_));
@@ -26,16 +27,13 @@ Status FindPathValidator::validateImpl() {
 }
 
 Status FindPathValidator::toPlan() {
-    // TODO: Implement the path plan.
-    if (isShortest_ && from_.vids.size() == 1 && to_.vids.size() == 1) {
-        return singlePairPlan();
-    } else if (isShortest_) {
-        return multiPairPlan();
-    } else {
+    if (!isShortest_) {
         return allPairPaths();
     }
-
-    return Status::OK();
+    if (from_.vids.size() == 1 && to_.vids.size() == 1) {
+        return singlePairPlan();
+    }
+    return multiPairPlan();
 }
 
 void FindPathValidator::buildStart(Starts& starts,

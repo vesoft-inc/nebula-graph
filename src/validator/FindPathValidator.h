@@ -25,6 +25,7 @@ private:
     void buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool reverse, bool isInEdge);
     void buildStart(Starts& starts, std::string& startVidsVar, bool reverse);
     GetNeighbors::EdgeProps buildEdgeKey(bool reverse);
+    void buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool reverse, bool isInEdge);
     void linkLoopDepFromTo(PlanNode*& projectDep);
     // bfs
     Status singlePairPlan();
@@ -58,6 +59,7 @@ private:
 private:
     bool isShortest_{false};
     bool isWeight_{false};
+    bool noLoop_{false};
     Starts to_;
     Over over_;
     Steps steps_;
