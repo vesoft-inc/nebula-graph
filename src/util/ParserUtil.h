@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef UTIL_REWRITEUTIL_H_
-#define UTIL_REWRITEUTIL_H_
+#ifndef UTIL_PARSERUTIL_H_
+#define UTIL_PARSERUTIL_H_
 
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
@@ -15,18 +15,19 @@
 namespace nebula {
 namespace graph {
 
-class RewriteUtil final {
+class ParserUtil final {
 public:
-    RewriteUtil() = delete;
+    ParserUtil() = delete;
 
     static bool isLabel(const Expression *expr) {
         return expr->kind() == Expression::Kind::kLabel ||
                expr->kind() == Expression::Kind::kLabelAttribute;
     }
 
-    static RewriteMatchLabelVisitor::Rewriter rewriteLabel(const std::string &oldVarName,
-                                                           const std::string &newVarName) {
-        return [&oldVarName, &newVarName](const Expression *expr) {
+    static void rewriteLC(ListComprehensionExpression *lc,
+                          const std::string &oldVarName,
+                          const std::string &newVarName) {
+        auto rewriter = [&oldVarName, &newVarName](const Expression *expr) {
             Expression *ret = nullptr;
             if (expr->kind() == Expression::Kind::kLabel) {
                 auto *label = static_cast<const LabelExpression *>(expr);
@@ -49,9 +50,35 @@ public:
             }
             return ret;
         };
+
+        RewriteMatchLabelVisitor visitor(rewriter);
+
+        lc->setNewInnerVar(new std::string(newVarName));
+        if (lc->hasFilter()) {
+            Expression *filter = lc->filter();
+            Expression *newFilter = nullptr;
+            if (isLabel(filter)) {
+                newFilter = rewriter(filter);
+            } else {
+                newFilter = filter->clone().release();
+                newFilter->accept(&visitor);
+            }
+            lc->setNewFilter(newFilter);
+        }
+        if (lc->hasMapping()) {
+            Expression *mapping = lc->mapping();
+            Expression *newMapping = nullptr;
+            if (isLabel(mapping)) {
+                newMapping = rewriter(mapping);
+            } else {
+                newMapping = mapping->clone().release();
+                newMapping->accept(&visitor);
+            }
+            lc->setNewMapping(newMapping);
+        }
     }
 };
 
 }   // namespace graph
 }   // namespace nebula
-#endif   // UTIL_REWRITEUTIL_H_
+#endif   // UTIL_PARSERUTIL_H_

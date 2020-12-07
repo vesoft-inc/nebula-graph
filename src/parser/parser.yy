@@ -25,9 +25,8 @@
 #include "common/expression/TextSearchExpression.h"
 #include "common/expression/ListComprehensionExpression.h"
 #include "util/SchemaUtil.h"
-#include "util/RewriteUtil.h"
+#include "util/ParserUtil.h"
 #include "context/QueryContext.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
 
 namespace nebula {
 
@@ -747,16 +746,9 @@ list_comprehension_expression
         }
         auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
         auto newVarName = qctx->vctx()->anonVarGen()->getVar();
-        auto rewriter = nebula::graph::RewriteUtil::rewriteLabel(oldVarName, newVarName);
-        nebula::graph::RewriteMatchLabelVisitor visitor(rewriter);
-        Expression *newFilter = nullptr;
-        if (nebula::graph::RewriteUtil::isLabel($6)) {
-            newFilter = rewriter($6);
-        } else {
-            newFilter = $6->clone().release();
-            newFilter->accept(&visitor);
-        }
-        $$ = new ListComprehensionExpression(new std::string(newVarName), $4, newFilter, nullptr);
+        auto *expr = new ListComprehensionExpression(new std::string(oldVarName), $4, $6, nullptr, true/*needRewrite*/);
+        nebula::graph::ParserUtil::rewriteLC(expr, oldVarName, newVarName);
+        $$ = expr;
     }
     | L_BRACKET expression KW_IN expression PIPE expression R_BRACKET {
         if ($2->kind() != Expression::Kind::kLabel) {
@@ -764,16 +756,9 @@ list_comprehension_expression
         }
         auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
         auto newVarName = qctx->vctx()->anonVarGen()->getVar();
-        auto rewriter = nebula::graph::RewriteUtil::rewriteLabel(oldVarName, newVarName);
-        nebula::graph::RewriteMatchLabelVisitor visitor(rewriter);
-        Expression *newMapping = nullptr;
-        if (nebula::graph::RewriteUtil::isLabel($6)) {
-            newMapping = rewriter($6);
-        } else {
-            newMapping = $6->clone().release();
-            newMapping->accept(&visitor);
-        }
-        $$ = new ListComprehensionExpression(new std::string(newVarName), $4, nullptr, newMapping);
+        auto *expr = new ListComprehensionExpression(new std::string(oldVarName), $4, nullptr, $6, true/*needRewrite*/);
+        nebula::graph::ParserUtil::rewriteLC(expr, oldVarName, newVarName);
+        $$ = expr;
     }
     | L_BRACKET expression KW_IN expression KW_WHERE expression PIPE expression R_BRACKET {
         if ($2->kind() != Expression::Kind::kLabel) {
@@ -781,23 +766,9 @@ list_comprehension_expression
         }
         auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
         auto newVarName = qctx->vctx()->anonVarGen()->getVar();
-        auto rewriter = nebula::graph::RewriteUtil::rewriteLabel(oldVarName, newVarName);
-        nebula::graph::RewriteMatchLabelVisitor visitor(rewriter);
-        Expression *newFilter = nullptr;
-        if (nebula::graph::RewriteUtil::isLabel($6)) {
-            newFilter = rewriter($6);
-        } else {
-            newFilter = $6->clone().release();
-            newFilter->accept(&visitor);
-        }
-        Expression *newMapping = nullptr;
-        if (nebula::graph::RewriteUtil::isLabel($8)) {
-            newMapping = rewriter($8);
-        } else {
-            newMapping = $8->clone().release();
-            newMapping->accept(&visitor);
-        }
-        $$ = new ListComprehensionExpression(new std::string(newVarName), $4, newFilter, newMapping);
+        auto *expr = new ListComprehensionExpression(new std::string(oldVarName), $4, $6, $8, true/*needRewrite*/);
+        nebula::graph::ParserUtil::rewriteLC(expr, oldVarName, newVarName);
+        $$ = expr;
     }
     ;
 
