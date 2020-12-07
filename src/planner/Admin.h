@@ -57,7 +57,7 @@ private:
     bool ifExist_{false};
 };
 
-class ShowHosts final : public SingleInputNode {
+class ShowHosts final : public SingleDependencyNode {
     // TODO(shylock) meta/storage/graph enumerate
 public:
     static ShowHosts* make(QueryContext* qctx, PlanNode* dep, meta::cpp2::ListHostType type) {
