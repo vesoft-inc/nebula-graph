@@ -101,6 +101,8 @@ config_nebula_common(
     BUILD_DIR ${nebula_common_build_dir}
 )
 
+LintHook(${nebula_common_source_dir})
+
 if(ENABLE_BUILD_STORAGE)
     include(ConfigNebulaStorage)
     if(NOT NEBULA_STORAGE_SOURCE_DIR)
