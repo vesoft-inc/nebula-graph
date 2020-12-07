@@ -70,7 +70,7 @@ public:
 
 private:
     ShowHosts(QueryContext* qctx, PlanNode* dep, meta::cpp2::ListHostType type)
-        : SingleInputNode(qctx, Kind::kShowHosts, dep), type_(type) {}
+        : SingleDependencyNode(qctx, Kind::kShowHosts, dep), type_(type) {}
     meta::cpp2::ListHostType type_;
 };
 
