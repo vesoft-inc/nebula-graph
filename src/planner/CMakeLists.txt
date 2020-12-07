@@ -15,20 +15,20 @@ nebula_add_library(
     Maintain.cpp
     Planner.cpp
     PlannersRegister.cpp
-    planners/SequentialPlanner.cpp
-    planners/match/MatchSolver.cpp
-    planners/match/SegmentsConnector.cpp
-    planners/match/InnerJoinStrategy.cpp
-    planners/match/AddDependencyStrategy.cpp
-    planners/match/AddInputStrategy.cpp
-    planners/match/MatchPlanner.cpp
-    planners/match/MatchClausePlanner.cpp
-    planners/match/ReturnClausePlanner.cpp
-    planners/match/OrderByClausePlanner.cpp
-    planners/match/PaginationPlanner.cpp
-    planners/match/WhereClausePlanner.cpp
-    planners/match/StartVidFinder.cpp
-    planners/match/PropIndexSeek.cpp
-    planners/match/VertexIdSeek.cpp
-    planners/match/Expand.cpp
+    SequentialPlanner.cpp
+    match/MatchSolver.cpp
+    match/SegmentsConnector.cpp
+    match/InnerJoinStrategy.cpp
+    match/AddDependencyStrategy.cpp
+    match/AddInputStrategy.cpp
+    match/MatchPlanner.cpp
+    match/MatchClausePlanner.cpp
+    match/ReturnClausePlanner.cpp
+    match/OrderByClausePlanner.cpp
+    match/PaginationPlanner.cpp
+    match/WhereClausePlanner.cpp
+    match/StartVidFinder.cpp
+    match/PropIndexSeek.cpp
+    match/VertexIdSeek.cpp
+    match/Expand.cpp
 )

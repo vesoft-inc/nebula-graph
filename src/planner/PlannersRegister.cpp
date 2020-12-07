@@ -7,11 +7,11 @@
 #include "planner/PlannersRegister.h"
 
 #include "planner/Planner.h"
-#include "planner/planners/SequentialPlanner.h"
-#include "planner/planners/match/MatchPlanner.h"
-#include "planner/planners/match/StartVidFinder.h"
-#include "planner/planners/match/PropIndexSeek.h"
-#include "planner/planners/match/VertexIdSeek.h"
+#include "planner/SequentialPlanner.h"
+#include "planner/match/MatchPlanner.h"
+#include "planner/match/StartVidFinder.h"
+#include "planner/match/PropIndexSeek.h"
+#include "planner/match/VertexIdSeek.h"
 
 namespace nebula {
 namespace graph {
