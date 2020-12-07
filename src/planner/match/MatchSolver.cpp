@@ -213,9 +213,9 @@ Expression* MatchSolver::getFirstVertexVidInFistPath(const std::string& colName)
     return new AttributeExpression(firstVertexExpr.release(), new ConstantExpression(kVid));
 }
 
-PlanNode* MatchSolver::filterCyclePath(PlanNode* input,
-                                       const std::string& column,
-                                       QueryContext* qctx) {
+PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
+                                           const std::string& column,
+                                           QueryContext* qctx) {
     auto args = std::make_unique<ArgumentList>();
     args->addArgument(ExpressionUtils::inputPropExpr(column));
     auto fn = std::make_unique<std::string>("hasSameEdgeInPath");

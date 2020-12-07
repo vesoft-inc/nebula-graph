@@ -54,9 +54,9 @@ public:
 
     static Expression* getFirstVertexVidInFistPath(const std::string& colName);
 
-    static PlanNode* filterCyclePath(PlanNode* input,
-                                     const std::string& column,
-                                     QueryContext* qctx);
+    static PlanNode* filtPathHasSameEdge(PlanNode* input,
+                                         const std::string& column,
+                                         QueryContext* qctx);
 };
 }  // namespace graph
 }  // namespace nebula

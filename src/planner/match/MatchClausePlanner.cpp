@@ -206,7 +206,7 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     auto project = Project::make(qctx, input, columns);
     project->setColNames(std::move(colNames));
 
-    plan->root = MatchSolver::filterCyclePath(project, alias, qctx);
+    plan->root = MatchSolver::filtPathHasSameEdge(project, alias, qctx);
     VLOG(1) << "root: " << plan->root->outputVar() << " tail: " << plan->tail->outputVar();
     return Status::OK();
 }

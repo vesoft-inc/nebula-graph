@@ -46,8 +46,6 @@ public:
 
     Status filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, SubPlan* plan);
 
-    PlanNode* filterCyclePath(PlanNode* input, const std::string& column);
-
     Expression* initialExprOrEdgeDstExpr(const PlanNode* node);
 
     PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);

@@ -173,7 +173,7 @@ Status Expand::collectData(const PlanNode* joinLeft,
     auto project = Project::make(qctx, join, columns);
     project->setColNames({kPathStr});
 
-    auto filter = MatchSolver::filterCyclePath(project, kPathStr, qctx);
+    auto filter = MatchSolver::filtPathHasSameEdge(project, kPathStr, qctx);
 
     auto pt = PassThroughNode::make(qctx, filter);
     pt->setOutputVar(filter->outputVar());
