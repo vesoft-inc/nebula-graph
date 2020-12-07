@@ -8,7 +8,9 @@
 import pytest
 import os
 import time
+import logging
 
+from filelock import FileLock
 from pathlib import Path
 from nebula2.gclient.net import ConnectionPool
 from nebula2.Config import Config
@@ -78,7 +80,7 @@ def pytest_configure(config):
     pytest.cmdline.project_dir = config.getoption("project_dir")
 
 
-def init_conn_pool(host: str, port: int):
+def get_conn_pool(host: str, port: int):
     config = Config()
     config.max_connection_pool_size = 20
     config.timeout = 60000
@@ -89,24 +91,37 @@ def init_conn_pool(host: str, port: int):
     return pool
 
 
-@pytest.fixture(scope="global")
-def conn_pool():
-    addr = pytest.cmdline.address
+@pytest.fixture(scope="session")
+def conn_pool(pytestconfig, worker_id, tmp_path_factory):
+    addr = pytestconfig.getoption("address")
     if addr:
         addrsplit = addr.split(":")
         assert len(addrsplit) == 2
-        pool = init_conn_pool(addrsplit[0], addrsplit[1])
+        pool = get_conn_pool(addrsplit[0], addrsplit[1])
         yield pool
         pool.close()
         return
 
-    build_dir = pytest.cmdline.build_dir
-    project_dir = pytest.cmdline.project_dir
-    with NebulaService(build_dir, project_dir) as nb:
-        port = nb.start()
-        pool = init_conn_pool("127.0.0.1", port)
-        yield pool
-        pool.close()
+    build_dir = pytestconfig.getoption("build_dir")
+    project_dir = pytestconfig.getoption("project_dir")
+
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+    fn = root_tmp_dir / "nebula-test"
+    with FileLock(str(fn) + ".lock"):
+        if fn.is_file():
+            port = fn.read_text()
+            logging.debug(f"session-{worker_id} read the port: {port}")
+            pool = get_conn_pool("localhost", port)
+            yield pool
+            pool.close()
+        else:
+            with NebulaService(build_dir, project_dir) as nb:
+                port = nb.start()
+                pool = get_conn_pool("localhost", port)
+                fn.write_text(str(port))
+                logging.debug(f"session-{worker_id} write the port: {port}")
+                yield pool
+                pool.close()
 
 
 @pytest.fixture(scope="session")
@@ -148,11 +163,27 @@ def load_csv_data(conn_pool, folder: str):
 
 
 # TODO(yee): optimize data load fixtures
-@pytest.fixture(scope="global")
-def load_nba_data(conn_pool):
-    load_csv_data(conn_pool, "nba")
+@pytest.fixture(scope="session")
+def load_nba_data(conn_pool, tmp_path_factory, worker_id):
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+    fn = root_tmp_dir / "csv-data-nba"
+    with FileLock(str(fn) + ".lock"):
+        if not fn.is_file():
+            load_csv_data(conn_pool, "nba")
+            fn.write_text("nba")
+            logging.debug(f"session-{worker_id} load nba csv data")
+        else:
+            logging.debug(f"session-{worker_id} need not to load nba csv data")
 
 
-@pytest.fixture(scope="global")
-def load_student_data(conn_pool):
-    load_csv_data(conn_pool, "student")
+@pytest.fixture(scope="session")
+def load_student_data(conn_pool, tmp_path_factory, worker_id):
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+    fn = root_tmp_dir / "csv-data-student"
+    with FileLock(str(fn) + ".lock"):
+        if not fn.is_file():
+            load_csv_data(conn_pool, "student")
+            fn.write_text("nba")
+            logging.debug(f"session-{worker_id} load nba csv data")
+        else:
+            logging.debug(f"session-{worker_id} need not to load nba csv data")
