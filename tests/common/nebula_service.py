@@ -73,15 +73,30 @@ class NebulaService(object):
         command = NEBULA_START_COMMAND_FORMAT.format(name, name, param)
         return command
 
+    @staticmethod
+    def is_port_in_use(port):
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+            return s.connect_ex(('localhost', port)) == 0
+
+    @staticmethod
+    def get_free_port():
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+            s.bind(('', 0))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            return s.getsockname()[1]
+
     # TODO(yee): Find free port range
     def _find_free_port(self):
+        # tcp_port, http_port, https_port
         ports = []
-        for i in range(0, 3):
-            with closing(socket.socket(socket.AF_INET,
-                                       socket.SOCK_STREAM)) as s:
-                s.bind(('', 0))
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                ports.append(s.getsockname()[1])
+        while True:
+            port = self.get_free_port()
+            if not (self.is_port_in_use(port + 1)
+                    or self.is_port_in_use(port - 1)):
+                ports.append(port)
+                break
+        for i in range(0, 2):
+            ports.append(self.get_free_port())
         return ports
 
     def _telnet_port(self, port):
