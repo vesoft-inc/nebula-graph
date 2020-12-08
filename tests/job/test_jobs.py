@@ -64,7 +64,7 @@ class TestJobs(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expect_col_names = ['Job Id(TaskId)', 'Command(Dest)', 'Status', 'Start Time', 'Stop Time']
         self.check_column_names(resp, expect_col_names)
-        expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT|FLUSH'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')]]
+        expect_values = [[re.compile(r'\d+'), re.compile(r'COMPACT|FLUSH|STATS'), re.compile(r'\S+'), re.compile(r'.*'), re.compile(r'.*')]]
         self.search_result(resp, expect_values, is_regex=True)
 
         job_id = resp.row_values(0)[0].as_int()
