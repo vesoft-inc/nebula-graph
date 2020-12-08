@@ -90,14 +90,15 @@ class NebulaService(object):
     def _find_free_port():
         # tcp_port, http_port, https_port
         ports = []
-        while True:
-            port = NebulaService.get_free_port()
-            if all(not NebulaService.is_port_in_use(port + i)
-                   for i in range(-2, 3)):
-                ports.append(port)
-                break
         for i in range(0, 2):
             ports.append(NebulaService.get_free_port())
+        while True:
+            port = NebulaService.get_free_port()
+            if port not in ports and all(
+                    not NebulaService.is_port_in_use(port + i)
+                    for i in range(-2, 3)):
+                ports.insert(0, port)
+                break
         return ports
 
     def _telnet_port(self, port):
