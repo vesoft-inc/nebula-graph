@@ -5,6 +5,7 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
+import pytest
 import time
 import datetime
 
@@ -12,12 +13,17 @@ from pathlib import Path
 from typing import Pattern, Set
 
 from nebula2.common import ttypes as CommonTtypes
-from nebula2.gclient.net import ConnectionPool
-from nebula2.Config import Config
+# from nebula2.gclient.net import ConnectionPool
+# from nebula2.Config import Config
 from nebula2.graph import ttypes
 from tests.common.configs import get_delay_time
-from tests.common.utils import compare_value, \
-    row_to_string, to_value, value_to_string, find_in_rows
+from tests.common.utils import (
+    compare_value,
+    row_to_string,
+    to_value,
+    value_to_string,
+    find_in_rows,
+)
 
 
 T_EMPTY = CommonTtypes.Value()
@@ -35,6 +41,7 @@ T_NULL_UNKNOWN_DIV_BY_ZERO = CommonTtypes.Value()
 T_NULL_UNKNOWN_DIV_BY_ZERO.set_nVal(CommonTtypes.NullType.DIV_BY_ZERO)
 
 
+@pytest.mark.usefixtures("workarround_for_class")
 class NebulaTestSuite(object):
     @classmethod
     def set_delay(self):

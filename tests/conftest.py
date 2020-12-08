@@ -214,7 +214,7 @@ def load_student_data(conn_pool, pytestconfig, tmp_path_factory, worker_id):
 
 
 # TODO(yee): Delete this when we migrate all test cases
-@pytest.fixture(scope="class", autouse=True)
+@pytest.fixture(scope="class")
 def workarround_for_class(request, pytestconfig, tmp_path_factory, conn_pool,
                           session, load_nba_data, load_student_data):
     if request.cls is None:
