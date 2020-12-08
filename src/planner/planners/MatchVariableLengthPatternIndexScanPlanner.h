@@ -92,6 +92,11 @@ private:
 
     StatusOr<std::vector<storage::cpp2::VertexProp>> buildVertexProp();
 
+    std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(
+        const MatchValidator::EdgeInfo& edge);
+
+    StatusOr<std::vector<storage::cpp2::EdgeProp>> buildAllEdgeProp();
+
     const QueryContext* qctx() const {
         return matchCtx_->qctx;
     }
