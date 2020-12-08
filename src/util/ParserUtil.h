@@ -9,6 +9,7 @@
 
 #include "common/base/Base.h"
 #include "common/base/StatusOr.h"
+#include "context/QueryContext.h"
 #include "parser/MaintainSentences.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
@@ -24,9 +25,11 @@ public:
                expr->kind() == Expression::Kind::kLabelAttribute;
     }
 
-    static void rewriteLC(ListComprehensionExpression *lc,
-                          const std::string &oldVarName,
-                          const std::string &newVarName) {
+    static void rewriteLC(QueryContext *qctx,
+                          ListComprehensionExpression *lc,
+                          const std::string &oldVarName) {
+        const auto &newVarName = qctx->vctx()->anonVarGen()->getVar();
+        qctx->ectx()->setValue(newVarName, Value());
         auto rewriter = [&oldVarName, &newVarName](const Expression *expr) {
             Expression *ret = nullptr;
             if (expr->kind() == Expression::Kind::kLabel) {
@@ -53,6 +56,7 @@ public:
 
         RewriteMatchLabelVisitor visitor(rewriter);
 
+        lc->setOriginString(new std::string(lc->makeString()));
         lc->setInnerVar(new std::string(newVarName));
         if (lc->hasFilter()) {
             Expression *filter = lc->filter();

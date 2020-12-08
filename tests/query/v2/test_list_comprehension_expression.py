@@ -10,19 +10,19 @@ from tests.common.nebula_test_suite import T_NULL, T_EMPTY
 import pytest
 
 
-class TestCaseExpression(NebulaTestSuite):
+class TestListComprehensionExpression(NebulaTestSuite):
     @classmethod
     def prepare(self):
         self.use_nba()
 
     def test_list_comprehension_expression(self):
-        stmt = 'YIELD [n IN range(1, 5) where n > 2 | n + 10]'
+        stmt = 'YIELD [n IN range(1, 5) WHERE n > 2 | n + 10]'
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = [[[13, 14, 15]]]
         self.check_result(resp, expected_data)
 
-        stmt = 'YIELD [n IN [1, 2, 3, 4, 5] where n > 2]'
+        stmt = 'YIELD [n IN [1, 2, 3, 4, 5] WHERE n > 2]'
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = [[[3, 4, 5]]]

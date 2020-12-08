@@ -744,30 +744,27 @@ list_comprehension_expression
         if ($2->kind() != Expression::Kind::kLabel) {
             throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
         }
-        auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
-        auto newVarName = qctx->vctx()->anonVarGen()->getVar();
-        auto *expr = new ListComprehensionExpression(new std::string(oldVarName), $4, $6, nullptr, true);
-        nebula::graph::ParserUtil::rewriteLC(expr, oldVarName, newVarName);
+        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
+        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, $6, nullptr);
+        nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
     }
     | L_BRACKET expression KW_IN expression PIPE expression R_BRACKET {
         if ($2->kind() != Expression::Kind::kLabel) {
             throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
         }
-        auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
-        auto newVarName = qctx->vctx()->anonVarGen()->getVar();
-        auto *expr = new ListComprehensionExpression(new std::string(oldVarName), $4, nullptr, $6, true);
-        nebula::graph::ParserUtil::rewriteLC(expr, oldVarName, newVarName);
+        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
+        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, nullptr, $6);
+        nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
     }
     | L_BRACKET expression KW_IN expression KW_WHERE expression PIPE expression R_BRACKET {
         if ($2->kind() != Expression::Kind::kLabel) {
             throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
         }
-        auto oldVarName = *(static_cast<const LabelExpression *>($2)->name());
-        auto newVarName = qctx->vctx()->anonVarGen()->getVar();
-        auto *expr = new ListComprehensionExpression(new std::string(oldVarName), $4, $6, $8, true);
-        nebula::graph::ParserUtil::rewriteLC(expr, oldVarName, newVarName);
+        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
+        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, $6, $8);
+        nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
     }
     ;
