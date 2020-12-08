@@ -86,17 +86,18 @@ class NebulaService(object):
             return s.getsockname()[1]
 
     # TODO(yee): Find free port range
-    def _find_free_port(self):
+    @staticmethod
+    def _find_free_port():
         # tcp_port, http_port, https_port
         ports = []
         while True:
-            port = self.get_free_port()
-            if not (self.is_port_in_use(port + 1)
-                    or self.is_port_in_use(port - 1)):
+            port = NebulaService.get_free_port()
+            if all(not NebulaService.is_port_in_use(port + i)
+                   for i in range(-2, 3)):
                 ports.append(port)
                 break
         for i in range(0, 2):
-            ports.append(self.get_free_port())
+            ports.append(NebulaService.get_free_port())
         return ports
 
     def _telnet_port(self, port):
@@ -140,13 +141,19 @@ class NebulaService(object):
         os.chdir(self.work_dir)
 
         metad_ports = self._find_free_port()
+        all_ports = [metad_ports[0]]
         command = ''
         graph_port = 0
         server_ports = []
         for server_name in ['metad', 'storaged', 'graphd']:
             ports = []
             if server_name != 'metad':
-                ports = self._find_free_port()
+                while True:
+                    ports = self._find_free_port()
+                    if all((ports[0] + i) not in all_ports
+                           for i in range(-2, 3)):
+                        all_ports += [ports[0]]
+                        break
             else:
                 ports = metad_ports
             server_ports.append(ports[0])
