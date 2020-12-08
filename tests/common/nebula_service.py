@@ -185,28 +185,40 @@ class NebulaService(object):
 
     def stop(self):
         print("try to stop nebula services...")
-        for p in self.pids:
-            try:
-                os.kill(self.pids[p], signal.SIGTERM)
-            except OSError as err:
-                print("nebula stop {} failed: {}".format(p, str(err)))
+        self.kill_all(signal.SIGTERM)
 
         max_retries = 30
-        while self.check_procs_alive() and max_retries >= 0:
+        while self.is_procs_alive() and max_retries >= 0:
             time.sleep(1)
             max_retries = max_retries-1
+
+        self.kill_all(signal.SIGKILL)
 
         if self._cleanup:
             shutil.rmtree(self.work_dir, ignore_errors=True)
 
-    def check_procs_alive(self):
+    def kill_all(self, sig):
+        for p in self.pids:
+            self.kill(p, sig)
+
+    def kill(self, pid, sig):
+        if not self.is_proc_alive(pid):
+            return
+        try:
+            os.kill(self.pids[pid], sig)
+        except OSError as err:
+            print("stop nebula {} failed: {}".format(pid, str(err)))
+
+    def is_procs_alive(self):
+        return any(self.is_proc_alive(pid) for pid in self.pids)
+
+    def is_proc_alive(self, pid):
         process = subprocess.Popen(['ps', '-eo', 'pid,args'],
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         stdout = process.communicate()
         for line in bytes.decode(stdout[0]).splitlines():
-            pid = line.lstrip().split(' ', 1)[0]
-            for p in self.pids:
-                if str(self.pids[p]) == str(pid):
-                    return True
+            p = line.lstrip().split(' ', 1)[0]
+            if str(p) == str(self.pids[pid]):
+                return True
         return False
