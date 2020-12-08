@@ -114,17 +114,17 @@ class NebulaTestSuite(object):
         resp = self.execute('USE student;')
         self.check_resp_succeeded(resp)
 
-    @classmethod
-    def create_nebula_clients(self):
-        config = Config()
-        config.max_connection_pool_size = 20
-        config.timeout = 60000
-        # init connection pool
-        self.client_pool = ConnectionPool()
-        assert self.client_pool.init([(self.host, self.port)], config)
+    # @classmethod
+    # def create_nebula_clients(self):
+    #     config = Config()
+    #     config.max_connection_pool_size = 20
+    #     config.timeout = 60000
+    #     # init connection pool
+    #     self.client_pool = ConnectionPool()
+    #     assert self.client_pool.init([(self.host, self.port)], config)
 
-        # get session from the pool
-        self.client = self.client_pool.get_session(self.user, self.password)
+    #     # get session from the pool
+    #     self.client = self.client_pool.get_session(self.user, self.password)
 
     @classmethod
     def spawn_nebula_client(self, user, password):
@@ -134,9 +134,9 @@ class NebulaTestSuite(object):
     def release_nebula_client(self, client):
         client.release()
 
-    @classmethod
-    def close_nebula_clients(self):
-        self.client_pool.close()
+    # @classmethod
+    # def close_nebula_clients(self):
+    #     self.client_pool.close()
 
     # @classmethod
     # def teardown_class(self):

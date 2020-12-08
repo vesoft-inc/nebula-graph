@@ -216,7 +216,10 @@ def load_student_data(conn_pool, pytestconfig, tmp_path_factory, worker_id):
 # TODO(yee): Delete this when we migrate all test cases
 @pytest.fixture(scope="class", autouse=True)
 def workarround_for_class(request, pytestconfig, tmp_path_factory, conn_pool,
-                          load_nba_data, load_student_data):
+                          session, load_nba_data, load_student_data):
+    if request.cls is None:
+        return
+
     addr = pytestconfig.getoption("address")
     if addr:
         ss = addr.split(':')
@@ -238,7 +241,8 @@ def workarround_for_class(request, pytestconfig, tmp_path_factory, conn_pool,
     request.cls.partition_num = pytestconfig.getoption("partition_num")
     request.cls.check_format_str = 'result: {}, expect: {}'
     request.cls.data_loaded = False
-    request.cls.create_nebula_clients()
+    request.cls.client_pool = conn_pool
+    request.cls.client = session
     request.cls.set_delay()
     request.cls.prepare()
 
@@ -247,5 +251,3 @@ def workarround_for_class(request, pytestconfig, tmp_path_factory, conn_pool,
     if request.cls.client is not None:
         request.cls.cleanup()
         request.cls.drop_data()
-        request.cls.client.release()
-    request.cls.close_nebula_clients()
