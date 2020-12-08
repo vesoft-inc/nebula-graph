@@ -98,6 +98,7 @@ def conn_pool(pytestconfig, worker_id, tmp_path_factory):
         return
 
     build_dir = pytestconfig.getoption("build_dir")
+    rm_dir = pytestconfig.getoption("rm_dir")
     project_dir = os.path.dirname(CURR_PATH)
 
     root_tmp_dir = tmp_path_factory.getbasetemp().parent
@@ -112,7 +113,7 @@ def conn_pool(pytestconfig, worker_id, tmp_path_factory):
             data["num_workers"] += 1
             fn.write_text(json.dumps(data))
         else:
-            nb = NebulaService(build_dir, project_dir)
+            nb = NebulaService(build_dir, project_dir, rm_dir.lower() == "true")
             nb.install()
             port = nb.start()
             pool = get_conn_pool("localhost", port)
