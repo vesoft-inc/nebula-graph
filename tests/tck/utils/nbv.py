@@ -10,9 +10,9 @@ import ply.yacc as yacc
 from nebula2.common.ttypes import (
     Value,
     NullType,
-    Map,
-    List,
-    Set,
+    NMap,
+    NList,
+    NSet,
     Vertex,
     Tag,
     Edge,
@@ -519,17 +519,17 @@ if __name__ == '__main__':
     expected["'string'"] = Value(sVal="string")
     expected['"string"'] = Value(sVal='string')
     expected['''"string'string'"'''] = Value(sVal="string'string'")
-    expected['[]'] = Value(lVal=List([]))
-    expected['[{}]'] = Value(lVal=List([Value(mVal=Map({}))]))
+    expected['[]'] = Value(lVal=NList([]))
+    expected['[{}]'] = Value(lVal=NList([Value(mVal=NMap({}))]))
     expected['[1,2,3]'] = Value(
-        lVal=List([Value(iVal=1), Value(
+        lVal=NList([Value(iVal=1), Value(
             iVal=2), Value(iVal=3)]))
     expected['{1,2,3}'] = Value(
-        uVal=Set(set([Value(
+        uVal=NSet(set([Value(
             iVal=1), Value(
                 iVal=2), Value(iVal=3)])))
-    expected['{}'] = Value(mVal=Map({}))
-    expected['{k1:1,"k2":true}'] = Value(mVal=Map({
+    expected['{}'] = Value(mVal=NMap({}))
+    expected['{k1:1,"k2":true}'] = Value(mVal=NMap({
         'k1': Value(iVal=1),
         'k2': Value(bVal=True)
     }))
