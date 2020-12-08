@@ -53,7 +53,7 @@ public:
 
         RewriteMatchLabelVisitor visitor(rewriter);
 
-        lc->setNewInnerVar(new std::string(newVarName));
+        lc->setInnerVar(new std::string(newVarName));
         if (lc->hasFilter()) {
             Expression *filter = lc->filter();
             Expression *newFilter = nullptr;
@@ -63,7 +63,7 @@ public:
                 newFilter = filter->clone().release();
                 newFilter->accept(&visitor);
             }
-            lc->setNewFilter(newFilter);
+            lc->setFilter(newFilter);
         }
         if (lc->hasMapping()) {
             Expression *mapping = lc->mapping();
@@ -74,7 +74,7 @@ public:
                 newMapping = mapping->clone().release();
                 newMapping->accept(&visitor);
             }
-            lc->setNewMapping(newMapping);
+            lc->setMapping(newMapping);
         }
     }
 };
