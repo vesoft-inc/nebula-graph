@@ -37,19 +37,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         prop.set_tag(tagId);
         auto *gv = GetVertices::make(
             qctx, start, 1, src.get(), std::vector<storage::cpp2::VertexProp>{std::move(prop)}, {});
-
-        // project
-        auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
-        auto *project = Project::make(qctx, gv, yieldColumns.get());
-        project->setColNames({"VertexID", "person.name", "person.age"});
-
-        auto result = Eq(qctx->plan()->root(), project);
+        gv->setColNames({"VertexID", "person.name", "person.age"});
+        auto result = Eq(qctx->plan()->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
     // multi-tags
@@ -77,21 +66,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
             src.get(),
             std::vector<storage::cpp2::VertexProp>{std::move(personProp), std::move(bookProp)},
             {});
-
-        // project
-        auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("book"), new std::string("name"))));
-        auto *project = Project::make(qctx, gv, yieldColumns.get());
-        project->setColNames({"VertexID", "person.name", "person.age", "book.name"});
-
-        auto result = Eq(qctx->plan()->root(), project);
+        gv->setColNames({"VertexID", "person.name", "person.age", "book.name"});
+        auto result = Eq(qctx->plan()->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
     // With YIELD
@@ -124,7 +100,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(
@@ -177,7 +153,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(
@@ -221,7 +197,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(new RelationalExpression(
@@ -278,7 +254,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(new RelationalExpression(
@@ -324,7 +300,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project, TODO(shylock) could push down to storage is it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(new ArithmeticExpression(
             Expression::Kind::kAdd,
             new TagPropertyExpression(new std::string("person"), new std::string("name")),
@@ -376,7 +352,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project, TODO(shylock) could push down to storage is it supported
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(new ArithmeticExpression(
             Expression::Kind::kAdd,
             new TagPropertyExpression(new std::string("person"), new std::string("name")),
@@ -419,7 +395,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(
@@ -446,21 +422,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         auto *start = StartNode::make(qctx);
 
         auto *gv = GetVertices::make(qctx, start, 1, src.get(), {}, {});
-
-        // project
-        auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("book"), new std::string("name"))));
-        auto *project = Project::make(qctx, gv, yieldColumns.get());
-        project->setColNames({"VertexID", "person.name", "person.age", "book.name"});
-
-        auto result = Eq(qctx->plan()->root(), project);
+        gv->setColNames({"VertexID", "person.name", "person.age"});
+        auto result = Eq(qctx->plan()->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
     {
@@ -469,21 +432,8 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         auto *start = StartNode::make(qctx);
 
         auto *gv = GetVertices::make(qctx, start, 1, src.get(), {}, {});
-
-        // project
-        auto yieldColumns = std::make_unique<YieldColumns>();
-        yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("person"), new std::string("name"))));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("person"), new std::string("age"))));
-        yieldColumns->addColumn(new YieldColumn(
-            new TagPropertyExpression(new std::string("book"), new std::string("name"))));
-        auto *project = Project::make(qctx, gv, yieldColumns.get());
-        project->setColNames({"VertexID", "person.name", "person.age", "book.name"});
-
-        auto result = Eq(qctx->plan()->root(), project);
+        gv->setColNames({"VertexID", "person.name", "person.age"});
+        auto result = Eq(qctx->plan()->root(), gv);
         ASSERT_TRUE(result.ok()) << result;
     }
     // ON * with yield
@@ -500,7 +450,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         auto *project = Project::make(qctx, gv, yieldColumns.get());
@@ -522,7 +472,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(
             new TagPropertyExpression(new std::string("person"), new std::string("name"))));
         yieldColumns->addColumn(new YieldColumn(
@@ -545,7 +495,7 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesProp) {
         // project
         auto yieldColumns = std::make_unique<YieldColumns>();
         yieldColumns->addColumn(new YieldColumn(
-            new InputPropertyExpression(new std::string(kVid)), new std::string("VertexID")));
+            new InputPropertyExpression(new std::string("VertexID")), new std::string("VertexID")));
         yieldColumns->addColumn(new YieldColumn(new ArithmeticExpression(
             Expression::Kind::kAdd, new ConstantExpression(1), new ConstantExpression(1))));
         yieldColumns->addColumn(new YieldColumn(
@@ -567,7 +517,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                   " | FETCH PROP ON person $-.name";
         EXPECT_TRUE(checkResult(query,
                                 {
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
@@ -580,7 +529,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                   " | FETCH PROP ON person, book $-.name";
         EXPECT_TRUE(checkResult(query,
                                 {
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
@@ -593,7 +541,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                   "FETCH PROP ON person $a.name";
         EXPECT_TRUE(checkResult(query,
                                 {
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
@@ -606,7 +553,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                   "FETCH PROP ON book,person $a.name";
         EXPECT_TRUE(checkResult(query,
                                 {
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
@@ -675,7 +621,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                   "| FETCH PROP ON * $-.name";
         EXPECT_TRUE(checkResult(query,
                                 {
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
@@ -688,7 +633,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
             "FETCH PROP ON * $a.name";
         EXPECT_TRUE(checkResult(query,
                                 {
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
@@ -701,7 +645,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                   "| FETCH PROP ON * $-.name";
         EXPECT_TRUE(checkResult(query,
                                 {
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
@@ -713,7 +656,6 @@ TEST_F(FetchVerticesValidatorTest, FetchVerticesInputOutput) {
                                   "FETCH PROP ON * $a.name";
         EXPECT_TRUE(checkResult(query,
                                 {
-                                    PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
                                     PlanNode::Kind::kProject,
                                     PlanNode::Kind::kGetVertices,
