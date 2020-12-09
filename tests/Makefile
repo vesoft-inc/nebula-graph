@@ -35,7 +35,7 @@ fmt:
 check:
 	@find $(CURR_DIR)/tck/features -type f -iname "*.feature" -print | xargs $(gherkin_fmt) --check
 
-test: format
+test: fmt
 	cd $(CURR_DIR) && pytest -n8 --dist=loadfile -m "not skip" --build_dir=$(CURR_DIR)/../build
 
 clean:
