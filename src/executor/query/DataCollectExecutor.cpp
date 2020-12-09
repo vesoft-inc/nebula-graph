@@ -271,7 +271,7 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
     DataSet ds;
     ds.colNames = std::move(colNames_);
     DCHECK(!ds.colNames.empty());
-    // 0: vertices's props 1: Edges's props, 3: Paths without props
+    // 0: vertices's props, 1: Edges's props, 2: Paths without props
     DCHECK_EQ(vars.size(), 3);
 
     std::unordered_map<std::string, Vertex> vertexMap;
@@ -320,18 +320,14 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
         }
         for (auto& step : pathVal.steps) {
             auto dstVid = step.dst.vid;
-            if (vertexMap.find(dstVid) != vertexMap.end()) {
-                auto dst = vertexMap[dstVid];
-                step.dst = dst;
-            }
+            step.dst = vertexMap[dstVid];
+
             auto type = step.type;
             auto ranking = step.ranking;
             auto edgeKey =
                 folly::stringPrintf("%s%s%d%ld", srcVid.c_str(), dstVid.c_str(), type, ranking);
-            if (edgeMap.find(edgeKey) != edgeMap.end()) {
-                auto edge = edgeMap[edgeKey];
-                step.props = edge.props;
-            }
+            auto edge = edgeMap[edgeKey];
+            step.props = edge.props;
             srcVid = dstVid;
         }
         ds.rows.emplace_back(Row({std::move(pathVal)}));
