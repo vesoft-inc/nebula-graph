@@ -6,31 +6,32 @@
 .PHONY: format check init clean
 
 PYPI_MIRROR = https://mirrors.aliyun.com/pypi/simple/
+CURR_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 install-deps:
 	pip3 install --user -U setuptools -i $(PYPI_MIRROR)
-	pip3 install --user -r requirements.txt -i $(PYPI_MIRROR)
+	pip3 install --user -r $(CURR_DIR)/requirements.txt -i $(PYPI_MIRROR)
 
 install-nebula-py: install-deps
-	git clone --branch master https://github.com/vesoft-inc/nebula-python
-	cd nebula-python && python3 setup.py install --user && cd ..
-	rm -rf nebula-python
+	git clone --branch master https://github.com/vesoft-inc/nebula-python $(CURR_DIR)/nebula-python
+	cd $(CURR_DIR)/nebula-python && python3 setup.py install --user
+	rm -rf $(CURR_DIR)/nebula-python
 
 gherkin-fmt: install-deps
 	pip3 install poetry
-	git clone --branch master https://github.com/OneContainer/reformat-gherkin
-	cd reformat-gherkin && poetry build
-	pip3 install --user reformat_gherkin-2.0.2-py3-none-any.whl
-	cd .. && rm -rf reformat-gherkin
+	git clone --branch master https://github.com/OneContainer/reformat-gherkin $(CURR_DIR)/reformat-gherkin
+	cd $(CURR_DIR)/reformat-gherkin && poetry build
+	pip3 install --user $(CURR_DIR)/reformat-gherkin/dist/reformat_gherkin*.whl
+	rm -rf $(CURR_DIR)/reformat-gherkin
 
 init: clean gherkin-fmt install-nebula-py
 	@echo "Install nebula test dependencies"
 
 format:
-	find tck/features -type f -iname '*.feature' -exec reformat-gherkin {} \;
+	find $(CURR_DIR)/tck/features -type f -iname '*.feature' -exec reformat-gherkin {} \;
 
 check:
-	find tck/features -type f -iname "*.feature" -exec sh -c 'for f; do reformat-gherkin --check "$$f" || exit 1; done' sh {} +
+	find $(CURR_DIR)/tck/features -type f -iname "*.feature" -exec sh -c 'for f; do reformat-gherkin --check "$$f" || exit 1; done' sh {} +
 
 clean:
-	@rm -rf nebula-python reformat-gherkin .pytest .pytest_cache
+	@rm -rf $(CURR_DIR)/nebula-python $(CURR_DIR)/reformat-gherkin $(CURR_DIR)/.pytest $(CURR_DIR)/.pytest_cache
