@@ -7,6 +7,7 @@
 
 PYPI_MIRROR = https://mirrors.aliyun.com/pypi/simple/
 CURR_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+gherkin_fmt = ~/.local/bin/reformat-gherkin
 
 install-deps:
 	pip3 install --user -U setuptools -i $(PYPI_MIRROR)
@@ -28,10 +29,10 @@ init: clean gherkin-fmt install-nebula-py
 	@echo "Install nebula test dependencies"
 
 fmt:
-	find $(CURR_DIR)/tck/features -type f -iname '*.feature' -exec reformat-gherkin {} \;
+	@find $(CURR_DIR)/tck/features -type f -iname '*.feature' -print | xargs $(gherkin_fmt)
 
 check:
-	find $(CURR_DIR)/tck/features -type f -iname "*.feature" -exec sh -c 'for f; do ~/.local/bin/reformat-gherkin --check "$$f" || exit 1; done' sh {} +
+	@find $(CURR_DIR)/tck/features -type f -iname "*.feature" -print | xargs $(gherkin_fmt) --check
 
 test: format
 	cd $(CURR_DIR) && pytest -n8 --dist=loadfile -m "not skip" --build_dir=$(CURR_DIR)/../build
