@@ -28,7 +28,7 @@ private:
     void linkLoopDepFromTo(PlanNode*& projectDep);
     // bfs
     Status singlePairPlan();
-    PlanNode* bfs(PlanNode* dep, Starts& starts, bool reverse);
+    PlanNode* bfs(PlanNode* dep, Starts& starts, std::string& pathVar, bool reverse);
     Expression* buildBfsLoopCondition(uint32_t steps, const std::string& pathVar);
 
     // allPath

@@ -58,16 +58,18 @@ Status FindPathValidator::singlePairPlan() {
     auto* bodyStart = StartNode::make(qctx_);
     auto* passThrough = PassThroughNode::make(qctx_, bodyStart);
 
-    auto* forward = bfs(passThrough, from_, false);
-    VLOG(1) << "forward: " << forward->outputVar();
+    std::string fromPathVar;
+    auto* forward = bfs(passThrough, from_, fromPathVar, false);
+    VLOG(1) << "forward: " << fromPathVar;
 
-    auto* backward = bfs(passThrough, to_, true);
-    VLOG(1) << "backward: " << backward->outputVar();
+    std::string toPathVar;
+    auto* backward = bfs(passThrough, to_, toPathVar, true);
+    VLOG(1) << "backward: " << toPathVar;
 
     auto* conjunct =
         ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kBiBFS, steps_.steps);
-    conjunct->setLeftVar(forward->outputVar());
-    conjunct->setRightVar(backward->outputVar());
+    conjunct->setLeftVar(fromPathVar);
+    conjunct->setRightVar(toPathVar);
     conjunct->setColNames({"_path"});
 
     auto* loop = Loop::make(
@@ -82,7 +84,10 @@ Status FindPathValidator::singlePairPlan() {
     return Status::OK();
 }
 
-PlanNode* FindPathValidator::bfs(PlanNode* dep, Starts& starts, bool reverse) {
+PlanNode* FindPathValidator::bfs(PlanNode* dep,
+                                 Starts& starts,
+                                 std::string& pathVar,
+                                 bool reverse) {
     std::string startVidsVar;
     buildConstantInput(starts, startVidsVar);
 
@@ -92,9 +97,20 @@ PlanNode* FindPathValidator::bfs(PlanNode* dep, Starts& starts, bool reverse) {
     gn->setInputVar(startVidsVar);
 
     auto* bfs = BFSShortestPath::make(qctx_, gn);
-    bfs->setInputVar(gn->outputVar());
     bfs->setColNames({"_vid", "edge"});
-    bfs->setOutputVar(startVidsVar);
+    pathVar = bfs->outputVar();
+
+    auto* columns = qctx_->objPool()->add(new YieldColumns());
+    auto* column =
+        new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
+                        new std::string(kVid));
+    columns->addColumn(column);
+    auto* project = Project::make(qctx_, bfs, columns);
+    project->setColNames(deduceColNames(columns));
+
+    auto* dedup = Dedup::make(qctx_, project);
+    dedup->setColNames(project->colNames());
+    dedup->setOutputVar(startVidsVar);
 
     DataSet ds;
     ds.colNames = {"_vid", "edge"};
@@ -102,9 +118,9 @@ PlanNode* FindPathValidator::bfs(PlanNode* dep, Starts& starts, bool reverse) {
     row.values.emplace_back(starts.vids.front());
     row.values.emplace_back(Value::kEmpty);
     ds.rows.emplace_back(std::move(row));
-    qctx_->ectx()->setResult(startVidsVar, ResultBuilder().value(Value(std::move(ds))).finish());
+    qctx_->ectx()->setResult(pathVar, ResultBuilder().value(Value(std::move(ds))).finish());
 
-    return bfs;
+    return dedup;
 }
 
 Expression* FindPathValidator::buildBfsLoopCondition(uint32_t steps, const std::string& pathVar) {
@@ -203,13 +219,13 @@ Status FindPathValidator::allPairPaths() {
     buildStart(from_, fromStartVidsVar, false);
     std::string fromPathVar;
     auto* forward = allPaths(passThrough, from_, fromStartVidsVar, fromPathVar, false);
-    VLOG(1) << "forward: " << forward->outputVar();
+    VLOG(1) << "forward: " << fromPathVar;
 
     std::string toStartVidsVar;
     buildStart(to_, toStartVidsVar, true);
     std::string toPathVar;
     auto* backward = allPaths(passThrough, to_, toStartVidsVar, toPathVar, true);
-    VLOG(1) << "backward: " << backward->outputVar();
+    VLOG(1) << "backward: " << toPathVar;
 
     auto* conjunct = ConjunctPath::make(
         qctx_, forward, backward, ConjunctPath::PathKind::kAllPaths, steps_.steps);
@@ -348,13 +364,13 @@ Status FindPathValidator::multiPairPlan() {
     buildStart(from_, fromStartVidsVar, false);
     std::string fromPathVar;
     auto* forward = multiPairShortestPath(passThrough, from_, fromStartVidsVar, fromPathVar, false);
-    VLOG(1) << "forward: " << forward->outputVar();
+    VLOG(1) << "forward: " << fromPathVar;
 
     std::string toStartVidsVar;
     buildStart(to_, toStartVidsVar, true);
     std::string toPathVar;
     auto* backward = multiPairShortestPath(passThrough, to_, toStartVidsVar, toPathVar, true);
-    VLOG(1) << "backward: " << backward->outputVar();
+    VLOG(1) << "backward: " << toPathVar;
 
     auto* conjunct =
         ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kFloyd, steps_.steps);
