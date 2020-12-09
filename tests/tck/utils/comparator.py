@@ -81,6 +81,8 @@ class DataSetWrapperComparator:
         return False
 
     def compare_path(self, lhs: PathWrapper, rhs: PathWrapper):
+        if lhs.length() != rhs.length():
+            return False
         return all(
             self.compare_node(l.start_node, r.start_node)
             and self.compare_node(l.end_node, r.end_node)
@@ -99,6 +101,8 @@ class DataSetWrapperComparator:
             return False
         if not self._strict:
             return True
+        if len(lhs.tags()) != len(rhs.tags()):
+            return False
         for tag in lhs.tags():
             if not rhs.has_tag(tag):
                 return False
