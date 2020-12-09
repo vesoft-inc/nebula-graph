@@ -31,7 +31,7 @@ fmt:
 	find $(CURR_DIR)/tck/features -type f -iname '*.feature' -exec reformat-gherkin {} \;
 
 check:
-	find $(CURR_DIR)/tck/features -type f -iname "*.feature" -exec sh -c 'for f; do reformat-gherkin --check "$$f" || exit 1; done' sh {} +
+	find $(CURR_DIR)/tck/features -type f -iname "*.feature" -exec sh -c 'for f; do ~/.local/bin/reformat-gherkin --check "$$f" || exit 1; done' sh {} +
 
 test: format
 	cd $(CURR_DIR) && pytest -n8 --dist=loadfile -m "not skip" --build_dir=$(CURR_DIR)/../build
