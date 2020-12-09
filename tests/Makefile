@@ -3,7 +3,7 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-.PHONY: format check init clean
+.PHONY: format check init clean test
 
 PYPI_MIRROR = https://mirrors.aliyun.com/pypi/simple/
 CURR_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -27,11 +27,14 @@ gherkin-fmt: install-deps
 init: clean gherkin-fmt install-nebula-py
 	@echo "Install nebula test dependencies"
 
-format:
+fmt:
 	find $(CURR_DIR)/tck/features -type f -iname '*.feature' -exec reformat-gherkin {} \;
 
 check:
 	find $(CURR_DIR)/tck/features -type f -iname "*.feature" -exec sh -c 'for f; do reformat-gherkin --check "$$f" || exit 1; done' sh {} +
+
+test: format
+	cd $(CURR_DIR) && pytest -n8 --dist=loadfile -m "not skip" --build_dir=$(CURR_DIR)/../build
 
 clean:
 	@rm -rf $(CURR_DIR)/nebula-python $(CURR_DIR)/reformat-gherkin $(CURR_DIR)/.pytest $(CURR_DIR)/.pytest_cache
