@@ -3,7 +3,7 @@
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
-
+#include "common/function/FunctionManager.h"
 #include "executor/algo/ConjunctPathExecutor.h"
 
 #include "planner/Algo.h"
@@ -23,6 +23,16 @@ folly::Future<Status> ConjunctPathExecutor::execute() {
         default:
             LOG(FATAL) << "Not implement.";
     }
+}
+
+bool ConjunctPathExecutor::hasSameEdgeInPath(const Path& path) {
+    std::vector<Value> args = {path};
+    auto func = FunctionManager::get("hasSameEdgeInPath", args.size());
+    auto ret = func.value()(args);
+    if (!ret.isBool()) {
+        return false;
+    }
+    return ret.getBool();
 }
 
 folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
@@ -383,6 +393,10 @@ bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
                 backward.reverse();
                 VLOG(1) << "Backward reverse path:" << backward;
                 forward.append(std::move(backward));
+
+                if (hasSameEdgeInPath(forward)) {
+                    continue;
+                }
                 VLOG(1) << "Found path: " << forward;
                 row.values.emplace_back(std::move(forward));
                 ds.rows.emplace_back(std::move(row));

@@ -29,6 +29,8 @@ private:
 
     void buildPaths(const std::vector<const Path*>& history, const Edge& edge, Interims& interims);
 
+    bool hasSameEdgeInPath(const Path* path);
+
     size_t count_{0};
     HistoryPaths historyPaths_;
 };

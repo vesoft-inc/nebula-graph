@@ -3,7 +3,7 @@
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
-
+#include "common/function/FunctionManager.h"
 #include "executor/algo/ProduceAllPathsExecutor.h"
 
 #include "planner/Algo.h"
@@ -67,7 +67,7 @@ void ProduceAllPathsExecutor::buildPaths(const std::vector<const Path*>& history
                                          const Edge& edge,
                                          Interims& interims) {
     for (auto* histPath : history) {
-        if (histPath->steps.size() < count_) {
+        if (histPath->steps.size() < count_ || hasSameEdgeInPath(histPath)) {
             continue;
         } else {
             Path path = *histPath;
@@ -77,6 +77,16 @@ void ProduceAllPathsExecutor::buildPaths(const std::vector<const Path*>& history
             interims[edge.dst].emplace_back(std::move(path));
         }
     }
+}
+
+bool ProduceAllPathsExecutor::hasSameEdgeInPath(const Path* path) {
+    std::vector<Value> args = {*path};
+    auto func = FunctionManager::get("hasSameEdgeInPath", args.size());
+    auto ret = func.value()(args);
+    if (!ret.isBool()) {
+        return false;
+    }
+    return ret.getBool();
 }
 }  // namespace graph
 }  // namespace nebula
