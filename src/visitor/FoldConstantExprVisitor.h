@@ -63,6 +63,8 @@ public:
     void visit(PathBuildExpression *expr) override;
     // column expression
     void visit(ColumnExpression *expr) override;
+    // predicate expression
+    void visit(PredicateExpression *expr) override;
 
     void visitBinaryExpr(BinaryExpression *expr);
     Expression *fold(Expression *expr) const;

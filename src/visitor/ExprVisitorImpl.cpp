@@ -139,5 +139,14 @@ void ExprVisitorImpl::visit(PathBuildExpression *expr) {
         }
     }
 }
+
+void ExprVisitorImpl::visit(PredicateExpression *expr) {
+    DCHECK(ok());
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    expr->filter()->accept(this);
+    if (!ok()) return;
+}
+
 }   // namespace graph
 }   // namespace nebula

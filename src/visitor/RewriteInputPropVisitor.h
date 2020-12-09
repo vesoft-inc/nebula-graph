@@ -75,6 +75,8 @@ private:
     void visit(PathBuildExpression *expr) override;
     // column expression
     void visit(ColumnExpression* expr) override;
+    // predicate expression
+    void visit(PredicateExpression *) override;
 
     void visitBinaryExpr(BinaryExpression *expr);
     void visitUnaryExpr(UnaryExpression *expr);

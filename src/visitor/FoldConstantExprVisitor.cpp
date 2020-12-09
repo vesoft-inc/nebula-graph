@@ -108,8 +108,7 @@ void FoldConstantExprVisitor::visit(FunctionCallExpression *expr) {
     auto result = FunctionManager::getIsPure(*expr->name(), expr->args()->args().size());
     if (!result.ok()) {
         canBeFolded = false;
-    }
-    if (!result.value()) {
+    } else if (!result.value()) {
         // stateful so can't fold
         canBeFolded = false;
     }
@@ -342,5 +341,27 @@ void FoldConstantExprVisitor::visit(PathBuildExpression *expr) {
     }
     canBeFolded_ = canBeFolded;
 }
+
+void FoldConstantExprVisitor::visit(PredicateExpression *expr) {
+    bool canBeFolded = true;
+    if (!isConstant(expr->collection())) {
+        expr->collection()->accept(this);
+        if (canBeFolded_) {
+            expr->setCollection(fold(expr->collection()));
+        } else {
+            canBeFolded = false;
+        }
+    }
+    if (!isConstant(expr->filter())) {
+        expr->filter()->accept(this);
+        if (canBeFolded_) {
+            expr->setFilter(fold(expr->filter()));
+        } else {
+            canBeFolded = false;
+        }
+    }
+    canBeFolded_ = canBeFolded;
+}
+
 }   // namespace graph
 }   // namespace nebula

@@ -542,6 +542,18 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
     type_ = Value::Type::__EMPTY__;
 }
 
+void DeduceTypeVisitor::visit(PredicateExpression *expr) {
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::LIST) {
+        status_ = Status::SemanticError("`%s': Invalid colletion type, expected type of LIST",
+                                        expr->toString().c_str());
+        return;
+    }
+
+    type_ = Value::Type::BOOL;
+}
+
 void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {
     auto *tag = expr->sym();
     auto tagId = qctx_->schemaMng()->toTagID(space_, *tag);
