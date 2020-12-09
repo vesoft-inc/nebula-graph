@@ -18,7 +18,7 @@ install-nebula-py: install-deps
 	rm -rf $(CURR_DIR)/nebula-python
 
 gherkin-fmt: install-deps
-	pip3 install poetry
+	pip3 install --user poetry
 	git clone --branch master https://github.com/OneContainer/reformat-gherkin $(CURR_DIR)/reformat-gherkin
 	cd $(CURR_DIR)/reformat-gherkin && poetry build
 	pip3 install --user $(CURR_DIR)/reformat-gherkin/dist/reformat_gherkin*.whl
