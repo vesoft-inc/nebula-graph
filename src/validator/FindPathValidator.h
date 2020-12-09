@@ -42,6 +42,7 @@ private:
     PlanNode* multiPairShortestPath(PlanNode* dep,
                                     Starts& starts,
                                     std::string& startVidsVar,
+                                    std::string& pathVar,
                                     bool reverse);
     Expression* buildMultiPairLoopCondition(uint32_t steps, std::string conditionalVar);
     PlanNode* buildMultiPairFirstDataSet(PlanNode* dep,

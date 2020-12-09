@@ -308,19 +308,21 @@ Status FindPathValidator::multiPairPlan() {
 
     std::string fromStartVidsVar;
     buildStart(from_, fromStartVidsVar, false);
-    auto* forward = multiPairShortestPath(passThrough, from_, fromStartVidsVar, false);
+    std::string fromPathVar;
+    auto* forward = multiPairShortestPath(passThrough, from_, fromStartVidsVar, fromPathVar, false);
     VLOG(1) << "forward: " << forward->outputVar();
 
     std::string toStartVidsVar;
     buildStart(to_, toStartVidsVar, true);
-    auto* backward = multiPairShortestPath(passThrough, to_, toStartVidsVar, true);
+    std::string toPathVar;
+    auto* backward = multiPairShortestPath(passThrough, to_, toStartVidsVar, toPathVar, true);
     VLOG(1) << "backward: " << backward->outputVar();
 
     auto* conjunct =
         ConjunctPath::make(qctx_, forward, backward, ConjunctPath::PathKind::kFloyd, steps_.steps);
 
-    conjunct->setLeftVar(forward->outputVar());
-    conjunct->setRightVar(backward->outputVar());
+    conjunct->setLeftVar(fromPathVar);
+    conjunct->setRightVar(toPathVar);
     conjunct->setColNames({"_path", "cost"});
 
     PlanNode* projectFromDep = nullptr;
@@ -356,35 +358,30 @@ Status FindPathValidator::multiPairPlan() {
 PlanNode* FindPathValidator::multiPairShortestPath(PlanNode* dep,
                                                    Starts& starts,
                                                    std::string& startVidsVar,
+                                                   std::string& pathVar,
                                                    bool reverse) {
     auto* gn = GetNeighbors::make(qctx_, dep, space_.id);
     gn->setSrc(starts.src);
     gn->setEdgeProps(buildEdgeKey(reverse));
     gn->setInputVar(startVidsVar);
 
-    // project
+    auto* pssp = ProduceSemiShortestPath::make(qctx_, gn);
+    pssp->setColNames({kDst, kSrc, "cost", "paths"});
+    pathVar = pssp->outputVar();
+
     auto* columns = qctx_->objPool()->add(new YieldColumns());
     auto* column =
         new YieldColumn(new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
                         new std::string(kVid));
     columns->addColumn(column);
-    auto* project = Project::make(qctx_, gn, columns);
-    project->setInputVar(gn->outputVar());
+    auto* project = Project::make(qctx_, pssp, columns);
     project->setColNames(deduceColNames(columns));
-    VLOG(1) << project->outputVar();
 
-    // dedup
     auto* dedup = Dedup::make(qctx_, project);
-    dedup->setInputVar(project->outputVar());
     dedup->setColNames(project->colNames());
     dedup->setOutputVar(startVidsVar);
 
-    auto* pssp = ProduceSemiShortestPath::make(qctx_, dedup);
-    pssp->setInputVar(gn->outputVar());
-    pssp->setColNames({kDst, kSrc, "cost", "paths"});
-    pssp->setOutputVar(pssp->outputVar());
-
-    return pssp;
+    return dedup;
 }
 
 Expression* FindPathValidator::buildMultiPairLoopCondition(uint32_t steps,
