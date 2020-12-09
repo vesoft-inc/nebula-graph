@@ -135,16 +135,38 @@ Expression* FindPathValidator::buildBfsLoopCondition(uint32_t steps, const std::
         new LogicalExpression(Expression::Kind::kLogicalAnd, nSteps, notFoundPath));
 }
 
+void FindPathValidator::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps,
+                                       bool reverse,
+                                       bool isInEdge) {
+    for (auto& e : over_.edgeTypes) {
+        storage::cpp2::EdgeProp ep;
+        if (reverse == isInEdge) {
+            ep.set_type(e);
+        } else {
+            ep.set_type(-e);
+        }
+        ep.set_props({kDst, kType, kRank});
+        edgeProps->emplace_back(std::move(ep));
+    }
+}
+
 GetNeighbors::EdgeProps FindPathValidator::buildEdgeKey(bool reverse) {
-    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
-                over_.edgeTypes.size());
-    std::transform(over_.edgeTypes.begin(), over_.edgeTypes.end(), edgeProps->begin(),
-                [reverse](auto& type) {
-                    storage::cpp2::EdgeProp ep;
-                    ep.type = reverse ? -type : type;
-                    ep.props = {kDst, kType, kRank};
-                    return ep;
-                });
+    auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
+    switch (over_.direction) {
+        case storage::cpp2::EdgeDirection::IN_EDGE: {
+            buildEdgeProps(edgeProps, reverse, true);
+            break;
+        }
+        case storage::cpp2::EdgeDirection::OUT_EDGE: {
+            buildEdgeProps(edgeProps, reverse, false);
+            break;
+        }
+        case storage::cpp2::EdgeDirection::BOTH: {
+            buildEdgeProps(edgeProps, reverse, true);
+            buildEdgeProps(edgeProps, reverse, false);
+            break;
+        }
+    }
     return edgeProps;
 }
 

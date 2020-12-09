@@ -22,7 +22,7 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
-
+    void buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool reverse, bool isInEdge);
     void buildStart(Starts& starts, std::string& startVidsVar, bool reverse);
     GetNeighbors::EdgeProps buildEdgeKey(bool reverse);
     void linkLoopDepFromTo(PlanNode*& projectDep);
