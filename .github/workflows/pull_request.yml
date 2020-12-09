@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: 3.7
       - name: Prepare Gherkin exec environ
-        run: make init -C tests
+        run: make init-all -C tests
       - name: Check Gherkin feature format
         run: make check -C tests
 
@@ -62,9 +62,6 @@ jobs:
         if: ${{ always() }}
         run: rm -rf *
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
       - name: Prepare environment
         id: prepare
         run: |

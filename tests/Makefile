@@ -25,8 +25,9 @@ gherkin-fmt: install-deps
 	pip3 install --user $(CURR_DIR)/reformat-gherkin/dist/reformat_gherkin*.whl
 	rm -rf $(CURR_DIR)/reformat-gherkin
 
-init: clean gherkin-fmt install-nebula-py
-	@echo "Install nebula test dependencies"
+init: clean install-nebula-py
+
+init-all: init gherkin-fmt
 
 fmt:
 	@find $(CURR_DIR)/tck/features -type f -iname '*.feature' -print | xargs $(gherkin_fmt)
