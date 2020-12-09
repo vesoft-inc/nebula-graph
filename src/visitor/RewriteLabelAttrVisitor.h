@@ -33,6 +33,7 @@ private:
     void visit(SetExpression *expr) override;
     void visit(MapExpression *expr) override;
     void visit(CaseExpression *) override;
+    void visit(ListComprehensionExpression *) override;
     void visit(ConstantExpression *) override {}
     void visit(LabelExpression *) override {}
     void visit(UUIDExpression *) override {}
@@ -52,7 +53,6 @@ private:
     void visit(VertexExpression *) override {}
     void visit(EdgeExpression *) override {}
     void visit(ColumnExpression *) override {}
-    void visit(ListComprehensionExpression *) override {}
 
     void visitBinaryExpr(BinaryExpression *expr) override;
 

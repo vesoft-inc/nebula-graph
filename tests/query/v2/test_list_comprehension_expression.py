@@ -41,13 +41,13 @@ class TestListComprehensionExpression(NebulaTestSuite):
         self.check_result(resp, expected_data)
 
         stmt = '''GO FROM "Tony Parker" OVER like WHERE like.likeness IN \
-            [x IN [95,  100] | x] YIELD like._dst, like.likeness'''
+            [x IN [-95, 0] | x + like.likeness * 2] YIELD like._dst, like.likeness'''
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = [["Manu Ginobili", 95], ["Tim Duncan", 95]]
         self.check_out_of_order_result(resp, expected_data)
 
-        stmt = '''MATCH p = (n:player{name:"LeBron James"})<-[:like]-(m) return [n IN nodes(p) \
+        stmt = '''MATCH p = (n:player{name:"LeBron James"})<-[:like]-(m) RETURN [n IN nodes(p) \
             WHERE n.name NOT STARTS WITH "LeBron" | n.age + 100] as r'''
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
@@ -55,7 +55,7 @@ class TestListComprehensionExpression(NebulaTestSuite):
         self.check_out_of_order_result(resp, expected_data)
 
         stmt = '''MATCH p = (n:player{name:"LeBron James"})-[:like]->(m) \
-            return [n IN nodes(p) | n.age + 100]'''
+            RETURN [n IN nodes(p) | n.age + 100]'''
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = [[[134, 143]]]
