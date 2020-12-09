@@ -130,7 +130,9 @@ def conn_pool(pytestconfig, worker_id, tmp_path_factory):
             data["finished"] += 1
             fn.write_text(json.dumps(data))
     else:
-        while True:
+        # TODO(yee): improve this option format, only specify it by `--stop_nebula`
+        stop_nebula = pytestconfig.getoption("stop_nebula")
+        while stop_nebula.lower() == "true":
             data = json.loads(fn.read_text())
             if data["finished"] + 1 == data["num_workers"]:
                 nb.stop()
