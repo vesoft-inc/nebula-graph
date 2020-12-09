@@ -153,12 +153,15 @@ public:
         return id_;
     }
 
-    void setOutputVar(std::string var) {
+    virtual bool isSingleInput() const {
+        return false;
+    }
+
+    void setOutputVar(const std::string &var) {
         DCHECK_EQ(1, outputVars_.size());
         auto* outputVarPtr = qctx_->symTable()->getVar(var);
         DCHECK(outputVarPtr != nullptr);
         auto oldVar = outputVars_[0]->name;
-        outputVarPtr->colNames = outputVars_[0]->colNames;
         outputVars_[0] = outputVarPtr;
         qctx_->symTable()->updateWrittenBy(oldVar, var, this);
     }
@@ -256,6 +259,10 @@ protected:
 
 class SingleInputNode : public SingleDependencyNode {
 public:
+    bool isSingleInput() const override {
+        return true;
+    }
+
     void setInputVar(std::string inputVar) {
         DCHECK(!inputVars_.empty());
         auto* inputVarPtr = qctx_->symTable()->getVar(inputVar);

@@ -21,7 +21,7 @@ Status FindPathValidator::validateImpl() {
     NG_RETURN_IF_ERROR(validateOver(fpSentence->over(), over_));
     NG_RETURN_IF_ERROR(validateStep(fpSentence->step(), steps_));
 
-    outputs_.emplace_back("_path", Value::Type::PATH);
+    outputs_.emplace_back("path", Value::Type::PATH);
     return Status::OK();
 }
 
@@ -75,7 +75,7 @@ Status FindPathValidator::singlePairPlan() {
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kBFSShortest, {conjunct->outputVar()});
-    dataCollect->setColNames({"_path"});
+    dataCollect->setColNames({"path"});
 
     root_ = dataCollect;
     tail_ = loop;
@@ -93,7 +93,8 @@ PlanNode* FindPathValidator::bfs(PlanNode* dep, Starts& starts, bool reverse) {
 
     auto* bfs = BFSShortestPath::make(qctx_, gn);
     bfs->setInputVar(gn->outputVar());
-    bfs->setColNames({"_vid", "edge"});
+    auto* startVidsVarPtr = qctx_->symTable()->getVar(startVidsVar);
+    startVidsVarPtr->colNames = {"_vid", "edge"};
     bfs->setOutputVar(startVidsVar);
 
     DataSet ds;
@@ -166,7 +167,8 @@ PlanNode* FindPathValidator::buildAllPairFirstDataSet(PlanNode* dep, const std::
 
     auto* project = Project::make(qctx_, dep, columns);
     project->setInputVar(inputVar);
-    project->setColNames({kVid, "path"});
+    auto* inputVarPtr = qctx_->symTable()->getVar(inputVar);
+    inputVarPtr->colNames = {kVid, "path"};
     project->setOutputVar(inputVar);
     return project;
 }
@@ -202,7 +204,7 @@ Status FindPathValidator::allPairPaths() {
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kAllPaths, {conjunct->outputVar()});
-    dataCollect->setColNames({"_path"});
+    dataCollect->setColNames({"path"});
 
     root_ = dataCollect;
     tail_ = loopDepTail_ == nullptr ? projectFrom : loopDepTail_;
@@ -220,7 +222,8 @@ PlanNode* FindPathValidator::allPaths(PlanNode* dep,
 
     auto* allPaths = ProduceAllPaths::make(qctx_, gn);
     allPaths->setInputVar(gn->outputVar());
-    allPaths->setColNames({kVid, "path"});
+    auto* startVidsVarPtr = qctx_->symTable()->getVar(startVidsVar);
+    startVidsVarPtr->colNames = {kVid, "path"};
     allPaths->setOutputVar(startVidsVar);
 
     return allPaths;
@@ -297,7 +300,8 @@ PlanNode* FindPathValidator::buildMultiPairFirstDataSet(PlanNode* dep,
 
     auto* project = Project::make(qctx_, dep, columns);
     project->setInputVar(inputVar);
-    project->setColNames({kDst, kSrc, "cost", "paths"});
+    auto* outputVarPtr = qctx_->symTable()->getVar(outputVar);
+    outputVarPtr->colNames = {kDst, kSrc, "cost", "paths"};
     project->setOutputVar(outputVar);
     return project;
 }
@@ -346,7 +350,7 @@ Status FindPathValidator::multiPairPlan() {
 
     auto* dataCollect = DataCollect::make(
         qctx_, loop, DataCollect::CollectKind::kMultiplePairShortest, {conjunct->outputVar()});
-    dataCollect->setColNames({"_path"});
+    dataCollect->setColNames({"path"});
 
     root_ = dataCollect;
     tail_ = loopDepTail_ == nullptr ? projectFrom : loopDepTail_;
@@ -376,12 +380,14 @@ PlanNode* FindPathValidator::multiPairShortestPath(PlanNode* dep,
     // dedup
     auto* dedup = Dedup::make(qctx_, project);
     dedup->setInputVar(project->outputVar());
-    dedup->setColNames(project->colNames());
+    auto* startVidsVarPtr = qctx_->symTable()->getVar(startVidsVar);
+    startVidsVarPtr->colNames = project->colNames();
     dedup->setOutputVar(startVidsVar);
 
     auto* pssp = ProduceSemiShortestPath::make(qctx_, dedup);
     pssp->setInputVar(gn->outputVar());
-    pssp->setColNames({kDst, kSrc, "cost", "paths"});
+    auto* psspOutputVarPtr = qctx_->symTable()->getVar(pssp->outputVar());
+    psspOutputVarPtr->colNames = {kDst, kSrc, "cost", "paths"};
     pssp->setOutputVar(pssp->outputVar());
 
     return pssp;
