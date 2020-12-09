@@ -12,7 +12,7 @@ install-deps:
 	pip3 install --user -r requirements.txt -i $(PYPI_MIRROR)
 
 install-nebula-py: install-deps
-	git clone https://github.com/vesoft-inc/nebula-python
+	git clone --branch master https://github.com/vesoft-inc/nebula-python
 	cd nebula-python && python3 setup.py install --user && cd ..
 	rm -rf nebula-python
 

@@ -26,7 +26,7 @@ jobs:
           .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD^ HEAD)
       - name: Gherkin feature format
         run: |
-          pip3 install -r requirements.txt
+          make init
           make check
         working-directory: tests
 
@@ -60,22 +60,11 @@ jobs:
         if: ${{ always() }}
         run: rm -rf *
       - uses: actions/checkout@v2
-      - name: Checkout nebula-python
-        uses: actions/checkout@v2
-        with:
-          repository: ${{ github.repository_owner }}/nebula-python
-          ref: 'master'
-          path: modules/nebula-python
       - name: Prepare environment
         id: prepare
-        env:
-          PYPI_MIRROR: https://mirrors.aliyun.com/pypi/simple/
         run: |
           [ -d build/ ] && rm -rf build/* || mkdir -p build
-          pip3 install --user -U setuptools -i $PYPI_MIRROR
-          pip3 install --user -r tests/requirements.txt -i $PYPI_MIRROR
-          cd modules/nebula-python
-          python3 setup.py install --user
+          make init -C tests
       - name: Checkout common
         uses: actions/checkout@v2
         with:
