@@ -328,11 +328,8 @@ Status FindPathValidator::multiPairPlan() {
     PlanNode* projectFromDep = nullptr;
     linkLoopDepFromTo(projectFromDep);
 
-    auto* projectFrom =
-        buildMultiPairFirstDataSet(projectFromDep, fromStartVidsVar, forward->outputVar());
-
-    auto* projectTo =
-        buildMultiPairFirstDataSet(projectFrom, toStartVidsVar, backward->outputVar());
+    auto* projectFrom = buildMultiPairFirstDataSet(projectFromDep, fromStartVidsVar, fromPathVar);
+    auto* projectTo = buildMultiPairFirstDataSet(projectFrom, toStartVidsVar, toPathVar);
 
     auto* cartesianProduct = CartesianProduct::make(qctx_, projectTo);
     NG_RETURN_IF_ERROR(cartesianProduct->addVar(fromStartVidsVar));
