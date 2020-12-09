@@ -173,11 +173,7 @@ StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::fillEdgePro
         }
         storage::cpp2::EdgeProp eProp;
         eProp.set_type(edge);
-        std::vector<std::string> props;
-        props.emplace_back(kSrc);
-        props.emplace_back(kType);
-        props.emplace_back(kRank);
-        props.emplace_back(kDst);
+        std::vector<std::string> props{kSrc, kType, kRank, kDst};
         for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
             props.emplace_back(edgeSchema->getFieldName(i));
         }
