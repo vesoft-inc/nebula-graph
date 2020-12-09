@@ -63,6 +63,9 @@ jobs:
         if: ${{ always() }}
         run: rm -rf *
       - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
       - name: Prepare environment
         id: prepare
         run: |
