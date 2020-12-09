@@ -3,7 +3,7 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-.PHONY: format check init clean test
+.PHONY: fmt check init clean test
 
 PYPI_MIRROR = https://mirrors.aliyun.com/pypi/simple/
 CURR_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -20,7 +20,7 @@ install-nebula-py: install-deps
 gherkin-fmt: install-deps
 	pip3 install --user poetry
 	git clone --branch master https://github.com/OneContainer/reformat-gherkin $(CURR_DIR)/reformat-gherkin
-	cd $(CURR_DIR)/reformat-gherkin && poetry build
+	cd $(CURR_DIR)/reformat-gherkin && python3 -m poetry build
 	pip3 install --user $(CURR_DIR)/reformat-gherkin/dist/reformat_gherkin*.whl
 	rm -rf $(CURR_DIR)/reformat-gherkin
 
