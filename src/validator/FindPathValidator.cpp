@@ -148,7 +148,9 @@ GetNeighbors::EdgeProps FindPathValidator::buildEdgeKey(bool reverse) {
     return edgeProps;
 }
 
-PlanNode* FindPathValidator::buildAllPairFirstDataSet(PlanNode* dep, const std::string& inputVar) {
+PlanNode* FindPathValidator::buildAllPairFirstDataSet(PlanNode* dep,
+                                                      const std::string& inputVar,
+                                                      const std::string& outputVar) {
     auto* vid =
         new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
                         new std::string(kVid));
@@ -167,7 +169,7 @@ PlanNode* FindPathValidator::buildAllPairFirstDataSet(PlanNode* dep, const std::
     auto* project = Project::make(qctx_, dep, columns);
     project->setInputVar(inputVar);
     project->setColNames({kVid, "path"});
-    project->setOutputVar(inputVar);
+    project->setOutputVar(outputVar);
     return project;
 }
 
@@ -177,25 +179,27 @@ Status FindPathValidator::allPairPaths() {
 
     std::string fromStartVidsVar;
     buildStart(from_, fromStartVidsVar, false);
-    auto* forward = allPaths(passThrough, from_, fromStartVidsVar, false);
+    std::string fromPathVar;
+    auto* forward = allPaths(passThrough, from_, fromStartVidsVar, fromPathVar, false);
     VLOG(1) << "forward: " << forward->outputVar();
 
     std::string toStartVidsVar;
     buildStart(to_, toStartVidsVar, true);
-    auto* backward = allPaths(passThrough, to_, toStartVidsVar, true);
+    std::string toPathVar;
+    auto* backward = allPaths(passThrough, to_, toStartVidsVar, toPathVar, true);
     VLOG(1) << "backward: " << backward->outputVar();
 
     auto* conjunct = ConjunctPath::make(
         qctx_, forward, backward, ConjunctPath::PathKind::kAllPaths, steps_.steps);
-    conjunct->setLeftVar(forward->outputVar());
-    conjunct->setRightVar(backward->outputVar());
+    conjunct->setLeftVar(fromPathVar);
+    conjunct->setRightVar(toPathVar);
     conjunct->setColNames({"_path"});
 
     PlanNode* projectFromDep = nullptr;
     linkLoopDepFromTo(projectFromDep);
 
-    auto* projectFrom = buildAllPairFirstDataSet(projectFromDep, fromStartVidsVar);
-    auto* projectTo = buildAllPairFirstDataSet(projectFrom, toStartVidsVar);
+    auto* projectFrom = buildAllPairFirstDataSet(projectFromDep, fromStartVidsVar, fromPathVar);
+    auto* projectTo = buildAllPairFirstDataSet(projectFrom, toStartVidsVar, toPathVar);
 
     auto* loop =
         Loop::make(qctx_, projectTo, conjunct, buildAllPathsLoopCondition(steps_.steps));
@@ -212,6 +216,7 @@ Status FindPathValidator::allPairPaths() {
 PlanNode* FindPathValidator::allPaths(PlanNode* dep,
                                       Starts& starts,
                                       std::string& startVidsVar,
+                                      std::string& pathVar,
                                       bool reverse) {
     auto* gn = GetNeighbors::make(qctx_, dep, space_.id);
     gn->setSrc(starts.src);
@@ -219,11 +224,22 @@ PlanNode* FindPathValidator::allPaths(PlanNode* dep,
     gn->setInputVar(startVidsVar);
 
     auto* allPaths = ProduceAllPaths::make(qctx_, gn);
-    allPaths->setInputVar(gn->outputVar());
     allPaths->setColNames({kVid, "path"});
-    allPaths->setOutputVar(startVidsVar);
+    pathVar = allPaths->outputVar();
 
-    return allPaths;
+    auto* columns = qctx_->objPool()->add(new YieldColumns());
+    auto* column =
+        new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
+                        new std::string(kVid));
+    columns->addColumn(column);
+    auto* project = Project::make(qctx_, allPaths, columns);
+    project->setColNames(deduceColNames(columns));
+
+    auto* dedup = Dedup::make(qctx_, project);
+    dedup->setColNames(project->colNames());
+    dedup->setOutputVar(startVidsVar);
+
+    return dedup;
 }
 
 Expression* FindPathValidator::buildAllPathsLoopCondition(uint32_t steps) {
@@ -368,7 +384,7 @@ PlanNode* FindPathValidator::multiPairShortestPath(PlanNode* dep,
 
     auto* columns = qctx_->objPool()->add(new YieldColumns());
     auto* column =
-        new YieldColumn(new EdgePropertyExpression(new std::string("*"), new std::string(kDst)),
+        new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kDst)),
                         new std::string(kVid));
     columns->addColumn(column);
     auto* project = Project::make(qctx_, pssp, columns);

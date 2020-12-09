@@ -33,9 +33,15 @@ private:
 
     // allPath
     Status allPairPaths();
-    PlanNode* allPaths(PlanNode* dep, Starts& starts, std::string& startVidsVar, bool reverse);
+    PlanNode* allPaths(PlanNode* dep,
+                       Starts& starts,
+                       std::string& startVidsVar,
+                       std::string& pathVar,
+                       bool reverse);
     Expression* buildAllPathsLoopCondition(uint32_t steps);
-    PlanNode* buildAllPairFirstDataSet(PlanNode* dep, const std::string& inputVar);
+    PlanNode* buildAllPairFirstDataSet(PlanNode* dep,
+                                       const std::string& inputVar,
+                                       const std::string& outputVar);
 
     // multi-pair
     Status multiPairPlan();
