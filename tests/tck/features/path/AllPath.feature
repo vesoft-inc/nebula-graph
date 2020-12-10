@@ -156,3 +156,37 @@ Feature: All Path
       | < ("Tim Duncan")<-[:like]-("Manu Ginobili")<-[:like]-("Tim Duncan")<-[:like]-("LaMarcus Aldridge")>     |
       | <("Tim Duncan")<-[:like]-("Tony Parker")<-[:like]-("Tim Duncan")<-[:like]-("LaMarcus Aldridge")>        |
       | <("Tim Duncan")<-[:like]-("Tony Parker")<-[:like]-("LaMarcus Aldridge")<-[:like]-("Tony Parker")>       |
+
+  Scenario: [2] ALL PATH BIDIRECT
+    When executing query:
+      """
+      FIND ALL PATH FROM "Tim Duncan" TO "Tony Parker" OVER like BIDIRECT UPTO 3 STEPS
+      """
+    Then the result should be, in any order:
+      | path                                                                                                       |
+      | <("Tim Duncan")<-[:like]-("Tony Parker")>                                                                  |
+      | <("Tim Duncan")-[:like@0]->("Tony Parker")>                                                                |
+      | <("Tim Duncan")<-[:like@0]-("Marco Belinelli")-[:like@0]->("Tony Parker")>                                 |
+      | <("Tim Duncan")<-[:like@0]-("Dejounte Murray")-[:like@0]->("Tony Parker")>                                 |
+      | <("Tim Duncan")<-[:like@0]-("LaMarcus Aldridge")<-[:like@0]-("Tony Parker")>                               |
+      | <("Tim Duncan")<-[:like@0]-("LaMarcus Aldridge")-[:like@0]->("Tony Parker")>                               |
+      | <("Tim Duncan")<-[:like@0]-("Manu Ginobili")<-[:like@0]-("Tony Parker")>                                   |
+      | <("Tim Duncan")-[:like@0]->("Manu Ginobili")<-[:like@0]-("Tony Parker")>                                   |
+      | <("Tim Duncan")<-[:like@0]-("Boris Diaw")-[:like@0]->("Tony Parker")>                                      |
+      | <("Tim Duncan")<-[:like@0]-("Danny Green")<-[:like@0]-("Marco Belinelli")-[:like@0]->("Tony Parker")>      |
+      | <("Tim Duncan")<-[:like@0]-("Danny Green")-[:like@0]->("Marco Belinelli")-[:like@0]->("Tony Parker")>      |
+      | <("Tim Duncan")<-[:like@0]-("Dejounte Murray")-[:like@0]->("Marco Belinelli")-[:like@0]->("Tony Parker")>  |
+      | < ("Tim Duncan")<-[:like@0]-("Manu Ginobili")<-[:like@0]-("Dejounte Murray")-[:like@0]->("Tony Parker")>   |
+      | <("Tim Duncan")-[:like@0]->("Manu Ginobili")<-[:like@0]-("Dejounte Murray")-[:like@0]->("Tony Parker")>    |
+      | <("Tim Duncan")<-[:like@0]-("Danny Green")<-[:like@0]-("Dejounte Murray")-[:like@0]->("Tony Parker")>      |
+      | < ("Tim Duncan")<-[:like@0]-("Marco Belinelli")<-[:like@0]-("Dejounte Murray")-[:like@0]->("Tony Parker")> |
+      | <("Tim Duncan")<-[:like@0]-("Tony Parker")<-[:like@0]-("LaMarcus Aldridge")<-[:like@0]-("Tony Parker")>    |
+      | <("Tim Duncan")-[:like@0]->("Tony Parker")<-[:like@0]-("LaMarcus Aldridge")<-[:like@0]-("Tony Parker")>    |
+      | <("Tim Duncan")<-[:like@0]-("Tony Parker")-[:like@0]->("LaMarcus Aldridge")-[:like@0]->("Tony Parker")>    |
+      | <("Tim Duncan")-[:like@0]->("Tony Parker")-[:like@0]->("LaMarcus Aldridge")-[:like@0]->("Tony Parker")>    |
+      | < ("Tim Duncan")<-[:like@0]-("Manu Ginobili")<-[:like@0]-("Tim Duncan")<-[:like@0]-("Tony Parker")>        |
+      | <("Tim Duncan")-[:like@0]->("Manu Ginobili")-[:like@0]->("Tim Duncan")<-[:like@0]-("Tony Parker")>         |
+      | < ("Tim Duncan")<-[:like@0]-("Manu Ginobili")<-[:like@0]-("Tim Duncan")-[:like@0]->("Tony Parker")>        |
+      | <("Tim Duncan")-[:like@0]->("Manu Ginobili")-[:like@0]->("Tim Duncan")-[:like@0]->("Tony Parker")>         |
+      | <("Tim Duncan")<-[:like@0]-("Dejounte Murray")-[:like@0]->("Manu Ginobili")<-[:like@0]-("Tony Parker")>    |
+      | <("Tim Duncan")<-[:like@0]-("Tiago Splitter")-[:like@0]->("Manu Ginobili")<-[:like@0]-("Tony Parker")>     |
