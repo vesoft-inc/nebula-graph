@@ -120,7 +120,7 @@ Feature: All Path
   Scenario: [1] ALL PATH REVERSELY
     When executing query:
       """
-      FIND SHORTEST PATH FROM "Tim Duncan" TO "Nobody","Spur" OVER like REVERSELY UPTO 3 STEPS
+      FIND ALL PATH FROM "Tim Duncan" TO "Nobody","Spur" OVER like REVERSELY UPTO 3 STEPS
       """
     Then the result should be, in any order:
       | path |

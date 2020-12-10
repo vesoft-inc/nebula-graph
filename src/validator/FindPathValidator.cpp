@@ -27,7 +27,7 @@ Status FindPathValidator::validateImpl() {
 }
 
 Status FindPathValidator::toPlan() {
-    if (!isShortest_) {
+    if (!isShortest_ || noLoop_) {
         return allPairPaths();
     }
     if (from_.vids.size() == 1 && to_.vids.size() == 1) {
@@ -230,6 +230,7 @@ Status FindPathValidator::allPairPaths() {
     conjunct->setLeftVar(fromPathVar);
     conjunct->setRightVar(toPathVar);
     conjunct->setColNames({"_path"});
+    conjunct->setNoLoop(noLoop_);
 
     PlanNode* projectFromDep = nullptr;
     linkLoopDepFromTo(projectFromDep);
