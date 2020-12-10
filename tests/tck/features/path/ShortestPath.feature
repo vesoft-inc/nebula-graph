@@ -3,7 +3,7 @@ Feature: Shortest Path
   Background: Prepare space
     Given a graph with space named "nba"
 
-  Scenario: SinglePair Shortest Path
+  Scenario: [1] SinglePair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tim Duncan" TO "Tony Parker" OVER like
@@ -11,6 +11,8 @@ Feature: Shortest Path
     Then the result should be, in any order:
       | path                                      |
       | <("Tim Duncan")-[:like]->("Tony Parker")> |
+
+  Scenario: [2] SinglePair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tim Duncan" TO "LaMarcus Aldridge" OVER like
@@ -18,29 +20,35 @@ Feature: Shortest Path
     Then the result should be, in any order, with relax comparision:
       | path                                                                     |
       | <("Tim Duncan")-[:like]->("Tony Parker")-[:like]->("LaMarcus Aldridge")> |
+
+  Scenario: [3] SinglePair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tiago Splitter" TO "LaMarcus Aldridge" OVER like
       """
     Then the result should be, in any order, with relax comparision:
-      | path                                                                                                |
-      | <("Tiago Splitter")-[:like]->("Tim Duncan")-[:like]->("Tony Parker")-[:like]->("LaMarcus Aldridge") |
+      | path                                                                                                 |
+      | <("Tiago Splitter")-[:like]->("Tim Duncan")-[:like]->("Tony Parker")-[:like]->("LaMarcus Aldridge")> |
+
+  Scenario: [4] SinglePair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tiago Splitter" TO "LaMarcus Aldridge" OVER like, teammate
       """
     Then the result should be, in any order, with relax comparision:
-      | path                                                                           |
-      | <("Tiago Splitter")-[:like]->("Tim Duncan")-[:teammate]->("LaMarcus Aldridge") |
+      | path                                                                            |
+      | <("Tiago Splitter")-[:like]->("Tim Duncan")-[:teammate]->("LaMarcus Aldridge")> |
+
+  Scenario: [5] SinglePair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tiago Splitter" TO "LaMarcus Aldridge" OVER *
       """
     Then the result should be, in any order, with relax comparision:
-      | path                                                                           |
-      | <("Tiago Splitter")-[:like]->("Tim Duncan")-[:teammate]->("LaMarcus Aldridge") |
+      | path                                                                            |
+      | <("Tiago Splitter")-[:like]->("Tim Duncan")-[:teammate]->("LaMarcus Aldridge")> |
 
-  Scenario: MultiPair Shortest Path
+  Scenario: [1] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tim Duncan" TO "Tony Parker","Spurs" OVER like,serve UPTO 3 STEPS
@@ -49,6 +57,8 @@ Feature: Shortest Path
       | path                                      |
       | <("Tim Duncan")-[:like]->("Tony Parker")> |
       | <("Tim Duncan")-[:serve]->("Spurs")>      |
+
+  Scenario: [2] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tim Duncan" TO "Tony Parker","Spurs" OVER * UPTO 5 STEPS
@@ -58,6 +68,8 @@ Feature: Shortest Path
       | <("Tim Duncan")-[:like]->("Tony Parker")>     |
       | <("Tim Duncan")-[:teammate]->("Tony Parker")> |
       | <("Tim Duncan")-[:serve]->("Spurs")>          |
+
+  Scenario: [3] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tony Parker", "Yao Ming" TO "Manu Ginobili", "Spurs", "Lakers" OVER * UPTO 5 STEPS
@@ -73,6 +85,8 @@ Feature: Shortest Path
       | <("Tony Parker")-[:like]->("Manu Ginobili")>                                                                              |
       | <("Tony Parker")-[:teammate]->("Manu Ginobili")>                                                                          |
       | <("Tony Parker")-[:serve]->("Spurs")>                                                                                     |
+
+  Scenario: [4] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tony Parker", "Yao Ming" TO "Manu Ginobili", "Spurs", "Lakers" OVER * UPTO 3 STEPS
@@ -86,6 +100,8 @@ Feature: Shortest Path
       | <("Tony Parker")-[:like]->("Manu Ginobili")>                                                       |
       | <("Tony Parker")-[:teammate]->("Manu Ginobili")>                                                   |
       | <("Tony Parker")-[:serve]->("Spurs")>                                                              |
+
+  Scenario: [5] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Marco Belinelli", "Yao Ming" TO "Spurs", "Lakers" OVER * UPTO 3 STEPS
@@ -97,6 +113,8 @@ Feature: Shortest Path
       | <("Marco Belinelli")-[:like]->("Danny Green")-[:like]->("LeBron James")-[:serve]->("Lakers")> |
       | <("Marco Belinelli")-[:serve]->("Spurs")>                                                     |
       | <("Marco Belinelli")-[:serve@1]->("Spurs")>                                                   |
+
+  Scenario: [6] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tim Duncan" TO "Tony Parker","LaMarcus Aldridge" OVER like UPTO 3 STEPS
@@ -105,6 +123,8 @@ Feature: Shortest Path
       | path                                                                     |
       | <("Tim Duncan")-[:like]->("Tony Parker")>                                |
       | <("Tim Duncan")-[:like]->("Tony Parker")-[:like]->("LaMarcus Aldridge")> |
+
+  Scenario: [7] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tim Duncan", "Tiago Splitter" TO "Tony Parker","Spurs" OVER like,serve UPTO 5 STEPS
@@ -115,6 +135,8 @@ Feature: Shortest Path
       | <("Tiago Splitter")-[:serve]->("Spurs")>                              |
       | <("Tim Duncan")-[:like]->("Tony Parker")>                             |
       | <("Tim Duncan")-[:serve]->("Spurs")>                                  |
+
+  Scenario: [8] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Yao Ming"  TO "Tony Parker","Tracy McGrady" OVER like,serve UPTO 5 STEPS
@@ -123,6 +145,8 @@ Feature: Shortest Path
       | path                                                                                         |
       | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Tony Parker")> |
       | <("Yao Ming")-[:like]->("Tracy McGrady")>                                                    |
+
+  Scenario: [9] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Shaquile O\'Neal" TO "Manu Ginobili", "Spurs", "Lakers" OVER * UPTO 5 STEPS
@@ -133,6 +157,8 @@ Feature: Shortest Path
       | <("Shaquile O'Neal")-[:serve]->("Lakers")>                                   |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Manu Ginobili")>     |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:teammate]->("Manu Ginobili")> |
+
+  Scenario: [10] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Shaquile O\'Neal", "Nobody" TO "Manu Ginobili", "Spurs", "Lakers" OVER * UPTO 5 STEPS
@@ -143,6 +169,8 @@ Feature: Shortest Path
       | <("Shaquile O'Neal")-[:serve]->("Lakers")>                                   |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Manu Ginobili")>     |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:teammate]->("Manu Ginobili")> |
+
+  Scenario: [11] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Shaquile O\'Neal" TO "Manu Ginobili", "Spurs", "Lakers" OVER like UPTO 5 STEPS
@@ -150,6 +178,8 @@ Feature: Shortest Path
     Then the result should be, in any order, with relax comparision:
       | path                                                                     |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Manu Ginobili")> |
+
+  Scenario: [12] MultiPair Shortest Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Marco Belinelli" TO "Spurs", "Lakers" OVER * UPTO 5 STEPS
@@ -160,7 +190,7 @@ Feature: Shortest Path
       | <("Marco Belinelli")-[:serve@1]->("Spurs")>                                                   |
       | <("Marco Belinelli")-[:like]->("Danny Green")-[:like]->("LeBron James")-[:serve]->("Lakers")> |
 
-  Scenario: MultiPair Shortest Path Empty Path
+  Scenario: [1] MultiPair Shortest Path Empty Path
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tim Duncan" TO "Nobody","Spur" OVER like,serve UPTO 3 STEPS
@@ -168,7 +198,7 @@ Feature: Shortest Path
     Then the result should be, in any order:
       | path |
 
-  Scenario: MultiPair Shortest Path Run Time input
+  Scenario: [1] MultiPair Shortest Path Run Time input
     When executing query:
       """
       YIELD "Yao Ming" AS src, "Tony Parker" AS dst
@@ -177,6 +207,8 @@ Feature: Shortest Path
     Then the result should be, in any order:
       | path                                                                                         |
       | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Tony Parker")> |
+
+  Scenario: [2] MultiPair Shortest Path Run Time input
     When executing query:
       """
       YIELD "Shaquile O\'Neal" AS src
@@ -186,6 +218,8 @@ Feature: Shortest Path
       | path                                                                         |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Manu Ginobili")>     |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:teammate]->("Manu Ginobili")> |
+
+  Scenario: [3] MultiPair Shortest Path Run Time input
     When executing query:
       """
       YIELD "Manu Ginobili" AS dst
@@ -195,6 +229,8 @@ Feature: Shortest Path
       | path                                                                         |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Manu Ginobili")>     |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:teammate]->("Manu Ginobili")> |
+
+  Scenario: [4] MultiPair Shortest Path Run Time input
     When executing query:
       """
       GO FROM "Yao Ming" over like YIELD like._dst AS src
@@ -204,6 +240,8 @@ Feature: Shortest Path
       | path                                                                                              |
       | <("Tracy McGrady")-[:like]->("Rudy Gay")-[:like]->("LaMarcus Aldridge")-[:like]->("Tony Parker")> |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Tony Parker")>                            |
+
+  Scenario: [5] MultiPair Shortest Path Run Time input
     When executing query:
       """
       $a = GO FROM "Yao Ming" over like YIELD like._dst AS src;
@@ -213,6 +251,8 @@ Feature: Shortest Path
       | path                                                                                              |
       | <("Tracy McGrady")-[:like]->("Rudy Gay")-[:like]->("LaMarcus Aldridge")-[:like]->("Tony Parker")> |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Tony Parker")>                            |
+
+  Scenario: [6] MultiPair Shortest Path Run Time input
     When executing query:
       """
       GO FROM "Tim Duncan" over * YIELD like._dst AS src, serve._src AS dst
@@ -222,6 +262,8 @@ Feature: Shortest Path
       | path                                        |
       | <("Manu Ginobili")-[:like]->("Tim Duncan")> |
       | <("Tony Parker")-[:like]->("Tim Duncan")>   |
+
+  Scenario: [7] MultiPair Shortest Path Run Time input
     When executing query:
       """
       $a = GO FROM "Tim Duncan" over * YIELD like._dst AS src, serve._src AS dst;
@@ -231,6 +273,8 @@ Feature: Shortest Path
       | path                                        |
       | <("Manu Ginobili")-[:like]->("Tim Duncan")> |
       | <("Tony Parker")-[:like]->("Tim Duncan")>   |
+
+  Scenario: [8] MultiPair Shortest Path Run Time input
     When executing query:
       """
       $a = GO FROM "Tim Duncan" over like YIELD like._src AS src;
@@ -239,16 +283,18 @@ Feature: Shortest Path
       """
     Then the result should be, in any order:
       | path                                                                     |
-      | <("Tim Duncan")-[:like]->("Manu Ginobili")                               |
+      | <("Tim Duncan")-[:like]->("Manu Ginobili")>                              |
       | <("Tim Duncan")-[:like]->("Tony Parker")-[:like]->("LaMarcus Aldridge")> |
 
-  Scenario: Shortest Path With Limit
+  Scenario: [1] Shortest Path With Limit
     When executing query:
       """
       FIND SHORTEST PATH FROM "Tim Duncan" TO "Nobody","Spur" OVER like,serve UPTO 3 STEPS | ORDER BY $-.path | LIMIT 3
       """
     Then the result should be, in any order:
       | path |
+
+  Scenario: [2] Shortest Path With Limit
     When executing query:
       """
       FIND SHORTEST PATH FROM "Shaquile O\'Neal", "Nobody" TO "Manu Ginobili", "Spurs", "Lakers" OVER * UPTO 5 STEPS
@@ -258,6 +304,8 @@ Feature: Shortest Path
       | path                                                                     |
       | <("Shaquile O'Neal")-[:serve]->("Lakers")>                               |
       | <("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Manu Ginobili")> |
+
+  Scenario: [3] Shortest Path With Limit
     When executing query:
       """
       GO FROM "Tim Duncan" over * YIELD like._dst AS src, serve._src AS dst
@@ -267,6 +315,8 @@ Feature: Shortest Path
     Then the result should be, in any order, with relax comparision:
       | path                                        |
       | <("Manu Ginobili")-[:like]->("Tim Duncan")> |
+
+  Scenario: [4] Shortest Path With Limit
     When executing query:
       """
       GO FROM "Tim Duncan" over * YIELD like._dst AS src, serve._src AS dst
@@ -277,3 +327,93 @@ Feature: Shortest Path
       | path                                        |
       | <("Manu Ginobili")-[:like]->("Tim Duncan")> |
       | <("Tony Parker")-[:like]->("Tim Duncan")>   |
+
+  Scenario: [1] Shortest Path REVERSELY
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Tim Duncan" TO "Nobody","Spur" OVER like REVERSELY UPTO 3 STEPS
+      """
+    Then the result should be, in any order:
+      | path |
+
+  Scenario: [2] Shortest Path REVERSELY
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Tim Duncan" TO "Tony Parker" OVER like REVERSELY
+      """
+    Then the result should be, in any order:
+      | path                                      |
+      | <("Tim Duncan")<-[:like]-("Tony Parker")> |
+
+  Scenario: [3] Shortest Path REVERSELY
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Tim Duncan" TO "LaMarcus Aldridge" OVER like REVERSELY
+      """
+    Then the result should be, in any order, with relax comparision:
+      | path                                            |
+      | <("Tim Duncan")<-[:like]-("LaMarcus Aldridge")> |
+
+  Scenario: [4] Shortest Path REVERSELY
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Tim Duncan" TO "Tony Parker","Spurs" OVER like,serve REVERSELY UPTO 3 STEPS
+      """
+    Then the result should be, in any order:
+      | path                                      |
+      | <("Tim Duncan")<-[:like]-("Tony Parker")> |
+
+  Scenario: [5] Shortest Path REVERSELY
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Tony Parker", "Yao Ming" TO "Manu Ginobili", "Spurs", "Lakers" OVER * REVERSELY
+      """
+    Then the result should be, in any order, with relax comparision:
+      | path                                             |
+      | <("Tony Parker")<-[:teammate]-("Manu Ginobili")> |
+
+  Scenario: [1] Shortest Path BIDIRECT
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Tim Duncan" TO "Nobody","Spur" OVER like BIDIRECT UPTO 3 STEPS
+      """
+    Then the result should be, in any order:
+      | path |
+
+  Scenario: [2] Shortest Path BIDIRECT
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Tony Parker", "Yao Ming" TO "Manu Ginobili", "Spurs", "Lakers" OVER * BIDIRECT UPTO 2 STEPS
+      """
+    Then the result should be, in any order, with relax comparision:
+      | path                                             |
+      | <("Tony Parker")-[:serve]->("Spurs")>            |
+      | <("Tony Parker")<-[:teammate]-("Manu Ginobili")> |
+      | <("Tony Parker")-[:like]->("Manu Ginobili")>     |
+      | <("Tony Parker")-[:teammate]->("Manu Ginobili")> |
+
+  Scenario: [3] Shortest Path BIDIRECT
+    When executing query:
+      """
+      FIND SHORTEST PATH FROM "Tony Parker", "Yao Ming" TO "Manu Ginobili", "Spurs", "Lakers" OVER * BIDIRECT UPTO 3 STEPS
+      """
+    Then the result should be, in any order, with relax comparision:
+      | path                                                                                               |
+      | <("Yao Ming")-[:like]->("Tracy McGrady")-[:serve]->("Spurs")<-[:serve]-("Manu Ginobili")>          |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan")<-[:like]-("Manu Ginobili")>     |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:like]->("Manu Ginobili")>     |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan")-[:teammate]->("Manu Ginobili")> |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:like]->("Tim Duncan")<-[:teammate]-("Manu Ginobili")> |
+      | <("Yao Ming")-[:like]->("Shaquile O'Neal")-[:serve]->("Lakers")>                                   |
+      | <("Yao Ming")-[:like]->("Tracy McGrady")-[:serve]->("Spurs")>                                      |
+      | <("Tony Parker")<-[:like]-("Tim Duncan")<-[:like]-("Shaquile O'Neal")-[:serve]->("Lakers")>        |
+      | <("Tony Parker")<-[:teammate]-("Tim Duncan")<-[:like]-("Shaquile O'Neal")-[:serve]->("Lakers")>    |
+      | <("Tony Parker")-[:like]->("Tim Duncan")<-[:like]-("Shaquile O'Neal")-[:serve]->("Lakers")>        |
+      | <("Tony Parker")-[:teammate]->("Tim Duncan")<-[:like]-("Shaquile O'Neal")-[:serve]->("Lakers")>    |
+      | <("Tony Parker")<-[:like]-("Dejounte Murray")-[:like]->("LeBron James")-[:serve]->("Lakers")>      |
+      | <("Tony Parker")-[:serve]->("Spurs")<-[:serve]-("Paul Gasol")-[:serve]->("Lakers")>                |
+      | <("Tony Parker")-[:serve]->("Hornets")<-[:serve]-("Dwight Howard")-[:serve]->("Lakers")>           |
+      | <("Tony Parker")-[:serve]->("Spurs")>                                                              |
+      | <("Tony Parker")<-[:teammate]-("Manu Ginobili")>                                                   |
+      | <("Tony Parker")-[:like]->("Manu Ginobili")>                                                       |
+      | <("Tony Parker")-[:teammate]->("Manu Ginobili")>                                                   |
