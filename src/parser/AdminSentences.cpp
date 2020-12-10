@@ -45,6 +45,14 @@ std::string ShowCollationSentence::toString() const {
     return std::string("SHOW COLLATION");
 }
 
+std::string ShowGroupsSentence::toString() const {
+    return std::string("SHOW GROUPS");
+}
+
+std::string ShowZonesSentence::toString() const {
+    return std::string("SHOW ZONES");
+}
+
 std::string SpaceOptItem::toString() const {
     switch (optType_) {
         case PARTITION_NUM:
@@ -74,7 +82,7 @@ std::string SpaceOptList::toString() const {
         buf += ",";
     }
     if (!buf.empty()) {
-        buf.resize(buf.size()-1);
+        buf.pop_back();
     }
     return buf;
 }
@@ -139,7 +147,7 @@ std::string HostList::toString() const {
         buf += ",";
     }
     if (!buf.empty()) {
-        buf.resize(buf.size() - 1);
+        buf.pop_back();
     }
     return buf;
 }
@@ -150,6 +158,18 @@ std::string CreateSnapshotSentence::toString() const {
 
 std::string DropSnapshotSentence::toString() const {
     return folly::stringPrintf("DROP SNAPSHOT %s", name_.get()->c_str());
+}
+
+std::string AddListenerSentence::toString() const {
+    return "ADD LISTENER";
+}
+
+std::string RemoveListenerSentence::toString() const {
+    return "REMOVE LISTENER";
+}
+
+std::string ShowListenerSentence::toString() const {
+    return "SHOW LISTENER";
 }
 
 std::string AdminJobSentence::toString() const {
@@ -168,8 +188,12 @@ std::string AdminJobSentence::toString() const {
     LOG(FATAL) << "Unkown job operation " << static_cast<uint8_t>(op_);
 }
 
-meta::cpp2::AdminJobOp AdminJobSentence::getType() const {
+meta::cpp2::AdminJobOp AdminJobSentence::getOp() const {
     return op_;
+}
+
+meta::cpp2::AdminCmd AdminJobSentence::getCmd() const {
+    return cmd_;
 }
 
 const std::vector<std::string> &AdminJobSentence::getParas() const {
@@ -180,4 +204,43 @@ void AdminJobSentence::addPara(const std::string& para) {
     paras_.emplace_back(para);
 }
 
+std::string ShowStatsSentence::toString() const {
+    return folly::stringPrintf("SHOW STATS");
+}
+
+std::string ShowTSClientsSentence::toString() const {
+    return "SHOW TEXT SEARCH CLIENTS";
+}
+
+std::string SignInTextServiceSentence::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    buf += "SIGN IN TEXT SERVICE ";
+    for (auto &client : clients_->clients()) {
+        buf += "(";
+        buf += client.get_host().host;
+        buf += ":";
+        buf += std::to_string(client.get_host().port);
+        if (client.__isset.user && !client.get_user()->empty()) {
+            buf += ", \"";
+            buf += *client.get_user();
+            buf += "\"";
+        }
+        if (client.__isset.pwd && !client.get_pwd()->empty()) {
+            buf += ", \"";
+            buf += *client.get_pwd();
+            buf += "\"";
+        }
+        buf += ")";
+        buf += ",";
+    }
+    if (!buf.empty()) {
+        buf.resize(buf.size() - 1);
+    }
+    return buf;
+}
+
+std::string SignOutTextServiceSentence::toString() const {
+    return "SIGN OUT TEXT SERVICE";
+}
 }   // namespace nebula

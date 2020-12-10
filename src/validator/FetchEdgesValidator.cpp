@@ -77,6 +77,9 @@ Status FetchEdgesValidator::toPlan() {
 
 Status FetchEdgesValidator::check() {
     auto *sentence = static_cast<FetchEdgesSentence *>(sentence_);
+    if (sentence->edgeSize() > 1) {
+        return Status::SemanticError("Only allow fetch on one edge.");
+    }
     spaceId_ = vctx_->whichSpace().id;
     edgeTypeName_ = *sentence->edge();
     auto edgeStatus = qctx_->schemaMng()->toEdgeType(spaceId_, edgeTypeName_);
@@ -137,7 +140,7 @@ Status FetchEdgesValidator::prepareEdges() {
                 return Status::NotSupported("dst is not a vertex id");
             }
             edgeKeys_.emplace_back(nebula::Row(
-                {std::move(src).getStr(), edgeType_, ranking, std::move(dst).getStr()}));
+                {std::move(src).getStr(), ranking, std::move(dst).getStr()}));
         }
     }
     return Status::OK();
@@ -179,6 +182,8 @@ Status FetchEdgesValidator::preparePropertiesWithYield(const YieldClause *yield)
     propsName.reserve(newYield_->columns().size());
     dedup_ = newYield_->isDistinct();
     for (auto col : newYield_->columns()) {
+        NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+
         if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
             auto laExpr = static_cast<LabelAttributeExpression *>(col->expr());
             col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr));
@@ -273,8 +278,7 @@ std::string FetchEdgesValidator::buildConstantInput() {
 
     src_ =
         pool->makeAndAdd<VariablePropertyExpression>(new std::string(input), new std::string(kSrc));
-    type_ = pool->makeAndAdd<VariablePropertyExpression>(new std::string(input),
-                                                         new std::string(kType));
+    type_ = pool->makeAndAdd<ConstantExpression>(edgeType_);
     rank_ = pool->makeAndAdd<VariablePropertyExpression>(new std::string(input),
                                                          new std::string(kRank));
     dst_ =

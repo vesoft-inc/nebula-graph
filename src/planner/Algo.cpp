@@ -9,9 +9,26 @@
 namespace nebula {
 namespace graph {
 
-void ProduceSemiShortestPath::setStartsVid(std::vector<Value> starts) {
-    starts_ = std::move(starts);
+Status CartesianProduct::addVar(std::string varName) {
+    auto checkName = [&varName](auto var) { return var->name == varName; };
+    if (std::find_if(inputVars_.begin(), inputVars_.end(), checkName) != inputVars_.end()) {
+        return Status::SemanticError("Duplicate Var: %s", varName.c_str());
+    }
+    auto* varPtr = qctx_->symTable()->getVar(varName);
+    DCHECK(varPtr != nullptr);
+    allColNames_.emplace_back(std::move(varPtr->colNames));
+    inputVars_.emplace_back(varPtr);
+    return Status::OK();
 }
 
-}  // namnspace graph
+std::vector<std::string> CartesianProduct::inputVars() const {
+    std::vector<std::string> varNames;
+    varNames.reserve(inputVars_.size());
+    for (auto i : inputVars_) {
+        varNames.emplace_back(i->name);
+    }
+    return varNames;
+}
+
+}  // namespace graph
 }  // namespace nebula

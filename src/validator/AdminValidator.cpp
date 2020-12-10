@@ -45,7 +45,7 @@ Status CreateSpaceValidator::validateImpl() {
             case SpaceOptItem::VID_TYPE: {
                 auto typeDef = item->getVidType();
                 if (typeDef.type != meta::cpp2::PropertyType::INT64 &&
-                        typeDef.type != meta::cpp2::PropertyType::FIXED_STRING) {
+                    typeDef.type != meta::cpp2::PropertyType::FIXED_STRING) {
                     std::stringstream ss;
                     ss << "Only support FIXED_STRING or INT64 vid type, but was given "
                        << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(typeDef.type);
@@ -62,7 +62,7 @@ Status CreateSpaceValidator::validateImpl() {
                     }
                     if (*typeDef.get_type_length() <= 0) {
                         return Status::SemanticError("Vid size should be a positive number: %d",
-                                             *typeDef.get_type_length());
+                                                     *typeDef.get_type_length());
                     }
                     spaceDesc_.vid_type.set_type_length(*typeDef.get_type_length());
                 }
@@ -221,12 +221,55 @@ Status ShowSnapshotsValidator::toPlan() {
     return Status::OK();
 }
 
+Status AddListenerValidator::validateImpl() {
+    auto sentence = static_cast<AddListenerSentence*>(sentence_);
+    if (sentence->listeners()->hosts().empty()) {
+        return Status::SemanticError("Listener hosts should not be empty");
+    }
+    return Status::OK();
+}
+
+Status AddListenerValidator::toPlan() {
+    auto sentence = static_cast<AddListenerSentence*>(sentence_);
+    auto *doNode = AddListener::make(qctx_,
+                                     nullptr,
+                                     sentence->type(),
+                                     sentence->listeners()->hosts());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status RemoveListenerValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status RemoveListenerValidator::toPlan() {
+    auto sentence = static_cast<RemoveListenerSentence*>(sentence_);
+    auto *doNode = RemoveListener::make(qctx_, nullptr, sentence->type());
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowListenerValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowListenerValidator::toPlan() {
+    auto *doNode = ShowListener::make(qctx_, nullptr);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
 Status ShowHostsValidator::validateImpl() {
     return Status::OK();
 }
 
 Status ShowHostsValidator::toPlan() {
-    auto *showHosts = ShowHosts::make(qctx_, nullptr);
+    auto sentence = static_cast<ShowHostsSentence *>(sentence_);
+    auto *showHosts = ShowHosts::make(qctx_, nullptr, sentence->getType());
     root_ = showHosts;
     tail_ = root_;
     return Status::OK();
@@ -369,6 +412,55 @@ Status GetConfigValidator::toPlan() {
                                    module_,
                                    std::move(name_));
     root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowStatusValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowStatusValidator::toPlan() {
+    auto *node = ShowStats::make(qctx_, nullptr);
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status ShowTSClientsValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status ShowTSClientsValidator::toPlan() {
+    auto *doNode = ShowTSClients::make(qctx_, nullptr);
+    root_ = doNode;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status SignInTSServiceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status SignInTSServiceValidator::toPlan() {
+    auto sentence = static_cast<SignInTextServiceSentence*>(sentence_);
+    std::vector<meta::cpp2::FTClient> clients;
+    if (sentence->clients() != nullptr) {
+        clients = sentence->clients()->clients();
+    }
+    auto *node = SignInTSService::make(qctx_, nullptr, std::move(clients));
+    root_ = node;
+    tail_ = root_;
+    return Status::OK();
+}
+
+Status SignOutTSServiceValidator::validateImpl() {
+    return Status::OK();
+}
+
+Status SignOutTSServiceValidator::toPlan() {
+    auto *node = SignOutTSService::make(qctx_, nullptr);
+    root_ = node;
     tail_ = root_;
     return Status::OK();
 }

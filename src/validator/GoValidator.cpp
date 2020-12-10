@@ -62,9 +62,10 @@ Status GoValidator::validateWhere(WhereClause* where) {
     auto typeStatus = deduceExprType(filter_);
     NG_RETURN_IF_ERROR(typeStatus);
     auto type = typeStatus.value();
-    if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE) {
+    if (type != Value::Type::BOOL && type != Value::Type::NULLVALUE &&
+        type != Value::Type::__EMPTY__) {
         std::stringstream ss;
-        ss << "`" << filter_->toString() << "', Filter only accpet bool/null value, "
+        ss << "`" << filter_->toString() << "', expected Boolean, "
            << "but was `" << type << "'";
         return Status::SemanticError(ss.str());
     }
@@ -97,6 +98,8 @@ Status GoValidator::validateYield(YieldClause* yield) {
         yields_ = newCols;
     } else {
         for (auto col : cols) {
+            NG_RETURN_IF_ERROR(invalidLabelIdentifiers(col->expr()));
+
             if (col->expr()->kind() == Expression::Kind::kLabelAttribute) {
                 auto laExpr = static_cast<LabelAttributeExpression*>(col->expr());
                 col->setExpr(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(
@@ -128,7 +131,6 @@ Status GoValidator::validateYield(YieldClause* yield) {
         }
         yields_ = yield->yields();
     }
-
     return Status::OK();
 }
 
@@ -154,7 +156,7 @@ Status GoValidator::oneStep(PlanNode* dependencyForGn,
                             const std::string& inputVarNameForGN,
                             PlanNode* projectFromJoin) {
     auto* gn = GetNeighbors::make(qctx_, dependencyForGn, space_.id);
-    gn->setSrc(src_);
+    gn->setSrc(from_.src);
     gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(inputVarNameForGN);
@@ -215,10 +217,10 @@ Status GoValidator::buildNStepsPlan() {
 
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
-    if (!from_.vids.empty() && from_.srcRef == nullptr) {
-        buildConstantInput(from_, startVidsVar, src_);
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
+        buildConstantInput(from_, startVidsVar);
     } else {
-        dedupStartVid = buildRuntimeInput();
+        dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
         startVidsVar = dedupStartVid->outputVar();
     }
 
@@ -228,7 +230,7 @@ Status GoValidator::buildNStepsPlan() {
     }
 
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space_.id);
-    gn->setSrc(src_);
+    gn->setSrc(from_.src);
     gn->setEdgeProps(buildEdgeDst());
     gn->setInputVar(startVidsVar);
     VLOG(1) << gn->outputVar();
@@ -274,10 +276,10 @@ Status GoValidator::buildMToNPlan() {
 
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
-    if (!from_.vids.empty() && from_.srcRef == nullptr) {
-        buildConstantInput(from_, startVidsVar, src_);
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
+        buildConstantInput(from_, startVidsVar);
     } else {
-        dedupStartVid = buildRuntimeInput();
+        dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
         startVidsVar = dedupStartVid->outputVar();
     }
 
@@ -287,7 +289,7 @@ Status GoValidator::buildMToNPlan() {
     }
 
     auto* gn = GetNeighbors::make(qctx_, bodyStart, space_.id);
-    gn->setSrc(src_);
+    gn->setSrc(from_.src);
     gn->setVertexProps(buildSrcVertexProps());
     gn->setEdgeProps(buildEdgeProps());
     gn->setInputVar(startVidsVar);
@@ -474,6 +476,11 @@ PlanNode* GoValidator::buildJoinDstProps(PlanNode* projectSrcDstProps) {
             {joinHashKey}, {probeKey});
     VLOG(1) << joinDst->outputVar() << " hash key: " << joinHashKey->toString()
         << " probe key: " << probeKey->toString();
+    std::vector<std::string> colNames = projectSrcDstProps->colNames();
+    for (auto& col : project->colNames()) {
+        colNames.emplace_back(col);
+    }
+    joinDst->setColNames(std::move(colNames));
 
     return joinDst;
 }
@@ -512,16 +519,19 @@ PlanNode* GoValidator::buildJoinPipeOrVariableInput(PlanNode* projectFromJoin,
                                        new std::string((steps_.steps > 1 || steps_.mToN != nullptr)
                                                            ? from_.firstBeginningSrcVidColName
                                                            : kVid)));
+    std::string varName = from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName;
     auto* joinInput =
         DataJoin::make(qctx_, dependencyForJoinInput,
                         {dependencyForJoinInput->outputVar(),
                         ExecutionContext::kLatestVersion},
-                        {from_.fromType == kPipe ? inputVarName_ : from_.userDefinedVarName,
+                        {varName,
                         ExecutionContext::kLatestVersion},
-                        {joinHashKey}, {from_.srcRef});
+                        {joinHashKey}, {from_.originalSrc});
     std::vector<std::string> colNames = dependencyForJoinInput->colNames();
-    for (auto& col : outputs_) {
-        colNames.emplace_back(col.name);
+    auto* varPtr = qctx_->symTable()->getVar(varName);
+    DCHECK(varPtr != nullptr);
+    for (auto& col : varPtr->colNames) {
+        colNames.emplace_back(col);
     }
     joinInput->setColNames(std::move(colNames));
     VLOG(1) << joinInput->outputVar();
@@ -580,10 +590,10 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
     auto* pool = qctx_->objPool();
     dstVidColName_ = vctx_->anonColGen()->getCol();
     auto* columns = pool->add(new YieldColumns());
-    auto* column = new YieldColumn(from_.srcRef->clone().release(),
+    auto* column = new YieldColumn(from_.originalSrc->clone().release(),
                                    new std::string(from_.firstBeginningSrcVidColName));
     columns->addColumn(column);
-    column = new YieldColumn(from_.srcRef->clone().release(), new std::string(dstVidColName_));
+    column = new YieldColumn(from_.originalSrc->clone().release(), new std::string(dstVidColName_));
     columns->addColumn(column);
     // dedupStartVid could be nullptr, that means no input for this project.
     auto* projectLeftVarForJoin = Project::make(qctx_, dedupStartVid, columns);
@@ -600,10 +610,10 @@ PlanNode* GoValidator::buildLeftVarForTraceJoin(PlanNode* dedupStartVid) {
 Status GoValidator::buildOneStepPlan() {
     std::string startVidsVar;
     PlanNode* dedupStartVid = nullptr;
-    if (!from_.vids.empty() && from_.srcRef == nullptr) {
-        buildConstantInput(from_, startVidsVar, src_);
+    if (!from_.vids.empty() && from_.originalSrc == nullptr) {
+        buildConstantInput(from_, startVidsVar);
     } else {
-        dedupStartVid = buildRuntimeInput();
+        dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
         startVidsVar = dedupStartVid->outputVar();
     }
 
@@ -749,10 +759,7 @@ void GoValidator::extractPropExprs(const Expression* expr) {
 std::unique_ptr<Expression> GoValidator::rewriteToInputProp(Expression* expr) {
     RewriteInputPropVisitor visitor(propExprColMap_);
     const_cast<Expression*>(expr)->accept(&visitor);
-    if (visitor.ok()) {
-        return std::move(visitor).result();
-    }
-    return nullptr;
+    return std::move(visitor).result();
 }
 
 Status GoValidator::buildColumns() {

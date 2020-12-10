@@ -24,6 +24,13 @@ jobs:
         run: |
           ln -snf $PWD/.linters/cpp/hooks/pre-commit.sh $PWD/.linters/cpp/pre-commit.sh
           .linters/cpp/pre-commit.sh $(git --no-pager diff --diff-filter=d --name-only HEAD^ HEAD)
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Prepare Gherkin exec environ
+        run: make init-all -C tests
+      - name: Check Gherkin feature format
+        run: make check -C tests
 
   build:
     name: build
@@ -51,23 +58,15 @@ jobs:
         - /tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}:/tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}
       options: --mount type=tmpfs,destination=/tmp/ccache/nebula-graph,tmpfs-size=1073741824 --cap-add=SYS_PTRACE
     steps:
+      - name: Cleanup
+        if: ${{ always() }}
+        run: rm -rf *
       - uses: actions/checkout@v2
-      - name: Checkout nebula-python
-        uses: actions/checkout@v2
-        with:
-          repository: ${{ github.repository_owner }}/nebula-python
-          ref: 'v2.0'
-          path: modules/nebula-python
       - name: Prepare environment
         id: prepare
-        env:
-          PYPI_MIRROR: https://mirrors.aliyun.com/pypi/simple/
         run: |
           [ -d build/ ] && rm -rf build/* || mkdir -p build
-          pip3 install --user -U setuptools -i $PYPI_MIRROR
-          pip3 install --user -r tests/requirements.txt -i $PYPI_MIRROR
-          cd modules/nebula-python
-          python3 setup.py install --user
+          make init -C tests
       - name: Checkout common
         uses: actions/checkout@v2
         with:
@@ -128,8 +127,12 @@ jobs:
       - name: Pytest
         env:
           NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: ./ci/test.sh test
+        run: python3 -m pytest --dist=loadfile -n8 --rm_dir=false -m "not skip" --build_dir="$PWD/../build"
         timeout-minutes: 25
-      - name: Cleanup
-        if: ${{ always() }}
-        run: rm -rf build modules
+        working-directory: tests
+      - name: Upload logs
+        uses: actions/upload-artifact@v2
+        if: ${{ failure() }}
+        with:
+          name: ${{ matrix.os }}-${{ matrix.compiler }}-nebula-test-logs
+          path:  build/server_*/logs/

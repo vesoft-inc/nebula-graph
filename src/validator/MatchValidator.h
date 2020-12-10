@@ -11,114 +11,64 @@
 #include "validator/TraversalValidator.h"
 #include "util/AnonVarGenerator.h"
 #include "planner/Query.h"
+#include "context/ast/QueryAstContext.h"
 
 namespace nebula {
-namespace graph {
 
+class MatchStepRange;
+
+namespace graph {
 class MatchValidator final : public TraversalValidator {
 public:
-    MatchValidator(Sentence *sentence, QueryContext *context)
-        : TraversalValidator(sentence, context) {
-        anon_ = vctx_->anonVarGen();
-    }
+    MatchValidator(Sentence *sentence, QueryContext *context);
 
 private:
     Status validateImpl() override;
 
-    Status toPlan() override;
+    AstContext* getAstContext() override;
 
-    Status validatePath(const MatchPath *path);
+    Status validatePath(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
 
-    Status validateFilter(const Expression *filter);
+    Status validateFilter(const Expression *filter, WhereClauseContext &whereClauseCtx) const;
 
-    Status validateReturn(MatchReturn *ret);
+    Status validateReturn(MatchReturn *ret,
+                          const MatchClauseContext &matchClauseCtx,
+                          ReturnClauseContext &retClauseCtx) const;
 
-    Status validateAliases(const std::vector<const Expression*> &exprs) const;
+    Status validateAliases(const std::vector<const Expression *> &exprs,
+                           std::unordered_map<std::string, AliasType> &aliases) const;
 
-    Status analyzeStartPoint();
-
-    Status ananyzeFilterForIndexing();
+    Status validateStepRange(const MatchStepRange *range) const;
 
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map) const;
-
-    Expression* makeIndexFilter(const std::string &label,
-                                const MapExpression *map) const;
-    Expression* makeIndexFilter(const std::string &label,
-                                const std::string &alias,
-                                const Expression *filter) const;
-
-    Status buildScanNode();
-
-    Status buildSteps();
-
-    Status buildStep();
-
-    Status buildGetTailVertices();
-
-    Status buildStepJoin();
-
-    Status buildTailJoin();
-
-    Status buildFilter();
-
-    Status buildReturn();
-
-    Expression* rewrite(const LabelExpression*) const;
-
-    Expression* rewrite(const LabelAttributeExpression*) const;
 
     template <typename T>
     T* saveObject(T *obj) const {
         return qctx_->objPool()->add(obj);
     }
 
-private:
-    using VertexProp = nebula::storage::cpp2::VertexProp;
-    using EdgeProp = nebula::storage::cpp2::EdgeProp;
-    using Direction = MatchEdge::Direction;
-    struct NodeInfo {
-        TagID                                   tid{0};
-        bool                                    anonymous{false};
-        const std::string                      *label{nullptr};
-        const std::string                      *alias{nullptr};
-        const MapExpression                    *props{nullptr};
-        Expression                             *filter{nullptr};
-    };
+    Status buildNodeInfo(const MatchPath *path,
+                         std::vector<NodeInfo> &edgeInfos,
+                         std::unordered_map<std::string, AliasType> &aliases) const;
 
-    struct EdgeInfo {
-        bool                                    anonymous{false};
-        EdgeType                                edgeType{0};
-        MatchEdge::Direction                    direction{MatchEdge::Direction::OUT_EDGE};
-        const std::string                      *type{nullptr};
-        const std::string                      *alias{nullptr};
-        const MapExpression                    *props{nullptr};
-        Expression                             *filter{nullptr};
-    };
+    Status buildEdgeInfo(const MatchPath *path,
+                         std::vector<EdgeInfo> &nodeInfos,
+                         std::unordered_map<std::string, AliasType> &aliases) const;
 
-    enum AliasType {
-        kNode, kEdge, kPath
-    };
+    Status buildPathExpr(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
 
-    struct ScanInfo {
-        Expression                             *filter{nullptr};
-        int32_t                                 schemaId{0};
-    };
+    template <typename T>
+    std::unique_ptr<T> getContext() const {
+        auto ctx = std::make_unique<T>();
+        ctx->sentence = sentence_;
+        ctx->qctx = qctx_;
+        ctx->space = space_;
+        return ctx;
+    }
 
 private:
-    bool                                        startFromNode_{true};
-    int32_t                                     startIndex_{0};
-    int32_t                                     curStep_{-1};
-    PlanNode                                   *thisStepRoot_{nullptr};
-    PlanNode                                   *prevStepRoot_{nullptr};
-    Expression                                 *startExpr_{nullptr};
-    Expression                                 *gnSrcExpr_{nullptr};
-    std::vector<NodeInfo>                       nodeInfos_;
-    std::vector<EdgeInfo>                       edgeInfos_;
-    ScanInfo                                    scanInfo_;
-    std::unordered_map<std::string, AliasType>  aliases_;
-    AnonVarGenerator                           *anon_{nullptr};
-    std::unique_ptr<Expression>                 filter_;
+    std::unique_ptr<MatchAstContext>            matchCtx_;
 };
 
 }   // namespace graph

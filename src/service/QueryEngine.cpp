@@ -9,7 +9,9 @@
 #include "common/base/Base.h"
 #include "context/QueryContext.h"
 #include "optimizer/OptRule.h"
+#include "planner/PlannersRegister.h"
 #include "service/QueryInstance.h"
+#include "service/GraphFlags.h"
 
 DECLARE_bool(local_config);
 DECLARE_bool(enable_optimizer);
@@ -27,9 +29,12 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
     meta::MetaClientOptions options;
     options.serviceName_ = "graph";
     options.skipConfig_ = FLAGS_local_config;
-    metaClient_ = std::make_unique<meta::MetaClient>(ioExecutor,
-                                                     std::move(addrs.value()),
-                                                     options);
+    options.role_ = meta::cpp2::HostRole::GRAPH;
+    std::string localIP = network::NetworkUtils::getIPv4FromDevice(FLAGS_listen_netdev).value();
+    options.localHost_ = HostAddr{localIP, FLAGS_port};
+    options.gitInfoSHA_ = NEBULA_STRINGIFY(GIT_INFO_SHA);
+    metaClient_ =
+        std::make_unique<meta::MetaClient>(ioExecutor, std::move(addrs.value()), options);
     // load data try 3 time
     bool loadDataOk = metaClient_->waitForMetadReady(3);
     if (!loadDataOk) {
@@ -46,6 +51,8 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
     storage_ = std::make_unique<storage::GraphStorageClient>(ioExecutor,
                                                              metaClient_.get());
     charsetInfo_ = CharsetInfo::instance();
+
+    PlannersRegister::registPlanners();
 
     std::vector<const opt::RuleSet*> rulesets{&opt::RuleSet::DefaultRules()};
     if (FLAGS_enable_optimizer) {

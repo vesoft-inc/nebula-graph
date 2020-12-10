@@ -9,15 +9,12 @@
 
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
+#include "common/graph/Response.h"
 #include "context/QueryContext.h"
 #include "context/Symbols.h"
 
 namespace nebula {
 namespace graph {
-
-namespace cpp2 {
-class PlanNodeDescription;
-}   // namespace cpp2
 
 /**
  * PlanNode is an abstraction of nodes in an execution plan which
@@ -71,6 +68,12 @@ public:
         kDropEdgeIndex,
         kDescTagIndex,
         kDescEdgeIndex,
+        kShowCreateTagIndex,
+        kShowCreateEdgeIndex,
+        kShowTagIndexes,
+        kShowEdgeIndexes,
+        kShowTagIndexStatus,
+        kShowEdgeIndexStatus,
         kInsertVertices,
         kInsertEdges,
         kBalanceLeaders,
@@ -101,13 +104,36 @@ public:
         kShowParts,
         kShowCharset,
         kShowCollation,
+        kShowStats,
         kShowConfigs,
+        kShowGroups,
+        kShowZones,
         kSetConfig,
         kGetConfig,
         kBFSShortest,
         kProduceSemiShortestPath,
         kConjunctPath,
         kProduceAllPaths,
+        kCartesianProduct,
+        // zone related
+        kAddGroup,
+        kDropGroup,
+        kDescribeGroup,
+        kAddZoneIntoGroup,
+        kDropZoneFromGroup,
+        kAddZone,
+        kDropZone,
+        kDescribeZone,
+        kAddHostIntoZone,
+        kDropHostFromZone,
+        // listener related
+        kAddListener,
+        kRemoveListener,
+        kShowListener,
+        // text service related
+        kShowTSClients,
+        kSignInTSService,
+        kSignOutTSService,
     };
 
     PlanNode(QueryContext* qctx, Kind kind);
@@ -115,7 +141,7 @@ public:
     virtual ~PlanNode() = default;
 
     // Describe plan node
-    virtual std::unique_ptr<cpp2::PlanNodeDescription> explain() const;
+    virtual std::unique_ptr<PlanNodeDescription> explain() const;
 
     virtual void calcCost();
 
@@ -125,6 +151,10 @@ public:
 
     int64_t id() const {
         return id_;
+    }
+
+    virtual bool isSingleInput() const {
+        return false;
     }
 
     void setOutputVar(std::string var) {
@@ -196,7 +226,7 @@ public:
     }
 
 protected:
-    static void addDescription(std::string key, std::string value, cpp2::PlanNodeDescription* desc);
+    static void addDescription(std::string key, std::string value, PlanNodeDescription* desc);
 
     QueryContext*                            qctx_{nullptr};
     Kind                                     kind_{Kind::kUnknown};
@@ -225,11 +255,15 @@ protected:
         dependencies_.emplace_back(dep);
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 };
 
 class SingleInputNode : public SingleDependencyNode {
 public:
+    bool isSingleInput() const override {
+        return true;
+    }
+
     void setInputVar(std::string inputVar) {
         DCHECK(!inputVars_.empty());
         auto* inputVarPtr = qctx_->symTable()->getVar(inputVar);
@@ -255,7 +289,7 @@ public:
         }
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 protected:
     SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
@@ -328,7 +362,7 @@ public:
         return inputVars_[1]->name;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 protected:
     BiInputNode(QueryContext* qctx, Kind kind, PlanNode* left, PlanNode* right)

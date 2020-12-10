@@ -20,6 +20,8 @@
 #include "common/expression/AttributeExpression.h"
 #include "common/expression/LabelAttributeExpression.h"
 #include "common/expression/VariableExpression.h"
+#include "common/expression/CaseExpression.h"
+#include "common/expression/TextSearchExpression.h"
 #include "util/SchemaUtil.h"
 
 namespace nebula {
@@ -55,16 +57,18 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::ExplainSentence                *explain_sentence;
     nebula::ColumnSpecification            *colspec;
     nebula::ColumnSpecificationList        *colspeclist;
-    nebula::ColumnNameList                 *colsnamelist;
+    nebula::ColumnNameList                 *column_name_list;
     nebula::StepClause                     *step_clause;
     nebula::StepClause                     *find_path_upto_clause;
     nebula::FromClause                     *from_clause;
     nebula::ToClause                       *to_clause;
     nebula::VertexIDList                   *vid_list;
+    nebula::NameLabelList                  *name_label_list;
     nebula::OverEdge                       *over_edge;
     nebula::OverEdges                      *over_edges;
     nebula::OverClause                     *over_clause;
     nebula::WhereClause                    *where_clause;
+    nebula::WhereClause                    *lookup_where_clause;
     nebula::WhenClause                     *when_clause;
     nebula::YieldClause                    *yield_clause;
     nebula::YieldColumns                   *yield_columns;
@@ -93,6 +97,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::OrderFactor                    *order_factor;
     nebula::OrderFactors                   *order_factors;
     nebula::meta::cpp2::ConfigModule        config_module;
+    nebula::meta::cpp2::ListHostType       list_host_type;
     nebula::ConfigRowItem                  *config_row_item;
     nebula::EdgeKey                        *edge_key;
     nebula::EdgeKeys                       *edge_keys;
@@ -100,6 +105,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     nebula::GroupClause                    *group_clause;
     nebula::HostList                       *host_list;
     nebula::HostAddr                       *host_item;
+    nebula::ZoneNameList                   *zone_name_list;
     std::vector<int32_t>                   *integer_list;
     nebula::InBoundClause                  *in_bound_clause;
     nebula::OutBoundClause                 *out_bound_clause;
@@ -110,37 +116,49 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     MatchNode                              *match_node;
     MatchEdge                              *match_edge;
     MatchEdgeProp                          *match_edge_prop;
+    MatchEdgeTypeList                      *match_edge_type_list;
     MatchReturn                            *match_return;
+    ReadingClause                          *reading_clause;
+    MatchClauseList                        *match_clause_list;
+    MatchStepRange                         *match_step_range;
+    nebula::meta::cpp2::IndexFieldDef      *index_field;
+    nebula::IndexFieldList                 *index_field_list;
+    CaseList                               *case_list;
+    nebula::TextSearchArgument             *text_search_argument;
+    nebula::TextSearchArgument             *base_text_search_argument;
+    nebula::TextSearchArgument             *fuzzy_text_search_argument;
+    nebula::meta::cpp2::FTClient           *text_search_client_item;
+    nebula::TSClientList                   *text_search_client_list;
 }
 
 /* destructors */
 %destructor {} <sentences>
-%destructor {} <boolval> <intval> <doubleval> <type> <config_module> <integer_list>
+%destructor {} <boolval> <intval> <doubleval> <type> <config_module> <integer_list> <list_host_type>
 %destructor { delete $$; } <*>
 
 /* keywords */
 %token KW_BOOL KW_INT8 KW_INT16 KW_INT32 KW_INT64 KW_INT KW_FLOAT KW_DOUBLE
-%token KW_STRING KW_FIXED_STRING KW_TIMESTAMP KW_DATE KW_DATETIME
+%token KW_STRING KW_FIXED_STRING KW_TIMESTAMP KW_DATE KW_TIME KW_DATETIME
 %token KW_GO KW_AS KW_TO KW_USE KW_SET KW_FROM KW_WHERE KW_ALTER
 %token KW_MATCH KW_INSERT KW_VALUES KW_YIELD KW_RETURN KW_CREATE KW_VERTEX
 %token KW_EDGE KW_EDGES KW_STEPS KW_OVER KW_UPTO KW_REVERSELY KW_SPACE KW_DELETE KW_FIND
 %token KW_TAG KW_TAGS KW_UNION KW_INTERSECT KW_MINUS
-%token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOSTS KW_PART KW_PARTS KW_ADD
+%token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOST KW_HOSTS KW_PART KW_PARTS KW_ADD
 %token KW_PARTITION_NUM KW_REPLICA_FACTOR KW_CHARSET KW_COLLATE KW_COLLATION KW_VID_TYPE
 %token KW_DROP KW_REMOVE KW_SPACES KW_INGEST KW_INDEX KW_INDEXES
 %token KW_IF KW_NOT KW_EXISTS KW_WITH
 %token KW_COUNT KW_COUNT_DISTINCT KW_SUM KW_AVG KW_MAX KW_MIN KW_STD KW_BIT_AND KW_BIT_OR KW_BIT_XOR
-%token KW_BY KW_DOWNLOAD KW_HDFS KW_UUID KW_CONFIGS KW_FORCE KW_STATUS
+%token KW_BY KW_DOWNLOAD KW_HDFS KW_UUID KW_CONFIGS KW_FORCE
 %token KW_GET KW_DECLARE KW_GRAPH KW_META KW_STORAGE
 %token KW_TTL KW_TTL_DURATION KW_TTL_COL KW_DATA KW_STOP
 %token KW_FETCH KW_PROP KW_UPDATE KW_UPSERT KW_WHEN
-%token KW_ORDER KW_ASC KW_LIMIT KW_OFFSET KW_GROUP
+%token KW_ORDER KW_ASC KW_LIMIT KW_OFFSET
 %token KW_DISTINCT KW_ALL KW_OF
 %token KW_BALANCE KW_LEADER
 %token KW_SHORTEST KW_PATH
 %token KW_IS KW_NULL KW_DEFAULT
 %token KW_SNAPSHOT KW_SNAPSHOTS KW_LOOKUP
-%token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT
+%token KW_JOBS KW_JOB KW_RECOVER KW_FLUSH KW_COMPACT KW_REBUILD KW_SUBMIT KW_STATS KW_STATUS
 %token KW_BIDIRECT
 %token KW_USER KW_USERS KW_ACCOUNT
 %token KW_PASSWORD KW_CHANGE KW_ROLE KW_ROLES
@@ -149,11 +167,17 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_EXPLAIN KW_PROFILE KW_FORMAT
 %token KW_CONTAINS
 %token KW_STARTS KW_ENDS
+%token KW_UNWIND KW_SKIP KW_OPTIONAL
+%token KW_CASE KW_THEN KW_ELSE KW_END
+%token KW_GROUP KW_ZONE KW_GROUPS KW_ZONES KW_INTO
+%token KW_LISTENER KW_ELASTICSEARCH
+%token KW_AUTO KW_FUZZY KW_PREFIX KW_REGEXP KW_WILDCARD
+%token KW_TEXT KW_SEARCH KW_CLIENTS KW_SIGN KW_SERVICE KW_TEXT_SEARCH
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
 %token PIPE ASSIGN
-%token DOT COLON SEMICOLON L_ARROW R_ARROW AT
+%token DOT DOT_DOT COLON QM SEMICOLON L_ARROW R_ARROW AT
 %token ID_PROP TYPE_PROP SRC_ID_PROP DST_ID_PROP RANK_PROP INPUT_REF DST_REF SRC_REF
 
 /* token type specification */
@@ -163,13 +187,14 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token <strval> STRING VARIABLE LABEL IPV4
 
 %type <strval> name_label unreserved_keyword agg_function
-%type <strval> admin_job_operation admin_job_para
 %type <expr> expression
 %type <expr> property_expression
 %type <expr> vertex_prop_expression
 %type <expr> edge_prop_expression
 %type <expr> input_prop_expression
 %type <expr> var_prop_expression
+%type <expr> generic_case_expression
+%type <expr> conditional_expression
 %type <expr> vid_ref_expression
 %type <expr> vid
 %type <expr> function_call_expression
@@ -180,7 +205,9 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> container_expression
 %type <expr> subscript_expression
 %type <expr> attribute_expression
+%type <expr> case_expression
 %type <expr> compound_expression
+%type <expr> text_search_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
 %type <step_clause> step_clause
@@ -190,6 +217,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <over_edges> over_edges
 %type <over_clause> over_clause
 %type <where_clause> where_clause
+%type <lookup_where_clause> lookup_where_clause
 %type <when_clause> when_clause
 %type <yield_clause> yield_clause
 %type <yield_columns> yield_columns
@@ -215,6 +243,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <order_factor> order_factor
 %type <order_factors> order_factors
 %type <config_module> config_module_enum
+%type <list_host_type> list_host_type
 %type <config_row_item> show_config_item get_config_item set_config_item
 %type <edge_key> edge_key
 %type <edge_keys> edge_keys
@@ -230,23 +259,44 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <both_in_out_clause> both_in_out_clause
 %type <expression_list> expression_list
 %type <map_item_list> map_item_list
+%type <case_list> when_then_list
+%type <expr> case_condition
+%type <expr> case_default
 
+%type <match_path> match_path_pattern
 %type <match_path> match_path
 %type <match_node> match_node
 %type <match_edge> match_edge
 %type <match_edge_prop> match_edge_prop
 %type <match_return> match_return
+%type <expr> match_skip
+%type <expr> match_limit
 %type <strval> match_alias
-%type <strval> match_edge_type
+%type <match_edge_type_list> match_edge_type_list
+%type <match_edge_type_list> opt_match_edge_type_list
+%type <reading_clause> unwind_clause with_clause match_clause reading_clause
+%type <match_clause_list> reading_clauses reading_with_clause reading_with_clauses
+%type <match_step_range> match_step_range
+%type <order_factors> match_order_by
+%type <text_search_argument> text_search_argument
+%type <base_text_search_argument> base_text_search_argument
+%type <fuzzy_text_search_argument> fuzzy_text_search_argument
+%type <text_search_client_item> text_search_client_item
+%type <text_search_client_list> text_search_client_list
 
-%type <intval> legal_integer unary_integer rank port
+%type <intval> legal_integer unary_integer rank port job_concurrency
 
 %type <colspec> column_spec
 %type <colspeclist> column_spec_list
-%type <colsnamelist> column_name_list
+%type <column_name_list> column_name_list
+%type <zone_name_list> zone_name_list
 
 %type <role_type_clause> role_type_clause
 %type <acl_item_clause> acl_item_clause
+
+%type <name_label_list> name_label_list
+%type <index_field> index_field
+%type <index_field_list> index_field_list opt_index_field_list
 
 %type <sentence> maintain_sentence
 %type <sentence> create_space_sentence describe_space_sentence drop_space_sentence
@@ -258,7 +308,12 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <sentence> drop_tag_index_sentence drop_edge_index_sentence
 %type <sentence> describe_tag_index_sentence describe_edge_index_sentence
 %type <sentence> rebuild_tag_index_sentence rebuild_edge_index_sentence
+%type <sentence> add_group_sentence drop_group_sentence desc_group_sentence
+%type <sentence> add_zone_into_group_sentence drop_zone_from_group_sentence
+%type <sentence> add_zone_sentence drop_zone_sentence desc_zone_sentence
+%type <sentence> add_host_into_zone_sentence drop_host_from_zone_sentence
 %type <sentence> create_snapshot_sentence drop_snapshot_sentence
+%type <sentence> add_listener_sentence remove_listener_sentence list_listener_sentence
 
 %type <sentence> admin_job_sentence
 %type <sentence> create_user_sentence alter_user_sentence drop_user_sentence change_password_sentence
@@ -284,16 +339,20 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <seq_sentences> seq_sentences
 %type <explain_sentence> explain_sentence
 %type <sentences> sentences
+%type <sentence> sign_in_text_search_service_sentence sign_out_text_search_service_sentence
 
 %type <boolval> opt_if_not_exists
 %type <boolval> opt_if_exists
+%type <boolval> opt_with_properites
 
-%left OR KW_OR KW_XOR
-%left AND KW_AND
-%left EQ NE LT LE GT GE KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH
+%left QM COLON
+%left KW_OR KW_XOR
+%left KW_AND
+%right KW_NOT
+%left EQ NE LT LE GT GE REG KW_IN KW_NOT_IN KW_CONTAINS KW_NOT_CONTAINS KW_STARTS_WITH KW_ENDS_WITH KW_NOT_STARTS_WITH KW_NOT_ENDS_WITH
 %left PLUS MINUS
 %left STAR DIV MOD
-%right NOT KW_NOT
+%right NOT
 %nonassoc UNARY_PLUS
 %nonassoc UNARY_MINUS
 %nonassoc CASTING
@@ -307,6 +366,17 @@ name_label
     | unreserved_keyword { $$ = $1; }
     ;
 
+name_label_list
+    : name_label {
+        $$ = new NameLabelList();
+        $$->add($1);
+    }
+    | name_label_list COMMA name_label {
+        $1->add($3);
+        $$ = $1;
+    }
+    ;
+
 legal_integer
     : INTEGER {
         ifOutOfRange($1, @1);
@@ -314,9 +384,13 @@ legal_integer
     }
     ;
 
+/**
+ * TODO(dutor) Tweak the scanner to keep the original text along the unreserved keywords
+ */
 unreserved_keyword
     : KW_SPACE              { $$ = new std::string("space"); }
     | KW_VALUES             { $$ = new std::string("values"); }
+    | KW_HOST               { $$ = new std::string("host"); }
     | KW_HOSTS              { $$ = new std::string("hosts"); }
     | KW_SPACES             { $$ = new std::string("spaces"); }
     | KW_USER               { $$ = new std::string("user"); }
@@ -346,7 +420,6 @@ unreserved_keyword
     | KW_JOBS               { $$ = new std::string("jobs"); }
     | KW_BIDIRECT           { $$ = new std::string("bidirect"); }
     | KW_FORCE              { $$ = new std::string("force"); }
-    | KW_STATUS             { $$ = new std::string("status"); }
     | KW_PART               { $$ = new std::string("part"); }
     | KW_PARTS              { $$ = new std::string("parts"); }
     | KW_DEFAULT            { $$ = new std::string("default"); }
@@ -369,9 +442,45 @@ unreserved_keyword
     | KW_SHORTEST           { $$ = new std::string("shortest"); }
     | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
     | KW_CONTAINS           { $$ = new std::string("contains"); }
+    | KW_NOT_CONTAINS       { $$ = new std::string("not contains"); }
     | KW_STARTS             { $$ = new std::string("starts"); }
+    | KW_STARTS_WITH        { $$ = new std::string("starts with"); }
+    | KW_NOT_STARTS_WITH    { $$ = new std::string("not starts with"); }
     | KW_ENDS               { $$ = new std::string("ends"); }
+    | KW_ENDS_WITH          { $$ = new std::string("ends with"); }
+    | KW_NOT_ENDS_WITH      { $$ = new std::string("not ends with"); }
     | KW_VID_TYPE           { $$ = new std::string("vid_type"); }
+    | KW_LIMIT              { $$ = new std::string("limit"); }
+    | KW_SKIP               { $$ = new std::string("skip"); }
+    | KW_OPTIONAL           { $$ = new std::string("optional"); }
+    | KW_OFFSET             { $$ = new std::string("offset"); }
+    | KW_FORMAT             { $$ = new std::string("format"); }
+    | KW_PROFILE            { $$ = new std::string("profile"); }
+    | KW_BOTH               { $$ = new std::string("both"); }
+    | KW_OUT                { $$ = new std::string("out"); }
+    | KW_SUBGRAPH           { $$ = new std::string("subgraph"); }
+    | KW_THEN               { $$ = new std::string("then"); }
+    | KW_ELSE               { $$ = new std::string("else"); }
+    | KW_END                { $$ = new std::string("end"); }
+    | KW_INTO               { $$ = new std::string("into"); }
+    | KW_GROUPS             { $$ = new std::string("groups"); }
+    | KW_ZONE               { $$ = new std::string("zone"); }
+    | KW_ZONES              { $$ = new std::string("zones"); }
+    | KW_LISTENER           { $$ = new std::string("listener"); }
+    | KW_ELASTICSEARCH      { $$ = new std::string("elasticsearch"); }
+    | KW_STATS              { $$ = new std::string("stats"); }
+    | KW_STATUS             { $$ = new std::string("status"); }
+    | KW_AUTO               { $$ = new std::string("auto"); }
+    | KW_FUZZY              { $$ = new std::string("fuzzy"); }
+    | KW_PREFIX             { $$ = new std::string("prefix"); }
+    | KW_REGEXP             { $$ = new std::string("regexp"); }
+    | KW_WILDCARD           { $$ = new std::string("wildcard"); }
+    | KW_TEXT               { $$ = new std::string("text"); }
+    | KW_SEARCH             { $$ = new std::string("search"); }
+    | KW_CLIENTS            { $$ = new std::string("clients"); }
+    | KW_SIGN               { $$ = new std::string("sign"); }
+    | KW_SERVICE            { $$ = new std::string("service"); }
+    | KW_TEXT_SEARCH        { $$ = new std::string("text_search"); }
     ;
 
 agg_function
@@ -459,6 +568,9 @@ expression
     | expression GE expression {
         $$ = new RelationalExpression(Expression::Kind::kRelGE, $1, $3);
     }
+    | expression REG expression {
+        $$ = new RelationalExpression(Expression::Kind::kRelREG, $1, $3);
+    }
     | expression KW_IN expression {
         $$ = new RelationalExpression(Expression::Kind::kRelIn, $1, $3);
     }
@@ -489,20 +601,17 @@ expression
     | expression NE expression {
         $$ = new RelationalExpression(Expression::Kind::kRelNE, $1, $3);
     }
-    | expression AND expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalAnd, $1, $3);
-    }
     | expression KW_AND expression {
         $$ = new LogicalExpression(Expression::Kind::kLogicalAnd, $1, $3);
-    }
-    | expression OR expression {
-        $$ = new LogicalExpression(Expression::Kind::kLogicalOr, $1, $3);
     }
     | expression KW_OR expression {
         $$ = new LogicalExpression(Expression::Kind::kLogicalOr, $1, $3);
     }
     | expression KW_XOR expression {
         $$ = new LogicalExpression(Expression::Kind::kLogicalXor, $1, $3);
+    }
+    | case_expression {
+        $$ = $1;
     }
     ;
 
@@ -557,10 +666,69 @@ subscript_expression
 attribute_expression
     : name_label DOT name_label {
         $$ = new LabelAttributeExpression(new LabelExpression($1),
-                                          new LabelExpression($3));
+                                          new ConstantExpression(*$3));
+        delete $3;
     }
     | compound_expression DOT name_label {
-        $$ = new AttributeExpression($1, new LabelExpression($3));
+        $$ = new AttributeExpression($1, new ConstantExpression(*$3));
+        delete $3;
+    }
+    ;
+
+case_expression
+    : generic_case_expression {
+        $$ = $1;
+    }
+    | conditional_expression {
+        $$ = $1;
+    }
+    ;
+
+generic_case_expression
+    : KW_CASE case_condition when_then_list case_default KW_END {
+        auto expr = new CaseExpression($3);
+        expr->setCondition($2);
+        expr->setDefault($4);
+        $$ = expr;
+    }
+    ;
+
+conditional_expression
+    : expression QM expression COLON expression {
+        auto cases = new CaseList();
+        cases->add($1, $3);
+        auto expr = new CaseExpression(cases, false);
+        expr->setDefault($5);
+        $$ = expr;
+    }
+    ;
+
+case_condition
+    : %empty {
+        $$ = nullptr;
+    }
+    | expression {
+        $$ = $1;
+    }
+    ;
+
+case_default
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_ELSE expression {
+        $$ = $2;
+    }
+    ;
+
+when_then_list
+    : KW_WHEN expression KW_THEN expression {
+        $$ = new CaseList();
+        $$->add($2, $4);
+    }
+    | when_then_list KW_WHEN expression KW_THEN expression {
+        $1->add($3, $5);
+        $$ = $1;
     }
     ;
 
@@ -609,6 +777,15 @@ edge_prop_expression
 function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
         $$ = new FunctionCallExpression($1, $3);
+    }
+    | KW_DATE L_PAREN opt_argument_list R_PAREN {
+        $$ = new FunctionCallExpression(new std::string("date"), $3);
+    }
+    | KW_TIME L_PAREN opt_argument_list R_PAREN {
+        $$ = new FunctionCallExpression(new std::string("time"), $3);
+    }
+    | KW_DATETIME L_PAREN opt_argument_list R_PAREN {
+        $$ = new FunctionCallExpression(new std::string("datetime"), $3);
     }
     ;
 
@@ -694,6 +871,10 @@ type_spec
     | KW_DATE {
         $$ = new meta::cpp2::ColumnTypeDef();
         $$->set_type(meta::cpp2::PropertyType::DATE);
+    }
+    | KW_TIME {
+        $$ = new meta::cpp2::ColumnTypeDef();
+        $$->set_type(meta::cpp2::PropertyType::TIME);
     }
     | KW_DATETIME {
         $$ = new meta::cpp2::ColumnTypeDef();
@@ -963,19 +1144,101 @@ yield_sentence
     }
     ;
 
+unwind_clause
+    : KW_UNWIND expression KW_AS name_label {
+        $$ = new UnwindClause($2, $4);
+    }
+    ;
+
+with_clause
+    : KW_WITH yield_columns match_order_by match_skip match_limit where_clause {
+        $$ = new WithClause($2, $3, $4, $5, $6, false/*distinct*/);
+    }
+    | KW_WITH KW_DISTINCT yield_columns match_order_by match_skip match_limit where_clause {
+        $$ = new WithClause($3, $4, $5, $6, $7, true);
+    }
+    ;
+
+match_clause
+    : KW_MATCH match_path where_clause {
+        $$ = new MatchClause($2, $3, false/*optinal*/);
+    }
+    | KW_OPTIONAL KW_MATCH match_path where_clause {
+        $$ = new MatchClause($3, $4, true);
+    }
+    ;
+
+reading_clause
+    : unwind_clause {
+        $$ = $1;
+    }
+    | match_clause {
+        $$ = $1;
+    }
+    ;
+
+reading_clauses
+    : reading_clause {
+        $$ = new MatchClauseList();
+        $$->add($1);
+    }
+    | reading_clauses reading_clause {
+        $$ = $1;
+        $$->add($2);
+    }
+    ;
+
+reading_with_clause
+    : with_clause {
+        $$ = new MatchClauseList();
+        $$->add($1);
+    }
+    | reading_clauses with_clause {
+        $$ = $1;
+        $$->add($2);
+    }
+    ;
+
+reading_with_clauses
+    : reading_with_clause {
+        $$ = $1;
+    }
+    | reading_with_clauses reading_with_clause {
+        $$ = $1;
+        $$->add($2);
+    }
+    ;
+
 match_sentence
-    : KW_MATCH match_path where_clause match_return {
-        $$ = new MatchSentence($2, $3, $4);
+    : reading_clauses match_return {
+        $$ = new MatchSentence($1, $2);
+    }
+    | reading_with_clauses match_return {
+        $$ = new MatchSentence($1, $2);
+    }
+    | reading_with_clauses reading_clauses match_return {
+        $1->add($2);
+        $$ = new MatchSentence($1, $3);
+    }
+    ;
+
+match_path_pattern
+    : match_node {
+        $$ = new MatchPath($1);
+    }
+    | match_path_pattern match_edge match_node {
+        $$ = $1;
+        $$->add($2, $3);
     }
     ;
 
 match_path
-    : match_node {
-        $$ = new MatchPath($1);
-    }
-    | match_path match_edge match_node {
+    : match_path_pattern {
         $$ = $1;
-        $$->add($2, $3);
+    }
+    | name_label ASSIGN match_path_pattern {
+        $$ = $3;
+        $$->setAlias($1);
     }
     ;
 
@@ -1022,34 +1285,282 @@ match_edge_prop
     : %empty {
         $$ = nullptr;
     }
-    | L_BRACKET match_alias match_edge_type R_BRACKET {
-        $$ = new MatchEdgeProp($2, $3, nullptr);
+    | L_BRACKET match_alias opt_match_edge_type_list match_step_range R_BRACKET {
+        $$ = new MatchEdgeProp($2, $3, $4, nullptr);
     }
-    | L_BRACKET match_alias match_edge_type map_expression R_BRACKET {
-        $$ = new MatchEdgeProp($2, $3, $4);
+    | L_BRACKET match_alias opt_match_edge_type_list match_step_range map_expression R_BRACKET {
+        $$ = new MatchEdgeProp($2, $3, $4, $5);
     }
     ;
 
-match_edge_type
+opt_match_edge_type_list
     : %empty {
         $$ = nullptr;
     }
-    | COLON name_label {
-        $$ = $2;
+    | match_edge_type_list {
+        $$ = $1;
+    }
+    ;
+
+match_step_range
+    : %empty {
+        $$ = nullptr;
+    }
+    | STAR {
+        $$ = new MatchStepRange(1);
+    }
+    | STAR legal_integer {
+        $$ = new MatchStepRange($2, $2);
+    }
+    | STAR DOT_DOT legal_integer {
+        $$ = new MatchStepRange(1, $3);
+    }
+    | STAR legal_integer DOT_DOT {
+        $$ = new MatchStepRange($2);
+    }
+    | STAR legal_integer DOT_DOT legal_integer {
+        $$ = new MatchStepRange($2, $4);
+    }
+    ;
+
+match_edge_type_list
+    : COLON name_label {
+        $$ = new MatchEdgeTypeList();
+        $$->add($2);
+    }
+    | match_edge_type_list PIPE name_label {
+        $$ = $1;
+        $$->add($3);
+    }
+    | match_edge_type_list PIPE COLON name_label {
+        $$ = $1;
+        $$->add($4);
     }
     ;
 
 match_return
-    : KW_RETURN yield_columns  {
-        $$ = new MatchReturn($2);
+    : KW_RETURN yield_columns match_order_by match_skip match_limit {
+        $$ = new MatchReturn($2, $3, $4, $5);
     }
-    | KW_RETURN STAR  {
-        $$ = new MatchReturn();
+    | KW_RETURN KW_DISTINCT yield_columns match_order_by match_skip match_limit {
+        $$ = new MatchReturn($3, $4, $5, $6, true);
+    }
+    | KW_RETURN STAR match_order_by match_skip match_limit {
+        $$ = new MatchReturn(nullptr, $3, $4, $5);
+    }
+    | KW_RETURN KW_DISTINCT STAR match_order_by match_skip match_limit {
+        $$ = new MatchReturn(nullptr, $4, $5, $6, true);
     }
     ;
 
+match_order_by
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_ORDER KW_BY order_factors {
+        $$ = $3;
+    }
+    ;
+
+match_skip
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_SKIP expression {
+        $$ = $2;
+    }
+    ;
+
+match_limit
+    : %empty {
+        $$ = nullptr;
+    }
+    | KW_LIMIT expression {
+        $$ = $2;
+    }
+    ;
+
+
+text_search_client_item
+    : L_PAREN host_item R_PAREN {
+        $$ = new nebula::meta::cpp2::FTClient();
+        $$->set_host(*$2);
+        delete $2;
+    }
+    | L_PAREN host_item COMMA STRING COMMA STRING R_PAREN {
+        $$ = new nebula::meta::cpp2::FTClient();
+        $$->set_host(*$2);
+        $$->set_user(*$4);
+        $$->set_pwd(*$6);
+        delete $2;
+        delete $4;
+        delete $6;
+    }
+    ;
+
+text_search_client_list
+    : text_search_client_item {
+        $$ = new TSClientList();
+        $$->addClient($1);
+    }
+    | text_search_client_list COMMA text_search_client_item {
+        $$ = $1;
+        $$->addClient($3);
+    }
+    | text_search_client_list COMMA {
+        $$ = $1;
+    }
+    ;
+
+sign_in_text_search_service_sentence
+    : KW_SIGN KW_IN KW_TEXT KW_SERVICE text_search_client_list {
+        $$ = new SignInTextServiceSentence($5);
+    }
+    ;
+
+sign_out_text_search_service_sentence
+    : KW_SIGN KW_OUT KW_TEXT KW_SERVICE {
+        $$ = new SignOutTextServiceSentence();
+    }
+    ;
+
+base_text_search_argument
+    : name_label DOT name_label COMMA STRING {
+        auto arg = new TextSearchArgument($1, $3, $5);
+        $$ = arg;
+    }
+    ;
+
+fuzzy_text_search_argument
+   : base_text_search_argument COMMA KW_AUTO COMMA KW_AND {
+        $$ = $1;
+        $$->setFuzziness(-1);
+        $$->setOP(new std::string("and"));
+   }
+   | base_text_search_argument COMMA KW_AUTO COMMA KW_OR {
+        $$ = $1;
+        $$->setFuzziness(-1);
+        $$->setOP(new std::string("or"));
+   }
+   | base_text_search_argument COMMA legal_integer COMMA KW_AND {
+        if ($3 != 0 && $3 != 1 && $3 != 2) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setFuzziness($3);
+        $$->setOP(new std::string("and"));
+   }
+   | base_text_search_argument COMMA legal_integer COMMA KW_OR {
+        if ($3 != 0 && $3 != 1 && $3 != 2) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setFuzziness($3);
+        $$->setOP(new std::string("or"));
+   }
+
+text_search_argument
+    : base_text_search_argument {
+        $$ = $1;
+    }
+    | fuzzy_text_search_argument {
+        $$ = $1;
+    }
+    | base_text_search_argument COMMA legal_integer {
+        if ($3 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+    }
+    | base_text_search_argument COMMA legal_integer COMMA legal_integer {
+        if ($3 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        if ($5 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@5, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+        $$->setTimeout($5);
+    }
+    | fuzzy_text_search_argument COMMA legal_integer {
+        if ($3 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+    }
+    | fuzzy_text_search_argument COMMA legal_integer COMMA legal_integer {
+        if ($3 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        if ($5 < 1) {
+            delete $1;
+            throw nebula::GraphParser::syntax_error(@5, "Out of range:");
+        }
+        $$ = $1;
+        $$->setLimit($3);
+        $$->setTimeout($5);
+    }
+    ;
+
+text_search_expression
+    : KW_PREFIX L_PAREN text_search_argument R_PAREN {
+        if ($3->op() != nullptr) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        if ($3->fuzziness() != -2) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        $$ = new TextSearchExpression(Expression::Kind::kTSPrefix, $3);
+    }
+    | KW_WILDCARD L_PAREN text_search_argument R_PAREN {
+        if ($3->op() != nullptr) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        if ($3->fuzziness() != -2) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        $$ = new TextSearchExpression(Expression::Kind::kTSWildcard, $3);
+    }
+    | KW_REGEXP L_PAREN text_search_argument R_PAREN {
+        if ($3->op() != nullptr) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        if ($3->fuzziness() != -2) {
+            delete $3;
+            throw nebula::GraphParser::syntax_error(@3, "argument error:");
+        }
+        $$ = new TextSearchExpression(Expression::Kind::kTSRegexp, $3);
+    }
+    | KW_FUZZY L_PAREN text_search_argument R_PAREN {
+        $$ = new TextSearchExpression(Expression::Kind::kTSFuzzy, $3);
+    }
+    ;
+
+    // TODO : unfiy the text_search_expression into expression in the future
+    // The current version only support independent text_search_expression for lookup_sentence
+lookup_where_clause
+    : %empty { $$ = nullptr; }
+    | KW_WHERE text_search_expression { $$ = new WhereClause($2); }
+    | KW_WHERE expression { $$ = new WhereClause($2); }
+    ;
+
 lookup_sentence
-    : KW_LOOKUP KW_ON name_label where_clause yield_clause {
+    : KW_LOOKUP KW_ON name_label lookup_where_clause yield_clause {
         auto sentence = new LookupSentence($3);
         sentence->setWhereClause($4);
         sentence->setYieldClause($5);
@@ -1058,26 +1569,14 @@ lookup_sentence
     ;
 
 order_factor
-    : input_prop_expression {
+    : expression {
         $$ = new OrderFactor($1, OrderFactor::ASCEND);
     }
-    | input_prop_expression KW_ASC {
+    | expression KW_ASC {
         $$ = new OrderFactor($1, OrderFactor::ASCEND);
     }
-    | input_prop_expression KW_DESC {
+    | expression KW_DESC {
         $$ = new OrderFactor($1, OrderFactor::DESCEND);
-    }
-    | LABEL {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::ASCEND);
-    }
-    | LABEL KW_ASC {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::ASCEND);
-    }
-    | LABEL KW_DESC {
-        auto inputRef = new InputPropertyExpression($1);
-        $$ = new OrderFactor(inputRef, OrderFactor::DESCEND);
     }
     ;
 
@@ -1100,10 +1599,10 @@ order_by_sentence
     ;
 
 fetch_vertices_sentence
-    : KW_FETCH KW_PROP KW_ON name_label vid_list yield_clause {
+    : KW_FETCH KW_PROP KW_ON name_label_list vid_list yield_clause {
         $$ = new FetchVerticesSentence($4, $5, $6);
     }
-    | KW_FETCH KW_PROP KW_ON name_label vid_ref_expression yield_clause {
+    | KW_FETCH KW_PROP KW_ON name_label_list vid_ref_expression yield_clause {
         $$ = new FetchVerticesSentence($4, $5, $6);
     }
     | KW_FETCH KW_PROP KW_ON STAR vid_list yield_clause {
@@ -1154,11 +1653,11 @@ edge_key_ref:
     ;
 
 fetch_edges_sentence
-    : KW_FETCH KW_PROP KW_ON name_label edge_keys yield_clause {
+    : KW_FETCH KW_PROP KW_ON name_label_list edge_keys yield_clause {
         auto fetch = new FetchEdgesSentence($4, $5, $6);
         $$ = fetch;
     }
-    | KW_FETCH KW_PROP KW_ON name_label edge_key_ref yield_clause {
+    | KW_FETCH KW_PROP KW_ON name_label_list edge_key_ref yield_clause {
         auto fetch = new FetchEdgesSentence($4, $5, $6);
         $$ = fetch;
     }
@@ -1170,26 +1669,31 @@ fetch_sentence
     ;
 
 find_path_sentence
-    : KW_FIND KW_ALL KW_PATH from_clause to_clause over_clause find_path_upto_clause
+    : KW_FIND KW_ALL KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
     /* where_clause */ {
-        auto *s = new FindPathSentence(false);
-        s->setFrom($4);
-        s->setTo($5);
-        s->setOver($6);
-        s->setStep($7);
-        /* s->setWhere($8); */
+        auto *s = new FindPathSentence(false, $4);
+        s->setFrom($5);
+        s->setTo($6);
+        s->setOver($7);
+        s->setStep($8);
+        /* s->setWhere($9); */
         $$ = s;
     }
-    | KW_FIND KW_SHORTEST KW_PATH from_clause to_clause over_clause find_path_upto_clause
+    | KW_FIND KW_SHORTEST KW_PATH opt_with_properites from_clause to_clause over_clause find_path_upto_clause
     /* where_clause */ {
-        auto *s = new FindPathSentence(true);
-        s->setFrom($4);
-        s->setTo($5);
-        s->setOver($6);
-        s->setStep($7);
-        /* s->setWhere($8); */
+        auto *s = new FindPathSentence(true, $4);
+        s->setFrom($5);
+        s->setTo($6);
+        s->setOver($7);
+        s->setStep($8);
+        /* s->setWhere($9); */
         $$ = s;
     }
+    ;
+
+opt_with_properites
+    : %empty { $$ = false; }
+    | KW_WITH KW_PROP { $$ = true; }
     ;
 
 find_path_upto_clause
@@ -1443,8 +1947,16 @@ column_spec
         $$ = new ColumnSpecification($1, $2->type, false, $6, $2->type_length);
         delete $2;
     }
+    | name_label type_spec KW_DEFAULT expression KW_NOT KW_NULL {
+        $$ = new ColumnSpecification($1, $2->type, false, $4, $2->type_length);
+        delete $2;
+    }
     | name_label type_spec KW_NULL KW_DEFAULT expression {
         $$ = new ColumnSpecification($1, $2->type, true, $5 , $2->type_length);
+        delete $2;
+    }
+    | name_label type_spec KW_DEFAULT expression KW_NULL {
+        $$ = new ColumnSpecification($1, $2->type, true, $4 , $2->type_length);
         delete $2;
     }
     ;
@@ -1479,14 +1991,55 @@ drop_edge_sentence
     }
     ;
 
+index_field
+    : name_label {
+        $$ = new meta::cpp2::IndexFieldDef();
+        $$->set_name($1->c_str());
+        delete $1;
+    }
+    | name_label L_PAREN INTEGER R_PAREN {
+        if ($3 > std::numeric_limits<int16_t>::max()) {
+            throw nebula::GraphParser::syntax_error(@3, "Out of range:");
+        }
+        $$ = new meta::cpp2::IndexFieldDef();
+        $$->set_name($1->c_str());
+        $$->set_type_length($3);
+        delete $1;
+    }
+    ;
+
+index_field_list
+    : index_field {
+        $$ = new IndexFieldList();
+        std::unique_ptr<meta::cpp2::IndexFieldDef> field;
+        field.reset($1);
+        $$->addField(std::move(field));
+    }
+    | index_field_list COMMA index_field {
+        $$ = $1;
+        std::unique_ptr<meta::cpp2::IndexFieldDef> field;
+        field.reset($3);
+        $$->addField(std::move(field));
+    }
+    ;
+
+opt_index_field_list
+    : %empty {
+        $$ = nullptr;
+    }
+    | index_field_list {
+        $$ = $1;
+    }
+    ;
+
 create_tag_index_sentence
-    : KW_CREATE KW_TAG KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN column_name_list R_PAREN {
+    : KW_CREATE KW_TAG KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN {
         $$ = new CreateTagIndexSentence($5, $7, $9, $4);
     }
     ;
 
 create_edge_index_sentence
-    : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN column_name_list R_PAREN {
+    : KW_CREATE KW_EDGE KW_INDEX opt_if_not_exists name_label KW_ON name_label L_PAREN opt_index_field_list R_PAREN {
         $$ = new CreateEdgeIndexSentence($5, $7, $9, $4);
     }
     ;
@@ -1523,10 +2076,8 @@ describe_edge_index_sentence
 
 rebuild_tag_index_sentence
     : KW_REBUILD KW_TAG KW_INDEX name_label {
-        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
-        sentence->addPara("rebuild");
-        sentence->addPara("tag");
-        sentence->addPara("index");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::REBUILD_TAG_INDEX);
         sentence->addPara(*$4);
         delete $4;
         $$ = sentence;
@@ -1535,13 +2086,77 @@ rebuild_tag_index_sentence
 
 rebuild_edge_index_sentence
     : KW_REBUILD KW_EDGE KW_INDEX name_label {
-        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
-        sentence->addPara("rebuild");
-        sentence->addPara("edge");
-        sentence->addPara("index");
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX);
         sentence->addPara(*$4);
         delete $4;
         $$ = sentence;
+    }
+    ;
+
+add_group_sentence
+    : KW_ADD KW_GROUP name_label zone_name_list{
+        $$ = new AddGroupSentence($3, $4);
+    }
+    ;
+
+drop_group_sentence
+    : KW_DROP KW_GROUP name_label {
+        $$ = new DropGroupSentence($3);
+    }
+    ;
+
+desc_group_sentence
+    : KW_DESCRIBE KW_GROUP name_label {
+        $$ = new DescribeGroupSentence($3);
+    }
+    | KW_DESC KW_GROUP name_label {
+        $$ = new DescribeGroupSentence($3);
+    }
+    ;
+
+add_zone_into_group_sentence
+    : KW_ADD KW_ZONE name_label KW_INTO KW_GROUP name_label {
+        $$ = new AddZoneIntoGroupSentence($3, $6);
+    }
+    ;
+
+drop_zone_from_group_sentence
+    : KW_DROP KW_ZONE name_label KW_FROM KW_GROUP name_label {
+        $$ = new DropZoneFromGroupSentence($3, $6);
+    }
+    ;
+
+add_zone_sentence
+    : KW_ADD KW_ZONE name_label host_list {
+        $$ = new AddZoneSentence($3, $4);
+    }
+    ;
+
+drop_zone_sentence
+    : KW_DROP KW_ZONE name_label {
+        $$ = new DropZoneSentence($3);
+    }
+    ;
+
+desc_zone_sentence
+    : KW_DESCRIBE KW_ZONE name_label {
+        $$ = new DescribeZoneSentence($3);
+    }
+    | KW_DESC KW_ZONE name_label {
+        $$ = new DescribeZoneSentence($3);
+    }
+    ;
+
+add_host_into_zone_sentence
+    : KW_ADD KW_HOST host_item KW_INTO KW_ZONE name_label {
+        $$ = new AddHostIntoZoneSentence($3, $6);
+    }
+    ;
+
+drop_host_from_zone_sentence
+    : KW_DROP KW_HOST host_item KW_FROM KW_ZONE name_label {
+        $$ = new DropHostFromZoneSentence($3, $6);
     }
     ;
 
@@ -1744,8 +2359,9 @@ update_item
     }
     | name_label DOT name_label ASSIGN expression {
         auto expr = new LabelAttributeExpression(new LabelExpression($1),
-                                                 new LabelExpression($3));
+                                                 new ConstantExpression(*$3));
         $$ = new UpdateItem(expr, $5);
+        delete $3;
     }
     ;
 
@@ -1756,7 +2372,7 @@ update_vertex_sentence
         $$ = sentence;
     }
     | KW_UPSERT KW_VERTEX vid KW_SET update_list when_clause yield_clause {
-        auto sentence = new UpdateVertexSentence($3, $5, $6, $7,true);
+        auto sentence = new UpdateVertexSentence($3, $5, $6, $7, true);
         $$ = sentence;
     }
      // ======== End: Compatible with 1.0 =========
@@ -1854,10 +2470,28 @@ ingest_sentence
     ;
 
 admin_job_sentence
-    : KW_SUBMIT KW_JOB admin_job_operation {
-        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD);
-        sentence->addPara(*$3);
-        delete $3;
+    : KW_SUBMIT KW_JOB KW_COMPACT job_concurrency {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::COMPACT);
+        if ($4 != 0) {
+            sentence->addPara(std::to_string($4));
+        }
+        $$ = sentence;
+    }
+    | KW_SUBMIT KW_JOB KW_FLUSH job_concurrency {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::FLUSH);
+        if ($4 != 0) {
+            sentence->addPara(std::to_string($4));
+        }
+        $$ = sentence;
+    }
+    | KW_SUBMIT KW_JOB KW_STATS job_concurrency {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::STATS);
+        if ($4 != 0) {
+            sentence->addPara(std::to_string($4));
+        }
         $$ = sentence;
     }
     | KW_SHOW KW_JOBS {
@@ -1880,27 +2514,21 @@ admin_job_sentence
     }
     ;
 
-admin_job_operation
-    : KW_COMPACT         { $$ = new std::string("compact"); }
-    | KW_FLUSH           { $$ = new std::string("flush"); }
-    | KW_REBUILD KW_TAG  { $$ = new std::string("rebuild tag"); }
-    | KW_REBUILD KW_EDGE { $$ = new std::string("rebuild edge"); }
-    | admin_job_operation admin_job_para {
-        $$ = new std::string(*$1 + " " + *$2);
+job_concurrency
+    : %empty {
+        $$ = 0;
     }
-    ;
-
-admin_job_para
-    : name_label ASSIGN name_label {
-        auto left = *$1;
-        auto right = *$3;
-        $$ = new std::string(*$1 + "=" + *$3);
+    | legal_integer {
+        $$ = $1;
     }
     ;
 
 show_sentence
     : KW_SHOW KW_HOSTS {
-        $$ = new ShowHostsSentence();
+        $$ = new ShowHostsSentence(meta::cpp2::ListHostType::ALLOC);
+    }
+    | KW_SHOW KW_HOSTS list_host_type {
+        $$ = new ShowHostsSentence($3);
     }
     | KW_SHOW KW_SPACES {
         $$ = new ShowSpacesSentence();
@@ -1951,10 +2579,12 @@ show_sentence
         $$ = new ShowCreateEdgeIndexSentence($5);
     }
     | KW_SHOW KW_TAG KW_INDEX KW_STATUS {
-        $$ = new ShowTagIndexesSentence();
+        auto sentence = new ShowTagIndexStatusSentence();
+        $$ = sentence;
     }
-    | KW_SHOW KW_EDGE KW_INDEX KW_STATUS {
-        $$ = new ShowEdgeIndexesSentence();
+    | KW_SHOW KW_EDGE KW_INDEX KW_STATUS  {
+        auto sentence = new ShowEdgeIndexStatusSentence();
+        $$ = sentence;
     }
     | KW_SHOW KW_SNAPSHOTS {
         $$ = new ShowSnapshotsSentence();
@@ -1965,6 +2595,24 @@ show_sentence
     | KW_SHOW KW_COLLATION {
         $$ = new ShowCollationSentence();
     }
+    | KW_SHOW KW_GROUPS {
+        $$ = new ListGroupsSentence();
+    }
+    | KW_SHOW KW_ZONES {
+        $$ = new ListZonesSentence();
+    }
+    | KW_SHOW KW_STATS {
+        $$ = new ShowStatsSentence();
+    }
+    | KW_SHOW KW_TEXT KW_SEARCH KW_CLIENTS {
+        $$ = new ShowTSClientsSentence();
+    }
+    ;
+
+list_host_type
+    : KW_GRAPH      { $$ = meta::cpp2::ListHostType::GRAPH; }
+    | KW_META       { $$ = meta::cpp2::ListHostType::META; }
+    | KW_STORAGE    { $$ = meta::cpp2::ListHostType::STORAGE; }
     ;
 
 config_module_enum
@@ -2003,6 +2651,17 @@ show_config_item
     }
     | config_module_enum {
         $$ = new ConfigRowItem($1);
+    }
+    ;
+
+zone_name_list
+    : name_label {
+        $$ = new ZoneNameList();
+        $$->addZone($1);
+    }
+    | zone_name_list COMMA name_label {
+        $$ = $1;
+        $$->addZone($3);
     }
     ;
 
@@ -2232,6 +2891,24 @@ drop_snapshot_sentence
     }
     ;
 
+add_listener_sentence
+    : KW_ADD KW_LISTENER KW_ELASTICSEARCH host_list {
+        $$ = new AddListenerSentence(meta::cpp2::ListenerType::ELASTICSEARCH, $4);
+    }
+    ;
+
+remove_listener_sentence
+    : KW_REMOVE KW_LISTENER KW_ELASTICSEARCH {
+        $$ = new RemoveListenerSentence(meta::cpp2::ListenerType::ELASTICSEARCH);
+    }
+    ;
+
+list_listener_sentence
+    : KW_SHOW KW_LISTENER {
+        $$ = new ShowListenerSentence();
+    }
+    ;
+
 mutate_sentence
     : insert_vertex_sentence { $$ = $1; }
     | insert_edge_sentence { $$ = $1; }
@@ -2262,8 +2939,17 @@ maintain_sentence
     | describe_edge_index_sentence { $$ = $1; }
     | rebuild_tag_index_sentence { $$ = $1; }
     | rebuild_edge_index_sentence { $$ = $1; }
+    | add_group_sentence { $$ = $1; }
+    | drop_group_sentence { $$ = $1; }
+    | desc_group_sentence { $$ = $1; }
+    | add_zone_into_group_sentence { $$ = $1; }
+    | drop_zone_from_group_sentence { $$ = $1; }
+    | add_zone_sentence { $$ = $1; }
+    | drop_zone_sentence { $$ = $1; }
+    | desc_zone_sentence { $$ = $1; }
+    | add_host_into_zone_sentence { $$ = $1; }
+    | drop_host_from_zone_sentence { $$ = $1; }
     | show_sentence { $$ = $1; }
-    ;
     | create_user_sentence { $$ = $1; }
     | alter_user_sentence { $$ = $1; }
     | drop_user_sentence { $$ = $1; }
@@ -2273,8 +2959,13 @@ maintain_sentence
     | get_config_sentence { $$ = $1; }
     | set_config_sentence { $$ = $1; }
     | balance_sentence { $$ = $1; }
-    | create_snapshot_sentence { $$ = $1; };
-    | drop_snapshot_sentence { $$ = $1; };
+    | add_listener_sentence { $$ = $1; }
+    | remove_listener_sentence { $$ = $1; }
+    | list_listener_sentence { $$ = $1; }
+    | create_snapshot_sentence { $$ = $1; }
+    | drop_snapshot_sentence { $$ = $1; }
+    | sign_in_text_search_service_sentence { $$ = $1; }
+    | sign_out_text_search_service_sentence { $$ = $1; }
     ;
 
 return_sentence

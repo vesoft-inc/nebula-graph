@@ -37,6 +37,7 @@ private:
     void visit(ListExpression* expr) override;
     void visit(SetExpression* expr) override;
     void visit(MapExpression* expr) override;
+    void visit(CaseExpression* expr) override;
 
     void visit(ConstantExpression* expr) override;
     void visit(EdgePropertyExpression* expr) override;
@@ -55,6 +56,7 @@ private:
     void visit(LabelExpression* expr) override;
     void visit(VertexExpression* expr) override;
     void visit(EdgeExpression* expr) override;
+    void visit(ColumnExpression* expr) override;
 
     void visitBinaryExpr(BinaryExpression* expr) override;
 

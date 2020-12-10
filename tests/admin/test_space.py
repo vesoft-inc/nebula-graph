@@ -6,20 +6,11 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import time
-import re
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 
 class TestSpace(NebulaTestSuite):
-
-    @classmethod
-    def prepare(self):
-        pass
-
-    @classmethod
-    def cleanup(self):
-        pass
 
     def test_space(self):
         # not exist
@@ -31,7 +22,7 @@ class TestSpace(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         # check result
-        resp = self.client.execute_query('DESC SPACE space_with_default_options')
+        resp = self.client.execute('DESC SPACE space_with_default_options')
         expect_result = [['space_with_default_options', 100, 1, 'utf8', 'utf8_bin', 'FIXED_STRING(8)']]
         self.check_result(resp, expect_result, {0})
 
@@ -44,12 +35,12 @@ class TestSpace(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
         # show spaces
-        resp = self.client.execute_query('SHOW SPACES')
+        resp = self.client.execute('SHOW SPACES')
         self.check_resp_succeeded(resp)
         self.search_result(resp, [['default_space']])
 
         # desc space
-        resp = self.client.execute_query('DESC SPACE default_space')
+        resp = self.client.execute('DESC SPACE default_space')
         self.check_resp_succeeded(resp)
         expect_result = [['default_space', 9, 1, 'utf8', 'utf8_bin', 'FIXED_STRING(8)']]
         self.check_result(resp, expect_result, {0})
@@ -57,7 +48,7 @@ class TestSpace(NebulaTestSuite):
         # show create space
         # TODO(shylock) need meta cache to permission checking
         time.sleep(self.delay)
-        resp = self.client.execute_query('SHOW CREATE SPACE default_space')
+        resp = self.client.execute('SHOW CREATE SPACE default_space')
         self.check_resp_succeeded(resp)
 
         create_space_str = 'CREATE SPACE `default_space` ('\
@@ -74,11 +65,10 @@ class TestSpace(NebulaTestSuite):
         resp = self.client.execute('DROP SPACE default_space')
         self.check_resp_succeeded(resp)
 
-
         resp = self.client.execute(create_space_str)
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('SHOW SPACES')
+        resp = self.client.execute('SHOW SPACES')
         self.check_resp_succeeded(resp)
 
         # 2.0 when use space, the validator get from cache
@@ -91,7 +81,7 @@ class TestSpace(NebulaTestSuite):
                                    'replica_factor=1, charset=utf8, collate=utf8_bin)')
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('DESC SPACE space_charset_collate')
+        resp = self.client.execute('DESC SPACE space_charset_collate')
         self.check_resp_succeeded(resp)
         expect_result = [['space_charset_collate', 9, 1, 'utf8', 'utf8_bin', 'FIXED_STRING(8)']]
         self.check_result(resp, expect_result, {0})
@@ -104,7 +94,7 @@ class TestSpace(NebulaTestSuite):
                                    'replica_factor=1, charset=utf8)')
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('DESC SPACE space_charset')
+        resp = self.client.execute('DESC SPACE space_charset')
         self.check_resp_succeeded(resp)
         expect_result = [['space_charset', 9, 1, 'utf8', 'utf8_bin', 'FIXED_STRING(8)']]
         self.check_result(resp, expect_result, {0})
@@ -117,7 +107,7 @@ class TestSpace(NebulaTestSuite):
                                    'replica_factor=1, collate=utf8_bin)')
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('DESC SPACE space_collate')
+        resp = self.client.execute('DESC SPACE space_collate')
         self.check_resp_succeeded(resp)
         expect_result = [['space_collate', 9, 1, 'utf8', 'utf8_bin', 'FIXED_STRING(8)']]
         self.check_result(resp, expect_result, {0})
@@ -132,17 +122,17 @@ class TestSpace(NebulaTestSuite):
         self.check_resp_failed(resp)
 
         # not supported charset
-        resp = self.client.execute_query('CREATE SPACE space_charset_collate_nomatch (partition_num=9, '
+        resp = self.client.execute('CREATE SPACE space_charset_collate_nomatch (partition_num=9, '
                                          'replica_factor=1, charset = gbk, collate=utf8_bin)')
         self.check_resp_failed(resp)
 
         # not supported charset
-        resp = self.client.execute_query('CREATE SPACE space_illegal_charset (partition_num=9, '
+        resp = self.client.execute('CREATE SPACE space_illegal_charset (partition_num=9, '
                                          'replica_factor=1, charset = gbk)')
         self.check_resp_failed(resp)
 
         # not supported collate
-        resp = self.client.execute_query('CREATE SPACE space_illegal_collate (partition_num=9, '
+        resp = self.client.execute('CREATE SPACE space_illegal_collate (partition_num=9, '
                                          'replica_factor=1, collate = gbk_bin)')
         self.check_resp_failed(resp)
 
@@ -154,7 +144,7 @@ class TestSpace(NebulaTestSuite):
                                    'replica_factor=1, charset=UTF8, collate=UTF8_bin)')
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('DESC SPACE space_capital')
+        resp = self.client.execute('DESC SPACE space_capital')
         self.check_resp_succeeded(resp)
         expect_result = [['space_capital', 9, 1, 'utf8', 'utf8_bin', 'FIXED_STRING(8)']]
         self.check_result(resp, expect_result, {0})
@@ -187,7 +177,7 @@ class TestSpace(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
     def test_drop_space(self):
-        resp = self.client.execute_query('SHOW SPACES')
+        resp = self.client.execute('SHOW SPACES')
         self.check_resp_succeeded(resp)
         expect_result = [['default_space']]
         self.search_result(resp, expect_result)
@@ -195,7 +185,7 @@ class TestSpace(NebulaTestSuite):
         resp = self.client.execute('DROP SPACE default_space')
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('SHOW SPACES')
+        resp = self.client.execute('SHOW SPACES')
         self.check_resp_succeeded(resp)
         expect_result = [['default_space']]
         self.search_not_exist(resp, expect_result)
@@ -206,7 +196,7 @@ class TestSpace(NebulaTestSuite):
                                    'vid_type = fixed_string(30))')
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('DESC SPACE space_string_vid')
+        resp = self.client.execute('DESC SPACE space_string_vid')
         self.check_resp_succeeded(resp)
         expect_result = [['space_string_vid', 9, 1, 'utf8', 'utf8_bin', 'FIXED_STRING(30)']]
         self.check_result(resp, expect_result, {0})
@@ -217,7 +207,7 @@ class TestSpace(NebulaTestSuite):
                                    'vid_type = int64)')
         self.check_resp_succeeded(resp)
 
-        resp = self.client.execute_query('DESC SPACE space_int_vid')
+        resp = self.client.execute('DESC SPACE space_int_vid')
         self.check_resp_succeeded(resp)
         expect_result = [['space_int_vid', 9, 1, 'utf8', 'utf8_bin', 'INT64']]
         self.check_result(resp, expect_result, {0})

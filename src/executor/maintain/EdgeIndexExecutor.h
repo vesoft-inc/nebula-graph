@@ -36,6 +36,30 @@ public:
     folly::Future<Status> execute() override;
 };
 
+class ShowCreateEdgeIndexExecutor final : public Executor {
+public:
+    ShowCreateEdgeIndexExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("ShowCreateEdgeIndexExecutor", node, qctx) {}
+
+    folly::Future<Status> execute() override;
+};
+
+class ShowEdgeIndexesExecutor final : public Executor {
+public:
+    ShowEdgeIndexesExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("ShowEdgeIndexesExecutor", node, qctx) {}
+
+    folly::Future<Status> execute() override;
+};
+
+class ShowEdgeIndexStatusExecutor final : public Executor {
+public:
+    ShowEdgeIndexStatusExecutor(const PlanNode *node, QueryContext *qctx)
+        : Executor("ShowEdgeIndexStatusExecutor", node, qctx) {}
+
+    folly::Future<Status> execute() override;
+};
+
 }   // namespace graph
 }   // namespace nebula
 

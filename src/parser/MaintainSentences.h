@@ -483,16 +483,41 @@ private:
 };
 
 
+class IndexFieldList final {
+public:
+    IndexFieldList() = default;
+
+    void addField(std::unique_ptr<meta::cpp2::IndexFieldDef> field) {
+        fields_.emplace_back(std::move(field));
+    }
+
+    std::vector<meta::cpp2::IndexFieldDef*> fields() const {
+        std::vector<meta::cpp2::IndexFieldDef*> result;
+        result.resize(fields_.size());
+        auto get = [] (auto &ptr) { return ptr.get(); };
+        std::transform(fields_.begin(), fields_.end(), result.begin(), get);
+        return result;
+    }
+
+private:
+    std::vector<std::unique_ptr<meta::cpp2::IndexFieldDef>> fields_;
+};
+
+
 class CreateTagIndexSentence final : public CreateSentence {
 public:
     CreateTagIndexSentence(std::string *indexName,
                            std::string *tagName,
-                           ColumnNameList *columns,
+                           IndexFieldList *fields,
                            bool ifNotExists)
         : CreateSentence(ifNotExists) {
         indexName_.reset(indexName);
         tagName_.reset(tagName);
-        columns_.reset(columns);
+        if (fields == nullptr) {
+            fields_ = std::make_unique<IndexFieldList>();
+        } else {
+            fields_.reset(fields);
+        }
         kind_ = Kind::kCreateTagIndex;
     }
 
@@ -506,19 +531,19 @@ public:
         return tagName_.get();
     }
 
-    std::vector<std::string> columns() const {
-        std::vector<std::string> result;
-        auto columnNames = columns_->columnNames();
-        result.resize(columnNames.size());
+    std::vector<meta::cpp2::IndexFieldDef> fields() const {
+        std::vector<meta::cpp2::IndexFieldDef> result;
+        auto fields = fields_->fields();
+        result.resize(fields.size());
         auto get = [] (auto ptr) { return *ptr; };
-        std::transform(columnNames.begin(), columnNames.end(), result.begin(), get);
+        std::transform(fields.begin(), fields.end(), result.begin(), get);
         return result;
     }
 
 private:
     std::unique_ptr<std::string>                indexName_;
     std::unique_ptr<std::string>                tagName_;
-    std::unique_ptr<ColumnNameList>             columns_;
+    std::unique_ptr<IndexFieldList>             fields_;
 };
 
 
@@ -526,12 +551,16 @@ class CreateEdgeIndexSentence final : public CreateSentence {
 public:
     CreateEdgeIndexSentence(std::string *indexName,
                             std::string *edgeName,
-                            ColumnNameList *columns,
+                            IndexFieldList *fields,
                             bool ifNotExists)
         : CreateSentence(ifNotExists) {
         indexName_.reset(indexName);
         edgeName_.reset(edgeName);
-        columns_.reset(columns);
+        if (fields == nullptr) {
+            fields_ = std::make_unique<IndexFieldList>();
+        } else {
+            fields_.reset(fields);
+        }
         kind_ = Kind::kCreateEdgeIndex;
     }
 
@@ -545,19 +574,19 @@ public:
         return edgeName_.get();
     }
 
-    std::vector<std::string> columns() const {
-        std::vector<std::string> result;
-        auto columnNames = columns_->columnNames();
-        result.resize(columnNames.size());
+    std::vector<meta::cpp2::IndexFieldDef> fields() const {
+        std::vector<meta::cpp2::IndexFieldDef> result;
+        auto fields = fields_->fields();
+        result.resize(fields.size());
         auto get = [] (auto ptr) { return *ptr; };
-        std::transform(columnNames.begin(), columnNames.end(), result.begin(), get);
+        std::transform(fields.begin(), fields.end(), result.begin(), get);
         return result;
     }
 
 private:
     std::unique_ptr<std::string>                indexName_;
     std::unique_ptr<std::string>                edgeName_;
-    std::unique_ptr<ColumnNameList>             columns_;
+    std::unique_ptr<IndexFieldList>             fields_;
 };
 
 
@@ -703,6 +732,24 @@ public:
     std::string toString() const override;
 };
 
+class ShowTagIndexStatusSentence : public Sentence {
+public:
+    ShowTagIndexStatusSentence() {
+        kind_ = Kind::kShowTagIndexStatus;
+    }
+
+    std::string toString() const override;
+};
+
+class ShowEdgeIndexStatusSentence : public Sentence {
+public:
+    ShowEdgeIndexStatusSentence() {
+        kind_ = Kind::kShowEdgeIndexStatus;
+    }
+
+    std::string toString() const override;
+};
+
 class ShowCreateTagIndexSentence : public Sentence {
 public:
     explicit ShowCreateTagIndexSentence(std::string *indexName) {
@@ -736,6 +783,253 @@ public:
 private:
     std::unique_ptr<std::string>                indexName_;
 };
+
+class ZoneNameList final {
+public:
+    ZoneNameList() = default;
+
+    void addZone(std::string *zone) {
+        zones_.emplace_back(zone);
+    }
+
+    std::vector<std::string> zoneNames() const {
+        std::vector<std::string> result;
+        result.resize(zones_.size());
+        auto get = [] (auto &ptr) { return *ptr.get(); };
+        std::transform(zones_.begin(), zones_.end(), result.begin(), get);
+        return result;
+    }
+
+private:
+    std::vector<std::unique_ptr<std::string>> zones_;
+};
+
+
+class AddGroupSentence : public Sentence {
+public:
+    explicit AddGroupSentence(std::string *groupName, ZoneNameList *zoneNames) {
+        groupName_.reset(groupName);
+        zoneNames_.reset(zoneNames);
+        kind_ = Kind::kAddGroup;
+    }
+
+    std::string toString() const override;
+
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
+    const ZoneNameList* zoneNames() const {
+        return zoneNames_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>                groupName_;
+    std::unique_ptr<ZoneNameList>               zoneNames_;
+};
+
+class AddZoneSentence : public Sentence {
+public:
+    explicit AddZoneSentence(std::string *zoneName, HostList *hosts) {
+        zoneName_.reset(zoneName);
+        hosts_.reset(hosts);
+        kind_ = Kind::kAddZone;
+    }
+
+    std::string toString() const override;
+
+    const std::string* zoneName() const {
+        return zoneName_.get();
+    }
+
+    const HostList* hosts() const {
+        return hosts_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>                zoneName_;
+    std::unique_ptr<HostList>                   hosts_;
+};
+
+class DropGroupSentence : public Sentence {
+public:
+    explicit DropGroupSentence(std::string *groupName) {
+        groupName_.reset(groupName);
+        kind_ = Kind::kDropGroup;
+    }
+
+    std::string toString() const override;
+
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>                groupName_;
+};
+
+class DropZoneSentence : public Sentence {
+public:
+    explicit DropZoneSentence(std::string *zoneName) {
+        zoneName_.reset(zoneName);
+        kind_ = Kind::kDropZone;
+    }
+
+    std::string toString() const override;
+
+    const std::string* zoneName() const {
+        return zoneName_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>                zoneName_;
+};
+
+class DescribeGroupSentence : public Sentence {
+public:
+    explicit DescribeGroupSentence(std::string *groupName) {
+        groupName_.reset(groupName);
+        kind_ = Kind::kDescribeGroup;
+    }
+
+    std::string toString() const override;
+
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>                groupName_;
+};
+
+class DescribeZoneSentence : public Sentence {
+public:
+    explicit DescribeZoneSentence(std::string *zoneName) {
+        zoneName_.reset(zoneName);
+        kind_ = Kind::kDescribeZone;
+    }
+
+    std::string toString() const override;
+
+    const std::string* zoneName() const {
+        return zoneName_.get();
+    }
+
+private:
+    std::unique_ptr<std::string>                zoneName_;
+};
+
+
+class ListGroupsSentence : public Sentence {
+public:
+    ListGroupsSentence() {
+        kind_ = Kind::kListGroups;
+    }
+
+    std::string toString() const override;
+};
+
+class ListZonesSentence : public Sentence {
+public:
+    ListZonesSentence() {
+        kind_ = Kind::kListZones;
+    }
+
+    std::string toString() const override;
+};
+
+class AddZoneIntoGroupSentence : public Sentence {
+public:
+    AddZoneIntoGroupSentence(std::string* zoneName, std::string* groupName) {
+        zoneName_.reset(zoneName);
+        groupName_.reset(groupName);
+        kind_ = Kind::kAddZoneIntoGroup;
+    }
+
+    const std::string* zoneName() const {
+        return zoneName_.get();
+    }
+
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>                zoneName_;
+    std::unique_ptr<std::string>                groupName_;
+};
+
+class AddHostIntoZoneSentence : public Sentence {
+public:
+    explicit AddHostIntoZoneSentence(HostAddr *address, std::string* zoneName) {
+        address_.reset(address);
+        zoneName_.reset(zoneName);
+        kind_ = Kind::kAddHostIntoZone;
+    }
+
+    const std::string* zoneName() const {
+        return zoneName_.get();
+    }
+
+    const HostAddr* address() const {
+        return address_.get();
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>                zoneName_;
+    std::unique_ptr<HostAddr>                   address_;
+};
+
+class DropZoneFromGroupSentence : public Sentence {
+public:
+    DropZoneFromGroupSentence(std::string* zoneName, std::string* groupName) {
+        zoneName_.reset(zoneName);
+        groupName_.reset(groupName);
+        kind_ = Kind::kDropZoneFromGroup;
+    }
+
+    const std::string* zoneName() const {
+        return zoneName_.get();
+    }
+
+    const std::string* groupName() const {
+        return groupName_.get();
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>                zoneName_;
+    std::unique_ptr<std::string>                groupName_;
+};
+
+class DropHostFromZoneSentence : public Sentence {
+public:
+    explicit DropHostFromZoneSentence(HostAddr *address, std::string* zoneName) {
+        address_.reset(address);
+        zoneName_.reset(zoneName);
+        kind_ = Kind::kDropHostFromZone;
+    }
+
+    const std::string* zoneName() const {
+        return zoneName_.get();
+    }
+
+    const HostAddr* address() const {
+        return address_.get();
+    }
+
+    std::string toString() const override;
+
+private:
+    std::unique_ptr<std::string>                zoneName_;
+    std::unique_ptr<HostAddr>                   address_;
+};
+
 
 }   // namespace nebula
 

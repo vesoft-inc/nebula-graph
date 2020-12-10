@@ -39,16 +39,16 @@ def init_configs():
 
 
 def get_delay_time(client):
-    resp = client.execute_query(
+    resp = client.execute(
         'get configs GRAPH:heartbeat_interval_secs')
-    assert resp.error_code == 0
-    assert len(resp.data.rows) == 1, "invalid row size: {}".format(resp.data.rows)
-    graph_delay = resp.data.rows[0].values[4].get_iVal() + 1
+    assert resp.is_succeeded()
+    assert resp.row_size() == 1, "invalid row size: {}".format(resp.rows())
+    graph_delay = resp.row_values(0)[4].as_int() + 1
 
-    resp = client.execute_query(
+    resp = client.execute(
         'get configs STORAGE:heartbeat_interval_secs')
-    assert resp.error_code == 0
-    assert len(resp.data.rows) == 1, "invalid row size: {}".format(resp.data.rows)
-    storage_delay = resp.data.rows[0].values[4].get_iVal() + 1
+    assert resp.is_succeeded()
+    assert resp.row_size() == 1, "invalid row size: {}".format(resp.rows())
+    storage_delay = resp.row_values(0)[4].as_int() + 1
     delay = max(graph_delay, storage_delay) * 3
     return delay

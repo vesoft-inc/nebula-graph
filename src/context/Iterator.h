@@ -119,6 +119,18 @@ public:
     // The derived class should rewrite get prop if the Value is kind of dataset.
     virtual const Value& getColumn(const std::string& col) const = 0;
 
+    virtual const Value& getColumn(int32_t index) const = 0;
+
+    template <typename Iter>
+    const Value& getColumnByIndex(int32_t index, Iter iter) const {
+        auto size = iter->size();
+        if (static_cast<size_t>(std::abs(index)) >= size) {
+            return Value::kNullBadType;
+        }
+        auto currentRow = *iter;
+        return currentRow[(size + index) % size];
+    }
+
     virtual const Value& getTagProp(const std::string&,
                                     const std::string&) const {
         DLOG(FATAL) << "Shouldn't call the unimplemented method";
@@ -180,6 +192,11 @@ public:
     }
 
     const Value& getColumn(const std::string& /* col */) const override {
+        DLOG(FATAL) << "This method should not be invoked";
+        return Value::kEmpty;
+    }
+
+    const Value& getColumn(int32_t) const override {
         DLOG(FATAL) << "This method should not be invoked";
         return Value::kEmpty;
     }
@@ -246,6 +263,8 @@ public:
     }
 
     const Value& getColumn(const std::string& col) const override;
+
+    const Value& getColumn(int32_t index) const override;
 
     const Value& getTagProp(const std::string& tag,
                             const std::string& prop) const override;
@@ -484,7 +503,7 @@ public:
         return rows_.end();
     }
 
-    const std::unordered_map<std::string, int64_t>& getColIndices() const {
+    const std::unordered_map<std::string, size_t>& getColIndices() const {
         return colIndices_;
     }
 
@@ -505,6 +524,8 @@ public:
             return logicalRow.row_->values[index->second];
         }
     }
+
+    const Value& getColumn(int32_t index) const override;
 
     // TODO: We should build new iter for get props, the seq iter will
     // not meet the requirements of match any more.
@@ -541,9 +562,10 @@ private:
 private:
     RowsType<SeqLogicalRow>                      rows_;
     RowsIter<SeqLogicalRow>                      iter_;
-    std::unordered_map<std::string, int64_t>     colIndices_;
+    std::unordered_map<std::string, size_t>     colIndices_;
 };
 
+class PropIter;
 class JoinIter final : public Iterator {
 public:
     class JoinLogicalRow final : public LogicalRow {
@@ -590,7 +612,8 @@ public:
         const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
     };
 
-    JoinIter() : Iterator(nullptr, Kind::kJoin) {}
+    explicit JoinIter(std::vector<std::string> colNames)
+        : Iterator(nullptr, Kind::kJoin), colNames_(std::move(colNames)) {}
 
     void joinIndex(const Iterator* lhs, const Iterator* rhs);
 
@@ -603,6 +626,10 @@ public:
         auto copy = std::make_unique<JoinIter>(*this);
         copy->reset();
         return copy;
+    }
+
+    std::vector<std::string> colNames() const {
+        return colNames_;
     }
 
     bool valid() const override {
@@ -675,6 +702,8 @@ public:
         }
     }
 
+    const Value& getColumn(int32_t index) const override;
+
     const LogicalRow* row() const override {
         if (!valid()) {
             return nullptr;
@@ -691,7 +720,10 @@ private:
 
     size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx);
 
+    size_t buildIndexFromPropIter(const PropIter* iter, size_t segIdx);
+
 private:
+    std::vector<std::string>                                       colNames_;
     RowsType<JoinLogicalRow>                                       rows_;
     RowsIter<JoinLogicalRow>                                       iter_;
     // colName -> segIdx, currentSegColIdx
@@ -791,7 +823,13 @@ public:
         return &*iter_;
     }
 
+    const std::unordered_map<std::string, size_t>& getColIndices() const {
+        return dsIndex_.colIndices;
+    }
+
     const Value& getColumn(const std::string& col) const override;
+
+    const Value& getColumn(int32_t index) const override;
 
     Value getVertex() const override;
 

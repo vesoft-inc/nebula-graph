@@ -5,8 +5,6 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-import time
-
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 
@@ -16,27 +14,27 @@ class TestOrderBy(NebulaTestSuite):
         self.use_nba()
 
     def test_syntax_error(self):
-        resp = self.execute_query('ORDER BY')
+        resp = self.execute('ORDER BY')
         self.check_resp_failed(resp)
 
-        resp = self.execute('GO FROM %ld OVER serve YIELD ' 
-                            '$^.player.name as name, serve.start_year as start, $$.team.name' 
+        resp = self.execute('GO FROM %ld OVER serve YIELD '
+                            '$^.player.name as name, serve.start_year as start, $$.team.name'
                             '| ORDER BY $-.$$.team.name')
         self.check_resp_failed(resp)
 
     def test_empty_input(self):
         # 1.0 will return empty, but 2.0 will return SemanticError, it makes sense
-        resp = self.execute_query('ORDER BY $-.xx')
+        resp = self.execute('ORDER BY $-.xx')
         self.check_resp_failed(resp)
 
-        resp = self.execute_query('GO FROM "NON EXIST VERTEX ID" OVER serve YIELD '
+        resp = self.execute('GO FROM "NON EXIST VERTEX ID" OVER serve YIELD '
                                   '$^.player.name as name, serve.start_year as start, $$.team.name as team'
                                   '| ORDER BY $-.name')
         self.check_resp_succeeded(resp)
         self.check_column_names(resp, ['name', 'start', 'team'])
         self.check_result(resp, [])
 
-        resp = self.execute_query('GO FROM "Marco Belinelli" OVER serve '
+        resp = self.execute('GO FROM "Marco Belinelli" OVER serve '
                                   'YIELD $^.player.name as name, serve.start_year as start, $$.team.name as team '
                                   '| YIELD $-.name as name WHERE $-.start > 20000'
                                   '| ORDER BY $-.name')
@@ -45,7 +43,7 @@ class TestOrderBy(NebulaTestSuite):
         self.check_result(resp, [])
 
     def test_wrong_factor(self):
-        resp = self.execute_query('GO FROM %ld OVER serve '
+        resp = self.execute('GO FROM %ld OVER serve '
                                   'YIELD $^.player.name as name, '
                                   'serve.start_year as start, '
                                   '$$.team.name as team'
@@ -53,7 +51,7 @@ class TestOrderBy(NebulaTestSuite):
         self.check_resp_failed(resp)
 
     def test_single_factor(self):
-        resp = self.execute_query('GO FROM "Boris Diaw" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw" OVER serve '
                                   'YIELD  $^.player.name as name, '
                                   'serve.start_year as start, '
                                   '$$.team.name as team '
@@ -68,7 +66,7 @@ class TestOrderBy(NebulaTestSuite):
                            ["Boris Diaw", 2005, "Suns"]]
         self.check_result(resp, expected_result)
 
-        resp = self.execute_query('GO FROM "Boris Diaw" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw" OVER serve '
                                   'YIELD $^.player.name as name, '
                                   'serve.start_year as start, '
                                   '$$.team.name as team '
@@ -83,7 +81,7 @@ class TestOrderBy(NebulaTestSuite):
                            ["Boris Diaw", 2005, "Suns"]]
         self.check_result(resp, expected_result)
 
-        resp = self.execute_query('GO FROM "Boris Diaw" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw" OVER serve '
                                   'YIELD $^.player.name as name, '
                                   'serve.start_year as start, '
                                   '$$.team.name as team '
@@ -99,7 +97,7 @@ class TestOrderBy(NebulaTestSuite):
         self.check_result(resp, expected_result)
 
     def test_multi_factors(self):
-        resp = self.execute_query('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
                                   'WHERE serve.start_year >= 2012  '
                                   'YIELD $$.team.name as team, '
                                   '$^.player.name as player,  '
@@ -114,7 +112,7 @@ class TestOrderBy(NebulaTestSuite):
                            ["Spurs", "Boris Diaw", 36, 2012]]
         self.check_result(resp, expected_result)
 
-        resp = self.execute_query('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
                                   'WHERE serve.start_year >= 2012  '
                                   'YIELD $$.team.name as team, '
                                   '$^.player.name as player,  '
@@ -129,7 +127,7 @@ class TestOrderBy(NebulaTestSuite):
                            ["Spurs", "Boris Diaw", 36, 2012]]
         self.check_result(resp, expected_result)
 
-        resp = self.execute_query('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
                                   'WHERE serve.start_year >= 2012  '
                                   'YIELD $$.team.name as team, '
                                   '$^.player.name as player,  '
@@ -144,7 +142,7 @@ class TestOrderBy(NebulaTestSuite):
                            ["Spurs", "LaMarcus Aldridge", 33, 2015]]
         self.check_result(resp, expected_result)
 
-        resp = self.execute_query('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
                                   'WHERE serve.start_year >= 2012  '
                                   'YIELD $$.team.name as team, '
                                   '$^.player.name as player,  '
@@ -159,7 +157,7 @@ class TestOrderBy(NebulaTestSuite):
                            ["Jazz", "Boris Diaw", 36, 2016]]
         self.check_result(resp, expected_result)
 
-        resp = self.execute_query('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve '
                                   'WHERE serve.start_year >= 2012  '
                                   'YIELD $$.team.name as team, '
                                   '$^.player.name as player,  '
@@ -175,7 +173,7 @@ class TestOrderBy(NebulaTestSuite):
         self.check_result(resp, expected_result)
 
     def test_output(self):
-        resp = self.execute_query('GO FROM "Boris Diaw" OVER like '
+        resp = self.execute('GO FROM "Boris Diaw" OVER like '
                                   'YIELD like._dst as id '
                                   '| ORDER BY $-.id '
                                   '| GO FROM $-.id over serve')
@@ -186,7 +184,7 @@ class TestOrderBy(NebulaTestSuite):
         self.check_result(resp, expected_result)
 
     def test_duplicate_column(self):
-        resp = self.execute_query('GO FROM "Boris Diaw" OVER serve '
+        resp = self.execute('GO FROM "Boris Diaw" OVER serve '
                                   'YIELD $^.player.name as team, '
                                   'serve.start_year as start, '
                                   '$$.team.name as team '

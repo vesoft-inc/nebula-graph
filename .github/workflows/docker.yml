@@ -1,6 +1,9 @@
 name: docker
 
 on:
+  push:
+    branches:
+      - 'v[0-9]+.*'
   schedule:
     - cron: '0 18 * * *'
 
@@ -10,8 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
       - name: Build and push Docker images
         uses: docker/build-push-action@v1
         with:

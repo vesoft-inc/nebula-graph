@@ -1089,6 +1089,31 @@ TEST_F(QueryValidatorTest, GoInvalid) {
         std::string query = "GO FROM \"2\" OVER like YIELD COUNT(123);";
         EXPECT_FALSE(checkResult(query));
     }
+    {
+        std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, like._src AS id | GO "
+                            "FROM $-.id OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
+    {
+        std::string query = "$a = GO FROM \"1\" OVER like YIELD like._dst AS id, like._src AS id; "
+                            "GO FROM $a.id OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
+    {
+        std::string query = "GO FROM \"1\" OVER like, serve YIELD like._dst AS id, serve._src AS "
+                            "id, serve._dst AS DST | GO FROM $-.DST OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
+    {
+        std::string query =
+            "$a = GO FROM \"1\" OVER * YIELD like._dst AS id, like._src AS id, serve._dst as DST; "
+            "GO FROM $a.DST OVER like";
+        auto result = checkResult(query);
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Duplicate Column Name : `id'");
+    }
 }
 
 TEST_F(QueryValidatorTest, Limit) {
@@ -1251,74 +1276,91 @@ TEST_F(QueryValidatorTest, TestMaxAllowedStatements) {
               "SemanticError: The maximum number of statements allowed has been exceeded");
 }
 
-TEST_F(QueryValidatorTest, FindPath) {
-    // TODO: Implement the plan.
-    // shortest
+TEST_F(QueryValidatorTest, TestMatch) {
     {
-        std::string query = "FIND SHORTEST PATH FROM \"1\" TO \"2\" OVER like UPTO 5 STEPS";
+        std::string query = "MATCH (v1:person{name: \"LeBron James\"}) -[r]-> (v2) "
+                            "RETURN type(r) AS Type, v2.name AS Name";
         std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kFilter,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kDedup,
+            PK::kProject,
+            PK::kFilter,
+            PK::kPassThrough,
+            PK::kProject,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
+            PK::kIndexScan,
+            PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
     }
     {
-        std::string query = "FIND SHORTEST PATH FROM \"1\" TO \"2\",\"3\" OVER like UPTO 5 STEPS";
+        std::string query = "MATCH (:person{name:'Dwyane Wade'}) -[:like]-> () -[:like]-> (v3) "
+                            "RETURN DISTINCT v3.name AS Name";
         std::vector<PlanNode::Kind> expected = {
+            PK::kDataCollect,
+            PK::kDedup,
+            PK::kProject,
+            PK::kFilter,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kDedup,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kFilter,
+            PK::kPassThrough,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
+            PK::kFilter,
+            PK::kPassThrough,
+            PK::kProject,
+            PK::kFilter,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
+            PK::kIndexScan,
+            PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
     }
     {
-        std::string query =
-            "FIND SHORTEST PATH FROM \"1\",\"2\" TO \"3\",\"4\" OVER like UPTO 5 STEPS";
-        std::vector<PlanNode::Kind> expected = {};
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-    {
-        std::string query = "FIND SHORTEST PATH FROM \"1\" TO \"2\" OVER like, serve UPTO 5 STEPS";
+        std::string query = "MATCH (v1) -[r]-> (v2) "
+                            "WHERE id(v1) == \"LeBron James\""
+                            "RETURN type(r) AS Type, v2.name AS Name";
         std::vector<PlanNode::Kind> expected = {
-        };
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-    {
-        std::string query =
-            "YIELD \"1\" AS src, \"2\" AS dst"
-            " | FIND SHORTEST PATH FROM $-.src TO $-.dst OVER like, serve UPTO 5 STEPS";
-        std::vector<PlanNode::Kind> expected = {
-        };
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-
-    // all
-    {
-        std::string query = "FIND ALL PATH FROM \"1\" TO \"2\" OVER like UPTO 5 STEPS";
-        std::vector<PlanNode::Kind> expected = {
-        };
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-    {
-        std::string query = "FIND ALL PATH FROM \"1\" TO \"2\",\"3\" OVER like UPTO 5 STEPS";
-        std::vector<PlanNode::Kind> expected = {
-        };
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-    {
-        std::string query = "FIND ALL PATH FROM \"1\",\"2\" TO \"3\",\"4\" OVER like UPTO 5 STEPS";
-        std::vector<PlanNode::Kind> expected = {
-        };
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-    {
-        std::string query = "FIND ALL PATH FROM \"1\" TO \"2\" OVER like, serve UPTO 5 STEPS";
-        std::vector<PlanNode::Kind> expected = {
-        };
-        EXPECT_TRUE(checkResult(query, expected));
-    }
-    {
-        std::string query = "YIELD \"1\" AS src, \"2\" AS dst"
-                            " | FIND ALL PATH FROM $-.src TO $-.dst OVER like, serve UPTO 5 STEPS";
-        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
+            PK::kFilter,
+            PK::kFilter,
+            PK::kProject,
+            PK::kDataJoin,
+            PK::kProject,
+            PK::kGetVertices,
+            PK::kDedup,
+            PK::kProject,
+            PK::kFilter,
+            PK::kPassThrough,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kDedup,
+            PK::kProject,
+            PK::kPassThrough,
+            PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
     }
 }
+
+
 }  // namespace graph
 }  // namespace nebula

@@ -10,7 +10,6 @@
 #include "parser/Sentence.h"
 #include "parser/MutateSentences.h"
 #include "common/network/NetworkUtils.h"
-#include "common/interface/gen-cpp2/meta_types.h"
 
 namespace nebula {
 
@@ -21,7 +20,19 @@ public:
     ShowHostsSentence() {
         kind_ = Kind::kShowHosts;
     }
+
+    explicit ShowHostsSentence(meta::cpp2::ListHostType type) : type_(type) {
+        kind_ = Kind::kShowHosts;
+    }
+
     std::string toString() const override;
+
+    meta::cpp2::ListHostType getType() const {
+        return type_;
+    }
+
+private:
+    meta::cpp2::ListHostType type_;
 };
 
 class ShowSpacesSentence : public Sentence {
@@ -113,6 +124,22 @@ class ShowCollationSentence final : public Sentence {
 public:
     ShowCollationSentence() {
         kind_ = Kind::kShowCollation;
+    }
+    std::string toString() const override;
+};
+
+class ShowGroupsSentence final : public Sentence {
+public:
+    ShowGroupsSentence() {
+        kind_ = Kind::kShowGroups;
+    }
+    std::string toString() const override;
+};
+
+class ShowZonesSentence final : public Sentence {
+public:
+    ShowZonesSentence() {
+        kind_ = Kind::kShowZones;
     }
     std::string toString() const override;
 };
@@ -247,10 +274,9 @@ private:
     std::vector<std::unique_ptr<SpaceOptItem>>    items_;
 };
 
-
 class CreateSpaceSentence final : public CreateSentence {
 public:
-    explicit CreateSpaceSentence(std::string* spaceName, bool ifNotExist)
+    CreateSpaceSentence(std::string* spaceName, bool ifNotExist)
         : CreateSentence(ifNotExist) {
         spaceName_.reset(spaceName);
         kind_ = Kind::kCreateSpace;
@@ -281,19 +307,28 @@ private:
 
 class DropSpaceSentence final : public DropSentence {
 public:
-    explicit DropSpaceSentence(std::string *spaceName, bool ifExist) : DropSentence(ifExist) {
+    DropSpaceSentence(std::string *spaceName, bool ifExist) : DropSentence(ifExist) {
         spaceName_.reset(spaceName);
         kind_ = Kind::kDropSpace;
+    }
+
+    void setClusterName(std::string* clusterName) {
+        clusterName_.reset(clusterName);
     }
 
     const std::string* spaceName() const {
         return spaceName_.get();
     }
 
+    const std::string* clusterName() const {
+        return clusterName_.get();
+    }
+
     std::string toString() const override;
 
 private:
     std::unique_ptr<std::string>     spaceName_;
+    std::unique_ptr<std::string>     clusterName_;
 };
 
 
@@ -304,14 +339,23 @@ public:
         kind_ = Kind::kDescribeSpace;
     }
 
+    void setClusterName(std::string* clusterName) {
+        clusterName_.reset(clusterName);
+    }
+
     const std::string* spaceName() const {
         return spaceName_.get();
+    }
+
+    const std::string* clusterName() const {
+        return clusterName_.get();
     }
 
     std::string toString() const override;
 
 private:
     std::unique_ptr<std::string>     spaceName_;
+    std::unique_ptr<std::string>     clusterName_;
 };
 
 class ConfigRowItem {
@@ -401,27 +445,6 @@ public:
     std::string toString() const override;
 };
 
-class HostList final {
-public:
-    void addHost(HostAddr *addr) {
-        hosts_.emplace_back(addr);
-    }
-
-    std::string toString() const;
-
-    std::vector<HostAddr> hosts() const {
-        std::vector<HostAddr> result;
-        result.reserve(hosts_.size());
-        for (auto &host : hosts_) {
-            result.emplace_back(*host);
-        }
-        return result;
-    }
-
-private:
-    std::vector<std::unique_ptr<HostAddr>>      hosts_;
-};
-
 class BalanceSentence final : public Sentence {
 public:
     enum class SubType : uint32_t {
@@ -496,23 +519,138 @@ private:
     std::unique_ptr<std::string>    name_;
 };
 
+class AddListenerSentence final : public Sentence {
+public:
+    AddListenerSentence(const meta::cpp2::ListenerType& type, HostList* hosts) {
+        kind_ = Kind::kAddListener;
+        type_ = type;
+        listeners_.reset(hosts);
+    }
+
+    meta::cpp2::ListenerType type() const {
+        return type_;
+    }
+
+    HostList* listeners() const {
+        return listeners_.get();
+    }
+
+    std::string toString() const override;
+
+private:
+    meta::cpp2::ListenerType        type_;
+    std::unique_ptr<HostList>       listeners_;
+};
+
+class RemoveListenerSentence final : public Sentence {
+public:
+    explicit RemoveListenerSentence(const meta::cpp2::ListenerType& type) {
+        kind_ = Kind::kRemoveListener;
+        type_ = type;
+    }
+
+    meta::cpp2::ListenerType type() const {
+        return type_;
+    }
+
+    std::string toString() const override;
+
+private:
+    meta::cpp2::ListenerType        type_;
+};
+
+class ShowListenerSentence final : public Sentence {
+public:
+    ShowListenerSentence() {
+        kind_ = Kind::kShowListener;
+    }
+
+    std::string toString() const override;
+};
+
 class AdminJobSentence final : public Sentence {
 public:
-    explicit AdminJobSentence(meta::cpp2::AdminJobOp op) : op_(op) {
+    explicit AdminJobSentence(meta::cpp2::AdminJobOp op,
+                              meta::cpp2::AdminCmd cmd = meta::cpp2::AdminCmd::UNKNOWN)
+        : op_(op), cmd_(cmd) {
         kind_ = Kind::kAdminJob;
     }
 
     void addPara(const std::string& para);
     std::string toString() const override;
-    meta::cpp2::AdminJobOp getType() const;
+    meta::cpp2::AdminJobOp getOp() const;
+    meta::cpp2::AdminCmd getCmd() const;
     const std::vector<std::string> &getParas() const;
 
 private:
     meta::cpp2::AdminJobOp   op_;
+    meta::cpp2::AdminCmd     cmd_;
     std::vector<std::string> paras_;
 };
 
+class ShowStatsSentence final : public Sentence {
+public:
+    ShowStatsSentence() {
+        kind_ = Kind::kShowStats;
+    }
 
+    std::string toString() const override;
+};
+
+class TSClientList final {
+public:
+    void addClient(nebula::meta::cpp2::FTClient *client) {
+        clients_.emplace_back(client);
+    }
+
+    std::string toString() const;
+
+    std::vector<nebula::meta::cpp2::FTClient> clients() const {
+        std::vector<nebula::meta::cpp2::FTClient> result;
+        result.reserve(clients_.size());
+        for (auto &client : clients_) {
+            result.emplace_back(*client);
+        }
+        return result;
+    }
+
+private:
+    std::vector<std::unique_ptr<nebula::meta::cpp2::FTClient>> clients_;
+};
+
+class ShowTSClientsSentence final : public Sentence {
+public:
+    ShowTSClientsSentence() {
+        kind_ = Kind::kShowTSClients;
+    }
+    std::string toString() const override;
+};
+
+class SignInTextServiceSentence final : public Sentence {
+public:
+    explicit SignInTextServiceSentence(TSClientList *clients) {
+        kind_ = Kind::kSignInTSService;
+        clients_.reset(clients);
+    }
+
+    std::string toString() const override;
+
+    TSClientList* clients() const {
+        return clients_.get();
+    }
+
+private:
+    std::unique_ptr<TSClientList>       clients_;
+};
+
+class SignOutTextServiceSentence final : public Sentence {
+public:
+    SignOutTextServiceSentence() {
+        kind_ = Kind::kSignOutTSService;
+    }
+
+    std::string toString() const override;
+};
 }   // namespace nebula
 
 #endif  // PARSER_ADMINSENTENCES_H_

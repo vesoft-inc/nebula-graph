@@ -12,6 +12,7 @@
 #include "parser/MaintainSentences.h"
 #include "parser/AdminSentences.h"
 #include "common/clients/meta/MetaClient.h"
+#include "common/plugin/fulltext/elasticsearch/ESGraphAdapter.h"
 
 namespace nebula {
 namespace graph {
@@ -26,6 +27,9 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
+    bool checkTSIndex(const std::vector<meta::cpp2::FTClient>& clients,
+                      const std::string& index);
 
 private:
     meta::cpp2::SpaceDesc              spaceDesc_;
@@ -117,6 +121,42 @@ public:
     ShowSnapshotsValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {
         setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class AddListenerValidator final : public Validator {
+public:
+    AddListenerValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class RemoveListenerValidator final : public Validator {
+public:
+    RemoveListenerValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowListenerValidator final : public Validator {
+public:
+    ShowListenerValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
     }
 
 private:
@@ -222,6 +262,56 @@ private:
 private:
     meta::cpp2::ConfigModule                 module_;
     std::string                              name_;
+};
+
+class ShowStatusValidator final : public Validator {
+public:
+    ShowStatusValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ShowTSClientsValidator final : public Validator {
+public:
+    ShowTSClientsValidator(Sentence* sentence, QueryContext* context)
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class SignInTSServiceValidator final : public Validator {
+public:
+    SignInTSServiceValidator(Sentence* sentence, QueryContext* context)
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class SignOutTSServiceValidator final : public Validator {
+public:
+    SignOutTSServiceValidator(Sentence* sentence, QueryContext* context)
+        :Validator(sentence, context) {
+            setNoSpaceRequired();
+        }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
 };
 }  // namespace graph
 }  // namespace nebula

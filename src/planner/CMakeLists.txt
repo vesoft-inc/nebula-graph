@@ -7,9 +7,28 @@ nebula_add_library(
     planner_obj OBJECT
     PlanNode.cpp
     ExecutionPlan.cpp
+    Algo.cpp
     Admin.cpp
     Logic.cpp
     Query.cpp
     Mutate.cpp
     Maintain.cpp
+    Planner.cpp
+    PlannersRegister.cpp
+    SequentialPlanner.cpp
+    match/MatchSolver.cpp
+    match/SegmentsConnector.cpp
+    match/InnerJoinStrategy.cpp
+    match/AddDependencyStrategy.cpp
+    match/AddInputStrategy.cpp
+    match/MatchPlanner.cpp
+    match/MatchClausePlanner.cpp
+    match/ReturnClausePlanner.cpp
+    match/OrderByClausePlanner.cpp
+    match/PaginationPlanner.cpp
+    match/WhereClausePlanner.cpp
+    match/StartVidFinder.cpp
+    match/PropIndexSeek.cpp
+    match/VertexIdSeek.cpp
+    match/Expand.cpp
 )

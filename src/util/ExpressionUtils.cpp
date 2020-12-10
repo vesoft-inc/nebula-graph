@@ -6,6 +6,9 @@
 
 #include "util/ExpressionUtils.h"
 
+#include <memory>
+
+#include "common/expression/PropertyExpression.h"
 #include "visitor/FoldConstantExprVisitor.h"
 
 namespace nebula {
@@ -21,49 +24,70 @@ std::unique_ptr<Expression> ExpressionUtils::foldConstantExpr(const Expression *
     return newExpr;
 }
 
-std::vector<const Expression*> ExpressionUtils::pullAnds(const Expression *expr) {
+Expression* ExpressionUtils::pullAnds(Expression *expr) {
     DCHECK(expr->kind() == Expression::Kind::kLogicalAnd);
-    auto *root = static_cast<const LogicalExpression*>(expr);
-    std::vector<const Expression*> operands;
-
-    if (root->left()->kind() != Expression::Kind::kLogicalAnd) {
-        operands.emplace_back(root->left());
-    } else {
-        auto ands = pullAnds(root->left());
-        operands.insert(operands.end(), ands.begin(), ands.end());
-    }
-
-    if (root->right()->kind() != Expression::Kind::kLogicalAnd) {
-        operands.emplace_back(root->right());
-    } else {
-        auto ands = pullAnds(root->right());
-        operands.insert(operands.end(), ands.begin(), ands.end());
-    }
-
-    return operands;
+    auto *logic = static_cast<LogicalExpression*>(expr);
+    std::vector<std::unique_ptr<Expression>> operands;
+    pullAndsImpl(logic, operands);
+    logic->setOperands(std::move(operands));
+    return logic;
 }
 
-std::vector<const Expression*> ExpressionUtils::pullOrs(const Expression *expr) {
+Expression* ExpressionUtils::pullOrs(Expression *expr) {
     DCHECK(expr->kind() == Expression::Kind::kLogicalOr);
-    auto *root = static_cast<const LogicalExpression*>(expr);
-    std::vector<const Expression*> operands;
-
-    if (root->left()->kind() != Expression::Kind::kLogicalOr) {
-        operands.emplace_back(root->left());
-    } else {
-        auto ands = pullOrs(root->left());
-        operands.insert(operands.end(), ands.begin(), ands.end());
-    }
-
-    if (root->right()->kind() != Expression::Kind::kLogicalOr) {
-        operands.emplace_back(root->right());
-    } else {
-        auto ands = pullOrs(root->right());
-        operands.insert(operands.end(), ands.begin(), ands.end());
-    }
-
-    return operands;
+    auto *logic = static_cast<LogicalExpression*>(expr);
+    std::vector<std::unique_ptr<Expression>> operands;
+    pullOrsImpl(logic, operands);
+    logic->setOperands(std::move(operands));
+    return logic;
 }
 
+void
+ExpressionUtils::pullAndsImpl(LogicalExpression *expr,
+                              std::vector<std::unique_ptr<Expression>> &operands) {
+    for (auto &operand : expr->operands()) {
+        if (operand->kind() != Expression::Kind::kLogicalAnd) {
+            operands.emplace_back(std::move(operand));
+            continue;
+        }
+        pullAndsImpl(static_cast<LogicalExpression*>(operand.get()), operands);
+    }
+}
+
+void
+ExpressionUtils::pullOrsImpl(LogicalExpression *expr,
+                             std::vector<std::unique_ptr<Expression>> &operands) {
+    for (auto &operand : expr->operands()) {
+        if (operand->kind() != Expression::Kind::kLogicalOr) {
+            operands.emplace_back(std::move(operand));
+            continue;
+        }
+        pullOrsImpl(static_cast<LogicalExpression*>(operand.get()), operands);
+    }
+}
+
+VariablePropertyExpression *ExpressionUtils::newVarPropExpr(const std::string &prop,
+                                                            const std::string &var) {
+    return new VariablePropertyExpression(new std::string(var), new std::string(prop));
+}
+
+std::unique_ptr<InputPropertyExpression> ExpressionUtils::inputPropExpr(const std::string &prop) {
+    return std::make_unique<InputPropertyExpression>(new std::string(prop));
+}
+
+std::unique_ptr<Expression>
+ExpressionUtils::pushOrs(const std::vector<std::unique_ptr<RelationalExpression>>& rels) {
+    DCHECK_GT(rels.size(), 1);
+    auto root = std::make_unique<LogicalExpression>(Expression::Kind::kLogicalOr);
+    root->addOperand(rels[0]->clone().release());
+    root->addOperand(rels[1]->clone().release());
+    for (size_t i = 2; i < rels.size(); i++) {
+        auto l = std::make_unique<LogicalExpression>(Expression::Kind::kLogicalOr);
+        l->addOperand(root->clone().release());
+        l->addOperand(rels[i]->clone().release());
+        root = std::move(l);
+    }
+    return root;
+}
 }   // namespace graph
 }   // namespace nebula

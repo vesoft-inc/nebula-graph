@@ -18,17 +18,10 @@ public:
     static ProduceSemiShortestPath* make(QueryContext* qctx, PlanNode* input) {
         return qctx->objPool()->add(new ProduceSemiShortestPath(qctx, input));
     }
-    void setStartsVid(std::vector<Value> starts);
-
-    std::vector<Value> getStartsVid() const {
-        return starts_;
-    }
 
 private:
     ProduceSemiShortestPath(QueryContext* qctx, PlanNode* input)
         : SingleInputNode(qctx, Kind::kProduceSemiShortestPath, input) {}
-
-    std::vector<Value> starts_;
 };
 
 class BFSShortestPath : public SingleInputNode {
@@ -67,6 +60,14 @@ public:
         return steps_;
     }
 
+    void setConditionalVar(std::string varName) {
+        conditionalVar_ = std::move(varName);
+    }
+
+    std::string conditionalVar() const {
+        return conditionalVar_;
+    }
+
 private:
     ConjunctPath(QueryContext* qctx,
                  PlanNode* left,
@@ -80,6 +81,7 @@ private:
 
     PathKind pathKind_;
     size_t   steps_{0};
+    std::string conditionalVar_;
 };
 
 class ProduceAllPaths final : public SingleInputNode {
@@ -92,6 +94,28 @@ class ProduceAllPaths final : public SingleInputNode {
     ProduceAllPaths(QueryContext* qctx, PlanNode* input)
         : SingleInputNode(qctx, Kind::kProduceAllPaths, input) {}
 };
+
+class CartesianProduct final : public SingleDependencyNode {
+public:
+    static CartesianProduct* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new CartesianProduct(qctx, input));
+    }
+
+    Status addVar(std::string varName);
+
+    std::vector<std::string> inputVars() const;
+
+    std::vector<std::vector<std::string>> allColNames() const {
+        return allColNames_;
+    }
+
+private:
+    CartesianProduct(QueryContext* qctx, PlanNode* input)
+        : SingleDependencyNode(qctx, Kind::kCartesianProduct, input) {}
+
+    std::vector<std::vector<std::string>> allColNames_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ALGO_H_

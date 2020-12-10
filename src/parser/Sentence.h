@@ -18,6 +18,8 @@
 #include "common/expression/UnaryExpression.h"
 #include "common/expression/UUIDExpression.h"
 #include "common/expression/LabelExpression.h"
+#include "common/interface/gen-cpp2/meta_types.h"
+#include "common/expression/TextSearchExpression.h"
 
 namespace nebula {
 
@@ -61,6 +63,8 @@ public:
         kShowEdges,
         kShowTagIndexes,
         kShowEdgeIndexes,
+        kShowTagIndexStatus,
+        kShowEdgeIndexStatus,
         kShowUsers,
         kShowRoles,
         kShowCreateSpace,
@@ -71,6 +75,10 @@ public:
         kShowSnapshots,
         kShowCharset,
         kShowCollation,
+        kShowGroups,
+        kShowZones,
+        kShowStats,
+        kShowTSClients,
         kDeleteVertices,
         kDeleteEdges,
         kLookup,
@@ -101,6 +109,23 @@ public:
         kDropSnapshot,
         kAdminJob,
         kGetSubgraph,
+        kAddGroup,
+        kDropGroup,
+        kDescribeGroup,
+        kListGroups,
+        kAddZoneIntoGroup,
+        kDropZoneFromGroup,
+        kAddZone,
+        kDropZone,
+        kDescribeZone,
+        kListZones,
+        kAddHostIntoZone,
+        kDropHostFromZone,
+        kAddListener,
+        kRemoveListener,
+        kShowListener,
+        kSignInTSService,
+        kSignOutTSService,
     };
 
     Kind kind() const {
@@ -137,6 +162,27 @@ public:
     }
 private:
     bool ifExists_{false};
+};
+
+class HostList final {
+public:
+    void addHost(HostAddr *addr) {
+        hosts_.emplace_back(addr);
+    }
+
+    std::string toString() const;
+
+    std::vector<HostAddr> hosts() const {
+        std::vector<HostAddr> result;
+        result.reserve(hosts_.size());
+        for (auto &host : hosts_) {
+            result.emplace_back(*host);
+        }
+        return result;
+    }
+
+private:
+    std::vector<std::unique_ptr<HostAddr>>      hosts_;
 };
 
 inline std::ostream& operator<<(std::ostream &os, Sentence::Kind kind) {

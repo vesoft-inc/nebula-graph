@@ -14,7 +14,7 @@ TOOLSET_DIR=/opt/vesoft/toolset/clang/9.0.0
 mkdir -p $BUILD_DIR
 
 function get_py_client() {
-    git clone -b v2.0 https://github.com/vesoft-inc/nebula-python.git
+    git clone https://github.com/vesoft-inc/nebula-python.git
     pushd nebula-python
     python3 setup.py install --user
     popd
@@ -59,7 +59,7 @@ function gcc_compile() {
     cmake --build $BUILD_DIR -j$(nproc)
 }
 
-function clang_compile() {
+function configure_clang() {
     cd $PROJ_DIR
     cmake \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=on \
@@ -72,6 +72,11 @@ function clang_compile() {
         -DNEBULA_STORAGE_REPO_URL=$NEBULA_STORAGE_REPO_URL \
         -DNEBULA_COMMON_REPO_URL=$NEBULA_COMMON_REPO_URL \
         -B $BUILD_DIR
+}
+
+function clang_compile() {
+    configure_clang
+    cd $PROJ_DIR
     build_common
     build_storage
     cmake --build $BUILD_DIR -j$(nproc)
@@ -85,25 +90,26 @@ function run_ctest() {
 }
 
 function run_test() {
+    export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
+    pytest -n 8 --build_dir=$BUILD_DIR \
+        --dist=loadfile \
+        --debug_log=false \
+        ${@:1}
+
+    # $BUILD_DIR/tests/ntr --debug_log=false ${@:1} $PROJ_DIR/tests/job/*
+}
+
+function test_in_cluster() {
     cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
+    testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
     ./ntr \
         -n=8 \
         --dist=loadfile \
-        --debug_log=false \
-        $PROJ_DIR/tests/admin/* \
-        $PROJ_DIR/tests/maintain/* \
-        $PROJ_DIR/tests/mutate/* \
-        $PROJ_DIR/tests/query/v1/* \
-        $PROJ_DIR/tests/query/v2/* \
-        $PROJ_DIR/tests/query/stateless/test_schema.py \
-        $PROJ_DIR/tests/query/stateless/test_admin.py \
-        $PROJ_DIR/tests/query/stateless/test_if_exists.py \
-        $PROJ_DIR/tests/query/stateless/test_range.py \
-        $PROJ_DIR/tests/query/stateless/test_go.py \
-        $PROJ_DIR/tests/query/stateless/test_simple_query.py \
-        $PROJ_DIR/tests/query/stateless/test_keyword.py \
-        $PROJ_DIR/tests/query/stateless/test_lookup.py
+        --address="nebulaclusters-graphd:3699" \
+        $testpath
+
+    ./ntr --address="nebulaclusters-graphd:3699" $PROJ_DIR/tests/job/*
 }
 
 case "$1" in
@@ -123,7 +129,12 @@ case "$1" in
         run_ctest
         ;;
     test)
-        run_test
+        run_test "${@:2}"
+        ;;
+    k8s)
+        prepare
+        configure_clang
+        test_in_cluster
         ;;
     *)
         prepare

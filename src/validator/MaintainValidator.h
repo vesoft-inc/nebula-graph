@@ -196,10 +196,10 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      name_;
-    std::string                      index_;
-    std::vector<std::string>         fields_;
-    bool                             ifNotExist_;
+    std::string                                    name_;
+    std::string                                    index_;
+    std::vector<meta::cpp2::IndexFieldDef>         fields_;
+    bool                                           ifNotExist_;
 };
 
 class CreateEdgeIndexValidator final : public Validator {
@@ -213,10 +213,10 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      name_;
-    std::string                      index_;
-    std::vector<std::string>         fields_;
-    bool                             ifNotExist_;
+    std::string                                    name_;
+    std::string                                    index_;
+    std::vector<meta::cpp2::IndexFieldDef>         fields_;
+    bool                                           ifNotExist_;
 };
 
 class DropTagIndexValidator final : public Validator {
@@ -230,7 +230,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
+    bool                             ifExist_;
 };
 
 class DropEdgeIndexValidator final : public Validator {
@@ -244,7 +245,8 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
+    bool                             ifExist_;
 };
 
 class DescribeTagIndexValidator final : public Validator {
@@ -258,7 +260,7 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
 };
 
 class DescribeEdgeIndexValidator final : public Validator {
@@ -272,7 +274,7 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
 };
 
 class ShowCreateTagIndexValidator final : public Validator {
@@ -286,12 +288,13 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
 };
 
-class ShowTagIndexesValidator final : public Validator {
+
+class ShowCreateEdgeIndexValidator final : public Validator {
 public:
-    ShowTagIndexesValidator(Sentence* sentence, QueryContext* context)
+    ShowCreateEdgeIndexValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:
@@ -300,12 +303,12 @@ private:
     Status toPlan() override;
 
 private:
-    std::string                      index_;
+    std::string                      indexName_;
 };
 
-class ShowCreateEdgeIndexValidator final : public Validator {
+class ShowTagIndexesValidator final : public Validator {
 public:
-    ShowCreateEdgeIndexValidator(Sentence* sentence, QueryContext* context)
+    ShowTagIndexesValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:
@@ -325,9 +328,9 @@ private:
     Status toPlan() override;
 };
 
-class RebuildTagIndexValidator final : public Validator {
+class ShowTagIndexStatusValidator final : public Validator {
 public:
-    RebuildTagIndexValidator(Sentence* sentence, QueryContext* context)
+    ShowTagIndexStatusValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
 
 private:
@@ -336,10 +339,166 @@ private:
     Status toPlan() override;
 };
 
-class RebuildEdgeIndexValidator final : public Validator {
+class ShowEdgeIndexStatusValidator final : public Validator {
 public:
-    RebuildEdgeIndexValidator(Sentence* sentence, QueryContext* context)
+    ShowEdgeIndexStatusValidator(Sentence* sentence, QueryContext* context)
         : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class AddGroupValidator final : public Validator {
+public:
+    AddGroupValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropGroupValidator final : public Validator {
+public:
+    DropGroupValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DescribeGroupValidator final : public Validator {
+public:
+    DescribeGroupValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ListGroupsValidator final : public Validator {
+public:
+    ListGroupsValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class AddZoneIntoGroupValidator final : public Validator {
+public:
+    AddZoneIntoGroupValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropZoneFromGroupValidator final : public Validator {
+public:
+    DropZoneFromGroupValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class AddZoneValidator final : public Validator {
+public:
+    AddZoneValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropZoneValidator final : public Validator {
+public:
+    DropZoneValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DescribeZoneValidator final : public Validator {
+public:
+    DescribeZoneValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class ListZonesValidator final : public Validator {
+public:
+    ListZonesValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class AddHostIntoZoneValidator final : public Validator {
+public:
+    AddHostIntoZoneValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+};
+
+class DropHostFromZoneValidator final : public Validator {
+public:
+    DropHostFromZoneValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {
+        setNoSpaceRequired();
+    }
 
 private:
     Status validateImpl() override;

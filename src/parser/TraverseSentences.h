@@ -239,6 +239,10 @@ public:
         return expr_.get();
     }
 
+    void setExpr(Expression *expr) {
+        expr_.reset(expr);
+    }
+
     OrderType orderType() {
         return orderType_;
     }
@@ -256,12 +260,12 @@ public:
         factors_.emplace_back(factor);
     }
 
-    std::vector<OrderFactor*> factors() {
-        std::vector<OrderFactor*> result;
-        result.resize(factors_.size());
-        auto get = [] (auto &factor) { return factor.get(); };
-        std::transform(factors_.begin(), factors_.end(), result.begin(), get);
-        return result;
+    auto& factors() {
+        return factors_;
+    }
+
+    const auto& factors() const {
+        return factors_;
     }
 
     std::string toString() const;
@@ -277,7 +281,11 @@ public:
         kind_ = Kind::kOrderBy;
     }
 
-    std::vector<OrderFactor*> factors() {
+    auto& factors() {
+        return orderFactors_->factors();
+    }
+
+    const auto& factors() const {
         return orderFactors_->factors();
     }
 
@@ -289,44 +297,44 @@ private:
 
 class FetchVerticesSentence final : public Sentence {
 public:
-    FetchVerticesSentence(std::string  *tag,
+    FetchVerticesSentence(NameLabelList *tags,
                           VertexIDList *vidList,
                           YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
-        tag_.reset(tag);
+        tags_.reset(tags);
         vidList_.reset(vidList);
         yieldClause_.reset(clause);
     }
 
-    FetchVerticesSentence(std::string  *tag,
+    FetchVerticesSentence(NameLabelList *tags,
                           Expression   *ref,
                           YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
-        tag_.reset(tag);
+        tags_.reset(tags);
         vidRef_.reset(ref);
         yieldClause_.reset(clause);
     }
 
     explicit FetchVerticesSentence(Expression *ref, YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
-        tag_ = std::make_unique<std::string>("*");
+        tags_ = std::make_unique<NameLabelList>();
         vidRef_.reset(ref);
         yieldClause_.reset(clause);
     }
 
     explicit FetchVerticesSentence(VertexIDList *vidList, YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
-        tag_ = std::make_unique<std::string>("*");
+        tags_ = std::make_unique<NameLabelList>();
         vidList_.reset(vidList);
         yieldClause_.reset(clause);
     }
 
     bool isAllTagProps() {
-        return *tag_ == "*";
+        return tags_->empty();
     }
 
-    auto tag() const {
-        return tag_.get();
+    const NameLabelList* tags() const {
+        return tags_.get();
     }
 
     auto vidList() const {
@@ -352,7 +360,7 @@ public:
     std::string toString() const override;
 
 private:
-    std::unique_ptr<std::string>    tag_;
+    std::unique_ptr<NameLabelList>  tags_;
     std::unique_ptr<VertexIDList>   vidList_;
     std::unique_ptr<Expression>     vidRef_;
     std::unique_ptr<YieldClause>    yieldClause_;
@@ -360,18 +368,18 @@ private:
 
 class FetchEdgesSentence final : public Sentence {
 public:
-    FetchEdgesSentence(std::string *edge,
-                       EdgeKeys    *keys,
-                       YieldClause *clause) {
+    FetchEdgesSentence(NameLabelList *edge,
+                       EdgeKeys      *keys,
+                       YieldClause   *clause) {
         kind_ = Kind::kFetchEdges;
         edge_.reset(edge);
         edgeKeys_.reset(keys);
         yieldClause_.reset(clause);
     }
 
-    FetchEdgesSentence(std::string *edge,
-                       EdgeKeyRef  *ref,
-                       YieldClause *clause) {
+    FetchEdgesSentence(NameLabelList *edge,
+                       EdgeKeyRef    *ref,
+                       YieldClause   *clause) {
         kind_ = Kind::kFetchEdges;
         edge_.reset(edge);
         keyRef_.reset(ref);
@@ -406,14 +414,18 @@ public:
         return yieldClause_.get();
     }
 
-    std::string* edge() const {
-        return edge_.get();
+    const std::string* edge() const {
+        return edge_->front();
+    }
+
+    std::size_t edgeSize() const {
+        return edge_->size();
     }
 
     std::string toString() const override;
 
 private:
-    std::unique_ptr<std::string>    edge_;
+    std::unique_ptr<NameLabelList>  edge_;
     std::unique_ptr<EdgeKeys>       edgeKeys_;
     std::unique_ptr<EdgeKeyRef>     keyRef_;
     std::unique_ptr<YieldClause>    yieldClause_;
@@ -421,9 +433,10 @@ private:
 
 class FindPathSentence final : public Sentence {
 public:
-    explicit FindPathSentence(bool isShortest) {
+    FindPathSentence(bool isShortest, bool withProperites) {
         kind_ = Kind::kFindPath;
         isShortest_ = isShortest;
+        withProperites_ = withProperites;
     }
 
     void setFrom(FromClause *clause) {
@@ -470,10 +483,15 @@ public:
         return isShortest_;
     }
 
+    bool withProperites() const {
+        return withProperites_;
+    }
+
     std::string toString() const override;
 
 private:
     bool                            isShortest_;
+    bool                            withProperites_;
     std::unique_ptr<FromClause>     from_;
     std::unique_ptr<ToClause>       to_;
     std::unique_ptr<OverClause>     over_;

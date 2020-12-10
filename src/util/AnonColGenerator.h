@@ -13,6 +13,13 @@
 
 namespace nebula {
 namespace graph {
+
+constexpr char kVertexStr[]   = "_vertex";
+constexpr char kVerticesStr[] = "_vertices";
+constexpr char kEdgeStr[]     = "_edge";
+constexpr char kEdgesStr[]    = "_edges";
+constexpr char kPathStr[]     = "_path";
+
 /**
  * An utility to generate an anonymous column name.
  */
@@ -23,7 +30,7 @@ public:
     }
 
     std::string getCol() const {
-        return folly::stringPrintf("__UNAMED_COL_%ld", idGen_->id());
+        return folly::stringPrintf("__COL_%ld", idGen_->id());
     }
 
 private:

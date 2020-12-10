@@ -7,8 +7,8 @@
 #include "planner/Query.h"
 
 #include <folly/String.h>
+#include <folly/json.h>
 
-#include "common/interface/gen-cpp2/graph_types.h"
 #include "util/ToJson.h"
 
 using folly::stringPrintf;
@@ -16,7 +16,7 @@ using folly::stringPrintf;
 namespace nebula {
 namespace graph {
 
-std::unique_ptr<cpp2::PlanNodeDescription> Explore::explain() const {
+std::unique_ptr<PlanNodeDescription> Explore::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("space", folly::to<std::string>(space_), desc.get());
     addDescription("dedup", util::toJson(dedup_), desc.get());
@@ -65,7 +65,7 @@ GetNeighbors* GetNeighbors::clone(QueryContext* qctx) const {
     return newGN;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> GetNeighbors::explain() const {
+std::unique_ptr<PlanNodeDescription> GetNeighbors::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("edgeTypes", folly::toJson(util::toJson(edgeTypes_)), desc.get());
@@ -83,7 +83,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetNeighbors::explain() const {
     return desc;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> GetVertices::explain() const {
+std::unique_ptr<PlanNodeDescription> GetVertices::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("props", folly::toJson(util::toJson(props_)), desc.get());
@@ -91,7 +91,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetVertices::explain() const {
     return desc;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> GetEdges::explain() const {
+std::unique_ptr<PlanNodeDescription> GetEdges::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
     addDescription("type", util::toJson(type_), desc.get());
@@ -105,19 +105,22 @@ std::unique_ptr<cpp2::PlanNodeDescription> GetEdges::explain() const {
 IndexScan* IndexScan::clone(QueryContext* qctx) const {
     auto ctx = std::make_unique<std::vector<storage::cpp2::IndexQueryContext>>();
     auto returnCols = std::make_unique<std::vector<std::string>>(*returnColumns());
-    auto *scan = IndexScan::make(
+    auto* scan = IndexScan::make(
         qctx, nullptr, space(), std::move(ctx), std::move(returnCols), isEdge(), schemaId());
     scan->setOutputVar(this->outputVar());
     return scan;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> IndexScan::explain() const {
+std::unique_ptr<PlanNodeDescription> IndexScan::explain() const {
     auto desc = Explore::explain();
-    // TODO
+    addDescription("schemaId", util::toJson(schemaId_), desc.get());
+    addDescription("isEdge", util::toJson(isEdge_), desc.get());
+    addDescription("returnCols", folly::toJson(util::toJson(*returnCols_)), desc.get());
+    addDescription("indexCtx", folly::toJson(util::toJson(*contexts_)), desc.get());
     return desc;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> Filter::explain() const {
+std::unique_ptr<PlanNodeDescription> Filter::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("condition", condition_ ? condition_->toString() : "", desc.get());
     return desc;
@@ -135,13 +138,13 @@ Project* Project::clone(QueryContext* qctx) const {
     return newProj;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> Project::explain() const {
+std::unique_ptr<PlanNodeDescription> Project::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("columns", cols_ ? cols_->toString() : "", desc.get());
     return desc;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> Sort::explain() const {
+std::unique_ptr<PlanNodeDescription> Sort::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("factors", folly::toJson(util::toJson(factorsString())), desc.get());
     return desc;
@@ -154,14 +157,14 @@ Limit* Limit::clone(QueryContext* qctx) const {
     return newLimit;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> Limit::explain() const {
+std::unique_ptr<PlanNodeDescription> Limit::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("offset", folly::to<std::string>(offset_), desc.get());
     addDescription("count", folly::to<std::string>(count_), desc.get());
     return desc;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> TopN::explain() const {
+std::unique_ptr<PlanNodeDescription> TopN::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("factors", folly::toJson(util::toJson(factorsString())), desc.get());
     addDescription("offset", folly::to<std::string>(offset_), desc.get());
@@ -169,7 +172,7 @@ std::unique_ptr<cpp2::PlanNodeDescription> TopN::explain() const {
     return desc;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> Aggregate::explain() const {
+std::unique_ptr<PlanNodeDescription> Aggregate::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("groupKeys", folly::toJson(util::toJson(groupKeys_)), desc.get());
     folly::dynamic itemArr = folly::dynamic::array();
@@ -183,15 +186,15 @@ std::unique_ptr<cpp2::PlanNodeDescription> Aggregate::explain() const {
     addDescription("groupItems", folly::toJson(itemArr), desc.get());
     return desc;
 }
-std::unique_ptr<cpp2::PlanNodeDescription> SwitchSpace::explain() const {
+std::unique_ptr<PlanNodeDescription> SwitchSpace::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("space", spaceName_, desc.get());
     return desc;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> DataCollect::explain() const {
+std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
     auto desc = SingleDependencyNode::explain();
-    addDescription("inputVars", folly::toJson(util::toJson(inputVars_)), desc.get());
+    addDescription("inputVar", folly::toJson(util::toJson(inputVars_)), desc.get());
     switch (collectKind_) {
         case CollectKind::kSubgraph: {
             addDescription("kind", "SUBGRAPH", desc.get());
@@ -221,10 +224,12 @@ std::unique_ptr<cpp2::PlanNodeDescription> DataCollect::explain() const {
     return desc;
 }
 
-std::unique_ptr<cpp2::PlanNodeDescription> DataJoin::explain() const {
+std::unique_ptr<PlanNodeDescription> DataJoin::explain() const {
     auto desc = SingleDependencyNode::explain();
-    addDescription("leftVar", folly::toJson(util::toJson(leftVar_)), desc.get());
-    addDescription("rightVar", folly::toJson(util::toJson(rightVar_)), desc.get());
+    folly::dynamic inputVar = folly::dynamic::object();
+    inputVar.insert("leftVar", util::toJson(leftVar_));
+    inputVar.insert("rightVar", util::toJson(rightVar_));
+    addDescription("inputVar", folly::toJson(inputVar), desc.get());
     addDescription("hashKeys", folly::toJson(util::toJson(hashKeys_)), desc.get());
     addDescription("probeKeys", folly::toJson(util::toJson(probeKeys_)), desc.get());
     return desc;

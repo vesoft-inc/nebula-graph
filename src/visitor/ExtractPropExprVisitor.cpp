@@ -57,6 +57,10 @@ void ExtractPropExprVisitor::visit(UUIDExpression* expr) {
     reportError(expr);
 }
 
+void ExtractPropExprVisitor::visit(ColumnExpression* expr) {
+    reportError(expr);
+}
+
 void ExtractPropExprVisitor::visit(UnaryExpression* expr) {
     switch (expr->kind()) {
         case Expression::Kind::kUnaryPlus:
@@ -192,7 +196,7 @@ void ExtractPropExprVisitor::visit(DestPropertyExpression* expr) {
     }
 }
 
-void ExtractPropExprVisitor::reportError(const Expression *expr) {
+void ExtractPropExprVisitor::reportError(const Expression* expr) {
     std::stringstream ss;
     ss << "Not supported expression `" << expr->toString() << "' for ExtractPropsExpression.";
     status_ = Status::SemanticError(ss.str());

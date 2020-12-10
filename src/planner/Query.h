@@ -68,7 +68,7 @@ public:
         orderBy_ = std::move(orderBy);
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 protected:
     Explore(QueryContext* qctx,
@@ -142,7 +142,7 @@ public:
         return gn;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     GetNeighbors* clone(QueryContext* qctx) const;
 
@@ -206,7 +206,7 @@ public:
         exprs_ = std::move(exprs);
     }
 
-    void setRandom(bool random = true) {
+    void setRandom(bool random = false) {
         random_ = random;
     }
 
@@ -222,7 +222,7 @@ private:
     EdgeProps                                    edgeProps_;
     StatProps                                    statProps_;
     Exprs                                        exprs_;
-    bool                                         random_;
+    bool                                         random_{false};
 };
 
 /**
@@ -253,7 +253,7 @@ public:
                 std::move(filter)));
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
@@ -333,7 +333,7 @@ public:
                 std::move(filter)));
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     Expression* src() const {
         return src_;
@@ -415,6 +415,7 @@ public:
                            IndexReturnCols&& returnCols,
                            bool isEdge,
                            int32_t schemaId,
+                           bool isEmptyResultSet = false,
                            bool dedup = false,
                            std::vector<storage::cpp2::OrderBy> orderBy = {},
                            int64_t limit = std::numeric_limits<int64_t>::max(),
@@ -426,13 +427,14 @@ public:
                                                   std::move(returnCols),
                                                   isEdge,
                                                   schemaId,
+                                                  isEmptyResultSet,
                                                   dedup,
                                                   std::move(orderBy),
                                                   limit,
                                                   std::move(filter)));
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     IndexScan* clone(QueryContext* qctx) const;
 
@@ -450,6 +452,10 @@ public:
 
     int32_t schemaId() const {
         return schemaId_;
+    }
+
+    bool isEmptyResultSet() const {
+        return isEmptyResultSet_;
     }
 
     void setIndexQueryContext(IndexQueryCtx contexts) {
@@ -476,6 +482,7 @@ private:
               IndexReturnCols&& returnCols,
               bool isEdge,
               int32_t schemaId,
+              bool isEmptyResultSet,
               bool dedup,
               std::vector<storage::cpp2::OrderBy> orderBy,
               int64_t limit,
@@ -492,6 +499,7 @@ private:
         returnCols_ = std::move(returnCols);
         isEdge_ = isEdge;
         schemaId_ = schemaId;
+        isEmptyResultSet_ = isEmptyResultSet;
     }
 
 private:
@@ -499,6 +507,7 @@ private:
     IndexReturnCols                               returnCols_;
     bool                                          isEdge_;
     int32_t                                       schemaId_;
+    bool                                          isEmptyResultSet_;
 };
 
 /**
@@ -516,7 +525,7 @@ public:
         return condition_;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     Filter(QueryContext* qctx, PlanNode* input, Expression* condition)
@@ -596,7 +605,7 @@ public:
         return qctx->objPool()->add(new Project(qctx, input, cols));
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     Project* clone(QueryContext* qctx) const;
 
@@ -628,7 +637,7 @@ public:
         return factors_;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     Sort(QueryContext* qctx,
@@ -674,7 +683,7 @@ public:
         return count_;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
     Limit* clone(QueryContext* qctx) const;
 
@@ -716,7 +725,7 @@ public:
         return count_;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     TopN(QueryContext* qctx,
@@ -782,7 +791,7 @@ public:
         return groupItems_;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     Aggregate(QueryContext* qctx,
@@ -809,7 +818,7 @@ public:
         return spaceName_;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     SwitchSpace(QueryContext* qctx, PlanNode* input, std::string spaceName)
@@ -882,7 +891,7 @@ public:
         return distinct_;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     DataCollect(QueryContext* qctx,
@@ -942,7 +951,7 @@ public:
         return probeKeys_;
     }
 
-    std::unique_ptr<cpp2::PlanNodeDescription> explain() const override;
+    std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
     DataJoin(QueryContext* qctx,

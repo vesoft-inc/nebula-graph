@@ -22,6 +22,8 @@ void MockSchemaManager::init() {
     edgeIdNames_.emplace(3, "like");
     edgeNameIds_.emplace("serve", 4);
     edgeIdNames_.emplace(4, "serve");
+    tagNameIds_.emplace("book", 5);
+    tagIdNames_.emplace(5, "book");
 
     Tags tagSchemas;
     // person {name : string, age : int8}
@@ -29,6 +31,10 @@ void MockSchemaManager::init() {
     personSchema->addField("name", meta::cpp2::PropertyType::STRING);
     personSchema->addField("age", meta::cpp2::PropertyType::INT8);
     tagSchemas.emplace(2, personSchema);
+    // book {name : string}
+    std::shared_ptr<meta::NebulaSchemaProvider> bookSchema(new meta::NebulaSchemaProvider(0));
+    bookSchema->addField("name", meta::cpp2::PropertyType::STRING);
+    tagSchemas.emplace(5, bookSchema);
 
     tagSchemas_.emplace(1, std::move(tagSchemas));
 
@@ -91,6 +97,15 @@ StatusOr<GraphSpaceID> MockSchemaManager::toGraphSpaceID(folly::StringPiece spac
     return Status::Error("Space `%s' not found", spaceName.str().c_str());
 }
 
+StatusOr<std::string> MockSchemaManager::toGraphSpaceName(GraphSpaceID space) {
+    for (const auto& s : spaceNameIds_) {
+        if (s.second == space) {
+            return s.first;
+        }
+    }
+    return Status::Error("Space `%d' not found", space);
+}
+
 StatusOr<TagID> MockSchemaManager::toTagID(GraphSpaceID space, const folly::StringPiece tagName) {
     auto findIt = tagSchemas_.find(space);
     if (findIt == tagSchemas_.end()) {
@@ -146,5 +161,10 @@ StatusOr<std::vector<std::string>> MockSchemaManager::getAllEdge(GraphSpaceID) {
     }
     return edgeNames;
 }
+
+StatusOr<std::vector<nebula::meta::cpp2::FTClient>> MockSchemaManager::getFTClients() {
+    return Status::Error("Not implemented");
+}
+
 }  // namespace graph
 }  // namespace nebula

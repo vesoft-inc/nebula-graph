@@ -29,6 +29,7 @@ using IndexQueryCtx = std::unique_ptr<std::vector<IndexQueryContext>>;
 class IndexScanRule final : public OptRule {
     FRIEND_TEST(IndexScanRuleTest, BoundValueTest);
     FRIEND_TEST(IndexScanRuleTest, IQCtxTest);
+    FRIEND_TEST(IndexScanRuleTest, BoundValueRangeTest);
 
 public:
     const Pattern& pattern() const override;
@@ -41,9 +42,9 @@ public:
 private:
     struct ScanKind {
         enum class Kind {
-            UNKNOWN = 0,
-            LOGICAL_OR,
-            LOGICAL_AND,
+            kUnknown = 0,
+            kMultipleScan,
+            kSingleScan,
         };
 
     private:
@@ -51,7 +52,7 @@ private:
 
     public:
         ScanKind() {
-            kind_ = Kind::UNKNOWN;
+            kind_ = Kind::kUnknown;
         }
         void setKind(Kind k) {
             kind_ = k;
@@ -59,8 +60,8 @@ private:
         Kind getKind() {
             return kind_;
         }
-        bool isLogicalAnd() {
-            return kind_ == Kind::LOGICAL_AND;
+        bool isSingleScan() {
+            return kind_ == Kind::kSingleScan;
         }
     };
 
@@ -107,18 +108,26 @@ private:
                                graph::QueryContext *qctx,
                                const OptGroupNode *groupNode) const;
 
-    Status createIQCWithLogicAnd(IndexQueryCtx &iqctx,
-                                 const FilterItems& items,
-                                 graph::QueryContext *qctx,
-                                 const OptGroupNode *groupNode) const;
+    Status createIndexQueryCtx(IndexQueryCtx &iqctx,
+                               graph::QueryContext *qctx,
+                               const OptGroupNode *groupNode) const;
 
-    Status createIQCWithLogicOR(IndexQueryCtx &iqctx,
-                                const FilterItems& items,
-                                graph::QueryContext *qctx,
-                                const OptGroupNode *groupNode) const;
+    Status createSingleIQC(IndexQueryCtx &iqctx,
+                           const FilterItems& items,
+                           graph::QueryContext *qctx,
+                           const OptGroupNode *groupNode) const;
+
+    Status createMultipleIQC(IndexQueryCtx &iqctx,
+                             const FilterItems& items,
+                             graph::QueryContext *qctx,
+                             const OptGroupNode *groupNode) const;
 
     Status appendIQCtx(const IndexItem& index,
                        const FilterItems& items,
+                       IndexQueryCtx &iqctx,
+                       const std::string& filter = "") const;
+
+    Status appendIQCtx(const IndexItem& index,
                        IndexQueryCtx &iqctx) const;
 
     Status appendColHint(std::vector<IndexColumnHint>& hitns,
@@ -128,6 +137,8 @@ private:
     Status boundValue(const FilterItem& item,
                       const meta::cpp2::ColumnDef& col,
                       Value& begin, Value& end) const;
+
+    size_t hintCount(const FilterItems& items) const noexcept;
 
     bool isEdge(const OptGroupNode *groupNode) const;
 
@@ -151,6 +162,9 @@ private:
                                const OptGroupNode *groupNode,
                                const FilterItems& items) const;
 
+    IndexItem findLightestIndex(graph::QueryContext *qctx,
+                                const OptGroupNode *groupNode) const;
+
     std::vector<IndexItem>
     allIndexesBySchema(graph::QueryContext *qctx, const OptGroupNode *groupNode) const;
 
@@ -163,6 +177,8 @@ private:
 
     std::vector<IndexItem> findIndexForRangeScan(const std::vector<IndexItem>& indexes,
                                                  const FilterItems& items) const;
+
+    bool isEmptyResultSet(const OptGroupNode *groupNode) const;
 };
 
 }   // namespace opt

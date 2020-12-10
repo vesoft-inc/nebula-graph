@@ -5,7 +5,6 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-import pytest
 from nebula2.graph import ttypes
 
 from tests.common.nebula_test_suite import NebulaTestSuite
@@ -19,7 +18,7 @@ class TestSetQuery(NebulaTestSuite):
     def test_union_all(self):
         stmt = '''GO FROM "Tim Duncan" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
          UNION ALL GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -31,7 +30,7 @@ class TestSetQuery(NebulaTestSuite):
         stmt = '''GO FROM "Tim Duncan" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
          UNION ALL GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
          UNION ALL GO FROM "Manu Ginobili" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         colums = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, colums)
@@ -44,7 +43,7 @@ class TestSetQuery(NebulaTestSuite):
         stmt = '''(GO FROM "Tim Duncan" OVER like YIELD like._dst AS id | \
          GO FROM $-.id OVER serve YIELD $^.player.name, serve.start_year, $$.team.name) \
          UNION ALL GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -58,7 +57,7 @@ class TestSetQuery(NebulaTestSuite):
         stmt = '''GO FROM "Tim Duncan" OVER like YIELD like._dst AS id | \
          GO FROM $-.id OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
          UNION ALL GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -72,7 +71,7 @@ class TestSetQuery(NebulaTestSuite):
         stmt = '''GO FROM "Tim Duncan" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
          UNION ALL (GO FROM "Tony Parker" OVER like YIELD like._dst AS id | \
          GO FROM $-.id OVER serve YIELD $^.player.name, serve.start_year, $$.team.name)'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -86,7 +85,7 @@ class TestSetQuery(NebulaTestSuite):
         stmt = '''GO FROM "Tim Duncan" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
          UNION ALL GO FROM "Tony Parker" OVER like YIELD like._dst AS id | \
          GO FROM $-.id OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -100,7 +99,7 @@ class TestSetQuery(NebulaTestSuite):
         stmt = '''(GO FROM "Tim Duncan" OVER like YIELD like._dst AS id \
          UNION ALL GO FROM "Tony Parker" OVER like YIELD like._dst AS id) \
          | GO FROM $-.id OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -117,7 +116,7 @@ class TestSetQuery(NebulaTestSuite):
          UNION ALL \
          GO FROM "Tony Parker" OVER serve \
          YIELD $^.player.name as name, serve.start_year as player'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["name", "player"]
         self.check_column_names(resp, column_names)
@@ -130,7 +129,7 @@ class TestSetQuery(NebulaTestSuite):
          UNION ALL \
          GO FROM "Tony Parker" OVER serve \
          YIELD $^.player.name as name, serve.start_year'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_failed(resp)
         # column_names = ["name", "player"]
         # self.check_column_names(resp, column_names)
@@ -141,7 +140,7 @@ class TestSetQuery(NebulaTestSuite):
         stmt = '''GO FROM "Nobody" OVER serve YIELD $^.player.name AS player, serve.start_year AS start \
          UNION ALL \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name AS player, serve.start_year AS start'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["player", "start"]
         self.check_column_names(resp, column_names)
@@ -152,7 +151,7 @@ class TestSetQuery(NebulaTestSuite):
         stmt = '''GO FROM "Nobody" OVER serve YIELD $^.player.name AS player, serve.start_year AS start \
          UNION ALL \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_failed(resp)
         # column_names = ["player", "start"]
         # self.check_column_names(resp, column_names)
@@ -166,7 +165,7 @@ class TestSetQuery(NebulaTestSuite):
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
           UNION \
          GO FROM "Manu Ginobili" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -179,7 +178,7 @@ class TestSetQuery(NebulaTestSuite):
          GO FROM $-.id OVER serve YIELD $^.player.name, serve.start_year, $$.team.name) \
           UNION DISTINCT \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -193,7 +192,7 @@ class TestSetQuery(NebulaTestSuite):
          GO FROM $-.id OVER serve YIELD $^.player.name, serve.start_year, $$.team.name) \
           MINUS \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -205,7 +204,7 @@ class TestSetQuery(NebulaTestSuite):
          GO FROM $-.id OVER serve YIELD $^.player.name, serve.start_year, $$.team.name) \
           INTERSECT \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -222,7 +221,7 @@ class TestSetQuery(NebulaTestSuite):
          GO FROM "Tim Duncan" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
           INTERSECT \
          GO FROM "Manu Ginobili" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$^.player.name", "serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -234,7 +233,7 @@ class TestSetQuery(NebulaTestSuite):
           UNION ALL \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name; \
          YIELD $var.*'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$var.$^.player.name", "$var.serve.start_year", "$var.$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -247,7 +246,7 @@ class TestSetQuery(NebulaTestSuite):
           UNION ALL \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name); \
          YIELD $var.*'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$var.$^.player.name", "$var.serve.start_year", "$var.$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -261,7 +260,7 @@ class TestSetQuery(NebulaTestSuite):
           MINUS \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name; \
          YIELD $var.*'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$var.$^.player.name", "$var.serve.start_year", "$var.$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -273,7 +272,7 @@ class TestSetQuery(NebulaTestSuite):
           INTERSECT \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name; \
          YIELD $var.*'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$var.$^.player.name", "$var.serve.start_year", "$var.$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -289,7 +288,7 @@ class TestSetQuery(NebulaTestSuite):
          GO FROM "NON EXIST VERTEX ID" OVER serve YIELD serve.start_year, $$.team.name \
           INTERSECT \
          GO FROM "NON EXIST VERTEX ID" OVER serve YIELD serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["serve.start_year", "$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -304,7 +303,7 @@ class TestSetQuery(NebulaTestSuite):
           INTERSECT \
          GO FROM "NON EXIST VERTEX ID" OVER serve YIELD serve.start_year, $$.team.name; \
          YIELD $var.*'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         column_names = ["$var.serve.start_year", "$var.$$.team.name"]
         self.check_column_names(resp, column_names)
@@ -316,18 +315,18 @@ class TestSetQuery(NebulaTestSuite):
           YIELD like._src as src, like._dst as dst \
           | (GO FROM $-.src OVER serve \
           UNION GO FROM $-.dst OVER serve)'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
 
     def test_execution_error(self):
         stmt = '''GO FROM "Tim Duncan" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name \
           UNION \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name1, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
 
         stmt = '''GO FROM "Tim Duncan" OVER serve YIELD $^.player.name, serve.start_year \
           UNION \
          GO FROM "Tony Parker" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name'''
-        resp = self.execute_query(stmt)
+        resp = self.execute(stmt)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
