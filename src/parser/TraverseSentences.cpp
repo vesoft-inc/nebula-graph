@@ -176,10 +176,8 @@ std::string FindPathSentence::toString() const {
     buf.reserve(256);
     buf += "FIND ";
     if (noLoop_) {
-        buf += "NOLOOP ";
-    }
-
-    if (isShortest_) {
+        buf += "NOLOOP PATH ";
+    } else if (isShortest_) {
         buf += "SHORTEST PATH ";
     } else {
         buf += "ALL PATH ";
