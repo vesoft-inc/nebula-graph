@@ -25,16 +25,6 @@ folly::Future<Status> ConjunctPathExecutor::execute() {
     }
 }
 
-bool ConjunctPathExecutor::hasSameEdgeInPath(const Path& path) {
-    std::vector<Value> args = {path};
-    auto func = FunctionManager::get("hasSameEdgeInPath", args.size());
-    auto ret = func.value()(args);
-    if (!ret.isBool()) {
-        return false;
-    }
-    return ret.getBool();
-}
-
 folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
     auto* conjunct = asNode<ConjunctPath>(node());
     auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
@@ -393,8 +383,7 @@ bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
                 backward.reverse();
                 VLOG(1) << "Backward reverse path:" << backward;
                 forward.append(std::move(backward));
-
-                if (hasSameEdgeInPath(forward)) {
+                if (forward.hasDuplicateEdges()) {
                     continue;
                 }
                 VLOG(1) << "Found path: " << forward;

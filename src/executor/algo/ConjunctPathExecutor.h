@@ -26,7 +26,6 @@ public:
 
 private:
     using CostPathsValMap = std::unordered_map<Value, std::unordered_map<Value, CostPaths>>;
-    bool hasSameEdgeInPath(const Path& path);
 
     folly::Future<Status> bfsShortestPath();
 

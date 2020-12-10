@@ -67,26 +67,20 @@ void ProduceAllPathsExecutor::buildPaths(const std::vector<const Path*>& history
                                          const Edge& edge,
                                          Interims& interims) {
     for (auto* histPath : history) {
-        if (histPath->steps.size() < count_ || hasSameEdgeInPath(histPath)) {
+        if (histPath->steps.size() < count_) {
             continue;
         } else {
             Path path = *histPath;
             path.steps.emplace_back(
                 Step(Vertex(edge.dst, {}), edge.type, edge.name, edge.ranking, {}));
+            if (path.hasDuplicateEdges()) {
+                continue;
+            }
             VLOG(1) << "Build path: " << path;
             interims[edge.dst].emplace_back(std::move(path));
         }
     }
 }
 
-bool ProduceAllPathsExecutor::hasSameEdgeInPath(const Path* path) {
-    std::vector<Value> args = {*path};
-    auto func = FunctionManager::get("hasSameEdgeInPath", args.size());
-    auto ret = func.value()(args);
-    if (!ret.isBool()) {
-        return false;
-    }
-    return ret.getBool();
-}
 }  // namespace graph
 }  // namespace nebula
