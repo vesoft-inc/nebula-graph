@@ -16,6 +16,15 @@ namespace graph {
 
 folly::Future<Status> ShowSessionsExecutor::execute() {
     SCOPED_TIMER(&execTime_);
+    auto *showNode = asNode<ShowSessions>(node());
+    if (showNode->isSetSessionID()) {
+        return getSession(showNode->getSessionId());
+    } else {
+        return  listSessions();
+    }
+}
+
+folly::Future<Status> ShowSessionsExecutor::listSessions() {
     return qctx()->getMetaClient()->listSessions()
             .via(runner())
             .then([this](StatusOr<meta::cpp2::ListSessionsResp> resp) {
@@ -50,16 +59,14 @@ folly::Future<Status> ShowSessionsExecutor::execute() {
             });
 }
 
-folly::Future<Status> GetSessionExecutor::execute() {
-    SCOPED_TIMER(&execTime_);
-    auto *getNode = asNode<GetSession>(node());
-    return qctx()->getMetaClient()->getSession(getNode->getSessionId())
+folly::Future<Status> ShowSessionsExecutor::getSession(SessionID sessionId) {
+    return qctx()->getMetaClient()->getSession(sessionId)
             .via(runner())
-            .then([this, getNode](StatusOr<meta::cpp2::GetSessionResp> resp) {
+            .then([this, sessionId](StatusOr<meta::cpp2::GetSessionResp> resp) {
                 SCOPED_TIMER(&execTime_);
                 if (!resp.ok()) {
                     return Status::Error("Get session `%ld' failed: %s.",
-                                          getNode->getSessionId(),
+                                          sessionId,
                                           resp.status().toString().c_str());
                 }
                 auto session = resp.value().get_session();

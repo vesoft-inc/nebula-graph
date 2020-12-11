@@ -58,4 +58,3 @@ DEFINE_double(system_memory_high_watermark_ratio, 0.8, "high watermark ratio of 
 DEFINE_int64(max_allowed_connections,
              std::numeric_limits<int64_t>::max(),
              "Max connections of the whole cluster");
-DEFINE_string(local_ip, "", "Local ip specified for NetworkUtils::getLocalIP");

@@ -694,23 +694,25 @@ public:
         kind_ = Kind::kShowSessions;
     }
 
-    std::string toString() const override;
-};
-
-class GetSessionSentence final : public Sentence {
-public:
-    explicit GetSessionSentence(SessionID sessionId) : sessionId_(sessionId) {
-        kind_ = Kind::kGetSession;
+    explicit ShowSessionsSentence(SessionID sessionId) {
+        kind_ = Kind::kShowSessions;
+        sessionId_ = sessionId;
+        setSeesionId_ = true;
     }
 
-    std::string toString() const override;
+    bool isSetSessionID() const {
+        return setSeesionId_;
+    }
 
-    SessionID sessionId() const {
+    SessionID getSessionID() const {
         return sessionId_;
     }
 
+    std::string toString() const override;
+
 private:
-    SessionID sessionId_{0};
+    SessionID   sessionId_{0};
+    bool        setSeesionId_{false};
 };
 }   // namespace nebula
 

@@ -89,9 +89,12 @@ int main(int argc, char *argv[]) {
     }
 
     // Get the IPv4 address the server will listen on
-    auto hostIdentity = FLAGS_local_ip == "" ? NetworkUtils::getHostname()
-                                             : FLAGS_local_ip;
-    nebula::HostAddr localhost{hostIdentity, FLAGS_port};
+    if (FLAGS_local_ip.empty()) {
+        LOG(ERROR) << "local_ip is empty, need to config it through config file";
+        return EXIT_FAILURE;
+    }
+    // TODO: Check the ip is valid
+    nebula::HostAddr localhost{FLAGS_local_ip, FLAGS_port};
 
     // Initialize the global timezone, it's only used for datetime type compute
     // won't affect the process timezone.

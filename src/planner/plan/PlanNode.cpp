@@ -270,8 +270,6 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
         // no default so the compiler will warning when lack
         case Kind::kShowSessions:
             return "ShowSessions";
-        case Kind::kGetSession:
-            return "GetSession";
         case Kind::kUpdateSession:
             return "UpdateSession";
             // no default so the compiler will warning when lack

@@ -506,19 +506,13 @@ Status SignOutTSServiceValidator::toPlan() {
 }
 
 Status ShowSessionsValidator::toPlan() {
-    auto *node = ShowSessions::make(qctx_, nullptr);
+    auto sentence = static_cast<ShowSessionsSentence*>(sentence_);
+    auto *node = ShowSessions::make(
+            qctx_, nullptr, sentence->isSetSessionID(), sentence->getSessionID());
     root_ = node;
     tail_ = root_;
     return Status::OK();
 }
 
-Status GetSessionValidator::toPlan() {
-    auto sentence = static_cast<GetSessionSentence*>(sentence_);
-    auto id = sentence->sessionId();
-    auto *node = GetSession::make(qctx_, nullptr, id);
-    root_ = node;
-    tail_ = root_;
-    return Status::OK();
-}
 }  // namespace graph
 }  // namespace nebula

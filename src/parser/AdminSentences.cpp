@@ -366,7 +366,4 @@ std::string ShowSessionsSentence::toString() const {
     return "SHOW SESSIONS";
 }
 
-std::string GetSessionSentence::toString() const {
-    return folly::stringPrintf("GET SESSION %ld", sessionId_);
-}
 }   // namespace nebula

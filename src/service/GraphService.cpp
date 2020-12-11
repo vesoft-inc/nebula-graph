@@ -14,6 +14,7 @@
 #include "service/PasswordAuthenticator.h"
 #include "service/CloudAuthenticator.h"
 #include "stats/StatsDef.h"
+#include "version/Version.h"
 
 namespace nebula {
 namespace graph {
@@ -59,15 +60,15 @@ folly::Future<AuthResponse> GraphService::future_authenticate(
     auto clientIp = peer->getAddressStr();
     LOG(INFO) << "Authenticating user " << username << " from " <<  peer->describe();
 
-    auto ctx = std::make_unique<RequestContext<cpp2::AuthResponse>>();
+    auto ctx = std::make_unique<RequestContext<AuthResponse>>();
+    auto future = ctx->future();
     // check username and password failed
     if (!auth(username, password)) {
-        onHandle(*ctx, cpp2::ErrorCode::E_BAD_USERNAME_PASSWORD);
+        onHandle(*ctx, ErrorCode::E_BAD_USERNAME_PASSWORD);
         ctx->finish();
-        return ctx->future();
+        return future;
     }
 
-    auto future = ctx->future();
     sessionManager_->createSession(username, clientIp, getThreadManager(), std::move(ctx));
     return future;
 }
@@ -146,7 +147,7 @@ const char* GraphService::getErrorStr(ErrorCode result) {
         case ErrorCode::E_USER_NOT_FOUND:
             return "User not found";
         case ErrorCode::E_TOO_MANY_CONNECTIONS:
-            return "Too many connections";
+            return "Too many connections in the cluster";
         case ErrorCode::E_PARTIAL_SUCCEEDED:
             return "Partial results";
     }

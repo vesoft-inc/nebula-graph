@@ -15,19 +15,9 @@ from thrift.protocol import TBinaryProtocol
 
 from nebula2.graph import GraphService
 from nebula2.graph import ttypes
-from nebula2.Client import GraphClient
-from nebula2.ConnectionPool import ConnectionPool
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 class TestSession(NebulaTestSuite):
-    @classmethod
-    def get_session(self):
-        pool = ConnectionPool(host=self.host,
-                              port=self.port,
-                              socket_num=1,
-                              network_timeout=0)
-        return GraphClient(pool)
-
     @classmethod
     def prepare(self):
         resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 5')
@@ -47,24 +37,29 @@ class TestSession(NebulaTestSuite):
 
     @classmethod
     def cleanup(self):
-        resp = self.execute_query('UPDATE CONFIGS graph:session_idle_timeout_secs = 0')
+        resp = self.execute('UPDATE CONFIGS graph:session_idle_timeout_secs = 0')
         self.check_resp_succeeded(resp)
         resp = self.execute('DROP USER session_user')
         self.check_resp_succeeded(resp)
 
     def test_sessions(self):
         # 1: test add session with right username
-        client_ok = self.get_session()
-        resp = client_ok.authenticate('session_user', '123456')
-        self.check_resp_succeeded(resp)
+        try:
+            client_ok = self.client_pool.get_session('session_user', '123456')
+            assert client_ok is not None
+            assert True
+        except Exception as e:
+            assert False, e
 
         # 2: test add session with not exist username
-        client = self.get_session()
-        resp = client.authenticate('session_not_exist', '123456')
-        self.check_resp_failed(resp)
+        try:
+            self.client_pool.get_session('session_not_exist', '123456')
+            assert False
+        except Exception as e:
+            assert True
 
         # 3: test show sessions
-        resp = self.execute_query('SHOW SESSIONS')
+        resp = self.execute('SHOW SESSIONS')
         self.check_resp_succeeded(resp)
         expect_col_names = ['SessionId',
                             'UserName',
@@ -86,7 +81,7 @@ class TestSession(NebulaTestSuite):
         self.search_result(resp, expect_result, is_regex=True)
 
         session_id = 0
-        for row in resp.data.rows:
+        for row in resp.rows():
             if bytes.decode(row.values[1].get_sVal()) == 'session_user':
                 session_id = row.values[0].get_iVal()
                 break
@@ -94,10 +89,10 @@ class TestSession(NebulaTestSuite):
         assert session_id != 0
 
         # 4: test get session info
-        resp = client_ok.execute_query('USE nba')
+        resp = client_ok.execute('USE nba')
         self.check_resp_succeeded(resp)
 
-        resp = self.execute_query('GET SESSION {}'.format(session_id))
+        resp = self.execute('SHOW SESSION {}'.format(session_id))
         self.check_resp_succeeded(resp)
         expect_col_names = ['VariableName', 'Value']
         expect_result = [[re.compile(r'SessionID'), re.compile(r'\d+')],
@@ -113,20 +108,15 @@ class TestSession(NebulaTestSuite):
 
         # 5: test expired session
         time.sleep(3)
-        resp = self.execute_query('SHOW SPACES;')
+        resp = self.execute('SHOW SPACES;')
         self.check_resp_succeeded(resp)
         time.sleep(3)
-        resp = self.execute_query('GET SESSION {}'.format(session_id))
+        resp = self.execute('SHOW SESSION {}'.format(session_id))
         time.sleep(3)
-        resp = self.execute_query('GET SESSION {}'.format(session_id))
+        resp = self.execute('SHOW SESSION {}'.format(session_id))
         self.check_resp_failed(resp, ttypes.ErrorCode.E_EXECUTION_ERROR)
 
     def test_the_same_id_to_different_graphd(self):
-        addresses = pytest.cmdline.address.split(',')
-        assert len(addresses) >= 2
-        address1 = addresses[0].split(':')
-        address2 = addresses[1].split(':')
-
         def get_connection(ip, port):
             try:
                 socket = TSocket.TSocket(ip, port)
@@ -138,18 +128,28 @@ class TestSession(NebulaTestSuite):
                 assert False, 'Create connection to {}:{} failed'.format(ip, port)
             return connection
 
-        conn1 = get_connection(address1[0], address1[1])
-        conn2 = get_connection(address2[0], address2[1])
+        resp = self.execute('SHOW HOSTS GRAPH')
+        self.check_resp_succeeded(resp)
+        print('========== {}'.format(resp))
+        assert not resp.is_empty()
+        assert resp.row_size() == 2
+        addr_host1 = resp.row_values(0)[0].as_string()
+        addr_port1 = resp.row_values(0)[1].as_int()
+        addr_host2 = resp.row_values(1)[0].as_string()
+        addr_port2 = resp.row_values(1)[1].as_int()
+
+        conn1 = get_connection(addr_host1, addr_port1)
+        conn2 = get_connection(addr_host2, addr_port2)
 
         resp = conn1.authenticate('root', 'nebula')
-        self.check_resp_succeeded(resp)
+        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
         session_id = resp.session_id
 
         resp = conn1.execute(session_id, 'CREATE SPACE aSpace(partition_num=1);USE aSpace;')
-        self.check_resp_succeeded(resp)
+        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
         time.sleep(3)
         resp = conn1.execute(session_id, 'CREATE TAG a();')
-        self.check_resp_succeeded(resp)
+        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
         resp = conn2.execute(session_id, 'CREATE TAG b();')
-        self.check_resp_succeeded(resp)
+        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
 

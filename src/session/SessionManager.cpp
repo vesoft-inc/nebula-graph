@@ -100,8 +100,8 @@ void SessionManager::findSessionFromMetad(
     auto doFinish = [this, execInstance, execFunc](auto&& resp) {
         VLOG(2) << "Find session doFinish";
         if (!resp.ok()) {
-            execInstance->rctx()->resp().set_error_code(cpp2::ErrorCode::E_SESSION_INVALID);
-            execInstance->rctx()->resp().set_error_msg("Session not found.");
+            execInstance->rctx()->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+            execInstance->rctx()->resp().errorMsg.reset(new std::string("Session not found."));
             execInstance->rctx()->finish();
             return execInstance->finish();
         }
@@ -118,7 +118,7 @@ void SessionManager::findSessionFromMetad(
 void SessionManager::createSession(const std::string &userName,
                                    const std::string& clientIp,
                                    folly::Executor* runner,
-                                   std::unique_ptr<RequestContext<cpp2::AuthResponse>> rctx) {
+                                   std::unique_ptr<RequestContext<AuthResponse>> rctx) {
     {
         folly::RWSpinLock::ReadHolder rHolder(rwlock_);
         if (activeSessions_.size() >= FLAGS_max_allowed_connections) {
@@ -159,10 +159,10 @@ void SessionManager::createSession(const std::string &userName,
         VLOG(2) << "Create session doFinish";
         if (t.hasException()) {
             LOG(ERROR) << "Create session failed: " << t.exception().what();
-            authInstance->rctx()->resp().set_error_code(cpp2::ErrorCode::E_RPC_FAILURE);
-            authInstance->rctx()->resp().set_error_msg(
-                    folly::StringPiece("Create session failed: %s",
-                                        t.exception().what().c_str()).str());
+            authInstance->rctx()->resp().errorCode = ErrorCode::E_RPC_FAILURE;
+            std::string error = folly::stringPrintf("Create session failed: %s",
+                    t.exception().what().c_str());
+            authInstance->rctx()->resp().errorMsg.reset(new std::string(error));
             authInstance->rctx()->finish();
             return authInstance->finish();
         }
@@ -170,8 +170,8 @@ void SessionManager::createSession(const std::string &userName,
         if (!ret.ok()) {
             LOG(ERROR) << "Create session for userName: " << userName
                        << ", ip: " << clientIp << " failed: " << ret.status();
-            authInstance->rctx()->resp().set_error_code(cpp2::ErrorCode::E_SESSION_INVALID);
-            authInstance->rctx()->resp().set_error_msg("Create session failed.");
+            authInstance->rctx()->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+            authInstance->rctx()->resp().errorMsg.reset(new std::string("Create session failed."));
             authInstance->rctx()->finish();
             return authInstance->finish();
         }
@@ -182,7 +182,7 @@ void SessionManager::createSession(const std::string &userName,
         for (const auto &role : roles) {
             authInstance->rctx()->session()->setRole(role.get_space_id(), role.get_role_type());
         }
-        authInstance->rctx()->resp().set_session_id(sid);
+        authInstance->rctx()->resp().sessionId.reset(new SessionID(sid));
         authInstance->rctx()->finish();
         return authInstance->finish();
     };

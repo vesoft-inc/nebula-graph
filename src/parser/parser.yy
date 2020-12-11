@@ -365,8 +365,6 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <sentence> set_config_sentence get_config_sentence balance_sentence
 %type <sentence> process_control_sentence return_sentence
 
-%type <sentence> get_session_sentence
-
 %type <sentence> sentence
 %type <seq_sentences> seq_sentences
 %type <explain_sentence> explain_sentence
@@ -2951,6 +2949,9 @@ show_sentence
     | KW_SHOW KW_SESSIONS {
         $$ = new ShowSessionsSentence();
     }
+    | KW_SHOW KW_SESSION legal_integer {
+        $$ = new ShowSessionsSentence($3);
+    }
     ;
 
 list_host_type
@@ -3294,12 +3295,6 @@ list_listener_sentence
     }
     ;
 
-get_session_sentence
-    : KW_GET KW_SESSION legal_integer {
-        $$ = new GetSessionSentence($3);
-    }
-    ;
-
 mutate_sentence
     : insert_vertex_sentence { $$ = $1; }
     | insert_edge_sentence { $$ = $1; }
@@ -3359,7 +3354,6 @@ maintain_sentence
     | drop_snapshot_sentence { $$ = $1; }
     | sign_in_text_search_service_sentence { $$ = $1; }
     | sign_out_text_search_service_sentence { $$ = $1; }
-    | get_session_sentence { $$ = $1; };
     ;
 
 sentence

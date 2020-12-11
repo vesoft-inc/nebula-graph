@@ -149,6 +149,7 @@ class NebulaService(object):
         return False
 
     def start(self, debug_log=True, multi_graphd=False):
+        print('=========== multi_graphd ==={}'.format(multi_graphd))
         os.chdir(self.work_dir)
 
         metad_ports = self._find_free_port()
@@ -158,11 +159,9 @@ class NebulaService(object):
         server_ports = []
         servers = []
         if multi_graphd:
-            servers = ['metad', 'storaged', 'graphd', 'graphd1', 'graphd2']
-            os.mkdir(self.work_dir + '/log1')
-            os.mkdir(self.work_dir + '/pid1')
-            os.mkdir(self.work_dir + '/log2')
-            os.mkdir(self.work_dir + '/pid2')
+            servers = ['metad', 'storaged', 'graphd', 'graphd1']
+            os.mkdir(self.work_dir + '/logs1')
+            os.mkdir(self.work_dir + '/pids1')
         else:
             servers = ['metad', 'storaged', 'graphd']
         for server_name in servers:
@@ -178,18 +177,15 @@ class NebulaService(object):
                 ports = metad_ports
             server_ports.append(ports[0])
             new_name = server_name
-            if server_name == 'graphd1' or server_name == 'graphd2':
+            if server_name == 'graphd1':
                 new_name = 'graphd'
             command = self._format_nebula_command(new_name,
                                                   metad_ports[0],
                                                   ports,
                                                   debug_log)
             if server_name == 'graphd1':
-                command += ' --log_dir=log1'
-                command += ' --pid_file=pid1/nebula-graphd.pid'
-            if server_name == 'graphd2':
-                command += ' --log_dir=log2'
-                command += ' --pid_file=pid2/nebula-graphd.pid'
+                command += ' --log_dir=logs1'
+                command += ' --pid_file=pids1/nebula-graphd.pid'
             print("exec: " + command)
             p = subprocess.Popen([command], shell=True, stdout=subprocess.PIPE)
             p.wait()

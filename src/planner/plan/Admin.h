@@ -1320,19 +1320,15 @@ private:
 
 class ShowSessions final : public SingleInputNode {
 public:
-    static ShowSessions* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new ShowSessions(qctx, input));
+    static ShowSessions* make(QueryContext* qctx,
+                              PlanNode* input,
+                              bool isSetSessionID,
+                              SessionID sessionId) {
+        return qctx->objPool()->add(new ShowSessions(qctx, input, isSetSessionID, sessionId));
     }
 
-private:
-    explicit ShowSessions(QueryContext* qctx, PlanNode* input)
-        : SingleInputNode(qctx, Kind::kShowSessions, input) {}
-};
-
-class GetSession final : public SingleInputNode {
-public:
-    static GetSession* make(QueryContext* qctx, PlanNode* input, SessionID sessionId) {
-        return qctx->objPool()->add(new GetSession(qctx, input, sessionId));
+    bool isSetSessionID() const {
+        return isSetSessionID_;
     }
 
     SessionID getSessionId() const {
@@ -1340,11 +1336,18 @@ public:
     }
 
 private:
-    explicit GetSession(QueryContext* qctx, PlanNode* input, SessionID sessionId)
-        : SingleInputNode(qctx, Kind::kGetSession, input), sessionId_(sessionId) {}
+    explicit ShowSessions(QueryContext* qctx,
+                          PlanNode* input,
+                          bool isSetSessionID,
+                          SessionID sessionId)
+        : SingleInputNode(qctx, Kind::kShowSessions, input) {
+            isSetSessionID_ = isSetSessionID;
+            sessionId_ = sessionId;
+        }
 
 private:
-    SessionID sessionId_{0};
+    bool isSetSessionID_{false};
+    SessionID sessionId_{-1};
 };
 
 class UpdateSession final : public SingleInputNode {

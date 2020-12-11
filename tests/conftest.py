@@ -82,7 +82,6 @@ def get_port():
 @pytest.fixture(scope="session")
 def conn_pool(pytestconfig):
     addr = pytestconfig.getoption("address")
-    host_addr = addr.split(":") if addr else ["localhost", get_port()]
     assert len(host_addr) == 2
     pool = get_conn_pool(host_addr[0], host_addr[1])
     yield pool

@@ -19,14 +19,10 @@ public:
         : Executor("ShowSessionsExecutor", node, ectx) {}
 
     folly::Future<Status> execute() override;
-};
 
-class GetSessionExecutor final : public Executor {
-public:
-    GetSessionExecutor(const PlanNode *node, QueryContext *ectx)
-        : Executor("GetSessionExecutor", node, ectx) {}
-
-    folly::Future<Status> execute() override;
+private:
+    folly::Future<Status> listSessions();
+    folly::Future<Status> getSession(SessionID sessionId);
 };
 
 class UpdateSessionExecutor final : public Executor {

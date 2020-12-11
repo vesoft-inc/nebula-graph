@@ -161,7 +161,6 @@ public:
         kDownload,
         kIngest,
         kShowSessions,
-        kGetSession,
         kUpdateSession,
     };
 
