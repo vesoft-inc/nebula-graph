@@ -91,12 +91,14 @@ function run_ctest() {
 
 function run_test() {
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
+    pushd $PROJ_DIR/tests
     pytest -n 8 --build_dir=$BUILD_DIR \
         --dist=loadfile \
         --debug_log=false \
         ${@:1}
 
     # $BUILD_DIR/tests/ntr --debug_log=false ${@:1} $PROJ_DIR/tests/job/*
+    popd
 }
 
 function test_in_cluster() {
