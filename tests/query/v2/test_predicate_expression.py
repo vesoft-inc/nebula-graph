@@ -41,10 +41,10 @@ class TestPredicateExpression(NebulaTestSuite):
         self.check_result(resp, expected_data)
 
         stmt = '''GO FROM "Tony Parker" OVER like WHERE \
-            any(x IN [5,  10] WHERE like.likeness + x > 100) YIELD like._dst, like.likeness'''
+            any(x IN [5,  10] WHERE like.likeness + $$.player.age + x > 100) YIELD like._dst, like.likeness'''
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
-        expected_data = [["Manu Ginobili", 95], ["Tim Duncan", 95]]
+        expected_data = [["LaMarcus Aldridge", 90], ["Manu Ginobili", 95], ["Tim Duncan", 95]]
         self.check_out_of_order_result(resp, expected_data)
 
         stmt = '''MATCH p = (n:player{name:"LeBron James"})<-[:like]-(m) \
