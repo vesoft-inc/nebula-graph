@@ -91,16 +91,12 @@ function run_ctest() {
 
 function run_test() {
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
-    testpath=$(cat $PROJ_DIR/ci/tests.txt | sed "s|\(.*\)|$PROJ_DIR/tests/\1|g" | tr '\n' ' ')
-
-    $BUILD_DIR/tests/ntr \
-        -n=8 \
+    pytest -n 8 --build_dir=$BUILD_DIR \
         --dist=loadfile \
         --debug_log=false \
-        ${@:1} \
-        $testpath
+        ${@:1}
 
-    $BUILD_DIR/tests/ntr --debug_log=false ${@:1} $PROJ_DIR/tests/job/*
+    # $BUILD_DIR/tests/ntr --debug_log=false ${@:1} $PROJ_DIR/tests/job/*
 }
 
 function test_in_cluster() {
