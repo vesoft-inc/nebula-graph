@@ -40,8 +40,8 @@ class TestListComprehensionExpression(NebulaTestSuite):
         expected_data = [[[1, 2, 3]]]
         self.check_result(resp, expected_data)
 
-        stmt = '''GO FROM "Tony Parker" OVER like WHERE like.likeness IN \
-            [x IN [-95, 0] | x + like.likeness * 2] YIELD like._dst, like.likeness'''
+        stmt = '''GO FROM "Tony Parker" OVER like WHERE like.likeness NOT IN \
+            [x IN [95,  100] | x + $$.player.age] YIELD like._dst, like.likeness'''
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
         expected_data = [["Manu Ginobili", 95], ["Tim Duncan", 95]]

@@ -123,7 +123,6 @@ private:
     void visit(VertexExpression* expr) override;
     void visit(EdgeExpression* expr) override;
     void visit(ColumnExpression* expr) override;
-    void visit(ListComprehensionExpression*) override {}
 
     void visitEdgePropExpr(PropertyExpression* expr);
     void reportError(const Expression* expr);
