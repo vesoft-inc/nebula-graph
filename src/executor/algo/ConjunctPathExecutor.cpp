@@ -3,7 +3,6 @@
  * This source code is licensed under Apache 2.0 License,
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
-
 #include "executor/algo/ConjunctPathExecutor.h"
 
 #include "planner/Algo.h"
@@ -310,6 +309,7 @@ void ConjunctPathExecutor::delPathFromConditionalVar(const Value& start, const V
 
 folly::Future<Status> ConjunctPathExecutor::allPaths() {
     auto* conjunct = asNode<ConjunctPath>(node());
+    noLoop_ = conjunct->noLoop();
     auto lIter = ectx_->getResult(conjunct->leftInputVar()).iter();
     const auto& rHist = ectx_->getHistory(conjunct->rightInputVar());
     VLOG(1) << "current: " << node()->outputVar();
@@ -383,6 +383,12 @@ bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
                 backward.reverse();
                 VLOG(1) << "Backward reverse path:" << backward;
                 forward.append(std::move(backward));
+                if (forward.hasDuplicateEdges()) {
+                    continue;
+                }
+                if (noLoop_ && forward.hasDuplicateVertices()) {
+                    continue;
+                }
                 VLOG(1) << "Found path: " << forward;
                 row.values.emplace_back(std::move(forward));
                 ds.rows.emplace_back(std::move(row));
