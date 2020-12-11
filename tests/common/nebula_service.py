@@ -149,7 +149,6 @@ class NebulaService(object):
         return False
 
     def start(self, debug_log=True, multi_graphd=False):
-        print('=========== multi_graphd ==={}'.format(multi_graphd))
         os.chdir(self.work_dir)
 
         metad_ports = self._find_free_port()

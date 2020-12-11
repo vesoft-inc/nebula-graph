@@ -22,7 +22,7 @@ all_configs = {'--address'        : ['address', '', 'Address of the Nebula'],
                '--stop_nebula'    : ['stop_nebula', 'true', 'Stop the nebula services'],
                '--rm_dir'         : ['rm_dir', 'true', 'Remove the temp test dir'],
                '--debug_log'      : ['debug_log', 'true', 'Set nebula service --v=4'],
-               '--multi_graphd'   : ['multi_graphd', False, 'Support multi graphds']}
+               '--multi_graphd'   : ['multi_graphd', 'false', 'Support multi graphds']}
 
 
 def init_configs():

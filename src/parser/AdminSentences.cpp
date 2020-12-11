@@ -363,6 +363,9 @@ std::string SignOutTextServiceSentence::toString() const {
 }
 
 std::string ShowSessionsSentence::toString() const {
+    if (isSetSessionID()) {
+        return folly::stringPrintf("SHOW SESSION %ld", sessionId_);
+    }
     return "SHOW SESSIONS";
 }
 

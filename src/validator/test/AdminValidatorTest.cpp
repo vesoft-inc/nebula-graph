@@ -69,7 +69,7 @@ TEST_F(AdminValidatorTest, TestSessions) {
         std::vector<PlanNode::Kind> expected = {
             PK::kShowSessions, PK::kStart
         };
-        ASSERT_TRUE(checkResult("GET SESSION 1;", expected));
+        ASSERT_TRUE(checkResult("SHOW SESSION 1;", expected));
     }
 }
 

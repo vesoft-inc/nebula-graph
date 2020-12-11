@@ -130,7 +130,6 @@ class TestSession(NebulaTestSuite):
 
         resp = self.execute('SHOW HOSTS GRAPH')
         self.check_resp_succeeded(resp)
-        print('========== {}'.format(resp))
         assert not resp.is_empty()
         assert resp.row_size() == 2
         addr_host1 = resp.row_values(0)[0].as_string()
