@@ -18,7 +18,7 @@ Feature: Variable length relationship match (m to n)
       """
     Then the result should be, in any order, with relax comparision:
       | e                                                                                  | v                  |
-      | [[:like "Tim Duncan"->"Manu Ginobili"], [:like "Manu Ginobili"->"Tiago Splitter"]] | ("Tiago Splitter") |
+      | [[:like "Tim Duncan"<-"Manu Ginobili"], [:like "Manu Ginobili"<-"Tiago Splitter"]] | ("Tiago Splitter") |
 
   Scenario: single direction edge with properties
     When executing query:
@@ -52,71 +52,71 @@ Feature: Variable length relationship match (m to n)
       """
     Then the result should be, in any order, with relax comparision:
       | e                                                                                                                      | v                     |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Dejounte Murray"]]                                                  | ("Dejounte Murray")   |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"]]                                                  | ("Marco Belinelli")   |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"Bulls"]]             | ("Bulls")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"Hornets"]]           | ("Hornets")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"Hawks"]]             | ("Hawks")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"76ers"]]             | ("76ers")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"Spurs"@1]]           | ("Spurs")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"Hornets"@1]]         | ("Hornets")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"Raptors"]]           | ("Raptors")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"Warriors"]]          | ("Warriors")          |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"], [:serve "Marco Belinelli"->"Kings"]]             | ("Kings")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Danny Green"]]                                                      | ("Danny Green")       |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Danny Green"], [:serve "Danny Green"->"Cavaliers"]]                 | ("Cavaliers")         |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Danny Green"], [:serve "Danny Green"->"Raptors"]]                   | ("Raptors")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Aron Baynes"]]                                                      | ("Aron Baynes")       |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Aron Baynes"], [:serve "Aron Baynes"->"Pistons"]]                   | ("Pistons")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Aron Baynes"], [:serve "Aron Baynes"->"Celtics"]]                   | ("Celtics")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Jonathon Simmons"]]                                                 | ("Jonathon Simmons")  |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Jonathon Simmons"], [:serve "Jonathon Simmons"->"76ers"]]           | ("76ers")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Jonathon Simmons"], [:serve "Jonathon Simmons"->"Magic"]]           | ("Magic")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Rudy Gay"]]                                                         | ("Rudy Gay")          |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Rudy Gay"], [:serve "Rudy Gay"->"Raptors"]]                         | ("Raptors")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Rudy Gay"], [:serve "Rudy Gay"->"Kings"]]                           | ("Kings")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Rudy Gay"], [:serve "Rudy Gay"->"Grizzlies"]]                       | ("Grizzlies")         |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tony Parker"]]                                                      | ("Tony Parker")       |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tony Parker"], [:serve "Tony Parker"->"Hornets"]]                   | ("Hornets")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Manu Ginobili"]]                                                    | ("Manu Ginobili")     |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"David West"]]                                                       | ("David West")        |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"David West"], [:serve "David West"->"Pacers"]]                      | ("Pacers")            |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"David West"], [:serve "David West"->"Warriors"]]                    | ("Warriors")          |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"David West"], [:serve "David West"->"Hornets"]]                     | ("Hornets")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tracy McGrady"]]                                                    | ("Tracy McGrady")     |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tracy McGrady"], [:serve "Tracy McGrady"->"Raptors"]]               | ("Raptors")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tracy McGrady"], [:serve "Tracy McGrady"->"Magic"]]                 | ("Magic")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tracy McGrady"], [:serve "Tracy McGrady"->"Rockets"]]               | ("Rockets")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1]]                                                | ("Marco Belinelli")   |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Bulls"]]           | ("Bulls")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Spurs"]]           | ("Spurs")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Hornets"]]         | ("Hornets")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Hawks"]]           | ("Hawks")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"76ers"]]           | ("76ers")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Hornets"]]         | ("Hornets")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Raptors"]]         | ("Raptors")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Warriors"]]        | ("Warriors")          |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Kings"]]           | ("Kings")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Paul Gasol"]]                                                       | ("Paul Gasol")        |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Paul Gasol"], [:serve "Paul Gasol"->"Lakers"]]                      | ("Lakers")            |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Paul Gasol"], [:serve "Paul Gasol"->"Bulls"]]                       | ("Bulls")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Paul Gasol"], [:serve "Paul Gasol"->"Grizzlies"]]                   | ("Grizzlies")         |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Paul Gasol"], [:serve "Paul Gasol"->"Bucks"]]                       | ("Bucks")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"LaMarcus Aldridge"]]                                                | ("LaMarcus Aldridge") |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"LaMarcus Aldridge"], [:serve "LaMarcus Aldridge"->"Trail Blazers"]] | ("Trail Blazers")     |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tiago Splitter"]]                                                   | ("Tiago Splitter")    |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tiago Splitter"], [:serve "Tiago Splitter"->"Hawks"]]               | ("Hawks")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Tiago Splitter"], [:serve "Tiago Splitter"->"76ers"]]               | ("76ers")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Cory Joseph"]]                                                      | ("Cory Joseph")       |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Cory Joseph"], [:serve "Cory Joseph"->"Pacers"]]                    | ("Pacers")            |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Cory Joseph"], [:serve "Cory Joseph"->"Raptors"]]                   | ("Raptors")           |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Kyle Anderson"]]                                                    | ("Kyle Anderson")     |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Kyle Anderson"], [:serve "Kyle Anderson"->"Grizzlies"]]             | ("Grizzlies")         |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Boris Diaw"]]                                                       | ("Boris Diaw")        |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Boris Diaw"], [:serve "Boris Diaw"->"Suns"]]                        | ("Suns")              |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Boris Diaw"], [:serve "Boris Diaw"->"Jazz"]]                        | ("Jazz")              |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Boris Diaw"], [:serve "Boris Diaw"->"Hawks"]]                       | ("Hawks")             |
-      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"->"Boris Diaw"], [:serve "Boris Diaw"->"Hornets"]]                     | ("Hornets")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Dejounte Murray"]]                                                  | ("Dejounte Murray")   |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"]]                                                  | ("Marco Belinelli")   |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"Bulls"]]             | ("Bulls")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"Hornets"]]           | ("Hornets")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"Hawks"]]             | ("Hawks")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"76ers"]]             | ("76ers")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"Spurs"@1]]           | ("Spurs")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"Hornets"@1]]         | ("Hornets")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"Raptors"]]           | ("Raptors")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"Warriors"]]          | ("Warriors")          |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"], [:serve "Marco Belinelli"->"Kings"]]             | ("Kings")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Danny Green"]]                                                      | ("Danny Green")       |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Danny Green"], [:serve "Danny Green"->"Cavaliers"]]                 | ("Cavaliers")         |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Danny Green"], [:serve "Danny Green"->"Raptors"]]                   | ("Raptors")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Aron Baynes"]]                                                      | ("Aron Baynes")       |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Aron Baynes"], [:serve "Aron Baynes"->"Pistons"]]                   | ("Pistons")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Aron Baynes"], [:serve "Aron Baynes"->"Celtics"]]                   | ("Celtics")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Jonathon Simmons"]]                                                 | ("Jonathon Simmons")  |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Jonathon Simmons"], [:serve "Jonathon Simmons"->"76ers"]]           | ("76ers")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Jonathon Simmons"], [:serve "Jonathon Simmons"->"Magic"]]           | ("Magic")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Rudy Gay"]]                                                         | ("Rudy Gay")          |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Rudy Gay"], [:serve "Rudy Gay"->"Raptors"]]                         | ("Raptors")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Rudy Gay"], [:serve "Rudy Gay"->"Kings"]]                           | ("Kings")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Rudy Gay"], [:serve "Rudy Gay"->"Grizzlies"]]                       | ("Grizzlies")         |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tony Parker"]]                                                      | ("Tony Parker")       |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tony Parker"], [:serve "Tony Parker"->"Hornets"]]                   | ("Hornets")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Manu Ginobili"]]                                                    | ("Manu Ginobili")     |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"David West"]]                                                       | ("David West")        |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"David West"], [:serve "David West"->"Pacers"]]                      | ("Pacers")            |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"David West"], [:serve "David West"->"Warriors"]]                    | ("Warriors")          |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"David West"], [:serve "David West"->"Hornets"]]                     | ("Hornets")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tracy McGrady"]]                                                    | ("Tracy McGrady")     |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tracy McGrady"], [:serve "Tracy McGrady"->"Raptors"]]               | ("Raptors")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tracy McGrady"], [:serve "Tracy McGrady"->"Magic"]]                 | ("Magic")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tracy McGrady"], [:serve "Tracy McGrady"->"Rockets"]]               | ("Rockets")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1]]                                                | ("Marco Belinelli")   |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Bulls"]]           | ("Bulls")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Spurs"]]           | ("Spurs")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Hornets"]]         | ("Hornets")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Hawks"]]           | ("Hawks")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"76ers"]]           | ("76ers")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Hornets"]]         | ("Hornets")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Raptors"]]         | ("Raptors")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Warriors"]]        | ("Warriors")          |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Marco Belinelli"@1], [:serve "Marco Belinelli"->"Kings"]]           | ("Kings")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Paul Gasol"]]                                                       | ("Paul Gasol")        |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Paul Gasol"], [:serve "Paul Gasol"->"Lakers"]]                      | ("Lakers")            |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Paul Gasol"], [:serve "Paul Gasol"->"Bulls"]]                       | ("Bulls")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Paul Gasol"], [:serve "Paul Gasol"->"Grizzlies"]]                   | ("Grizzlies")         |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Paul Gasol"], [:serve "Paul Gasol"->"Bucks"]]                       | ("Bucks")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"LaMarcus Aldridge"]]                                                | ("LaMarcus Aldridge") |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"LaMarcus Aldridge"], [:serve "LaMarcus Aldridge"->"Trail Blazers"]] | ("Trail Blazers")     |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tiago Splitter"]]                                                   | ("Tiago Splitter")    |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tiago Splitter"], [:serve "Tiago Splitter"->"Hawks"]]               | ("Hawks")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Tiago Splitter"], [:serve "Tiago Splitter"->"76ers"]]               | ("76ers")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Cory Joseph"]]                                                      | ("Cory Joseph")       |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Cory Joseph"], [:serve "Cory Joseph"->"Pacers"]]                    | ("Pacers")            |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Cory Joseph"], [:serve "Cory Joseph"->"Raptors"]]                   | ("Raptors")           |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Kyle Anderson"]]                                                    | ("Kyle Anderson")     |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Kyle Anderson"], [:serve "Kyle Anderson"->"Grizzlies"]]             | ("Grizzlies")         |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Boris Diaw"]]                                                       | ("Boris Diaw")        |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Boris Diaw"], [:serve "Boris Diaw"->"Suns"]]                        | ("Suns")              |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Boris Diaw"], [:serve "Boris Diaw"->"Jazz"]]                        | ("Jazz")              |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Boris Diaw"], [:serve "Boris Diaw"->"Hawks"]]                       | ("Hawks")             |
+      | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Boris Diaw"], [:serve "Boris Diaw"->"Hornets"]]                     | ("Hornets")           |
 
   Scenario: single both direction edge without properties
     When executing query:
