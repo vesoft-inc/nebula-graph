@@ -22,14 +22,28 @@ public:
 
 private:
     Status findStarts(MatchClauseContext* matchClauseCtx,
+                      bool& startFromEdge,
                       int64_t& startIndex,
                       SubPlan& matchClausePlan);
 
     Status expand(const std::vector<NodeInfo>& nodeInfos,
                   const std::vector<EdgeInfo>& edgeInfos,
                   MatchClauseContext* matchClauseCtx,
+                  bool startFromEdge,
                   int64_t startIndex,
                   SubPlan& subplan);
+
+    Status expandFromNode(const std::vector<NodeInfo>& nodeInfos,
+                          const std::vector<EdgeInfo>& edgeInfos,
+                          MatchClauseContext* matchClauseCtx,
+                          int64_t startIndex,
+                          SubPlan& subplan);
+
+    Status expandFromEdge(const std::vector<NodeInfo>& nodeInfos,
+                          const std::vector<EdgeInfo>& edgeInfos,
+                          MatchClauseContext* matchClauseCtx,
+                          int64_t startIndex,
+                          SubPlan& subplan);
 
     Status appendFetchVertexPlan(const Expression* nodeFilter,
                                  QueryContext* qctx,

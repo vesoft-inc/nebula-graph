@@ -31,15 +31,18 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
     auto& edgeInfos = matchClauseCtx->edgeInfos;
     SubPlan matchClausePlan;
     int64_t startIndex = kInitStartIndex;
+    bool startFromEdge = false;
 
-    NG_RETURN_IF_ERROR(findStarts(matchClauseCtx, startIndex, matchClausePlan));
-    NG_RETURN_IF_ERROR(expand(nodeInfos, edgeInfos, matchClauseCtx, startIndex, matchClausePlan));
+    NG_RETURN_IF_ERROR(findStarts(matchClauseCtx, startFromEdge, startIndex, matchClausePlan));
+    NG_RETURN_IF_ERROR(
+        expand(nodeInfos, edgeInfos, matchClauseCtx, startFromEdge, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(projectColumnsBySymbols(matchClauseCtx, &matchClausePlan));
     NG_RETURN_IF_ERROR(appendFilterPlan(matchClauseCtx, matchClausePlan));
     return matchClausePlan;
 }
 
 Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
+                                      bool& startFromEdge,
                                       int64_t& startIndex,
                                       SubPlan& matchClausePlan) {
     auto& nodeInfos = matchClauseCtx->nodeInfos;
@@ -73,6 +76,7 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
                         return plan.status();
                     }
                     matchClausePlan = std::move(plan).value();
+                    startFromEdge = true;
                     startIndex = i;
                     break;
                 }
@@ -93,8 +97,21 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
 Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,
                                   const std::vector<EdgeInfo>& edgeInfos,
                                   MatchClauseContext* matchClauseCtx,
+                                  bool startFromEdge,
                                   int64_t startIndex,
                                   SubPlan& subplan) {
+    if (startFromEdge) {
+        return expandFromEdge(nodeInfos, edgeInfos, matchClauseCtx, startIndex, subplan);
+    } else {
+        return expandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, subplan);
+    }
+}
+
+Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos,
+                                          const std::vector<EdgeInfo>& edgeInfos,
+                                          MatchClauseContext* matchClauseCtx,
+                                          int64_t startIndex,
+                                          SubPlan& subplan) {
     // Do expand from startIndex and connect the the subplans.
     // TODO: Only support start from the head node now.
     if (startIndex != 0) {
@@ -134,6 +151,19 @@ Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,
 
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     return Status::OK();
+}
+
+Status MatchClausePlanner::expandFromEdge(const std::vector<NodeInfo>& nodeInfos,
+                                          const std::vector<EdgeInfo>& edgeInfos,
+                                          MatchClauseContext* matchClauseCtx,
+                                          int64_t startIndex,
+                                          SubPlan& subplan) {
+    UNUSED(nodeInfos);
+    UNUSED(edgeInfos);
+    UNUSED(matchClauseCtx);
+    UNUSED(startIndex);
+    UNUSED(subplan);
+    return Status::Error("Expand from node has not been implemented yet.");
 }
 
 Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
