@@ -249,11 +249,12 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
 }
 
 // static
-void PlanNode::addDescription(std::string key, std::string value, PlanNodeDescription* desc) {
+void PlanNode::addDescription(std::string key, Value value, PlanNodeDescription* desc) {
     if (desc->description == nullptr) {
         desc->description = std::make_unique<std::vector<Pair>>();
     }
-    desc->description->emplace_back(Pair{std::move(key), std::move(value)});
+
+    desc->description->emplace_back(Pair{std::move(key), value.toString()});
 }
 
 void PlanNode::calcCost() {

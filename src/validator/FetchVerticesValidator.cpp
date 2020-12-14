@@ -118,7 +118,7 @@ Status FetchVerticesValidator::prepareVertices() {
         if (!SchemaUtil::isValidVid(v, space_.spaceDesc.vid_type)) {
             return Status::NotSupported("Not a vertex id");
         }
-        srcVids_.emplace_back(nebula::Row({std::move(v).getStr()}));
+        srcVids_.emplace_back(nebula::Row({std::move(v)}));
     }
     return Status::OK();
 }

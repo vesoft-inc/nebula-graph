@@ -88,6 +88,7 @@ Status InsertVerticesValidator::check() {
 
 Status InsertVerticesValidator::prepareVertices() {
     vertices_.reserve(rows_.size());
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propSize_ != row->values().size()) {
@@ -98,7 +99,7 @@ Status InsertVerticesValidator::prepareVertices() {
             return Status::SemanticError("Wrong vid expression `%s'",
                                          row->id()->toString().c_str());
         }
-        auto idStatus = SchemaUtil::toVertexID(row->id());
+        auto idStatus = SchemaUtil::toVertexID(row->id(), spaceInfo.spaceDesc.vid_type);
         NG_RETURN_IF_ERROR(idStatus);
         auto vertexId = std::move(idStatus).value();
 
@@ -188,7 +189,8 @@ Status InsertEdgesValidator::check() {
     return Status::OK();
 }
 
-Status InsertEdgesValidator::prepareEdges() {;
+Status InsertEdgesValidator::prepareEdges() {
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     edges_.reserve(rows_.size()*2);
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
@@ -207,10 +209,10 @@ Status InsertEdgesValidator::prepareEdges() {;
                                          row->dstid()->toString().c_str());
         }
 
-        auto idStatus = SchemaUtil::toVertexID(row->srcid());
+        auto idStatus = SchemaUtil::toVertexID(row->srcid(), spaceInfo.spaceDesc.vid_type);
         NG_RETURN_IF_ERROR(idStatus);
         auto srcId = std::move(idStatus).value();
-        idStatus = SchemaUtil::toVertexID(row->dstid());
+        idStatus = SchemaUtil::toVertexID(row->dstid(), spaceInfo.spaceDesc.vid_type);
         NG_RETURN_IF_ERROR(idStatus);
         auto dstId = std::move(idStatus).value();
 
@@ -258,6 +260,7 @@ Status InsertEdgesValidator::prepareEdges() {;
 }
 
 Status DeleteVerticesValidator::validateImpl() {
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
     if (sentence->isRef()) {
@@ -273,7 +276,7 @@ Status DeleteVerticesValidator::validateImpl() {
     } else {
         auto vIds = sentence->vidList()->vidList();
         for (auto vId : vIds) {
-            auto idStatus = SchemaUtil::toVertexID(vId);
+            auto idStatus = SchemaUtil::toVertexID(vId, spaceInfo.spaceDesc.vid_type);
             NG_RETURN_IF_ERROR(idStatus);
             vertices_.emplace_back(std::move(idStatus).value());
         }
@@ -402,12 +405,13 @@ Status DeleteEdgesValidator::buildEdgeKeyRef(const std::vector<EdgeKey*> &edgeKe
                                              const EdgeType edgeType) {
     edgeKeyVar_ = vctx_->anonVarGen()->getVar();
     DataSet ds({kSrc, kType, kRank, kDst});
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     for (auto &edgeKey : edgeKeys) {
         Row row;
         storage::cpp2::EdgeKey key;
-        auto srcIdStatus = SchemaUtil::toVertexID(edgeKey->srcid());
+        auto srcIdStatus = SchemaUtil::toVertexID(edgeKey->srcid(), spaceInfo.spaceDesc.vid_type);
         NG_RETURN_IF_ERROR(srcIdStatus);
-        auto dstIdStatus = SchemaUtil::toVertexID(edgeKey->dstid());
+        auto dstIdStatus = SchemaUtil::toVertexID(edgeKey->dstid(), spaceInfo.spaceDesc.vid_type);
         NG_RETURN_IF_ERROR(dstIdStatus);
 
         auto srcId = std::move(srcIdStatus).value();
@@ -602,8 +606,9 @@ std::unique_ptr<Expression> UpdateValidator::rewriteSymExpr(Expression *expr,
 }
 
 Status UpdateVertexValidator::validateImpl() {
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     auto sentence = static_cast<UpdateVertexSentence*>(sentence_);
-    auto idRet = SchemaUtil::toVertexID(sentence->getVid());
+    auto idRet = SchemaUtil::toVertexID(sentence->getVid(), spaceInfo.spaceDesc.vid_type);
     if (!idRet.ok()) {
         LOG(ERROR) << idRet.status();
         return idRet.status();
@@ -637,14 +642,15 @@ Status UpdateVertexValidator::toPlan() {
 }
 
 Status UpdateEdgeValidator::validateImpl() {
+    const auto& spaceInfo = qctx()->rctx()->session()->space();
     auto sentence = static_cast<UpdateEdgeSentence*>(sentence_);
-    auto srcIdRet = SchemaUtil::toVertexID(sentence->getSrcId());
+    auto srcIdRet = SchemaUtil::toVertexID(sentence->getSrcId(), spaceInfo.spaceDesc.vid_type);
     if (!srcIdRet.ok()) {
         LOG(ERROR) << srcIdRet.status();
         return srcIdRet.status();
     }
     srcId_ = std::move(srcIdRet).value();
-    auto dstIdRet = SchemaUtil::toVertexID(sentence->getDstId());
+    auto dstIdRet = SchemaUtil::toVertexID(sentence->getDstId(), spaceInfo.spaceDesc.vid_type);
     if (!dstIdRet.ok()) {
         LOG(ERROR) << dstIdRet.status();
         return dstIdRet.status();

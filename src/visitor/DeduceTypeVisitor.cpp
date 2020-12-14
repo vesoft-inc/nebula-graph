@@ -372,7 +372,13 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
         if (!ok()) return;
         argsTypeList.push_back(type_);
     }
-    auto result = FunctionManager::getReturnType(*expr->name(), argsTypeList);
+    auto funName = *expr->name();
+    if (funName == "id" || funName == "src" || funName == "dst") {
+        auto vidType = qctx_->rctx()->session()->space().spaceDesc.vid_type.get_type();
+        type_ = SchemaUtil::propTypeToValueType(vidType);
+        return;
+    }
+    auto result = FunctionManager::getReturnType(funName, argsTypeList);
     if (!result.ok()) {
         status_ = Status::SemanticError("`%s` is not a valid expression : %s",
                                         expr->toString().c_str(),
