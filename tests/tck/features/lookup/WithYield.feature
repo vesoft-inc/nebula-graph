@@ -41,6 +41,6 @@ Feature: Lookup with yield
       YIELD serve.start_year AS startYear
       """
     Then the result should be, in any order:
-      | SrcVID              | DstVID     | Ranking | startYear |
-      | 'Russell Westbrook' | 'Thunders' | 0       | 2008      |
-      | 'Marc Gasol'        | 'Grizzlies' | 0       | 2008             |
+      | SrcVID              | DstVID      | Ranking | startYear |
+      | 'Russell Westbrook' | 'Thunders'  | 0       | 2008      |
+      | 'Marc Gasol'        | 'Grizzlies' | 0       | 2008      |
