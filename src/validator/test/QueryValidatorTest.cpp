@@ -1086,6 +1086,7 @@ TEST_F(QueryValidatorTest, GoInvalid) {
         EXPECT_FALSE(checkResult(query));
     }
     {
+        // yield agg without groupBy is not supported
         std::string query = "GO FROM \"2\" OVER like YIELD COUNT(123);";
         EXPECT_FALSE(checkResult(query));
     }

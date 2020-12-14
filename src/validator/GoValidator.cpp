@@ -108,11 +108,6 @@ Status GoValidator::validateYield(YieldClause* yield) {
                 ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());
             }
 
-            if (!col->getAggFunName().empty()) {
-                return Status::SemanticError(
-                    "`%s', not support aggregate function in go sentence.",
-                    col->toString().c_str());
-            }
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
             // check input var expression

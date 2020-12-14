@@ -44,32 +44,15 @@ Status YieldValidator::validateImpl() {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
-    if (hasAggFun_) {
-        NG_RETURN_IF_ERROR(checkAggFunAndBuildGroupItems(yield->yield()));
-    }
+//    if (hasAggFun_) {
+//        NG_RETURN_IF_ERROR(checkAggFunAndBuildGroupItems(yield->yield()));
+//    }
 
     if (exprProps_.inputProps().empty() && exprProps_.varProps().empty()) {
         // generate constant expression result into querycontext
         genConstantExprValues();
     }
 
-    return Status::OK();
-}
-
-Status YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) {
-    auto yield = clause->yields();
-    for (auto column : yield->columns()) {
-        auto expr = column->expr();
-        auto fun = column->getAggFunName();
-        if (!evaluableExpr(expr) && fun.empty()) {
-            return Status::SemanticError(
-                "Input columns without aggregation are not supported in YIELD statement "
-                "without GROUP BY, near `%s'",
-                expr->toString().c_str());
-        }
-
-        groupItems_.emplace_back(Aggregate::GroupItem{expr, AggFun::nameIdMap_[fun], false});
-    }
     return Status::OK();
 }
 
@@ -129,9 +112,6 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
                     auto newExpr = new InputPropertyExpression(new std::string(colDef.name));
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
                 }
-                if (!column->getAggFunName().empty()) {
-                    return Status::SemanticError("could not apply aggregation function on `$-.*'");
-                }
                 continue;
             }
         } else if (expr->kind() == Expression::Kind::kVarProperty) {
@@ -148,21 +128,8 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
                                                                   new std::string(colDef.name));
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
                 }
-                if (!column->getAggFunName().empty()) {
-                    return Status::SemanticError("could not apply aggregation function on `$%s.*'",
-                                                 var->c_str());
-                }
                 continue;
             }
-        }
-
-        auto fun = column->getAggFunName();
-        if (!fun.empty()) {
-            auto foundAgg = AggFun::nameIdMap_.find(fun);
-            if (foundAgg == AggFun::nameIdMap_.end()) {
-                return Status::SemanticError("Unkown aggregate function: `%s'", fun.c_str());
-            }
-            hasAggFun_ = true;
         }
 
         NG_RETURN_IF_ERROR(makeOutputColumn(column->clone().release()));
@@ -200,13 +167,7 @@ Status YieldValidator::toPlan() {
     }
 
     SingleInputNode *dedupDep = nullptr;
-    if (!hasAggFun_) {
-        dedupDep = Project::make(qctx_, filter, columns_);
-    } else {
-        // We do not use group items later, so move it is safe
-        dedupDep = Aggregate::make(qctx_, filter, {}, std::move(groupItems_));
-    }
-
+    dedupDep = Project::make(qctx_, filter, columns_);
     dedupDep->setColNames(std::move(outputColumnNames_));
     if (filter != nullptr) {
         dedupDep->setInputVar(filter->outputVar());

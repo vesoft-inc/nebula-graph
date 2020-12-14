@@ -85,11 +85,11 @@ struct RowCmp {
 
 #define TEST_AGG_1(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
-    std::vector<Aggregate::GroupItem> groupItems;                           \
+    std::vector<Expression*> groupItems;                           \
     auto expr =                                                             \
         std::make_unique<InputPropertyExpression>(new std::string("col1")); \
-    Aggregate::GroupItem item(expr.get(), FUN, DISTINCT);                   \
-    groupItems.emplace_back(std::move(item));                               \
+    AggregateExpression item(new std::string(FUN), std::move(expr).release(), DISTINCT); \
+    groupItems.emplace_back(&item);                               \
     auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys), \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
@@ -105,12 +105,14 @@ struct RowCmp {
 
 #define TEST_AGG_2(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
-    std::vector<Aggregate::GroupItem> groupItems;                           \
-    auto expr =                                                             \
+    std::vector<Expression*> groupItems;                           \
+    auto expr1 =                                                             \
         std::make_unique<InputPropertyExpression>(new std::string("col2")); \
-    groupKeys.emplace_back(expr.get());                                     \
-    Aggregate::GroupItem item(expr.get(), FUN, DISTINCT);                   \
-    groupItems.emplace_back(std::move(item));                               \
+    auto expr2 =                                                             \
+        std::make_unique<InputPropertyExpression>(new std::string("col2")); \
+    groupKeys.emplace_back(std::move(expr1).get());                      \
+    AggregateExpression item(new std::string(FUN), std::move(expr2).release(), DISTINCT); \
+    groupItems.emplace_back(&item);                               \
     auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys), \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
@@ -128,17 +130,19 @@ struct RowCmp {
 
 #define TEST_AGG_3(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
-    std::vector<Aggregate::GroupItem> groupItems;                           \
-    auto expr =                                                             \
+    std::vector<Expression*> groupItems;                           \
+    auto expr1 =                                                             \
         std::make_unique<InputPropertyExpression>(new std::string("col2")); \
-    groupKeys.emplace_back(expr.get());                                     \
-    Aggregate::GroupItem item(expr.get(), AggFun::Function::kNone, false);  \
-    groupItems.emplace_back(std::move(item));                               \
-    auto expr1 =                                                            \
+    auto expr2 =                                                             \
+        std::make_unique<InputPropertyExpression>(new std::string("col2")); \
+    groupKeys.emplace_back(expr1.get());                                     \
+    AggregateExpression item(new std::string(""), std::move(expr2).release(), false);  \
+    groupItems.emplace_back(&item);                               \
+    auto expr3 =                                                            \
         std::make_unique<InputPropertyExpression>(new std::string("col3")); \
-    groupKeys.emplace_back(expr1.get());                                    \
-    Aggregate::GroupItem item1(expr1.get(), FUN, DISTINCT);                 \
-    groupItems.emplace_back(std::move(item1));                              \
+    groupKeys.emplace_back(expr3.get());                                    \
+    AggregateExpression item1(new std::string(FUN), std::move(expr3).release(), DISTINCT); \
+    groupItems.emplace_back(&item1);                              \
     auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys), \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
@@ -156,10 +160,10 @@ struct RowCmp {
 
 #define TEST_AGG_4(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
-    std::vector<Aggregate::GroupItem> groupItems;                           \
+    std::vector<Expression*> groupItems;                           \
     auto expr = std::make_unique<ConstantExpression>(1);                    \
-    Aggregate::GroupItem item(expr.get(), FUN, DISTINCT);                   \
-    groupItems.emplace_back(std::move(item));                               \
+    AggregateExpression item(new std::string(FUN), std::move(expr).release(), DISTINCT); \
+    groupItems.emplace_back(&item);                               \
     auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys), \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
@@ -204,7 +208,7 @@ TEST_F(AggregateTest, Group) {
 
         // key = col2
         // items = col2
-        TEST_AGG_2(AggFun::Function::kNone, "col2", false)
+        TEST_AGG_2("", "col2", false)
     }
     {
         // ===============
@@ -237,7 +241,7 @@ TEST_F(AggregateTest, Group) {
 
         // key = col2, col3
         // items = col2, col3
-        TEST_AGG_3(AggFun::Function::kNone, "col3", false)
+        TEST_AGG_3("", "col3", false)
     }
 }
 
@@ -260,7 +264,7 @@ TEST_F(AggregateTest, Collect) {
 
         // key =
         // items = collect(col1)
-        TEST_AGG_1(AggFun::Function::kCollect, "list", false)
+        TEST_AGG_1("COLLECT", "list", false)
     }
     {
         // ========
@@ -301,12 +305,14 @@ TEST_F(AggregateTest, Collect) {
         // key = col1
         // items = collect(col1)
         std::vector<Expression*> groupKeys;
-        std::vector<Aggregate::GroupItem> groupItems;
-        auto expr =
+        std::vector<Expression*> groupItems;
+        auto expr1 =
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
-        groupKeys.emplace_back(expr.get());
-        Aggregate::GroupItem item(expr.get(), AggFun::Function::kCollect, false);
-        groupItems.emplace_back(std::move(item));
+        auto expr2 =
+            std::make_unique<InputPropertyExpression>(new std::string("col1"));
+        groupKeys.emplace_back(std::move(expr1).get());
+        AggregateExpression item(new std::string("COLLECT"), std::move(expr2).release(), false);
+        groupItems.emplace_back(std::move(&item));
         auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys),
                                     std::move(groupItems));
         agg->setInputVar(*input_);
@@ -367,7 +373,7 @@ TEST_F(AggregateTest, Collect) {
 
         // key = col2, col3
         // items = col2, collect(col3)
-        TEST_AGG_3(AggFun::Function::kCollect, "list", false)
+        TEST_AGG_3("COLLECT", "list", false)
     }
     {
         // ====================================
@@ -387,7 +393,7 @@ TEST_F(AggregateTest, Collect) {
 
         // key =
         // items = collect(1)
-        TEST_AGG_4(AggFun::Function::kCollect, "list", false)
+        TEST_AGG_4("COLLECT", "list", false)
     }
     {
         // ====================================
@@ -408,11 +414,11 @@ TEST_F(AggregateTest, Collect) {
         // key =
         // items = collect(distinct col1)
         std::vector<Expression*> groupKeys;
-        std::vector<Aggregate::GroupItem> groupItems;
+        std::vector<Expression*> groupItems;
         auto expr =
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
-        Aggregate::GroupItem item(expr.get(), AggFun::Function::kCollect, true);
-        groupItems.emplace_back(std::move(item));
+        AggregateExpression item(new std::string("COLLECT"), std::move(expr).release(), true);
+        groupItems.emplace_back(std::move(&item));
         auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys),
                                     std::move(groupItems));
         agg->setInputVar(*input_);
@@ -469,12 +475,14 @@ TEST_F(AggregateTest, Collect) {
         // key = col1
         // items = collect(distinct col1)
         std::vector<Expression*> groupKeys;
-        std::vector<Aggregate::GroupItem> groupItems;
-        auto expr =
+        std::vector<Expression*> groupItems;
+        auto expr1 =
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
-        groupKeys.emplace_back(expr.get());
-        Aggregate::GroupItem item(expr.get(), AggFun::Function::kCollect, true);
-        groupItems.emplace_back(std::move(item));
+        auto expr2 =
+            std::make_unique<InputPropertyExpression>(new std::string("col1"));
+        groupKeys.emplace_back(std::move(expr1).get());
+        AggregateExpression item(new std::string("COLLECT"), std::move(expr2).release(), true);
+        groupItems.emplace_back(std::move(&item));
         auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys),
                                     std::move(groupItems));
         agg->setInputVar(*input_);
@@ -535,7 +543,8 @@ TEST_F(AggregateTest, Collect) {
 
         // key = col2, col3
         // items = col2, collect(distinct col3)
-        TEST_AGG_3(AggFun::Function::kCollect, "list", true)
+
+       TEST_AGG_3("COLLECT", "list", true)
     }
     {
         // ====================================
@@ -553,7 +562,7 @@ TEST_F(AggregateTest, Collect) {
 
         // key =
         // items = collect(distinct 1)
-        TEST_AGG_4(AggFun::Function::kCollect, "list", true)
+        TEST_AGG_4("COLLECT", "list", true)
     }
 }
 
@@ -572,7 +581,7 @@ TEST_F(AggregateTest, Count) {
 
         // key =
         // items = count(col1)
-        TEST_AGG_1(AggFun::Function::kCount, "count", false)
+        TEST_AGG_1("COUNT", "count", false)
     }
     {
         // ========
@@ -605,7 +614,7 @@ TEST_F(AggregateTest, Count) {
 
         // key = col2
         // items = count(col2)
-        TEST_AGG_2(AggFun::Function::kCount, "count", false)
+        TEST_AGG_2("COUNT", "count", false)
     }
     {
         // ================
@@ -638,7 +647,7 @@ TEST_F(AggregateTest, Count) {
 
         // key = col2, col3
         // items = col2, count(col3)
-        TEST_AGG_3(AggFun::Function::kCount, "count", false)
+        TEST_AGG_3("COUNT", "count", false)
     }
     {
         // ========
@@ -653,7 +662,7 @@ TEST_F(AggregateTest, Count) {
 
         // key =
         // items = count(1)
-        TEST_AGG_4(AggFun::Function::kCount, "count", false)
+        TEST_AGG_4("COUNT", "count", false)
     }
     {
         // ========
@@ -669,7 +678,7 @@ TEST_F(AggregateTest, Count) {
 
         // key =
         // items = count(distinct col1)
-        TEST_AGG_1(AggFun::Function::kCount, "count", true)
+        TEST_AGG_1("COUNT", "count", true)
     }
     {
         // ========
@@ -702,7 +711,7 @@ TEST_F(AggregateTest, Count) {
 
         // key = col2
         // items = count(distinct col2)
-        TEST_AGG_2(AggFun::Function::kCount, "count", true)
+        TEST_AGG_2("COUNT", "count", true)
     }
     {
         // ================
@@ -735,7 +744,7 @@ TEST_F(AggregateTest, Count) {
 
         // key = col2, col3
         // items = col2, count(distinct col3)
-        TEST_AGG_3(AggFun::Function::kCount, "count", true)
+        TEST_AGG_3("COUNT", "count", true)
     }
     {
         // ========
@@ -750,7 +759,7 @@ TEST_F(AggregateTest, Count) {
 
         // key =
         // items = count(distinct 1)
-        TEST_AGG_4(AggFun::Function::kCount, "count", true)
+        TEST_AGG_4("COUNT", "count", true)
     }
 }
 
@@ -769,7 +778,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key =
         // items = sum(col1)
-        TEST_AGG_1(AggFun::Function::kSum, "sum", false)
+        TEST_AGG_1("SUM", "sum", false)
     }
     {
         // ========
@@ -800,7 +809,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key = col2
         // items = sum(col2)
-        TEST_AGG_2(AggFun::Function::kSum, "sum", false)
+       TEST_AGG_2("SUM", "sum", false)
     }
     {
         // ================
@@ -833,7 +842,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key = col2, col3
         // items = col2, sum(col3)
-        TEST_AGG_3(AggFun::Function::kSum, "sum", false)
+        TEST_AGG_3("SUM", "sum", false)
     }
     {
         // ========
@@ -849,7 +858,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key =
         // items = sum(1)
-        TEST_AGG_4(AggFun::Function::kSum, "sum", false)
+        TEST_AGG_4("SUM", "sum", false)
     }
     {
         // ========
@@ -865,7 +874,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key =
         // items = sum(distinct col1)
-        TEST_AGG_1(AggFun::Function::kSum, "sum", true)
+        TEST_AGG_1("SUM", "sum", true)
     }
     {
         // ========
@@ -896,7 +905,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key = col2
         // items = sum(distinct col2)
-        TEST_AGG_2(AggFun::Function::kSum, "sum", true)
+        TEST_AGG_2("SUM", "sum", true)
     }
     {
         // ================
@@ -929,7 +938,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key = col2, col3
         // items = col2, sum(distinct col3)
-        TEST_AGG_3(AggFun::Function::kSum, "sum", true)
+        TEST_AGG_3("SUM", "sum", true)
     }
     {
         // ========
@@ -945,7 +954,7 @@ TEST_F(AggregateTest, Sum) {
 
         // key =
         // items = sum(distinct 1)
-        TEST_AGG_4(AggFun::Function::kSum, "sum", true)
+        TEST_AGG_4("SUM", "sum", true)
     }
 }
 
@@ -964,7 +973,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key =
         // items = avg(col1)
-        TEST_AGG_1(AggFun::Function::kAvg, "avg", false)
+        TEST_AGG_1("AVG", "avg", false)
     }
     {
         // ========
@@ -995,7 +1004,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key = col2
         // items = avg(col2)
-        TEST_AGG_2(AggFun::Function::kAvg, "avg", false)
+        TEST_AGG_2("AVG", "avg", false)
     }
     {
         // ================
@@ -1028,7 +1037,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key = col2, col3
         // items = col2, sum(col3)
-        TEST_AGG_3(AggFun::Function::kAvg, "avg", false)
+        TEST_AGG_3("AVG", "avg", false)
     }
     {
         // ========
@@ -1044,7 +1053,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key =
         // items = avg(1)
-        TEST_AGG_4(AggFun::Function::kAvg, "avg", false)
+        TEST_AGG_4("AVG", "avg", false)
     }
     {
         // ========
@@ -1060,7 +1069,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key =
         // items = avg(col1)
-        TEST_AGG_1(AggFun::Function::kAvg, "avg", true)
+        TEST_AGG_1("AVG", "avg", true)
     }
     {
         // ========
@@ -1091,7 +1100,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key = col2
         // items = avg(col2)
-        TEST_AGG_2(AggFun::Function::kAvg, "avg", true)
+        TEST_AGG_2("AVG", "avg", true)
     }
     {
         // ================
@@ -1124,7 +1133,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key = col2, col3
         // items = col2, sum(col3)
-        TEST_AGG_3(AggFun::Function::kAvg, "avg", true)
+        TEST_AGG_3("AVG", "avg", true)
     }
     {
         // ========
@@ -1140,7 +1149,7 @@ TEST_F(AggregateTest, Avg) {
 
         // key =
         // items = avg(1)
-        TEST_AGG_4(AggFun::Function::kAvg, "avg", true)
+        TEST_AGG_4("AVG", "avg", true)
     }
 }
 
@@ -1159,7 +1168,7 @@ TEST_F(AggregateTest, Max) {
 
         // key =
         // items = max(col1)
-        TEST_AGG_1(AggFun::Function::kMax, "max", false)
+        TEST_AGG_1("MAX", "max", false)
     }
     {
         // ================
@@ -1192,7 +1201,7 @@ TEST_F(AggregateTest, Max) {
 
         // key = col2, col3
         // items = col2, max(col3)
-        TEST_AGG_3(AggFun::Function::kMax, "max", false)
+        TEST_AGG_3("MAX", "max", false)
     }
     {
         // ========
@@ -1208,7 +1217,7 @@ TEST_F(AggregateTest, Max) {
 
         // key =
         // items = max(1)
-        TEST_AGG_4(AggFun::Function::kMax, "max", false)
+        TEST_AGG_4("MAX", "max", false)
     }
     {
         // ========
@@ -1224,7 +1233,7 @@ TEST_F(AggregateTest, Max) {
 
         // key =
         // items = max(col1)
-        TEST_AGG_1(AggFun::Function::kMax, "max", true)
+        TEST_AGG_1("MAX", "max", true)
     }
     {
         // ================
@@ -1257,7 +1266,7 @@ TEST_F(AggregateTest, Max) {
 
         // key = col2, col3
         // items = col2, max(col3)
-        TEST_AGG_3(AggFun::Function::kMax, "max", true)
+        TEST_AGG_3("MAX", "max", true)
     }
     {
         // ========
@@ -1273,7 +1282,7 @@ TEST_F(AggregateTest, Max) {
 
         // key =
         // items = max(1)
-        TEST_AGG_4(AggFun::Function::kMax, "max", true)
+        TEST_AGG_4("MAX", "max", true)
     }
 }
 
@@ -1292,7 +1301,7 @@ TEST_F(AggregateTest, Min) {
 
         // key =
         // items = min(col1)
-        TEST_AGG_1(AggFun::Function::kMin, "min", false)
+        TEST_AGG_1("MIN", "min", false)
     }
     {
         // ================
@@ -1325,7 +1334,7 @@ TEST_F(AggregateTest, Min) {
 
         // key = col2, col3
         // items = col2, min(col3)
-        TEST_AGG_3(AggFun::Function::kMin, "min", false)
+        TEST_AGG_3("MIN", "min", false)
     }
     {
         // ========
@@ -1341,7 +1350,7 @@ TEST_F(AggregateTest, Min) {
 
         // key =
         // items = min(1)
-        TEST_AGG_4(AggFun::Function::kMin, "min", false)
+        TEST_AGG_4("MIN", "min", false)
     }
     {
         // ========
@@ -1357,7 +1366,7 @@ TEST_F(AggregateTest, Min) {
 
         // key =
         // items = min(distinct col1)
-        TEST_AGG_1(AggFun::Function::kMin, "min", true)
+        TEST_AGG_1("MIN", "min", true)
     }
     {
         // ================
@@ -1390,7 +1399,7 @@ TEST_F(AggregateTest, Min) {
 
         // key = col2, col3
         // items = col2, min(distinct col3)
-        TEST_AGG_3(AggFun::Function::kMin, "min", true)
+        TEST_AGG_3("MIN", "min", true)
     }
     {
         // ========
@@ -1406,7 +1415,7 @@ TEST_F(AggregateTest, Min) {
 
         // key =
         // items = min(distinct 1)
-        TEST_AGG_4(AggFun::Function::kMin, "min", true)
+        TEST_AGG_4("MIN", "min", true)
     }
 }
 
@@ -1425,7 +1434,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key =
         // items = stdev(col1)
-        TEST_AGG_1(AggFun::Function::kStdev, "stdev", false)
+        TEST_AGG_1("STD", "stdev", false)
     }
     {
         // ===============
@@ -1455,7 +1464,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key = col2
         // items = stdev(col2)
-        TEST_AGG_2(AggFun::Function::kStdev, "stdev", false)
+        TEST_AGG_2("STD", "stdev", false)
     }
     {
         // =======================
@@ -1488,7 +1497,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key = col2, col3
         // items = col2, stdev(col3)
-        TEST_AGG_3(AggFun::Function::kStdev, "stdev", false)
+        TEST_AGG_3("STD", "stdev", false)
     }
     {
         // ===============
@@ -1503,7 +1512,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key =
         // items = stdev(1)
-        TEST_AGG_4(AggFun::Function::kStdev, "stdev", false)
+        TEST_AGG_4("STD", "stdev", false)
     }
     {
         // ===============
@@ -1519,7 +1528,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key =
         // items = stdev(distinct col1)
-        TEST_AGG_1(AggFun::Function::kStdev, "stdev", true)
+        TEST_AGG_1("STD", "stdev", true)
     }
     {
         // ===============
@@ -1549,7 +1558,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key = col2
         // items = stdev(distinct col2)
-        TEST_AGG_2(AggFun::Function::kStdev, "stdev", true)
+        TEST_AGG_2("STD", "stdev", true)
     }
     {
         // =======================
@@ -1582,7 +1591,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key = col2, col3
         // items = col2, stdev(distinct col3)
-        TEST_AGG_3(AggFun::Function::kStdev, "stdev", true)
+        TEST_AGG_3("STD", "stdev", true)
     }
     {
         // ===============
@@ -1598,7 +1607,7 @@ TEST_F(AggregateTest, Stdev) {
 
         // key =
         // items = stdev(distinct 1)
-        TEST_AGG_4(AggFun::Function::kStdev, "stdev", true)
+        TEST_AGG_4("STD", "stdev", true)
     }
 }
 
@@ -1617,7 +1626,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key =
         // items = bit_and(col1)
-        TEST_AGG_1(AggFun::Function::kBitAnd, "bit_and", false)
+        TEST_AGG_1("BIT_AND", "bit_and", false)
     }
     {
         // ===============
@@ -1648,7 +1657,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key = col2
         // items = bit_and(col2)
-        TEST_AGG_2(AggFun::Function::kBitAnd, "bit_and", false)
+        TEST_AGG_2("BIT_AND", "bit_and", false)
     }
     {
         // =======================
@@ -1681,7 +1690,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key = col2, col3
         // items = col2, bit_and(col3)
-        TEST_AGG_3(AggFun::Function::kBitAnd, "bit_and", false)
+        TEST_AGG_3("BIT_AND", "bit_and", false)
     }
     {
         // ===============
@@ -1696,7 +1705,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key =
         // items = bit_and(1)
-        TEST_AGG_4(AggFun::Function::kBitAnd, "bit_and", false)
+        TEST_AGG_4("BIT_AND", "bit_and", false)
     }
     {
         // ===============
@@ -1712,7 +1721,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key =
         // items = bit_and(distinct col1)
-        TEST_AGG_1(AggFun::Function::kBitAnd, "bit_and", true)
+        TEST_AGG_1("BIT_AND", "bit_and", true)
     }
     {
         // ===============
@@ -1743,7 +1752,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key = col2
         // items = bit_and(col2)
-        TEST_AGG_2(AggFun::Function::kBitAnd, "bit_and", true)
+        TEST_AGG_2("BIT_AND", "bit_and", true)
     }
     {
         // =======================
@@ -1776,7 +1785,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key = col2, col3
         // items = col2, bit_and(col3)
-        TEST_AGG_3(AggFun::Function::kBitAnd, "bit_and", true)
+        TEST_AGG_3("BIT_AND", "bit_and", true)
     }
     {
         // ===============
@@ -1792,7 +1801,7 @@ TEST_F(AggregateTest, BitAnd) {
 
         // key =
         // items = bit_and(1)
-        TEST_AGG_4(AggFun::Function::kBitAnd, "bit_and", true)
+        TEST_AGG_4("BIT_AND", "bit_and", true)
     }
 }
 
@@ -1811,7 +1820,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key =
         // items = bit_or(col1)
-        TEST_AGG_1(AggFun::Function::kBitOr, "bit_or", false)
+        TEST_AGG_1("BIT_OR", "bit_or", false)
     }
     {
         // ===============
@@ -1842,7 +1851,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key = col2
         // items = bit_or(col2)
-        TEST_AGG_2(AggFun::Function::kBitOr, "bit_or", false)
+        TEST_AGG_2("BIT_OR", "bit_or", false)
     }
     {
         // =======================
@@ -1875,7 +1884,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key = col2, col3
         // items = col2, bit_or(col3)
-        TEST_AGG_3(AggFun::Function::kBitOr, "bit_or", false)
+        TEST_AGG_3("BIT_OR", "bit_or", false)
     }
     {
         // ===============
@@ -1891,7 +1900,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key =
         // items = bit_or(1)
-        TEST_AGG_4(AggFun::Function::kBitOr, "bit_or", false)
+        TEST_AGG_4("BIT_OR", "bit_or", false)
     }
     {
         // ===============
@@ -1907,7 +1916,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key =
         // items = bit_or(distinct col1)
-        TEST_AGG_1(AggFun::Function::kBitOr, "bit_or", true)
+        TEST_AGG_1("BIT_OR", "bit_or", true)
     }
     {
         // ===============
@@ -1938,7 +1947,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key = col2
         // items = bit_or(distinct col2)
-        TEST_AGG_2(AggFun::Function::kBitOr, "bit_or", true)
+        TEST_AGG_2("BIT_OR", "bit_or", true)
     }
     {
         // =======================
@@ -1971,7 +1980,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key = col2, col3
         // items = col2, bit_or(distinct col3)
-        TEST_AGG_3(AggFun::Function::kBitOr, "bit_or", true)
+        TEST_AGG_3("BIT_OR", "bit_or", true)
     }
     {
         // ===============
@@ -1987,7 +1996,7 @@ TEST_F(AggregateTest, BitOr) {
 
         // key =
         // items = bit_or(distinct 1)
-        TEST_AGG_4(AggFun::Function::kBitOr, "bit_or", true)
+        TEST_AGG_4("BIT_OR", "bit_or", true)
     }
 }
 
@@ -2006,7 +2015,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key =
         // items = bit_xor(col1)
-        TEST_AGG_1(AggFun::Function::kBitXor, "bit_xor", false)
+        TEST_AGG_1("BIT_XOR", "bit_xor", false)
     }
     {
         // ===============
@@ -2037,7 +2046,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key = col2
         // items = bit_xor(col2)
-        TEST_AGG_2(AggFun::Function::kBitXor, "bit_xor", false)
+        TEST_AGG_2("BIT_XOR", "bit_xor", false)
     }
     {
         // =======================
@@ -2070,7 +2079,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key = col2, col3
         // items = col2, bit_xor(col3)
-        TEST_AGG_3(AggFun::Function::kBitXor, "bit_xor", false)
+        TEST_AGG_3("BIT_XOR", "bit_xor", false)
     }
     {
         // ===============
@@ -2086,7 +2095,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key =
         // items = bit_xor(1)
-        TEST_AGG_4(AggFun::Function::kBitXor, "bit_xor", false)
+        TEST_AGG_4("BIT_XOR", "bit_xor", false)
     }
     {
         // ===============
@@ -2102,7 +2111,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key =
         // items = bit_xor(distinct col1)
-        TEST_AGG_1(AggFun::Function::kBitXor, "bit_xor", true)
+        TEST_AGG_1("BIT_XOR", "bit_xor", true)
     }
     {
         // ===============
@@ -2133,7 +2142,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key = col2
         // items = bit_xor(distinct col2)
-        TEST_AGG_2(AggFun::Function::kBitXor, "bit_xor", true)
+        TEST_AGG_2("BIT_XOR", "bit_xor", true)
     }
     {
         // =======================
@@ -2166,7 +2175,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key = col2, col3
         // items = col2, bit_xor(distinct col3)
-        TEST_AGG_3(AggFun::Function::kBitXor, "bit_xor", true)
+        TEST_AGG_3("BIT_XOR", "bit_xor", true)
     }
     {
         // ===============
@@ -2182,7 +2191,7 @@ TEST_F(AggregateTest, BitXor) {
 
         // key =
         // items = bit_xor(distinct 1)
-        TEST_AGG_4(AggFun::Function::kBitXor, "bit_xor", true)
+        TEST_AGG_4("BIT_XOR", "bit_xor", true)
     }
 }
 }  // namespace graph

@@ -6,6 +6,7 @@
 
 #include "common/base/Base.h"
 #include "parser/TraverseSentences.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 
@@ -212,6 +213,15 @@ std::string LimitSentence::toString() const {
     }
 
     return folly::stringPrintf("LIMIT %ld,%ld", offset_, count_);
+}
+
+bool YieldSentence::hasAgg() {
+    for (auto* col : columns()) {
+        if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate})) {
+            return true;
+        }
+    }
+    return false;
 }
 
 std::string YieldSentence::toString() const {

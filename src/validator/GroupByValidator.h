@@ -30,16 +30,22 @@ private:
     Status validateYield(const YieldClause *yieldClause);
 
 private:
-    std::vector<YieldColumn*>                         groupCols_;
-    std::vector<YieldColumn*>                         yieldCols_;
+    // std::vector<Expression*>                         groupCols_;
+    std::vector<Expression*>                         yieldCols_;
+    std::vector<Expression*>                         yieldAggs_;
 
     // key: alias, value: input name
     std::unordered_map<std::string, YieldColumn*>     aliases_;
 
+    bool                                              pushUp_{false};
     std::vector<std::string>                          outputColumnNames_;
+    std::vector<std::string>                          projOutputColumnNames_;
+
+    // used to generate Project node when there is an internally nested aggregateExpression
+    std::unique_ptr<YieldColumns>                     projCols_;
 
     std::vector<Expression*>                          groupKeys_;
-    std::vector<Aggregate::GroupItem>                 groupItems_;
+    std::vector<Expression*>                          groupItems_;
 };
 
 

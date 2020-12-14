@@ -394,6 +394,65 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
     type_ = result.value();
 }
 
+void DeduceTypeVisitor::visit(AggregateExpression *expr) {
+    expr->arg()->accept(this);
+    if (!ok()) return;
+    auto arg_type = type_;
+
+    auto func = AggregateExpression::nameIdMap_[expr->name()->c_str()];
+    switch (func) {
+        case AggregateExpression::Function::kCount: {
+            type_ = Value::Type::INT;
+            break;
+        }
+        case AggregateExpression::Function::kSum: {
+            type_ = arg_type;
+            break;
+        }
+        case AggregateExpression::Function::kAvg: {
+            type_ = arg_type;
+            break;
+        }
+        case AggregateExpression::Function::kMax: {
+            type_ = arg_type;
+            break;
+        }
+        case AggregateExpression::Function::kMin: {
+            type_ = arg_type;
+            break;
+        }
+        case AggregateExpression::Function::kStdev: {
+            type_ = Value::Type::FLOAT;
+            break;
+        }
+        case AggregateExpression::Function::kBitAnd: {
+            type_ = Value::Type::INT;
+            break;
+        }
+        case AggregateExpression::Function::kBitOr: {
+            type_ = Value::Type::INT;
+            break;
+        }
+        case AggregateExpression::Function::kBitXor: {
+            type_ = Value::Type::INT;
+            break;
+        }
+        case AggregateExpression::Function::kCollect: {
+            type_ = Value::Type::LIST;
+            break;
+        }
+        case AggregateExpression::Function::kCollectSet: {
+            type_ = Value::Type::SET;
+            break;
+        }
+        default: {
+            LOG(FATAL) << "Invalid Aggregate expression kind: "
+                       << expr->name()->c_str();
+            break;
+        }
+    }
+}
+
 void DeduceTypeVisitor::visit(UUIDExpression *) {
     type_ = Value::Type::STRING;
 }
@@ -450,6 +509,7 @@ void DeduceTypeVisitor::visit(EdgePropertyExpression *expr) {
 
 void DeduceTypeVisitor::visit(InputPropertyExpression *expr) {
     auto *prop = expr->prop();
+    if (*prop == "*") return;
     auto found = std::find_if(
         inputs_.cbegin(), inputs_.cend(), [&prop](auto &col) { return *prop == col.name; });
     if (found == inputs_.cend()) {
@@ -462,6 +522,7 @@ void DeduceTypeVisitor::visit(InputPropertyExpression *expr) {
 
 void DeduceTypeVisitor::visit(VariablePropertyExpression *expr) {
     auto *var = expr->sym();
+    if (*var == "*") return;
     if (!vctx_->existVar(*var)) {
         status_ = Status::SemanticError(
             "`%s', not exist variable `%s'", expr->toString().c_str(), var->c_str());

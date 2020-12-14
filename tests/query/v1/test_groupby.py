@@ -68,11 +68,17 @@ class TestGroupBy(NebulaTestSuite):
         resp = self.execute(stmt)
         self.check_resp_failed(resp)
 
+        # TODO : support yield agg func without groupby  (czp)
         # yield without group by
         stmt = '''GO FROM 'Marco Belinelli' OVER serve YIELD $$.team.name AS name,
                 COUNT(serve._dst) AS id'''
         resp = self.execute(stmt)
-        self.check_resp_failed(resp)
+        self.check_resp_succeeded(resp)
+
+        stmt = '''GO FROM 'Marco Belinelli' OVER serve YIELD $$.team.name AS name ,
+                  serve._dst AS dst | YIELD $-.name, COUNT($-.dst) AS id'''
+        resp = self.execute(stmt)
+        self.check_resp_succeeded(resp)
 
     def test_group_by(self):
         stmt = '''GO FROM 'Aron Baynes', 'Tracy McGrady' OVER serve
@@ -93,11 +99,11 @@ class TestGroupBy(NebulaTestSuite):
         expected_data = {
             "column_names": ["teamName", "start_year", "MAX($-.start_year)", "MIN($-.end_year)", "avg_end_year", "std_end_year", "COUNT($-.id)"],
             "rows": [
-                ["Celtics", 2017, 2017, 2019, 2019.0, 0.0, 1],
-                ["Magic", 2000, 2000, 2004, 2004.0, 0.0, 1],
-                ["Pistons", 2015, 2015, 2017, 2017.0, 0.0, 1],
-                ["Raptors", 1997, 1997, 2000, 2000.0, 0.0, 1],
-                ["Rockets", 2004, 2004, 2010, 2010.0, 0.0, 1],
+                ["Celtics", 2017, 2017, 2019, 2019, 0.0, 1],
+                ["Magic", 2000, 2000, 2004, 2004, 0.0, 1],
+                ["Pistons", 2015, 2015, 2017, 2017, 0.0, 1],
+                ["Raptors", 1997, 1997, 2000, 2000, 0.0, 1],
+                ["Rockets", 2004, 2004, 2010, 2010, 0.0, 1],
                 ["Spurs", 2013, 2013, 2013, 2014.0, 1.0, 2]
             ]
         }
@@ -120,14 +126,14 @@ class TestGroupBy(NebulaTestSuite):
             "column_names": ["COUNT($-.id)", "start_year", "avg"],
             "rows": [
                 [2, 2018, 2018.5],
-                [1, 2017, 2018.0],
-                [1, 2016, 2017.0],
-                [1, 2009, 2010.0],
-                [1, 2007, 2009.0],
-                [1, 2012, 2013.0],
-                [1, 2013, 2015.0],
-                [1, 2015, 2016.0],
-                [1, 2010, 2012.0]
+                [1, 2017, 2018],
+                [1, 2016, 2017],
+                [1, 2009, 2010],
+                [1, 2007, 2009],
+                [1, 2012, 2013],
+                [1, 2013, 2015],
+                [1, 2015, 2016],
+                [1, 2010, 2012]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])
@@ -211,8 +217,8 @@ class TestGroupBy(NebulaTestSuite):
             "rows": [
                 ["LeBron James", 68, 34.0, 34, 34, 1, 2, 0, 2],
                 ["Chris Paul", 66, 33.0, 33, 33, 1, 2, 0, 2],
-                ["Dwyane Wade", 37, 37.0, 37, 37, 1, 2, 3, 1],
-                ["Carmelo Anthony", 34, 34.0, 34, 34, 1, 2, 3, 1]
+                ["Dwyane Wade", 37, 37, 37, 37, 1, 2, 3, 1],
+                ["Carmelo Anthony", 34, 34, 34, 34, 1, 2, 3, 1]
             ]
         }
         self.check_column_names(resp, expected_data["column_names"])

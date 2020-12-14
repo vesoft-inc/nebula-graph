@@ -115,6 +115,11 @@ void FoldConstantExprVisitor::visit(FunctionCallExpression *expr) {
     canBeFolded_ = canBeFolded;
 }
 
+void FoldConstantExprVisitor::visit(AggregateExpression *expr) {
+    // TODO : impl AggExpr foldConstantExprVisitor
+    UNUSED(expr);
+}
+
 void FoldConstantExprVisitor::visit(UUIDExpression *expr) {
     UNUSED(expr);
     canBeFolded_ = false;

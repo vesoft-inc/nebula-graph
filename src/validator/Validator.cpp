@@ -71,8 +71,19 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<LimitValidator>(sentence, context);
         case Sentence::Kind::kOrderBy:
             return std::make_unique<OrderByValidator>(sentence, context);
-        case Sentence::Kind::kYield:
+        case Sentence::Kind::kYield: {
+            auto yieldSentence = static_cast<YieldSentence*>(sentence);
+            if (yieldSentence->hasAgg()) {
+                auto* where = yieldSentence->where() ?
+                    yieldSentence->where()->clone().release() : nullptr;
+                auto* groupSentence = context->objPool()->add(
+                    new GroupBySentence(
+                    yieldSentence->yield()->clone().release(),
+                    where, nullptr));
+                return std::make_unique<GroupByValidator>(groupSentence, context);
+            }
             return std::make_unique<YieldValidator>(sentence, context);
+        }
         case Sentence::Kind::kGroupBy:
             return std::make_unique<GroupByValidator>(sentence, context);
         case Sentence::Kind::kCreateSpace:

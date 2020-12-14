@@ -267,16 +267,8 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()), "SemanticError: Use invalid group function `SUM`");
     }
+    // TODO : agg check  (czp)
     {
-        // yield without group by
-        std::string query = "GO FROM \"1\" OVER like YIELD $^.person.age AS age, "
-                            "COUNT(like._dst) AS id ";
-        auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `COUNT(like._dst) AS id', not support "
-                  "aggregate function in go sentence.");
-    }
-     {
         // yield col not in group output
         std::string query = "GO FROM \"1\" OVER like "
                             "YIELD $$.person.name as name, "
