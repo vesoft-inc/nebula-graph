@@ -25,20 +25,19 @@ folly::Future<Status> UnwindExecutor::execute() {
 
     DataSet ds;
     ds.colNames = unwind->colNames();
-    if (expr->kind() == Expression::Kind::kVarProperty) {   // UNWIND var AS r
-        auto *vp = static_cast<VariablePropertyExpression *>(expr);
-        for (; iter->valid(); iter->next()) {
-            Value val = vp->eval(ctx(iter.get()));
-            std::vector<Value> vals = extractList(val);
-            for (const auto &v : vals) {
-                ds.rows.emplace_back(Row({std::move(v)}));
-            }
-        }
-    } else {   // UNWIND [1, 2, 3] AS r
+    if (expr->kind() == Expression::Kind::kConstant) {
         Value val = expr->eval(ctx);
         std::vector<Value> vals = extractList(val);
         for (const auto &v : vals) {
             ds.rows.emplace_back(Row({std::move(v)}));
+        }
+    } else {
+        for (; iter->valid(); iter->next()) {
+            Value val = expr->eval(ctx(iter.get()));
+            std::vector<Value> vals = extractList(val);
+            for (const auto &v : vals) {
+                ds.rows.emplace_back(Row({std::move(v)}));
+            }
         }
     }
 
