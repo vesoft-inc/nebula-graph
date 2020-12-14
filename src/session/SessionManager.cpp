@@ -81,7 +81,6 @@ void SessionManager::findSessionFromMetad(
         if (findPtr == activeSessions_.end()) {
             VLOG(1) << "Add session id: " << id << " from metad";
             auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
-            sessionPtr->updateStatus(ClientSession::ClientStatus::kOnline);
             sessionPtr->charge();
             activeSessions_[id] = sessionPtr;
 
@@ -141,7 +140,6 @@ void SessionManager::createSession(const std::string &userName,
             if (findPtr == activeSessions_.end()) {
                 VLOG(1) << "Create session id: " << sid << ", for user: " << userName;
                 auto sessionPtr = ClientSession::create(std::move(session), metaClient_);
-                sessionPtr->updateStatus(ClientSession::ClientStatus::kOnline);
                 sessionPtr->charge();
                 activeSessions_[sid] = sessionPtr;
                 return sessionPtr;
@@ -201,7 +199,6 @@ void SessionManager::removeSession(SessionID id) {
         return;
     }
 
-    iter->second->updateStatus(ClientSession::ClientStatus::kRemove);
     auto resp = metaClient_->removeSession(id).get();
     if (!resp.ok()) {
         // it will delete by reclaim
@@ -241,7 +238,6 @@ void SessionManager::reclaimExpiredSessions() {
         }
         FLOG_INFO("ClientSession %ld has expired", iter->first);
 
-        iter->second->updateStatus(ClientSession::ClientStatus::kRemove);
         auto resp = metaClient_->removeSession(iter->first).get();
         if (!resp.ok()) {
             // TODO: Handle cases where the delete client failed

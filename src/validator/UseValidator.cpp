@@ -43,9 +43,9 @@ Status UseValidator::toPlan() {
     // The input will be set by father validator later.
     auto *start = StartNode::make(qctx_);
     auto switchSpace = SwitchSpace::make(qctx_, nullptr, *spaceName_);
+    qctx_->rctx()->session()->updateSpaceName(*spaceName_);
     auto session = qctx_->rctx()->session()->getSession();
-    session.space_name = *spaceName_;
-    auto update = UpdateSession::make(qctx_, switchSpace, session);
+    auto update = UpdateSession::make(qctx_, switchSpace, std::move(session));
     root_ = update;
     tail_ = switchSpace;
     return Status::OK();

@@ -24,42 +24,44 @@ struct SpaceInfo {
 
 class ClientSession final {
 public:
-    enum class ClientStatus : uint8_t {
-        kUnknown = 0,
-        kIdle,
-        kOnline,
-        kRemove,
-    };
-
     static std::shared_ptr<ClientSession> create(meta::cpp2::Session &&session,
                                                  meta::MetaClient* metaClient);
 
-    int64_t id() const {
+    int64_t id() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return session_.session_id;
     }
 
-    const SpaceInfo& space() const {
+    const SpaceInfo space() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return space_;
     }
 
     void setSpace(SpaceInfo space) {
-        space_ = std::move(space);
-        session_.space_name = space_.name;
+        {
+            folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
+            space_ = std::move(space);
+            session_.space_name = space_.name;
+        }
     }
 
-    const std::string& spaceName() const {
+    const std::string spaceName() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return session_.space_name;
     }
 
-    const std::string& user() const {
+    const std::string user() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return session_.user_name;
     }
 
-    std::unordered_map<GraphSpaceID, meta::cpp2::RoleType> roles() const {
+    std::unordered_map<GraphSpaceID, meta::cpp2::RoleType> roles() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return roles_;
     }
 
-    StatusOr<meta::cpp2::RoleType> roleWithSpace(GraphSpaceID space) const {
+    StatusOr<meta::cpp2::RoleType> roleWithSpace(GraphSpaceID space) {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         auto ret = roles_.find(space);
         if (ret == roles_.end()) {
             return Status::Error("No role in space %d", space);
@@ -78,40 +80,46 @@ public:
     }
 
     void setRole(GraphSpaceID space, meta::cpp2::RoleType role) {
+        folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
         roles_.emplace(space, role);
     }
 
-    uint64_t idleSeconds() const;
+    uint64_t idleSeconds();
 
     void charge();
 
-    void updateStatus(ClientStatus status) {
-        status_ = status;
-    }
-
-    ClientStatus getClientStatus() const {
-        return status_;
-    }
-
     int32_t getTimezone() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return session_.timezone;
     }
 
     void setTimezone(int32_t timezone) {
-        session_.timezone = timezone;
-        // TODO: if support ngql to set client's timezone,
-        //  need to update the timezone config to metad when timezone executor
+        {
+            folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
+            session_.timezone = timezone;
+            // TODO: if support ngql to set client's timezone,
+            //  need to update the timezone config to metad when timezone executor
+        }
     }
 
     void updateGraphAddr(const HostAddr &hostAddr) {
-        if (session_.graph_addr == hostAddr) {
-            return;
+        {
+            folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
+            if (session_.graph_addr == hostAddr) {
+                return;
+            }
+            session_.graph_addr = hostAddr;
         }
-        session_.graph_addr = hostAddr;
     }
 
-    const meta::cpp2::Session& getSession() const {
+    const meta::cpp2::Session getSession() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         return session_;
+    }
+
+    void updateSpaceName(const std::string &spaceName) {
+        folly::RWSpinLock::WriteHolder wHolder(rwSpinLock_);
+        session_.space_name = spaceName;
     }
 
 private:
@@ -123,9 +131,9 @@ private:
 private:
     SpaceInfo               space_;
     time::Duration          idleDuration_;
-    ClientStatus            status_{ClientStatus::kUnknown};
     meta::cpp2::Session     session_;
     meta::MetaClient*       metaClient_{ nullptr};
+    folly::RWSpinLock       rwSpinLock_;
     /*
      * map<spaceId, role>
      * One user can have roles in multiple spaces

@@ -8,6 +8,7 @@
 import re
 import time
 import pytest
+import concurrent
 
 from thrift.transport import TSocket
 from thrift.transport import TTransport
@@ -15,6 +16,7 @@ from thrift.protocol import TBinaryProtocol
 
 from nebula2.graph import GraphService
 from nebula2.graph import ttypes
+from nebula2.data.ResultSet import ResultSet
 from tests.common.nebula_test_suite import NebulaTestSuite
 
 class TestSession(NebulaTestSuite):
@@ -145,10 +147,37 @@ class TestSession(NebulaTestSuite):
         session_id = resp.session_id
 
         resp = conn1.execute(session_id, 'CREATE SPACE aSpace(partition_num=1);USE aSpace;')
-        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
+        self.check_resp_succeeded(ResultSet(resp))
         time.sleep(3)
         resp = conn1.execute(session_id, 'CREATE TAG a();')
-        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
+        self.check_resp_succeeded(ResultSet(resp))
         resp = conn2.execute(session_id, 'CREATE TAG b();')
-        assert resp.error_code == ttypes.ErrorCode.SUCCEEDED
+        self.check_resp_succeeded(ResultSet(resp))
+
+        def do_test(connection, sid, num):
+            result = connection.execute(sid, 'USE aSpace;')
+            assert result.error_code == ttypes.ErrorCode.SUCCEEDED
+            result = connection.execute(sid, 'CREATE TAG aa{}()'.format(num))
+            assert result.error_code == ttypes.ErrorCode.SUCCEEDED, result.error_msg
+
+        # test multi connection with the same session_id
+        test_jobs = []
+        with concurrent.futures.ThreadPoolExecutor(3) as executor:
+            for i in range(0, 3):
+                future = executor.submit(do_test,
+                                         get_connection(addr_host2, addr_port2),
+                                         session_id,
+                                         i)
+                test_jobs.append(future)
+
+            for future in concurrent.futures.as_completed(test_jobs):
+                if future.exception() is not None:
+                    assert False, future.exception()
+                else:
+                    assert True
+        resp = conn2.execute(session_id, 'SHOW TAGS')
+        self.check_resp_succeeded(ResultSet(resp))
+        expect_result = [['a'], ['b'], ['aa0'], ['aa1'], ['aa2']]
+        self.check_out_of_order_result(ResultSet(resp), expect_result)
+
 
