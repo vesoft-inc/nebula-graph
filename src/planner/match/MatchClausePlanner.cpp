@@ -18,6 +18,9 @@
 
 namespace nebula {
 namespace graph {
+
+constexpr int64_t kInitStartIndex = -1;
+
 StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseCtx) {
     if (clauseCtx->kind != CypherClauseKind::kMatch) {
         return Status::Error("Not a valid context for MatchClausePlanner.");
@@ -27,7 +30,7 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
     auto& nodeInfos = matchClauseCtx->nodeInfos;
     auto& edgeInfos = matchClauseCtx->edgeInfos;
     SubPlan matchClausePlan;
-    int64_t startIndex = -1;
+    int64_t startIndex = kInitStartIndex;
 
     NG_RETURN_IF_ERROR(findStarts(matchClauseCtx, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(expand(nodeInfos, edgeInfos, matchClauseCtx, startIndex, matchClausePlan));
@@ -43,12 +46,12 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
     auto& edgeInfos = matchClauseCtx->edgeInfos;
     auto& startVidFinders = StartVidFinder::finders();
     // Find the start plan node
-    for (size_t i = 0; i < nodeInfos.size(); ++i) {
-        for (auto& finder : startVidFinders) {
+    for (auto& finder : startVidFinders) {
+        for (size_t i = 0; i < nodeInfos.size() && startIndex == kInitStartIndex; ++i) {
             auto nodeCtx = NodeContext(matchClauseCtx, &nodeInfos[i]);
-            auto finderObj = finder();
-            if (finderObj->match(&nodeCtx)) {
-                auto plan = finderObj->transform(&nodeCtx);
+            auto nodeFinder = finder();
+            if (nodeFinder->match(&nodeCtx)) {
+                auto plan = nodeFinder->transform(&nodeCtx);
                 if (!plan.ok()) {
                     return plan.status();
                 }
@@ -63,8 +66,9 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
 
             if (i != nodeInfos.size() - 1) {
                 auto edgeCtx = EdgeContext(matchClauseCtx, &edgeInfos[i]);
-                if (finderObj->match(&edgeCtx)) {
-                    auto plan = finderObj->transform(&edgeCtx);
+                auto edgeFinder = finder();
+                if (edgeFinder->match(&edgeCtx)) {
+                    auto plan = edgeFinder->transform(&edgeCtx);
                     if (!plan.ok()) {
                         return plan.status();
                     }
@@ -74,7 +78,7 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
                 }
             }
         }
-        if (startIndex != -1) {
+        if (startIndex != kInitStartIndex) {
             break;
         }
     }
