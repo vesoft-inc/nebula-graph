@@ -162,7 +162,7 @@ Feature: Variable length relationship match (m to n)
       """
     Then the result should be, in any order, with relax comparision:
       | e                                                                                  | v                  |
-      | [[:like "Tim Duncan"->"Manu Ginobili"], [:like "Manu Ginobili"->"Tiago Splitter"]] | ("Tiago Splitter") |
+      | [[:like "Tim Duncan"<-"Manu Ginobili"], [:like "Manu Ginobili"<-"Tiago Splitter"]] | ("Tiago Splitter") |
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:serve|like*2..3{start_year: 2000}]-(v)
