@@ -13,8 +13,7 @@
 namespace nebula {
 namespace graph {
 
-class LookupValidatorTest : public ValidatorTestBase {
-};
+class LookupValidatorTest : public ValidatorTestBase {};
 
 TEST_F(LookupValidatorTest, InputOutput) {
     // pipe
@@ -64,6 +63,20 @@ TEST_F(LookupValidatorTest, InputOutput) {
                                     PlanNode::Kind::kIndexScan,
                                     PlanNode::Kind::kStart,
                                 }));
+    }
+}
+
+TEST_F(LookupValidatorTest, InvalidYieldExpression) {
+    // TODO(shylock)
+    {
+        const std::string query =
+            "LOOKUP ON person where person.age == 35 YIELD person.age + 1 AS age;";
+        EXPECT_FALSE(checkResult(query,
+                                 {
+                                     PlanNode::Kind::kProject,
+                                     PlanNode::Kind::kIndexScan,
+                                     PlanNode::Kind::kStart,
+                                 }));
     }
 }
 
