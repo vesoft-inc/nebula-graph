@@ -4,6 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 #
 
+import re
 import ply.lex as lex
 import ply.yacc as yacc
 
@@ -25,6 +26,7 @@ Value.__hash__ = lambda self: self.value.__hash__()
 states = (
     ('sstr', 'exclusive'),
     ('dstr', 'exclusive'),
+    ('regex', 'exclusive'),
 )
 
 tokens = (
@@ -42,14 +44,15 @@ tokens = (
     'STRING',
     'BOOLEAN',
     'LABEL',
+    'PATTERN',
 )
 
-literals = ['(', ')', '[', ']', '{', '}', '<', '>', '@', '-', ':', ',']
+literals = ['(', ')', '[', ']', '{', '}', '<', '>', '@', '-', ':', ',', '/']
 
 t_LABEL = r'[_a-zA-Z][_a-zA-Z0-9]*'
 
 t_ignore = ' \t\n'
-t_sstr_dstr_ignore = ''
+t_sstr_dstr_regex_ignore = ''
 
 
 def t_EMPTY(t):
@@ -143,6 +146,13 @@ def t_dstr(t):
     pass
 
 
+def t_regex(t):
+    r'/'
+    t.lexer.string = ''
+    t.lexer.begin('regex')
+    pass
+
+
 def t_sstr_dstr_escape_newline(t):
     r'\\n'
     t.lexer.string += '\n'
@@ -172,6 +182,21 @@ def t_dstr_any(t):
     t.lexer.string += t.value
     pass
 
+def t_regex_escape_char(t):
+    r'\\/'
+    t.lexer.string += t.value[1]
+    pass
+
+def t_regex_any(t):
+    r'[^/]'
+    t.lexer.string += t.value
+    pass
+
+def t_regex_PATTERN(t):
+    r'/'
+    t.value = re.compile(t.lexer.string)
+    t.lexer.begin('INITIAL')
+    return t
 
 def t_sstr_STRING(t):
     r'\''
@@ -207,6 +232,7 @@ def p_expr(p):
              | FLOAT
              | BOOLEAN
              | STRING
+             | PATTERN
              | list
              | set
              | map
@@ -516,74 +542,76 @@ if __name__ == '__main__':
     expected['True'] = Value(bVal=True)
     expected['false'] = Value(bVal=False)
     expected['fAlse'] = Value(bVal=False)
-    expected["'string'"] = Value(sVal="string")
-    expected['"string"'] = Value(sVal='string')
-    expected['''"string'string'"'''] = Value(sVal="string'string'")
+    expected["'string'"] = Value(sVal=b"string")
+    expected['"string"'] = Value(sVal=b'string')
+    expected['''"string'string'"'''] = Value(sVal=b"string'string'")
+    expected['''/^[_a-z][-_a-z0-9]*$/'''] = re.compile(r'^[_a-z][-_a-z0-9]*$')
+    expected['''/\\//'''] = re.compile(r'/')
     expected['[]'] = Value(lVal=NList([]))
-    expected['[{}]'] = Value(lVal=NList([Value(mVal=NMap({}))]))
-    expected['[1,2,3]'] = Value(
-        lVal=NList([Value(iVal=1), Value(
-            iVal=2), Value(iVal=3)]))
-    expected['{1,2,3}'] = Value(
-        uVal=NSet(set([Value(
-            iVal=1), Value(
-                iVal=2), Value(iVal=3)])))
-    expected['{}'] = Value(mVal=NMap({}))
-    expected['{k1:1,"k2":true}'] = Value(mVal=NMap({
-        'k1': Value(iVal=1),
-        'k2': Value(bVal=True)
-    }))
-    expected['()'] = Value(vVal=Vertex())
-    expected['("vid")'] = Value(vVal=Vertex(vid='vid'))
-    expected['("vid":t)'] = Value(vVal=Vertex(vid='vid', tags=[Tag(name='t')]))
-    expected['("vid":t:t)'] = Value(
-        vVal=Vertex(vid='vid', tags=[Tag(
-            name='t'), Tag(name='t')]))
-    expected['("vid":t{p1:0,p2:" "})'] = Value(vVal=Vertex(
-        vid='vid',
-        tags=[
-            Tag(name='t', props={
-                'p1': Value(iVal=0),
-                'p2': Value(sVal=' ')
-            })
-        ]))
-    expected['("vid":t1{p1:0,p2:" "}:t2{})'] = Value(vVal=Vertex(
-        vid='vid',
-        tags=[
-            Tag(name='t1', props={
-                'p1': Value(iVal=0),
-                'p2': Value(sVal=' ')
-            }),
-            Tag(name='t2', props={})
-        ]))
-    expected['[:e]'] = Value(eVal=Edge(name='e'))
-    expected['[@1]'] = Value(eVal=Edge(ranking=1))
-    expected['[@-1]'] = Value(eVal=Edge(ranking=-1))
-    expected['["1"->"2"]'] = Value(eVal=Edge(src='1', dst='2'))
-    expected['[:e{}]'] = Value(eVal=Edge(name='e', props={}))
-    expected['[:e@123{}]'] = Value(eVal=Edge(name='e', ranking=123, props={}))
-    expected['[:e"1"->"2"@123{}]'] = Value(
-        eVal=Edge(name='e', ranking=123, src='1', dst='2', props={}))
-    expected['<()>'] = Value(pVal=Path(src=Vertex()))
-    expected['<("vid")>'] = Value(pVal=Path(src=Vertex(vid='vid')))
-    expected['<()-->()>'] = Value(
-        pVal=Path(src=Vertex(), steps=[Step(type=1, dst=Vertex())]))
-    expected['<()<--()>'] = Value(
-        pVal=Path(src=Vertex(), steps=[Step(type=-1, dst=Vertex())]))
-    expected['<()-->()-->()>'] = Value(pVal=Path(
-        src=Vertex(),
-        steps=[Step(type=1, dst=Vertex()),
-               Step(type=1, dst=Vertex())]))
-    expected['<()-->()<--()>'] = Value(pVal=Path(
-        src=Vertex(),
-        steps=[Step(type=1, dst=Vertex()),
-               Step(type=-1, dst=Vertex())]))
-    expected['<("v1")-[:e1]->()<-[:e2]-("v2")>'] = Value(
-        pVal=Path(src=Vertex(vid='v1'),
-                  steps=[
-                      Step(name='e1', type=1, dst=Vertex()),
-                      Step(name='e2', type=-1, dst=Vertex(vid='v2'))
-                  ]))
+    #expected['[{}]'] = Value(lVal=NList([Value(mVal=NMap({}))]))
+    #expected['[1,2,3]'] = Value(
+        #lVal=NList([Value(iVal=1), Value(
+            #iVal=2), Value(iVal=3)]))
+    #expected['{1,2,3}'] = Value(
+        #uVal=NSet(set([Value(
+            #iVal=1), Value(
+                #iVal=2), Value(iVal=3)])))
+    #expected['{}'] = Value(mVal=NMap({}))
+    #expected['{k1:1,"k2":true}'] = Value(mVal=NMap({
+        #'k1': Value(iVal=1),
+        #'k2': Value(bVal=True)
+    #}))
+    #expected['()'] = Value(vVal=Vertex())
+    #expected['("vid")'] = Value(vVal=Vertex(vid='vid'))
+    #expected['("vid":t)'] = Value(vVal=Vertex(vid='vid', tags=[Tag(name='t')]))
+    #expected['("vid":t:t)'] = Value(
+        #vVal=Vertex(vid='vid', tags=[Tag(
+            #name='t'), Tag(name='t')]))
+    #expected['("vid":t{p1:0,p2:" "})'] = Value(vVal=Vertex(
+        #vid='vid',
+        #tags=[
+            #Tag(name='t', props={
+                #'p1': Value(iVal=0),
+                #'p2': Value(sVal=' ')
+            #})
+        #]))
+    #expected['("vid":t1{p1:0,p2:" "}:t2{})'] = Value(vVal=Vertex(
+        #vid='vid',
+        #tags=[
+            #Tag(name='t1', props={
+                #'p1': Value(iVal=0),
+                #'p2': Value(sVal=' ')
+            #}),
+            #Tag(name='t2', props={})
+        #]))
+    #expected['[:e]'] = Value(eVal=Edge(name='e'))
+    #expected['[@1]'] = Value(eVal=Edge(ranking=1))
+    #expected['[@-1]'] = Value(eVal=Edge(ranking=-1))
+    #expected['["1"->"2"]'] = Value(eVal=Edge(src='1', dst='2'))
+    #expected['[:e{}]'] = Value(eVal=Edge(name='e', props={}))
+    #expected['[:e@123{}]'] = Value(eVal=Edge(name='e', ranking=123, props={}))
+    #expected['[:e"1"->"2"@123{}]'] = Value(
+        #eVal=Edge(name='e', ranking=123, src='1', dst='2', props={}))
+    #expected['<()>'] = Value(pVal=Path(src=Vertex()))
+    #expected['<("vid")>'] = Value(pVal=Path(src=Vertex(vid='vid')))
+    #expected['<()-->()>'] = Value(
+        #pVal=Path(src=Vertex(), steps=[Step(type=1, dst=Vertex())]))
+    #expected['<()<--()>'] = Value(
+        #pVal=Path(src=Vertex(), steps=[Step(type=-1, dst=Vertex())]))
+    #expected['<()-->()-->()>'] = Value(pVal=Path(
+        #src=Vertex(),
+        #steps=[Step(type=1, dst=Vertex()),
+               #Step(type=1, dst=Vertex())]))
+    #expected['<()-->()<--()>'] = Value(pVal=Path(
+        #src=Vertex(),
+        #steps=[Step(type=1, dst=Vertex()),
+               #Step(type=-1, dst=Vertex())]))
+    #expected['<("v1")-[:e1]->()<-[:e2]-("v2")>'] = Value(
+        #pVal=Path(src=Vertex(vid='v1'),
+                  #steps=[
+                      #Step(name='e1', type=1, dst=Vertex()),
+                      #Step(name='e2', type=-1, dst=Vertex(vid='v2'))
+                  #]))
     for item in expected.items():
         v = parse(item[0])
         assert v is not None, "Failed to parse %s" % item[0]
