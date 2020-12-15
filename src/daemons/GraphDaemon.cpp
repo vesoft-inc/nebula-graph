@@ -142,8 +142,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    gServer->setPort(localhost.port);
     gServer->setInterface(std::move(interface));
-    gServer->setAddress(localhost.host, localhost.port);
     gServer->setReusePort(FLAGS_reuse_port);
     gServer->setIdleTimeout(std::chrono::seconds(FLAGS_client_idle_timeout_secs));
     gServer->setNumAcceptThreads(FLAGS_num_accept_threads);

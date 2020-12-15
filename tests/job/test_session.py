@@ -78,7 +78,7 @@ class TestSession(NebulaTestSuite):
                           re.compile(r'\d+'),
                           re.compile(r'\d+.\d+.\d+.\d+:.*'),
                           re.compile(r'\d+'),
-                          re.compile(r'\d+.\d+.\d+.\d+')]]
+                          re.compile(r'\S+')]]
         self.check_column_names(resp, expect_col_names)
         self.search_result(resp, expect_result, is_regex=True)
 
@@ -104,7 +104,7 @@ class TestSession(NebulaTestSuite):
                          [re.compile(r'UpdateTime'), re.compile(r'\d+')],
                          [re.compile(r'GraphAddr'), re.compile(r'\d+.\d+.\d+.\d+:.*')],
                          [re.compile(r'Timezone'), re.compile(r'\d+')],
-                         [re.compile(r'ClientIp'), re.compile(r'\d+.\d+.\d+.\d+')]]
+                         [re.compile(r'ClientIp'), re.compile(r'\S+')]]
         self.check_column_names(resp, expect_col_names)
         self.search_result(resp, expect_result, is_regex=True)
 
