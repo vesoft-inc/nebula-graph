@@ -22,6 +22,13 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
         addInput(left.tail, right.root);
         left.tail = right.tail;
         return left;
+    } else if (leftCtx->kind == CypherClauseKind::kReturn &&
+               rightCtx->kind == CypherClauseKind::kUnwind) {
+        VLOG(1) << "left tail: " << left.tail->outputVar()
+                << "right root: " << right.root->outputVar();
+        addInput(left.tail, right.root);
+        left.tail = right.tail;
+        return left;
     }
 
     return Status::Error("Can not solve the connect strategy of the two subplan..");
