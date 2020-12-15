@@ -89,25 +89,6 @@ function run_ctest() {
           --output-on-failure
 }
 
-<<<<<<< HEAD
-=======
-function run_test() {
-    export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
-    pytest -n 8 --build_dir=$BUILD_DIR \
-        --dist=loadfile \
-        --debug_log=false \
-        ${@:1}
-
-    pytest -n 1 --build_dir=$BUILD_DIR \
-        --dist=loadfile \
-        --debug_log=false \
-        $PROJ_DIR/tests/job/test_session.py
-        ${@:1}
-
-    # $BUILD_DIR/tests/ntr --debug_log=false ${@:1} $PROJ_DIR/tests/job/*
-}
-
->>>>>>> address comment
 function test_in_cluster() {
     cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
