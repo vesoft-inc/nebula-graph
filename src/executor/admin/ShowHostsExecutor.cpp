@@ -46,12 +46,9 @@ folly::Future<Status> ShowHostsExecutor::showHosts() {
             std::stringstream parts;
             std::size_t i = 0;
 
-            std::map<std::string, std::vector<PartitionID>> lPartsCount;
-            std::map<std::string, std::vector<PartitionID>> aPartsCount;
-            auto& leaderPart = host.get_leader_parts();
-            for (auto& elem : leaderPart) {
-                lPartsCount.emplace(elem.first, elem.second);
-            }
+            auto& leaderParts = host.get_leader_parts();
+            std::map<std::string, std::vector<PartitionID>> lPartsCount(leaderParts.begin(),
+                                                                        leaderParts.end());
 
             for (const auto &l : lPartsCount) {
                 leaderPartsCount[l.first] += l.second.size();
@@ -64,12 +61,11 @@ folly::Future<Status> ShowHostsExecutor::showHosts() {
             if (lPartsCount.empty()) {
                 leaders << kNoPartition;
             }
-            i = 0;
 
-            // aPartsCount(allParts.begin(), allParts.end());
-            for (auto& elem : allParts) {
-                aPartsCount.emplace(elem.first, elem.second);
-            }
+            i = 0;
+            auto& allParts = host.get_all_parts();
+            std::map<std::string, std::vector<PartitionID>> aPartsCount(allParts.begin(),
+                                                                        allParts.end());
             for (const auto &p : aPartsCount) {
                 allPartsCount[p.first] += p.second.size();
                 parts << p.first << ":" << p.second.size();
@@ -97,7 +93,7 @@ folly::Future<Status> ShowHostsExecutor::showHosts() {
             std::stringstream leaders;
             std::stringstream parts;
             std::size_t i = 0;
-            for (const auto& spaceEntry : leaderPartsCount) {
+            for (const auto &spaceEntry : leaderPartsCount) {
                 leaders << spaceEntry.first << ":" << spaceEntry.second;
                 if (i < leaderPartsCount.size() - 1) {
                     leaders << kPartitionDelimeter;
@@ -105,15 +101,25 @@ folly::Future<Status> ShowHostsExecutor::showHosts() {
                 ++i;
             }
             i = 0;
-            for (const auto& spaceEntry : allPartsCount) {
+            for (const auto &spaceEntry : allPartsCount) {
                 parts << spaceEntry.first << ":" << spaceEntry.second;
                 if (i < allPartsCount.size() - 1) {
                     parts << kPartitionDelimeter;
                 }
                 ++i;
             }
-            r.emplace_back(leaders.str());
-            r.emplace_back(parts.str());
+
+            if (leaders.str().empty()) {
+                r.emplace_back(Value());
+            } else {
+                r.emplace_back(leaders.str());
+            }
+
+            if (parts.str().empty()) {
+                r.emplace_back(Value());
+            } else {
+                r.emplace_back(parts.str());
+            }
             v.emplace_back(std::move(r));
         }
         return v;
