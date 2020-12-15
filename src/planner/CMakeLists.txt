@@ -23,6 +23,7 @@ nebula_add_library(
     match/AddInputStrategy.cpp
     match/MatchPlanner.cpp
     match/MatchClausePlanner.cpp
+    match/UnwindClausePlanner.cpp
     match/ReturnClausePlanner.cpp
     match/OrderByClausePlanner.cpp
     match/PaginationPlanner.cpp

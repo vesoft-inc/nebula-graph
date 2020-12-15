@@ -32,13 +32,15 @@ private:
     Status validateFilter(const Expression *filter, WhereClauseContext &whereClauseCtx) const;
 
     Status validateReturn(MatchReturn *ret,
-                          const MatchClauseContext &matchClauseCtx,
+                          const CypherClauseContextBase *cypherClauseCtx,
                           ReturnClauseContext &retClauseCtx) const;
 
     Status validateAliases(const std::vector<const Expression *> &exprs,
                            std::unordered_map<std::string, AliasType> &aliases) const;
 
     Status validateStepRange(const MatchStepRange *range) const;
+
+    Status validateUnwind(const UnwindClause *unwind, UnwindClauseContext &unwindClauseCtx) const;
 
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map) const;

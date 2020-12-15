@@ -53,7 +53,7 @@ struct EdgeInfo {
 };
 
 enum class AliasType : int8_t{
-    kNode, kEdge, kPath
+    kNode, kEdge, kPath, kList
 };
 
 struct ScanInfo {
@@ -122,7 +122,8 @@ struct MatchClauseContext final : CypherClauseContextBase {
 
 struct UnwindClauseContext final : CypherClauseContextBase {
     UnwindClauseContext() : CypherClauseContextBase(CypherClauseKind::kUnwind) {}
-    const YieldColumns*     yieldColumns{nullptr};
+    Expression*                                 expr{nullptr};
+    std::unordered_map<std::string, AliasType>  aliases;
 };
 
 struct MatchAstContext final : AstContext {
