@@ -22,18 +22,32 @@ public:
     Expand(MatchClauseContext* matchCtx, Expression** initialExpr)
         : matchCtx_(matchCtx), initialExpr_(initialExpr) {}
 
+    Expand* reversely() {
+        reversely_ = true;
+        return this;
+    }
+
+    Expand* depends(PlanNode* dep) {
+        dependency_ = dep;
+        return this;
+    }
+
+    Expand* inputVar(const std::string& inputVar) {
+        inputVar_ = inputVar;
+        return this;
+    }
+
     Status doExpand(const NodeInfo& node,
                     const EdgeInfo& edge,
-                    const PlanNode* input,
                     SubPlan* plan);
 
     Status expandSteps(const NodeInfo& node,
                        const EdgeInfo& edge,
-                       const PlanNode* input,
                        SubPlan* plan);
 
     Status expandStep(const EdgeInfo& edge,
-                      const PlanNode* input,
+                      PlanNode* dep,
+                      const std::string& inputVar,
                       const Expression* nodeFilter,
                       bool needPassThrough,
                       SubPlan* plan);
@@ -45,10 +59,6 @@ public:
                        SubPlan* plan);
 
     Status filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, SubPlan* plan);
-
-    Expression* initialExprOrEdgeDstExpr(const PlanNode* node);
-
-    PlanNode* joinDataSet(const PlanNode* right, const PlanNode* left);
 
     template <typename T>
     T* saveObject(T* obj) const {
@@ -62,6 +72,9 @@ private:
 
     MatchClauseContext* matchCtx_;
     Expression**        initialExpr_;
+    bool                reversely_{false};
+    PlanNode*           dependency_{nullptr};
+    std::string         inputVar_;
 };
 }   // namespace graph
 }   // namespace nebula

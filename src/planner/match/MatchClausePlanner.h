@@ -43,7 +43,8 @@ private:
                               const std::vector<EdgeInfo>& edgeInfos,
                               MatchClauseContext* matchClauseCtx,
                               size_t startIndex,
-                              SubPlan& subplan);
+                              SubPlan& subplan,
+                              const std::string& inputVar);
 
     Status rightExpandFromNode(const std::vector<NodeInfo>& nodeInfos,
                                const std::vector<EdgeInfo>& edgeInfos,

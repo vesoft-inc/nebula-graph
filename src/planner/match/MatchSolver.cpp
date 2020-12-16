@@ -163,12 +163,15 @@ Status MatchSolver::buildFilter(const MatchClauseContext* mctx, SubPlan* plan) {
 
 void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
                                            Expression** initialExpr,
+                                           PlanNode* dep,
+                                           const std::string& inputVar,
                                            SubPlan* plan) {
     auto columns = qctx->objPool()->add(new YieldColumns);
-    auto input = plan->root;
-    Expression* vidExpr = initialExprOrEdgeDstExpr(input, initialExpr);
+    auto* var = qctx->symTable()->getVar(inputVar);
+    Expression* vidExpr = initialExprOrEdgeDstExpr(initialExpr, var->colNames.back());
     columns->addColumn(new YieldColumn(vidExpr));
-    auto project = Project::make(qctx, input, columns);
+    auto project = Project::make(qctx, dep, columns);
+    project->setInputVar(inputVar);
     project->setColNames({kVid});
     auto dedup = Dedup::make(qctx, project);
     dedup->setColNames({kVid});
@@ -177,13 +180,14 @@ void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
     // plan->tail = dedup;
 }
 
-Expression* MatchSolver::initialExprOrEdgeDstExpr(const PlanNode* node, Expression** initialExpr) {
+Expression* MatchSolver::initialExprOrEdgeDstExpr(Expression** initialExpr,
+                                                  const std::string& vidCol) {
     Expression* vidExpr = *initialExpr;
     if (vidExpr != nullptr) {
         VLOG(1) << vidExpr->toString();
         *initialExpr = nullptr;
     } else {
-        vidExpr = getLastEdgeDstExprInLastPath(node->colNamesRef().back());
+        vidExpr = getLastEdgeDstExprInLastPath(vidCol);
     }
     return vidExpr;
 }

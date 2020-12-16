@@ -118,9 +118,9 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
         rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, rightPlan));
 
     if (startIndex > 0) {
-        SubPlan leftPlan = subplan;
-        NG_RETURN_IF_ERROR(
-            leftExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, leftPlan));
+        SubPlan leftPlan = rightPlan;
+        NG_RETURN_IF_ERROR(leftExpandFromNode(
+            nodeInfos, edgeInfos, matchClauseCtx, startIndex, leftPlan, subplan.root->outputVar()));
         // Connect the left expand and right expand part.
     }
     subplan = rightPlan;
@@ -131,12 +131,16 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                                               const std::vector<EdgeInfo>& edgeInfos,
                                               MatchClauseContext* matchClauseCtx,
                                               size_t startIndex,
-                                              SubPlan& subplan) {
+                                              SubPlan& subplan,
+                                              const std::string& inputVar) {
     std::vector<std::string> joinColNames = {folly::stringPrintf("%s_%ld", kPathStr, startIndex)};
     for (size_t i = startIndex; i > 0; --i) {
         auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx, &initialExpr_)
-                          ->doExpand(nodeInfos[i], edgeInfos[i - 1], subplan.root, &subplan);
+                          ->depends(subplan.root)
+                          ->inputVar(inputVar)
+                          ->reversely()
+                          ->doExpand(nodeInfos[i], edgeInfos[i - 1], &subplan);
         if (!status.ok()) {
             return status;
         }
@@ -176,7 +180,9 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
     for (size_t i = startIndex; i < edgeInfos.size(); ++i) {
         auto left = subplan.root;
         auto status = std::make_unique<Expand>(matchClauseCtx, &initialExpr_)
-                          ->doExpand(nodeInfos[i], edgeInfos[i], subplan.root, &subplan);
+                          ->depends(subplan.root)
+                          ->inputVar(subplan.root->outputVar())
+                          ->doExpand(nodeInfos[i], edgeInfos[i], &subplan);
         if (!status.ok()) {
             return status;
         }
@@ -224,7 +230,8 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
                                                  QueryContext* qctx,
                                                  SpaceInfo& space,
                                                  SubPlan* plan) {
-    MatchSolver::extractAndDedupVidColumn(qctx, &initialExpr_, plan);
+    MatchSolver::extractAndDedupVidColumn(
+        qctx, &initialExpr_, plan->root, plan->root->outputVar(), plan);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
     auto gv = GetVertices::make(
         qctx, plan->root, space.id, qctx->objPool()->add(srcExpr.release()), {}, {});

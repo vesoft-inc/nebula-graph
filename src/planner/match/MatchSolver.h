@@ -46,9 +46,12 @@ public:
 
     static void extractAndDedupVidColumn(QueryContext* qctx,
                                          Expression** initialExpr,
+                                         PlanNode* dep,
+                                         const std::string& inputVar,
                                          SubPlan* plan);
 
-    static Expression* initialExprOrEdgeDstExpr(const PlanNode* node, Expression** initialExpr);
+    static Expression* initialExprOrEdgeDstExpr(Expression** initialExpr,
+                                                const std::string& vidCol);
 
     static Expression* getLastEdgeDstExprInLastPath(const std::string& colName);
 
