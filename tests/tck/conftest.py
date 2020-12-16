@@ -57,13 +57,15 @@ def having_executed(query, session):
 @given(parse("create a space with following options:\n{options}"))
 def new_space(options, session, graph_spaces):
     lines = csv.reader(io.StringIO(options), delimiter="|")
-    opts = {line[1]: line[2] for line in lines}
+    opts = {line[1].strip(): line[2].strip() for line in lines}
     name = "EmptyGraph_" + space_generator()
     space_desc = SpaceDesc(
         name=name,
         partition_num=int(opts.get("partition_num", 7)),
         replica_factor=int(opts.get("replica_factor", 1)),
         vid_type=opts.get("vid_type", "FIXED_STRING(30)"),
+        charset=opts.get("charset", "utf8"),
+        collate=opts.get("collate", "utf8_bin"),
     )
     create_space(space_desc, session)
     graph_spaces["space_desc"] = space_desc

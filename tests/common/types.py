@@ -9,15 +9,24 @@ class SpaceDesc:
                  name: str,
                  vid_type: str = "FIXED_STRING(32)",
                  partition_num: int = 7,
-                 replica_factor: int = 1):
+                 replica_factor: int = 1,
+                 charset: str = "utf8",
+                 collate: str = "utf8_bin"):
         self.name = name
         self.vid_type = vid_type
         self.partition_num = partition_num
         self.replica_factor = replica_factor
+        self.charset = charset
+        self.collate = collate
 
     def create_stmt(self) -> str:
-        return "CREATE SPACE IF NOT EXISTS `{}`(partition_num={}, replica_factor={}, vid_type={});".format(
-            self.name, self.partition_num, self.replica_factor, self.vid_type)
+        return f"""CREATE SPACE IF NOT EXISTS `{self.name}`( \
+            partition_num={self.partition_num}, \
+            replica_factor={self.replica_factor}, \
+            vid_type={self.vid_type}, \
+            charset={self.charset}, \
+            collate={self.collate} \
+        );"""
 
     def use_stmt(self) -> str:
         return f"USE `{self.name}`;"

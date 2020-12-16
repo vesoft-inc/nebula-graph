@@ -6,6 +6,8 @@ Feature: Test space steps
       | partition_num  | 9                |
       | replica_factor | 1                |
       | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And import "nba" csv data
     And having executed:
       """
