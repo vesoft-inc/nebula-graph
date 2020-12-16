@@ -14,8 +14,8 @@ namespace graph {
 
 std::unique_ptr<PlanNodeDescription> InsertVertices::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("spaceId", folly::to<std::string>(spaceId_), desc.get());
-    addDescription("overwritable", util::toJson(overwritable_), desc.get());
+    addDescription("spaceId", spaceId_, desc.get());
+    addDescription("overwritable", overwritable_, desc.get());
 
     folly::dynamic tagPropsArr = folly::dynamic::array();
     for (const auto &p : tagPropNames_) {
@@ -31,8 +31,8 @@ std::unique_ptr<PlanNodeDescription> InsertVertices::explain() const {
 
 std::unique_ptr<PlanNodeDescription> InsertEdges::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("spaceId", folly::to<std::string>(spaceId_), desc.get());
-    addDescription("overwritable", folly::to<std::string>(overwritable_), desc.get());
+    addDescription("spaceId", spaceId_, desc.get());
+    addDescription("overwritable", overwritable_, desc.get());
     addDescription("propNames", folly::toJson(util::toJson(propNames_)), desc.get());
     addDescription("edges", folly::toJson(util::toJson(edges_)), desc.get());
     return desc;
@@ -40,9 +40,9 @@ std::unique_ptr<PlanNodeDescription> InsertEdges::explain() const {
 
 std::unique_ptr<PlanNodeDescription> Update::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("spaceId", folly::to<std::string>(spaceId_), desc.get());
+    addDescription("spaceId", spaceId_, desc.get());
     addDescription("schemaName", schemaName_, desc.get());
-    addDescription("insertable", folly::to<std::string>(insertable_), desc.get());
+    addDescription("insertable", insertable_, desc.get());
     addDescription("updatedProps", folly::toJson(util::toJson(updatedProps_)), desc.get());
     addDescription("returnProps", folly::toJson(util::toJson(returnProps_)), desc.get());
     addDescription("condition", condition_, desc.get());
@@ -53,7 +53,7 @@ std::unique_ptr<PlanNodeDescription> Update::explain() const {
 std::unique_ptr<PlanNodeDescription> UpdateVertex::explain() const {
     auto desc = Update::explain();
     addDescription("vid", vId_, desc.get());
-    addDescription("tagId", folly::to<std::string>(tagId_), desc.get());
+    addDescription("tagId", tagId_, desc.get());
     return desc;
 }
 
@@ -61,21 +61,21 @@ std::unique_ptr<PlanNodeDescription> UpdateEdge::explain() const {
     auto desc = Update::explain();
     addDescription("srcId", srcId_, desc.get());
     addDescription("dstId", dstId_, desc.get());
-    addDescription("rank", folly::to<std::string>(rank_), desc.get());
-    addDescription("edgeType", folly::to<std::string>(edgeType_), desc.get());
+    addDescription("rank", rank_, desc.get());
+    addDescription("edgeType", edgeType_, desc.get());
     return desc;
 }
 
 std::unique_ptr<PlanNodeDescription> DeleteVertices::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("space", folly::to<std::string>(space_), desc.get());
+    addDescription("space", space_, desc.get());
     addDescription("vidRef", vidRef_ ? vidRef_->toString() : "", desc.get());
     return desc;
 }
 
 std::unique_ptr<PlanNodeDescription> DeleteEdges::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("space", folly::to<std::string>(space_), desc.get());
+    addDescription("space", space_, desc.get());
     addDescription("edgeKeyRefs", folly::toJson(util::toJson(edgeKeyRefs_)), desc.get());
     return desc;
 }

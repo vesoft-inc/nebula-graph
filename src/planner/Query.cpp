@@ -18,9 +18,9 @@ namespace graph {
 
 std::unique_ptr<PlanNodeDescription> Explore::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("space", folly::to<std::string>(space_), desc.get());
-    addDescription("dedup", util::toJson(dedup_), desc.get());
-    addDescription("limit", folly::to<std::string>(limit_), desc.get());
+    addDescription("space", space_, desc.get());
+    addDescription("dedup", dedup_, desc.get());
+    addDescription("limit", limit_, desc.get());
     auto filter = filter_.empty() ? filter_ : Expression::decode(filter_)->toString();
     addDescription("filter", filter, desc.get());
     addDescription("orderBy", folly::toJson(util::toJson(orderBy_)), desc.get());
@@ -79,7 +79,7 @@ std::unique_ptr<PlanNodeDescription> GetNeighbors::explain() const {
     addDescription(
         "statProps", statProps_ ? folly::toJson(util::toJson(*statProps_)) : "", desc.get());
     addDescription("exprs", exprs_ ? folly::toJson(util::toJson(*exprs_)) : "", desc.get());
-    addDescription("random", util::toJson(random_), desc.get());
+    addDescription("random", random_, desc.get());
     return desc;
 }
 
@@ -94,7 +94,7 @@ std::unique_ptr<PlanNodeDescription> GetVertices::explain() const {
 std::unique_ptr<PlanNodeDescription> GetEdges::explain() const {
     auto desc = Explore::explain();
     addDescription("src", src_ ? src_->toString() : "", desc.get());
-    addDescription("type", util::toJson(type_), desc.get());
+    addDescription("type", type_, desc.get());
     addDescription("ranking", ranking_ ? ranking_->toString() : "", desc.get());
     addDescription("dst", dst_ ? dst_->toString() : "", desc.get());
     addDescription("props", folly::toJson(util::toJson(props_)), desc.get());
@@ -113,8 +113,8 @@ IndexScan* IndexScan::clone(QueryContext* qctx) const {
 
 std::unique_ptr<PlanNodeDescription> IndexScan::explain() const {
     auto desc = Explore::explain();
-    addDescription("schemaId", util::toJson(schemaId_), desc.get());
-    addDescription("isEdge", util::toJson(isEdge_), desc.get());
+    addDescription("schemaId", schemaId_, desc.get());
+    addDescription("isEdge", isEdge_, desc.get());
     addDescription("returnCols", folly::toJson(util::toJson(*returnCols_)), desc.get());
     addDescription("indexCtx", folly::toJson(util::toJson(*contexts_)), desc.get());
     return desc;
@@ -159,16 +159,16 @@ Limit* Limit::clone(QueryContext* qctx) const {
 
 std::unique_ptr<PlanNodeDescription> Limit::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("offset", folly::to<std::string>(offset_), desc.get());
-    addDescription("count", folly::to<std::string>(count_), desc.get());
+    addDescription("offset", offset_, desc.get());
+    addDescription("count", count_, desc.get());
     return desc;
 }
 
 std::unique_ptr<PlanNodeDescription> TopN::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("factors", folly::toJson(util::toJson(factorsString())), desc.get());
-    addDescription("offset", folly::to<std::string>(offset_), desc.get());
-    addDescription("count", folly::to<std::string>(count_), desc.get());
+    addDescription("offset", offset_, desc.get());
+    addDescription("count", count_, desc.get());
     return desc;
 }
 
