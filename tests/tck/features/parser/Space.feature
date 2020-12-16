@@ -33,4 +33,9 @@ Feature: Test space steps
       SHOW HOSTS
       """
     Then the execution should be successful
+    When executing query:
+      """
+      YIELD $-.id AS id
+      """
+    Then a SemanticError should be raised at runtime: `$-.id', not exist prop `id'
     Then drop the used space
