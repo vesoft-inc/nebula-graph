@@ -159,15 +159,14 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 }
 
 // static
-StatusOr<Value> SchemaUtil::toVertexID(
-        Expression *expr, const meta::cpp2::ColumnTypeDef typeDef) {
+StatusOr<Value> SchemaUtil::toVertexID(Expression *expr, Value::Type vidType) {
     QueryExpressionContext ctx;
-    auto vertexId = expr->eval(ctx(nullptr));
-    if (!isValidVid(vertexId, typeDef)) {
-        LOG(ERROR) << expr->toString() << " is the wrong vertex id type: " << vertexId.typeName();
+    auto vidVal = expr->eval(ctx(nullptr));
+    if (vidVal.type() != vidType) {
+        LOG(ERROR) << expr->toString() << " is the wrong vertex id type: " << vidVal.typeName();
         return Status::Error("Wrong vertex id type: %s", expr->toString().c_str());
     }
-    return vertexId;
+    return vidVal;
 }
 
 // static

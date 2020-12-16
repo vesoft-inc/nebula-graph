@@ -46,7 +46,10 @@ namespace graph {
 Validator::Validator(Sentence* sentence, QueryContext* qctx)
     : sentence_(DCHECK_NOTNULL(sentence)),
       qctx_(DCHECK_NOTNULL(qctx)),
-      vctx_(DCHECK_NOTNULL(qctx->vctx())) {}
+      vctx_(DCHECK_NOTNULL(qctx->vctx())) {
+    auto vidType = qctx_->rctx()->session()->space().spaceDesc.vid_type.get_type();
+    vidType_ = SchemaUtil::propTypeToValueType(vidType);
+}
 
 std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
     auto kind = sentence->kind();

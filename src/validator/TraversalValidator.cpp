@@ -24,18 +24,6 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                     " when starts are evaluated at runtime.", src->toString().c_str());
         }
         starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
-        auto type = deduceExprType(src);
-        if (!type.ok()) {
-            return type.status();
-        }
-        auto vidType = space_.spaceDesc.vid_type.get_type();
-        if (type.value() != SchemaUtil::propTypeToValueType(vidType)) {
-            std::stringstream ss;
-            ss << "`" << src->toString() << "', the srcs should be type of "
-                << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
-                << type.value() << "'";
-            return Status::SemanticError(ss.str());
-        }
         starts.originalSrc = src;
         auto* propExpr = static_cast<PropertyExpression*>(src);
         if (starts.fromType == kVariable) {
@@ -52,10 +40,9 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                         expr->toString().c_str());
             }
             auto vid = expr->eval(ctx(nullptr));
-            auto vidType = space_.spaceDesc.vid_type.get_type();
-            if (!SchemaUtil::isValidVid(vid, vidType)) {
+            if (vid.type() != vidType_) {
                 std::stringstream ss;
-                ss << "Vid should be a " << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType);
+                ss << "vid's type should be " << vidType_;
                 return Status::SemanticError(ss.str());
             }
             starts.vids.emplace_back(std::move(vid));
