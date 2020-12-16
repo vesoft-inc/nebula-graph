@@ -3,6 +3,7 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
+import os
 import csv
 import re
 
@@ -22,19 +23,63 @@ class CSVImporter:
     _VID = ':VID'
     _RANK = ':RANK'
 
-    def __init__(self, filepath):
-        self._filepath = filepath
+    def __init__(self, file_desc, data_dir):
+        self._filepath = os.path.join(data_dir, file_desc['path'])
         self._insert_stmt = ""
         self._create_stmt = ""
+        self._file_desc = file_desc
         self._type = None
+        self._gen_header(file_desc)
 
     def __iter__(self):
         with open(self._filepath, 'r') as f:
             for i, row in enumerate(csv.reader(f)):
                 if i == 0:
-                    yield self.parse_header(row)
+                    if self._file_desc is not None:
+                        yield self.parse_header(self._header)
+                    else:
+                        yield self.parse_header(row)
                 else:
                     yield self.process(row)
+
+    def _gen_header(self, file_desc):
+        header = {}
+        if file_desc["type"] == "vertex":
+            vertex = file_desc["vertex"]
+            vid = vertex["vid"]
+            header[self._key(vid)] = self._vid(vid)
+            tags = vertex["tags"]
+            for tag in tags:
+                tagname = tag['name']
+                for prop in tag['props']:
+                    header[self._key(prop)] = self._prop(prop, tagname)
+        elif file_desc["type"] == "edge":
+            edge = file_desc["edge"]
+            name = edge['name']
+            src = edge['srcVID']
+            header[self._key(src)] = self._vid(src)
+            dst = edge['dstVID']
+            header[self._key(dst)] = self._vid(dst)
+            for prop in edge['props']:
+                header[self._key(prop)] = self._prop(prop, name)
+        else:
+            raise ValueError("Invalid config file")
+        self._header = [header[str(i)] for i in range(len(header))]
+
+    @staticmethod
+    def _vid(vid):
+        vtype = vid['type']
+        if 'function' not in vid:
+            return f":VID({vtype})"
+        return f":VID({vtype},{vid['function']})"
+
+    @staticmethod
+    def _key(v):
+        return str(v['index'])
+
+    @staticmethod
+    def _prop(prop, prefix):
+        return f"{prefix}.{prop['name']}:{prop['type']}"
 
     def process(self, row: list):
         if isinstance(self._type, Vertex):
@@ -91,6 +136,7 @@ class CSVImporter:
             if col == self._RANK:
                 self._type.rank = Rank(i)
                 continue
+            # FIXME(yee): extract hash/uuid function
             m = re.search(r':SRC_VID\((.*)\)', col)
             if m:
                 self._type.src = VID(i, m.group(1))

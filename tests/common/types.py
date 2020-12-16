@@ -47,15 +47,20 @@ class Column:
 
 
 class VID(Column):
-    def __init__(self, index: int, vtype: str):
+    def __init__(self, index: int, vtype: str, function: str = None):
         super().__init__(index)
         if vtype not in ['int', 'string']:
             raise ValueError(f'Invalid vid type: {vtype}')
         self._type = vtype
+        self._function = function
 
     @property
     def id_type(self):
         return self._type
+
+    @property
+    def function(self):
+        return self._function
 
 
 class Rank(Column):

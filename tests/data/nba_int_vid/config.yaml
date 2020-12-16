@@ -22,7 +22,7 @@ files:
     vertex:
       vid:
         index: 0
-        type: int
+        type: string
         function: hash
       tags:
         - name: player
@@ -39,7 +39,7 @@ files:
     vertex:
       vid:
         index: 0
-        type: int
+        type: string
         function: hash
       tags:
         - name: bachelor
@@ -56,7 +56,7 @@ files:
     vertex:
       vid:
         index: 0
-        type: int
+        type: string
         function: hash
       tags:
         - name: team
@@ -70,11 +70,11 @@ files:
     edge:
       name: like
       srcVID:
-        type: int
+        type: string
         function: hash
         index: 0
       dstVID:
-        type: int
+        type: string
         function: hash
         index: 1
       props:
@@ -87,11 +87,11 @@ files:
     edge:
       name: serve
       srcVID:
-        type: int
+        type: string
         function: hash
         index: 0
       dstVID:
-        type: int
+        type: string
         function: hash
         index: 1
       rank:
@@ -109,11 +109,11 @@ files:
     edge:
       name: teammate
       srcVID:
-        type: int
+        type: string
         function: hash
         index: 0
       dstVID:
-        type: int
+        type: string
         function: hash
         index: 1
       props:
