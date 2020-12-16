@@ -20,8 +20,12 @@ PlanNode* InnerJoinStrategy::connect(const PlanNode* left, const PlanNode* right
 PlanNode* InnerJoinStrategy::joinDataSet(const PlanNode* left, const PlanNode* right) {
     auto& leftKey = left->colNamesRef().back();
     auto& rightKey = right->colNamesRef().front();
-    auto buildExpr = MatchSolver::getLastEdgeDstExprInLastPath(leftKey);
-    auto probeExpr = MatchSolver::getFirstVertexVidInFistPath(rightKey);
+    auto buildExpr = leftPos_ == JoinPos::kStart
+                         ? MatchSolver::getStartVidInPath(leftKey)
+                         : MatchSolver::getEndVidInPath(leftKey);
+    auto probeExpr = rightPos_ == JoinPos::kStart
+                         ? MatchSolver::getStartVidInPath(rightKey)
+                         : MatchSolver::getEndVidInPath(rightKey);
     qctx_->objPool()->add(buildExpr);
     qctx_->objPool()->add(probeExpr);
     auto join = DataJoin::make(qctx_,

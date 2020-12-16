@@ -118,10 +118,19 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
         rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, rightPlan));
 
     if (startIndex > 0) {
+        auto left = rightPlan.root;
         SubPlan leftPlan = rightPlan;
         NG_RETURN_IF_ERROR(leftExpandFromNode(
             nodeInfos, edgeInfos, matchClauseCtx, startIndex, leftPlan, subplan.root->outputVar()));
         // Connect the left expand and right expand part.
+        auto right = leftPlan.root;
+        auto join = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx,
+                                                         left,
+                                                         right,
+                                                         InnerJoinStrategy::JoinPos::kStart,
+                                                         InnerJoinStrategy::JoinPos::kStart);
+        // TODO: build the final path
+        UNUSED(join);
     }
     subplan = rightPlan;
     return Status::OK();

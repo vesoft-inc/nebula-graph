@@ -53,9 +53,9 @@ public:
     static Expression* initialExprOrEdgeDstExpr(Expression** initialExpr,
                                                 const std::string& vidCol);
 
-    static Expression* getLastEdgeDstExprInLastPath(const std::string& colName);
+    static Expression* getEndVidInPath(const std::string& colName);
 
-    static Expression* getFirstVertexVidInFistPath(const std::string& colName);
+    static Expression* getStartVidInPath(const std::string& colName);
 
     static PlanNode* filtPathHasSameEdge(PlanNode* input,
                                          const std::string& column,

@@ -187,12 +187,12 @@ Expression* MatchSolver::initialExprOrEdgeDstExpr(Expression** initialExpr,
         VLOG(1) << vidExpr->toString();
         *initialExpr = nullptr;
     } else {
-        vidExpr = getLastEdgeDstExprInLastPath(vidCol);
+        vidExpr = getEndVidInPath(vidCol);
     }
     return vidExpr;
 }
 
-Expression* MatchSolver::getLastEdgeDstExprInLastPath(const std::string& colName) {
+Expression* MatchSolver::getEndVidInPath(const std::string& colName) {
     // expr: __Project_2[-1] => path
     auto columnExpr = ExpressionUtils::inputPropExpr(colName);
     // expr: endNode(path) => vn
@@ -205,7 +205,7 @@ Expression* MatchSolver::getLastEdgeDstExprInLastPath(const std::string& colName
     return new AttributeExpression(endNode.release(), vidExpr.release());
 }
 
-Expression* MatchSolver::getFirstVertexVidInFistPath(const std::string& colName) {
+Expression* MatchSolver::getStartVidInPath(const std::string& colName) {
     // expr: __Project_2[0] => path
     auto columnExpr = ExpressionUtils::inputPropExpr(colName);
     // expr: startNode(path) => v1
