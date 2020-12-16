@@ -41,6 +41,7 @@ public:
                     const EdgeInfo& edge,
                     SubPlan* plan);
 
+private:
     Status expandSteps(const NodeInfo& node,
                        const EdgeInfo& edge,
                        SubPlan* plan);
@@ -65,10 +66,7 @@ public:
         return matchCtx_->qctx->objPool()->add(obj);
     }
 
-private:
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
-
-    StatusOr<std::vector<storage::cpp2::EdgeProp>> buildAllEdgeProp();
 
     MatchClauseContext* matchCtx_;
     Expression**        initialExpr_;

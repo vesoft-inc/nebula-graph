@@ -26,11 +26,6 @@ static std::unique_ptr<std::vector<VertexProp>> genVertexProps() {
 }
 
 std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const EdgeInfo &edge) {
-    if (edge.edgeTypes.empty()) {
-        return std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
-            buildAllEdgeProp().value());
-    }
-
     auto edgeProps = std::make_unique<std::vector<EdgeProp>>();
     for (auto edgeType : edge.edgeTypes) {
         auto edgeSchema = matchCtx_->qctx->schemaMng()->getEdgeSchema(
@@ -229,30 +224,5 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
     // plan->tail = curr.tail;
     return Status::OK();
 }
-
-StatusOr<std::vector<storage::cpp2::EdgeProp>> Expand::buildAllEdgeProp() {
-    // list all edge properties
-    std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> edgesSchema;
-    const auto allEdgesResult = matchCtx_->qctx->schemaMng()->getAllVerEdgeSchema(
-        matchCtx_->space.id);
-    NG_RETURN_IF_ERROR(allEdgesResult);
-    const auto allEdges = std::move(allEdgesResult).value();
-    for (const auto &edge : allEdges) {
-        edgesSchema.emplace(edge.first, edge.second.back());
-    }
-    std::vector<storage::cpp2::EdgeProp> eProps;
-    for (const auto &edgeSchema : edgesSchema) {
-        storage::cpp2::EdgeProp eProp;
-        eProp.set_type(edgeSchema.first);
-        std::vector<std::string> props{kSrc, kType, kRank, kDst};
-        for (std::size_t i = 0; i < edgeSchema.second->getNumFields(); ++i) {
-            props.emplace_back(edgeSchema.second->getFieldName(i));
-        }
-        eProp.set_props(std::move(props));
-        eProps.emplace_back(std::move(eProp));
-    }
-    return eProps;
-}
-
 }  // namespace graph
 }  // namespace nebula
