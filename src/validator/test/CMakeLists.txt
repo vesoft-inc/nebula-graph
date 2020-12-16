@@ -6,6 +6,7 @@
 nebula_add_library(
     mock_schema_obj OBJECT
     MockSchemaManager.cpp
+    MockIndexManager.cpp
 )
 
 set(VALIDATOR_TEST_LIBS
@@ -69,6 +70,7 @@ nebula_add_test(
         ValidatorTestBase.cpp
         ExplainValidatorTest.cpp
         GroupByValidatorTest.cpp
+        MatchValidatorTest.cpp
         SymbolsTest.cpp
     OBJECTS
         ${VALIDATOR_TEST_LIBS}
