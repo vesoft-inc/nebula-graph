@@ -169,6 +169,7 @@ def load_csv_data_once(tmp_path_factory, pytestconfig, worker_id, conn_pool,
         sess = conn_pool.get_session(user, password)
         create_space(space_desc, sess)
         load_csv_data(pytestconfig, sess, data_dir)
+        sess.release()
         fn.write_text(space_name)
         logging.info(f"session-{worker_id} load {space_name} csv data")
         yield space_desc

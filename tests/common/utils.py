@@ -355,5 +355,3 @@ def load_csv_data(pytestconfig, sess: Session, data_dir: str):
         for stmt in CSVImporter(path):
             rs = sess.execute(stmt)
             assert rs.is_succeeded()
-
-    sess.release()
