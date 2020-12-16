@@ -225,7 +225,7 @@ public:
     }
 
 protected:
-    static void addDescription(std::string key, std::string value, PlanNodeDescription* desc);
+    static void addDescription(std::string key, Value value, PlanNodeDescription* desc);
 
     QueryContext*                            qctx_{nullptr};
     Kind                                     kind_{Kind::kUnknown};

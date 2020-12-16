@@ -52,7 +52,7 @@ std::unique_ptr<PlanNodeDescription> Update::explain() const {
 
 std::unique_ptr<PlanNodeDescription> UpdateVertex::explain() const {
     auto desc = Update::explain();
-    addDescription("vid", folly::to<std::string>(vId_), desc.get());
+    addDescription("vid", vId_, desc.get());
     addDescription("tagId", folly::to<std::string>(tagId_), desc.get());
     return desc;
 }
