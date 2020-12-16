@@ -109,6 +109,9 @@ class DataSetWrapperComparator:
             if redge.name is not None:
                 if lhs.edge_name() != rhs.edge_name():
                     return False
+            # FIXME(yee): diff None and {} test cases
+            if len(rhs.propertys()) == 0:
+                return True
         return self.compare_map(lhs.propertys(), rhs.propertys())
 
     def compare_node(self, lhs: Node, rhs: Node):

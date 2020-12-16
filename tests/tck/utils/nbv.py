@@ -317,7 +317,7 @@ def p_vertex(p):
                | '(' STRING tag_list ')'
     '''
     vid = None
-    tags = []
+    tags = None
     if len(p) == 4:
         tags = p[2]
     else:
