@@ -5,7 +5,7 @@
  */
 
 #include "planner/Algo.h"
-
+#include "util/ToJson.h"
 namespace nebula {
 namespace graph {
 
@@ -43,8 +43,9 @@ std::unique_ptr<PlanNodeDescription> ProduceAllPaths::explain() const {
 
 std::unique_ptr<PlanNodeDescription> CartesianProduct::explain() const {
     auto desc = SingleDependencyNode::explain();
-    addDescription("vars", folly::toJson(inputVar()), desc.get());
-    addDescription("colNames", folly::toJson(allColNames_), desc.get());
+    for (size_t i = 0; i < inputVars_.size(); ++i) {
+        addDescription("var", folly::toJson(util::toJson(inputVars_[i])), desc.get());
+    }
     return desc;
 }
 
