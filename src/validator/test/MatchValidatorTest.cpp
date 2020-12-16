@@ -42,6 +42,27 @@ TEST_F(MatchValidatorTest, SeekByTagIndex) {
                                                 PlanNode::Kind::kStart};
         EXPECT_TRUE(checkResult(query, expected));
     }
+    // non empty properties index with extend
+    {
+        std::string query = "MATCH (p:person)-[:like]->(b:book) RETURN b.name AS book;";
+        std::vector<PlanNode::Kind> expected = {PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kDataJoin,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kGetVertices,
+                                                PlanNode::Kind::kDedup,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kFilter,
+                                                PlanNode::Kind::kPassThrough,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kGetNeighbors,
+                                                PlanNode::Kind::kDedup,
+                                                PlanNode::Kind::kProject,
+                                                PlanNode::Kind::kIndexScan,
+                                                PlanNode::Kind::kStart};
+        EXPECT_TRUE(checkResult(query, expected));
+    }
     // non index
     {
         std::string query = "MATCH (v:room) RETURN id(v) AS id;";

@@ -100,3 +100,14 @@ Feature: Match seek by tag
       | 'Trail Blazers' | 'Trail Blazers' |
       | 'Bulls'         | 'Bulls'         |
     And no side effects
+
+  Scenario: seek by tag index with extend
+    When executing query:
+      """
+      MATCH (p:bachelor)-[:serve]->(t)
+      RETURN t.name AS team
+      """
+    Then the result should be, in any order:
+      | team    |
+      | 'Spurs' |
+    And no side effects
