@@ -344,9 +344,7 @@ def load_csv_data(pytestconfig, sess: Session, data_dir: str):
     with open(config_path, 'r') as f:
         config = yaml.full_load(f)
         schemas = config['schema']
-        stmts = ' '.join(
-            filter(lambda x: not x.startswith("--"),
-                   map(lambda x: x.strip(), schemas.splitlines())))
+        stmts = ' '.join(map(lambda x: x.strip(), schemas.splitlines()))
         rs = sess.execute(stmts)
         assert rs.is_succeeded()
 

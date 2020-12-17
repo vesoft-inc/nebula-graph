@@ -52,6 +52,8 @@ class VID(Column):
         if vtype not in ['int', 'string']:
             raise ValueError(f'Invalid vid type: {vtype}')
         self._type = vtype
+        if function not in [None, 'hash', 'uuid']:
+            raise ValueError(f'Invalid vid function: {function}')
         self._function = function
 
     @property
