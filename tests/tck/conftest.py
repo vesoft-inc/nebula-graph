@@ -15,6 +15,7 @@ from nebula2.data.DataObject import DataSetWrapper
 from nebula2.graph.ttypes import ErrorCode
 from pytest_bdd import given, parsers, then, when
 
+from tests.common.dataset_printer import DataSetPrinter
 from tests.common.comparator import DataSetComparator
 from tests.common.configs import DATA_DIR
 from tests.common.types import SpaceDesc
@@ -109,9 +110,10 @@ def cmp_dataset(graph_spaces,
                               order=order,
                               included=included,
                               decode_type=rs._decode_type)
+    dsprinter = DataSetPrinter(rs._decode_type)
     resp_ds = rs._data_set_wrapper._data_set
     assert dscmp(resp_ds, ds), \
-        f"Response: {str(resp_ds)} vs. Expected: {str(ds)}"
+        f"Response: {dsprinter.ds_to_string(resp_ds)} vs. Expected: {dsprinter.ds_to_string(ds)}"
 
 
 @then(parse("the result should be, in order:\n{result}"))

@@ -200,14 +200,14 @@ def t_regex_PATTERN(t):
 
 def t_sstr_STRING(t):
     r'\''
-    t.value = Value(sVal=bytes(t.lexer.string, 'utf-8'))
+    t.value = Value(sVal=t.lexer.string)
     t.lexer.begin('INITIAL')
     return t
 
 
 def t_dstr_STRING(t):
     r'"'
-    t.value = Value(sVal=bytes(t.lexer.string, 'utf-8'))
+    t.value = Value(sVal=t.lexer.string)
     t.lexer.begin('INITIAL')
     return t
 
@@ -346,7 +346,7 @@ def p_tag(p):
         tag : ':' LABEL map
             | ':' LABEL
     '''
-    tag = Tag(name=bytes(p[2], 'utf-8'))
+    tag = Tag(name=p[2])
     if len(p) == 4:
         tag.props = p[3].get_mVal().kvs
     p[0] = tag
@@ -368,7 +368,7 @@ def p_edge_spec(p):
     '''
     e = Edge()
     name = None
-    rank = 0
+    rank = None
     src = None
     dst = None
     props = None
@@ -413,7 +413,7 @@ def p_edge_spec(p):
         rank = p[8]
         props = p[9]
 
-    e.name = None if name is None else bytes(name, 'utf-8')
+    e.name = name
     e.ranking = rank
     e.src = src
     e.dst = dst

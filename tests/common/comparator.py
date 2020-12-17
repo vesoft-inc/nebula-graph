@@ -5,7 +5,14 @@
 
 import math
 
-from nebula2.common.ttypes import DataSet, Edge, Path, Row, Value, Vertex
+from nebula2.common.ttypes import (
+    DataSet,
+    Edge,
+    Path,
+    Row,
+    Value,
+    Vertex,
+)
 
 
 class DataSetComparator:
@@ -31,13 +38,16 @@ class DataSetComparator:
     def compare(self, resp: DataSet, expect: DataSet):
         if len(resp.rows) < len(expect.rows):
             return False
-        if not resp.column_names == expect.column_names:
+        if len(resp.column_names) != len(expect.column_names):
             return False
+        for (ln, rn) in zip(resp.column_names, expect.column_names):
+            if ln != self.bstr(rn):
+                return False
         if self._order:
             return all(
                 self.compare_row(l, r)
                 for (l, r) in zip(resp.rows, expect.rows))
-        return self._compare_list(resp, expect, self.compare_row,
+        return self._compare_list(resp.rows, expect.rows, self.compare_row,
                                   self._included)
 
     def compare_value(self, lhs: Value, rhs: Value):
@@ -238,7 +248,7 @@ class DataSetComparator:
                 return False
         return True
 
-    def compare_list(self, lhs, rhs):
+    def compare_list(self, lhs: list, rhs: list):
         return len(lhs) == len(rhs) and \
             self._compare_list(lhs, rhs, self.compare_value)
 
