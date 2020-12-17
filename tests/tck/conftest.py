@@ -15,7 +15,7 @@ from nebula2.data.DataObject import DataSetWrapper
 from nebula2.graph.ttypes import ErrorCode
 from pytest_bdd import given, parsers, then, when
 
-from tests.common.comparator import DataSetWrapperComparator
+from tests.common.comparator import DataSetComparator
 from tests.common.configs import DATA_DIR
 from tests.common.types import SpaceDesc
 from tests.common.utils import create_space, load_csv_data, space_generator
@@ -104,12 +104,14 @@ def cmp_dataset(graph_spaces,
                 included=False) -> None:
     rs = graph_spaces['result_set']
     assert rs.is_succeeded(), f"Response failed: {rs.error_msg()}"
-    ds = DataSetWrapper(dataset(table(result)))
-    dscmp = DataSetWrapperComparator(strict=strict,
-                                     order=order,
-                                     included=included)
-    assert dscmp(rs._data_set_wrapper, ds), \
-        f"Response: {str(rs._data_set_wrapper)} vs. Expected: {str(ds)}"
+    ds = dataset(table(result))
+    dscmp = DataSetComparator(strict=strict,
+                              order=order,
+                              included=included,
+                              decode_type=rs._decode_type)
+    resp_ds = rs._data_set_wrapper._data_set
+    assert dscmp(resp_ds, ds), \
+        f"Response: {str(resp_ds)} vs. Expected: {str(ds)}"
 
 
 @then(parse("the result should be, in order:\n{result}"))
