@@ -39,12 +39,14 @@ private:
                           size_t startIndex,
                           SubPlan& subplan);
 
+    PlanNode* joinLeftAndRightExpandPart(QueryContext* qctx, PlanNode* left, PlanNode* right);
+
     Status leftExpandFromNode(const std::vector<NodeInfo>& nodeInfos,
                               const std::vector<EdgeInfo>& edgeInfos,
                               MatchClauseContext* matchClauseCtx,
                               size_t startIndex,
-                              SubPlan& subplan,
-                              const std::string& inputVar);
+                              const std::string& inputVar,
+                              SubPlan& subplan);
 
     Status rightExpandFromNode(const std::vector<NodeInfo>& nodeInfos,
                                const std::vector<EdgeInfo>& edgeInfos,
@@ -61,6 +63,7 @@ private:
     Status appendFetchVertexPlan(const Expression* nodeFilter,
                                  QueryContext* qctx,
                                  SpaceInfo& space,
+                                 Expression* initialExpr,
                                  SubPlan* plan);
 
     Status projectColumnsBySymbols(MatchClauseContext* matchClauseCtx, SubPlan *plan);

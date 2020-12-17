@@ -19,7 +19,7 @@ namespace graph {
  */
 class Expand final {
 public:
-    Expand(MatchClauseContext* matchCtx, Expression** initialExpr)
+    Expand(MatchClauseContext* matchCtx, Expression* initialExpr)
         : matchCtx_(matchCtx), initialExpr_(initialExpr) {}
 
     Expand* reversely() {
@@ -69,7 +69,7 @@ private:
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
 
     MatchClauseContext* matchCtx_;
-    Expression**        initialExpr_;
+    Expression*         initialExpr_;
     bool                reversely_{false};
     PlanNode*           dependency_{nullptr};
     std::string         inputVar_;

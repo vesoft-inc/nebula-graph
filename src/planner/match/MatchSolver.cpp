@@ -162,7 +162,7 @@ Status MatchSolver::buildFilter(const MatchClauseContext* mctx, SubPlan* plan) {
 }
 
 void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
-                                           Expression** initialExpr,
+                                           Expression* initialExpr,
                                            PlanNode* dep,
                                            const std::string& inputVar,
                                            SubPlan* plan) {
@@ -180,16 +180,13 @@ void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
     // plan->tail = dedup;
 }
 
-Expression* MatchSolver::initialExprOrEdgeDstExpr(Expression** initialExpr,
+Expression* MatchSolver::initialExprOrEdgeDstExpr(Expression* initialExpr,
                                                   const std::string& vidCol) {
-    Expression* vidExpr = *initialExpr;
-    if (vidExpr != nullptr) {
-        VLOG(1) << vidExpr->toString();
-        *initialExpr = nullptr;
+    if (initialExpr != nullptr) {
+        return initialExpr;
     } else {
-        vidExpr = getEndVidInPath(vidCol);
+        return getEndVidInPath(vidCol);
     }
-    return vidExpr;
 }
 
 Expression* MatchSolver::getEndVidInPath(const std::string& colName) {
