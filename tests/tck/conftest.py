@@ -22,6 +22,7 @@ from tests.common.utils import create_space, load_csv_data, space_generator
 from tests.tck.utils.table import dataset, table
 
 parse = functools.partial(parsers.parse)
+reparse = functools.partial(parsers.re)
 
 
 @pytest.fixture
@@ -152,7 +153,9 @@ def execution_should_be_succ(graph_spaces):
     assert rs.is_succeeded(), f"Response failed: {rs.error_msg()}"
 
 
-@then(parse("a {err_type} should be raised at {time}:{msg}"))
+@then(
+    reparse("a (?P<err_type>\w+) should be raised at (?P<time>.*):(?P<msg>.*)")
+)
 def raised_type_error(err_type, time, msg, graph_spaces):
     res = graph_spaces["result_set"]
     assert not res.is_succeeded(), "Response should be failed"

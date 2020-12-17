@@ -46,7 +46,7 @@ class CSVImporter:
         if file_desc["type"] == "vertex":
             vertex = file_desc["vertex"]
             vid = vertex["vid"]
-            header[self._key(vid)] = self._vid(vid, "VID")
+            header[self._key(vid)] = self._vid(vid, self._VID)
             tags = vertex["tags"]
             for tag in tags:
                 tagname = tag['name']
@@ -56,11 +56,11 @@ class CSVImporter:
             edge = file_desc["edge"]
             name = edge['name']
             src = edge['srcVID']
-            header[self._key(src)] = self._vid(src, "SRC_VID")
+            header[self._key(src)] = self._vid(src, self._SRC_VID)
             dst = edge['dstVID']
-            header[self._key(dst)] = self._vid(dst, "DST_VID")
+            header[self._key(dst)] = self._vid(dst, self._DST_VID)
             if "rank" in edge:
-                header[self._key(edge['rank'])] = ":RANK"
+                header[self._key(edge['rank'])] = self._RANK
             for prop in edge['props']:
                 header[self._key(prop)] = self._prop(prop, name)
         else:
@@ -71,8 +71,8 @@ class CSVImporter:
     def _vid(vid, name: str):
         vtype = vid['type']
         if 'function' not in vid:
-            return f":{name}({vtype})"
-        return f":{name}({vtype},{vid['function']})"
+            return f"{name}({vtype})"
+        return f"{name}({vtype},{vid['function']})"
 
     @staticmethod
     def _key(v):

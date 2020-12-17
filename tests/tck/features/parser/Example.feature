@@ -40,4 +40,9 @@ Feature: Feature examples
       YIELD $-.id AS id
       """
     Then a SemanticError should be raised at runtime: `$-.id', not exist prop `id'
+    When executing query:
+      """
+      CREATE TAG player(name string);
+      """
+    Then a ExecutionError should be raised at runtime:
     Then drop the used space
