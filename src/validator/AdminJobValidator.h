@@ -50,6 +50,7 @@ private:
             case meta::cpp2::AdminJobOp::RECOVER:
                 return false;
         }
+        return false;
     }
 
 private:
