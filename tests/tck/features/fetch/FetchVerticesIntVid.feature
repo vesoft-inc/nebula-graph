@@ -1,9 +1,9 @@
 Feature: Fetch Vertices
 
   Background: Prepare space
-    Given a graph with space named "nba"
+    Given a graph with space named "nba_int_vid"
 
-  Scenario: [1] Fetch Vertices
+  Scenario: [1] Fetch Vertices 
     When executing query:
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.age
