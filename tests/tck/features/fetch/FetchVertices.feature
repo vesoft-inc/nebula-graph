@@ -143,14 +143,14 @@ Feature: Fetch Vertices
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD abc.name, player.age
       """
-    Then a ExecutionError should be raised at runtime.
+    Then a ExecutionError should be raised at runtime:
 
   Scenario: [17] Fetch Vertices
     When executing query:
       """
       FETCH PROP ON abc hash('Boris Diaw')
       """
-    Then a ExecutionError should be raised at runtime.
+    Then a ExecutionError should be raised at runtime:
 
   Scenario: [18] Fetch Vertices
     When executing query:
@@ -182,8 +182,8 @@ Feature: Fetch Vertices
       FETCH PROP ON * hash('Boris Diaw')
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID             | player.name  | player.age |
-      | -7391649757245641883 | "Boris Diaw" | 36         |
+   |VertexID| player.name| player.age|
+|-7391649757245641883|"Boris Diaw"| 36|
 
   Scenario: [22] Fetch Vertices
     When executing query:
@@ -265,14 +265,14 @@ Feature: Fetch Vertices
       """
       GO FROM hash('Boris Diaw') over like YIELD like._dst as id, like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
       """
-    Then a ExecutionError should be raised at runtime.
+    Then a ExecutionError should be raised at runtime:
 
   Scenario: [31] Fetch Vertices
     When executing query:
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD player.name1
       """
-    Then a ExecutionError should be raised at runtime.
+    Then a ExecutionError should be raised at runtime:
 
   Scenario: [32] Fetch Vertices
     When executing query:
