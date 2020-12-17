@@ -3,7 +3,7 @@ Feature: Fetch Int Vid Vertices
   Background: Prepare space
     Given a graph with space named "nba_int_vid"
 
-  Scenario: [1] Fetch Vertices 
+  Scenario: [1] Fetch prop on one tag of a vertex and return the specific properties
     When executing query:
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.age
@@ -21,7 +21,7 @@ Feature: Fetch Int Vid Vertices
       | VertexID             | player.name | player.age | (player.age>30) |
       | -7391649757245641883 | Boris Diaw  | 36         | true            |
 
-  Scenario: [3] Fetch Vertices
+  Scenario: [3] Fetch dst vertices' props of go traversal.
     When executing query:
       """
       GO FROM hash('Boris Diaw') over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
@@ -41,7 +41,7 @@ Feature: Fetch Int Vid Vertices
       | -7579316172763586624 | "Tony Parker" | 36         | -7579316172763586624 |
       | 5662213458193308137  | "Tim Duncan"  | 42         | 5662213458193308137  |
 
-  Scenario: [5] Fetch Vertices
+  Scenario: [5] Fetch Vertices works with variable.
     When executing query:
       """
       $var = GO FROM hash('Boris Diaw') over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name, player.age
@@ -51,7 +51,7 @@ Feature: Fetch Int Vid Vertices
       | -7579316172763586624 | "Tony Parker" | 36         |
       | 5662213458193308137  | "Tim Duncan"  | 42         |
 
-  Scenario: [6] Fetch Vertices
+  Scenario: [6] Fetch Vertices works with ORDER BY
     When executing query:
       """
       $var = GO FROM hash('Boris Diaw') over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name as name, player.age | ORDER BY name
@@ -61,7 +61,7 @@ Feature: Fetch Int Vid Vertices
       | 5662213458193308137  | "Tim Duncan"  | 42         |
       | -7579316172763586624 | "Tony Parker" | 36         |
 
-  Scenario: [7] Fetch Vertices
+  Scenario: [7] Fetch Vertices works with hash()
     When executing query:
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.age
@@ -70,7 +70,7 @@ Feature: Fetch Int Vid Vertices
       | VertexID             | player.name  | player.age |
       | -7391649757245641883 | "Boris Diaw" | 36         |
 
-  Scenario: [8] Fetch Vertices
+  Scenario: [8] Fetch Vertices works with uuid() and YIELD
     When executing query:
       """
       FETCH PROP ON player uuid('Boris Diaw') YIELD player.name, player.age
@@ -97,7 +97,7 @@ Feature: Fetch Int Vid Vertices
       | VertexID             | player.name  | player.age |
       | -7391649757245641883 | "Boris Diaw" | 36         |
 
-  Scenario: [11] Fetch Vertices
+  Scenario: [11] Fetch Vertices works with uuid()
     When executing query:
       """
       FETCH PROP ON player uuid('Boris Diaw')
@@ -124,35 +124,35 @@ Feature: Fetch Int Vid Vertices
       | VertexID             | player.age |
       | -7391649757245641883 | 36         |
 
-  Scenario: [14] Fetch Vertices
+  Scenario: [14] Fetch Vertices not support get src property
     When executing query:
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD $^.player.name, player.age
       """
     Then a SemanticError should be raised at runtime: Unsupported src/dst property expression in yield.
 
-  Scenario: [15] Fetch Vertices
+  Scenario: [15] Fetch Vertices not support get dst property
     When executing query:
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD $$.player.name, player.age
       """
     Then a SemanticError should be raised at runtime: Unsupported src/dst property expression in yield.
 
-  Scenario: [16] Fetch Vertices
+  Scenario: [16] Fetch vertex yields not existing tag
     When executing query:
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD abc.name, player.age
       """
     Then a ExecutionError should be raised at runtime:
 
-  Scenario: [17] Fetch Vertices
+  Scenario: [17] Fetch prop no not existing tag
     When executing query:
       """
       FETCH PROP ON abc hash('Boris Diaw')
       """
     Then a ExecutionError should be raised at runtime:
 
-  Scenario: [18] Fetch Vertices
+  Scenario: [18] Fetch prop on not existing vertex
     When executing query:
       """
       FETCH PROP ON player hash('NON EXIST VERTEX ID')
@@ -160,7 +160,7 @@ Feature: Fetch Int Vid Vertices
     Then the result should be, in any order, with relax comparision:
       | VertexID |
 
-  Scenario: [19] Fetch Vertices
+  Scenario: [19] Fetch prop on not existing vertex, and works with pipe
     When executing query:
       """
       GO FROM hash('NON EXIST VERTEX ID') OVER serve | FETCH PROP ON team $-
@@ -168,7 +168,7 @@ Feature: Fetch Int Vid Vertices
     Then the result should be, in any order, with relax comparision:
       | VertexID |
 
-  Scenario: [20] Fetch Vertices
+  Scenario: [20] Fetch prop on * with not existing vertex
     When executing query:
       """
       FETCH PROP ON * hash('NON EXIST VERTEX ID')
@@ -176,7 +176,7 @@ Feature: Fetch Int Vid Vertices
     Then the result should be, in any order, with relax comparision:
       | VertexID |
 
-  Scenario: [21] Fetch Vertices
+  Scenario: [21] Fetch prop on * with existing vertex
     When executing query:
       """
       FETCH PROP ON * hash('Boris Diaw')
@@ -267,7 +267,7 @@ Feature: Fetch Int Vid Vertices
       """
     Then a ExecutionError should be raised at runtime:
 
-  Scenario: [31] Fetch Vertices
+  Scenario: [31] Fetch on existing vertex, and yield not existing property
     When executing query:
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD player.name1
