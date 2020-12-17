@@ -75,7 +75,7 @@ class DataSetComparator:
         if lhs.getType() == Value.SVAL:
             if not rhs.getType() == Value.SVAL:
                 return False
-            return lhs.get_sVal() == rhs.get_sVal()
+            return lhs.get_sVal() == self.bstr(rhs.get_sVal())
         if lhs.getType() == Value.DVAL:
             if rhs.getType() == Value.DVAL:
                 return lhs.get_dVal() == rhs.get_dVal()

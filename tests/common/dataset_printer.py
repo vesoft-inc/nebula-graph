@@ -25,8 +25,10 @@ class DataSetPrinter:
         return b.decode(self._decode_type)
 
     def ds_to_string(self, ds: DataSet) -> str:
-        col_names = ','.join(self.sstr(col) for col in ds.column_names)
-        data_rows = '\n'.join(self.list_to_string(row) for row in ds.rows)
+        col_names = '[' + ','.join(self.sstr(col)
+                                   for col in ds.column_names) + ']'
+        data_rows = '\n'.join('[' + self.list_to_string(row.values) + ']'
+                              for row in ds.rows)
         return '\n'.join([col_names, data_rows])
 
     def to_string(self, val: Value):
@@ -82,10 +84,7 @@ class DataSetPrinter:
         tags = []
         for tag in v.tags:
             name = self.sstr(tag.name)
-            if tag.props is None:
-                tags.append(f":{name}")
-            else:
-                tags.append(f":{name}{self.map_to_string(tag.props)}")
+            tags.append(f":{name}{self.map_to_string(tag.props)}")
         return f'("{vid}"{"".join(tags)})'
 
     def map_to_string(self, m: dict) -> str:
@@ -100,7 +99,7 @@ class DataSetPrinter:
         if e.type < 0:
             direct = f'"{self.sstr(e.src)}"<-"{self.sstr(e.dst)}"'
         rank = "" if e.ranking is None else f"@{e.ranking}"
-        return f"[{name} {direct}{rank} {self.map_to_string(e.props)}]"
+        return f"[{name} {direct}{rank}{self.map_to_string(e.props)}]"
 
     def path_to_string(self, p: Path) -> str:
         src = self.vertex_to_string(p.src)
@@ -111,8 +110,8 @@ class DataSetPrinter:
             dst = self.vertex_to_string(step.dst)
             if step.type > 0:
                 path.append(
-                    f"-[{name}{rank} {self.map_to_string(step.props)}]->{dst}")
+                    f"-[{name}{rank}{self.map_to_string(step.props)}]->{dst}")
             else:
                 path.append(
-                    f"<-[{name}{rank} {self.map_to_string(step.props)}]-{dst}")
+                    f"<-[{name}{rank}{self.map_to_string(step.props)}]-{dst}")
         return f"<{src}{''.join(path)}>"

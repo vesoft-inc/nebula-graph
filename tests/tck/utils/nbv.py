@@ -287,7 +287,7 @@ def p_map(p):
     if len(p) == 4:
         m.kvs = p[2]
     else:
-        m.kvs = {}
+        m.kvs = None
     p[0] = Value(mVal=m)
 
 
@@ -436,7 +436,7 @@ def p_edge_props(p):
                    | map
     '''
     if len(p) == 1:
-        p[0] = {}
+        p[0] = None
     else:
         p[0] = p[1].get_mVal().kvs
 
