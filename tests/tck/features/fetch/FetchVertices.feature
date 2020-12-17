@@ -182,7 +182,8 @@ Feature: Fetch Vertices
       FETCH PROP ON * hash('Boris Diaw')
       """
     Then the result should be, in any order, with relax comparision:
-      | -7391649757245641883 | "Boris Diaw" | 36 |
+      | VertexID             | player.name  | player.age |
+      | -7391649757245641883 | "Boris Diaw" | 36         |
 
   Scenario: [22] Fetch Vertices
     When executing query:
