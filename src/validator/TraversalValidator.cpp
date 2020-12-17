@@ -24,6 +24,16 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                     " when starts are evaluated at runtime.", src->toString().c_str());
         }
         starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
+        auto type = deduceExprType(src);
+        if (!type.ok()) {
+            return type.status();
+        }
+        if (type.value() != vidType_) {
+            std::stringstream ss;
+            ss << "`" << src->toString() << "', the srcs should be type of " << vidType_
+               << ", but was`" << type.value() << "'";
+            return Status::SemanticError(ss.str());
+        }
         starts.originalSrc = src;
         auto* propExpr = static_cast<PropertyExpression*>(src);
         if (starts.fromType == kVariable) {

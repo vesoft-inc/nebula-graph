@@ -36,9 +36,6 @@ protected:
                 state = Result::State::kPartialSuccess;
             }
         }
-        auto row = v.rows[0].values;
-        auto idVal = row[0];
-        VLOG(1) << "@@@Type name is " << idVal.typeName();
         if (!colNames.empty()) {
             DCHECK_EQ(colNames.size(), v.colSize());
             v.colNames = colNames;
