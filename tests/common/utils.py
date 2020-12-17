@@ -333,6 +333,13 @@ def create_space(space_desc: SpaceDesc, sess: Session):
     exec(space_desc.use_stmt())
 
 
+def _load_data_from_file(sess, data_dir, fd):
+    for stmt in CSVImporter(fd, data_dir):
+        rs = sess.execute(stmt)
+        assert rs.is_succeeded(), \
+            f"fail to exec: {stmt}, error: {rs.error_msg()}"
+
+
 def load_csv_data(pytestconfig, sess: Session, data_dir: str):
     """
     Before loading CSV data files, you must create and select a graph
@@ -351,6 +358,4 @@ def load_csv_data(pytestconfig, sess: Session, data_dir: str):
         time.sleep(3)
 
         for fd in config["files"]:
-            for stmt in CSVImporter(fd, data_dir):
-                rs = sess.execute(stmt)
-                assert rs.is_succeeded()
+            _load_data_from_file(sess, data_dir, fd)

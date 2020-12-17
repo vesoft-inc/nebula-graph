@@ -9,6 +9,7 @@ import time
 import pytest
 import io
 import csv
+import re
 
 from nebula2.data.DataObject import DataSetWrapper
 from nebula2.graph.ttypes import ErrorCode
@@ -155,13 +156,16 @@ def execution_should_be_succ(graph_spaces):
 def raised_type_error(err_type, time, msg, graph_spaces):
     res = graph_spaces["result_set"]
     assert not res.is_succeeded(), "Response should be failed"
+    err_type = err_type.strip()
+    msg = msg.strip().replace('$', '\$')
+    res_msg = res.error_msg()
     if res.error_code() == ErrorCode.E_EXECUTION_ERROR:
-        expect_msg = f"{msg.strip()}"
-        assert err_type.strip() == "ExecutionError"
+        assert err_type == "ExecutionError"
+        expect_msg = r"{}".format(msg)
     else:
-        expect_msg = f"{err_type.strip()}: {msg.strip()}"
-    assert res.error_msg() == expect_msg, \
-        "Response error msg: {res.error_msg()} vs. Expected: {expect_msg}"
+        expect_msg = r"{}: {}".format(err_type, msg)
+    m = re.search(expect_msg, res_msg)
+    assert m, f'Could not find "{expect_msg}" in "{res_msg}"'
 
 
 @then("drop the used space")

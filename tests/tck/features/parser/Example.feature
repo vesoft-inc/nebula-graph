@@ -1,6 +1,6 @@
-Feature: Test space steps
+Feature: Feature examples
 
-  Scenario: Test space steps
+  Scenario: Supported features
     Given an empty graph
     And create a space with following options:
       | partition_num  | 9                |
