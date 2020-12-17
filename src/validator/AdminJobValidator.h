@@ -19,7 +19,9 @@ public:
     AdminJobValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<AdminJobSentence*>(sentence);
-        if (sentence_->getOp() != meta::cpp2::AdminJobOp::ADD) {
+        if (sentence_->getOp() != meta::cpp2::AdminJobOp::ADD ||
+            (sentence_->getCmd() != meta::cpp2::AdminCmd::REBUILD_TAG_INDEX ||
+              sentence_->getCmd() != meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX)) {
             setNoSpaceRequired();
         }
     }
