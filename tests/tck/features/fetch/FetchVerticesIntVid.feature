@@ -1,4 +1,4 @@
-Feature: Fetch Vertices
+Feature: Fetch Int Vid Vertices
 
   Background: Prepare space
     Given a graph with space named "nba_int_vid"
