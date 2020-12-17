@@ -4,39 +4,40 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "planner/match/ReturnClausePlanner.h"
+#include "planner/match/WithClausePlanner.h"
 
 #include "planner/Query.h"
 #include "planner/match/MatchSolver.h"
 #include "planner/match/OrderByClausePlanner.h"
 #include "planner/match/PaginationPlanner.h"
+#include "planner/match/WhereClausePlanner.h"
 #include "planner/match/SegmentsConnector.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
 namespace nebula {
 namespace graph {
-StatusOr<SubPlan> ReturnClausePlanner::transform(CypherClauseContextBase* clauseCtx) {
-    if (clauseCtx->kind != CypherClauseKind::kReturn) {
-        return Status::Error("Not a valid context for ReturnClausePlanner.");
+StatusOr<SubPlan> WithClausePlanner::transform(CypherClauseContextBase* clauseCtx) {
+    if (clauseCtx->kind != CypherClauseKind::kWith) {
+        return Status::Error("Not a valid context for WithClausePlanner.");
     }
-    auto* returnClauseCtx = static_cast<ReturnClauseContext*>(clauseCtx);
+    auto* withClauseCtx = static_cast<WithClauseContext*>(clauseCtx);
 
-    SubPlan returnPlan;
-    NG_RETURN_IF_ERROR(buildReturn(returnClauseCtx, returnPlan));
-    return returnPlan;
+    SubPlan withPlan;
+    NG_RETURN_IF_ERROR(buildWith(withClauseCtx, withPlan));
+    return withPlan;
 }
 
-Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subPlan) {
+Status WithClausePlanner::buildWith(WithClauseContext* wctx, SubPlan& subPlan) {
     auto* yields = new YieldColumns();
-    rctx->qctx->objPool()->add(yields);
+    wctx->qctx->objPool()->add(yields);
     std::vector<std::string> colNames;
     PlanNode* current = nullptr;
 
-    auto rewriter = [rctx](const Expression* expr) {
-        return MatchSolver::doRewrite(rctx->aliasesPtr, expr);
+    auto rewriter = [wctx](const Expression* expr) {
+        return MatchSolver::doRewrite(wctx->aliasesPtr, expr);
     };
 
-    for (auto* col : rctx->yieldColumns->columns()) {
+    for (auto* col : wctx->yieldColumns->columns()) {
         auto kind = col->expr()->kind();
         YieldColumn* newColumn = nullptr;
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
@@ -55,13 +56,13 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
         }
     }
 
-    auto* project = Project::make(rctx->qctx, nullptr, yields);
+    auto* project = Project::make(wctx->qctx, nullptr, yields);
     project->setColNames(std::move(colNames));
     subPlan.tail = project;
     current = project;
 
-    if (rctx->distinct) {
-        auto* dedup = Dedup::make(rctx->qctx, current);
+    if (wctx->distinct) {
+        auto* dedup = Dedup::make(wctx->qctx, current);
         dedup->setInputVar(current->outputVar());
         dedup->setColNames(current->colNames());
         current = dedup;
@@ -69,26 +70,34 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
 
     subPlan.root = current;
 
-    if (rctx->order != nullptr) {
-        auto orderPlan = std::make_unique<OrderByClausePlanner>()->transform(rctx->order.get());
+    if (wctx->order != nullptr) {
+        auto orderPlan = std::make_unique<OrderByClausePlanner>()->transform(wctx->order.get());
         NG_RETURN_IF_ERROR(orderPlan);
         auto plan = std::move(orderPlan).value();
         SegmentsConnector::addInput(plan.tail, subPlan.root, true);
         subPlan.root = plan.root;
     }
 
-    if (rctx->pagination != nullptr &&
-        (rctx->pagination->skip != 0 ||
-         rctx->pagination->limit != std::numeric_limits<int64_t>::max())) {
+    if (wctx->pagination != nullptr &&
+        (wctx->pagination->skip != 0 ||
+         wctx->pagination->limit != std::numeric_limits<int64_t>::max())) {
         auto paginationPlan =
-            std::make_unique<PaginationPlanner>()->transform(rctx->pagination.get());
+            std::make_unique<PaginationPlanner>()->transform(wctx->pagination.get());
         NG_RETURN_IF_ERROR(paginationPlan);
         auto plan = std::move(paginationPlan).value();
         SegmentsConnector::addInput(plan.tail, subPlan.root, true);
         subPlan.root = plan.root;
     }
 
-    VLOG(1) << "return root: " << subPlan.root->outputVar()
+    if (wctx->where != nullptr) {
+        auto wherePlan = std::make_unique<WhereClausePlanner>()->transform(wctx->where.get());
+        NG_RETURN_IF_ERROR(wherePlan);
+        auto plan = std::move(wherePlan).value();
+        SegmentsConnector::addInput(plan.tail, subPlan.root, true);
+        subPlan.root = plan.root;
+    }
+
+    VLOG(1) << "with root: " << subPlan.root->outputVar()
             << " colNames: " << folly::join(",", subPlan.root->colNames());
     // TODO: Handle grouping
 

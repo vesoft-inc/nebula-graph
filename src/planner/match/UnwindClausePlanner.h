@@ -21,11 +21,8 @@ public:
     StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override;
 
     Status buildUnwind(UnwindClauseContext* uctx, SubPlan& subPlan);
-
-private:
-    Expression* doRewrite(const Expression* expr);
 };
 
-}  // namespace graph
-}  // namespace nebula
-#endif  // PLANNER_MATCH_UNWINDCLAUSEPLANNER_H_
+}   // namespace graph
+}   // namespace nebula
+#endif   // PLANNER_MATCH_UNWINDCLAUSEPLANNER_H_
