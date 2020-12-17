@@ -19,9 +19,7 @@ public:
     AdminJobValidator(Sentence* sentence, QueryContext* context)
             : Validator(sentence, context) {
         sentence_ = static_cast<AdminJobSentence*>(sentence);
-        if (sentence_->getOp() != meta::cpp2::AdminJobOp::ADD ||
-            (sentence_->getCmd() != meta::cpp2::AdminCmd::REBUILD_TAG_INDEX ||
-              sentence_->getCmd() != meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX)) {
+        if (!requireSpace()) {
             setNoSpaceRequired();
         }
     }
@@ -30,6 +28,29 @@ private:
     Status validateImpl() override;
 
     Status toPlan() override;
+
+    bool requireSpace() const {
+        switch (sentence_->getOp()) {
+            case meta::cpp2::AdminJobOp::ADD:
+                switch (sentence_->getCmd()) {
+                    case meta::cpp2::AdminCmd::REBUILD_TAG_INDEX:
+                    case meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX:
+                        return true;
+                    case meta::cpp2::AdminCmd::COMPACT:
+                    case meta::cpp2::AdminCmd::FLUSH:
+                    case meta::cpp2::AdminCmd::STATS:
+                    case meta::cpp2::AdminCmd::DATA_BALANCE:
+                    case meta::cpp2::AdminCmd::UNKNOWN:
+                        return false;
+                }
+                break;
+            case meta::cpp2::AdminJobOp::SHOW_All:
+            case meta::cpp2::AdminJobOp::SHOW:
+            case meta::cpp2::AdminJobOp::STOP:
+            case meta::cpp2::AdminJobOp::RECOVER:
+                return false;
+        }
+    }
 
 private:
     AdminJobSentence               *sentence_{nullptr};
