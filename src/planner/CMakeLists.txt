@@ -28,6 +28,7 @@ nebula_add_library(
     match/OrderByClausePlanner.cpp
     match/PaginationPlanner.cpp
     match/WhereClausePlanner.cpp
+    match/WithClausePlanner.cpp
     match/StartVidFinder.cpp
     match/PropIndexSeek.cpp
     match/VertexIdSeek.cpp

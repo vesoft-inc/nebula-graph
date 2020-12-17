@@ -52,8 +52,8 @@ struct EdgeInfo {
     Expression                             *filter{nullptr};
 };
 
-enum class AliasType : int8_t{
-    kNode, kEdge, kPath, kList
+enum class AliasType : int8_t {
+    kNode, kEdge, kPath, kDefault
 };
 
 struct ScanInfo {
@@ -73,7 +73,7 @@ struct WhereClauseContext final : CypherClauseContextBase {
     WhereClauseContext() : CypherClauseContextBase(CypherClauseKind::kWhere) {}
 
     std::unique_ptr<Expression>                  filter;
-    std::unordered_map<std::string, AliasType>*  aliases{nullptr};
+    std::unordered_map<std::string, AliasType>*  aliasesPtr{nullptr};
 };
 
 struct OrderByClauseContext final : CypherClauseContextBase {
@@ -96,17 +96,20 @@ struct ReturnClauseContext final : CypherClauseContextBase {
     const YieldColumns*                          yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>        order;
     std::unique_ptr<PaginationContext>           pagination;
-    std::unordered_map<std::string, AliasType>*  aliases{nullptr};
+    std::unordered_map<std::string, AliasType>*  aliasesPtr{nullptr};
     // TODO: grouping columns
 };
 
 struct WithClauseContext final : CypherClauseContextBase {
     WithClauseContext() : CypherClauseContextBase(CypherClauseKind::kWith) {}
 
+    bool                                        distinct{false};
     const YieldColumns*                         yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>       order;
     std::unique_ptr<PaginationContext>          pagination;
     std::unique_ptr<WhereClauseContext>         where;
+    std::unordered_map<std::string, AliasType>* aliasesPtr{nullptr};
+    std::unordered_map<std::string, AliasType>  aliases;
     // TODO: grouping columns
 };
 
@@ -122,7 +125,9 @@ struct MatchClauseContext final : CypherClauseContextBase {
 
 struct UnwindClauseContext final : CypherClauseContextBase {
     UnwindClauseContext() : CypherClauseContextBase(CypherClauseKind::kUnwind) {}
-    Expression*                                 expr{nullptr};
+
+    const YieldColumns*                         yieldColumns{nullptr};
+    std::unordered_map<std::string, AliasType>* aliasesPtr{nullptr};
     std::unordered_map<std::string, AliasType>  aliases;
 };
 

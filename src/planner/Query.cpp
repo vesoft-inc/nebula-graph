@@ -146,7 +146,7 @@ std::unique_ptr<PlanNodeDescription> Project::explain() const {
 
 std::unique_ptr<PlanNodeDescription> Unwind::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("unwind", expr_? expr_->toString() : "", desc.get());
+    addDescription("unwind", cols_? cols_->toString() : "", desc.get());
     return desc;
 }
 

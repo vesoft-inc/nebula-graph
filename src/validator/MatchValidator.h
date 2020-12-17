@@ -40,6 +40,8 @@ private:
 
     Status validateStepRange(const MatchStepRange *range) const;
 
+    Status validateWith(const WithClause *with, WithClauseContext &withClauseCtx) const;
+
     Status validateUnwind(const UnwindClause *unwind, UnwindClauseContext &unwindClauseCtx) const;
 
     StatusOr<Expression*> makeSubFilter(const std::string &alias,

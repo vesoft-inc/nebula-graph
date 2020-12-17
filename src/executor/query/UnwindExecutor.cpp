@@ -17,7 +17,7 @@ folly::Future<Status> UnwindExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto *unwind = asNode<Unwind>(node());
-    auto *expr = const_cast<Expression *>(unwind->expr());
+    auto columns = unwind->columns()->columns();
 
     auto iter = ectx_->getResult(unwind->inputVar()).iter();
     DCHECK(!!iter);
@@ -25,15 +25,10 @@ folly::Future<Status> UnwindExecutor::execute() {
 
     DataSet ds;
     ds.colNames = unwind->colNames();
-    if (expr->kind() == Expression::Kind::kConstant) {
-        Value val = expr->eval(ctx);
-        std::vector<Value> vals = extractList(val);
-        for (const auto &v : vals) {
-            ds.rows.emplace_back(Row({std::move(v)}));
-        }
-    } else {
-        for (; iter->valid(); iter->next()) {
-            Value val = expr->eval(ctx(iter.get()));
+    for (; iter->valid(); iter->next()) {
+        Row row;
+        for (auto& col : columns) {
+            Value val = col->expr()->eval(ctx(iter.get()));
             std::vector<Value> vals = extractList(val);
             for (const auto &v : vals) {
                 ds.rows.emplace_back(Row({std::move(v)}));

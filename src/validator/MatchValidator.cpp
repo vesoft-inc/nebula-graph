@@ -29,11 +29,11 @@ Status MatchValidator::validateImpl() {
     auto &clauses = sentence->clauses();
 
     if (clauses.size() > 1) {
-        return Status::SemanticError("Multi clause MATCH/UNWIND not supported");
+        return Status::SemanticError("Multi clause MATCH/UNWIND/WITH not supported");
     }
 
-    if (!clauses[0]->isMatch() && !clauses[0]->isUnwind()) {
-        return Status::SemanticError("First clause must be a MATCH/UNWIND");
+    if (!clauses[0]->isMatch() && !clauses[0]->isUnwind() && !clauses[0]->isWith()) {
+        return Status::SemanticError("First clause must be a MATCH/UNWIND/WITH");
     }
 
     if (clauses[0]->isMatch()) {
@@ -47,13 +47,13 @@ Status MatchValidator::validateImpl() {
         NG_RETURN_IF_ERROR(validatePath(matchClause->path(), *matchClauseCtx));
         if (matchClause->where() != nullptr) {
             auto whereClauseCtx = getContext<WhereClauseContext>();
-            whereClauseCtx->aliases = &matchClauseCtx->aliases;
+            whereClauseCtx->aliasesPtr = &matchClauseCtx->aliases;
             NG_RETURN_IF_ERROR(validateFilter(matchClause->where()->filter(), *whereClauseCtx));
             matchClauseCtx->where = std::move(whereClauseCtx);
         }
 
         auto retClauseCtx = getContext<ReturnClauseContext>();
-        retClauseCtx->aliases = &matchClauseCtx->aliases;
+        retClauseCtx->aliasesPtr = &matchClauseCtx->aliases;
         NG_RETURN_IF_ERROR(validateReturn(sentence->ret(), matchClauseCtx.get(), *retClauseCtx));
 
         matchCtx_->clauses.emplace_back(std::move(matchClauseCtx));
@@ -64,12 +64,30 @@ Status MatchValidator::validateImpl() {
         NG_RETURN_IF_ERROR(validateUnwind(unwindClause, *unwindClauseCtx));
 
         auto retClauseCtx = getContext<ReturnClauseContext>();
-        retClauseCtx->aliases = &unwindClauseCtx->aliases;
+        retClauseCtx->aliasesPtr = &unwindClauseCtx->aliases;
         NG_RETURN_IF_ERROR(validateReturn(sentence->ret(), unwindClauseCtx.get(), *retClauseCtx));
 
         matchCtx_->clauses.emplace_back(std::move(unwindClauseCtx));
         matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
+    } else if (clauses[0]->isWith()) {
+        auto *withClause = static_cast<WithClause*>(clauses[0].get());
+        auto withClauseCtx = getContext<WithClauseContext>();
+        NG_RETURN_IF_ERROR(validateWith(withClause, *withClauseCtx));
+        if (withClause->where() != nullptr) {
+            auto whereClauseCtx = getContext<WhereClauseContext>();
+            whereClauseCtx->aliasesPtr = &withClauseCtx->aliases;
+            NG_RETURN_IF_ERROR(validateFilter(withClause->where()->filter(), *whereClauseCtx));
+            withClauseCtx->where = std::move(whereClauseCtx);
+        }
+
+        auto retClauseCtx = getContext<ReturnClauseContext>();
+        retClauseCtx->aliasesPtr = &withClauseCtx->aliases;
+        NG_RETURN_IF_ERROR(validateReturn(sentence->ret(), withClauseCtx.get(), *retClauseCtx));
+
+        matchCtx_->clauses.emplace_back(std::move(withClauseCtx));
+        matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
     }
+
     return Status::OK();
 }
 
@@ -221,7 +239,7 @@ Status MatchValidator::validateFilter(const Expression *filter,
         return Status::SemanticError(ss.str());
     }
 
-    NG_RETURN_IF_ERROR(validateAliases({whereClauseCtx.filter.get()}, *whereClauseCtx.aliases));
+    NG_RETURN_IF_ERROR(validateAliases({whereClauseCtx.filter.get()}, *whereClauseCtx.aliasesPtr));
 
     return Status::OK();
 }
@@ -230,8 +248,9 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
                                       const CypherClauseContextBase *cypherClauseCtx,
                                       ReturnClauseContext &retClauseCtx) const {
     auto kind = cypherClauseCtx->kind;
-    if (kind != CypherClauseKind::kMatch && kind != CypherClauseKind::kUnwind) {
-        return Status::SemanticError("Must be a MATCH/UNWIND");
+    if (kind != CypherClauseKind::kMatch && kind != CypherClauseKind::kUnwind &&
+        kind != CypherClauseKind::kWith) {
+        return Status::SemanticError("Must be a MATCH/UNWIND/WITH");
     }
     // `RETURN *': return all named nodes or edges
     YieldColumns *columns = nullptr;
@@ -265,10 +284,17 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
                     columns->addColumn(makeColumn(aliasPair.first));
                 }
             }
-        } else {
+        } else if (kind == CypherClauseKind::kUnwind) {
             auto unwindClauseCtx = static_cast<const UnwindClauseContext*>(cypherClauseCtx);
             columns = saveObject(new YieldColumns());
             columns->addColumn(makeColumn(unwindClauseCtx->aliases.begin()->first));
+        } else {
+            // kWith
+            auto withClauseCtx = static_cast<const WithClauseContext*>(cypherClauseCtx);
+            columns = saveObject(new YieldColumns());
+            for (auto &aliasPair : withClauseCtx->aliases) {
+                columns->addColumn(makeColumn(aliasPair.first));
+            }
         }
 
         if (columns->empty()) {
@@ -287,7 +313,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     for (auto *col : retClauseCtx.yieldColumns->columns()) {
         exprs.push_back(col->expr());
     }
-    NG_RETURN_IF_ERROR(validateAliases(exprs, *retClauseCtx.aliases));
+    NG_RETURN_IF_ERROR(validateAliases(exprs, *retClauseCtx.aliasesPtr));
 
     retClauseCtx.distinct = ret->isDistinct();
 
@@ -410,10 +436,103 @@ Status MatchValidator::validateStepRange(const MatchStepRange *range) const {
     return Status::OK();
 }
 
+Status MatchValidator::validateWith(const WithClause *with,
+                                    WithClauseContext &withClauseCtx) const {
+    withClauseCtx.yieldColumns = with->columns();
+    // Check all referencing expressions are valid
+    std::vector<const Expression *> exprs;
+    exprs.reserve(withClauseCtx.yieldColumns->size());
+    for (auto *col : withClauseCtx.yieldColumns->columns()) {
+        withClauseCtx.aliases.emplace(*col->alias(), AliasType::kDefault);
+        exprs.push_back(col->expr());
+    }
+    NG_RETURN_IF_ERROR(validateAliases(exprs, *withClauseCtx.aliasesPtr));
+
+    withClauseCtx.distinct = with->isDistinct();
+
+    auto *skipExpr = with->skip();
+    auto *limitExpr = with->limit();
+    int64_t skip = 0;
+    int64_t limit = std::numeric_limits<int64_t>::max();
+    if (skipExpr != nullptr) {
+        if (!evaluableExpr(skipExpr)) {
+            return Status::SemanticError("SKIP should be instantly evaluable");
+        }
+        QueryExpressionContext ctx;
+        auto value = const_cast<Expression *>(skipExpr)->eval(ctx);
+        if (!value.isInt()) {
+            return Status::SemanticError("SKIP should be of type integer");
+        }
+        if (value.getInt() < 0) {
+            return Status::SemanticError("SKIP should not be negative");
+        }
+        skip = value.getInt();
+    }
+
+    if (limitExpr != nullptr) {
+        if (!evaluableExpr(limitExpr)) {
+            return Status::SemanticError("SKIP should be instantly evaluable");
+        }
+        QueryExpressionContext ctx;
+        auto value = const_cast<Expression *>(limitExpr)->eval(ctx);
+        if (!value.isInt()) {
+            return Status::SemanticError("LIMIT should be of type integer");
+        }
+        if (value.getInt() < 0) {
+            return Status::SemanticError("LIMIT should not be negative");
+        }
+        limit = value.getInt();
+    }
+    withClauseCtx.pagination = getContext<PaginationContext>();
+    withClauseCtx.pagination->skip = skip;
+    withClauseCtx.pagination->limit = limit;
+
+    if (with->orderFactors() != nullptr) {
+        withClauseCtx.order = getContext<OrderByClauseContext>();
+        std::vector<std::string> inputColList;
+        inputColList.reserve(withClauseCtx.yieldColumns->columns().size());
+        for (auto *col : withClauseCtx.yieldColumns->columns()) {
+            if (col->alias() != nullptr) {
+                inputColList.emplace_back(*col->alias());
+            } else {
+                inputColList.emplace_back(col->expr()->toString());
+            }
+        }
+        std::unordered_map<std::string, size_t> inputColIndices;
+        for (auto i = 0u; i < inputColList.size(); i++) {
+            if (!inputColIndices.emplace(inputColList[i], i).second) {
+                return Status::SemanticError("Duplicated columns not allowed: %s",
+                                             inputColList[i].c_str());
+            }
+        }
+
+        auto *factors = with->orderFactors();
+        for (auto &factor : factors->factors()) {
+            if (factor->expr()->kind() != Expression::Kind::kLabel) {
+                return Status::SemanticError("Only column name can be used as sort item");
+            }
+            auto *name = static_cast<const LabelExpression *>(factor->expr())->name();
+            auto iter = inputColIndices.find(*name);
+            if (iter == inputColIndices.end()) {
+                return Status::SemanticError("Column `%s' not found", name->c_str());
+            }
+            withClauseCtx.order->indexedOrderFactors.emplace_back(iter->second,
+                                                                  factor->orderType());
+        }
+    }
+
+    return Status::OK();
+}
+
 Status MatchValidator::validateUnwind(const UnwindClause *unwind,
                                       UnwindClauseContext &unwindClauseCtx) const {
-    unwindClauseCtx.expr = ExpressionUtils::foldConstantExpr(unwind->expr()).release();
-    unwindClauseCtx.aliases.emplace(*unwind->alias(), AliasType::kList);
+    YieldColumns *columns = saveObject(new YieldColumns());
+    auto *expr = unwind->expr()->clone().release();
+    auto *alias = new std::string(*unwind->alias());
+    columns->addColumn(new YieldColumn(expr, alias));
+
+    unwindClauseCtx.yieldColumns = columns;
+    unwindClauseCtx.aliases.emplace(*unwind->alias(), AliasType::kDefault);
 
     return Status::OK();
 }

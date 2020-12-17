@@ -623,26 +623,22 @@ private:
 
 class Unwind final : public SingleInputNode {
 public:
-    static Unwind* make(QueryContext* qctx,
-                        PlanNode* input,
-                        Expression* expr) {
-        return qctx->objPool()->add(new Unwind(qctx, input, expr));
+    static Unwind* make(QueryContext* qctx, PlanNode* input, YieldColumns* cols) {
+        return qctx->objPool()->add(new Unwind(qctx, input, cols));
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
-    const Expression* expr() const {
-        return expr_;
+    const YieldColumns* columns() const {
+        return cols_;
     }
 
 private:
-    Unwind(QueryContext* qctx,
-           PlanNode* input,
-           Expression* expr)
-        : SingleInputNode(qctx, Kind::kUnwind, input), expr_(expr) {}
+    Unwind(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
+        : SingleInputNode(qctx, Kind::kUnwind, input), cols_(cols) {}
 
 private:
-    Expression* expr_{nullptr};
+    YieldColumns*               cols_{nullptr};
 };
 
 /**

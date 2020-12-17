@@ -27,33 +27,39 @@ StatusOr<SubPlan> UnwindClausePlanner::transform(CypherClauseContextBase* clause
 }
 
 Status UnwindClausePlanner::buildUnwind(UnwindClauseContext* uctx, SubPlan& subPlan) {
-    auto expr = uctx->expr;
-    auto kind = expr->kind();
-    auto rewriter = [uctx, this](const Expression* e) { return doRewrite(e); };
-    Expression* newExpr = nullptr;
-    if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
-        newExpr = rewriter(expr);
-    } else {
-        newExpr = expr->clone().release();
-        RewriteMatchLabelVisitor visitor(rewriter);
-        newExpr->accept(&visitor);
+    auto* yields = new YieldColumns();
+    uctx->qctx->objPool()->add(yields);
+    std::vector<std::string> colNames;
+
+    auto rewriter = [uctx](const Expression* expr) {
+        return MatchSolver::doRewrite(uctx->aliasesPtr, expr);
+    };
+
+    for (auto* col : uctx->yieldColumns->columns()) {
+        auto kind = col->expr()->kind();
+        YieldColumn* newColumn = nullptr;
+        if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
+            newColumn = new YieldColumn(rewriter(col->expr()));
+        } else {
+            auto newExpr = col->expr()->clone();
+            RewriteMatchLabelVisitor visitor(rewriter);
+            newExpr->accept(&visitor);
+            newColumn = new YieldColumn(newExpr.release());
+        }
+        yields->addColumn(newColumn);
+        if (col->alias() != nullptr) {
+            colNames.emplace_back(*col->alias());
+        } else {
+            colNames.emplace_back(col->expr()->toString());
+        }
     }
 
-    auto* unwind = Unwind::make(uctx->qctx, nullptr, newExpr);
-    unwind->setColNames({uctx->aliases.begin()->first});
+    auto* unwind = Unwind::make(uctx->qctx, nullptr, yields);
+    unwind->setColNames(colNames);
     subPlan.root = unwind;
     subPlan.tail = unwind;
 
     return Status::OK();
-}
-
-Expression* UnwindClausePlanner::doRewrite(const Expression* expr) {
-    if (expr->kind() == Expression::Kind::kLabel) {
-        return MatchSolver::rewrite(static_cast<const LabelExpression*>(expr));
-    } else {
-        DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
-        return MatchSolver::rewrite(static_cast<const LabelAttributeExpression*>(expr));
-    }
 }
 
 }   // namespace graph
