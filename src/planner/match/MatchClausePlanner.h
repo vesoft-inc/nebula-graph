@@ -66,13 +66,19 @@ private:
                                  Expression* initialExpr,
                                  SubPlan* plan);
 
-    Status projectColumnsBySymbols(MatchClauseContext* matchClauseCtx, SubPlan *plan);
+    Status projectColumnsBySymbols(MatchClauseContext* matchClauseCtx,
+                                   size_t startIndex,
+                                   SubPlan* plan);
 
     YieldColumn* buildVertexColumn(const std::string& colName, const std::string& alias) const;
 
     YieldColumn* buildEdgeColumn(const std::string& colName, EdgeInfo& edge) const;
 
     YieldColumn* buildPathColumn(const std::string& alias, const PlanNode* input) const;
+
+    YieldColumn* buildPathColumn(const std::string& alias,
+                                 size_t startIndex,
+                                 const std::vector<std::string> colNames) const;
 
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
 
