@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import math
-from re import Pattern
+import re
 
 from typing import Union, Dict, List
 from nebula2.common.ttypes import (
@@ -18,6 +18,7 @@ from nebula2.common.ttypes import (
 from tests.common.dataset_printer import DataSetPrinter
 
 KV = Dict[Union[str, bytes], Value]
+Pattern = type(re.compile(r'/'))
 
 
 class DataSetComparator:
