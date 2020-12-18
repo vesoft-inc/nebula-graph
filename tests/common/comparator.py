@@ -4,7 +4,9 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 import math
+from re import Pattern
 
+from typing import Union, Dict, List
 from nebula2.common.ttypes import (
     DataSet,
     Edge,
@@ -13,6 +15,9 @@ from nebula2.common.ttypes import (
     Value,
     Vertex,
 )
+from tests.common.dataset_printer import DataSetPrinter
+
+KV = Dict[Union[str, bytes], Value]
 
 
 class DataSetComparator:
@@ -50,10 +55,13 @@ class DataSetComparator:
         return self._compare_list(resp.rows, expect.rows, self.compare_row,
                                   self._included)
 
-    def compare_value(self, lhs: Value, rhs: Value):
+    def compare_value(self, lhs: Value, rhs: Union[Value, Pattern]) -> bool:
         """
         lhs and rhs represent response data and expected data respectively
         """
+        if type(rhs) is Pattern:
+            dsp = DataSetPrinter(self._decode_type)
+            return bool(rhs.match(dsp.to_string(lhs)))
         if lhs.getType() == Value.__EMPTY__:
             return rhs.getType() == Value.__EMPTY__
         if lhs.getType() == Value.NVAL:
@@ -243,7 +251,7 @@ class DataSetComparator:
                 return False
         return True
 
-    def compare_map(self, lhs: dict, rhs: dict):
+    def compare_map(self, lhs: Dict[bytes, Value], rhs: KV):
         if len(lhs) != len(rhs):
             return False
         for lkey, lvalue in lhs.items():
@@ -254,7 +262,7 @@ class DataSetComparator:
                 return False
         return True
 
-    def compare_list(self, lhs: list, rhs: list):
+    def compare_list(self, lhs: List[Value], rhs: List[Value]):
         return len(lhs) == len(rhs) and \
             self._compare_list(lhs, rhs, self.compare_value)
 
