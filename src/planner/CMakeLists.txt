@@ -21,6 +21,7 @@ nebula_add_library(
     match/InnerJoinStrategy.cpp
     match/AddDependencyStrategy.cpp
     match/AddInputStrategy.cpp
+    match/CartesianProductStrategy.cpp
     match/MatchPlanner.cpp
     match/MatchClausePlanner.cpp
     match/UnwindClausePlanner.cpp
