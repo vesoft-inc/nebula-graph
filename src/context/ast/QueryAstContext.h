@@ -144,7 +144,7 @@ struct NodeContext final : PatternContext {
 
     // Output fields
     ScanInfo             scanInfo;
-    const Expression*    ids{nullptr};
+    List                 ids;
     // initialize start expression in project node
     // initialExpr will be used by YieldColumn, so no need to handle the lifecycle by object pool.
     Expression*          initialExpr{nullptr};
