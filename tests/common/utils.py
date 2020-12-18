@@ -5,11 +5,20 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-import pdb
-
+import os
+import random
+import string
+import time
+from pathlib import Path
 from typing import Pattern
+
+import yaml
 from nebula2.common import ttypes as CommonTtypes
+from nebula2.gclient.net import Session
+
+from tests.common.csv_import import CSVImporter
 from tests.common.path_value import PathVal
+from tests.common.types import SpaceDesc
 
 
 def utf8b(s: str):
@@ -34,7 +43,6 @@ def _compare_values_by_pattern(real, expect):
 
 def _compare_list(rvalues, evalues):
     if len(rvalues) != len(evalues):
-        pdb.set_trace()
         return False
 
     for rval in rvalues:
@@ -44,7 +52,6 @@ def _compare_list(rvalues, evalues):
                 found = True
                 break
         if not found:
-            pdb.set_trace()
             return False
     return True
 
@@ -53,11 +60,9 @@ def _compare_map(rvalues, evalues):
     for key in rvalues:
         ev = evalues.get(key)
         if ev is None:
-            pdb.set_trace()
             return False
         rv = rvalues.get(key)
         if not compare_value(rv, ev):
-            pdb.set_trace()
             return False
     return True
 
@@ -249,7 +254,8 @@ def path_to_string(path):
 
 
 def dataset_to_string(dataset):
-    column_names = ','.join(map(lambda x: x.decode('utf-8'), dataset.column_names))
+    column_names = ','.join(
+        map(lambda x: x.decode('utf-8'), dataset.column_names))
     rows = '\n'.join(map(row_to_string, dataset.rows))
     return '\n'.join([column_names, rows])
 
@@ -310,3 +316,46 @@ def find_in_rows(row, rows):
         if found:
             return True
     return False
+
+
+def space_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
+def create_space(space_desc: SpaceDesc, sess: Session):
+    def exec(stmt):
+        resp = sess.execute(stmt)
+        assert resp.is_succeeded(), f"Fail to exec: {stmt}, {resp.error_msg()}"
+
+    exec(space_desc.drop_stmt())
+    exec(space_desc.create_stmt())
+    time.sleep(3)
+    exec(space_desc.use_stmt())
+
+
+def _load_data_from_file(sess, data_dir, fd):
+    for stmt in CSVImporter(fd, data_dir):
+        rs = sess.execute(stmt)
+        assert rs.is_succeeded(), \
+            f"fail to exec: {stmt}, error: {rs.error_msg()}"
+
+
+def load_csv_data(pytestconfig, sess: Session, data_dir: str):
+    """
+    Before loading CSV data files, you must create and select a graph
+    space. The `config.yaml' file only create schema about tags and
+    edges, not include space.
+    """
+    config_path = os.path.join(data_dir, 'config.yaml')
+
+    with open(config_path, 'r') as f:
+        config = yaml.full_load(f)
+        schemas = config['schema']
+        stmts = ' '.join(map(lambda x: x.strip(), schemas.splitlines()))
+        rs = sess.execute(stmts)
+        assert rs.is_succeeded()
+
+        time.sleep(3)
+
+        for fd in config["files"]:
+            _load_data_from_file(sess, data_dir, fd)
