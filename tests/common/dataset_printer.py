@@ -96,7 +96,7 @@ class DataSetPrinter:
 
     def edge_to_string(self, e: Edge) -> str:
         name = "" if e.name is None else ":" + self.sstr(e.name)
-        arrow = "->" if e.type > 0 else "<-"
+        arrow = "->" if e.type is None or e.type > 0 else "<-"
         direct = f'"{self.vid(e.src)}"{arrow}"{self.vid(e.dst)}"'
         rank = "" if e.ranking is None else f"@{e.ranking}"
         return f"[{name} {direct}{rank}{self.map_to_string(e.props)}]"
@@ -109,7 +109,7 @@ class DataSetPrinter:
             rank = "" if step.ranking is None else f"@{step.ranking}"
             dst = self.vertex_to_string(step.dst)
             props = self.map_to_string(step.props)
-            if step.type > 0:
+            if step.type is None or step.type > 0:
                 path.append(f"-[{name}{rank}{props}]->{dst}")
             else:
                 path.append(f"<-[{name}{rank}{props}]-{dst}")

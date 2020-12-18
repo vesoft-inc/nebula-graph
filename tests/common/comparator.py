@@ -143,8 +143,10 @@ class DataSetComparator:
             return False
         lsrc, rsrc = lhs.src, rhs.src
         for (l, r) in zip(lhs.steps, rhs.steps):
-            lsrc, ldst = (lsrc, l.dst) if l.type > 0 else (l.dst, lsrc)
-            rsrc, rdst = (rsrc, r.dst) if r.type > 0 else (r.dst, rsrc)
+            lreverse = l.type is not None and l.type < 0
+            rreverse = r.type is not None and r.type < 0
+            lsrc, ldst = (lsrc, l.dst) if not lreverse else (l.dst, lsrc)
+            rsrc, rdst = (rsrc, r.dst) if not rreverse else (r.dst, rsrc)
             if not self.compare_node(lsrc, rsrc):
                 return False
             if not self.compare_node(ldst, rdst):
@@ -168,8 +170,12 @@ class DataSetComparator:
 
     def eid(self, e: Edge, etype: int):
         src, dst = e.src, e.dst
-        if etype != e.type:
-            src, dst = e.dst, e.src
+        if e.type is None:
+            if etype < 0:
+                src, dst = e.dst, e.src
+        else:
+            if etype != e.type:
+                src, dst = e.dst, e.src
         if type(src) == str:
             src = self.bstr(src)
         if type(dst) == str:
