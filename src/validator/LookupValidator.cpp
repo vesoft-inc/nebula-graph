@@ -36,7 +36,7 @@ Status LookupValidator::toPlan() {
                                isEdge_,
                                schemaId_,
                                isEmptyResultSet_);
-    is->setColNames(std::move(isColNames_));
+    is->setColNames(std::move(idxScanColNames_));
     PlanNode* current = is;
 
     if (withProject_) {
@@ -80,21 +80,21 @@ Status LookupValidator::prepareYield() {
     // always return
     if (isEdge_) {
         returnCols_->emplace_back(kSrc);
-        isColNames_.emplace_back(kSrcVID);
-        colNames_.emplace_back(isColNames_.back());
+        idxScanColNames_.emplace_back(kSrcVID);
+        colNames_.emplace_back(idxScanColNames_.back());
         outputs_.emplace_back(colNames_.back(), Value::Type::STRING);
         returnCols_->emplace_back(kDst);
-        isColNames_.emplace_back(kDstVID);
-        colNames_.emplace_back(isColNames_.back());
+        idxScanColNames_.emplace_back(kDstVID);
+        colNames_.emplace_back(idxScanColNames_.back());
         outputs_.emplace_back(colNames_.back(), Value::Type::STRING);
         returnCols_->emplace_back(kRank);
-        isColNames_.emplace_back(kRanking);
-        colNames_.emplace_back(isColNames_.back());
+        idxScanColNames_.emplace_back(kRanking);
+        colNames_.emplace_back(idxScanColNames_.back());
         outputs_.emplace_back(colNames_.back(), Value::Type::INT);
     } else {
         returnCols_->emplace_back(kVid);
-        isColNames_.emplace_back(kVertexID);
-        colNames_.emplace_back(isColNames_.back());
+        idxScanColNames_.emplace_back(kVertexID);
+        colNames_.emplace_back(idxScanColNames_.back());
         outputs_.emplace_back(colNames_.back(), Value::Type::STRING);
     }
     if (sentence->yieldClause() == nullptr) {
@@ -156,7 +156,7 @@ Status LookupValidator::prepareYield() {
                     "Column %s not found in schema %s", colName.c_str(), from_.c_str());
             }
             returnCols_->emplace_back(colName);
-            isColNames_.emplace_back(from_ + "." + colName);
+            idxScanColNames_.emplace_back(from_ + "." + colName);
             colNames_.emplace_back(deduceColName(newYieldColumns_->back()));
             outputs_.emplace_back(colNames_.back(), SchemaUtil::propTypeToValueType(ret));
         } else {

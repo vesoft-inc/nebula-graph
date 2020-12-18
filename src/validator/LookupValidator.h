@@ -68,7 +68,7 @@ private:
     bool                              textSearchReady_{false};
     std::string                       from_;
     std::vector<nebula::plugin::HttpClient> esClients_;
-    std::vector<std::string>          isColNames_;
+    std::vector<std::string>          idxScanColNames_;
     std::vector<std::string>          colNames_;
     bool                              withProject_{false};
     bool                              dedup_{false};
