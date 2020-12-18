@@ -4,15 +4,8 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 from typing import List
-from nebula2.common.ttypes import (
-    DataSet,
-    Edge,
-    Path,
-    Row,
-    Value,
-    Vertex,
-    NullType,
-)
+
+from nebula2.common.ttypes import DataSet, Edge, NullType, Path, Value, Vertex
 
 
 class DataSetPrinter:
@@ -23,6 +16,15 @@ class DataSetPrinter:
         if not type(b) == bytes:
             return b
         return b.decode(self._decode_type)
+
+    def vid(self, v) -> str:
+        if type(v) == str:
+            return f'"{v}"'
+        if type(v) == bytes:
+            return f'"{self.sstr(v)}"'
+        if type(v) == int:
+            return f'{v}'
+        return str(v)
 
     def ds_to_string(self, ds: DataSet) -> str:
         col_names = '[' + ','.join(self.sstr(col)
@@ -78,14 +80,13 @@ class DataSetPrinter:
     def vertex_to_string(self, v: Vertex):
         if v.vid is None:
             return "()"
-        vid = self.sstr(v.vid)
         if v.tags is None:
-            return f'("{vid}")'
+            return f'("{self.vid(v.vid)}")'
         tags = []
         for tag in v.tags:
             name = self.sstr(tag.name)
             tags.append(f":{name}{self.map_to_string(tag.props)}")
-        return f'("{vid}"{"".join(tags)})'
+        return f'("{self.vid(v.vid)}"{"".join(tags)})'
 
     def map_to_string(self, m: dict) -> str:
         if m is None:
@@ -95,9 +96,8 @@ class DataSetPrinter:
 
     def edge_to_string(self, e: Edge) -> str:
         name = "" if e.name is None else ":" + self.sstr(e.name)
-        direct = f'"{self.sstr(e.src)}"->"{self.sstr(e.dst)}"'
-        if e.type < 0:
-            direct = f'"{self.sstr(e.src)}"<-"{self.sstr(e.dst)}"'
+        arrow = "->" if e.type > 0 else "<-"
+        direct = f'"{self.vid(e.src)}"{arrow}"{self.vid(e.dst)}"'
         rank = "" if e.ranking is None else f"@{e.ranking}"
         return f"[{name} {direct}{rank}{self.map_to_string(e.props)}]"
 
@@ -108,10 +108,9 @@ class DataSetPrinter:
             name = "" if step.name is None else ":" + self.sstr(step.name)
             rank = "" if step.ranking is None else f"@{step.ranking}"
             dst = self.vertex_to_string(step.dst)
+            props = self.map_to_string(step.props)
             if step.type > 0:
-                path.append(
-                    f"-[{name}{rank}{self.map_to_string(step.props)}]->{dst}")
+                path.append(f"-[{name}{rank}{props}]->{dst}")
             else:
-                path.append(
-                    f"<-[{name}{rank}{self.map_to_string(step.props)}]-{dst}")
+                path.append(f"<-[{name}{rank}{props}]-{dst}")
         return f"<{src}{''.join(path)}>"

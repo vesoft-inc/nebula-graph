@@ -110,10 +110,10 @@ def cmp_dataset(graph_spaces,
                               order=order,
                               included=included,
                               decode_type=rs._decode_type)
-    dsprinter = DataSetPrinter(rs._decode_type)
+    dsp = DataSetPrinter(rs._decode_type)
     resp_ds = rs._data_set_wrapper._data_set
     assert dscmp(resp_ds, ds), \
-        f"Response: {dsprinter.ds_to_string(resp_ds)} vs. Expected: {dsprinter.ds_to_string(ds)}"
+        f"Response: {dsp.ds_to_string(resp_ds)} vs. Expected: {dsp.ds_to_string(ds)}"
 
 
 @then(parse("the result should be, in order:\n{result}"))
