@@ -169,7 +169,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                                               const std::vector<EdgeInfo>& edgeInfos,
                                               MatchClauseContext* matchClauseCtx,
                                               size_t startIndex,
-                                              const std::string& inputVar,
+                                              std::string inputVar,
                                               SubPlan& subplan) {
     auto initialExpr = initialExpr_->clone().release();
     std::vector<std::string> joinColNames = {
@@ -194,6 +194,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                 folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + i));
             subplan.root->setColNames(joinColNames);
         }
+        inputVar = subplan.root->outputVar();
     }
 
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
@@ -209,7 +210,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
             << " right: " << folly::join(",", right->colNames());
         subplan.root = SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx, left, right);
         joinColNames.emplace_back(
-            folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex + 1));
+            folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size() + startIndex));
         subplan.root->setColNames(joinColNames);
     }
 
@@ -461,12 +462,12 @@ YieldColumn* MatchClausePlanner::buildPathColumn(const std::string& alias,
                                                  size_t startIndex,
                                                  const std::vector<std::string> colNames) const {
     auto leftPath = std::make_unique<PathBuildExpression>();
-    for (size_t i = 0; i <= startIndex; ++i) {
+    for (size_t i = 0; i < colNames.size() - startIndex - 1; ++i) {
         leftPath->add(ExpressionUtils::inputPropExpr(colNames[i]));
     }
 
     auto rightPath = std::make_unique<PathBuildExpression>();
-    for (size_t i = startIndex + 1; i < colNames.size(); ++i) {
+    for (size_t i = colNames.size() - startIndex - 1; i < colNames.size(); ++i) {
         rightPath->add(ExpressionUtils::inputPropExpr(colNames[i]));
     }
 
