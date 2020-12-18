@@ -30,17 +30,31 @@ std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> Expand::genEdgeProps(const
     for (auto edgeType : edge.edgeTypes) {
         auto edgeSchema = matchCtx_->qctx->schemaMng()->getEdgeSchema(
             matchCtx_->space.id, edgeType);
-        if (edge.direction == Direction::IN_EDGE) {
-            edgeType = -edgeType;
-        } else if (edge.direction == Direction::BOTH) {
-            EdgeProp edgeProp;
-            edgeProp.set_type(-edgeType);
-            std::vector<std::string> props{kSrc, kType, kRank, kDst};
-            for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
-                props.emplace_back(edgeSchema->getFieldName(i));
+
+        switch (edge.direction) {
+            case Direction::OUT_EDGE: {
+                if (reversely_) {
+                    edgeType = -edgeType;
+                }
+                break;
             }
-            edgeProp.set_props(std::move(props));
-            edgeProps->emplace_back(std::move(edgeProp));
+            case Direction::IN_EDGE: {
+                if (!reversely_) {
+                    edgeType = -edgeType;
+                }
+                break;
+            }
+            case Direction::BOTH: {
+                EdgeProp edgeProp;
+                edgeProp.set_type(-edgeType);
+                std::vector<std::string> props{kSrc, kType, kRank, kDst};
+                for (std::size_t i = 0; i < edgeSchema->getNumFields(); ++i) {
+                    props.emplace_back(edgeSchema->getFieldName(i));
+                }
+                edgeProp.set_props(std::move(props));
+                edgeProps->emplace_back(std::move(edgeProp));
+                break;
+            }
         }
         EdgeProp edgeProp;
         edgeProp.set_type(edgeType);
