@@ -118,9 +118,10 @@ struct MatchClauseContext final : CypherClauseContextBase {
 
     std::vector<NodeInfo>                       nodeInfos;
     std::vector<EdgeInfo>                       edgeInfos;
-    std::unordered_map<std::string, AliasType>  aliases;
     std::unique_ptr<PathBuildExpression>        pathBuild;
     std::unique_ptr<WhereClauseContext>         where;
+    std::unordered_map<std::string, AliasType>* aliasesPtr{nullptr};
+    std::unordered_map<std::string, AliasType>  aliases;
 };
 
 struct UnwindClauseContext final : CypherClauseContextBase {

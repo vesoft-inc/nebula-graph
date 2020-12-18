@@ -23,70 +23,81 @@ AstContext* MatchValidator::getAstContext() {
     return matchCtx_.get();
 }
 
-
 Status MatchValidator::validateImpl() {
-    auto *sentence = static_cast<MatchSentence*>(sentence_);
+    auto *sentence = static_cast<MatchSentence *>(sentence_);
     auto &clauses = sentence->clauses();
 
-    if (clauses.size() > 1) {
-        return Status::SemanticError("Multi clause MATCH/UNWIND/WITH not supported");
-    }
+    std::unordered_map<std::string, AliasType> *curAliasesPtr = nullptr;
+    auto retClauseCtx = getContext<ReturnClauseContext>();
+    for (size_t i = 0; i < clauses.size(); ++i) {
+        if (clauses[i]->isMatch()) {
+            auto *matchClause = static_cast<MatchClause *>(clauses[i].get());
 
-    if (!clauses[0]->isMatch() && !clauses[0]->isUnwind() && !clauses[0]->isWith()) {
-        return Status::SemanticError("First clause must be a MATCH/UNWIND/WITH");
-    }
+            if (matchClause->isOptional()) {
+                return Status::SemanticError("OPTIONAL MATCH not supported");
+            }
 
-    if (clauses[0]->isMatch()) {
-        auto *matchClause = static_cast<MatchClause *>(clauses[0].get());
+            auto matchClauseCtx = getContext<MatchClauseContext>();
+            matchClauseCtx->aliasesPtr = curAliasesPtr;
+            NG_RETURN_IF_ERROR(validatePath(matchClause->path(), *matchClauseCtx));
+            if (matchClause->where() != nullptr) {
+                auto whereClauseCtx = getContext<WhereClauseContext>();
+                whereClauseCtx->aliasesPtr = &matchClauseCtx->aliases;
+                NG_RETURN_IF_ERROR(validateFilter(matchClause->where()->filter(), *whereClauseCtx));
+                matchClauseCtx->where = std::move(whereClauseCtx);
+            }
 
-        if (matchClause->isOptional()) {
-            return Status::SemanticError("OPTIONAL MATCH not supported");
+            if (curAliasesPtr) {
+                NG_RETURN_IF_ERROR(combineAliases(matchClauseCtx->aliases, *curAliasesPtr));
+            }
+            curAliasesPtr = &matchClauseCtx->aliases;
+
+            if (i == clauses.size() - 1) {
+                retClauseCtx->aliasesPtr = curAliasesPtr;
+                NG_RETURN_IF_ERROR(
+                    validateReturn(sentence->ret(), matchClauseCtx.get(), *retClauseCtx));
+            }
+            matchCtx_->clauses.emplace_back(std::move(matchClauseCtx));
+        } else if (clauses[i]->isUnwind()) {
+            auto *unwindClause = static_cast<UnwindClause *>(clauses[i].get());
+            auto unwindClauseCtx = getContext<UnwindClauseContext>();
+            unwindClauseCtx->aliasesPtr = curAliasesPtr;
+            NG_RETURN_IF_ERROR(validateUnwind(unwindClause, *unwindClauseCtx));
+
+            if (curAliasesPtr) {
+                NG_RETURN_IF_ERROR(combineAliases(unwindClauseCtx->aliases, *curAliasesPtr));
+            }
+            curAliasesPtr = &unwindClauseCtx->aliases;
+
+            if (i == clauses.size() - 1) {
+                retClauseCtx->aliasesPtr = curAliasesPtr;
+                NG_RETURN_IF_ERROR(
+                    validateReturn(sentence->ret(), unwindClauseCtx.get(), *retClauseCtx));
+            }
+            matchCtx_->clauses.emplace_back(std::move(unwindClauseCtx));
+        } else if (clauses[i]->isWith()) {
+            auto *withClause = static_cast<WithClause *>(clauses[i].get());
+            auto withClauseCtx = getContext<WithClauseContext>();
+            withClauseCtx->aliasesPtr = curAliasesPtr;
+            NG_RETURN_IF_ERROR(validateWith(withClause, *withClauseCtx));
+            if (withClause->where() != nullptr) {
+                auto whereClauseCtx = getContext<WhereClauseContext>();
+                whereClauseCtx->aliasesPtr = &withClauseCtx->aliases;
+                NG_RETURN_IF_ERROR(validateFilter(withClause->where()->filter(), *whereClauseCtx));
+                withClauseCtx->where = std::move(whereClauseCtx);
+            }
+
+            curAliasesPtr = &withClauseCtx->aliases;
+
+            if (i == clauses.size() - 1) {
+                retClauseCtx->aliasesPtr = curAliasesPtr;
+                NG_RETURN_IF_ERROR(
+                    validateReturn(sentence->ret(), withClauseCtx.get(), *retClauseCtx));
+            }
+            matchCtx_->clauses.emplace_back(std::move(withClauseCtx));
         }
-
-        auto matchClauseCtx = getContext<MatchClauseContext>();
-        NG_RETURN_IF_ERROR(validatePath(matchClause->path(), *matchClauseCtx));
-        if (matchClause->where() != nullptr) {
-            auto whereClauseCtx = getContext<WhereClauseContext>();
-            whereClauseCtx->aliasesPtr = &matchClauseCtx->aliases;
-            NG_RETURN_IF_ERROR(validateFilter(matchClause->where()->filter(), *whereClauseCtx));
-            matchClauseCtx->where = std::move(whereClauseCtx);
-        }
-
-        auto retClauseCtx = getContext<ReturnClauseContext>();
-        retClauseCtx->aliasesPtr = &matchClauseCtx->aliases;
-        NG_RETURN_IF_ERROR(validateReturn(sentence->ret(), matchClauseCtx.get(), *retClauseCtx));
-
-        matchCtx_->clauses.emplace_back(std::move(matchClauseCtx));
-        matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
-    } else if (clauses[0]->isUnwind()) {
-        auto *unwindClause = static_cast<UnwindClause*>(clauses[0].get());
-        auto unwindClauseCtx = getContext<UnwindClauseContext>();
-        NG_RETURN_IF_ERROR(validateUnwind(unwindClause, *unwindClauseCtx));
-
-        auto retClauseCtx = getContext<ReturnClauseContext>();
-        retClauseCtx->aliasesPtr = &unwindClauseCtx->aliases;
-        NG_RETURN_IF_ERROR(validateReturn(sentence->ret(), unwindClauseCtx.get(), *retClauseCtx));
-
-        matchCtx_->clauses.emplace_back(std::move(unwindClauseCtx));
-        matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
-    } else if (clauses[0]->isWith()) {
-        auto *withClause = static_cast<WithClause*>(clauses[0].get());
-        auto withClauseCtx = getContext<WithClauseContext>();
-        NG_RETURN_IF_ERROR(validateWith(withClause, *withClauseCtx));
-        if (withClause->where() != nullptr) {
-            auto whereClauseCtx = getContext<WhereClauseContext>();
-            whereClauseCtx->aliasesPtr = &withClauseCtx->aliases;
-            NG_RETURN_IF_ERROR(validateFilter(withClause->where()->filter(), *whereClauseCtx));
-            withClauseCtx->where = std::move(whereClauseCtx);
-        }
-
-        auto retClauseCtx = getContext<ReturnClauseContext>();
-        retClauseCtx->aliasesPtr = &withClauseCtx->aliases;
-        NG_RETURN_IF_ERROR(validateReturn(sentence->ret(), withClauseCtx.get(), *retClauseCtx));
-
-        matchCtx_->clauses.emplace_back(std::move(withClauseCtx));
-        matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
     }
+    matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
 
     return Status::OK();
 }
@@ -439,7 +450,12 @@ Status MatchValidator::validateWith(const WithClause *with,
     std::vector<const Expression *> exprs;
     exprs.reserve(withClauseCtx.yieldColumns->size());
     for (auto *col : withClauseCtx.yieldColumns->columns()) {
-        withClauseCtx.aliases.emplace(*col->alias(), AliasType::kDefault);
+        if (col->alias() == nullptr) {
+            return Status::SemanticError("Expression in WITH must be aliased (use AS)");
+        }
+        if (!withClauseCtx.aliases.emplace(*col->alias(), AliasType::kDefault).second) {
+            return Status::SemanticError("`%s': Redefined alias", col->alias()->c_str());
+        }
         exprs.push_back(col->expr());
     }
     NG_RETURN_IF_ERROR(validateAliases(exprs, *withClauseCtx.aliasesPtr));
@@ -526,9 +542,14 @@ Status MatchValidator::validateUnwind(const UnwindClause *unwind,
     auto *expr = unwind->expr()->clone().release();
     auto *alias = new std::string(*unwind->alias());
     columns->addColumn(new YieldColumn(expr, alias));
+    NG_RETURN_IF_ERROR(
+        validateAliases(std::vector<const Expression *>{expr}, *unwindClauseCtx.aliasesPtr));
 
     unwindClauseCtx.yieldColumns = columns;
-    unwindClauseCtx.aliases.emplace(*unwind->alias(), AliasType::kDefault);
+
+    if (!unwindClauseCtx.aliases.emplace(*unwind->alias(), AliasType::kDefault).second) {
+        return Status::SemanticError("`%s': Redefined alias", unwind->alias()->c_str());
+    }
 
     return Status::OK();
 }
@@ -569,5 +590,18 @@ MatchValidator::makeSubFilter(const std::string &alias,
 
     return root;
 }
+
+
+Status MatchValidator::combineAliases(std::unordered_map<std::string, AliasType> &curAliases,
+    const std::unordered_map<std::string, AliasType> &lastAliases) const {
+    for (auto &aliasPair : lastAliases) {
+        if (!curAliases.emplace(aliasPair).second) {
+            return Status::SemanticError("`%s': Redefined alias", aliasPair.first.c_str());
+        }
+    }
+
+    return Status::OK();
+}
+
 }   // namespace graph
 }   // namespace nebula
