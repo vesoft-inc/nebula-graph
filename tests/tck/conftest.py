@@ -11,7 +11,6 @@ import io
 import csv
 import re
 
-from nebula2.data.DataObject import DataSetWrapper
 from nebula2.graph.ttypes import ErrorCode
 from pytest_bdd import given, parsers, then, when
 
@@ -23,7 +22,7 @@ from tests.common.utils import create_space, load_csv_data, space_generator
 from tests.tck.utils.table import dataset, table
 
 parse = functools.partial(parsers.parse)
-reparse = functools.partial(parsers.re)
+rparse = functools.partial(parsers.re)
 
 
 @pytest.fixture
@@ -158,13 +157,13 @@ def execution_should_be_succ(graph_spaces):
 
 
 @then(
-    reparse("a (?P<err_type>\w+) should be raised at (?P<time>.*):(?P<msg>.*)")
+    rparse(r"a (?P<err_type>\w+) should be raised at (?P<time>.*):(?P<msg>.*)")
 )
 def raised_type_error(err_type, time, msg, graph_spaces):
     res = graph_spaces["result_set"]
     assert not res.is_succeeded(), "Response should be failed"
     err_type = err_type.strip()
-    msg = msg.strip().replace('$', '\$')
+    msg = msg.strip().replace('$', r'\$')
     res_msg = res.error_msg()
     if res.error_code() == ErrorCode.E_EXECUTION_ERROR:
         assert err_type == "ExecutionError"
