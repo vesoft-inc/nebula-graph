@@ -60,7 +60,7 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
                 matchClausePlan = std::move(plan).value();
                 startIndex = i;
                 foundStart = true;
-                initialExpr_ = nodeCtx.initialExpr;
+                initialExpr_ = nodeCtx.initialExpr->clone();
                 VLOG(1) << "Find starts: " << startIndex
                     << " node: " << matchClausePlan.root->outputVar()
                     << " colNames: " << folly::join(",", matchClausePlan.root->colNames());

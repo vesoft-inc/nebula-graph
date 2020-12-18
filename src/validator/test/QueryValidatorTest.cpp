@@ -1359,6 +1359,14 @@ TEST_F(QueryValidatorTest, TestMatch) {
         };
         EXPECT_TRUE(checkResult(query, expected));
     }
+    {
+        std::string query = "MATCH (v1)-[e:serve*2..3{start_year: 2000}]-(v2) "
+                            "WHERE id(v1) == \"LeBron James\""
+                            "RETURN v1, v2";
+        std::vector<PlanNode::Kind> expected = {
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
 }
 
 

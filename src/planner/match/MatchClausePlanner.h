@@ -83,7 +83,7 @@ private:
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
 
 private:
-    Expression* initialExpr_;
+    std::unique_ptr<Expression> initialExpr_;
 };
 }  // namespace graph
 }  // namespace nebula

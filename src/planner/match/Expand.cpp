@@ -123,6 +123,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     SubPlan curr;
     curr.root = dep;
     MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_, dep, inputVar, &curr);
+    initialExpr_ = nullptr;
 
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
@@ -160,7 +161,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
             auto la = static_cast<const LabelAttributeExpression*>(expr);
             return new AttributeExpression(new EdgeExpression(), la->right()->clone().release());
         });
-        auto filter = edge.filter->clone().release();
+        auto filter = saveObject(edge.filter->clone().release());
         filter->accept(&visitor);
         auto filterNode = Filter::make(qctx, root, filter);
         filterNode->setColNames(root->colNames());
