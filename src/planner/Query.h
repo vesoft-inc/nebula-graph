@@ -474,6 +474,10 @@ public:
         schemaId_ = schema;
     }
 
+    bool dedup() const {
+        return dedup_;
+    }
+
 private:
     IndexScan(QueryContext* qctx,
               PlanNode* input,
@@ -500,6 +504,7 @@ private:
         isEdge_ = isEdge;
         schemaId_ = schemaId;
         isEmptyResultSet_ = isEmptyResultSet;
+        dedup_ = dedup;
     }
 
 private:
@@ -508,6 +513,7 @@ private:
     bool                                          isEdge_;
     int32_t                                       schemaId_;
     bool                                          isEmptyResultSet_;
+    bool                                          dedup_;
 };
 
 /**

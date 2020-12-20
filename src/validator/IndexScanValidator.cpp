@@ -35,7 +35,8 @@ Status IndexScanValidator::toPlan() {
                                std::move(returnCols_),
                                isEdge_,
                                schemaId_,
-                               isEmptyResultSet_);
+                               isEmptyResultSet_,
+                               dedup_);
     is->setColNames(std::move(colNames_));
     root_ = is;
     tail_ = is;
@@ -111,6 +112,7 @@ Status IndexScanValidator::prepareYield() {
         returnCols_->emplace_back(colName);
         colNames_.emplace_back(from_ + "." + colName);
     }
+    dedup_ = sentence->yieldClause()->isDistinct();
     return Status::OK();
 }
 
