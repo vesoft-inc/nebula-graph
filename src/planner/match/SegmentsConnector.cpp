@@ -17,37 +17,23 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
                                                      CypherClauseContextBase* rightCtx,
                                                      SubPlan& left,
                                                      SubPlan& right) {
-    if (leftCtx->kind == CypherClauseKind::kReturn && rightCtx->kind == CypherClauseKind::kMatch) {
-        VLOG(1) << "left tail: " << left.tail->outputVar()
-            << "right root: " << right.root->outputVar();
-        addInput(left.tail, right.root);
-        left.tail = right.tail;
-        return left;
-    } else if (leftCtx->kind == CypherClauseKind::kReturn &&
-               rightCtx->kind == CypherClauseKind::kUnwind) {
+    UNUSED(rightCtx);
+    if (leftCtx->kind == CypherClauseKind::kReturn) {
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
         addInput(left.tail, right.root);
         left.tail = right.tail;
         return left;
-    } else if (leftCtx->kind == CypherClauseKind::kReturn &&
-               rightCtx->kind == CypherClauseKind::kWith) {
+    } else if (leftCtx->kind == CypherClauseKind::kUnwind) {
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
         addInput(left.tail, right.root);
-        left.tail = right.tail;
-        return left;
-    } else if (leftCtx->kind == CypherClauseKind::kUnwind &&
-                rightCtx->kind != CypherClauseKind::kUnwind) {
-        VLOG(1) << "left tail: " << left.tail->outputVar()
-                << "right root: " << right.root->outputVar();
-        addInput(left.tail, right.root);
-        auto *product = cartesianProductSegments(leftCtx->qctx, left.tail, right.root);
+        auto* product = cartesianProductSegments(leftCtx->qctx, left.tail, right.root);
         addDependency(product, left.root);
         left.root = product;
         left.tail = right.tail;
         return left;
-    } else if (leftCtx->kind != CypherClauseKind::kReturn) {
+    } else {
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
         addInput(left.tail, right.root);

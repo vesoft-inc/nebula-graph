@@ -24,7 +24,7 @@ AstContext* MatchValidator::getAstContext() {
 }
 
 Status MatchValidator::validateImpl() {
-    auto *sentence = static_cast<MatchSentence *>(sentence_);
+    auto *sentence = static_cast<MatchSentence*>(sentence_);
     auto &clauses = sentence->clauses();
 
     std::unordered_map<std::string, AliasType> *curAliasesPtr = nullptr;
