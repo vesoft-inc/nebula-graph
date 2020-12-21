@@ -18,6 +18,7 @@ folly::Future<Status> UnwindExecutor::execute() {
 
     auto *unwind = asNode<Unwind>(node());
     auto columns = unwind->columns()->columns();
+    DCHECK_GT(columns.size(), 0);
 
     auto iter = ectx_->getResult(unwind->inputVar()).iter();
     DCHECK(!!iter);
@@ -26,13 +27,18 @@ folly::Future<Status> UnwindExecutor::execute() {
     DataSet ds;
     ds.colNames = unwind->colNames();
     for (; iter->valid(); iter->next()) {
-        Row row;
-        for (auto& col : columns) {
-            Value val = col->expr()->eval(ctx(iter.get()));
-            std::vector<Value> vals = extractList(val);
-            for (const auto &v : vals) {
-                ds.rows.emplace_back(Row({std::move(v)}));
+        auto &unwind_col = columns[0];
+        Value list = unwind_col->expr()->eval(ctx(iter.get()));
+        std::vector<Value> vals = extractList(list);
+        for (auto &v : vals) {
+            Row row;
+            row.values.emplace_back(std::move(v));
+            for (size_t i = 1; i < columns.size(); ++i) {
+                auto &col = columns[i];
+                Value val = col->expr()->eval(ctx(iter.get()));
+                row.values.emplace_back(std::move(val));
             }
+            ds.rows.emplace_back(std::move(row));
         }
     }
 

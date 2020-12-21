@@ -10,8 +10,8 @@
 #include "planner/match/MatchSolver.h"
 #include "planner/match/OrderByClausePlanner.h"
 #include "planner/match/PaginationPlanner.h"
-#include "planner/match/WhereClausePlanner.h"
 #include "planner/match/SegmentsConnector.h"
+#include "planner/match/WhereClausePlanner.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
 
 namespace nebula {
@@ -41,7 +41,7 @@ Status WithClausePlanner::buildWith(WithClauseContext* wctx, SubPlan& subPlan) {
         auto kind = col->expr()->kind();
         YieldColumn* newColumn = nullptr;
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
-            newColumn = new YieldColumn(rewriter(col->expr()));
+            newColumn = new YieldColumn(rewriter(col->expr()), new std::string(*col->alias()));
         } else {
             auto newExpr = col->expr()->clone();
             RewriteMatchLabelVisitor visitor(rewriter);
@@ -104,5 +104,5 @@ Status WithClausePlanner::buildWith(WithClauseContext* wctx, SubPlan& subPlan) {
     return Status::OK();
 }
 
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula

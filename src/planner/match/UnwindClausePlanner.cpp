@@ -39,7 +39,7 @@ Status UnwindClausePlanner::buildUnwind(UnwindClauseContext* uctx, SubPlan& subP
         auto kind = col->expr()->kind();
         YieldColumn* newColumn = nullptr;
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
-            newColumn = new YieldColumn(rewriter(col->expr()));
+            newColumn = new YieldColumn(rewriter(col->expr()), new std::string(*col->alias()));
         } else {
             auto newExpr = col->expr()->clone();
             RewriteMatchLabelVisitor visitor(rewriter);
