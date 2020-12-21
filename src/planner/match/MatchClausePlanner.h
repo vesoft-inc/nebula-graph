@@ -74,11 +74,10 @@ private:
 
     YieldColumn* buildEdgeColumn(const std::string& colName, EdgeInfo& edge) const;
 
-    YieldColumn* buildPathColumn(const std::string& alias, const PlanNode* input) const;
-
     YieldColumn* buildPathColumn(const std::string& alias,
                                  size_t startIndex,
-                                 const std::vector<std::string> colNames) const;
+                                 const std::vector<std::string> colNames,
+                                 size_t nodeInfoSize) const;
 
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
 

@@ -1367,6 +1367,12 @@ TEST_F(QueryValidatorTest, TestMatch) {
         };
         EXPECT_TRUE(checkResult(query, expected));
     }
+    {
+        std::string query = "MATCH p = (n)-[]-(m:person{name:\"LeBron James\"}) RETURN p";
+        std::vector<PlanNode::Kind> expected = {
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
 }
 
 

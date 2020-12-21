@@ -113,56 +113,35 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
                                           MatchClauseContext* matchClauseCtx,
                                           size_t startIndex,
                                           SubPlan& subplan) {
-    SubPlan leftPlan = subplan;
-    NG_RETURN_IF_ERROR(
-        rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, leftPlan));
+    SubPlan rightExpandPlan = subplan;
+    if (startIndex < nodeInfos.size() - 1) {
+        NG_RETURN_IF_ERROR(
+            rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, rightExpandPlan));
+    }
 
     if (startIndex > 0) {
-        auto left = leftPlan.root;
-        SubPlan rightPlan = leftPlan;
+        auto left = rightExpandPlan.root;
+        SubPlan leftExpandPlan = rightExpandPlan;
         NG_RETURN_IF_ERROR(leftExpandFromNode(nodeInfos,
                                               edgeInfos,
                                               matchClauseCtx,
                                               startIndex,
                                               subplan.root->outputVar(),
-                                              rightPlan));
-        // Connect the left expand and right expand part.
-        auto right = rightPlan.root;
-        leftPlan.root = joinLeftAndRightExpandPart(matchClauseCtx->qctx, left, right);
-    }
-    subplan = leftPlan;
-    return Status::OK();
-}
-
-PlanNode* MatchClausePlanner::joinLeftAndRightExpandPart(QueryContext* qctx,
-                                                         PlanNode* left,
-                                                         PlanNode* right) {
-    auto join = SegmentsConnector::innerJoinSegments(qctx,
+                                              leftExpandPlan));
+        rightExpandPlan.root = leftExpandPlan.root;
+        if (startIndex < nodeInfos.size() - 1) {
+            // Connect the left expand and right expand part.
+            auto right = leftExpandPlan.root;
+            rightExpandPlan.root =
+                SegmentsConnector::innerJoinSegments(matchClauseCtx->qctx,
                                                      left,
                                                      right,
                                                      InnerJoinStrategy::JoinPos::kStart,
                                                      InnerJoinStrategy::JoinPos::kStart);
-    return join;
-    /*
-    auto lpath = folly::stringPrintf("%s_%d", kPathStr, 0);
-    auto rpath = folly::stringPrintf("%s_%d", kPathStr, 1);
-    join->setColNames({lpath, rpath});
-
-    auto pathExpr = new PathBuildExpression();
-    auto args = new ArgumentList();
-    args->addArgument(ExpressionUtils::inputPropExpr(rpath));
-    auto reverseRPath =
-        std::make_unique<FunctionCallExpression>(new std::string("reversePath"), args);
-    pathExpr->add(std::move(reverseRPath));
-    pathExpr->add(ExpressionUtils::inputPropExpr(lpath));
-
-    auto columns = qctx->objPool()->add(new YieldColumns);
-    columns->addColumn(new YieldColumn(pathExpr));
-    auto project = Project::make(qctx, join, columns);
-    project->setColNames({kPathStr});
-
-    return MatchSolver::filtPathHasSameEdge(project, kPathStr, qctx);
-    */
+        }
+    }
+    subplan = rightExpandPlan;
+    return Status::OK();
 }
 
 Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeInfos,
@@ -329,94 +308,62 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     const auto& inColNames = input->colNamesRef();
     auto columns = qctx->objPool()->add(new YieldColumns);
     std::vector<std::string> colNames;
-    if ((startIndex == 0 || startIndex == nodeInfos.size() - 1) &&
-        inColNames.size() == nodeInfos.size()) {
-        auto addNode = [&, this](size_t i) {
-            auto& nodeInfo = nodeInfos[i];
-            if (nodeInfo.alias != nullptr && !nodeInfo.anonymous) {
-                columns->addColumn(buildVertexColumn(inColNames[i], *nodeInfo.alias));
-                colNames.emplace_back(*nodeInfo.alias);
-            }
-        };
 
-        for (size_t i = 0; i < edgeInfos.size(); i++) {
-            addNode(i);
-            auto& edgeInfo = edgeInfos[i];
-            if (edgeInfo.alias != nullptr && !edgeInfo.anonymous) {
-                columns->addColumn(buildEdgeColumn(inColNames[i], edgeInfo));
-                colNames.emplace_back(*edgeInfo.alias);
+    auto addNode = [&, this](size_t i) {
+        auto& nodeInfo = nodeInfos[i];
+        if (nodeInfo.alias != nullptr && !nodeInfo.anonymous) {
+            if (i >= startIndex) {
+                columns->addColumn(
+                    buildVertexColumn(inColNames[i - startIndex], *nodeInfo.alias));
+            } else if (startIndex == (nodeInfos.size() - 1)) {
+                columns->addColumn(buildVertexColumn(
+                    inColNames[startIndex - i], *nodeInfo.alias));
+            } else {
+                columns->addColumn(buildVertexColumn(
+                    inColNames[nodeInfos.size() - i], *nodeInfo.alias));
             }
+            colNames.emplace_back(*nodeInfo.alias);
         }
+    };
 
-        // last vertex
-        DCHECK(!nodeInfos.empty());
-        addNode(nodeInfos.size() - 1);
-
-        const auto& aliases = matchClauseCtx->aliases;
-        auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto& alias) {
-            return alias.second == AliasType::kPath;
-        });
-        std::string alias =
-            iter != aliases.end() ? iter->first : qctx->vctx()->anonColGen()->getCol();
-        columns->addColumn(buildPathColumn(alias, input));
-        colNames.emplace_back(alias);
-
-        auto project = Project::make(qctx, input, columns);
-        project->setColNames(std::move(colNames));
-
-        plan->root = MatchSolver::filtPathHasSameEdge(project, alias, qctx);
-        VLOG(1) << "root: " << plan->root->outputVar() << " tail: " << plan->tail->outputVar();
-        return Status::OK();
-    } else if (inColNames.size() == nodeInfos.size() + 1) {
-        auto addNode = [&, this](size_t i) {
-            auto& nodeInfo = nodeInfos[i];
-            if (nodeInfo.alias != nullptr && !nodeInfo.anonymous) {
-                if (i >= startIndex) {
-                    columns->addColumn(
-                        buildVertexColumn(inColNames[i - startIndex], *nodeInfo.alias));
-                } else {
-                    columns->addColumn(buildVertexColumn(
-                        inColNames[nodeInfos.size() - i], *nodeInfo.alias));
-                }
-                colNames.emplace_back(*nodeInfo.alias);
+    for (size_t i = 0; i < edgeInfos.size(); i++) {
+        VLOG(1) << "colSize: " << inColNames.size() << "i: " << i
+                << " nodesize: " << nodeInfos.size() << " start: " << startIndex;
+        addNode(i);
+        auto& edgeInfo = edgeInfos[i];
+        if (edgeInfo.alias != nullptr && !edgeInfo.anonymous) {
+            if (i >= startIndex) {
+                columns->addColumn(buildEdgeColumn(inColNames[i - startIndex], edgeInfo));
+            } else if (startIndex == (nodeInfos.size() - 1)) {
+                columns->addColumn(
+                    buildEdgeColumn(inColNames[startIndex - i], edgeInfo));
+            } else {
+                columns->addColumn(
+                    buildEdgeColumn(inColNames[nodeInfos.size() - i], edgeInfo));
             }
-        };
-
-        for (size_t i = 0; i < edgeInfos.size(); i++) {
-            addNode(i);
-            auto& edgeInfo = edgeInfos[i];
-            if (edgeInfo.alias != nullptr && !edgeInfo.anonymous) {
-                if (i >= startIndex) {
-                    columns->addColumn(buildEdgeColumn(inColNames[i - startIndex], edgeInfo));
-                } else {
-                    columns->addColumn(
-                        buildEdgeColumn(inColNames[nodeInfos.size() - i], edgeInfo));
-                }
-                colNames.emplace_back(*edgeInfo.alias);
-            }
+            colNames.emplace_back(*edgeInfo.alias);
         }
-
-        // last vertex
-        DCHECK(!nodeInfos.empty());
-        addNode(nodeInfos.size() - 1);
-
-        const auto& aliases = matchClauseCtx->aliasesGenerated;
-        auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto& alias) {
-            return alias.second == AliasType::kPath;
-        });
-        std::string alias = iter != aliases.end() ? iter->first : qctx->vctx()->anonColGen()->getCol();
-        columns->addColumn(buildPathColumn(alias, input));
-        colNames.emplace_back(alias);
-
-        auto project = Project::make(qctx, input, columns);
-        project->setColNames(std::move(colNames));
-
-        plan->root = MatchSolver::filtPathHasSameEdge(project, alias, qctx);
-        VLOG(1) << "root: " << plan->root->outputVar() << " tail: " << plan->tail->outputVar();
-        return Status::OK();
-    } else {
-        return Status::Error();
     }
+
+    // last vertex
+    DCHECK(!nodeInfos.empty());
+    addNode(nodeInfos.size() - 1);
+
+    const auto& aliases = matchClauseCtx->aliasesGenerated;
+    auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto& alias) {
+        return alias.second == AliasType::kPath;
+    });
+    std::string alias =
+        iter != aliases.end() ? iter->first : qctx->vctx()->anonColGen()->getCol();
+    columns->addColumn(buildPathColumn(alias, startIndex, inColNames, nodeInfos.size()));
+    colNames.emplace_back(alias);
+
+    auto project = Project::make(qctx, input, columns);
+    project->setColNames(std::move(colNames));
+
+    plan->root = MatchSolver::filtPathHasSameEdge(project, alias, qctx);
+    VLOG(1) << "root: " << plan->root->outputVar() << " tail: " << plan->tail->outputVar();
+    return Status::OK();
 }
 
 YieldColumn* MatchClausePlanner::buildVertexColumn(const std::string& colName,
@@ -450,34 +397,44 @@ YieldColumn* MatchClausePlanner::buildEdgeColumn(const std::string& colName, Edg
 }
 
 YieldColumn* MatchClausePlanner::buildPathColumn(const std::string& alias,
-                                                 const PlanNode* input) const {
-    auto pathExpr = std::make_unique<PathBuildExpression>();
-    for (const auto& colName : input->colNamesRef()) {
-        pathExpr->add(ExpressionUtils::inputPropExpr(colName));
-    }
-    return new YieldColumn(pathExpr.release(), new std::string(alias));
-}
-
-YieldColumn* MatchClausePlanner::buildPathColumn(const std::string& alias,
                                                  size_t startIndex,
-                                                 const std::vector<std::string> colNames) const {
-    auto leftPath = std::make_unique<PathBuildExpression>();
-    for (size_t i = 0; i < colNames.size() - startIndex - 1; ++i) {
-        leftPath->add(ExpressionUtils::inputPropExpr(colNames[i]));
+                                                 const std::vector<std::string> colNames,
+                                                 size_t nodeInfoSize) const {
+    auto colSize = colNames.size();
+    DCHECK((nodeInfoSize == colSize) || (nodeInfoSize + 1 == colSize));
+    size_t bound = 0;
+    if (colSize > nodeInfoSize) {
+        bound = colSize - startIndex - 1;
+    } else if (startIndex == (nodeInfoSize - 1)) {
+        bound = 0;
+    } else {
+        bound = colSize - startIndex;
     }
 
-    auto rightPath = std::make_unique<PathBuildExpression>();
-    for (size_t i = colNames.size() - startIndex - 1; i < colNames.size(); ++i) {
-        rightPath->add(ExpressionUtils::inputPropExpr(colNames[i]));
+    auto rightExpandPath = std::make_unique<PathBuildExpression>();
+    for (size_t i = 0; i < bound; ++i) {
+        rightExpandPath->add(ExpressionUtils::inputPropExpr(colNames[i]));
+    }
+
+    auto leftExpandPath = std::make_unique<PathBuildExpression>();
+    for (size_t i = bound; i < colNames.size(); ++i) {
+        leftExpandPath->add(ExpressionUtils::inputPropExpr(colNames[i]));
     }
 
     auto finalPath = std::make_unique<PathBuildExpression>();
-    auto args = new ArgumentList();
-    args->addArgument(std::move(rightPath));
-    auto reverseRPath =
-        std::make_unique<FunctionCallExpression>(new std::string("reversePath"), args);
-    finalPath->add(std::move(reverseRPath));
-    finalPath->add(std::move(leftPath));
+    if (leftExpandPath->size() != 0) {
+        auto args = new ArgumentList();
+        args->addArgument(std::move(leftExpandPath));
+        auto reversePath =
+            std::make_unique<FunctionCallExpression>(new std::string("reversePath"), args);
+        if (rightExpandPath->size() == 0) {
+            return new YieldColumn(reversePath.release(), new std::string(alias));
+        }
+        finalPath->add(std::move(reversePath));
+    }
+    if (rightExpandPath->size() != 0) {
+        finalPath->add(std::move(rightExpandPath));
+    }
     return new YieldColumn(finalPath.release(), new std::string(alias));
 }
 

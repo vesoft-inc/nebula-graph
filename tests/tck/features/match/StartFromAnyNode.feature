@@ -136,7 +136,7 @@ Feature: Start From Any Node
       RETURN p
       """
     Then the result should be, in any order, with relax comparision:
-      | p                                                                                                                          |
+      | p                                                                                                                            |
       | <("Grant Hill")-[:like@0]->("Tracy McGrady")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>   |
       | <("Vince Carter")-[:like@0]->("Tracy McGrady")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")> |
       | <("Yao Ming")-[:like@0]->("Tracy McGrady")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>     |
@@ -149,9 +149,58 @@ Feature: Start From Any Node
       | <("Marc Gasol")-[:like@0]->("Paul Gasol")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>      |
       | <("Marc Gasol")<-[:like@0]-("Paul Gasol")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>      |
       | <("Bucks")<-[:serve@0]-("Paul Gasol")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>          |
-      | <("Bulls")<-[:serve@0]-("Paul Gasol")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>         |
+      | <("Bulls")<-[:serve@0]-("Paul Gasol")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>          |
       | <("Grizzlies")<-[:serve@0]-("Paul Gasol")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol" )>     |
       | <("Spurs")<-[:serve@0]-("Paul Gasol")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>          |
+
+  Scenario: start from end node, with prop index, with totally 1 steps
+    When executing query:
+      """
+      MATCH (n)-[]-(m:player{name:"Kyle Anderson"})
+      RETURN n, m
+      """
+    Then the result should be, in any order, with relax comparision:
+      | n                   | m                 |
+      | ("Tony Parker")     | ("Kyle Anderson") |
+      | ("Dejounte Murray") | ("Kyle Anderson") |
+      | ("Grizzlies")       | ("Kyle Anderson") |
+      | ("Spurs")           | ("Kyle Anderson") |
+    When executing query:
+      """
+      MATCH (n)-[]-(m:player{name:"Kyle Anderson"})
+      RETURN *
+      """
+    Then the result should be, in any order, with relax comparision:
+      | n                   | m                 |
+      | ("Tony Parker")     | ("Kyle Anderson") |
+      | ("Dejounte Murray") | ("Kyle Anderson") |
+      | ("Grizzlies")       | ("Kyle Anderson") |
+      | ("Spurs")           | ("Kyle Anderson") |
+
+  Scenario: start from end node, with prop index, with totally 2 steps
+    When executing query:
+      """
+      MATCH (l)-[]-(n)-[]-(m:player{name:"Stephen Curry"})
+      RETURN l, n, m
+      """
+    Then the result should be, in any order, with relax comparision:
+      | l                     | n                 | m                 |
+      | ("Warriors")          | ("Klay Thompson") | ("Stephen Curry") |
+      | ("Amar'e Stoudemire") | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Dirk Nowitzki")     | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Jason Kidd")        | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Amar'e Stoudemire") | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Dirk Nowitzki")     | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Jason Kidd")        | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Lakers")            | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Mavericks")         | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Suns")              | ("Steve Nash")    | ("Stephen Curry") |
+      | ("Suns")              | ("Steve Nash")    | ("Stephen Curry") |
+      | ("David West")        | ("Warriors")      | ("Stephen Curry") |
+      | ("JaVale McGee")      | ("Warriors")      | ("Stephen Curry") |
+      | ("Kevin Durant")      | ("Warriors")      | ("Stephen Curry") |
+      | ("Klay Thompson")     | ("Warriors")      | ("Stephen Curry") |
+      | ("Marco Belinelli")   | ("Warriors")      | ("Stephen Curry") |
 
   @skip
   Scenario: start from middle node, with vertex id, with totally 2 steps
