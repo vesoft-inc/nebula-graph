@@ -1,4 +1,3 @@
-@jmq
 Feature: Go Sentence
 
   Background: Prepare space
