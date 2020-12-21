@@ -40,7 +40,7 @@ public:
                                        const PlanNode* left,
                                        const PlanNode* right);
 
-    static PlanNode* certesionProductSegments(QueryContext* qctx,
+    static PlanNode* cartesianProductSegments(QueryContext* qctx,
                                 const PlanNode* left,
                                 const PlanNode* right);
 

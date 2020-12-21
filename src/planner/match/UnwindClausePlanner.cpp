@@ -55,7 +55,7 @@ Status UnwindClausePlanner::buildUnwind(UnwindClauseContext* uctx, SubPlan& subP
     }
 
     auto* unwind = Unwind::make(uctx->qctx, nullptr, yields);
-    unwind->setColNames(colNames);
+    unwind->setColNames(std::move(colNames));
     subPlan.root = unwind;
     subPlan.tail = unwind;
 

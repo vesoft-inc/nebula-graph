@@ -42,7 +42,7 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
         addInput(left.tail, right.root);
-        auto *product = certesionProductSegments(leftCtx->qctx, left.tail, right.root);
+        auto *product = cartesianProductSegments(leftCtx->qctx, left.tail, right.root);
         addDependency(product, left.root);
         left.root = product;
         left.tail = right.tail;
@@ -64,7 +64,7 @@ PlanNode* SegmentsConnector::innerJoinSegments(QueryContext* qctx,
     return std::make_unique<InnerJoinStrategy>(qctx)->connect(left, right);
 }
 
-PlanNode* SegmentsConnector::certesionProductSegments(QueryContext* qctx,
+PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,
                                                       const PlanNode* left,
                                                       const PlanNode* right) {
     return std::make_unique<CartesianProductStrategy>(qctx)->connect(left, right);

@@ -47,7 +47,7 @@ std::vector<Value> UnwindExecutor::extractList(Value &val) {
             ret.emplace_back(std::move(list[i]));
         }
     } else {
-        if (val != Value::kNullValue) {
+        if (!(val.isNull() || val.empty())) {
             ret.emplace_back(std::move(val));
         }
     }

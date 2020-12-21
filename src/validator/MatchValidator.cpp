@@ -345,7 +345,7 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
 
     if (limitExpr != nullptr) {
         if (!evaluableExpr(limitExpr)) {
-            return Status::SemanticError("SKIP should be instantly evaluable");
+            return Status::SemanticError("LIMIT should be instantly evaluable");
         }
         QueryExpressionContext ctx;
         auto value = const_cast<Expression*>(limitExpr)->eval(ctx);
@@ -483,7 +483,7 @@ Status MatchValidator::validateWith(const WithClause *with,
 
     if (limitExpr != nullptr) {
         if (!evaluableExpr(limitExpr)) {
-            return Status::SemanticError("SKIP should be instantly evaluable");
+            return Status::SemanticError("LIMIT should be instantly evaluable");
         }
         QueryExpressionContext ctx;
         auto value = const_cast<Expression *>(limitExpr)->eval(ctx);
