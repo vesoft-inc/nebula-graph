@@ -120,8 +120,7 @@ def result_should_be_in_order(result, graph_spaces):
     cmp_dataset(graph_spaces, result, order=True, strict=True)
 
 
-@then(
-    parse("the result should be, in order, with relax comparision:\n{result}"))
+@then(parse("the result should be, in order, with relax comparison:\n{result}"))
 def result_should_be_in_order_relax_cmp(result, graph_spaces):
     cmp_dataset(graph_spaces, result, order=True, strict=False)
 
@@ -131,10 +130,7 @@ def result_should_be(result, graph_spaces):
     cmp_dataset(graph_spaces, result, order=False, strict=True)
 
 
-@then(
-    parse(
-        "the result should be, in any order, with relax comparision:\n{result}"
-    ))
+@then(parse("the result should be, in any order, with relax comparison:\n{result}"))
 def result_should_be_relax_cmp(result, graph_spaces):
     cmp_dataset(graph_spaces, result, order=False, strict=False)
 
@@ -156,9 +152,7 @@ def execution_should_be_succ(graph_spaces):
     assert rs.is_succeeded(), f"Response failed: {rs.error_msg()}"
 
 
-@then(
-    rparse(r"a (?P<err_type>\w+) should be raised at (?P<time>.*):(?P<msg>.*)")
-)
+@then(rparse(r"a (?P<err_type>\w+) should be raised at (?P<time>.*):(?P<msg>.*)"))
 def raised_type_error(err_type, time, msg, graph_spaces):
     res = graph_spaces["result_set"]
     assert not res.is_succeeded(), "Response should be failed"
