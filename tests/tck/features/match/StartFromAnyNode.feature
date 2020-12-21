@@ -201,6 +201,14 @@ Feature: Start From Any Node
       | ("Kevin Durant")      | ("Warriors")      | ("Stephen Curry") |
       | ("Klay Thompson")     | ("Warriors")      | ("Stephen Curry") |
       | ("Marco Belinelli")   | ("Warriors")      | ("Stephen Curry") |
+    When executing query:
+      """
+      MATCH (l)-[e1]-(n)-[e2]-(m:player{name:"Ricky Rubio"})
+      RETURN *
+      """
+    Then the result should be, in any order, with relax comparision:
+      | l              | e1                               | n        | e2                                | m               |
+      | ("Boris Diaw") | [:serve "Jazz"<-"Boris Diaw" @0] | ("Jazz") | [:serve "Ricky Rubio"->"Jazz" @0] | ("Ricky Rubio") |
 
   @skip
   Scenario: start from middle node, with vertex id, with totally 2 steps

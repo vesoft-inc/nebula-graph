@@ -336,10 +336,10 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
                 columns->addColumn(buildEdgeColumn(inColNames[i - startIndex], edgeInfo));
             } else if (startIndex == (nodeInfos.size() - 1)) {
                 columns->addColumn(
-                    buildEdgeColumn(inColNames[startIndex - i], edgeInfo));
+                    buildEdgeColumn(inColNames[edgeInfos.size() - 1 - i], edgeInfo));
             } else {
                 columns->addColumn(
-                    buildEdgeColumn(inColNames[nodeInfos.size() - i], edgeInfo));
+                    buildEdgeColumn(inColNames[edgeInfos.size() - i], edgeInfo));
             }
             colNames.emplace_back(*edgeInfo.alias);
         }
