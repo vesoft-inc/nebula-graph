@@ -191,7 +191,7 @@ class NebulaService(object):
         print("try to stop nebula services...")
         self.kill_all(signal.SIGTERM)
 
-        max_retries = 30
+        max_retries = 20
         while self.is_procs_alive() and max_retries >= 0:
             time.sleep(1)
             max_retries = max_retries-1
