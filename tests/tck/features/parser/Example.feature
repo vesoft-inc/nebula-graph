@@ -43,5 +43,5 @@ Feature: Feature examples
       """
       CREATE TAG player(name string);
       """
-    Then a ExecutionError should be raised at runtime:
+    Then a ExecutionError should be raised at runtime.
     Then drop the used space

@@ -151,10 +151,9 @@ def execution_should_be_succ(graph_spaces):
     assert rs is not None, "Please execute a query at first"
     assert rs.is_succeeded(), f"Response failed: {rs.error_msg()}"
 
-@then(
-    rparse("a (?P<err_type>\w+) should be raised at (?P<time>runtime|compile time):(?P<msg>.*)")
-)
-def raised_type_error(err_type, time, msg, graph_spaces):
+
+@then(rparse(r"a (?P<err_type>\w+) should be raised at (?P<time>runtime|compile time)(?P<sym>:|.)(?P<msg>.*)"))
+def raised_type_error(err_type, time, sym, msg, graph_spaces):
     res = graph_spaces["result_set"]
     assert not res.is_succeeded(), "Response should be failed"
     err_type = err_type.strip()
