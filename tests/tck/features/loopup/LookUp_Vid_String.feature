@@ -615,13 +615,13 @@ Feature: LookUpTest_Vid_String
       | VertexID |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 != (true && true)
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 != (true and true)
       """
     Then the result should be, in any order:
       | VertexID |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true && true)
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true and true)
       """
     Then the result should be, in any order:
       | VertexID |
@@ -633,7 +633,7 @@ Feature: LookUpTest_Vid_String
       | "225"    |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true || false)
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (true or false)
       """
     Then the result should be, in any order:
       | VertexID |
