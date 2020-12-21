@@ -35,8 +35,8 @@ TEST_F(UnwindTest, UnwindList) {
     }
 
     auto *col = new YieldColumn(new ListExpression(exprList), new std::string("r"));
-    qctx_->objPool()->add(col);
     auto *columns = new YieldColumns();
+    qctx_->objPool()->add(columns);
     columns->addColumn(col);
 
     auto* unwind = Unwind::make(qctx_.get(), start_, columns);

@@ -66,6 +66,8 @@ private:
     Status combineAliases(std::unordered_map<std::string, AliasType> &curAliases,
                           const std::unordered_map<std::string, AliasType> &lastAliases) const;
 
+    Status combineYieldColumns(YieldColumns *curYieldColumns, YieldColumns *lastYieldColumns) const;
+
     template <typename T>
     std::unique_ptr<T> getContext() const {
         auto ctx = std::make_unique<T>();

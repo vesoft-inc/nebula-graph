@@ -24,15 +24,6 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
         addInput(left.tail, right.root);
         left.tail = right.tail;
         return left;
-    } else if (leftCtx->kind == CypherClauseKind::kUnwind) {
-        VLOG(1) << "left tail: " << left.tail->outputVar()
-                << "right root: " << right.root->outputVar();
-        addInput(left.tail, right.root);
-        auto* product = cartesianProductSegments(leftCtx->qctx, left.tail, right.root);
-        addDependency(product, left.root);
-        left.root = product;
-        left.tail = right.tail;
-        return left;
     } else {
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();

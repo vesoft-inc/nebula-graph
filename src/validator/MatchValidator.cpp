@@ -28,6 +28,7 @@ Status MatchValidator::validateImpl() {
     auto &clauses = sentence->clauses();
 
     std::unordered_map<std::string, AliasType> *curAliasesPtr = nullptr;
+    YieldColumns *curYieldColumns = nullptr;
     auto retClauseCtx = getContext<ReturnClauseContext>();
     for (size_t i = 0; i < clauses.size(); ++i) {
         if (clauses[i]->isMatch()) {
@@ -68,6 +69,11 @@ Status MatchValidator::validateImpl() {
                 NG_RETURN_IF_ERROR(combineAliases(unwindClauseCtx->aliases, *curAliasesPtr));
             }
             curAliasesPtr = &unwindClauseCtx->aliases;
+            if (curYieldColumns) {
+                NG_RETURN_IF_ERROR(combineYieldColumns(
+                    const_cast<YieldColumns *>(unwindClauseCtx->yieldColumns), curYieldColumns));
+            }
+            curYieldColumns = const_cast<YieldColumns*>(unwindClauseCtx->yieldColumns);
 
             if (i == clauses.size() - 1) {
                 retClauseCtx->aliasesPtr = curAliasesPtr;
@@ -88,6 +94,7 @@ Status MatchValidator::validateImpl() {
             }
 
             curAliasesPtr = &withClauseCtx->aliases;
+            curYieldColumns = const_cast<YieldColumns*>(withClauseCtx->yieldColumns);
 
             if (i == clauses.size() - 1) {
                 retClauseCtx->aliasesPtr = curAliasesPtr;
@@ -619,5 +626,18 @@ Status MatchValidator::combineAliases(std::unordered_map<std::string, AliasType>
     return Status::OK();
 }
 
+Status MatchValidator::combineYieldColumns(YieldColumns *curYieldColumns,
+                                           YieldColumns *lastYieldColumns) const {
+    const auto &lastColumns = lastYieldColumns->columns();
+    for (auto &column : lastColumns) {
+        DCHECK(column->alias() != nullptr);
+        auto *newColumn = new YieldColumn(
+            new VariablePropertyExpression(new std::string(), new std::string(*column->alias())),
+            new std::string(*column->alias()));
+        curYieldColumns->addColumn(newColumn);
+    }
+
+    return Status::OK();
+}
 }   // namespace graph
 }   // namespace nebula
