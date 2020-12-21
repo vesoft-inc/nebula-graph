@@ -42,6 +42,10 @@ class DataSetComparator:
         return b.decode(self._decode_type)
 
     def compare(self, resp: DataSet, expect: DataSet):
+        if all(x is None for x in [expect, resp]):
+            return True
+        if None in [expect, resp]:
+            return False
         if len(resp.rows) < len(expect.rows):
             return False
         if len(resp.column_names) != len(expect.column_names):
