@@ -10,7 +10,7 @@ Feature: Start From Any Node
       MATCH (n)-[]-(m:player{name:"Kyle Anderson"})-[]-(l)
       RETURN n,m,l
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | m                 | l                   |
       | ("Dejounte Murray") | ("Kyle Anderson") | ("Tony Parker")     |
       | ("Grizzlies")       | ("Kyle Anderson") | ("Tony Parker")     |
@@ -30,7 +30,7 @@ Feature: Start From Any Node
       WHERE m.name=="Kyle Anderson"
       RETURN n,m,l
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | m                 | l                   |
       | ("Dejounte Murray") | ("Kyle Anderson") | ("Tony Parker")     |
       | ("Grizzlies")       | ("Kyle Anderson") | ("Tony Parker")     |
@@ -49,7 +49,7 @@ Feature: Start From Any Node
       MATCH p = (n)-[]-(m:player{name:"Kyle Anderson"})-[]-(l)
       RETURN p
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | p                                                                                 |
       | <("Dejounte Murray")-[:like@0]->("Kyle Anderson")<-[:teammate@0]-("Tony Parker")> |
       | <("Grizzlies")<-[:serve@0]-("Kyle Anderson")<-[:teammate@0]-("Tony Parker")>      |
@@ -68,7 +68,7 @@ Feature: Start From Any Node
       MATCH (n)-[e1]-(m:player{name:"Kyle Anderson"})-[e2]-(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | e1                                            | m                 | e2                                            | l                   |
       | ("Dejounte Murray") | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
       | ("Grizzlies")       | [:serve "Kyle Anderson"->"Grizzlies" @0]      | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
@@ -87,7 +87,7 @@ Feature: Start From Any Node
       MATCH (n)-[e1]-(m:player{name:"Kyle Anderson"})-[e2]->(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | e1                                            | m                 | e2                                       | l             |
       | ("Tony Parker")     | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Kyle Anderson") | [:serve "Kyle Anderson"->"Grizzlies" @0] | ("Grizzlies") |
       | ("Dejounte Murray") | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | ("Kyle Anderson") | [:serve "Kyle Anderson"->"Grizzlies" @0] | ("Grizzlies") |
@@ -100,7 +100,7 @@ Feature: Start From Any Node
       MATCH (n)-[e1]-(m:player{name:"Kyle Anderson"})<-[e2]-(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | e1                                            | m                 | e2                                            | l                   |
       | ("Dejounte Murray") | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
       | ("Grizzlies")       | [:serve "Kyle Anderson"->"Grizzlies" @0]      | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
@@ -113,7 +113,7 @@ Feature: Start From Any Node
       MATCH (n)-[e1]->(m:player{name:"Kyle Anderson"})-[e2]-(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | e1                                            | m                 | e2                                            | l                   |
       | ("Dejounte Murray") | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
       | ("Tony Parker")     | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Kyle Anderson") | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | ("Dejounte Murray") |
@@ -126,7 +126,7 @@ Feature: Start From Any Node
       MATCH (n)-[e1]->(m:player{name:"Kyle Anderson"})-[e2]->(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | e1                                            | m                 | e2                                       | l             |
       | ("Tony Parker")     | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Kyle Anderson") | [:serve "Kyle Anderson"->"Grizzlies" @0] | ("Grizzlies") |
       | ("Dejounte Murray") | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | ("Kyle Anderson") | [:serve "Kyle Anderson"->"Grizzlies" @0] | ("Grizzlies") |
@@ -137,7 +137,7 @@ Feature: Start From Any Node
       MATCH (n)-[e1]->(m:player{name:"Kyle Anderson"})<-[e2]-(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | e1                                            | m                 | e2                                            | l                   |
       | ("Dejounte Murray") | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
       | ("Tony Parker")     | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Kyle Anderson") | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | ("Dejounte Murray") |
@@ -146,7 +146,7 @@ Feature: Start From Any Node
       MATCH (n)<-[e1]-(m:player{name:"Kyle Anderson"})-[e2]-(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n             | e1                                       | m                 | e2                                            | l                   |
       | ("Grizzlies") | [:serve "Kyle Anderson"->"Grizzlies" @0] | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
       | ("Spurs")     | [:serve "Kyle Anderson"->"Spurs" @0]     | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
@@ -159,7 +159,7 @@ Feature: Start From Any Node
       MATCH (n)<-[e1]-(m:player{name:"Kyle Anderson"})-[e2]->(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n             | e1                                       | m                 | e2                                       | l             |
       | ("Spurs")     | [:serve "Kyle Anderson"->"Spurs" @0]     | ("Kyle Anderson") | [:serve "Kyle Anderson"->"Grizzlies" @0] | ("Grizzlies") |
       | ("Grizzlies") | [:serve "Kyle Anderson"->"Grizzlies" @0] | ("Kyle Anderson") | [:serve "Kyle Anderson"->"Spurs" @0]     | ("Spurs")     |
@@ -168,7 +168,7 @@ Feature: Start From Any Node
       MATCH (n)<-[e1]-(m:player{name:"Kyle Anderson"})<-[e2]-(l)
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n             | e1                                       | m                 | e2                                            | l                   |
       | ("Grizzlies") | [:serve "Kyle Anderson"->"Grizzlies" @0] | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
       | ("Spurs")     | [:serve "Kyle Anderson"->"Spurs" @0]     | ("Kyle Anderson") | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | ("Tony Parker")     |
@@ -182,7 +182,7 @@ Feature: Start From Any Node
       RETURN p
       | YIELD count(*) AS count
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | count |
       | 141   |
     When executing query:
@@ -191,7 +191,7 @@ Feature: Start From Any Node
       WHERE k.name == "Marc Gasol"
       RETURN n, m, l, k
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | m                 | l             | k              |
       | ("Tony Parker")     | ("Kyle Anderson") | ("Grizzlies") | ("Marc Gasol") |
       | ("Dejounte Murray") | ("Kyle Anderson") | ("Grizzlies") | ("Marc Gasol") |
@@ -202,7 +202,7 @@ Feature: Start From Any Node
       WHERE k.name == "Marc Gasol"
       RETURN p
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | p                                                                                                       |
       | <("Tony Parker")-[:teammate@0]->("Kyle Anderson")-[:serve@0]->("Grizzlies")<-[:serve@0]-("Marc Gasol")> |
       | <("Dejounte Murray")-[:like@0]->("Kyle Anderson")-[:serve@0]->("Grizzlies")<-[:serve@0]-("Marc Gasol")> |
@@ -213,7 +213,7 @@ Feature: Start From Any Node
       WHERE k.name == "Marc Gasol"
       RETURN e1, e2, e3
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | e1                                            | e2                                       | e3                                    |
       | [:teammate "Kyle Anderson"<-"Tony Parker" @0] | [:serve "Kyle Anderson"->"Grizzlies" @0] | [:serve "Grizzlies"<-"Marc Gasol" @0] |
       | [:like "Kyle Anderson"<-"Dejounte Murray" @0] | [:serve "Kyle Anderson"->"Grizzlies" @0] | [:serve "Grizzlies"<-"Marc Gasol" @0] |
@@ -224,7 +224,7 @@ Feature: Start From Any Node
       RETURN p
       | YIELD count(*) AS count
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | count |
       | 46    |
     When executing query:
@@ -233,7 +233,7 @@ Feature: Start From Any Node
       WHERE l.name == "Lakers"
       RETURN k, n, m, l
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | k                | n                 | m               | l          |
       | ("Grant Hill")   | ("Tracy McGrady") | ("Kobe Bryant") | ("Lakers") |
       | ("Vince Carter") | ("Tracy McGrady") | ("Kobe Bryant") | ("Lakers") |
@@ -257,7 +257,7 @@ Feature: Start From Any Node
       WHERE l.name == "Lakers"
       RETURN p
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | p                                                                                                 |
       | <("Grant Hill")-[:like@0]->("Tracy McGrady")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")>   |
       | <("Vince Carter")-[:like@0]->("Tracy McGrady")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")> |
@@ -281,7 +281,7 @@ Feature: Start From Any Node
       WHERE l.name == "Lakers"
       RETURN e1, e2, e3
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | e1                                         | e2                                        | e3                                  |
       | [:like "Tracy McGrady"<-"Grant Hill" @0]   | [:like "Kobe Bryant"<-"Tracy McGrady" @0] | [:serve "Kobe Bryant"->"Lakers" @0] |
       | [:like "Tracy McGrady"<-"Vince Carter" @0] | [:like "Kobe Bryant"<-"Tracy McGrady" @0] | [:serve "Kobe Bryant"->"Lakers" @0] |
@@ -307,7 +307,7 @@ Feature: Start From Any Node
       RETURN p
       | YIELD count(*) AS count
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | count |
       | 348   |
     When executing query:
@@ -316,7 +316,7 @@ Feature: Start From Any Node
       WHERE k.name == "Paul Gasol"
       RETURN p
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | p                                                                                                                            |
       | <("Grant Hill")-[:like@0]->("Tracy McGrady")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")>   |
       | <("Vince Carter")-[:like@0]->("Tracy McGrady")-[:like@0]->("Kobe Bryant")-[:serve@0]->("Lakers")<-[:serve@0]-("Paul Gasol")> |
@@ -339,7 +339,7 @@ Feature: Start From Any Node
       WHERE k.name == "Paul Gasol"
       RETURN i, n, m, l, k
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | i                | n                 | m               | l          | k              |
       | ("Grant Hill")   | ("Tracy McGrady") | ("Kobe Bryant") | ("Lakers") | ("Paul Gasol") |
       | ("Vince Carter") | ("Tracy McGrady") | ("Kobe Bryant") | ("Lakers") | ("Paul Gasol") |
@@ -362,7 +362,7 @@ Feature: Start From Any Node
       WHERE k.name == "Paul Gasol"
       RETURN e1, e2, e3, e4
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | e1                                         | e2                                        | e3                                  | e4                                 |
       | [:like "Tracy McGrady"<-"Grant Hill" @0]   | [:like "Kobe Bryant"<-"Tracy McGrady" @0] | [:serve "Kobe Bryant"->"Lakers" @0] | [:serve "Lakers"<-"Paul Gasol" @0] |
       | [:like "Tracy McGrady"<-"Vince Carter" @0] | [:like "Kobe Bryant"<-"Tracy McGrady" @0] | [:serve "Kobe Bryant"->"Lakers" @0] | [:serve "Lakers"<-"Paul Gasol" @0] |
@@ -386,7 +386,7 @@ Feature: Start From Any Node
       MATCH (n)-[]-(m:player{name:"Kyle Anderson"})
       RETURN n, m
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | m                 |
       | ("Tony Parker")     | ("Kyle Anderson") |
       | ("Dejounte Murray") | ("Kyle Anderson") |
@@ -397,7 +397,7 @@ Feature: Start From Any Node
       MATCH (n)-[]-(m:player{name:"Kyle Anderson"})
       RETURN *
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | m                 |
       | ("Tony Parker")     | ("Kyle Anderson") |
       | ("Dejounte Murray") | ("Kyle Anderson") |
@@ -410,7 +410,7 @@ Feature: Start From Any Node
       MATCH p = (l)-[]-(n)-[]-(m:player{name:"Stephen Curry"})
       RETURN p
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | p                                                                              |
       | <("Warriors")<-[:serve@0]-("Klay Thompson")-[:like@0]->("Stephen Curry")>      |
       | <("Amar'e Stoudemire")-[:like@0]->("Steve Nash")-[:like@0]->("Stephen Curry")> |
@@ -433,7 +433,7 @@ Feature: Start From Any Node
       MATCH (l)-[]-(n)-[]-(m:player{name:"Stephen Curry"})
       RETURN l, n, m
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | l                     | n                 | m                 |
       | ("Warriors")          | ("Klay Thompson") | ("Stephen Curry") |
       | ("Amar'e Stoudemire") | ("Steve Nash")    | ("Stephen Curry") |
@@ -456,7 +456,7 @@ Feature: Start From Any Node
       MATCH ()-[e1]-()-[e2]-(:player{name:"Stephen Curry"})
       RETURN e1, e2
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | e1                                           | e2                                          |
       | [:serve "Klay Thompson"->"Warriors" @0]      | [:like "Stephen Curry"<-"Klay Thompson" @0] |
       | [:like "Steve Nash"<-"Amar'e Stoudemire" @0] | [:like "Stephen Curry"<-"Steve Nash" @0]    |
@@ -482,7 +482,7 @@ Feature: Start From Any Node
       RETURN n,m,l
       | YIELD count(*) AS count
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | count |
       | 153   |
 
@@ -493,7 +493,7 @@ Feature: Start From Any Node
       RETURN n,m,l
       | YIELD count(*) AS count
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | count |
       | 1846  |
     When executing query:
@@ -502,7 +502,7 @@ Feature: Start From Any Node
       RETURN p
       | YIELD count(*) AS count
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | count |
       | 1693  |
 
@@ -514,7 +514,7 @@ Feature: Start From Any Node
       WHERE id(m)=="Kyle Anderson"
       RETURN n,m,l
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order, with relax comparison:
       | n                   | m                 | l                   |
       | ("Dejounte Murray") | ("Kyle Anderson") | ("Tony Parker")     |
       | ("Grizzlies")       | ("Kyle Anderson") | ("Tony Parker")     |
