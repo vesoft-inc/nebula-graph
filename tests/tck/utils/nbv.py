@@ -7,8 +7,7 @@
 import re
 import ply.lex as lex
 import ply.yacc as yacc
-import pyhash
-mmh2 = pyhash.murmur2_x64_64a()
+from tests.tck.utils.mmh2 import mmh2
 
 from nebula2.common.ttypes import (
     Value,
@@ -534,8 +533,7 @@ def murmurhash2(v):
         v = v.get_sVal()
     else:
         assert isinstance(v, str)
-    hv = mmh2(bytes(v, 'utf-8'), seed = 0xc70f6907)
-    return hv | (-(hv & 0x8000000000000000))
+    return mmh2(bytes(v, 'utf-8'))
 
 
 def register_function(name, func):
