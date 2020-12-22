@@ -4,7 +4,6 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: Yield
 
-  @skip
   Scenario: yield without chosen space
     Given an empty graph
     When executing query:
@@ -14,3 +13,4 @@ Feature: Yield
     Then the result should be, in any order:
       | sum |
       | 2   |
+
