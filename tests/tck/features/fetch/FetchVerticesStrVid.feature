@@ -1,152 +1,126 @@
-Feature: Fetch Int Vid Vertices
+Feature: Fetch String Vertices
 
   Background: Prepare space
-    Given a graph with space named "nba_int_vid"
+    Given a graph with space named "nba"
 
   Scenario: [1] Fetch prop on one tag of a vertex and return the specific properties
     When executing query:
       """
-      FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.age
+      FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.age
       """
     Then the result should be, in any order:
       | VertexID           | player.name  | player.age |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         |
+      | "Boris Diaw" | "Boris Diaw" | 36         |
 
   Scenario: [2] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.age, player.age > 30
+      FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.age, player.age > 30
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age | (player.age>30) |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         | True            |
+      | "Boris Diaw" | "Boris Diaw" | 36         | True            |
 
   Scenario: [3] Fetch dst vertices' props of go traversal.
     When executing query:
       """
-      GO FROM hash('Boris Diaw') over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
+      GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID            | player.name   | player.age |
-      | hash("Tony Parker") | "Tony Parker" | 36         |
-      | hash("Tim Duncan")  | "Tim Duncan"  | 42         |
+      | Tony Parker | "Tony Parker" | 36         |
+      | Tony Parker | "Tim Duncan"  | 42         |
 
+@tested_and_nebula_not_support
   Scenario: [4] Fetch Vertices
     When executing query:
       """
-      GO FROM hash('Boris Diaw') over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age, $-.*
+      GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age, $-.*
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID            | player.name   | player.age | $-.id                |
-      | hash("Tony Parker") | "Tony Parker" | 36         | -7579316172763586624 |
-      | hash("Tim Duncan")  | "Tim Duncan"  | 42         | 5662213458193308137  |
+      | "Tony Parker" | "Tony Parker" | 36         | "Tony Parker" |
+      | "Tim Duncan"  | "Tim Duncan"  | 42         | "Tim Duncan"  |
 
   Scenario: [5] Fetch Vertices works with variable.
     When executing query:
       """
-      $var = GO FROM hash('Boris Diaw') over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name, player.age
+      $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name, player.age
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID            | player.name   | player.age |
-      | hash("Tony Parker") | "Tony Parker" | 36         |
-      | hash("Tim Duncan")  | "Tim Duncan"  | 42         |
+      |  "Tony Parker" | "Tony Parker" | 36         |
+      | "Tim Duncan"  | "Tim Duncan"  | 42         |
 
   Scenario: [6] Fetch Vertices works with ORDER BY
     When executing query:
       """
-      $var = GO FROM hash('Boris Diaw') over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name as name, player.age | ORDER BY name
+      $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name as name, player.age | ORDER BY name
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID            | name          | player.age |
-      | hash("Tim Duncan")  | "Tim Duncan"  | 42         |
-      | hash("Tony Parker") | "Tony Parker" | 36         |
+      | "Tim Duncan"  | "Tim Duncan"  | 42         |
+      | "Tony Parker" | "Tony Parker" | 36         |
 
-  Scenario: [7] Fetch Vertices works with hash()
+Scenario: [9] Fetch Vertices without YIELD
     When executing query:
       """
-      FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.age
+      FETCH PROP ON player 'Boris Diaw'
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         |
+      | "Boris Diaw" | "Boris Diaw" | 36         |
 
-  Scenario: [8] Fetch Vertices works with uuid() and YIELD
+  Scenario: [12] Fetch Vertices works with DISTINCT
     When executing query:
       """
-      FETCH PROP ON player uuid('Boris Diaw') YIELD player.name, player.age
-      """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID             | player.name  | player.age |
-      | -7391649757168799460 | "Boris Diaw" | 36         |
-
-  Scenario: [9] Fetch Vertices without YIELD
-    When executing query:
-      """
-      FETCH PROP ON player hash('Boris Diaw')
+      FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT player.name, player.age
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         |
+      | "Boris Diaw" | "Boris Diaw" | 36         |
 
-  Scenario: [10] Fetch Vertices works with uuid(), without YIELD
+  Scenario: [13] Fetch Vertices works with DISTINCT
     When executing query:
       """
-      FETCH PROP ON player uuid('Boris Diaw')
-      """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID             | player.name  | player.age |
-      | -7391649757168799460 | "Boris Diaw" | 36         |
-
-  Scenario: [12] Fetch works with DISTINCT
-    When executing query:
-      """
-      FETCH PROP ON player hash('Boris Diaw'), hash('Boris Diaw') YIELD DISTINCT player.name, player.age
-      """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         |
-
-  Scenario: [13] Fetch Vertices
-    When executing query:
-      """
-      FETCH PROP ON player hash('Boris Diaw'), hash('Boris Diaw') YIELD DISTINCT player.age
+      FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT player.age
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.age |
-      | hash("Boris Diaw") | 36         |
+      | "Boris Diaw" | 36         |
 
   Scenario: [14] Fetch Vertices not support get src property
     When executing query:
       """
-      FETCH PROP ON player hash('Boris Diaw') YIELD $^.player.name, player.age
+      FETCH PROP ON player 'Boris Diaw' YIELD $^.player.name, player.age
       """
     Then a SemanticError should be raised at runtime: Unsupported src/dst property expression in yield.
 
   Scenario: [15] Fetch Vertices not support get dst property
     When executing query:
       """
-      FETCH PROP ON player hash('Boris Diaw') YIELD $$.player.name, player.age
+      FETCH PROP ON player 'Boris Diaw' YIELD $$.player.name, player.age
       """
     Then a SemanticError should be raised at runtime: Unsupported src/dst property expression in yield.
 
   Scenario: [16] Fetch vertex yields not existing tag
     When executing query:
       """
-      FETCH PROP ON player hash('Boris Diaw') YIELD abc.name, player.age
+      FETCH PROP ON player 'Boris Diaw' YIELD abc.name, player.age
       """
     Then a ExecutionError should be raised at runtime:
 
   Scenario: [17] Fetch prop no not existing tag
     When executing query:
       """
-      FETCH PROP ON abc hash('Boris Diaw')
+      FETCH PROP ON abc 'Boris Diaw'
       """
     Then a ExecutionError should be raised at runtime:
 
   Scenario: [18] Fetch prop on not existing vertex
     When executing query:
       """
-      FETCH PROP ON player hash('NON EXIST VERTEX ID')
+      FETCH PROP ON player 'NON EXIST VERTEX ID'
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID |
@@ -154,7 +128,7 @@ Feature: Fetch Int Vid Vertices
   Scenario: [19] Fetch prop on not existing vertex, and works with pipe
     When executing query:
       """
-      GO FROM hash('NON EXIST VERTEX ID') OVER serve | FETCH PROP ON team $-
+      GO FROM 'NON EXIST VERTEX ID' OVER serve | FETCH PROP ON team $-
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID |
@@ -162,7 +136,7 @@ Feature: Fetch Int Vid Vertices
   Scenario: [20] Fetch prop on * with not existing vertex
     When executing query:
       """
-      FETCH PROP ON * hash('NON EXIST VERTEX ID')
+      FETCH PROP ON * 'NON EXIST VERTEX ID'
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID |
@@ -170,105 +144,105 @@ Feature: Fetch Int Vid Vertices
   Scenario: [21] Fetch prop on * with existing vertex
     When executing query:
       """
-      FETCH PROP ON * hash('Boris Diaw')
+      FETCH PROP ON * 'Boris Diaw'
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         |
+      | "Boris Diaw" | "Boris Diaw" | 36         |
 
-  Scenario: [22] Fetch Vertices
+  Scenario: [22] Fetch prop works with pipeline
     When executing query:
       """
-      YIELD hash('Boris Diaw') as id | FETCH PROP ON * $-.id
+      YIELD 'Boris Diaw' as id | FETCH PROP ON * $-.id
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         |
+      | "Boris Diaw" | "Boris Diaw" | 36         |
 
-  Scenario: [23] Fetch Vertices
+  Scenario: [23] Fetch prop on multiple vertices
     When executing query:
       """
-      FETCH PROP ON * hash('Boris Diaw'), hash('Boris Diaw')
+      FETCH PROP ON * 'Boris Diaw', 'Boris Diaw'
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         |
-      | hash("Boris Diaw") | "Boris Diaw" | 36         |
+      | "Boris Diaw" | "Boris Diaw" | 36         |
+      | "Boris Diaw" | "Boris Diaw" | 36         |
 
   Scenario: [24] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON bachelor hash('Tim Duncan')
+      FETCH PROP ON bachelor 'Tim Duncan'
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | bachelor.name | bachelor.speciality |
-      | hash("Tim Duncan") | "Tim Duncan"  | "psychology"        |
+      | "Tim Duncan" | "Tim Duncan"  | "psychology"        |
 
   Scenario: [25] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON * hash('Tim Duncan')
+      FETCH PROP ON * 'Tim Duncan'
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
-      | hash("Tim Duncan") | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
+      | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
   Scenario: [26] Fetch Vertices
     When executing query:
       """
-      YIELD hash('Tim Duncan') as id | FETCH PROP ON * $-.id
+      YIELD 'Tim Duncan' as id | FETCH PROP ON * $-.id
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
-      | hash("Tim Duncan") | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
+      | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
   Scenario: [27] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON * hash('Tim Duncan'), hash('Tim Duncan')
+      FETCH PROP ON * 'Tim Duncan', 'Tim Duncan'
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
-      | hash("Tim Duncan") | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
-      | hash("Tim Duncan") | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
+      | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
+      | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
   Scenario: [28] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON * hash('Tim Duncan'), hash('Tim Duncan') YIELD player.name, player.age
+      FETCH PROP ON * 'Tim Duncan', 'Tim Duncan' YIELD player.name, player.age
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.age |
-      | hash("Tim Duncan") | "Tim Duncan" | 42         |
-      | hash("Tim Duncan") | "Tim Duncan" | 42         |
+      | "Tim Duncan" | "Tim Duncan" | 42         |
+      | "Tim Duncan" | "Tim Duncan" | 42         |
 
   Scenario: [29] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.name
+      FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.name
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID           | player.name  | player.name  |
-      | hash("Boris Diaw") | "Boris Diaw" | "Boris Diaw" |
+      | "Boris Diaw" | "Boris Diaw" | "Boris Diaw" |
 
   Scenario: [30] Fetch Vertices
     When executing query:
       """
-      GO FROM hash('Boris Diaw') over like YIELD like._dst as id, like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
+      GO FROM 'Boris Diaw' over like YIELD like._dst as id, like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
       """
     Then a SemanticError should be raised at runtime:
 
   Scenario: [31] Fetch on existing vertex, and yield not existing property
     When executing query:
       """
-      FETCH PROP ON player hash('Boris Diaw') YIELD player.name1
+      FETCH PROP ON player 'Boris Diaw' YIELD player.name1
       """
     Then a SemanticError should be raised at runtime:
 
   Scenario: [32] Fetch Vertices
     When executing query:
       """
-      GO FROM hash('NON EXIST VERTEX ID') over like YIELD like._dst as id | FETCH PROP ON player $-.id
+      GO FROM 'NON EXIST VERTEX ID' over like YIELD like._dst as id | FETCH PROP ON player $-.id
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID |
@@ -276,7 +250,7 @@ Feature: Fetch Int Vid Vertices
   Scenario: [33] Fetch Vertices
     When executing query:
       """
-      GO FROM hash('NON EXIST VERTEX ID') over serve YIELD serve._dst as id, serve.start_year as start | YIELD $-.id as id WHERE $-.start > 20000 | FETCH PROP ON player $-.id
+      GO FROM 'NON EXIST VERTEX ID' over serve YIELD serve._dst as id, serve.start_year as start | YIELD $-.id as id WHERE $-.start > 20000 | FETCH PROP ON player $-.id
       """
     Then the result should be, in any order, with relax comparision:
       | VertexID |
