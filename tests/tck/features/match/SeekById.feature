@@ -136,8 +136,8 @@ Feature: Match seek by id
       RETURN v.name AS Name
       """
     Then the result should be, in any order:
-      | Name               |
-      | 'James Harden'     |
+      | Name           |
+      | 'James Harden' |
 
   Scenario: complicate logical
     When executing query:
