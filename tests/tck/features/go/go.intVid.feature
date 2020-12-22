@@ -2,7 +2,7 @@
 Feature: IntegerVid Go  Sentence
 
   Background: Prepare space
-    Given a graph with space named "nba"
+    Given a graph with space named "nba_int_vid"
 
   Scenario: Integer Vid one step
     When executing query:
@@ -569,7 +569,6 @@ Feature: IntegerVid Go  Sentence
       | "Chris Paul" | "Dwyane Wade"     | "LeBron James"      |
       | "Chris Paul" | "Dwyane Wade"     | "Carmelo Anthony"   |
 
-  @skip
   Scenario: Integer Vid no exist prop
     When executing query:
       """
@@ -585,7 +584,7 @@ Feature: IntegerVid Go  Sentence
       """
       GO FROM hash('Tim Duncan') OVER serve YIELD serve.test
       """
-    Then a SemanticError should be raised at runtime: `$a.id', not exist variable `a'
+    Then a SemanticError should be raised at runtime: `serve.test', not found the property `test'.
 
   @skip
   Scenario: Integer Vid udf call (reason = "not support udf_is_in now")
@@ -1041,7 +1040,6 @@ Feature: IntegerVid Go  Sentence
       | EMPTY                     | EMPTY         | hash("Tony Parker")       |
       | EMPTY                     | EMPTY         | hash("Manu Ginobili")     |
 
-  @skip
   Scenario: Integer Vid duplicate column name
     When executing query:
       """
@@ -1068,7 +1066,7 @@ Feature: IntegerVid Go  Sentence
       YIELD serve.start_year AS year, serve.end_year AS year, serve._dst AS id;
       | GO FROM $-.id OVER serve
       """
-    Then a SemanticError should be raised at runtime: Duplicate Column Name : `year'
+    Then a SyntaxError should be raised at runtime: syntax error near `| GO FRO'
 
   Scenario: Integer Vid contain
     When executing query:
@@ -1114,8 +1112,7 @@ Feature: IntegerVid Go  Sentence
     Then the result should be, in any order, with relax comparison:
       | $^.player.name | serve.start_year | serve.end_year | $$.team.name |
 
-  @skip
-  Scenario: Integer Vid intermediate data(error)
+  Scenario: Integer Vid intermediate data
     When executing query:
       """
       GO 0 TO 0 STEPS FROM hash('Tony Parker') OVER like YIELD DISTINCT like._dst
@@ -1225,7 +1222,6 @@ Feature: IntegerVid Go  Sentence
       """
     Then the result should be, in any order, with relax comparison:
       | like._dst                 |
-      | hash("Tim Duncan")        |
       | hash("LaMarcus Aldridge") |
       | hash("Marco Belinelli")   |
       | hash("Boris Diaw")        |

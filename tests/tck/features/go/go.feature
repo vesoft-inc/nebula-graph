@@ -568,7 +568,6 @@ Feature: Go Sentence
       | "Chris Paul" | "Dwyane Wade"     | "LeBron James"      |
       | "Chris Paul" | "Dwyane Wade"     | "Carmelo Anthony"   |
 
-  @skip
   Scenario: no exist prop
     When executing query:
       """
@@ -584,7 +583,7 @@ Feature: Go Sentence
       """
       GO FROM 'Tim Duncan' OVER serve YIELD serve.test
       """
-    Then a SemanticError should be raised at runtime: `$a.id', not exist variable `a'
+    Then a SemanticError should be raised at runtime: `serve.test', not found the property `test'.
 
   @skip
   Scenario: udf call (reason = "not support udf_is_in now")
@@ -1040,7 +1039,6 @@ Feature: Go Sentence
       | EMPTY               | EMPTY      | "Tony Parker"       |
       | EMPTY               | EMPTY      | "Manu Ginobili"     |
 
-  @skip
   Scenario: duplicate column name
     When executing query:
       """
@@ -1067,7 +1065,7 @@ Feature: Go Sentence
       YIELD serve.start_year AS year, serve.end_year AS year, serve._dst AS id;
       | GO FROM $-.id OVER serve
       """
-    Then a SemanticError should be raised at runtime: Duplicate Column Name : `year'
+    Then a SyntaxError should be raised at runtime: syntax error near `| GO FRO'
 
   Scenario: contain
     When executing query:
@@ -1113,8 +1111,7 @@ Feature: Go Sentence
     Then the result should be, in any order, with relax comparison:
       | $^.player.name | serve.start_year | serve.end_year | $$.team.name |
 
-  @skip
-  Scenario: intermediate data(error)
+  Scenario: [0] intermediate data
     When executing query:
       """
       GO 0 TO 0 STEPS FROM 'Tony Parker' OVER like YIELD DISTINCT like._dst
@@ -1224,7 +1221,6 @@ Feature: Go Sentence
       """
     Then the result should be, in any order, with relax comparison:
       | like._dst           |
-      | "Tim Duncan"        |
       | "LaMarcus Aldridge" |
       | "Marco Belinelli"   |
       | "Boris Diaw"        |
