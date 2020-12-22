@@ -50,7 +50,7 @@ Status UnwindClausePlanner::buildUnwind(UnwindClauseContext* uctx, SubPlan& subP
         if (col->alias() != nullptr) {
             colNames.emplace_back(*col->alias());
         } else {
-            colNames.emplace_back(col->expr()->toString());
+            return Status::Error("Expression in UNWIND must be aliased (use AS)");
         }
     }
 

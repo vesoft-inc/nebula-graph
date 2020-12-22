@@ -452,11 +452,10 @@ Status MatchValidator::validateStepRange(const MatchStepRange *range) const {
 
 Status MatchValidator::validateWith(const WithClause *with,
                                     WithClauseContext &withClauseCtx) const {
-    withClauseCtx.yieldColumns = with->columns();
     // Check all referencing expressions are valid
     std::vector<const Expression *> exprs;
-    exprs.reserve(withClauseCtx.yieldColumns->size());
-    for (auto *col : withClauseCtx.yieldColumns->columns()) {
+    exprs.reserve(with->columns()->size());
+    for (auto *col : with->columns()->columns()) {
         if (col->alias() == nullptr) {
             return Status::SemanticError("Expression in WITH must be aliased (use AS)");
         }
@@ -465,6 +464,7 @@ Status MatchValidator::validateWith(const WithClause *with,
         }
         exprs.push_back(col->expr());
     }
+    withClauseCtx.yieldColumns = with->columns();
     NG_RETURN_IF_ERROR(validateAliases(exprs, *withClauseCtx.aliasesPtr));
 
     withClauseCtx.distinct = with->isDistinct();
@@ -545,6 +545,9 @@ Status MatchValidator::validateWith(const WithClause *with,
 
 Status MatchValidator::validateUnwind(const UnwindClause *unwind,
                                       UnwindClauseContext &unwindClauseCtx) const {
+    if (unwind->alias() == nullptr) {
+        return Status::SemanticError("Expression in UNWIND must be aliased (use AS)");
+    }
     YieldColumns *columns = saveObject(new YieldColumns());
     auto *expr = unwind->expr()->clone().release();
     auto *alias = new std::string(*unwind->alias());
