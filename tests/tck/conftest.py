@@ -89,6 +89,7 @@ def import_csv_data(data, graph_spaces, session, pytestconfig):
 def executing_query(query, graph_spaces, session):
     ngql = " ".join(query.splitlines())
     graph_spaces['result_set'] = session.execute(ngql)
+    graph_spaces['ngql'] = ngql
 
 
 @given(parse("wait {secs:d} seconds"))
@@ -103,6 +104,7 @@ def cmp_dataset(graph_spaces,
                 strict: bool,
                 included=False) -> None:
     rs = graph_spaces['result_set']
+    ngql = graph_spaces['ngql']
     assert rs.is_succeeded(), f"Response failed: {rs.error_msg()}"
     ds = dataset(table(result))
     dscmp = DataSetComparator(strict=strict,
@@ -120,11 +122,11 @@ def cmp_dataset(graph_spaces,
         row = ds.rows[i].values
         printer = DataSetPrinter(rs._decode_type)
         ss = printer.list_to_string(row, delimiter='|')
-        return '|' + ss + '|'
+        return f'{i}: |' + ss + '|'
 
     rds = rs._data_set_wrapper._data_set
     res, i = dscmp(rds, ds)
-    assert res, f"\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}"
+    assert res, f"Fail to exec: {ngql}\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}"
 
 
 @then(parse("the result should be, in order:\n{result}"))

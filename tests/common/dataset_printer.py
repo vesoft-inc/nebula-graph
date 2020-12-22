@@ -30,8 +30,8 @@ class DataSetPrinter:
         col_names = '|' + '|'.join(self.sstr(col)
                                    for col in ds.column_names) + '|'
         data_rows = '\n'.join(
-            '|' + self.list_to_string(row.values, delimiter='|') + '|'
-            for row in ds.rows)
+            f'{i}: |' + self.list_to_string(row.values, delimiter='|') + '|'
+            for (i, row) in enumerate(ds.rows))
         return '\n'.join([col_names, data_rows])
 
     def to_string(self, val: Value):

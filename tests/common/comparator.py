@@ -57,7 +57,9 @@ class DataSetComparator:
             for i in range(0, len(expect.rows)):
                 if not self.compare_row(resp.rows[i], expect.rows[i]):
                     return False, i
-            return True, None
+            if self._included:
+                return True, None
+            return len(resp.rows) == len(expect.rows), -1
         return self._compare_list(resp.rows, expect.rows, self.compare_row,
                                   self._included)
 
