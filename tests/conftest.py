@@ -179,12 +179,28 @@ def load_csv_data_once(tmp_path_factory, pytestconfig, worker_id, conn_pool,
         os.remove(str(fn))
 
 
-# TODO(yee): optimize data load fixtures
 @pytest.fixture(scope="session")
 def load_nba_data(conn_pool, pytestconfig, tmp_path_factory, worker_id):
     space_desc = SpaceDesc(name="nba", vid_type="FIXED_STRING(30)")
     yield from load_csv_data_once(tmp_path_factory, pytestconfig, worker_id,
                                   conn_pool, space_desc)
+
+
+@pytest.fixture(scope="session")
+def load_nba_int_vid_data(
+    conn_pool,
+    pytestconfig,
+    tmp_path_factory,
+    worker_id,
+):
+    space_desc = SpaceDesc(name="nba_int_vid", vid_type="int")
+    yield from load_csv_data_once(
+        tmp_path_factory,
+        pytestconfig,
+        worker_id,
+        conn_pool,
+        space_desc,
+    )
 
 
 @pytest.fixture(scope="session")

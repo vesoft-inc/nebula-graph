@@ -31,10 +31,18 @@ def graph_spaces():
 
 
 @given(parse('a graph with space named "{space}"'))
-def preload_space(space, load_nba_data, load_student_data, session,
-                  graph_spaces):
+def preload_space(
+    space,
+    load_nba_data,
+    load_nba_int_vid_data,
+    load_student_data,
+    session,
+    graph_spaces,
+):
     if space == "nba":
         graph_spaces["space_desc"] = load_nba_data
+    elif space == "nba_int_vid":
+        graph_spaces["space_desc"] = load_nba_int_vid_data
     elif space == "student":
         graph_spaces["space_desc"] = load_student_data
     else:
