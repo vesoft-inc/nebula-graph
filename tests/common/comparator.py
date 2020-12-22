@@ -285,7 +285,7 @@ class DataSetComparator:
 
     def _compare_list(self, lhs, rhs, cmp_fn, included=False):
         visited = []
-        for rr in rhs:
+        for j, rr in enumerate(rhs):
             found = False
             for i, lr in enumerate(lhs):
                 if i not in visited and cmp_fn(lr, rr):
@@ -293,7 +293,7 @@ class DataSetComparator:
                     found = True
                     break
             if not found:
-                return False, i
+                return False, j
         size = len(lhs)
         if included:
             return len(visited) <= size, -1

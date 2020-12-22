@@ -117,7 +117,7 @@ def cmp_dataset(graph_spaces,
         return printer.ds_to_string(ds)
 
     def rowp(ds, i):
-        if i < 0:
+        if i is None or i < 0:
             return ""
         row = ds.rows[i].values
         printer = DataSetPrinter(rs._decode_type)
