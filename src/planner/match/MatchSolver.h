@@ -48,7 +48,7 @@ public:
                                          Expression* initialExpr,
                                          PlanNode* dep,
                                          const std::string& inputVar,
-                                         SubPlan* plan);
+                                         SubPlan& plan);
 
     static Expression* initialExprOrEdgeDstExpr(Expression* initialExpr,
                                                 const std::string& vidCol);

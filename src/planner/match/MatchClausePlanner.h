@@ -61,14 +61,14 @@ private:
                           SubPlan& subplan);
 
     Status appendFetchVertexPlan(const Expression* nodeFilter,
+                                 const SpaceInfo& space,
                                  QueryContext* qctx,
-                                 SpaceInfo& space,
                                  Expression* initialExpr,
-                                 SubPlan* plan);
+                                 SubPlan& plan);
 
     Status projectColumnsBySymbols(MatchClauseContext* matchClauseCtx,
                                    size_t startIndex,
-                                   SubPlan* plan);
+                                   SubPlan& plan);
 
     YieldColumn* buildVertexColumn(const std::string& colName, const std::string& alias) const;
 

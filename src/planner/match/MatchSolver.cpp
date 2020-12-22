@@ -165,7 +165,7 @@ void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
                                            Expression* initialExpr,
                                            PlanNode* dep,
                                            const std::string& inputVar,
-                                           SubPlan* plan) {
+                                           SubPlan& plan) {
     auto columns = qctx->objPool()->add(new YieldColumns);
     auto* var = qctx->symTable()->getVar(inputVar);
     Expression* vidExpr = initialExprOrEdgeDstExpr(initialExpr, var->colNames.back());
@@ -176,8 +176,7 @@ void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
     auto dedup = Dedup::make(qctx, project);
     dedup->setColNames({kVid});
 
-    plan->root = dedup;
-    // plan->tail = dedup;
+    plan.root = dedup;
 }
 
 Expression* MatchSolver::initialExprOrEdgeDstExpr(Expression* initialExpr,

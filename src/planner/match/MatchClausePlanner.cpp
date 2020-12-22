@@ -34,7 +34,7 @@ StatusOr<SubPlan> MatchClausePlanner::transform(CypherClauseContextBase* clauseC
     NG_RETURN_IF_ERROR(findStarts(matchClauseCtx, startFromEdge, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(
         expand(nodeInfos, edgeInfos, matchClauseCtx, startFromEdge, startIndex, matchClausePlan));
-    NG_RETURN_IF_ERROR(projectColumnsBySymbols(matchClauseCtx, startIndex, &matchClausePlan));
+    NG_RETURN_IF_ERROR(projectColumnsBySymbols(matchClauseCtx, startIndex, matchClausePlan));
     NG_RETURN_IF_ERROR(appendFilterPlan(matchClauseCtx, matchClausePlan));
     return matchClausePlan;
 }
@@ -177,10 +177,10 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(appendFetchVertexPlan(nodeInfos.front().filter,
-                                             matchClauseCtx->qctx,
                                              matchClauseCtx->space,
+                                             matchClauseCtx->qctx,
                                              edgeInfos.empty() ? initialExpr : nullptr,
-                                             &subplan));
+                                             subplan));
     if (!edgeInfos.empty()) {
         auto right = subplan.root;
         VLOG(1) << "left: " << folly::join(",", left->colNames())
@@ -225,10 +225,10 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(appendFetchVertexPlan(nodeInfos.back().filter,
-                                             matchClauseCtx->qctx,
                                              matchClauseCtx->space,
+                                             matchClauseCtx->qctx,
                                              edgeInfos.empty() ? initialExpr : nullptr,
-                                             &subplan));
+                                             subplan));
     if (!edgeInfos.empty()) {
         auto right = subplan.root;
         VLOG(1) << "left: " << folly::join(",", left->colNames())
@@ -256,15 +256,15 @@ Status MatchClausePlanner::expandFromEdge(const std::vector<NodeInfo>& nodeInfos
 }
 
 Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
+                                                 const SpaceInfo& space,
                                                  QueryContext* qctx,
-                                                 SpaceInfo& space,
                                                  Expression* initialExpr,
-                                                 SubPlan* plan) {
+                                                 SubPlan& plan) {
     MatchSolver::extractAndDedupVidColumn(
-        qctx, initialExpr, plan->root, plan->root->outputVar(), plan);
+        qctx, initialExpr, plan.root, plan.root->outputVar(), plan);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
     auto gv = GetVertices::make(
-        qctx, plan->root, space.id, qctx->objPool()->add(srcExpr.release()), {}, {});
+        qctx, plan.root, space.id, qctx->objPool()->add(srcExpr.release()), {}, {});
 
     PlanNode* root = gv;
     if (nodeFilter != nullptr) {
@@ -291,18 +291,18 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
     auto pathExpr = std::make_unique<PathBuildExpression>();
     pathExpr->add(std::make_unique<VertexExpression>());
     columns->addColumn(new YieldColumn(pathExpr.release()));
-    plan->root = Project::make(qctx, root, columns);
-    plan->root->setColNames({kPathStr});
+    plan.root = Project::make(qctx, root, columns);
+    plan.root->setColNames({kPathStr});
     return Status::OK();
 }
 
 Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClauseCtx,
                                                    size_t startIndex,
-                                                   SubPlan* plan) {
+                                                   SubPlan& plan) {
     auto qctx = matchClauseCtx->qctx;
     auto& nodeInfos = matchClauseCtx->nodeInfos;
     auto& edgeInfos = matchClauseCtx->edgeInfos;
-    auto input = plan->root;
+    auto input = plan.root;
     const auto& inColNames = input->colNamesRef();
     auto columns = qctx->objPool()->add(new YieldColumns);
     std::vector<std::string> colNames;
@@ -359,8 +359,8 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     auto project = Project::make(qctx, input, columns);
     project->setColNames(std::move(colNames));
 
-    plan->root = MatchSolver::filtPathHasSameEdge(project, alias, qctx);
-    VLOG(1) << "root: " << plan->root->outputVar() << " tail: " << plan->tail->outputVar();
+    plan.root = MatchSolver::filtPathHasSameEdge(project, alias, qctx);
+    VLOG(1) << "root: " << plan.root->outputVar() << " tail: " << plan.tail->outputVar();
     return Status::OK();
 }
 
