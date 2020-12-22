@@ -112,10 +112,19 @@ def cmp_dataset(graph_spaces,
 
     def dsp(ds):
         printer = DataSetPrinter(rs._decode_type)
-        printer.ds_to_string(ds)
+        return printer.ds_to_string(ds)
+
+    def rowp(ds, i):
+        if i < 0:
+            return ""
+        row = ds.rows[i].values
+        printer = DataSetPrinter(rs._decode_type)
+        ss = printer.list_to_string(row, delimiter='|')
+        return '|' + ss + '|'
 
     rds = rs._data_set_wrapper._data_set
-    assert dscmp(rds, ds), f"\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}"
+    res, i = dscmp(rds, ds)
+    assert res, f"\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}"
 
 
 @then(parse("the result should be, in order:\n{result}"))

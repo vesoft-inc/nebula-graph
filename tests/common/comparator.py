@@ -43,20 +43,21 @@ class DataSetComparator:
 
     def compare(self, resp: DataSet, expect: DataSet):
         if all(x is None for x in [expect, resp]):
-            return True
+            return True, None
         if None in [expect, resp]:
-            return False
+            return False, -1
         if len(resp.rows) < len(expect.rows):
-            return False
+            return False, -1
         if len(resp.column_names) != len(expect.column_names):
-            return False
+            return False, -1
         for (ln, rn) in zip(resp.column_names, expect.column_names):
             if ln != self.bstr(rn):
-                return False
+                return False, -2
         if self._order:
-            return all(
-                self.compare_row(l, r)
-                for (l, r) in zip(resp.rows, expect.rows))
+            for i in range(0, len(expect.rows)):
+                if not self.compare_row(resp.rows[i], expect.rows[i]):
+                    return False, i
+            return True, None
         return self._compare_list(resp.rows, expect.rows, self.compare_row,
                                   self._included)
 
@@ -130,7 +131,8 @@ class DataSetComparator:
                 return False
             lvals = lhs.get_uVal().values
             rvals = rhs.get_uVal().values
-            return self._compare_list(lvals, rvals, self.compare_value)
+            res, _ = self._compare_list(lvals, rvals, self.compare_value)
+            return res
         if lhs.getType() == Value.MVAL:
             if not rhs.getType() == Value.MVAL:
                 return False
@@ -268,8 +270,10 @@ class DataSetComparator:
         return True
 
     def compare_list(self, lhs: List[Value], rhs: List[Value]):
-        return len(lhs) == len(rhs) and \
-            self._compare_list(lhs, rhs, self.compare_value)
+        if len(lhs) != len(rhs):
+            return False
+        res, _ = self._compare_list(lhs, rhs, self.compare_value)
+        return res
 
     def compare_row(self, lhs: Row, rhs: Row):
         if not len(lhs.values) == len(rhs.values):
@@ -287,8 +291,8 @@ class DataSetComparator:
                     found = True
                     break
             if not found:
-                return False
+                return False, i
         size = len(lhs)
         if included:
-            return len(visited) <= size
-        return len(visited) == size
+            return len(visited) <= size, -1
+        return len(visited) == size, -1
