@@ -20,6 +20,7 @@ public:
     struct VidPattern {
         enum class IN {
             kIgnore,
+            kOtherSource,  // e.g. PropertiesSeek
             kIn,
             kNotIn,
         } in{IN::kIgnore};

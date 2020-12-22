@@ -110,6 +110,9 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
     switch (expr->kind()) {
         case Expression::Kind::kRelIn: {
             const auto* inExpr = static_cast<const RelationalExpression*>(expr);
+            if (inExpr->left()->kind() == Expression::Kind::kLabelAttribute) {
+                return VidPattern{VidPattern::IN::kOtherSource, {}};
+            }
             if (inExpr->left()->kind() != Expression::Kind::kFunctionCall ||
                 inExpr->right()->kind() != Expression::Kind::kConstant) {
                     return VidPattern{};
@@ -126,6 +129,9 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
         }
         case Expression::Kind::kRelEQ: {
             const auto* eqExpr = static_cast<const RelationalExpression*>(expr);
+            if (eqExpr->left()->kind() == Expression::Kind::kLabelAttribute) {
+                return VidPattern{VidPattern::IN::kOtherSource, {}};
+            }
             if (eqExpr->left()->kind() != Expression::Kind::kFunctionCall ||
                 eqExpr->right()->kind() != Expression::Kind::kConstant) {
                 return VidPattern{};
@@ -191,6 +197,10 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
             }
             VidPattern inResult{VidPattern::IN::kIn, {}};
             for (auto &result : operandsResult) {
+                // Can't deduce with outher source (e.g. PropertiesIndex)
+                if (result.in == VidPattern::IN::kOtherSource) {
+                    return VidPattern{};
+                }
                 if (result.in == VidPattern::IN::kIn) {
                     inResult.vids.values.insert(inResult.vids.values.end(),
                                                 std::make_move_iterator(result.vids.values.begin()),
@@ -207,6 +217,7 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
             auto operandResult = reverseEvalVids(notExpr->operand());
             switch (operandResult.in) {
                 case VidPattern::IN::kIgnore:
+                case VidPattern::IN::kOtherSource:
                     break;
                 case VidPattern::IN::kIn:
                     operandResult.in = VidPattern::IN::kNotIn;
@@ -217,6 +228,8 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
             }
             return operandResult;
         }
+        case Expression::Kind::kLabelAttribute:
+            return VidPattern{VidPattern::IN::kOtherSource, {}};
         default:
             return VidPattern{};
     }

@@ -118,7 +118,7 @@ Feature: Match seek by id
       """
       MATCH (v)
       WHERE id(v) IN ['James Harden', 'Jonathon Simmons', 'Klay Thompson', 'Dejounte Murray', 'Paul Gasol']
-            OR v.age == 38
+            OR false
       RETURN v.name AS Name
       """
     Then the result should be, in any order:
@@ -128,6 +128,16 @@ Feature: Match seek by id
       | 'Jonathon Simmons' |
       | 'Klay Thompson'    |
       | 'Dejounte Murray'  |
+    When executing query:
+      """
+      MATCH (v)
+      WHERE id(v) IN ['James Harden', 'Jonathon Simmons', 'Klay Thompson', 'Dejounte Murray', 'Paul Gasol']
+            AND (id(v) == 'James Harden' OR v.age == 23)
+      RETURN v.name AS Name
+      """
+    Then the result should be, in any order:
+      | Name               |
+      | 'James Harden'     |
 
   Scenario: complicate logical
     When executing query:
@@ -173,6 +183,22 @@ Feature: Match seek by id
       """
       MATCH (v)
       WHERE NOT id(v) IN ['James Harden', 'Jonathon Simmons', 'Klay Thompson', 'Dejounte Murray']
+      RETURN v.name AS Name
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      MATCH (v)
+      WHERE id(v) IN ['James Harden', 'Jonathon Simmons', 'Klay Thompson', 'Dejounte Murray']
+            OR v.age == 23
+      RETURN v.name AS Name
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      MATCH (v)
+      WHERE id(v) == 'James Harden'
+            OR v.age == 23
       RETURN v.name AS Name
       """
     Then a SemanticError should be raised at runtime:
