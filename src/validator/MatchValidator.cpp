@@ -123,9 +123,11 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilter(*alias, props);
+            auto result = makeSubFilter(*alias, props, "");
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
+        } else if (label != nullptr) {
+            auto result = makeSubFilter(*alias, props, *label);
         }
         nodeInfos[i].anonymous = anonymous;
         nodeInfos[i].label = label;
@@ -175,7 +177,7 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilter(*alias, props);
+            auto result = makeSubFilter(*alias, props, "");
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         }
@@ -384,7 +386,24 @@ Status MatchValidator::validateStepRange(const MatchStepRange *range) const {
 
 StatusOr<Expression*>
 MatchValidator::makeSubFilter(const std::string &alias,
-                              const MapExpression *map) const {
+                              const MapExpression *map,
+                              const std::string label) const {
+    // Node has tag without property
+    if (!label.empty() && map->items().empty()) {
+        Expression *root = nullptr;
+        auto *left = new ConstantExpression(label);
+
+        auto* args = new ArgumentList();
+        args->addArgument(std::make_unique<LabelExpression>(alias));
+        auto *right = new FunctionCallExpression(
+                    new std::string("tags"),
+                    args);
+        root = new RelationalExpression(Expression::Kind::kRelIn, left, right);
+
+        saveObject(root);
+        return root;
+    }
+
     DCHECK(map != nullptr);
     auto &items = map->items();
     DCHECK(!items.empty());

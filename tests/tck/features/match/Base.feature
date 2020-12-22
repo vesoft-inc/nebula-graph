@@ -35,3 +35,14 @@ Feature: Basic match
       | 'Jonathon Simmons' |
       | 'Klay Thompson'    |
       | 'Dejounte Murray'  |
+
+  Scenario: Match a node while given the tag without property
+    Given a graph with space named "nba"
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})-->(v2:team)
+      RETURN v2 AS Team
+      """
+    Then the result should be, in any order:
+      | Team                           |
+      | ("Spurs" :team{name: "Spurs"}) |
