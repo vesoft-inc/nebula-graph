@@ -123,7 +123,7 @@ class NebulaService(object):
         for port in ports:
             ports_status[port] = False
 
-        for i in range(0, 30):
+        for i in range(0, 20):
             for port in ports_status:
                 if ports_status[port]:
                     continue
