@@ -84,9 +84,9 @@ Status CreateSpaceValidator::validateImpl() {
             }
             case SpaceOptItem::ATOMIC_EDGE: {
                 if (item->getAtomicEdge()) {
-                    spaceDesc_.isolation_level = meta::cpp2::IsolationLevel::TOSS;
+                    spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::TOSS);
                 } else {
-                    spaceDesc_.isolation_level = meta::cpp2::IsolationLevel::DEFAULT;
+                    spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::DEFAULT);
                 }
             }
         }
