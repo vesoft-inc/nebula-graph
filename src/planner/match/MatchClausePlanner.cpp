@@ -114,10 +114,8 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
                                           size_t startIndex,
                                           SubPlan& subplan) {
     SubPlan rightExpandPlan = subplan;
-    if (startIndex < nodeInfos.size() - 1) {
-        NG_RETURN_IF_ERROR(
-            rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, rightExpandPlan));
-    }
+    NG_RETURN_IF_ERROR(
+        rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, rightExpandPlan));
 
     if (startIndex > 0) {
         auto left = rightExpandPlan.root;
