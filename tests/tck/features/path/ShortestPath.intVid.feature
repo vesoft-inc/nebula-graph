@@ -1,3 +1,4 @@
+@skip
 Feature: Integer Vid Shortest Path
 
   Background: Prepare space
