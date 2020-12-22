@@ -157,7 +157,7 @@ protected:
     // user define Variable name list
     std::set<std::string>           userDefinedVarNameList_;
     // vid's Type
-    Value::Type vidType_;
+    Value::Type                     vidType_;
 };
 
 }  // namespace graph
