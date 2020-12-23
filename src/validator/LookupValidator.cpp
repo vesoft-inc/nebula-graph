@@ -117,12 +117,6 @@ Status LookupValidator::prepareYield() {
         newYieldColumns_->addColumn(new YieldColumn(
             new InputPropertyExpression(new std::string(kVertexID)), new std::string(kVertexID)));
     }
-    // When whereClause is nullptr, yieldClause is not nullptr,
-    // only return vid for tag. return src, ranking, dst for edge
-    if (sentence->whereClause() == nullptr) {
-        return Status::SemanticError("Yield clauses are not supported "
-                                     "when WHERE clause does not exist");
-    }
     auto columns = sentence->yieldClause()->columns();
     auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
                           : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
