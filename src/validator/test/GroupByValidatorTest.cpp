@@ -21,7 +21,7 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
     {
         std::string query =
             "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
-            "| GROUP BY $-.age YIELD COUNT($-.id)";
+            "| GROUP BY $-.age YIELD $-.age, COUNT($-.id)";
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kProject,
@@ -35,6 +35,19 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
             "GO FROM \"NoExist\" OVER like YIELD like._dst AS id, $^.person.age AS age "
             "| GROUP BY $-.id YIELD $-.id AS id";
         std::vector<PlanNode::Kind> expected = {
+            PK::kAggregate,
+            PK::kProject,
+            PK::kGetNeighbors,
+            PK::kStart
+        };
+        EXPECT_TRUE(checkResult(query, expected));
+    }
+    {
+        std::string query =
+            "GO FROM \"NoExist\" OVER like YIELD like._dst AS id, $^.person.age AS age "
+            "| GROUP BY $-.id YIELD $-.id AS id, abs(avg($-.age)) AS age";
+        std::vector<PlanNode::Kind> expected = {
+            PK::kProject,
             PK::kAggregate,
             PK::kProject,
             PK::kGetNeighbors,
@@ -71,6 +84,36 @@ TEST_F(GroupByValidatorTest, TestGroupBy) {
         };
         EXPECT_TRUE(checkResult(query, expected));
     }
+    // {
+    //     std::string query = "GO FROM \"1\", \"2\" OVER like "
+    //                         "YIELD $$.person.name as name, "
+    //                         "$$.person.age AS dst_age, "
+    //                         "$$.person.age AS src_age"
+    //                         "| GROUP BY $-.name "
+    //                         "YIELD $-.name AS name, "
+    //                         "SUM($-.dst_age) AS sum_dst_age, "
+    //                         "abs(AVG($-.dst_age)) AS avg_dst_age, "
+    //                         "MAX($-.src_age) AS max_src_age, "
+    //                         "MIN($-.src_age) AS min_src_age, "
+    //                         "STD($-.src_age) AS std_src_age, "
+    //                         "BIT_AND(1) AS bit_and, "
+    //                         "BIT_OR(2) AS bit_or, "
+    //                         "BIT_XOR(3) AS bit_xor";
+    //     std::vector<PlanNode::Kind> expected = {
+    //         PK::kProject,
+    //         PK::kAggregate,
+    //         PK::kProject,
+    //         PK::kDataJoin,
+    //         PK::kProject,
+    //         PK::kGetVertices,
+    //         PK::kDedup,
+    //         PK::kProject,
+    //         PK::kProject,
+    //         PK::kGetNeighbors,
+    //         PK::kStart
+    //     };
+    //     EXPECT_TRUE(checkResult(query, expected));
+    // }
     {
         // group one col
         std::string query = "GO FROM \"1\" OVER like "
@@ -154,7 +197,7 @@ TEST_F(GroupByValidatorTest, VariableTest) {
     {
         std::string query =
             "$a = GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age; "
-            "GROUP BY $a.age YIELD COUNT($a.id)";
+            "GROUP BY $a.age YIELD $a.age, COUNT($a.id)";
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate, PK::kProject, PK::kGetNeighbors, PK::kStart};
         EXPECT_TRUE(checkResult(query, expected));
@@ -243,7 +286,8 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY noexist YIELD COUNT($-.age)";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `noexist` invalid");
+        EXPECT_EQ(std::string(result.message()),
+                  "SemanticError: Not supported expression `noexist' for props deduction.");
     }
     {
         // use sum(*)
@@ -265,9 +309,8 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY $-.id, SUM($-.age) YIELD $-.id, SUM($-.age)";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Use invalid group function `SUM`");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `SUM($-.age)` invalid");
     }
-    // TODO : agg check  (czp)
     {
         // yield col not in group output
         std::string query = "GO FROM \"1\" OVER like "
@@ -282,7 +325,8 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "1+1 AS cal";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Yield `$-.name AS name` isn't in output fields");
+                  "SemanticError: Yield non-agg expression `$-.name` "
+                  "must be functionally dependent on items in GROUP BY clause");
     }
     {
         // duplicate col

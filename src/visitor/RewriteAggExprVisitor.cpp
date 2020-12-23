@@ -42,6 +42,26 @@ void RewriteAggExprVisitor::visit(ArithmeticExpression *expr) {
     visitBinaryExpr(static_cast<BinaryExpression*>(expr));
 }
 
+void RewriteAggExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
+    DCHECK(ok());
+    auto* lhs = expr->left();
+    if (isAggExpr(lhs)) {
+        expr->setLeft(new VariablePropertyExpression(std::move(var_).release(),
+                                                     std::move(prop_).release()));
+        // only support rewrite single agg expr
+        return;
+    } else {
+        lhs->accept(this);
+    }
+    auto* rhs = expr->right();
+    if (isAggExpr(rhs)) {
+        expr->setRight(new VariablePropertyExpression(std::move(var_).release(),
+                                                     std::move(prop_).release()));
+        return;
+    } else {
+        rhs->accept(this);
+    }
+}
 bool RewriteAggExprVisitor::isAggExpr(const Expression* expr) {
     return expr->kind() == Expression::Kind::kAggregate;
 }

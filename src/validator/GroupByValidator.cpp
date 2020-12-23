@@ -29,30 +29,38 @@ Status GroupByValidator::validateImpl() {
     }
 
     if (groupKeys_.empty()) {
-        if (yieldCols_.empty()) {
-            // group by *
-            auto* star = qctx_->objPool()->add(new ConstantExpression("*"));
-            groupKeys_.emplace_back(star);
-        } else {
+        // if (yieldCols_.empty()) {
+        //     // group by *
+        //     auto* star = qctx_->objPool()->add(new ConstantExpression("*"));
+        //     groupKeys_.emplace_back(star);
+        // } else {
             // implicit group by
             groupKeys_ = yieldCols_;
-        }
+        // }
     } else {
-        for (auto* expr : groupKeys_) {
-            if (std::find(begin(yieldCols_), end(yieldCols_), expr) != yieldCols_.end()) {
-                return Status::SemanticError("GROUP BY item `%s` must be in the yield list",
-                                             expr->toString().c_str());
-            }
-        }
-
-        std::unordered_set<Expression*> group_set(begin(groupKeys_), end(groupKeys_));
-        FindAnySubExprVisitor visitor(group_set);
+        // check yield non-agg expr
+        std::unordered_set<Expression*> groupSet(begin(groupKeys_), end(groupKeys_));
+        FindAnySubExprVisitor groupVisitor(groupSet, true);
         for (auto* expr : yieldCols_) {
-            expr->accept(&visitor);
-            if (!visitor.found()) {
+            expr->accept(&groupVisitor);
+            if (!groupVisitor.found()) {
                 return Status::SemanticError("Yield non-agg expression `%s` must be"
                 " functionally dependent on items in GROUP BY clause", expr->toString().c_str());
             }
+        }
+
+        if (!yieldCols_.empty()) {
+            std::unordered_set<Expression*> yieldSet(begin(yieldCols_), end(yieldCols_));
+            FindAnySubExprVisitor yieldVisitor(yieldSet, false);
+            for (auto* expr : groupKeys_) {
+                expr->accept(&yieldVisitor);
+                if (!yieldVisitor.found()) {
+                    return Status::SemanticError("GroupBy item `%s` must be"
+                    " in Yield list", expr->toString().c_str());
+                }
+            }
+        } else {
+            return Status::SemanticError("GroupBy list must in Yield list");
         }
     }
 
@@ -70,36 +78,36 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
 
     projCols_.reset(new YieldColumns);
     for (auto* col : columns) {
-        auto col_name = deduceColName(col);
-        auto rewrited = 0;
+        auto colOldName = deduceColName(col);
+        auto rewrited = false;
 
         // rewrite inner agg expr
         if (col->expr()->kind() != Expression::Kind::kAggregate) {
-            auto aggs = ExpressionUtils::collectAll(col->expr(), {Expression::Kind::kAggregate});
+            auto* collectAggCol = qctx_->objPool()->add(col->expr()->clone().release());
+            auto aggs = ExpressionUtils::collectAll(collectAggCol, {Expression::Kind::kAggregate});
             if (aggs.size() > 1) {
                 return Status::SemanticError("Agg function nesting is not allowed");
             }
             if (aggs.size() == 1) {
-                auto col_copy = col->expr()->clone();
+                auto colRewited = col->expr()->clone().release();
                 // set aggExpr
                 col->setExpr(aggs[0]->clone().release());
-                auto agg_col = col->toString();
+                auto aggColName = col->expr()->toString();
                 // rewrite to VariablePropertyExpression
                 RewriteAggExprVisitor rewriteAggVisitor(new std::string(),
-                                                        new std::string(agg_col));
-                col_copy->accept(&rewriteAggVisitor);
-                rewrited = 1;
-                pushUp_ = true;
-                projCols_->addColumn(new YieldColumn(std::move(col_copy).release(),
-                                     new std::string(col_name)));
-                projOutputColumnNames_.emplace_back(col_name);
+                                                        new std::string(aggColName));
+                colRewited->accept(&rewriteAggVisitor);
+                rewrited = true;
+                needGenProject_ = true;
+                projCols_->addColumn(new YieldColumn(colRewited,
+                                     new std::string(colOldName)));
             }
         }
 
-        auto col_expr = col->expr();
+        auto colExpr = col->expr();
         // collect exprs for check
-        if (col_expr->kind() == Expression::Kind::kAggregate) {
-            auto* agg_expr = static_cast<AggregateExpression*>(col_expr);
+        if (colExpr->kind() == Expression::Kind::kAggregate) {
+            auto* agg_expr = static_cast<AggregateExpression*>(colExpr);
             auto func = agg_expr->name();
             if (func) {
                 auto iter = AggregateExpression::nameIdMap_.find(func->c_str());
@@ -110,35 +118,39 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
                     agg_expr->arg()->toString() == "*") {
                     // TODO : support count($-.*) count($var.*)
                     return Status::SemanticError("`%s` invaild, * valid in count.",
-                                             col_expr->toString().c_str());
+                                             colExpr->toString().c_str());
                 }
             }
-            yieldAggs_.emplace_back(col_expr);
+            yieldAggs_.emplace_back(colExpr);
         } else {
-            yieldCols_.emplace_back(col_expr);
+            yieldCols_.emplace_back(colExpr);
         }
 
-        groupItems_.emplace_back(col_expr);
-        auto status = deduceExprType(col_expr);
+        groupItems_.emplace_back(colExpr);
+        auto status = deduceExprType(colExpr);
         NG_RETURN_IF_ERROR(status);
-        auto name = deduceColName(col);
         auto type = std::move(status).value();
+        std::string name;
         if (!rewrited) {
+            name = deduceColName(col);
             projCols_->addColumn(new YieldColumn(
+
                 new VariablePropertyExpression(new std::string(),
                                            new std::string(name)),
-                new std::string(col_name)));
-            projOutputColumnNames_.emplace_back(col_name);
+                new std::string(colOldName)));
+        } else {
+            name = colExpr->toString();
         }
+        projOutputColumnNames_.emplace_back(colOldName);
         outputs_.emplace_back(name, type);
-        outputColumnNames_.emplace_back(std::move(name));
+        outputColumnNames_.emplace_back(name);
 
-        if (col->alias() != nullptr) {
+        if (col->alias() != nullptr && !rewrited) {
             aliases_.emplace(*col->alias(), col);
         }
 
         ExpressionProps yieldProps;
-        NG_RETURN_IF_ERROR(deduceProps(col_expr, yieldProps));
+        NG_RETURN_IF_ERROR(deduceProps(colExpr, yieldProps));
         exprProps_.unionProps(std::move(yieldProps));
     }
     return Status::OK();
@@ -152,17 +164,11 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
         columns = groupClause->columns();
     }
 
-    if (columns.empty()) {
-        return Status::SemanticError("Group cols is Empty");
-    }
+    auto groupByValid = [](Expression::Kind kind)->bool {
+        return kind < Expression::Kind::kCase;
+    };
     for (auto* col : columns) {
-        if (col->expr()->kind() == Expression::Kind::kAggregate) {
-            return Status::SemanticError("Use invalid group function `%s`",
-                    static_cast<AggregateExpression*>(col->expr())->name()->c_str());
-        }
-        if (col->expr()->kind() != Expression::Kind::kInputProperty &&
-            col->expr()->kind() != Expression::Kind::kVarProperty &&
-            col->expr()->kind() != Expression::Kind::kFunctionCall) {
+        if (!groupByValid(col->expr()->kind())) {
             return Status::SemanticError("Group `%s` invalid", col->expr()->toString().c_str());
         }
 
@@ -177,7 +183,7 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
 Status GroupByValidator::toPlan() {
     auto *groupBy = Aggregate::make(qctx_, nullptr, std::move(groupKeys_), std::move(groupItems_));
     groupBy->setColNames(std::vector<std::string>(outputColumnNames_));
-    if (pushUp_) {
+    if (needGenProject_) {
         // rewrite Expr which has inner aggExpr and push it up to Project.
         auto *project = Project::make(qctx_, groupBy, std::move(projCols_).release());
         project->setInputVar(groupBy->outputVar());
@@ -185,13 +191,6 @@ Status GroupByValidator::toPlan() {
         root_ = project;
     } else {
         root_ = groupBy;
-    }
-    auto distinct = static_cast<GroupBySentence*>(sentence_)->yieldClause()->isDistinct();
-    if (distinct) {
-        auto dedup = Dedup::make(qctx_, root_);
-        dedup->setColNames(root_->colNames());
-        dedup->setInputVar(root_->outputVar());
-        root_ = dedup;
     }
     tail_ = groupBy;
     return Status::OK();

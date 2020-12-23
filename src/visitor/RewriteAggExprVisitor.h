@@ -55,7 +55,7 @@ private:
     void visit(VertexExpression *) override {}
     void visit(EdgeExpression *) override {}
     void visit(ColumnExpression *) override {}
-    // void visitBinaryExpr(BinaryExpression *) override;
+    void visitBinaryExpr(BinaryExpression *) override;
 
     static bool isAggExpr(const Expression* expr);
 

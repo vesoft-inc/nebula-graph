@@ -20,11 +20,11 @@ public:
     GroupByValidator(Sentence *sentence, QueryContext *context)
         : Validator(sentence, context) {}
 
-private:
     Status validateImpl() override;
 
     Status toPlan() override;
 
+private:
     Status validateGroup(const GroupClause *groupClause);
 
     Status validateYield(const YieldClause *yieldClause);
@@ -37,7 +37,7 @@ private:
     // key: alias, value: input name
     std::unordered_map<std::string, YieldColumn*>     aliases_;
 
-    bool                                              pushUp_{false};
+    bool                                              needGenProject_{false};
     std::vector<std::string>                          outputColumnNames_;
     std::vector<std::string>                          projOutputColumnNames_;
 

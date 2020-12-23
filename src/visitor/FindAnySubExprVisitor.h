@@ -17,7 +17,8 @@ namespace graph {
 
 class FindAnySubExprVisitor final : public ExprVisitorImpl {
 public:
-    explicit FindAnySubExprVisitor(std::unordered_set<Expression*> &subExprs);
+    explicit FindAnySubExprVisitor(std::unordered_set<Expression*> &subExprs,
+                                   bool needRecursiveSearch);
 
     bool ok() const override {
         return !found_;
@@ -70,6 +71,7 @@ private:
     bool continue_{true};
     const Expression* expr_{nullptr};
     const std::unordered_set<Expression*> subExprs_;
+    bool needRecursiveSearch_{false};
 };
 
 }   // namespace graph

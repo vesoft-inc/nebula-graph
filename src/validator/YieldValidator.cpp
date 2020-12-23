@@ -28,8 +28,25 @@ Status YieldValidator::validateImpl() {
     }
 
     auto yield = static_cast<YieldSentence *>(sentence_);
-    NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
+    if (yield->hasAgg()) {
+        auto* groupSentence = qctx()->objPool()->add(
+            new GroupBySentence(
+                yield->yield()->clone().release(),
+                nullptr, nullptr));
+        groupByValidator_.reset(new GroupByValidator(groupSentence, qctx()));
+        groupByValidator_->inputs_ = inputs_;
+        groupByValidator_->outputs_ = outputs_;
+        groupByValidator_->exprProps_ = exprProps_;
+    }
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
+    if (groupByValidator_) {
+        groupByValidator_->validateImpl();
+        inputs_ = groupByValidator_->inputs_;
+        outputs_ = groupByValidator_->outputs_;
+        exprProps_ = groupByValidator_->exprProps_;
+        return Status::OK();
+    }
+    NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
         !exprProps_.edgeProps().empty()) {
@@ -43,10 +60,6 @@ Status YieldValidator::validateImpl() {
     if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
         return Status::SemanticError("Only one variable allowed to use.");
     }
-
-//    if (hasAggFun_) {
-//        NG_RETURN_IF_ERROR(checkAggFunAndBuildGroupItems(yield->yield()));
-//    }
 
     if (exprProps_.inputProps().empty() && exprProps_.varProps().empty()) {
         // generate constant expression result into querycontext
@@ -167,13 +180,29 @@ Status YieldValidator::toPlan() {
     }
 
     SingleInputNode *dedupDep = nullptr;
-    dedupDep = Project::make(qctx_, filter, columns_);
-    dedupDep->setColNames(std::move(outputColumnNames_));
-    if (filter != nullptr) {
-        dedupDep->setInputVar(filter->outputVar());
-        tail_ = filter;
+    if (groupByValidator_) {
+        groupByValidator_->toPlan();
+        auto* groupByValidatorRoot = groupByValidator_->root();
+        auto* groupByValidatorTail = groupByValidator_->tail();
+        // groupBy validator only gen Project or Aggregate Node
+        DCHECK(groupByValidatorRoot->isSingleInput());
+        DCHECK(groupByValidatorTail->isSingleInput());
+        dedupDep = static_cast<SingleInputNode*>(groupByValidatorRoot);
+        if (filter != nullptr) {
+            static_cast<SingleInputNode*>(groupByValidatorTail)->setInputVar(filter->outputVar());
+            tail_ = filter;
+        } else {
+            tail_ = groupByValidatorTail;
+        }
     } else {
-        tail_ = dedupDep;
+        dedupDep = Project::make(qctx_, filter, columns_);
+        dedupDep->setColNames(std::move(outputColumnNames_));
+        if (filter != nullptr) {
+            dedupDep->setInputVar(filter->outputVar());
+            tail_ = filter;
+        } else {
+            tail_ = dedupDep;
+        }
     }
 
     if (!exprProps_.varProps().empty()) {

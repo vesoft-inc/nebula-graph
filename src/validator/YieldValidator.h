@@ -12,6 +12,7 @@
 #include "common/base/Status.h"
 #include "planner/Query.h"
 #include "validator/Validator.h"
+#include "validator/GroupByValidator.h"
 
 namespace nebula {
 
@@ -45,6 +46,8 @@ private:
     std::vector<std::string> outputColumnNames_;
     std::string constantExprVar_;
     Expression *filterCondition_{nullptr};
+    // validate for agg
+    std::unique_ptr<GroupByValidator> groupByValidator_{nullptr};
 };
 
 }   // namespace graph

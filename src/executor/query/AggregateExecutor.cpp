@@ -35,10 +35,9 @@ folly::Future<Status> AggregateExecutor::execute() {
 
         auto it = result.find(list);
         if (it == result.end()) {
-            std::vector<std::unique_ptr<AggData>> cols;
+           std::vector<std::unique_ptr<AggData>> cols;
            for (size_t i = 0; i < groupItems.size(); ++i) {
-               auto col = std::make_unique<AggData>();
-               cols.emplace_back(std::move(col).release());
+               cols.emplace_back(new AggData());
            }
            result.emplace(std::make_pair(list, std::move(cols)));
         } else {
@@ -49,10 +48,8 @@ folly::Future<Status> AggregateExecutor::execute() {
             auto* item = groupItems[i];
             if (item->kind() == Expression::Kind::kAggregate) {
                 static_cast<AggregateExpression*>(item)->setAggData(result[list][i].get());
+                // aggExpr eval
                 auto eval = item->eval(ctx(iter.get()));
-                if (eval.isBadNull()) {
-                    // TODO : handle error case
-                }
             } else {
                 // non aggExpr eval
                 result[list][i]->setRes(item->eval(ctx(iter.get())));

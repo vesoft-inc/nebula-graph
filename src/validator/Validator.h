@@ -136,7 +136,7 @@ protected:
 
     Status invalidLabelIdentifiers(const Expression* expr) const;
 
-protected:
+public:
     SpaceInfo                       space_;
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};

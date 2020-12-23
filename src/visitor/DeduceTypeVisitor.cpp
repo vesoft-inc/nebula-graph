@@ -410,7 +410,7 @@ void DeduceTypeVisitor::visit(AggregateExpression *expr) {
             break;
         }
         case AggregateExpression::Function::kAvg: {
-            type_ = arg_type;
+            type_ = Value::Type::FLOAT;
             break;
         }
         case AggregateExpression::Function::kMax: {
@@ -509,7 +509,6 @@ void DeduceTypeVisitor::visit(EdgePropertyExpression *expr) {
 
 void DeduceTypeVisitor::visit(InputPropertyExpression *expr) {
     auto *prop = expr->prop();
-    if (*prop == "*") return;
     auto found = std::find_if(
         inputs_.cbegin(), inputs_.cend(), [&prop](auto &col) { return *prop == col.name; });
     if (found == inputs_.cend()) {
@@ -522,7 +521,6 @@ void DeduceTypeVisitor::visit(InputPropertyExpression *expr) {
 
 void DeduceTypeVisitor::visit(VariablePropertyExpression *expr) {
     auto *var = expr->sym();
-    if (*var == "*") return;
     if (!vctx_->existVar(*var)) {
         status_ = Status::SemanticError(
             "`%s', not exist variable `%s'", expr->toString().c_str(), var->c_str());

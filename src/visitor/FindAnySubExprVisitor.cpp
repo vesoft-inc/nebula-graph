@@ -9,8 +9,9 @@
 namespace nebula {
 namespace graph {
 
-FindAnySubExprVisitor::FindAnySubExprVisitor(std::unordered_set<Expression*> &subExprs)
-    : subExprs_(subExprs) {
+FindAnySubExprVisitor::FindAnySubExprVisitor(std::unordered_set<Expression*> &subExprs,
+                                             bool needRecursiveSearch)
+    : subExprs_(subExprs), needRecursiveSearch_(needRecursiveSearch) {
     DCHECK(!subExprs_.empty());
 }
 
@@ -25,7 +26,9 @@ void FindAnySubExprVisitor::visit(TypeCastingExpression *expr) {
             return;
         }
     }
-    expr->operand()->accept(this);
+    if (needRecursiveSearch_) {
+        expr->operand()->accept(this);
+    }
 }
 
 void FindAnySubExprVisitor::visit(UnaryExpression *expr) {
@@ -39,7 +42,9 @@ void FindAnySubExprVisitor::visit(UnaryExpression *expr) {
             return;
         }
     }
-    expr->operand()->accept(this);
+    if (needRecursiveSearch_) {
+        expr->operand()->accept(this);
+    }
 }
 
 void FindAnySubExprVisitor::visit(FunctionCallExpression *expr) {
@@ -53,9 +58,11 @@ void FindAnySubExprVisitor::visit(FunctionCallExpression *expr) {
             return;
         }
     }
-    for (const auto &arg : expr->args()->args()) {
-        arg->accept(this);
-        if (found_) return;
+    if (needRecursiveSearch_) {
+        for (const auto &arg : expr->args()->args()) {
+            arg->accept(this);
+            if (found_) return;
+        }
     }
 }
 
@@ -70,7 +77,9 @@ void FindAnySubExprVisitor::visit(AggregateExpression *expr) {
             return;
         }
     }
-    expr->arg()->accept(this);
+    if (needRecursiveSearch_) {
+        expr->arg()->accept(this);
+    }
 }
 
 void FindAnySubExprVisitor::visit(ListExpression *expr) {
@@ -84,9 +93,11 @@ void FindAnySubExprVisitor::visit(ListExpression *expr) {
             return;
         }
     }
-    for (const auto &item : expr->items()) {
-        item->accept(this);
-        if (found_) return;
+    if (needRecursiveSearch_) {
+        for (const auto &item : expr->items()) {
+            item->accept(this);
+            if (found_) return;
+        }
     }
 }
 
@@ -101,9 +112,11 @@ void FindAnySubExprVisitor::visit(SetExpression *expr) {
             return;
         }
     }
-    for (const auto &item : expr->items()) {
-        item->accept(this);
-        if (found_) return;
+    if (needRecursiveSearch_) {
+        for (const auto &item : expr->items()) {
+            item->accept(this);
+            if (found_) return;
+        }
     }
 }
 
@@ -118,9 +131,11 @@ void FindAnySubExprVisitor::visit(MapExpression *expr) {
             return;
         }
     }
-    for (const auto &pair : expr->items()) {
-        pair.second->accept(this);
-        if (found_) return;
+    if (needRecursiveSearch_) {
+        for (const auto &pair : expr->items()) {
+            pair.second->accept(this);
+            if (found_) return;
+        }
     }
 }
 
@@ -135,19 +150,21 @@ void FindAnySubExprVisitor::visit(CaseExpression *expr) {
             return;
         }
     }
-    if (expr->hasCondition()) {
-        expr->condition()->accept(this);
-        if (found_) return;
-    }
-    if (expr->hasDefault()) {
-        expr->defaultResult()->accept(this);
-        if (found_) return;
-    }
-    for (const auto &whenThen : expr->cases()) {
-        whenThen.when->accept(this);
-        if (found_) return;
-        whenThen.then->accept(this);
-        if (found_) return;
+    if (needRecursiveSearch_) {
+        if (expr->hasCondition()) {
+            expr->condition()->accept(this);
+            if (found_) return;
+        }
+        if (expr->hasDefault()) {
+            expr->defaultResult()->accept(this);
+            if (found_) return;
+        }
+        for (const auto &whenThen : expr->cases()) {
+            whenThen.when->accept(this);
+            if (found_) return;
+            whenThen.then->accept(this);
+            if (found_) return;
+        }
     }
 }
 
@@ -396,9 +413,11 @@ void FindAnySubExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
             return;
         }
     }
-    expr->left()->accept(this);
-    if (found_) return;
-    expr->right()->accept(this);
+    if (needRecursiveSearch_) {
+        expr->left()->accept(this);
+        if (found_) return;
+        expr->right()->accept(this);
+    }
 }
 
 void FindAnySubExprVisitor::checkExprKind(const Expression *expr, const Expression *sub_expr) {

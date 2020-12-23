@@ -226,9 +226,6 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
 
     auto var = vctx_->anonVarGen()->getVar();
     auto* column = new VertexExpression();
-    // qctx_->objPool()->add(column);
-//    column->setAggFunction(new std::string("COLLECT"));
-//    auto fun = column->getAggFunName();
     auto* func = new AggregateExpression(new std::string("COLLECT"), column, false);
     qctx_->objPool()->add(func);
     auto* collectVertex =
@@ -262,9 +259,6 @@ Status GetSubgraphValidator::toPlan() {
         // collect runtime startVids
         auto var = vctx_->anonVarGen()->getVar();
         auto* column = new VariablePropertyExpression(new std::string(var), new std::string(kVid));
-        // qctx_->objPool()->add(column);
-//        column->setAggFunction(new std::string("COLLECT_SET"));
-//        auto fun = column->getAggFunName();
         auto* func = new AggregateExpression(new std::string("COLLECT_SET"), column, true);
         qctx_->objPool()->add(func);
         collectRunTimeStartVids =
@@ -301,9 +295,6 @@ Status GetSubgraphValidator::toPlan() {
 
     auto var = vctx_->anonVarGen()->getVar();
     auto* column = new VariablePropertyExpression(new std::string(var), new std::string(kVid));
-    // qctx_->objPool()->add(column);
-//    column->setAggFunction(new std::string("COLLECT_SET"));
-//    auto fun = column->getAggFunName();
     auto* func = new AggregateExpression(new std::string("COLLECT_SET"), column, true);
     qctx_->objPool()->add(func);
     auto* collect =

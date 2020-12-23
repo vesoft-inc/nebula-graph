@@ -321,7 +321,7 @@ TEST_F(YieldValidatorTest, YieldPipe) {
     {
         auto query = go + "| YIELD DISTINCT 1 + $-.* AS e WHERE $-.start > 2005";
         // + expr eval error?  (czp)
-        EXPECT_TRUE(checkResult(query));
+        EXPECT_FALSE(checkResult(query));
     }
 }
 
