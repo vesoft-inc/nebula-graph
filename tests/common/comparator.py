@@ -26,11 +26,13 @@ class DataSetComparator:
                  strict=True,
                  order=False,
                  included=False,
-                 decode_type: str = 'utf-8'):
+                 decode_type: str = 'utf-8',
+                 vid_fn=None):
         self._strict = strict
         self._order = order
         self._included = included
         self._decode_type = decode_type
+        self._vid_fn = vid_fn
 
     def __call__(self, resp: DataSet, expect: DataSet):
         return self.compare(resp, expect)
@@ -206,14 +208,16 @@ class DataSetComparator:
             if not lhs.ranking == rhs.ranking:
                 return False
             rsrc, rdst = self.eid(rhs, lhs.type)
-            if lhs.src != rsrc or lhs.dst != rdst:
+            if not (self.compare_vid(lhs.src, rsrc)
+                    and self.compare_vid(lhs.dst, rdst)):
                 return False
             if rhs.props is None or len(lhs.props) != len(rhs.props):
                 return False
         else:
             if rhs.src is not None and rhs.dst is not None:
                 rsrc, rdst = self.eid(rhs, lhs.type)
-                if lhs.src != rsrc or lhs.dst != rdst:
+                if not (self.compare_vid(lhs.src, rsrc)
+                        and self.compare_vid(lhs.dst, rdst)):
                     return False
             if rhs.ranking is not None:
                 if lhs.ranking != rhs.ranking:
@@ -228,18 +232,33 @@ class DataSetComparator:
     def bstr(self, vid) -> bytes:
         return self.b(vid) if type(vid) == str else vid
 
+    def compare_vid(
+            self,
+            lid: Union[int, bytes],
+            rid: Union[int, bytes, str],
+    ) -> bool:
+        if type(lid) is bytes:
+            return type(rid) in [str, bytes] and lid == self.bstr(rid)
+        if type(lid) is int:
+            if type(rid) is int:
+                return lid == rid
+            if type(rid) not in [str, bytes] or self._vid_fn is None:
+                return False
+            return lid == self._vid_fn(rid)
+        return False
+
     def compare_node(self, lhs: Vertex, rhs: Vertex):
         rtags = []
         if self._strict:
             assert rhs.vid is not None
-            if not lhs.vid == self.bstr(rhs.vid):
+            if not self.compare_vid(lhs.vid, rhs.vid):
                 return False
             if rhs.tags is None or len(lhs.tags) != len(rhs.tags):
                 return False
             rtags = rhs.tags
         else:
             if rhs.vid is not None:
-                if not lhs.vid == self.bstr(rhs.vid):
+                if not self.compare_vid(lhs.vid, rhs.vid):
                     return False
             if rhs.tags is not None and len(lhs.tags) < len(rhs.tags):
                 return False
