@@ -22,6 +22,13 @@ bool LabelIndexSeek::matchNode(NodeContext* nodeCtx) {
     nodeCtx->scanInfo.schemaId = node.tid;
     nodeCtx->scanInfo.schemaName = node.label;
 
+    auto indexResult = pickTagIndex(nodeCtx);
+    if (!indexResult.ok()) {
+        return false;
+    }
+
+    nodeCtx->scanInfo.indexId = indexResult.value();
+
     return true;
 }
 
@@ -34,10 +41,8 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
     SubPlan plan;
     auto* matchClauseCtx = nodeCtx->matchClauseCtx;
     using IQC = nebula::storage::cpp2::IndexQueryContext;
-    auto indexResult = pickTagIndex(nodeCtx);
-    NG_RETURN_IF_ERROR(indexResult);
     IQC iqctx;
-    iqctx.set_index_id(indexResult.value());
+    iqctx.set_index_id(nodeCtx->scanInfo.indexId);
     auto contexts = std::make_unique<std::vector<IQC>>();
     contexts->emplace_back(std::move(iqctx));
     auto columns = std::make_unique<std::vector<std::string>>();
