@@ -1,6 +1,6 @@
 Feature: LookUpTest_Vid_String
 
-  @tested_and_pass
+  
   Scenario: LookupTest SimpleVertex
     Given an empty graph
     And having executed:
@@ -9,19 +9,8 @@ Feature: LookUpTest_Vid_String
       CREATE SPACE IF NOT EXISTS lookup_space1(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
       USE lookup_space1;
       CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
-      CREATE TAG IF NOT EXISTS `test_tag`(name string);
-      CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
-      CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
-      CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
-      CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
       CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
-      CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
-      CREATE TAG INDEX t_index_5 ON lookup_tag_2(col4);
-      CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
-      CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
-      CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
-      CREATE EDGE INDEX e_index_4 ON lookup_edge_2(col3, col4);
       """
     And wait 6 seconds
     When executing query:
@@ -57,7 +46,7 @@ Feature: LookUpTest_Vid_String
       | VertexID | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
       | "200"    | 200               | 200               | 200               |
 
-  @tested_and_pass
+  
   Scenario: LookupTest SimpleEdge
     Given an empty graph
     And having executed:
@@ -65,20 +54,9 @@ Feature: LookUpTest_Vid_String
       DROP SPACE IF EXISTS lookup_space2;
       CREATE SPACE IF NOT EXISTS lookup_space2(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
       USE lookup_space2;
-      CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
-      CREATE TAG IF NOT EXISTS `test_tag`(name string);
-      CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
-      CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
-      CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
-      CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
-      CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
-      CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
-      CREATE TAG INDEX t_index_5 ON lookup_tag_2(col4);
       CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
-      CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
       CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
-      CREATE EDGE INDEX e_index_4 ON lookup_edge_2(col3, col4);
       """
     And wait 6 seconds
     When executing query:
@@ -114,7 +92,7 @@ Feature: LookUpTest_Vid_String
       | SrcVID | DstVID | Ranking | lookup_edge_1.col1 | lookup_edge_1.col2 | lookup_edge_1.col3 |
       | "200"  | "201"  | 0       | 201                | 201                | 201                |
 
-  @tested_and_pass
+  
   Scenario: LookupTest VertexIndexHint
     Given an empty graph
     And having executed:
@@ -123,19 +101,12 @@ Feature: LookUpTest_Vid_String
       CREATE SPACE IF NOT EXISTS lookup_space3(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
       USE lookup_space3;
       CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
-      CREATE TAG IF NOT EXISTS `test_tag`(name string);
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
-      CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
-      CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
       CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
       CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
       CREATE TAG INDEX t_index_5 ON lookup_tag_2(col4);
-      CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
-      CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
-      CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
-      CREATE EDGE INDEX e_index_4 ON lookup_edge_2(col3, col4);
       """
     And wait 6 seconds
     When executing query:
@@ -159,7 +130,7 @@ Feature: LookUpTest_Vid_String
       """
     Then a ExecutionError should be raised at runtime:
 
-  @tested_and_pass
+  
   Scenario: LookupTest EdgeIndexHint
     Given an empty graph
     And having executed:
@@ -167,16 +138,8 @@ Feature: LookUpTest_Vid_String
       DROP SPACE IF EXISTS lookup_space4;
       CREATE SPACE IF NOT EXISTS lookup_space4(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
       USE lookup_space4;
-      CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
-      CREATE TAG IF NOT EXISTS `test_tag`(name string);
-      CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
-      CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
-      CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
-      CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
-      CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
-      CREATE TAG INDEX t_index_5 ON lookup_tag_2(col4);
       CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
       CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
       CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
@@ -203,7 +166,7 @@ Feature: LookUpTest_Vid_String
       """
     Then a SemanticError should be raised at runtime:
 
-  @tested_and_nebula_not_support
+  @skip
   Scenario: LookupTest VertexConditionScan
     Given an empty graph
     And having executed:
@@ -211,20 +174,10 @@ Feature: LookUpTest_Vid_String
       DROP SPACE IF EXISTS lookup_space5;
       CREATE SPACE IF NOT EXISTS lookup_space5(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
       USE lookup_space5;
-      CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
-      CREATE TAG IF NOT EXISTS `test_tag`(name string);
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
-      CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
-      CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
-      CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
-      CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
       CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
       CREATE TAG INDEX t_index_5 ON lookup_tag_2(col4);
-      CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
-      CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
-      CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
-      CREATE EDGE INDEX e_index_4 ON lookup_edge_2(col3, col4);
       """
     And wait 6 seconds
     When executing query:
@@ -362,7 +315,7 @@ Feature: LookUpTest_Vid_String
       | "221"    |
       | "222"    |
 
-  @tested_and_nebula_not_support
+  @skip
   Scenario: LookupTest EdgeConditionScan
     Given an empty graph
     And having executed:
@@ -370,33 +323,11 @@ Feature: LookUpTest_Vid_String
       DROP SPACE IF EXISTS lookup_space6;
       CREATE SPACE IF NOT EXISTS lookup_space6(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
       USE lookup_space6;
-      CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
-      CREATE TAG IF NOT EXISTS `test_tag`(name string);
-      CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
-      CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
-      CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
-      CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
-      CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
-      CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
-      CREATE TAG INDEX t_index_5 ON lookup_tag_2(col4);
-      CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
       CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
-      CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
       CREATE EDGE INDEX e_index_4 ON lookup_edge_2(col3, col4);
       """
     And wait 6 seconds
-    When executing query:
-      """
-      INSERT VERTEX lookup_tag_2(col1, col2, col3, col4) VALUES
-                       "220":(true, 100, 100.5, true),
-                       "221":(true, 200, 200.5, true),
-                       "222":(true, 300, 300.5, true),
-                       "223":(true, 400, 400.5, true),
-                       "224":(true, 500, 500.5, true),
-                       "225":(true, 600, 600.5, true)
-      """
-    Then the execution should be successful
     When executing query:
       """
       INSERT EDGE lookup_edge_2(col1, col2, col3, col4) VALUES
@@ -527,7 +458,7 @@ Feature: LookUpTest_Vid_String
       | "220"  | "222"  | 0       |
       | "220"  | "223"  | 0       |
 
-  @tested_and_nebula_not_support
+  @skip
   Scenario: LookupTest FunctionExprTest
     Given an empty graph
     And having executed:
@@ -535,20 +466,10 @@ Feature: LookUpTest_Vid_String
       DROP SPACE IF EXISTS lookup_space7;
       CREATE SPACE IF NOT EXISTS lookup_space7(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
       USE lookup_space7;
-      CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
-      CREATE TAG IF NOT EXISTS `test_tag`(name string);
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
-      CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
-      CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
-      CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
-      CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
       CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
       CREATE TAG INDEX t_index_5 ON lookup_tag_2(col4);
-      CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
-      CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
-      CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
-      CREATE EDGE INDEX e_index_4 ON lookup_edge_2(col3, col4);
       """
     And wait 6 seconds
     When executing query:
@@ -667,7 +588,7 @@ Feature: LookUpTest_Vid_String
     Then the result should be, in any order:
       | VertexID |
 
-  @tested_and_pass
+  
   Scenario: LookupTest YieldClauseTest
     Given an empty graph
     And having executed:
@@ -725,7 +646,7 @@ Feature: LookUpTest_Vid_String
       | VertexID | student.age |
       | "220"    | 20          |
 
-  @tested_and_pass
+  
   Scenario: LookupTest OptimizerTest
     Given an empty graph
     And having executed:
@@ -816,7 +737,7 @@ Feature: LookUpTest_Vid_String
       """
     Then the execution should be successful
 
-  @tested_and_pass
+  
   Scenario: LookupTest OptimizerWithStringFieldTest
     Given an empty graph
     And having executed:
@@ -897,7 +818,7 @@ Feature: LookUpTest_Vid_String
       """
     Then the execution should be successful
 
-  @tested_and_pass
+  
   Scenario: LookupTest StringFieldTest
     Given an empty graph
     And having executed:
@@ -984,7 +905,7 @@ Feature: LookUpTest_Vid_String
       | VertexID |
       | "6"      |
 
-  @tested_and_nebula_not_support
+  
   Scenario: LookupTest ConditionTest
     Given an empty graph
     And having executed:

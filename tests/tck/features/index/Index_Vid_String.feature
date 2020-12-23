@@ -1,6 +1,5 @@
 Feature: IndexTest_Vid_String
 
-  @tested_and_pass
   Scenario: IndexTest TagIndex
     Given an empty graph
     And having executed:
@@ -146,7 +145,6 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
 
-  @tested_and_pass
   Scenario: IndexTest EdgeIndex
     Given an empty graph
     And having executed:
@@ -287,7 +285,6 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
 
-  @tested_and_pass
   Scenario: IndexTest TagIndexTTL
     Given an empty graph
     And having executed:
@@ -390,7 +387,6 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
 
-  @tested_and_pass
   Scenario: IndexTest EdgeIndexTTL
     Given an empty graph
     And having executed:
@@ -497,7 +493,6 @@ Feature: IndexTest_Vid_String
       """
     Then the execution should be successful
 
-  @tested_and_pass
   Scenario: IndexTest AlterTag
     Given an empty graph
     And having executed:
@@ -553,7 +548,7 @@ Feature: IndexTest_Vid_String
       | VertexID | tag_1.col1 | tag_1.col5 |
       | "100"    | true       | 5          |
 
-  @tested_and_nebula_not_support
+  @skip
   Scenario: IndexTest RebuildTagIndexStatusInfo
     Given an empty graph
     And having executed:
@@ -602,7 +597,7 @@ Feature: IndexTest_Vid_String
     Then the result should be, in any order:
       | Name | Index Status |
 
-  @tested_and_nebula_not_support
+  @skip
   Scenario: IndexTest RebuildEdgeIndexStatusInfo
     Given an empty graph
     And having executed:
@@ -649,7 +644,6 @@ Feature: IndexTest_Vid_String
     Then the result should be, in any order:
       | Name | Index Status |
 
-  @tested_and_pass
   Scenario: IndexTest AlterSchemaTest
     Given an empty graph
     And having executed:
@@ -683,4 +677,3 @@ Feature: IndexTest_Vid_String
       LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD alter_tag.type
       """
     Then the execution should be successful
-
