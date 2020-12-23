@@ -1,6 +1,5 @@
 Feature: LookUpTest_Vid_String
 
-  
   Scenario: LookupTest SimpleVertex
     Given an empty graph
     And having executed:
@@ -46,7 +45,6 @@ Feature: LookUpTest_Vid_String
       | VertexID | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
       | "200"    | 200               | 200               | 200               |
 
-  
   Scenario: LookupTest SimpleEdge
     Given an empty graph
     And having executed:
@@ -92,7 +90,6 @@ Feature: LookUpTest_Vid_String
       | SrcVID | DstVID | Ranking | lookup_edge_1.col1 | lookup_edge_1.col2 | lookup_edge_1.col3 |
       | "200"  | "201"  | 0       | 201                | 201                | 201                |
 
-  
   Scenario: LookupTest VertexIndexHint
     Given an empty graph
     And having executed:
@@ -130,7 +127,6 @@ Feature: LookUpTest_Vid_String
       """
     Then a ExecutionError should be raised at runtime:
 
-  
   Scenario: LookupTest EdgeIndexHint
     Given an empty graph
     And having executed:
@@ -588,7 +584,6 @@ Feature: LookUpTest_Vid_String
     Then the result should be, in any order:
       | VertexID |
 
-  
   Scenario: LookupTest YieldClauseTest
     Given an empty graph
     And having executed:
@@ -646,7 +641,6 @@ Feature: LookUpTest_Vid_String
       | VertexID | student.age |
       | "220"    | 20          |
 
-  
   Scenario: LookupTest OptimizerTest
     Given an empty graph
     And having executed:
@@ -737,7 +731,6 @@ Feature: LookUpTest_Vid_String
       """
     Then the execution should be successful
 
-  
   Scenario: LookupTest OptimizerWithStringFieldTest
     Given an empty graph
     And having executed:
@@ -818,7 +811,6 @@ Feature: LookUpTest_Vid_String
       """
     Then the execution should be successful
 
-  
   Scenario: LookupTest StringFieldTest
     Given an empty graph
     And having executed:
@@ -905,7 +897,6 @@ Feature: LookUpTest_Vid_String
       | VertexID |
       | "6"      |
 
-  
   Scenario: LookupTest ConditionTest
     Given an empty graph
     And having executed:
