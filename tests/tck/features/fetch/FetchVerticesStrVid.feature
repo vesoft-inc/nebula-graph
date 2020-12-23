@@ -9,7 +9,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID           | player.name  | player.age |
+      | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
   Scenario: [2] Fetch Vertices
@@ -18,7 +18,7 @@ Feature: Fetch String Vertices
       FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.age, player.age > 30
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age | (player.age>30) |
+      | VertexID     | player.name  | player.age | (player.age>30) |
       | "Boris Diaw" | "Boris Diaw" | 36         | True            |
 
   Scenario: [3] Fetch dst vertices' props of go traversal.
@@ -27,18 +27,18 @@ Feature: Fetch String Vertices
       GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID            | player.name   | player.age |
+      | VertexID    | player.name   | player.age |
       | Tony Parker | "Tony Parker" | 36         |
       | Tony Parker | "Tim Duncan"  | 42         |
 
-@tested_and_nebula_not_support
+  @tested_and_nebula_not_support
   Scenario: [4] Fetch Vertices
     When executing query:
       """
       GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age, $-.*
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID            | player.name   | player.age | $-.id                |
+      | VertexID      | player.name   | player.age | $-.id         |
       | "Tony Parker" | "Tony Parker" | 36         | "Tony Parker" |
       | "Tim Duncan"  | "Tim Duncan"  | 42         | "Tim Duncan"  |
 
@@ -48,8 +48,8 @@ Feature: Fetch String Vertices
       $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name, player.age
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID            | player.name   | player.age |
-      |  "Tony Parker" | "Tony Parker" | 36         |
+      | VertexID      | player.name   | player.age |
+      | "Tony Parker" | "Tony Parker" | 36         |
       | "Tim Duncan"  | "Tim Duncan"  | 42         |
 
   Scenario: [6] Fetch Vertices works with ORDER BY
@@ -58,17 +58,17 @@ Feature: Fetch String Vertices
       $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name as name, player.age | ORDER BY name
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID            | name          | player.age |
+      | VertexID      | name          | player.age |
       | "Tim Duncan"  | "Tim Duncan"  | 42         |
       | "Tony Parker" | "Tony Parker" | 36         |
 
-Scenario: [9] Fetch Vertices without YIELD
+  Scenario: [9] Fetch Vertices without YIELD
     When executing query:
       """
       FETCH PROP ON player 'Boris Diaw'
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age |
+      | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
   Scenario: [12] Fetch Vertices works with DISTINCT
@@ -77,7 +77,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT player.name, player.age
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age |
+      | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
   Scenario: [13] Fetch Vertices works with DISTINCT
@@ -86,7 +86,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT player.age
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.age |
+      | VertexID     | player.age |
       | "Boris Diaw" | 36         |
 
   Scenario: [14] Fetch Vertices not support get src property
@@ -147,7 +147,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON * 'Boris Diaw'
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age |
+      | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
   Scenario: [22] Fetch prop works with pipeline
@@ -156,7 +156,7 @@ Scenario: [9] Fetch Vertices without YIELD
       YIELD 'Boris Diaw' as id | FETCH PROP ON * $-.id
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age |
+      | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
   Scenario: [23] Fetch prop on multiple vertices
@@ -165,7 +165,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON * 'Boris Diaw', 'Boris Diaw'
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age |
+      | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
@@ -175,7 +175,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON bachelor 'Tim Duncan'
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | bachelor.name | bachelor.speciality |
+      | VertexID     | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan"  | "psychology"        |
 
   Scenario: [25] Fetch Vertices
@@ -184,7 +184,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON * 'Tim Duncan'
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
+      | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
   Scenario: [26] Fetch Vertices
@@ -193,7 +193,7 @@ Scenario: [9] Fetch Vertices without YIELD
       YIELD 'Tim Duncan' as id | FETCH PROP ON * $-.id
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
+      | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
   Scenario: [27] Fetch Vertices
@@ -202,7 +202,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON * 'Tim Duncan', 'Tim Duncan'
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
+      | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
@@ -212,7 +212,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON * 'Tim Duncan', 'Tim Duncan' YIELD player.name, player.age
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age |
+      | VertexID     | player.name  | player.age |
       | "Tim Duncan" | "Tim Duncan" | 42         |
       | "Tim Duncan" | "Tim Duncan" | 42         |
 
@@ -222,7 +222,7 @@ Scenario: [9] Fetch Vertices without YIELD
       FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.name
       """
     Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.name  |
+      | VertexID     | player.name  | player.name  |
       | "Boris Diaw" | "Boris Diaw" | "Boris Diaw" |
 
   Scenario: [30] Fetch Vertices
