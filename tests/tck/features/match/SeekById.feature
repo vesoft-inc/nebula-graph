@@ -171,6 +171,31 @@ Feature: Match seek by id
       | 'Paul Gasol' | 'Spurs'     |
       | 'Paul Gasol' | 'Bucks'     |
 
+  Scenario: multiple nodes
+    When executing query:
+      """
+      MATCH (v)-[:serve]->(t)
+      WHERE (NOT NOT id(v) == 'Paul Gasol') AND id(v) == 'Paul Gasol' AND id(t) IN ['Grizzlies', 'Lakers']
+      RETURN v.name AS Name, t.name AS Team
+      """
+    Then the result should be, in any order:
+      | Name         | Team        |
+      | 'Paul Gasol' | 'Grizzlies' |
+      | 'Paul Gasol' | 'Lakers'    |
+    When executing query:
+      """
+      MATCH (v)-[:serve]->(t)
+      WHERE ((NOT NOT id(v) == 'Paul Gasol') AND id(v) == 'Paul Gasol') OR id(t) IN ['Grizzlies', 'Lakers']
+      RETURN v.name AS Name, t.name AS Team
+      """
+    Then the result should be, in any order:
+      | Name         | Team        |
+      | 'Paul Gasol' | 'Grizzlies' |
+      | 'Paul Gasol' | 'Lakers'    |
+      | 'Paul Gasol' | 'Bulls'     |
+      | 'Paul Gasol' | 'Spurs'     |
+      | 'Paul Gasol' | 'Bucks'     |
+
   Scenario: can't refer
     When executing query:
       """
@@ -199,6 +224,22 @@ Feature: Match seek by id
       MATCH (v)
       WHERE id(v) == 'James Harden'
             OR v.age == 23
+      RETURN v.name AS Name
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      MATCH (v)
+      WHERE id(x) == 'James Harden'
+      RETURN v.name AS Name
+      """
+    Then a SemanticError should be raised at runtime:
+
+  Scenario: TODO
+    When executing query:
+      """
+      MATCH (v)-[:serve]->(t)
+      WHERE id(t) == 'Pistons'
       RETURN v.name AS Name
       """
     Then a SemanticError should be raised at runtime:

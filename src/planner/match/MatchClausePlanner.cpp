@@ -94,7 +94,7 @@ Status MatchClausePlanner::expand(const std::vector<NodeInfo>& nodeInfos,
     // Do expand from startIndex and connect the the subplans.
     // TODO: Only support start from the head node now.
     if (startIndex != 0) {
-        return Status::Error("Only support start from the head node parttern.");
+        return Status::SemanticError("Only support start from the head node parttern.");
     }
 
     std::vector<std::string> joinColNames = {folly::stringPrintf("%s_%d", kPathStr, 0)};

@@ -13,21 +13,20 @@
 
 namespace nebula {
 namespace graph {
-bool VertexIdSeek::matchEdge(EdgeContext* edgeCtx) {
+bool VertexIdSeek::matchEdge(EdgeContext *edgeCtx) {
     UNUSED(edgeCtx);
     return false;
 }
 
-StatusOr<SubPlan> VertexIdSeek::transformEdge(EdgeContext* edgeCtx) {
+StatusOr<SubPlan> VertexIdSeek::transformEdge(EdgeContext *edgeCtx) {
     UNUSED(edgeCtx);
-    return Status::Error("Unimplement for edge pattern.");
+    return Status::Error("Unimplemented for edge pattern.");
 }
 
-bool VertexIdSeek::matchNode(NodeContext* nodeCtx) {
-    auto& node = *nodeCtx->info;
-    auto* matchClauseCtx = nodeCtx->matchClauseCtx;
-    if (matchClauseCtx->where == nullptr
-            || matchClauseCtx->where->filter == nullptr) {
+bool VertexIdSeek::matchNode(NodeContext *nodeCtx) {
+    auto &node = *nodeCtx->info;
+    auto *matchClauseCtx = nodeCtx->matchClauseCtx;
+    if (matchClauseCtx->where == nullptr || matchClauseCtx->where->filter == nullptr) {
         return false;
     }
 
@@ -36,40 +35,44 @@ bool VertexIdSeek::matchNode(NodeContext* nodeCtx) {
         return false;
     }
 
-    auto vidResult = extractVids(matchClauseCtx->where->filter.get());
-    if (!vidResult.ok()) {
+    if (node.alias == nullptr) {
+        // require one named node
         return false;
     }
 
-    nodeCtx->ids = std::move(vidResult).value();
-    return true;
-}
-
-StatusOr<List> VertexIdSeek::extractVids(const Expression* filter) {
-    auto result = reverseEvalVids(filter);
-    if (result.in == VidPattern::IN::kIn) {
-        return std::move(result.vids);
+    auto vidResult = reverseEvalVids(matchClauseCtx->where->filter.get());
+    if (vidResult.spec != VidPattern::Special::kInUsed) {
+        return false;
     }
-    return Status::SemanticError("Can't extract valid vertices id from filter.");
+    for (auto &nodeVid : vidResult.nodes) {
+        if (nodeVid.second.kind == VidPattern::Vids::Kind::kIn) {
+            if (nodeVid.first == *node.alias) {
+                nodeCtx->ids = std::move(nodeVid.second.vids);
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
-std::pair<std::string, Expression*> VertexIdSeek::listToAnnoVarVid(QueryContext* qctx,
-                                                                    const List& list) {
+std::pair<std::string, Expression *> VertexIdSeek::listToAnnoVarVid(QueryContext *qctx,
+                                                                    const List &list) {
     auto input = qctx->vctx()->anonVarGen()->getVar();
     DataSet vids({kVid});
     QueryExpressionContext dummy;
-    for (auto& v : list.values) {
+    for (auto &v : list.values) {
         vids.emplace_back(Row({std::move(v)}));
     }
 
     qctx->ectx()->setResult(input, ResultBuilder().value(Value(std::move(vids))).finish());
 
-    auto* src = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
-    return std::pair<std::string, Expression*>(input, src);
+    auto *src = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
+    return std::pair<std::string, Expression *>(input, src);
 }
 
-std::pair<std::string, Expression*> VertexIdSeek::constToAnnoVarVid(QueryContext* qctx,
-                                                                     const Value& v) {
+std::pair<std::string, Expression *> VertexIdSeek::constToAnnoVarVid(QueryContext *qctx,
+                                                                     const Value &v) {
     auto input = qctx->vctx()->anonVarGen()->getVar();
     DataSet vids({kVid});
     QueryExpressionContext dummy;
@@ -77,19 +80,19 @@ std::pair<std::string, Expression*> VertexIdSeek::constToAnnoVarVid(QueryContext
 
     qctx->ectx()->setResult(input, ResultBuilder().value(Value(std::move(vids))).finish());
 
-    auto* src = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
-    return std::pair<std::string, Expression*>(input, src);
+    auto *src = new VariablePropertyExpression(new std::string(input), new std::string(kVid));
+    return std::pair<std::string, Expression *>(input, src);
 }
 
-StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
+StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext *nodeCtx) {
     SubPlan plan;
-    auto* matchClauseCtx = nodeCtx->matchClauseCtx;
-    auto* qctx = matchClauseCtx->qctx;
+    auto *matchClauseCtx = nodeCtx->matchClauseCtx;
+    auto *qctx = matchClauseCtx->qctx;
 
     QueryExpressionContext dummy;
-    std::pair<std::string, Expression*> vidsResult = listToAnnoVarVid(qctx, nodeCtx->ids);
+    std::pair<std::string, Expression *> vidsResult = listToAnnoVarVid(qctx, nodeCtx->ids);
 
-    auto* passThrough = PassThroughNode::make(qctx, nullptr);
+    auto *passThrough = PassThroughNode::make(qctx, nullptr);
     passThrough->setColNames({kVid});
     passThrough->setOutputVar(vidsResult.first);
     plan.root = passThrough;
@@ -105,106 +108,147 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
 //    Put any vid in result VidPattern.vids to id(V) make the expression evaluate to TRUE!(Ignore
 //    not related expression component e.g. attribute expr, so the filter still need eval
 //    when filter final result) and non any other vid make it eval to TRUE!
-// TODO(shylock) support different id() call (e.g. id(a) == '...' & id(b) in [..])
 /*static*/ VertexIdSeek::VidPattern VertexIdSeek::reverseEvalVids(const Expression *expr) {
     switch (expr->kind()) {
         case Expression::Kind::kRelIn: {
-            const auto* inExpr = static_cast<const RelationalExpression*>(expr);
+            const auto *inExpr = static_cast<const RelationalExpression *>(expr);
             if (inExpr->left()->kind() == Expression::Kind::kLabelAttribute) {
-                return VidPattern{VidPattern::IN::kOtherSource, {}};
+                const auto *labelExpr =
+                    static_cast<const LabelAttributeExpression *>(inExpr->left());
+                const auto &label = labelExpr->left()->toString();
+                return VidPattern{VidPattern::Special::kInUsed,
+                                  {{label, {VidPattern::Vids::Kind::kOtherSource, {}}}}};
             }
             if (inExpr->left()->kind() != Expression::Kind::kFunctionCall ||
                 inExpr->right()->kind() != Expression::Kind::kConstant) {
-                    return VidPattern{};
-            }
-            const auto* fCallExpr = static_cast<const FunctionCallExpression*>(inExpr->left());
-            if (*fCallExpr->name() != "id") {
                 return VidPattern{};
             }
-            const auto* constExpr = static_cast<const ConstantExpression*>(inExpr->right());
+            const auto *fCallExpr = static_cast<const FunctionCallExpression *>(inExpr->left());
+            if (*fCallExpr->name() != "id" && fCallExpr->args()->numArgs() != 1 &&
+                fCallExpr->args()->args().front()->kind() != Expression::Kind::kLabel) {
+                return VidPattern{};
+            }
+            const auto *constExpr = static_cast<const ConstantExpression *>(inExpr->right());
             if (constExpr->value().type() != Value::Type::LIST) {
                 return VidPattern{};
             }
-            return VidPattern{VidPattern::IN::kIn, constExpr->value().getList()};
+            return VidPattern{VidPattern::Special::kInUsed,
+                              {{fCallExpr->args()->args().front()->toString(),
+                                {VidPattern::Vids::Kind::kIn, constExpr->value().getList()}}}};
         }
         case Expression::Kind::kRelEQ: {
-            const auto* eqExpr = static_cast<const RelationalExpression*>(expr);
+            const auto *eqExpr = static_cast<const RelationalExpression *>(expr);
             if (eqExpr->left()->kind() == Expression::Kind::kLabelAttribute) {
-                return VidPattern{VidPattern::IN::kOtherSource, {}};
+                const auto *labelExpr =
+                    static_cast<const LabelAttributeExpression *>(eqExpr->left());
+                const auto &label = labelExpr->left()->toString();
+                return VidPattern{VidPattern::Special::kInUsed,
+                                  {{label, {VidPattern::Vids::Kind::kOtherSource, {}}}}};
             }
             if (eqExpr->left()->kind() != Expression::Kind::kFunctionCall ||
                 eqExpr->right()->kind() != Expression::Kind::kConstant) {
                 return VidPattern{};
             }
-            const auto* fCallExpr = static_cast<const FunctionCallExpression*>(eqExpr->left());
-            if (*fCallExpr->name() != "id") {
+            const auto *fCallExpr = static_cast<const FunctionCallExpression *>(eqExpr->left());
+            if (*fCallExpr->name() != "id" && fCallExpr->args()->numArgs() != 1 &&
+                fCallExpr->args()->args().front()->kind() != Expression::Kind::kLabel) {
                 return VidPattern{};
             }
-            const auto* constExpr = static_cast<const ConstantExpression*>(eqExpr->right());
+            const auto *constExpr = static_cast<const ConstantExpression *>(eqExpr->right());
             if (!SchemaUtil::isValidVid(constExpr->value())) {
                 return VidPattern{};
             }
-            return VidPattern{VidPattern::IN::kIn, List({constExpr->value()})};
+            return VidPattern{VidPattern::Special::kInUsed,
+                              {{fCallExpr->args()->args().front()->toString(),
+                                {VidPattern::Vids::Kind::kIn, List({constExpr->value()})}}}};
         }
         case Expression::Kind::kLogicalAnd: {
-            const auto *andExpr = static_cast<const LogicalExpression*>(expr);
+            const auto *andExpr = static_cast<const LogicalExpression *>(expr);
             std::vector<VidPattern> operandsResult;
             operandsResult.reserve(andExpr->operands().size());
             for (const auto &operand : andExpr->operands()) {
                 operandsResult.emplace_back(reverseEvalVids(operand.get()));
             }
-            VidPattern inResult{VidPattern::IN::kIn, {}};
-            std::unordered_set<Value> notInResult;
+            VidPattern inResult{VidPattern::Special::kInUsed, {}};
+            VidPattern notInResult{VidPattern::Special::kInUsed, {}};
             for (auto &operandResult : operandsResult) {
-                if (operandResult.in == VidPattern::IN::kNotIn) {
-                    notInResult.insert(std::make_move_iterator(operandResult.vids.values.begin()),
-                                       std::make_move_iterator(operandResult.vids.values.end()));
+                if (operandResult.spec == VidPattern::Special::kInUsed) {
+                    for (auto &node : operandResult.nodes) {
+                        if (node.second.kind == VidPattern::Vids::Kind::kNotIn) {
+                            notInResult.nodes[node.first].vids.values.insert(
+                                notInResult.nodes[node.first].vids.values.end(),
+                                std::make_move_iterator(node.second.vids.values.begin()),
+                                std::make_move_iterator(node.second.vids.values.end()));
+                        }
+                    }
                 }
             }
             // intersect all in list
-            std::vector<VidPattern> inOperandsResult;
-            for (auto &result : operandsResult) {
-                if (result.in == VidPattern::IN::kIn) {
-                    inOperandsResult.emplace_back(std::move(result));
+            std::vector<std::pair<std::string, VidPattern::Vids>> inOperandsResult;
+            for (auto &operandResult : operandsResult) {
+                if (operandResult.spec == VidPattern::Special::kInUsed) {
+                    for (auto &node : operandResult.nodes) {
+                        if (node.second.kind == VidPattern::Vids::Kind::kIn) {
+                            inOperandsResult.emplace_back(std::move(node));
+                        }
+                    }
                 }
             }
             if (inOperandsResult.size() < 1) {
                 // noting
             } else if (inOperandsResult.size() < 2) {
-                inResult = inOperandsResult[0];
+                inResult.nodes.emplace(std::move(inOperandsResult.front()));
             } else {
-                inResult = intersect(inOperandsResult[0], inOperandsResult[1]);
+                inResult =
+                    intersect(std::move(inOperandsResult[0]), std::move(inOperandsResult[1]));
                 for (std::size_t i = 2; i < inOperandsResult.size(); ++i) {
-                    inResult = intersect(inResult, inOperandsResult[i]);
+                    inResult = intersect(std::move(inResult), std::move(inOperandsResult[i]));
                 }
             }
             // remove that not in item
-            List removeNotIn;
-            for (auto &v : inResult.vids.values) {
-                if (notInResult.find(v) == notInResult.end()) {
-                    removeNotIn.emplace_back(std::move(v));
+            for (auto &node : inResult.nodes) {
+                auto find = notInResult.nodes.find(node.first);
+                if (find != notInResult.nodes.end()) {
+                    List removeNotIn;
+                    for (auto &v : node.second.vids.values) {
+                        if (std::find(find->second.vids.values.begin(),
+                                      find->second.vids.values.end(),
+                                      v) == find->second.vids.values.end()) {
+                            removeNotIn.emplace_back(std::move(v));
+                        }
+                    }
+                    node.second.vids = std::move(removeNotIn);
                 }
             }
-            inResult.vids = std::move(removeNotIn);
             return inResult;
         }
         case Expression::Kind::kLogicalOr: {
-            const auto *andExpr = static_cast<const LogicalExpression*>(expr);
+            const auto *andExpr = static_cast<const LogicalExpression *>(expr);
             std::vector<VidPattern> operandsResult;
             operandsResult.reserve(andExpr->operands().size());
             for (const auto &operand : andExpr->operands()) {
                 operandsResult.emplace_back(reverseEvalVids(operand.get()));
             }
-            VidPattern inResult{VidPattern::IN::kIn, {}};
+            VidPattern inResult{VidPattern::Special::kInUsed, {}};
             for (auto &result : operandsResult) {
-                // Can't deduce with outher source (e.g. PropertiesIndex)
-                if (result.in == VidPattern::IN::kOtherSource) {
-                    return VidPattern{};
-                }
-                if (result.in == VidPattern::IN::kIn) {
-                    inResult.vids.values.insert(inResult.vids.values.end(),
-                                                std::make_move_iterator(result.vids.values.begin()),
-                                                std::make_move_iterator(result.vids.values.end()));
+                if (result.spec == VidPattern::Special::kInUsed) {
+                    for (auto &node : result.nodes) {
+                        // Can't deduce with outher source (e.g. PropertiesIndex)
+                        switch (node.second.kind) {
+                            case VidPattern::Vids::Kind::kOtherSource:
+                                return VidPattern{};
+                            case VidPattern::Vids::Kind::kIn: {
+                                inResult.nodes[node.first].kind = VidPattern::Vids::Kind::kIn;
+                                inResult.nodes[node.first].vids.values.insert(
+                                    inResult.nodes[node.first].vids.values.end(),
+                                    std::make_move_iterator(node.second.vids.values.begin()),
+                                    std::make_move_iterator(node.second.vids.values.end()));
+                            }
+                            case VidPattern::Vids::Kind::kNotIn:
+                                // nothing
+                                break;
+                        }
+                    }
                 }
             }
             return inResult;
@@ -213,39 +257,102 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext* nodeCtx) {
             // TODO
             return VidPattern{};
         case Expression::Kind::kUnaryNot: {
-            const auto *notExpr = static_cast<const UnaryExpression*>(expr);
+            const auto *notExpr = static_cast<const UnaryExpression *>(expr);
             auto operandResult = reverseEvalVids(notExpr->operand());
-            switch (operandResult.in) {
-                case VidPattern::IN::kIgnore:
-                case VidPattern::IN::kOtherSource:
-                    break;
-                case VidPattern::IN::kIn:
-                    operandResult.in = VidPattern::IN::kNotIn;
-                    break;
-                case VidPattern::IN::kNotIn:
-                    operandResult.in = VidPattern::IN::kIn;
-                    break;
+            if (operandResult.spec == VidPattern::Special::kInUsed) {
+                for (auto &node : operandResult.nodes) {
+                    switch (node.second.kind) {
+                        case VidPattern::Vids::Kind::kOtherSource:
+                            break;
+                        case VidPattern::Vids::Kind::kIn:
+                            node.second.kind = VidPattern::Vids::Kind::kNotIn;
+                            break;
+                        case VidPattern::Vids::Kind::kNotIn:
+                            node.second.kind = VidPattern::Vids::Kind::kIn;
+                            break;
+                    }
+                }
             }
             return operandResult;
         }
-        case Expression::Kind::kLabelAttribute:
-            return VidPattern{VidPattern::IN::kOtherSource, {}};
+        case Expression::Kind::kLabelAttribute: {
+            const auto *labelExpr = static_cast<const LabelAttributeExpression *>(expr);
+            return VidPattern{
+                VidPattern::Special::kInUsed,
+                {{labelExpr->left()->toString(), {VidPattern::Vids::Kind::kOtherSource, {}}}}};
+        }
         default:
             return VidPattern{};
     }
 }
 
-/*static*/ VertexIdSeek::VidPattern VertexIdSeek::intersect(VidPattern &left, VidPattern &right) {
-    DCHECK(left.in == VidPattern::IN::kIn);
-    DCHECK(right.in == VidPattern::IN::kIn);
-    VidPattern v{VidPattern::IN::kIn, {}};
-    std::sort(left.vids.values.begin(), left.vids.values.end());
-    std::sort(right.vids.values.begin(), right.vids.values.end());
-    std::set_intersection(left.vids.values.begin(), left.vids.values.end(),
-                          right.vids.values.begin(), right.vids.values.end(),
-                          std::back_inserter(v.vids.values));
+/*static*/ VertexIdSeek::VidPattern VertexIdSeek::intersect(VidPattern &&left, VidPattern &&right) {
+    DCHECK(left.spec == VidPattern::Special::kInUsed);
+    DCHECK(right.spec == VidPattern::Special::kInUsed);
+    VidPattern v{VidPattern::Special::kInUsed, {std::move(left.nodes)}};
+    for (auto &node : right.nodes) {
+        DCHECK(node.second.kind == VidPattern::Vids::Kind::kIn);
+        auto find = v.nodes.find(node.first);
+        if (find == v.nodes.end()) {
+            v.nodes.emplace(std::move(*find));
+        } else {
+            std::sort(find->second.vids.values.begin(), find->second.vids.values.end());
+            std::sort(node.second.vids.values.begin(), node.second.vids.values.end());
+            std::vector<Value> intersection;
+            std::set_intersection(find->second.vids.values.begin(),
+                                  find->second.vids.values.end(),
+                                  node.second.vids.values.begin(),
+                                  node.second.vids.values.end(),
+                                  std::back_inserter(intersection));
+            find->second.vids.values = std::move(intersection);
+        }
+    }
     return v;
 }
 
-}  // namespace graph
-}  // namespace nebula
+/*static*/ VertexIdSeek::VidPattern VertexIdSeek::intersect(
+    VidPattern &&left,
+    std::pair<std::string, VidPattern::Vids> &&right) {
+    auto find = left.nodes.find(right.first);
+    if (find == left.nodes.end()) {
+        left.nodes.emplace(std::move(right));
+    } else {
+        std::sort(find->second.vids.values.begin(), find->second.vids.values.end());
+        std::sort(right.second.vids.values.begin(), right.second.vids.values.end());
+        std::vector<Value> values;
+        std::set_intersection(find->second.vids.values.begin(),
+                              find->second.vids.values.end(),
+                              right.second.vids.values.begin(),
+                              right.second.vids.values.end(),
+                              std::back_inserter(values));
+        find->second.vids.values = std::move(values);
+    }
+    return std::move(left);
+}
+
+/*static*/ VertexIdSeek::VidPattern VertexIdSeek::intersect(
+    std::pair<std::string, VidPattern::Vids> &&left,
+    std::pair<std::string, VidPattern::Vids> &&right) {
+    VidPattern v{VidPattern::Special::kInUsed, {}};
+    if (left.first != right.first) {
+        v.nodes.emplace(std::move(left));
+        v.nodes.emplace(std::move(right));
+    } else {
+        std::sort(left.second.vids.values.begin(), left.second.vids.values.end());
+        std::sort(right.second.vids.values.begin(), right.second.vids.values.end());
+        std::vector<Value> values;
+        std::set_intersection(left.second.vids.values.begin(),
+                              left.second.vids.values.end(),
+                              right.second.vids.values.begin(),
+                              right.second.vids.values.end(),
+                              std::back_inserter(values));
+        v.nodes[left.first].kind = VidPattern::Vids::Kind::kIn;
+        v.nodes[left.first].vids.values.insert(v.nodes[left.first].vids.values.end(),
+                                               std::make_move_iterator(values.begin()),
+                                               std::make_move_iterator(values.end()));
+    }
+    return v;
+}
+
+}   // namespace graph
+}   // namespace nebula

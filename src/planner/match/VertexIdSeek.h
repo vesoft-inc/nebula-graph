@@ -18,13 +18,20 @@ namespace graph {
 class VertexIdSeek final : public StartVidFinder {
 public:
     struct VidPattern {
-        enum class IN {
+        enum class Special {
             kIgnore,
-            kOtherSource,  // e.g. PropertiesSeek
-            kIn,
-            kNotIn,
-        } in{IN::kIgnore};
-        List vids;
+            kInUsed,
+        } spec{Special::kIgnore};
+
+        struct Vids {
+            enum class Kind {
+                kOtherSource,  // e.g. PropertiesSeek
+                kIn,
+                kNotIn,
+            } kind{Kind::kOtherSource};
+            List vids;
+        };
+        std::unordered_map<std::string, Vids> nodes;
     };
 
     static std::unique_ptr<VertexIdSeek> make() {
@@ -35,11 +42,15 @@ public:
 
     bool matchEdge(EdgeContext* edgeCtx) override;
 
-    StatusOr<List> extractVids(const Expression* filter);
-
     static VidPattern reverseEvalVids(const Expression *filter);
 
-    static VidPattern intersect(VidPattern &left, VidPattern &right);
+    static VidPattern intersect(VidPattern &&left, VidPattern &&right);
+
+    static VidPattern intersect(VidPattern &&left,
+                                std::pair<std::string, VidPattern::Vids> &&right);
+
+    static VidPattern intersect(std::pair<std::string, VidPattern::Vids> &&left,
+                                std::pair<std::string, VidPattern::Vids> &&right);
 
     StatusOr<SubPlan> transformNode(NodeContext* nodeCtx) override;
 
