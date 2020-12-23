@@ -19,8 +19,8 @@ namespace graph {
  */
 class Expand final {
 public:
-    Expand(MatchClauseContext* matchCtx, Expression* initialExpr)
-        : matchCtx_(matchCtx), initialExpr_(initialExpr) {}
+    Expand(MatchClauseContext* matchCtx, std::unique_ptr<Expression> initialExpr)
+        : matchCtx_(matchCtx), initialExpr_(std::move(initialExpr)) {}
 
     Expand* reversely() {
         reversely_ = true;
@@ -68,11 +68,11 @@ private:
 
     std::unique_ptr<std::vector<storage::cpp2::EdgeProp>> genEdgeProps(const EdgeInfo &edge);
 
-    MatchClauseContext* matchCtx_;
-    Expression*         initialExpr_;
-    bool                reversely_{false};
-    PlanNode*           dependency_{nullptr};
-    std::string         inputVar_;
+    MatchClauseContext*                 matchCtx_;
+    std::unique_ptr<Expression>         initialExpr_;
+    bool                                reversely_{false};
+    PlanNode*                           dependency_{nullptr};
+    std::string                         inputVar_;
 };
 }   // namespace graph
 }   // namespace nebula

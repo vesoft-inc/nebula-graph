@@ -148,17 +148,16 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                                               size_t startIndex,
                                               std::string inputVar,
                                               SubPlan& subplan) {
-    auto initialExpr = initialExpr_->clone().release();
     std::vector<std::string> joinColNames = {
         folly::stringPrintf("%s_%lu", kPathStr, nodeInfos.size())};
     for (size_t i = startIndex; i > 0; --i) {
         auto left = subplan.root;
-        auto status =
-            std::make_unique<Expand>(matchClauseCtx, i == startIndex ? initialExpr : nullptr)
-                ->depends(subplan.root)
-                ->inputVar(inputVar)
-                ->reversely()
-                ->doExpand(nodeInfos[i], edgeInfos[i - 1], &subplan);
+        auto status = std::make_unique<Expand>(matchClauseCtx,
+                                               i == startIndex ? initialExpr_->clone() : nullptr)
+                          ->depends(subplan.root)
+                          ->inputVar(inputVar)
+                          ->reversely()
+                          ->doExpand(nodeInfos[i], edgeInfos[i - 1], &subplan);
         if (!status.ok()) {
             return status;
         }
@@ -176,11 +175,12 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
 
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
-    NG_RETURN_IF_ERROR(appendFetchVertexPlan(nodeInfos.front().filter,
-                                             matchClauseCtx->space,
-                                             matchClauseCtx->qctx,
-                                             edgeInfos.empty() ? initialExpr : nullptr,
-                                             subplan));
+    NG_RETURN_IF_ERROR(
+        appendFetchVertexPlan(nodeInfos.front().filter,
+                              matchClauseCtx->space,
+                              matchClauseCtx->qctx,
+                              edgeInfos.empty() ? initialExpr_->clone().release() : nullptr,
+                              subplan));
     if (!edgeInfos.empty()) {
         auto right = subplan.root;
         VLOG(1) << "left: " << folly::join(",", left->colNames())
@@ -200,12 +200,12 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
                                                MatchClauseContext* matchClauseCtx,
                                                size_t startIndex,
                                                SubPlan& subplan) {
-    auto initialExpr = initialExpr_->clone().release();
     std::vector<std::string> joinColNames = {folly::stringPrintf("%s_%lu", kPathStr, startIndex)};
     for (size_t i = startIndex; i < edgeInfos.size(); ++i) {
         auto left = subplan.root;
         auto status =
-            std::make_unique<Expand>(matchClauseCtx, i == startIndex ? initialExpr : nullptr)
+            std::make_unique<Expand>(matchClauseCtx,
+                                     i == startIndex ? initialExpr_->clone() : nullptr)
                 ->depends(subplan.root)
                 ->inputVar(subplan.root->outputVar())
                 ->doExpand(nodeInfos[i], edgeInfos[i], &subplan);
@@ -224,11 +224,12 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
 
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
-    NG_RETURN_IF_ERROR(appendFetchVertexPlan(nodeInfos.back().filter,
-                                             matchClauseCtx->space,
-                                             matchClauseCtx->qctx,
-                                             edgeInfos.empty() ? initialExpr : nullptr,
-                                             subplan));
+    NG_RETURN_IF_ERROR(
+        appendFetchVertexPlan(nodeInfos.back().filter,
+                              matchClauseCtx->space,
+                              matchClauseCtx->qctx,
+                              edgeInfos.empty() ? initialExpr_->clone().release() : nullptr,
+                              subplan));
     if (!edgeInfos.empty()) {
         auto right = subplan.root;
         VLOG(1) << "left: " << folly::join(",", left->colNames())
@@ -283,6 +284,7 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
             return new VertexExpression();
         });
         filter->accept(&visitor);
+        qctx->objPool()->add(filter);
         root = Filter::make(qctx, root, filter);
     }
 

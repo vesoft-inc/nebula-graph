@@ -122,8 +122,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     // Extract dst vid from input project node which output dataset format is: [v1,e1,...,vn,en]
     SubPlan curr;
     curr.root = dep;
-    MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_, dep, inputVar, curr);
-    initialExpr_ = nullptr;
+    MatchSolver::extractAndDedupVidColumn(qctx, initialExpr_.release(), dep, inputVar, curr);
 
     auto gn = GetNeighbors::make(qctx, curr.root, matchCtx_->space.id);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
