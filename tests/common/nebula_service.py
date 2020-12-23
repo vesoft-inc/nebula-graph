@@ -123,7 +123,7 @@ class NebulaService(object):
         for port in ports:
             ports_status[port] = False
 
-        for i in range(0, 30):
+        for i in range(0, 20):
             for port in ports_status:
                 if ports_status[port]:
                     continue
@@ -173,21 +173,25 @@ class NebulaService(object):
         # wait nebula start
         start_time = time.time()
         if not self._check_servers_status(server_ports):
-            raise Exception(
-                f'nebula servers not ready in {time.time() - start_time}s')
-        print(f'nebula servers start ready in {time.time() - start_time}s')
+            self._collect_pids()
+            self.kill_all(signal.SIGKILL)
+            elapse = time.time() - start_time
+            raise Exception(f'nebula servers not ready in {elapse}s')
 
+        self._collect_pids()
+
+        return graph_port
+
+    def _collect_pids(self):
         for pf in glob.glob(self.work_dir + '/pids/*.pid'):
             with open(pf) as f:
                 self.pids[f.name] = int(f.readline())
-
-        return graph_port
 
     def stop(self):
         print("try to stop nebula services...")
         self.kill_all(signal.SIGTERM)
 
-        max_retries = 30
+        max_retries = 20
         while self.is_procs_alive() and max_retries >= 0:
             time.sleep(1)
             max_retries = max_retries-1

@@ -4,6 +4,48 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
 
+class SpaceDesc:
+    def __init__(self,
+                 name: str,
+                 vid_type: str = "FIXED_STRING(32)",
+                 partition_num: int = 7,
+                 replica_factor: int = 1,
+                 charset: str = "utf8",
+                 collate: str = "utf8_bin"):
+        self.name = name
+        self.vid_type = vid_type
+        self.partition_num = partition_num
+        self.replica_factor = replica_factor
+        self.charset = charset
+        self.collate = collate
+
+    @staticmethod
+    def from_json(obj: dict):
+        return SpaceDesc(
+            name=obj.get('name', None),
+            vid_type=obj.get('vidType', 'FIXED_STRING(32)'),
+            partition_num=obj.get('partitionNum', 7),
+            replica_factor=obj.get('replicaFactor', 1),
+            charset=obj.get('charset', 'utf8'),
+            collate=obj.get('collate', 'utf8_bin'),
+        )
+
+    def create_stmt(self) -> str:
+        return f"""CREATE SPACE IF NOT EXISTS `{self.name}`( \
+            partition_num={self.partition_num}, \
+            replica_factor={self.replica_factor}, \
+            vid_type={self.vid_type}, \
+            charset={self.charset}, \
+            collate={self.collate} \
+        );"""
+
+    def use_stmt(self) -> str:
+        return f"USE `{self.name}`;"
+
+    def drop_stmt(self) -> str:
+        return f"DROP SPACE IF EXISTS `{self.name}`;"
+
+
 class Column:
     def __init__(self, index: int):
         if index < 0:
@@ -16,15 +58,22 @@ class Column:
 
 
 class VID(Column):
-    def __init__(self, index: int, vtype: str):
+    def __init__(self, index: int, vtype: str, function: str = None):
         super().__init__(index)
         if vtype not in ['int', 'string']:
             raise ValueError(f'Invalid vid type: {vtype}')
         self._type = vtype
+        if function not in [None, 'hash', 'uuid']:
+            raise ValueError(f'Invalid vid function: {function}')
+        self._function = function
 
     @property
     def id_type(self):
         return self._type
+
+    @property
+    def function(self):
+        return self._function
 
 
 class Rank(Column):
