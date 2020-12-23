@@ -69,6 +69,7 @@ private:
     std::string                       from_;
     std::vector<nebula::plugin::HttpClient> esClients_;
     std::vector<std::string>          colNames_;
+    bool                              dedup_{false};
 };
 
 }   // namespace graph
