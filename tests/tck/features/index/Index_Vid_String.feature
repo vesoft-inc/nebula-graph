@@ -1,4 +1,5 @@
 Feature: IndexTest_Vid_String
+
   @skip
   Scenario: IndexTest TagIndex
     Given an empty graph
