@@ -15,7 +15,7 @@
 namespace nebula {
 namespace graph {
 
-void MockIndexManager::init(meta::MetaClient *) {
+void MockIndexManager::init() {
     // index related
     meta::cpp2::IndexItem person_no_props_index;
     person_no_props_index.set_index_id(233);

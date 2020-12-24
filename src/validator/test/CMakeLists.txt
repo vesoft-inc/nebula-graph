@@ -71,6 +71,7 @@ nebula_add_test(
         ExplainValidatorTest.cpp
         GroupByValidatorTest.cpp
         MatchValidatorTest.cpp
+        LookupValidatorTest.cpp
         SymbolsTest.cpp
     OBJECTS
         ${VALIDATOR_TEST_LIBS}

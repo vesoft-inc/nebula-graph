@@ -20,11 +20,11 @@ public:
 
     static std::unique_ptr<MockIndexManager> makeUnique() {
         auto instance = std::make_unique<MockIndexManager>();
-        instance->init(nullptr);
+        instance->init();
         return instance;
     }
 
-    void init(meta::MetaClient *) override;
+    void init();
 
     using IndexItem = meta::cpp2::IndexItem;
 
