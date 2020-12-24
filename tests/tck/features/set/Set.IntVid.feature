@@ -297,7 +297,7 @@ Feature: Set Test
       """
     Then a SemanticError should be raised at runtime: `$-.src', not exist prop `src'
 
- Scenario: Non-existent props
+  Scenario: Non-existent props
     Given a graph with space named "nba"
     When executing query:
       """
