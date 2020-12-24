@@ -89,16 +89,6 @@ function run_ctest() {
           --output-on-failure
 }
 
-function run_test() {
-    export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
-    pytest -n 8 --build_dir=$BUILD_DIR \
-        --dist=loadfile \
-        --debug_log=false \
-        ${@:1}
-
-    # $BUILD_DIR/tests/ntr --debug_log=false ${@:1} $PROJ_DIR/tests/job/*
-}
-
 function test_in_cluster() {
     cd $BUILD_DIR/tests
     export PYTHONPATH=$PROJ_DIR:$PYTHONPATH
@@ -127,9 +117,6 @@ case "$1" in
         ;;
     ctest)
         run_ctest
-        ;;
-    test)
-        run_test "${@:2}"
         ;;
     k8s)
         prepare

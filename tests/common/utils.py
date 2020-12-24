@@ -5,11 +5,19 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
-import pdb
-
+import os
+import random
+import string
+import time
+import yaml
 from typing import Pattern
+
 from nebula2.common import ttypes as CommonTtypes
+from nebula2.gclient.net import Session
+
+from tests.common.csv_import import CSVImporter
 from tests.common.path_value import PathVal
+from tests.common.types import SpaceDesc
 
 
 def utf8b(s: str):
@@ -34,7 +42,6 @@ def _compare_values_by_pattern(real, expect):
 
 def _compare_list(rvalues, evalues):
     if len(rvalues) != len(evalues):
-        pdb.set_trace()
         return False
 
     for rval in rvalues:
@@ -44,7 +51,6 @@ def _compare_list(rvalues, evalues):
                 found = True
                 break
         if not found:
-            pdb.set_trace()
             return False
     return True
 
@@ -53,11 +59,9 @@ def _compare_map(rvalues, evalues):
     for key in rvalues:
         ev = evalues.get(key)
         if ev is None:
-            pdb.set_trace()
             return False
         rv = rvalues.get(key)
         if not compare_value(rv, ev):
-            pdb.set_trace()
             return False
     return True
 
@@ -249,7 +253,8 @@ def path_to_string(path):
 
 
 def dataset_to_string(dataset):
-    column_names = ','.join(map(lambda x: x.decode('utf-8'), dataset.column_names))
+    column_names = ','.join(
+        map(lambda x: x.decode('utf-8'), dataset.column_names))
     rows = '\n'.join(map(row_to_string, dataset.rows))
     return '\n'.join([column_names, rows])
 
@@ -310,3 +315,73 @@ def find_in_rows(row, rows):
         if found:
             return True
     return False
+
+
+def space_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
+def check_resp(resp, stmt):
+    msg = f"Fail to exec: {stmt}, error: {resp.error_msg()}"
+    assert resp.is_succeeded(), msg
+
+
+def create_space(space_desc: SpaceDesc, sess: Session):
+    def exec(stmt):
+        resp = sess.execute(stmt)
+        check_resp(resp, stmt)
+
+    exec(space_desc.drop_stmt())
+    exec(space_desc.create_stmt())
+    time.sleep(3)
+    exec(space_desc.use_stmt())
+
+
+def _load_data_from_file(sess, data_dir, fd):
+    for stmt in CSVImporter(fd, data_dir):
+        rs = sess.execute(stmt)
+        check_resp(rs, stmt)
+
+
+def load_csv_data(
+    pytestconfig,
+    sess: Session,
+    data_dir: str,
+    space_name: str = "",
+):
+    """
+    Before loading CSV data files, you must create and select a graph
+    space. The `config.yaml' file only create schema about tags and
+    edges, not include space.
+    """
+    config_path = os.path.join(data_dir, 'config.yaml')
+
+    with open(config_path, 'r') as f:
+        config = yaml.full_load(f)
+
+        space = config.get('space', None)
+        assert space is not None
+        if not space_name:
+            space_name = space.get('name', "A" + space_generator())
+        space_desc = SpaceDesc(
+            name=space_name,
+            vid_type=space.get('vidType', 'FIXED_STRING(32)'),
+            partition_num=space.get('partitionNum', 7),
+            replica_factor=space.get('replicaFactor', 1),
+            charset=space.get('charset', 'utf8'),
+            collate=space.get('collate', 'utf8_bin'),
+        )
+
+        create_space(space_desc, sess)
+
+        schemas = config['schema']
+        stmts = ' '.join(map(lambda x: x.strip(), schemas.splitlines()))
+        rs = sess.execute(stmts)
+        check_resp(rs, stmts)
+
+        time.sleep(3)
+
+        for fd in config["files"]:
+            _load_data_from_file(sess, data_dir, fd)
+
+        return space_desc
