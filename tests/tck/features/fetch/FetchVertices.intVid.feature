@@ -143,10 +143,10 @@ Feature: Fetch Int Vid Vertices
   Scenario: [18] Fetch prop on not existing vertex
     When executing query:
       """
-      FETCH PROP ON player hash('NON EXIST VERTEX ID')
+      FETCH PROP ON player hash('NON EXIST VERTEX ID') yield player.name
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID |
+    Then the result should be, in any order:
+      | VertexID | player.name |
 
   Scenario: [19] Fetch prop on not existing vertex, and works with pipe
     When executing query:
@@ -158,35 +158,35 @@ Feature: Fetch Int Vid Vertices
   Scenario: [20] Fetch prop on * with not existing vertex
     When executing query:
       """
-      FETCH PROP ON * hash('NON EXIST VERTEX ID')
+      FETCH PROP ON * hash('NON EXIST VERTEX ID') yield player.name
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID |
+    Then the result should be, in any order:
+      | VertexID | player.name |
 
   Scenario: [21] Fetch prop on * with existing vertex
     When executing query:
       """
-      FETCH PROP ON * hash('Boris Diaw')
+      FETCH PROP ON * hash('Boris Diaw') yield player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | player.name  | player.age |
       | hash("Boris Diaw") | "Boris Diaw" | 36         |
 
   Scenario: [22] Fetch Vertices
     When executing query:
       """
-      YIELD hash('Boris Diaw') as id | FETCH PROP ON * $-.id
+      YIELD hash('Boris Diaw') as id | FETCH PROP ON * $-.id yield player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | player.name  | player.age |
       | hash("Boris Diaw") | "Boris Diaw" | 36         |
 
   Scenario: [23] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON * hash('Boris Diaw'), hash('Boris Diaw')
+      FETCH PROP ON * hash('Boris Diaw'), hash('Boris Diaw') yield player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | player.name  | player.age |
       | hash("Boris Diaw") | "Boris Diaw" | 36         |
       | hash("Boris Diaw") | "Boris Diaw" | 36         |
@@ -196,44 +196,44 @@ Feature: Fetch Int Vid Vertices
       """
       FETCH PROP ON bachelor hash('Tim Duncan')
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | bachelor.name | bachelor.speciality |
       | hash("Tim Duncan") | "Tim Duncan"  | "psychology"        |
 
   Scenario: [25] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON * hash('Tim Duncan')
+      FETCH PROP ON * hash('Tim Duncan') yield player.name, player.age, bachelor.name, bachelor.speciality
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
       | hash("Tim Duncan") | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
   Scenario: [26] Fetch Vertices
     When executing query:
       """
-      YIELD hash('Tim Duncan') as id | FETCH PROP ON * $-.id
+      YIELD hash('Tim Duncan') as id | FETCH PROP ON * $-.id yield player.name, player.age, bachelor.name, bachelor.speciality
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
       | hash("Tim Duncan") | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
   Scenario: [27] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON * hash('Tim Duncan'), hash('Tim Duncan')
+      FETCH PROP ON * hash('Tim Duncan'), hash('Tim Duncan') yield player.name, bachelor.name
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID           | player.name  | player.age | bachelor.name | bachelor.speciality |
-      | hash("Tim Duncan") | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
-      | hash("Tim Duncan") | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
+    Then the result should be, in any order:
+      | VertexID           | player.name  | bachelor.name |
+      | hash("Tim Duncan") | "Tim Duncan" | "Tim Duncan"  |
+      | hash("Tim Duncan") | "Tim Duncan" | "Tim Duncan"  |
 
   Scenario: [28] Fetch Vertices
     When executing query:
       """
       FETCH PROP ON * hash('Tim Duncan'), hash('Tim Duncan') YIELD player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | player.name  | player.age |
       | hash("Tim Duncan") | "Tim Duncan" | 42         |
       | hash("Tim Duncan") | "Tim Duncan" | 42         |
@@ -243,7 +243,7 @@ Feature: Fetch Int Vid Vertices
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.name
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | player.name  | player.name  |
       | hash("Boris Diaw") | "Boris Diaw" | "Boris Diaw" |
 
@@ -264,15 +264,16 @@ Feature: Fetch Int Vid Vertices
   Scenario: [32] Fetch Vertices
     When executing query:
       """
-      GO FROM hash('NON EXIST VERTEX ID') over like YIELD like._dst as id | FETCH PROP ON player $-.id
+      GO FROM hash('NON EXIST VERTEX ID') over like YIELD like._dst as id | FETCH PROP ON player $-.id yield player.name
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID |
+    Then the result should be, in any order:
+      | VertexID | player.name |
 
   Scenario: [33] Fetch Vertices
     When executing query:
       """
-      GO FROM hash('NON EXIST VERTEX ID') over serve YIELD serve._dst as id, serve.start_year as start | YIELD $-.id as id WHERE $-.start > 20000 | FETCH PROP ON player $-.id
+      GO FROM hash('NON EXIST VERTEX ID') over serve YIELD serve._dst as id, serve.start_year as start
+      | YIELD $-.id as id WHERE $-.start > 20000 | FETCH PROP ON player $-.id yield player.name
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID |
+    Then the result should be, in any order:
+      | VertexID | player.name |
