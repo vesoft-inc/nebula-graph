@@ -17,7 +17,7 @@ Feature: Fetch Int Vid Vertices
       """
       FETCH PROP ON player hash('Boris Diaw') YIELD player.name, player.age, player.age > 30
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID           | player.name  | player.age | (player.age>30) |
       | hash("Boris Diaw") | "Boris Diaw" | 36         | True            |
 
@@ -26,20 +26,17 @@ Feature: Fetch Int Vid Vertices
       """
       GO FROM hash('Boris Diaw') over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID            | player.name   | player.age |
       | hash("Tony Parker") | "Tony Parker" | 36         |
       | hash("Tim Duncan")  | "Tim Duncan"  | 42         |
 
-  Scenario: [4] Fetch Vertices
+  Scenario: [4] Fetch Vertices, different from v1.x
     When executing query:
       """
       GO FROM hash('Boris Diaw') over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age, $-.*
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID            | player.name   | player.age | $-.id                |
-      | hash("Tony Parker") | "Tony Parker" | 36         | -7579316172763586624 |
-      | hash("Tim Duncan")  | "Tim Duncan"  | 42         | 5662213458193308137  |
+    Then a SemanticError should be raised at runtime:
 
   Scenario: [5] Fetch Vertices works with variable.
     When executing query:
@@ -156,8 +153,7 @@ Feature: Fetch Int Vid Vertices
       """
       GO FROM hash('NON EXIST VERTEX ID') OVER serve | FETCH PROP ON team $-
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID |
+   Then a SyntaxError should be raised at runtime:
 
   Scenario: [20] Fetch prop on * with not existing vertex
     When executing query:
