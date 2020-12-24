@@ -1,4 +1,3 @@
-@zhudi
 Feature: Fetch String Vertices
 
   Background: Prepare space
@@ -132,15 +131,15 @@ Feature: Fetch String Vertices
   Scenario: [20] Fetch prop on * with not existing vertex
     When executing query:
       """
-      FETCH PROP ON * 'NON EXIST VERTEX ID'
+      FETCH PROP ON * 'NON EXIST VERTEX ID' yield player.name
       """
     Then the result should be, in any order:
-      | VertexID |
+      | VertexID | player.name |
 
   Scenario: [21] Fetch prop on * with existing vertex
     When executing query:
       """
-      FETCH PROP ON * 'Boris Diaw'
+      FETCH PROP ON * 'Boris Diaw' yield player.name, player.age
       """
     Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
@@ -149,7 +148,7 @@ Feature: Fetch String Vertices
   Scenario: [22] Fetch prop works with pipeline
     When executing query:
       """
-      YIELD 'Boris Diaw' as id | FETCH PROP ON * $-.id
+      YIELD 'Boris Diaw' as id | FETCH PROP ON * $-.id yield player.name, player.age
       """
     Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
@@ -158,7 +157,7 @@ Feature: Fetch String Vertices
   Scenario: [23] Fetch prop on multiple vertices
     When executing query:
       """
-      FETCH PROP ON * 'Boris Diaw', 'Boris Diaw'
+      FETCH PROP ON * 'Boris Diaw', 'Boris Diaw' yield player.name, player.age
       """
     Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
@@ -177,7 +176,7 @@ Feature: Fetch String Vertices
   Scenario: [25] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON * 'Tim Duncan'
+      FETCH PROP ON * 'Tim Duncan' yield player.name, player.age, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
       | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
@@ -186,7 +185,7 @@ Feature: Fetch String Vertices
   Scenario: [26] Fetch Vertices
     When executing query:
       """
-      YIELD 'Tim Duncan' as id | FETCH PROP ON * $-.id
+      YIELD 'Tim Duncan' as id | FETCH PROP ON * $-.id yield player.name, player.age, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order:
       | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
@@ -195,12 +194,12 @@ Feature: Fetch String Vertices
   Scenario: [27] Fetch Vertices
     When executing query:
       """
-      FETCH PROP ON * 'Tim Duncan', 'Tim Duncan'
+      FETCH PROP ON * 'Tim Duncan', 'Tim Duncan' yield player.name, bachelor.name
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
-      | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
-      | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
+      | VertexID     | player.name  | bachelor.name |
+      | "Tim Duncan" | "Tim Duncan" | "Tim Duncan"  |
+      | "Tim Duncan" | "Tim Duncan" | "Tim Duncan"  |
 
   Scenario: [28] Fetch Vertices
     When executing query:
