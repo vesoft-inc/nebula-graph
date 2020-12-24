@@ -1,3 +1,4 @@
+@zhudi
 Feature: Fetch String Vertices
 
   Background: Prepare space
@@ -27,9 +28,9 @@ Feature: Fetch String Vertices
       GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
       """
     Then the result should be, in any order:
-      | VertexID    | player.name   | player.age |
+      | VertexID      | player.name   | player.age |
       | "Tony Parker" | "Tony Parker" | 36         |
-      | "Tim Duncan" | "Tim Duncan"  | 42         |
+      | "Tim Duncan"  | "Tim Duncan"  | 42         |
 
   Scenario: [4] Fetch Vertices, different from v1.x
     When executing query:
@@ -237,15 +238,16 @@ Feature: Fetch String Vertices
   Scenario: [32] Fetch Vertices
     When executing query:
       """
-      GO FROM 'NON EXIST VERTEX ID' over like YIELD like._dst as id | FETCH PROP ON player $-.id
+      GO FROM 'NON EXIST VERTEX ID' over like YIELD like._dst as id | FETCH PROP ON player $-.id yield player.name
       """
     Then the result should be, in any order:
-      | VertexID |
+      | VertexID | player.name |
 
   Scenario: [33] Fetch Vertices
     When executing query:
       """
-      GO FROM 'NON EXIST VERTEX ID' over serve YIELD serve._dst as id, serve.start_year as start | YIELD $-.id as id WHERE $-.start > 20000 | FETCH PROP ON player $-.id
+      GO FROM 'NON EXIST VERTEX ID' over serve YIELD serve._dst as id, serve.start_year as start
+      | YIELD $-.id as id WHERE $-.start > 20000 | FETCH PROP ON player $-.id yield player.name
       """
     Then the result should be, in any order:
-      | VertexID |
+      | VertexID | player.name |
