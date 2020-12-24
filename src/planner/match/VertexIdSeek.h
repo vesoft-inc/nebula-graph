@@ -42,16 +42,6 @@ public:
 
     bool matchEdge(EdgeContext* edgeCtx) override;
 
-    static VidPattern reverseEvalVids(const Expression *filter);
-
-    static VidPattern intersect(VidPattern &&left, VidPattern &&right);
-
-    static VidPattern intersect(VidPattern &&left,
-                                std::pair<std::string, VidPattern::Vids> &&right);
-
-    static VidPattern intersect(std::pair<std::string, VidPattern::Vids> &&left,
-                                std::pair<std::string, VidPattern::Vids> &&right);
-
     StatusOr<SubPlan> transformNode(NodeContext* nodeCtx) override;
 
     StatusOr<SubPlan> transformEdge(EdgeContext* edgeCtx) override;
