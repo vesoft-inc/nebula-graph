@@ -11,18 +11,25 @@ import io
 import csv
 import re
 
-from nebula2.data.DataObject import DataSetWrapper
 from nebula2.graph.ttypes import ErrorCode
 from pytest_bdd import given, parsers, then, when
 
-from tests.common.comparator import DataSetWrapperComparator
+from tests.common.dataset_printer import DataSetPrinter
+from tests.common.comparator import DataSetComparator
 from tests.common.configs import DATA_DIR
 from tests.common.types import SpaceDesc
-from tests.common.utils import create_space, load_csv_data, space_generator
+from tests.common.utils import (
+    create_space,
+    load_csv_data,
+    space_generator,
+    check_resp,
+    response,
+)
 from tests.tck.utils.table import dataset, table
+from tests.tck.utils.nbv import murmurhash2
 
 parse = functools.partial(parsers.parse)
-reparse = functools.partial(parsers.re)
+rparse = functools.partial(parsers.re)
 
 
 @pytest.fixture
@@ -31,16 +38,24 @@ def graph_spaces():
 
 
 @given(parse('a graph with space named "{space}"'))
-def preload_space(space, load_nba_data, load_student_data, session,
-                  graph_spaces):
+def preload_space(
+    space,
+    load_nba_data,
+    # load_nba_int_vid_data,
+    load_student_data,
+    session,
+    graph_spaces,
+):
     if space == "nba":
         graph_spaces["space_desc"] = load_nba_data
+    # elif space == "nba_int_vid":
+    #     graph_spaces["space_desc"] = load_nba_int_vid_data
     elif space == "student":
         graph_spaces["space_desc"] = load_student_data
     else:
         raise ValueError(f"Invalid space name given: {space}")
-    rs = session.execute(f'USE {space};')
-    assert rs.is_succeeded(), f"Fail to use space `{space}': {rs.error_msg()}"
+    stmt = f'USE {space};'
+    response(session, stmt)
 
 
 @given("an empty graph")
@@ -51,9 +66,7 @@ def empty_graph(session, graph_spaces):
 @given(parse("having executed:\n{query}"))
 def having_executed(query, session):
     ngql = " ".join(query.splitlines())
-    resp = session.execute(ngql)
-    assert resp.is_succeeded(), \
-        f"Fail to execute {ngql}, error: {resp.error_msg()}"
+    response(session, ngql)
 
 
 @given(parse("create a space with following options:\n{options}"))
@@ -74,21 +87,25 @@ def new_space(options, session, graph_spaces):
     graph_spaces["drop_space"] = True
 
 
-@given(parse('import "{data}" csv data'))
+@given(parse('load "{data}" csv data to a new space'))
 def import_csv_data(data, graph_spaces, session, pytestconfig):
     data_dir = os.path.join(DATA_DIR, data)
-    space_desc = graph_spaces["space_desc"]
+    space_desc = load_csv_data(
+        pytestconfig,
+        session,
+        data_dir,
+        "I" + space_generator(),
+    )
     assert space_desc is not None
-    resp = session.execute(space_desc.use_stmt())
-    assert resp.is_succeeded(), \
-        f"Fail to use {space_desc.name}, {resp.error_msg()}"
-    load_csv_data(pytestconfig, session, data_dir)
+    graph_spaces["space_desc"] = space_desc
+    graph_spaces["drop_space"] = True
 
 
 @when(parse("executing query:\n{query}"))
 def executing_query(query, graph_spaces, session):
     ngql = " ".join(query.splitlines())
     graph_spaces['result_set'] = session.execute(ngql)
+    graph_spaces['ngql'] = ngql
 
 
 @given(parse("wait {secs:d} seconds"))
@@ -103,13 +120,49 @@ def cmp_dataset(graph_spaces,
                 strict: bool,
                 included=False) -> None:
     rs = graph_spaces['result_set']
-    assert rs.is_succeeded(), f"Response failed: {rs.error_msg()}"
-    ds = DataSetWrapper(dataset(table(result)))
-    dscmp = DataSetWrapperComparator(strict=strict,
-                                     order=order,
-                                     included=included)
-    assert dscmp(rs._data_set_wrapper, ds), \
-        f"Response: {str(rs._data_set_wrapper)} vs. Expected: {str(ds)}"
+    ngql = graph_spaces['ngql']
+    check_resp(rs, ngql)
+    space_desc = graph_spaces.get('space_desc', None)
+    vid_fn = None
+    if space_desc is not None:
+        vid_fn = murmurhash2 if space_desc.vid_type == 'int' else None
+    ds = dataset(table(result), graph_spaces.get("variables", {}))
+    dscmp = DataSetComparator(strict=strict,
+                              order=order,
+                              included=included,
+                              decode_type=rs._decode_type,
+                              vid_fn=vid_fn)
+
+    def dsp(ds):
+        printer = DataSetPrinter(rs._decode_type)
+        return printer.ds_to_string(ds)
+
+    def rowp(ds, i):
+        if i is None or i < 0:
+            return ""
+        assert i < len(ds.rows), f"{i} out of range {len(ds.rows)}"
+        row = ds.rows[i].values
+        printer = DataSetPrinter(rs._decode_type)
+        ss = printer.list_to_string(row, delimiter='|')
+        return f'{i}: |' + ss + '|'
+
+    if rs._data_set_wrapper is None:
+        assert not ds.column_names and not ds.rows, f"Expected result must be empty table: ||"
+
+    rds = rs._data_set_wrapper._data_set
+    res, i = dscmp(rds, ds)
+    assert res, f"Fail to exec: {ngql}\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}"
+
+
+@then(parse("define some list variables:\n{text}"))
+def define_list_var_alias(text, graph_spaces):
+    tbl = table(text)
+    graph_spaces["variables"] = {
+        column: "[" +
+        ",".join(filter(lambda x: x, [row.get(column)
+                                      for row in tbl['rows']])) + "]"
+        for column in tbl['column_names']
+    }
 
 
 @then(parse("the result should be, in order:\n{result}"))
@@ -117,8 +170,7 @@ def result_should_be_in_order(result, graph_spaces):
     cmp_dataset(graph_spaces, result, order=True, strict=True)
 
 
-@then(
-    parse("the result should be, in order, with relax comparision:\n{result}"))
+@then(parse("the result should be, in order, with relax comparison:\n{result}"))
 def result_should_be_in_order_relax_cmp(result, graph_spaces):
     cmp_dataset(graph_spaces, result, order=True, strict=False)
 
@@ -128,10 +180,7 @@ def result_should_be(result, graph_spaces):
     cmp_dataset(graph_spaces, result, order=False, strict=True)
 
 
-@then(
-    parse(
-        "the result should be, in any order, with relax comparision:\n{result}"
-    ))
+@then(parse("the result should be, in any order, with relax comparison:\n{result}"))
 def result_should_be_relax_cmp(result, graph_spaces):
     cmp_dataset(graph_spaces, result, order=False, strict=False)
 
@@ -149,18 +198,16 @@ def no_side_effects():
 @then("the execution should be successful")
 def execution_should_be_succ(graph_spaces):
     rs = graph_spaces["result_set"]
-    assert rs is not None, "Please execute a query at first"
-    assert rs.is_succeeded(), f"Response failed: {rs.error_msg()}"
+    stmt = graph_spaces["ngql"]
+    check_resp(rs, stmt)
 
 
-@then(
-    reparse("a (?P<err_type>\w+) should be raised at (?P<time>.*):(?P<msg>.*)")
-)
-def raised_type_error(err_type, time, msg, graph_spaces):
+@then(rparse(r"a (?P<err_type>\w+) should be raised at (?P<time>runtime|compile time)(?P<sym>:|.)(?P<msg>.*)"))
+def raised_type_error(err_type, time, sym, msg, graph_spaces):
     res = graph_spaces["result_set"]
     assert not res.is_succeeded(), "Response should be failed"
     err_type = err_type.strip()
-    msg = msg.strip().replace('$', '\$')
+    msg = msg.strip().replace('$', r'\$').replace('^', r"\^")
     res_msg = res.error_msg()
     if res.error_code() == ErrorCode.E_EXECUTION_ERROR:
         assert err_type == "ExecutionError"
@@ -176,6 +223,7 @@ def drop_used_space(session, graph_spaces):
     drop_space = graph_spaces.get("drop_space", False)
     if not drop_space:
         return
-    space_desc = graph_spaces["space_desc"]
-    resp = session.execute(space_desc.drop_stmt())
-    assert resp.is_succeeded(), f"Fail to drop space {space_desc.name}"
+    space_desc = graph_spaces.get("space_desc", None)
+    if space_desc is not None:
+        stmt = space_desc.drop_stmt()
+        response(session, stmt)

@@ -1,14 +1,12 @@
+# Copyright (c) 2020 vesoft inc. All rights reserved.
+#
+# This source code is licensed under Apache 2.0 License,
+# attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: Feature examples
 
   Scenario: Supported features
     Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And import "nba" csv data
+    And load "nba" csv data to a new space
     And having executed:
       """
       CREATE TAG IF NOT EXISTS `test_tag`(name string)
@@ -24,12 +22,11 @@ Feature: Feature examples
       | "Tim Duncan" |
     When executing query:
       """
-      MATCH (v:player{name: "Tim Duncan"})
-      RETURN v.name AS Name
+      SHOW HOSTS
       """
     Then the result should include:
-      | Name         |
-      | "Tim Duncan" |
+      | Host  | Port  | Status   | Leader count | Leader distribution | Partition distribution |
+      | /\w+/ | /\d+/ | "ONLINE" | /\d+/        | /.*/                | /.*/                   |
     When executing query:
       """
       SHOW HOSTS
@@ -44,5 +41,20 @@ Feature: Feature examples
       """
       CREATE TAG player(name string);
       """
-    Then a ExecutionError should be raised at runtime:
+    Then a ExecutionError should be raised at runtime.
+    Then drop the used space
+
+  Scenario: Supported space creation
+    Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
+    When executing query:
+      """
+      SHOW SPACES
+      """
+    Then the execution should be successful
     Then drop the used space
