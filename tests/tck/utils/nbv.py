@@ -486,6 +486,8 @@ def p_path(p):
     path.src = p[2].get_vVal()
     if len(p) == 5:
         path.steps = p[3]
+    else:
+        path.steps = []
     p[0] = Value(pVal=path)
 
 
