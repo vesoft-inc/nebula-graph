@@ -153,7 +153,7 @@ Feature: Fetch Int Vid Vertices
       """
       GO FROM hash('NON EXIST VERTEX ID') OVER serve | FETCH PROP ON team $-
       """
-   Then a SyntaxError should be raised at runtime:
+    Then a SyntaxError should be raised at runtime:
 
   Scenario: [20] Fetch prop on * with not existing vertex
     When executing query:
