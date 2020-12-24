@@ -128,6 +128,8 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
             filter = result.value();
         } else if (label != nullptr) {
             auto result = makeSubFilter(*alias, props, *label);
+            NG_RETURN_IF_ERROR(result);
+            filter = result.value();
         }
         nodeInfos[i].anonymous = anonymous;
         nodeInfos[i].label = label;
@@ -389,7 +391,7 @@ MatchValidator::makeSubFilter(const std::string &alias,
                               const MapExpression *map,
                               const std::string label) const {
     // Node has tag without property
-    if (!label.empty() && map->items().empty()) {
+    if (!label.empty() && map == nullptr) {
         Expression *root = nullptr;
         auto *left = new ConstantExpression(label);
 
