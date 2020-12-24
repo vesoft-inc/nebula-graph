@@ -1,5 +1,5 @@
 Feature: IndexTest_Vid_String
-
+  @skip
   Scenario: IndexTest TagIndex
     Given an empty graph
     And create a space with following options:
@@ -144,6 +144,7 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
+  @skip
   Scenario: IndexTest EdgeIndex
     Given an empty graph
     And create a space with following options:
