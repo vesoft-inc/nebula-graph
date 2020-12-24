@@ -126,7 +126,7 @@ def cmp_dataset(graph_spaces,
     vid_fn = None
     if space_desc is not None:
         vid_fn = murmurhash2 if space_desc.vid_type == 'int' else None
-    ds = dataset(table(result))
+    ds = dataset(table(result), graph_spaces.get("variables", {}))
     dscmp = DataSetComparator(strict=strict,
                               order=order,
                               included=included,
@@ -152,6 +152,17 @@ def cmp_dataset(graph_spaces,
     rds = rs._data_set_wrapper._data_set
     res, i = dscmp(rds, ds)
     assert res, f"Fail to exec: {ngql}\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}"
+
+
+@then(parse("define some list variables:\n{text}"))
+def define_list_var_alias(text, graph_spaces):
+    tbl = table(text)
+    graph_spaces["variables"] = {
+        column: "[" +
+        ",".join(filter(lambda x: x, [row.get(column)
+                                      for row in tbl['rows']])) + "]"
+        for column in tbl['column_names']
+    }
 
 
 @then(parse("the result should be, in order:\n{result}"))
