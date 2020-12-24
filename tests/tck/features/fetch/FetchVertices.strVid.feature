@@ -17,37 +17,33 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.age, player.age > 30
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age | (player.age>30) |
       | "Boris Diaw" | "Boris Diaw" | 36         | True            |
 
-  Scenario: [3] Fetch dst vertices' props of go traversal.
+  Scenario: [3] Fetch dst vertices props of go traversal.
     When executing query:
       """
       GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID    | player.name   | player.age |
-      | Tony Parker | "Tony Parker" | 36         |
-      | Tony Parker | "Tim Duncan"  | 42         |
+      | "Tony Parker" | "Tony Parker" | 36         |
+      | "Tim Duncan" | "Tim Duncan"  | 42         |
 
-  @tested_and_nebula_not_support
-  Scenario: [4] Fetch Vertices
+  Scenario: [4] Fetch Vertices, different from v1.x
     When executing query:
       """
       GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age, $-.*
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID      | player.name   | player.age | $-.id         |
-      | "Tony Parker" | "Tony Parker" | 36         | "Tony Parker" |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         | "Tim Duncan"  |
+    Then a SemanticError should be raised at runtime:
 
   Scenario: [5] Fetch Vertices works with variable.
     When executing query:
       """
       $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID      | player.name   | player.age |
       | "Tony Parker" | "Tony Parker" | 36         |
       | "Tim Duncan"  | "Tim Duncan"  | 42         |
@@ -57,7 +53,7 @@ Feature: Fetch String Vertices
       """
       $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name as name, player.age | ORDER BY name
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID      | name          | player.age |
       | "Tim Duncan"  | "Tim Duncan"  | 42         |
       | "Tony Parker" | "Tony Parker" | 36         |
@@ -67,7 +63,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON player 'Boris Diaw'
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
@@ -76,7 +72,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
@@ -85,7 +81,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.age |
       | "Boris Diaw" | 36         |
 
@@ -94,14 +90,14 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON player 'Boris Diaw' YIELD $^.player.name, player.age
       """
-    Then a SemanticError should be raised at runtime: Unsupported src/dst property expression in yield.
+    Then a SemanticError should be raised at runtime:
 
   Scenario: [15] Fetch Vertices not support get dst property
     When executing query:
       """
       FETCH PROP ON player 'Boris Diaw' YIELD $$.player.name, player.age
       """
-    Then a SemanticError should be raised at runtime: Unsupported src/dst property expression in yield.
+    Then a SemanticError should be raised at runtime:
 
   Scenario: [16] Fetch vertex yields not existing tag
     When executing query:
@@ -122,23 +118,22 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON player 'NON EXIST VERTEX ID'
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID |
 
-  Scenario: [19] Fetch prop on not existing vertex, and works with pipe
+  Scenario: [19] Fetch prop on not existing vertex. Different from 1.x $- is not supported
     When executing query:
       """
       GO FROM 'NON EXIST VERTEX ID' OVER serve | FETCH PROP ON team $-
       """
-    Then the result should be, in any order, with relax comparision:
-      | VertexID |
+    Then a SyntaxError should be raised at runtime:
 
   Scenario: [20] Fetch prop on * with not existing vertex
     When executing query:
       """
       FETCH PROP ON * 'NON EXIST VERTEX ID'
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID |
 
   Scenario: [21] Fetch prop on * with existing vertex
@@ -146,7 +141,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON * 'Boris Diaw'
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
@@ -155,7 +150,7 @@ Feature: Fetch String Vertices
       """
       YIELD 'Boris Diaw' as id | FETCH PROP ON * $-.id
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
 
@@ -164,7 +159,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON * 'Boris Diaw', 'Boris Diaw'
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
       | "Boris Diaw" | "Boris Diaw" | 36         |
       | "Boris Diaw" | "Boris Diaw" | 36         |
@@ -174,7 +169,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON bachelor 'Tim Duncan'
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan"  | "psychology"        |
 
@@ -183,7 +178,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON * 'Tim Duncan'
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
@@ -192,7 +187,7 @@ Feature: Fetch String Vertices
       """
       YIELD 'Tim Duncan' as id | FETCH PROP ON * $-.id
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
 
@@ -201,7 +196,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON * 'Tim Duncan', 'Tim Duncan'
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
@@ -211,7 +206,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON * 'Tim Duncan', 'Tim Duncan' YIELD player.name, player.age
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.age |
       | "Tim Duncan" | "Tim Duncan" | 42         |
       | "Tim Duncan" | "Tim Duncan" | 42         |
@@ -221,7 +216,7 @@ Feature: Fetch String Vertices
       """
       FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.name
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID     | player.name  | player.name  |
       | "Boris Diaw" | "Boris Diaw" | "Boris Diaw" |
 
@@ -244,7 +239,7 @@ Feature: Fetch String Vertices
       """
       GO FROM 'NON EXIST VERTEX ID' over like YIELD like._dst as id | FETCH PROP ON player $-.id
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID |
 
   Scenario: [33] Fetch Vertices
@@ -252,5 +247,5 @@ Feature: Fetch String Vertices
       """
       GO FROM 'NON EXIST VERTEX ID' over serve YIELD serve._dst as id, serve.start_year as start | YIELD $-.id as id WHERE $-.start > 20000 | FETCH PROP ON player $-.id
       """
-    Then the result should be, in any order, with relax comparision:
+    Then the result should be, in any order:
       | VertexID |
