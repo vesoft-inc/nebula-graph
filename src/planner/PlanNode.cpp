@@ -52,6 +52,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Project";
         case Kind::kUnwind:
             return "Unwind";
+        case Kind::kIterate:
+            return "Iterate";
         case Kind::kSort:
             return "Sort";
         case Kind::kTopN:

@@ -33,7 +33,7 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
     PlanNode* current = nullptr;
 
     auto rewriter = [rctx](const Expression* expr) {
-        return MatchSolver::doRewrite(rctx->aliasesPtr, expr);
+        return MatchSolver::doRewrite(rctx->lastAliasesPtr, expr);
     };
 
     for (auto* col : rctx->yieldColumns->columns()) {

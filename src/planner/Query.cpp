@@ -226,6 +226,10 @@ std::unique_ptr<PlanNodeDescription> DataCollect::explain() const {
             addDescription("kind", "Multiple Pair Shortest", desc.get());
             break;
         }
+        case CollectKind::kAppend: {
+            addDescription("kind", "Append", desc.get());
+            break;
+        }
     }
     return desc;
 }

@@ -34,7 +34,8 @@ public:
     static StatusOr<SubPlan> connectSegments(CypherClauseContextBase* leftCtx,
                                              CypherClauseContextBase* rightCtx,
                                              SubPlan& left,
-                                             SubPlan& right);
+                                             SubPlan& right,
+                                             QueryContext* qctx = nullptr);
 
     static PlanNode* innerJoinSegments(QueryContext* qctx,
                                        const PlanNode* left,
@@ -43,6 +44,8 @@ public:
     static PlanNode* cartesianProductSegments(QueryContext* qctx,
                                 const PlanNode* left,
                                 const PlanNode* right);
+
+    static PlanNode* applySegments(QueryContext* qctx, const PlanNode* left, const PlanNode* right);
 
     static void addDependency(const PlanNode* left, const PlanNode* right);
 

@@ -36,7 +36,7 @@ private:
                           ReturnClauseContext &retClauseCtx) const;
 
     Status validateAliases(const std::vector<const Expression *> &exprs,
-                           std::unordered_map<std::string, AliasType> &aliases) const;
+                           std::unordered_map<std::string, AliasType> *lastAliasesPtr) const;
 
     Status validateStepRange(const MatchStepRange *range) const;
 
@@ -63,9 +63,7 @@ private:
     Status buildPathExpr(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
 
     Status combineAliases(std::unordered_map<std::string, AliasType> &curAliases,
-                          const std::unordered_map<std::string, AliasType> &lastAliases) const;
-
-    Status combineYieldColumns(YieldColumns *curYieldColumns, YieldColumns *lastYieldColumns) const;
+                          const std::unordered_map<std::string, AliasType> *lastAliasesPtr) const;
 
     template <typename T>
     std::unique_ptr<T> getContext() const {

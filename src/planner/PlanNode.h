@@ -35,6 +35,7 @@ public:
         kMinus,
         kProject,
         kUnwind,
+        kIterate,
         kSort,
         kTopN,
         kLimit,

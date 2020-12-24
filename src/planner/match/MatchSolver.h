@@ -57,6 +57,9 @@ public:
     static PlanNode* filtPathHasSameEdge(PlanNode* input,
                                          const std::string& column,
                                          QueryContext* qctx);
+
+    static Status combineYieldColumns(YieldColumns *curYieldColumns,
+                                      const YieldColumns *lastYieldColumns);
 };
 }  // namespace graph
 }  // namespace nebula

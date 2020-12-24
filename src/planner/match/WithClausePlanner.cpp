@@ -28,16 +28,16 @@ StatusOr<SubPlan> WithClausePlanner::transform(CypherClauseContextBase* clauseCt
 }
 
 Status WithClausePlanner::buildWith(WithClauseContext* wctx, SubPlan& subPlan) {
-    auto* yields = new YieldColumns();
-    wctx->qctx->objPool()->add(yields);
+    auto* yields = wctx->qctx->objPool()->add(new YieldColumns());
     std::vector<std::string> colNames;
     PlanNode* current = nullptr;
 
     auto rewriter = [wctx](const Expression* expr) {
-        return MatchSolver::doRewrite(wctx->aliasesPtr, expr);
+        return MatchSolver::doRewrite(wctx->lastAliasesPtr, expr);
     };
 
     for (auto* col : wctx->yieldColumns->columns()) {
+        DCHECK(col->alias() != nullptr);
         auto kind = col->expr()->kind();
         YieldColumn* newColumn = nullptr;
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
@@ -46,14 +46,10 @@ Status WithClausePlanner::buildWith(WithClauseContext* wctx, SubPlan& subPlan) {
             auto newExpr = col->expr()->clone();
             RewriteMatchLabelVisitor visitor(rewriter);
             newExpr->accept(&visitor);
-            newColumn = new YieldColumn(newExpr.release());
+            newColumn = new YieldColumn(newExpr.release(), new std::string(*col->alias()));
         }
         yields->addColumn(newColumn);
-        if (col->alias() != nullptr) {
-            colNames.emplace_back(*col->alias());
-        } else {
-            colNames.emplace_back(col->expr()->toString());
-        }
+        colNames.emplace_back(*col->alias());
     }
 
     auto* project = Project::make(wctx->qctx, nullptr, yields);

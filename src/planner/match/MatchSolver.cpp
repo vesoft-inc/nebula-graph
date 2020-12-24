@@ -231,5 +231,19 @@ PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
     return filter;
 }
 
+Status MatchSolver::combineYieldColumns(YieldColumns *curYieldColumns,
+                                        const YieldColumns *lastYieldColumns) {
+    const auto &lastColumns = lastYieldColumns->columns();
+    for (auto &column : lastColumns) {
+        DCHECK(column->alias() != nullptr);
+        auto *newColumn = new YieldColumn(
+            new VariablePropertyExpression(new std::string(), new std::string(*column->alias())),
+            new std::string(*column->alias()));
+        curYieldColumns->addColumn(newColumn);
+    }
+
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

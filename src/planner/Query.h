@@ -621,6 +621,9 @@ private:
     YieldColumns*               cols_{nullptr};
 };
 
+/**
+ * Unwind is used to transform any list back into individual rows
+ */
 class Unwind final : public SingleInputNode {
 public:
     static Unwind* make(QueryContext* qctx, PlanNode* input, YieldColumns* cols) {
@@ -639,6 +642,20 @@ private:
 
 private:
     YieldColumns*               cols_{nullptr};
+};
+
+/**
+ * Iterate is used to make each row of a dataset be an individual dataset
+ */
+class Iterate final : public SingleInputNode {
+public:
+    static Iterate* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new Iterate(qctx, input));
+    }
+
+private:
+    Iterate(QueryContext* qctx, PlanNode* input)
+        : SingleInputNode(qctx, Kind::kIterate, input) {}
 };
 
 /**
@@ -873,6 +890,7 @@ public:
         kBFSShortest,
         kAllPaths,
         kMultiplePairShortest,
+        kAppend,
     };
 
     static DataCollect* make(QueryContext* qctx,

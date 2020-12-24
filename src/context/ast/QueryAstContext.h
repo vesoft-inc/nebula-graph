@@ -1,3 +1,4 @@
+
 /* Copyright (c) 2020 vesoft inc. All rights reserved.
  *
  * This source code is licensed under Apache 2.0 License,
@@ -73,7 +74,7 @@ struct WhereClauseContext final : CypherClauseContextBase {
     WhereClauseContext() : CypherClauseContextBase(CypherClauseKind::kWhere) {}
 
     std::unique_ptr<Expression>                  filter;
-    std::unordered_map<std::string, AliasType>*  aliasesPtr{nullptr};
+    std::unordered_map<std::string, AliasType>*  lastAliasesPtr{nullptr};
 };
 
 struct OrderByClauseContext final : CypherClauseContextBase {
@@ -93,10 +94,11 @@ struct ReturnClauseContext final : CypherClauseContextBase {
     ReturnClauseContext() : CypherClauseContextBase(CypherClauseKind::kReturn) {}
 
     bool                                         distinct{false};
+    const YieldColumns**                         lastYieldColumnsPtr{nullptr};
     const YieldColumns*                          yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>        order;
     std::unique_ptr<PaginationContext>           pagination;
-    std::unordered_map<std::string, AliasType>*  aliasesPtr{nullptr};
+    std::unordered_map<std::string, AliasType>*  lastAliasesPtr{nullptr};
     // TODO: grouping columns
 };
 
@@ -108,7 +110,7 @@ struct WithClauseContext final : CypherClauseContextBase {
     std::unique_ptr<OrderByClauseContext>       order;
     std::unique_ptr<PaginationContext>          pagination;
     std::unique_ptr<WhereClauseContext>         where;
-    std::unordered_map<std::string, AliasType>* aliasesPtr{nullptr};
+    std::unordered_map<std::string, AliasType>* lastAliasesPtr{nullptr};
     std::unordered_map<std::string, AliasType>  aliases;
     // TODO: grouping columns
 };
@@ -120,15 +122,18 @@ struct MatchClauseContext final : CypherClauseContextBase {
     std::vector<EdgeInfo>                       edgeInfos;
     std::unique_ptr<PathBuildExpression>        pathBuild;
     std::unique_ptr<WhereClauseContext>         where;
-    std::unordered_map<std::string, AliasType>* aliasesPtr{nullptr};
+    const YieldColumns**                        lastYieldColumnsPtr{nullptr};
+    const YieldColumns*                         yieldColumns{nullptr};
+    std::unordered_map<std::string, AliasType>* lastAliasesPtr{nullptr};
     std::unordered_map<std::string, AliasType>  aliases;
 };
 
 struct UnwindClauseContext final : CypherClauseContextBase {
     UnwindClauseContext() : CypherClauseContextBase(CypherClauseKind::kUnwind) {}
 
+    const YieldColumns**                        lastYieldColumnsPtr{nullptr};
     const YieldColumns*                         yieldColumns{nullptr};
-    std::unordered_map<std::string, AliasType>* aliasesPtr{nullptr};
+    std::unordered_map<std::string, AliasType>* lastAliasesPtr{nullptr};
     std::unordered_map<std::string, AliasType>  aliases;
 };
 
