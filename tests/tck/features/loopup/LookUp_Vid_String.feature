@@ -2,11 +2,14 @@ Feature: LookUpTest_Vid_String
 
   Scenario: LookupTest SimpleVertex
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS lookup_space1;
-      CREATE SPACE IF NOT EXISTS lookup_space1(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space1;
       CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
       CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
       CREATE TAG INDEX t_index_3 ON lookup_tag_1(col2, col3);
@@ -44,14 +47,18 @@ Feature: LookUpTest_Vid_String
     Then the result should be, in any order:
       | VertexID | lookup_tag_1.col1 | lookup_tag_1.col2 | lookup_tag_1.col3 |
       | "200"    | 200               | 200               | 200               |
+    Then drop the used space
 
   Scenario: LookupTest SimpleEdge
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS lookup_space2;
-      CREATE SPACE IF NOT EXISTS lookup_space2(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space2;
       CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
       CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
       CREATE EDGE INDEX e_index_3 ON lookup_edge_1(col2, col3);
@@ -89,14 +96,18 @@ Feature: LookUpTest_Vid_String
     Then the result should be, in any order:
       | SrcVID | DstVID | Ranking | lookup_edge_1.col1 | lookup_edge_1.col2 | lookup_edge_1.col3 |
       | "200"  | "201"  | 0       | 201                | 201                | 201                |
+    Then drop the used space
 
   Scenario: LookupTest VertexIndexHint
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS lookup_space3;
-      CREATE SPACE IF NOT EXISTS lookup_space3(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space3;
       CREATE TAG lookup_tag_1(col1 int, col2 int, col3 int);
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_1 ON lookup_tag_1(col1, col2, col3);
@@ -126,14 +137,18 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col1 == true
       """
     Then a ExecutionError should be raised at runtime:
+    Then drop the used space
 
   Scenario: LookupTest EdgeIndexHint
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS lookup_space4;
-      CREATE SPACE IF NOT EXISTS lookup_space4(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space4;
       CREATE EDGE lookup_edge_1(col1 int, col2 int, col3 int);
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
       CREATE EDGE INDEX e_index_1 ON lookup_edge_1(col1, col2, col3);
@@ -161,15 +176,19 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON lookup_edge_2 WHERE lookup_edge_2.col1 == 200
       """
     Then a SemanticError should be raised at runtime:
+    Then drop the used space
 
   @skip
   Scenario: LookupTest VertexConditionScan
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS lookup_space5;
-      CREATE SPACE IF NOT EXISTS lookup_space5(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space5;
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
       CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
@@ -310,15 +329,19 @@ Feature: LookUpTest_Vid_String
       | "220"    |
       | "221"    |
       | "222"    |
+    Then drop the used space
 
   @skip
   Scenario: LookupTest EdgeConditionScan
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS lookup_space6;
-      CREATE SPACE IF NOT EXISTS lookup_space6(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space6;
       CREATE EDGE lookup_edge_2(col1 bool,col2 int, col3 double, col4 bool);
       CREATE EDGE INDEX e_index_2 ON lookup_edge_2(col2, col3, col4);
       CREATE EDGE INDEX e_index_4 ON lookup_edge_2(col3, col4);
@@ -453,15 +476,19 @@ Feature: LookUpTest_Vid_String
       | "220"  | "221"  | 0       |
       | "220"  | "222"  | 0       |
       | "220"  | "223"  | 0       |
+    Then drop the used space
 
   @skip
   Scenario: LookupTest FunctionExprTest
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS lookup_space7;
-      CREATE SPACE IF NOT EXISTS lookup_space7(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space7;
       CREATE TAG lookup_tag_2(col1 bool, col2 int, col3 double, col4 bool);
       CREATE TAG INDEX t_index_2 ON lookup_tag_2(col2, col3, col4);
       CREATE TAG INDEX t_index_4 ON lookup_tag_2(col3, col4);
@@ -583,15 +610,16 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | VertexID |
+    Then drop the used space
 
   Scenario: LookupTest YieldClauseTest
     Given an empty graph
-    And having executed:
-      """
-      DROP SPACE IF EXISTS lookup_space8;
-      CREATE SPACE IF NOT EXISTS lookup_space8(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space8;
-      """
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And wait 6 seconds
     When executing query:
       """
@@ -640,15 +668,16 @@ Feature: LookUpTest_Vid_String
     Then the result should be, in any order:
       | VertexID | student.age |
       | "220"    | 20          |
+    Then drop the used space
 
   Scenario: LookupTest OptimizerTest
     Given an empty graph
-    And having executed:
-      """
-      DROP SPACE IF EXISTS lookup_space9;
-      CREATE SPACE IF NOT EXISTS lookup_space9(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space9;
-      """
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     When executing query:
       """
       CREATE TAG t1(c1 int, c2 int, c3 int, c4 int, c5 int)
@@ -730,15 +759,16 @@ Feature: LookUpTest_Vid_String
       LOOKUP ON t1 where t1.c2 != 1
       """
     Then the execution should be successful
+    Then drop the used space
 
   Scenario: LookupTest OptimizerWithStringFieldTest
     Given an empty graph
-    And having executed:
-      """
-      DROP SPACE IF EXISTS lookup_space10;
-      CREATE SPACE IF NOT EXISTS lookup_space10(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space10;
-      """
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     When executing query:
       """
       CREATE TAG t1_str(c1 int, c2 int, c3 string, c4 string)
@@ -810,15 +840,16 @@ Feature: LookUpTest_Vid_String
       LOOKUP on t1_str WHERE t1_str.c4 == "a" and t1_str.c3 == "a" and t1_str.c2 == 1  and t1_str.c1 == 1
       """
     Then the execution should be successful
+    Then drop the used space
 
   Scenario: LookupTest StringFieldTest
     Given an empty graph
-    And having executed:
-      """
-      DROP SPACE IF EXISTS lookup_space11;
-      CREATE SPACE IF NOT EXISTS lookup_space11(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space11;
-      """
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     When executing query:
       """
       CREATE TAG tag_with_str(c1 int, c2 string, c3 string)
@@ -896,14 +927,19 @@ Feature: LookUpTest_Vid_String
     Then the result should be, in any order:
       | VertexID |
       | "6"      |
+    Then drop the used space
 
   Scenario: LookupTest ConditionTest
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS lookup_space12;
       CREATE SPACE IF NOT EXISTS lookup_space12(partition_num=3, replica_factor=1,vid_type=FIXED_STRING(30));
-      USE lookup_space12;
       """
     When executing query:
       """
@@ -934,3 +970,4 @@ Feature: LookUpTest_Vid_String
       """
     Then the result should be, in any order:
       | VertexID |
+    Then drop the used space

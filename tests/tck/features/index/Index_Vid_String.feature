@@ -2,11 +2,14 @@ Feature: IndexTest_Vid_String
 
   Scenario: IndexTest TagIndex
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS tag_index_space1;
-      CREATE SPACE tag_index_space1(partition_num=1, replica_factor=1,vid_type = FIXED_STRING(30));
-      USE tag_index_space1;
       CREATE TAG tag_1(col1 string, col2 int, col3 double, col4 timestamp);
       """
     And wait 6 seconds
@@ -139,19 +142,18 @@ Feature: IndexTest_Vid_String
       DROP TAG INDEX IF EXISTS not_exists_tag_index
       """
     Then the execution should be successful
-    When executing query:
-      """
-      DROP SPACE tag_index_space1;
-      """
-    Then the execution should be successful
+    Then drop the used space
 
   Scenario: IndexTest EdgeIndex
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS edge_index_space1;
-      CREATE SPACE edge_index_space1(partition_num=1, replica_factor=1,vid_type = FIXED_STRING(30));
-      USE edge_index_space1;
       CREATE EDGE edge_1(col1 string, col2 int, col3 double, col4 timestamp)
       """
     And wait 6 seconds
@@ -279,19 +281,18 @@ Feature: IndexTest_Vid_String
       DROP EDGE INDEX IF EXISTS not_exists_edge_index
       """
     Then the execution should be successful
-    When executing query:
-      """
-      DROP SPACE edge_index_space1;
-      """
-    Then the execution should be successful
+    Then drop the used space
 
   Scenario: IndexTest TagIndexTTL
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS tag_ttl_index_space1;
-      CREATE SPACE tag_ttl_index_space1(partition_num=1, replica_factor=1,vid_type = FIXED_STRING(30));
-      USE tag_ttl_index_space1;
       CREATE TAG person_ttl(number int, age int, gender int, email string);
       """
     And wait 6 seconds
@@ -381,19 +382,18 @@ Feature: IndexTest_Vid_String
       DROP TAG INDEX person_ttl_2_index
       """
     Then the execution should be successful
-    When executing query:
-      """
-      DROP SPACE tag_ttl_index_space1
-      """
-    Then the execution should be successful
+    Then drop the used space
 
   Scenario: IndexTest EdgeIndexTTL
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS edge_ttl_index_space1;
-      CREATE SPACE edge_ttl_index_space1(partition_num=1, replica_factor=1,vid_type = FIXED_STRING(30));
-      USE edge_ttl_index_space1;
       CREATE EDGE edge_1_ttl(degree int, start_time int)
       """
     And wait 6 seconds
@@ -487,19 +487,18 @@ Feature: IndexTest_Vid_String
       DROP EDGE edge_1_ttl_2
       """
     Then the execution should be successful
-    When executing query:
-      """
-      DROP SPACE edge_ttl_index_space1
-      """
-    Then the execution should be successful
+    Then drop the used space
 
   Scenario: IndexTest AlterTag
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS tag_index_space1;
-      CREATE SPACE tag_index_space1(partition_num=1, replica_factor=1,vid_type = FIXED_STRING(30));
-      USE tag_index_space1;
       CREATE TAG tag_1(col1 bool, col2 int, col3 double, col4 timestamp)
       """
     And wait 6 seconds
@@ -547,15 +546,19 @@ Feature: IndexTest_Vid_String
     Then the result should be, in any order:
       | VertexID | tag_1.col1 | tag_1.col5 |
       | "100"    | true       | 5          |
+    Then drop the used space
 
   @skip
   Scenario: IndexTest RebuildTagIndexStatusInfo
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS tag_status_space1;
-      CREATE SPACE tag_status_space1(partition_num=1, replica_factor=1,vid_type = FIXED_STRING(30));
-      USE tag_status_space1;
       CREATE TAG tag_status(col1 int)
       """
     And wait 6 seconds
@@ -596,15 +599,19 @@ Feature: IndexTest_Vid_String
       """
     Then the result should be, in any order:
       | Name | Index Status |
+    Then drop the used space
 
   @skip
   Scenario: IndexTest RebuildEdgeIndexStatusInfo
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS edge_status_space1;
-      CREATE SPACE edge_status_space1(partition_num=1, replica_factor=1,vid_type = FIXED_STRING(30));
-      USE edge_status_space1;
       CREATE EDGE edge_status(col1 int)
       """
     And wait 6 seconds
@@ -643,14 +650,18 @@ Feature: IndexTest_Vid_String
       """
     Then the result should be, in any order:
       | Name | Index Status |
+    Then drop the used space
 
   Scenario: IndexTest AlterSchemaTest
     Given an empty graph
+    And create a space with following options:
+      | partition_num  | 9                |
+      | replica_factor | 1                |
+      | vid_type       | FIXED_STRING(30) |
+      | charset        | utf8             |
+      | collate        | utf8_bin         |
     And having executed:
       """
-      DROP SPACE IF EXISTS alter_space1;
-      CREATE SPACE alter_space1(partition_num=1, replica_factor=1,vid_type = FIXED_STRING(30));
-      USE alter_space1;
       CREATE TAG alter_tag(id int);
       """
     And wait 6 seconds
@@ -677,3 +688,4 @@ Feature: IndexTest_Vid_String
       LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD alter_tag.type
       """
     Then the execution should be successful
+    Then drop the used space
