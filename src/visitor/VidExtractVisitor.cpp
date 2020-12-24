@@ -445,8 +445,10 @@ std::ostream &operator<<(std::ostream &os, const VidExtractVisitor::VidPattern &
                         break;
                     case VidExtractVisitor::VidPattern::Vids::Kind::kIn:
                         os << " in " << node.second.vids;
+                        break;
                     case VidExtractVisitor::VidPattern::Vids::Kind::kNotIn:
                         os << " not in " << node.second.vids;
+                        break;
                 }
                 os << std::endl;
             }
