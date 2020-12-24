@@ -273,13 +273,32 @@ Feature: Set Test
     Then the result should be, in any order:
       | $var.serve.start_year | $var.$$.team.name |
 
-      Scenario: Diffrent column
-      Given a graph with space named "nba"
-      When executing query:
+  Scenario: Diffrent column
+    Given a graph with space named "nba"
+    When executing query:
       """
       GO FROM "Tim Duncan" OVER serve YIELD $^.player.name as name, $$.team.name as player
       UNION ALL
       GO FROM "Tony Parker" OVER serve
       YIELD $^.player.name as name, serve.start_year
       """
-      Then a SyntaxError should be raised at runtime:
+    Then a SemanticError should be raised at runtime: different column names to UNION/INTERSECT/MINUS are not supported
+
+  Scenario: Pipe to a set op
+    Given a graph with space named "nba"
+    When executing query:
+      """
+      GO FROM "123" OVER like YIELD like._src as src, like._dst as dst
+      | (GO FROM $-.src OVER serve UNION GO FROM $-.dst OVER serve)
+      """
+    Then a SemanticError should be raised at runtime: `$-.src', not exist prop `src'
+
+ Scenario: Non-existent props
+    Given a graph with space named "nba"
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER serve YIELD $^.player.name, serve.start_year, $$.team.name
+      UNION
+      GO FROM "Tony Parker" OVER serve YIELD $^.player.name1, serve.start_year, $$.team.name
+      """
+    Then a SemanticError should be raised at runtime: `$^.player.name1', not found the property `name1'
