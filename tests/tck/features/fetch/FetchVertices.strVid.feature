@@ -117,10 +117,10 @@ Feature: Fetch String Vertices
   Scenario: [18] Fetch prop on not existing vertex
     When executing query:
       """
-      FETCH PROP ON player 'NON EXIST VERTEX ID'
+      FETCH PROP ON player 'NON EXIST VERTEX ID' yield player.name
       """
     Then the result should be, in any order:
-      | VertexID |
+      | VertexID | player.name |
 
   Scenario: [19] Fetch prop on not existing vertex. Different from 1.x $- is not supported
     When executing query:
