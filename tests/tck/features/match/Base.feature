@@ -36,7 +36,7 @@ Feature: Basic match
       | 'Klay Thompson'    |
       | 'Dejounte Murray'  |
 
-  Scenario: Match a node while given the tag without property
+  Scenario: [1] one step given tag without property
     Given a graph with space named "nba"
     When executing query:
       """
@@ -45,4 +45,60 @@ Feature: Basic match
       """
     Then the result should be, in any order:
       | Team                           |
+      | ("Spurs" :team{name: "Spurs"}) |
+
+  @skip
+  Scenario: [2] one step given tag without property
+    When executing query:
+      """
+      MATCH (v:team{name:"Spurs"})--(v2)
+      RETURN v2
+      """
+    Then the result should be, in any order:
+      | "v2"                                                               |
+      | {"name":"Boris Diaw","age":36,"player":"Boris Diaw"}               |
+      | {"name":"Kyle Anderson","age":25,"player":"Kyle Anderson"}         |
+      | {"name":"Cory Joseph","age":27,"player":"Cory Joseph"}             |
+      | {"name":"Tiago Splitter","age":34,"player":"Tiago Splitter"}       |
+      | {"name":"LaMarcus Aldridge","age":33,"player":"LaMarcus Aldridge"} |
+      | {"name":"Paul Gasol","age":38,"player":"Paul Gasol"}               |
+      | {"name":"Marco Belinelli","age":32,"player":"Marco Belinelli"}     |
+      | {"name":"Tracy McGrady","age":39,"player":"Tracy McGrady"}         |
+      | {"name":"David West","age":38,"player":"David West"}               |
+      | {"name":"Manu Ginobili","age":41,"player":"Manu Ginobili"}         |
+      | {"name":"Tony Parker","age":36,"player":"Tony Parker"}             |
+      | {"name":"Rudy Gay","age":32,"player":"Rudy Gay"}                   |
+      | {"name":"Jonathon Simmons","age":29,"player":"Jonathon Simmons"}   |
+      | {"name":"Aron Baynes","age":32,"player":"Aron Baynes"}             |
+      | {"name":"Danny Green","age":31,"player":"Danny Green"}             |
+      | {"name":"Tim Duncan","age":42,"player":"Tim Duncan"}               |
+      | {"name":"Marco Belinelli","age":32,"player":"Marco Belinelli"}     |
+      | {"name":"Dejounte Murray","age":29,"player":"Dejounte Murray"}     |
+
+  @skip
+  Scenario: multi steps given tag without property
+    Given a graph with space named "nba"
+    When executing query:
+      """
+      MATCH (v:player{name: "Tim Duncan"})-->(v2:team)<--(v3)
+      RETURN v2
+      """
+    Then the result should be, in any order:
+      | Team                           |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
+      | ("Spurs" :team{name: "Spurs"}) |
       | ("Spurs" :team{name: "Spurs"}) |
