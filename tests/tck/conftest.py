@@ -30,6 +30,7 @@ from tests.tck.utils.nbv import murmurhash2
 
 parse = functools.partial(parsers.parse)
 rparse = functools.partial(parsers.re)
+example_pattern = re.compile(r"<(\w+)>")
 
 
 @pytest.fixture
@@ -102,8 +103,13 @@ def import_csv_data(data, graph_spaces, session, pytestconfig):
 
 
 @when(parse("executing query:\n{query}"))
-def executing_query(query, graph_spaces, session):
+def executing_query(query, graph_spaces, session, request):
     ngql = " ".join(query.splitlines())
+    m = example_pattern.findall(ngql)
+    if m:
+        for group in m:
+            fixval = request.getfixturevalue(group)
+            ngql = ngql.replace(f"<{group}>", fixval)
     graph_spaces['result_set'] = session.execute(ngql)
     graph_spaces['ngql'] = ngql
 

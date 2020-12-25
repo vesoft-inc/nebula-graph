@@ -1,4 +1,3 @@
-@abc
 Feature: Lookup with output
 
   Background: Prepare space
