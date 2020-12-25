@@ -65,7 +65,12 @@ Feature: User & privilege Test
     Then the execution should be successful
     When executing query:
       """
-      ALTER USER user2 WITH PASSWORD "pwd2"
+      CHANGE PASSWORD user2 FROM "pwd2" TO "pwd1"
+      """
+    Then a ExecutionError should be raised at runtime: Invalid password!
+    When executing query:
+      """
+      CHANGE PASSWORD user2 FROM "pwd1" TO "pwd2"
       """
     Then the execution should be successful
 
