@@ -158,10 +158,8 @@ def cmp_dataset(graph_spaces,
 def define_list_var_alias(text, graph_spaces):
     tbl = table(text)
     graph_spaces["variables"] = {
-        column: "[" +
-        ",".join(filter(lambda x: x, [row.get(column)
-                                      for row in tbl['rows']])) + "]"
-        for column in tbl['column_names']
+        column: "[" + ",".join(row[i] for row in tbl['rows'] if row[i]) + "]"
+        for i, column in enumerate(tbl['column_names'])
     }
 
 

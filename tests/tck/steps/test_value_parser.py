@@ -35,9 +35,8 @@ def string_table(text):
 @when('They are parsed as Nebula Value')
 def parsed_as_values(string_table):
     values = []
-    column_names = string_table['column_names']
     for row in string_table['rows']:
-        cell = row[column_names[0]]
+        cell = row[0]
         v = parse(cell)
         assert v is not None, f"Failed to parse `{cell}'"
         values.append(v)
@@ -47,7 +46,6 @@ def parsed_as_values(string_table):
 @then('The type of the parsed value should be as expected')
 def parsed_as_expected(string_table):
     nvalues = string_table['values']
-    column_names = string_table['column_names']
     for i, val in enumerate(nvalues):
         type = val.getType()
         if type == 0:
@@ -60,5 +58,5 @@ def parsed_as_expected(string_table):
                 actual = NullType._VALUES_TO_NAMES[val.get_nVal()]
         else:
             actual = Value.thrift_spec[val.getType()][2]
-        expected = string_table['rows'][i][column_names[1]]
+        expected = string_table['rows'][i][1]
         assert actual == expected, f"expected: {expected}, actual: {actual}"
