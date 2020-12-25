@@ -101,7 +101,7 @@ DeduceTypeVisitor::DeduceTypeVisitor(QueryContext *qctx,
     : qctx_(qctx), vctx_(vctx), inputs_(inputs), space_(space) {
     DCHECK(qctx != nullptr);
     DCHECK(vctx != nullptr);
-    auto vidType = qctx_->rctx()->session()->space().spaceDesc.vid_type.get_type();
+    auto vidType = vctx_->whichSpace().spaceDesc.vid_type.get_type();
     vidType_ = SchemaUtil::propTypeToValueType(vidType);
 }
 

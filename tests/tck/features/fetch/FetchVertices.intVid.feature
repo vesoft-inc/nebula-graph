@@ -1,4 +1,3 @@
-@fetch3
 Feature: Fetch Int Vid Vertices
 
   Background: Prepare space

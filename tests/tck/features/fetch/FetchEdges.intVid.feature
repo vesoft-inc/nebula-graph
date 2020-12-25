@@ -1,4 +1,3 @@
-@fetch
 Feature: Fetch Int Vid Edges
 
   Background: Prepare space
