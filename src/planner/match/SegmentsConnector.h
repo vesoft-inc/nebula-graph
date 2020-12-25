@@ -50,6 +50,9 @@ public:
     static void addDependency(const PlanNode* left, const PlanNode* right);
 
     static void addInput(const PlanNode* left, const PlanNode* right, bool copyColNames = false);
+
+private:
+    static PlanNode* iterateDataSet(QueryContext* qctx, PlanNode* input);
 };
 
 class SegmentsConnectStrategy {

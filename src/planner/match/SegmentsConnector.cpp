@@ -12,6 +12,7 @@
 #include "planner/match/ApplyStrategy.h"
 #include "planner/Logic.h"
 #include "planner/Query.h"
+#include "common/expression/VariableExpression.h"
 
 namespace nebula {
 namespace graph {
@@ -32,10 +33,9 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
         auto* start = StartNode::make(qctx);
-        auto* iterate = Iterate::make(qctx, start);
-        iterate->setInputVar(right.root->outputVar());
-        iterate->setColNames(right.root->colNames());
-        addInput(left.tail, iterate);
+        auto* project = iterateDataSet(qctx, right.root);
+        addInput(project, start);
+        addInput(left.tail, project);
         left.tail = start;
         auto* apply = applySegments(qctx, left.root, right.root);
         DCHECK(apply != nullptr);
@@ -78,5 +78,28 @@ void SegmentsConnector::addDependency(const PlanNode* left, const PlanNode* righ
 void SegmentsConnector::addInput(const PlanNode* left, const PlanNode* right, bool copyColNames) {
     std::make_unique<AddInputStrategy>(copyColNames)->connect(left, right);
 }
-}  // namespace graph
-}  // namespace nebula
+
+// iterateDataSet is used to make each row of a dataset be an individual dataset
+PlanNode* SegmentsConnector::iterateDataSet(QueryContext* qctx, PlanNode* input) {
+    const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
+    qctx->ectx()->setValue(rowIndex, Value(-1));
+    auto* cols = qctx->objPool()->add(new YieldColumns());
+    auto makeColumn = [input, &rowIndex](size_t i) {
+        DCHECK_LT(i, input->colNames().size());
+        return new YieldColumn(
+            new SubscriptExpression(
+                new VariableExpression(new std::string(input->outputVar())),
+                new UnaryExpression(Expression::Kind::kUnaryIncr,
+                                    new VariableExpression(new std::string(rowIndex)))),
+            new std::string(input->colNames()[i]));
+    };
+    for (size_t i = 0; i < input->colNames().size(); ++i) {
+        cols->addColumn(makeColumn(i));
+    }
+    auto* project = Project::make(qctx, nullptr, cols);
+    project->setColNames(input->colNames());
+
+    return project;
+}
+}   // namespace graph
+}   // namespace nebula

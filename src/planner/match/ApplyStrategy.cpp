@@ -13,16 +13,16 @@
 namespace nebula {
 namespace graph {
 PlanNode *ApplyStrategy::connect(const PlanNode *left, const PlanNode *right) {
-    const auto &var = qctx_->vctx()->anonVarGen()->getVar();
-    qctx_->ectx()->setValue(var, Value(0));
+    const auto &rowIndex = qctx_->vctx()->anonVarGen()->getVar();
+    qctx_->ectx()->setValue(rowIndex, Value(-1));
 
     auto *args = new ArgumentList();
     args->addArgument(std::make_unique<VariableExpression>(new std::string(right->outputVar())));
-    auto *condition =
-        new RelationalExpression(Expression::Kind::kRelLE,
-                                 new UnaryExpression(Expression::Kind::kUnaryIncr,
-                                                     new VariableExpression(new std::string(var))),
-                                 new FunctionCallExpression(new std::string("size"), args));
+    auto *condition = new RelationalExpression(
+        Expression::Kind::kRelLT,
+        new UnaryExpression(Expression::Kind::kUnaryIncr,
+                            new VariableExpression(new std::string(rowIndex))),
+        new FunctionCallExpression(new std::string("size"), args));
     qctx_->objPool()->add(condition);
     auto *loop =
         Loop::make(qctx_, const_cast<PlanNode *>(right), const_cast<PlanNode *>(left), condition);
