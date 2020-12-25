@@ -3,7 +3,7 @@ Feature: Yield
   Background:
     Given an empty graph
 
-  Scenario: myBase
+  Scenario: base
     When executing query:
       """
       YIELD 1+1 AS sum
