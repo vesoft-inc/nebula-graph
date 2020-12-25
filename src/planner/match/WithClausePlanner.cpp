@@ -34,7 +34,7 @@ Status WithClausePlanner::buildWith(WithClauseContext* wctx, SubPlan& subPlan) {
     PlanNode* current = nullptr;
 
     auto rewriter = [wctx](const Expression* expr) {
-        return MatchSolver::doRewrite(wctx->aliasesPtr, expr);
+        return MatchSolver::doRewrite(*wctx->aliasesUsed, expr);
     };
 
     for (auto* col : wctx->yieldColumns->columns()) {

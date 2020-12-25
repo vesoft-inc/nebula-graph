@@ -30,7 +30,7 @@ Status WhereClausePlanner::buildFilter(WhereClauseContext* wctx, SubPlan& subpla
 
     auto newFilter = wctx->filter->clone();
     auto rewriter = [wctx](const Expression* expr) {
-        return MatchSolver::doRewrite(wctx->aliasesPtr, expr);
+        return MatchSolver::doRewrite(*wctx->aliasesUsed, expr);
     };
     RewriteMatchLabelVisitor visitor(std::move(rewriter));
     newFilter->accept(&visitor);

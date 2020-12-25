@@ -30,7 +30,7 @@ public:
 
     static Expression* rewrite(const LabelAttributeExpression* la);
 
-    static Expression* doRewrite(const std::unordered_map<std::string, AliasType>* aliases,
+    static Expression* doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
                                  const Expression* expr);
 
     static Expression* makeIndexFilter(const std::string& label,

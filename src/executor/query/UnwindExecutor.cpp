@@ -49,6 +49,7 @@ std::vector<Value> UnwindExecutor::extractList(Value &val) {
     std::vector<Value> ret;
     if (val.isList()) {
         auto &list = val.getList();
+        ret.reserve(list.size());
         for (size_t i = 0; i < list.size(); ++i) {
             ret.emplace_back(std::move(list[i]));
         }

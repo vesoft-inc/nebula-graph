@@ -32,7 +32,7 @@ Status UnwindClausePlanner::buildUnwind(UnwindClauseContext* uctx, SubPlan& subP
     std::vector<std::string> colNames;
 
     auto rewriter = [uctx](const Expression* expr) {
-        return MatchSolver::doRewrite(uctx->aliasesPtr, expr);
+        return MatchSolver::doRewrite(*uctx->aliasesUsed, expr);
     };
 
     for (auto* col : uctx->yieldColumns->columns()) {

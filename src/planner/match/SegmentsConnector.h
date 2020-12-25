@@ -41,8 +41,8 @@ public:
                                        const PlanNode* right);
 
     static PlanNode* cartesianProductSegments(QueryContext* qctx,
-                                const PlanNode* left,
-                                const PlanNode* right);
+                                              const PlanNode* left,
+                                              const PlanNode* right);
 
     static void addDependency(const PlanNode* left, const PlanNode* right);
 

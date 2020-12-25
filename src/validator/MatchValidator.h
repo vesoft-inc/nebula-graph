@@ -36,13 +36,21 @@ private:
                           ReturnClauseContext &retClauseCtx) const;
 
     Status validateAliases(const std::vector<const Expression *> &exprs,
-                           std::unordered_map<std::string, AliasType> &aliases) const;
+                           const std::unordered_map<std::string, AliasType> *aliases) const;
 
     Status validateStepRange(const MatchStepRange *range) const;
 
     Status validateWith(const WithClause *with, WithClauseContext &withClauseCtx) const;
 
     Status validateUnwind(const UnwindClause *unwind, UnwindClauseContext &unwindClauseCtx) const;
+
+    Status validatePagination(const Expression *skipExpr,
+                              const Expression *limitExpr,
+                              PaginationContext &paginationCtx) const;
+
+    Status validateOrderBy(const OrderFactors *factors,
+                           const YieldColumns *yieldColumns,
+                           OrderByClauseContext &orderByCtx) const;
 
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map,
@@ -66,7 +74,7 @@ private:
     Status combineAliases(std::unordered_map<std::string, AliasType> &curAliases,
                           const std::unordered_map<std::string, AliasType> &lastAliases) const;
 
-    Status combineYieldColumns(YieldColumns *curYieldColumns, YieldColumns *lastYieldColumns) const;
+    Status combineYieldColumns(YieldColumns *yieldColumns, YieldColumns *prevYieldColumns) const;
 
     template <typename T>
     std::unique_ptr<T> getContext() const {
