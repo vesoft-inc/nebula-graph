@@ -27,6 +27,7 @@ from nebula2.common.ttypes import (
 )
 
 Value.__hash__ = lambda self: self.value.__hash__()
+Pattern = type(re.compile(r"^"))
 
 states = (
     ('sstr', 'exclusive'),
@@ -250,7 +251,7 @@ def p_expr(p):
              | path
              | function
     '''
-    if isinstance(p[1], Value) or isinstance(p[1], re.Pattern):
+    if isinstance(p[1], Value) or isinstance(p[1], Pattern):
         p[0] = p[1]
     elif type(p[1]) in [str, bytes]:
         p[0] = Value(sVal=p[1])
