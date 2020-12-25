@@ -42,7 +42,7 @@ private:
 
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map,
-                                        const std::string) const;
+                                        const std::string &label = "") const;
 
     template <typename T>
     T* saveObject(T *obj) const {

@@ -123,7 +123,7 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilter(*alias, props, "");
+            auto result = makeSubFilter(*alias, props);
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         } else if (label != nullptr) {
@@ -179,7 +179,7 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilter(*alias, props, "");
+            auto result = makeSubFilter(*alias, props);
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         }
@@ -389,10 +389,9 @@ Status MatchValidator::validateStepRange(const MatchStepRange *range) const {
 StatusOr<Expression*>
 MatchValidator::makeSubFilter(const std::string &alias,
                               const MapExpression *map,
-                              const std::string label) const {
+                              const std::string& label) const {
     // Node has tag without property
     if (!label.empty() && map == nullptr) {
-        Expression *root = nullptr;
         auto *left = new ConstantExpression(label);
 
         auto* args = new ArgumentList();
@@ -400,23 +399,21 @@ MatchValidator::makeSubFilter(const std::string &alias,
         auto *right = new FunctionCallExpression(
                     new std::string("tags"),
                     args);
-        root = new RelationalExpression(Expression::Kind::kRelIn, left, right);
+        Expression *root = new RelationalExpression(Expression::Kind::kRelIn, left, right);
 
-        saveObject(root);
-        return root;
+        return saveObject(root);
     }
 
     DCHECK(map != nullptr);
     auto &items = map->items();
     DCHECK(!items.empty());
-    Expression *root = nullptr;
 
     // TODO(dutor) Check if evaluable and evaluate
     if (items[0].second->kind() != Expression::Kind::kConstant) {
         return Status::SemanticError("Props must be constant: `%s'",
                 items[0].second->toString().c_str());
     }
-    root = new RelationalExpression(Expression::Kind::kRelEQ,
+    Expression *root = new RelationalExpression(Expression::Kind::kRelEQ,
             new LabelAttributeExpression(
                 new LabelExpression(alias),
                 new ConstantExpression(*items[0].first)),
@@ -435,9 +432,7 @@ MatchValidator::makeSubFilter(const std::string &alias,
         root = new LogicalExpression(Expression::Kind::kLogicalAnd, left, right);
     }
 
-    saveObject(root);
-
-    return root;
+    return saveObject(root);
 }
 }   // namespace graph
 }   // namespace nebula
