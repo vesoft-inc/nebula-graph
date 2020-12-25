@@ -22,12 +22,12 @@ Feature: subgraph
       """
       GO FROM "Tim Duncan" OVER like YIELD $$.player.age AS id | GET SUBGRAPH FROM $-.id
       """
-    Then a SemanticError should be raised at runtime: `$-.id', the srcs should be type of STRING, but was`INT'
+    Then a SemanticError should be raised at runtime: `$-.id', the srcs should be type of FIXED_STRING, but was`INT'
     When executing query:
       """
       $a = GO FROM "Tim Duncan" OVER like YIELD $$.player.age AS ID; GET SUBGRAPH FROM $a.ID
       """
-    Then a SemanticError should be raised at runtime: `$a.ID', the srcs should be type of STRING, but was`INT'
+    Then a SemanticError should be raised at runtime: `$a.ID', the srcs should be type of FIXED_STRING, but was`INT'
     When executing query:
       """
       $a = GO FROM "Tim Duncan" OVER like YIELD like._src AS src; GET SUBGRAPH FROM $b.src

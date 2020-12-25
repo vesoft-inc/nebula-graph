@@ -22,12 +22,12 @@ Feature: Integer Vid subgraph
       """
       GO FROM hash("Tim Duncan") OVER like YIELD $$.player.name AS id | GET SUBGRAPH FROM $-.id
       """
-    Then a SemanticError should be raised at runtime: `$-.id', the srcs should be type of INT, but was`STRING'
+    Then a SemanticError should be raised at runtime: `$-.id', the srcs should be type of INT64, but was`STRING'
     When executing query:
       """
       $a = GO FROM hash("Tim Duncan") OVER like YIELD $$.player.name AS ID; GET SUBGRAPH FROM $a.ID
       """
-    Then a SemanticError should be raised at runtime: `$a.ID', the srcs should be type of INT, but was`STRING'
+    Then a SemanticError should be raised at runtime: `$a.ID', the srcs should be type of INT64, but was`STRING'
     When executing query:
       """
       $a = GO FROM hash("Tim Duncan") OVER like YIELD like._src AS src; GET SUBGRAPH FROM $b.src

@@ -46,10 +46,7 @@ namespace graph {
 Validator::Validator(Sentence* sentence, QueryContext* qctx)
     : sentence_(DCHECK_NOTNULL(sentence)),
       qctx_(DCHECK_NOTNULL(qctx)),
-      vctx_(DCHECK_NOTNULL(qctx->vctx())) {
-    auto vidType = qctx_->rctx()->session()->space().spaceDesc.vid_type.get_type();
-    vidType_ = SchemaUtil::propTypeToValueType(vidType);
-}
+      vctx_(DCHECK_NOTNULL(qctx->vctx())) {}
 
 std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryContext* context) {
     auto kind = sentence->kind();
@@ -308,6 +305,9 @@ Status Validator::validate() {
         space_ = vctx_->whichSpace();
         VLOG(1) << "Space chosen, name: " << space_.spaceDesc.space_name << " id: " << space_.id;
     }
+
+    auto vidType = space_.spaceDesc.vid_type.get_type();
+    vidType_ = SchemaUtil::propTypeToValueType(vidType);
 
     NG_RETURN_IF_ERROR(validateImpl());
 

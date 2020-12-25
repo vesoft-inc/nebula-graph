@@ -28,10 +28,12 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
         if (!type.ok()) {
             return type.status();
         }
-        if (type.value() != vidType_) {
+        auto vidType = space_.spaceDesc.vid_type.get_type();
+        if (type.value() != SchemaUtil::propTypeToValueType(vidType)) {
             std::stringstream ss;
-            ss << "`" << src->toString() << "', the srcs should be type of " << vidType_
-               << ", but was`" << type.value() << "'";
+            ss << "`" << src->toString() << "', the srcs should be type of "
+                << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType) << ", but was`"
+                << type.value() << "'";
             return Status::SemanticError(ss.str());
         }
         starts.originalSrc = src;
@@ -50,9 +52,10 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                         expr->toString().c_str());
             }
             auto vid = expr->eval(ctx(nullptr));
-            if (vid.type() != vidType_) {
+            auto vidType = space_.spaceDesc.vid_type.get_type();
+            if (!SchemaUtil::isValidVid(vid, vidType)) {
                 std::stringstream ss;
-                ss << "vid's type should be " << vidType_;
+                ss << "Vid should be a " << meta::cpp2::_PropertyType_VALUES_TO_NAMES.at(vidType);
                 return Status::SemanticError(ss.str());
             }
             starts.vids.emplace_back(std::move(vid));
