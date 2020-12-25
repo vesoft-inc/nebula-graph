@@ -89,17 +89,17 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
                 return Status::SemanticError("Agg function nesting is not allowed");
             }
             if (aggs.size() == 1) {
-                auto colRewited = col->expr()->clone().release();
+                auto colRewrited = col->expr()->clone().release();
                 // set aggExpr
                 col->setExpr(aggs[0]->clone().release());
                 auto aggColName = col->expr()->toString();
                 // rewrite to VariablePropertyExpression
                 RewriteAggExprVisitor rewriteAggVisitor(new std::string(),
                                                         new std::string(aggColName));
-                colRewited->accept(&rewriteAggVisitor);
+                colRewrited->accept(&rewriteAggVisitor);
                 rewrited = true;
                 needGenProject_ = true;
-                projCols_->addColumn(new YieldColumn(colRewited,
+                projCols_->addColumn(new YieldColumn(colRewrited,
                                      new std::string(colOldName)));
             }
         }
