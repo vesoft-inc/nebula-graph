@@ -11,12 +11,17 @@ Feature: Explain and Profile
     Then the execution should be successful
     When executing query:
       """
-      <explain> FORMAT="<format>" {$var=YIELD 1 AS a; YIELD $var.*;}
+      <explain> FORMAT="<format>" {
+        $var=YIELD 1 AS a;
+        YIELD $var.*;
+      }
       """
     Then the execution should be successful
     When executing query:
       """
-      <explain> FORMAT="<format>" {YIELD 1 AS a;}
+      <explain> FORMAT="<format>" {
+        YIELD 1 AS a;
+      }
       """
     Then the execution should be successful
 
@@ -28,3 +33,40 @@ Feature: Explain and Profile
       | PROFILE | row        |
       | PROFILE | dot        |
       | PROFILE | dot:struct |
+
+  Scenario Outline: Error format
+    When executing query:
+      """
+      <explain> FORMAT="unknown" YIELD 1
+      """
+    Then a SyntaxError should be raised at runtime.
+    When executing query:
+      """
+      <explain> FORMAT="unknown" {
+        $var=YIELD 1 AS a;
+        YIELD $var.*;
+      }
+      """
+    Then a SyntaxError should be raised at runtime.
+    When executing query:
+      """
+      <explain> FORMAT="unknown" {
+        YIELD 1 AS a;
+      }
+      """
+    Then a SyntaxError should be raised at runtime.
+    When executing query:
+      """
+      <explain> EXPLAIN YIELD 1
+      """
+    Then a SyntaxError should be raised at runtime.
+    When executing query:
+      """
+      <explain> PROFILE YIELD 1
+      """
+    Then a SyntaxError should be raised at runtime.
+
+    Examples:
+      | explain |
+      | EXPLAIN |
+      | PROFILE |

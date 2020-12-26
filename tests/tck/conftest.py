@@ -33,6 +33,13 @@ rparse = functools.partial(parsers.re)
 example_pattern = re.compile(r"<(\w+)>")
 
 
+def normalize_ngql_for_outline_scenario(request, ngql):
+    for group in example_pattern.findall(ngql):
+        fixval = request.getfixturevalue(group)
+        ngql = ngql.replace(f"<{group}>", fixval)
+    return ngql
+
+
 @pytest.fixture
 def graph_spaces():
     return dict(result_set=None)
@@ -65,8 +72,9 @@ def empty_graph(session, graph_spaces):
 
 
 @given(parse("having executed:\n{query}"))
-def having_executed(query, session):
+def having_executed(query, session, request):
     ngql = " ".join(query.splitlines())
+    ngql = normalize_ngql_for_outline_scenario(request, ngql)
     response(session, ngql)
 
 
@@ -105,11 +113,7 @@ def import_csv_data(data, graph_spaces, session, pytestconfig):
 @when(parse("executing query:\n{query}"))
 def executing_query(query, graph_spaces, session, request):
     ngql = " ".join(query.splitlines())
-    m = example_pattern.findall(ngql)
-    if m:
-        for group in m:
-            fixval = request.getfixturevalue(group)
-            ngql = ngql.replace(f"<{group}>", fixval)
+    ngql = normalize_ngql_for_outline_scenario(request, ngql)
     graph_spaces['result_set'] = session.execute(ngql)
     graph_spaces['ngql'] = ngql
 

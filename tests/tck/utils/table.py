@@ -11,7 +11,6 @@ from tests.tck.utils.nbv import parse
 from nebula2.common.ttypes import DataSet, Row, Value
 
 pattern = re.compile(r"^<\[(\w+)\]>$")
-col_names_pattern = re.compile(r"(.+)_\d+$")
 
 
 def _parse_value(cell: str, variables: dict) -> Value:
