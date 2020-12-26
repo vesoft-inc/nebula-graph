@@ -42,7 +42,7 @@ private:
     std::vector<std::string>                          projOutputColumnNames_;
 
     // used to generate Project node when there is an internally nested aggregateExpression
-    std::unique_ptr<YieldColumns>                     projCols_;
+    YieldColumns*                     projCols_;
 
     std::vector<Expression*>                          groupKeys_;
     std::vector<Expression*>                          groupItems_;

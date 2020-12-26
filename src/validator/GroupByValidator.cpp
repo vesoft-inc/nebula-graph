@@ -76,20 +76,21 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         return Status::SemanticError("Yield cols is Empty");
     }
 
-    projCols_.reset(new YieldColumns);
+    projCols_ = qctx_->objPool()->add(new YieldColumns);
     for (auto* col : columns) {
         auto colOldName = deduceColName(col);
         auto rewrited = false;
 
         // rewrite inner agg expr
         if (col->expr()->kind() != Expression::Kind::kAggregate) {
-            auto* collectAggCol = qctx_->objPool()->add(col->expr()->clone().release());
-            auto aggs = ExpressionUtils::collectAll(collectAggCol, {Expression::Kind::kAggregate});
+            auto collectAggCol = col->expr()->clone();
+            auto aggs = ExpressionUtils::collectAll(collectAggCol.get(),
+                                                    {Expression::Kind::kAggregate});
             if (aggs.size() > 1) {
                 return Status::SemanticError("Agg function nesting is not allowed");
             }
             if (aggs.size() == 1) {
-                auto colRewrited = col->expr()->clone().release();
+                auto colRewrited = col->expr()->clone();
                 // set aggExpr
                 col->setExpr(aggs[0]->clone().release());
                 auto aggColName = col->expr()->toString();
@@ -99,7 +100,7 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
                 colRewrited->accept(&rewriteAggVisitor);
                 rewrited = true;
                 needGenProject_ = true;
-                projCols_->addColumn(new YieldColumn(colRewrited,
+                projCols_->addColumn(new YieldColumn(colRewrited.release(),
                                      new std::string(colOldName)));
             }
         }
@@ -185,7 +186,7 @@ Status GroupByValidator::toPlan() {
     groupBy->setColNames(std::vector<std::string>(outputColumnNames_));
     if (needGenProject_) {
         // rewrite Expr which has inner aggExpr and push it up to Project.
-        auto *project = Project::make(qctx_, groupBy, std::move(projCols_).release());
+        auto *project = Project::make(qctx_, groupBy, projCols_);
         project->setInputVar(groupBy->outputVar());
         project->setColNames(projOutputColumnNames_);
         root_ = project;

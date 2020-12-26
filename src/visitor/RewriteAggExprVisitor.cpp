@@ -30,8 +30,8 @@ void RewriteAggExprVisitor::visit(TypeCastingExpression* expr) {
 void RewriteAggExprVisitor::visit(FunctionCallExpression* expr) {
     for (auto& arg : expr->args()->args()) {
         if (isAggExpr(arg.get())) {
-            arg.reset(new VariablePropertyExpression(std::move(var_).release(),
-                                                     std::move(prop_).release()));
+            arg.reset(new VariablePropertyExpression(var_.release(),
+                                                     prop_.release()));
         } else {
             arg->accept(this);
         }
