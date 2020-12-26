@@ -399,7 +399,6 @@ class TestYield(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_failed(resp, ttypes.ErrorCode.E_SEMANTIC_ERROR)
 
-    # @pytest.mark.skip(reason="TODO : support yield agg func without groupby  (czp)")
     def test_agg_call(self):
         query = '''YIELD COUNT(1), $-.name'''
         resp = self.execute(query)

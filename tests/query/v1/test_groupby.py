@@ -68,7 +68,6 @@ class TestGroupBy(NebulaTestSuite):
         resp = self.execute(stmt)
         self.check_resp_failed(resp)
 
-        # TODO : support yield agg func without groupby  (czp)
         # yield without group by
         stmt = '''GO FROM 'Marco Belinelli' OVER serve YIELD $$.team.name AS name,
                 COUNT(serve._dst) AS id'''

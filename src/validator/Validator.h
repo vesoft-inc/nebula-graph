@@ -137,13 +137,16 @@ protected:
     Status invalidLabelIdentifiers(const Expression* expr) const;
 
 public:
+    // The input columns and output columns of a sentence.
+    ColsDef                         outputs_;
+    ColsDef                         inputs_;
+    ExpressionProps                 exprProps_;
+
+protected:
     SpaceInfo                       space_;
     Sentence*                       sentence_{nullptr};
     QueryContext*                   qctx_{nullptr};
     ValidateContext*                vctx_{nullptr};
-    // The input columns and output columns of a sentence.
-    ColsDef                         outputs_;
-    ColsDef                         inputs_;
     // The variable name of the input node.
     std::string                     inputVarName_;
     // Admin sentences do not requires a space to be chosen.
@@ -152,8 +155,6 @@ public:
     // root and tail of a subplan.
     PlanNode*                       root_{nullptr};
     PlanNode*                       tail_{nullptr};
-
-    ExpressionProps                 exprProps_;
     // user define Variable name list
     std::set<std::string>           userDefinedVarNameList_;
     // vid's Type

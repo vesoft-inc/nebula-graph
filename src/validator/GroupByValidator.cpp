@@ -29,14 +29,7 @@ Status GroupByValidator::validateImpl() {
     }
 
     if (groupKeys_.empty()) {
-        // if (yieldCols_.empty()) {
-        //     // group by *
-        //     auto* star = qctx_->objPool()->add(new ConstantExpression("*"));
-        //     groupKeys_.emplace_back(star);
-        // } else {
-            // implicit group by
-            groupKeys_ = yieldCols_;
-        // }
+        groupKeys_ = yieldCols_;
     } else {
         // check yield non-agg expr
         std::unordered_set<Expression*> groupSet(begin(groupKeys_), end(groupKeys_));
@@ -108,18 +101,29 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         auto colExpr = col->expr();
         // collect exprs for check
         if (colExpr->kind() == Expression::Kind::kAggregate) {
-            auto* agg_expr = static_cast<AggregateExpression*>(colExpr);
-            auto func = agg_expr->name();
+            auto* aggExpr = static_cast<AggregateExpression*>(colExpr);
+            auto func = aggExpr->name();
             if (func) {
                 auto iter = AggregateExpression::nameIdMap_.find(func->c_str());
                 if (iter == AggregateExpression::nameIdMap_.end()) {
                     return Status::SemanticError("Unkown aggregate function `%s`", func->c_str());
                 }
-                if (iter->second != AggregateExpression::Function::kCount &&
-                    agg_expr->arg()->toString() == "*") {
-                    // TODO : support count($-.*) count($var.*)
-                    return Status::SemanticError("`%s` invaild, * valid in count.",
-                                             colExpr->toString().c_str());
+                auto* aggArg = aggExpr->arg();
+                if (iter->second != AggregateExpression::Function::kCount) {
+                    if (aggArg->kind() == Expression::Kind::kInputProperty
+                        || aggArg->kind() == Expression::Kind::kVarProperty) {
+                        auto propExpr = static_cast<PropertyExpression*>(aggArg);
+                        if (*propExpr->prop() == "*") {
+                            return Status::SemanticError(
+                                "Could not apply aggregation function `%s' on `%s'",
+                                aggExpr->toString().c_str(), propExpr->toString().c_str());
+                        }
+                    }
+                    if (aggExpr->arg()->toString() == "*") {
+                        return Status::SemanticError(
+                            "Could not apply aggregation function `%s` on `*`",
+                             aggExpr->toString().c_str());
+                    }
                 }
             }
             yieldAggs_.emplace_back(colExpr);
@@ -169,6 +173,12 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
         return kind < Expression::Kind::kCase;
     };
     for (auto* col : columns) {
+        if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate})
+            || !graph::ExpressionUtils::findAny(col->expr(),
+                                               {Expression::Kind::kInputProperty,
+                                                Expression::Kind::kVarProperty})) {
+            return Status::SemanticError("Group `%s` invalid", col->expr()->toString().c_str());
+        }
         if (!groupByValid(col->expr()->kind())) {
             return Status::SemanticError("Group `%s` invalid", col->expr()->toString().c_str());
         }

@@ -40,7 +40,7 @@ Status YieldValidator::validateImpl() {
     }
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
     if (groupByValidator_) {
-        groupByValidator_->validateImpl();
+        NG_RETURN_IF_ERROR(groupByValidator_->validateImpl());
         inputs_ = groupByValidator_->inputs_;
         outputs_ = groupByValidator_->outputs_;
         exprProps_ = groupByValidator_->exprProps_;
