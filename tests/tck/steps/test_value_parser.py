@@ -5,7 +5,7 @@
 #
 
 from pytest_bdd import (
-    scenarios,
+    scenario,
     given,
     when,
     then,
@@ -17,7 +17,10 @@ from tests.tck.utils.nbv import register_function, parse
 # You could register functions that can be invoked from the parsing text
 register_function('len', len)
 
-scenarios('../features')
+
+@scenario('features/parser/nebula.feature', 'Parsing from text')
+def test_value_parser():
+    pass
 
 
 @given("a string: <format>",
