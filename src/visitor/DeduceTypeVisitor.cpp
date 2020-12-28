@@ -552,6 +552,15 @@ void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
         return;
     }
 
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (!ok()) return;
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (!ok()) return;
+    }
+
     type_ = Value::Type::LIST;
 }
 
