@@ -2,11 +2,12 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@skip
 Feature: Basic match
 
-  Scenario: Uingle node
+  Background:
     Given a graph with space named "nba_int_vid"
+
+  Scenario: Single node
     When executing query:
       """
       MATCH (v:player {name: "Yao Ming"}) RETURN v
@@ -57,7 +58,6 @@ Feature: Basic match
       | 'Tracy McGrady' | 39  |
 
   Scenario: Une step
-    Given a graph with space named "nba_int_vid"
     When executing query:
       """
       MATCH (v1:player{name: "LeBron James"}) -[r]-> (v2) RETURN type(r) AS Type, v2.name AS Name
@@ -155,7 +155,6 @@ Feature: Basic match
       | "Danny Green" | "Tim Duncan"      |
 
   Scenario: two steps
-    Given a graph with space named "nba_int_vid"
     When executing query:
       """
       MATCH (v1:player{age: 28}) -[:like]-> (v2) -[:like]-> (v3)
@@ -184,7 +183,6 @@ Feature: Basic match
       | "Tony Parker" | "Spurs"   | "Dejounte Murray" |
 
   Scenario: Uistinct
-    Given a graph with space named "nba_int_vid"
     When executing query:
       """
       MATCH (:player{name:'Dwyane Wade'}) -[:like]-> () -[:like]-> (v3)
@@ -213,7 +211,6 @@ Feature: Basic match
       | "Ray Allen"       |
 
   Scenario: Order skip limit
-    Given a graph with space named "nba_int_vid"
     When executing query:
       """
       MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
@@ -296,7 +293,6 @@ Feature: Basic match
       | Name | Age |
 
   Scenario: Order by vertex prop
-    Given a graph with space named "nba_int_vid"
     When executing query:
       """
       MATCH (:player{name:'Dejounte Murray'}) -[:like]-> (v)
@@ -306,7 +302,6 @@ Feature: Basic match
     Then a SemanticError should be raised at runtime: Only column name can be used as sort item
 
   Scenario: Oeturn path
-    Given a graph with space named "nba_int_vid"
     When executing query:
       """
       MATCH p = (n:player{name:"Tony Parker"}) return p,n
@@ -362,7 +357,6 @@ Feature: Basic match
       | <("LeBron James")-[:like@0]->("Ray Allen")-[:like@0]->("Rajon Rondo")> |
 
   Scenario: No return
-    Given a graph with space named "nba_int_vid"
     When executing query:
       """
       MATCH (v:player{name:"abc"})
@@ -370,7 +364,6 @@ Feature: Basic match
     Then a SyntaxError should be raised at runtime: syntax error near `)'
 
   Scenario: Unimplemented features
-    Given a graph with space named "nba_int_vid"
     When executing query:
       """
       MATCH (v) return v
