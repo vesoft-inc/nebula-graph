@@ -2,10 +2,8 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-#
 
 from pytest_bdd import (
-    scenario,
     given,
     when,
     then,
@@ -18,13 +16,7 @@ from tests.tck.utils.nbv import register_function, parse
 register_function('len', len)
 
 
-@scenario('features/parser/nebula.feature', 'Parsing from text')
-def test_value_parser():
-    pass
-
-
-@given("a string: <format>",
-       target_fixture="string_table")
+@given("a string: <format>", target_fixture="string_table")
 def string_table(format):
     return dict(text=format)
 
