@@ -30,7 +30,6 @@ private:
     Status validateYield(const YieldClause *yieldClause);
 
 private:
-    // std::vector<Expression*>                         groupCols_;
     std::vector<Expression*>                         yieldCols_;
     std::vector<Expression*>                         yieldAggs_;
 

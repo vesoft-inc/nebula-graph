@@ -66,6 +66,9 @@ private:
 
     void checkExprKind(const Expression*, const Expression*);
 
+    template <typename T>
+    void compareWithSubExprs(T* expr);
+
     bool found_{false};
     // need continue search
     bool continue_{true};

@@ -35,6 +35,9 @@ Status GroupByValidator::validateImpl() {
         std::unordered_set<Expression*> groupSet(begin(groupKeys_), end(groupKeys_));
         FindAnySubExprVisitor groupVisitor(groupSet, true);
         for (auto* expr : yieldCols_) {
+            if (expr->kind() == Expression::Kind::kConstant) {
+                break;
+            }
             expr->accept(&groupVisitor);
             if (!groupVisitor.found()) {
                 return Status::SemanticError("Yield non-agg expression `%s` must be"
@@ -139,7 +142,6 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         if (!rewrited) {
             name = deduceColName(col);
             projCols_->addColumn(new YieldColumn(
-
                 new VariablePropertyExpression(new std::string(),
                                            new std::string(name)),
                 new std::string(colOldName)));
@@ -170,7 +172,17 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
     }
 
     auto groupByValid = [](Expression::Kind kind)->bool {
-        return kind < Expression::Kind::kCase;
+        return std::unordered_set<Expression::Kind>{
+        Expression::Kind::kAdd ,
+        Expression::Kind::kMinus,
+        Expression::Kind::kMultiply,
+        Expression::Kind::kDivision,
+        Expression::Kind::kMod,
+        Expression::Kind::kTypeCasting,
+        Expression::Kind::kFunctionCall,
+        Expression::Kind::kInputProperty,
+        Expression::Kind::kVarProperty,
+        Expression::Kind::kCase }.count(kind);
     };
     for (auto* col : columns) {
         if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate})

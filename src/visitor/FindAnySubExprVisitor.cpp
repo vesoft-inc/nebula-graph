@@ -16,48 +16,21 @@ FindAnySubExprVisitor::FindAnySubExprVisitor(std::unordered_set<Expression*> &su
 }
 
 void FindAnySubExprVisitor::visit(TypeCastingExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<TypeCastingExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<TypeCastingExpression>(expr);
     if (needRecursiveSearch_) {
         expr->operand()->accept(this);
     }
 }
 
 void FindAnySubExprVisitor::visit(UnaryExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<UnaryExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<UnaryExpression>(expr);
     if (needRecursiveSearch_) {
         expr->operand()->accept(this);
     }
 }
 
 void FindAnySubExprVisitor::visit(FunctionCallExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<FunctionCallExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<FunctionCallExpression>(expr);
     if (needRecursiveSearch_) {
         for (const auto &arg : expr->args()->args()) {
             arg->accept(this);
@@ -67,32 +40,14 @@ void FindAnySubExprVisitor::visit(FunctionCallExpression *expr) {
 }
 
 void FindAnySubExprVisitor::visit(AggregateExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<AggregateExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<AggregateExpression>(expr);
     if (needRecursiveSearch_) {
         expr->arg()->accept(this);
     }
 }
 
 void FindAnySubExprVisitor::visit(ListExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<ListExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<ListExpression>(expr);
     if (needRecursiveSearch_) {
         for (const auto &item : expr->items()) {
             item->accept(this);
@@ -102,16 +57,7 @@ void FindAnySubExprVisitor::visit(ListExpression *expr) {
 }
 
 void FindAnySubExprVisitor::visit(SetExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<SetExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<SetExpression>(expr);
     if (needRecursiveSearch_) {
         for (const auto &item : expr->items()) {
             item->accept(this);
@@ -121,16 +67,7 @@ void FindAnySubExprVisitor::visit(SetExpression *expr) {
 }
 
 void FindAnySubExprVisitor::visit(MapExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<MapExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<MapExpression>(expr);
     if (needRecursiveSearch_) {
         for (const auto &pair : expr->items()) {
             pair.second->accept(this);
@@ -140,16 +77,7 @@ void FindAnySubExprVisitor::visit(MapExpression *expr) {
 }
 
 void FindAnySubExprVisitor::visit(CaseExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<CaseExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<CaseExpression>(expr);
     if (needRecursiveSearch_) {
         if (expr->hasCondition()) {
             expr->condition()->accept(this);
@@ -169,250 +97,79 @@ void FindAnySubExprVisitor::visit(CaseExpression *expr) {
 }
 
 void FindAnySubExprVisitor::visit(ConstantExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<ConstantExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<ConstantExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(EdgePropertyExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<EdgePropertyExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<EdgePropertyExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(TagPropertyExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<TagPropertyExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<TagPropertyExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(InputPropertyExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<InputPropertyExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<InputPropertyExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(VariablePropertyExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<VariablePropertyExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<VariablePropertyExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(SourcePropertyExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<SourcePropertyExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<SourcePropertyExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(DestPropertyExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<DestPropertyExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<DestPropertyExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(EdgeSrcIdExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<EdgeSrcIdExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<EdgeSrcIdExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(EdgeTypeExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<EdgeTypeExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<EdgeTypeExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(EdgeRankExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<EdgeRankExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<EdgeRankExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(EdgeDstIdExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<EdgeDstIdExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<EdgeDstIdExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(UUIDExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<UUIDExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<UUIDExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(VariableExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<VariableExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<VariableExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(VersionedVariableExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<VersionedVariableExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<VersionedVariableExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(LabelExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<LabelExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<LabelExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(VertexExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<VertexExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<VertexExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(EdgeExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<EdgeExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<EdgeExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visit(ColumnExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<ColumnExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<ColumnExpression>(expr);
 }
 
 void FindAnySubExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
-    for (Expression* sub : subExprs_) {
-        continue_ = true;
-        checkExprKind(expr, sub);
-        if (found_) return;
-        if (!continue_) continue;
-        if (*static_cast<BinaryExpression*>(sub) == *expr) {
-            found_ = true;
-            return;
-        }
-    }
+    compareWithSubExprs<BinaryExpression>(expr);
     if (needRecursiveSearch_) {
         expr->left()->accept(this);
         if (found_) return;
@@ -428,6 +185,20 @@ void FindAnySubExprVisitor::checkExprKind(const Expression *expr, const Expressi
         continue_ = false;
     } else if (expr->kind() != sub_expr->kind()) {
        continue_ = false;
+    }
+}
+
+template <typename T>
+void FindAnySubExprVisitor::compareWithSubExprs(T* expr) {
+    for (Expression* sub : subExprs_) {
+        continue_ = true;
+        checkExprKind(expr, sub);
+        if (found_) return;
+        if (!continue_) continue;
+        if (*static_cast<T*>(sub) == *expr) {
+            found_ = true;
+            return;
+        }
     }
 }
 

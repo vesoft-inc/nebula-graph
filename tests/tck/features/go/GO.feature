@@ -1587,12 +1587,11 @@ Feature: Go Sentence
   Scenario: GroupBy and Count
     When executing query:
       """
-      GO 1 TO 2 STEPS FROM "Tim Duncan" OVER like WHERE like._dst != "YAO MING" YIELD like._dst AS vid
-      | GROUP BY $-.vid YIELD 1 AS id | GROUP BY $-.id YIELD COUNT($-.id);
+      GO 1 TO 2 STEPS FROM "Tim Duncan" OVER like WHERE like._dst != "YAO MING" YIELD like._dst AS vid | GROUP BY $-.vid YIELD $-.vid, 1 AS id | GROUP BY $-.id YIELD $-.id, COUNT($-.id);
       """
     Then the result should be, in any order, with relax comparison:
-      | COUNT($-.id) |
-      | 4            |
+      | $-.id | COUNT($-.id) |
+      | 1     | 4            |
 
   Scenario: Bugfix filter not pushdown
     When executing query:

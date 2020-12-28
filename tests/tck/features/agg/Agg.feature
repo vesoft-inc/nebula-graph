@@ -1,4 +1,3 @@
-@czp
 Feature: Basic Agg and GroupBy
 
   Background:
@@ -41,32 +40,32 @@ Feature: Basic Agg and GroupBy
       """
     Then the result should be, in any order, with relax comparison:
       | dst             | age |
-      | "Tony Parker"   | 36  |
-      | "Manu Ginobili" | 41  |
+      | "Tony Parker"   | 36.0  |
+      | "Manu Ginobili" | 41.0  |
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY $-.dst YIELD $-.dst AS dst, avg(distinct $-.age) AS age
       """
     Then the result should be, in any order, with relax comparison:
       | dst             | age |
-      | "Tony Parker"   | 36  |
-      | "Manu Ginobili" | 41  |
+      | "Tony Parker"   | 36.0  |
+      | "Manu Ginobili" | 41.0  |
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY $-.dst YIELD $-.dst AS dst, avg(distinct $-.age) AS age
       """
     Then the result should be, in any order, with relax comparison:
       | dst             | age |
-      | "Tony Parker"   | 36  |
-      | "Manu Ginobili" | 41  |
+      | "Tony Parker"   | 36.0  |
+      | "Manu Ginobili" | 41.0  |
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age; YIELD $var.dst AS dst, avg(distinct $var.age) AS age
       """
     Then the result should be, in any order, with relax comparison:
       | dst             | age |
-      | "Tony Parker"   | 36  |
-      | "Manu Ginobili" | 41  |
+      | "Tony Parker"   | 36.0  |
+      | "Manu Ginobili" | 41.0  |
 
   Scenario: Implicit GroupBy
     When executing query:
@@ -75,8 +74,8 @@ Feature: Basic Agg and GroupBy
       """
     Then the result should be, in any order, with relax comparison:
       | dst             | age |
-      | "Tony Parker"   | 37  |
-      | "Manu Ginobili" | 42  |
+      | "Tony Parker"   | 37.0  |
+      | "Manu Ginobili" | 42.0  |
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age;YIELD $var.dst AS dst, (INT)abs(1+avg(distinct $var.age)) AS age
