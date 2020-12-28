@@ -12,6 +12,12 @@ gherkin_fmt = ~/.local/bin/reformat-gherkin
 RM_DIR ?= true
 TEST_DIR ?= $(CURR_DIR)
 
+ifeq ($(ASAN), false)
+	NUM_THREADS=8
+else
+	NUM_THREADS=4
+endif
+
 install-deps:
 	pip3 install --user -U setuptools wheel -i $(PYPI_MIRROR)
 	pip3 install --user -r $(CURR_DIR)/requirements.txt -i $(PYPI_MIRROR)
@@ -39,7 +45,7 @@ check:
 	@find $(CURR_DIR)/tck/features -type f -iname "*.feature" -print | xargs $(gherkin_fmt) --check
 
 test:
-	cd $(CURR_DIR) && python3 -m pytest -n8 --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" $(TEST_DIR)
+	cd $(CURR_DIR) && python3 -m pytest -n$(NUM_THREADS) --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" $(TEST_DIR)
 
 tck:
 	cd $(CURR_DIR) && python3 -m pytest --gherkin-terminal-reporter --gherkin-terminal-reporter-expanded --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/

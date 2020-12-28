@@ -78,6 +78,7 @@ jobs:
           repository: ${{ github.repository_owner }}/nebula-storage
           path: modules/storage
       - name: CMake
+        id: cmake
         run: |
           case ${{ matrix.compiler }} in
           gcc-*)
@@ -91,6 +92,7 @@ jobs:
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
                   -B build
+              echo "::set-output name=asan::false"
               ;;
             ubuntu1804)
               # build with Debug type
@@ -101,6 +103,7 @@ jobs:
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
                   -B build
+              echo "::set-output name=asan::false"
               ;;
             esac
             ;;
@@ -114,6 +117,7 @@ jobs:
                 -DENABLE_TESTING=on \
                 -DENABLE_BUILD_STORAGE=on \
                 -B build
+            echo "::set-output name=asan::true"
             ;;
           esac
       - name: Make graph
@@ -124,11 +128,13 @@ jobs:
         run: ctest -j $(($(nproc)/2+1)) --timeout 400 --output-on-failure
         working-directory: build/
         timeout-minutes: 15
-      - name: Pytest
+      - name: Pytest and Sanitizer
         env:
           NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: make RM_DIR=false -C tests test
-        timeout-minutes: 25
+        run: |
+          make RM_DIR=false ASAN=${{ steps.cmake.outputs.asan }} -C tests test
+          exit $(grep -P "SUMMARY: AddressSanitizer: \d+ byte\(s\) leaked in \d+ allocation\(s\)\." build/server_*/logs/stderr.log | wc -l)
+        timeout-minutes: 15
       - name: Upload logs
         uses: actions/upload-artifact@v2
         if: ${{ failure() }}
