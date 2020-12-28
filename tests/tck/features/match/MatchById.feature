@@ -2,56 +2,55 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@match
-Feature: Integer Vid match by id
+Feature: Match By Id
 
   Background:
-    Given a graph with space named "nba_int_vid"
+    Given a graph with space named "nba"
 
-  Scenario: Integer Vid single node
+  Scenario: single node
     When executing query:
       """
-      MATCH (n) WHERE id(n) == hash('James Harden') RETURN n
+      MATCH (n) WHERE id(n) == 'James Harden' RETURN n
       """
     Then the result should be, in any order, with relax comparison:
       | n                |
       | ("James Harden") |
     When executing query:
       """
-      MATCH (n) WHERE id(n) == hash('not_exist_vertex') RETURN n
+      MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN n
       """
     Then the result should be, in any order, with relax comparison:
       | n |
     When executing query:
       """
-      MATCH (n) WHERE id(n) == hash('not_exist_vertex') RETURN id(n)
+      MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN id(n)
       """
     Then the result should be, in any order, with relax comparison:
       | id(n) |
     When executing query:
       """
-      MATCH (n) WHERE id(n) == hash('Tony Parker') RETURN id(n), labels(n)
+      MATCH (n) WHERE id(n) == 'Tony Parker' RETURN id(n), labels(n)
       """
     Then the result should be, in any order, with relax comparison:
-      | id(n)               | labels(n)  |
-      | hash('Tony Parker') | ['player'] |
+      | id(n)         | labels(n)  |
+      | 'Tony Parker' | ['player'] |
     When executing query:
       """
-      MATCH (n) WHERE id(n) == hash('not_exist_vertex') RETURN labels(n)
+      MATCH (n) WHERE id(n) == 'not_exist_vertex' RETURN labels(n)
       """
     Then the result should be, in any order, with relax comparison:
       | labels(n) |
 
-  Scenario: Integer Vid multi node
+  Scenario: multi node
     When executing query:
       """
-      MATCH (n) WHERE id(n) IN [hash('not_exist_vertex')] return n
+      MATCH (n) WHERE id(n) IN ['not_exist_vertex'] return n
       """
     Then the result should be, in any order, with relax comparison:
       | n |
     When executing query:
       """
-      MATCH (n) WHERE id(n) IN [hash('LaMarcus Aldridge'), hash('Tony Parker')] return n
+      MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker'] return n
       """
     Then the result should be, in any order, with relax comparison:
       | n                     |
@@ -59,7 +58,7 @@ Feature: Integer Vid match by id
       | ("Tony Parker")       |
     When executing query:
       """
-      MATCH (n) WHERE id(n) IN [hash('LaMarcus Aldridge'), hash('Tony Parker'), hash('not_exist_vertex')] return n
+      MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex'] return n
       """
     Then the result should be, in any order, with relax comparison:
       | n                     |
@@ -67,24 +66,24 @@ Feature: Integer Vid match by id
       | ("Tony Parker")       |
     When executing query:
       """
-      MATCH (n) WHERE id(n) IN [hash('LaMarcus Aldridge'), hash('Tony Parker'), hash('not_exist_vertex')] return id(n)
+      MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex'] return id(n)
       """
     Then the result should be, in any order, with relax comparison:
-      | id(n)                     |
-      | hash("LaMarcus Aldridge") |
-      | hash("Tony Parker")       |
+      | id(n)               |
+      | "LaMarcus Aldridge" |
+      | "Tony Parker"       |
     When executing query:
       """
-      MATCH (n) WHERE id(n) IN [hash('LaMarcus Aldridge'), hash('Tony Parker'), hash('not_exist_vertex')]
+      MATCH (n) WHERE id(n) IN ['LaMarcus Aldridge', 'Tony Parker', 'not_exist_vertex']
       return id(n), `tags`(n)
       """
     Then the result should be, in any order, with relax comparison:
-      | id(n)                     | tags(n)    |
-      | hash("LaMarcus Aldridge") | ['player'] |
-      | hash("Tony Parker")       | ['player'] |
+      | id(n)               | tags(n)    |
+      | "LaMarcus Aldridge" | ['player'] |
+      | "Tony Parker"       | ['player'] |
     When executing query:
       """
-      MATCH (start)-[e]-(end) WHERE id(start) IN [hash("Paul George"), hash("not_exist_vertex")]
+      MATCH (start)-[e]-(end) WHERE id(start) IN ["Paul George", "not_exist_vertex"]
       RETURN *
       """
     Then the result should be, in any order, with relax comparison:
@@ -93,11 +92,11 @@ Feature: Integer Vid match by id
       | ("Paul George") | [:serve "Paul George"->"Pacers"]           | ("Pacers")            |
       | ("Paul George") | [:serve "Paul George"->"Thunders"]         | ("Thunders")          |
 
-  Scenario: Integer Vid one step
+  Scenario: one step
     When executing query:
       """
       MATCH (v1) -[r]-> (v2)
-      WHERE id(v1) == hash("LeBron James")
+      WHERE id(v1) == "LeBron James"
       RETURN type(r) AS Type, v2.name AS Name
       """
     Then the result should be, in any order, with relax comparison:
@@ -110,7 +109,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[r:serve|:like]-> (v2)
-      WHERE id(v1) == hash("LeBron James")
+      WHERE id(v1) == "LeBron James"
       RETURN type(r) AS Type, v2.name AS Name
       """
     Then the result should be, in any order, with relax comparison:
@@ -123,7 +122,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[r:serve]-> (v2)
-      WHERE id(v1) == hash("LeBron James")
+      WHERE id(v1) == "LeBron James"
       RETURN type(r) AS Type, v2.name AS Name
       """
     Then the result should be, in any order, with relax comparison:
@@ -135,7 +134,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[r:serve]-> (v2 {name: "Cavaliers"})
-      WHERE id(v1) == hash("LeBron James")
+      WHERE id(v1) == "LeBron James"
       RETURN type(r) AS Type, v2.name AS Name
       """
     Then the result should be, in any order, with relax comparison:
@@ -145,7 +144,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]-> (v2)
-      WHERE id(v1) == hash("Danny Green")
+      WHERE id(v1) == "Danny Green"
       RETURN v1.name AS Name, v2.name AS Friend
       """
     Then the result should be, in any order, with relax comparison:
@@ -156,7 +155,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) <-[:like]- (v2)
-      WHERE id(v1) == hash("Danny Green")
+      WHERE id(v1) == "Danny Green"
       RETURN v1.name AS Name, v2.name AS Friend
       """
     Then the result should be, in any order, with relax comparison:
@@ -166,7 +165,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) <-[:like]-> (v2)
-      WHERE id(v1) == hash("Danny Green")
+      WHERE id(v1) == "Danny Green"
       RETURN v1.name AS Name, v2.name AS Friend
       """
     Then the result should be, in any order, with relax comparison:
@@ -179,7 +178,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]- (v2)
-      WHERE id(v1) == hash("Danny Green")
+      WHERE id(v1) == "Danny Green"
       RETURN v1.name AS Name, v2.name AS Friend
       """
     Then the result should be, in any order, with relax comparison:
@@ -190,11 +189,11 @@ Feature: Integer Vid match by id
       | 'Danny Green' | 'Marco Belinelli' |
       | 'Danny Green' | 'Tim Duncan'      |
 
-  Scenario: Integer Vid two steps
+  Scenario: two steps
     When executing query:
       """
       MATCH (v1) -[:like]-> (v2) -[:like]-> (v3)
-      WHERE id(v1) == hash("Tim Duncan")
+      WHERE id(v1) == "Tim Duncan"
       RETURN v1.name AS Player, v2.name AS Friend, v3.name AS FoF
       """
     Then the result should be, in any order, with relax comparison:
@@ -204,11 +203,11 @@ Feature: Integer Vid match by id
       | 'Tim Duncan' | 'Tony Parker'   | 'Manu Ginobili'     |
       | 'Tim Duncan' | 'Tony Parker'   | 'Tim Duncan'        |
 
-  Scenario: Integer Vid distinct
+  Scenario: distinct
     When executing query:
       """
       MATCH (v1) -[:like]-> () -[:like]-> (v3)
-      WHERE id(v1) == hash('Dwyane Wade')
+      WHERE id(v1) == 'Dwyane Wade'
       RETURN v3.name AS Name
       """
     Then the result should be, in any order, with relax comparison:
@@ -223,7 +222,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]-> () -[:like]-> (v3)
-      WHERE id(v1) == hash('Dwyane Wade')
+      WHERE id(v1) == 'Dwyane Wade'
       RETURN DISTINCT v3.name AS Name
       """
     Then the result should be, in any order, with relax comparison:
@@ -234,11 +233,11 @@ Feature: Integer Vid match by id
       | 'Chris Paul'      |
       | 'Ray Allen'       |
 
-  Scenario: Integer Vid order skip limit
+  Scenario: order skip limit
     When executing query:
       """
       MATCH (v1) -[:like]-> (v)
-      WHERE id(v1) == hash('Dejounte Murray')
+      WHERE id(v1) == 'Dejounte Murray'
       RETURN v.name AS Name, v.age AS Age
       ORDER BY Age DESC, Name ASC
       """
@@ -258,7 +257,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]-> (v)
-      WHERE id(v1) == hash('Dejounte Murray')
+      WHERE id(v1) == 'Dejounte Murray'
       RETURN v.name AS Name, v.age AS Age
       ORDER BY Age DESC, Name ASC
       LIMIT 3
@@ -271,7 +270,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]-> (v)
-      WHERE id(v1) == hash('Dejounte Murray')
+      WHERE id(v1) == 'Dejounte Murray'
       RETURN v.name AS Name, v.age AS Age
       ORDER BY Age DESC, Name ASC
       SKIP 3
@@ -289,7 +288,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]-> (v)
-      WHERE id(v1) == hash('Dejounte Murray')
+      WHERE id(v1) == 'Dejounte Murray'
       RETURN v.name AS Name, v.age AS Age
       ORDER BY Age DESC, Name ASC
       SKIP 3
@@ -303,7 +302,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]-> (v)
-      WHERE id(v1) == hash('Dejounte Murray')
+      WHERE id(v1) == 'Dejounte Murray'
       RETURN v.name AS Name, v.age AS Age
       ORDER BY Age DESC, Name ASC
       SKIP 11
@@ -314,7 +313,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]-> (v)
-      WHERE id(v1) == hash('Dejounte Murray')
+      WHERE id(v1) == 'Dejounte Murray'
       RETURN v.name AS Name, v.age AS Age
       ORDER BY Age DESC, Name ASC
       LIMIT 0
@@ -324,27 +323,27 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (v1) -[:like]-> (v)
-      WHERE id(v1) == hash('Dejounte Murray')
+      WHERE id(v1) == 'Dejounte Murray'
       RETURN v.name AS Name, v.age AS Age
       ORDER BY v.age DESC, v.name ASC
       LIMIT 0
       """
     Then a SemanticError should be raised at runtime: Only column name can be used as sort item
 
-  Scenario: Integer Vid return path
-    # When executing query:
-    # """
-    # MATCH p = (n)
-    # WHERE id(n) == hash("Tony Parker")
-    # RETURN p,n
-    # """
-    # Then the result should be, in any order, with relax comparison:
-    # | p                 | n               |
-    # | <("Tony Parker")> | ("Tony Parker") |
+  Scenario: return path
+    When executing query:
+      """
+      MATCH p = (n)
+      WHERE id(n) == "Tony Parker"
+      RETURN p,n
+      """
+    Then the result should be, in any order, with relax comparison:
+      | p                 | n               |
+      | <("Tony Parker")> | ("Tony Parker") |
     When executing query:
       """
       MATCH p = (n)-[:like]->(m)
-      WHERE id(n) == hash("LeBron James")
+      WHERE id(n) == "LeBron James"
       RETURN p, n.name, m.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -353,7 +352,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH p = (n)<-[:like]-(m)
-      WHERE id(n) == hash("LeBron James")
+      WHERE id(n) == "LeBron James"
       RETURN p, n.name, m.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -367,7 +366,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH p = (n)-[:like]-(m)
-      WHERE id(n) == hash("LeBron James")
+      WHERE id(n) == "LeBron James"
       RETURN p, n.name, m.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -382,7 +381,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH p = (n)-[:like]->(m)-[:like]->(k)
-      WHERE id(n) == hash("LeBron James")
+      WHERE id(n) == "LeBron James"
       RETURN p, n.name, m.name, k.name
       """
     Then the result should be, in any order, with relax comparison:
@@ -391,18 +390,18 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH p = (n)-[:like]->()-[:like]->()
-      WHERE id(n) == hash("LeBron James")
+      WHERE id(n) == "LeBron James"
       RETURN *
       """
     Then the result should be, in any order, with relax comparison:
       | n                | p                                                                  |
       | ("LeBron James") | <("LeBron James")-[:like]->("Ray Allen")-[:like]->("Rajon Rondo")> |
 
-  Scenario: Integer Vid hops m to n
+  Scenario: hops m to n
     When executing query:
       """
       MATCH (n)-[e:serve*2..3{start_year: 2000}]-(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -410,7 +409,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:like*2..3{likeness: 90}]-(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -419,7 +418,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:serve*2..3{start_year: 2000}]->(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -427,7 +426,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:like*2..3{likeness: 90}]->(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -435,7 +434,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)<-[e:like*2..3{likeness: 90}]-(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -444,7 +443,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:serve*2..3]-(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -517,7 +516,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:serve*2..3]->(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -525,7 +524,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:like*2..3]->(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -542,7 +541,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:like*2..3]-(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -842,7 +841,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:like*2..3{likeness: 90}]-(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -851,7 +850,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:serve*2..3{start_year: 2000}]-(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -859,17 +858,17 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:serve|like*2..3{likeness: 90}]->(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
       | e | v |
 
-  Scenario: Integer Vid prop limit
+  Scenario: prop limit
     When executing query:
       """
       MATCH (n)-[e:serve|like*2..3{likeness: 90}]-(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -878,7 +877,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (n)-[e:serve|like*2..3]->(v)
-      WHERE id(n) == hash("Tim Duncan")
+      WHERE id(n) == "Tim Duncan"
       RETURN e, v
       """
     Then the result should be, in any order, with relax comparison:
@@ -901,11 +900,11 @@ Feature: Integer Vid match by id
       | [[:like "Tim Duncan"->"Tony Parker"@0],[:like "Tony Parker"->"Manu Ginobili"@0]]                                                     | ("Manu Ginobili")     |
       | [[:like "Tim Duncan"->"Tony Parker"@0],[:like "Tony Parker"->"Tim Duncan"@0]]                                                        | ("Tim Duncan")        |
 
-  Scenario: Integer Vid count
+  Scenario: count
     When executing query:
       """
       MATCH (:player{name: "Tim Duncan"})-[e:like*2..3]-(v)
-      RETURN 1 | YIELD COUNT(1)
+      RETURN 1 | YIELD count(1)
       """
     Then the result should be, in any order, with relax comparison:
       | COUNT(1) |
@@ -913,7 +912,7 @@ Feature: Integer Vid match by id
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:serve|like*2..3]-(v)
-      RETURN 1 | YIELD COUNT(1)
+      RETURN 1 | YIELD count(1)
       """
     Then the result should be, in any order, with relax comparison:
       | COUNT(1) |
