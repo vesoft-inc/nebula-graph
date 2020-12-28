@@ -103,8 +103,7 @@ DeduceTypeVisitor::DeduceTypeVisitor(QueryContext *qctx,
     DCHECK(vctx != nullptr);
     // stand alone YIELD queries can be run without a space
     if (!vctx->spaceChosen()) {
-        auto defaultType = nebula::meta::cpp2::PropertyType::STRING;
-        vidType_ = SchemaUtil::propTypeToValueType(defaultType);
+        vidType_ = Value::Type::__EMPTY__;
     } else {
         auto vidType = vctx_->whichSpace().spaceDesc.vid_type.get_type();
         vidType_ = SchemaUtil::propTypeToValueType(vidType);
