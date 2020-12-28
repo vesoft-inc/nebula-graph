@@ -128,14 +128,15 @@ jobs:
         run: ctest -j $(($(nproc)/2+1)) --timeout 400 --output-on-failure
         working-directory: build/
         timeout-minutes: 15
-      - name: Pytest and Sanitizer
+      - name: Pytest
         env:
           NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
+        run: make RM_DIR=false ASAN=${{ steps.cmake.outputs.asan }} -C tests test
+        timeout-minutes: 15
+      - name: Sanitizer
         run: |
-          make RM_DIR=false ASAN=${{ steps.cmake.outputs.asan }} -C tests test
           res=$(grep -P "SUMMARY: AddressSanitizer: \d+ byte\(s\) leaked in \d+ allocation\(s\)\." build/server_*/logs/stderr.log | wc -l)
           if [[ x"$res" != x"0" ]]; then echo "There some sanitizer errors, please lookup the stderr.log!"; exit 1; fi
-        timeout-minutes: 15
       - name: Upload logs
         uses: actions/upload-artifact@v2
         if: ${{ failure() }}
