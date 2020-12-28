@@ -244,9 +244,9 @@ void VidExtractVisitor::visit(LogicalExpression *expr) {
                 }
             }
         }
-        if (inOperandsResult.size() < 1) {
+        if (inOperandsResult.empty()) {
             // noting
-        } else if (inOperandsResult.size() < 2) {
+        } else if (inOperandsResult.size() == 1) {
             inResult.nodes.emplace(std::move(inOperandsResult.front()));
         } else {
             inResult = intersect(std::move(inOperandsResult[0]), std::move(inOperandsResult[1]));
