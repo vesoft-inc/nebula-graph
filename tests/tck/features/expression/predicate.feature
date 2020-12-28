@@ -3,7 +3,7 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 @jie
-Feature: ListComprehension
+Feature: Predicate
 
   Scenario: yield a predicate
     Given a graph with space named "nba"
@@ -50,7 +50,7 @@ Feature: ListComprehension
       | "Manu Ginobili"     | 95       |
       | "Tim Duncan"        | 95       |
 
-  Scenario: Using a list comprehension in a MATCH
+  Scenario: use a predicate in MATCH
     Given a graph with space named "nba"
     When executing query:
       """
