@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: IntegerVid Go  Sentence
 
-  Background: Prepare space
+  Background:
     Given a graph with space named "nba_int_vid"
 
   Scenario: Integer Vid one step
@@ -1593,3 +1593,13 @@ Feature: IntegerVid Go  Sentence
     Then the result should be, in any order, with relax comparison:
       | COUNT($-.id) |
       | 4            |
+
+  @skip
+  Scenario: Integer Vid Bugfix filter not pushdown
+    When executing query:
+      """
+      GO FROM hash("Tim Duncan") OVER like WHERE like._dst == hash("Tony Parker") | limit 10;
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst           |
+      | hash("Tony Parker") |
