@@ -66,11 +66,18 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
     ctx->setRunner(getThreadManager());
     auto future = ctx->future();
     {
+        // When the sessionId is 0, it means the clients to ping the connection is ok
+        if (sessionId == 0) {
+            ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
+            ctx->resp().errorMsg = std::make_unique<std::string>("The Session id is not valid");
+            ctx->finish();
+            return future;
+        }
         auto result = sessionManager_->findSession(sessionId);
         if (!result.ok()) {
             FLOG_ERROR("Session not found, id[%ld]", sessionId);
             ctx->resp().errorCode = ErrorCode::E_SESSION_INVALID;
-            // ctx->resp().set_error_msg(result.status().toString());
+            ctx->resp().errorMsg = std::make_unique<std::string>(result.status().toString());
             ctx->finish();
             return future;
         }
@@ -84,35 +91,37 @@ GraphService::future_execute(int64_t sessionId, const std::string& query) {
 
 const char* GraphService::getErrorStr(ErrorCode result) {
     switch (result) {
-    case ErrorCode::SUCCEEDED:
-        return "Succeeded";
-    /**********************
-     * Server side errors
-     **********************/
-    case ErrorCode::E_BAD_USERNAME_PASSWORD:
-        return "Bad username/password";
-    case ErrorCode::E_SESSION_INVALID:
-        return "The session is invalid";
-    case ErrorCode::E_SESSION_TIMEOUT:
-        return "The session timed out";
-    case ErrorCode::E_SYNTAX_ERROR:
-        return "Syntax error";
-    case ErrorCode::E_SEMANTIC_ERROR:
-        return "Semantic error";
-    case ErrorCode::E_STATEMENT_EMPTY:
-        return "Statement empty";
-    case ErrorCode::E_EXECUTION_ERROR:
-        return "Execution error";
-    case ErrorCode::E_RPC_FAILURE:
-        return "RPC failure";
-    case ErrorCode::E_DISCONNECTED:
-        return "Disconnected";
-    case ErrorCode::E_FAIL_TO_CONNECT:
-        return "Fail to connect";
-    case ErrorCode::E_BAD_PERMISSION:
-        return "Bad permission";
-    case ErrorCode::E_USER_NOT_FOUND:
-        return "User not found";
+        case ErrorCode::SUCCEEDED:
+            return "Succeeded";
+        /**********************
+         * Server side errors
+         **********************/
+        case ErrorCode::E_BAD_USERNAME_PASSWORD:
+            return "Bad username/password";
+        case ErrorCode::E_SESSION_INVALID:
+            return "The session is invalid";
+        case ErrorCode::E_SESSION_TIMEOUT:
+            return "The session timed out";
+        case ErrorCode::E_SYNTAX_ERROR:
+            return "Syntax error";
+        case ErrorCode::E_SEMANTIC_ERROR:
+            return "Semantic error";
+        case ErrorCode::E_STATEMENT_EMPTY:
+            return "Statement empty";
+        case ErrorCode::E_EXECUTION_ERROR:
+            return "Execution error";
+        case ErrorCode::E_RPC_FAILURE:
+            return "RPC failure";
+        case ErrorCode::E_DISCONNECTED:
+            return "Disconnected";
+        case ErrorCode::E_FAIL_TO_CONNECT:
+            return "Fail to connect";
+        case ErrorCode::E_BAD_PERMISSION:
+            return "Bad permission";
+        case ErrorCode::E_USER_NOT_FOUND:
+            return "User not found";
+        case ErrorCode::E_TOO_MANY_CONNECTIONS:
+            return "Too many connections";
     }
     /**********************
      * Unknown error

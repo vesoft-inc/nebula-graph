@@ -26,11 +26,13 @@ class DataSetComparator:
                  strict=True,
                  order=False,
                  included=False,
-                 decode_type: str = 'utf-8'):
+                 decode_type: str = 'utf-8',
+                 vid_fn=None):
         self._strict = strict
         self._order = order
         self._included = included
         self._decode_type = decode_type
+        self._vid_fn = vid_fn
 
     def __call__(self, resp: DataSet, expect: DataSet):
         return self.compare(resp, expect)
@@ -43,20 +45,23 @@ class DataSetComparator:
 
     def compare(self, resp: DataSet, expect: DataSet):
         if all(x is None for x in [expect, resp]):
-            return True
+            return True, None
         if None in [expect, resp]:
-            return False
+            return False, -1
         if len(resp.rows) < len(expect.rows):
-            return False
+            return False, -1
         if len(resp.column_names) != len(expect.column_names):
-            return False
+            return False, -1
         for (ln, rn) in zip(resp.column_names, expect.column_names):
             if ln != self.bstr(rn):
-                return False
+                return False, -2
         if self._order:
-            return all(
-                self.compare_row(l, r)
-                for (l, r) in zip(resp.rows, expect.rows))
+            for i in range(0, len(expect.rows)):
+                if not self.compare_row(resp.rows[i], expect.rows[i]):
+                    return False, i
+            if self._included:
+                return True, None
+            return len(resp.rows) == len(expect.rows), -1
         return self._compare_list(resp.rows, expect.rows, self.compare_row,
                                   self._included)
 
@@ -130,7 +135,8 @@ class DataSetComparator:
                 return False
             lvals = lhs.get_uVal().values
             rvals = rhs.get_uVal().values
-            return self._compare_list(lvals, rvals, self.compare_value)
+            res, _ = self._compare_list(lvals, rvals, self.compare_value)
+            return res
         if lhs.getType() == Value.MVAL:
             if not rhs.getType() == Value.MVAL:
                 return False
@@ -152,6 +158,8 @@ class DataSetComparator:
         return False
 
     def compare_path(self, lhs: Path, rhs: Path):
+        if rhs.steps is None or len(rhs.steps) == 0:
+            return self.compare_node(lhs.src, rhs.src)
         if len(lhs.steps) != len(rhs.steps):
             return False
         lsrc, rsrc = lhs.src, rhs.src
@@ -202,14 +210,16 @@ class DataSetComparator:
             if not lhs.ranking == rhs.ranking:
                 return False
             rsrc, rdst = self.eid(rhs, lhs.type)
-            if lhs.src != rsrc or lhs.dst != rdst:
+            if not (self.compare_vid(lhs.src, rsrc)
+                    and self.compare_vid(lhs.dst, rdst)):
                 return False
             if rhs.props is None or len(lhs.props) != len(rhs.props):
                 return False
         else:
             if rhs.src is not None and rhs.dst is not None:
                 rsrc, rdst = self.eid(rhs, lhs.type)
-                if lhs.src != rsrc or lhs.dst != rdst:
+                if not (self.compare_vid(lhs.src, rsrc)
+                        and self.compare_vid(lhs.dst, rdst)):
                     return False
             if rhs.ranking is not None:
                 if lhs.ranking != rhs.ranking:
@@ -224,18 +234,46 @@ class DataSetComparator:
     def bstr(self, vid) -> bytes:
         return self.b(vid) if type(vid) == str else vid
 
+    def _compare_vid(
+            self,
+            lid: Union[int, bytes],
+            rid: Union[int, bytes, str],
+    ) -> bool:
+        if type(lid) is bytes:
+            return type(rid) in [str, bytes] and lid == self.bstr(rid)
+        if type(lid) is int:
+            if type(rid) is int:
+                return lid == rid
+            if type(rid) not in [str, bytes] or self._vid_fn is None:
+                return False
+            return lid == self._vid_fn(rid)
+        return False
+
+    def compare_vid(self, lid: Value, rid: Value) -> bool:
+        if lid.getType() == Value.IVAL:
+            if rid.getType() == Value.IVAL:
+                return self._compare_vid(lid.get_iVal(), rid.get_iVal())
+            if rid.getType() == Value.SVAL:
+                return self._compare_vid(lid.get_iVal(), rid.get_sVal())
+            return False
+        if lid.getType() == Value.SVAL:
+            if rid.getType() == Value.SVAL:
+                return self._compare_vid(lid.get_sVal(), rid.get_sVal())
+            return False
+        return False
+
     def compare_node(self, lhs: Vertex, rhs: Vertex):
         rtags = []
         if self._strict:
             assert rhs.vid is not None
-            if not lhs.vid == self.bstr(rhs.vid):
+            if not self.compare_vid(lhs.vid, rhs.vid):
                 return False
             if rhs.tags is None or len(lhs.tags) != len(rhs.tags):
                 return False
             rtags = rhs.tags
         else:
             if rhs.vid is not None:
-                if not lhs.vid == self.bstr(rhs.vid):
+                if not self.compare_vid(lhs.vid, rhs.vid):
                     return False
             if rhs.tags is not None and len(lhs.tags) < len(rhs.tags):
                 return False
@@ -256,20 +294,29 @@ class DataSetComparator:
                 return False
         return True
 
+    def _get_map_value_by_key(self, key: bytes,
+                             kv: Dict[Union[str, bytes], Value]):
+        for k, v in kv.items():
+            if key == self.bstr(k):
+                return True, v
+        return False, None
+
     def compare_map(self, lhs: Dict[bytes, Value], rhs: KV):
         if len(lhs) != len(rhs):
             return False
         for lkey, lvalue in lhs.items():
-            if lkey not in rhs:
+            found, rvalue = self._get_map_value_by_key(lkey, rhs)
+            if not found:
                 return False
-            rvalue = rhs[lkey]
             if not self.compare_value(lvalue, rvalue):
                 return False
         return True
 
     def compare_list(self, lhs: List[Value], rhs: List[Value]):
-        return len(lhs) == len(rhs) and \
-            self._compare_list(lhs, rhs, self.compare_value)
+        if len(lhs) != len(rhs):
+            return False
+        res, _ = self._compare_list(lhs, rhs, self.compare_value)
+        return res
 
     def compare_row(self, lhs: Row, rhs: Row):
         if not len(lhs.values) == len(rhs.values):
@@ -279,7 +326,7 @@ class DataSetComparator:
 
     def _compare_list(self, lhs, rhs, cmp_fn, included=False):
         visited = []
-        for rr in rhs:
+        for j, rr in enumerate(rhs):
             found = False
             for i, lr in enumerate(lhs):
                 if i not in visited and cmp_fn(lr, rr):
@@ -287,8 +334,8 @@ class DataSetComparator:
                     found = True
                     break
             if not found:
-                return False
+                return False, j
         size = len(lhs)
         if included:
-            return len(visited) <= size
-        return len(visited) == size
+            return len(visited) <= size, -1
+        return len(visited) == size, -1
