@@ -121,7 +121,10 @@ jobs:
             ;;
           esac
       - name: Make graph
-        run: cmake --build build/ -j $(nproc)
+        run: |
+          ccache -s
+          cmake --build build/ -j $(nproc)
+          ccache -s
       - name: CTest
         env:
           ASAN_OPTIONS: fast_unwind_on_malloc=1
