@@ -253,7 +253,7 @@ Status MatchClausePlanner::expandFromEdge(const std::vector<NodeInfo>& nodeInfos
     UNUSED(matchClauseCtx);
     UNUSED(startIndex);
     UNUSED(subplan);
-    return Status::Error("Expand from node has not been implemented yet.");
+    return Status::Error("Expand from edge has not been implemented yet.");
 }
 
 Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
