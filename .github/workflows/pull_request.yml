@@ -53,10 +53,10 @@ jobs:
       env:
         TOOLSET_DIR: /opt/vesoft/toolset/clang/9.0.0
         CCACHE_DIR: /tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}
-        CCACHE_MAXSIZE: 1G
+        CCACHE_MAXSIZE: 8G
       volumes:
         - /tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}:/tmp/ccache/nebula-graph/${{ matrix.os }}-${{ matrix.compiler }}
-      options: --mount type=tmpfs,destination=/tmp/ccache/nebula-graph,tmpfs-size=1073741824 --cap-add=SYS_PTRACE
+      options: --cap-add=SYS_PTRACE
     steps:
       - name: Cleanup
         if: ${{ always() }}
@@ -139,7 +139,11 @@ jobs:
       - name: Sanitizer
         run: |
           res=$(grep -P "SUMMARY: AddressSanitizer: \d+ byte\(s\) leaked in \d+ allocation\(s\)\." build/server_*/logs/stderr.log | wc -l)
-          if [[ x"$res" != x"0" ]]; then echo "There some sanitizer errors, please lookup the stderr.log!"; exit 1; fi
+          echo "res: $res"
+          if [[ x"$res" != x"0" ]]; then
+            echo "There are some sanitizer errors, please lookup the stderr.log!"
+            exit 1
+          fi
       - name: Upload logs
         uses: actions/upload-artifact@v2
         if: ${{ failure() }}
