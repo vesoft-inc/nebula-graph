@@ -87,8 +87,8 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
             auto ranking = step.ranking;
             auto dst = step.dst.vid;
 
-            auto edgeKey =
-                folly::stringPrintf("%s%s%d%ld", src.c_str(), dst.c_str(), type, ranking);
+            auto edgeKey = folly::stringPrintf(
+                "%s%s%d%ld", src.toString().c_str(), dst.toString().c_str(), type, ranking);
             auto ret = uniqueEdge.emplace(edgeKey);
             if (ret.second) {
                 reqDs_.emplace_back(Row({src, type, ranking, dst}));

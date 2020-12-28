@@ -43,7 +43,7 @@ Status GetVerticesExecutor::buildPathRequestDataSet() {
     }
     auto iter = ectx_->getResult(inputVar).iter();
     QueryExpressionContext ctx(ectx_);
-    std::unordered_set<std::string> uniqueVid;
+    std::unordered_set<Value> uniqueVid;
     for (; iter->valid(); iter->next()) {
         auto path = gv_->src()->eval(ctx(iter.get()));
         VLOG(1) << "path is :" << path;

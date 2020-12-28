@@ -274,7 +274,7 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
     // 0: vertices's props, 1: Edges's props, 2: Paths without props
     DCHECK_EQ(vars.size(), 3);
 
-    std::unordered_map<std::string, Vertex> vertexMap;
+    std::unordered_map<Value, Vertex> vertexMap;
     auto vIter = ectx_->getResult(vars[0]).iter();
     DCHECK(vIter->kind() == Iterator::Kind::kProp);
     for (; vIter->valid(); vIter->next()) {
@@ -300,8 +300,8 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
         auto dstVid = edgeVal.dst;
         auto type = edgeVal.type;
         auto ranking = edgeVal.ranking;
-        auto edgeKey =
-            folly::stringPrintf("%s%s%d%ld", srcVid.c_str(), dstVid.c_str(), type, ranking);
+        auto edgeKey = folly::stringPrintf(
+            "%s%s%d%ld", srcVid.toString().c_str(), dstVid.toString().c_str(), type, ranking);
         edgeMap.insert(std::make_pair(edgeKey, std::move(edgeVal)));
     }
 
@@ -324,8 +324,8 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
 
             auto type = step.type;
             auto ranking = step.ranking;
-            auto edgeKey =
-                folly::stringPrintf("%s%s%d%ld", srcVid.c_str(), dstVid.c_str(), type, ranking);
+            auto edgeKey = folly::stringPrintf(
+                "%s%s%d%ld", srcVid.toString().c_str(), dstVid.toString().c_str(), type, ranking);
             auto edge = edgeMap[edgeKey];
             step.props = edge.props;
             srcVid = dstVid;
