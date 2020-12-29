@@ -17,7 +17,7 @@ Feature: Insert int vid of vertex and edge
       CREATE TAG IF NOT EXISTS personWithDefault(name string DEFAULT "",
       age int DEFAULT 18, isMarried bool DEFAULT false,
       BMI double DEFAULT 18.5, department string DEFAULT "engineering",
-      birthday timestamp DEFAULT "2020-01-10 10:00:00");
+      birthday timestamp DEFAULT timestamp("2020-01-10T10:00:00"));
       CREATE TAG IF NOT EXISTS student(grade string, number int);
       CREATE TAG IF NOT EXISTS studentWithDefault(grade string DEFAULT "one", number int);
       CREATE TAG IF NOT EXISTS employee(name int);
@@ -75,31 +75,32 @@ Feature: Insert int vid of vertex and edge
     # insert edge invalid timestamp
     When executing query:
       """
-      INSERT EDGE study(start_time, end_time) VALUES hash("Laura")->hash("sun_school"):("2300-01-01 10:00:00", now()+3600*24*365*3);
+      INSERT EDGE study(start_time, end_time) VALUES
+      hash("Laura")->hash("sun_school"):(timestamp("2300-01-01T10:00:00"), now()+3600*24*365*3);
       """
     Then a ExecutionError should be raised at runtime:
+
+  Scenario: insert vertex unordered order prop vertex succeeded
     # insert vertex succeeded
     When executing query:
       """
       INSERT VERTEX person(name, age) VALUES hash("Tom"):("Tom", 22)
       """
     Then the execution should be successful
-
-  Scenario: insert vertex unordered order prop vertex succeeded
     When executing query:
       """
       INSERT VERTEX person(age, name) VALUES hash("Conan"):(10, "Conan")
       """
     Then the execution should be successful
     # check vertex result with fetch
-    # When executing query:
-    # """
-    # FETCH PROP ON person hash("Conan")
-    # """
-    # Then the result should be, in any order:
-    # |VertexID|person.name|person.age|
-    # |hash('Conan') | hash('Conan')   | 10       |
-    # insert vertex with uuid
+    When executing query:
+      """
+      FETCH PROP ON person hash("Conan")
+      """
+    Then the result should be, in any order:
+      | VertexID      | person.name | person.age |
+      | hash('Conan') | "Conan"     | 10         |
+    # # insert vertex with uuid
     # When executing query:
     # """
     # INSERT VERTEX person(name, age) VALUES uuid("Tom"):("Tom", 22)
@@ -108,7 +109,8 @@ Feature: Insert int vid of vertex and edge
     # insert vertex with string timestamp succeeded
     When executing query:
       """
-      INSERT VERTEX school(name, create_time) VALUES hash("sun_school"):("sun_school", "2010-01-01 10:00:00")
+      INSERT VERTEX school(name, create_time) VALUES
+      hash("sun_school"):("sun_school", timestamp("2010-01-01T10:00:00"))
       """
     Then the execution should be successful
     # insert edge succeeded
@@ -123,97 +125,104 @@ Feature: Insert int vid of vertex and edge
       INSERT EDGE schoolmate(nickname, likeness) VALUES hash("Tom")->hash("Bob"):("Superman", 87)
       """
     Then the execution should be successful
-    # # check edge result with fetch
-    # When executing query:
-    # """
-    # FETCH PROP ON schoolmate hash("Tom")->hash("Bob")
-    # """
-    # Then the result should be, in any order:
-    # |SrcID|DstID|Ranking|schoolmate.likeness|schoolmate.nickname|
-    # |hash('Tom')|hash('Bob')| 0     |       87  |    Superman    |
+    # check edge result with fetch
+    When executing query:
+      """
+      FETCH PROP ON schoolmate hash("Tom")->hash("Bob")
+      """
+    Then the result should be, in any order:
+      | schoolmate._src | schoolmate._dst | schoolmate._rank | schoolmate.likeness | schoolmate.nickname |
+      | hash('Tom')     | hash('Bob')     | 0                | 87                  | "Superman"          |
     # insert edge with timestamp succeed
     When executing query:
       """
-      INSERT EDGE study(start_time, end_time) VALUES hash("Laura")->hash("sun_school"):("2019-01-01 10:00:00", now()+3600*24*365*3)
+      INSERT EDGE study(start_time, end_time) VALUES
+      hash("Laura")->hash("sun_school"):(timestamp("2019-01-01T10:00:00"), now()+3600*24*365*3)
       """
     Then the execution should be successful
     # check edge result with go
-    # When executing query:
-    # """
-    # GO FROM "Laura" OVER study YIELD $$.school.name, study._dst, $$.school.create_time, (string)study.start_time
-    # """
-    # Then the result should be, in any order:
-    # |$$.school.name|study._dst|$$.school.create_time|(string)study.start_time|
-    # |"sun_school"|"sun_school"| 1262311200     |   "1546308000"    |
+    When executing query:
+      """
+      GO FROM hash("Laura") OVER study
+      YIELD $$.school.name, study._dst, $$.school.create_time, (string)study.start_time
+      """
+    Then the result should be, in any order:
+      | $$.school.name | study._dst         | $$.school.create_time | (STRING)study.start_time |
+      | "sun_school"   | hash("sun_school") | 1262340000            | "1546336800"             |
     # check edge result with fetch
-    # When executing query:
-    # """
-    # FETCH PROP ON school "sun_school"
-    # """
-    # Then the result should be, in any order:
-    # |$$.school.name|study._dst|$$.school.create_time|
-    # |"sun_school"|"sun_school"| 1262311200  |
+    When executing query:
+      """
+      FETCH PROP ON school hash("sun_school")
+      """
+    Then the result should be, in any order:
+      | VertexID           | school.name  | school.create_time |
+      | hash("sun_school") | "sun_school" | 1262340000         |
     # insert one vertex multi tags
     When executing query:
       """
-      INSERT VERTEX person(name, age), student(grade, number) VALUES hash("Lucy"):("Lucy", 8, "three", 20190901001)
+      INSERT VERTEX person(name, age), student(grade, number)
+      VALUES hash("Lucy"):("Lucy", 8, "three", 20190901001)
       """
     Then the execution should be successful
     # insert one vertex multi tags with unordered order prop
     When executing query:
       """
-      INSERT VERTEX person(age, name),student(number, grade) VALUES hash("Bob"):(9, "Bob", 20191106001, "four")
+      INSERT VERTEX person(age, name),student(number, grade)
+      VALUES hash("Bob"):(9, "Bob", 20191106001, "four")
       """
     Then the execution should be successful
     # check person tag result with fetch
-    # When executing query:
-    # """
-    # FETCH PROP ON person hash("Bob")
-    # """
-    # Then the result should be, in any order:
-    # |VertexID|name|age|
-    # |hash('Bob')|hash('Bob')| 9|
+    When executing query:
+      """
+      FETCH PROP ON person hash("Bob")
+      """
+    Then the result should be, in any order:
+      | VertexID    | person.name | person.age |
+      | hash('Bob') | 'Bob'       | 9          |
     # check student tag result with fetch
-    # When executing query:
-    # """
-    # FETCH PROP ON student hash("Bob")
-    # """
-    # Then the result should be, in any order:
-    # |VertexID|student.grade|student.number|
-    # |hash('Bob')|'four'| 20191106001|
+    When executing query:
+      """
+      FETCH PROP ON student hash("Bob")
+      """
+    Then the result should be, in any order:
+      | VertexID    | student.grade | student.number |
+      | hash('Bob') | 'four'        | 20191106001    |
     # insert multi vertex multi tags
     When executing query:
       """
-      INSERT VERTEX person(name, age),student(grade, number) VALUES hash("Laura"):("Laura", 8, "three", 20190901008),hash("Amber"):("Amber", 9, "four", 20180901003)
+      INSERT VERTEX person(name, age),student(grade, number)
+      VALUES hash("Laura"):("Laura", 8, "three", 20190901008),hash("Amber"):("Amber", 9, "four", 20180901003)
       """
     Then the execution should be successful
     # insert multi vertex one tag
-    # When executing query:
-    # """
-    # INSERT VERTEX person(name, age) VALUES hash("Kitty"):("Kitty", 8), hash("Peter"):("Peter", 9)
-    # """
-    # Then the execution should be successful
+    When executing query:
+      """
+      INSERT VERTEX person(name, age) VALUES hash("Kitty"):("Kitty", 8), hash("Peter"):("Peter", 9)
+      """
+    Then the execution should be successful
     # insert multi edges
     When executing query:
       """
-      INSERT EDGE schoolmate(likeness, nickname) VALUES hash("Tom")->hash("Kitty"):(81, "Kitty"), hash("Tom")->hash("Peter"):(83, "Kitty")
+      INSERT EDGE schoolmate(likeness, nickname)
+      VALUES hash("Tom")->hash("Kitty"):(81, "Kitty"), hash("Tom")->hash("Peter"):(83, "Kitty")
       """
     Then the execution should be successful
     # check edge result with go
-    # When executing query:
-    # """
-    # GO FROM "Tom" OVER schoolmate YIELD $^.person.name, schoolmate.likeness, $$.person.name
-    # """
-    # Then the result should be, in any order:
-    # |$^.person.name|schoolmate.likeness|$$.person.name|
-    # |'Tom'         | 85                | 'Lucy' |
-    # |'Tom'         | 81                | 'Kitty'|
-    # |'Tom'         | 83                | 'Peter'|
-    # |'Tom'         | 87                | 'Bob'  |
+    When executing query:
+      """
+      GO FROM hash("Tom") OVER schoolmate YIELD $^.person.name, schoolmate.likeness, $$.person.name
+      """
+    Then the result should be, in any order:
+      | $^.person.name | schoolmate.likeness | $$.person.name |
+      | 'Tom'          | 85                  | 'Lucy'         |
+      | 'Tom'          | 81                  | 'Kitty'        |
+      | 'Tom'          | 83                  | 'Peter'        |
+      | 'Tom'          | 87                  | 'Bob'          |
     # insert multi tag
     When executing query:
       """
-      INSERT EDGE schoolmate(likeness, nickname) VALUES hash("Lucy")->hash("Laura"):(90, "Laura"), hash("Lucy")->hash("Amber"):(95, "Amber")
+      INSERT EDGE schoolmate(likeness, nickname)
+      VALUES hash("Lucy")->hash("Laura"):(90, "Laura"), hash("Lucy")->hash("Amber"):(95, "Amber")
       """
     Then the execution should be successful
     # insert with edge
@@ -223,44 +232,50 @@ Feature: Insert int vid of vertex and edge
       """
     Then the execution should be successful
     # get multi tag through go
-    # When executing query:
-    # """
-    # GO FROM hash("Lucy") OVER schoolmate YIELD schoolmate.likeness, $$.person.name,$$.student.grade, $$.student.number
-    # """
-    # Then the result should be, in any order:
-    # |schoolmate.likeness|$$.person.name|$$.student.grade|$$.student.number|
-    # |90                 | 'Laura'      | 'three'        | 20190901008|
-    # |95                 | 'Amber'      | 'four'         | 20180901003|
-    # test multi sentences multi tags succeeded
-    # When executing query:
-    # """
-    # INSERT VERTEX person(name, age) VALUES hash("Aero"):("Aero", 8);INSERT VERTEX student(grade, number) VALUES hash("Aero"):("four", 20190901003);
-    # INSERT EDGE schoolmate(likeness, nickname) VALUES hash("Laura")->hash("Aero"):(90, "Aero")
-    # """
-    # Then the execution should be successful
-    # get result through go
-    # When executing query:
-    # """
-    # GO FROM hash("Laura") OVER schoolmate YIELD $$.student.number, $$.person.name
-    # """
-    # Then the result should be, in any order:
-    # |$$.student.number| $$.person.name|
-    # |20190901003      | 'Aero'|
-    # test same prop name diff type
     When executing query:
       """
-      INSERT VERTEX person(name, age), employee(name) VALUES hash("Joy"):("Joy", 18, 123), hash("Petter"):("Petter", 19, 456);
-      INSERT EDGE schoolmate(likeness, nickname) VALUES hash("Joy")->hash("Petter"):(90, "Petter");
+      GO FROM hash("Lucy") OVER schoolmate
+      YIELD schoolmate.likeness, $$.person.name,$$.student.grade, $$.student.number
+      """
+    Then the result should be, in any order:
+      | schoolmate.likeness | $$.person.name | $$.student.grade | $$.student.number |
+      | 90                  | 'Laura'        | 'three'          | 20190901008       |
+      | 95                  | 'Amber'        | 'four'           | 20180901003       |
+    # test multi sentences multi tags succeeded
+    When executing query:
+      """
+      INSERT VERTEX person(name, age) VALUES hash("Aero"):("Aero", 8);
+      INSERT VERTEX student(grade, number) VALUES hash("Aero"):("four", 20190901003);
+      INSERT EDGE schoolmate(likeness, nickname) VALUES hash("Laura")->hash("Aero"):(90, "Aero")
       """
     Then the execution should be successful
     # get result through go
-    # When executing query:
-    # """
-    # GO FROM "Joy" OVER schoolmate YIELD $^.person.name,schoolmate.likeness, $$.person.name, $$.person.age,$$.employee.name
-    # """
-    # Then the result should be, in any order:
-    # |$^.person.name|schoolmate.likeness| $$.person.name| $$.person.age|$$.employee.name|
-    # |'Joy'         | 90            | 'Petter'| 19| 456                                 |
+    When executing query:
+      """
+      GO FROM hash("Laura") OVER schoolmate YIELD $$.student.number, $$.person.name
+      """
+    Then the result should be, in any order:
+      | $$.student.number | $$.person.name |
+      | 20190901003       | 'Aero'         |
+    # test same prop name diff type
+    When executing query:
+      """
+      INSERT VERTEX person(name, age), employee(name) VALUES
+      hash("Joy"):("Joy", 18, 123),
+      hash("Petter"):("Petter", 19, 456);
+      INSERT EDGE schoolmate(likeness, nickname) VALUES
+      hash("Joy")->hash("Petter"):(90, "Petter");
+      """
+    Then the execution should be successful
+    # get result through go
+    When executing query:
+      """
+      GO FROM hash("Joy") OVER schoolmate
+      YIELD $^.person.name,schoolmate.likeness, $$.person.name, $$.person.age,$$.employee.name
+      """
+    Then the result should be, in any order:
+      | $^.person.name | schoolmate.likeness | $$.person.name | $$.person.age | $$.employee.name |
+      | 'Joy'          | 90                  | 'Petter'       | 19            | 456              |
     # test same prop name same type diff type
     When executing query:
       """
@@ -269,13 +284,14 @@ Feature: Insert int vid of vertex and edge
       """
     Then the execution should be successful
     # get result through go
-    # When executing query:
-    # """
-    # GO FROM hash("Petter") OVER schoolmate YIELD $^.person.name, $^.employee.name,schoolmate.likeness, $$.person.name,$$.interest.name, $$.person.age
-    # """
-    # Then the result should be, in any order:
-    # |$^.person.name| $^.employee.name|schoolmate.likeness| $$.person.name|$$.interest.name|$$.person.age|
-    # |'Petter'      | 456             | 90            | 'Bob'        | 'basketball'   | 19          |
+    When executing query:
+      """
+      GO FROM hash("Petter") OVER schoolmate
+      YIELD $^.person.name, $^.employee.name,schoolmate.likeness, $$.person.name,$$.interest.name, $$.person.age
+      """
+    Then the result should be, in any order:
+      | $^.person.name | $^.employee.name | schoolmate.likeness | $$.person.name | $$.interest.name | $$.person.age |
+      | 'Petter'       | 456              | 90                  | 'Bob'          | 'basketball'     | 19            |
     # insert vertex using name and age default value
     When executing query:
       """
@@ -309,7 +325,8 @@ Feature: Insert int vid of vertex and edge
     # insert vertices multi tags with default value
     When executing query:
       """
-      INSERT VERTEX personWithDefault(name, BMI), studentWithDefault(number) VALUES hash("Laura"):("Laura", 21.5, 20190901008),hash("Amber"):("Amber", 22.5, 20180901003)
+      INSERT VERTEX personWithDefault(name, BMI), studentWithDefault(number) VALUES
+      hash("Laura"):("Laura", 21.5, 20190901008),hash("Amber"):("Amber", 22.5, 20180901003)
       """
     Then the execution should be successful
     # multi vertices one tag with default value
@@ -345,27 +362,39 @@ Feature: Insert int vid of vertex and edge
     # insert multi edges with default value
     When executing query:
       """
-      INSERT EDGE schoolmateWithDefault() VALUES hash("Tom")->hash("Kitty"):(), hash("Tom")->hash("Peter"):(), hash("Lucy")->hash("Laura"):(), hash("Lucy")->hash("Amber"):()
+      INSERT EDGE schoolmateWithDefault() VALUES
+      hash("Tom")->hash("Kitty"):(),
+      hash("Tom")->hash("Peter"):(),
+      hash("Lucy")->hash("Laura"):(),
+      hash("Lucy")->hash("Amber"):()
       """
     Then the execution should be successful
     # get result through go
-    # When executing query:
-    # """
-    # GO FROM hash("Tom") OVER schoolmateWithDefault YIELD $^.person.name, schoolmateWithDefault.likeness, $$.person.name
-    # """
-    # Then the result should be, in any order:
-    # |$^.person.name| schoolmateWithDefault.likeness| $$.person.name|
-    # |'Tom'         | 80                            | 'Kitty'      |
-    # |'Tom'         | 80                            | 'Peter'     |
+    When executing query:
+      """
+      GO FROM hash("Tom") OVER schoolmateWithDefault
+      YIELD $^.person.name, schoolmateWithDefault.likeness, $$.person.name
+      """
+    Then the result should be, in any order:
+      | $^.person.name | schoolmateWithDefault.likeness | $$.person.name |
+      | 'Tom'          | 80                             | 'Kitty'        |
+      | 'Tom'          | 80                             | 'Peter'        |
+      | 'Tom'          | 80                             | 'Lucy'         |
     # get result through go
-    # When executing query:
-    # """
-    # GO FROM hash("Lucy") OVER schoolmateWithDefault YIELD schoolmateWithDefault.likeness, $$.personWithDefault.name,$$.personWithDefault.birthday, $$.personWithDefault.department,$$.studentWithDefault.grade, $$.studentWithDefault.number
-    # """
-    # Then the result should be, in any order:
-    # |schoolmateWithDefault.likeness| $$.personWithDefault.name|$$.personWithDefault.birthday| $$.personWithDefault.department|$$.studentWithDefault.grade| $$.studentWithDefault.number|
-    # |80                            | 'Laura'                  | 1578621600                  | 'engineering'                  | 'one'                     | 20190901008                 |
-    # |80                            | 'Amber'                  | 1578621600                  | 'engineering'                  | 'one'                     | 20180901003                 |
+    When executing query:
+      """
+      GO FROM hash("Lucy") OVER schoolmateWithDefault
+      YIELD schoolmateWithDefault.likeness,
+      $$.personWithDefault.name,
+      $$.personWithDefault.birthday,
+      $$.personWithDefault.department,
+      $$.studentWithDefault.grade,
+      $$.studentWithDefault.number
+      """
+    Then the result should be, in any order:
+      | schoolmateWithDefault.likeness | $$.personWithDefault.name | $$.personWithDefault.birthday | $$.personWithDefault.department | $$.studentWithDefault.grade | $$.studentWithDefault.number |
+      | 80                             | 'Laura'                   | 1578650400                    | 'engineering'                   | 'one'                       | 20190901008                  |
+      | 80                             | 'Amber'                   | 1578650400                    | 'engineering'                   | 'one'                       | 20180901003                  |
     # insert multi version vertex
     When executing query:
       """

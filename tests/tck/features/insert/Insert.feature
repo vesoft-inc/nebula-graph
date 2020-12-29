@@ -17,7 +17,7 @@ Feature: Insert string vid of vertex and edge
       CREATE TAG IF NOT EXISTS personWithDefault(name string DEFAULT "",
       age int DEFAULT 18, isMarried bool DEFAULT false,
       BMI double DEFAULT 18.5, department string DEFAULT "engineering",
-      birthday timestamp DEFAULT "2020-01-10 10:00:00");
+      birthday timestamp DEFAULT timestamp("2020-01-10T10:00:00"));
       CREATE TAG IF NOT EXISTS student(grade string, number int);
       CREATE TAG IF NOT EXISTS studentWithDefault(grade string DEFAULT "one", number int);
       CREATE TAG IF NOT EXISTS employee(name int);
@@ -75,7 +75,7 @@ Feature: Insert string vid of vertex and edge
     When executing query:
       """
       INSERT EDGE study(start_time, end_time) VALUES
-      "Laura"->"sun_school":("2300-01-01 10:00:00", now()+3600*24*365*3);
+      "Laura"->"sun_school":(timestamp("2300-01-01T10:00:00"), now()+3600*24*365*3);
       """
     Then a ExecutionError should be raised at runtime:
     # insert vertex succeeded
@@ -101,7 +101,8 @@ Feature: Insert string vid of vertex and edge
     # insert vertex with string timestamp succeeded
     When executing query:
       """
-      INSERT VERTEX school(name, create_time) VALUES "sun_school":("sun_school", "2010-01-01 10:00:00")
+      INSERT VERTEX school(name, create_time) VALUES
+      "sun_school":("sun_school", timestamp("2010-01-01T10:00:00"))
       """
     Then the execution should be successful
     # insert edge succeeded
@@ -128,7 +129,7 @@ Feature: Insert string vid of vertex and edge
     When executing query:
       """
       INSERT EDGE study(start_time, end_time) VALUES
-      "Laura"->"sun_school":("2019-01-01 10:00:00", now()+3600*24*365*3)
+      "Laura"->"sun_school":(timestamp("2019-01-01T10:00:00"), now()+3600*24*365*3)
       """
     Then the execution should be successful
     # check edge result with go
@@ -139,7 +140,7 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | $$.school.name | study._dst   | $$.school.create_time | (STRING)study.start_time |
-      | "sun_school"   | "sun_school" | 1262311200            | "1546308000"             |
+      | "sun_school"   | "sun_school" | 1262340000            | "1546336800"             |
     # check edge result with fetch
     When executing query:
       """
@@ -147,7 +148,7 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | VertexID     | school.name  | school.create_time |
-      | "sun_school" | "sun_school" | 1262311200         |
+      | "sun_school" | "sun_school" | 1262340000         |
     # insert one vertex multi tags
     When executing query:
       """
@@ -200,17 +201,17 @@ Feature: Insert string vid of vertex and edge
       """
     Then the execution should be successful
     # check edge result with go
-    # When executing query:
-    # """
-    # GO FROM "Tom" OVER schoolmate
-    # YIELD $^.person.name, schoolmate.likeness, $$.person.name
-    # """
-    # Then the result should be, in any order:
-    # | $^.person.name | schoolmate.likeness | $$.person.name |
-    # | 'Tom'          | 85                  | 'Lucy'         |
-    # | 'Tom'          | 81                  | 'Kitty'        |
-    # | 'Tom'          | 83                  | 'Peter'        |
-    # | 'Tom'          | 87                  | 'Bob'          |
+    When executing query:
+      """
+      GO FROM "Tom" OVER schoolmate
+      YIELD $^.person.name, schoolmate.likeness, $$.person.name
+      """
+    Then the result should be, in any order:
+      | $^.person.name | schoolmate.likeness | $$.person.name |
+      | 'Tom'          | 85                  | 'Lucy'         |
+      | 'Tom'          | 81                  | 'Kitty'        |
+      | 'Tom'          | 83                  | 'Peter'        |
+      | 'Tom'          | 87                  | 'Bob'          |
     # insert multi tag
     When executing query:
       """
@@ -368,15 +369,16 @@ Feature: Insert string vid of vertex and edge
       """
     Then the execution should be successful
     # get result through go
-    # When executing query:
-    # """
-    # GO FROM "Tom" OVER schoolmateWithDefault
-    # YIELD $^.person.name, schoolmateWithDefault.likeness, $$.person.name
-    # """
-    # Then the result should be, in any order:
-    # | $^.person.name | schoolmateWithDefault.likeness | $$.person.name |
-    # | 'Tom'          | 80                             | 'Kitty'        |
-    # | 'Tom'          | 80                             | 'Peter'        |
+    When executing query:
+      """
+      GO FROM "Tom" OVER schoolmateWithDefault
+      YIELD $^.person.name, schoolmateWithDefault.likeness, $$.person.name
+      """
+    Then the result should be, in any order:
+      | $^.person.name | schoolmateWithDefault.likeness | $$.person.name |
+      | 'Tom'          | 80                             | 'Kitty'        |
+      | 'Tom'          | 80                             | 'Peter'        |
+      | 'Tom'          | 80                             | 'Lucy'         |
     # get result through go
     When executing query:
       """
@@ -390,8 +392,8 @@ Feature: Insert string vid of vertex and edge
       """
     Then the result should be, in any order:
       | schoolmateWithDefault.likeness | $$.personWithDefault.name | $$.personWithDefault.birthday | $$.personWithDefault.department | $$.studentWithDefault.grade | $$.studentWithDefault.number |
-      | 80                             | 'Laura'                   | 1578621600                    | 'engineering'                   | 'one'                       | 20190901008                  |
-      | 80                             | 'Amber'                   | 1578621600                    | 'engineering'                   | 'one'                       | 20180901003                  |
+      | 80                             | 'Laura'                   | 1578650400                    | 'engineering'                   | 'one'                       | 20190901008                  |
+      | 80                             | 'Amber'                   | 1578650400                    | 'engineering'                   | 'one'                       | 20180901003                  |
     # insert multi version vertex
     When executing query:
       """

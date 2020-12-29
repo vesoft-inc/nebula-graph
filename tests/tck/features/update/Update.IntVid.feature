@@ -435,16 +435,16 @@ Feature: Update int vid of vertex and edge
     Then the result should be, in any order:
       | Grade | Year       |
       | 3     | 1546308000 |
-    # select_default's year is timestamp type, set str type, get default value by timestamp is wrong, TODO:FIX
-    # When executing query:
-    # """
-    # UPSERT EDGE ON select_default 222 -> 333@0
-    # SET grade = 3, year = "2020-01-10 10:00:00"
-    # YIELD select_default.grade AS Grade, select_default.year AS Year
-    # """
-    # Then the result should be, in any order:
-    # | Grade | Year       |
-    # | 3     | 1578621600 |
+    # select_default's year is timestamp type, set str type,
+    When executing query:
+      """
+      UPSERT EDGE ON select_default 222 -> 333@0
+      SET grade = 3, year = timestamp("2020-01-10T10:00:00")
+      YIELD select_default.grade AS Grade, select_default.year AS Year
+      """
+    Then the result should be, in any order:
+      | Grade | Year       |
+      | 3     | 1578650400 |
     # select_default's grade without default value
     When executing query:
       """

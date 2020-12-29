@@ -433,16 +433,15 @@ Feature: Update string vid of vertex and edge
       | Grade | Year       |
       | 3     | 1546308000 |
     # select_default's year is timestamp type, set str type, get default value by timestamp is wrong,
-    # TODO(Laura): The storage return the string timestamp
-    # When executing query:
-    # """
-    # UPSERT EDGE "222" ->"333" @0 OF select_default
-    # SET grade = 3, year = "2020-01-10 10:00:00"
-    # YIELD select_default.grade AS Grade, select_default.year AS Year
-    # """
-    # Then the result should be, in any order:
-    # | Grade | Year       |
-    # | 3     | 1578621600 |
+    When executing query:
+      """
+      UPSERT EDGE "222" ->"333" @0 OF select_default
+      SET grade = 3, year = timestamp("2020-01-10T10:00:00")
+      YIELD select_default.grade AS Grade, select_default.year AS Year
+      """
+    Then the result should be, in any order:
+      | Grade | Year       |
+      | 3     | 1578650400 |
     # select_default's grade without default value
     When executing query:
       """
@@ -945,16 +944,15 @@ Feature: Update string vid of vertex and edge
       | Grade | Year       |
       | 3     | 1546308000 |
     # select_default's year is timestamp type, set str type, get default value by timestamp is wrong,
-    # TODO(Laura): The storage return the string timestamp
-    # When executing query:
-    # """
-    # UPSERT EDGE ON select_default "222" -> "333"@0
-    # SET grade = 3, year = "2020-01-10 10:00:00"
-    # YIELD grade AS Grade, year AS Year
-    # """
-    # Then the result should be, in any order:
-    # | Grade | Year       |
-    # | 3     | 1578621600 |
+    When executing query:
+      """
+      UPSERT EDGE ON select_default "222" -> "333"@0
+      SET grade = 3, year = timestamp("2020-01-10T10:00:00")
+      YIELD grade AS Grade, year AS Year
+      """
+    Then the result should be, in any order:
+      | Grade | Year       |
+      | 3     | 1578650400 |
     # select_default's grade without default value
     When executing query:
       """
