@@ -1,6 +1,7 @@
 Feature: User & privilege Test
 
-  Background: Given an empty graph
+  Background: 
+    Given an empty graph
   Scenario: Create User
     When executing query:
       """
