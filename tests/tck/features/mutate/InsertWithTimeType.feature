@@ -18,9 +18,9 @@ Feature: Insert with time-dependent types
   Scenario: insert wrong format timestamp
     When executing query:
       """
-      INSERT VERTEX TAG_TIMESTAMP(a) VALUES "TEST_VERTEX":(`timestamp`("2000.0.0 10:0:0"))
+      INSERT VERTEX TAG_TIMESTAMP(a) VALUES "TEST_VERTEX":("2000.0.0 10:0:0")
       """
-    Then a ExecutionError should be raised at runtime:Storage Error: Invalid field value: may be the filed is not NULL or without default value or wrong schema.
+    Then a ExecutionError should be raised at runtime:Storage Error: The data type does not meet the requirements. Use the correct type of data.
     When executing query:
       """
       INSERT VERTEX TAG_TIMESTAMP(a) VALUES "TEST_VERTEX":(NULL)
