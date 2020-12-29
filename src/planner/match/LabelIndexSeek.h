@@ -34,7 +34,7 @@ private:
 
     static StatusOr<IndexID> pickTagIndex(const NodeContext* nodeCtx);
 
-    std::shared_ptr<meta::cpp2::IndexItem> static selectIndex(
+    static std::shared_ptr<meta::cpp2::IndexItem> selectIndex(
         const std::shared_ptr<meta::cpp2::IndexItem> candidate,
         const std::shared_ptr<meta::cpp2::IndexItem> income) {
         // less fields is better
