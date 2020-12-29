@@ -5,7 +5,6 @@
 */
 
 #include "common/base/Base.h"
-#include "common/function/TimeFunction.h"
 #include "util/SchemaUtil.h"
 #include "context/QueryExpressionContext.h"
 
@@ -67,57 +66,6 @@ SchemaUtil::generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema
 }
 
 // static
-StatusOr<nebula::Value> SchemaUtil::toSchemaValue(const meta::cpp2::PropertyType type,
-                                                  const Value &v) {
-    switch (type) {
-        case meta::cpp2::PropertyType::TIMESTAMP: {
-            if (v.type() != Value::Type::INT && v.type() != Value::Type::STRING) {
-                LOG(ERROR) << "ValueType is wrong, input type "
-                           << static_cast<int32_t>(type)
-                           << ", v type " <<  v.type();
-                return Status::Error("Wrong type");
-            }
-            auto timestamp = TimeFunction::toTimestamp(v);
-            if (!timestamp.ok()) {
-                return timestamp.status();
-            }
-            return Value(timestamp.value());
-        }
-        case meta::cpp2::PropertyType::DATE: {
-            if (v.type() != Value::Type::DATE) {
-                LOG(ERROR) << "ValueType is wrong, input type "
-                           << static_cast<int32_t>(type)
-                           << ", v type " <<  v.type();
-                return Status::Error("Wrong type");
-            }
-            return v;
-        }
-        case meta::cpp2::PropertyType::TIME: {
-            if (v.type() != Value::Type::TIME) {
-                LOG(ERROR) << "ValueType is wrong, input type "
-                           << static_cast<int32_t>(type)
-                           << ", v type " <<  v.type();
-                return Status::Error("Wrong type");
-            }
-            return v;
-        }
-        case meta::cpp2::PropertyType::DATETIME: {
-            if (v.type() != Value::Type::DATETIME) {
-                LOG(ERROR) << "ValueType is wrong, input type "
-                           << static_cast<int32_t>(type)
-                           << ", v type " <<  v.type();
-                return Status::Error("Wrong type");
-            }
-            return v;
-        }
-        default: {
-            return v;
-        }
-    }
-}
-
-
-// static
 Status SchemaUtil::setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema) {
     auto ret = schemaProp->getTtlDuration();
     if (!ret.ok()) {
@@ -159,14 +107,14 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 }
 
 // static
-StatusOr<VertexID> SchemaUtil::toVertexID(Expression *expr) {
+StatusOr<Value> SchemaUtil::toVertexID(Expression *expr, Value::Type vidType) {
     QueryExpressionContext ctx;
-    auto vertexId = expr->eval(ctx(nullptr));
-    if (vertexId.type() != Value::Type::STRING) {
-        LOG(ERROR) << "Wrong vertex id type";
-        return Status::Error("Wrong vertex id type");
+    auto vidVal = expr->eval(ctx(nullptr));
+    if (vidVal.type() != vidType) {
+        LOG(ERROR) << expr->toString() << " is the wrong vertex id type: " << vidVal.typeName();
+        return Status::Error("Wrong vertex id type: %s", expr->toString().c_str());
     }
-    return vertexId.getStr();
+    return vidVal;
 }
 
 // static
@@ -178,8 +126,8 @@ SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
     for (auto *expr : exprs) {
         auto value = expr->eval(ctx(nullptr));
          if (value.isNull() && value.getNull() != NullType::__NULL__) {
-            LOG(ERROR) << "Wrong value type: " << value.type();;
-            return Status::Error("Wrong value type");
+            LOG(ERROR) <<  expr->toString() << " is the wrong value type: " << value.typeName();
+            return Status::Error("Wrong value type: %s", expr->toString().c_str());
         }
         values.emplace_back(std::move(value));
     }

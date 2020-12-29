@@ -4,7 +4,7 @@
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 Feature: Go Sentence
 
-  Background: Prepare space
+  Background:
     Given a graph with space named "nba"
 
   Scenario: one step
@@ -1583,3 +1583,22 @@ Feature: Go Sentence
       | "Tony Parker" | "LaMarcus Aldridge" | "LaMarcus Aldridge" | "Tony Parker"   |
       | "Tony Parker" | "LaMarcus Aldridge" | "Manu Ginobili"     | "Tim Duncan"    |
       | "Tony Parker" | "LaMarcus Aldridge" | "LaMarcus Aldridge" | "Tim Duncan"    |
+
+  Scenario: GroupBy and Count
+    When executing query:
+      """
+      GO 1 TO 2 STEPS FROM "Tim Duncan" OVER like WHERE like._dst != "YAO MING" YIELD like._dst AS vid
+      | GROUP BY $-.vid YIELD 1 AS id | GROUP BY $-.id YIELD COUNT($-.id);
+      """
+    Then the result should be, in any order, with relax comparison:
+      | COUNT($-.id) |
+      | 4            |
+
+  Scenario: Bugfix filter not pushdown
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like WHERE like._dst == "Tony Parker" | limit 10;
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst     |
+      | "Tony Parker" |

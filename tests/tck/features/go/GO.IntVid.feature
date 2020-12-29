@@ -2,10 +2,9 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@skip
 Feature: IntegerVid Go  Sentence
 
-  Background: Prepare space
+  Background:
     Given a graph with space named "nba_int_vid"
 
   Scenario: Integer Vid one step
@@ -758,7 +757,7 @@ Feature: IntegerVid Go  Sentence
       | hash("Danny Green")       |
       | hash("Aron Baynes")       |
       | hash("Boris Diaw")        |
-      | hash(("Tiago Splitter")   |
+      | hash("Tiago Splitter")    |
       | hash("Dejounte Murray")   |
       | hash("Shaquile O'Neal")   |
       | EMPTY                     |
@@ -1584,3 +1583,23 @@ Feature: IntegerVid Go  Sentence
       | hash("Tony Parker") | hash("LaMarcus Aldridge" ) | hash("LaMarcus Aldridge" ) | hash("Tony Parker")    |
       | hash("Tony Parker") | hash("LaMarcus Aldridge" ) | hash("Manu Ginobili" )     | hash("Tim Duncan" )    |
       | hash("Tony Parker") | hash("LaMarcus Aldridge" ) | hash("LaMarcus Aldridge" ) | hash("Tim Duncan" )    |
+
+  Scenario: Integer Vid GroupBy and Count
+    When executing query:
+      """
+      GO 1 TO 2 STEPS FROM hash("Tim Duncan") OVER like WHERE like._dst != hash("YAO MING") YIELD like._dst AS vid
+      | GROUP BY $-.vid YIELD 1 AS id | GROUP BY $-.id YIELD COUNT($-.id);
+      """
+    Then the result should be, in any order, with relax comparison:
+      | COUNT($-.id) |
+      | 4            |
+
+  @skip
+  Scenario: Integer Vid Bugfix filter not pushdown
+    When executing query:
+      """
+      GO FROM hash("Tim Duncan") OVER like WHERE like._dst == hash("Tony Parker") | limit 10;
+      """
+    Then the result should be, in any order, with relax comparison:
+      | like._dst           |
+      | hash("Tony Parker") |

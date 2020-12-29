@@ -83,6 +83,8 @@ private:
     void visit(PathBuildExpression *expr) override;
     // column expression
     void visit(ColumnExpression * expr) override;
+    // list comprehension expression
+    void visit(ListComprehensionExpression *) override;
 
     void visitVertexPropertyExpr(PropertyExpression *expr);
 
@@ -97,6 +99,7 @@ private:
     GraphSpaceID space_;
     Status status_;
     Value::Type type_;
+    Value::Type vidType_;
 };
 
 }   // namespace graph

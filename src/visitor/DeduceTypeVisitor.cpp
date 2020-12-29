@@ -101,6 +101,13 @@ DeduceTypeVisitor::DeduceTypeVisitor(QueryContext *qctx,
     : qctx_(qctx), vctx_(vctx), inputs_(inputs), space_(space) {
     DCHECK(qctx != nullptr);
     DCHECK(vctx != nullptr);
+    // stand alone YIELD queries can be run without a space
+    if (!vctx->spaceChosen()) {
+        vidType_ = Value::Type::__EMPTY__;
+    } else {
+        auto vidType = vctx_->whichSpace().spaceDesc.vid_type.get_type();
+        vidType_ = SchemaUtil::propTypeToValueType(vidType);
+    }
 }
 
 void DeduceTypeVisitor::visit(ConstantExpression *expr) {
@@ -372,7 +379,12 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
         if (!ok()) return;
         argsTypeList.push_back(type_);
     }
-    auto result = FunctionManager::getReturnType(*expr->name(), argsTypeList);
+    auto funName = *expr->name();
+    if (funName == "id" || funName == "src" || funName == "dst") {
+        type_ = vidType_;
+        return;
+    }
+    auto result = FunctionManager::getReturnType(funName, argsTypeList);
     if (!result.ok()) {
         status_ = Status::SemanticError("`%s` is not a valid expression : %s",
                                         expr->toString().c_str(),
@@ -387,13 +399,13 @@ void DeduceTypeVisitor::visit(UUIDExpression *) {
 }
 
 void DeduceTypeVisitor::visit(VariableExpression *) {
-    // TODO: not only dataset
-    type_ = Value::Type::DATASET;
+    // Will not deduce the actual value type of variable expression.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(VersionedVariableExpression *) {
-    // TODO: not only dataset
-    type_ = Value::Type::DATASET;
+    // Will not deduce the actual value type of versioned variable expression.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(ListExpression *) {
@@ -476,7 +488,7 @@ void DeduceTypeVisitor::visit(SourcePropertyExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(EdgeSrcIdExpression *) {
-    type_ = Value::Type::STRING;
+    type_ = vidType_;
 }
 
 void DeduceTypeVisitor::visit(EdgeTypeExpression *) {
@@ -488,7 +500,7 @@ void DeduceTypeVisitor::visit(EdgeRankExpression *) {
 }
 
 void DeduceTypeVisitor::visit(EdgeDstIdExpression *) {
-    type_ = Value::Type::STRING;
+    type_ = vidType_;
 }
 
 void DeduceTypeVisitor::visit(VertexExpression *) {
@@ -528,6 +540,28 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
 
     // Will not deduce the actual value type returned by case expression.
     type_ = Value::Type::__EMPTY__;
+}
+
+void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::LIST) {
+        status_ = Status::SemanticError(
+            "`%s': Invalid colletion type, expected type of LIST",
+            expr->toString().c_str());
+        return;
+    }
+
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (!ok()) return;
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (!ok()) return;
+    }
+
+    type_ = Value::Type::LIST;
 }
 
 void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {

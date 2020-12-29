@@ -30,14 +30,11 @@ public:
     static std::shared_ptr<const meta::NebulaSchemaProvider>
     generateSchemaProvider(const SchemaVer ver, const meta::cpp2::Schema &schema);
 
-    static StatusOr<nebula::Value> toSchemaValue(const meta::cpp2::PropertyType type,
-                                                 const Value &v);
-
     static Status setTTLDuration(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
 
     static Status setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& schema);
 
-    static StatusOr<VertexID> toVertexID(Expression *expr);
+    static StatusOr<Value> toVertexID(Expression *expr, Value::Type vidType);
 
     static StatusOr<std::vector<Value>> toValueVec(std::vector<Expression*> exprs);
 

@@ -158,6 +158,8 @@ class DataSetComparator:
         return False
 
     def compare_path(self, lhs: Path, rhs: Path):
+        if rhs.steps is None or len(rhs.steps) == 0:
+            return self.compare_node(lhs.src, rhs.src)
         if len(lhs.steps) != len(rhs.steps):
             return False
         lsrc, rsrc = lhs.src, rhs.src
@@ -232,7 +234,7 @@ class DataSetComparator:
     def bstr(self, vid) -> bytes:
         return self.b(vid) if type(vid) == str else vid
 
-    def compare_vid(
+    def _compare_vid(
             self,
             lid: Union[int, bytes],
             rid: Union[int, bytes, str],
@@ -245,6 +247,19 @@ class DataSetComparator:
             if type(rid) not in [str, bytes] or self._vid_fn is None:
                 return False
             return lid == self._vid_fn(rid)
+        return False
+
+    def compare_vid(self, lid: Value, rid: Value) -> bool:
+        if lid.getType() == Value.IVAL:
+            if rid.getType() == Value.IVAL:
+                return self._compare_vid(lid.get_iVal(), rid.get_iVal())
+            if rid.getType() == Value.SVAL:
+                return self._compare_vid(lid.get_iVal(), rid.get_sVal())
+            return False
+        if lid.getType() == Value.SVAL:
+            if rid.getType() == Value.SVAL:
+                return self._compare_vid(lid.get_sVal(), rid.get_sVal())
+            return False
         return False
 
     def compare_node(self, lhs: Vertex, rhs: Vertex):
@@ -279,13 +294,20 @@ class DataSetComparator:
                 return False
         return True
 
+    def _get_map_value_by_key(self, key: bytes,
+                             kv: Dict[Union[str, bytes], Value]):
+        for k, v in kv.items():
+            if key == self.bstr(k):
+                return True, v
+        return False, None
+
     def compare_map(self, lhs: Dict[bytes, Value], rhs: KV):
         if len(lhs) != len(rhs):
             return False
         for lkey, lvalue in lhs.items():
-            if lkey not in rhs:
+            found, rvalue = self._get_map_value_by_key(lkey, rhs)
+            if not found:
                 return False
-            rvalue = rhs[lkey]
             if not self.compare_value(lvalue, rvalue):
                 return False
         return True
