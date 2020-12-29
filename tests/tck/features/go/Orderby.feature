@@ -143,7 +143,6 @@ Feature: Orderby Sentence
       | "Jazz"  | "Boris Diaw"        | 36  | 2016  |
       | "Spurs" | "LaMarcus Aldridge" | 33  | 2015  |
       | "Spurs" | "Boris Diaw"        | 36  | 2012  |
-      
     When executing query:
       """
       GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve WHERE serve.start_year >= 2012 YIELD $$.team.name as team, $^.player.name as player,
