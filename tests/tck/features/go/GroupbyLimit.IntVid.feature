@@ -139,6 +139,22 @@ Feature: Groupby & limit Sentence
   Scenario: Groupby test
     When executing query:
       """
+      GO FROM hash('Aron Baynes'), hash('Tracy McGrady') OVER serve 
+      YIELD $$.team.name AS name, serve._dst AS id, serve.start_year AS start_year, serve.end_year AS end_year
+      | GROUP BY $-.name, $-.start_year
+      YIELD $-.name AS teamName, $-.start_year AS start_year, MAX($-.start_year), MIN($-.end_year), AVG($-.end_year) AS avg_end_year, 
+      STD($-.end_year) AS std_end_year, COUNT($-.id)
+      """
+    Then the result should be, in any order:
+      | teamName  | start_year | MAX($-.start_year) | MIN($-.end_year) | avg_end_year | std_end_year | COUNT($-.id) |
+      | "Magic"   | 2000       | 2000               | 2004             | 2004.0       | 0.0          | 1            |
+      | "Raptors" | 1997       | 1997               | 2000             | 2000.0       | 0.0          | 1            |
+      | "Rockets" | 2004       | 2004               | 2010             | 2010.0       | 0.0          | 1            |
+      | "Pistons" | 2015       | 2015               | 2017             | 2017.0       | 0.0          | 1            |
+      | "Spurs"   | 2013       | 2013               | 2013             | 2014.0       | 1.0          | 2            |
+      | "Celtics" | 2017       | 2017               | 2019             | 2019.0       | 0.0          | 1            |
+    When executing query:
+      """
       GO FROM hash("Marco Belinelli") OVER serve YIELD $$.team.name AS name, serve._dst AS id, serve.start_year AS start_year, serve.end_year AS end_year
       | GROUP BY $-.start_year YIELD COUNT($-.id), $-.start_year AS start_year, AVG($-.end_year) as avg
       """
@@ -182,6 +198,62 @@ Feature: Groupby & limit Sentence
       | "Grizzlies" | 34     |
       | "Raptors"   | 34     |
       | "Lakers"    | 40     |
+
+  Scenario: Groupby with all agg functions
+    When executing query:
+      """
+      GO FROM hash("Carmelo Anthony"), hash("Dwyane Wade") OVER like
+      YIELD $$.player.name AS name, $$.player.age AS dst_age, $$.player.age AS src_age, like.likeness AS likeness
+      | GROUP BY $-.name YIELD $-.name AS name, SUM($-.dst_age) AS sum_dst_age, AVG($-.dst_age) AS avg_dst_age,
+      MAX($-.src_age) AS max_src_age, MIN($-.src_age) AS min_src_age, BIT_AND(1) AS bit_and, BIT_OR(2) AS bit_or, BIT_XOR(3) AS bit_xor,
+      COUNT($-.likeness)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name              | sum_dst_age | avg_dst_age | max_src_age | min_src_age | bit_and | bit_or | bit_xor | COUNT($-.likeness) |
+      | "Carmelo Anthony" | 34          | 34.0        | 34          | 34          | 1       | 2      | 3       | 1                  |
+      | "Dwyane Wade"     | 37          | 37.0        | 37          | 37          | 1       | 2      | 3       | 1                  |
+      | "Chris Paul"      | 66          | 33.0        | 33          | 33          | 1       | 2      | 0       | 2                  |
+      | "LeBron James"    | 68          | 34.0        | 34          | 34          | 1       | 2      | 0       | 2                  |
+    When executing query:
+      """
+      GO FROM hash('Tim Duncan') OVER like YIELD like._dst as dst
+      | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == hash('Tim Duncan') as following
+      | GROUP BY $-.dst YIELD $-.dst AS dst, BIT_OR($-.following) AS following
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst                   | following |
+      | hash("Manu Ginobili") | BAD_TYPE  |
+      | hash("Tony Parker")   | BAD_TYPE  |
+    When executing query:
+      """
+      GO FROM hash('Tim Duncan') OVER like YIELD like._dst as dst
+      | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == hash('Tim Duncan') as following
+      | GROUP BY $-.dst YIELD $-.dst AS dst, BIT_OR(case when $-.following==true then 1 else 0 end) AS following
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst                   | following |
+      | hash("Tony Parker")   | 1         |
+      | hash("Manu Ginobili") | 1         |
+    When executing query:
+      """
+      GO FROM hash('Tim Duncan') OVER like YIELD like._dst as dst
+      |  GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == hash('Tim Duncan') as following
+      | GROUP BY $-.dst YIELD $-.dst AS dst, BIT_AND($-.following) AS following
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst                   | following |
+      | hash("Manu Ginobili") | BAD_TYPE  |
+      | hash("Tony Parker")   | BAD_TYPE  |
+    When executing query:
+      """
+      GO FROM hash('Tim Duncan') OVER like YIELD like._dst as dst
+      | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == hash('Tim Duncan') as following
+      | GROUP BY $-.dst YIELD $-.dst AS dst, BIT_AND(case when $-.following==true then 1 else 0 end) AS following
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst                   | following |
+      | hash("Manu Ginobili") | 1         |
+      | hash("Tony Parker")   | 0         |
 
   @skip
   Scenario: Groupby with COUNT_DISTINCT
