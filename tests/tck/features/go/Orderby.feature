@@ -29,14 +29,14 @@ Feature: Orderby Sentence
       """
       GO FROM "NON EXIST VERTEX ID" OVER serve YIELD $^.player.name as name, serve.start_year as start, $$.team.name as team| ORDER BY $-.name
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name | start | team |
     When executing query:
       """
       GO FROM "Marco Belinelli" OVER serve YIELD $^.player.name as name, serve.start_year as start, $$.team.name as team
       | YIELD $-.name as name WHERE $-.start > 20000 | ORDER BY $-.name
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name |
 
   Scenario: Orderby not existing prop
@@ -51,7 +51,7 @@ Feature: Orderby Sentence
       """
       GO FROM "Boris Diaw" OVER serve YIELD $^.player.name as name, serve.start_year as start, $$.team.name as team | ORDER BY $-.team
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name         | start | team      |
       | "Boris Diaw" | 2003  | "Hawks"   |
       | "Boris Diaw" | 2008  | "Hornets" |
@@ -87,7 +87,7 @@ Feature: Orderby Sentence
       GO FROM "Boris Diaw","LaMarcus Aldridge" OVER serve WHERE serve.start_year >= 2012 YIELD $$.team.name as team, $^.player.name as player,
       $^.player.age as age, serve.start_year as start | ORDER BY $-.team, $-.age
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | team    | player              | age | start |
       | "Spurs" | "Boris Diaw"        | 36  | 2012  |
       | "Jazz"  | "Boris Diaw"        | 36  | 2016  |
