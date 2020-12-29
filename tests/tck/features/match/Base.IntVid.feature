@@ -100,16 +100,15 @@ Feature: Basic match
       | Type    | Name        |
       | "serve" | "Cavaliers" |
       | "serve" | "Cavaliers" |
-    # TODO: Fix duplicate column name
-    # When executing query:
-    # """
-    # MATCH (v1:player{name: "LeBron James"}) -[r:serve]-> (v2 {name: "Cavaliers"})
-    # WHERE r.start_year <= 2005 AND r.end_year >= 2005
-    # RETURN r.start_year AS Start_Year, r.end_year AS Start_Year
-    # """
-    # Then the result should be, in any order:
-    # | Start_Year | Start_Year |
-    # | 2003       | 2010       |
+    When executing query:
+      """
+      MATCH (v1:player{name: "LeBron James"}) -[r:serve]-> (v2 {name: "Cavaliers"})
+      WHERE r.start_year <= 2005 AND r.end_year >= 2005
+      RETURN r.start_year AS Start_Year, r.end_year AS Start_Year
+      """
+    Then the result should be, in any order:
+      | Start_Year | Start_Year |
+      | 2003       | 2010       |
     When executing query:
       """
       MATCH (v1:player{name: "Danny Green"}) -[:like]-> (v2)
