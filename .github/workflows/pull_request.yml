@@ -122,7 +122,7 @@ jobs:
           esac
       - name: Make graph
         run: |
-          ccache -s
+          ccache -z
           cmake --build build/ -j $(nproc)
           ccache -s
       - name: CTest
@@ -138,12 +138,7 @@ jobs:
         timeout-minutes: 15
       - name: Sanitizer
         run: |
-          res=$(grep -P "SUMMARY: AddressSanitizer: \d+ byte\(s\) leaked in \d+ allocation\(s\)\." build/server_*/logs/stderr.log | wc -l)
-          echo "res: $res"
-          if [[ x"$res" != x"0" ]]; then
-            echo "There are some sanitizer errors, please lookup the stderr.log!"
-            exit 1
-          fi
+          exit $(grep -P "SUMMARY: AddressSanitizer: \d+ byte\(s\) leaked in \d+ allocation\(s\)\." build/server_*/logs/stderr.log | wc -l)
       - name: Upload logs
         uses: actions/upload-artifact@v2
         if: ${{ failure() }}
