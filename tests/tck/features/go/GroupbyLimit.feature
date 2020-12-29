@@ -85,7 +85,7 @@ Feature: Groupby & limit Sentence
       """
       GO FROM "Marco Belinelli" OVER serve YIELD $$.team.name AS name | ORDER BY $-.name | LIMIT 5
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name      |
       | "76ers"   |
       | "Bulls"   |
@@ -96,7 +96,7 @@ Feature: Groupby & limit Sentence
       """
       GO FROM "Marco Belinelli" OVER serve YIELD $$.team.name AS name | ORDER BY $-.name | LIMIT 2,2
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name      |
       | "Hawks"   |
       | "Hornets" |
@@ -104,7 +104,7 @@ Feature: Groupby & limit Sentence
       """
       GO FROM "Marco Belinelli" OVER serve YIELD $$.team.name AS name | ORDER BY $-.name | LIMIT 2 OFFSET 2
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name      |
       | "Hawks"   |
       | "Hornets" |
@@ -113,7 +113,7 @@ Feature: Groupby & limit Sentence
       GO FROM "Marco Belinelli" OVER like YIELD $$.team.name AS name, like._dst AS id | ORDER BY $-.name | LIMIT 1
       | GO FROM $-.id OVER like YIELD $$.player.name AS name | ORDER BY $-.name | LIMIT 2
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name              |
       | "LeBron James"    |
       | "Marco Belinelli" |
@@ -121,7 +121,7 @@ Feature: Groupby & limit Sentence
       """
       GO FROM "Danny Green" OVER serve YIELD $$.team.name AS name | LIMIT 5
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name        |
       | "Cavaliers" |
       | "Spurs"     |
@@ -213,7 +213,7 @@ Feature: Groupby & limit Sentence
       GO FROM "Carmelo Anthony","Dwyane Wade" OVER like YIELD $$.player.name AS name | GROUP BY $-.name, abs(5)
       YIELD $-.name AS name, SUM(1.5) AS sum, COUNT(*) AS count | ORDER BY $-.sum, $-.name
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name              | sum | count |
       | "Carmelo Anthony" | 1.5 | 1     |
       | "Dwyane Wade"     | 1.5 | 1     |
@@ -224,7 +224,7 @@ Feature: Groupby & limit Sentence
       GO FROM "Carmelo Anthony","Dwyane Wade" OVER like YIELD $$.player.name AS name | GROUP BY $-.name, abs(5)
       YIELD $-.name AS name, SUM(1.5) AS sum, COUNT(*) AS count | ORDER BY $-.sum, $-.name DESC | LIMIT 2
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name              | sum | count |
       | "Dwyane Wade"     | 1.5 | 1     |
       | "Carmelo Anthony" | 1.5 | 1     |
@@ -241,7 +241,7 @@ Feature: Groupby & limit Sentence
       GO FROM "NON EXIST VERTEX ID" OVER like YIELD $$.player.name AS name | GROUP BY $-.name, abs(5)
       YIELD $-.name AS name, SUM(1.5) AS sum, COUNT(*) AS count | ORDER BY $-.sum | LIMIT 2
       """
-    Then the result should be, in any order, with relax comparison:
+    Then the result should be, in order, with relax comparison:
       | name | sum | count |
     When executing query:
       """
