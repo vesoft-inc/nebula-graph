@@ -34,7 +34,8 @@ Feature: Orderby Sentence
     When executing query:
       """
       GO FROM "Marco Belinelli" OVER serve YIELD $^.player.name as name, serve.start_year as start, $$.team.name as team
-      | YIELD $-.name as name WHERE $-.start > 20000 | ORDER BY $-.name
+      | YIELD $-.name as name WHERE $-.start > 20000
+      | ORDER BY $-.name
       """
     Then the result should be, in order, with relax comparison:
       | name |
@@ -134,14 +135,24 @@ Feature: Orderby Sentence
       | "Jazz"  | "Boris Diaw"        | 36  | 2016  |
     When executing query:
       """
-      GO FROM "Boris Diaw","LaMarcus Aldridge" OVER serve WHERE serve.start_year >= 2012 YIELD $$.team.name as team, $^.player.name as player,
-      $^.player.age as age, serve.start_year as start | ORDER BY team DESC, age DESC
+      GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve WHERE serve.start_year >= 2012 YIELD $$.team.name as team, '$^.player.name as player,
+      $^.player.age as age, serve.start_year as start | ORDER BY $-.team ASC, $-.age ASC
       """
     Then the result should be, in order, with relax comparison:
       | team    | player              | age | start |
       | "Spurs" | "Boris Diaw"        | 36  | 2012  |
       | "Spurs" | "LaMarcus Aldridge" | 33  | 2015  |
       | "Jazz"  | "Boris Diaw"        | 36  | 2016  |
+    When executing query:
+      """
+      GO FROM "Boris Diaw", "LaMarcus Aldridge" OVER serve WHERE serve.start_year >= 2012 YIELD $$.team.name as team, $^.player.name as player,
+      $^.player.age as age, serve.start_year as start | ORDER BY $-.team ASC, $-.age DESC
+      """
+    Then the result should be, in order, with relax comparison:
+      | team    | player              | age | start |
+      | "Jazz"  | "Boris Diaw"        | 36  | 2016  |
+      | "Spurs" | "Boris Diaw"        | 36  | 2012  |
+      | "Spurs" | "LaMarcus Aldridge" | 33  | 2015  |
 
   Scenario: Pipe output of ORDER BY to graph traversal
     When executing query:
