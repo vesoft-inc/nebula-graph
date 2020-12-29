@@ -128,7 +128,7 @@ class TestInsert1(NebulaTestSuite):
 
         # insert vertex with timestamp succeeded, timestamp not supported, TODO
         resp = self.execute('INSERT VERTEX school(name, create_time) VALUES '
-                            '"sun_school":("sun_school", "2010-01-01 10:00:00")')
+                            '"sun_school":("sun_school", `timestamp`("2010-01-01T10:00:00"))')
         self.check_resp_succeeded(resp)
 
         # insert vertex with timestamp succeeded uuid
