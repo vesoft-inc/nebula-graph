@@ -144,10 +144,18 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
     PlanNode* root = gv;
     if (nodeFilter != nullptr) {
         auto filter = nodeFilter->clone().release();
-        RewriteMatchLabelVisitor visitor([](const Expression* expr) {
-            DCHECK_EQ(expr->kind(), Expression::Kind::kLabelAttribute);
-            auto la = static_cast<const LabelAttributeExpression*>(expr);
-            return new AttributeExpression(new VertexExpression(), la->right()->clone().release());
+        RewriteMatchLabelVisitor visitor(
+            [](const Expression* expr) -> Expression *{
+            DCHECK(expr->kind() == Expression::Kind::kLabelAttribute ||
+                expr->kind() == Expression::Kind::kLabel);
+            // filter prop
+            if (expr->kind() == Expression::Kind::kLabelAttribute) {
+                auto la = static_cast<const LabelAttributeExpression*>(expr);
+                return new AttributeExpression(
+                    new VertexExpression(), la->right()->clone().release());
+            }
+            // filter tag
+            return new VertexExpression();
         });
         filter->accept(&visitor);
         root = Filter::make(qctx, root, filter);
@@ -195,7 +203,7 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     DCHECK(!nodeInfos.empty());
     addNode(nodeInfos.size() - 1);
 
-    const auto& aliases = matchClauseCtx->aliases;
+    const auto& aliases = matchClauseCtx->aliasesGenerated;
     auto iter = std::find_if(aliases.begin(), aliases.end(), [](const auto& alias) {
         return alias.second == AliasType::kPath;
     });
