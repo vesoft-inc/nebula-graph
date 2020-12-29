@@ -556,6 +556,28 @@ void DeduceTypeVisitor::visit(PredicateExpression *expr) {
     type_ = Value::Type::BOOL;
 }
 
+void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    if (type_ != Value::Type::LIST) {
+        status_ = Status::SemanticError(
+            "`%s': Invalid colletion type, expected type of LIST",
+            expr->toString().c_str());
+        return;
+    }
+
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (!ok()) return;
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (!ok()) return;
+    }
+
+    type_ = Value::Type::LIST;
+}
+
 void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {
     auto *tag = expr->sym();
     auto tagId = qctx_->schemaMng()->toTagID(space_, *tag);

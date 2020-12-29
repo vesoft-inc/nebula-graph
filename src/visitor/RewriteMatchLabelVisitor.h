@@ -61,6 +61,7 @@ private:
     void visit(EdgeExpression*) override {}
     void visit(ColumnExpression*) override {}
     void visit(PredicateExpression *) override;
+    void visit(ListComprehensionExpression*) override;
 
     void visitBinaryExpr(BinaryExpression *) override;
 

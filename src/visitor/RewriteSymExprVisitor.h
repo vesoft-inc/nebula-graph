@@ -72,6 +72,8 @@ public:
     void visit(ColumnExpression *expr) override;
     // predicate expression
     void visit(PredicateExpression *expr) override;
+    // list comprehension expression
+    void visit(ListComprehensionExpression *expr) override;
 
 private:
     void visitBinaryExpr(BinaryExpression *expr);

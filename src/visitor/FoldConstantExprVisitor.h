@@ -65,6 +65,8 @@ public:
     void visit(ColumnExpression *expr) override;
     // predicate expression
     void visit(PredicateExpression *expr) override;
+    // list comprehension expression
+    void visit(ListComprehensionExpression *) override;
 
     void visitBinaryExpr(BinaryExpression *expr);
     Expression *fold(Expression *expr) const;
