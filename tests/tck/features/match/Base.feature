@@ -393,4 +393,3 @@ Feature: Basic match
       MATCH () --> (v) --> () return *
       """
     Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *
-
