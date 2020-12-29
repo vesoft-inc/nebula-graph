@@ -448,7 +448,6 @@ Expression* FindPathValidator::buildMultiPairLoopCondition(uint32_t steps,
 PlanNode* FindPathValidator::AddPathProps(PlanNode* dep) {
     std::vector<storage::cpp2::Expr> exprs;
     std::vector<storage::cpp2::VertexProp> vertexProps;
-    std::vector<storage::cpp2::EdgeProp> edgeProps;
     // column 0 is path
     auto pool = qctx_->objPool();
     auto* src = pool->makeAndAdd<ColumnExpression>(0);
@@ -466,6 +465,18 @@ PlanNode* FindPathValidator::AddPathProps(PlanNode* dep) {
 
     // GetEdges::explain will error when type is nullptr
     auto* type = pool->makeAndAdd<ConstantExpression>(0);
+    std::vector<storage::cpp2::EdgeProp> edgeProps;
+    for (auto edgeType : over_.edgeTypes) {
+        std::vector<std::string> propNames = {kSrc, kType, kRank, kDst};
+        auto schemaMng = qctx_->schemaMng()->getEdgeSchema(space_.id, edgeType);
+        for (std::size_t i = 0; i < schemaMng->getNumFields(); ++i) {
+            propNames.emplace_back(schemaMng->getFieldName(i));
+        }
+        storage::cpp2::EdgeProp prop;
+        prop.set_type(edgeType);
+        prop.set_props(std::move(propNames));
+        edgeProps.emplace_back(std::move(prop));
+    }
     // get the props of edges in the path
     auto* ge = GetEdges::make(qctx_,
                               gv,
@@ -484,7 +495,7 @@ PlanNode* FindPathValidator::AddPathProps(PlanNode* dep) {
                                  ge,
                                  DataCollect::CollectKind::kPathProps,
                                  {gv->outputVar(), ge->outputVar(), dep->outputVar()});
-    dc->setColNames({"_path"});
+    dc->setColNames({"path"});
     return dc;
 }
 

@@ -35,8 +35,7 @@ Status GetPropExecutor::handleResp(StorageRpcResponse<GetPropResponse> &&rpcResp
         DCHECK_EQ(colNames.size(), v.colSize());
         v.colNames = colNames;
     }
-
-    VLOG(2) << "Dataset in get props: \n" << v << "\n";
+    VLOG(2) << "Dataset in get props: \n" << v;
     return finish(
         ResultBuilder().value(std::move(v)).iter(Iterator::Kind::kProp).state(state).finish());
 }

@@ -1631,3 +1631,17 @@ Feature: IntegerVid Go  Sentence
     Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
       | like._dst     |
       | "Tony Parker" |
+
+  Scenario: Integer Vid tag not belong to vertex
+    When executing query:
+      """
+      GO FROM hash("Boris Diaw") OVER serve YIELD $^.team.name, serve.start_year, serve.end_year, $$.player.name
+      """
+    Then the result should be, in any order, with relax comparison:
+      | $^.team.name | serve.start_year | serve.end_year | $$.player.name |
+      | EMPTY        | 2003             | 2005           | EMPTY          |
+      | EMPTY        | 2005             | 2008           | EMPTY          |
+      | EMPTY        | 2008             | 2012           | EMPTY          |
+      | EMPTY        | 2012             | 2016           | EMPTY          |
+      | EMPTY        | 2016             | 2017           | EMPTY          |
+

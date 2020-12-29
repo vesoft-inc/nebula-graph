@@ -1662,3 +1662,16 @@ Feature: Go Sentence
     Then the result should be, in any order, with relax comparison:
       | like._dst     |
       | "Tony Parker" |
+
+  Scenario: tag not belong to vertex
+    When executing query:
+      """
+      GO FROM "Boris Diaw" OVER serve YIELD $^.team.name, serve.start_year, serve.end_year, $$.player.name
+      """
+    Then the result should be, in any order, with relax comparison:
+      | $^.team.name | serve.start_year | serve.end_year | $$.player.name |
+      | EMPTY        | 2003             | 2005           | EMPTY          |
+      | EMPTY        | 2005             | 2008           | EMPTY          |
+      | EMPTY        | 2008             | 2012           | EMPTY          |
+      | EMPTY        | 2012             | 2016           | EMPTY          |
+      | EMPTY        | 2016             | 2017           | EMPTY          |

@@ -324,15 +324,20 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
 
             auto type = step.type;
             auto ranking = step.ranking;
+            if (type < 0) {
+                dstVid = srcVid;
+                srcVid = step.dst.vid;
+                type = -type;
+            }
             auto edgeKey = folly::stringPrintf(
                 "%s%s%d%ld", srcVid.toString().c_str(), dstVid.toString().c_str(), type, ranking);
             auto edge = edgeMap[edgeKey];
             step.props = edge.props;
-            srcVid = dstVid;
+            srcVid = step.dst.vid;
         }
         ds.rows.emplace_back(Row({std::move(pathVal)}));
     }
-
+    VLOG(2) << "Path with props : \n" << ds;
     result_.setDataSet(std::move(ds));
     return Status::OK();
 }

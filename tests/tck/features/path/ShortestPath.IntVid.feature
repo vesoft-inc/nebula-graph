@@ -447,3 +447,38 @@ Feature: Integer Vid Shortest Path
       | <("Tony Parker")<-[:teammate]-("Manu Ginobili")>                                                   |
       | <("Tony Parker")-[:like]->("Manu Ginobili")>                                                       |
       | <("Tony Parker")-[:teammate]->("Manu Ginobili")>                                                   |
+
+  Scenario: Integer Vid Shortest Path With PROP
+    When executing query:
+      """
+      FIND SHORTEST PATH WITH PROP FROM hash("Tim Duncan") TO hash("LaMarcus Aldridge") OVER like
+      """
+    Then the result should be, in any order, with relax comparison:
+      | path                                                                                                                                                                                                                                                         |
+      | < ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"})-[:like@0]->("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:like@0]->("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})> |
+    When executing query:
+      """
+      FIND SHORTEST PATH WITH PROP FROM hash("Tony Parker"), hash("Yao Ming") TO hash("Manu Ginobili"), hash("Spurs"), hash("Lakers") OVER * REVERSELY
+      """
+    Then the result should be, in any order, with relax comparison:
+      | path                                                                                                                              |
+      | < ("Tony Parker" :player{age: 36, name: "Tony Parker"})<-[:teammate@0]-("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})> |
+    When executing query:
+      """
+      $a = GO FROM hash("Yao Ming") over like YIELD like._dst AS src;
+      FIND SHORTEST PATH WITH PROP FROM $a.src TO "Tony Parker" OVER like, serve UPTO 5 STEPS
+      """
+    Then the result should be, in any order, with relax comparison:
+      | path                                                                                                                                                                                                                                                                 |
+      | <("Tracy McGrady" :player{age: 39, name: "Tracy McGrady"})-[:like@0]->("Rudy Gay" :player{age: 32, name: "Rudy Gay"})-[:like@0]->("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})-[:like@0]->("Tony Parker" :player{age: 36, name: "Tony Parker"})> |
+      | <("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})-[:like@0]->("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"})-[:like@0]->("Tony Parker" :player{age: 36, name: "Tony Parker"})>              |
+    When executing query:
+      """
+      FIND SHORTEST PATH WITH PROP FROM hash("Tony Parker"), hash("Yao Ming") TO hash("Manu Ginobili"), hash("Spurs"), hash("Lakers") OVER * BIDIRECT UPTO 2 STEPS
+      """
+    Then the result should be, in any order, with relax comparison:
+      | path                                                                                                                             |
+      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:serve@0 {end_year: 2018, start_year: 1999}]->("Spurs" :team{name: "Spurs"})>                               |
+      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})<-[:teammate@0 {end_year: 2016, start_year: 2002}]-("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})> |
+      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:like@0 {likeness: 95}]->("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})>                         |
+      | <("Tony Parker" :player{age: 36, name: "Tony Parker"})-[:teammate@0 {end_year: 2018, start_year: 2002}]->("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})> |

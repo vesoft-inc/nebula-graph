@@ -69,10 +69,8 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
     if (ge_->src() == nullptr) {
         return Status::Error("GetEdges Path's src is nullptr");
     }
-    std::vector<storage::cpp2::EdgeProp> edgeProps;
     auto iter = ectx_->getResult(inputVar).iter();
     QueryExpressionContext ctx(ectx_);
-    std::unordered_set<int32_t>uniqueType;
     std::unordered_set<std::string> uniqueEdge;
     for (; iter->valid(); iter->next()) {
         auto path = ge_->src()->eval(ctx(iter.get()));
@@ -86,23 +84,20 @@ Status GetEdgesExecutor::buildPathRequestDataSet() {
             auto type = step.type;
             auto ranking = step.ranking;
             auto dst = step.dst.vid;
-
+            if (type < 0) {
+                dst = src;
+                src = step.dst.vid;
+                type = -type;
+            }
             auto edgeKey = folly::stringPrintf(
                 "%s%s%d%ld", src.toString().c_str(), dst.toString().c_str(), type, ranking);
             auto ret = uniqueEdge.emplace(edgeKey);
             if (ret.second) {
                 reqDs_.emplace_back(Row({src, type, ranking, dst}));
             }
-            storage::cpp2::EdgeProp prop;
-            auto ret2 = uniqueType.emplace(type);
-            if (ret2.second) {
-                prop.set_type(type);
-                edgeProps.emplace_back(std::move(prop));
-            }
-            src = dst;
+            src = step.dst.vid;
         }
     }
-    const_cast<GetEdges*>(ge_)->setProps(edgeProps);
     return Status::OK();
 }
 
