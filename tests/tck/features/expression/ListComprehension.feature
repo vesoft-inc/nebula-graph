@@ -57,8 +57,8 @@ Feature: ListComprehension
     Given a graph with space named "nba"
     When executing query:
       """
-        MATCH p = (n:player{name:"LeBron James"})<-[:like]-(m) RETURN [n IN nodes(p)
-        WHERE n.name NOT STARTS WITH "LeBron" | n.age + 100] AS r
+        MATCH p = (n:player{name:"LeBron James"})<-[:like]-(m)
+        RETURN [n IN nodes(p) WHERE n.name NOT STARTS WITH "LeBron" | n.age + 100] AS r
       """
     Then the result should be, in any order:
       | r     |

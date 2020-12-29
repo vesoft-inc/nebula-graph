@@ -8,7 +8,7 @@
 %parse-param { nebula::GraphScanner& scanner }
 %parse-param { std::string &errmsg }
 %parse-param { nebula::Sentence** sentences }
-%parse-param { nebula::graph::QueryContext* qctx}
+%parse-param { nebula::graph::QueryContext* qctx }
 
 %code requires {
 #include <iostream>
