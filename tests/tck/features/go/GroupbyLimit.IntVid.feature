@@ -139,10 +139,10 @@ Feature: Groupby & limit Sentence
   Scenario: Groupby test
     When executing query:
       """
-      GO FROM hash('Aron Baynes'), hash('Tracy McGrady') OVER serve 
+      GO FROM hash('Aron Baynes'), hash('Tracy McGrady') OVER serve
       YIELD $$.team.name AS name, serve._dst AS id, serve.start_year AS start_year, serve.end_year AS end_year
       | GROUP BY $-.name, $-.start_year
-      YIELD $-.name AS teamName, $-.start_year AS start_year, MAX($-.start_year), MIN($-.end_year), AVG($-.end_year) AS avg_end_year, 
+      YIELD $-.name AS teamName, $-.start_year AS start_year, MAX($-.start_year), MIN($-.end_year), AVG($-.end_year) AS avg_end_year,
       STD($-.end_year) AS std_end_year, COUNT($-.id)
       """
     Then the result should be, in any order:
