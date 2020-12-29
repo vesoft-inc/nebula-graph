@@ -1,7 +1,5 @@
-@test1
 Feature: IndexTest_Vid_Int
 
-  @skip
   Scenario: IndexTest IntVid TagIndex
     Given an empty graph
     And create a space with following options:
@@ -146,7 +144,6 @@ Feature: IndexTest_Vid_Int
     Then the execution should be successful
     Then drop the used space
 
-  @skip
   Scenario: IndexTest IntVid EdgeIndex
     Given an empty graph
     And create a space with following options:
@@ -504,7 +501,7 @@ Feature: IndexTest_Vid_Int
       """
       CREATE TAG tag_1(col1 bool, col2 int, col3 double, col4 timestamp)
       """
-    And wait 6 seconds
+    And wait 12 seconds
     When executing query:
       """
       CREATE TAG INDEX single_person_index ON tag_1(col1)
@@ -513,7 +510,7 @@ Feature: IndexTest_Vid_Int
     When executing query:
       """
       INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES
-                     100:  (true,  18, 1.1, "2000-10-10 10:00:00")
+                     100:(true,  18, 1.1, "2000-10-10 10:00:00")
       """
     Then the execution should be successful
     When executing query:
@@ -604,7 +601,6 @@ Feature: IndexTest_Vid_Int
       | "tag_index_status" | "FINISHED"   |
     Then drop the used space
 
-  @test3
   Scenario: IndexTest IntVid RebuildEdgeIndexStatusInfo
     Given an empty graph
     And create a space with following options:
