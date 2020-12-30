@@ -593,8 +593,8 @@ Status MatchValidator::validatePagination(const Expression *skipExpr,
 }
 
 Status MatchValidator::validateOrderBy(const OrderFactors *factors,
-                                          const YieldColumns *yieldColumns,
-                                          OrderByClauseContext &orderByCtx) const {
+                                       const YieldColumns *yieldColumns,
+                                       OrderByClauseContext &orderByCtx) const {
     DCHECK(factors != nullptr);
     std::vector<std::string> inputColList;
     inputColList.reserve(yieldColumns->columns().size());
