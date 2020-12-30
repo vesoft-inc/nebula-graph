@@ -83,7 +83,8 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
             auto aggs = ExpressionUtils::collectAll(collectAggCol.get(),
                                                     {Expression::Kind::kAggregate});
             if (aggs.size() > 1) {
-                return Status::SemanticError("Agg function nesting is not allowed");
+                return Status::SemanticError("Agg function nesting is not allowed: `%s`",
+                                             collectAggCol->toString().c_str());
             }
             if (aggs.size() == 1) {
                 auto colRewrited = col->expr()->clone();
@@ -110,6 +111,11 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
                 auto iter = AggregateExpression::nameIdMap_.find(func->c_str());
                 if (iter == AggregateExpression::nameIdMap_.end()) {
                     return Status::SemanticError("Unkown aggregate function `%s`", func->c_str());
+                }
+                if (graph::ExpressionUtils::findAny(aggExpr->arg(),
+                                                    {Expression::Kind::kAggregate})) {
+                    return Status::SemanticError("Agg function nesting is not allowed: `%s`",
+                                                 aggExpr->toString().c_str());
                 }
                 auto* aggArg = aggExpr->arg();
                 if (iter->second != AggregateExpression::Function::kCount) {

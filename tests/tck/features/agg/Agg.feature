@@ -39,33 +39,33 @@ Feature: Basic Agg and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY $-.dst YIELD $-.dst AS dst, avg(distinct $-.age) AS age
       """
     Then the result should be, in any order, with relax comparison:
-      | dst             | age |
-      | "Tony Parker"   | 36.0  |
-      | "Manu Ginobili" | 41.0  |
+      | dst             | age  |
+      | "Tony Parker"   | 36.0 |
+      | "Manu Ginobili" | 41.0 |
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY $-.dst YIELD $-.dst AS dst, avg(distinct $-.age) AS age
       """
     Then the result should be, in any order, with relax comparison:
-      | dst             | age |
-      | "Tony Parker"   | 36.0  |
-      | "Manu Ginobili" | 41.0  |
+      | dst             | age  |
+      | "Tony Parker"   | 36.0 |
+      | "Manu Ginobili" | 41.0 |
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY $-.dst YIELD $-.dst AS dst, avg(distinct $-.age) AS age
       """
     Then the result should be, in any order, with relax comparison:
-      | dst             | age |
-      | "Tony Parker"   | 36.0  |
-      | "Manu Ginobili" | 41.0  |
+      | dst             | age  |
+      | "Tony Parker"   | 36.0 |
+      | "Manu Ginobili" | 41.0 |
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age; YIELD $var.dst AS dst, avg(distinct $var.age) AS age
       """
     Then the result should be, in any order, with relax comparison:
-      | dst             | age |
-      | "Tony Parker"   | 36.0  |
-      | "Manu Ginobili" | 41.0  |
+      | dst             | age  |
+      | "Tony Parker"   | 36.0 |
+      | "Manu Ginobili" | 41.0 |
 
   Scenario: Implicit GroupBy
     When executing query:
@@ -73,9 +73,9 @@ Feature: Basic Agg and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | YIELD $-.dst AS dst, 1+avg(distinct $-.age) AS age
       """
     Then the result should be, in any order, with relax comparison:
-      | dst             | age |
-      | "Tony Parker"   | 37.0  |
-      | "Manu Ginobili" | 42.0  |
+      | dst             | age  |
+      | "Tony Parker"   | 37.0 |
+      | "Manu Ginobili" | 42.0 |
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age;YIELD $var.dst AS dst, (INT)abs(1+avg(distinct $var.age)) AS age
@@ -121,6 +121,21 @@ Feature: Basic Agg and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY $-.age+1 YIELD $-.age,avg(distinct $-.age) AS age
       """
     Then a SemanticError should be raised at runtime: Yield non-agg expression `$-.age` must be functionally dependent on items in GROUP BY clause
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY $-.age+1 YIELD $-.age+1,abs(avg(distinct count($-.age))) AS age
+      """
+    Then a SemanticError should be raised at runtime: Agg function nesting is not allowed: `abs(AVG(distinct COUNT($-.age)))`
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY $-.age+1 YIELD $-.age+1,avg(distinct count($-.age+1)) AS age
+      """
+    Then a SemanticError should be raised at runtime: Agg function nesting is not allowed: `AVG(distinct COUNT(($-.age+1)))`
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | GROUP BY avg($-.age+1)+1 YIELD $-.age,avg(distinct $-.age) AS age
+      """
+    Then a SemanticError should be raised at runtime:  Group `(AVG(($-.age+1))+1)` invalid
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age;GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | YIELD $var.dst AS dst, avg(distinct $-.age) AS age

@@ -33,17 +33,17 @@ Status YieldValidator::validateImpl() {
             new GroupBySentence(
                 yield->yield()->clone().release(),
                 nullptr, nullptr));
-        groupByValidator_.reset(new GroupByValidator(groupSentence, qctx()));
-        groupByValidator_->inputs_ = inputs_;
-        groupByValidator_->outputs_ = outputs_;
-        groupByValidator_->exprProps_ = exprProps_;
+        groupByValidator_ = std::make_unique<GroupByValidator>(groupSentence, qctx());
+        groupByValidator_->setInputCols(inputs_);
+        groupByValidator_->setOutputCols(outputs_);
+        groupByValidator_->setExprProps(exprProps_);
     }
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
     if (groupByValidator_) {
         NG_RETURN_IF_ERROR(groupByValidator_->validateImpl());
-        inputs_ = groupByValidator_->inputs_;
-        outputs_ = groupByValidator_->outputs_;
-        exprProps_ = groupByValidator_->exprProps_;
+        inputs_ = groupByValidator_->inputCols();
+        outputs_ = groupByValidator_->outputCols();
+        exprProps_ = groupByValidator_->exprProps();
         return Status::OK();
     }
     NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));

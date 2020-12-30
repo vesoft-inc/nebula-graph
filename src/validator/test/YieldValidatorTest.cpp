@@ -319,7 +319,7 @@ TEST_F(YieldValidatorTest, YieldPipe) {
     }
 #endif
     {
-        auto query = go + "| YIELD DISTINCT 1 + $-.* AS e WHERE $-.start > 2005";\
+        auto query = go + "| YIELD DISTINCT 1 + $-.* AS e WHERE $-.start > 2005";
         EXPECT_FALSE(checkResult(query));
     }
 }

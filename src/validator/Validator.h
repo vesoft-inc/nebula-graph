@@ -42,10 +42,6 @@ public:
         inputVarName_ = std::move(name);
     }
 
-    void setInputCols(ColsDef&& inputs) {
-        inputs_ = std::move(inputs);
-    }
-
     QueryContext* qctx() {
         return qctx_;
     }
@@ -62,8 +58,36 @@ public:
         return outputs_;
     }
 
+    void setOutputCols(ColsDef&& outputCols) {
+        outputs_ = std::move(outputCols);
+    }
+
+    void setOutputCols(ColsDef& outputCols) {
+        outputs_ = outputCols;
+    }
+
     ColsDef inputCols() const {
         return inputs_;
+    }
+
+    void setInputCols(ColsDef&& inputCols) {
+        inputs_ = std::move(inputCols);
+    }
+
+    void setInputCols(ColsDef& inputCols) {
+        inputs_ = inputCols;
+    }
+
+    ExpressionProps exprProps() const {
+        return exprProps_;
+    }
+
+    void setExprProps(ExpressionProps&& exprProps) {
+        exprProps_ = std::move(exprProps);
+    }
+
+    void setExprProps(ExpressionProps& exprProps) {
+        exprProps_ = exprProps;
     }
 
     void setNoSpaceRequired() {
@@ -136,12 +160,6 @@ protected:
 
     Status invalidLabelIdentifiers(const Expression* expr) const;
 
-public:
-    // The input columns and output columns of a sentence.
-    ColsDef                         outputs_;
-    ColsDef                         inputs_;
-    ExpressionProps                 exprProps_;
-
 protected:
     SpaceInfo                       space_;
     Sentence*                       sentence_{nullptr};
@@ -151,6 +169,11 @@ protected:
     std::string                     inputVarName_;
     // Admin sentences do not requires a space to be chosen.
     bool                            noSpaceRequired_{false};
+
+    // The input columns and output columns of a sentence.
+    ColsDef                         outputs_;
+    ColsDef                         inputs_;
+    ExpressionProps                 exprProps_;
 
     // root and tail of a subplan.
     PlanNode*                       root_{nullptr};
