@@ -59,7 +59,7 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
     plan.root = scan;
 
     // initialize start expression in project node
-    nodeCtx->initialExpr = ExpressionUtils::newVarPropExpr(kVid);
+    nodeCtx->initialExpr.reset(ExpressionUtils::newVarPropExpr(kVid));
     return plan;
 }
 

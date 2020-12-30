@@ -284,7 +284,6 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
             return new VertexExpression();
         });
         filter->accept(&visitor);
-        qctx->objPool()->add(filter);
         root = Filter::make(qctx, root, filter);
     }
 
