@@ -235,12 +235,15 @@ Feature: Match seek by id
       """
     Then a SemanticError should be raised at runtime:
 
-  @skip
-  Scenario: TODO
+  Scenario: Start from end
     When executing query:
       """
       MATCH (v)-[:serve]->(t)
       WHERE id(t) == 'Pistons'
       RETURN v.name AS Name
       """
-    Then a SemanticError should be raised at runtime:
+    Then the result should be, in any order:
+      | Name            |
+      | 'Aron Baynes'   |
+      | 'Blake Griffin' |
+      | 'Grant Hill'    |
