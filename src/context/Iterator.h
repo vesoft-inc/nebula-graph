@@ -42,6 +42,15 @@ public:
     template <typename T>
     using RowsIter = typename RowsType<T>::iterator;
 
+    // Warning this will break the origin order of elements!
+    template <typename T>
+    static RowsIter<T> eraseBySwap(RowsType<T> &rows, RowsIter<T> i) {
+        DCHECK(!rows.empty());
+        std::swap(rows.back(), *i);
+        rows.pop_back();
+        return i;
+    }
+
     enum class Kind : uint8_t {
         kDefault,
         kGetNeighbors,
@@ -242,7 +251,7 @@ public:
 
     void erase() override {
         if (valid()) {
-            iter_ = logicalRows_.erase(iter_);
+            iter_ = eraseBySwap(logicalRows_, iter_);
         }
     }
 
@@ -475,7 +484,7 @@ public:
     }
 
     void erase() override {
-        iter_ = rows_.erase(iter_);
+        iter_ = eraseBySwap(rows_, iter_);
     }
 
     void eraseRange(size_t first, size_t last) override {
@@ -643,7 +652,7 @@ public:
     }
 
     void erase() override {
-        iter_ = rows_.erase(iter_);
+        iter_ = eraseBySwap(rows_, iter_);
     }
 
     void eraseRange(size_t first, size_t last) override {
@@ -784,7 +793,7 @@ public:
     }
 
     void erase() override {
-        iter_ = rows_.erase(iter_);
+        iter_ = eraseBySwap(rows_, iter_);
     }
 
     void eraseRange(size_t first, size_t last) override {
