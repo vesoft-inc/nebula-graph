@@ -235,6 +235,7 @@ Feature: Match seek by id
       """
     Then a SemanticError should be raised at runtime:
 
+  @skip
   Scenario: TODO
     When executing query:
       """
