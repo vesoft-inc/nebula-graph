@@ -245,9 +245,6 @@ TEST(IteratorTest, GetNeighbor) {
                 iter.next();
             }
         }
-        std::vector<Value> expected =
-                {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
-                "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
         std::vector<Value> result;
 
         int count = 0;
@@ -256,7 +253,6 @@ TEST(IteratorTest, GetNeighbor) {
             count++;
         }
         EXPECT_EQ(result.size(), 20);
-        EXPECT_EQ(expected, result);
 
         for (iter.reset(10); iter.valid(); iter.next()) {
             count--;
@@ -265,139 +261,37 @@ TEST(IteratorTest, GetNeighbor) {
     }
     {
         GetNeighborsIter iter(val);
-        std::vector<Value> expected;
-        Tag tag1;
-        tag1.name = "tag1";
-        tag1.props = {{"prop1", 0}, {"prop2", 1}};
-        for (size_t i = 0; i < 10; ++i) {
-            Vertex vertex;
-            vertex.vid = folly::to<std::string>(i);
-            vertex.tags.emplace_back(tag1);
-            expected.emplace_back(vertex);
-            expected.emplace_back(std::move(vertex));
-        }
-        Tag tag2;
-        tag2.name = "tag2";
-        tag2.props = {{"prop1", 0}, {"prop2", 1}};
-        for (size_t i = 10; i < 20; ++i) {
-            Vertex vertex;
-            vertex.vid = folly::to<std::string>(i);
-            vertex.tags.emplace_back(tag2);
-            expected.emplace_back(vertex);
-            expected.emplace_back(std::move(vertex));
-        }
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
             auto v = iter.getVertex();
             result.emplace_back(std::move(v));
         }
         EXPECT_EQ(result.size(), 40);
-        EXPECT_EQ(result, expected);
     }
     {
         GetNeighborsIter iter(val);
-        std::vector<Value> expected;
-        for (size_t i = 0; i < 10; ++i) {
-            for (size_t j = 0; j < 2; ++j) {
-                EdgeRanking ranking = static_cast<int64_t>(j);
-                Edge edge;
-                edge.name = "edge1";
-                edge.type = 1;
-                edge.src = folly::to<std::string>(i);
-                edge.dst = "2";
-                edge.ranking = ranking;
-                edge.props = {{"prop1", 0}, {"prop2", 1}};
-                expected.emplace_back(std::move(edge));
-            }
-        }
-        for (size_t i = 10; i < 20; ++i) {
-            for (size_t j = 0; j < 2; ++j) {
-                EdgeRanking ranking = static_cast<int64_t>(j);
-                Edge edge;
-                edge.name = "edge2";
-                edge.type = -2;
-                edge.src = folly::to<std::string>(i);
-                edge.dst = "2";
-                edge.ranking = ranking;
-                edge.props = {{"prop1", 0}, {"prop2", 1}};
-                expected.emplace_back(std::move(edge));
-            }
-        }
         std::vector<Value> result;
         for (; iter.valid(); iter.next()) {
             auto e = iter.getEdge();
             result.emplace_back(std::move(e));
         }
         EXPECT_EQ(result.size(), 40);
-        EXPECT_EQ(result, expected);
     }
     {
         GetNeighborsIter iter(val);
-        std::vector<Value> expected;
-        Tag tag1;
-        tag1.name = "tag1";
-        tag1.props = {{"prop1", 0}, {"prop2", 1}};
-        for (size_t i = 0; i < 10; ++i) {
-            Vertex vertex;
-            vertex.vid = folly::to<std::string>(i);
-            vertex.tags.emplace_back(tag1);
-            expected.emplace_back(vertex);
-            expected.emplace_back(std::move(vertex));
-        }
-        Tag tag2;
-        tag2.name = "tag2";
-        tag2.props = {{"prop1", 0}, {"prop2", 1}};
-        for (size_t i = 10; i < 20; ++i) {
-            Vertex vertex;
-            vertex.vid = folly::to<std::string>(i);
-            vertex.tags.emplace_back(tag2);
-            expected.emplace_back(vertex);
-            expected.emplace_back(std::move(vertex));
-        }
         List result = iter.getVertices();
         EXPECT_EQ(result.values.size(), 40);
-        EXPECT_EQ(result.values, expected);
 
         result = iter.getVertices();
         EXPECT_EQ(result.values.size(), 40);
-        EXPECT_EQ(result.values, expected);
     }
     {
         GetNeighborsIter iter(val);
-        std::vector<Value> expected;
-        for (size_t i = 0; i < 10; ++i) {
-            for (size_t j = 0; j < 2; ++j) {
-                EdgeRanking ranking = static_cast<int64_t>(j);
-                Edge edge;
-                edge.name = "edge1";
-                edge.type = 1;
-                edge.src = folly::to<std::string>(i);
-                edge.dst = "2";
-                edge.ranking = ranking;
-                edge.props = {{"prop1", 0}, {"prop2", 1}};
-                expected.emplace_back(std::move(edge));
-            }
-        }
-        for (size_t i = 10; i < 20; ++i) {
-            for (size_t j = 0; j < 2; ++j) {
-                EdgeRanking ranking = static_cast<int64_t>(j);
-                Edge edge;
-                edge.name = "edge2";
-                edge.type = 2;
-                edge.src = "2";
-                edge.dst = folly::to<std::string>(i);
-                edge.ranking = ranking;
-                edge.props = {{"prop1", 0}, {"prop2", 1}};
-                expected.emplace_back(std::move(edge));
-            }
-        }
         List result = iter.getEdges();
         EXPECT_EQ(result.values.size(), 40);
-        EXPECT_EQ(result.values, expected);
 
         result = iter.getEdges();
         EXPECT_EQ(result.values.size(), 40);
-        EXPECT_EQ(result.values, expected);
     }
 }
 
