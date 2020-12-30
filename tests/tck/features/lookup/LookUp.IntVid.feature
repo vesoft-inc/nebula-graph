@@ -1,4 +1,3 @@
-@test2
 Feature: LookUpTest_Vid_Int
 
   Scenario: LookupTest IntVid SimpleVertex

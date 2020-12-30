@@ -1,5 +1,6 @@
 Feature: IndexTest_Vid_Int
 
+  @skip
   Scenario: IndexTest IntVid TagIndex
     Given an empty graph
     And create a space with following options:
@@ -61,10 +62,10 @@ Feature: IndexTest_Vid_Int
     When executing query:
       """
       INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES
-                       uuid("Tim"):  ("Tim",  18, 11.11, "2000-10-10 10:00:00"),
-                       uuid("Tony"): ("Tony", 18, 11.11, "2000-10-10 10:00:00"),
-                       uuid("May"):  ("May",  18, 11.11, "2000-10-10 10:00:00"),
-                       uuid("Tom"):  ("Tom",  18, 11.11, "2000-10-10 10:00:00")
+                       uuid("Tim"):  ("Tim",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+                       uuid("Tony"): ("Tony", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+                       uuid("May"):  ("May",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+                       uuid("Tom"):  ("Tom",  18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
     And wait 6 seconds
     Then the execution should be successful
@@ -144,6 +145,7 @@ Feature: IndexTest_Vid_Int
     Then the execution should be successful
     Then drop the used space
 
+  @skip
   Scenario: IndexTest IntVid EdgeIndex
     Given an empty graph
     And create a space with following options:
@@ -205,10 +207,10 @@ Feature: IndexTest_Vid_Int
     When executing query:
       """
       INSERT EDGE edge_1(col1, col2, col3, col4) VALUES
-                     uuid("Tim")  ->  uuid("May"):  ("Good", 18, 11.11, "2000-10-10 10:00:00"),
-                     uuid("Tim")  ->  uuid("Tony"): ("Good", 18, 11.11, "2000-10-10 10:00:00"),
-                     uuid("Tony") ->  uuid("May"): ("Like", 18, 11.11, "2000-10-10 10:00:00"),
-                     uuid("May")  ->  uuid("Tim"):  ("Like", 18, 11.11, "2000-10-10 10:00:00")
+                     uuid("Tim")  ->  uuid("May"):  ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+                     uuid("Tim")  ->  uuid("Tony"): ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+                     uuid("Tony") ->  uuid("May"): ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+                     uuid("May")  ->  uuid("Tim"):  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
     And wait 6 seconds
     Then the execution should be successful
@@ -510,7 +512,7 @@ Feature: IndexTest_Vid_Int
     When executing query:
       """
       INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES
-                     100:(true,  18, 1.1, "2000-10-10 10:00:00")
+                     100:(true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"))
       """
     Then the execution should be successful
     When executing query:
@@ -528,7 +530,7 @@ Feature: IndexTest_Vid_Int
     When executing query:
       """
       INSERT VERTEX tag_1(col1, col2, col3, col4, col5) VALUES
-                     100:(true,  18, 1.1, "2000-10-10 10:00:00", 5)
+                     100:(true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"), 5)
       """
     And wait 6 seconds
     Then the execution should be successful
