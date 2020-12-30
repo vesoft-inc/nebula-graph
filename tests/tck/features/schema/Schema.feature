@@ -347,10 +347,10 @@ Feature: Insert string vid of vertex and edge
       DESC EDGE education
       """
     Then the result should be, in any order:
-      | Field    | Type     | Null  | Default   |
-      | "school" | "int64"  | "YES" | EMPTY |
-      | "col1"   | "int64"  | "YES" | EMPTY |
-      | "col2"   | "string" | "YES" | EMPTY |
+      | Field    | Type     | Null  | Default |
+      | "school" | "int64"  | "YES" | EMPTY   |
+      | "col1"   | "int64"  | "YES" | EMPTY   |
+      | "col2"   | "string" | "YES" | EMPTY   |
     # with negative DEFAULT value
     When executing query:
       """
@@ -407,9 +407,9 @@ Feature: Insert string vid of vertex and edge
       DESCRIBE TAG animal
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null  | Default   |
-      | "name" | "string" | "YES" | EMPTY |
-      | "kind" | "string" | "YES" | EMPTY |
+      | Field  | Type     | Null  | Default |
+      | "name" | "string" | "YES" | EMPTY   |
+      | "kind" | "string" | "YES" | EMPTY   |
     When executing query:
       """
       CREATE TAG person(name string, interest string)
@@ -700,8 +700,8 @@ Feature: Insert string vid of vertex and edge
       DESC TAG tag_not_null_default1;
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null | Default |
-      | "name" | "string"          | "NO"  | "N/A"          |
+      | Field  | Type              | Null  | Default |
+      | "name" | "string"          | "NO"  | "N/A"   |
       | "col1" | "fixed_string(5)" | "YES" | "Hello" |
     # test alter tag with wrong type default value of time when change
     When executing query:
@@ -757,8 +757,8 @@ Feature: Insert string vid of vertex and edge
       DESC EDGE edge_not_null_default1;
       """
     Then the result should be, in any order:
-      | Field  | Type     | Null | Default |
-      | "name" | "string"          | "NO"  | "N/A"          |
+      | Field  | Type              | Null  | Default |
+      | "name" | "string"          | "NO"  | "N/A"   |
       | "col1" | "fixed_string(5)" | "YES" | "Hello" |
     # test alter tag with wrong type default value of time when change
     When executing query:
