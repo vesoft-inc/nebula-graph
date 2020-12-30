@@ -70,12 +70,6 @@ PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,
     return std::make_unique<CartesianProductStrategy>(qctx)->connect(left, right);
 }
 
-PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,
-                                                      const PlanNode* left,
-                                                      const PlanNode* right) {
-    return std::make_unique<CartesianProductStrategy>(qctx)->connect(left, right);
-}
-
 PlanNode* SegmentsConnector::applySegments(QueryContext* qctx,
                                            const PlanNode* left,
                                            const PlanNode* right) {

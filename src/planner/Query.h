@@ -636,26 +636,6 @@ private:
     YieldColumns*               cols_{nullptr};
 };
 
-class Unwind final : public SingleInputNode {
-public:
-    static Unwind* make(QueryContext* qctx, PlanNode* input, YieldColumns* cols) {
-        return qctx->objPool()->add(new Unwind(qctx, input, cols));
-    }
-
-    std::unique_ptr<PlanNodeDescription> explain() const override;
-
-    const YieldColumns* columns() const {
-        return cols_;
-    }
-
-private:
-    Unwind(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
-        : SingleInputNode(qctx, Kind::kUnwind, input), cols_(cols) {}
-
-private:
-    YieldColumns*               cols_{nullptr};
-};
-
 /**
  * Unwind is used to transform any list back into individual rows
  */
@@ -679,23 +659,6 @@ private:
     YieldColumns*               cols_{nullptr};
 };
 
-/**
- * Iterate is used to make each row of a dataset be an individual dataset
- */
-class Iterate final : public SingleInputNode {
-public:
-    static Iterate* make(QueryContext* qctx, PlanNode* input) {
-        return qctx->objPool()->add(new Iterate(qctx, input));
-    }
-
-private:
-    Iterate(QueryContext* qctx, PlanNode* input)
-        : SingleInputNode(qctx, Kind::kIterate, input) {}
-};
-
-/**
- * Sort the given record set.
- */
 class Sort final : public SingleInputNode {
 public:
     static Sort* make(QueryContext* qctx,

@@ -309,15 +309,6 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
     auto columns = qctx->objPool()->add(new YieldColumns);
     std::vector<std::string> colNames;
 
-    if (matchClauseCtx->lastYieldColumnsPtr) {
-        NG_RETURN_IF_ERROR(
-            MatchSolver::combineYieldColumns(columns, *matchClauseCtx->lastYieldColumnsPtr));
-        for (auto* col : (*matchClauseCtx->lastYieldColumnsPtr)->columns()) {
-            DCHECK(col->alias() != nullptr);
-            colNames.emplace_back(*col->alias());
-        }
-    }
-
     auto addNode = [&, this](size_t i) {
         auto& nodeInfo = nodeInfos[i];
         if (nodeInfo.alias != nullptr && !nodeInfo.anonymous) {
@@ -366,8 +357,6 @@ Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClau
         iter != aliases.end() ? iter->first : qctx->vctx()->anonColGen()->getCol();
     columns->addColumn(buildPathColumn(alias, startIndex, inColNames, nodeInfos.size()));
     colNames.emplace_back(alias);
-
-    matchClauseCtx->yieldColumns = columns;
 
     auto project = Project::make(qctx, input, columns);
     project->setColNames(std::move(colNames));

@@ -32,19 +32,16 @@ Expression* MatchSolver::rewrite(const LabelAttributeExpression *la) {
     return expr;
 }
 
-Expression* MatchSolver::doRewrite(const std::unordered_map<std::string, AliasType>* aliases,
+Expression* MatchSolver::doRewrite(const std::unordered_map<std::string, AliasType>& aliases,
                                    const Expression* expr) {
-    if (expr->kind() == Expression::Kind::kLabelAttribute) {
+    if (expr->kind() != Expression::Kind::kLabel) {
         return rewrite(static_cast<const LabelAttributeExpression*>(expr));
-    } else {
-        DCHECK(expr->kind() == Expression::Kind::kLabel);
-        DCHECK(aliases != nullptr);
-
-        auto* labelExpr = static_cast<const LabelExpression*>(expr);
-        auto alias = aliases->find(*labelExpr->name());
-        DCHECK(alias != aliases->end());
-        return rewrite(labelExpr);
     }
+
+    auto* labelExpr = static_cast<const LabelExpression*>(expr);
+    auto alias = aliases.find(*labelExpr->name());
+    DCHECK(alias != aliases.end());
+    return rewrite(labelExpr);
 }
 
 Expression* MatchSolver::makeIndexFilter(const std::string& label,

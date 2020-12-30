@@ -595,53 +595,38 @@ Status MatchValidator::validatePagination(const Expression *skipExpr,
 Status MatchValidator::validateOrderBy(const OrderFactors *factors,
                                           const YieldColumns *yieldColumns,
                                           OrderByClauseContext &orderByCtx) const {
-    if (factors != nullptr) {
-        std::vector<std::string> inputColList;
-        inputColList.reserve(yieldColumns->columns().size());
-        for (auto *col : yieldColumns->columns()) {
-            if (col->alias() != nullptr) {
-                inputColList.emplace_back(*col->alias());
-            } else {
-                inputColList.emplace_back(col->expr()->toString());
-            }
+    DCHECK(factors != nullptr);
+    std::vector<std::string> inputColList;
+    inputColList.reserve(yieldColumns->columns().size());
+    for (auto *col : yieldColumns->columns()) {
+        if (col->alias() != nullptr) {
+            inputColList.emplace_back(*col->alias());
+        } else {
+            inputColList.emplace_back(col->expr()->toString());
         }
-        std::unordered_map<std::string, size_t> inputColIndices;
-        for (auto i = 0u; i < inputColList.size(); i++) {
-            if (!inputColIndices.emplace(inputColList[i], i).second) {
-                return Status::SemanticError("Duplicated columns not allowed: %s",
-                                             inputColList[i].c_str());
-            }
+    }
+    std::unordered_map<std::string, size_t> inputColIndices;
+    for (auto i = 0u; i < inputColList.size(); i++) {
+        if (!inputColIndices.emplace(inputColList[i], i).second) {
+            return Status::SemanticError("Duplicated columns not allowed: %s",
+                                            inputColList[i].c_str());
         }
+    }
 
-        for (auto &factor : factors->factors()) {
-            if (factor->expr()->kind() != Expression::Kind::kLabel) {
-                return Status::SemanticError("Only column name can be used as sort item");
-            }
-            auto *name = static_cast<const LabelExpression *>(factor->expr())->name();
-            auto iter = inputColIndices.find(*name);
-            if (iter == inputColIndices.end()) {
-                return Status::SemanticError("Column `%s' not found", name->c_str());
-            }
-            orderByCtx.indexedOrderFactors.emplace_back(iter->second, factor->orderType());
+    for (auto &factor : factors->factors()) {
+        if (factor->expr()->kind() != Expression::Kind::kLabel) {
+            return Status::SemanticError("Only column name can be used as sort item");
         }
+        auto *name = static_cast<const LabelExpression *>(factor->expr())->name();
+        auto iter = inputColIndices.find(*name);
+        if (iter == inputColIndices.end()) {
+            return Status::SemanticError("Column `%s' not found", name->c_str());
+        }
+        orderByCtx.indexedOrderFactors.emplace_back(iter->second, factor->orderType());
     }
 
     return Status::OK();
 }
 
-Status MatchValidator::combineAliases(std::unordered_map<std::string, AliasType> &curAliases,
-    const std::unordered_map<std::string, AliasType> *lastAliasesPtr) const {
-    if (!lastAliasesPtr) {
-        return Status::OK();
-    }
-
-    for (auto &aliasPair : *lastAliasesPtr) {
-        if (!curAliases.emplace(aliasPair).second) {
-            return Status::SemanticError("`%s': Redefined alias", aliasPair.first.c_str());
-        }
-    }
-
-    return Status::OK();
-}
 }   // namespace graph
 }   // namespace nebula
