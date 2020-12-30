@@ -146,5 +146,62 @@ TEST_F(UnwindTest, UnwindLabel) {
     EXPECT_EQ(result.state(), Result::State::kSuccess);
 }
 
+TEST_F(UnwindTest, ProjectUnwind) {
+    /*
+    | a | b      |
+    | 1 | [1,2,3]|
+
+    UNWIND b as c
+    */
+    auto *exprList = new ExpressionList(3);
+    exprList->add(new ConstantExpression(1));
+    exprList->add(new ConstantExpression(2));
+    exprList->add(new ConstantExpression(3));
+
+    auto *col1 = new YieldColumn(new ConstantExpression(1), new std::string("a"));
+    auto *col2 = new YieldColumn(new ListExpression(exprList), new std::string("b"));
+    auto *columns = qctx_->objPool()->add(new YieldColumns());
+    columns->addColumn(col1);
+    columns->addColumn(col2);
+    auto *project = Project::make(qctx_.get(), start_, columns);
+    project->setColNames({"a", "b"});
+    auto proExe = Executor::create(project, qctx_.get());
+    EXPECT_TRUE(proExe->execute().get().ok());
+    auto &proResult = qctx_->ectx()->getResult(project->outputVar());
+    DataSet expected;
+    expected.colNames = {"a", "b"};
+    Row row;
+    row.values.emplace_back(1);
+    row.values.emplace_back(List({1, 2, 3}));
+    expected.rows.emplace_back(std::move(row));
+    EXPECT_EQ(proResult.value().getDataSet(), expected);
+    EXPECT_EQ(proResult.state(), Result::State::kSuccess);
+
+    auto col =
+        new YieldColumn(new VariablePropertyExpression(new std::string(), new std::string("b")));
+    auto *columns2 = new YieldColumns();
+    qctx_->objPool()->add(columns2);
+    columns2->addColumn(col);
+
+    auto *unwind = Unwind::make(qctx_.get(), project, columns2);
+    unwind->setColNames(std::vector<std::string>{"c"});
+
+    auto unwExe = Executor::create(unwind, qctx_.get());
+    auto future = unwExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+    auto &unwindResult = qctx_->ectx()->getResult(unwind->outputVar());
+
+    DataSet expected2;
+    expected2.colNames = {"c"};
+    for (auto i = 1; i <= 3; ++i) {
+        Row row2;
+        row2.values.emplace_back(i);
+        expected2.rows.emplace_back(std::move(row2));
+    }
+    EXPECT_EQ(unwindResult.value().getDataSet(), expected2);
+    EXPECT_EQ(unwindResult.state(), Result::State::kSuccess);
+}
+
 }   // namespace graph
 }   // namespace nebula

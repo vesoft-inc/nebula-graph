@@ -33,11 +33,10 @@ Status WithClausePlanner::buildWith(WithClauseContext* wctx, SubPlan& subPlan) {
     PlanNode* current = nullptr;
 
     auto rewriter = [wctx](const Expression* expr) {
-        return MatchSolver::doRewrite(wctx->lastAliasesPtr, expr);
+        return MatchSolver::doRewrite(*wctx->aliasesUsed, expr);
     };
 
     for (auto* col : wctx->yieldColumns->columns()) {
-        DCHECK(col->alias() != nullptr);
         auto kind = col->expr()->kind();
         YieldColumn* newColumn = nullptr;
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {

@@ -74,7 +74,7 @@ struct WhereClauseContext final : CypherClauseContextBase {
     WhereClauseContext() : CypherClauseContextBase(CypherClauseKind::kWhere) {}
 
     std::unique_ptr<Expression>                  filter;
-    std::unordered_map<std::string, AliasType>*  lastAliasesPtr{nullptr};
+    std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
 };
 
 struct OrderByClauseContext final : CypherClauseContextBase {
@@ -98,7 +98,7 @@ struct ReturnClauseContext final : CypherClauseContextBase {
     const YieldColumns*                          yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>        order;
     std::unique_ptr<PaginationContext>           pagination;
-    std::unordered_map<std::string, AliasType>*  lastAliasesPtr{nullptr};
+    std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
     // TODO: grouping columns
 };
 
@@ -110,8 +110,8 @@ struct WithClauseContext final : CypherClauseContextBase {
     std::unique_ptr<OrderByClauseContext>       order;
     std::unique_ptr<PaginationContext>          pagination;
     std::unique_ptr<WhereClauseContext>         where;
-    std::unordered_map<std::string, AliasType>* lastAliasesPtr{nullptr};
-    std::unordered_map<std::string, AliasType>  aliases;
+    std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
+    std::unordered_map<std::string, AliasType>  aliasesGenerated;
     // TODO: grouping columns
 };
 
@@ -122,19 +122,16 @@ struct MatchClauseContext final : CypherClauseContextBase {
     std::vector<EdgeInfo>                       edgeInfos;
     std::unique_ptr<PathBuildExpression>        pathBuild;
     std::unique_ptr<WhereClauseContext>         where;
-    const YieldColumns**                        lastYieldColumnsPtr{nullptr};
-    const YieldColumns*                         yieldColumns{nullptr};
-    std::unordered_map<std::string, AliasType>* lastAliasesPtr{nullptr};
-    std::unordered_map<std::string, AliasType>  aliases;
+    std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
+    std::unordered_map<std::string, AliasType>  aliasesGenerated;
 };
 
 struct UnwindClauseContext final : CypherClauseContextBase {
     UnwindClauseContext() : CypherClauseContextBase(CypherClauseKind::kUnwind) {}
 
-    const YieldColumns**                        lastYieldColumnsPtr{nullptr};
     const YieldColumns*                         yieldColumns{nullptr};
-    std::unordered_map<std::string, AliasType>* lastAliasesPtr{nullptr};
-    std::unordered_map<std::string, AliasType>  aliases;
+    std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
+    std::unordered_map<std::string, AliasType>  aliasesGenerated;
 };
 
 struct MatchAstContext final : AstContext {
@@ -155,11 +152,10 @@ struct NodeContext final : PatternContext {
     NodeInfo*            info{nullptr};
 
     // Output fields
-    ScanInfo             scanInfo;
-    const Expression*    ids{nullptr};
+    ScanInfo                    scanInfo;
+    const Expression*           ids{nullptr};
     // initialize start expression in project node
-    // initialExpr will be used by YieldColumn, so no need to handle the lifecycle by object pool.
-    Expression*          initialExpr{nullptr};
+    std::unique_ptr<Expression> initialExpr;
 };
 
 struct EdgeContext final : PatternContext {

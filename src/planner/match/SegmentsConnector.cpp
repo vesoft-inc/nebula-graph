@@ -55,8 +55,19 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
 
 PlanNode* SegmentsConnector::innerJoinSegments(QueryContext* qctx,
                                                const PlanNode* left,
-                                               const PlanNode* right) {
-    return std::make_unique<InnerJoinStrategy>(qctx)->connect(left, right);
+                                               const PlanNode* right,
+                                               InnerJoinStrategy::JoinPos leftPos,
+                                               InnerJoinStrategy::JoinPos rightPos) {
+    return std::make_unique<InnerJoinStrategy>(qctx)
+                ->leftPos(leftPos)
+                ->rightPos(rightPos)
+                ->connect(left, right);
+}
+
+PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,
+                                                      const PlanNode* left,
+                                                      const PlanNode* right) {
+    return std::make_unique<CartesianProductStrategy>(qctx)->connect(left, right);
 }
 
 PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,

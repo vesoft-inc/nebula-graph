@@ -27,19 +27,15 @@ StatusOr<SubPlan> UnwindClausePlanner::transform(CypherClauseContextBase* clause
 }
 
 Status UnwindClausePlanner::buildUnwind(UnwindClauseContext* uctx, SubPlan& subPlan) {
-    if (uctx->lastYieldColumnsPtr) {
-        NG_RETURN_IF_ERROR(MatchSolver::combineYieldColumns(
-            const_cast<YieldColumns*>(uctx->yieldColumns), *uctx->lastYieldColumnsPtr));
-    }
-    auto* yields = uctx->qctx->objPool()->add(new YieldColumns());
+    auto* yields = new YieldColumns();
+    uctx->qctx->objPool()->add(yields);
     std::vector<std::string> colNames;
 
     auto rewriter = [uctx](const Expression* expr) {
-        return MatchSolver::doRewrite(uctx->lastAliasesPtr, expr);
+        return MatchSolver::doRewrite(*uctx->aliasesUsed, expr);
     };
 
     for (auto* col : uctx->yieldColumns->columns()) {
-        DCHECK(col->alias() != nullptr);
         auto kind = col->expr()->kind();
         YieldColumn* newColumn = nullptr;
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
@@ -48,10 +44,14 @@ Status UnwindClausePlanner::buildUnwind(UnwindClauseContext* uctx, SubPlan& subP
             auto newExpr = col->expr()->clone();
             RewriteMatchLabelVisitor visitor(rewriter);
             newExpr->accept(&visitor);
-            newColumn = new YieldColumn(newExpr.release(), new std::string(*col->alias()));
+            newColumn = new YieldColumn(newExpr.release());
         }
         yields->addColumn(newColumn);
-        colNames.emplace_back(*col->alias());
+        if (col->alias() != nullptr) {
+            colNames.emplace_back(*col->alias());
+        } else {
+            return Status::Error("Expression in UNWIND must be aliased (use AS)");
+        }
     }
 
     auto* unwind = Unwind::make(uctx->qctx, nullptr, yields);

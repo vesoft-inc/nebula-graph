@@ -11,6 +11,7 @@
 #include "context/ast/QueryAstContext.h"
 #include "planner/PlanNode.h"
 #include "planner/Planner.h"
+#include "planner/match/InnerJoinStrategy.h"
 
 namespace nebula {
 namespace graph {
@@ -37,9 +38,16 @@ public:
                                              SubPlan& right,
                                              QueryContext* qctx = nullptr);
 
-    static PlanNode* innerJoinSegments(QueryContext* qctx,
-                                       const PlanNode* left,
-                                       const PlanNode* right);
+    static PlanNode* innerJoinSegments(
+        QueryContext* qctx,
+        const PlanNode* left,
+        const PlanNode* right,
+        InnerJoinStrategy::JoinPos leftPos = InnerJoinStrategy::JoinPos::kEnd,
+        InnerJoinStrategy::JoinPos rightPos = InnerJoinStrategy::JoinPos::kStart);
+
+    static PlanNode* cartesianProductSegments(QueryContext* qctx,
+                                              const PlanNode* left,
+                                              const PlanNode* right);
 
     static PlanNode* cartesianProductSegments(QueryContext* qctx,
                                 const PlanNode* left,
@@ -53,18 +61,6 @@ public:
 
 private:
     static PlanNode* iterateDataSet(QueryContext* qctx, PlanNode* input);
-};
-
-class SegmentsConnectStrategy {
-public:
-    explicit SegmentsConnectStrategy(QueryContext* qctx) : qctx_(qctx) {}
-
-    virtual ~SegmentsConnectStrategy() = default;
-
-    virtual PlanNode* connect(const PlanNode* left, const PlanNode* right) = 0;
-
-protected:
-    QueryContext*   qctx_;
 };
 }  // namespace graph
 }  // namespace nebula
