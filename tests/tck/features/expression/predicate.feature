@@ -40,8 +40,8 @@ Feature: Predicate
     Given a graph with space named "nba"
     When executing query:
       """
-      GO FROM "Tony Parker" OVER like WHERE
-      any(x IN [5,  10] WHERE like.likeness + $$.player.age + x > 100)
+      GO FROM "Tony Parker" OVER like
+      WHERE any(x IN [5,  10] WHERE like.likeness + $$.player.age + x > 100)
       YIELD like._dst AS id, like.likeness AS likeness
       """
     Then the result should be, in any order:
@@ -69,7 +69,7 @@ Feature: Predicate
     When executing query:
       """
       MATCH p = (n:player{name:"LeBron James"})-[:like]->(m)
-            RETURN single(n IN nodes(p) WHERE n.age > 40) as b
+      RETURN single(n IN nodes(p) WHERE n.age > 40) as b
       """
     Then the result should be, in any order:
       | b    |
