@@ -26,6 +26,12 @@ public:
 protected:
     SetExecutor(const std::string &name, const PlanNode *node, QueryContext *qctx)
         : Executor(name, node, qctx) {}
+
+private:
+    int64_t leftVersion_;
+    int64_t rightVersion_;
+    std::string leftVar_;
+    std::string rightVar_;
 };
 
 }   // namespace graph

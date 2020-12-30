@@ -199,13 +199,15 @@ PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& proje
 Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {
     VLOG(1) << "steps: " << steps;
     // ++loopSteps{0} <= steps
-    auto loopSteps = vctx_->anonVarGen()->getVar();
-    qctx_->ectx()->setValue(loopSteps, 0);
+    if (LIKELY(loopSteps_.empty())) {
+        loopSteps_ = vctx_->anonVarGen()->getVar();
+    }
+    qctx_->ectx()->setValue(loopSteps_, 0);
     return qctx_->objPool()->add(new RelationalExpression(
         Expression::Kind::kRelLE,
-        new UnaryExpression(
-            Expression::Kind::kUnaryIncr,
-            new VersionedVariableExpression(new std::string(loopSteps), new ConstantExpression(0))),
+        new UnaryExpression(Expression::Kind::kUnaryIncr,
+                            new VersionedVariableExpression(new std::string(loopSteps_),
+                                                            new ConstantExpression(0))),
         new ConstantExpression(static_cast<int32_t>(steps))));
 }
 

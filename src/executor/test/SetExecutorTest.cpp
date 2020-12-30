@@ -57,6 +57,8 @@ TEST_F(SetExecutorTest, TestUnionAll) {
         auto unionNode = Union::make(qctx_.get(), left, right);
         unionNode->setLeftVar(left->outputVar());
         unionNode->setRightVar(right->outputVar());
+        unionNode->setLeftVersionExpr(new ConstantExpression(0));
+        unionNode->setRightVersionExpr(new ConstantExpression(0));
 
         auto unionExecutor = Executor::create(unionNode, qctx_.get());
         ResultBuilder lb, rb;
@@ -176,6 +178,8 @@ TEST_F(SetExecutorTest, TestGetNeighobrsIterator) {
     auto unionNode = Union::make(qctx_.get(), left, right);
     unionNode->setLeftVar(left->outputVar());
     unionNode->setRightVar(right->outputVar());
+    unionNode->setLeftVersionExpr(new ConstantExpression(0));
+    unionNode->setRightVersionExpr(new ConstantExpression(0));
 
     auto unionExecutor = Executor::create(unionNode, qctx_.get());
 
@@ -205,6 +209,8 @@ TEST_F(SetExecutorTest, TestUnionDifferentColumns) {
     auto unionNode = Union::make(qctx_.get(), left, right);
     unionNode->setLeftVar(left->outputVar());
     unionNode->setRightVar(right->outputVar());
+    unionNode->setLeftVersionExpr(new ConstantExpression(0));
+    unionNode->setRightVersionExpr(new ConstantExpression(0));
 
     auto unionExecutor = Executor::create(unionNode, qctx_.get());
 
@@ -231,6 +237,8 @@ TEST_F(SetExecutorTest, TestUnionDifferentValueType) {
     auto unionNode = Union::make(qctx_.get(), left, right);
     unionNode->setLeftVar(left->outputVar());
     unionNode->setRightVar(right->outputVar());
+    unionNode->setLeftVersionExpr(new ConstantExpression(0));
+    unionNode->setRightVersionExpr(new ConstantExpression(0));
 
     auto unionExecutor = Executor::create(unionNode, qctx_.get());
 
@@ -258,6 +266,8 @@ TEST_F(SetExecutorTest, TestIntersect) {
         auto intersect = Intersect::make(qctx_.get(), left, right);
         intersect->setLeftVar(left->outputVar());
         intersect->setRightVar(right->outputVar());
+        intersect->setLeftVersionExpr(new ConstantExpression(0));
+        intersect->setRightVersionExpr(new ConstantExpression(0));
 
         ResultBuilder lb, rb;
         lb.value(Value(lds)).iter(Iterator::Kind::kSequential);
@@ -365,6 +375,8 @@ TEST_F(SetExecutorTest, TestMinus) {
         auto minus = Minus::make(qctx_.get(), left, right);
         minus->setLeftVar(left->outputVar());
         minus->setRightVar(right->outputVar());
+        minus->setLeftVersionExpr(new ConstantExpression(0));
+        minus->setRightVersionExpr(new ConstantExpression(0));
 
         ResultBuilder lb, rb;
         lb.value(Value(lds)).iter(Iterator::Kind::kSequential);

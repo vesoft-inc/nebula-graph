@@ -76,7 +76,8 @@ Status SetValidator::toPlan() {
 
     bNode->setLeftVar(lRoot->outputVar());
     bNode->setRightVar(rRoot->outputVar());
-
+    static_cast<SetOp*>(bNode)->setLeftVersionExpr(new ConstantExpression(0));
+    static_cast<SetOp*>(bNode)->setRightVersionExpr(new ConstantExpression(0));
     tail_ = PassThroughNode::make(qctx_, nullptr);
     NG_RETURN_IF_ERROR(lValidator_->appendPlan(tail_));
     NG_RETURN_IF_ERROR(rValidator_->appendPlan(tail_));

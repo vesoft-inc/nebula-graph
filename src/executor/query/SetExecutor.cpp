@@ -17,9 +17,26 @@ namespace graph {
 
 Status SetExecutor::checkInputDataSets() {
     auto setNode = asNode<SetOp>(node());
+    leftVar_ = setNode->leftInputVar();
+    rightVar_ = setNode->rightInputVar();
+    const auto& leftVersionExpr = setNode->leftVersionExpr();
+    const auto& rightVersionExpr = setNode->rightVersionExpr();
 
-    auto lIter = ectx_->getResult(setNode->leftInputVar()).iter();
-    auto rIter = ectx_->getResult(setNode->rightInputVar()).iter();
+    QueryExpressionContext ctx(ectx_);
+    auto leftVersionValue = leftVersionExpr->eval(ctx);
+    DCHECK(leftVersionValue.isInt());
+    leftVersion_ = leftVersionValue.getInt();
+
+    auto rightVersionValue = rightVersionExpr->eval(ctx);
+    DCHECK(rightVersionValue.isInt());
+    rightVersion_ = rightVersionValue.getInt();
+
+    VLOG(1) << "lhs hist size: " << ectx_->getHistory(leftVar_).size();
+    VLOG(1) << "rhs hist size: " << ectx_->getHistory(rightVar_).size();
+    VLOG(1) << "left version: " << leftVersion_ << " right version: " << rightVersion_;
+
+    auto lIter = ectx_->getVersionedResult(leftVar_, leftVersion_).iter();
+    auto rIter = ectx_->getVersionedResult(rightVar_, rightVersion_).iter();
 
     if (UNLIKELY(lIter->kind() == Iterator::Kind::kGetNeighbors ||
                  rIter->kind() == Iterator::Kind::kGetNeighbors)) {
@@ -57,13 +74,11 @@ Status SetExecutor::checkInputDataSets() {
 }
 
 std::unique_ptr<Iterator> SetExecutor::getLeftInputDataIter() const {
-    auto left = asNode<SetOp>(node())->leftInputVar();
-    return ectx_->getResult(left).iter();
+    return ectx_->getVersionedResult(leftVar_, leftVersion_).iter();
 }
 
 std::unique_ptr<Iterator> SetExecutor::getRightInputDataIter() const {
-    auto right = asNode<SetOp>(node())->rightInputVar();
-    return ectx_->getResult(right).iter();
+    return ectx_->getVersionedResult(rightVar_, rightVersion_).iter();
 }
 
 }   // namespace graph

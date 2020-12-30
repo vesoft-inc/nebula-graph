@@ -209,6 +209,8 @@ Status Expand::collectData(const PlanNode* joinLeft,
     pt->setColNames({kPathStr});
 
     auto uNode = Union::make(qctx, pt, const_cast<PlanNode*>(inUnionNode));
+    uNode->setLeftVersionExpr(new ConstantExpression(0));
+    uNode->setRightVersionExpr(new ConstantExpression(0));
     uNode->setColNames({kPathStr});
 
     *passThrough = pt;

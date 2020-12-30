@@ -243,9 +243,6 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
 
 Status GetSubgraphValidator::toPlan() {
     auto& space = vctx_->whichSpace();
-    // gn <- filter <- DataCollect
-    //  |
-    // loop(step) -> Agg(collect) -> project -> gn -> bodyStart
     auto* bodyStart = StartNode::make(qctx_);
 
     std::string startVidsVar;
@@ -291,7 +288,9 @@ Status GetSubgraphValidator::toPlan() {
     gn->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn->setInputVar(startVidsVar);
 
-    auto* projectVids = projectDstVidsFromGN(gn, startVidsVar);
+    auto* dedupVids = projectDstVidsFromGN(gn, startVidsVar);
+
+    auto* dedup = removeVisitedVertexID(dedupVids, startVidsVar);
 
     auto var = vctx_->anonVarGen()->getVar();
     auto* column = new VariablePropertyExpression(new std::string(var), new std::string(kVid));
@@ -299,10 +298,10 @@ Status GetSubgraphValidator::toPlan() {
     qctx_->objPool()->add(func);
     auto* collect =
         Aggregate::make(qctx_,
-                        projectVids,
+                        dedup,
                         {},
                         {func});
-    collect->setInputVar(projectVids->outputVar());
+    collect->setInputVar(dedup->outputVar());
     collect->setColNames({kVid});
     collectVar_ = collect->outputVar();
 
@@ -322,7 +321,7 @@ Status GetSubgraphValidator::toPlan() {
     gn1->setEdgeProps(std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
         std::move(allEdgePropResult).value()));
     gn1->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
-    gn1->setInputVar(projectVids->outputVar());
+    gn1->setInputVar(startVidsVar);
 
     auto* filter =
         Filter::make(qctx_, gn1, qctx_->objPool()->add(buildFilterCondition(steps_.steps)));
@@ -360,6 +359,66 @@ StatusOr<std::vector<storage::cpp2::VertexProp>> GetSubgraphValidator::buildVert
         vProps.emplace_back(std::move(vProp));
     }
     return vProps;
+}
+
+Expression* GetSubgraphValidator::buildMinusLoopCondition(std::string& minusLoopSteps) {
+    // ++minusLoopSteps_{0} <= loopSteps_{0}
+    loopSteps_ = vctx_->anonVarGen()->getVar();
+    return qctx_->objPool()->add(new RelationalExpression(
+        Expression::Kind::kRelLE,
+        new UnaryExpression(Expression::Kind::kUnaryIncr,
+                            new VariableExpression(new std::string(minusLoopSteps))),
+        new VariableExpression(new std::string(loopSteps_))));
+}
+
+/*
+ * step = 1; startVidsVar[0] - startVidsVar[-1]
+ * step = 2; startVidsVar[0] - startVidsVar[-1], startVidsVar[0] - startVidsVar[-3]
+ *  ...
+ * step = n; startVidsVar[0] - startVidsVar[-1], ... , startVidsVar[0] - startVidsVar[-2*n + 1]
+ */
+PlanNode* GetSubgraphValidator::removeVisitedVertexID(PlanNode* dep, std::string& startVidsVar) {
+    // project
+    auto* columns = qctx_->objPool()->add(new YieldColumns());
+    auto* column =
+        new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
+                        new std::string(kVid));
+    columns->addColumn(column);
+    auto* project = Project::make(qctx_, dep, columns);
+    project->setInputVar(dep->outputVar());
+    project->setColNames(deduceColNames(columns));
+
+    // set versionVar = 1, minusLoopSteps = 0
+    auto* assign = Assign::make(qctx_, project);
+    auto versionVar = vctx_->anonVarGen()->getVar();
+    assign->assignVar(versionVar, new ConstantExpression(1));
+    auto minusLoopSteps = vctx_->anonVarGen()->getVar();
+    assign->assignVar(minusLoopSteps, new ConstantExpression(0));
+
+    auto* dummy = StartNode::make(qctx_);
+    auto* dummy1 = StartNode::make(qctx_);
+    auto* minus = Minus::make(qctx_, dummy, dummy1);
+    minus->setLeftVar(minus->outputVar());
+    minus->setRightVar(startVidsVar);
+    minus->setLeftVersionExpr(new ConstantExpression(0));
+
+    auto* rightExpr = new ArithmeticExpression(Expression::Kind::kMinus,
+                                               new VariableExpression(new std::string(versionVar)),
+                                               new ConstantExpression(2));
+    minus->setRightVersionExpr(rightExpr);
+
+    // set minus->outputVar() = project->outputVar()
+    assign->assignVar(minus->outputVar(),
+                      new VariableExpression(new std::string(project->outputVar())));
+
+    auto* condition = buildMinusLoopCondition(minusLoopSteps);
+    auto* loop = Loop::make(qctx_, assign, minus, condition);
+
+    auto* dedup = Dedup::make(qctx_, loop);
+    dedup->setInputVar(minus->outputVar());
+    dedup->setOutputVar(startVidsVar);
+    dedup->setColNames({kVid});
+    return dedup;
 }
 
 }   // namespace graph

@@ -558,11 +558,33 @@ private:
  *   MINUS
  */
 class SetOp : public BiInputNode {
+public:
+    void setLeftVersionExpr(Expression* expr) {
+        versionExpr_.emplace_back(expr);
+    }
+
+    void setRightVersionExpr(Expression* expr) {
+        versionExpr_.emplace_back(expr);
+    }
+
+    const std::unique_ptr<Expression>& leftVersionExpr() const {
+        DCHECK_LT(0, versionExpr_.size());
+        return versionExpr_[0];
+    }
+
+    const std::unique_ptr<Expression>& rightVersionExpr() const {
+        DCHECK_LT(1, versionExpr_.size());
+        return versionExpr_[1];
+    }
+
 protected:
     SetOp(QueryContext* qctx, Kind kind, PlanNode* left, PlanNode* right)
         : BiInputNode(qctx, kind, left, right) {
         DCHECK(kind == Kind::kUnion || kind == Kind::kIntersect || kind == Kind::kMinus);
     }
+
+private:
+    std::vector<std::unique_ptr<Expression>> versionExpr_;
 };
 
 /**
