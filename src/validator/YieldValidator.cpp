@@ -205,9 +205,6 @@ Status YieldValidator::toPlan() {
         std::transform(
             inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &col) { return col.name; });
         filter->setColNames(std::move(colNames));
-        if (!inputVar.empty()) {
-            filter->setInputVar(inputVar);
-        }
     }
 
     SingleInputNode *dedupDep = nullptr;
@@ -229,10 +226,9 @@ Status YieldValidator::toPlan() {
         tail_ = dedupDep;
     }
 
-    if (!exprProps_.varProps().empty()) {
-        DCHECK_EQ(exprProps_.varProps().size(), 1u);
-        auto var = exprProps_.varProps().cbegin()->first;
-        static_cast<SingleInputNode *>(tail_)->setInputVar(var);
+    // Otherwise the input of tail_ would be set by pipe.
+    if (!inputVar.empty()) {
+        static_cast<SingleInputNode *>(tail_)->setInputVar(inputVar);
     }
 
     if (yield->yield()->isDistinct()) {
