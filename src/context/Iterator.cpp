@@ -633,7 +633,11 @@ Value PropIter::getVertex() const {
         Tag tag;
         tag.name = tagProp.first;
         for (auto& propIndex : tagProp.second) {
-            tag.props.emplace(propIndex.first, row[propIndex.second]);
+            if (propIndex.first == "_tag") {
+                continue;
+            } else {
+                tag.props.emplace(propIndex.first, row[propIndex.second]);
+            }
         }
         vertex.tags.emplace_back(std::move(tag));
     }

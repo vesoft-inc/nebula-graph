@@ -81,6 +81,9 @@ private:
 
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
 
+    StatusOr<std::vector<storage::cpp2::VertexProp>>
+        flattenTags(QueryContext *qctx, const SpaceInfo& space);
+
 private:
     std::unique_ptr<Expression> initialExpr_;
 };
