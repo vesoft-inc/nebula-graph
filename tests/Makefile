@@ -39,7 +39,7 @@ check:
 	@find $(CURR_DIR)/tck/features -type f -iname "*.feature" -print | xargs $(gherkin_fmt) --check
 
 test:
-	cd $(CURR_DIR) && python3 -m pytest -n8 --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" $(TEST_DIR)
+	cd $(CURR_DIR) && python3 -m pytest --gherkin-terminal-reporter --gherkin-terminal-reporter-expanded --rm_dir=$(RM_DIR) -m "not skip" $(TEST_DIR)
 
 tck:
 	cd $(CURR_DIR) && python3 -m pytest --gherkin-terminal-reporter --gherkin-terminal-reporter-expanded --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/
