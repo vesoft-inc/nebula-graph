@@ -2,6 +2,7 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
+@czp
 Feature: Go Sentence
 
   Background:
@@ -1587,22 +1588,20 @@ Feature: Go Sentence
   Scenario: Go and Limit
     When executing query:
       """
-      $a = GO FROM 'Tony Parker' OVER like YIELD like._src as src, like._dst as dst;
-      GO 2 STEPS FROM $a.src OVER like YIELD $a.src, $a.dst, like._src, like._dst OFFSET 1 LIMIT 2
+      $a = GO FROM 'Tony Parker' OVER like YIELD like._src as src, like._dst as dst;GO 2 STEPS FROM $a.src OVER like YIELD $a.src, $a.dst, like._src, like._dst | OFFSET 1 LIMIT 2
       """
     Then the result should be, in any order, with relax comparison:
-      | $a.src        | $a.dst       | like._src           | like._dst     |
-      | "Tony Parker" | "Tim Duncan" | "Tim Duncan"        | "Tony Parker" |
-      | "Tony Parker" | "Tim Duncan" | "LaMarcus Aldridge" | "Tony Parker" |
+      | $a.src        | $a.dst          | like._src       | like._dst    |
+      | "Tony Parker" | "Manu Ginobili" | "Manu Ginobili" | "Tim Duncan" |
+      | "Tony Parker" | "Tim Duncan"    | "Manu Ginobili" | "Tim Duncan" |
     When executing query:
       """
-      $a = GO FROM 'Tony Parker' OVER like YIELD like._src as src, like._dst as dst;
-      GO 2 STEPS FROM $a.src OVER like YIELD $a.src, $a.dst, like._src, like._dst LIMIT 2 OFFSET 1
+      $a = GO FROM 'Tony Parker' OVER like YIELD like._src as src, like._dst as dst;GO 2 STEPS FROM $a.src OVER like YIELD $a.src, $a.dst, like._src, like._dst | LIMIT 2 OFFSET 1
       """
     Then the result should be, in any order, with relax comparison:
-      | $a.src        | $a.dst       | like._src           | like._dst     |
-      | "Tony Parker" | "Tim Duncan" | "Tim Duncan"        | "Tony Parker" |
-      | "Tony Parker" | "Tim Duncan" | "LaMarcus Aldridge" | "Tony Parker" |
+      | $a.src        | $a.dst          | like._src       | like._dst    |
+      | "Tony Parker" | "Manu Ginobili" | "Manu Ginobili" | "Tim Duncan" |
+      | "Tony Parker" | "Tim Duncan"    | "Manu Ginobili" | "Tim Duncan" |
 
   Scenario: GroupBy and Count
     When executing query:
