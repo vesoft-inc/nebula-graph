@@ -52,7 +52,7 @@ folly::Future<Status> AggregateExecutor::execute() {
                 auto eval = item->eval(ctx(iter.get()));
             } else {
                 // non aggExpr eval
-                result[list][i]->setRes(item->eval(ctx(iter.get())));
+                result[list][i]->setResult(item->eval(ctx(iter.get())));
             }
         }
     }
