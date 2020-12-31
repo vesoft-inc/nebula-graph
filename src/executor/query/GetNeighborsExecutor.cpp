@@ -69,7 +69,7 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
 folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
     if (reqDs_.rows.empty()) {
         LOG(INFO) << "Empty input.";
-        DataSet emptyResult;
+        List emptyResult;
         return finish(ResultBuilder()
                           .value(Value(std::move(emptyResult)))
                           .iter(Iterator::Kind::kGetNeighbors)
