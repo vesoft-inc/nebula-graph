@@ -8,6 +8,8 @@
 
 #include <folly/String.h>
 
+#cmakedefine NEBULA_BUILD_VERSION
+
 namespace nebula {
 namespace graph {
 

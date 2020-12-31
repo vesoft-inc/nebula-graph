@@ -19,7 +19,8 @@ macro(config_nebula_storage)
         file(MAKE_DIRECTORY ${storage_build_dir})
     endif()
 
-    if (${NEBULA_BUILD_VERSION})
+    if (NEBULA_BUILD_VERSION)
+        message(STATUS "NEBULA_BUILD_VERSION: " ${NEBULA_BUILD_VERSION})
         set(storage_build_version -DNEBULA_BUILD_VERSION=${NEBULA_BUILD_VERSION})
     endif()
 
