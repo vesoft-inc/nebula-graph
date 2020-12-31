@@ -406,7 +406,7 @@ TEST(IteratorTest, GetNeighbor) {
         while (iter.valid()) {
             ++i;
             if (i % 2 == 0) {
-                iter.erase();
+                iter.unstableErase();
             } else {
                 iter.next();
             }
