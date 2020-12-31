@@ -351,6 +351,7 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                             }
 <DQ_STR,SQ_STR><<EOF>>      {
                                 // Must match '' or ""
+                                delete yylval->strval;
                                 throw GraphParser::syntax_error(*yylloc, "Unterminated string: ");
                             }
 <DQ_STR,SQ_STR>\n           { yyterminate(); }
