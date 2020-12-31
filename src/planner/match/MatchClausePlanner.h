@@ -80,7 +80,7 @@ private:
                                  size_t nodeInfoSize) const;
 
     Status appendFilterPlan(MatchClauseContext* matchClauseCtx, SubPlan& subplan);
-
+    // Fetch all tags in the space and retrieve props from tags
     StatusOr<std::vector<storage::cpp2::VertexProp>>
         flattenTags(QueryContext *qctx, const SpaceInfo& space);
 

@@ -15,7 +15,6 @@
 #include "planner/match/WhereClausePlanner.h"
 #include "util/ExpressionUtils.h"
 #include "visitor/RewriteMatchLabelVisitor.h"
-#include "visitor/DeducePropsVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -273,6 +272,7 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
         space.id,
         qctx->objPool()->add(srcExpr.release()),
         std::move(props).value(),
+        // {},
         {});
 
     PlanNode* root = gv;
@@ -307,25 +307,22 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
 
 StatusOr<std::vector<storage::cpp2::VertexProp>>
         MatchClausePlanner::flattenTags(QueryContext *qctx, const SpaceInfo& space) {
-    ExpressionProps exprProps;
-    std::set<std::string> dummySet;
-    DeducePropsVisitor deducePropsVisitor(qctx, space.id, &exprProps, &dummySet);
-
     // Get all tags in the space
     const auto allTagsResult = qctx->schemaMng()->getAllVerTagSchema(space.id);
     NG_RETURN_IF_ERROR(allTagsResult);
     const auto allTags = std::move(allTagsResult).value();
-    // std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema;
+    // std::unordered_map<TagID, std::vector<std::shared_ptr<const NebulaSchemaProvider>>>
 
-     std::vector<storage::cpp2::VertexProp> props;
+    std::vector<storage::cpp2::VertexProp> props;
+    // tag: pair<TagID, std::vector<std::shared_ptr<const NebulaSchemaProvider>>>
     for (const auto &tag : allTags) {
-        // tagsSchema.emplace(tag.first, tag.second.back());
         std::vector<std::string> propNames;
         storage::cpp2::VertexProp vProp;
 
-        // const auto tagId = tag.first;
+        const auto tagId = tag.first;
+        vProp.set_tag(tagId);
         const auto tagSchema = tag.second.back();  // nebulaSchemaProvider
-        for (size_t i=0; i < tagSchema->size(); i++) {
+        for (size_t i=0; i < tagSchema->getNumFields(); i++) {
             const auto propName = tagSchema->getFieldName(i);
             propNames.emplace_back(propName);
         }
@@ -334,24 +331,6 @@ StatusOr<std::vector<storage::cpp2::VertexProp>>
         props.emplace_back(std::move(vProp));
     }
     return props;
-    // Get props
-    // std::vector<storage::cpp2::VertexProp> props;
-    // for (const auto &tagNameId : exprProps.tagNameIds()) {
-    //     storage::cpp2::VertexProp vProp;
-    //     std::vector<std::string> propNames;
-    //     propNames.reserve(exprProps.tagProps().at(tagNameId.second).size());
-    //     vProp.set_tag(tagNameId.second);
-    //     for (const auto &prop : exprProps.tagProps().at(tagNameId.second)) {
-    //         propNames.emplace_back(prop.toString());
-    //          VLOG(1) << "propNames: \n" << prop.toString() << "\n";
-    //     }
-    //     // Insert "_tag" to make empty tags be to recognized
-    //     propNames.emplace_back("_tag");
-    //      VLOG(1) << "_tag added \n";
-    //     vProp.set_props(std::move(propNames));
-    //     props.emplace_back(std::move(vProp));
-    // }
-    // return props;
 }
 
 Status MatchClausePlanner::projectColumnsBySymbols(MatchClauseContext* matchClauseCtx,

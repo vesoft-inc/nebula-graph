@@ -25,21 +25,49 @@ Feature: Fix match losing undefined vertex tag info
       RETURN labels(v) AS Labels
       """
     Then the result should be, in any order:
-      | Labels                            |
-      | ["empty_tag","bachelor","player"] |
+      | Labels                              |
+      | ["player", "empty_tag", "bachelor"] |
 
-  Scenario: one step
+  Scenario: one step with direction
     When executing query:
       """
       MATCH (v:player{name:"Tim Duncan"})-->()
       RETURN labels(v) AS Labels
       """
     Then the result should be, in any order:
-      | Labels                            |
-      | ["empty_tag","bachelor","player"] |
-      | ["empty_tag","bachelor","player"] |
-      | ["empty_tag","bachelor","player"] |
-      | ["empty_tag","bachelor","player"] |
-      | ["empty_tag","bachelor","player"] |
-      | ["empty_tag","bachelor","player"] |
-      | ["empty_tag","bachelor","player"] |
+      | Labels                              |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+
+  Scenario: one step without direction
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})--()
+      RETURN labels(v) AS Labels
+      """
+    Then the result should be, in any order:
+      | Labels                              |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
