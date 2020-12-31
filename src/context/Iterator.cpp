@@ -618,7 +618,9 @@ Value PropIter::getVertex() const {
     auto& tagPropsMap = dsIndex_.propsMap;
     bool isVertexProps = true;
     auto& row = *(iter_->row_);
+    // tagPropsMap -> <std::string, std::unordered_map<std::string, size_t> >
     for (auto& tagProp : tagPropsMap) {
+        // propIndex -> std::unordered_map<std::string, size_t>
         for (auto& propIndex : tagProp.second) {
             if (row[propIndex.second].empty()) {
                 // Not current vertex's prop

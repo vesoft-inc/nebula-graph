@@ -310,12 +310,13 @@ StatusOr<std::vector<storage::cpp2::VertexProp>>
     // Get all tags in the space
     const auto allTagsResult = qctx->schemaMng()->getAllVerTagSchema(space.id);
     NG_RETURN_IF_ERROR(allTagsResult);
+    // allTags: std::unordered_map<TagID, std::vector<std::shared_ptr<const NebulaSchemaProvider>>>
     const auto allTags = std::move(allTagsResult).value();
-    // std::unordered_map<TagID, std::vector<std::shared_ptr<const NebulaSchemaProvider>>>
 
     std::vector<storage::cpp2::VertexProp> props;
-    // tag: pair<TagID, std::vector<std::shared_ptr<const NebulaSchemaProvider>>>
+    // Retrieve prop names of each tag and append "_tag" to the name list to query empty tags
     for (const auto &tag : allTags) {
+        // tag: pair<TagID, std::vector<std::shared_ptr<const NebulaSchemaProvider>>>
         std::vector<std::string> propNames;
         storage::cpp2::VertexProp vProp;
 

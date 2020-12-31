@@ -2,11 +2,11 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@wyc
 Feature: Fix match losing undefined vertex tag info
 
-  Background:
-    Given a graph with space named "nba"
+  Background: Prepare Space
+    Given an empty graph
+    And load "nba" csv data to a new space
     And having executed:
       """
       CREATE TAG IF NOT EXISTS empty_tag();
