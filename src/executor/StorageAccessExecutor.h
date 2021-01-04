@@ -19,7 +19,7 @@ protected:
     StorageAccessExecutor(const std::string &name, const PlanNode *node, QueryContext *qctx)
         : Executor(name, node, qctx) {}
 
-    // parameter isCompleteRequire to specify is return error when partial succeeded
+    // parameter isCompleteRequire to specify wheither to return error when partial succeeded
     template <typename Resp>
     StatusOr<Result::State>
     handleCompleteness(const storage::StorageRpcResponse<Resp> &rpcResp,
@@ -40,7 +40,7 @@ protected:
                 }
                 return Status::Error("Request to storage failed, without failedCodes.");
             }
-            return Result::State::kPartialSuccess;
+            return Status::Error("Storage Error: Vertex or edge not found.");
         }
         return Result::State::kSuccess;
     }
