@@ -370,11 +370,6 @@ Feature: Basic match
     Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v) RETURN v
     When executing query:
       """
-      MATCH (v:player) return v
-      """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player) RETURN v
-    When executing query:
-      """
       MATCH (v:player:person) return v
       """
     Then a SyntaxError should be raised at runtime: syntax error near `:person)'
