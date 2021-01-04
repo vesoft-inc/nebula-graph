@@ -2,6 +2,7 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
+@test
 Feature: Fix match losing undefined vertex tag info
 
   Background: Prepare Space
@@ -27,6 +28,14 @@ Feature: Fix match losing undefined vertex tag info
     Then the result should be, in any order:
       | Labels                              |
       | ["player", "empty_tag", "bachelor"] |
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})
+      RETURN tags(v) AS Labels
+      """
+    Then the result should be, in any order:
+      | Labels                              |
+      | ["player", "empty_tag", "bachelor"] |
 
   Scenario: one step with direction
     When executing query:
@@ -43,12 +52,52 @@ Feature: Fix match losing undefined vertex tag info
       | ["player", "empty_tag", "bachelor"] |
       | ["player", "empty_tag", "bachelor"] |
       | ["player", "empty_tag", "bachelor"] |
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})-->()
+      RETURN tags(v) AS Labels
+      """
+    Then the result should be, in any order:
+      | Labels                              |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
+      | ["player", "empty_tag", "bachelor"] |
 
   Scenario: one step without direction
     When executing query:
       """
       MATCH (v:player{name:"Tim Duncan"})--()
       RETURN labels(v) AS Labels
+      """
+    Then the result should be, in any order:
+      | Labels                              |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+      | ["empty_tag", "bachelor", "player"] |
+    When executing query:
+      """
+      MATCH (v:player{name:"Tim Duncan"})--()
+      RETURN tags(v) AS Labels
       """
     Then the result should be, in any order:
       | Labels                              |

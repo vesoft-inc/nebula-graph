@@ -272,7 +272,6 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
         space.id,
         qctx->objPool()->add(srcExpr.release()),
         std::move(props).value(),
-        // {},
         {});
 
     PlanNode* root = gv;
