@@ -10,8 +10,8 @@ import re
 
 from tests.common.nebula_test_suite import NebulaTestSuite
 
-leader_pattern = re.compile(r'127.0.0.1:.*|^$')
-peers_pattern = re.compile(r'127.0.0.1:.*')
+leader_pattern = re.compile(r'\S+:.*|^$')
+peers_pattern = re.compile(r'\S+:.*')
 losts_pattern = re.compile(r'')
 
 

@@ -732,7 +732,7 @@ class TestPermission(NebulaTestSuite):
         self.check_resp_succeeded(resp)
 
     def test_show_roles(self):
-        query = 'CREATE SPACE space5(partition_num=1, replica_factor=1)'
+        query = 'CREATE SPACE IF NOT EXISTS space5(partition_num=1, replica_factor=1)'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
         time.sleep(self.delay)

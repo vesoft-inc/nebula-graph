@@ -19,9 +19,10 @@ class TestZone(NebulaTestSuite):
         resp = self.client.execute('SHOW HOSTS')
         self.check_resp_succeeded(resp)
         assert not resp.is_empty()
+        storage_ip = resp.row_values(0)[0].as_string()
         storage_port = resp.row_values(0)[1].as_int()
         # Add Zone
-        resp = self.client.execute('ADD ZONE zone_0 127.0.0.1:' + str(storage_port))
+        resp = self.client.execute('ADD ZONE zone_0 {}:{}'.format(storage_ip, storage_port))
         self.check_resp_succeeded(resp)
 
         # Get Zone

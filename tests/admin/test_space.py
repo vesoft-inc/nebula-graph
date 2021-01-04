@@ -11,6 +11,11 @@ from tests.common.nebula_test_suite import NebulaTestSuite
 
 
 class TestSpace(NebulaTestSuite):
+    @classmethod
+    def cleanup(self):
+        query = 'DROP SPACE space_string_vid;DROP SPACE space_int_vid;'
+        resp = self.execute(query)
+        self.check_resp_succeeded(resp)
 
     def test_space(self):
         # not exist
