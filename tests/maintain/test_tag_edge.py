@@ -15,6 +15,14 @@ class TestSchema(NebulaTestSuite):
 
     @classmethod
     def prepare(self):
+        query = '''
+                DROP SPACE IF EXISTS tag_space;
+                DROP SPACE IF EXISTS my_space;
+                DROP SPACE IF EXISTS test_multi;
+                DROP SPACE IF EXISTS issue2010;
+                '''
+        resp = self.client.execute(query)
+        self.check_resp_succeeded(resp)
         resp = self.client.execute('CREATE SPACE IF NOT EXISTS tag_space(partition_num=9)')
         self.check_resp_succeeded(resp)
 
