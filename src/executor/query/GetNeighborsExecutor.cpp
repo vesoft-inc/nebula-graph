@@ -14,7 +14,6 @@
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
-#include "service/GraphFlags.h"
 
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::GetNeighborsResponse;
