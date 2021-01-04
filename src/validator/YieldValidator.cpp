@@ -61,9 +61,13 @@ Status YieldValidator::validateImpl() {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
-    if (exprProps_.inputProps().empty() && exprProps_.varProps().empty()) {
+    if (exprProps_.inputProps().empty() && exprProps_.varProps().empty() && inputVarName_.empty()) {
         // generate constant expression result into querycontext
         genConstantExprValues();
+    }
+
+    if (!exprProps_.varProps().empty() && !userDefinedVarNameList_.empty()) {
+        userDefinedVarName_ = *userDefinedVarNameList_.begin();
     }
 
     return Status::OK();
@@ -167,6 +171,13 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
 Status YieldValidator::toPlan() {
     auto yield = static_cast<const YieldSentence *>(sentence_);
 
+    std::string inputVar;
+    if (!userDefinedVarName_.empty()) {
+        inputVar = userDefinedVarName_;
+    } else if (!constantExprVar_.empty()) {
+        inputVar = constantExprVar_;
+    }
+
     Filter *filter = nullptr;
     if (yield->where()) {
         filter = Filter::make(qctx_, nullptr, filterCondition_);
@@ -174,12 +185,10 @@ Status YieldValidator::toPlan() {
         std::transform(
             inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &col) { return col.name; });
         filter->setColNames(std::move(colNames));
-        if (!constantExprVar_.empty()) {
-            filter->setInputVar(constantExprVar_);
-        }
     }
 
     SingleInputNode *dedupDep = nullptr;
+
     if (groupByValidator_) {
         groupByValidator_->toPlan();
         auto* groupByValidatorRoot = groupByValidator_->root();
@@ -205,10 +214,9 @@ Status YieldValidator::toPlan() {
         }
     }
 
-    if (!exprProps_.varProps().empty()) {
-        DCHECK_EQ(exprProps_.varProps().size(), 1u);
-        auto var = exprProps_.varProps().cbegin()->first;
-        static_cast<SingleInputNode *>(tail_)->setInputVar(var);
+    // Otherwise the input of tail_ would be set by pipe.
+    if (!inputVar.empty()) {
+        static_cast<SingleInputNode *>(tail_)->setInputVar(inputVar);
     }
 
     if (yield->yield()->isDistinct()) {
