@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@test_match_used_in_pipe
 Feature: Test match used in pipe
 
   Background:
