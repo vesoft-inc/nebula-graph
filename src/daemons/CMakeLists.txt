@@ -58,6 +58,7 @@ nebula_add_executable(
         $<TARGET_OBJECTS:common_time_utils_obj>
         $<TARGET_OBJECTS:common_graph_obj>
         $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
+        $<TARGET_OBJECTS:common_index_utils_obj>
     LIBRARIES
         proxygenhttpserver
         proxygenlib

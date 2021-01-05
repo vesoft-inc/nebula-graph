@@ -40,6 +40,7 @@ set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:validator_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:common_graph_obj>
+    $<TARGET_OBJECTS:common_index_utils_obj>
 )
 
 nebula_add_test(

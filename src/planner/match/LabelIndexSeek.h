@@ -7,6 +7,8 @@
 #ifndef PLANNER_MATCH_LABELINDEXSEEK_H_
 #define PLANNER_MATCH_LABELINDEXSEEK_H_
 
+#include "common/utils/IndexUtils.h"
+
 #include "planner/match/StartVidFinder.h"
 
 namespace nebula {
@@ -34,15 +36,23 @@ private:
 
     static StatusOr<IndexID> pickTagIndex(const NodeContext* nodeCtx);
 
-    static std::shared_ptr<meta::cpp2::IndexItem> selectIndex(
-        const std::shared_ptr<meta::cpp2::IndexItem> candidate,
+    static std::pair<std::shared_ptr<meta::cpp2::IndexItem>, std::size_t> selectIndex(
+        const std::pair<std::shared_ptr<meta::cpp2::IndexItem>, std::size_t> candidate,
         const std::shared_ptr<meta::cpp2::IndexItem> income) {
-        // less fields is better
-        // TODO(shylock) rank for field itself(e.g. INT is better than STRING)
-        if (candidate->get_fields().size() > income->get_fields().size()) {
-            return income;
+        // shorter index key is better
+        std::size_t incomeSize = fieldsIndexSize(income->get_fields());
+        if (candidate.second > incomeSize) {
+            return std::make_pair(income, incomeSize);
         }
         return candidate;
+    }
+
+    static std::size_t fieldsIndexSize(const std::vector<meta::cpp2::ColumnDef>& fields) {
+        std::size_t len{0};
+        for (const auto& f : fields) {
+            len += IndexUtils::fieldIndexLen(f.get_type());
+        }
+        return len;
     }
 };
 
