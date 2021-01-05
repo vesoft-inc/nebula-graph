@@ -52,9 +52,11 @@ private:
                            const YieldColumns *yieldColumns,
                            OrderByClauseContext &orderByCtx) const;
 
-    StatusOr<Expression*> makeSubFilter(const std::string &alias,
-                                        const MapExpression *map,
-                                        const std::string &label = "") const;
+    StatusOr<Expression *> makeSubFilter(
+        const std::unordered_map<std::string, AliasType> *aliasesUsed,
+        const std::string &alias,
+        const MapExpression *map,
+        const std::string &label = "") const;
 
     template <typename T>
     T* saveObject(T *obj) const {
@@ -63,11 +65,13 @@ private:
 
     Status buildNodeInfo(const MatchPath *path,
                          std::vector<NodeInfo> &edgeInfos,
-                         std::unordered_map<std::string, AliasType> &aliases) const;
+                         std::unordered_map<std::string, AliasType> &aliasesGenerated,
+                         const std::unordered_map<std::string, AliasType> *aliasesUsed) const;
 
     Status buildEdgeInfo(const MatchPath *path,
                          std::vector<EdgeInfo> &nodeInfos,
-                         std::unordered_map<std::string, AliasType> &aliases) const;
+                         std::unordered_map<std::string, AliasType> &aliasesGenerated,
+                         const std::unordered_map<std::string, AliasType> *aliasesUsed) const;
 
     Status buildPathExpr(const MatchPath *path, MatchClauseContext &matchClauseCtx) const;
 

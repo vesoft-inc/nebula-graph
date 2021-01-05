@@ -17,9 +17,13 @@ namespace graph {
  */
 class ApplyStrategy final : public SegmentsConnectStrategy {
 public:
-    explicit ApplyStrategy(QueryContext *qctx) : SegmentsConnectStrategy(qctx) {}
+    explicit ApplyStrategy(QueryContext* qctx, const std::string& rowIndex)
+        : SegmentsConnectStrategy(qctx), rowIndex_(rowIndex) {}
 
     PlanNode* connect(const PlanNode* left, const PlanNode* right) override;
+
+private:
+    const std::string rowIndex_;
 };
 }   // namespace graph
 }   // namespace nebula

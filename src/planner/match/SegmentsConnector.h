@@ -49,14 +49,21 @@ public:
                                               const PlanNode* left,
                                               const PlanNode* right);
 
-    static PlanNode* applySegments(QueryContext* qctx, const PlanNode* left, const PlanNode* right);
+    static PlanNode* applySegments(QueryContext* qctx,
+                                   const PlanNode* left,
+                                   const PlanNode* right,
+                                   const std::string& rowIndex);
 
     static void addDependency(const PlanNode* left, const PlanNode* right);
 
     static void addInput(const PlanNode* left, const PlanNode* right, bool copyColNames = false);
 
 private:
-    static PlanNode* iterateDataSet(QueryContext* qctx, PlanNode* input);
+    static PlanNode* iterateDataSet(QueryContext* qctx,
+                                    PlanNode* input,
+                                    const std::string& rowIndex);
+
+    static PlanNode* transformDataSet(QueryContext* qctx, PlanNode* input);
 };
 }  // namespace graph
 }  // namespace nebula

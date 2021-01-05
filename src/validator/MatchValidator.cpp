@@ -42,6 +42,13 @@ Status MatchValidator::validateImpl() {
                 auto matchClauseCtx = getContext<MatchClauseContext>();
                 matchClauseCtx->aliasesUsed = aliasesUsed;
                 NG_RETURN_IF_ERROR(validatePath(matchClause->path(), *matchClauseCtx));
+
+                if (aliasesUsed) {
+                    NG_RETURN_IF_ERROR(
+                        combineAliases(matchClauseCtx->aliasesGenerated, *aliasesUsed));
+                }
+                aliasesUsed = &matchClauseCtx->aliasesGenerated;
+
                 if (matchClause->where() != nullptr) {
                     auto whereClauseCtx = getContext<WhereClauseContext>();
                     whereClauseCtx->aliasesUsed = &matchClauseCtx->aliasesGenerated;
@@ -49,12 +56,6 @@ Status MatchValidator::validateImpl() {
                         validateFilter(matchClause->where()->filter(), *whereClauseCtx));
                     matchClauseCtx->where = std::move(whereClauseCtx);
                 }
-
-                if (aliasesUsed) {
-                    NG_RETURN_IF_ERROR(
-                        combineAliases(matchClauseCtx->aliasesGenerated, *aliasesUsed));
-                }
-                aliasesUsed = &matchClauseCtx->aliasesGenerated;
 
                 if (i == clauses.size() - 1) {
                     retClauseCtx->aliasesUsed = aliasesUsed;
@@ -126,10 +127,14 @@ Status MatchValidator::validateImpl() {
 
 Status MatchValidator::validatePath(const MatchPath *path,
                                     MatchClauseContext &matchClauseCtx) const {
-    NG_RETURN_IF_ERROR(
-        buildNodeInfo(path, matchClauseCtx.nodeInfos, matchClauseCtx.aliasesGenerated));
-    NG_RETURN_IF_ERROR(
-        buildEdgeInfo(path, matchClauseCtx.edgeInfos, matchClauseCtx.aliasesGenerated));
+    NG_RETURN_IF_ERROR(buildNodeInfo(path,
+                                     matchClauseCtx.nodeInfos,
+                                     matchClauseCtx.aliasesGenerated,
+                                     matchClauseCtx.aliasesUsed));
+    NG_RETURN_IF_ERROR(buildEdgeInfo(path,
+                                     matchClauseCtx.edgeInfos,
+                                     matchClauseCtx.aliasesGenerated,
+                                     matchClauseCtx.aliasesUsed));
     NG_RETURN_IF_ERROR(buildPathExpr(path, matchClauseCtx));
     return Status::OK();
 }
@@ -161,9 +166,11 @@ Status MatchValidator::buildPathExpr(const MatchPath *path,
     return Status::OK();
 }
 
-Status MatchValidator::buildNodeInfo(const MatchPath *path,
-                                     std::vector<NodeInfo> &nodeInfos,
-                                     std::unordered_map<std::string, AliasType> &aliases) const {
+Status MatchValidator::buildNodeInfo(
+    const MatchPath *path,
+    std::vector<NodeInfo> &nodeInfos,
+    std::unordered_map<std::string, AliasType> &aliasesGenerated,
+    const std::unordered_map<std::string, AliasType> *aliasesUsed) const {
     auto *sm = qctx_->schemaMng();
     auto steps = path->steps();
     nodeInfos.resize(steps + 1);
@@ -185,16 +192,16 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
             anonymous = true;
             alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
         }
-        if (!aliases.emplace(*alias, AliasType::kNode).second) {
+        if (!aliasesGenerated.emplace(*alias, AliasType::kNode).second) {
             return Status::SemanticError("`%s': Redefined alias", alias->c_str());
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilter(*alias, props);
+            auto result = makeSubFilter(aliasesUsed, *alias, props);
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         } else if (label != nullptr) {
-            auto result = makeSubFilter(*alias, props, *label);
+            auto result = makeSubFilter(aliasesUsed, *alias, props, *label);
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         }
@@ -208,9 +215,11 @@ Status MatchValidator::buildNodeInfo(const MatchPath *path,
     return Status::OK();
 }
 
-Status MatchValidator::buildEdgeInfo(const MatchPath *path,
-                                     std::vector<EdgeInfo> &edgeInfos,
-                                     std::unordered_map<std::string, AliasType> &aliases) const {
+Status MatchValidator::buildEdgeInfo(
+    const MatchPath *path,
+    std::vector<EdgeInfo> &edgeInfos,
+    std::unordered_map<std::string, AliasType> &aliasesGenerated,
+    const std::unordered_map<std::string, AliasType> *aliasesUsed) const {
     auto *sm = qctx_->schemaMng();
     auto steps = path->steps();
     edgeInfos.resize(steps);
@@ -251,12 +260,12 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
             anonymous = true;
             alias = saveObject(new std::string(vctx_->anonVarGen()->getVar()));
         }
-        if (!aliases.emplace(*alias, AliasType::kEdge).second) {
+        if (!aliasesGenerated.emplace(*alias, AliasType::kEdge).second) {
             return Status::SemanticError("`%s': Redefined alias", alias->c_str());
         }
         Expression *filter = nullptr;
         if (props != nullptr) {
-            auto result = makeSubFilter(*alias, props);
+            auto result = makeSubFilter(aliasesUsed, *alias, props);
             NG_RETURN_IF_ERROR(result);
             filter = result.value();
         }
@@ -477,10 +486,11 @@ Status MatchValidator::validateUnwind(const UnwindClause *unwind,
     return Status::OK();
 }
 
-StatusOr<Expression*>
-MatchValidator::makeSubFilter(const std::string &alias,
-                              const MapExpression *map,
-                              const std::string& label) const {
+StatusOr<Expression *> MatchValidator::makeSubFilter(
+    const std::unordered_map<std::string, AliasType> *aliasesUsed,
+    const std::string &alias,
+    const MapExpression *map,
+    const std::string &label) const {
     // Node has tag without property
     if (!label.empty() && map == nullptr) {
         auto *left = new ConstantExpression(label);
@@ -498,12 +508,22 @@ MatchValidator::makeSubFilter(const std::string &alias,
     DCHECK(map != nullptr);
     auto &items = map->items();
     DCHECK(!items.empty());
+    // Check all referencing expressions are valid
+    std::vector<const Expression *> exprs;
+    for (auto &item : items) {
+        exprs.emplace_back(item.second.get());
+    }
+    NG_RETURN_IF_ERROR(validateAliases(exprs, aliasesUsed));
 
     // TODO(dutor) Check if evaluable and evaluate
-    if (items[0].second->kind() != Expression::Kind::kConstant) {
-        return Status::SemanticError("Props must be constant: `%s'",
+    auto kind = items[0].second->kind();
+    if (kind != Expression::Kind::kConstant
+        && kind != Expression::Kind::kLabel
+        && kind != Expression::Kind::kLabelAttribute) {
+        return Status::SemanticError("Props must be constant or label or label attribute: `%s'",
                 items[0].second->toString().c_str());
     }
+    // TODO(jie) deal with it
     Expression *root = new RelationalExpression(Expression::Kind::kRelEQ,
             new LabelAttributeExpression(
                 new LabelExpression(alias),

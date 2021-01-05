@@ -7,8 +7,8 @@
 #ifndef PLANNER_MATCH_CARTESIANPRODUCTSTRATEGY_H_
 #define PLANNER_MATCH_CARTESIANPRODUCTSTRATEGY_H_
 
-#include "planner/match/SegmentsConnector.h"
 #include "planner/PlanNode.h"
+#include "planner/match/SegmentsConnector.h"
 
 namespace nebula {
 namespace graph {
@@ -25,7 +25,10 @@ public:
 
 private:
     PlanNode* joinDataSet(const PlanNode* left, const PlanNode* right);
+
+    std::vector<std::string> combineColNames(
+        const std::vector<std::vector<std::string>>& allColNames);
 };
-}  // namespace graph
-}  // namespace nebula
-#endif  // PLANNER_MATCH_CARTESIANPRODUCTSTRATEGY_H_
+}   // namespace graph
+}   // namespace nebula
+#endif   // PLANNER_MATCH_CARTESIANPRODUCTSTRATEGY_H_

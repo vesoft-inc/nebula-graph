@@ -13,6 +13,7 @@
 #include "planner/Logic.h"
 #include "planner/Query.h"
 #include "common/expression/VariableExpression.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -33,13 +34,31 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
         auto* start = StartNode::make(qctx);
-        auto* project = iterateDataSet(qctx, right.root);
-        addInput(project, start);
-        addInput(left.tail, project);
+
+        const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
+        qctx->ectx()->setValue(rowIndex, Value(-1));
+
+        auto* iterate = iterateDataSet(qctx, right.root, rowIndex);
+        addInput(iterate, start);
+        addInput(left.tail, iterate);
         left.tail = start;
-        auto* apply = applySegments(qctx, left.root, right.root);
+
+        auto* cartesianProduct = cartesianProductSegments(qctx, left.root, iterate);
+        left.root = cartesianProduct;
+        auto* trans = transformDataSet(qctx, left.root);
+        left.root = trans;
+
+        auto* apply = applySegments(qctx, left.root, right.root, rowIndex);
         DCHECK(apply != nullptr);
         left.root = apply;
+        left.tail = right.tail;
+        return left;
+    } else if (leftCtx->kind == CypherClauseKind::kMatch) {
+        VLOG(1) << "left tail: " << left.tail->outputVar()
+                << "right root: " << right.root->outputVar();
+        auto* cartesianProduct = cartesianProductSegments(qctx, left.root, right.root);
+        addInput(left.tail, right.root);
+        left.root = cartesianProduct;
         left.tail = right.tail;
         return left;
     } else {
@@ -72,8 +91,9 @@ PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,
 
 PlanNode* SegmentsConnector::applySegments(QueryContext* qctx,
                                            const PlanNode* left,
-                                           const PlanNode* right) {
-    return std::make_unique<ApplyStrategy>(qctx)->connect(left, right);
+                                           const PlanNode* right,
+                                           const std::string &rowIndex) {
+    return std::make_unique<ApplyStrategy>(qctx, rowIndex)->connect(left, right);
 }
 
 void SegmentsConnector::addDependency(const PlanNode* left, const PlanNode* right) {
@@ -85,17 +105,17 @@ void SegmentsConnector::addInput(const PlanNode* left, const PlanNode* right, bo
 }
 
 // iterateDataSet is used to make each row of a dataset be an individual dataset
-PlanNode* SegmentsConnector::iterateDataSet(QueryContext* qctx, PlanNode* input) {
-    const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
-    qctx->ectx()->setValue(rowIndex, Value(-1));
+PlanNode* SegmentsConnector::iterateDataSet(QueryContext* qctx,
+                                            PlanNode* input,
+                                            const std::string& rowIndex) {
     auto* cols = qctx->objPool()->add(new YieldColumns());
-    auto makeColumn = [input, &rowIndex](size_t i) {
+    auto makeColumn = [input, &rowIndex](int i) {
         DCHECK_LT(i, input->colNames().size());
         return new YieldColumn(
             new SubscriptExpression(
-                new VariableExpression(new std::string(input->outputVar())),
-                new UnaryExpression(Expression::Kind::kUnaryIncr,
-                                    new VariableExpression(new std::string(rowIndex)))),
+                new SubscriptExpression(new VariableExpression(new std::string(input->outputVar())),
+                                        new VariableExpression(new std::string(rowIndex))),
+                new ConstantExpression(i)),
             new std::string(input->colNames()[i]));
     };
     for (size_t i = 0; i < input->colNames().size(); ++i) {
@@ -106,5 +126,22 @@ PlanNode* SegmentsConnector::iterateDataSet(QueryContext* qctx, PlanNode* input)
 
     return project;
 }
+
+PlanNode* SegmentsConnector::transformDataSet(QueryContext* qctx, PlanNode* input) {
+    const std::vector<std::string>& colNames = input->colNames();
+    auto* cols = qctx->objPool()->add(new YieldColumns());
+    auto makeColumn = [](const std::string& colName) {
+        return new YieldColumn(
+            ExpressionUtils::newVarPropExpr(colName));
+    };
+    for (auto &colName : colNames) {
+        cols->addColumn(makeColumn(colName));
+    }
+    auto* project = Project::make(qctx, input, cols);
+    project->setColNames(colNames);
+
+    return project;
+}
+
 }   // namespace graph
 }   // namespace nebula
