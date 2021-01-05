@@ -45,10 +45,13 @@ check:
 	@find $(CURR_DIR)/tck/features -type f -iname "*.feature" -print | xargs $(gherkin_fmt) --check
 
 test:
-	cd $(CURR_DIR) && python3 -m pytest -n$(NUM_THREADS) --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" $(TEST_DIR)
+	cd $(CURR_DIR) && python3 -m pytest -n$(NUM_THREADS) --dist=loadfile --rm_dir=$(RM_DIR) -m "not skip" -k "not tck" $(TEST_DIR)
 
 tck:
-	cd $(CURR_DIR) && python3 -m pytest --gherkin-terminal-reporter --gherkin-terminal-reporter-expanded --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/
+	cd $(CURR_DIR)
+	python3 -m pytest --cucumber-json=$(CURR_DIR)/tck-report.json --cucumber-json-expanded -n8 --rm_dir=$(RM_DIR) -m "not skip" $(CURR_DIR)/tck/
+	mv $(CURR_DIR)/tck-report.json $(CURR_DIR)/tck-report-bak.json
+	jq . $(CURR_DIR)/tck-report-bak.json > tck-report.json
 
 clean:
 	@rm -rf $(CURR_DIR)/nebula-python $(CURR_DIR)/reformat-gherkin $(CURR_DIR)/.pytest/* $(CURR_DIR)/.pytest_cache

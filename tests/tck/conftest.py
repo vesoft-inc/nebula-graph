@@ -124,11 +124,14 @@ def wait(secs):
     time.sleep(secs)
 
 
-def cmp_dataset(graph_spaces,
-                result,
-                order: bool,
-                strict: bool,
-                included=False) -> None:
+def cmp_dataset(
+        request,
+        graph_spaces,
+        result,
+        order: bool,
+        strict: bool,
+        included=False,
+) -> None:
     rs = graph_spaces['result_set']
     ngql = graph_spaces['ngql']
     check_resp(rs, ngql)
@@ -144,7 +147,7 @@ def cmp_dataset(graph_spaces,
                               vid_fn=vid_fn)
 
     def dsp(ds):
-        printer = DataSetPrinter(rs._decode_type)
+        printer = DataSetPrinter(rs._decode_type, vid_fn=vid_fn)
         return printer.ds_to_string(ds)
 
     def rowp(ds, i):
@@ -152,7 +155,7 @@ def cmp_dataset(graph_spaces,
             return ""
         assert i < len(ds.rows), f"{i} out of range {len(ds.rows)}"
         row = ds.rows[i].values
-        printer = DataSetPrinter(rs._decode_type)
+        printer = DataSetPrinter(rs._decode_type, vid_fn=vid_fn)
         ss = printer.list_to_string(row, delimiter='|')
         return f'{i}: |' + ss + '|'
 
@@ -161,7 +164,20 @@ def cmp_dataset(graph_spaces,
 
     rds = rs._data_set_wrapper._data_set
     res, i = dscmp(rds, ds)
-    assert res, f"Fail to exec: {ngql}\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}"
+    scen = request.function.__scenario__
+    feature = scen.feature.rel_filename
+    line_number = -1
+    for step in scen._steps:
+        res_lines = result.split('\n')
+        include = True
+        for l, r in zip(res_lines, step.lines):
+            if l not in r:
+                include = False
+        if include:
+            line_number = step.line_number
+            break
+    location = f"{feature}:{line_number}"
+    assert res, f"Fail to exec: {ngql}\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}\nLocation: {location}"
 
 
 @then(parse("define some list variables:\n{text}"))
@@ -174,28 +190,28 @@ def define_list_var_alias(text, graph_spaces):
 
 
 @then(parse("the result should be, in order:\n{result}"))
-def result_should_be_in_order(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=True, strict=True)
+def result_should_be_in_order(request, result, graph_spaces):
+    cmp_dataset(request, graph_spaces, result, order=True, strict=True)
 
 
 @then(parse("the result should be, in order, with relax comparison:\n{result}"))
-def result_should_be_in_order_relax_cmp(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=True, strict=False)
+def result_should_be_in_order_relax_cmp(request, result, graph_spaces):
+    cmp_dataset(request, graph_spaces, result, order=True, strict=False)
 
 
 @then(parse("the result should be, in any order:\n{result}"))
-def result_should_be(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=False, strict=True)
+def result_should_be(request, result, graph_spaces):
+    cmp_dataset(request, graph_spaces, result, order=False, strict=True)
 
 
 @then(parse("the result should be, in any order, with relax comparison:\n{result}"))
-def result_should_be_relax_cmp(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=False, strict=False)
+def result_should_be_relax_cmp(request, result, graph_spaces):
+    cmp_dataset(request, graph_spaces, result, order=False, strict=False)
 
 
 @then(parse("the result should include:\n{result}"))
-def result_should_include(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=False, strict=True, included=True)
+def result_should_include(request, result, graph_spaces):
+    cmp_dataset(reqeust, graph_spaces, result, order=False, strict=True, included=True)
 
 
 @then("no side effects")
