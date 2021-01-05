@@ -1023,6 +1023,40 @@ private:
     std::vector<Expression*>                probeKeys_;
 };
 
+/*
+ * set var = value
+ */
+class Assign final : public SingleInputNode {
+public:
+    static Assign* make(QueryContext* qctx, PlanNode* input, std::string var, Expression* value) {
+        return qctx->objPool()->add(new Assign(qctx, input, var, value));
+    }
+
+    const std::string& varName() const {
+        return var_;
+    }
+
+    Expression* valueExpr() const {
+        return value_;
+    }
+
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+private:
+    Assign(QueryContext* qctx, PlanNode* input, std::string var, Expression* value)
+        : SingleInputNode(qctx, Kind::kAssign, input) {
+        auto* varPtr = qctx_->symTable()->getVar(var);
+        DCHECK(varPtr != nullptr);
+        var_ = var;
+        DCHECK(value != nullptr);
+        value_ = value;
+    }
+
+private:
+    std::string var_;
+    Expression* value_{nullptr};
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_QUERY_H_

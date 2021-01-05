@@ -259,5 +259,12 @@ std::unique_ptr<PlanNodeDescription> DataJoin::explain() const {
     return desc;
 }
 
+std::unique_ptr<PlanNodeDescription> Assign::explain() const {
+    auto desc = SingleInputNode::explain();
+    addDescription("varName", var_, desc.get());
+    addDescription("value", value_->toString(), desc.get());
+    return desc;
+}
+
 }   // namespace graph
 }   // namespace nebula
