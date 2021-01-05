@@ -90,7 +90,7 @@ public:
         exprProps_ = exprProps;
     }
 
-    std::set<std::string>  userDefinedVarNameList() const {
+    const std::set<std::string>&  userDefinedVarNameList() const {
         return userDefinedVarNameList_;
     }
 

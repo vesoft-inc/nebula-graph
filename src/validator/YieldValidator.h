@@ -39,6 +39,8 @@ private:
     Status validateYieldAndBuildOutputs(const YieldClause *clause);
     Status validateWhere(const WhereClause *clause);
     Status makeOutputColumn(YieldColumn *column);
+    Status makeImplicitGroupByValidator();
+    Status validateImplicitGroupBy();
     void genConstantExprValues();
 
 private:

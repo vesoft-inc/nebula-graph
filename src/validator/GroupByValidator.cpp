@@ -30,9 +30,6 @@ Status GroupByValidator::validateImpl() {
     if (!exprProps_.varProps().empty() && exprProps_.varProps().size() > 1) {
         return Status::SemanticError("Only one variable allowed to use.");
     }
-    if (exprProps_.inputProps().empty() && exprProps_.varProps().empty()) {
-        return Status::SemanticError("No input or variable in GroupBy sentence.");
-    }
 
     if (groupKeys_.empty()) {
         groupKeys_ = yieldCols_;

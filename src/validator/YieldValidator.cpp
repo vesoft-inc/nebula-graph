@@ -29,24 +29,14 @@ Status YieldValidator::validateImpl() {
 
     auto yield = static_cast<YieldSentence *>(sentence_);
     if (yield->hasAgg()) {
-        auto* groupSentence = qctx()->objPool()->add(
-            new GroupBySentence(
-                yield->yield()->clone().release(),
-                nullptr, nullptr));
-        groupByValidator_ = std::make_unique<GroupByValidator>(groupSentence, qctx());
-        groupByValidator_->setInputCols(inputs_);
-        groupByValidator_->setOutputCols(outputs_);
-        groupByValidator_->setExprProps(exprProps_);
+        NG_RETURN_IF_ERROR(makeImplicitGroupByValidator());
     }
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
     if (groupByValidator_) {
-        NG_RETURN_IF_ERROR(groupByValidator_->validateImpl());
-        inputs_ = groupByValidator_->inputCols();
-        outputs_ = groupByValidator_->outputCols();
-        exprProps_ = groupByValidator_->exprProps();
-        return Status::OK();
+        NG_RETURN_IF_ERROR(validateImplicitGroupBy());
+    } else {
+        NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
     }
-    NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
         !exprProps_.edgeProps().empty()) {
@@ -61,7 +51,8 @@ Status YieldValidator::validateImpl() {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
-    if (exprProps_.inputProps().empty() && exprProps_.varProps().empty() && inputVarName_.empty()) {
+    if (!groupByValidator_ && exprProps_.inputProps().empty()
+        && exprProps_.varProps().empty() && inputVarName_.empty()) {
         // generate constant expression result into querycontext
         genConstantExprValues();
     }
@@ -111,6 +102,29 @@ void YieldValidator::genConstantExprValues() {
     ds.emplace_back(std::move(row));
     qctx_->ectx()->setResult(constantExprVar_,
                              ResultBuilder().value(Value(std::move(ds))).finish());
+}
+
+Status YieldValidator::makeImplicitGroupByValidator() {
+    auto* groupSentence = qctx()->objPool()->add(
+            new GroupBySentence(
+                static_cast<YieldSentence *>(sentence_)->yield()->clone().release(),
+                nullptr, nullptr));
+    groupByValidator_ = std::make_unique<GroupByValidator>(groupSentence, qctx());
+    groupByValidator_->setInputCols(inputs_);
+
+    return Status::OK();
+}
+
+Status YieldValidator::validateImplicitGroupBy() {
+    NG_RETURN_IF_ERROR(groupByValidator_->validateImpl());
+    inputs_ = groupByValidator_->inputCols();
+    outputs_ = groupByValidator_->outputCols();
+    exprProps_.unionProps(groupByValidator_->exprProps());
+    // multiple userDefinedVars in groupBy not support yet.
+    const auto& groupVars = groupByValidator_->userDefinedVarNameList();
+    userDefinedVarNameList_.insert(groupVars.begin(), groupVars.end());
+
+    return Status::OK();
 }
 
 Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
@@ -198,10 +212,16 @@ Status YieldValidator::toPlan() {
         DCHECK(groupByValidatorTail->isSingleInput());
         dedupDep = static_cast<SingleInputNode*>(groupByValidatorRoot);
         if (filter != nullptr) {
+            if (!inputVar.empty()) {
+                filter->setInputVar(inputVar);
+            }
             static_cast<SingleInputNode*>(groupByValidatorTail)->setInputVar(filter->outputVar());
             tail_ = filter;
         } else {
             tail_ = groupByValidatorTail;
+            if (!inputVar.empty()) {
+                static_cast<SingleInputNode*>(tail_)->setInputVar(inputVar);
+            }
         }
     } else {
         dedupDep = Project::make(qctx_, filter, columns_);
@@ -212,12 +232,12 @@ Status YieldValidator::toPlan() {
         } else {
             tail_ = dedupDep;
         }
+        // Otherwise the input of tail_ would be set by pipe.
+        if (!inputVar.empty()) {
+            static_cast<SingleInputNode *>(tail_)->setInputVar(inputVar);
+        }
     }
 
-    // Otherwise the input of tail_ would be set by pipe.
-    if (!inputVar.empty()) {
-        static_cast<SingleInputNode *>(tail_)->setInputVar(inputVar);
-    }
 
     if (yield->yield()->isDistinct()) {
         auto dedup = Dedup::make(qctx_, dedupDep);
