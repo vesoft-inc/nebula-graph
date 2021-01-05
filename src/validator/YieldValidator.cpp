@@ -215,6 +215,7 @@ Status YieldValidator::toPlan() {
             if (!inputVar.empty()) {
                 filter->setInputVar(inputVar);
             }
+            static_cast<SingleInputNode*>(groupByValidatorTail)->dependsOn(filter);
             static_cast<SingleInputNode*>(groupByValidatorTail)->setInputVar(filter->outputVar());
             tail_ = filter;
         } else {
