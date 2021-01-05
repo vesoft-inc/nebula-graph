@@ -92,7 +92,7 @@ jobs:
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
                   -B build
-              echo "::set-output name=asan::false"
+              echo "::set-output name=num_threads::8"
               ;;
             ubuntu1804)
               # build with Debug type
@@ -103,7 +103,7 @@ jobs:
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
                   -B build
-              echo "::set-output name=asan::false"
+              echo "::set-output name=num_threads::8"
               ;;
             esac
             ;;
@@ -117,7 +117,7 @@ jobs:
                 -DENABLE_TESTING=on \
                 -DENABLE_BUILD_STORAGE=on \
                 -B build
-            echo "::set-output name=asan::true"
+            echo "::set-output name=num_threads::4"
             ;;
           esac
       - name: Make graph
@@ -134,7 +134,14 @@ jobs:
       - name: Pytest
         env:
           NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: make RM_DIR=false ASAN=${{ steps.cmake.outputs.asan }} -C tests test
+        run: python3 -m pytest -n${{ steps.cmake.outputs.num_threads }} --dist=loadfile -m 'not skip' -k 'not tck' --rm_dir=false .
+        working-directory: tests/
+        timeout-minutes: 15
+      - name: TCK
+        env:
+          NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
+        run: python3 -m pytest -n${{ steps.cmake.outputs.num_threads }} -m 'not skip' -k 'tck' --rm_dir=false tck
+        working-directory: tests/
         timeout-minutes: 15
       - name: Sanitizer
         run: |
