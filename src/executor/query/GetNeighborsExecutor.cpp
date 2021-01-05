@@ -112,7 +112,7 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 }
 
 Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
-    auto result = handleCompleteness(resps, FLAGS_complete_require);
+    auto result = handleCompleteness(resps, FLAGS_accept_partial_success);
     NG_RETURN_IF_ERROR(result);
     ResultBuilder builder;
     builder.state(result.value());

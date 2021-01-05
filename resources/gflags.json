@@ -10,7 +10,7 @@
         "enable_reservoir_sampling",
         "custom_filter_interval_secs",
         "enable_multi_versions",
-        "complete_require"
+        "accept_partial_success"
     ],
     "NESTED": [
         "rocksdb_db_options",

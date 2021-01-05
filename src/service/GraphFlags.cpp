@@ -51,4 +51,4 @@ DEFINE_bool(enable_optimizer, false, "Whether to enable optimizer");
 
 DEFINE_uint32(ft_request_retry_times, 3, "Retry times if fulltext request failed");
 
-DEFINE_bool(complete_require, true, "Require complete result, default true");
+DEFINE_bool(accept_partial_success, false, "Whether to accept partial success, default false");

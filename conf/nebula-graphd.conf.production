@@ -24,7 +24,8 @@
 --stderrthreshold=2
 
 ########## query ##########
---complete_require=true
+# Whether to treat partial success as an error
+--accept_partial_success=false
 
 ########## networking ##########
 # Comma separated Meta Server Addresses

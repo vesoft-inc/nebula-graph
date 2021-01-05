@@ -41,7 +41,7 @@ folly::Future<Status> IndexScanExecutor::indexScan() {
 // TODO(shylock) merge the handler with GetProp
 template <typename Resp>
 Status IndexScanExecutor::handleResp(storage::StorageRpcResponse<Resp> &&rpcResp) {
-    auto completeness = handleCompleteness(rpcResp, FLAGS_complete_require);
+    auto completeness = handleCompleteness(rpcResp, FLAGS_accept_partial_success);
     if (!completeness.ok()) {
         return std::move(completeness).status();
     }
