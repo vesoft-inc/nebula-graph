@@ -90,6 +90,18 @@ public:
         exprProps_ = exprProps;
     }
 
+    std::set<std::string>  userDefinedVarNameList() const {
+        return userDefinedVarNameList_;
+    }
+
+    void setUserDefinedVarNameList(std::set<std::string>&& userDefinedVarNameList) {
+        userDefinedVarNameList_ = std::move(userDefinedVarNameList);
+    }
+
+    void setUserDefinedVarNameList(std::set<std::string>& userDefinedVarNameList) {
+        userDefinedVarNameList_ = userDefinedVarNameList;
+    }
+
     void setNoSpaceRequired() {
         noSpaceRequired_ = true;
     }
