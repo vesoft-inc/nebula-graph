@@ -305,7 +305,7 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
 }
 
 StatusOr<std::vector<storage::cpp2::VertexProp>>
-        MatchClausePlanner::flattenTags(QueryContext *qctx, const SpaceInfo& space) {
+MatchClausePlanner::flattenTags(QueryContext *qctx, const SpaceInfo& space) {
     // Get all tags in the space
     const auto allTagsResult = qctx->schemaMng()->getAllVerTagSchema(space.id);
     NG_RETURN_IF_ERROR(allTagsResult);
