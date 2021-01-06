@@ -61,18 +61,3 @@ Feature: Multi Clause
       | ("Boris Diaw")         |
       | ("Tony Parker")        |
       | ("Dwyane Wade")        |
-
-
-  Scenario: multi match
-    When executing query:
-      """
-      MATCH (v:player) WHERE v.name == "Yao Ming"
-      MATCH (v2:player) WHERE v2.age > v.age + 5
-      return v, v2
-      """
-    Then the result should be, in any order, with relax comparison:
-      | v            | v2                  |
-      | ("Yao Ming") | ("Steve Nash")      |
-      | ("Yao Ming") | ("Grant Hill")      |
-      | ("Yao Ming") | ("Shaquile O'Neal") |
-      | ("Yao Ming") | ("Jason Kidd")      |

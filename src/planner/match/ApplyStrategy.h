@@ -13,7 +13,7 @@
 namespace nebula {
 namespace graph {
 /*
- * The ApplyStrategy was designed to connect two subplan by adding dependency.
+ * The ApplyStrategy was designed to connect two subplan by inner loop.
  */
 class ApplyStrategy final : public SegmentsConnectStrategy {
 public:
@@ -27,4 +27,4 @@ private:
 };
 }   // namespace graph
 }   // namespace nebula
-#endif   // PLANNER_MATCH_SIMPLECONNECTSTRATEGY_H_
+#endif   // PLANNER_MATCH_APPLYSTRATEGY_H_
