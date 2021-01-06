@@ -538,6 +538,10 @@ public:
         return condition_;
     }
 
+    void setCondition(Expression* condition) {
+        condition_ = condition;
+    }
+
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:

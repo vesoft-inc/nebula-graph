@@ -65,9 +65,12 @@ void RewriteMatchLabelVisitor::visit(SetExpression *expr) {
 
 void RewriteMatchLabelVisitor::visit(MapExpression *expr) {
     auto &items = expr->items();
-    auto iter = std::find_if(items.cbegin(), items.cend(), [] (auto &pair) {
-        return isLabel(pair.second.get());
-    });
+    auto iter = items.cend();
+    for (; iter != items.cend(); ++iter) {
+        if (isLabel(iter->second.get())) {
+            break;
+        }
+    }
     if (iter == items.cend()) {
         return;
     }
@@ -160,9 +163,13 @@ void RewriteMatchLabelVisitor::visitBinaryExpr(BinaryExpression *expr) {
 std::vector<std::unique_ptr<Expression>>
 RewriteMatchLabelVisitor::rewriteExprList(const std::vector<std::unique_ptr<Expression>> &list) {
     std::vector<std::unique_ptr<Expression>> newList;
-    auto iter = std::find_if(list.cbegin(), list.cend(), [] (auto &expr) {
-            return isLabel(expr.get());
-    });
+    auto iter = list.cbegin();
+    for (; iter != list.cend(); ++iter) {
+        if (isLabel(iter->get())) {
+            break;
+        }
+    }
+
     if (iter == list.cend()) {
         std::for_each(list.cbegin(), list.cend(), [this] (auto &expr) {
             const_cast<Expression*>(expr.get())->accept(this);

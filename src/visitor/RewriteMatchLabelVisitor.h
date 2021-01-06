@@ -10,25 +10,45 @@
 #include <vector>
 #include <functional>
 #include "visitor/ExprVisitorImpl.h"
+#include "context/ast/QueryAstContext.h"
 
 namespace nebula {
 namespace graph {
 
 class RewriteMatchLabelVisitor final : public ExprVisitorImpl {
 public:
-    using Rewriter = std::function<Expression*(const Expression*)>;
-    explicit RewriteMatchLabelVisitor(Rewriter rewriter)
-        : rewriter_(std::move(rewriter)) {
-    }
+    using Rewriter = std::function<Expression *(const Expression *)>;
+    explicit RewriteMatchLabelVisitor(Rewriter rewriter,
+                                      const std::unordered_map<std::string, AliasType> aliases = {})
+        : rewriter_(std::move(rewriter)), aliases_(aliases) {}
 
 private:
     bool ok() const override {
         return true;
     }
 
-    static bool isLabel(const Expression *expr) {
-        return expr->kind() == Expression::Kind::kLabel
-            || expr->kind() == Expression::Kind::kLabelAttribute;
+    bool isLabel(const Expression *expr) {
+        if (aliases_.empty()) {
+            return expr->kind() == Expression::Kind::kLabel ||
+                   expr->kind() == Expression::Kind::kLabelAttribute;
+        } else if (expr->kind() == Expression::Kind::kLabel) {
+            auto lb = static_cast<const LabelExpression *>(expr);
+            return std::find_if(aliases_.cbegin(),
+                                aliases_.cend(),
+                                [lb](const std::pair<std::string, AliasType> &pair) {
+                                    return *lb->name() == pair.first;
+                                }) != aliases_.cend();
+        } else if (expr->kind() == Expression::Kind::kLabelAttribute) {
+            auto la = static_cast<const LabelAttributeExpression *>(expr);
+            return std::find_if(aliases_.cbegin(),
+                                aliases_.cend(),
+                                [la](const std::pair<std::string, AliasType> &pair) {
+                                    return *la->left()->name() == pair.first;
+                                }) != aliases_.cend();
+        } else {
+            return false;
+        }
+        return false;
     }
 
 private:
@@ -68,7 +88,8 @@ private:
     rewriteExprList(const std::vector<std::unique_ptr<Expression>> &list);
 
 private:
-    Rewriter                            rewriter_;
+    Rewriter                                            rewriter_;
+    const std::unordered_map<std::string, AliasType>    aliases_;
 };
 
 }   // namespace graph

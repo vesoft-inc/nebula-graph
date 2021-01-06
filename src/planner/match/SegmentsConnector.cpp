@@ -14,6 +14,7 @@
 #include "planner/Query.h"
 #include "common/expression/VariableExpression.h"
 #include "util/ExpressionUtils.h"
+#include "visitor/RewriteMatchLabelVisitor.h"
 
 namespace nebula {
 namespace graph {
@@ -35,8 +36,11 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
                 << "right root: " << right.root->outputVar();
         auto* start = StartNode::make(qctx);
 
-        const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
+    const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
         qctx->ectx()->setValue(rowIndex, Value(-1));
+
+        rewriteMatchClause(
+            qctx, static_cast<MatchClauseContext*>(leftCtx), left, right.root, rowIndex);
 
         auto* iterate = iterateDataSet(qctx, right.root, rowIndex);
         addInput(iterate, start);
@@ -56,6 +60,12 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
     } else if (leftCtx->kind == CypherClauseKind::kMatch) {
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
+        const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
+        qctx->ectx()->setValue(rowIndex, Value(0));
+
+        rewriteMatchClause(
+            qctx, static_cast<MatchClauseContext*>(leftCtx), left, right.root, rowIndex);
+
         auto* cartesianProduct = cartesianProductSegments(qctx, left.root, right.root);
         addInput(left.tail, right.root);
         left.root = cartesianProduct;
@@ -141,6 +151,93 @@ PlanNode* SegmentsConnector::transformDataSet(QueryContext* qctx, PlanNode* inpu
     project->setColNames(colNames);
 
     return project;
+}
+
+Status SegmentsConnector::rewriteMatchClause(QueryContext* qctx,
+                                             MatchClauseContext* mctx,
+                                             SubPlan& plan,
+                                             PlanNode* input,
+                                             const std::string& rowIndex) {
+    UNUSED(mctx);
+    RewriteMatchLabelVisitor visitor([input, rowIndex](const Expression* expr) -> Expression* {
+        DCHECK(expr->kind() == Expression::Kind::kLabelAttribute ||
+               expr->kind() == Expression::Kind::kLabel);
+        if (expr->kind() == Expression::Kind::kLabelAttribute) {
+            auto la = static_cast<const LabelAttributeExpression*>(expr);
+            auto* args = new ArgumentList();
+            args->addArgument(
+                std::make_unique<VariableExpression>(new std::string(input->outputVar())));
+            args->addArgument(std::make_unique<VariableExpression>(new std::string(rowIndex)));
+            args->addArgument(la->left()->clone());
+            return new AttributeExpression(
+                new FunctionCallExpression(new std::string("dataSetRowCol"), args),
+                la->right()->clone().release());
+        } else {
+            auto lb = static_cast<const LabelExpression*>(expr);
+            auto* args = new ArgumentList();
+            args->addArgument(
+                std::make_unique<VariableExpression>(new std::string(input->outputVar())));
+            args->addArgument(std::make_unique<VariableExpression>(new std::string(rowIndex)));
+            args->addArgument(std::make_unique<ConstantExpression>(*lb->name()));
+            return new FunctionCallExpression(new std::string("dataSetRowCol"), args);
+        }
+    });
+
+    std::vector<PlanNode*> filterNodes;
+    collectPlanNodes(plan.root, plan.tail, PlanNode::Kind::kFilter, filterNodes);
+    for (auto node : filterNodes) {
+        DCHECK_EQ(node->kind(), PlanNode::Kind::kFilter);
+        auto filterNode = static_cast<Filter*>(node);
+        auto filter = qctx->objPool()->add(filterNode->condition()->clone().release());
+        filter->accept(&visitor);
+        filterNode->setCondition(filter);
+    }
+
+    return Status::OK();
+}
+
+void SegmentsConnector::collectPlanNodes(const PlanNode* root,
+                                         const PlanNode* tail,
+                                         PlanNode::Kind kind,
+                                         std::vector<PlanNode*>& result) {
+    if (root->kind() == kind) {
+        result.emplace_back(const_cast<PlanNode*>(root));
+    }
+    if (root == tail) {
+        return;
+    }
+
+    switch (root->dependencies().size()) {
+        case 0: {
+            // Do nothing
+            break;
+        }
+        case 1: {
+            if (root->kind() == PlanNode::Kind::kSelect) {
+                auto select = static_cast<const Select *>(root);
+                collectPlanNodes(select->then(), tail, kind, result);
+                collectPlanNodes(select->otherwise(), tail, kind, result);
+            } else if (root->kind() == PlanNode::Kind::kLoop) {
+                auto loop = static_cast<const Loop *>(root);
+                collectPlanNodes(loop->body(), tail, kind, result);
+            }
+            auto dep = DCHECK_NOTNULL(root->dep(0));
+            collectPlanNodes(dep, tail, kind, result);
+            break;
+        }
+        case 2: {
+            auto leftNode = DCHECK_NOTNULL(root->dep(0));
+            collectPlanNodes(leftNode, tail, kind, result);
+            auto rightNode = DCHECK_NOTNULL(root->dep(1));
+            collectPlanNodes(rightNode, tail, kind, result);
+            break;
+        }
+        default: {
+            LOG(FATAL) << "Invalid number of plan node dependencies: "
+                       << root->dependencies().size();
+            break;
+        }
+    }
 }
 
 }   // namespace graph

@@ -64,6 +64,17 @@ private:
                                     const std::string& rowIndex);
 
     static PlanNode* transformDataSet(QueryContext* qctx, PlanNode* input);
+
+    static Status rewriteMatchClause(QueryContext* qctx,
+                                     MatchClauseContext* mctx,
+                                     SubPlan& plan,
+                                     PlanNode* input,
+                                     const std::string& rowIndex = "");
+
+    static void collectPlanNodes(const PlanNode* root,
+                                 const PlanNode* tail,
+                                 PlanNode::Kind kind,
+                                 std::vector<PlanNode*>& result);
 };
 }  // namespace graph
 }  // namespace nebula

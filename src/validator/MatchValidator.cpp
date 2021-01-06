@@ -42,6 +42,7 @@ Status MatchValidator::validateImpl() {
                 auto matchClauseCtx = getContext<MatchClauseContext>();
                 matchClauseCtx->aliasesUsed = aliasesUsed;
                 NG_RETURN_IF_ERROR(validatePath(matchClause->path(), *matchClauseCtx));
+                auto parentClauseAliasesGenerated = matchClauseCtx->aliasesGenerated;
 
                 if (aliasesUsed) {
                     NG_RETURN_IF_ERROR(
@@ -52,6 +53,7 @@ Status MatchValidator::validateImpl() {
                 if (matchClause->where() != nullptr) {
                     auto whereClauseCtx = getContext<WhereClauseContext>();
                     whereClauseCtx->aliasesUsed = &matchClauseCtx->aliasesGenerated;
+                    whereClauseCtx->parentClauseAliasesGenerated = parentClauseAliasesGenerated;
                     NG_RETURN_IF_ERROR(
                         validateFilter(matchClause->where()->filter(), *whereClauseCtx));
                     matchClauseCtx->where = std::move(whereClauseCtx);
@@ -101,6 +103,7 @@ Status MatchValidator::validateImpl() {
                 if (withClause->where() != nullptr) {
                     auto whereClauseCtx = getContext<WhereClauseContext>();
                     whereClauseCtx->aliasesUsed = &withClauseCtx->aliasesGenerated;
+                    whereClauseCtx->parentClauseAliasesGenerated = withClauseCtx->aliasesGenerated;
                     NG_RETURN_IF_ERROR(
                         validateFilter(withClause->where()->filter(), *whereClauseCtx));
                     withClauseCtx->where = std::move(whereClauseCtx);

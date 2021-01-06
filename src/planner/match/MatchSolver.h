@@ -42,8 +42,6 @@ public:
                                        Expression* filter,
                                        QueryContext* qctx);
 
-    static Status buildFilter(const MatchClauseContext* mctx, SubPlan* plan);
-
     static void extractAndDedupVidColumn(QueryContext* qctx,
                                          Expression* initialExpr,
                                          PlanNode* dep,
