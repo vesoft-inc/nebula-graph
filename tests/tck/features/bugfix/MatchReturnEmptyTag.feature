@@ -2,12 +2,11 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@test
 Feature: Fix match losing undefined vertex tag info
-    Examples:
-      | space       | vid                |
-      | nba         | "Tim Duncan"       |
-      | nba_int_vid | hash("Tim Duncan") |
+  Examples:
+    | space       | vid                |
+    | nba         | "Tim Duncan"       |
+    | nba_int_vid | hash("Tim Duncan") |
 
   Background: Prepare a new space with nba loaded and insert an empty tag
     Given an empty graph
