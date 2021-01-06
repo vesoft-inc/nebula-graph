@@ -92,7 +92,7 @@ jobs:
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
                   -B build
-              echo "::set-output name=num_threads::8"
+              echo "::set-output name=j::8"
               ;;
             ubuntu1804)
               # build with Debug type
@@ -103,7 +103,7 @@ jobs:
                   -DENABLE_TESTING=on \
                   -DENABLE_BUILD_STORAGE=on \
                   -B build
-              echo "::set-output name=num_threads::8"
+              echo "::set-output name=j::8"
               ;;
             esac
             ;;
@@ -117,7 +117,7 @@ jobs:
                 -DENABLE_TESTING=on \
                 -DENABLE_BUILD_STORAGE=on \
                 -B build
-            echo "::set-output name=num_threads::4"
+            echo "::set-output name=j::4"
             ;;
           esac
       - name: Make graph
@@ -134,13 +134,13 @@ jobs:
       - name: Pytest
         env:
           NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: python3 -m pytest -n${{ steps.cmake.outputs.num_threads }} --dist=loadfile -m 'not skip' -k 'not tck' --rm_dir=false .
+        run: make RM_DIR=false J=${{ steps.cmake.outputs.j }} test
         working-directory: tests/
         timeout-minutes: 15
       - name: TCK
         env:
           NEBULA_TEST_LOGS_DIR: ${{ github.workspace }}/build
-        run: python3 -m pytest -n${{ steps.cmake.outputs.num_threads }} -m 'not skip' -k 'tck' --rm_dir=false tck
+        run: make RM_DIR=false J=${{ steps.cmake.outputs.j }} tck
         working-directory: tests/
         timeout-minutes: 15
       - name: Sanitizer

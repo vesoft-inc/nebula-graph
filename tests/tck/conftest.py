@@ -124,6 +124,14 @@ def wait(secs):
     time.sleep(secs)
 
 
+def line_number(steps, result):
+    for step in steps:
+        res_lines = result.split('\n')
+        if all(l in r for (l, r) in zip(res_lines, step.lines)):
+            return step.line_number
+    return -1
+
+
 def cmp_dataset(
         request,
         graph_spaces,
@@ -164,20 +172,20 @@ def cmp_dataset(
 
     rds = rs._data_set_wrapper._data_set
     res, i = dscmp(rds, ds)
-    scen = request.function.__scenario__
-    feature = scen.feature.rel_filename
-    line_number = -1
-    for step in scen._steps:
-        res_lines = result.split('\n')
-        include = True
-        for l, r in zip(res_lines, step.lines):
-            if l not in r:
-                include = False
-        if include:
-            line_number = step.line_number
-            break
-    location = f"{feature}:{line_number}"
-    assert res, f"Fail to exec: {ngql}\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}\nLocation: {location}"
+    if not res:
+        scen = request.function.__scenario__
+        feature = scen.feature.rel_filename
+        location = f"{feature}:{line_number(scen._steps, result)}"
+        msg = [
+            f"Fail to exec: {ngql}",
+            f"Response: {dsp(rds)}",
+            f"Expected: {dsp(ds)}",
+            f"NotFoundRow: {rowp(ds, i)}",
+            f"Location: {location}",
+            f"Space: {str(space_desc)}",
+            f"vid_fn: {vid_fn}",
+        ]
+        assert res, "\n".join(msg)
 
 
 @then(parse("define some list variables:\n{text}"))
@@ -211,7 +219,12 @@ def result_should_be_relax_cmp(request, result, graph_spaces):
 
 @then(parse("the result should include:\n{result}"))
 def result_should_include(request, result, graph_spaces):
-    cmp_dataset(reqeust, graph_spaces, result, order=False, strict=True, included=True)
+    cmp_dataset(request,
+                graph_spaces,
+                result,
+                order=False,
+                strict=True,
+                included=True)
 
 
 @then("no side effects")
