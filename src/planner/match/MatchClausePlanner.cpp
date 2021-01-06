@@ -307,7 +307,7 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
 StatusOr<std::vector<storage::cpp2::VertexProp>>
 MatchClausePlanner::flattenTags(QueryContext *qctx, const SpaceInfo& space) {
     // Get all tags in the space
-    const auto allTagsResult = qctx->schemaMng()->getAllVerTagSchema(space.id);
+    const auto allTagsResult = qctx->schemaMng()->getAllLatestVerTagSchema(space.id);
     NG_RETURN_IF_ERROR(allTagsResult);
     // allTags: std::unordered_map<TagID, std::vector<std::shared_ptr<const NebulaSchemaProvider>>>
     const auto allTags = std::move(allTagsResult).value();

@@ -78,6 +78,18 @@ public:
         return allVerTagSchemas;
     }
 
+    // get all latest version of all tags
+    StatusOr<meta::TagSchemas> getAllLatestVerTagSchema(GraphSpaceID space) override {
+        meta::TagSchemas allLatestVerTagSchemas;
+        const auto& tagSchemas = tagSchemas_[space];
+        for (const auto &tagSchema : tagSchemas) {
+            allLatestVerTagSchemas.emplace(tagSchema.first,
+                                     std::vector<std::shared_ptr<const meta::NebulaSchemaProvider>>
+                                        {tagSchema.second});
+        }
+        return allLatestVerTagSchemas;
+    }
+
     // get all version of all edges
     StatusOr<meta::EdgeSchemas> getAllVerEdgeSchema(GraphSpaceID space) override {
         meta::EdgeSchemas allVerEdgeSchemas;
