@@ -32,9 +32,8 @@ Status ReturnClausePlanner::buildReturn(ReturnClauseContext* rctx, SubPlan& subP
     std::vector<std::string> colNames;
     PlanNode* current = nullptr;
 
-    DCHECK(rctx->aliases != nullptr);
     auto rewriter = [rctx](const Expression* expr) {
-        return MatchSolver::doRewrite(*rctx->aliases, expr);
+        return MatchSolver::doRewrite(*rctx->aliasesUsed, expr);
     };
 
     for (auto* col : rctx->yieldColumns->columns()) {

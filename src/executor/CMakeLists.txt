@@ -20,6 +20,7 @@ nebula_add_library(
     query/LimitExecutor.cpp
     query/MinusExecutor.cpp
     query/ProjectExecutor.cpp
+    query/UnwindExecutor.cpp
     query/SortExecutor.cpp
     query/TopNExecutor.cpp
     query/IndexScanExecutor.cpp
@@ -28,6 +29,7 @@ nebula_add_library(
     query/DataCollectExecutor.cpp
     query/DataJoinExecutor.cpp
     query/IndexScanExecutor.cpp
+    query/AssignExecutor.cpp
     algo/ConjunctPathExecutor.cpp
     algo/BFSShortestPathExecutor.cpp
     algo/ProduceSemiShortestPathExecutor.cpp

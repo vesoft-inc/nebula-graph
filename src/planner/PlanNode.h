@@ -34,6 +34,7 @@ public:
         kIntersect,
         kMinus,
         kProject,
+        kUnwind,
         kSort,
         kTopN,
         kLimit,
@@ -43,6 +44,7 @@ public:
         kSwitchSpace,
         kDedup,
         kPassThrough,
+        kAssign,
         // schema related
         kCreateSpace,
         kCreateTag,
@@ -228,6 +230,12 @@ public:
 protected:
     static void addDescription(std::string key, std::string value, PlanNodeDescription* desc);
 
+    void clone(const PlanNode &node) {
+        // TODO maybe shall copy cost_ and dependencies_ too
+        inputVars_ = node.inputVars_;
+        outputVars_ = node.outputVars_;
+    }
+
     QueryContext*                            qctx_{nullptr};
     Kind                                     kind_{Kind::kUnknown};
     int64_t                                  id_{-1};
@@ -253,6 +261,10 @@ protected:
     SingleDependencyNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
         : PlanNode(qctx, kind) {
         dependencies_.emplace_back(dep);
+    }
+
+    void clone(const SingleDependencyNode &node) {
+        PlanNode::clone(node);
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
@@ -292,6 +304,10 @@ public:
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 protected:
+    void clone(const SingleInputNode &node) {
+        SingleDependencyNode::clone(node);
+    }
+
     SingleInputNode(QueryContext* qctx, Kind kind, const PlanNode* dep)
         : SingleDependencyNode(qctx, kind, dep) {
         if (dep != nullptr) {

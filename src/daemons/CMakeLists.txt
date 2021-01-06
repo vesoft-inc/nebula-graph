@@ -9,6 +9,7 @@ nebula_add_executable(
     SOURCES
         GraphDaemon.cpp
     OBJECTS
+        $<TARGET_OBJECTS:version_obj>
         $<TARGET_OBJECTS:util_obj>
         $<TARGET_OBJECTS:service_obj>
         $<TARGET_OBJECTS:session_obj>
@@ -25,7 +26,6 @@ nebula_add_executable(
         $<TARGET_OBJECTS:optimizer_obj>
         $<TARGET_OBJECTS:graph_flags_obj>
         $<TARGET_OBJECTS:graph_auth_obj>
-        $<TARGET_OBJECTS:common_time_function_obj>
         $<TARGET_OBJECTS:common_expression_obj>
         $<TARGET_OBJECTS:common_http_client_obj>
         $<TARGET_OBJECTS:common_network_obj>

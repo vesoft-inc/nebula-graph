@@ -30,6 +30,14 @@ from tests.tck.utils.nbv import murmurhash2
 
 parse = functools.partial(parsers.parse)
 rparse = functools.partial(parsers.re)
+example_pattern = re.compile(r"<(\w+)>")
+
+
+def normalize_ngql_for_outline_scenario(request, ngql):
+    for group in example_pattern.findall(ngql):
+        fixval = request.getfixturevalue(group)
+        ngql = ngql.replace(f"<{group}>", fixval)
+    return ngql
 
 
 @pytest.fixture
@@ -64,8 +72,9 @@ def empty_graph(session, graph_spaces):
 
 
 @given(parse("having executed:\n{query}"))
-def having_executed(query, session):
+def having_executed(query, session, request):
     ngql = " ".join(query.splitlines())
+    ngql = normalize_ngql_for_outline_scenario(request, ngql)
     response(session, ngql)
 
 
@@ -102,8 +111,9 @@ def import_csv_data(data, graph_spaces, session, pytestconfig):
 
 
 @when(parse("executing query:\n{query}"))
-def executing_query(query, graph_spaces, session):
+def executing_query(query, graph_spaces, session, request):
     ngql = " ".join(query.splitlines())
+    ngql = normalize_ngql_for_outline_scenario(request, ngql)
     graph_spaces['result_set'] = session.execute(ngql)
     graph_spaces['ngql'] = ngql
 
@@ -114,11 +124,22 @@ def wait(secs):
     time.sleep(secs)
 
 
-def cmp_dataset(graph_spaces,
-                result,
-                order: bool,
-                strict: bool,
-                included=False) -> None:
+def line_number(steps, result):
+    for step in steps:
+        res_lines = result.split('\n')
+        if all(l in r for (l, r) in zip(res_lines, step.lines)):
+            return step.line_number
+    return -1
+
+
+def cmp_dataset(
+        request,
+        graph_spaces,
+        result,
+        order: bool,
+        strict: bool,
+        included=False,
+) -> None:
     rs = graph_spaces['result_set']
     ngql = graph_spaces['ngql']
     check_resp(rs, ngql)
@@ -134,7 +155,7 @@ def cmp_dataset(graph_spaces,
                               vid_fn=vid_fn)
 
     def dsp(ds):
-        printer = DataSetPrinter(rs._decode_type)
+        printer = DataSetPrinter(rs._decode_type, vid_fn=vid_fn)
         return printer.ds_to_string(ds)
 
     def rowp(ds, i):
@@ -142,7 +163,7 @@ def cmp_dataset(graph_spaces,
             return ""
         assert i < len(ds.rows), f"{i} out of range {len(ds.rows)}"
         row = ds.rows[i].values
-        printer = DataSetPrinter(rs._decode_type)
+        printer = DataSetPrinter(rs._decode_type, vid_fn=vid_fn)
         ss = printer.list_to_string(row, delimiter='|')
         return f'{i}: |' + ss + '|'
 
@@ -151,43 +172,59 @@ def cmp_dataset(graph_spaces,
 
     rds = rs._data_set_wrapper._data_set
     res, i = dscmp(rds, ds)
-    assert res, f"Fail to exec: {ngql}\nResponse: {dsp(rds)}\nExpected: {dsp(ds)}\nNotFoundRow: {rowp(ds, i)}"
+    if not res:
+        scen = request.function.__scenario__
+        feature = scen.feature.rel_filename
+        location = f"{feature}:{line_number(scen._steps, result)}"
+        msg = [
+            f"Fail to exec: {ngql}",
+            f"Response: {dsp(rds)}",
+            f"Expected: {dsp(ds)}",
+            f"NotFoundRow: {rowp(ds, i)}",
+            f"Location: {location}",
+            f"Space: {str(space_desc)}",
+            f"vid_fn: {vid_fn}",
+        ]
+        assert res, "\n".join(msg)
 
 
 @then(parse("define some list variables:\n{text}"))
 def define_list_var_alias(text, graph_spaces):
     tbl = table(text)
     graph_spaces["variables"] = {
-        column: "[" +
-        ",".join(filter(lambda x: x, [row.get(column)
-                                      for row in tbl['rows']])) + "]"
-        for column in tbl['column_names']
+        column: "[" + ",".join(row[i] for row in tbl['rows'] if row[i]) + "]"
+        for i, column in enumerate(tbl['column_names'])
     }
 
 
 @then(parse("the result should be, in order:\n{result}"))
-def result_should_be_in_order(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=True, strict=True)
+def result_should_be_in_order(request, result, graph_spaces):
+    cmp_dataset(request, graph_spaces, result, order=True, strict=True)
 
 
 @then(parse("the result should be, in order, with relax comparison:\n{result}"))
-def result_should_be_in_order_relax_cmp(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=True, strict=False)
+def result_should_be_in_order_relax_cmp(request, result, graph_spaces):
+    cmp_dataset(request, graph_spaces, result, order=True, strict=False)
 
 
 @then(parse("the result should be, in any order:\n{result}"))
-def result_should_be(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=False, strict=True)
+def result_should_be(request, result, graph_spaces):
+    cmp_dataset(request, graph_spaces, result, order=False, strict=True)
 
 
 @then(parse("the result should be, in any order, with relax comparison:\n{result}"))
-def result_should_be_relax_cmp(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=False, strict=False)
+def result_should_be_relax_cmp(request, result, graph_spaces):
+    cmp_dataset(request, graph_spaces, result, order=False, strict=False)
 
 
 @then(parse("the result should include:\n{result}"))
-def result_should_include(result, graph_spaces):
-    cmp_dataset(graph_spaces, result, order=False, strict=True, included=True)
+def result_should_include(request, result, graph_spaces):
+    cmp_dataset(request,
+                graph_spaces,
+                result,
+                order=False,
+                strict=True,
+                included=True)
 
 
 @then("no side effects")
@@ -206,12 +243,12 @@ def execution_should_be_succ(graph_spaces):
 def raised_type_error(err_type, time, sym, msg, graph_spaces):
     res = graph_spaces["result_set"]
     ngql = graph_spaces['ngql']
-    assert not res.is_succeeded(), "Response should be failed"
+    assert not res.is_succeeded(), f"Response should be failed: ngql:{ngql}"
     err_type = err_type.strip()
     msg = msg.strip()
     res_msg = res.error_msg()
     if res.error_code() == ErrorCode.E_EXECUTION_ERROR:
-        assert err_type == "ExecutionError"
+        assert err_type == "ExecutionError", f'Error code mismatch, ngql:{ngql}"'
         expect_msg = "{}".format(msg)
     else:
         expect_msg = "{}: {}".format(err_type, msg)

@@ -50,6 +50,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Minus";
         case Kind::kProject:
             return "Project";
+        case Kind::kUnwind:
+            return "Unwind";
         case Kind::kSort:
             return "Sort";
         case Kind::kTopN:
@@ -66,6 +68,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Dedup";
         case Kind::kPassThrough:
             return "PassThrough";
+        case Kind::kAssign:
+            return "Assign";
         case Kind::kSwitchSpace:
             return "RegisterSpaceToSession";
         case Kind::kCreateSpace:

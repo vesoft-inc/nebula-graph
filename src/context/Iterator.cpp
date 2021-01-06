@@ -85,7 +85,7 @@ StatusOr<GetNeighborsIter::DataSetIndex> GetNeighborsIter::makeDataSetIndex(cons
     int64_t edgeStartIndex = std::move(buildResult).value();
     if (edgeStartIndex < 0) {
         for (auto& row : dsIndex.ds->rows) {
-            logicalRows_.emplace_back(GetNbrLogicalRow{idx, &row, "", nullptr});
+            logicalRows_.emplace_back(idx, &row, "", nullptr);
         }
     } else {
         makeLogicalRowByEdge(edgeStartIndex, idx, dsIndex);
@@ -111,7 +111,7 @@ void GetNeighborsIter::makeLogicalRowByEdge(int64_t edgeStartIndex,
                 auto edgeName = dsIndex.tagEdgeNameIndices.find(column);
                 DCHECK(edgeName != dsIndex.tagEdgeNameIndices.end());
                 logicalRows_.emplace_back(
-                    GetNbrLogicalRow{idx, &row, edgeName->second, &edge.getList()});
+                    idx, &row, edgeName->second, &edge.getList());
             }
         }
     }
@@ -686,28 +686,20 @@ std::ostream& operator<<(std::ostream& os, LogicalRow::Kind kind) {
 }
 
 std::ostream& operator<<(std::ostream& os, const LogicalRow& row) {
-    switch (row.kind()) {
-        case nebula::graph::LogicalRow::Kind::kSequential:
-        case nebula::graph::LogicalRow::Kind::kJoin: {
-            std::stringstream ss;
-            size_t cnt = 0;
-            for (auto* seg : row.segments()) {
-                if (seg == nullptr) {
-                    ss << "nullptr";
-                } else {
-                    ss << *seg;
-                }
-                if (cnt < row.size() - 1) {
-                    ss << ",";
-                }
-                ++cnt;
-            }
-            os << ss.str();
-            break;
+    std::stringstream ss;
+    size_t cnt = 0;
+    for (auto* seg : row.segments()) {
+        if (seg == nullptr) {
+            ss << "nullptr";
+        } else {
+            ss << *seg;
         }
-        default:
-            LOG(FATAL) << "Not support streaming for " << row.kind();
+        if (cnt < row.size() - 1) {
+            ss << ",";
+        }
+        ++cnt;
     }
+    os << ss.str();
     return os;
 }
 }  // namespace graph

@@ -123,10 +123,7 @@ Status InsertVerticesValidator::prepareVertices() {
             std::vector<Value> props;
             props.reserve(propNames.size());
             for (auto index = 0u; index < propNames.size(); index++) {
-                auto schemaType = schema->getFieldType(propNames[index]);
-                auto valueStatus = SchemaUtil::toSchemaValue(schemaType, values[handleValueNum]);
-                NG_RETURN_IF_ERROR(valueStatus);
-                props.emplace_back(std::move(valueStatus).value());
+                props.emplace_back(std::move(values[handleValueNum]));
                 handleValueNum++;
             }
             auto &tag = tags[count];
@@ -150,12 +147,14 @@ Status InsertEdgesValidator::validateImpl() {
 }
 
 Status InsertEdgesValidator::toPlan() {
+    auto useChainInsert = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
     auto doNode = InsertEdges::make(qctx_,
                                     nullptr,
                                     spaceId_,
                                     std::move(edges_),
                                     std::move(propNames_),
-                                    overwritable_);
+                                    overwritable_,
+                                    useChainInsert);
     root_ = doNode;
     tail_ = root_;
     return Status::OK();
@@ -189,7 +188,9 @@ Status InsertEdgesValidator::check() {
 }
 
 Status InsertEdgesValidator::prepareEdges() {
-    edges_.reserve(rows_.size()*2);
+    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    auto size = useToss ? rows_.size() : rows_.size() * 2;
+    edges_.reserve(size);
     for (auto i = 0u; i < rows_.size(); i++) {
         auto *row = rows_[i];
         if (propNames_.size() != row->values().size()) {
@@ -227,15 +228,7 @@ Status InsertEdgesValidator::prepareEdges() {
 
         auto valsRet = SchemaUtil::toValueVec(row->values());
         NG_RETURN_IF_ERROR(valsRet);
-        auto values = std::move(valsRet).value();
-        std::vector<Value> props;
-        for (auto index = 0u; index < propNames_.size(); index++) {
-            auto schemaType = schema_->getFieldType(propNames_[index]);
-            auto valueStatus = SchemaUtil::toSchemaValue(schemaType, values[index]);
-            NG_RETURN_IF_ERROR(valueStatus);
-            props.emplace_back(std::move(valueStatus).value());
-        }
-
+        auto props = std::move(valsRet).value();
         // outbound
         storage::cpp2::NewEdge edge;
         edge.key.set_src(srcId);
@@ -247,11 +240,13 @@ Status InsertEdgesValidator::prepareEdges() {
         edge.__isset.props = true;
         edges_.emplace_back(edge);
 
-        // inbound
-        edge.key.set_src(dstId);
-        edge.key.set_dst(srcId);
-        edge.key.set_edge_type(-edgeType_);
-        edges_.emplace_back(std::move(edge));
+        if (!useToss) {
+            // inbound
+            edge.key.set_src(dstId);
+            edge.key.set_dst(srcId);
+            edge.key.set_edge_type(-edgeType_);
+            edges_.emplace_back(std::move(edge));
+        }
     }
 
     return Status::OK();
@@ -675,22 +670,27 @@ Status UpdateEdgeValidator::toPlan() {
                                      {},
                                      condition_,
                                      {});
-
-    auto *inNode = UpdateEdge::make(qctx_,
-                                    outNode,
-                                    spaceId_,
-                                    std::move(name_),
-                                    std::move(dstId_),
-                                    std::move(srcId_),
-                                    -edgeType_,
-                                    rank_,
-                                    insertable_,
-                                    std::move(updatedProps_),
-                                    std::move(returnProps_),
-                                    std::move(condition_),
-                                    std::move(yieldColNames_));
-    root_ = inNode;
-    tail_ = outNode;
+    auto useToss = space_.spaceDesc.isolation_level == meta::cpp2::IsolationLevel::TOSS;
+    if (useToss) {
+        root_ = outNode;
+        tail_ = root_;
+    } else {
+        auto *inNode = UpdateEdge::make(qctx_,
+                                        outNode,
+                                        spaceId_,
+                                        std::move(name_),
+                                        std::move(dstId_),
+                                        std::move(srcId_),
+                                        -edgeType_,
+                                        rank_,
+                                        insertable_,
+                                        std::move(updatedProps_),
+                                        std::move(returnProps_),
+                                        std::move(condition_),
+                                        std::move(yieldColNames_));
+        root_ = inNode;
+        tail_ = outNode;
+    }
     return Status::OK();
 }
 
