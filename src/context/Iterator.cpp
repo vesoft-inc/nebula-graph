@@ -137,7 +137,7 @@ StatusOr<int64_t> GetNeighborsIter::buildIndex(DataSetIndex* dsIndex) {
     for (size_t i = 0; i < colNames.size(); ++i) {
         dsIndex->colIndices.emplace(colNames[i], i);
         auto& colName = colNames[i];
-        if (colName.find("_tag") == 0) {
+        if (colName.find(nebula::kTag) == 0) {  // "_tag"
             NG_RETURN_IF_ERROR(buildPropIndex(colName, i, false, dsIndex));
         } else if (colName.find("_edge") == 0) {
             NG_RETURN_IF_ERROR(buildPropIndex(colName, i, true, dsIndex));
@@ -635,7 +635,7 @@ Value PropIter::getVertex() const {
         Tag tag;
         tag.name = tagProp.first;
         for (auto& propIndex : tagProp.second) {
-            if (propIndex.first == "_tag") {
+            if (propIndex.first == nebula::kTag) {  // "_tag"
                 continue;
             } else {
                 tag.props.emplace(propIndex.first, row[propIndex.second]);

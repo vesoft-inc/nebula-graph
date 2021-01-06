@@ -66,7 +66,7 @@ public:
         return 8;
     }
 
-    // get all version of all tags
+    // Returns all version of all tags
     StatusOr<meta::TagSchemas> getAllVerTagSchema(GraphSpaceID space) override {
         meta::TagSchemas allVerTagSchemas;
         const auto& tagSchemas = tagSchemas_[space];
@@ -78,19 +78,17 @@ public:
         return allVerTagSchemas;
     }
 
-    // get all latest version of all tags
-    StatusOr<meta::TagSchemas> getAllLatestVerTagSchema(GraphSpaceID space) override {
-        meta::TagSchemas allLatestVerTagSchemas;
+    // Returns all latest version of schesmas of all tags in the given space
+    StatusOr<meta::TagLatestSchema> getAllLatestVerTagSchema(GraphSpaceID space) override {
+        meta::TagLatestSchema allLatestVerTagSchemas;
         const auto& tagSchemas = tagSchemas_[space];
         for (const auto &tagSchema : tagSchemas) {
-            allLatestVerTagSchemas.emplace(tagSchema.first,
-                                     std::vector<std::shared_ptr<const meta::NebulaSchemaProvider>>
-                                        {tagSchema.second});
+            allLatestVerTagSchemas.emplace(tagSchema.first, tagSchema.second);
         }
         return allLatestVerTagSchemas;
     }
 
-    // get all version of all edges
+    // Returns all version of all edges
     StatusOr<meta::EdgeSchemas> getAllVerEdgeSchema(GraphSpaceID space) override {
         meta::EdgeSchemas allVerEdgeSchemas;
         const auto& edgeSchemas = edgeSchemas_[space];
