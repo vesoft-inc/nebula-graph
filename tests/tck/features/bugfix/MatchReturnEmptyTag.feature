@@ -2,11 +2,16 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
+@test
 Feature: Fix match losing undefined vertex tag info
+    Examples:
+      | space       | vid                |
+      | nba         | "Tim Duncan"       |
+      | nba_int_vid | hash("Tim Duncan") |
 
-  Background: Prepare Space
+  Background: Prepare a new space with nba loaded and insert an empty tag
     Given an empty graph
-    And load "nba" csv data to a new space
+    And load "<space>" csv data to a new space
     And having executed:
       """
       CREATE TAG IF NOT EXISTS empty_tag();
@@ -14,11 +19,11 @@ Feature: Fix match losing undefined vertex tag info
     And wait 2 seconds
     And having executed:
       """
-      INSERT VERTEX empty_tag() values "Tim Duncan":()
+      INSERT VERTEX empty_tag() values <vid>:()
       """
     And wait 2 seconds
 
-  Scenario: single vertex
+  Scenario Outline: single vertex
     When executing query:
       """
       MATCH (v:player{name:"Tim Duncan"})
@@ -36,7 +41,7 @@ Feature: Fix match losing undefined vertex tag info
       | Labels                              |
       | ["player", "empty_tag", "bachelor"] |
 
-  Scenario: one step with direction
+  Scenario Outline: one step with direction
     When executing query:
       """
       MATCH (v:player{name:"Tim Duncan"})-->()
@@ -66,7 +71,7 @@ Feature: Fix match losing undefined vertex tag info
       | ["player", "empty_tag", "bachelor"] |
       | ["player", "empty_tag", "bachelor"] |
 
-  Scenario: one step without direction
+  Scenario Outline: one step without direction
     When executing query:
       """
       MATCH (v:player{name:"Tim Duncan"})--()
