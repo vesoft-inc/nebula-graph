@@ -765,6 +765,7 @@ predicate_expression
         auto *expr = new PredicateExpression($1, new std::string(innerVar), $5, $7);
         nebula::graph::ParserUtil::rewritePred(qctx, expr, innerVar);
         $$ = expr;
+        delete $3;
     }
 
 list_comprehension_expression
