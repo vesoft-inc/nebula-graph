@@ -60,6 +60,8 @@ struct ScanInfo {
     Expression                             *filter{nullptr};
     int32_t                                 schemaId{0};
     const std::string                      *schemaName{nullptr};
+    // use for seek by index itself
+    IndexID                                 indexId{-1};
 };
 
 struct CypherClauseContextBase : AstContext {
@@ -150,11 +152,10 @@ struct NodeContext final : PatternContext {
     NodeInfo*            info{nullptr};
 
     // Output fields
-    ScanInfo             scanInfo;
-    const Expression*    ids{nullptr};
+    ScanInfo                    scanInfo;
+    const Expression*           ids{nullptr};
     // initialize start expression in project node
-    // initialExpr will be used by YieldColumn, so no need to handle the lifecycle by object pool.
-    Expression*          initialExpr{nullptr};
+    std::unique_ptr<Expression> initialExpr;
 };
 
 struct EdgeContext final : PatternContext {

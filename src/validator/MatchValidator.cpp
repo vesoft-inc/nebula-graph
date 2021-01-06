@@ -119,8 +119,9 @@ Status MatchValidator::validateImpl() {
             }
         }
     }
-    matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
 
+    NG_RETURN_IF_ERROR(buildOutputs(retClauseCtx->yieldColumns));
+    matchCtx_->clauses.emplace_back(std::move(retClauseCtx));
     return Status::OK();
 }
 
@@ -230,6 +231,16 @@ Status MatchValidator::buildEdgeInfo(const MatchPath *path,
                 }
                 edgeInfos[i].edgeTypes.emplace_back(etype.value());
                 edgeInfos[i].types.emplace_back(*type);
+            }
+        } else {
+            const auto allEdgesResult =
+                matchCtx_->qctx->schemaMng()->getAllVerEdgeSchema(space_.id);
+            NG_RETURN_IF_ERROR(allEdgesResult);
+            const auto allEdges = std::move(allEdgesResult).value();
+            for (const auto &edgeSchema : allEdges) {
+                edgeInfos[i].edgeTypes.emplace_back(edgeSchema.first);
+                // TODO:
+                // edgeInfos[i].types.emplace_back(*type);
             }
         }
         auto *stepRange = edge->range();
@@ -615,6 +626,17 @@ Status MatchValidator::validateOrderBy(const OrderFactors *factors,
         }
     }
 
+    return Status::OK();
+}
+
+Status MatchValidator::buildOutputs(const YieldColumns* yields) {
+    for (auto* col : yields->columns()) {
+        auto colName = deduceColName(col);
+        auto typeStatus = deduceExprType(col->expr());
+        NG_RETURN_IF_ERROR(typeStatus);
+        auto type = typeStatus.value();
+        outputs_.emplace_back(colName, type);
+    }
     return Status::OK();
 }
 }   // namespace graph
