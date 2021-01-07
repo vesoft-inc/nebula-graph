@@ -236,7 +236,7 @@ public:
             return asString();
         } else {
             LOG(ERROR) << "charset value illegal.";
-            return 0;
+            return "";
         }
     }
 
@@ -245,7 +245,7 @@ public:
             return asString();
         } else {
             LOG(ERROR) << "collate value illage.";
-            return 0;
+            return "";
         }
     }
 
@@ -254,7 +254,7 @@ public:
             return asString();
         } else {
             LOG(ERROR) << "group name value illage.";
-            return 0;
+            return "";
         }
     }
 
@@ -315,8 +315,8 @@ public:
         spaceOpts_.reset(spaceOpts);
     }
 
-    void setGroupName(std::string* name) {
-        auto *item = new SpaceOptItem(SpaceOptItem::OptionType::GROUP_NAME, *name);
+    void setGroupName(std::string& name) {
+        auto *item = new SpaceOptItem(SpaceOptItem::OptionType::GROUP_NAME, name);
         spaceOpts_->addOpt(std::move(item));
     }
 

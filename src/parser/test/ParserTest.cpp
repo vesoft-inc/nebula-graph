@@ -184,10 +184,10 @@ TEST(Parser, SpaceOperation) {
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
-        // GQLParser parser;
-        // std::string query = "CREATE SPACE default_space ON group_0";
-        // auto result = parser.parse(query);
-        // ASSERT_TRUE(result.ok()) << result.status();
+        GQLParser parser;
+        std::string query = "CREATE SPACE default_space ON group_0";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;

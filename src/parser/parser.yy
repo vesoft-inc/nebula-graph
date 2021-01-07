@@ -2794,8 +2794,9 @@ create_space_sentence
     | KW_CREATE KW_SPACE opt_if_not_exists name_label KW_ON name_label {
         auto sentence = new CreateSpaceSentence($4, $3);
         sentence->setOpts(new SpaceOptList());
-        sentence->setGroupName($6);
+        sentence->setGroupName(*$6);
         $$ = sentence;
+        delete $6;
     }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN {
         auto sentence = new CreateSpaceSentence($4, $3);
@@ -2805,8 +2806,9 @@ create_space_sentence
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN KW_ON name_label {
         auto sentence = new CreateSpaceSentence($4, $3);
         sentence->setOpts($6);
-        sentence->setGroupName($9);
+        sentence->setGroupName(*$9);
         $$ = sentence;
+        delete $9;
     }
     ;
 

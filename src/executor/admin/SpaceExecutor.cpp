@@ -66,9 +66,9 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 row.values.emplace_back(properties.get_collate_name());
                 row.values.emplace_back(SchemaUtil::typeToString(properties.get_vid_type()));
                 if (properties.__isset.group_name) {
-                    row.values.emplace_back(properties.get_collate_name());
+                    row.values.emplace_back(properties.get_group_name());
                 } else {
-                    row.values.emplace_back(new std::string("default"));
+                    row.values.emplace_back("default");
                 }
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
@@ -159,8 +159,8 @@ folly::Future<Status> ShowCreateSpaceExecutor::execute() {
                     properties.get_charset_name().c_str(),
                     properties.get_collate_name().c_str(),
                     SchemaUtil::typeToString(properties.get_vid_type()).c_str(),
-                    properties.__isset.group_name ? properties.get_group_name()
-                                                  : new std::string("default")));
+                    properties.__isset.group_name ? properties.get_group_name()->c_str()
+                                                  : "default"));
                 dataSet.rows.emplace_back(std::move(row));
                 return finish(ResultBuilder()
                                   .value(Value(std::move(dataSet)))
