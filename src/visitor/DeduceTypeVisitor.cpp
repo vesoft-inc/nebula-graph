@@ -399,7 +399,7 @@ void DeduceTypeVisitor::visit(AggregateExpression *expr) {
     if (!ok()) return;
     auto arg_type = type_;
 
-    auto func = AggregateExpression::nameIdMap_[expr->name()->c_str()];
+    auto func = AggregateExpression::NAME_ID_MAP[expr->name()->c_str()];
     switch (func) {
         case AggregateExpression::Function::kCount: {
             type_ = Value::Type::INT;

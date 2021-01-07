@@ -160,7 +160,6 @@ class TestGroupBy(NebulaTestSuite):
         # self.check_column_names(resp, expected_data["column_names"])
         # self.check_out_of_order_result(resp, expected_data["rows"])
 
-        count(distinct) not implement
         stmt = '''GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
                 YIELD $$.player.name AS name,
                 $$.player.age AS dst_age,
@@ -181,7 +180,7 @@ class TestGroupBy(NebulaTestSuite):
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names": ["name", "sum_dst_age", "avg_dst_age", "max_src_age", "min_src_age", "bit_and",
-                              "bit_or", "bit_xor", "COUNT($-.likeness)", "COUNT_DISTINCT($-.likeness)"],
+                              "bit_or", "bit_xor", "COUNT($-.likeness)", "COUNT(distinct $-.likeness)"],
             "rows": [
                 ["LeBron James", 68, 34.0, 34, 34, 1, 2, 0, 2, 1],
                 ["Chris Paul", 66, 33.0, 33, 33, 1, 2, 0, 2, 1],

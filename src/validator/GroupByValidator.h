@@ -29,6 +29,10 @@ private:
 
     Status validateYield(const YieldClause *yieldClause);
 
+    Status groupClauseSemanticCheck();
+    Status rewriteInnerAggExpr(YieldColumn* col, bool& rewrited);
+    Status checkAggExpr(AggregateExpression* aggExpr);
+
 private:
     std::vector<Expression*>                         yieldCols_;
     std::vector<Expression*>                         yieldAggs_;
@@ -41,7 +45,7 @@ private:
     std::vector<std::string>                          projOutputColumnNames_;
 
     // used to generate Project node when there is an internally nested aggregateExpression
-    YieldColumns*                     projCols_;
+    YieldColumns*                                     projCols_;
 
     std::vector<Expression*>                          groupKeys_;
     std::vector<Expression*>                          groupItems_;
