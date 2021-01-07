@@ -133,11 +133,6 @@ Feature: Basic Agg and GroupBy
       YIELD avg(*)+1 ,1+2 ,(INT)abs(min(2))
       """
     Then a SemanticError should be raised at runtime: Could not apply aggregation function `AVG(*)` on `*`
-    # When executing query:
-    # """
-    # GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age | YIELD $-.dst, $$.player.age AS dst, avg(distinct $-.age) AS age
-    # """
-    # Then a SemanticError should be raised at runtime:  Only support input and variable in GroupBy sentence.
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
