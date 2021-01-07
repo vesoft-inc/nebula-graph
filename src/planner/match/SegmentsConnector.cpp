@@ -24,6 +24,10 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
                                                      SubPlan& left,
                                                      SubPlan& right,
                                                      QueryContext* qctx) {
+    if (rightCtx->kind == CypherClauseKind::kUnwind) {
+        isUnwinding_ = true;
+    }
+
     if (leftCtx->kind == CypherClauseKind::kReturn) {
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
@@ -31,47 +35,52 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
         left.tail = right.tail;
         return left;
     } else if (leftCtx->kind == CypherClauseKind::kMatch &&
-               rightCtx->kind == CypherClauseKind::kUnwind) {
+               (rightCtx->kind == CypherClauseKind::kUnwind ||
+                rightCtx->kind == CypherClauseKind::kWith)) {
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
-        auto* start = StartNode::make(qctx);
 
-    const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
-        qctx->ectx()->setValue(rowIndex, Value(-1));
+        if (isUnwinding_) {
+            auto* start = StartNode::make(qctx);
 
-        rewriteMatchClause(
-            qctx, static_cast<MatchClauseContext*>(leftCtx), left, right.root, rowIndex);
+            const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
+            qctx->ectx()->setValue(rowIndex, Value(-1));
 
-        auto* iterate = iterateDataSet(qctx, right.root, rowIndex);
-        addInput(iterate, start);
-        addInput(left.tail, iterate);
-        left.tail = start;
+            rewriteMatchClause(
+                qctx, static_cast<MatchClauseContext*>(leftCtx), left, right.root, rowIndex);
 
-        auto* cartesianProduct = cartesianProductSegments(qctx, left.root, iterate);
-        left.root = cartesianProduct;
-        auto* trans = transformDataSet(qctx, left.root);
-        left.root = trans;
+            auto* iterate = iterateDataSet(qctx, right.root, rowIndex);
+            addInput(iterate, start);
+            addInput(left.tail, iterate);
+            left.tail = start;
 
-        auto* apply = applySegments(qctx, left.root, right.root, rowIndex);
-        DCHECK(apply != nullptr);
-        left.root = apply;
-        left.tail = right.tail;
+            auto* cartesianProduct = cartesianProductSegments(qctx, left.root, iterate);
+            left.root = cartesianProduct;
+            auto* trans = transformDataSet(qctx, left.root);
+            left.root = trans;
+
+            auto* apply = applySegments(qctx, left.root, right.root, rowIndex);
+            DCHECK(apply != nullptr);
+            left.root = apply;
+            left.tail = right.tail;
+        } else {
+            const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
+            qctx->ectx()->setValue(rowIndex, Value(0));
+
+            rewriteMatchClause(
+                qctx, static_cast<MatchClauseContext*>(leftCtx), left, right.root, rowIndex);
+
+            auto* cartesianProduct = cartesianProductSegments(qctx, left.root, right.root);
+            addInput(left.tail, right.root);
+            left.root = cartesianProduct;
+            left.tail = right.tail;
+        }
+
         return left;
-    } else if (leftCtx->kind == CypherClauseKind::kMatch) {
-        VLOG(1) << "left tail: " << left.tail->outputVar()
-                << "right root: " << right.root->outputVar();
-        const auto& rowIndex = qctx->vctx()->anonVarGen()->getVar();
-        qctx->ectx()->setValue(rowIndex, Value(0));
-
-        rewriteMatchClause(
-            qctx, static_cast<MatchClauseContext*>(leftCtx), left, right.root, rowIndex);
-
-        auto* cartesianProduct = cartesianProductSegments(qctx, left.root, right.root);
-        addInput(left.tail, right.root);
-        left.root = cartesianProduct;
-        left.tail = right.tail;
-        return left;
-    } else {
+    } else if ((leftCtx->kind == CypherClauseKind::kUnwind ||
+                leftCtx->kind == CypherClauseKind::kWith) &&
+               (rightCtx->kind == CypherClauseKind::kUnwind ||
+                rightCtx->kind == CypherClauseKind::kWith)) {
         VLOG(1) << "left tail: " << left.tail->outputVar()
                 << "right root: " << right.root->outputVar();
         addInput(left.tail, right.root);
@@ -102,7 +111,7 @@ PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,
 PlanNode* SegmentsConnector::applySegments(QueryContext* qctx,
                                            const PlanNode* left,
                                            const PlanNode* right,
-                                           const std::string &rowIndex) {
+                                           const std::string& rowIndex) {
     return std::make_unique<ApplyStrategy>(qctx, rowIndex)->connect(left, right);
 }
 
@@ -141,10 +150,9 @@ PlanNode* SegmentsConnector::transformDataSet(QueryContext* qctx, PlanNode* inpu
     const std::vector<std::string>& colNames = input->colNames();
     auto* cols = qctx->objPool()->add(new YieldColumns());
     auto makeColumn = [](const std::string& colName) {
-        return new YieldColumn(
-            ExpressionUtils::newVarPropExpr(colName));
+        return new YieldColumn(ExpressionUtils::newVarPropExpr(colName));
     };
-    for (auto &colName : colNames) {
+    for (auto& colName : colNames) {
         cols->addColumn(makeColumn(colName));
     }
     auto* project = Project::make(qctx, input, cols);
@@ -214,11 +222,11 @@ void SegmentsConnector::collectPlanNodes(const PlanNode* root,
         }
         case 1: {
             if (root->kind() == PlanNode::Kind::kSelect) {
-                auto select = static_cast<const Select *>(root);
+                auto select = static_cast<const Select*>(root);
                 collectPlanNodes(select->then(), tail, kind, result);
                 collectPlanNodes(select->otherwise(), tail, kind, result);
             } else if (root->kind() == PlanNode::Kind::kLoop) {
-                auto loop = static_cast<const Loop *>(root);
+                auto loop = static_cast<const Loop*>(root);
                 collectPlanNodes(loop->body(), tail, kind, result);
             }
             auto dep = DCHECK_NOTNULL(root->dep(0));

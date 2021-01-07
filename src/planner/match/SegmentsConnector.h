@@ -27,16 +27,17 @@ public:
         kLeftOuterJoin,
         kCartesianProduct,
         kUnion,
+        kApply,
     };
 
-    SegmentsConnector() = delete;
+    SegmentsConnector() = default;
 
     // Analyse the relation of two segments and connect them.
-    static StatusOr<SubPlan> connectSegments(CypherClauseContextBase* leftCtx,
-                                             CypherClauseContextBase* rightCtx,
-                                             SubPlan& left,
-                                             SubPlan& right,
-                                             QueryContext* qctx = nullptr);
+    StatusOr<SubPlan> connectSegments(CypherClauseContextBase* leftCtx,
+                                      CypherClauseContextBase* rightCtx,
+                                      SubPlan& left,
+                                      SubPlan& right,
+                                      QueryContext* qctx = nullptr);
 
     static PlanNode* innerJoinSegments(
         QueryContext* qctx,
@@ -75,6 +76,9 @@ private:
                                  const PlanNode* tail,
                                  PlanNode::Kind kind,
                                  std::vector<PlanNode*>& result);
+
+private:
+    bool isUnwinding_{false};
 };
 }  // namespace graph
 }  // namespace nebula
