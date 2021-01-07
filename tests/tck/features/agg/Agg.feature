@@ -93,12 +93,12 @@ Feature: Basic Agg and GroupBy
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
-      | YIELD $-.dst AS dst, 1+avg(distinct $-.age) AS age
+      | YIELD $-.dst AS dst, 1+avg(distinct $-.age) AS age, abs(5) as abs
       """
     Then the result should be, in any order, with relax comparison:
-      | dst             | age  |
-      | "Tony Parker"   | 37.0 |
-      | "Manu Ginobili" | 42.0 |
+      | dst             | age  | abs |
+      | "Tony Parker"   | 37.0 |  5  |
+      | "Manu Ginobili" | 42.0 |  5  |
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
