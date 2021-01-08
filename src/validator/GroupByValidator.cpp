@@ -154,28 +154,14 @@ Status GroupByValidator::groupClauseSemanticCheck() {
         std::unordered_set<Expression*> groupSet(groupKeys_.begin(), groupKeys_.end());
         FindAnySubExprVisitor groupVisitor(groupSet, true);
         for (auto* expr : yieldCols_) {
-            if (expr->kind() == Expression::Kind::kConstant) {
-                break;
+            if (evaluableExpr(expr)) {
+                continue;
             }
             expr->accept(&groupVisitor);
             if (!groupVisitor.found()) {
                 return Status::SemanticError("Yield non-agg expression `%s' must be"
                 " functionally dependent on items in GROUP BY clause", expr->toString().c_str());
             }
-        }
-
-        if (!yieldCols_.empty()) {
-            std::unordered_set<Expression*> yieldSet(begin(yieldCols_), end(yieldCols_));
-            FindAnySubExprVisitor yieldVisitor(yieldSet, false);
-            for (auto* expr : groupKeys_) {
-                expr->accept(&yieldVisitor);
-                if (!yieldVisitor.found()) {
-                    return Status::SemanticError("GroupBy item `%s' must be"
-                    " in Yield list", expr->toString().c_str());
-                }
-            }
-        } else {
-            return Status::SemanticError("GroupBy list must in Yield list");
         }
     }
     return Status::OK();

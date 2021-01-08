@@ -1,3 +1,4 @@
+@czp
 Feature: Basic Aggregate and GroupBy
 
   Background:
@@ -132,7 +133,7 @@ Feature: Basic Aggregate and GroupBy
       """
       YIELD avg(*)+1 ,1+2 ,(INT)abs(min(2))
       """
-    Then a SemanticError should be raised at runtime: Could not apply aggregation function `AVG(*)` on `*`
+    Then a SemanticError should be raised at runtime: Could not apply aggregation function `AVG(*)' on `*`
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
@@ -144,7 +145,7 @@ Feature: Basic Aggregate and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.dst,$-.age YIELD $-.age,avg(distinct $-.age) AS age
       """
-    Then a SemanticError should be raised at runtime: GroupBy item `$-.dst` must be in Yield list
+    Then a SemanticError should be raised at runtime: GroupBy item `$-.dst' must be in Yield list
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
@@ -162,25 +163,25 @@ Feature: Basic Aggregate and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age,avg(distinct $-.age) AS age
       """
-    Then a SemanticError should be raised at runtime: Yield non-agg expression `$-.age` must be functionally dependent on items in GROUP BY clause
+    Then a SemanticError should be raised at runtime: Yield non-agg expression `$-.age' must be functionally dependent on items in GROUP BY clause
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,abs(avg(distinct count($-.age))) AS age
       """
-    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `abs(AVG(distinct COUNT($-.age)))`
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `abs(AVG(distinct COUNT($-.age)))'
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,avg(distinct count($-.age+1)) AS age
       """
-    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `AVG(distinct COUNT(($-.age+1)))`
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `AVG(distinct COUNT(($-.age+1)))'
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY avg($-.age+1)+1 YIELD $-.age,avg(distinct $-.age) AS age
       """
-    Then a SemanticError should be raised at runtime:  Group `(AVG(($-.age+1))+1)` invalid
+    Then a SemanticError should be raised at runtime:  Group `(AVG(($-.age+1))+1)' invalid
     When executing query:
       """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age;
@@ -199,9 +200,9 @@ Feature: Basic Aggregate and GroupBy
       """
       GO FROM "Tim Duncan" OVER like YIELD count(*)
       """
-    Then a SemanticError should be raised at runtime: `COUNT(*)`, not support aggregate function in go sentence.
+    Then a SemanticError should be raised at runtime: `COUNT(*)', not support aggregate function in go sentence.
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like where count(*) > 2
       """
-    Then a SemanticError should be raised at runtime: `(COUNT(*)>2)`, not support aggregate function in where sentence.
+    Then a SemanticError should be raised at runtime: `(COUNT(*)>2)', not support aggregate function in where sentence.
