@@ -58,6 +58,10 @@ Status YieldValidator::validateImpl() {
     }
 
     if (!exprProps_.varProps().empty() && !userDefinedVarNameList_.empty()) {
+        // TODO: Support Multiple userDefinedVars
+        if (userDefinedVarNameList_.size() != 1) {
+            return Status::SemanticError("Multiple user defined vars not supported yet.");
+        }
         userDefinedVarName_ = *userDefinedVarNameList_.begin();
     }
 
@@ -120,8 +124,9 @@ Status YieldValidator::validateImplicitGroupBy() {
     inputs_ = groupByValidator_->inputCols();
     outputs_ = groupByValidator_->outputCols();
     exprProps_.unionProps(groupByValidator_->exprProps());
-    // multiple userDefinedVars in groupBy not support yet.
+
     const auto& groupVars = groupByValidator_->userDefinedVarNameList();
+    // TODO: Support Multiple userDefinedVars
     userDefinedVarNameList_.insert(groupVars.begin(), groupVars.end());
 
     return Status::OK();
