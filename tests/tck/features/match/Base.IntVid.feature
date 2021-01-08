@@ -108,7 +108,7 @@ Feature: Basic match
       """
     Then the result should be, in any order:
       | Start_Year | End_Year |
-      | 2003       | 2010       |
+      | 2003       | 2010     |
     When executing query:
       """
       MATCH (v1:player{name: "Danny Green"}) -[:like]-> (v2)

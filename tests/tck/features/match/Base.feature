@@ -410,7 +410,6 @@ Feature: Basic match
     Then the result should be, in any order:
       | age | v.age |
       | 36  | 36    |
-
     When executing query:
       """
       MATCH (v:player{name:"Tony Parker"})
