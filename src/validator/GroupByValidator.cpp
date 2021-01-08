@@ -89,27 +89,27 @@ Status GroupByValidator::validateGroup(const GroupClause *groupClause) {
     }
 
     auto groupByValid = [](Expression::Kind kind)->bool {
-        return std::unordered_set<Expression::Kind>{
-        Expression::Kind::kAdd ,
-        Expression::Kind::kMinus,
-        Expression::Kind::kMultiply,
-        Expression::Kind::kDivision,
-        Expression::Kind::kMod,
-        Expression::Kind::kTypeCasting,
-        Expression::Kind::kFunctionCall,
-        Expression::Kind::kInputProperty,
-        Expression::Kind::kVarProperty,
-        Expression::Kind::kCase }.count(kind);
-    };
+         return std::unordered_set<Expression::Kind>{
+                Expression::Kind::kAdd ,
+                Expression::Kind::kMinus,
+                Expression::Kind::kMultiply,
+                Expression::Kind::kDivision,
+                Expression::Kind::kMod,
+                Expression::Kind::kTypeCasting,
+                Expression::Kind::kFunctionCall,
+                Expression::Kind::kInputProperty,
+                Expression::Kind::kVarProperty,
+                Expression::Kind::kCase }
+                .count(kind);};
     for (auto* col : columns) {
         if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate})
             || !graph::ExpressionUtils::findAny(col->expr(),
                                                {Expression::Kind::kInputProperty,
                                                 Expression::Kind::kVarProperty})) {
-            return Status::SemanticError("Group `%s` invalid", col->expr()->toString().c_str());
+            return Status::SemanticError("Group `%s' invalid", col->expr()->toString().c_str());
         }
         if (!groupByValid(col->expr()->kind())) {
-            return Status::SemanticError("Group `%s` invalid", col->expr()->toString().c_str());
+            return Status::SemanticError("Group `%s' invalid", col->expr()->toString().c_str());
         }
 
         NG_RETURN_IF_ERROR(deduceExprType(col->expr()));
@@ -151,7 +151,7 @@ Status GroupByValidator::groupClauseSemanticCheck() {
     if (groupKeys_.empty()) {
         groupKeys_ = yieldCols_;
     } else {
-        std::unordered_set<Expression*> groupSet(begin(groupKeys_), end(groupKeys_));
+        std::unordered_set<Expression*> groupSet(groupKeys_.begin(), groupKeys_.end());
         FindAnySubExprVisitor groupVisitor(groupSet, true);
         for (auto* expr : yieldCols_) {
             if (expr->kind() == Expression::Kind::kConstant) {
@@ -159,7 +159,7 @@ Status GroupByValidator::groupClauseSemanticCheck() {
             }
             expr->accept(&groupVisitor);
             if (!groupVisitor.found()) {
-                return Status::SemanticError("Yield non-agg expression `%s` must be"
+                return Status::SemanticError("Yield non-agg expression `%s' must be"
                 " functionally dependent on items in GROUP BY clause", expr->toString().c_str());
             }
         }
@@ -170,7 +170,7 @@ Status GroupByValidator::groupClauseSemanticCheck() {
             for (auto* expr : groupKeys_) {
                 expr->accept(&yieldVisitor);
                 if (!yieldVisitor.found()) {
-                    return Status::SemanticError("GroupBy item `%s` must be"
+                    return Status::SemanticError("GroupBy item `%s' must be"
                     " in Yield list", expr->toString().c_str());
                 }
             }
@@ -190,7 +190,7 @@ Status GroupByValidator::rewriteInnerAggExpr(YieldColumn* col, bool& rewrited) {
     auto aggs = ExpressionUtils::collectAll(collectAggCol.get(),
                                             {Expression::Kind::kAggregate});
     if (aggs.size() > 1) {
-        return Status::SemanticError("Agg function nesting is not allowed: `%s`",
+        return Status::SemanticError("Aggregate function nesting is not allowed: `%s'",
                                      collectAggCol->toString().c_str());
     }
     if (aggs.size() == 1) {
@@ -214,25 +214,25 @@ Status GroupByValidator::rewriteInnerAggExpr(YieldColumn* col, bool& rewrited) {
 Status GroupByValidator::checkAggExpr(AggregateExpression* aggExpr) {
     auto func = aggExpr->name();
     if (!func) {
-        return Status::SemanticError("`%s` aggregate function not set.",
+        return Status::SemanticError("`%s' aggregate function not set.",
                                      aggExpr->toString().c_str());
     }
 
     auto iter = AggregateExpression::NAME_ID_MAP.find(func->c_str());
     if (iter == AggregateExpression::NAME_ID_MAP.end()) {
-        return Status::SemanticError("Unkown aggregate function `%s`", func->c_str());
+        return Status::SemanticError("Unknown aggregate function `%s'", func->c_str());
     }
 
     auto* aggArg = aggExpr->arg();
     if (graph::ExpressionUtils::findAny(aggArg,
                                         {Expression::Kind::kAggregate})) {
-        return Status::SemanticError("Agg function nesting is not allowed: `%s`",
+        return Status::SemanticError("Aggregate function nesting is not allowed: `%s'",
                                      aggExpr->toString().c_str());
     }
 
     if (iter->second != AggregateExpression::Function::kCount) {
         if (aggArg->toString() == "*") {
-            return Status::SemanticError("Could not apply aggregation function `%s` on `*`",
+            return Status::SemanticError("Could not apply aggregation function `%s' on `*`",
                                          aggExpr->toString().c_str());
         }
         if (aggArg->kind() == Expression::Kind::kInputProperty

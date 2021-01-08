@@ -182,7 +182,7 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
     auto val = expr->eval(ctx(nullptr));
     if (val.isNull()) {
         status_ =
-            Status::SemanticError("`%s` is not a valid expression ", expr->toString().c_str());
+            Status::SemanticError("`%s' is not a valid expression ", expr->toString().c_str());
         return;
     }
     type_ = val.type();
@@ -386,7 +386,7 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
     }
     auto result = FunctionManager::getReturnType(funName, argsTypeList);
     if (!result.ok()) {
-        status_ = Status::SemanticError("`%s` is not a valid expression : %s",
+        status_ = Status::SemanticError("`%s' is not a valid expression : %s",
                                         expr->toString().c_str(),
                                         result.status().toString().c_str());
         return;

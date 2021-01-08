@@ -1,9 +1,9 @@
-Feature: Basic Agg and GroupBy
+Feature: Basic Aggregate and GroupBy
 
   Background:
     Given a graph with space named "nba"
 
-  Scenario: Basic Agg
+  Scenario: Basic Aggregate
     When executing query:
       """
       YIELD COUNT(*), 1+1
@@ -168,13 +168,13 @@ Feature: Basic Agg and GroupBy
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,abs(avg(distinct count($-.age))) AS age
       """
-    Then a SemanticError should be raised at runtime: Agg function nesting is not allowed: `abs(AVG(distinct COUNT($-.age)))`
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `abs(AVG(distinct COUNT($-.age)))`
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
       | GROUP BY $-.age+1 YIELD $-.age+1,avg(distinct count($-.age+1)) AS age
       """
-    Then a SemanticError should be raised at runtime: Agg function nesting is not allowed: `AVG(distinct COUNT(($-.age+1)))`
+    Then a SemanticError should be raised at runtime: Aggregate function nesting is not allowed: `AVG(distinct COUNT(($-.age+1)))`
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age

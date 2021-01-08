@@ -132,10 +132,6 @@ public:
         return kind_;
     }
 
-    void setKind(Kind kind) {
-        kind_ = kind;
-    }
-
 protected:
     Sentence() = default;
     explicit Sentence(Kind kind) : kind_(kind) {}

@@ -263,21 +263,21 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY 1+1 YIELD COUNT(1), 1+1";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(1+1)` invalid");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(1+1)' invalid");
     }
     {
         // use groupby without input
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY count(*)+1 YIELD COUNT(1), 1+1";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(COUNT(*)+1)` invalid");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(COUNT(*)+1)' invalid");
     }
     {
         // use groupby without input
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY abs(1)+1 YIELD COUNT(1), 1+1";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(abs(1)+1)` invalid");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `(abs(1)+1)' invalid");
     }
     {
         // use dst
@@ -301,7 +301,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "| GROUP BY noexist YIELD COUNT($-.age)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                   "SemanticError: Group `noexist` invalid");
+                   "SemanticError: Group `noexist' invalid");
     }
     {
         // use sum(*)
@@ -309,7 +309,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "| GROUP BY $-.id YIELD SUM(*)";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Could not apply aggregation function `SUM(*)` on `*`");
+                  "SemanticError: Could not apply aggregation function `SUM(*)' on `*`");
     }
     {
         // use agg fun has more than two inputs
@@ -323,7 +323,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
         std::string query = "GO FROM \"1\" OVER like YIELD like._dst AS id, $^.person.age AS age "
                             "| GROUP BY $-.id, SUM($-.age) YIELD $-.id, SUM($-.age)";
         auto result = checkResult(query);
-        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `SUM($-.age)` invalid");
+        EXPECT_EQ(std::string(result.message()), "SemanticError: Group `SUM($-.age)' invalid");
     }
     {
         // yield without group by
@@ -331,7 +331,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "COUNT(like._dst) AS id ";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `COUNT(like._dst) AS id`, "
+                  "SemanticError: `COUNT(like._dst) AS id', "
                   "not support aggregate function in go sentence.");
     }
     {
@@ -340,7 +340,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "COUNT(like._dst)+1 AS id ";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `(COUNT(like._dst)+1) AS id`, "
+                  "SemanticError: `(COUNT(like._dst)+1) AS id', "
                   "not support aggregate function in go sentence.");
     }
     {
@@ -350,7 +350,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "COUNT(like._dst)+1 AS id ";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: `((COUNT(*)+1)>3)`, "
+                  "SemanticError: `((COUNT(*)+1)>3)', "
                   "not support aggregate function in where sentence.");
     }
     {
@@ -367,7 +367,7 @@ TEST_F(GroupByValidatorTest, InvalidTest) {
                             "1+1 AS cal";
         auto result = checkResult(query);
         EXPECT_EQ(std::string(result.message()),
-                  "SemanticError: Yield non-agg expression `$-.name` "
+                  "SemanticError: Yield non-agg expression `$-.name' "
                   "must be functionally dependent on items in GROUP BY clause");
     }
     {

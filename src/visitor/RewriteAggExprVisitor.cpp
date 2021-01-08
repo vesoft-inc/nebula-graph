@@ -16,7 +16,7 @@ RewriteAggExprVisitor::RewriteAggExprVisitor(std::string* var,
                                              std::string* prop) {
     var_.reset(var);
     prop_.reset(prop);
-    }
+}
 
 void RewriteAggExprVisitor::visit(TypeCastingExpression* expr) {
     if (isAggExpr(expr->operand())) {

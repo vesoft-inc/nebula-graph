@@ -554,7 +554,7 @@ public:
         return yieldClause_.get();
     }
 
-    bool hasAgg();
+    bool hasAgg() const;
     std::string toString() const override;
 
 private:

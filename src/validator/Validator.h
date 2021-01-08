@@ -58,7 +58,7 @@ public:
         return outputs_;
     }
 
-    void setOutputCols(ColsDef&& outputCols) {
+    void setOutputCols(const ColsDef&& outputCols) {
         outputs_ = std::move(outputCols);
     }
 
@@ -74,7 +74,7 @@ public:
         inputs_ = std::move(inputCols);
     }
 
-    void setInputCols(ColsDef& inputCols) {
+    void setInputCols(const ColsDef& inputCols) {
         inputs_ = inputCols;
     }
 
@@ -86,7 +86,7 @@ public:
         exprProps_ = std::move(exprProps);
     }
 
-    void setExprProps(ExpressionProps& exprProps) {
+    void setExprProps(const ExpressionProps& exprProps) {
         exprProps_ = exprProps;
     }
 
@@ -98,7 +98,7 @@ public:
         userDefinedVarNameList_ = std::move(userDefinedVarNameList);
     }
 
-    void setUserDefinedVarNameList(std::set<std::string>& userDefinedVarNameList) {
+    void setUserDefinedVarNameList(const std::set<std::string>& userDefinedVarNameList) {
         userDefinedVarNameList_ = userDefinedVarNameList;
     }
 

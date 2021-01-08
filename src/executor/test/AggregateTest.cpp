@@ -85,11 +85,11 @@ struct RowCmp {
 
 #define TEST_AGG_1(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
-    std::vector<Expression*> groupItems;                           \
+    std::vector<Expression*> groupItems;                                    \
     auto expr =                                                             \
         std::make_unique<InputPropertyExpression>(new std::string("col1")); \
-    AggregateExpression item(new std::string(FUN), std::move(expr).release(), DISTINCT); \
-    groupItems.emplace_back(&item);                               \
+    AggregateExpression item(new std::string(FUN), expr.release(), DISTINCT); \
+    groupItems.emplace_back(&item);                                         \
     auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys), \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
@@ -105,14 +105,13 @@ struct RowCmp {
 
 #define TEST_AGG_2(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
-    std::vector<Expression*> groupItems;                           \
-    auto expr1 =                                                             \
+    std::vector<Expression*> groupItems;                                    \
+    auto expr1 =                                                            \
         std::make_unique<InputPropertyExpression>(new std::string("col2")); \
-    auto expr2 =                                                             \
-        std::make_unique<InputPropertyExpression>(new std::string("col2")); \
-    groupKeys.emplace_back(std::move(expr1).get());                      \
-    AggregateExpression item(new std::string(FUN), std::move(expr2).release(), DISTINCT); \
-    groupItems.emplace_back(&item);                               \
+    auto expr2 = expr1->clone();                                            \
+    groupKeys.emplace_back(expr1.get());                                    \
+    AggregateExpression item(new std::string(FUN), expr2.release(), DISTINCT); \
+    groupItems.emplace_back(&item);                                         \
     auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys), \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
@@ -130,19 +129,19 @@ struct RowCmp {
 
 #define TEST_AGG_3(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
-    std::vector<Expression*> groupItems;                           \
-    auto expr1 =                                                             \
+    std::vector<Expression*> groupItems;                                    \
+    auto expr1 =                                                            \
         std::make_unique<InputPropertyExpression>(new std::string("col2")); \
-    auto expr2 =                                                             \
+    auto expr2 =                                                            \
         std::make_unique<InputPropertyExpression>(new std::string("col2")); \
-    groupKeys.emplace_back(expr1.get());                                     \
-    AggregateExpression item(new std::string(""), std::move(expr2).release(), false);  \
-    groupItems.emplace_back(&item);                               \
+    groupKeys.emplace_back(expr1.get());                                    \
+    AggregateExpression item(new std::string(""), expr2.release(), false);  \
+    groupItems.emplace_back(&item);                                         \
     auto expr3 =                                                            \
         std::make_unique<InputPropertyExpression>(new std::string("col3")); \
     groupKeys.emplace_back(expr3.get());                                    \
-    AggregateExpression item1(new std::string(FUN), std::move(expr3).release(), DISTINCT); \
-    groupItems.emplace_back(&item1);                              \
+    AggregateExpression item1(new std::string(FUN), expr3.release(), DISTINCT); \
+    groupItems.emplace_back(&item1);                                        \
     auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys), \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
@@ -160,10 +159,10 @@ struct RowCmp {
 
 #define TEST_AGG_4(FUN, COL, DISTINCT)                                      \
     std::vector<Expression*> groupKeys;                                     \
-    std::vector<Expression*> groupItems;                           \
+    std::vector<Expression*> groupItems;                                    \
     auto expr = std::make_unique<ConstantExpression>(1);                    \
-    AggregateExpression item(new std::string(FUN), std::move(expr).release(), DISTINCT); \
-    groupItems.emplace_back(&item);                               \
+    AggregateExpression item(new std::string(FUN), expr.release(), DISTINCT); \
+    groupItems.emplace_back(&item);                                         \
     auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys), \
                                 std::move(groupItems));                     \
     agg->setInputVar(*input_);                                              \
@@ -310,8 +309,8 @@ TEST_F(AggregateTest, Collect) {
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
         auto expr2 =
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
-        groupKeys.emplace_back(std::move(expr1).get());
-        AggregateExpression item(new std::string("COLLECT"), std::move(expr2).release(), false);
+        groupKeys.emplace_back(expr1.get());
+        AggregateExpression item(new std::string("COLLECT"), expr2.release(), false);
         groupItems.emplace_back(std::move(&item));
         auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys),
                                     std::move(groupItems));
@@ -417,7 +416,7 @@ TEST_F(AggregateTest, Collect) {
         std::vector<Expression*> groupItems;
         auto expr =
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
-        AggregateExpression item(new std::string("COLLECT"), std::move(expr).release(), true);
+        AggregateExpression item(new std::string("COLLECT"), expr.release(), true);
         groupItems.emplace_back(std::move(&item));
         auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys),
                                     std::move(groupItems));
@@ -478,10 +477,8 @@ TEST_F(AggregateTest, Collect) {
         std::vector<Expression*> groupItems;
         auto expr1 =
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
-        auto expr2 =
-            std::make_unique<InputPropertyExpression>(new std::string("col1"));
-        groupKeys.emplace_back(std::move(expr1).get());
-        AggregateExpression item(new std::string("COLLECT"), std::move(expr2).release(), true);
+        auto expr2 = expr1->clone();
+        AggregateExpression item(new std::string("COLLECT"), expr2.release(), true);
         groupItems.emplace_back(std::move(&item));
         auto* agg = Aggregate::make(qctx_.get(), nullptr, std::move(groupKeys),
                                     std::move(groupItems));

@@ -105,7 +105,7 @@ std::string OrderFactor::toString() const {
         case DESCEND:
             return folly::stringPrintf("%s DESC,", expr_->toString().c_str());
         default:
-            LOG(FATAL) << "Unkown Order Type: " << orderType_;
+            LOG(FATAL) << "Unknown Order Type: " << orderType_;
     }
 }
 
@@ -215,7 +215,7 @@ std::string LimitSentence::toString() const {
     return folly::stringPrintf("LIMIT %ld,%ld", offset_, count_);
 }
 
-bool YieldSentence::hasAgg() {
+bool YieldSentence::hasAgg() const {
     for (auto* col : columns()) {
         if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate})) {
             return true;

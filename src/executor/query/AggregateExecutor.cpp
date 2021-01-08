@@ -48,7 +48,7 @@ folly::Future<Status> AggregateExecutor::execute() {
             auto* item = groupItems[i];
             if (item->kind() == Expression::Kind::kAggregate) {
                 static_cast<AggregateExpression*>(item)->setAggData(result[list][i].get());
-                auto eval = item->eval(ctx(iter.get()));
+                item->eval(ctx(iter.get()));
             } else {
                 result[list][i]->setResult(item->eval(ctx(iter.get())));
             }

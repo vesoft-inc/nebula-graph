@@ -203,7 +203,7 @@ public:
         filter_.reset(expr);
     }
 
-    std::unique_ptr<WhereClause> clone() {
+    std::unique_ptr<WhereClause> clone() const {
         return std::make_unique<WhereClause>(filter_->clone().release());
     }
 
@@ -280,7 +280,7 @@ public:
         return columns_.empty();
     }
 
-    std::unique_ptr<YieldColumns> clone() {
+    std::unique_ptr<YieldColumns> clone() const {
         auto cols = std::make_unique<YieldColumns>();
         for (auto& col : columns_) {
             cols->addColumn(col->clone().release());
@@ -322,7 +322,7 @@ public:
         return distinct_;
     }
 
-    std::unique_ptr<YieldClause> clone() {
+    std::unique_ptr<YieldClause> clone() const {
         auto cols = yieldColumns_->clone();
         return std::make_unique<YieldClause>(cols.release(), distinct_);
     }
