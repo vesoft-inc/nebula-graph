@@ -82,11 +82,11 @@ Status LookupValidator::prepareYield() {
         returnCols_->emplace_back(kSrc);
         idxScanColNames_.emplace_back(kSrcVID);
         colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), Value::Type::STRING);
+        outputs_.emplace_back(colNames_.back(), vidType_);
         returnCols_->emplace_back(kDst);
         idxScanColNames_.emplace_back(kDstVID);
         colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), Value::Type::STRING);
+        outputs_.emplace_back(colNames_.back(), vidType_);
         returnCols_->emplace_back(kRank);
         idxScanColNames_.emplace_back(kRanking);
         colNames_.emplace_back(idxScanColNames_.back());
@@ -95,7 +95,7 @@ Status LookupValidator::prepareYield() {
         returnCols_->emplace_back(kVid);
         idxScanColNames_.emplace_back(kVertexID);
         colNames_.emplace_back(idxScanColNames_.back());
-        outputs_.emplace_back(colNames_.back(), Value::Type::STRING);
+        outputs_.emplace_back(colNames_.back(), vidType_);
     }
     if (sentence->yieldClause() == nullptr) {
         return Status::OK();
@@ -321,8 +321,8 @@ Status LookupValidator::checkFilter(Expression* expr) {
             return checkRelExpr(rExpr);
         }
         default: {
-            return Status::NotSupported("Expression %s not supported yet",
-                                        expr->toString().c_str());
+            return Status::SemanticError("Expression %s not supported yet",
+                                         expr->toString().c_str());
         }
     }
     return Status::OK();
@@ -334,13 +334,13 @@ Status LookupValidator::checkRelExpr(RelationalExpression* expr) {
     // Does not support filter : schema.col1 > schema.col2
     if (left->kind() == Expression::Kind::kLabelAttribute &&
         right->kind() == Expression::Kind::kLabelAttribute) {
-        return Status::NotSupported("Expression %s not supported yet", expr->toString().c_str());
+        return Status::SemanticError("Expression %s not supported yet", expr->toString().c_str());
     } else if (left->kind() == Expression::Kind::kLabelAttribute ||
                right->kind() == Expression::Kind::kLabelAttribute) {
         auto ret = rewriteRelExpr(expr);
         NG_RETURN_IF_ERROR(ret);
     } else {
-        return Status::NotSupported("Expression %s not supported yet", expr->toString().c_str());
+        return Status::SemanticError("Expression %s not supported yet", expr->toString().c_str());
     }
     return Status::OK();
 }
