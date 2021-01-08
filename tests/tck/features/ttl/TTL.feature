@@ -1,4 +1,3 @@
-
 Feature: TTLTest
 
   Background:
