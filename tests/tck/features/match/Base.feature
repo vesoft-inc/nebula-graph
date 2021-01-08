@@ -367,7 +367,7 @@ Feature: Basic match
       """
       MATCH (v) return v
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v) RETURN v
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v) RETURN v
     When executing query:
       """
       MATCH (v:player:person) return v
@@ -377,14 +377,14 @@ Feature: Basic match
       """
       MATCH () -[r:serve]-> () return *
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-[r:serve]->() RETURN *
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-[r:serve]->() RETURN *
     When executing query:
       """
       MATCH () -[]-> (v) return *
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v) RETURN *
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v) RETURN *
     When executing query:
       """
       MATCH () --> (v) --> () return *
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *
