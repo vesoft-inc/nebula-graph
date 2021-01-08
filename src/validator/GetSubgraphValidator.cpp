@@ -290,7 +290,10 @@ Status GetSubgraphValidator::toPlan() {
 
     auto* dedupVids = projectDstVidsFromGN(gn, startVidsVar);
 
-    auto* dedup = removeVisitedVertexID(dedupVids, startVidsVar);
+    auto* ifBody = removeVisitedVertexID(startVidsVar);
+    auto* elseBody = StartNode::make(qctx_);
+    auto* ifContidion = buildSelectCondition(steps_.steps);
+    auto* select = Select::make(qctx_, dedupVids, ifBody, elseBody, ifContidion);
 
     auto var = vctx_->anonVarGen()->getVar();
     auto* column = new VariablePropertyExpression(new std::string(var), new std::string(kVid));
@@ -298,10 +301,10 @@ Status GetSubgraphValidator::toPlan() {
     qctx_->objPool()->add(func);
     auto* collect =
         Aggregate::make(qctx_,
-                        dedup,
+                        select,
                         {},
                         {func});
-    collect->setInputVar(dedup->outputVar());
+    collect->setInputVar(startVidsVar);
     collect->setColNames({kVid});
     collectVar_ = collect->outputVar();
 
@@ -371,22 +374,32 @@ Expression* GetSubgraphValidator::buildMinusLoopCondition(std::string& minusLoop
         new VariableExpression(new std::string(loopSteps_))));
 }
 
+Expression* GetSubgraphValidator::buildSelectCondition(int64_t steps) {
+    // loopSteps_{0} < steps
+    loopSteps_ = vctx_->anonVarGen()->getVar();
+    return qctx_->objPool()->add(
+        new RelationalExpression(Expression::Kind::kRelLT,
+                                 new VariableExpression(new std::string(loopSteps_)),
+                                 new ConstantExpression(static_cast<int32_t>(steps))));
+}
+
 /*
- * step = 1; startVidsVar[0] - startVidsVar[-1]
- * step = 2; startVidsVar[0] - startVidsVar[-1], startVidsVar[0] - startVidsVar[-3]
+ * step = 1; minus[0] - startVidsVar[-1]
+ * step = 2; minus[0] - startVidsVar[-1], minus[0] - startVidsVar[-3]
  *  ...
- * step = n; startVidsVar[0] - startVidsVar[-1], ... , startVidsVar[0] - startVidsVar[-2*n + 1]
+ * step = n; minus[0] - startVidsVar[-1], ... , minus[0] - startVidsVar[-2*n + 1]
  */
-PlanNode* GetSubgraphValidator::removeVisitedVertexID(PlanNode* dep, std::string& startVidsVar) {
+PlanNode* GetSubgraphValidator::removeVisitedVertexID(std::string& startVidsVar) {
+    auto* bodyStart = StartNode::make(qctx_);
     // project
     auto* columns = qctx_->objPool()->add(new YieldColumns());
     auto* column =
         new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
                         new std::string(kVid));
     columns->addColumn(column);
-    auto* project = Project::make(qctx_, dep, columns);
-    project->setInputVar(dep->outputVar());
-    project->setColNames(deduceColNames(columns));
+    auto* project = Project::make(qctx_, bodyStart, columns);
+    project->setInputVar(startVidsVar);
+    project->setColNames({kVid});
 
     // set versionVar = 1, minusLoopSteps = 0
     auto* assign = Assign::make(qctx_, project);

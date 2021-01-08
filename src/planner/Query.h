@@ -560,10 +560,14 @@ private:
 class SetOp : public BiInputNode {
 public:
     void setLeftVersionExpr(Expression* expr) {
+        DCHECK_EQ(versionExpr_.size(), 0);
+        DCHECK(expr != nullptr);
         versionExpr_.emplace_back(expr);
     }
 
     void setRightVersionExpr(Expression* expr) {
+        DCHECK_EQ(versionExpr_.size(), 1);
+        DCHECK(expr != nullptr);
         versionExpr_.emplace_back(expr);
     }
 

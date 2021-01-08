@@ -42,9 +42,11 @@ private:
 
     StatusOr<std::vector<storage::cpp2::EdgeProp>> buildAllEdgeProp();
 
-    PlanNode* removeVisitedVertexID(PlanNode* dep, std::string& startVidsVar);
+    PlanNode* removeVisitedVertexID(std::string& startVidsVar);
 
     Expression* buildMinusLoopCondition(std::string& loopVar);
+
+    Expression* buildSelectCondition(int64_t step);
 
 private:
     std::unordered_set<EdgeType>                edgeTypes_;
