@@ -1,3 +1,4 @@
+@test111
 Feature: LookUpTest_Vid_Int
 
   Scenario: LookupTest IntVid SimpleVertex
@@ -25,7 +26,7 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP ON lookup_tag_1 WHERE col1 == 200;
       """
-    Then a ExecutionError should be raised at runtime:
+    Then a SemanticError should be raised at runtime:
     When executing query:
       """
       LOOKUP ON lookup_tag_1 WHERE lookup_tag_1.col1 == 300
@@ -75,7 +76,7 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP ON lookup_edge_1 WHERE col1 == 201
       """
-    Then a ExecutionError should be raised at runtime:
+    Then a SemanticError should be raised at runtime:
     When executing query:
       """
       LOOKUP ON lookup_edge_1 WHERE lookup_edge_1.col1 == 300
@@ -177,7 +178,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then a SemanticError should be raised at runtime:
     Then drop the used space
-
+  
   @skip
   Scenario: LookupTest IntVid VertexConditionScan
     Given an empty graph
@@ -289,7 +290,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then the result should be, in any order:
       | VertexID |
-      | "220"    |
+      | 220      |
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col3 == 100.5 AND lookup_tag_2.col2 == 200
@@ -331,7 +332,7 @@ Feature: LookUpTest_Vid_Int
       | 222      |
     Then drop the used space
 
-  @skip
+  @skip  
   Scenario: LookupTest IntVid EdgeConditionScan
     Given an empty graph
     And create a space with following options:
@@ -510,17 +511,17 @@ Feature: LookUpTest_Vid_Int
       """
       LOOKUP ON lookup_tag_2 WHERE 1 == 1
       """
-    Then a ExecutionError should be raised at runtime:
+    Then a SemanticError should be raised at runtime:
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE 1 != 1
       """
-    Then a ExecutionError should be raised at runtime:
+    Then a SemanticError should be raised at runtime:
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE udf_is_in(lookup_tag_2.col2, 100, 200)
       """
-    Then a ExecutionError should be raised at runtime:
+    Then a SemanticError should be raised at runtime:
     When executing query:
       """
       LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col2 > abs(-5)
@@ -589,13 +590,13 @@ Feature: LookUpTest_Vid_Int
       | 225      |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "HelLo")
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "HelLo")
       """
     Then the result should be, in any order:
       | VertexID |
     When executing query:
       """
-      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == strcasecmp("HelLo", "hello")
+      LOOKUP ON lookup_tag_2 WHERE lookup_tag_2.col4 == (bool) strcasecmp("HelLo", "hello")
       """
     Then the result should be, in any order:
       | VertexID |
