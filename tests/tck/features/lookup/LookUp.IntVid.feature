@@ -1,4 +1,3 @@
-@test111
 Feature: LookUpTest_Vid_Int
 
   Scenario: LookupTest IntVid SimpleVertex
@@ -178,7 +177,7 @@ Feature: LookUpTest_Vid_Int
       """
     Then a SemanticError should be raised at runtime:
     Then drop the used space
-  
+
   @skip
   Scenario: LookupTest IntVid VertexConditionScan
     Given an empty graph
@@ -332,7 +331,7 @@ Feature: LookUpTest_Vid_Int
       | 222      |
     Then drop the used space
 
-  @skip  
+  @skip
   Scenario: LookupTest IntVid EdgeConditionScan
     Given an empty graph
     And create a space with following options:
