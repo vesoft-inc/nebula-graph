@@ -74,21 +74,22 @@ StatusOr<SubPlan> LabelIndexSeek::transformEdge(EdgeContext*) {
     auto tagIndexesResult = qctx->indexMng()->getTagIndexes(nodeCtx->matchClauseCtx->space.id);
     NG_RETURN_IF_ERROR(tagIndexesResult);
     auto tagIndexes = std::move(tagIndexesResult).value();
-    std::shared_ptr<meta::cpp2::IndexItem> candidateIndex{nullptr};
+    std::pair<std::shared_ptr<meta::cpp2::IndexItem>, std::size_t> candidateIndex{
+        nullptr, std::numeric_limits<std::size_t>::max()};
     for (const auto& index : tagIndexes) {
         if (index->get_schema_id().get_tag_id() == tagId) {
-            if (candidateIndex == nullptr) {
-                candidateIndex = index;
+            if (candidateIndex.first == nullptr) {
+                candidateIndex = {index, fieldsIndexSize(index->get_fields())};
             } else {
                 candidateIndex = selectIndex(candidateIndex, index);
             }
         }
     }
-    if (candidateIndex == nullptr) {
+    if (candidateIndex.first == nullptr) {
         return Status::SemanticError("No valid index for label `%s'.",
                                      nodeCtx->scanInfo.schemaName->c_str());
     }
-    return candidateIndex->get_index_id();
+    return candidateIndex.first->get_index_id();
 }
 
 }   // namespace graph
