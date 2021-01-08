@@ -38,17 +38,13 @@ modules/
 !tests/Makefile
 reformat-gherkin
 nebula-python
-.pytest
-.pytest_cache
-*.lock
 
 # IDE
 .idea/
 .project
 .settings/
 .classpath
-cmake-build-debug/
-cmake-build-release/
+cmake-build*/
 .vscode/
 
 #py

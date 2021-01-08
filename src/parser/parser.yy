@@ -149,6 +149,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_TAG KW_TAGS KW_UNION KW_INTERSECT KW_MINUS
 %token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOST KW_HOSTS KW_PART KW_PARTS KW_ADD
 %token KW_PARTITION_NUM KW_REPLICA_FACTOR KW_CHARSET KW_COLLATE KW_COLLATION KW_VID_TYPE
+%token KW_ATOMIC_EDGE
 %token KW_DROP KW_REMOVE KW_SPACES KW_INGEST KW_INDEX KW_INDEXES
 %token KW_IF KW_NOT KW_EXISTS KW_WITH
 %token KW_COUNT KW_COUNT_DISTINCT KW_SUM KW_AVG KW_MAX KW_MIN KW_STD KW_BIT_AND KW_BIT_OR KW_BIT_XOR
@@ -436,6 +437,7 @@ unreserved_keyword
     | KW_CHARSET            { $$ = new std::string("charset"); }
     | KW_COLLATE            { $$ = new std::string("collate"); }
     | KW_COLLATION          { $$ = new std::string("collation"); }
+    | KW_ATOMIC_EDGE        { $$ = new std::string("atomic_edge"); }
     | KW_TTL_DURATION       { $$ = new std::string("ttl_duration"); }
     | KW_TTL_COL            { $$ = new std::string("ttl_col"); }
     | KW_SNAPSHOT           { $$ = new std::string("snapshot"); }
@@ -748,6 +750,7 @@ list_comprehension_expression
         auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, $6, nullptr);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
+        delete $2;
     }
     | L_BRACKET expression KW_IN expression PIPE expression R_BRACKET {
         if ($2->kind() != Expression::Kind::kLabel) {
@@ -757,6 +760,7 @@ list_comprehension_expression
         auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, nullptr, $6);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
+        delete $2;
     }
     | L_BRACKET expression KW_IN expression KW_WHERE expression PIPE expression R_BRACKET {
         if ($2->kind() != Expression::Kind::kLabel) {
@@ -766,6 +770,7 @@ list_comprehension_expression
         auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, $6, $8);
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
+        delete $2;
     }
     ;
 
@@ -1770,6 +1775,9 @@ limit_sentence
         $$ = new LimitSentence($2, $4);
     }
     | KW_LIMIT legal_integer KW_OFFSET legal_integer {
+        $$ = new LimitSentence($4, $2);
+    }
+    | KW_OFFSET legal_integer KW_LIMIT legal_integer  {
         $$ = new LimitSentence($2, $4);
     }
     ;
@@ -2770,6 +2778,9 @@ space_opt_item
     | KW_VID_TYPE ASSIGN type_spec {
         $$ = new SpaceOptItem(SpaceOptItem::VID_TYPE, *$3);
         delete $3;
+    }
+    | KW_ATOMIC_EDGE ASSIGN BOOL {
+        $$ = new SpaceOptItem(SpaceOptItem::ATOMIC_EDGE, $3);
     }
     // TODO(YT) Create Spaces for different engines
     // KW_ENGINE_TYPE ASSIGN name_label
