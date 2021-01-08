@@ -52,6 +52,8 @@ private:
                            const YieldColumns *yieldColumns,
                            OrderByClauseContext &orderByCtx) const;
 
+    Status validateUniquenessOfColumnAlias(const std::vector<YieldColumn*>& columns) const;
+
     StatusOr<Expression*> makeSubFilter(const std::string &alias,
                                         const MapExpression *map,
                                         const std::string &label = "") const;

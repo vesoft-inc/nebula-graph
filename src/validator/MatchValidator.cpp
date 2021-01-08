@@ -354,6 +354,8 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     } else {
         retClauseCtx.yieldColumns = columns;
     }
+    NG_RETURN_IF_ERROR(validateUniquenessOfColumnAlias(retClauseCtx.yieldColumns->columns()));
+
     // Check all referencing expressions are valid
     std::vector<const Expression*> exprs;
     exprs.reserve(retClauseCtx.yieldColumns->size());
@@ -639,5 +641,22 @@ Status MatchValidator::buildOutputs(const YieldColumns* yields) {
     }
     return Status::OK();
 }
+
+Status MatchValidator::validateUniquenessOfColumnAlias(
+    const std::vector<YieldColumn *> &columns) const {
+    std::unordered_set<std::string> uniqueColNames;
+    for (auto &col : columns) {
+        const auto& name = col->alias() ? *col->alias() : col->expr()->toString();
+        auto pair = uniqueColNames.emplace(name);
+        if (!pair.second) {
+            return Status::SemanticError(
+                "Multiple result columns with the same name are not supported: %s",
+                pair.first->c_str());
+        }
+    }
+
+    return Status::OK();
+}
+
 }   // namespace graph
 }   // namespace nebula

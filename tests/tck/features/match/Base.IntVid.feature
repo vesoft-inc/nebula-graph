@@ -104,10 +104,10 @@ Feature: Basic match
       """
       MATCH (v1:player{name: "LeBron James"}) -[r:serve]-> (v2 {name: "Cavaliers"})
       WHERE r.start_year <= 2005 AND r.end_year >= 2005
-      RETURN r.start_year AS Start_Year, r.end_year AS Start_Year
+      RETURN r.start_year AS Start_Year, r.end_year AS End_Year
       """
     Then the result should be, in any order:
-      | Start_Year | Start_Year |
+      | Start_Year | End_Year |
       | 2003       | 2010       |
     When executing query:
       """

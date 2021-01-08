@@ -104,11 +104,11 @@ Feature: Basic match
       """
       MATCH (v1:player{name: "LeBron James"}) -[r:serve]-> (v2 {name: "Cavaliers"})
       WHERE r.start_year <= 2005 AND r.end_year >= 2005
-      RETURN r.start_year AS Start_Year, r.end_year AS Start_Year
+      RETURN r.start_year AS Start_Year, r.end_year AS End_Year
       """
     Then the result should be, in any order:
-      | Start_Year | Start_Year |
-      | 2003       | 2010       |
+      | Start_Year | End_Year |
+      | 2003       | 2010     |
     When executing query:
       """
       MATCH (v1:player{name: "Danny Green"}) -[:like]-> (v2)
@@ -388,3 +388,34 @@ Feature: Basic match
       MATCH () --> (v) --> () return *
       """
     Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *
+
+  Scenario: Return columns with same name
+    When executing query:
+      """
+      MATCH (v:player{name:"Tony Parker"})
+      RETURN v.age, v.age
+      """
+    Then a SemanticError should be raised at runtime: Multiple result columns with the same name are not supported: v.age
+    When executing query:
+      """
+      MATCH (v:player{name:"Tony Parker"})
+      RETURN v.age AS age, v.age AS age
+      """
+    Then a SemanticError should be raised at runtime: Multiple result columns with the same name are not supported: age
+    When executing query:
+      """
+      MATCH (v:player{name:"Tony Parker"})
+      RETURN v.age AS age, v.age
+      """
+    Then the result should be, in any order:
+      | age | v.age |
+      | 36  | 36    |
+
+    When executing query:
+      """
+      MATCH (v:player{name:"Tony Parker"})
+      RETURN v.age AS age, v.age AS age2
+      """
+    Then the result should be, in any order:
+      | age | age2 |
+      | 36  | 36   |
