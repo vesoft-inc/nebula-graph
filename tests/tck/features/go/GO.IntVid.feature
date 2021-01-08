@@ -1588,11 +1588,11 @@ Feature: IntegerVid Go  Sentence
     When executing query:
       """
       GO 1 TO 2 STEPS FROM hash("Tim Duncan") OVER like WHERE like._dst != hash("YAO MING") YIELD like._dst AS vid
-      | GROUP BY $-.vid YIELD $-.vid, 1 AS id | GROUP BY $-.id YIELD $-.id, COUNT($-.id);
+      | GROUP BY $-.vid YIELD 1 AS id | GROUP BY $-.id YIELD COUNT($-.id);
       """
     Then the result should be, in any order, with relax comparison:
-      | $-.id | COUNT($-.id) |
-      | 1     | 4            |
+      | COUNT($-.id) |
+      | 4            |
 
   Scenario: Integer Vid Bugfix filter not pushdown
     When executing query:

@@ -1,4 +1,3 @@
-@czp
 Feature: Basic Aggregate and GroupBy
 
   Background:
@@ -89,6 +88,182 @@ Feature: Basic Aggregate and GroupBy
       | dst             | age  |
       | "Tony Parker"   | 36.0 |
       | "Manu Ginobili" | 41.0 |
+    When executing query:
+      """
+      GO FROM 'Aron Baynes', 'Tracy McGrady' OVER serve
+         YIELD $$.team.name AS name,
+               serve._dst AS id,
+               serve.start_year AS start_year,
+               serve.end_year AS end_year
+         | GROUP BY $-.name, $-.start_year
+           YIELD $-.name AS teamName,
+                 $-.start_year AS start_year,
+                 MAX($-.start_year),
+                 MIN($-.end_year),
+                 AVG($-.end_year) AS avg_end_year,
+                 STD($-.end_year) AS std_end_year,
+                 COUNT($-.id)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | teamName  | start_year | MAX($-.start_year) | MIN($-.end_year) | avg_end_year | std_end_year | COUNT($-.id) |
+      | "Celtics" | 2017       | 2017               | 2019             | 2019.0       | 0.0          | 1            |
+      | "Magic"   | 2000       | 2000               | 2004             | 2004.0       | 0.0          | 1            |
+      | "Pistons" | 2015       | 2015               | 2017             | 2017.0       | 0.0          | 1            |
+      | "Raptors" | 1997       | 1997               | 2000             | 2000.0       | 0.0          | 1            |
+      | "Rockets" | 2004       | 2004               | 2010             | 2010.0       | 0.0          | 1            |
+      | "Spurs"   | 2013       | 2013               | 2013             | 2014.0       | 1.0          | 2            |
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+         serve._dst AS id,
+         serve.start_year AS start_year,
+         serve.end_year AS end_year
+      | GROUP BY $-.start_year
+        YIELD COUNT($-.id),
+              $-.start_year AS start_year,
+              AVG($-.end_year) as avg
+      """
+    Then the result should be, in any order, with relax comparison:
+      | COUNT($-.id) | start_year | avg    |
+      | 2            | 2018       | 2018.5 |
+      | 1            | 2017       | 2018.0 |
+      | 1            | 2016       | 2017.0 |
+      | 1            | 2009       | 2010.0 |
+      | 1            | 2007       | 2009.0 |
+      | 1            | 2012       | 2013.0 |
+      | 1            | 2013       | 2015.0 |
+      | 1            | 2015       | 2016.0 |
+      | 1            | 2010       | 2012.0 |
+    When executing query:
+      """
+      GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
+         YIELD $$.player.name AS name,
+               $$.player.age AS dst_age,
+               $$.player.age AS src_age,
+               like.likeness AS likeness
+         | GROUP BY $-.name
+           YIELD $-.name AS name,
+                 SUM($-.dst_age) AS sum_dst_age,
+                 AVG($-.dst_age) AS avg_dst_age,
+                 MAX($-.src_age) AS max_src_age,
+                 MIN($-.src_age) AS min_src_age,
+                 BIT_AND(1) AS bit_and,
+                 BIT_OR(2) AS bit_or,
+                 BIT_XOR(3) AS bit_xor,
+                 COUNT($-.likeness),
+                 COUNT(DISTINCT $-.likeness)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name              | sum_dst_age | avg_dst_age | max_src_age | min_src_age | bit_and | bit_or | bit_xor | COUNT($-.likeness) | COUNT(distinct $-.likeness) |
+      | "LeBron James"    | 68          | 34.0        | 34          | 34          | 1       | 2      | 0       | 2                  | 1                           |
+      | "Chris Paul"      | 66          | 33.0        | 33          | 33          | 1       | 2      | 0       | 2                  | 1                           |
+      | "Dwyane Wade"     | 37          | 37.0        | 37          | 37          | 1       | 2      | 3       | 1                  | 1                           |
+      | "Carmelo Anthony" | 34          | 34.0        | 34          | 34          | 1       | 2      | 3       | 1                  | 1                           |
+    When executing query:
+      """
+      GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
+         YIELD $$.player.name AS name,
+               $$.player.age AS dst_age,
+              $$.player.age AS src_age,
+              like.likeness AS likeness
+         | GROUP BY $-.name
+           YIELD $-.name AS name,
+                 SUM($-.dst_age) AS sum_dst_age,
+                 AVG($-.dst_age) AS avg_dst_age,
+                 MAX($-.src_age) AS max_src_age,
+                 MIN($-.src_age) AS min_src_age,
+                 BIT_AND(1) AS bit_and,
+                 BIT_OR(2) AS bit_or,
+                 BIT_XOR(3) AS bit_xor,
+                 COUNT($-.likeness)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name              | sum_dst_age | avg_dst_age | max_src_age | min_src_age | bit_and | bit_or | bit_xor | COUNT($-.likeness) |
+      | "LeBron James"    | 68          | 34.0        | 34          | 34          | 1       | 2      | 0       | 2                  |
+      | "Chris Paul"      | 66          | 33.0        | 33          | 33          | 1       | 2      | 0       | 2                  |
+      | "Dwyane Wade"     | 37          | 37.0        | 37          | 37          | 1       | 2      | 3       | 1                  |
+      | "Carmelo Anthony" | 34          | 34.0        | 34          | 34          | 1       | 2      | 3       | 1                  |
+    When executing query:
+      """
+      GO FROM 'Tim Duncan' OVER like YIELD like._dst as dst
+         | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == 'Tim Duncan' as following
+         | GROUP BY $-.dst
+           YIELD $-.dst AS dst, BIT_OR($-.following) AS following
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst             | following |
+      | "Tony Parker"   | BAD_TYPE  |
+      | "Manu Ginobili" | BAD_TYPE  |
+    When executing query:
+      """
+      GO FROM 'Tim Duncan' OVER like YIELD like._dst as dst
+         | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == 'Tim Duncan' as following
+         | GROUP BY $-.dst
+           YIELD $-.dst AS dst,
+                 BIT_OR(case when $-.following==true then 1 else 0 end) AS following
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst             | following |
+      | "Tony Parker"   | 1         |
+      | "Manu Ginobili" | 1         |
+    When executing query:
+      """
+      GO FROM 'Tim Duncan' OVER like YIELD like._dst as dst
+         | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == 'Tim Duncan' as following
+         | GROUP BY $-.dst
+           YIELD $-.dst AS dst,
+                 BIT_AND($-.following) AS following
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst             | following |
+      | "Tony Parker"   | BAD_TYPE  |
+      | "Manu Ginobili" | BAD_TYPE  |
+    When executing query:
+      """
+      GO FROM 'Tim Duncan' OVER like YIELD like._dst as dst
+         | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == 'Tim Duncan' as following
+         | GROUP BY $-.dst
+           YIELD $-.dst AS dst,
+                 BIT_AND(case when $-.following==true then 1 else 0 end) AS following
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst             | following |
+      | "Tony Parker"   | 0         |
+      | "Manu Ginobili" | 1         |
+    When executing query:
+      """
+      GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
+         YIELD $$.player.name AS name
+         | GROUP BY $-.name
+           YIELD $-.name AS name,
+                 SUM(1.5) AS sum,
+                 COUNT(*) AS count,
+                 1+1 AS cal
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name              | sum | count | cal |
+      | "LeBron James"    | 3.0 | 2     | 2   |
+      | "Chris Paul"      | 3.0 | 2     | 2   |
+      | "Dwyane Wade"     | 1.5 | 1     | 2   |
+      | "Carmelo Anthony" | 1.5 | 1     | 2   |
+    When executing query:
+      """
+      GO FROM 'Paul Gasol' OVER like
+         YIELD $$.player.age AS age,
+               like._dst AS id
+         | GROUP BY $-.id
+           YIELD $-.id AS id,
+                 SUM($-.age) AS age
+           | GO FROM $-.id OVER serve
+             YIELD $$.team.name AS name,
+                   $-.age AS sumAge
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name        | sumAge |
+      | "Grizzlies" | 34     |
+      | "Raptors"   | 34     |
+      | "Lakers"    | 40     |
 
   Scenario: Implicit GroupBy
     When executing query:
@@ -110,6 +285,15 @@ Feature: Basic Aggregate and GroupBy
       | "Manu Ginobili" | 42.0 |
     When executing query:
       """
+      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
+      | GROUP BY $-.age+1 YIELD (INT)($-.age+1) AS age, 1+count(distinct $-.dst) AS count
+      """
+    Then the result should be, in any order, with relax comparison:
+      | age | count |
+      | 37  | 2     |
+      | 42  | 2     |
+    When executing query:
+      """
       $var=GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age;
       YIELD $var.dst AS dst, (INT)abs(1+avg(distinct $var.age)) AS age
       """
@@ -128,24 +312,110 @@ Feature: Basic Aggregate and GroupBy
       | "Tony Parker"   | 1     |
       | "Manu Ginobili" | 1     |
 
+  Scenario: Empty input
+    When executing query:
+      """
+      GO FROM 'noexist' OVER like
+         YIELD $$.player.name AS name
+         | GROUP BY $-.name
+           YIELD $-.name AS name,
+                 SUM(1.5) AS sum,
+                 COUNT(*) AS count
+                | ORDER BY $-.sum
+                | LIMIT 2
+      """
+    Then the result should be, in order, with relax comparison:
+      | name | sum | count |
+    When executing query:
+      """
+      GO FROM 'noexist' OVER serve
+                YIELD $^.player.name as name,
+                serve.start_year as start,
+                $$.team.name as team
+                | YIELD $-.name as name
+                WHERE $-.start > 20000
+                | GROUP BY $-.name
+                YIELD $-.name AS name
+      """
+    Then the result should be, in order, with relax comparison:
+      | name |
+    When executing query:
+      """
+      GO FROM 'noexist' OVER serve
+                YIELD $^.player.name as name,
+                serve.start_year as start,
+                $$.team.name as team
+                | YIELD $-.name as name
+                WHERE $-.start > 20000
+                | Limit 1
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name |
+
+  Scenario: Duplicate column
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+               serve._dst AS id,
+               serve.start_year AS start_year,
+               serve.end_year AS start_year
+          | GROUP BY $-.start_year
+            YIELD COUNT($-.id),
+                  $-.start_year AS start_year,
+                  AVG($-.end_year) as avg
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      GO FROM 'noexist' OVER serve
+         YIELD $^.player.name as name,
+               serve.start_year as start,
+              $$.team.name as name
+         | GROUP BY $-.name
+           YIELD $-.name AS name
+      """
+    Then a SemanticError should be raised at runtime:
+
+  Scenario: order by and limit
+    When executing query:
+      """
+      GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
+         YIELD $$.player.name AS name
+         | GROUP BY $-.name
+           YIELD $-.name AS name,
+                 SUM(1.5) AS sum,
+                 COUNT(*) AS count
+            | ORDER BY $-.sum, $-.name
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name              | sum | count |
+      | "Carmelo Anthony" | 1.5 | 1     |
+      | "Dwyane Wade"     | 1.5 | 1     |
+      | "Chris Paul"      | 3.0 | 2     |
+      | "LeBron James"    | 3.0 | 2     |
+    When executing query:
+      """
+      GO FROM 'Carmelo Anthony', 'Dwyane Wade' OVER like
+         YIELD $$.player.name AS name
+         | GROUP BY $-.name
+           YIELD $-.name AS name,
+                 SUM(1.5) AS sum,
+                 COUNT(*) AS count
+            | ORDER BY $-.sum, $-.name  DESC
+            | LIMIT 2
+      """
+    Then the result should be, in any order, with relax comparison:
+      | name              | sum | count |
+      | "Carmelo Anthony" | 1.5 | 1     |
+      | "Dwyane Wade"     | 1.5 | 1     |
+
   Scenario: Error Check
     When executing query:
       """
       YIELD avg(*)+1 ,1+2 ,(INT)abs(min(2))
       """
     Then a SemanticError should be raised at runtime: Could not apply aggregation function `AVG(*)' on `*`
-    When executing query:
-      """
-      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
-      | GROUP BY $-.dst YIELD avg(distinct $-.age) AS age
-      """
-    Then a SemanticError should be raised at runtime:  GroupBy list must in Yield list
-    When executing query:
-      """
-      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
-      | GROUP BY $-.dst,$-.age YIELD $-.age,avg(distinct $-.age) AS age
-      """
-    Then a SemanticError should be raised at runtime: GroupBy item `$-.dst' must be in Yield list
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
@@ -206,3 +476,84 @@ Feature: Basic Aggregate and GroupBy
       GO FROM "Tim Duncan" OVER like where count(*) > 2
       """
     Then a SemanticError should be raised at runtime: `(COUNT(*)>2)', not support aggregate function in where sentence.
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+               serve.end_year AS end_year
+         | GROUP BY $-.end_year
+           YIELD COUNT($$.team.name)
+      """
+    Then a SemanticError should be raised at runtime:  Only support input and variable in GroupBy sentence.
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+               serve._dst AS id
+         | GROUP BY $-.start_year
+           YIELD COUNT($-.id)
+      """
+    Then a SemanticError should be raised at runtime: `$-.start_year', not exist prop `start_year'
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+        YIELD $$.team.name AS name,
+              serve._dst AS id
+        | GROUP BY team
+          YIELD COUNT($-.id),
+                $-.name AS teamName
+      """
+    Then a SemanticError should be raised at runtime:  Group `team' invalid
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+               serve._dst AS id
+         | GROUP BY $-.name
+           YIELD COUNT($-.start_year)
+      """
+    Then a SemanticError should be raised at runtime: `$-.start_year', not exist prop `start_year'
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+               serve._dst AS id
+         | GROUP BY $-.name
+           YIELD SUM(*)
+      """
+    Then a SemanticError should be raised at runtime:  Could not apply aggregation function `SUM(*)' on `*`
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+               serve._dst AS id
+         | GROUP BY $-.name
+           YIELD COUNT($-.name, $-.id)
+      """
+    Then a SyntaxError should be raised at runtime: syntax error near `, $-.id)'
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+               serve._dst AS id
+         | GROUP BY $-.name, SUM($-.id)
+           YIELD $-.name,  SUM($-.id)
+      """
+    Then a SemanticError should be raised at runtime:  Group `SUM($-.id)' invalid
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve
+         YIELD $$.team.name AS name,
+               COUNT(serve._dst) AS id
+      """
+    Then a SemanticError should be raised at runtime: `COUNT(serve._dst) AS id', not support aggregate function in go sentence.
+
+# When executing query:
+# """
+# GO FROM "Marco Belinelli" OVER serve
+# YIELD $$.team.name AS name,
+# serve.end_year AS end_year
+# | GROUP BY $-.end_year
+# YIELD COUNT($var)
+# """
+# Then a SemanticError should be raised at runtime:

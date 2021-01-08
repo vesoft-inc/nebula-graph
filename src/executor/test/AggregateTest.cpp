@@ -132,8 +132,7 @@ struct RowCmp {
     std::vector<Expression*> groupItems;                                    \
     auto expr1 =                                                            \
         std::make_unique<InputPropertyExpression>(new std::string("col2")); \
-    auto expr2 =                                                            \
-        std::make_unique<InputPropertyExpression>(new std::string("col2")); \
+    auto expr2 = expr1->clone(); \
     groupKeys.emplace_back(expr1.get());                                    \
     AggregateExpression item(new std::string(""), expr2.release(), false);  \
     groupItems.emplace_back(&item);                                         \
@@ -307,8 +306,7 @@ TEST_F(AggregateTest, Collect) {
         std::vector<Expression*> groupItems;
         auto expr1 =
             std::make_unique<InputPropertyExpression>(new std::string("col1"));
-        auto expr2 =
-            std::make_unique<InputPropertyExpression>(new std::string("col1"));
+        auto expr2 = expr1->clone();
         groupKeys.emplace_back(expr1.get());
         AggregateExpression item(new std::string("COLLECT"), expr2.release(), false);
         groupItems.emplace_back(std::move(&item));
