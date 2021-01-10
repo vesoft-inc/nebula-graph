@@ -466,7 +466,7 @@ Feature: Integer Vid Shortest Path
     When executing query:
       """
       $a = GO FROM hash("Yao Ming") over like YIELD like._dst AS src;
-      FIND SHORTEST PATH WITH PROP FROM $a.src TO "Tony Parker" OVER like, serve UPTO 5 STEPS
+      FIND SHORTEST PATH WITH PROP FROM $a.src TO hash("Tony Parker") OVER like, serve UPTO 5 STEPS
       """
     Then the result should be, in any order, with relax comparison:
       | path                                                                                                                                                                                                                                                                 |
