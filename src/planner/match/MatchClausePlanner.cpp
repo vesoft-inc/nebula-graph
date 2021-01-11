@@ -176,7 +176,8 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(
-        appendFetchVertexPlan(nodeInfos.front().filter,
+        appendFetchVertexPlan(nodeInfos.front().alias,
+                              nodeInfos.front().filter,
                               matchClauseCtx->space,
                               matchClauseCtx->qctx,
                               edgeInfos.empty() ? initialExpr_->clone().release() : nullptr,
@@ -225,7 +226,8 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(
-        appendFetchVertexPlan(nodeInfos.back().filter,
+        appendFetchVertexPlan(nodeInfos.back().alias,
+                              nodeInfos.back().filter,
                               matchClauseCtx->space,
                               matchClauseCtx->qctx,
                               edgeInfos.empty() ? initialExpr_->clone().release() : nullptr,
@@ -256,7 +258,8 @@ Status MatchClausePlanner::expandFromEdge(const std::vector<NodeInfo>& nodeInfos
     return Status::Error("Expand from edge has not been implemented yet.");
 }
 
-Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
+Status MatchClausePlanner::appendFetchVertexPlan(const std::string* nodeAlias,
+                                                 const Expression* nodeFilter,
                                                  const SpaceInfo& space,
                                                  QueryContext* qctx,
                                                  Expression* initialExpr,
@@ -269,19 +272,30 @@ Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,
 
     PlanNode* root = gv;
     if (nodeFilter != nullptr) {
+        DCHECK(nodeAlias != nullptr);
         auto filter = qctx->objPool()->add(nodeFilter->clone().release());
         RewriteMatchLabelVisitor visitor(
-            [](const Expression* expr) -> Expression *{
+            [nodeAlias](const Expression* expr) -> Expression *{
             DCHECK(expr->kind() == Expression::Kind::kLabelAttribute ||
                 expr->kind() == Expression::Kind::kLabel);
-            // filter prop
             if (expr->kind() == Expression::Kind::kLabelAttribute) {
+                // filter prop
                 auto la = static_cast<const LabelAttributeExpression*>(expr);
-                return new AttributeExpression(
-                    new VertexExpression(), la->right()->clone().release());
+                if (*la->left()->name() == *nodeAlias) {
+                    return new AttributeExpression(
+                        new VertexExpression(), la->right()->clone().release());
+                } else {
+                    return la->clone().release();
+                }
+            } else {
+                // filter tag
+                auto lb = static_cast<const LabelExpression*>(expr);
+                if (*lb->name() == *nodeAlias) {
+                    return new VertexExpression();
+                } else {
+                    return lb->clone().release();
+                }
             }
-            // filter tag
-            return new VertexExpression();
         });
         filter->accept(&visitor);
         root = Filter::make(qctx, root, filter);

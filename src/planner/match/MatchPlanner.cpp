@@ -72,11 +72,14 @@ StatusOr<SubPlan> MatchPlanner::connectSegments(
     if (subplans.size() == 1) {
         return subplans.front();
     }
+    DCHECK_EQ(subplans.size(), clauses.size());
 
     SubPlan finalPlan = subplans.front();
+    auto *qctx = clauses.front()->qctx;
+    SegmentsConnector connector;
     for (size_t i = 0; i < subplans.size() - 1; ++i) {
-        auto interimPlan = SegmentsConnector::connectSegments(
-            clauses[i + 1].get(), clauses[i].get(), subplans[i + 1], finalPlan);
+        auto interimPlan = connector.connectSegments(
+            clauses[i + 1].get(), clauses[i].get(), subplans[i + 1], finalPlan, qctx);
         NG_RETURN_IF_ERROR(interimPlan);
         finalPlan = std::move(interimPlan).value();
     }

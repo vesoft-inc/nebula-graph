@@ -60,7 +60,8 @@ private:
                           size_t startIndex,
                           SubPlan& subplan);
 
-    Status appendFetchVertexPlan(const Expression* nodeFilter,
+    Status appendFetchVertexPlan(const std::string* nodeAlias,
+                                 const Expression* nodeFilter,
                                  const SpaceInfo& space,
                                  QueryContext* qctx,
                                  Expression* initialExpr,

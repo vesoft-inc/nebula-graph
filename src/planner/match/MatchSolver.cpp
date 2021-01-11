@@ -9,7 +9,6 @@
 #include "context/ast/AstContext.h"
 #include "context/ast/QueryAstContext.h"
 #include "util/ExpressionUtils.h"
-#include "visitor/RewriteMatchLabelVisitor.h"
 #include "planner/Planner.h"
 #include "planner/Query.h"
 
@@ -142,25 +141,6 @@ Expression* MatchSolver::makeIndexFilter(const std::string& label,
     return qctx->objPool()->add(root);
 }
 
-Status MatchSolver::buildFilter(const MatchClauseContext* mctx, SubPlan* plan) {
-    if (mctx->where->filter == nullptr) {
-        return Status::OK();
-    }
-    auto newFilter = mctx->where->filter->clone();
-    auto rewriter = [mctx](const Expression* expr) {
-        return MatchSolver::doRewrite(mctx->aliasesGenerated, expr);
-    };
-    RewriteMatchLabelVisitor visitor(std::move(rewriter));
-    newFilter->accept(&visitor);
-    auto cond = mctx->qctx->objPool()->add(newFilter.release());
-    auto input = plan->root;
-    auto *node = Filter::make(mctx->qctx, input, cond);
-    node->setInputVar(input->outputVar());
-    node->setColNames(input->colNames());
-    plan->root = node;
-    return Status::OK();
-}
-
 void MatchSolver::extractAndDedupVidColumn(QueryContext* qctx,
                                            Expression* initialExpr,
                                            PlanNode* dep,
@@ -226,6 +206,20 @@ PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
     auto filter = Filter::make(qctx, input, qctx->objPool()->add(cond.release()));
     filter->setColNames(input->colNames());
     return filter;
+}
+
+Status MatchSolver::combineYieldColumns(YieldColumns *curYieldColumns,
+                                        const YieldColumns *lastYieldColumns) {
+    const auto &lastColumns = lastYieldColumns->columns();
+    for (auto &column : lastColumns) {
+        DCHECK(column->alias() != nullptr);
+        auto *newColumn = new YieldColumn(
+            new VariablePropertyExpression(new std::string(), new std::string(*column->alias())),
+            new std::string(*column->alias()));
+        curYieldColumns->addColumn(newColumn);
+    }
+
+    return Status::OK();
 }
 
 }  // namespace graph

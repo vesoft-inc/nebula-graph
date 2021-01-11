@@ -22,6 +22,7 @@ nebula_add_library(
     match/AddDependencyStrategy.cpp
     match/AddInputStrategy.cpp
     match/CartesianProductStrategy.cpp
+    match/ApplyStrategy.cpp
     match/MatchPlanner.cpp
     match/MatchClausePlanner.cpp
     match/UnwindClausePlanner.cpp

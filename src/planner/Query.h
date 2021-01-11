@@ -538,6 +538,10 @@ public:
         return condition_;
     }
 
+    void setCondition(Expression* condition) {
+        condition_ = condition;
+    }
+
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
 private:
@@ -636,6 +640,9 @@ private:
     YieldColumns*               cols_{nullptr};
 };
 
+/**
+ * Unwind is used to transform any list back into individual rows
+ */
 class Unwind final : public SingleInputNode {
 public:
     static Unwind* make(QueryContext* qctx, PlanNode* input, YieldColumns* cols) {
@@ -656,9 +663,6 @@ private:
     YieldColumns*               cols_{nullptr};
 };
 
-/**
- * Sort the given record set.
- */
 class Sort final : public SingleInputNode {
 public:
     static Sort* make(QueryContext* qctx,
@@ -890,6 +894,7 @@ public:
         kBFSShortest,
         kAllPaths,
         kMultiplePairShortest,
+        kAppend,
     };
 
     static DataCollect* make(QueryContext* qctx,

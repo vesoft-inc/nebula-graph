@@ -27,15 +27,17 @@ public:
         kLeftOuterJoin,
         kCartesianProduct,
         kUnion,
+        kApply,
     };
 
-    SegmentsConnector() = delete;
+    SegmentsConnector() = default;
 
     // Analyse the relation of two segments and connect them.
-    static StatusOr<SubPlan> connectSegments(CypherClauseContextBase* leftCtx,
-                                             CypherClauseContextBase* rightCtx,
-                                             SubPlan& left,
-                                             SubPlan& right);
+    StatusOr<SubPlan> connectSegments(CypherClauseContextBase* leftCtx,
+                                      CypherClauseContextBase* rightCtx,
+                                      SubPlan& left,
+                                      SubPlan& right,
+                                      QueryContext* qctx = nullptr);
 
     static PlanNode* innerJoinSegments(
         QueryContext* qctx,
@@ -48,9 +50,35 @@ public:
                                               const PlanNode* left,
                                               const PlanNode* right);
 
+    static PlanNode* applySegments(QueryContext* qctx,
+                                   const PlanNode* left,
+                                   const PlanNode* right,
+                                   const std::string& rowIndex);
+
     static void addDependency(const PlanNode* left, const PlanNode* right);
 
     static void addInput(const PlanNode* left, const PlanNode* right, bool copyColNames = false);
+
+private:
+    static PlanNode* iterateDataSet(QueryContext* qctx,
+                                    PlanNode* input,
+                                    const std::string& rowIndex);
+
+    static PlanNode* transformDataSet(QueryContext* qctx, PlanNode* input);
+
+    static Status rewriteMatchClause(QueryContext* qctx,
+                                     MatchClauseContext* mctx,
+                                     SubPlan& plan,
+                                     PlanNode* input,
+                                     const std::string& rowIndex = "");
+
+    static void collectPlanNodes(const PlanNode* root,
+                                 const PlanNode* tail,
+                                 PlanNode::Kind kind,
+                                 std::vector<PlanNode*>& result);
+
+private:
+    bool isUnwinding_{false};
 };
 }  // namespace graph
 }  // namespace nebula

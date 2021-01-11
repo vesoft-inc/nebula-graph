@@ -41,6 +41,7 @@ folly::Future<Status> DataCollectExecutor::doCollect() {
             NG_RETURN_IF_ERROR(collectBFSShortest(vars));
             break;
         }
+        case DataCollect::CollectKind::kAppend:
         case DataCollect::CollectKind::kAllPaths: {
             NG_RETURN_IF_ERROR(collectAllPaths(vars));
             break;
