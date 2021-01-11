@@ -14,6 +14,7 @@ nebula_add_library(
     rule/IndexScanRule.cpp
     rule/LimitPushDownRule.cpp
     rule/TopNRule.cpp
+    rule/ProjectColumnRewriteToIndexColExprRule.cpp
 )
 
 nebula_add_subdirectory(test)
