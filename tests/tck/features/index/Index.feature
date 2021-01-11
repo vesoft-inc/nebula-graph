@@ -1,15 +1,13 @@
 Feature: IndexTest_Vid_String
-
-  @skip
-  Scenario: IndexTest TagIndex
+  Background:
     Given an empty graph
     And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And having executed:
+      | vid_type | <vid_type> |
+
+
+  @skip
+  Scenario Outline: IndexTest TagIndex
+    Given having executed:
       """
       CREATE TAG tag_1(col1 string, col2 int, col3 double, col4 timestamp);
       """
@@ -61,14 +59,16 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     When executing query:
       """
-      INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES
-                      "Tim":  ("Tim",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                      "Tony": ("Tony", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                      "May":  ("May",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                      "Tom":  ("Tom",  18, 11.11, `timestamp`("2000-10-10T10:00:00)")
+      INSERT VERTEX
+        tag_1(col1, col2, col3, col4)
+      VALUES
+        <vid_Tim>:  ("Tim",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        <vid_Tony>: ("Tony", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        <vid_May>:  ("May",  18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        <vid_Tom>:  ("Tom",  18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       REBUILD TAG INDEX single_tag_index;
@@ -145,15 +145,15 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-  Scenario: IndexTest EdgeIndex
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And having executed:
+    Examples:
+      | vid_type | FIXED_STRING(30) | int          |
+      | vid_Tim  | "Tim"            | uuid("Tim")  |
+      | vid_Tony | "Tony"           | uuid("Tony") |
+      | vid_May  | "May"            | uuid("May")  |
+      | vid_Tom  | "Tom"            | uuid("Tom")  |
+
+  Scenario Outline: IndexTest EdgeIndex
+    Given having executed:
       """
       CREATE EDGE edge_1(col1 string, col2 int, col3 double, col4 timestamp)
       """
@@ -205,14 +205,16 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     When executing query:
       """
-      INSERT EDGE edge_1(col1, col2, col3, col4) VALUES
-                     "Tim"  -> "May":  ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     "Tim"  -> "Tony": ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     "Tony" -> "May": ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
-                     "May"  -> "Tim":  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00"))
+      INSERT EDGE
+        edge_1(col1, col2, col3, col4)
+      VALUES
+        <vid_Tim>  -> <vid_May>:  ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        <vid_Tim>  -> <vid_Tony>: ("Good", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        <vid_Tony> -> <vid_May>: ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00")),
+        <vid_May>  -> <vid_Tim>:  ("Like", 18, 11.11, `timestamp`("2000-10-10T10:00:00"))
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       REBUILD EDGE INDEX single_edge_index
@@ -284,15 +286,15 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-  Scenario: IndexTest TagIndexTTL
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And having executed:
+    Examples:
+      | vid_type | FIXED_STRING(30) | int          |
+      | vid_Tim  | "Tim"            | uuid("Tim")  |
+      | vid_Tony | "Tony"           | uuid("Tony") |
+      | vid_May  | "May"            | uuid("May")  |
+      | vid_Tom  | "Tom"            | uuid("Tom")  |
+
+  Scenario Outline: IndexTest TagIndexTTL
+    Given having executed:
       """
       CREATE TAG person_ttl(number int, age int, gender int, email string);
       """
@@ -354,8 +356,7 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     When executing query:
       """
-      CREATE TAG person_ttl_2(number int, age int, gender string)
-                             ttl_duration = 200, ttl_col = "age"
+      CREATE TAG person_ttl_2(number int, age int, gender string) ttl_duration = 200, ttl_col = "age"
       """
     Then the execution should be successful
     When executing query:
@@ -385,15 +386,11 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-  Scenario: IndexTest EdgeIndexTTL
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And having executed:
+    Examples:
+      | vid_type | FIXED_STRING(30) | int          |
+
+  Scenario Outline: IndexTest EdgeIndexTTL
+    Given having executed:
       """
       CREATE EDGE edge_1_ttl(degree int, start_time int)
       """
@@ -490,15 +487,11 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-  Scenario: IndexTest AlterTag
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And having executed:
+    Examples:
+      | vid_type | FIXED_STRING(30) | int          |
+
+  Scenario Outline: IndexTest AlterTag
+    Given having executed:
       """
       CREATE TAG tag_1(col1 bool, col2 int, col3 double, col4 timestamp)
       """
@@ -510,54 +503,55 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     When executing query:
       """
-      INSERT VERTEX tag_1(col1, col2, col3, col4) VALUES
-                     "100":  (true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"))
+      INSERT VERTEX
+        tag_1(col1, col2, col3, col4)
+      VALUES
+        <vid_100>: (true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"))
       """
     Then the execution should be successful
     When executing query:
       """
       ALTER TAG tag_1 ADD (col5 int)
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       CREATE TAG INDEX single_person_index2 ON tag_1(col5)
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
-      INSERT VERTEX tag_1(col1, col2, col3, col4, col5) VALUES
-                     "100":(true,  18, 1.1, `timestamp`("2000-10-10T10:00:00"), 5)
+      INSERT VERTEX
+        tag_1(col1, col2, col3, col4, col5)
+      VALUES
+        <vid_100>:(true, 18, 1.1, `timestamp`("2000-10-10T10:00:00"), 5)
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD tag_1.col5, tag_1.col1
       """
     Then the result should be, in any order:
       | VertexID | tag_1.col5 | tag_1.col1 |
-      | "100"    | 5          | true       |
+      | <vid_100> | 5          | true       |
     When executing query:
       """
       LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD tag_1.col1, tag_1.col5
       """
     Then the result should be, in any order:
       | VertexID | tag_1.col1 | tag_1.col5 |
-      | "100"    | true       | 5          |
+      | <vid_100> | true       | 5          |
     Then drop the used space
 
-  Scenario: IndexTest RebuildTagIndexStatusInfo
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And having executed:
+    Examples:
+      | vid_type | FIXED_STRING(30) | int          |
+      | vid_100  | "100"            | 100          |
+
+  Scenario Outline: IndexTest RebuildTagIndexStatusInfo
+    Given having executed:
       """
       CREATE TAG tag_status(col1 int)
       """
@@ -566,8 +560,8 @@ Feature: IndexTest_Vid_String
       """
       CREATE TAG INDEX tag_index_status ON tag_status(col1);
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       SHOW TAG INDEX STATUS;
@@ -578,20 +572,20 @@ Feature: IndexTest_Vid_String
       """
       REBUILD TAG INDEX tag_index_status
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       DROP TAG INDEX tag_index_status
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       DESCRIBE TAG INDEX tag_index_status
       """
-    And wait 6 seconds
     Then a ExecutionError should be raised at runtime:
+    And wait 6 seconds
     When executing query:
       """
       SHOW TAG INDEX STATUS;
@@ -601,15 +595,11 @@ Feature: IndexTest_Vid_String
       | "tag_index_status" | "FINISHED"   |
     Then drop the used space
 
-  Scenario: IndexTest RebuildEdgeIndexStatusInfo
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And having executed:
+    Examples:
+      | vid_type | FIXED_STRING(30) | int          |
+
+  Scenario Outline: IndexTest RebuildEdgeIndexStatusInfo
+    Given having executed:
       """
       CREATE EDGE edge_status(col1 int)
       """
@@ -618,8 +608,8 @@ Feature: IndexTest_Vid_String
       """
       CREATE EDGE INDEX edge_index_status ON edge_status(col1);
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       SHOW EDGE INDEX STATUS;
@@ -630,8 +620,8 @@ Feature: IndexTest_Vid_String
       """
       REBUILD EDGE INDEX edge_index_status
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       DROP EDGE INDEX edge_index_status
@@ -651,15 +641,11 @@ Feature: IndexTest_Vid_String
       | "edge_index_status" | "FINISHED"   |
     Then drop the used space
 
-  Scenario: IndexTest AlterSchemaTest
-    Given an empty graph
-    And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(30) |
-      | charset        | utf8             |
-      | collate        | utf8_bin         |
-    And having executed:
+    Examples:
+      | vid_type | FIXED_STRING(30) | int          |
+
+  Scenario Outline: IndexTest AlterSchemaTest
+    Given having executed:
       """
       CREATE TAG alter_tag(id int);
       """
@@ -671,20 +657,24 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     When executing query:
       """
-      INSERT VERTEX alter_tag(id) VALUES
-                     "100":(1), "200":(2)
+      INSERT VERTEX alter_tag(id) VALUES <vid_100>:(1), <vid_200>:(2)
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       ALTER TAG alter_tag ADD (type int)
       """
-    And wait 6 seconds
     Then the execution should be successful
+    And wait 6 seconds
     When executing query:
       """
       LOOKUP ON alter_tag WHERE alter_tag.id == 1 YIELD alter_tag.type
       """
     Then the execution should be successful
     Then drop the used space
+
+    Examples:
+      | vid_type | FIXED_STRING(30) | int          |
+      | vid_100  | "100"            | 100          |
+      | vid_200  | "200"            | 200          |
