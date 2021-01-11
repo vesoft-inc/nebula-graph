@@ -125,6 +125,14 @@ def executing_query(query, graph_spaces, session, request):
     graph_spaces['ngql'] = ngql
 
 
+@when(parse("profiling query:\n{query}"))
+def profiling_query(query, graph_spaces, session, request):
+    ngql = "PROFILE {" + " ".join(query.splitlines()) + "}"
+    ngql = normalize_outline_scenario(request, ngql)
+    graph_spaces['result_set'] = session.execute(ngql)
+    graph_spaces['ngql'] = ngql
+
+
 @given(parse("wait {secs:d} seconds"))
 @when(parse("wait {secs:d} seconds"))
 @then(parse("wait {secs:d} seconds"))

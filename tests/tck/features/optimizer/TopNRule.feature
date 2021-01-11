@@ -8,7 +8,7 @@ Feature: TopN rule
     Given a graph with space named "nba"
 
   Scenario:
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Marco Belinelli" OVER like
       YIELD like.likeness AS likeness |
@@ -28,7 +28,7 @@ Feature: TopN rule
       | Start        | []           |               |
 
   Scenario:
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Marco Belinelli" OVER like REVERSELY
       YIELD like.likeness AS likeness |
@@ -47,7 +47,7 @@ Feature: TopN rule
       | Start        | []           |               |
 
   Scenario: [1] fail to apply topn rule
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Marco Belinelli" OVER like
       YIELD like.likeness as likeness |
@@ -67,7 +67,7 @@ Feature: TopN rule
       | Start        | []           |               |
 
   Scenario: [2] fail to apply topn rule
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Marco Belinelli" OVER like
       YIELD like.likeness AS likeness |

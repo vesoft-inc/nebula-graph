@@ -8,7 +8,7 @@ Feature: Push Limit down rule
     Given a graph with space named "nba"
 
   Scenario:
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "James Harden" OVER like REVERSELY |
       Limit 2
@@ -25,7 +25,7 @@ Feature: Push Limit down rule
       | Start        | []           |               |
 
   Scenario:
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Vince Carter" OVER serve
       YIELD serve.start_year as start_year |

@@ -8,7 +8,7 @@ Feature: Push Filter down GetNeighbors rule
     Given a graph with space named "nba"
 
   Scenario:
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
       WHERE $^.player.age > 18
@@ -28,7 +28,7 @@ Feature: Push Filter down GetNeighbors rule
       | Start        | []           |                            |
 
   Scenario:
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "James Harden" OVER like REVERSELY
       WHERE $^.player.age > 18
@@ -46,7 +46,7 @@ Feature: Push Filter down GetNeighbors rule
       | Start        | []           |                            |
 
   Scenario:
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
       WHERE serve.start_year > 2005
@@ -64,7 +64,7 @@ Feature: Push Filter down GetNeighbors rule
       | Start        | []           |                                 |
 
   Scenario:
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Lakers" OVER serve REVERSELY
       WHERE serve.start_year < 2017
@@ -85,7 +85,7 @@ Feature: Push Filter down GetNeighbors rule
 
   @skip
   Scenario: Depends on other opt rules to eliminate duplicate project nodes
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
       WHERE $^.player.age > 18 AND $$.team.name == "Lakers"
@@ -100,7 +100,7 @@ Feature: Push Filter down GetNeighbors rule
       | Filter       | [2]          | condition: ($$.team.name=="Lakers") |
       | GetNeighbors | [3]          | filter: ($^.player.age>18)          |
       | Start        | []           |                                     |
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
       WHERE $^.player.age > 18 OR $$.team.name == "Lakers"
@@ -115,7 +115,7 @@ Feature: Push Filter down GetNeighbors rule
       | Filter       | [2]          | condition: ($^.player.age>18) OR ($$.team.name=="Lakers") |
       | GetNeighbors | [3]          |                                                           |
       | Start        | []           |                                                           |
-    When executing query:
+    When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
       WHERE $$.team.name == "Lakers"
