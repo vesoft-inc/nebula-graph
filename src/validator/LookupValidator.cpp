@@ -388,6 +388,12 @@ Status LookupValidator::rewriteRelExpr(RelationalExpression* expr) {
 }
 
 StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr, const std::string& prop) {
+    // TODO (sky) : just check the const expression now.
+    // other expressions will be supported in the future. such as :
+    // col1 > 1 + 2 , col1 > abs(const) , etc.
+    if (expr->kind() != Expression::Kind::kConstant) {
+        return Status::SemanticError("expression error : %s", expr->toString().c_str());
+    }
     auto schema = isEdge_ ? qctx_->schemaMng()->getEdgeSchema(spaceId_, schemaId_)
                           : qctx_->schemaMng()->getTagSchema(spaceId_, schemaId_);
     auto type = schema->getFieldType(prop);
