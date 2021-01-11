@@ -147,10 +147,10 @@ Feature: IndexTest_Vid_String
 
     Examples: Vertical
       | vid_type | FIXED_STRING(30) | int          |
-      | vid_Tim  | "Tim"            | uuid("Tim")  |
-      | vid_Tony | "Tony"           | uuid("Tony") |
-      | vid_May  | "May"            | uuid("May")  |
-      | vid_Tom  | "Tom"            | uuid("Tom")  |
+      | vid_Tim  | "Tim"            | hash("Tim")  |
+      | vid_Tony | "Tony"           | hash("Tony") |
+      | vid_May  | "May"            | hash("May")  |
+      | vid_Tom  | "Tom"            | hash("Tom")  |
 
   Scenario Outline: IndexTest EdgeIndex
     Given having executed:
@@ -288,9 +288,9 @@ Feature: IndexTest_Vid_String
 
     Examples: Vertical
       | vid_type | FIXED_STRING(30) | int          |
-      | vid_Tim  | "Tim"            | uuid("Tim")  |
-      | vid_Tony | "Tony"           | uuid("Tony") |
-      | vid_May  | "May"            | uuid("May")  |
+      | vid_Tim  | "Tim"            | hash("Tim")  |
+      | vid_Tony | "Tony"           | hash("Tony") |
+      | vid_May  | "May"            | hash("May")  |
 
   Scenario Outline: IndexTest TagIndexTTL
     Given having executed:
