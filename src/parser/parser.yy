@@ -24,6 +24,8 @@
 #include "common/expression/CaseExpression.h"
 #include "common/expression/TextSearchExpression.h"
 #include "common/expression/ListComprehensionExpression.h"
+#include "common/expression/AggregateExpression.h"
+
 #include "util/SchemaUtil.h"
 #include "util/ParserUtil.h"
 #include "context/QueryContext.h"
@@ -118,6 +120,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     MapItemList                            *map_item_list;
     MatchPath                              *match_path;
     MatchNode                              *match_node;
+    MatchNodeLabel                         *match_node_label;
+    MatchNodeLabelList                     *match_node_label_list;
     MatchEdge                              *match_edge;
     MatchEdgeProp                          *match_edge_prop;
     MatchEdgeTypeList                      *match_edge_type_list;
@@ -213,6 +217,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> case_expression
 %type <expr> list_comprehension_expression
 %type <expr> compound_expression
+%type <expr> aggregate_expression
 %type <expr> text_search_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
@@ -272,6 +277,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <match_path> match_path_pattern
 %type <match_path> match_path
 %type <match_node> match_node
+%type <match_node_label> match_node_label
+%type <match_node_label_list> match_node_label_list
 %type <match_edge> match_edge
 %type <match_edge_prop> match_edge_prop
 %type <match_return> match_return
@@ -490,7 +497,6 @@ unreserved_keyword
 
 agg_function
     : KW_COUNT              { $$ = new std::string("COUNT"); }
-    | KW_COUNT_DISTINCT     { $$ = new std::string("COUNT_DISTINCT"); }
     | KW_SUM                { $$ = new std::string("SUM"); }
     | KW_AVG                { $$ = new std::string("AVG"); }
     | KW_MAX                { $$ = new std::string("MAX"); }
@@ -525,6 +531,9 @@ expression
         $$ = new ConstantExpression($1);
     }
     | compound_expression {
+        $$ = $1;
+    }
+    | aggregate_expression {
         $$ = $1;
     }
     | MINUS {
@@ -831,6 +840,23 @@ function_call_expression
     }
     | KW_DATETIME L_PAREN opt_argument_list R_PAREN {
         $$ = new FunctionCallExpression(new std::string("datetime"), $3);
+    }
+    ;
+
+aggregate_expression
+    : agg_function L_PAREN expression R_PAREN {
+        $$ = new AggregateExpression($1, $3, false/*distinct*/);
+    }
+    | agg_function L_PAREN KW_DISTINCT expression R_PAREN {
+        $$ = new AggregateExpression($1, $4, true/*distinct*/);
+    }
+    | agg_function L_PAREN STAR R_PAREN {
+        auto star = new ConstantExpression(std::string("*"));
+        $$ = new AggregateExpression($1, star, false/*distinct*/);
+    }
+    | agg_function L_PAREN KW_DISTINCT STAR R_PAREN {
+        auto star = new ConstantExpression(std::string("*"));
+        $$ = new AggregateExpression($1, star, true/*distinct*/);
     }
     ;
 
@@ -1148,28 +1174,6 @@ yield_column
     | expression KW_AS name_label {
         $$ = new YieldColumn($1, $3);
     }
-    | agg_function L_PAREN expression R_PAREN {
-        auto yield = new YieldColumn($3);
-        yield->setAggFunction($1);
-        $$ = yield;
-    }
-    | agg_function L_PAREN expression R_PAREN KW_AS name_label {
-        auto yield = new YieldColumn($3, $6);
-        yield->setAggFunction($1);
-        $$ = yield;
-    }
-    | agg_function L_PAREN STAR R_PAREN {
-        auto expr = new ConstantExpression(std::string("*"));
-        auto yield = new YieldColumn(expr);
-        yield->setAggFunction($1);
-        $$ = yield;
-    }
-    | agg_function L_PAREN STAR R_PAREN KW_AS name_label {
-        auto expr = new ConstantExpression(std::string("*"));
-        auto yield = new YieldColumn(expr, $6);
-        yield->setAggFunction($1);
-        $$ = yield;
-    }
     ;
 
 group_clause
@@ -1291,14 +1295,31 @@ match_node
     : L_PAREN match_alias R_PAREN {
         $$ = new MatchNode($2, nullptr, nullptr);
     }
-    | L_PAREN match_alias COLON name_label R_PAREN {
-        $$ = new MatchNode($2, $4, nullptr);
-    }
-    | L_PAREN match_alias COLON name_label map_expression R_PAREN {
-        $$ = new MatchNode($2, $4, $5);
+    | L_PAREN match_alias match_node_label_list R_PAREN {
+        $$ = new MatchNode($2, $3, nullptr);
     }
     | L_PAREN match_alias map_expression R_PAREN {
         $$ = new MatchNode($2, nullptr, $3);
+    }
+    ;
+
+match_node_label
+    : COLON name_label {
+        $$ = new MatchNodeLabel($2);
+    }
+    | COLON name_label map_expression {
+        $$ = new MatchNodeLabel($2, $3);
+    }
+    ;
+
+match_node_label_list
+    : match_node_label {
+        $$ = new MatchNodeLabelList();
+        $$->add($1);
+    }
+    | match_node_label_list match_node_label {
+        $$ = $1;
+        $1->add($2);
     }
     ;
 
