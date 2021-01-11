@@ -7,7 +7,9 @@
 #include "planner/Query.h"
 
 #include <folly/String.h>
+#include <folly/dynamic.h>
 #include <folly/json.h>
+#include <glog/logging.h>
 
 #include "util/ToJson.h"
 
@@ -153,7 +155,14 @@ void Project::clone(const Project &p) {
 
 std::unique_ptr<PlanNodeDescription> Project::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("columns", cols_ ? cols_->toString() : "", desc.get());
+    if (cols_) {
+        auto columns = folly::dynamic::array();
+        for (const auto* col : cols_->columns()) {
+            DCHECK(col != nullptr);
+            columns.push_back(col->toString());
+        }
+        addDescription("columns", folly::toJson(columns), desc.get());
+    }
     return desc;
 }
 
