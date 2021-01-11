@@ -154,14 +154,14 @@ void Project::clone(const Project &p) {
 
 std::unique_ptr<PlanNodeDescription> Project::explain() const {
     auto desc = SingleInputNode::explain();
+    auto columns = folly::dynamic::array();
     if (cols_) {
-        auto columns = folly::dynamic::array();
         for (const auto* col : cols_->columns()) {
             DCHECK(col != nullptr);
             columns.push_back(col->toString());
         }
-        addDescription("columns", folly::toJson(columns), desc.get());
     }
+    addDescription("columns", folly::toJson(columns), desc.get());
     return desc;
 }
 
