@@ -146,12 +146,11 @@ Feature: User & privilege Test
     Then the execution should be successful
 
   Scenario: Grant privilege
-    When executing query:
-      """
-      CREATE SPACE IF NOT EXISTS user_tmp_space(partition_num=1, replica_factor=1)
-      """
-    And wait 10 seconds
-    Then the execution should be successful
+    Given create a space with following options:
+      | name           | user_tmp_space |
+      | partition_num  | 1              |
+      | replica_factor | 1              |
+    And wait 3 seconds
     When executing query:
       """
       GRANT DBA TO user1
@@ -200,6 +199,7 @@ Feature: User & privilege Test
       | Account     | Role Type |
       | "usertmp"   | "DBA"     |
       | "usertmp_2" | "GUEST"   |
+    And drop the used space
 
   Scenario: Grant privilege on not existing space
     When executing query:
@@ -219,12 +219,11 @@ Feature: User & privilege Test
     Then a ExecutionError should be raised at runtime:
 
   Scenario: Revoke role
-    When executing query:
-      """
-      CREATE SPACE IF NOT EXISTS user_tmp_space_3(partition_num=1, replica_factor=1)
-      """
-    And wait 10 seconds
-    Then the execution should be successful
+    Given create a space with following options:
+      | name           | user_tmp_space_3 |
+      | partition_num  | 1                |
+      | replica_factor | 1                |
+    And wait 3 seconds
     When executing query:
       """
       CREATE USER IF NOT EXISTS user1 WITH PASSWORD "pwd1"
@@ -270,3 +269,4 @@ Feature: User & privilege Test
       REVOKE ROLE DBA ON user_tmp_space_3 FROM user_revoke_tmp
       """
     Then a ExecutionError should be raised at runtime: not existed!
+    And drop the used space

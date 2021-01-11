@@ -2,15 +2,13 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@schema
-Feature: Insert string vid of vertex and edge
+Feature: tag and edge operations
 
-  Scenario: insert vertex and edge test
+  Scenario: tag operation test
     Given an empty graph
     And create a space with following options:
-      | partition_num  | 9                |
-      | replica_factor | 1                |
-      | vid_type       | FIXED_STRING(20) |
+      | name     | tag_operation_test |
+      | vid_type | FIXED_STRING(20)   |
     And wait 3 seconds
     # empty prop
     When executing query:
@@ -177,10 +175,12 @@ Feature: Insert string vid of vertex and edge
     # Tag with expression DEFAULT value
     When executing query:
       """
-      CREATE TAG default_tag_expr(id int64 DEFAULT 3/2*4-5,
-      male bool DEFAULT 3 > 2,
-      height double DEFAULT abs(-176.0),
-      adult bool DEFAULT true AND false)
+      CREATE TAG default_tag_expr(
+        id int64 DEFAULT 3/2*4-5,
+        male bool DEFAULT 3 > 2,
+        height double DEFAULT abs(-176.0),
+        adult bool DEFAULT true AND false
+      )
       """
     Then the execution should be successful
     # drop tag succeeded
@@ -208,6 +208,14 @@ Feature: Insert string vid of vertex and edge
       DROP TAG IF EXISTS exist_tag;
       """
     Then the execution should be successful
+    And drop the used space
+
+  Scenario: edge operation test
+    Given an empty graph
+    And create a space with following options:
+      | name     | edge_operation_test |
+      | vid_type | FIXED_STRING(20)    |
+    And wait 3 seconds
     # empty edge prop
     When executing query:
       """
@@ -361,10 +369,11 @@ Feature: Insert string vid of vertex and edge
     When executing query:
       """
       CREATE EDGE default_edge_expr(
-      id int DEFAULT 3/2*4-5,
-      male bool DEFAULT 3 > 2,
-      height double DEFAULT abs(-176.0),
-      adult bool DEFAULT true AND false)
+        id int DEFAULT 3/2*4-5,
+        male bool DEFAULT 3 > 2,
+        height double DEFAULT abs(-176.0),
+        adult bool DEFAULT true AND false
+      )
       """
     Then the execution should be successful
     # test drop edge
@@ -392,15 +401,19 @@ Feature: Insert string vid of vertex and edge
       DROP EDGE IF EXISTS exist_edge;
       """
     Then the execution should be successful
-    # test same tag in different space
-    When executing query:
+    And drop the used space
+
+  Scenario: same tag in different space
+    Given an empty graph
+    And create a space with following options:
+      | name     | same_tag_diff_spaces_test |
+      | vid_type | FIXED_STRING(20)          |
+    And wait 3 seconds
+    And having executed:
       """
-      CREATE SPACE my_space(partition_num=9, replica_factor=1);
-      USE my_space;
       CREATE TAG animal(name string, kind string);
       """
-    Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # check result
     When executing query:
       """
@@ -435,19 +448,28 @@ Feature: Insert string vid of vertex and edge
     Then the result should be, in any order:
       | Name       |
       | "test_tag" |
-    Given wait 3 seconds
+    And wait 3 seconds
     # test same tag in different space
     When executing query:
       """
       USE test_multi;
       CREATE TAG test_tag1();
-      USE my_space;
+      USE same_tag_diff_spaces_test;
       SHOW TAGS;
       """
     Then the result should be, in any order:
       | Name     |
       | "animal" |
       | "person" |
+    # test drop space
+    When executing query:
+      """
+      SHOW SPACES;
+      """
+    Then the result should include:
+      | Name                        |
+      | "same_tag_diff_spaces_test" |
+      | "test_multi"                |
     When executing query:
       """
       DROP SPACE test_multi
@@ -456,21 +478,8 @@ Feature: Insert string vid of vertex and edge
     # reserved keyword
     When executing query:
       """
-      USE my_space; CREATE TAG `tag` (`edge` string);
-      """
-    Then the execution should be successful
-    # test drop space
-    When executing query:
-      """
-      SHOW SPACES;
-      """
-    Then the result should include:
-      | Name       |
-      | "my_space" |
-    # test drop space
-    When executing query:
-      """
-      DROP SPACE my_space
+      USE same_tag_diff_spaces_test;
+      CREATE TAG `tag` (`edge` string);
       """
     Then the execution should be successful
     # check result
@@ -479,23 +488,26 @@ Feature: Insert string vid of vertex and edge
       SHOW SPACES;
       """
     Then the result should include:
-      | Name            |
-      | /EmptyGraph_.*/ |
-    # test alter tag with default
-    When executing query:
+      | Name                        |
+      | "same_tag_diff_spaces_test" |
+    And drop the used space
+
+  Scenario: test alter tag with default
+    Given an empty graph
+    And create a space with following options:
+      | vid_type | FIXED_STRING(20) |
+    And wait 3 seconds
+    And having executed:
       """
-      CREATE SPACE tag_space(partition_num=9);
-      USE tag_space;
       CREATE TAG t(name string DEFAULT "N/A", age int DEFAULT -1)
       """
-    Then the execution should be successful
     # test alter add
     When executing query:
       """
       ALTER TAG t ADD (description string DEFAULT "none")
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # insert
     When executing query:
       """
@@ -516,7 +528,7 @@ Feature: Insert string vid of vertex and edge
       ALTER TAG t CHANGE (description string NOT NULL)
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # insert
     When executing query:
       """
@@ -537,61 +549,54 @@ Feature: Insert string vid of vertex and edge
       INSERT VERTEX t() VALUES "1":()
       """
     Then a ExecutionError should be raised at runtime: Storage Error: The not null field doesn't have a default value.
-    # test alter edge with default value
-    When executing query:
+    And drop the used space
+
+  Scenario: test alter edge with default value
+    Given an empty graph
+    And create a space with following options:
+      | vid_type | FIXED_STRING(20) |
+    And wait 3 seconds
+    And having executed:
       """
       CREATE EDGE e(name string DEFAULT "N/A", age int DEFAULT -1)
       """
-    Then the execution should be successful
     When executing query:
       """
       ALTER EDGE e ADD (description string DEFAULT "none")
       """
     Then the execution should be successful
-    Given wait 3 seconds
-    When executing query:
-      """
-      INSERT VERTEX t(description) VALUES "1":("some one")
-      """
-    Then the execution should be successful
-    # check result by fetch
-    When executing query:
-      """
-      FETCH PROP ON t "1"
-      """
-    Then the result should be, in any order:
-      | VertexID | t.name | t.age | t.description |
-      | "1"      | "N/A"  | -1    | "some one"    |
+    And wait 3 seconds
     # alter drop default
     When executing query:
       """
       ALTER EDGE e CHANGE (description string NOT NULL)
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     # insert without default prop, failed
     When executing query:
       """
       INSERT EDGE e() VALUES "1"->"2":()
       """
     Then a ExecutionError should be raised at runtime: Storage Error: The not null field doesn't have a default value.
-    # test alter edge with timestamp default
-    When executing query:
-      """
-      CREATE SPACE issue2009(vid_type = FIXED_STRING(20));
-      USE issue2009
-      """
-    Then the execution should be successful
+    And drop the used space
+
+  Scenario: test alter edge with timestamp default
+    Given an empty graph
+    And create a space with following options:
+      | name     | issue2009        |
+      | vid_type | FIXED_STRING(20) |
     When executing query:
       """
       CREATE EDGE IF NOT EXISTS relation (
-      intimacy int DEFAULT 0,
-      isReversible bool DEFAULT false,
-      name string DEFAULT "N/A",
-      startTime timestamp DEFAULT 0)
+        intimacy int DEFAULT 0,
+        isReversible bool DEFAULT false,
+        name string DEFAULT "N/A",
+        startTime timestamp DEFAULT 0
+      )
       """
     Then the execution should be successful
-    Given wait 3 seconds
+    And wait 3 seconds
     When executing query:
       """
       INSERT EDGE relation (intimacy) VALUES "person.Tom" -> "person.Marry"@0:(3)
