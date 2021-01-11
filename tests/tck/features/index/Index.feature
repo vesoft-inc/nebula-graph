@@ -145,7 +145,7 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-    Examples:
+    Examples: Vertical
       | vid_type | FIXED_STRING(30) | int          |
       | vid_Tim  | "Tim"            | uuid("Tim")  |
       | vid_Tony | "Tony"           | uuid("Tony") |
@@ -286,12 +286,11 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-    Examples:
+    Examples: Vertical
       | vid_type | FIXED_STRING(30) | int          |
       | vid_Tim  | "Tim"            | uuid("Tim")  |
       | vid_Tony | "Tony"           | uuid("Tony") |
       | vid_May  | "May"            | uuid("May")  |
-      | vid_Tom  | "Tom"            | uuid("Tom")  |
 
   Scenario Outline: IndexTest TagIndexTTL
     Given having executed:
@@ -386,7 +385,7 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-    Examples:
+    Examples: Vertical
       | vid_type | FIXED_STRING(30) | int |
 
   Scenario Outline: IndexTest EdgeIndexTTL
@@ -487,7 +486,7 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-    Examples:
+    Examples: Vertical
       | vid_type | FIXED_STRING(30) | int |
 
   Scenario Outline: IndexTest AlterTag
@@ -546,7 +545,7 @@ Feature: IndexTest_Vid_String
       | <vid_100> | true       | 5          |
     Then drop the used space
 
-    Examples:
+    Examples: Vertical
       | vid_type | FIXED_STRING(30) | int |
       | vid_100  | "100"            | 100 |
 
@@ -595,7 +594,7 @@ Feature: IndexTest_Vid_String
       | "tag_index_status" | "FINISHED"   |
     Then drop the used space
 
-    Examples:
+    Examples: Vertical
       | vid_type | FIXED_STRING(30) | int |
 
   Scenario Outline: IndexTest RebuildEdgeIndexStatusInfo
@@ -641,7 +640,7 @@ Feature: IndexTest_Vid_String
       | "edge_index_status" | "FINISHED"   |
     Then drop the used space
 
-    Examples:
+    Examples: Vertical
       | vid_type | FIXED_STRING(30) | int |
 
   Scenario Outline: IndexTest AlterSchemaTest
@@ -674,7 +673,7 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-    Examples:
+    Examples: Vertical
       | vid_type | FIXED_STRING(30) | int |
       | vid_100  | "100"            | 100 |
       | vid_200  | "200"            | 200 |
