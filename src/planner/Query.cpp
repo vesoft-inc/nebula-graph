@@ -9,7 +9,6 @@
 #include <folly/String.h>
 #include <folly/dynamic.h>
 #include <folly/json.h>
-#include <glog/logging.h>
 
 #include "util/ToJson.h"
 
