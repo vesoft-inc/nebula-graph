@@ -97,6 +97,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     SubPlan subplan;
     // In the case of 0 step, src node is the dst node, return the vertex directly
     auto minHop = edge.range ? edge.range->min() : 1;
+    auto maxHop = edge.range ? edge.range->max() : 1;
     if (minHop == 0) {
         // Get vertex
         subplan = *plan;
@@ -107,7 +108,21 @@ Status Expand::expandSteps(const NodeInfo& node,
                                             initialExpr_->clone().release(),
                                             subplan));
         PlanNode* passThrough = subplan.root;
-        auto maxHop = edge.range ? edge.range->max() : 1;
+
+        // MatchSolver::extractAndDedupVidColumn(
+            // matchCtx_->qctx, initialExpr_.release(), subplan.root, inputVar_, subplan);
+
+        // auto* var = matchCtx_->qctx->symTable()->getVar(inputVar_);
+        // initialExpr_ = std::make_unique<Expression>(
+            // MatchSolver::getEndVidInPath(var->colNames.back())->clone().release());
+
+        // If maxHop > 0, the result of 0 step will be passed to next plan node
+        if (maxHop > 0) {
+            auto pt = PassThroughNode::make(matchCtx_->qctx, subplan.root);
+            pt->setColNames(subplan.root->colNames());
+            pt->setOutputVar(subplan.root->outputVar());
+            subplan.root = pt;
+        }
         for (int64_t i = 0; i < maxHop; ++i) {
             SubPlan curr;
             NG_RETURN_IF_ERROR(
@@ -122,7 +137,6 @@ Status Expand::expandSteps(const NodeInfo& node,
         NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, true, &subplan));
         // plan->tail = subplan.tail;
         PlanNode* passThrough = subplan.root;
-        auto maxHop = edge.range ? edge.range->max() : 1;
         for (int64_t i = 1; i < maxHop; ++i) {
             SubPlan curr;
             NG_RETURN_IF_ERROR(

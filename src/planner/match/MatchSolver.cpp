@@ -233,9 +233,11 @@ Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
                                                  QueryContext* qctx,
                                                  Expression* initialExpr,
                                                  SubPlan& plan) {
+    // [Dedup]
     extractAndDedupVidColumn(
         qctx, initialExpr, plan.root, plan.root->outputVar(), plan);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
+    // [Get vertices]
     auto gv = GetVertices::make(
         qctx, plan.root, space.id, qctx->objPool()->add(srcExpr.release()), {}, {});
 
@@ -259,7 +261,8 @@ Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
         root = Filter::make(qctx, root, filter);
     }
 
-    // normalize all columns to one
+    // [Project]
+    // Normalize all columns to one
     auto columns = qctx->objPool()->add(new YieldColumns);
     auto pathExpr = std::make_unique<PathBuildExpression>();
     pathExpr->add(std::make_unique<VertexExpression>());
