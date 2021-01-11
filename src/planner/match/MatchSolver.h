@@ -60,6 +60,12 @@ public:
     static PlanNode* filtPathHasSameEdge(PlanNode* input,
                                          const std::string& column,
                                          QueryContext* qctx);
+
+    static Status appendFetchVertexPlan(const Expression* nodeFilter,
+                                 const SpaceInfo& space,
+                                 QueryContext* qctx,
+                                 Expression* initialExpr,
+                                 SubPlan& plan);
 };
 }  // namespace graph
 }  // namespace nebula

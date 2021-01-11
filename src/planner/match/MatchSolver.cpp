@@ -228,5 +228,46 @@ PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
     return filter;
 }
 
+Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
+                                                 const SpaceInfo& space,
+                                                 QueryContext* qctx,
+                                                 Expression* initialExpr,
+                                                 SubPlan& plan) {
+    extractAndDedupVidColumn(
+        qctx, initialExpr, plan.root, plan.root->outputVar(), plan);
+    auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
+    auto gv = GetVertices::make(
+        qctx, plan.root, space.id, qctx->objPool()->add(srcExpr.release()), {}, {});
+
+    PlanNode* root = gv;
+    if (nodeFilter != nullptr) {
+        auto filter = qctx->objPool()->add(nodeFilter->clone().release());
+        RewriteMatchLabelVisitor visitor(
+            [](const Expression* expr) -> Expression *{
+            DCHECK(expr->kind() == Expression::Kind::kLabelAttribute ||
+                expr->kind() == Expression::Kind::kLabel);
+            // filter prop
+            if (expr->kind() == Expression::Kind::kLabelAttribute) {
+                auto la = static_cast<const LabelAttributeExpression*>(expr);
+                return new AttributeExpression(
+                    new VertexExpression(), la->right()->clone().release());
+            }
+            // filter tag
+            return new VertexExpression();
+        });
+        filter->accept(&visitor);
+        root = Filter::make(qctx, root, filter);
+    }
+
+    // normalize all columns to one
+    auto columns = qctx->objPool()->add(new YieldColumns);
+    auto pathExpr = std::make_unique<PathBuildExpression>();
+    pathExpr->add(std::make_unique<VertexExpression>());
+    columns->addColumn(new YieldColumn(pathExpr.release()));
+    plan.root = Project::make(qctx, root, columns);
+    plan.root->setColNames({kPathStr});
+    return Status::OK();
+}
+
 }  // namespace graph
 }  // namespace nebula

@@ -90,10 +90,16 @@ Status Expand::doExpand(const NodeInfo& node,
     return Status::OK();
 }
 
+// (v)-[e]-()
 Status Expand::expandSteps(const NodeInfo& node,
                            const EdgeInfo& edge,
                            SubPlan* plan) {
+    // In the case of 0 step, src node is the dst node, return the vertex directly
+    // if (edge.range->min() == 0) {
+    // }
+    // Prepare initial state
     SubPlan subplan;
+    // Expand first step from src
     NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, true, &subplan));
     // plan->tail = subplan.tail;
     PlanNode* passThrough = subplan.root;
@@ -109,6 +115,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     plan->root = subplan.root;
     return Status::OK();
 }
+
 
 // build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
 Status Expand::expandStep(const EdgeInfo& edge,

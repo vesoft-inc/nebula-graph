@@ -176,7 +176,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(
-        appendFetchVertexPlan(nodeInfos.front().filter,
+        MatchSolver::appendFetchVertexPlan(nodeInfos.front().filter,
                               matchClauseCtx->space,
                               matchClauseCtx->qctx,
                               edgeInfos.empty() ? initialExpr_->clone().release() : nullptr,
@@ -225,7 +225,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
     VLOG(1) << "root: " << subplan.root->outputVar() << " tail: " << subplan.tail->outputVar();
     auto left = subplan.root;
     NG_RETURN_IF_ERROR(
-        appendFetchVertexPlan(nodeInfos.back().filter,
+        MatchSolver::appendFetchVertexPlan(nodeInfos.back().filter,
                               matchClauseCtx->space,
                               matchClauseCtx->qctx,
                               edgeInfos.empty() ? initialExpr_->clone().release() : nullptr,
