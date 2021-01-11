@@ -17,6 +17,7 @@ from pytest_bdd import given, parsers, then, when
 
 from tests.common.dataset_printer import DataSetPrinter
 from tests.common.comparator import DataSetComparator
+from tests.common.plan_differ import PlanDiffer
 from tests.common.configs import DATA_DIR
 from tests.common.types import SpaceDesc
 from tests.common.utils import (
@@ -317,3 +318,10 @@ def drop_used_space(session, graph_spaces):
     if space_desc is not None:
         stmt = space_desc.drop_stmt()
         response(session, stmt)
+
+
+@then(parse("the execution plan should be:\n{plan}"))
+def check_plan(plan, graph_spaces):
+    resp = graph_spaces["result_set"]
+    differ = PlanDiffer(resp.plan_desc(), expect)
+    assert differ.diff(), differ.err_msg()
