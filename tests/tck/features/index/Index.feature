@@ -1,9 +1,9 @@
 Feature: IndexTest_Vid_String
+
   Background:
     Given an empty graph
     And create a space with following options:
       | vid_type | <vid_type> |
-
 
   @skip
   Scenario Outline: IndexTest TagIndex
@@ -387,7 +387,7 @@ Feature: IndexTest_Vid_String
     Then drop the used space
 
     Examples:
-      | vid_type | FIXED_STRING(30) | int          |
+      | vid_type | FIXED_STRING(30) | int |
 
   Scenario Outline: IndexTest EdgeIndexTTL
     Given having executed:
@@ -488,7 +488,7 @@ Feature: IndexTest_Vid_String
     Then drop the used space
 
     Examples:
-      | vid_type | FIXED_STRING(30) | int          |
+      | vid_type | FIXED_STRING(30) | int |
 
   Scenario Outline: IndexTest AlterTag
     Given having executed:
@@ -535,20 +535,20 @@ Feature: IndexTest_Vid_String
       LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD tag_1.col5, tag_1.col1
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col5 | tag_1.col1 |
+      | VertexID  | tag_1.col5 | tag_1.col1 |
       | <vid_100> | 5          | true       |
     When executing query:
       """
       LOOKUP ON tag_1 WHERE tag_1.col5 == 5 YIELD tag_1.col1, tag_1.col5
       """
     Then the result should be, in any order:
-      | VertexID | tag_1.col1 | tag_1.col5 |
+      | VertexID  | tag_1.col1 | tag_1.col5 |
       | <vid_100> | true       | 5          |
     Then drop the used space
 
     Examples:
-      | vid_type | FIXED_STRING(30) | int          |
-      | vid_100  | "100"            | 100          |
+      | vid_type | FIXED_STRING(30) | int |
+      | vid_100  | "100"            | 100 |
 
   Scenario Outline: IndexTest RebuildTagIndexStatusInfo
     Given having executed:
@@ -596,7 +596,7 @@ Feature: IndexTest_Vid_String
     Then drop the used space
 
     Examples:
-      | vid_type | FIXED_STRING(30) | int          |
+      | vid_type | FIXED_STRING(30) | int |
 
   Scenario Outline: IndexTest RebuildEdgeIndexStatusInfo
     Given having executed:
@@ -642,7 +642,7 @@ Feature: IndexTest_Vid_String
     Then drop the used space
 
     Examples:
-      | vid_type | FIXED_STRING(30) | int          |
+      | vid_type | FIXED_STRING(30) | int |
 
   Scenario Outline: IndexTest AlterSchemaTest
     Given having executed:
@@ -675,6 +675,6 @@ Feature: IndexTest_Vid_String
     Then drop the used space
 
     Examples:
-      | vid_type | FIXED_STRING(30) | int          |
-      | vid_100  | "100"            | 100          |
-      | vid_200  | "200"            | 200          |
+      | vid_type | FIXED_STRING(30) | int |
+      | vid_100  | "100"            | 100 |
+      | vid_200  | "200"            | 200 |
