@@ -96,6 +96,7 @@ StatusOr<GetNeighborsIter::DataSetIndex> GetNeighborsIter::makeDataSetIndex(cons
 void GetNeighborsIter::makeLogicalRowByEdge(int64_t edgeStartIndex,
                                             size_t idx,
                                             const DataSetIndex& dsIndex) {
+    bool existEdge = false;
     for (auto& row : dsIndex.ds->rows) {
         auto& cols = row.values;
         for (size_t column = edgeStartIndex; column < cols.size() - 1; ++column) {
@@ -108,12 +109,17 @@ void GetNeighborsIter::makeLogicalRowByEdge(int64_t edgeStartIndex,
                     // Ignore the bad value.
                     continue;
                 }
+                existEdge = true;
                 auto edgeName = dsIndex.tagEdgeNameIndices.find(column);
                 DCHECK(edgeName != dsIndex.tagEdgeNameIndices.end());
                 logicalRows_.emplace_back(
                     idx, &row, edgeName->second, &edge.getList());
             }
         }
+        if (!existEdge) {
+            logicalRows_.emplace_back(idx, &row, "", nullptr);
+        }
+        existEdge = false;
     }
 }
 
@@ -289,7 +295,7 @@ Value GetNeighborsIter::getVertex() const {
 }
 
 Value GetNeighborsIter::getEdge() const {
-    if (!valid()) {
+    if (!valid() || currentEdgeName().empty()) {
         return Value::kNullValue;
     }
 
