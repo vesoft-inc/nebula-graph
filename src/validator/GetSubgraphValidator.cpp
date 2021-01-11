@@ -376,7 +376,6 @@ Expression* GetSubgraphValidator::buildMinusLoopCondition(std::string& minusLoop
 
 Expression* GetSubgraphValidator::buildSelectCondition(int64_t steps) {
     // loopSteps_{0} < steps
-    loopSteps_ = vctx_->anonVarGen()->getVar();
     return qctx_->objPool()->add(
         new RelationalExpression(Expression::Kind::kRelLT,
                                  new VariableExpression(new std::string(loopSteps_)),
@@ -391,7 +390,6 @@ Expression* GetSubgraphValidator::buildSelectCondition(int64_t steps) {
  */
 PlanNode* GetSubgraphValidator::removeVisitedVertexID(std::string& startVidsVar) {
     auto* bodyStart = StartNode::make(qctx_);
-    // project
     auto* columns = qctx_->objPool()->add(new YieldColumns());
     auto* column =
         new YieldColumn(new VariablePropertyExpression(new std::string("*"), new std::string(kVid)),
@@ -401,10 +399,10 @@ PlanNode* GetSubgraphValidator::removeVisitedVertexID(std::string& startVidsVar)
     project->setInputVar(startVidsVar);
     project->setColNames({kVid});
 
-    // set versionVar = 1, minusLoopSteps = 0
+    // set versionVar = -1, minusLoopSteps = 0
     auto* assign = Assign::make(qctx_, project);
     auto versionVar = vctx_->anonVarGen()->getVar();
-    assign->assignVar(versionVar, new ConstantExpression(1));
+    assign->assignVar(versionVar, new ConstantExpression(-1));
     auto minusLoopSteps = vctx_->anonVarGen()->getVar();
     assign->assignVar(minusLoopSteps, new ConstantExpression(0));
 
@@ -414,18 +412,21 @@ PlanNode* GetSubgraphValidator::removeVisitedVertexID(std::string& startVidsVar)
     minus->setLeftVar(minus->outputVar());
     minus->setRightVar(startVidsVar);
     minus->setLeftVersionExpr(new ConstantExpression(0));
-
-    auto* rightExpr = new ArithmeticExpression(Expression::Kind::kMinus,
-                                               new VariableExpression(new std::string(versionVar)),
-                                               new ConstantExpression(2));
-    minus->setRightVersionExpr(rightExpr);
+    minus->setRightVersionExpr(new  VariableExpression(new std::string(versionVar)));
 
     // set minus->outputVar() = project->outputVar()
     assign->assignVar(minus->outputVar(),
                       new VariableExpression(new std::string(project->outputVar())));
 
+    auto* updateVersionVar = Assign::make(qctx_, minus);
+    updateVersionVar->assignVar(
+        versionVar,
+        new ArithmeticExpression(Expression::Kind::kMinus,
+                                 new VariableExpression(new std::string(versionVar)),
+                                 new ConstantExpression(2)));
+
     auto* condition = buildMinusLoopCondition(minusLoopSteps);
-    auto* loop = Loop::make(qctx_, assign, minus, condition);
+    auto* loop = Loop::make(qctx_, assign, updateVersionVar, condition);
 
     auto* dedup = Dedup::make(qctx_, loop);
     dedup->setInputVar(minus->outputVar());
