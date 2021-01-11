@@ -94,25 +94,45 @@ Status Expand::doExpand(const NodeInfo& node,
 Status Expand::expandSteps(const NodeInfo& node,
                            const EdgeInfo& edge,
                            SubPlan* plan) {
-    // In the case of 0 step, src node is the dst node, return the vertex directly
-    // if (edge.range->min() == 0) {
-    // }
-    // Prepare initial state
     SubPlan subplan;
-    // Expand first step from src
-    NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, true, &subplan));
-    // plan->tail = subplan.tail;
-    PlanNode* passThrough = subplan.root;
-    auto maxHop = edge.range ? edge.range->max() : 1;
-    for (int64_t i = 1; i < maxHop; ++i) {
-        SubPlan curr;
+    // In the case of 0 step, src node is the dst node, return the vertex directly
+    auto minHop = edge.range ? edge.range->min() : 1;
+    if (minHop == 0) {
+        // Get vertex
+        subplan = *plan;
         NG_RETURN_IF_ERROR(
-            expandStep(edge, passThrough, passThrough->outputVar(), nullptr, false, &curr));
-        auto rNode = subplan.root;
-        DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
-        NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
+            MatchSolver::appendFetchVertexPlan(node.filter,
+                                            matchCtx_->space,
+                                            matchCtx_->qctx,
+                                            initialExpr_->clone().release(),
+                                            subplan));
+        PlanNode* passThrough = subplan.root;
+        auto maxHop = edge.range ? edge.range->max() : 1;
+        for (int64_t i = 0; i < maxHop; ++i) {
+            SubPlan curr;
+            NG_RETURN_IF_ERROR(
+                expandStep(edge, passThrough, passThrough->outputVar(), nullptr, false, &curr));
+            auto rNode = subplan.root;
+            DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
+            NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
+        }
+        plan->root = subplan.root;
+    } else {  // Case 1 to n steps
+        // Expand first step from src
+        NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, true, &subplan));
+        // plan->tail = subplan.tail;
+        PlanNode* passThrough = subplan.root;
+        auto maxHop = edge.range ? edge.range->max() : 1;
+        for (int64_t i = 1; i < maxHop; ++i) {
+            SubPlan curr;
+            NG_RETURN_IF_ERROR(
+                expandStep(edge, passThrough, passThrough->outputVar(), nullptr, false, &curr));
+            auto rNode = subplan.root;
+            DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
+            NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
+        }
+        plan->root = subplan.root;
     }
-    plan->root = subplan.root;
     return Status::OK();
 }
 
