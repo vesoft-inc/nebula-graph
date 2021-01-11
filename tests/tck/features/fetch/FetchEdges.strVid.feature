@@ -65,6 +65,14 @@ Feature: Fetch String Vid Edges
       | "Boris Diaw" | "Spurs"    | 0           | 2012             | 2016           |
       | "Boris Diaw" | "Hornets"  | 0           | 2008             | 2012           |
       | "Boris Diaw" | "Jazz"     | 0           | 2016             | 2017           |
+    When executing query:
+      """
+      $var = GO FROM "Boris Diaw" over like YIELD like._dst as id; FETCH PROP ON * $var.id yield player.name, player.age, team.name, bachelor.name
+      """
+    Then the result should be, in any order:
+      | VertexID      | player.name   | player.age | team.name | bachelor.name |
+      | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         |
+      | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  |
 
   Scenario: [7] Fetch prop works with hash function
     When executing query:
@@ -163,6 +171,14 @@ Feature: Fetch String Vid Edges
       """
     Then the result should be, in any order:
       | serve._src | serve._dst | serve._rank | serve.start_year | serve.end_year |
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve YIELD serve._src AS src, serve._dst AS dst, serve.start_year as start
+                   | YIELD $-.src as src, $-.dst as dst WHERE $-.start > 20000
+                   | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year
+      """
+    Then the result should be, in any order:
+      | serve._src | serve._dst | serve._rank | serve.start_year | serve.end_year |
 
   Scenario: [19] Fetch prop Semantic Error
     When executing query:
@@ -193,6 +209,15 @@ Feature: Fetch String Vid Edges
     Then the result should be, in any order:
       | serve._src | serve._dst | serve._rank | serve.start_year |
 
+  Scenario: [23] Fetch prop on exist and not exist edges
+    When executing query:
+      """
+      FETCH PROP ON serve "Zion Williamson"->"Spurs", "Boris Diaw"->"Hawks" YIELD serve.start_year
+      """
+    Then the result should be, in any order:
+      | serve._src   | serve._dst | serve._rank | serve.start_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             |
+
   Scenario: [24] Fetch prop on a edge and return duplicate columns
     When executing query:
       """
@@ -221,6 +246,6 @@ Feature: Fetch String Vid Edges
   Scenario: [27] Fetch prop returns not existing property
     When executing query:
       """
-      FETCH PROP ON serve 'Boris Diaw'->'Hawks' YIELD serve.start_year1
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks' YIELD serve.not_exist_prop
       """
     Then a SemanticError should be raised at runtime:
