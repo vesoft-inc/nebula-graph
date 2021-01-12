@@ -384,7 +384,7 @@ Feature: Update string vid of vertex and edge
       WHEN $^.student.age > 15 AND $^.student.gender == "male"
       YIELD select.grade AS Grade, select.year AS Year
       """
-    Then a SemanticError should be raised at runtime: Has wrong expr in `(($^.student.age>15) AND ($^.student.gender==male))'
+    Then a SemanticError should be raised at runtime: Has wrong expr in `(($^.student.age>15) AND ($^.student.gender=="male"))'
     When executing query:
       """
       UPSERT EDGE "201" -> "101"@0 OF select

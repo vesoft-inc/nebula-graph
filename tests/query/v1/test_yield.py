@@ -27,7 +27,7 @@ class TestYield(NebulaTestSuite):
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
         columns = [
-            "(1+1)", "1+1", "(INT)3.14", "(STRING)(1+1)", "(STRING)true"
+            "(1+1)", '"1+1"', "(INT)3.14", "(STRING)(1+1)", "(STRING)true"
         ]
         self.check_column_names(resp, columns)
         expect_result = [[2, "1+1", 3, "2", "true"]]
@@ -36,7 +36,7 @@ class TestYield(NebulaTestSuite):
         query = 'YIELD "Hello", hash("Hello")'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
-        columns = ["Hello", "hash(Hello)"]
+        columns = ['"Hello"', 'hash("Hello")']
         self.check_column_names(resp, columns)
         expect_result = [['Hello', 2275118702903107253]]
         self.check_result(resp, expect_result)
@@ -45,7 +45,7 @@ class TestYield(NebulaTestSuite):
         query = 'YIELD hash("Boris")'
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
-        columns = ["hash(Boris)"]
+        columns = ['hash("Boris")']
         self.check_column_names(resp, columns)
         expect_result = [[9126854228122744212]]
         self.check_result(resp, expect_result)
@@ -594,7 +594,7 @@ class TestYield(NebulaTestSuite):
                    | YIELD 1+1, "Hello world!" WHERE $-.team == "Spurs"'''
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
-        columns = ['(1+1)', 'Hello world!']
+        columns = ['(1+1)', '"Hello world!"']
         self.check_column_names(resp, columns)
         expect_result = [[2, 'Hello world!'], [2, 'Hello world!']]
         self.check_out_of_order_result(resp, expect_result)
@@ -603,6 +603,6 @@ class TestYield(NebulaTestSuite):
                    | YIELD 1+1, "Hello world!" WHERE $-.team != "Spurs"'''
         resp = self.execute(query)
         self.check_resp_succeeded(resp)
-        columns = ['(1+1)', 'Hello world!']
+        columns = ['(1+1)', '"Hello world!"']
         self.check_column_names(resp, columns)
         self.check_empty_result(resp)
