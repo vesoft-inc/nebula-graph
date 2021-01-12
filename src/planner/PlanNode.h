@@ -232,6 +232,7 @@ protected:
 
     void clone(const PlanNode &node) {
         // TODO maybe shall copy cost_ and dependencies_ too
+        id_ = node.id_;
         inputVars_ = node.inputVars_;
         outputVars_ = node.outputVars_;
     }
