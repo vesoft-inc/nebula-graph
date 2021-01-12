@@ -11,6 +11,7 @@ import io
 import csv
 import re
 
+from nebula2.common.ttypes import Value
 from nebula2.graph.ttypes import ErrorCode
 from pytest_bdd import given, parsers, then, when
 
@@ -33,11 +34,11 @@ rparse = functools.partial(parsers.re)
 example_pattern = re.compile(r"<(\w+)>")
 
 
-def normalize_ngql_for_outline_scenario(request, ngql):
-    for group in example_pattern.findall(ngql):
+def normalize_outline_scenario(request, name):
+    for group in example_pattern.findall(name):
         fixval = request.getfixturevalue(group)
-        ngql = ngql.replace(f"<{group}>", fixval)
-    return ngql
+        name = name.replace(f"<{group}>", fixval)
+    return name
 
 
 @pytest.fixture
@@ -47,6 +48,7 @@ def graph_spaces():
 
 @given(parse('a graph with space named "{space}"'))
 def preload_space(
+    request,
     space,
     load_nba_data,
     load_nba_int_vid_data,
@@ -54,6 +56,7 @@ def preload_space(
     session,
     graph_spaces,
 ):
+    space = normalize_outline_scenario(request, space)
     if space == "nba":
         graph_spaces["space_desc"] = load_nba_data
     elif space == "nba_int_vid":
@@ -74,17 +77,20 @@ def empty_graph(session, graph_spaces):
 @given(parse("having executed:\n{query}"))
 def having_executed(query, session, request):
     ngql = " ".join(query.splitlines())
-    ngql = normalize_ngql_for_outline_scenario(request, ngql)
+    ngql = normalize_outline_scenario(request, ngql)
     response(session, ngql)
 
 
 @given(parse("create a space with following options:\n{options}"))
-def new_space(options, session, graph_spaces):
+def new_space(request, options, session, graph_spaces):
     lines = csv.reader(io.StringIO(options), delimiter="|")
-    opts = {line[1].strip(): line[2].strip() for line in lines}
+    opts = {
+        line[1].strip(): normalize_outline_scenario(request, line[2].strip())
+        for line in lines
+    }
     name = "EmptyGraph_" + space_generator()
     space_desc = SpaceDesc(
-        name=name,
+        name=opts.get("name", name),
         partition_num=int(opts.get("partition_num", 7)),
         replica_factor=int(opts.get("replica_factor", 1)),
         vid_type=opts.get("vid_type", "FIXED_STRING(30)"),
@@ -97,8 +103,8 @@ def new_space(options, session, graph_spaces):
 
 
 @given(parse('load "{data}" csv data to a new space'))
-def import_csv_data(data, graph_spaces, session, pytestconfig):
-    data_dir = os.path.join(DATA_DIR, data)
+def import_csv_data(request, data, graph_spaces, session, pytestconfig):
+    data_dir = os.path.join(DATA_DIR, normalize_outline_scenario(request, data))
     space_desc = load_csv_data(
         pytestconfig,
         session,
@@ -113,13 +119,14 @@ def import_csv_data(data, graph_spaces, session, pytestconfig):
 @when(parse("executing query:\n{query}"))
 def executing_query(query, graph_spaces, session, request):
     ngql = " ".join(query.splitlines())
-    ngql = normalize_ngql_for_outline_scenario(request, ngql)
+    ngql = normalize_outline_scenario(request, ngql)
     graph_spaces['result_set'] = session.execute(ngql)
     graph_spaces['ngql'] = ngql
 
 
 @given(parse("wait {secs:d} seconds"))
 @when(parse("wait {secs:d} seconds"))
+@then(parse("wait {secs:d} seconds"))
 def wait(secs):
     time.sleep(secs)
 
@@ -131,6 +138,24 @@ def line_number(steps, result):
             return step.line_number
     return -1
 
+# IN literal `1, 2, 3...'
+def parse_list(s: str):
+    numbers = s.split(',')
+    numbers_list = []
+    for num in numbers:
+        numbers_list.append(int(num))
+    return numbers_list
+
+def hash_columns(ds, hashed_columns):
+    if len(hashed_columns) == 0:
+        return ds
+    for col in hashed_columns:
+        assert col < len(ds.column_names), "The hashed column should in range."
+    for row in ds.rows:
+        for col in hashed_columns:
+            if row.values[col].getType() != Value.NVAL and row.values[col].getType() != Value.__EMPTY__:
+                row.values[col] = Value(iVal = murmurhash2(row.values[col]))
+    return ds
 
 def cmp_dataset(
         request,
@@ -139,6 +164,7 @@ def cmp_dataset(
         order: bool,
         strict: bool,
         included=False,
+        hashed_columns = [],
 ) -> None:
     rs = graph_spaces['result_set']
     ngql = graph_spaces['ngql']
@@ -147,7 +173,11 @@ def cmp_dataset(
     vid_fn = None
     if space_desc is not None:
         vid_fn = murmurhash2 if space_desc.vid_type == 'int' else None
-    ds = dataset(table(result), graph_spaces.get("variables", {}))
+    ds = dataset(
+        table(result, lambda x: normalize_outline_scenario(request, x)),
+        graph_spaces.get("variables", {}),
+    )
+    ds = hash_columns(ds, hashed_columns)
     dscmp = DataSetComparator(strict=strict,
                               order=order,
                               included=included,
@@ -201,21 +231,33 @@ def define_list_var_alias(text, graph_spaces):
 def result_should_be_in_order(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=True, strict=True)
 
+@then(parse("the result should be, in order, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_be_in_order_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request, graph_spaces, result, order=True, strict=True, hashed_columns=parse_list(hashed_columns))
 
 @then(parse("the result should be, in order, with relax comparison:\n{result}"))
 def result_should_be_in_order_relax_cmp(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=True, strict=False)
 
+@then(parse("the result should be, in order, with relax comparison, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_be_in_order_relax_cmp_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request, graph_spaces, result, order=True, strict=False, hashed_columns=parse_list(hashed_columns))
 
 @then(parse("the result should be, in any order:\n{result}"))
 def result_should_be(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=False, strict=True)
 
+@then(parse("the result should be, in any order, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_be_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request, graph_spaces, result, order=False, strict=True, hashed_columns=parse_list(hashed_columns))
 
 @then(parse("the result should be, in any order, with relax comparison:\n{result}"))
 def result_should_be_relax_cmp(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=False, strict=False)
 
+@then(parse("the result should be, in any order, with relax comparison, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_be_relax_cmp_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request, graph_spaces, result, order=False, strict=False, hashed_columns=parse_list(hashed_columns))
 
 @then(parse("the result should include:\n{result}"))
 def result_should_include(request, result, graph_spaces):
@@ -225,6 +267,16 @@ def result_should_include(request, result, graph_spaces):
                 order=False,
                 strict=True,
                 included=True)
+
+@then(parse("the result should include, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_include_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request,
+                graph_spaces,
+                result,
+                order=False,
+                strict=True,
+                included=True,
+                hashed_columns=parse_list(hashed_columns))
 
 
 @then("no side effects")
@@ -253,7 +305,7 @@ def raised_type_error(err_type, time, sym, msg, graph_spaces):
     else:
         expect_msg = "{}: {}".format(err_type, msg)
     m = res_msg.startswith(expect_msg)
-    assert m, f'Could not find "{expect_msg}" in "{res_msg}, ngql:{ngql}"'
+    assert m, f'Could not find "{expect_msg}" in "{res_msg}" when execute query: "{ngql}"'
 
 
 @then("drop the used space")
