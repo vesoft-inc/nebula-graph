@@ -96,7 +96,7 @@ Feature: In and not in expressions
       """
     Then the result should be, in any order:
       | $$.player.name      | like.likeness |
-      | 'LaMarcus Aldridge' |            90 |
+      | 'LaMarcus Aldridge' | 90            |
     When executing query:
       """
       $A = GO FROM 'Tony Parker' OVER like YIELD like._dst AS ID;
@@ -105,9 +105,9 @@ Feature: In and not in expressions
       """
     Then the result should be, in any order:
       | $^.player.name      | $$.player.name | like.likeness |
-      | 'Manu Ginobili'     | 'Tim Duncan'   |            90 |
-      | 'LaMarcus Aldridge' | 'Tim Duncan'   |            75 |
-      | 'LaMarcus Aldridge' | 'Tony Parker'  |            75 |
+      | 'Manu Ginobili'     | 'Tim Duncan'   | 90            |
+      | 'LaMarcus Aldridge' | 'Tim Duncan'   | 75            |
+      | 'LaMarcus Aldridge' | 'Tony Parker'  | 75            |
 
   Scenario: basic yield not in expression
     When executing query:
@@ -157,9 +157,9 @@ Feature: In and not in expressions
       """
     Then the result should be, in any order:
       | $$.player.name      | like.likeness |
-      | 'LaMarcus Aldridge' |            90 |
-      | 'Manu Ginobili'     |            95 |
-      | 'Tim Duncan'        |            95 |
+      | 'LaMarcus Aldridge' | 90            |
+      | 'Manu Ginobili'     | 95            |
+      | 'Tim Duncan'        | 95            |
 
   Scenario: basic yield in set
     When executing query:
@@ -214,7 +214,7 @@ Feature: In and not in expressions
       """
     Then the result should be, in any order:
       | $$.player.name      | like.likeness |
-      | 'LaMarcus Aldridge' |            90 |
+      | 'LaMarcus Aldridge' | 90            |
 
   Scenario: basic yield not in set
     When executing query:
