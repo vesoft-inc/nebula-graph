@@ -26,16 +26,24 @@ const Pattern& ProjectColumnRewriteToIndexColExprRule::pattern() const {
 }
 
 bool ProjectColumnRewriteToIndexColExprRule::match(const MatchedResult &matched) const {
-    DCHECK(!matched.dependencies.empty());
-    if (matched.dependencies.empty()) {
+    auto proGroupNode = matched.node;
+    DCHECK(!proGroupNode->dependencies().empty());
+    if (proGroupNode->dependencies().empty()) {
         return false;
     }
-    auto depKind = matched.dependencies.front().node->node()->kind();
-    if (depKind == graph::PlanNode::Kind::kGetNeighbors
-            || depKind == graph::PlanNode::Kind::kGetVertices
-            || depKind == graph::PlanNode::Kind::kGetEdges
-            || depKind == graph::PlanNode::Kind::kIndexScan) {
-        return false;
+    for (auto depGroup : proGroupNode->dependencies()) {
+        if (depGroup->groupNodes().empty()) {
+            return false;
+        }
+        for (auto dep : depGroup->groupNodes()) {
+            auto depKind = dep->node()->kind();
+            if (depKind == graph::PlanNode::Kind::kGetNeighbors
+                    || depKind == graph::PlanNode::Kind::kGetVertices
+                    || depKind == graph::PlanNode::Kind::kGetEdges
+                    || depKind == graph::PlanNode::Kind::kIndexScan) {
+                return false;
+            }
+        }
     }
     return true;
 }
@@ -45,7 +53,9 @@ StatusOr<OptRule::TransformResult> ProjectColumnRewriteToIndexColExprRule::trans
     const MatchedResult &matched) const {
     auto proGroupNode = matched.node;
     auto project = static_cast<const graph::Project*>(proGroupNode->node());
-    auto depColNames = matched.dependencies.front().node->node()->colNames();
+    // All the candidate dependencies of the project should have same output column names.
+    auto depColNames =
+        proGroupNode->dependencies().front()->groupNodes().front()->node()->colNames();
 
     auto cols = project->columns()->columns();
     auto newYields = qctx->objPool()->makeAndAdd<YieldColumns>();
@@ -64,13 +74,15 @@ StatusOr<OptRule::TransformResult> ProjectColumnRewriteToIndexColExprRule::trans
     }
 
     TransformResult result;
-    if (!newYields->empty()) {
-        auto newProject = project->clone(qctx);
-        newProject->setYieldColumns(newYields);
-        auto newProGroupNode = OptGroupNode::create(qctx, newProject, proGroupNode->group());
-        result.newGroupNodes.emplace_back(newProGroupNode);
-        result.eraseAll = true;
+    auto newProject = project->clone(qctx);
+    newProject->setYieldColumns(newYields);
+    auto newProGroupNode = OptGroupNode::create(qctx, newProject, proGroupNode->group());
+    if (proGroupNode->dependencies().size() != 1) {
+        return Status::Error("Project has only one dependency.");
     }
+    newProGroupNode->dependsOn(proGroupNode->dependencies().front());
+    result.newGroupNodes.emplace_back(newProGroupNode);
+    result.eraseAll = true;
     return result;
 }
 
