@@ -19,6 +19,7 @@ nebula_add_library(
     RewriteInputPropVisitor.cpp
     RewriteSymExprVisitor.cpp
     RewriteMatchLabelVisitor.cpp
+    RewritePropExprToIndexColExprVisitor.cpp
 )
 
 nebula_add_subdirectory(test)

@@ -626,6 +626,10 @@ public:
         return cols_;
     }
 
+    void setYieldColumns(YieldColumns* cols) {
+        cols_ = cols;
+    }
+
 private:
     Project(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
       : SingleInputNode(qctx, Kind::kProject, input), cols_(cols) { }
