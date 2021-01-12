@@ -7,37 +7,41 @@ Feature: Push Limit down rule
   Background:
     Given a graph with space named "nba"
 
-  Scenario:
+  Scenario: push limit down to GetNeighbors
     When profiling query:
       """
       GO 1 STEPS FROM "James Harden" OVER like REVERSELY |
       Limit 2
       """
-    Then the result should be, in order:
-      | likeness |
-      |       60 |
+    Then the result should be, in any order:
+      | like._dst         |
+      | "Dejounte Murray" |
+      | "Luka Doncic"     |
     And the execution plan should be:
       | name         | dependencies | operator info |
-      | DataCollect  | [1]          |               |
-      | Limit        | [2]          |               |
-      | Project      | [3]          |               |
-      | GetNeighbors | [4]          | limit: 2      |
-      | Start        | []           |               |
+      | DataCollect  | 1            |               |
+      | Limit        | 2            |               |
+      | Project      | 3            |               |
+      | GetNeighbors | 4            | limit: 2      |
+      | Start        |              |               |
 
-  Scenario:
+  Scenario: push limit down to GetNeighbors with offset
     When profiling query:
       """
       GO 1 STEPS FROM "Vince Carter" OVER serve
       YIELD serve.start_year as start_year |
       Limit 3, 4
       """
-    Then the result should be, in order:
+    Then the result should be, in any order:
       | start_year |
-      |         60 |
+      | 2004       |
+      | 2009       |
+      | 2011       |
+      | 1998       |
     And the execution plan should be:
       | name         | dependencies | operator info |
-      | DataCollect  | [1]          |               |
-      | Limit        | [2]          |               |
-      | Project      | [3]          |               |
-      | GetNeighbors | [4]          | limit: 7      |
-      | Start        | []           |               |
+      | DataCollect  | 1            |               |
+      | Limit        | 2            |               |
+      | Project      | 3            |               |
+      | GetNeighbors | 4            | limit: 7      |
+      | Start        |              |               |

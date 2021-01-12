@@ -7,7 +7,7 @@ Feature: Push Filter down GetNeighbors rule
   Background:
     Given a graph with space named "nba"
 
-  Scenario:
+  Scenario: push start vertex filter down
     When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
@@ -23,11 +23,11 @@ Feature: Push Filter down GetNeighbors rule
       | 2016       |
     And the execution plan should be:
       | name         | dependencies | operator info              |
-      | Project      | [1]          |                            |
-      | GetNeighbors | [2]          | filter: ($^.player.age>18) |
-      | Start        | []           |                            |
+      | Project      | 1            |                            |
+      | GetNeighbors | 2            | filter: ($^.player.age>18) |
+      | Start        |              |                            |
 
-  Scenario:
+  Scenario: push start vertex filter down when reversely
     When profiling query:
       """
       GO 1 STEPS FROM "James Harden" OVER like REVERSELY
@@ -41,11 +41,11 @@ Feature: Push Filter down GetNeighbors rule
       | 99       |
     And the execution plan should be:
       | name         | dependencies | operator info              |
-      | Project      | [1]          |                            |
-      | GetNeighbors | [2]          | filter: ($^.player.age>18) |
-      | Start        | []           |                            |
+      | Project      | 1            |                            |
+      | GetNeighbors | 2            | filter: ($^.player.age>18) |
+      | Start        |              |                            |
 
-  Scenario:
+  Scenario: push edge props filter down
     When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
@@ -59,11 +59,11 @@ Feature: Push Filter down GetNeighbors rule
       | 2016       |
     And the execution plan should be:
       | name         | dependencies | operator info                   |
-      | Project      | [1]          |                                 |
-      | GetNeighbors | [2]          | filter: (serve.start_year>2005) |
-      | Start        | []           |                                 |
+      | Project      | 1            |                                 |
+      | GetNeighbors | 2            | filter: (serve.start_year>2005) |
+      | Start        |              |                                 |
 
-  Scenario:
+  Scenario: push edge props filter down when reversely
     When profiling query:
       """
       GO 1 STEPS FROM "Lakers" OVER serve REVERSELY
@@ -79,12 +79,12 @@ Feature: Push Filter down GetNeighbors rule
       | 2012       |
     And the execution plan should be:
       | name         | dependencies | operator info                   |
-      | Project      | [1]          |                                 |
-      | GetNeighbors | [2]          | filter: (serve.start_year<2017) |
-      | Start        | []           |                                 |
+      | Project      | 1            |                                 |
+      | GetNeighbors | 2            | filter: (serve.start_year<2017) |
+      | Start        |              |                                 |
 
   @skip
-  Scenario: Depends on other opt rules to eliminate duplicate project nodes
+  Scenario: Only push start vertex filter down
     When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
@@ -96,10 +96,13 @@ Feature: Push Filter down GetNeighbors rule
       | "Boris Diaw" |
     And the execution plan should be:
       | name         | dependencies | operator info                       |
-      | Project      | [1]          |                                     |
-      | Filter       | [2]          | condition: ($$.team.name=="Lakers") |
-      | GetNeighbors | [3]          | filter: ($^.player.age>18)          |
-      | Start        | []           |                                     |
+      | Project      | 1            |                                     |
+      | Filter       | 2            | condition: ($$.team.name=="Lakers") |
+      | GetNeighbors | 3            | filter: ($^.player.age>18)          |
+      | Start        |              |                                     |
+
+  @skip
+  Scenario: fail to push start or end vertex filter condition down
     When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
@@ -111,10 +114,13 @@ Feature: Push Filter down GetNeighbors rule
       | "Boris Diaw" |
     And the execution plan should be:
       | name         | dependencies | operator info                                             |
-      | Project      | [1]          |                                                           |
-      | Filter       | [2]          | condition: ($^.player.age>18) OR ($$.team.name=="Lakers") |
-      | GetNeighbors | [3]          |                                                           |
-      | Start        | []           |                                                           |
+      | Project      | 1            |                                                           |
+      | Filter       | 2            | condition: ($^.player.age>18) OR ($$.team.name=="Lakers") |
+      | GetNeighbors | 3            |                                                           |
+      | Start        |              |                                                           |
+
+  @skip
+  Scenario: fail to push end vertex filter down
     When profiling query:
       """
       GO 1 STEPS FROM "Boris Diaw" OVER serve
@@ -126,7 +132,7 @@ Feature: Push Filter down GetNeighbors rule
       | "Boris Diaw" |
     And the execution plan should be:
       | name         | dependencies | operator info |
-      | Project      | [1]          |               |
-      | Filter       | [2]          |               |
-      | GetNeighbors | [3]          |               |
-      | Start        | []           |               |
+      | Project      | 1            |               |
+      | Filter       | 2            |               |
+      | GetNeighbors | 3            |               |
+      | Start        |              |               |

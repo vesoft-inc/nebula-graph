@@ -117,20 +117,22 @@ def import_csv_data(request, data, graph_spaces, session, pytestconfig):
     graph_spaces["drop_space"] = True
 
 
-@when(parse("executing query:\n{query}"))
-def executing_query(query, graph_spaces, session, request):
-    ngql = " ".join(query.splitlines())
+def exec_query(request, ngql, session, graph_spaces):
     ngql = normalize_outline_scenario(request, ngql)
     graph_spaces['result_set'] = session.execute(ngql)
     graph_spaces['ngql'] = ngql
+
+
+@when(parse("executing query:\n{query}"))
+def executing_query(query, graph_spaces, session, request):
+    ngql = " ".join(query.splitlines())
+    exec_query(request, ngql, session, graph_spaces)
 
 
 @when(parse("profiling query:\n{query}"))
 def profiling_query(query, graph_spaces, session, request):
     ngql = "PROFILE {" + " ".join(query.splitlines()) + "}"
-    ngql = normalize_outline_scenario(request, ngql)
-    graph_spaces['result_set'] = session.execute(ngql)
-    graph_spaces['ngql'] = ngql
+    exec_query(request, ngql, session, graph_spaces)
 
 
 @given(parse("wait {secs:d} seconds"))
@@ -331,5 +333,14 @@ def drop_used_space(session, graph_spaces):
 @then(parse("the execution plan should be:\n{plan}"))
 def check_plan(plan, graph_spaces):
     resp = graph_spaces["result_set"]
+    expect = table(plan)
+    column_names = expect.get('column_names', [])
+    idx = column_names.index('dependencies')
+    rows = expect.get("rows", [])
+    for i, row in enumerate(rows):
+        row[idx] = [
+            int(cell.strip()) for cell in row[idx].split(",") if len(cell) > 0
+        ]
+        rows[i] = row
     differ = PlanDiffer(resp.plan_desc(), expect)
     assert differ.diff(), differ.err_msg()

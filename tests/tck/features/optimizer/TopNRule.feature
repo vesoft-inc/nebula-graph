@@ -7,7 +7,7 @@ Feature: TopN rule
   Background:
     Given a graph with space named "nba"
 
-  Scenario:
+  Scenario: apply topn opt rule
     When profiling query:
       """
       GO 1 STEPS FROM "Marco Belinelli" OVER like
@@ -17,17 +17,17 @@ Feature: TopN rule
       """
     Then the result should be, in order:
       | likeness |
-      |       50 |
-      |       55 |
+      | 50       |
+      | 55       |
     And the execution plan should be:
       | name         | dependencies | operator info |
-      | DataCollect  | [1]          |               |
-      | TopN         | [2]          |               |
-      | Project      | [3]          |               |
-      | GetNeighbors | [4]          |               |
-      | Start        | []           |               |
+      | DataCollect  | 1            |               |
+      | TopN         | 2            |               |
+      | Project      | 3            |               |
+      | GetNeighbors | 4            |               |
+      | Start        |              |               |
 
-  Scenario:
+  Scenario: apply topn opt rule with reverse traversal
     When profiling query:
       """
       GO 1 STEPS FROM "Marco Belinelli" OVER like REVERSELY
@@ -37,14 +37,14 @@ Feature: TopN rule
       """
     Then the result should be, in order:
       | likeness |
-      |       83 |
+      | 83       |
     And the execution plan should be:
       | name         | dependencies | operator info |
-      | DataCollect  | [1]          |               |
-      | TopN         | [2]          |               |
-      | Project      | [3]          |               |
-      | GetNeighbors | [4]          |               |
-      | Start        | []           |               |
+      | DataCollect  | 1            |               |
+      | TopN         | 2            |               |
+      | Project      | 3            |               |
+      | GetNeighbors | 4            |               |
+      | Start        |              |               |
 
   Scenario: [1] fail to apply topn rule
     When profiling query:
@@ -56,15 +56,15 @@ Feature: TopN rule
       """
     Then the result should be, in order:
       | likeness |
-      |       60 |
+      | 60       |
     And the execution plan should be:
       | name         | dependencies | operator info |
-      | DataCollect  | [1]          |               |
-      | Limit        | [2]          |               |
-      | Sort         | [3]          |               |
-      | Project      | [4]          |               |
-      | GetNeighbors | [5]          |               |
-      | Start        | []           |               |
+      | DataCollect  | 1            |               |
+      | Limit        | 2            |               |
+      | Sort         | 3            |               |
+      | Project      | 4            |               |
+      | GetNeighbors | 5            |               |
+      | Start        |              |               |
 
   Scenario: [2] fail to apply topn rule
     When profiling query:
@@ -75,13 +75,13 @@ Feature: TopN rule
       """
     Then the result should be, in any order:
       | likeness |
-      |       50 |
-      |       55 |
-      |       60 |
+      | 50       |
+      | 55       |
+      | 60       |
     And the execution plan should be:
       | name         | dependencies | operator info |
-      | DataCollect  | [1]          |               |
-      | Sort         | [2]          |               |
-      | Project      | [3]          |               |
-      | GetNeighbors | [4]          |               |
-      | Start        | []           |               |
+      | DataCollect  | 1            |               |
+      | Sort         | 2            |               |
+      | Project      | 3            |               |
+      | GetNeighbors | 4            |               |
+      | Start        |              |               |
