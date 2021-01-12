@@ -61,6 +61,8 @@ private:
 
     Status filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, SubPlan* plan);
 
+    Status passThrough(QueryContext *qctx, PlanNode* &root);
+
     template <typename T>
     T* saveObject(T* obj) const {
         return matchCtx_->qctx->objPool()->add(obj);

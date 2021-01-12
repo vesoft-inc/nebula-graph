@@ -95,58 +95,44 @@ Status Expand::expandSteps(const NodeInfo& node,
                            const EdgeInfo& edge,
                            SubPlan* plan) {
     SubPlan subplan;
-    // In the case of 0 step, src node is the dst node, return the vertex directly
+    int64_t startIndex = 0;
     auto minHop = edge.range ? edge.range->min() : 1;
     auto maxHop = edge.range ? edge.range->max() : 1;
+
+    // In the case of 0 step, src node is the dst node, return the vertex directly
     if (minHop == 0) {
-        // Get vertex
         subplan = *plan;
+        startIndex = 0;
+        // Get vertex
         NG_RETURN_IF_ERROR(
             MatchSolver::appendFetchVertexPlan(node.filter,
                                             matchCtx_->space,
                                             matchCtx_->qctx,
-                                            initialExpr_->clone().release(),
+                                            initialExpr_.release(),
                                             subplan));
-        PlanNode* passThrough = subplan.root;
-
-        // MatchSolver::extractAndDedupVidColumn(
-            // matchCtx_->qctx, initialExpr_.release(), subplan.root, inputVar_, subplan);
-
-        // auto* var = matchCtx_->qctx->symTable()->getVar(inputVar_);
-        // initialExpr_ = std::make_unique<Expression>(
-            // MatchSolver::getEndVidInPath(var->colNames.back())->clone().release());
 
         // If maxHop > 0, the result of 0 step will be passed to next plan node
         if (maxHop > 0) {
-            auto pt = PassThroughNode::make(matchCtx_->qctx, subplan.root);
-            pt->setColNames(subplan.root->colNames());
-            pt->setOutputVar(subplan.root->outputVar());
-            subplan.root = pt;
-        }
-        for (int64_t i = 0; i < maxHop; ++i) {
-            SubPlan curr;
             NG_RETURN_IF_ERROR(
-                expandStep(edge, passThrough, passThrough->outputVar(), nullptr, false, &curr));
-            auto rNode = subplan.root;
-            DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
-            NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
+                passThrough(matchCtx_->qctx, subplan.root));
         }
-        plan->root = subplan.root;
     } else {  // Case 1 to n steps
+        startIndex = 1;
         // Expand first step from src
         NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, true, &subplan));
-        // plan->tail = subplan.tail;
-        PlanNode* passThrough = subplan.root;
-        for (int64_t i = 1; i < maxHop; ++i) {
-            SubPlan curr;
-            NG_RETURN_IF_ERROR(
-                expandStep(edge, passThrough, passThrough->outputVar(), nullptr, false, &curr));
-            auto rNode = subplan.root;
-            DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
-            NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
-        }
-        plan->root = subplan.root;
     }
+
+    PlanNode* passThrough = subplan.root;
+    for (; startIndex < maxHop; ++startIndex) {
+        SubPlan curr;
+        NG_RETURN_IF_ERROR(
+            expandStep(edge, passThrough, passThrough->outputVar(), nullptr, false, &curr));
+        auto rNode = subplan.root;
+        DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
+        NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
+    }
+    plan->root = subplan.root;
+
     return Status::OK();
 }
 
@@ -214,10 +200,8 @@ Status Expand::expandStep(const EdgeInfo& edge,
     root->setColNames({kPathStr});
 
     if (needPassThrough) {
-        auto pt = PassThroughNode::make(qctx, root);
-        pt->setColNames(root->colNames());
-        pt->setOutputVar(root->outputVar());
-        root = pt;
+        NG_RETURN_IF_ERROR(
+            passThrough(qctx, root));
     }
 
     plan->root = root;
@@ -277,6 +261,14 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
     filter->setColNames(input->colNames());
     plan->root = filter;
     // plan->tail = curr.tail;
+    return Status::OK();
+}
+
+Status Expand::passThrough(QueryContext *qctx, PlanNode* &root) {
+    auto pt = PassThroughNode::make(qctx, root);
+    pt->setColNames(root->colNames());
+    pt->setOutputVar(root->outputVar());
+    root = pt;
     return Status::OK();
 }
 }  // namespace graph
