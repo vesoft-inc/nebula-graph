@@ -27,11 +27,11 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
     $<TARGET_OBJECTS:common_charset_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
-    $<TARGET_OBJECTS:common_agg_function_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_time_utils_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
+    $<TARGET_OBJECTS:common_ws_common_obj>
     $<TARGET_OBJECTS:session_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>

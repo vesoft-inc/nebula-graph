@@ -2061,15 +2061,67 @@ TEST(Parser, GroupBy) {
     {
         GQLParser parser;
         std::string query = "GO FROM \"1\" OVER work "
-                            "YIELD $$.company.name, $^.person.name "
-                            "| GROUP BY $$.company.name "
-                            "YIELD $$.company.name as name, "
+                            "YIELD $$.company.name, $^.person.name AS name "
+                            "| GROUP BY $$.company.name , abs($$.company.age+1)"
+                            "YIELD $$.company.name AS name, "
                             "COUNT($^.person.name ), "
-                            "COUNT_DISTINCT($^.person.name ), "
                             "SUM($^.person.name ), "
                             "AVG($^.person.name ), "
+                            "(INT)abs($$.company.age+1), "
+                            "(INT)COUNT(DISTINCT $^.person.name ), "
+                            "COUNT(DISTINCT $-.name )+1, "
+                            "abs(SUM(DISTINCT $$.person.name )), "
+                            "AVG(DISTINCT $^.person.name ), "
+                            "AVG(DISTINCT $-.name ), "
+                            "COUNT(*), "
+                            "COUNT(DISTINCT *), "
                             "MAX($^.person.name ), "
-                            "MIN($^.person.name ), "
+                            "MIN($$.person.name ), "
+                            "STD($^.person.name ), "
+                            "BIT_AND($^.person.name ), "
+                            "BIT_OR($$.person.name ), "
+                            "BIT_XOR($^.person.name ),"
+                            "STD(DISTINCT $^.person.name ), "
+                            "BIT_AND(DISTINCT $$.person.name ), "
+                            "BIT_OR(DISTINCT $^.person.name ), "
+                            "BIT_XOR(DISTINCT $$.person.name ),"
+                            "BIT_XOR(DISTINCT $-.name ),"
+                            "F_STD($^.person.name ), "
+                            "F_BIT_AND($^.person.name ), "
+                            "F_BIT_OR($^.person.name ), "
+                            "F_BIT_XOR($^.person.name )";
+
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "GO FROM \"1\" OVER work "
+                            "YIELD $$.company.name, $^.person.name AS name "
+                            "| YIELD $$.company.name AS name, "
+                            " abs($$.company.age+1), "
+                            "COUNT($^.person.name ), "
+                            "SUM($^.person.name ), "
+                            "AVG($^.person.name ), "
+                            "(INT)abs($$.company.age+1), "
+                            "(INT)COUNT(DISTINCT $^.person.name ), "
+                            "COUNT(DISTINCT $-.name )+1, "
+                            "abs(SUM(DISTINCT $$.person.name )), "
+                            "AVG(DISTINCT $^.person.name ), "
+                            "AVG(DISTINCT $-.name ), "
+                            "COUNT(*), "
+                            "COUNT(DISTINCT *), "
+                            "MAX($^.person.name ), "
+                            "MIN($$.person.name ), "
+                            "STD($^.person.name ), "
+                            "BIT_AND($^.person.name ), "
+                            "BIT_OR($$.person.name ), "
+                            "BIT_XOR($^.person.name ),"
+                            "STD(DISTINCT $^.person.name ), "
+                            "BIT_AND(DISTINCT $$.person.name ), "
+                            "BIT_OR(DISTINCT $^.person.name ), "
+                            "BIT_XOR(DISTINCT $$.person.name ),"
+                            "BIT_XOR(DISTINCT $-.name ),"
                             "F_STD($^.person.name ), "
                             "F_BIT_AND($^.person.name ), "
                             "F_BIT_OR($^.person.name ), "
@@ -2683,6 +2735,41 @@ TEST(Parser, Match) {
     {
         GQLParser parser;
         std::string query = "UNWIND a AS b MATCH (c) MATCH (d) WITH e MATCH (f) RETURN b,c,d";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+}
+
+TEST(Parser, MatchMultipleTags) {
+    {
+        GQLParser parser;
+        std::string query = "MATCH (a:person:player) --> (b) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query =
+            "MATCH (:person {name: 'Tom'}:player {id: 233}) --> (:person {name: 'Jerry'}) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query =
+            "MATCH (:person:player {id: 233}) --> (:person {name: 'Jerry'}) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH () --> (:person {name: 'Jerry'}:player {id: 233}) RETURN *";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "MATCH () --> (:person {name: 'Jerry'}:player) RETURN *";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }

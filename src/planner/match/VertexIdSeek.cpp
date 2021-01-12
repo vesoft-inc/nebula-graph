@@ -31,7 +31,7 @@ bool VertexIdSeek::matchNode(NodeContext *nodeCtx) {
         return false;
     }
 
-    if (node.label != nullptr) {
+    if (!node.labels.empty()) {
         // TODO: Only support all tags for now.
         return false;
     }

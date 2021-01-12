@@ -145,7 +145,6 @@ Feature: IndexTest_Vid_String
     Then the execution should be successful
     Then drop the used space
 
-  @skip
   Scenario: IndexTest EdgeIndex
     Given an empty graph
     And create a space with following options:
@@ -550,7 +549,6 @@ Feature: IndexTest_Vid_String
       | "100"    | true       | 5          |
     Then drop the used space
 
-  @skip
   Scenario: IndexTest RebuildTagIndexStatusInfo
     Given an empty graph
     And create a space with following options:
@@ -575,8 +573,7 @@ Feature: IndexTest_Vid_String
       SHOW TAG INDEX STATUS;
       """
     Then the result should be, in any order:
-      | Name               | Index Status |
-      | "tag_index_status" | "FINISHED"   |
+      | Name | Index Status |
     When executing query:
       """
       REBUILD TAG INDEX tag_index_status
@@ -600,10 +597,10 @@ Feature: IndexTest_Vid_String
       SHOW TAG INDEX STATUS;
       """
     Then the result should be, in any order:
-      | Name | Index Status |
+      | Name               | Index Status |
+      | "tag_index_status" | "FINISHED"   |
     Then drop the used space
 
-  @skip
   Scenario: IndexTest RebuildEdgeIndexStatusInfo
     Given an empty graph
     And create a space with following options:
@@ -628,8 +625,7 @@ Feature: IndexTest_Vid_String
       SHOW EDGE INDEX STATUS;
       """
     Then the result should be, in any order:
-      | Name                | Index Status |
-      | "edge_index_status" | "FINISHED"   |
+      | Name | Index Status |
     When executing query:
       """
       REBUILD EDGE INDEX edge_index_status
@@ -651,7 +647,8 @@ Feature: IndexTest_Vid_String
       SHOW EDGE INDEX STATUS;
       """
     Then the result should be, in any order:
-      | Name | Index Status |
+      | Name                | Index Status |
+      | "edge_index_status" | "FINISHED"   |
     Then drop the used space
 
   Scenario: IndexTest AlterSchemaTest

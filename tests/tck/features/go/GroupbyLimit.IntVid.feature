@@ -178,7 +178,7 @@ Feature: Groupby & limit Sentence
     Then a SemanticError should be raised at runtime:
     When executing query:
       """
-      GO FROM hash("Carmelo Anthony"),hash("Dwyane Wade") OVER like YIELD $$.player.name AS name | GROUP BY $-.name, abs(5)
+      GO FROM hash("Carmelo Anthony"),hash("Dwyane Wade") OVER like YIELD $$.player.name AS name | GROUP BY $-.name
       YIELD $-.name AS name, SUM(1.5) AS sum, COUNT(*) AS count, 1+1 AS cal
       """
     Then the result should be, in any order, with relax comparison:
@@ -220,40 +220,40 @@ Feature: Groupby & limit Sentence
       | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == hash('Tim Duncan') as following
       | GROUP BY $-.dst YIELD $-.dst AS dst, BIT_OR($-.following) AS following
       """
-    Then the result should be, in any order, with relax comparison:
-      | dst                   | following |
-      | hash("Manu Ginobili") | BAD_TYPE  |
-      | hash("Tony Parker")   | BAD_TYPE  |
+    Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
+      | dst             | following |
+      | "Manu Ginobili" | BAD_TYPE  |
+      | "Tony Parker"   | BAD_TYPE  |
     When executing query:
       """
       GO FROM hash('Tim Duncan') OVER like YIELD like._dst as dst
       | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == hash('Tim Duncan') as following
       | GROUP BY $-.dst YIELD $-.dst AS dst, BIT_OR(case when $-.following==true then 1 else 0 end) AS following
       """
-    Then the result should be, in any order, with relax comparison:
-      | dst                   | following |
-      | hash("Tony Parker")   | 1         |
-      | hash("Manu Ginobili") | 1         |
+    Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
+      | dst             | following |
+      | "Tony Parker"   | 1         |
+      | "Manu Ginobili" | 1         |
     When executing query:
       """
       GO FROM hash('Tim Duncan') OVER like YIELD like._dst as dst
       |  GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == hash('Tim Duncan') as following
       | GROUP BY $-.dst YIELD $-.dst AS dst, BIT_AND($-.following) AS following
       """
-    Then the result should be, in any order, with relax comparison:
-      | dst                   | following |
-      | hash("Manu Ginobili") | BAD_TYPE  |
-      | hash("Tony Parker")   | BAD_TYPE  |
+    Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
+      | dst             | following |
+      | "Manu Ginobili" | BAD_TYPE  |
+      | "Tony Parker"   | BAD_TYPE  |
     When executing query:
       """
       GO FROM hash('Tim Duncan') OVER like YIELD like._dst as dst
       | GO FROM $-.dst over like YIELD $-.dst as dst, like._dst == hash('Tim Duncan') as following
       | GROUP BY $-.dst YIELD $-.dst AS dst, BIT_AND(case when $-.following==true then 1 else 0 end) AS following
       """
-    Then the result should be, in any order, with relax comparison:
-      | dst                   | following |
-      | hash("Manu Ginobili") | 1         |
-      | hash("Tony Parker")   | 0         |
+    Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
+      | dst             | following |
+      | "Manu Ginobili" | 1         |
+      | "Tony Parker"   | 0         |
 
   @skip
   Scenario: Groupby with COUNT_DISTINCT
@@ -275,7 +275,7 @@ Feature: Groupby & limit Sentence
   Scenario: Groupby works with orderby or limit test
     When executing query:
       """
-      GO FROM hash("Carmelo Anthony"),hash("Dwyane Wade") OVER like YIELD $$.player.name AS name | GROUP BY $-.name, abs(5)
+      GO FROM hash("Carmelo Anthony"),hash("Dwyane Wade") OVER like YIELD $$.player.name AS name | GROUP BY $-.name
       YIELD $-.name AS name, SUM(1.5) AS sum, COUNT(*) AS count | ORDER BY $-.sum, $-.name
       """
     Then the result should be, in order, with relax comparison:
@@ -286,7 +286,7 @@ Feature: Groupby & limit Sentence
       | "LeBron James"    | 3.0 | 2     |
     When executing query:
       """
-      GO FROM hash("Carmelo Anthony"),hash("Dwyane Wade") OVER like YIELD $$.player.name AS name | GROUP BY $-.name, abs(5)
+      GO FROM hash("Carmelo Anthony"),hash("Dwyane Wade") OVER like YIELD $$.player.name AS name | GROUP BY $-.name
       YIELD $-.name AS name, SUM(1.5) AS sum, COUNT(*) AS count | ORDER BY $-.sum, $-.name DESC | LIMIT 2
       """
     Then the result should be, in order, with relax comparison:
@@ -303,7 +303,7 @@ Feature: Groupby & limit Sentence
     Then a SemanticError should be raised at runtime:
     When executing query:
       """
-      GO FROM hash("NON EXIST VERTEX ID") OVER like YIELD $$.player.name AS name | GROUP BY $-.name, abs(5)
+      GO FROM hash("NON EXIST VERTEX ID") OVER like YIELD $$.player.name AS name | GROUP BY $-.name
       YIELD $-.name AS name, SUM(1.5) AS sum, COUNT(*) AS count | ORDER BY $-.sum | LIMIT 2
       """
     Then the result should be, in order, with relax comparison:
