@@ -347,46 +347,32 @@ const Value& SequentialIter::getColumn(int32_t index) const {
 
 void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
     size_t nextSeg = 0;
-    if (lhs != nullptr) {
-        switch (lhs->kind()) {
-            case Iterator::Kind::kSequential: {
-                nextSeg = buildIndexFromSeqIter(static_cast<const SequentialIter*>(lhs), 0);
-                break;
-            }
-            case Iterator::Kind::kJoin: {
-                nextSeg = buildIndexFromJoinIter(static_cast<const JoinIter*>(lhs), 0);
-                break;
-            }
-            case Iterator::Kind::kProp: {
-                nextSeg = buildIndexFromPropIter(static_cast<const PropIter*>(lhs), 0);
-                break;
-            }
-            case Iterator::Kind::kDefault:
-            case Iterator::Kind::kGetNeighbors: {
-                LOG(FATAL) << "Join Not Support " << lhs->kind();
-                break;
-            }
-        }
-    }
-    if (rhs == nullptr) {
+
+    if (lhs == nullptr || rhs == nullptr) {
         return;
     }
-    switch (rhs->kind()) {
+    colSize_ = lhs->size() + rhs->size();
+    buildIndexFromIter(lhs, nextSeg);
+    buildIndexFromIter(rhs, nextSeg);
+}
+
+void JoinIter::buildIndexFromIter(const Iterator* iter, size_t& nextSeg) {
+    switch (iter->kind()) {
         case Iterator::Kind::kSequential: {
-            buildIndexFromSeqIter(static_cast<const SequentialIter*>(rhs), nextSeg);
+            nextSeg = buildIndexFromSeqIter(static_cast<const SequentialIter*>(iter), nextSeg);
             break;
         }
         case Iterator::Kind::kJoin: {
-            buildIndexFromJoinIter(static_cast<const JoinIter*>(rhs), nextSeg);
+            nextSeg = buildIndexFromJoinIter(static_cast<const JoinIter*>(iter), nextSeg);
             break;
         }
         case Iterator::Kind::kProp: {
-            buildIndexFromPropIter(static_cast<const PropIter*>(rhs), nextSeg);
+            nextSeg = buildIndexFromPropIter(static_cast<const PropIter*>(iter), nextSeg);
             break;
         }
         case Iterator::Kind::kDefault:
         case Iterator::Kind::kGetNeighbors: {
-            LOG(FATAL) << "Join Not Support " << lhs->kind();
+            LOG(FATAL) << "Join Not Support " << iter->kind();
             break;
         }
     }
@@ -457,6 +443,7 @@ PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) 
 Status PropIter::makeDataSetIndex(const DataSet& ds) {
     dsIndex_.ds = &ds;
     auto& colNames = ds.colNames;
+    colSize_ = colNames.size();
     for (size_t i = 0; i < colNames.size(); ++i) {
         dsIndex_.colIndices.emplace(colNames[i], i);
         auto& colName = colNames[i];

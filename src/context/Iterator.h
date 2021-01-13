@@ -104,6 +104,8 @@ public:
 
     virtual size_t size() const = 0;
 
+    virtual size_t colSize() const = 0;
+
     bool empty() const {
         return size() == 0;
     }
@@ -135,11 +137,7 @@ public:
 
     template <typename Iter>
     const Value& getColumnByIndex(int32_t index, Iter iter) const {
-        auto size = iter->size();
-        if (static_cast<size_t>(std::abs(index)) >= size) {
-            return Value::kNullBadType;
-        }
-        return iter->operator[]((size + index) % size);
+        return iter->operator[](index);
     }
 
     virtual const Value& getTagProp(const std::string&,
@@ -205,6 +203,10 @@ public:
 
     size_t size() const override {
         return 1;
+    }
+
+    size_t colSize() const override {
+        return 0;
     }
 
     const Value& getColumn(const std::string& /* col */) const override {
@@ -282,6 +284,11 @@ public:
 
     size_t size() const override {
         return logicalRows_.size();
+    }
+
+    size_t colSize() const override {
+        DCHECK(false) << "Should not use this interface of GetNeighborsIter.";
+        return 0;
     }
 
     const Value& getColumn(const std::string& col) const override;
@@ -489,7 +496,8 @@ public:
             rows_.emplace_back(&row);
         }
         iter_ = rows_.begin();
-        for (size_t i = 0; i < ds.colNames.size(); ++i) {
+        colSize_ = ds.colNames.size();
+        for (size_t i = 0; i < colSize_; ++i) {
             colIndices_.emplace(ds.colNames[i], i);
         }
     }
@@ -569,6 +577,10 @@ public:
         return rows_.size();
     }
 
+    size_t colSize() const override {
+        return colSize_;
+    }
+
     const Value& getColumn(const std::string& col) const override {
         if (!valid()) {
             return Value::kNullValue;
@@ -620,7 +632,8 @@ private:
 private:
     RowsType<SeqLogicalRow>                      rows_;
     RowsIter<SeqLogicalRow>                      iter_;
-    std::unordered_map<std::string, size_t>     colIndices_;
+    std::unordered_map<std::string, size_t>      colIndices_;
+    size_t                                       colSize_{0};
 };
 
 class PropIter;
@@ -653,19 +666,15 @@ public:
         }
 
         const Value& operator[](size_t idx) const override {
-            if (idx < size_) {
-                auto index = colIdxIndices_->find(idx);
-                if (index == colIdxIndices_->end()) {
-                    return Value::kNullValue;
-                } else {
-                    auto keyIdx = index->second.first;
-                    auto valIdx = index->second.second;
-                    DCHECK_LT(keyIdx, values_.size());
-                    DCHECK_LT(valIdx, values_[keyIdx]->values.size());
-                    return values_[keyIdx]->values[valIdx];
-                }
+            auto index = colIdxIndices_->find(idx);
+            if (index == colIdxIndices_->end()) {
+                return Value::kNullValue;
             } else {
-                return Value::kEmpty;
+                auto keyIdx = index->second.first;
+                auto valIdx = index->second.second;
+                DCHECK_LT(keyIdx, values_.size());
+                DCHECK_LT(valIdx, values_[keyIdx]->values.size());
+                return values_[keyIdx]->values[valIdx];
             }
         }
 
@@ -765,6 +774,10 @@ public:
         return rows_.size();
     }
 
+    size_t colSize() const override {
+        return colSize_;
+    }
+
     const Value& getColumn(const std::string& col) const override {
         if (!valid()) {
             return Value::kNullValue;
@@ -796,6 +809,8 @@ private:
         iter_ = rows_.begin() + pos;
     }
 
+    void buildIndexFromIter(const Iterator* iter, size_t& nextSeg);
+
     size_t buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx);
 
     size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx);
@@ -810,6 +825,7 @@ private:
     std::unordered_map<std::string, std::pair<size_t, size_t>>     colIndices_;
     // colIdx -> segIdx, currentSegColIdx
     std::unordered_map<size_t, std::pair<size_t, size_t>>          colIdxIndices_;
+    size_t                                                         colSize_{0};
 };
 
 class PropIter final : public Iterator {
@@ -913,6 +929,10 @@ public:
         return rows_.size();
     }
 
+    size_t colSize() const override {
+        return colSize_;
+    }
+
     const LogicalRow* row() const override {
         if (!valid()) {
             return nullptr;
@@ -966,9 +986,10 @@ private:
     };
 
 private:
-    RowsType<PropLogicalRow>                                       rows_;
-    RowsIter<PropLogicalRow>                                       iter_;
-    DataSetIndex                                                   dsIndex_;
+    RowsType<PropLogicalRow>    rows_;
+    RowsIter<PropLogicalRow>    iter_;
+    DataSetIndex                dsIndex_;
+    size_t                      colSize_{0};
 };
 
 
