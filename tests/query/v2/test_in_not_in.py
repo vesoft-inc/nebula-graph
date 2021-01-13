@@ -29,6 +29,7 @@ class TestINandNotIn(NebulaTestSuite):
         stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN ['Danny Green']"
         resp = self.execute(stmt)
         self.check_resp_succeeded(resp)
+
         expected_data = {
             "column_names": ['like._dst'],
             "rows": []
@@ -214,6 +215,7 @@ class TestINandNotIn(NebulaTestSuite):
 
         stmt = "GO FROM 'Tony Parker' OVER like WHERE like._dst IN {'Danny Green'}"
         resp = self.execute(stmt)
+
         self.check_resp_succeeded(resp)
         expected_data = {
             "column_names": ['like._dst'],
