@@ -113,20 +113,22 @@ Status Expand::expandSteps(const NodeInfo& node,
                                             subplan));
         // If maxHop > 0, the result of 0 step will be passed to next plan node
         if (maxHop > 0) {
-            NG_RETURN_IF_ERROR(
-                passThrough(matchCtx_->qctx, subplan.root));
+            NG_RETURN_IF_ERROR(passThrough(matchCtx_->qctx, subplan.root));
         }
     } else {  // Case 1 to n steps
         startIndex = 1;
         // Expand first step from src
-        NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, true, &subplan));
+        NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, &subplan));
+        // Manualy create a passThrough node for the first step
+        // Rest steps will be passed through in collectData()
+        NG_RETURN_IF_ERROR(passThrough(matchCtx_->qctx, subplan.root));
     }
 
     PlanNode* passThrough = subplan.root;
     for (; startIndex < maxHop; ++startIndex) {
         SubPlan curr;
         NG_RETURN_IF_ERROR(
-            expandStep(edge, passThrough, passThrough->outputVar(), nullptr, false, &curr));
+            expandStep(edge, passThrough, passThrough->outputVar(), nullptr, &curr));
         auto rNode = subplan.root;
         DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
         NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
@@ -142,7 +144,6 @@ Status Expand::expandStep(const EdgeInfo& edge,
                           PlanNode* dep,
                           const std::string& inputVar,
                           const Expression* nodeFilter,
-                          bool needPassThrough,
                           SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
 
@@ -198,11 +199,6 @@ Status Expand::expandStep(const EdgeInfo& edge,
     listColumns->addColumn(new YieldColumn(buildPathExpr(), new std::string(kPathStr)));
     root = Project::make(qctx, root, listColumns);
     root->setColNames({kPathStr});
-
-    if (needPassThrough) {
-        NG_RETURN_IF_ERROR(
-            passThrough(qctx, root));
-    }
 
     plan->root = root;
     plan->tail = curr.tail;
