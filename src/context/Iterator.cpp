@@ -346,28 +346,32 @@ const Value& SequentialIter::getColumn(int32_t index) const {
 }
 
 void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
-    size_t nextSeg = 0;
-
     if (lhs == nullptr || rhs == nullptr) {
         return;
     }
-    colSize_ = lhs->size() + rhs->size();
-    buildIndexFromIter(lhs, nextSeg);
-    buildIndexFromIter(rhs, nextSeg);
+    DCHECK(colSize_ == lhs->colSize() + rhs->colSize());
+    colIdxIndices_.resize(colSize_);
+    size_t nextSeg = 0;
+    size_t colIdxStart = 0;
+    buildIndexFromIter(lhs, nextSeg, colIdxStart);
+    buildIndexFromIter(rhs, nextSeg, colIdxStart);
 }
 
-void JoinIter::buildIndexFromIter(const Iterator* iter, size_t& nextSeg) {
+void JoinIter::buildIndexFromIter(const Iterator* iter, size_t& nextSeg, size_t& colIdxStart) {
     switch (iter->kind()) {
         case Iterator::Kind::kSequential: {
-            nextSeg = buildIndexFromSeqIter(static_cast<const SequentialIter*>(iter), nextSeg);
+            nextSeg = buildIndexFromSeqIter(
+                static_cast<const SequentialIter*>(iter), nextSeg, colIdxStart);
             break;
         }
         case Iterator::Kind::kJoin: {
-            nextSeg = buildIndexFromJoinIter(static_cast<const JoinIter*>(iter), nextSeg);
+            nextSeg =
+                buildIndexFromJoinIter(static_cast<const JoinIter*>(iter), nextSeg, colIdxStart);
             break;
         }
         case Iterator::Kind::kProp: {
-            nextSeg = buildIndexFromPropIter(static_cast<const PropIter*>(iter), nextSeg);
+            nextSeg =
+                buildIndexFromPropIter(static_cast<const PropIter*>(iter), nextSeg, colIdxStart);
             break;
         }
         case Iterator::Kind::kDefault:
@@ -378,46 +382,50 @@ void JoinIter::buildIndexFromIter(const Iterator* iter, size_t& nextSeg) {
     }
 }
 
-size_t JoinIter::buildIndexFromPropIter(const PropIter* iter, size_t segIdx) {
-    auto colIdxStart = colIdxIndices_.size();
+size_t JoinIter::buildIndexFromPropIter(const PropIter* iter, size_t segIdx, size_t& colIdxStart) {
     for (auto& col : iter->getColIndices()) {
         DCHECK_LT(col.second + colIdxStart, colNames_.size());
         auto& colName = colNames_[col.second + colIdxStart];
         colIndices_.emplace(colName, std::make_pair(segIdx, col.second));
-        colIdxIndices_.emplace(col.second + colIdxStart, std::make_pair(segIdx, col.second));
+        colIdxIndices_[col.second + colIdxStart] = std::make_pair(segIdx, col.second);
     }
+    colIdxStart = colIdxStart + iter->colSize();
     return segIdx + 1;
 }
 
-size_t JoinIter::buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx) {
-    auto colIdxStart = colIdxIndices_.size();
+size_t JoinIter::buildIndexFromSeqIter(const SequentialIter* iter,
+                                       size_t segIdx,
+                                       size_t& colIdxStart) {
     for (auto& col : iter->getColIndices()) {
-        DCHECK_LT(col.second + colIdxStart, colNames_.size());
+        DCHECK_LT(col.second + colIdxStart, colSize_);
         auto& colName = colNames_[col.second + colIdxStart];
         colIndices_.emplace(colName, std::make_pair(segIdx, col.second));
-        colIdxIndices_.emplace(col.second + colIdxStart, std::make_pair(segIdx, col.second));
+        colIdxIndices_[col.second + colIdxStart] = std::make_pair(segIdx, col.second);
     }
+    colIdxStart = colIdxStart + iter->colSize();
     return segIdx + 1;
 }
 
-size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
-    auto colIdxStart = colIdxIndices_.size();
+size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx, size_t& colIdxStart) {
     size_t nextSeg = 0;
     if (iter->getColIndices().empty()) {
         return nextSeg;
     }
 
-    for (auto& col : iter->getColIdxIndices()) {
-        auto oldSeg = col.second.first;
+    const auto& joinColIdxIndices = iter->getColIdxIndices();
+    for (size_t i = 0; i < joinColIdxIndices.size(); ++i) {
+        const auto& col = joinColIdxIndices[i];
+        auto oldSeg = col.first;
         size_t newSeg = oldSeg + segIdx;
         if (newSeg > nextSeg) {
             nextSeg = newSeg;
         }
-        DCHECK_LT(col.first + colIdxStart, colNames_.size());
-        auto& colName = colNames_[col.first + colIdxStart];
-        colIndices_.emplace(colName, std::make_pair(newSeg, col.second.second));
-        colIdxIndices_.emplace(col.first + colIdxStart, std::make_pair(newSeg, col.second.second));
+        DCHECK_LT(i + colIdxStart, colNames_.size());
+        auto& colName = colNames_[i + colIdxStart];
+        colIndices_.emplace(colName, std::make_pair(newSeg, col.second));
+        colIdxIndices_[i + colIdxStart] = std::make_pair(newSeg, col.second);
     }
+    colIdxStart = colIdxStart + iter->colSize();
     return nextSeg + 1;
 }
 

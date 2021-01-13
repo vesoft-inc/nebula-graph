@@ -509,6 +509,7 @@ public:
         DCHECK(right->isSequentialIter());
         auto lIter = static_cast<SequentialIter*>(left.get());
         auto rIter = static_cast<SequentialIter*>(right.get());
+        colSize_ = lIter->colSize();
         rows_.insert(rows_.end(),
                      std::make_move_iterator(lIter->begin()),
                      std::make_move_iterator(lIter->end()));
@@ -644,7 +645,7 @@ public:
         explicit JoinLogicalRow(
             std::vector<const Row*> values,
             size_t size,
-            const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
+            const std::vector<std::pair<size_t, size_t>>* colIdxIndices)
             : values_(std::move(values)), size_(size), colIdxIndices_(colIdxIndices) {}
 
         JoinLogicalRow(const JoinLogicalRow &r) = default;
@@ -666,16 +667,15 @@ public:
         }
 
         const Value& operator[](size_t idx) const override {
-            auto index = colIdxIndices_->find(idx);
-            if (index == colIdxIndices_->end()) {
+            if (idx > size_) {
                 return Value::kNullValue;
-            } else {
-                auto keyIdx = index->second.first;
-                auto valIdx = index->second.second;
-                DCHECK_LT(keyIdx, values_.size());
-                DCHECK_LT(valIdx, values_[keyIdx]->values.size());
-                return values_[keyIdx]->values[valIdx];
             }
+            const auto& index = (*colIdxIndices_)[idx];
+            auto keyIdx = index.first;
+            auto valIdx = index.second;
+            DCHECK_LT(keyIdx, values_.size());
+            DCHECK_LT(valIdx, values_[keyIdx]->values.size());
+            return values_[keyIdx]->values[valIdx];
         }
 
         size_t size() const override {
@@ -694,11 +694,13 @@ public:
         friend class JoinIter;
         std::vector<const Row*> values_;
         size_t size_;
-        const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
+        const std::vector<std::pair<size_t, size_t>>* colIdxIndices_;
     };
 
     explicit JoinIter(std::vector<std::string> colNames)
-        : Iterator(nullptr, Kind::kJoin), colNames_(std::move(colNames)) {}
+        : Iterator(nullptr, Kind::kJoin), colNames_(std::move(colNames)) {
+        colSize_ = colNames_.size();
+    }
 
     void joinIndex(const Iterator* lhs, const Iterator* rhs);
 
@@ -765,7 +767,7 @@ public:
         return colIndices_;
     }
 
-    const std::unordered_map<size_t, std::pair<size_t, size_t>>&
+    const std::vector<std::pair<size_t, size_t>>&
     getColIdxIndices() const {
         return colIdxIndices_;
     }
@@ -809,13 +811,13 @@ private:
         iter_ = rows_.begin() + pos;
     }
 
-    void buildIndexFromIter(const Iterator* iter, size_t& nextSeg);
+    void buildIndexFromIter(const Iterator* iter, size_t& nextSeg, size_t& colIdxStart);
 
-    size_t buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx);
+    size_t buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx, size_t& colIdxStart);
 
-    size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx);
+    size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx, size_t& colIdxStart);
 
-    size_t buildIndexFromPropIter(const PropIter* iter, size_t segIdx);
+    size_t buildIndexFromPropIter(const PropIter* iter, size_t segIdx, size_t& colIdxStart);
 
 private:
     std::vector<std::string>                                       colNames_;
@@ -824,7 +826,7 @@ private:
     // colName -> segIdx, currentSegColIdx
     std::unordered_map<std::string, std::pair<size_t, size_t>>     colIndices_;
     // colIdx -> segIdx, currentSegColIdx
-    std::unordered_map<size_t, std::pair<size_t, size_t>>          colIdxIndices_;
+    std::vector<std::pair<size_t, size_t>>                         colIdxIndices_;
     size_t                                                         colSize_{0};
 };
 
