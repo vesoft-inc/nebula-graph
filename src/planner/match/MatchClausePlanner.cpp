@@ -114,8 +114,10 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
                                           size_t startIndex,
                                           SubPlan& subplan) {
     SubPlan rightExpandPlan = subplan;
+    VLOG(1) << "left-expand-input before right expand: " <<subplan.root->outputVar();
     NG_RETURN_IF_ERROR(
         rightExpandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, rightExpandPlan));
+    VLOG(1) << "left-expand-input after right expand: " <<subplan.root->outputVar();
 
     if (startIndex > 0) {
         auto left = rightExpandPlan.root;
@@ -126,6 +128,8 @@ Status MatchClausePlanner::expandFromNode(const std::vector<NodeInfo>& nodeInfos
                                               startIndex,
                                               subplan.root->outputVar(),
                                               leftExpandPlan));
+    VLOG(1) << "left-expand-input after left expand: " <<subplan.root->outputVar();
+
         rightExpandPlan.root = leftExpandPlan.root;
         if (startIndex < nodeInfos.size() - 1) {
             // Connect the left expand and right expand part.

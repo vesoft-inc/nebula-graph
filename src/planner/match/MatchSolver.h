@@ -66,6 +66,14 @@ public:
                                  QueryContext* qctx,
                                  Expression* initialExpr,
                                  SubPlan& plan);
+
+    // To pass inputVar in 0 step case
+    static Status appendFetchVertexPlan(const Expression* nodeFilter,
+                                 const SpaceInfo& space,
+                                 QueryContext* qctx,
+                                 Expression* initialExpr,
+                                 std::string inputVar,
+                                 SubPlan& plan);
 };
 }  // namespace graph
 }  // namespace nebula

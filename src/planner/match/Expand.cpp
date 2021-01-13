@@ -109,8 +109,8 @@ Status Expand::expandSteps(const NodeInfo& node,
                                             matchCtx_->space,
                                             matchCtx_->qctx,
                                             initialExpr_.release(),
+                                            inputVar_,
                                             subplan));
-
         // If maxHop > 0, the result of 0 step will be passed to next plan node
         if (maxHop > 0) {
             NG_RETURN_IF_ERROR(
@@ -137,7 +137,7 @@ Status Expand::expandSteps(const NodeInfo& node,
 }
 
 
-// build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
+// Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project
 Status Expand::expandStep(const EdgeInfo& edge,
                           PlanNode* dep,
                           const std::string& inputVar,
@@ -215,6 +215,7 @@ Status Expand::collectData(const PlanNode* joinLeft,
                            PlanNode** passThrough,
                            SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
+    // [dataJoin]
     auto join = SegmentsConnector::innerJoinSegments(qctx, joinLeft, joinRight);
     auto lpath = folly::stringPrintf("%s_%d", kPathStr, 0);
     auto rpath = folly::stringPrintf("%s_%d", kPathStr, 1);
@@ -246,9 +247,9 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
                                          SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
 
-    // filter rows whose edges number less than min hop
+    // Filter rows whose edges number less than min hop
     auto args = std::make_unique<ArgumentList>();
-    // expr: length(relationships(p)) >= minHop
+    // Expr: length(relationships(p)) >= minHop
     auto pathExpr = ExpressionUtils::inputPropExpr(kPathStr);
     args->addArgument(std::move(pathExpr));
     auto fn = std::make_unique<std::string>("length");
@@ -260,7 +261,7 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
     auto filter = Filter::make(qctx, input, saveObject(expr.release()));
     filter->setColNames(input->colNames());
     plan->root = filter;
-    // plan->tail = curr.tail;
+    // Plan->tail = curr.tail;
     return Status::OK();
 }
 
