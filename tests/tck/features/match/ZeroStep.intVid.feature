@@ -5,7 +5,7 @@
 Feature: Variable length Pattern match (0 step)
 
   Background:
-    Given a graph with space named "nba"
+    Given a graph with space named "nba_int_vid"
 
   Scenario Outline: Use step all-direction edge with properties 0 step, return node
     When executing query:
