@@ -98,6 +98,8 @@ public:
     // column expression
     void visit(ColumnExpression *expr) override;
     void visit(ListComprehensionExpression *expr) override;
+    void visit(AggregateExpression *expr) override;
+    void visit(PredicateExpression *expr) override;
 
 private:
     void visitBinaryExpr(BinaryExpression *expr);
