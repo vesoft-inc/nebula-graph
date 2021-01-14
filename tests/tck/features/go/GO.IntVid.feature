@@ -1644,4 +1644,3 @@ Feature: IntegerVid Go  Sentence
       | EMPTY        | 2008             | 2012           | EMPTY          |
       | EMPTY        | 2012             | 2016           | EMPTY          |
       | EMPTY        | 2016             | 2017           | EMPTY          |
-
