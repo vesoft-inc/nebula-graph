@@ -2,6 +2,7 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
+@test
 Feature: Variable length Pattern match (0 step)
 
   Background:
@@ -161,12 +162,297 @@ Feature: Variable length Pattern match (0 step)
       | []                                                                                                                     | ("Tracy McGrady" :player{age: 39, name: "Tracy McGrady"})                                                   |
       | []                                                                                                                     | ("Jonathon Simmons" :player{age: 29, name: "Jonathon Simmons"})                                             |
       | []                                                                                                                     | ("Spurs" :team{name: "Spurs"})                                                                              |
-
-# When executing query:
-# """
-# MATCH (v) -[*0..1]-(v2:player{name: "Tim Duncan"})-[*0..1]->()
-# RETURN v, v2
-# """
-# Then the result should be, in any order:
-# match (v) -[*0..1]-(v2:player{name: "Tim Duncan"})-[*1..2]->()
-# match (v) -[*0..1{likeness: 90}]-(v2:player{name: "Tim Duncan"})-[*1..2]->()
+    When executing query:
+      """
+      MATCH (v) -[*0..1]-(v2:player{name: "Tim Duncan"})-[*0..1]->()
+      RETURN v, v2
+      """
+    Then the result should be, in any order:
+      | v                                                                                                           | v2                                                                                                          |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Aron Baynes" :player{age: 32, name: "Aron Baynes"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Boris Diaw" :player{age: 36, name: "Boris Diaw"})                                                         | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Boris Diaw" :player{age: 36, name: "Boris Diaw"})                                                         | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Boris Diaw" :player{age: 36, name: "Boris Diaw"})                                                         | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Boris Diaw" :player{age: 36, name: "Boris Diaw"})                                                         | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Boris Diaw" :player{age: 36, name: "Boris Diaw"})                                                         | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Boris Diaw" :player{age: 36, name: "Boris Diaw"})                                                         | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Boris Diaw" :player{age: 36, name: "Boris Diaw"})                                                         | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Boris Diaw" :player{age: 36, name: "Boris Diaw"})                                                         | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Dejounte Murray" :player{age: 29, name: "Dejounte Murray"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Dejounte Murray" :player{age: 29, name: "Dejounte Murray"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Dejounte Murray" :player{age: 29, name: "Dejounte Murray"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Dejounte Murray" :player{age: 29, name: "Dejounte Murray"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Dejounte Murray" :player{age: 29, name: "Dejounte Murray"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Dejounte Murray" :player{age: 29, name: "Dejounte Murray"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Dejounte Murray" :player{age: 29, name: "Dejounte Murray"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Dejounte Murray" :player{age: 29, name: "Dejounte Murray"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Marco Belinelli" :player{age: 32, name: "Marco Belinelli"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Marco Belinelli" :player{age: 32, name: "Marco Belinelli"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Marco Belinelli" :player{age: 32, name: "Marco Belinelli"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Marco Belinelli" :player{age: 32, name: "Marco Belinelli"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Marco Belinelli" :player{age: 32, name: "Marco Belinelli"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Marco Belinelli" :player{age: 32, name: "Marco Belinelli"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Marco Belinelli" :player{age: 32, name: "Marco Belinelli"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Marco Belinelli" :player{age: 32, name: "Marco Belinelli"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Shaquile O'Neal" :player{age: 47, name: "Shaquile O'Neal"})                                               | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tiago Splitter" :player{age: 34, name: "Tiago Splitter"})                                                 | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tiago Splitter" :player{age: 34, name: "Tiago Splitter"})                                                 | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tiago Splitter" :player{age: 34, name: "Tiago Splitter"})                                                 | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tiago Splitter" :player{age: 34, name: "Tiago Splitter"})                                                 | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tiago Splitter" :player{age: 34, name: "Tiago Splitter"})                                                 | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tiago Splitter" :player{age: 34, name: "Tiago Splitter"})                                                 | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tiago Splitter" :player{age: 34, name: "Tiago Splitter"})                                                 | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tiago Splitter" :player{age: 34, name: "Tiago Splitter"})                                                 | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Spurs" :team{name: "Spurs"})                                                                              | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Spurs" :team{name: "Spurs"})                                                                              | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Spurs" :team{name: "Spurs"})                                                                              | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Spurs" :team{name: "Spurs"})                                                                              | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Spurs" :team{name: "Spurs"})                                                                              | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Spurs" :team{name: "Spurs"})                                                                              | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Spurs" :team{name: "Spurs"})                                                                              | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+    When executing query:
+      """
+      MATCH (v) -[*0..1]-(v2:player{name: "Tim Duncan"})-[e*1..2]->(v3)
+      RETURN DISTINCT v3.name AS Name, e ORDER BY Name
+      """
+    Then the result should be, in any order:
+      | Name                | e                                                                                                                                                                          |
+      | "Cavaliers"         | [[:teammate "Tim Duncan"->"Danny Green" @0 {end_year: 2016, start_year: 2010}], [:serve "Danny Green"->"Cavaliers" @0 {end_year: 2010, start_year: 2009}]]                 |
+      | "Danny Green"       | [[:teammate "Tim Duncan"->"Danny Green" @0 {end_year: 2016, start_year: 2010}]]                                                                                            |
+      | "Hornets"           | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:serve "Tony Parker"->"Hornets" @0 {end_year: 2019, start_year: 2018}]]                                           |
+      | "Hornets"           | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:serve "Tony Parker"->"Hornets" @0 {end_year: 2019, start_year: 2018}]]                   |
+      | "Kyle Anderson"     | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:teammate "Tony Parker"->"Kyle Anderson" @0 {end_year: 2016, start_year: 2014}]]          |
+      | "Kyle Anderson"     | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:teammate "Tony Parker"->"Kyle Anderson" @0 {end_year: 2016, start_year: 2014}]]                                  |
+      | "LaMarcus Aldridge" | [[:teammate "Tim Duncan"->"LaMarcus Aldridge" @0 {end_year: 2016, start_year: 2015}]]                                                                                      |
+      | "LaMarcus Aldridge" | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:teammate "Tony Parker"->"LaMarcus Aldridge" @0 {end_year: 2018, start_year: 2015}]]      |
+      | "LaMarcus Aldridge" | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:teammate "Tony Parker"->"LaMarcus Aldridge" @0 {end_year: 2018, start_year: 2015}]]                              |
+      | "LaMarcus Aldridge" | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]]                              |
+      | "LaMarcus Aldridge" | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]]                                                      |
+      | "LeBron James"      | [[:teammate "Tim Duncan"->"Danny Green" @0 {end_year: 2016, start_year: 2010}], [:like "Danny Green"->"LeBron James" @0 {likeness: 80}]]                                   |
+      | "Manu Ginobili"     | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:teammate "Tony Parker"->"Manu Ginobili" @0 {end_year: 2018, start_year: 2002}]]          |
+      | "Manu Ginobili"     | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]]                                                          |
+      | "Manu Ginobili"     | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:like "Tony Parker"->"Manu Ginobili" @0 {likeness: 95}]]                                  |
+      | "Manu Ginobili"     | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:teammate "Tony Parker"->"Manu Ginobili" @0 {end_year: 2018, start_year: 2002}]]                                  |
+      | "Manu Ginobili"     | [[:teammate "Tim Duncan"->"Manu Ginobili" @0 {end_year: 2016, start_year: 2002}]]                                                                                          |
+      | "Manu Ginobili"     | [[:like "Tim Duncan"->"Manu Ginobili" @0 {likeness: 95}]]                                                                                                                  |
+      | "Marco Belinelli"   | [[:teammate "Tim Duncan"->"Danny Green" @0 {end_year: 2016, start_year: 2010}], [:like "Danny Green"->"Marco Belinelli" @0 {likeness: 83}]]                                |
+      | "Raptors"           | [[:teammate "Tim Duncan"->"Danny Green" @0 {end_year: 2016, start_year: 2010}], [:serve "Danny Green"->"Raptors" @0 {end_year: 2019, start_year: 2018}]]                   |
+      | "Spurs"             | [[:like "Tim Duncan"->"Manu Ginobili" @0 {likeness: 95}], [:serve "Manu Ginobili"->"Spurs" @0 {end_year: 2018, start_year: 2002}]]                                         |
+      | "Spurs"             | [[:teammate "Tim Duncan"->"Manu Ginobili" @0 {end_year: 2016, start_year: 2002}], [:serve "Manu Ginobili"->"Spurs" @0 {end_year: 2018, start_year: 2002}]]                 |
+      | "Spurs"             | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:serve "Tony Parker"->"Spurs" @0 {end_year: 2018, start_year: 1999}]]                                             |
+      | "Spurs"             | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:serve "Tony Parker"->"Spurs" @0 {end_year: 2018, start_year: 1999}]]                     |
+      | "Spurs"             | [[:teammate "Tim Duncan"->"Danny Green" @0 {end_year: 2016, start_year: 2010}], [:serve "Danny Green"->"Spurs" @0 {end_year: 2018, start_year: 2010}]]                     |
+      | "Spurs"             | [[:serve "Tim Duncan"->"Spurs" @0 {end_year: 2016, start_year: 1997}]]                                                                                                     |
+      | "Spurs"             | [[:teammate "Tim Duncan"->"LaMarcus Aldridge" @0 {end_year: 2016, start_year: 2015}], [:serve "LaMarcus Aldridge"->"Spurs" @0 {end_year: 2019, start_year: 2015}]]         |
+      | "Tim Duncan"        | [[:teammate "Tim Duncan"->"Danny Green" @0 {end_year: 2016, start_year: 2010}], [:like "Danny Green"->"Tim Duncan" @0 {likeness: 70}]]                                     |
+      | "Tim Duncan"        | [[:like "Tim Duncan"->"Manu Ginobili" @0 {likeness: 95}], [:like "Manu Ginobili"->"Tim Duncan" @0 {likeness: 90}]]                                                         |
+      | "Tim Duncan"        | [[:teammate "Tim Duncan"->"Manu Ginobili" @0 {end_year: 2016, start_year: 2002}], [:like "Manu Ginobili"->"Tim Duncan" @0 {likeness: 90}]]                                 |
+      | "Tim Duncan"        | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:teammate "Tony Parker"->"Tim Duncan" @0 {end_year: 2016, start_year: 2001}]]             |
+      | "Tim Duncan"        | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:teammate "Tony Parker"->"Tim Duncan" @0 {end_year: 2016, start_year: 2001}]]                                     |
+      | "Tim Duncan"        | [[:like "Tim Duncan"->"Manu Ginobili" @0 {likeness: 95}], [:teammate "Manu Ginobili"->"Tim Duncan" @0 {end_year: 2016, start_year: 2002}]]                                 |
+      | "Tim Duncan"        | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}], [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]]                                     |
+      | "Tim Duncan"        | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}], [:like "Tony Parker"->"Tim Duncan" @0 {likeness: 95}]]                                                             |
+      | "Tim Duncan"        | [[:teammate "Tim Duncan"->"Manu Ginobili" @0 {end_year: 2016, start_year: 2002}], [:teammate "Manu Ginobili"->"Tim Duncan" @0 {end_year: 2016, start_year: 2002}]]         |
+      | "Tim Duncan"        | [[:teammate "Tim Duncan"->"LaMarcus Aldridge" @0 {end_year: 2016, start_year: 2015}], [:like "LaMarcus Aldridge"->"Tim Duncan" @0 {likeness: 75}]]                         |
+      | "Tony Parker"       | [[:teammate "Tim Duncan"->"Tony Parker" @0 {end_year: 2016, start_year: 2001}]]                                                                                            |
+      | "Tony Parker"       | [[:teammate "Tim Duncan"->"LaMarcus Aldridge" @0 {end_year: 2016, start_year: 2015}], [:like "LaMarcus Aldridge"->"Tony Parker" @0 {likeness: 75}]]                        |
+      | "Tony Parker"       | [[:like "Tim Duncan"->"Manu Ginobili" @0 {likeness: 95}], [:teammate "Manu Ginobili"->"Tony Parker" @0 {end_year: 2016, start_year: 2002}]]                                |
+      | "Tony Parker"       | [[:teammate "Tim Duncan"->"Manu Ginobili" @0 {end_year: 2016, start_year: 2002}], [:teammate "Manu Ginobili"->"Tony Parker" @0 {end_year: 2016, start_year: 2002}]]        |
+      | "Tony Parker"       | [[:like "Tim Duncan"->"Tony Parker" @0 {likeness: 95}]]                                                                                                                    |
+      | "Trail Blazers"     | [[:teammate "Tim Duncan"->"LaMarcus Aldridge" @0 {end_year: 2016, start_year: 2015}], [:serve "LaMarcus Aldridge"->"Trail Blazers" @0 {end_year: 2015, start_year: 2006}]] |
+    When executing query:
+      """
+      MATCH (v) -[e1*0..1{likeness: 90}]-(v2:player{name: "Tony Parker"})-[*1..2]->(v3)
+      RETURN e1, v3 as Player ORDER BY Player
+      """
+    Then the result should be, in any order:
+      | e1                                                             | Player                                                                                                      |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       |
+      | []                                                             | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       |
+      | []                                                             | ("Danny Green" :player{age: 31, name: "Danny Green"})                                                       |
+      | []                                                             | ("Grizzlies" :team{name: "Grizzlies"})                                                                      |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Grizzlies" :team{name: "Grizzlies"})                                                                      |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Hornets" :team{name: "Hornets"})                                                                          |
+      | []                                                             | ("Hornets" :team{name: "Hornets"})                                                                          |
+      | []                                                             | ("Kyle Anderson" :player{age: 25, name: "Kyle Anderson"})                                                   |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Kyle Anderson" :player{age: 25, name: "Kyle Anderson"})                                                   |
+      | []                                                             | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           |
+      | []                                                             | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           |
+      | []                                                             | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           |
+      | []                                                             | ("LaMarcus Aldridge" :player{age: 33, name: "LaMarcus Aldridge"})                                           |
+      | []                                                             | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | []                                                             | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | []                                                             | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | []                                                             | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | []                                                             | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | []                                                             | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Manu Ginobili" :player{age: 41, name: "Manu Ginobili"})                                                   |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Spurs" :team{name: "Spurs"})                                                                              |
+      | []                                                             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | []                                                             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | []                                                             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | []                                                             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | []                                                             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | []                                                             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | []                                                             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | []                                                             | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Tony Parker" :player{age: 36, name: "Tony Parker"})                                                       |
+      | []                                                             | ("Trail Blazers" :team{name: "Trail Blazers"})                                                              |
+      | [[:like "Tony Parker"->"LaMarcus Aldridge" @0 {likeness: 90}]] | ("Trail Blazers" :team{name: "Trail Blazers"})                                                              |
+      | []                                                             | ("Trail Blazers" :team{name: "Trail Blazers"})                                                              |
