@@ -20,6 +20,14 @@ public:
 
     StatusOr<SubPlan> transform(CypherClauseContextBase* clauseCtx) override;
 
+    void rewriteYieldColumns(const YieldClauseContext* yctx,
+                             const YieldColumns* yields,
+                             YieldColumns* newYields);
+
+    void rewriteGroupExprs(const YieldClauseContext* yctx,
+                           const std::vector<Expression*>* exprs,
+                           std::vector<Expression*>* newExprs);
+
     Status buildYield(YieldClauseContext* yctx, SubPlan& subplan);
 };
 }  // namespace graph

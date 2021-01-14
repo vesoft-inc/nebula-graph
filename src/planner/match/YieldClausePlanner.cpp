@@ -23,9 +23,10 @@ StatusOr<SubPlan> YieldClausePlanner::transform(CypherClauseContextBase* clauseC
     return yieldPlan;
 }
 
-void rewriteYieldColumns(std::unordered_map<std::string, AliasType>* aliasesUsed,
-                         const YieldColumns* yields,
-                         YieldColumns* newYields) {
+void YieldClausePlanner::rewriteYieldColumns(const YieldClauseContext* yctx,
+                                             const YieldColumns* yields,
+                                             YieldColumns* newYields) {
+    auto* aliasesUsed = yctx->aliasesUsed;
     auto rewriter = [aliasesUsed](const Expression* expr) {
         return MatchSolver::doRewrite(*aliasesUsed, expr);
     };
@@ -46,9 +47,10 @@ void rewriteYieldColumns(std::unordered_map<std::string, AliasType>* aliasesUsed
     }
 }
 
-void rewriteExprs(std::unordered_map<std::string, AliasType>* aliasesUsed,
-                  const std::vector<Expression*>* exprs,
-                  std::vector<Expression*>* newExprs) {
+void YieldClausePlanner::rewriteGroupExprs(const YieldClauseContext* yctx,
+                                           const std::vector<Expression*>* exprs,
+                                           std::vector<Expression*>* newExprs) {
+    auto* aliasesUsed = yctx->aliasesUsed;
     auto rewriter = [aliasesUsed](const Expression* expr) {
         return MatchSolver::doRewrite(*aliasesUsed, expr);
     };
@@ -56,12 +58,13 @@ void rewriteExprs(std::unordered_map<std::string, AliasType>* aliasesUsed,
     for (auto* expr : *exprs) {
         auto kind = expr->kind();
         if (kind == Expression::Kind::kLabel || kind == Expression::Kind::kLabelAttribute) {
-            newExprs->emplace_back(MatchSolver::doRewrite(*aliasesUsed, expr));
+            auto* newExpr = yctx->qctx->objPool()->add(rewriter(expr));
+            newExprs->emplace_back(newExpr);
         } else {
-            auto newExpr = expr->clone();
+            auto* newExpr = yctx->qctx->objPool()->add(expr->clone().release());
             RewriteMatchLabelVisitor visitor(rewriter);
             newExpr->accept(&visitor);
-            newExprs->emplace_back(newExpr.release());
+            newExprs->emplace_back(newExpr);
         }
     }
 }
@@ -70,7 +73,7 @@ Status YieldClausePlanner::buildYield(YieldClauseContext* yctx, SubPlan& subplan
     auto* currentRoot = subplan.root;
     DCHECK(!currentRoot);
     auto* newProjCols = yctx->qctx->objPool()->add(new YieldColumns());
-    rewriteYieldColumns(yctx->aliasesUsed, yctx->projCols_, newProjCols);
+    rewriteYieldColumns(yctx, yctx->projCols_, newProjCols);
     if (!yctx->hasAgg_) {
         auto* project = Project::make(yctx->qctx,
                                       currentRoot,
@@ -81,8 +84,8 @@ Status YieldClausePlanner::buildYield(YieldClauseContext* yctx, SubPlan& subplan
     } else {
         std::vector<Expression*> newGroupKeys;
         std::vector<Expression*> newGroupItems;
-        rewriteExprs(yctx->aliasesUsed, &yctx->groupKeys_, &newGroupKeys);
-        rewriteExprs(yctx->aliasesUsed, &yctx->groupItems_, &newGroupItems);
+        rewriteGroupExprs(yctx, &yctx->groupKeys_, &newGroupKeys);
+        rewriteGroupExprs(yctx, &yctx->groupItems_, &newGroupItems);
 
         auto* agg = Aggregate::make(yctx->qctx,
                                     currentRoot,

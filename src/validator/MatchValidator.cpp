@@ -372,7 +372,6 @@ Status MatchValidator::validateReturn(MatchReturn *ret,
     std::vector<const Expression*> exprs;
     exprs.reserve(retClauseCtx.yield->yieldColumns->size());
     for (auto *col : retClauseCtx.yield->yieldColumns->columns()) {
-        // TODO : modify to visitor nested check  (czp)
         if (!retClauseCtx.yield->hasAgg_ &&
             ExpressionUtils::hasAny(col->expr(), {Expression::Kind::kAggregate})) {
             retClauseCtx.yield->hasAgg_ = true;
@@ -675,8 +674,7 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
         auto rewrited = false;
         auto colOldName = deduceColName(col);
         if (col->expr()->kind() != Expression::Kind::kAggregate) {
-            // rewritedExpr will dive into Proj PlanNode  (MLC?) (czp)
-            auto* rewritedExpr = col->expr()->clone().release();
+            auto rewritedExpr = col->expr()->clone();
             auto collectAggCol = rewritedExpr->clone();
             auto aggs = ExpressionUtils::collectAll(collectAggCol.get(),
                                                     {Expression::Kind::kAggregate});
@@ -697,7 +695,7 @@ Status MatchValidator::validateGroup(YieldClauseContext &yieldCtx) const {
                 rewritedExpr->accept(&rewriteAggVisitor);
                 rewrited = true;
                 yieldCtx.needGenProject_ = true;
-                yieldCtx.projCols_->addColumn(new YieldColumn(rewritedExpr,
+                yieldCtx.projCols_->addColumn(new YieldColumn(rewritedExpr.release(),
                                               new std::string(colOldName)));
             }
         }

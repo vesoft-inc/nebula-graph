@@ -112,12 +112,9 @@ struct YieldClauseContext final : CypherClauseContextBase {
 struct ReturnClauseContext final : CypherClauseContextBase {
     ReturnClauseContext() : CypherClauseContextBase(CypherClauseKind::kReturn) {}
 
-    // bool                                         distinct{false};
-    // const YieldColumns*                          yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>        order;
     std::unique_ptr<PaginationContext>           pagination;
     std::unique_ptr<YieldClauseContext>          yield;
-    // std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
 };
 
 struct WithClauseContext final : CypherClauseContextBase {
