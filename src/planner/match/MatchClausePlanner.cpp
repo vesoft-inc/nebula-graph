@@ -184,6 +184,7 @@ Status MatchClausePlanner::leftExpandFromNode(const std::vector<NodeInfo>& nodeI
                               matchClauseCtx->space,
                               matchClauseCtx->qctx,
                               edgeInfos.empty() ? initialExpr_->clone().release() : nullptr,
+                              "",
                               subplan));
     if (!edgeInfos.empty()) {
         auto right = subplan.root;
@@ -233,6 +234,7 @@ Status MatchClausePlanner::rightExpandFromNode(const std::vector<NodeInfo>& node
                               matchClauseCtx->space,
                               matchClauseCtx->qctx,
                               edgeInfos.empty() ? initialExpr_->clone().release() : nullptr,
+                              "",
                               subplan));
     if (!edgeInfos.empty()) {
         auto right = subplan.root;

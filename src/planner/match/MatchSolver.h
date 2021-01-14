@@ -61,13 +61,8 @@ public:
                                          const std::string& column,
                                          QueryContext* qctx);
 
-    static Status appendFetchVertexPlan(const Expression* nodeFilter,
-                                 const SpaceInfo& space,
-                                 QueryContext* qctx,
-                                 Expression* initialExpr,
-                                 SubPlan& plan);
-
-    // To pass inputVar in 0 step case
+    // In 0 step left expansion case, the result of initial index scan
+    // will be passed as inputVar after right expansion is finished
     static Status appendFetchVertexPlan(const Expression* nodeFilter,
                                  const SpaceInfo& space,
                                  QueryContext* qctx,
