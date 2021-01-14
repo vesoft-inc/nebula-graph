@@ -17,23 +17,6 @@ namespace graph {
  */
 class VertexIdSeek final : public StartVidFinder {
 public:
-    struct VidPattern {
-        enum class Special {
-            kIgnore,
-            kInUsed,
-        } spec{Special::kIgnore};
-
-        struct Vids {
-            enum class Kind {
-                kOtherSource,  // e.g. PropertiesSeek
-                kIn,
-                kNotIn,
-            } kind{Kind::kOtherSource};
-            List vids;
-        };
-        std::unordered_map<std::string, Vids> nodes;
-    };
-
     static std::unique_ptr<VertexIdSeek> make() {
         return std::unique_ptr<VertexIdSeek>(new VertexIdSeek());
     }
