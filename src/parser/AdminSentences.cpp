@@ -5,6 +5,7 @@
  */
 
 #include "parser/AdminSentences.h"
+#include <sstream>
 #include "util/SchemaUtil.h"
 
 namespace nebula {
@@ -68,9 +69,10 @@ std::string SpaceOptItem::toString() const {
             return folly::stringPrintf("charset = %s", boost::get<std::string>(optValue_).c_str());
         case COLLATE:
             return folly::stringPrintf("collate = %s", boost::get<std::string>(optValue_).c_str());
-        default:
-            FLOG_FATAL("Space parameter illegal");
+        case ATOMIC_EDGE:
+            return folly::stringPrintf("atomic_edge = %s", getAtomicEdge() ? "true" : "false");
     }
+    DLOG(FATAL) << "Space parameter illegal";
     return "Unknown";
 }
 
@@ -112,15 +114,39 @@ std::string DescribeSpaceSentence::toString() const {
 }
 
 std::string ConfigRowItem::toString() const {
-    return "";
+    std::string buf;
+    buf.reserve(128);
+    if (module_ != meta::cpp2::ConfigModule::ALL) {
+        buf += meta::cpp2::_ConfigModule_VALUES_TO_NAMES.at(module_);
+        buf += ":";
+    }
+    if (name_ != nullptr) {
+        buf += *name_;
+    }
+    if (value_ != nullptr) {
+        buf += " = ";
+        buf += value_->toString();
+    }
+    if (updateItems_ != nullptr) {
+        buf += " = ";
+        buf += "{";
+        buf += updateItems_->toString();
+        buf += "}";
+    }
+    return buf;
 }
 
 std::string ShowConfigsSentence::toString() const {
-    return std::string("SHOW CONFIGS ") + configItem_->toString();
+    std::string buf;
+    buf += "SHOW CONFIGS ";
+    if (configItem_ != nullptr) {
+        configItem_->toString();
+    }
+    return buf;
 }
 
 std::string SetConfigSentence::toString() const {
-    return std::string("SET CONFIGS ") + configItem_->toString();
+    return std::string("UPDATE CONFIGS ") + configItem_->toString();
 }
 
 std::string GetConfigSentence::toString() const {
@@ -129,11 +155,31 @@ std::string GetConfigSentence::toString() const {
 
 std::string BalanceSentence::toString() const {
     switch (subType_) {
+        case SubType::kUnknown:
+            return "Unknown";
         case SubType::kLeader:
-            return std::string("BALANCE LEADER");
-        default:
-            FLOG_FATAL("Type illegal");
+            return "BALANCE LEADER";
+        case SubType::kData: {
+            if (hostDel_ == nullptr) {
+                return "BALANCE DATA";
+            } else {
+                std::stringstream ss;
+                ss << "BALANCE DATA REMOVE ";
+                ss << hostDel_->toString();
+                return ss.str();
+            }
+        }
+        case SubType::kDataStop:
+            return "BALANCE DATA STOP";
+        case SubType::kDataReset:
+            return "BALANCE DATA RESET PLAN";
+        case SubType::kShowBalancePlan: {
+            std::stringstream ss;
+            ss << "BALANCE DATA " << balanceId_;
+            return ss.str();
+        }
     }
+    DLOG(FATAL) << "Type illegal";
     return "Unknown";
 }
 
@@ -141,7 +187,9 @@ std::string HostList::toString() const {
     std::string buf;
     buf.reserve(256);
     for (auto &host : hosts_) {
+        buf += "\"";
         buf += host->host;
+        buf += "\"";
         buf += ":";
         buf += std::to_string(host->port);
         buf += ",";
@@ -161,11 +209,34 @@ std::string DropSnapshotSentence::toString() const {
 }
 
 std::string AddListenerSentence::toString() const {
-    return "ADD LISTENER";
+    std::string buf;
+    buf.reserve(64);
+    buf += "ADD LISTENER ";
+    switch (type_) {
+        case meta::cpp2::ListenerType::ELASTICSEARCH:
+            buf += "ELASTICSEARCH ";
+            break;
+        case meta::cpp2::ListenerType::UNKNOWN:
+            LOG(FATAL) << "Unknown listener type.";
+            break;
+    }
+    buf += listeners_->toString();
+    return buf;
 }
 
 std::string RemoveListenerSentence::toString() const {
-    return "REMOVE LISTENER";
+    std::string buf;
+    buf.reserve(64);
+    buf += "REMOVE LISTENER ";
+    switch (type_) {
+        case meta::cpp2::ListenerType::ELASTICSEARCH:
+            buf += "ELASTICSEARCH ";
+            break;
+        case meta::cpp2::ListenerType::UNKNOWN:
+            LOG(FATAL) << "Unknown listener type.";
+            break;
+    }
+    return buf;
 }
 
 std::string ShowListenerSentence::toString() const {
@@ -174,16 +245,31 @@ std::string ShowListenerSentence::toString() const {
 
 std::string AdminJobSentence::toString() const {
     switch (op_) {
-    case meta::cpp2::AdminJobOp::ADD:
-        return "add job";
+    case meta::cpp2::AdminJobOp::ADD: {
+        std::string buf;
+        buf.reserve(64);
+        if (cmd_ == meta::cpp2::AdminCmd::REBUILD_TAG_INDEX) {
+            buf += "REBUILD TAG INDEX ";
+        } else if (cmd_ == meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX) {
+            buf += "REBUILD EDGE INDEX ";
+        } else {
+            buf += "SUBMIT JOB ";
+            buf += meta::cpp2::_AdminCmd_VALUES_TO_NAMES.at(cmd_);
+            buf += " ";
+        }
+        for (const auto& para : paras_) {
+            buf += para;
+        }
+        return buf;
+    }
     case meta::cpp2::AdminJobOp::SHOW_All:
-        return "show jobs";
+        return "SHOW JOBS";
     case meta::cpp2::AdminJobOp::SHOW:
-        return "show job";
+        return "SHOW JOB" + paras_.front();
     case meta::cpp2::AdminJobOp::STOP:
-        return "stop job";
+        return "STOP JOB" + paras_.front();
     case meta::cpp2::AdminJobOp::RECOVER:
-        return "recover job";
+        return "RECOVER JOB";
     }
     LOG(FATAL) << "Unknown job operation " << static_cast<uint8_t>(op_);
 }

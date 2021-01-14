@@ -252,7 +252,7 @@ public:
         return optType_;
     }
 
-    int64_t getAtomicEdge() const {
+    bool getAtomicEdge() const {
         if (isInt()) {
             return asInt();
         } else {
