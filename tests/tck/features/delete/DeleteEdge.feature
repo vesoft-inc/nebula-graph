@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@delete_e_string
 Feature: Delete string vid of edge
 
   Scenario: delete edges
@@ -183,3 +182,4 @@ Feature: Delete string vid of edge
       """
     Then the result should be, in any order:
       | like._dst |
+    And drop the used space

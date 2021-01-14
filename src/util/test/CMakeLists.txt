@@ -26,10 +26,10 @@ nebula_add_test(
         $<TARGET_OBJECTS:common_encryption_obj>
         $<TARGET_OBJECTS:common_http_client_obj>
         $<TARGET_OBJECTS:common_process_obj>
-        $<TARGET_OBJECTS:common_agg_function_obj>
         $<TARGET_OBJECTS:common_time_utils_obj>
         $<TARGET_OBJECTS:common_graph_obj>
         $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
+        $<TARGET_OBJECTS:common_ws_common_obj>
         $<TARGET_OBJECTS:idgenerator_obj>
         $<TARGET_OBJECTS:expr_visitor_obj>
         $<TARGET_OBJECTS:session_obj>

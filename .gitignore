@@ -38,9 +38,6 @@ modules/
 !tests/Makefile
 reformat-gherkin
 nebula-python
-.pytest
-.pytest_cache
-*.lock
 
 # IDE
 .idea/
@@ -49,6 +46,8 @@ nebula-python
 .classpath
 cmake-build*/
 .vscode/
+core.*
+workspace.*
 
 #py
 *.egg-info

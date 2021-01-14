@@ -7,6 +7,7 @@
 #include "planner/Query.h"
 
 #include <folly/String.h>
+#include <folly/dynamic.h>
 #include <folly/json.h>
 
 #include "util/ToJson.h"
@@ -153,7 +154,14 @@ void Project::clone(const Project &p) {
 
 std::unique_ptr<PlanNodeDescription> Project::explain() const {
     auto desc = SingleInputNode::explain();
-    addDescription("columns", cols_ ? cols_->toString() : "", desc.get());
+    auto columns = folly::dynamic::array();
+    if (cols_) {
+        for (const auto* col : cols_->columns()) {
+            DCHECK(col != nullptr);
+            columns.push_back(col->toString());
+        }
+    }
+    addDescription("columns", folly::toJson(columns), desc.get());
     return desc;
 }
 
@@ -200,11 +208,9 @@ std::unique_ptr<PlanNodeDescription> Aggregate::explain() const {
     auto desc = SingleInputNode::explain();
     addDescription("groupKeys", folly::toJson(util::toJson(groupKeys_)), desc.get());
     folly::dynamic itemArr = folly::dynamic::array();
-    for (const auto& item : groupItems_) {
+    for (auto* item : groupItems_) {
         folly::dynamic itemObj = folly::dynamic::object();
-        itemObj.insert("distinct", util::toJson(item.distinct));
-        itemObj.insert("funcType", static_cast<uint8_t>(item.func));
-        itemObj.insert("expr", item.expr ? item.expr->toString() : "");
+        itemObj.insert("expr", item? item->toString() : "");
         itemArr.push_back(itemObj);
     }
     addDescription("groupItems", folly::toJson(itemArr), desc.get());
