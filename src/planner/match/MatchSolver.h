@@ -61,15 +61,23 @@ public:
                                          const std::string& column,
                                          QueryContext* qctx);
 
+
+    static Status appendFetchVertexPlan(const Expression* nodeFilter,
+                                        const SpaceInfo& space,
+                                        QueryContext* qctx,
+                                        Expression* initialExpr,
+                                        SubPlan& plan);
+
     // In 0 step left expansion case, the result of initial index scan
     // will be passed as inputVar after right expansion is finished
     static Status appendFetchVertexPlan(const Expression* nodeFilter,
-                                 const SpaceInfo& space,
-                                 QueryContext* qctx,
-                                 Expression* initialExpr,
-                                 std::string inputVar,
-                                 SubPlan& plan);
+                                        const SpaceInfo& space,
+                                        QueryContext* qctx,
+                                        Expression* initialExpr,
+                                        std::string inputVar,
+                                        SubPlan& plan);
 };
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_MATCHSOLVER_H_

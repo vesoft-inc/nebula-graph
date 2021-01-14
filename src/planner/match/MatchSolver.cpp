@@ -229,20 +229,22 @@ PlanNode* MatchSolver::filtPathHasSameEdge(PlanNode* input,
 }
 
 Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
-                                        const SpaceInfo& space,
-                                        QueryContext* qctx,
-                                        Expression* initialExpr,
-                                        std::string inputVar,
-                                        SubPlan& plan) {
+                                          const SpaceInfo& space,
+                                          QueryContext* qctx,
+                                          Expression* initialExpr,
+                                          SubPlan& plan) {
+    return appendFetchVertexPlan(
+        nodeFilter, space, qctx, initialExpr, plan.root->outputVar(), plan);
+}
+
+Status MatchSolver::appendFetchVertexPlan(const Expression* nodeFilter,
+                                          const SpaceInfo& space,
+                                          QueryContext* qctx,
+                                          Expression* initialExpr,
+                                          std::string inputVar,
+                                          SubPlan& plan) {
     // [Dedup]
-    // If inputVar is not empty, this method is called in 0 step
-    if (inputVar.empty()) {
-        extractAndDedupVidColumn(
-            qctx, initialExpr, plan.root, plan.root->outputVar(), plan);
-    } else {
-        extractAndDedupVidColumn(
-            qctx, initialExpr, plan.root, inputVar, plan);
-    }
+    extractAndDedupVidColumn(qctx, initialExpr, plan.root, inputVar, plan);
     auto srcExpr = ExpressionUtils::inputPropExpr(kVid);
     // [Get vertices]
     auto gv = GetVertices::make(

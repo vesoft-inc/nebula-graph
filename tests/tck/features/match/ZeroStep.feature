@@ -161,3 +161,12 @@ Feature: Variable length Pattern match (0 step)
       | []                                                                                                                     | ("Tracy McGrady" :player{age: 39, name: "Tracy McGrady"})                                                   |
       | []                                                                                                                     | ("Jonathon Simmons" :player{age: 29, name: "Jonathon Simmons"})                                             |
       | []                                                                                                                     | ("Spurs" :team{name: "Spurs"})                                                                              |
+
+# When executing query:
+# """
+# MATCH (v) -[*0..1]-(v2:player{name: "Tim Duncan"})-[*0..1]->()
+# RETURN v, v2
+# """
+# Then the result should be, in any order:
+# match (v) -[*0..1]-(v2:player{name: "Tim Duncan"})-[*1..2]->()
+# match (v) -[*0..1{likeness: 90}]-(v2:player{name: "Tim Duncan"})-[*1..2]->()

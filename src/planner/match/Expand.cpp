@@ -104,16 +104,15 @@ Status Expand::expandSteps(const NodeInfo& node,
         subplan = *plan;
         startIndex = 0;
         // Get vertex
-        NG_RETURN_IF_ERROR(
-            MatchSolver::appendFetchVertexPlan(node.filter,
-                                            matchCtx_->space,
-                                            matchCtx_->qctx,
-                                            initialExpr_.release(),
-                                            inputVar_,
-                                            subplan));
+        NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(node.filter,
+                                                              matchCtx_->space,
+                                                              matchCtx_->qctx,
+                                                              initialExpr_.release(),
+                                                              inputVar_,
+                                                              subplan));
         // If maxHop > 0, the result of 0 step will be passed to next plan node
         if (maxHop > 0) {
-            NG_RETURN_IF_ERROR(passThrough(matchCtx_->qctx, subplan.root));
+            subplan.root = passThrough(matchCtx_->qctx, subplan.root);
         }
     } else {  // Case 1 to n steps
         startIndex = 1;
@@ -121,7 +120,7 @@ Status Expand::expandSteps(const NodeInfo& node,
         NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, &subplan));
         // Manualy create a passThrough node for the first step
         // Rest steps will be passed through in collectData()
-        NG_RETURN_IF_ERROR(passThrough(matchCtx_->qctx, subplan.root));
+        subplan.root = passThrough(matchCtx_->qctx, subplan.root);
     }
 
     PlanNode* passThrough = subplan.root;
@@ -261,12 +260,12 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
     return Status::OK();
 }
 
-Status Expand::passThrough(QueryContext *qctx, PlanNode* &root) {
-    auto pt = PassThroughNode::make(qctx, root);
+PlanNode* Expand::passThrough(const QueryContext *qctx, const PlanNode *root) const {
+    auto pt = PassThroughNode::make(const_cast<QueryContext*>(qctx), const_cast<PlanNode*>(root));
     pt->setColNames(root->colNames());
     pt->setOutputVar(root->outputVar());
-    root = pt;
-    return Status::OK();
+    return pt;
 }
+
 }  // namespace graph
 }  // namespace nebula
