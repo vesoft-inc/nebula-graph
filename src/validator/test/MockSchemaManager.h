@@ -79,8 +79,8 @@ public:
     }
 
     // Returns all latest version of schesmas of all tags in the given space
-    StatusOr<meta::TagLatestSchema> getAllLatestVerTagSchema(GraphSpaceID space) override {
-        meta::TagLatestSchema allLatestVerTagSchemas;
+    StatusOr<meta::TagSchema> getAllLatestVerTagSchema(GraphSpaceID space) override {
+        meta::TagSchema allLatestVerTagSchemas;
         const auto& tagSchemas = tagSchemas_[space];
         for (const auto &tagSchema : tagSchemas) {
             allLatestVerTagSchemas.emplace(tagSchema.first, tagSchema.second);
