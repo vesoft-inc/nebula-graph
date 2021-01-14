@@ -604,9 +604,14 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
 void DeduceTypeVisitor::visit(PredicateExpression *expr) {
     expr->collection()->accept(this);
     if (!ok()) return;
+    if (type_ == Value::Type::NULLVALUE || type_ == Value::Type::__EMPTY__) {
+        return;
+    }
     if (type_ != Value::Type::LIST) {
-        status_ = Status::SemanticError("`%s': Invalid colletion type, expected type of LIST",
-                                        expr->toString().c_str());
+        std::stringstream ss;
+        ss << "`" << expr->toString().c_str()
+           << "': Invalid colletion type, expected type of LIST, but was:" << type_;
+        status_ = Status::SemanticError(ss.str());
         return;
     }
     expr->filter()->accept(this);
