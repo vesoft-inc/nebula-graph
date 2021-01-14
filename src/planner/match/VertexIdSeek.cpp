@@ -46,7 +46,7 @@ bool VertexIdSeek::matchNode(NodeContext* nodeCtx) {
 
 static Status checkIDFun(const std::string& alias, const FunctionCallExpression* fCallExpr) {
     if (*fCallExpr->name() != "id") {
-        return Status::Error("Require id limit.");
+        return Status::Error("Only id function is allowed");
     }
     const auto& args = DCHECK_NOTNULL(fCallExpr->args())->args();
     if (args.size() != 1U) {
