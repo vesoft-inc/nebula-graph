@@ -262,8 +262,8 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
 
 PlanNode* Expand::passThrough(const QueryContext *qctx, const PlanNode *root) const {
     auto pt = PassThroughNode::make(const_cast<QueryContext*>(qctx), const_cast<PlanNode*>(root));
-    pt->setColNames(root->colNames());
     pt->setOutputVar(root->outputVar());
+    pt->setColNames(root->colNames());
     return pt;
 }
 
