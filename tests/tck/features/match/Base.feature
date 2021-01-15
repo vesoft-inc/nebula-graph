@@ -372,12 +372,12 @@ Feature: Basic match
       """
       MATCH (v:player:bachelor) RETURN v
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player:bachelor) RETURN v
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player:bachelor) RETURN v
     When executing query:
       """
       MATCH (v:player{age:23}:bachelor) RETURN v
       """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player{age:23}:bachelor) RETURN v
+    Then a SemanticError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player{age:23}:bachelor) RETURN v
     When executing query:
       """
       MATCH () -[r:serve]-> () return *
