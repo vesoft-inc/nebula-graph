@@ -923,7 +923,7 @@ Feature: Integer Vid Match By Id
     When executing query:
       """
       MATCH (v1)-[:like]->(v2:player)-[:serve]->(v3)
-      WHERE id(v2) == 'Tim Duncan'
+      WHERE id(v2) == hash('Tim Duncan')
       RETURN v1, v3 |
       YIELD COUNT(*)
       """
@@ -933,7 +933,7 @@ Feature: Integer Vid Match By Id
     When executing query:
       """
       MATCH (v1)-[:like]->(v2:player)-[:serve]->(v3)
-      WHERE id(v3) == 'Spurs'
+      WHERE id(v3) == hash('Spurs')
       RETURN v1 |
       YIELD COUNT(*)
       """
