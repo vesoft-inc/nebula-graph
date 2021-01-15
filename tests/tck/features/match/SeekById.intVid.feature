@@ -155,6 +155,16 @@ Feature: Match seek by id
       | 'James Harden'    |
       | 'Klay Thompson'   |
       | 'Dejounte Murray' |
+    When executing query:
+      """
+      MATCH (v)
+      WHERE (id(v) == hash("Tim Duncan") AND v.age>10) OR (id(v) == hash("Tony Parker") AND v.age>10)
+      RETURN v.name AS Name
+      """
+    Then the result should be, in any order:
+      | Name          |
+      | "Tim Duncan"  |
+      | "Tony Parker" |
 
   Scenario: with extend
     When executing query:
@@ -231,6 +241,13 @@ Feature: Match seek by id
       """
       MATCH (v)
       WHERE id(x) == hash('James Harden')
+      RETURN v.name AS Name
+      """
+    Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      MATCH (v)
+      WHERE (id(v) + 1) == hash('James Harden')
       RETURN v.name AS Name
       """
     Then a SemanticError should be raised at runtime:
