@@ -62,73 +62,73 @@ t_sstr_dstr_regex_ignore = ''
 
 
 def t_EMPTY(t):
-    r'EMPTY'
+    r'^EMPTY$'
     t.value = Value()
     return t
 
 
 def t_NULL(t):
-    r'NULL'
+    r'^NULL$'
     t.value = Value(nVal=NullType.__NULL__)
     return t
 
 
 def t_NaN(t):
-    r'NaN'
+    r'^NaN$'
     t.value = Value(nVal=NullType.NaN)
     return t
 
 
 def t_BAD_DATA(t):
-    r'BAD_DATA'
+    r'^BAD_DATA$'
     t.value = Value(nVal=NullType.BAD_DATA)
     return t
 
 
 def t_BAD_TYPE(t):
-    r'BAD_TYPE'
+    r'^BAD_TYPE$'
     t.value = Value(nVal=NullType.BAD_TYPE)
     return t
 
 
 def t_OVERFLOW(t):
-    r'OVERFLOW'
+    r'^OVERFLOW$'
     t.value = Value(nVal=NullType.ERR_OVERFLOW)
     return t
 
 
 def t_UNKNOWN_PROP(t):
-    r'UNKNOWN_PROP'
+    r'^UNKNOWN_PROP$'
     t.value = Value(nVal=NullType.UNKNOWN_PROP)
     return t
 
 
 def t_DIV_BY_ZERO(t):
-    r'DIV_BY_ZERO'
+    r'^DIV_BY_ZERO$'
     t.value = Value(nVal=NullType.DIV_BY_ZERO)
     return t
 
 
 def t_OUT_OF_RANGE(t):
-    r'OUT_OF_RANGE'
+    r'^OUT_OF_RANGE$'
     t.value = Value(nVal=NullType.OUT_OF_RANGE)
     return t
 
 
 def t_FLOAT(t):
-    r'-?\d+\.\d+'
+    r'^-?\d+\.\d+$'
     t.value = Value(fVal=float(t.value))
     return t
 
 
 def t_INT(t):
-    r'-?\d+'
+    r'^-?\d+$'
     t.value = Value(iVal=int(t.value))
     return t
 
 
 def t_BOOLEAN(t):
-    r'(?i)true|false'
+    r'^(?i)true|false$'
     v = Value()
     if t.value.lower() == 'true':
         v.set_bVal(True)
