@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+@zhudi
+>>>>>>> add fetch empty props
 Feature: Fetch empty prop vertices
 
   Scenario: fetch on empty prop vertices
