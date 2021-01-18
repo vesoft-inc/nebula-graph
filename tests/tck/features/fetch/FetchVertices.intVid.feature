@@ -186,18 +186,22 @@ Feature: Fetch Int Vid Vertices
     # on not existing vertex
     When executing query:
       """
-      FETCH PROP ON * hash('NON EXIST VERTEX ID') yield player.name
+      $var = GO FROM hash("Boris Diaw") over like YIELD like._dst as id;
+      FETCH PROP ON player, team, bachelor $var.id YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
-    Then the result should be, in any order:
-      | VertexID | player.name |
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | VertexID      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
+      | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
+      | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
     # on existing vertex
     When executing query:
       """
-      FETCH PROP ON * hash('Boris Diaw') yield player.name, player.age
+      $var = GO FROM hash("Boris Diaw") over like YIELD like._dst as id; FETCH PROP ON * $var.id YIELD player.name, team.name, bachelor.name
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
-      | VertexID     | player.name  | player.age |
-      | "Boris Diaw" | "Boris Diaw" | 36         |
+      | VertexID      | player.name   | team.name | bachelor.name |
+      | "Tony Parker" | "Tony Parker" | EMPTY     | EMPTY         |
+      | "Tim Duncan"  | "Tim Duncan"  | EMPTY     | "Tim Duncan"  |
     # on multiple vertices
     When executing query:
       """
