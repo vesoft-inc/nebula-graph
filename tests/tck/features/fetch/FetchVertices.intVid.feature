@@ -74,10 +74,10 @@ Feature: Fetch Int Vid Vertices
       """
       FETCH PROP ON player, team hash("Tim Duncan"),hash("Boris Diaw") YIELD player.name, team.name
       """
-    Then the result should be, in any order:
-      | VertexID           | player.name  | team.name |
-      | hash("Boris Diaw") | "Boris Diaw" | EMPTY     |
-      | hash("Tim Duncan") | "Tim Duncan" | EMPTY     |
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | VertexID     | player.name  | team.name |
+      | "Boris Diaw" | "Boris Diaw" | EMPTY     |
+      | "Tim Duncan" | "Tim Duncan" | EMPTY     |
     When executing query:
       """
       FETCH PROP ON team, player, bachelor hash("Boris Diaw") YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
