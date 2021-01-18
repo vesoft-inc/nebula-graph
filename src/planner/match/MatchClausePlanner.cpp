@@ -79,6 +79,7 @@ Status MatchClausePlanner::findStarts(MatchClauseContext* matchClauseCtx,
                     startFromEdge = true;
                     startIndex = i;
                     foundStart = true;
+                    initialExpr_ = edgeCtx.initialExpr->clone();
                     break;
                 }
             }
@@ -248,12 +249,7 @@ Status MatchClausePlanner::expandFromEdge(const std::vector<NodeInfo>& nodeInfos
                                           MatchClauseContext* matchClauseCtx,
                                           size_t startIndex,
                                           SubPlan& subplan) {
-    UNUSED(nodeInfos);
-    UNUSED(edgeInfos);
-    UNUSED(matchClauseCtx);
-    UNUSED(startIndex);
-    UNUSED(subplan);
-    return Status::Error("Expand from edge has not been implemented yet.");
+    return expandFromNode(nodeInfos, edgeInfos, matchClauseCtx, startIndex, subplan);
 }
 
 Status MatchClausePlanner::appendFetchVertexPlan(const Expression* nodeFilter,

@@ -380,11 +380,6 @@ Feature: Basic match
     Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v:player{age:23}:bachelor) RETURN v
     When executing query:
       """
-      MATCH () -[r:serve]-> () return *
-      """
-    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-[r:serve]->() RETURN *
-    When executing query:
-      """
       MATCH () -[]-> (v) return *
       """
     Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v) RETURN *
