@@ -1,650 +1,251 @@
-Feature: Fetch String Vertices
+Feature: Fetch String Vid Edges
 
   Background:
     Given a graph with space named "nba"
 
-  Scenario: Fetch prop on one tag, one vertex
+  Scenario: [1] Base fetch prop on an edge and return the specific properties
     When executing query:
       """
-      FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.age
+      FETCH PROP ON serve 'Boris Diaw' -> 'Hawks' YIELD serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age |
-      | "Boris Diaw" | "Boris Diaw" | 36         |
-    # Fetch Vertices yield duplicate columns
-    When executing query:
-      """
-      FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.name
-      """
-    Then the result should be, in any order:
-<<<<<<< HEAD
-      | VertexID     | player.name  | player.name  |
-      | "Boris Diaw" | "Boris Diaw" | "Boris Diaw" |
-    When executing query:
-      """
-      FETCH PROP ON player 'Boris Diaw' YIELD player.name, player.age, player.age > 30
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | (player.age>30) |
-      | "Boris Diaw" | "Boris Diaw" | 36         | True            |
-    # Fetch Vertices without YIELD
-=======
-      | VertexID     | player.name  | player.age | (player.age>30) |
-      | "Boris Diaw" | "Boris Diaw" | 36         | True            |
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
 
-  Scenario: [4] Fetch Vertices, different from v1.x
->>>>>>> add fetch empty props
+  Scenario: [2] Fetch prop on an edge
     When executing query:
       """
-      FETCH PROP ON bachelor 'Tim Duncan'
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks' YIELD serve.start_year > 2001, serve.end_year
       """
-<<<<<<< HEAD
     Then the result should be, in any order:
-      | VertexID     | bachelor.name | bachelor.speciality |
-      | "Tim Duncan" | "Tim Duncan"  | "psychology"        |
-=======
-    Then a SemanticError should be raised at runtime:
+      | serve._src   | serve._dst | serve._rank | (serve.start_year>2001) | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | True                    | 2005           |
 
-  Scenario: [5] Fetch Vertices works with variable
->>>>>>> add fetch empty props
+  Scenario: [3] Fetch prop on the edgetype of a edge with ranking
     When executing query:
       """
-      FETCH PROP ON player 'Boris Diaw'
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks'@0 YIELD serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-<<<<<<< HEAD
-      | VertexID     | player.name  | player.age |
-      | "Boris Diaw" | "Boris Diaw" | 36         |
-=======
-      | VertexID      | player.name   | player.age |
-      | "Tony Parker" | "Tony Parker" | 36         |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         |
-    When executing query:
-      """
-      $var = GO FROM "Boris Diaw" over like YIELD like._dst as id; FETCH PROP ON * $var.id YIELD player.name, team.name, bachelor.name
-      """
-    Then the result should be, in any order:
-      | VertexID      | player.name   | team.name | bachelor.name |
-      | "Tony Parker" | "Tony Parker" | EMPTY     | EMPTY         |
-      | "Tim Duncan"  | "Tim Duncan"  | EMPTY     | "Tim Duncan"  |
->>>>>>> add fetch empty props
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
 
-  Scenario: Fetch Vertices works with ORDER BY
+  Scenario: [4] Fetch prop on multiple edges
     When executing query:
       """
-      $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id;
-      FETCH PROP ON player $var.id YIELD player.name as name, player.age |
-      ORDER BY name
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks','Boris Diaw'->'Suns' YIELD serve.start_year, serve.end_year
       """
-    Then the result should be, in order:
-      | VertexID      | name          | player.age |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         |
-      | "Tony Parker" | "Tony Parker" | 36         |
+    Then the result should be, in any order:
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
+      | "Boris Diaw" | "Suns"     | 0           | 2005             | 2008           |
 
-  Scenario: Fetch Vertices works with DISTINCT
+  Scenario: [5] Fetch prop works with pipeline
     When executing query:
       """
-      FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT player.name, player.age
+      GO FROM 'Boris Diaw' OVER serve YIELD serve._src AS src, serve._dst AS dst | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age |
-      | "Boris Diaw" | "Boris Diaw" | 36         |
-    When executing query:
-      """
-      FETCH PROP ON player "Boris Diaw", "Tony Parker" YIELD DISTINCT player.name, player.age
-      """
-    Then the result should be, in any order:
-<<<<<<< HEAD
-=======
-      | VertexID     | player.name  | player.age |
-      | "Boris Diaw" | "Boris Diaw" | 36         |
-    When executing query:
-      """
-      FETCH PROP ON player "Boris Diaw", "Tony Parker" YIELD DISTINCT player.name, player.age
-      """
-    Then the result should be, in any order:
->>>>>>> add fetch empty props
-      | VertexID      | player.name   | player.age |
-      | "Boris Diaw"  | "Boris Diaw"  | 36         |
-      | "Tony Parker" | "Tony Parker" | 36         |
-    When executing query:
-      """
-      FETCH PROP ON player 'Boris Diaw', 'Boris Diaw' YIELD DISTINCT player.age
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.age |
-      | "Boris Diaw" | 36         |
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Suns"     | 0           | 2005             | 2008           |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
+      | "Boris Diaw" | "Spurs"    | 0           | 2012             | 2016           |
+      | "Boris Diaw" | "Hornets"  | 0           | 2008             | 2012           |
+      | "Boris Diaw" | "Jazz"     | 0           | 2016             | 2017           |
 
-<<<<<<< HEAD
-  Scenario: Fetch prop on multiple tags, multiple vertices
-=======
-  Scenario: [13] Fetch prop on multiple tags
+  Scenario: [6] Fetch prop works with user define variable
     When executing query:
       """
-      FETCH PROP ON bachelor, team, player "Tim Duncan", "Boris Diaw" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
+      $var = GO FROM 'Boris Diaw' OVER serve YIELD serve._src AS src, serve._dst AS dst; FETCH PROP ON serve $var.src->$var.dst YIELD serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
-      | "Tim Duncan" | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Suns"     | 0           | 2005             | 2008           |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
+      | "Boris Diaw" | "Spurs"    | 0           | 2012             | 2016           |
+      | "Boris Diaw" | "Hornets"  | 0           | 2008             | 2012           |
+      | "Boris Diaw" | "Jazz"     | 0           | 2016             | 2017           |
     When executing query:
       """
-      FETCH PROP ON player, team "Tim Duncan","Boris Diaw" YIELD player.name, team.name
+      $var = GO FROM "Boris Diaw" over like YIELD like._dst as id; FETCH PROP ON * $var.id yield player.name, player.age, team.name, bachelor.name
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | team.name |
-      | "Boris Diaw" | "Boris Diaw" | EMPTY     |
-      | "Tim Duncan" | "Tim Duncan" | EMPTY     |
-    When executing query:
-      """
-      FETCH PROP ON team, player, bachelor "Boris Diaw" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
-    When executing query:
-      """
-      FETCH PROP ON player, team, bachelor "Tim Duncan" YIELD player.name, team.name, bachelor.name
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | team.name | bachelor.name |
-      | "Tim Duncan" | "Tim Duncan" | EMPTY     | "Tim Duncan"  |
+      | VertexID      | player.name   | player.age | team.name | bachelor.name |
+      | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         |
+      | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  |
 
-  Scenario: [14] Fetch Vertices not support get src property
->>>>>>> add fetch empty props
+  Scenario: [7] Fetch prop works with hash function
     When executing query:
       """
-      FETCH PROP ON bachelor, team, player "Tim Duncan", "Boris Diaw" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks' YIELD serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
-      | "Tim Duncan" | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
-    When executing query:
-      """
-      FETCH PROP ON player, team "Tim Duncan","Boris Diaw" YIELD player.name, team.name
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | team.name |
-      | "Boris Diaw" | "Boris Diaw" | EMPTY     |
-      | "Tim Duncan" | "Tim Duncan" | EMPTY     |
-    When executing query:
-      """
-<<<<<<< HEAD
-      FETCH PROP ON team, player, bachelor "Boris Diaw" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
-=======
-      FETCH PROP ON player 'Boris Diaw' YIELD not_exist_tag.name, player.age
-      """
-    Then a ExecutionError should be raised at runtime:
-    When executing query:
-      """
-      FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD not_exist_tag.name
->>>>>>> add fetch empty props
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
-    When executing query:
-      """
-<<<<<<< HEAD
-      FETCH PROP ON player, team, bachelor "Tim Duncan" YIELD player.name, team.name, bachelor.name
-=======
-      FETCH PROP ON not_exist_tag 'Boris Diaw'
->>>>>>> add fetch empty props
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | team.name | bachelor.name |
-      | "Tim Duncan" | "Tim Duncan" | EMPTY     | "Tim Duncan"  |
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
 
-  Scenario: Fetch prop on not existing vertex
+  Scenario: [9] Fetch prop on an edge without yield
     When executing query:
       """
-      FETCH PROP ON player 'NON EXIST VERTEX ID' yield player.name
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks'
       """
     Then the result should be, in any order:
-      | VertexID | player.name |
-<<<<<<< HEAD
-=======
-    When executing query:
-      """
-      FETCH PROP ON player 'NON EXIST VERTEX ID', "Boris Diaw" yield player.name
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  |
-      | "Boris Diaw" | "Boris Diaw" |
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
 
-  Scenario: [19] Fetch prop on not existing vertex. Different from 1.x $- is not supported
->>>>>>> add fetch empty props
+  Scenario: [10] Fetch prop on a edge with a rank,but without yield
     When executing query:
       """
-      FETCH PROP ON player 'NON EXIST VERTEX ID', "Boris Diaw" yield player.name
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks'@0
       """
     Then the result should be, in any order:
-<<<<<<< HEAD
-=======
-      | VertexID | player.name |
-    When executing query:
-      """
-      FETCH PROP ON * 'NON EXIST VERTEX ID', 'Boris Diaw' yield player.name
-      """
-    Then the result should be, in any order:
->>>>>>> add fetch empty props
-      | VertexID     | player.name  |
-      | "Boris Diaw" | "Boris Diaw" |
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
 
-  Scenario: Fetch prop on *
+  Scenario: [11] Fetch prop on a edge
     When executing query:
       """
-      FETCH PROP ON * 'Boris Diaw' yield player.name, player.age
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks'
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age |
-      | "Boris Diaw" | "Boris Diaw" | 36         |
-    When executing query:
-      """
-      FETCH PROP ON * 'Boris Diaw' yield player.name, player.age, team.name, bachelor.name, bachelor.speciality
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
-    When executing query:
-      """
-      FETCH PROP ON * "Tim Duncan" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Tim Duncan" | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
-<<<<<<< HEAD
-    # Fetch prop on * with not existing vertex
-    When executing query:
-      """
-      FETCH PROP ON * 'NON EXIST VERTEX ID' yield player.name
-      """
-    Then the result should be, in any order:
-      | VertexID | player.name |
-    When executing query:
-      """
-      FETCH PROP ON * 'NON EXIST VERTEX ID', 'Boris Diaw' yield player.name
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  |
-      | "Boris Diaw" | "Boris Diaw" |
-    # Fetch prop on * with multiple vertices
-=======
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
 
-  Scenario: [23] Fetch prop on * with multiple vertices
->>>>>>> add fetch empty props
+  Scenario: [13] Fetch prop works with DISTINCT
     When executing query:
       """
-      FETCH PROP ON * 'Boris Diaw', 'Boris Diaw' yield player.name, player.age
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks','Boris Diaw'->'Hawks' YIELD DISTINCT serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age |
-      | "Boris Diaw" | "Boris Diaw" | 36         |
-      | "Boris Diaw" | "Boris Diaw" | 36         |
-    When executing query:
-      """
-      FETCH PROP ON * 'Tim Duncan', 'Boris Diaw' YIELD player.name, bachelor.name
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | bachelor.name |
-      | "Tim Duncan" | "Tim Duncan" | "Tim Duncan"  |
-      | "Boris Diaw" | "Boris Diaw" | EMPTY         |
-    When executing query:
-      """
-      FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Tim Duncan" | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
-      | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
 
-<<<<<<< HEAD
-  Scenario: Fetch from pipe
-    # Fetch prop on one tag of vertices from pipe
-=======
-  Scenario: Fetch prop on one tag of vertices from pipe
->>>>>>> add fetch empty props
+  Scenario: [14] Fetch prop works with DISTINCT and pipeline
     When executing query:
       """
-      GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
+      GO FROM 'Boris Diaw','Boris Diaw' OVER serve YIELD serve._src AS src, serve._dst AS dst | FETCH PROP ON serve $-.src->$-.dst YIELD DISTINCT serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-      | VertexID      | player.name   | player.age |
-      | "Tony Parker" | "Tony Parker" | 36         |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         |
-    When executing query:
-      """
-      GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player, bachelor $-.id
-      """
-    Then the result should be, in any order:
-      | VertexID      | player.name   | player.age | bachelor.name | bachelor.speciality |
-      | "Tony Parker" | "Tony Parker" | 36         | EMPTY         | EMPTY               |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         | "Tim Duncan"  | "psychology"        |
-<<<<<<< HEAD
-    # Fetch prop on multi tags of vertices from pipe
-=======
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Suns"     | 0           | 2005             | 2008           |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
+      | "Boris Diaw" | "Spurs"    | 0           | 2012             | 2016           |
+      | "Boris Diaw" | "Hornets"  | 0           | 2008             | 2012           |
+      | "Boris Diaw" | "Jazz"     | 0           | 2016             | 2017           |
 
-  Scenario: Fetch prop on multi tags of vertices from pipe
->>>>>>> add fetch empty props
+  Scenario: [15] Fetch prop works with DISTINCT and user define variable
     When executing query:
       """
-      GO FROM "Boris Diaw" over like YIELD like._dst as id
-      | FETCH PROP ON player, team, bachelor $-.id YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
+      $var = GO FROM 'Boris Diaw','Boris Diaw' OVER serve YIELD serve._src AS src, serve._dst AS dst; FETCH PROP ON serve $var.src->$var.dst YIELD DISTINCT serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-      | VertexID      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
-      | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
-    When executing query:
-      """
-      GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player, bachelor $-.id
-      """
-    Then the result should be, in any order:
-      | VertexID      | player.name   | player.age | bachelor.name | bachelor.speciality |
-      | "Tony Parker" | "Tony Parker" | 36         | EMPTY         | EMPTY               |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         | "Tim Duncan"  | "psychology"        |
-<<<<<<< HEAD
-    # Fetch vertices with empty input
-    When executing query:
-      """
-      GO FROM 'NON EXIST VERTEX ID' over like YIELD like._dst as id | FETCH PROP ON player $-.id yield player.name
-      """
-    Then the result should be, in any order:
-      | VertexID | player.name |
-    When executing query:
-      """
-      GO FROM 'NON EXIST VERTEX ID' over serve YIELD serve._dst as id, serve.start_year as start
-      | YIELD $-.id as id WHERE $-.start > 20000 | FETCH PROP ON player $-.id yield player.name
-      """
-    Then the result should be, in any order:
-      | VertexID | player.name |
-    # Fetch * from input
-=======
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.end_year |
+      | "Boris Diaw" | "Suns"     | 0           | 2005             | 2008           |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             | 2005           |
+      | "Boris Diaw" | "Spurs"    | 0           | 2012             | 2016           |
+      | "Boris Diaw" | "Hornets"  | 0           | 2008             | 2012           |
+      | "Boris Diaw" | "Jazz"     | 0           | 2016             | 2017           |
 
-  Scenario: Fetch prop on multi tags of vertices from variable
+  Scenario: [16] Fetch prop works with DISTINCT
     When executing query:
       """
-      $var = GO FROM "Boris Diaw" over like YIELD like._dst as id;
-      FETCH PROP ON player, team, bachelor $var.id YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
+      GO FROM 'Tim Duncan','Tony Parker' OVER serve YIELD serve._src AS src, serve._dst AS dst | FETCH PROP ON serve $-.src->$-.dst YIELD DISTINCT serve._dst as dst
       """
     Then the result should be, in any order:
-      | VertexID      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
-      | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
+      | serve._src    | serve._dst | serve._rank | dst       |
+      | 'Tim Duncan'  | 'Spurs'    | 0           | 'Spurs'   |
+      | 'Tony Parker' | 'Spurs'    | 0           | 'Spurs'   |
+      | 'Tony Parker' | 'Hornets'  | 0           | 'Hornets' |
 
-  Scenario: [26] Fetch * from input
->>>>>>> add fetch empty props
+  Scenario: [17] Fetch prop on not existing vertex
     When executing query:
       """
-      YIELD 'Tim Duncan' as id | FETCH PROP ON * $-.id yield player.name, player.age, bachelor.name, bachelor.speciality
+      GO FROM "NON EXIST VERTEX ID" OVER serve YIELD serve._src AS src, serve._dst AS dst | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | bachelor.name | bachelor.speciality |
-      | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
-<<<<<<< HEAD
-=======
-    When executing query:
-      """
-      GO FROM "Boris Diaw" over like YIELD like._dst as id
-      | FETCH PROP ON * $-.id YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
-      """
-    Then the result should be, in any order:
-      | VertexID      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
+      | serve._src | serve._dst | serve._rank | serve.start_year | serve.end_year |
 
-  Scenario: [27] Fetch Vertices
->>>>>>> add fetch empty props
+  Scenario: [18] Fetch prop on not existing vertex
     When executing query:
       """
-      GO FROM "Boris Diaw" over like YIELD like._dst as id
-      | FETCH PROP ON * $-.id YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
+      GO FROM "NON EXIST VERTEX ID" OVER serve YIELD serve._src AS src, serve._dst AS dst, serve.start_year as start | YIELD $-.src as src, $-.dst as dst WHERE $-.start > 20000 | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year
       """
     Then the result should be, in any order:
-<<<<<<< HEAD
-      | VertexID      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
+      | serve._src | serve._dst | serve._rank | serve.start_year | serve.end_year |
+    When executing query:
+      """
+      GO FROM "Marco Belinelli" OVER serve YIELD serve._src AS src, serve._dst AS dst, serve.start_year as start
+                   | YIELD $-.src as src, $-.dst as dst WHERE $-.start > 20000
+                   | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year
+      """
+    Then the result should be, in any order:
+      | serve._src | serve._dst | serve._rank | serve.start_year | serve.end_year |
 
-  Scenario: fetch from varibles
+  Scenario: [19] Fetch prop Semantic Error
     When executing query:
       """
-      $var = GO FROM 'Boris Diaw' over like YIELD like._dst as id; FETCH PROP ON player $var.id YIELD player.name, player.age
-      """
-    Then the result should be, in any order:
-      | VertexID      | player.name   | player.age |
-      | "Tony Parker" | "Tony Parker" | 36         |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         |
-    When executing query:
-      """
-      $var = GO FROM "Boris Diaw" over like YIELD like._dst as id; FETCH PROP ON * $var.id YIELD player.name, team.name, bachelor.name
-      """
-    Then the result should be, in any order:
-      | VertexID      | player.name   | team.name | bachelor.name |
-      | "Tony Parker" | "Tony Parker" | EMPTY     | EMPTY         |
-      | "Tim Duncan"  | "Tim Duncan"  | EMPTY     | "Tim Duncan"  |
-    # Fetch prop on multi tags of vertices from variable
-    When executing query:
-      """
-      $var = GO FROM "Boris Diaw" over like YIELD like._dst as id;
-      FETCH PROP ON player, team, bachelor $var.id YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
-      """
-    Then the result should be, in any order:
-      | VertexID      | player.name   | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Tim Duncan"  | "Tim Duncan"  | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
-      | "Tony Parker" | "Tony Parker" | 36         | EMPTY     | EMPTY         | EMPTY               |
-
-  Scenario: Output fetch result to graph traverse
-=======
-      | VertexID     | player.name  | bachelor.name |
-      | "Tim Duncan" | "Tim Duncan" | "Tim Duncan"  |
-      | "Tim Duncan" | "Tim Duncan" | "Tim Duncan"  |
-    When executing query:
-      """
-      FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | player.age | team.name | bachelor.name | bachelor.speciality |
-      | "Tim Duncan" | "Tim Duncan" | 42         | EMPTY     | "Tim Duncan"  | "psychology"        |
-      | "Boris Diaw" | "Boris Diaw" | 36         | EMPTY     | EMPTY         | EMPTY               |
-
-  Scenario: [28] Fetch * multi vertices
-    When executing query:
-      """
-      FETCH PROP ON * 'Tim Duncan', 'Boris Diaw' YIELD player.name, bachelor.name
-      """
-    Then the result should be, in any order:
-      | VertexID     | player.name  | bachelor.name |
-      | "Tim Duncan" | "Tim Duncan" | "Tim Duncan"  |
-      | "Boris Diaw" | "Boris Diaw" | EMPTY         |
-
-  Scenario: [29] Fetch Vertices yield duplicate columns
->>>>>>> add fetch empty props
-    When executing query:
-      """
-      FETCH PROP ON player 'NON EXIST VERTEX ID' | go from $-.VertexID over like yield like._dst
-      """
-    Then the result should be, in any order:
-      | like._dst |
-    When executing query:
-      """
-      FETCH PROP ON player "Tim Duncan" | go from $-.VertexID over like yield like._dst
-      """
-    Then the result should be, in any order:
-      | like._dst       |
-      | "Manu Ginobili" |
-      | "Tony Parker"   |
-    When executing query:
-      """
-      FETCH PROP ON player "Tim Duncan", "Yao Ming" | go from $-.VertexID over like yield like._dst
-      """
-    Then the result should be, in any order:
-      | like._dst         |
-      | "Shaquile O'Neal" |
-      | "Tracy McGrady"   |
-      | "Manu Ginobili"   |
-      | "Tony Parker"     |
-    When executing query:
-      """
-      FETCH PROP ON player "Tim Duncan" yield player.name as id | go from $-.id over like yield like._dst
-      """
-    Then the result should be, in any order:
-      | like._dst       |
-      | "Manu Ginobili" |
-      | "Tony Parker"   |
-    When executing query:
-      """
-      $var = FETCH PROP ON player "Tim Duncan", "Yao Ming"; go from $var.VertexID over like yield like._dst
-      """
-    Then the result should be, in any order:
-      | like._dst         |
-      | "Manu Ginobili"   |
-      | "Tony Parker"     |
-      | "Shaquile O'Neal" |
-      | "Tracy McGrady"   |
-
-<<<<<<< HEAD
-  Scenario: Typical errors
-    # Fetch Vertices not support get src property
-    When executing query:
-      """
-      FETCH PROP ON player 'Boris Diaw' YIELD $^.player.name, player.age
-      """
-    Then a SemanticError should be raised at runtime:
-    # Fetch Vertices not support get dst property
-    When executing query:
-      """
-      FETCH PROP ON player 'Boris Diaw' YIELD $$.player.name, player.age
-      """
-    Then a SemanticError should be raised at runtime:
-    # Fetch vertex yields not existing tag
-    When executing query:
-      """
-      FETCH PROP ON player 'Boris Diaw' YIELD not_exist_tag.name, player.age
-      """
-    Then a ExecutionError should be raised at runtime:
-    When executing query:
-      """
-      FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD not_exist_tag.name
-      """
-    Then a ExecutionError should be raised at runtime:
-    # Fetch prop no not existing tag
-    When executing query:
-      """
-      FETCH PROP ON not_exist_tag 'Boris Diaw'
-      """
-    Then a ExecutionError should be raised at runtime:
-=======
-  Scenario: [30] Fetch Vertices syntax error
->>>>>>> add fetch empty props
-    When executing query:
-      """
-      GO FROM 'Boris Diaw' over like YIELD like._dst as id, like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
-      """
-    Then a SemanticError should be raised at runtime:
-<<<<<<< HEAD
-    When executing query:
-      """
-      GO FROM "11" over like YIELD like._dst as id | FETCH PROP ON player "11" YIELD $-.id
-      """
-    Then a SemanticError should be raised at runtime:
-    # Fetch on existing vertex, and yield not existing property
-=======
-    When executing query:
-      """
-      GO FROM "11" over like YIELD like._dst as id | FETCH PROP ON player "11" YIELD $-.id
+      FETCH PROP ON serve "Boris Diaw"->"Spurs" YIELD $^.serve.start_year
       """
     Then a SemanticError should be raised at runtime:
 
-  Scenario: [31] Fetch on existing vertex, and yield not existing property
+  Scenario: [20] Fetch prop Semantic Error
     When executing query:
       """
-      FETCH PROP ON player 'Boris Diaw' YIELD player.not_exist_prop
-      """
-    Then a SemanticError should be raised at runtime:
-    When executing query:
-      """
-      FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD player.not_exist_prop
+      FETCH PROP ON serve "Boris Diaw"->"Spurs" YIELD $$.serve.start_year
       """
     Then a SemanticError should be raised at runtime:
 
-  Scenario: [32] Fetch vertices with empty input
->>>>>>> add fetch empty props
+  Scenario: [21] Fetch prop Semantic Error
     When executing query:
       """
-      FETCH PROP ON player 'Boris Diaw' YIELD player.not_exist_prop
-      """
-<<<<<<< HEAD
-    Then a SemanticError should be raised at runtime:
-    When executing query:
-      """
-      FETCH PROP ON * "Tim Duncan", "Boris Diaw" YIELD player.not_exist_prop
+      FETCH PROP ON serve "Boris Diaw"->"Spurs" YIELD abc.start_year
       """
     Then a SemanticError should be raised at runtime:
 
-  Scenario: Different from v1.x
-=======
-    Then the result should be, in any order:
-      | VertexID | player.name |
->>>>>>> add fetch empty props
+  Scenario: [22] Fetch prop on not exist edge
     When executing query:
       """
-      GO FROM 'Boris Diaw' over like YIELD like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age, $-.*
+      FETCH PROP ON serve "Zion Williamson"->"Spurs" YIELD serve.start_year
       """
-<<<<<<< HEAD
-    Then a SemanticError should be raised at runtime:
-    # Different from 1.x $- is not supported
-    When executing query:
-      """
-      GO FROM 'NON EXIST VERTEX ID' OVER serve | FETCH PROP ON team $-
-      """
-    Then a SyntaxError should be raised at runtime:
-=======
     Then the result should be, in any order:
-      | VertexID | player.name |
+      | serve._src | serve._dst | serve._rank | serve.start_year |
 
-  Scenario: Output fetch result to graph traverse
+  Scenario: [23] Fetch prop on exist and not exist edges
     When executing query:
       """
-      FETCH PROP ON player 'NON EXIST VERTEX ID' | go from $-.VertexID over like yield like._dst
+      FETCH PROP ON serve "Zion Williamson"->"Spurs", "Boris Diaw"->"Hawks" YIELD serve.start_year
       """
     Then the result should be, in any order:
-      | like._dst |
+      | serve._src   | serve._dst | serve._rank | serve.start_year |
+      | "Boris Diaw" | "Hawks"    | 0           | 2003             |
+
+  Scenario: [24] Fetch prop on a edge and return duplicate columns
     When executing query:
       """
-      FETCH PROP ON player "Tim Duncan" | go from $-.VertexID over like yield like._dst
+      FETCH PROP ON serve "Boris Diaw"->"Spurs" YIELD serve.start_year, serve.start_year
       """
     Then the result should be, in any order:
-      | like._dst       |
-      | "Manu Ginobili" |
-      | "Tony Parker"   |
+      | serve._src   | serve._dst | serve._rank | serve.start_year | serve.start_year |
+      | "Boris Diaw" | "Spurs"    | 0           | 2012             | 2012             |
+
+  Scenario: [25] Fetch prop on an edge and return duplicate _src, _dst and _rank
     When executing query:
       """
-      FETCH PROP ON player "Tim Duncan", "Yao Ming" | go from $-.VertexID over like yield like._dst
+      FETCH PROP ON serve 'Boris Diaw'->"Spurs" YIELD serve._src, serve._dst, serve._rank
       """
     Then the result should be, in any order:
-      | like._dst         |
-      | "Shaquile O'Neal" |
-      | "Tracy McGrady"   |
-      | "Manu Ginobili"   |
-      | "Tony Parker"     |
+      | serve._src   | serve._dst | serve._rank | serve._src   | serve._dst | serve._rank |
+      | "Boris Diaw" | "Spurs"    | 0           | "Boris Diaw" | "Spurs"    | 0           |
+
+  Scenario: [26] Fetch prop on illegal input
     When executing query:
       """
-      FETCH PROP ON player "Tim Duncan" yield player.name as id | go from $-.id over like yield like._dst
+      GO FROM 'Boris Diaw' OVER serve YIELD serve._src AS src, serve._dst AS src | FETCH PROP ON serve $-.src->$-.dst YIELD serve.start_year, serve.end_year
       """
-    Then the result should be, in any order:
-      | like._dst       |
-      | "Manu Ginobili" |
-      | "Tony Parker"   |
+    Then a SemanticError should be raised at runtime:
+
+  Scenario: [27] Fetch prop returns not existing property
     When executing query:
       """
-      $var = FETCH PROP ON player "Tim Duncan", "Yao Ming"; go from $var.VertexID over like yield like._dst
+      FETCH PROP ON serve 'Boris Diaw'->'Hawks' YIELD serve.not_exist_prop
       """
-    Then the result should be, in any order:
-      | like._dst         |
-      | "Manu Ginobili"   |
-      | "Tony Parker"     |
-      | "Shaquile O'Neal" |
-      | "Tracy McGrady"   |
->>>>>>> add fetch empty props
+    Then a SemanticError should be raised at runtime:

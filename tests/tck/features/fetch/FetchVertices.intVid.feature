@@ -1,4 +1,3 @@
-@zhudi
 Feature: Fetch Int Vid Vertices
 
   Background:
