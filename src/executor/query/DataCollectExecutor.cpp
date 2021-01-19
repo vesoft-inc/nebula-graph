@@ -269,7 +269,7 @@ Status DataCollectExecutor::collectMultiplePairShortestPath(const std::vector<st
 
 Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& vars) {
     DataSet ds;
-    ds.colNames = std::move(colNames_);
+    ds.colNames = colNames_;
     DCHECK(!ds.colNames.empty());
     // 0: vertices's props, 1: Edges's props, 2: Paths without props
     DCHECK_EQ(vars.size(), 3);

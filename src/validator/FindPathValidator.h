@@ -26,7 +26,7 @@ private:
     void buildStart(Starts& starts, std::string& startVidsVar, bool reverse);
     GetNeighbors::EdgeProps buildEdgeKey(bool reverse);
     void linkLoopDepFromTo(PlanNode*& projectDep);
-    PlanNode* AddPathProps(PlanNode* dep);
+    PlanNode* addPathProps(PlanNode* dep);
     // bfs
     Status singlePairPlan();
     PlanNode* bfs(PlanNode* dep, Starts& starts, bool reverse);

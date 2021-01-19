@@ -76,7 +76,7 @@ Status FindPathValidator::singlePairPlan() {
 
     PlanNode* dc = dataCollect;
     if (withProperites_) {
-        dc = AddPathProps(dataCollect);
+        dc = addPathProps(dataCollect);
     }
 
     root_ = dc;
@@ -230,7 +230,7 @@ Status FindPathValidator::allPairPaths() {
 
     PlanNode* dc = dataCollect;
     if (withProperites_) {
-        dc = AddPathProps(dataCollect);
+        dc = addPathProps(dataCollect);
     }
 
     root_ = dc;
@@ -378,7 +378,7 @@ Status FindPathValidator::multiPairPlan() {
 
     PlanNode* dc = dataCollect;
     if (withProperites_) {
-        dc = AddPathProps(dataCollect);
+        dc = addPathProps(dataCollect);
     }
 
     root_ = dc;
@@ -445,7 +445,7 @@ Expression* FindPathValidator::buildMultiPairLoopCondition(uint32_t steps,
     return qctx_->objPool()->add(condition);
 }
 
-PlanNode* FindPathValidator::AddPathProps(PlanNode* dep) {
+PlanNode* FindPathValidator::addPathProps(PlanNode* dep) {
     std::vector<storage::cpp2::Expr> exprs;
     std::vector<storage::cpp2::VertexProp> vertexProps;
     // column 0 is path
