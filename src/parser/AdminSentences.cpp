@@ -245,31 +245,39 @@ std::string ShowListenerSentence::toString() const {
 
 std::string AdminJobSentence::toString() const {
     switch (op_) {
-    case meta::cpp2::AdminJobOp::ADD: {
-        std::string buf;
-        buf.reserve(64);
-        if (cmd_ == meta::cpp2::AdminCmd::REBUILD_TAG_INDEX) {
-            buf += "REBUILD TAG INDEX ";
-        } else if (cmd_ == meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX) {
-            buf += "REBUILD EDGE INDEX ";
-        } else {
-            buf += "SUBMIT JOB ";
-            buf += meta::cpp2::_AdminCmd_VALUES_TO_NAMES.at(cmd_);
-            buf += " ";
+        case meta::cpp2::AdminJobOp::ADD: {
+            switch (cmd_) {
+                case meta::cpp2::AdminCmd::COMPACT:
+                    return paras_.empty() ? "SUBMIT JOB COMPACT"
+                        : folly::stringPrintf("SUBMIT JOB COMPACT %s", paras_[0].c_str());
+                case meta::cpp2::AdminCmd::FLUSH:
+                    return paras_.empty() ? "SUBMIT JOB FLUSH"
+                        : folly::stringPrintf("SUBMIT JOB FLUSH %s", paras_[0].c_str());
+                case meta::cpp2::AdminCmd::REBUILD_TAG_INDEX:
+                    return folly::stringPrintf("REBUILD TAG INDEX %s",
+                            folly::join(",", paras_).c_str());
+                case meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX:
+                    return folly::stringPrintf("REBUILD EDGE INDEX %s",
+                            folly::join(",", paras_).c_str());
+                case meta::cpp2::AdminCmd::STATS:
+                    return paras_.empty() ? "SUBMIT JOB STATS"
+                        : folly::stringPrintf("SUBMIT JOB STATS %s", paras_[0].c_str());
+                case meta::cpp2::AdminCmd::DATA_BALANCE:
+                case meta::cpp2::AdminCmd::UNKNOWN:
+                    return folly::stringPrintf("Unsupported AdminCmd: %s",
+                            meta::cpp2::_AdminCmd_VALUES_TO_NAMES.at(cmd_));
+            }
         }
-        for (const auto& para : paras_) {
-            buf += para;
-        }
-        return buf;
-    }
-    case meta::cpp2::AdminJobOp::SHOW_All:
-        return "SHOW JOBS";
-    case meta::cpp2::AdminJobOp::SHOW:
-        return "SHOW JOB" + paras_.front();
-    case meta::cpp2::AdminJobOp::STOP:
-        return "STOP JOB" + paras_.front();
-    case meta::cpp2::AdminJobOp::RECOVER:
-        return "RECOVER JOB";
+        case meta::cpp2::AdminJobOp::SHOW_All:
+            return "SHOW JOBS";
+        case meta::cpp2::AdminJobOp::SHOW:
+            CHECK_EQ(paras_.size(), 1U);
+            return folly::stringPrintf("SHOW JOB %s", paras_[0].c_str());
+        case meta::cpp2::AdminJobOp::STOP:
+            CHECK_EQ(paras_.size(), 1U);
+            return folly::stringPrintf("STOP JOB %s", paras_[0].c_str());
+        case meta::cpp2::AdminJobOp::RECOVER:
+            return "RECOVER JOB";
     }
     LOG(FATAL) << "Unknown job operation " << static_cast<uint8_t>(op_);
 }
@@ -288,6 +296,13 @@ const std::vector<std::string> &AdminJobSentence::getParas() const {
 
 void AdminJobSentence::addPara(const std::string& para) {
     paras_.emplace_back(para);
+}
+
+void AdminJobSentence::addPara(const NameLabelList& paras) {
+    const auto& labels = paras.labels();
+    std::for_each(labels.begin(), labels.end(), [this](const auto& para) {
+        paras_.emplace_back(*para);
+    });
 }
 
 std::string ShowStatsSentence::toString() const {
