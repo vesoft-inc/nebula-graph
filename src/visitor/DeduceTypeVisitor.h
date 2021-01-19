@@ -55,6 +55,7 @@ private:
     void visit(LogicalExpression *expr) override;
     // function call
     void visit(FunctionCallExpression *expr) override;
+    void visit(AggregateExpression *expr) override;
     void visit(UUIDExpression *expr) override;
     // variable expression
     void visit(VariableExpression *expr) override;
@@ -83,6 +84,10 @@ private:
     void visit(PathBuildExpression *expr) override;
     // column expression
     void visit(ColumnExpression * expr) override;
+    // predicate expression
+    void visit(PredicateExpression *expr) override;
+    // list comprehension expression
+    void visit(ListComprehensionExpression *) override;
 
     void visitVertexPropertyExpr(PropertyExpression *expr);
 
@@ -97,6 +102,7 @@ private:
     GraphSpaceID space_;
     Status status_;
     Value::Type type_;
+    Value::Type vidType_;
 };
 
 }   // namespace graph

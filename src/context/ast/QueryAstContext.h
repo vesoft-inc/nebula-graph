@@ -33,9 +33,10 @@ enum class PatternKind : uint8_t {
 
 using Direction = MatchEdge::Direction;
 struct NodeInfo {
-    TagID                                   tid{0};
     bool                                    anonymous{false};
-    const std::string                      *label{nullptr};
+    std::vector<TagID>                      tids;
+    std::vector<const std::string*>         labels;
+    std::vector<MapExpression*>             labelProps;
     const std::string                      *alias{nullptr};
     const MapExpression                    *props{nullptr};
     Expression                             *filter{nullptr};
@@ -52,14 +53,16 @@ struct EdgeInfo {
     Expression                             *filter{nullptr};
 };
 
-enum class AliasType : int8_t{
-    kNode, kEdge, kPath
+enum class AliasType : int8_t {
+    kNode, kEdge, kPath, kDefault
 };
 
 struct ScanInfo {
     Expression                             *filter{nullptr};
-    int32_t                                 schemaId{0};
-    const std::string                      *schemaName{nullptr};
+    std::vector<int32_t>                    schemaIds;
+    std::vector<const std::string*>         schemaNames;
+    // use for seek by index itself
+    std::vector<IndexID>                    indexIds;
 };
 
 struct CypherClauseContextBase : AstContext {
@@ -73,7 +76,7 @@ struct WhereClauseContext final : CypherClauseContextBase {
     WhereClauseContext() : CypherClauseContextBase(CypherClauseKind::kWhere) {}
 
     std::unique_ptr<Expression>                  filter;
-    std::unordered_map<std::string, AliasType>*  aliases{nullptr};
+    std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
 };
 
 struct OrderByClauseContext final : CypherClauseContextBase {
@@ -96,17 +99,20 @@ struct ReturnClauseContext final : CypherClauseContextBase {
     const YieldColumns*                          yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>        order;
     std::unique_ptr<PaginationContext>           pagination;
-    std::unordered_map<std::string, AliasType>*  aliases{nullptr};
+    std::unordered_map<std::string, AliasType>*  aliasesUsed{nullptr};
     // TODO: grouping columns
 };
 
 struct WithClauseContext final : CypherClauseContextBase {
     WithClauseContext() : CypherClauseContextBase(CypherClauseKind::kWith) {}
 
+    bool                                        distinct{false};
     const YieldColumns*                         yieldColumns{nullptr};
     std::unique_ptr<OrderByClauseContext>       order;
     std::unique_ptr<PaginationContext>          pagination;
     std::unique_ptr<WhereClauseContext>         where;
+    std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
+    std::unordered_map<std::string, AliasType>  aliasesGenerated;
     // TODO: grouping columns
 };
 
@@ -115,14 +121,18 @@ struct MatchClauseContext final : CypherClauseContextBase {
 
     std::vector<NodeInfo>                       nodeInfos;
     std::vector<EdgeInfo>                       edgeInfos;
-    std::unordered_map<std::string, AliasType>  aliases;
     std::unique_ptr<PathBuildExpression>        pathBuild;
     std::unique_ptr<WhereClauseContext>         where;
+    std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
+    std::unordered_map<std::string, AliasType>  aliasesGenerated;
 };
 
 struct UnwindClauseContext final : CypherClauseContextBase {
     UnwindClauseContext() : CypherClauseContextBase(CypherClauseKind::kUnwind) {}
-    const YieldColumns*     yieldColumns{nullptr};
+
+    const YieldColumns*                         yieldColumns{nullptr};
+    std::unordered_map<std::string, AliasType>* aliasesUsed{nullptr};
+    std::unordered_map<std::string, AliasType>  aliasesGenerated;
 };
 
 struct MatchAstContext final : AstContext {
@@ -143,11 +153,10 @@ struct NodeContext final : PatternContext {
     NodeInfo*            info{nullptr};
 
     // Output fields
-    ScanInfo             scanInfo;
-    const Expression*    ids{nullptr};
+    ScanInfo                    scanInfo;
+    const Expression*           ids{nullptr};
     // initialize start expression in project node
-    // initialExpr will be used by YieldColumn, so no need to handle the lifecycle by object pool.
-    Expression*          initialExpr{nullptr};
+    std::unique_ptr<Expression> initialExpr;
 };
 
 struct EdgeContext final : PatternContext {

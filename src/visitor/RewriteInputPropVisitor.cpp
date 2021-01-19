@@ -171,6 +171,14 @@ void RewriteInputPropVisitor::visit(FunctionCallExpression* expr) {
     }
 }
 
+void RewriteInputPropVisitor::visit(AggregateExpression* expr) {
+    auto* arg = expr->arg();
+    arg->accept(this);
+    if (ok()) {
+        expr->setArg(std::move(result_).release());
+    }
+}
+
 void RewriteInputPropVisitor::visit(TypeCastingExpression* expr) {
     expr->operand()->accept(this);
     if (ok()) {
@@ -200,6 +208,25 @@ void RewriteInputPropVisitor::visit(CaseExpression* expr) {
         whenThen.then->accept(this);
         if (ok()) {
             expr->setThen(i, result_.release());
+        }
+    }
+}
+
+void RewriteInputPropVisitor::visit(ListComprehensionExpression *expr) {
+    expr->collection()->accept(this);
+    if (ok()) {
+        expr->setCollection(result_.release());
+    }
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (ok()) {
+            expr->setFilter(result_.release());
+        }
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (ok()) {
+            expr->setMapping(result_.release());
         }
     }
 }
@@ -244,5 +271,17 @@ void RewriteInputPropVisitor::visit(PathBuildExpression* expr) {
         }
     }
 }
+
+void RewriteInputPropVisitor::visit(PredicateExpression* expr) {
+    expr->collection()->accept(this);
+    if (ok()) {
+        expr->setCollection(result_.release());
+    }
+    expr->filter()->accept(this);
+    if (ok()) {
+        expr->setFilter(result_.release());
+    }
+}
+
 }   // namespace graph
 }   // namespace nebula

@@ -8,6 +8,7 @@
 %parse-param { nebula::GraphScanner& scanner }
 %parse-param { std::string &errmsg }
 %parse-param { nebula::Sentence** sentences }
+%parse-param { nebula::graph::QueryContext* qctx }
 
 %code requires {
 #include <iostream>
@@ -22,7 +23,13 @@
 #include "common/expression/VariableExpression.h"
 #include "common/expression/CaseExpression.h"
 #include "common/expression/TextSearchExpression.h"
+#include "common/expression/PredicateExpression.h"
+#include "common/expression/ListComprehensionExpression.h"
+#include "common/expression/AggregateExpression.h"
+
 #include "util/SchemaUtil.h"
+#include "util/ParserUtil.h"
+#include "context/QueryContext.h"
 
 namespace nebula {
 
@@ -114,6 +121,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
     MapItemList                            *map_item_list;
     MatchPath                              *match_path;
     MatchNode                              *match_node;
+    MatchNodeLabel                         *match_node_label;
+    MatchNodeLabelList                     *match_node_label_list;
     MatchEdge                              *match_edge;
     MatchEdgeProp                          *match_edge_prop;
     MatchEdgeTypeList                      *match_edge_type_list;
@@ -145,6 +154,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_TAG KW_TAGS KW_UNION KW_INTERSECT KW_MINUS
 %token KW_NO KW_OVERWRITE KW_IN KW_DESCRIBE KW_DESC KW_SHOW KW_HOST KW_HOSTS KW_PART KW_PARTS KW_ADD
 %token KW_PARTITION_NUM KW_REPLICA_FACTOR KW_CHARSET KW_COLLATE KW_COLLATION KW_VID_TYPE
+%token KW_ATOMIC_EDGE
 %token KW_DROP KW_REMOVE KW_SPACES KW_INGEST KW_INDEX KW_INDEXES
 %token KW_IF KW_NOT KW_EXISTS KW_WITH
 %token KW_COUNT KW_COUNT_DISTINCT KW_SUM KW_AVG KW_MAX KW_MIN KW_STD KW_BIT_AND KW_BIT_OR KW_BIT_XOR
@@ -154,7 +164,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_FETCH KW_PROP KW_UPDATE KW_UPSERT KW_WHEN
 %token KW_ORDER KW_ASC KW_LIMIT KW_OFFSET
 %token KW_DISTINCT KW_ALL KW_OF
-%token KW_BALANCE KW_LEADER
+%token KW_BALANCE KW_LEADER KW_RESET KW_PLAN
 %token KW_SHORTEST KW_PATH KW_NOLOOP
 %token KW_IS KW_NULL KW_DEFAULT
 %token KW_SNAPSHOT KW_SNAPSHOTS KW_LOOKUP
@@ -173,6 +183,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_LISTENER KW_ELASTICSEARCH
 %token KW_AUTO KW_FUZZY KW_PREFIX KW_REGEXP KW_WILDCARD
 %token KW_TEXT KW_SEARCH KW_CLIENTS KW_SIGN KW_SERVICE KW_TEXT_SEARCH
+%token KW_ANY KW_SINGLE KW_NONE
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -186,7 +197,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token <doubleval> DOUBLE
 %token <strval> STRING VARIABLE LABEL IPV4
 
-%type <strval> name_label unreserved_keyword agg_function
+%type <strval> name_label unreserved_keyword agg_function predicate_name
 %type <expr> expression
 %type <expr> property_expression
 %type <expr> vertex_prop_expression
@@ -206,7 +217,10 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> subscript_expression
 %type <expr> attribute_expression
 %type <expr> case_expression
+%type <expr> predicate_expression
+%type <expr> list_comprehension_expression
 %type <expr> compound_expression
+%type <expr> aggregate_expression
 %type <expr> text_search_expression
 %type <argument_list> argument_list opt_argument_list
 %type <type> type_spec
@@ -266,6 +280,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <match_path> match_path_pattern
 %type <match_path> match_path
 %type <match_node> match_node
+%type <match_node_label> match_node_label
+%type <match_node_label_list> match_node_label_list
 %type <match_edge> match_edge
 %type <match_edge_prop> match_edge_prop
 %type <match_return> match_return
@@ -431,6 +447,7 @@ unreserved_keyword
     | KW_CHARSET            { $$ = new std::string("charset"); }
     | KW_COLLATE            { $$ = new std::string("collate"); }
     | KW_COLLATION          { $$ = new std::string("collation"); }
+    | KW_ATOMIC_EDGE        { $$ = new std::string("atomic_edge"); }
     | KW_TTL_DURATION       { $$ = new std::string("ttl_duration"); }
     | KW_TTL_COL            { $$ = new std::string("ttl_col"); }
     | KW_SNAPSHOT           { $$ = new std::string("snapshot"); }
@@ -439,6 +456,9 @@ unreserved_keyword
     | KW_META               { $$ = new std::string("meta"); }
     | KW_STORAGE            { $$ = new std::string("storage"); }
     | KW_ALL                { $$ = new std::string("all"); }
+    | KW_ANY                { $$ = new std::string("any"); }
+    | KW_SINGLE             { $$ = new std::string("single"); }
+    | KW_NONE               { $$ = new std::string("none"); }
     | KW_SHORTEST           { $$ = new std::string("shortest"); }
     | KW_NOLOOP             { $$ = new std::string("noloop"); }
     | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
@@ -477,11 +497,12 @@ unreserved_keyword
     | KW_SIGN               { $$ = new std::string("sign"); }
     | KW_SERVICE            { $$ = new std::string("service"); }
     | KW_TEXT_SEARCH        { $$ = new std::string("text_search"); }
+    | KW_RESET              { $$ = new std::string("reset"); }
+    | KW_PLAN               { $$ = new std::string("plan"); }
     ;
 
 agg_function
     : KW_COUNT              { $$ = new std::string("COUNT"); }
-    | KW_COUNT_DISTINCT     { $$ = new std::string("COUNT_DISTINCT"); }
     | KW_SUM                { $$ = new std::string("SUM"); }
     | KW_AVG                { $$ = new std::string("AVG"); }
     | KW_MAX                { $$ = new std::string("MAX"); }
@@ -516,6 +537,9 @@ expression
         $$ = new ConstantExpression($1);
     }
     | compound_expression {
+        $$ = $1;
+    }
+    | aggregate_expression {
         $$ = $1;
     }
     | MINUS {
@@ -607,6 +631,12 @@ expression
         $$ = new LogicalExpression(Expression::Kind::kLogicalXor, $1, $3);
     }
     | case_expression {
+        $$ = $1;
+    }
+    | predicate_expression {
+        $$ = $1;
+    }
+    | list_comprehension_expression {
         $$ = $1;
     }
     ;
@@ -728,6 +758,58 @@ when_then_list
     }
     ;
 
+predicate_name
+    : KW_ALL                { $$ = new std::string("all"); }
+    | KW_ANY                { $$ = new std::string("any"); }
+    | KW_SINGLE             { $$ = new std::string("single"); }
+    | KW_NONE               { $$ = new std::string("none"); }
+    ;
+
+predicate_expression
+    : predicate_name L_PAREN expression KW_IN expression KW_WHERE expression R_PAREN {
+        if ($3->kind() != Expression::Kind::kLabel) {
+            throw nebula::GraphParser::syntax_error(@3, "The loop variable must be a label in predicate functions");
+        }
+        auto &innerVar = *(static_cast<const LabelExpression *>($3)->name());
+        auto *expr = new PredicateExpression($1, new std::string(innerVar), $5, $7);
+        nebula::graph::ParserUtil::rewritePred(qctx, expr, innerVar);
+        $$ = expr;
+        delete $3;
+    }
+
+list_comprehension_expression
+    : L_BRACKET expression KW_IN expression KW_WHERE expression R_BRACKET {
+        if ($2->kind() != Expression::Kind::kLabel) {
+            throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
+        }
+        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
+        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, $6, nullptr);
+        nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
+        $$ = expr;
+        delete $2;
+    }
+    | L_BRACKET expression KW_IN expression PIPE expression R_BRACKET {
+        if ($2->kind() != Expression::Kind::kLabel) {
+            throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
+        }
+        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
+        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, nullptr, $6);
+        nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
+        $$ = expr;
+        delete $2;
+    }
+    | L_BRACKET expression KW_IN expression KW_WHERE expression PIPE expression R_BRACKET {
+        if ($2->kind() != Expression::Kind::kLabel) {
+            throw nebula::GraphParser::syntax_error(@2, "The loop variable must be a label in list comprehension");
+        }
+        auto &innerVar = *(static_cast<const LabelExpression *>($2)->name());
+        auto *expr = new ListComprehensionExpression(new std::string(innerVar), $4, $6, $8);
+        nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
+        $$ = expr;
+        delete $2;
+    }
+    ;
+
 input_prop_expression
     : INPUT_REF DOT name_label {
         $$ = new InputPropertyExpression($3);
@@ -774,6 +856,9 @@ function_call_expression
     : LABEL L_PAREN opt_argument_list R_PAREN {
         $$ = new FunctionCallExpression($1, $3);
     }
+    | KW_TIMESTAMP L_PAREN opt_argument_list R_PAREN {
+        $$ = new FunctionCallExpression(new std::string("timestamp"), $3);
+    }
     | KW_DATE L_PAREN opt_argument_list R_PAREN {
         $$ = new FunctionCallExpression(new std::string("date"), $3);
     }
@@ -782,6 +867,26 @@ function_call_expression
     }
     | KW_DATETIME L_PAREN opt_argument_list R_PAREN {
         $$ = new FunctionCallExpression(new std::string("datetime"), $3);
+    }
+    | KW_TAGS L_PAREN opt_argument_list R_PAREN {
+        $$ = new FunctionCallExpression(new std::string("tags"), $3);
+    }
+    ;
+
+aggregate_expression
+    : agg_function L_PAREN expression R_PAREN {
+        $$ = new AggregateExpression($1, $3, false/*distinct*/);
+    }
+    | agg_function L_PAREN KW_DISTINCT expression R_PAREN {
+        $$ = new AggregateExpression($1, $4, true/*distinct*/);
+    }
+    | agg_function L_PAREN STAR R_PAREN {
+        auto star = new ConstantExpression(std::string("*"));
+        $$ = new AggregateExpression($1, star, false/*distinct*/);
+    }
+    | agg_function L_PAREN KW_DISTINCT STAR R_PAREN {
+        auto star = new ConstantExpression(std::string("*"));
+        $$ = new AggregateExpression($1, star, true/*distinct*/);
     }
     ;
 
@@ -986,7 +1091,10 @@ vid_list
     ;
 
 vid
-    : function_call_expression {
+    : unary_integer {
+        $$ = new ConstantExpression($1);
+    }
+    | function_call_expression {
         $$ = $1;
     }
     | uuid_expression {
@@ -995,9 +1103,6 @@ vid
     | STRING {
         $$ = new ConstantExpression(*$1);
         delete $1;
-    }
-    | legal_integer {
-        $$ = new ConstantExpression($1);
     }
     ;
 
@@ -1098,28 +1203,6 @@ yield_column
     }
     | expression KW_AS name_label {
         $$ = new YieldColumn($1, $3);
-    }
-    | agg_function L_PAREN expression R_PAREN {
-        auto yield = new YieldColumn($3);
-        yield->setAggFunction($1);
-        $$ = yield;
-    }
-    | agg_function L_PAREN expression R_PAREN KW_AS name_label {
-        auto yield = new YieldColumn($3, $6);
-        yield->setAggFunction($1);
-        $$ = yield;
-    }
-    | agg_function L_PAREN STAR R_PAREN {
-        auto expr = new ConstantExpression(std::string("*"));
-        auto yield = new YieldColumn(expr);
-        yield->setAggFunction($1);
-        $$ = yield;
-    }
-    | agg_function L_PAREN STAR R_PAREN KW_AS name_label {
-        auto expr = new ConstantExpression(std::string("*"));
-        auto yield = new YieldColumn(expr, $6);
-        yield->setAggFunction($1);
-        $$ = yield;
     }
     ;
 
@@ -1242,14 +1325,31 @@ match_node
     : L_PAREN match_alias R_PAREN {
         $$ = new MatchNode($2, nullptr, nullptr);
     }
-    | L_PAREN match_alias COLON name_label R_PAREN {
-        $$ = new MatchNode($2, $4, nullptr);
-    }
-    | L_PAREN match_alias COLON name_label map_expression R_PAREN {
-        $$ = new MatchNode($2, $4, $5);
+    | L_PAREN match_alias match_node_label_list R_PAREN {
+        $$ = new MatchNode($2, $3, nullptr);
     }
     | L_PAREN match_alias map_expression R_PAREN {
         $$ = new MatchNode($2, nullptr, $3);
+    }
+    ;
+
+match_node_label
+    : COLON name_label {
+        $$ = new MatchNodeLabel($2);
+    }
+    | COLON name_label map_expression {
+        $$ = new MatchNodeLabel($2, $3);
+    }
+    ;
+
+match_node_label_list
+    : match_node_label {
+        $$ = new MatchNodeLabelList();
+        $$->add($1);
+    }
+    | match_node_label_list match_node_label {
+        $$ = $1;
+        $1->add($2);
     }
     ;
 
@@ -1726,6 +1826,9 @@ limit_sentence
         $$ = new LimitSentence($2, $4);
     }
     | KW_LIMIT legal_integer KW_OFFSET legal_integer {
+        $$ = new LimitSentence($4, $2);
+    }
+    | KW_OFFSET legal_integer KW_LIMIT legal_integer  {
         $$ = new LimitSentence($2, $4);
     }
     ;
@@ -2727,6 +2830,9 @@ space_opt_item
         $$ = new SpaceOptItem(SpaceOptItem::VID_TYPE, *$3);
         delete $3;
     }
+    | KW_ATOMIC_EDGE ASSIGN BOOL {
+        $$ = new SpaceOptItem(SpaceOptItem::ATOMIC_EDGE, $3);
+    }
     // TODO(YT) Create Spaces for different engines
     // KW_ENGINE_TYPE ASSIGN name_label
     ;
@@ -2879,6 +2985,9 @@ balance_sentence
     }
     | KW_BALANCE KW_DATA KW_STOP {
         $$ = new BalanceSentence(BalanceSentence::SubType::kDataStop);
+    }
+    | KW_BALANCE KW_DATA KW_RESET KW_PLAN {
+        $$ = new BalanceSentence(BalanceSentence::SubType::kDataReset);
     }
     | KW_BALANCE KW_DATA KW_REMOVE host_list {
         $$ = new BalanceSentence(BalanceSentence::SubType::kData, $4);

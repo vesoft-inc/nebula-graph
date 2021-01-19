@@ -3,26 +3,37 @@
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
 
+import csv
+import io
+import re
+
 from tests.tck.utils.nbv import parse
-from nebula2.common.ttypes import DataSet, Row
+from nebula2.common.ttypes import DataSet, Row, Value
+
+pattern = re.compile(r"^<\[(\w+)\]>$")
 
 
-def table(text):
-    lines = text.splitlines()
-    assert len(lines) >= 1
+def _parse_value(cell: str, variables: dict) -> Value:
+    m = pattern.match(cell)
+    if m:
+        var = m.group(1)
+        assert var in variables, f"Invalid expect variable usages: {cell}"
+        cell = variables.get(var, None)
+        assert cell is not None
 
-    def parse_line(line):
-        return list(
-            map(lambda x: x.strip(), filter(lambda x: x, line.split('|'))))
+    value = parse(cell)
+    assert value is not None, f"parse error: column is {cell}"
+    return value
 
-    table = []
-    column_names = list(map(lambda x: bytes(x, 'utf-8'), parse_line(lines[0])))
-    for line in lines[1:]:
-        row = {}
-        cells = parse_line(line)
-        for i, cell in enumerate(cells):
-            row[column_names[i]] = cell
-        table.append(row)
+
+def table(text, handler=None):
+    lines = list(csv.reader(io.StringIO(text), delimiter="|"))
+    header = lines[0][1:-1]
+    column_names = [column.strip() for column in header]
+    table = [[
+        cell.strip() if handler is None else handler(cell.strip())
+        for cell in line[1:-1]
+    ] for line in lines[1:]]
 
     return {
         "column_names": column_names,
@@ -30,17 +41,13 @@ def table(text):
     }
 
 
-def dataset(string_table):
+def dataset(string_table, variables: dict):
     ds = DataSet()
-    ds.column_names = string_table['column_names']
-    ds.rows = []
-    for row in string_table['rows']:
-        nrow = Row()
-        nrow.values = []
-        for column in ds.column_names:
-            value = parse(row[column])
-            assert value is not None, \
-                    f'parse error: column is {column}:{row[column]}'
-            nrow.values.append(value)
-        ds.rows.append(nrow)
+    column_names = string_table['column_names']
+    ds.column_names = column_names
+    ds.rows = [
+        Row(values=[
+            _parse_value(row[i], variables) for i in range(len(column_names))
+        ]) for row in string_table['rows']
+    ]
     return ds

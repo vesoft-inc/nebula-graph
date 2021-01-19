@@ -64,6 +64,11 @@ void ExprVisitorImpl::visit(FunctionCallExpression *expr) {
     }
 }
 
+void ExprVisitorImpl::visit(AggregateExpression *expr) {
+    DCHECK(ok());
+    expr->arg()->accept(this);
+}
+
 // container expression
 void ExprVisitorImpl::visit(ListExpression *expr) {
     DCHECK(ok());
@@ -139,5 +144,28 @@ void ExprVisitorImpl::visit(PathBuildExpression *expr) {
         }
     }
 }
+
+void ExprVisitorImpl::visit(PredicateExpression *expr) {
+    DCHECK(ok());
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    expr->filter()->accept(this);
+    if (!ok()) return;
+}
+
+void ExprVisitorImpl::visit(ListComprehensionExpression *expr) {
+    DCHECK(ok());
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (!ok()) return;
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (!ok()) return;
+    }
+}
+
 }   // namespace graph
 }   // namespace nebula

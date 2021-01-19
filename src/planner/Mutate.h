@@ -78,13 +78,15 @@ public:
                              GraphSpaceID spaceId,
                              std::vector<storage::cpp2::NewEdge> edges,
                              std::vector<std::string> propNames,
-                             bool overwritable) {
+                             bool overwritable,
+                             bool useChainInsert = false) {
         return qctx->objPool()->add(new InsertEdges(qctx,
                                                     input,
                                                     spaceId,
                                                     std::move(edges),
                                                     std::move(propNames),
-                                                    overwritable));
+                                                    overwritable,
+                                                    useChainInsert));
     }
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
@@ -105,24 +107,33 @@ public:
         return spaceId_;
     }
 
+    bool useChainInsert() const {
+        return useChainInsert_;
+    }
+
 private:
     InsertEdges(QueryContext* qctx,
                 PlanNode* input,
                 GraphSpaceID spaceId,
                 std::vector<storage::cpp2::NewEdge> edges,
                 std::vector<std::string> propNames,
-                bool overwritable)
+                bool overwritable,
+                bool useChainInsert)
         : SingleInputNode(qctx, Kind::kInsertEdges, input),
           spaceId_(spaceId),
           edges_(std::move(edges)),
           propNames_(std::move(propNames)),
-          overwritable_(overwritable) {}
+          overwritable_(overwritable),
+          useChainInsert_(useChainInsert) {}
 
 private:
     GraphSpaceID spaceId_{-1};
     std::vector<storage::cpp2::NewEdge> edges_;
     std::vector<std::string> propNames_;
     bool overwritable_;
+    // if this enabled, add edge request will only sent to
+    // outbound edges. (toss)
+    bool useChainInsert_{false};
 };
 
 class Update : public SingleInputNode {
@@ -193,7 +204,7 @@ public:
                               PlanNode* input,
                               GraphSpaceID spaceId,
                               std::string name,
-                              std::string vId,
+                              Value vId,
                               TagID tagId,
                               bool insertable,
                               std::vector<storage::cpp2::UpdatedProp> updatedProps,
@@ -215,7 +226,7 @@ public:
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
-    const std::string& getVId() const {
+    const Value& getVId() const {
         return vId_;
     }
 
@@ -228,7 +239,7 @@ private:
                  PlanNode* input,
                  GraphSpaceID spaceId,
                  std::string name,
-                 std::string vId,
+                 Value vId,
                  TagID tagId,
                  bool insertable,
                  std::vector<storage::cpp2::UpdatedProp> updatedProps,
@@ -249,7 +260,7 @@ private:
           tagId_(tagId) {}
 
 private:
-    std::string vId_;
+    Value vId_;
     TagID tagId_{-1};
 };
 
@@ -259,8 +270,8 @@ public:
                             PlanNode* input,
                             GraphSpaceID spaceId,
                             std::string name,
-                            std::string srcId,
-                            std::string dstId,
+                            Value srcId,
+                            Value dstId,
                             EdgeType edgeType,
                             int64_t rank,
                             bool insertable,
@@ -285,11 +296,11 @@ public:
 
     std::unique_ptr<PlanNodeDescription> explain() const override;
 
-    const std::string& getSrcId() const {
+    const Value& getSrcId() const {
         return srcId_;
     }
 
-    const std::string& getDstId() const {
+    const Value& getDstId() const {
         return dstId_;
     }
 
@@ -310,8 +321,8 @@ private:
                PlanNode* input,
                GraphSpaceID spaceId,
                std::string name,
-               std::string srcId,
-               std::string dstId,
+               Value srcId,
+               Value dstId,
                EdgeType edgeType,
                int64_t rank,
                bool insertable,
@@ -335,8 +346,8 @@ private:
           edgeType_(edgeType) {}
 
 private:
-    std::string srcId_;
-    std::string dstId_;
+    Value srcId_;
+    Value dstId_;
     int64_t rank_{0};
     EdgeType edgeType_{-1};
 };

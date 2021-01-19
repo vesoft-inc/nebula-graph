@@ -35,6 +35,12 @@ void FindAnyExprVisitor::visit(FunctionCallExpression *expr) {
     }
 }
 
+void FindAnyExprVisitor::visit(AggregateExpression *expr) {
+    findExpr(expr);
+    if (found_) return;
+    expr->arg()->accept(this);
+}
+
 void FindAnyExprVisitor::visit(ListExpression *expr) {
     findExpr(expr);
     if (found_) return;
@@ -79,6 +85,15 @@ void FindAnyExprVisitor::visit(CaseExpression *expr) {
         whenThen.then->accept(this);
         if (found_) return;
     }
+}
+
+void FindAnyExprVisitor::visit(PredicateExpression *expr) {
+    findExpr(expr);
+    if (found_) return;
+    expr->collection()->accept(this);
+    if (found_) return;
+    expr->filter()->accept(this);
+    if (found_) return;
 }
 
 void FindAnyExprVisitor::visit(ConstantExpression *expr) {
@@ -151,6 +166,21 @@ void FindAnyExprVisitor::visit(EdgeExpression *expr) {
 
 void FindAnyExprVisitor::visit(ColumnExpression *expr) {
     findExpr(expr);
+}
+
+void FindAnyExprVisitor::visit(ListComprehensionExpression* expr) {
+    findExpr(expr);
+    if (found_) return;
+    expr->collection()->accept(this);
+    if (found_) return;
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (found_) return;
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (found_) return;
+    }
 }
 
 void FindAnyExprVisitor::visitBinaryExpr(BinaryExpression *expr) {

@@ -7,11 +7,14 @@
 #include "service/QueryEngine.h"
 
 #include "common/base/Base.h"
+#include "common/meta/ServerBasedIndexManager.h"
+#include "common/meta/ServerBasedSchemaManager.h"
 #include "context/QueryContext.h"
 #include "optimizer/OptRule.h"
 #include "planner/PlannersRegister.h"
 #include "service/QueryInstance.h"
 #include "service/GraphFlags.h"
+#include "version/Version.h"
 
 DECLARE_bool(local_config);
 DECLARE_bool(enable_optimizer);
@@ -32,7 +35,7 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
     options.role_ = meta::cpp2::HostRole::GRAPH;
     std::string localIP = network::NetworkUtils::getIPv4FromDevice(FLAGS_listen_netdev).value();
     options.localHost_ = HostAddr{localIP, FLAGS_port};
-    options.gitInfoSHA_ = NEBULA_STRINGIFY(GIT_INFO_SHA);
+    options.gitInfoSHA_ = nebula::graph::gitInfoSha();
     metaClient_ =
         std::make_unique<meta::MetaClient>(ioExecutor, std::move(addrs.value()), options);
     // load data try 3 time
@@ -42,9 +45,8 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
         LOG(WARNING) << "Failed to synchronously wait for meta service ready";
     }
 
-    schemaManager_ = meta::SchemaManager::create(metaClient_.get());
-    indexManager_ = meta::IndexManager::create();
-    indexManager_->init(metaClient_.get());
+    schemaManager_ = meta::ServerBasedSchemaManager::create(metaClient_.get());
+    indexManager_ = meta::ServerBasedIndexManager::create(metaClient_.get());
 
     // gflagsManager_ = std::make_unique<meta::ClientBasedGflagsManager>(metaClient_.get());
 

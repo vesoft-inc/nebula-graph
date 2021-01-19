@@ -125,7 +125,7 @@ std::multimap<Value, Path> ConjunctPathExecutor::buildBfsInterimPath(
     for (auto& v : meets) {
         VLOG(1) << "Meet at: " << v;
         Path start;
-        start.src = Vertex(v.getStr(), {});
+        start.src = Vertex(v, {});
         if (hists.empty()) {
             // Happens at one step path situation when meet at starts
             VLOG(1) << "Start: " << start;
@@ -290,7 +290,7 @@ void ConjunctPathExecutor::delPathFromConditionalVar(const Value& start, const V
         auto startVid = iter->getColumn(0);
         auto endVid = iter->getColumn(1);
         if (startVid == endVid || (startVid == start && endVid == end)) {
-            iter->erase();
+            iter->unstableErase();
         } else {
             iter->next();
         }

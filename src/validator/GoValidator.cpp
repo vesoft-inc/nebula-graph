@@ -51,7 +51,11 @@ Status GoValidator::validateWhere(WhereClause* where) {
     }
 
     filter_ = where->filter();
-
+    if (graph::ExpressionUtils::findAny(filter_, {Expression::Kind::kAggregate})) {
+        return Status::SemanticError(
+            "`%s', not support aggregate function in where sentence.",
+            filter_->toString().c_str());
+    }
     if (filter_->kind() == Expression::Kind::kLabelAttribute) {
         auto laExpr = static_cast<LabelAttributeExpression*>(filter_);
         where->setFilter(ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(laExpr));
@@ -91,7 +95,7 @@ Status GoValidator::validateYield(YieldClause* yield) {
             newCols->addColumn(col);
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
-            outputs_.emplace_back(colName, Value::Type::STRING);
+            outputs_.emplace_back(colName, vidType_);
             NG_RETURN_IF_ERROR(deduceProps(col->expr(), exprProps_));
         }
 
@@ -107,15 +111,14 @@ Status GoValidator::validateYield(YieldClause* yield) {
             } else {
                 ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(col->expr());
             }
-
-            if (!col->getAggFunName().empty()) {
+            if (graph::ExpressionUtils::findAny(col->expr(), {Expression::Kind::kAggregate})) {
                 return Status::SemanticError(
                     "`%s', not support aggregate function in go sentence.",
                     col->toString().c_str());
             }
             auto colName = deduceColName(col);
             colNames_.emplace_back(colName);
-
+            // check input var expression
             auto typeStatus = deduceExprType(col->expr());
             NG_RETURN_IF_ERROR(typeStatus);
             auto type = typeStatus.value();
@@ -142,14 +145,13 @@ Status GoValidator::toPlan() {
             tail_ = passThrough;
             root_ = tail_;
             return Status::OK();
-        } else if (steps_.steps == 1) {
-            return buildOneStepPlan();
-        } else {
-            return buildNStepsPlan();
         }
-    } else {
-        return buildMToNPlan();
+        if (steps_.steps == 1) {
+            return buildOneStepPlan();
+        }
+        return buildNStepsPlan();
     }
+    return buildMToNPlan();
 }
 
 Status GoValidator::oneStep(PlanNode* dependencyForGn,
@@ -802,8 +804,7 @@ Status GoValidator::buildColumns() {
                          ? nullptr
                          : new std::string(*(yield->alias()));
         if (rewriteCol != nullptr) {
-            newYieldCols_->addColumn(
-                new YieldColumn(rewriteCol.release(), alias));
+            newYieldCols_->addColumn(new YieldColumn(rewriteCol.release(), alias));
         } else {
             newYieldCols_->addColumn(new YieldColumn(newCol.release(), alias));
         }

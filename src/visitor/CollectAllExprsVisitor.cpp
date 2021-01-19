@@ -30,6 +30,11 @@ void CollectAllExprsVisitor::visit(FunctionCallExpression *expr) {
     }
 }
 
+void CollectAllExprsVisitor::visit(AggregateExpression *expr) {
+    collectExpr(expr);
+    expr->arg()->accept(this);
+}
+
 void CollectAllExprsVisitor::visit(ListExpression *expr) {
     collectExpr(expr);
     for (auto &item : expr->items()) {
@@ -139,6 +144,23 @@ void CollectAllExprsVisitor::visit(CaseExpression *expr) {
         whenThen.when->accept(this);
         whenThen.then->accept(this);
     }
+}
+
+void CollectAllExprsVisitor::visit(ListComprehensionExpression* expr) {
+    collectExpr(expr);
+    expr->collection()->accept(this);
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+    }
+}
+
+void CollectAllExprsVisitor::visit(PredicateExpression *expr) {
+    collectExpr(expr);
+    expr->collection()->accept(this);
+    expr->filter()->accept(this);
 }
 
 void CollectAllExprsVisitor::visitBinaryExpr(BinaryExpression *expr) {

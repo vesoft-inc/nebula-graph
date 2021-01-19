@@ -42,6 +42,15 @@ public:
     template <typename T>
     using RowsIter = typename RowsType<T>::iterator;
 
+    // Warning this will break the origin order of elements!
+    template <typename T>
+    static RowsIter<T> eraseBySwap(RowsType<T> &rows, RowsIter<T> i) {
+        DCHECK(!rows.empty());
+        std::swap(rows.back(), *i);
+        rows.pop_back();
+        return i;
+    }
+
     enum class Kind : uint8_t {
         kDefault,
         kGetNeighbors,
@@ -67,6 +76,9 @@ public:
 
     // erase current iter
     virtual void erase() = 0;
+
+    // Warning this will break the origin order of elements!
+    virtual void unstableErase() = 0;
 
     virtual const LogicalRow* row() const = 0;
 
@@ -127,8 +139,7 @@ public:
         if (static_cast<size_t>(std::abs(index)) >= size) {
             return Value::kNullBadType;
         }
-        auto currentRow = *iter;
-        return currentRow[(size + index) % size];
+        return iter->operator[]((size + index) % size);
     }
 
     virtual const Value& getTagProp(const std::string&,
@@ -176,6 +187,11 @@ public:
     }
 
     void erase() override {
+        counter_--;
+    }
+
+    void unstableErase() override {
+        DLOG(ERROR) << "Unimplemented default iterator.";
         counter_--;
     }
 
@@ -228,9 +244,19 @@ public:
         return valid_ && iter_ < logicalRows_.end();
     }
 
+    bool noEdgeValid() const {
+        return noEdgeValid_ && noEdgeIter_ < noEdgeRows_.end();
+    }
+
     void next() override {
         if (valid()) {
             ++iter_;
+        }
+    }
+
+    void noEdgeNext() {
+        if (noEdgeValid()) {
+            ++noEdgeIter_;
         }
     }
 
@@ -243,6 +269,12 @@ public:
     void erase() override {
         if (valid()) {
             iter_ = logicalRows_.erase(iter_);
+        }
+    }
+
+    void unstableErase() override {
+        if (valid()) {
+            iter_ = eraseBySwap(logicalRows_, iter_);
         }
     }
 
@@ -274,36 +306,16 @@ public:
 
     Value getVertex() const override;
 
+    Value getNoEdgeVertex() const;
+
     Value getEdge() const override;
 
     // getVertices and getEdges arg batch interface use for subgraph
     // Its unique based on the plan
-    List getVertices() {
-        DCHECK(iter_ == logicalRows_.begin());
-        List vertices;
-        vertices.values.reserve(size());
-        for (; valid(); next()) {
-            vertices.values.emplace_back(getVertex());
-        }
-        reset();
-        return vertices;
-    }
+    List getVertices();
 
     // Its unique based on the GN interface dedup
-    List getEdges() {
-        DCHECK(iter_ == logicalRows_.begin());
-        List edges;
-        edges.values.reserve(size());
-        for (; valid(); next()) {
-            auto edge = getEdge();
-            if (edge.isEdge()) {
-                const_cast<Edge&>(edge.getEdge()).format();
-            }
-            edges.values.emplace_back(std::move(edge));
-        }
-        reset();
-        return edges;
-    }
+    List getEdges();
 
     const LogicalRow* row() const override {
         return &*iter_;
@@ -351,12 +363,31 @@ private:
         GetNbrLogicalRow(size_t dsIdx, const Row* row, std::string edgeName, const List* edgeProps)
             : dsIdx_(dsIdx), row_(row), edgeName_(std::move(edgeName)), edgeProps_(edgeProps) {}
 
+        GetNbrLogicalRow(const GetNbrLogicalRow &) = default;
+        GetNbrLogicalRow& operator=(const GetNbrLogicalRow &) = default;
+
+        GetNbrLogicalRow(GetNbrLogicalRow &&r) noexcept {
+            *this = std::move(r);
+        }
+        GetNbrLogicalRow& operator=(GetNbrLogicalRow &&r) noexcept {
+            dsIdx_ = r.dsIdx_;
+            r.dsIdx_ = 0;
+
+            row_ = r.row_;
+            r.row_ = nullptr;
+
+            edgeName_ = std::move(r.edgeName_);
+
+            edgeProps_ = r.edgeProps_;
+            r.edgeProps_ = nullptr;
+            return *this;
+        }
+
         const Value& operator[](size_t idx) const override {
             if (idx < row_->size()) {
                 return (*row_)[idx];
-            } else {
-                return Value::kNullOverflow;
             }
+            return Value::kNullOverflow;
         }
 
         size_t size() const override {
@@ -393,6 +424,10 @@ private:
     bool                       valid_{false};
     RowsType<GetNbrLogicalRow> logicalRows_;
     RowsIter<GetNbrLogicalRow> iter_;
+    // rows without edges
+    bool                       noEdgeValid_{false};
+    RowsType<GetNbrLogicalRow> noEdgeRows_;
+    RowsIter<GetNbrLogicalRow> noEdgeIter_;
     std::vector<DataSetIndex>  dsIndices_;
 };
 
@@ -402,12 +437,23 @@ public:
     public:
         explicit SeqLogicalRow(const Row* row) : row_(row) {}
 
+        SeqLogicalRow(const SeqLogicalRow &r) = default;
+        SeqLogicalRow& operator=(const SeqLogicalRow &r) = default;
+
+        SeqLogicalRow(SeqLogicalRow &&r) noexcept {
+            *this = std::move(r);
+        }
+        SeqLogicalRow& operator=(SeqLogicalRow &&r) noexcept {
+            row_ = r.row_;
+            r.row_ = nullptr;
+            return *this;
+        }
+
         const Value& operator[](size_t idx) const override {
             if (idx < row_->size()) {
                 return row_->values[idx];
-            } else {
-                return Value::kEmpty;
             }
+            return Value::kEmpty;
         }
 
         size_t size() const override {
@@ -478,6 +524,10 @@ public:
         iter_ = rows_.erase(iter_);
     }
 
+    void unstableErase() override {
+        iter_ = eraseBySwap(rows_, iter_);
+    }
+
     void eraseRange(size_t first, size_t last) override {
         if (first >= last || first >= size()) {
             return;
@@ -519,10 +569,9 @@ public:
         auto index = colIndices_.find(col);
         if (index == colIndices_.end()) {
             return Value::kNullValue;
-        } else {
-            DCHECK_LT(index->second, logicalRow.row_->values.size());
-            return logicalRow.row_->values[index->second];
         }
+        DCHECK_LT(index->second, logicalRow.row_->values.size());
+        return logicalRow.row_->values[index->second];
     }
 
     const Value& getColumn(int32_t index) const override;
@@ -576,21 +625,37 @@ public:
             const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
             : values_(std::move(values)), size_(size), colIdxIndices_(colIdxIndices) {}
 
+        JoinLogicalRow(const JoinLogicalRow &r) = default;
+        JoinLogicalRow& operator=(const JoinLogicalRow &r) = default;
+
+        JoinLogicalRow(JoinLogicalRow &&r) noexcept {
+            *this = std::move(r);
+        }
+
+        JoinLogicalRow& operator=(JoinLogicalRow &&r) noexcept {
+            values_ = std::move(r.values_);
+
+            size_ = r.size_;
+            r.size_ = 0;
+
+            colIdxIndices_ = r.colIdxIndices_;
+            r.colIdxIndices_ = nullptr;
+            return *this;
+        }
+
         const Value& operator[](size_t idx) const override {
             if (idx < size_) {
                 auto index = colIdxIndices_->find(idx);
                 if (index == colIdxIndices_->end()) {
                     return Value::kNullValue;
-                } else {
-                    auto keyIdx = index->second.first;
-                    auto valIdx = index->second.second;
-                    DCHECK_LT(keyIdx, values_.size());
-                    DCHECK_LT(valIdx, values_[keyIdx]->values.size());
-                    return values_[keyIdx]->values[valIdx];
                 }
-            } else {
-                return Value::kEmpty;
+                auto keyIdx = index->second.first;
+                auto valIdx = index->second.second;
+                DCHECK_LT(keyIdx, values_.size());
+                DCHECK_LT(valIdx, values_[keyIdx]->values.size());
+                return values_[keyIdx]->values[valIdx];
             }
+            return Value::kEmpty;
         }
 
         size_t size() const override {
@@ -646,6 +711,10 @@ public:
         iter_ = rows_.erase(iter_);
     }
 
+    void unstableErase() override {
+        iter_ = eraseBySwap(rows_, iter_);
+    }
+
     void eraseRange(size_t first, size_t last) override {
         if (first >= last || first >= size()) {
             return;
@@ -693,13 +762,12 @@ public:
         auto index = colIndices_.find(col);
         if (index == colIndices_.end()) {
             return Value::kNullValue;
-        } else {
-            auto segIdx = index->second.first;
-            auto colIdx = index->second.second;
-            DCHECK_LT(segIdx, row.values_.size());
-            DCHECK_LT(colIdx, row.values_[segIdx]->values.size());
-            return row.values_[segIdx]->values[colIdx];
         }
+        auto segIdx = index->second.first;
+        auto colIdx = index->second.second;
+        DCHECK_LT(segIdx, row.values_.size());
+        DCHECK_LT(colIdx, row.values_[segIdx]->values.size());
+        return row.values_[segIdx]->values[colIdx];
     }
 
     const Value& getColumn(int32_t index) const override;
@@ -738,12 +806,24 @@ public:
     public:
         explicit PropLogicalRow(const Row* row) : row_(row) {}
 
+        PropLogicalRow(const PropLogicalRow &r) = default;
+        PropLogicalRow& operator=(const PropLogicalRow &r) = default;
+
+        PropLogicalRow(PropLogicalRow &&r) noexcept {
+            *this = std::move(r);
+        }
+
+        PropLogicalRow& operator=(PropLogicalRow &&r) noexcept {
+            row_ = r.row_;
+            r.row_ = nullptr;
+            return *this;
+        }
+
         const Value& operator[](size_t idx) const override {
             if (idx < row_->size()) {
                 return row_->values[idx];
-            } else {
-                return Value::kEmpty;
             }
+            return Value::kEmpty;
         }
 
         size_t size() const override {
@@ -785,6 +865,10 @@ public:
 
     void erase() override {
         iter_ = rows_.erase(iter_);
+    }
+
+    void unstableErase() override {
+        iter_ = eraseBySwap(rows_, iter_);
     }
 
     void eraseRange(size_t first, size_t last) override {

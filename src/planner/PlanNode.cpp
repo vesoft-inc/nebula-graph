@@ -50,6 +50,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Minus";
         case Kind::kProject:
             return "Project";
+        case Kind::kUnwind:
+            return "Unwind";
         case Kind::kSort:
             return "Sort";
         case Kind::kTopN:
@@ -66,6 +68,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Dedup";
         case Kind::kPassThrough:
             return "PassThrough";
+        case Kind::kAssign:
+            return "Assign";
         case Kind::kSwitchSpace:
             return "RegisterSpaceToSession";
         case Kind::kCreateSpace:
@@ -163,6 +167,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Balance";
         case Kind::kStopBalance:
             return "StopBalance";
+        case Kind::kResetBalance:
+            return "ResetBalance";
         case Kind::kShowBalance:
             return "ShowBalance";
         case Kind::kSubmitJob:
@@ -241,6 +247,10 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "SignInTSService";
         case Kind::kSignOutTSService:
             return "SignOutTSService";
+        case Kind::kDownload:
+            return "Download";
+        case Kind::kIngest:
+            return "Ingest";
         // no default so the compiler will warning when lack
     }
     LOG(FATAL) << "Impossible kind plan node " << static_cast<int>(kind);

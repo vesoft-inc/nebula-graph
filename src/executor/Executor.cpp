@@ -32,6 +32,7 @@
 #include "executor/admin/ListenerExecutor.h"
 #include "executor/admin/SpaceExecutor.h"
 #include "executor/admin/StopBalanceExecutor.h"
+#include "executor/admin/ResetBalanceExecutor.h"
 #include "executor/admin/SubmitJobExecutor.h"
 #include "executor/admin/SwitchSpaceExecutor.h"
 #include "executor/admin/UpdateUserExecutor.h"
@@ -41,6 +42,8 @@
 #include "executor/admin/ShowTSClientsExecutor.h"
 #include "executor/admin/SignInTSServiceExecutor.h"
 #include "executor/admin/SignOutTSServiceExecutor.h"
+#include "executor/admin/DownloadExecutor.h"
+#include "executor/admin/IngestExecutor.h"
 #include "executor/algo/BFSShortestPathExecutor.h"
 #include "executor/algo/ProduceSemiShortestPathExecutor.h"
 #include "executor/algo/ConjunctPathExecutor.h"
@@ -70,9 +73,11 @@
 #include "executor/query/LimitExecutor.h"
 #include "executor/query/MinusExecutor.h"
 #include "executor/query/ProjectExecutor.h"
+#include "executor/query/UnwindExecutor.h"
 #include "executor/query/SortExecutor.h"
 #include "executor/query/TopNExecutor.h"
 #include "executor/query/UnionExecutor.h"
+#include "executor/query/AssignExecutor.h"
 #include "planner/Admin.h"
 #include "planner/Logic.h"
 #include "planner/Maintain.h"
@@ -179,6 +184,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kProject: {
             return pool->add(new ProjectExecutor(node, qctx));
         }
+        case PlanNode::Kind::kUnwind: {
+            return pool->add(new UnwindExecutor(node, qctx));
+        }
         case PlanNode::Kind::kIndexScan: {
             return pool->add(new IndexScanExecutor(node, qctx));
         }
@@ -202,6 +210,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kDedup: {
             return pool->add(new DedupExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kAssign: {
+            return pool->add(new AssignExecutor(node, qctx));
         }
         case PlanNode::Kind::kSwitchSpace: {
             return pool->add(new SwitchSpaceExecutor(node, qctx));
@@ -362,6 +373,9 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kStopBalance: {
             return pool->add(new StopBalanceExecutor(node, qctx));
         }
+        case PlanNode::Kind::kResetBalance: {
+            return pool->add(new ResetBalanceExecutor(node, qctx));
+        }
         case PlanNode::Kind::kShowBalance: {
             return pool->add(new ShowBalanceExecutor(node, qctx));
         }
@@ -460,6 +474,12 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         }
         case PlanNode::Kind::kSignOutTSService: {
             return pool->add(new SignOutTSServiceExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kDownload: {
+            return pool->add(new DownloadExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kIngest: {
+            return pool->add(new IngestExecutor(node, qctx));
         }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());

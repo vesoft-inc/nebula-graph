@@ -42,6 +42,7 @@ public:
     void visit(LogicalExpression *expr) override;
     // function call
     void visit(FunctionCallExpression *expr) override;
+    void visit(AggregateExpression *expr) override;
     void visit(UUIDExpression *expr) override;
     // variable expression
     void visit(VariableExpression *expr) override;
@@ -70,6 +71,10 @@ public:
     void visit(PathBuildExpression *expr) override;
     // column expression
     void visit(ColumnExpression *expr) override;
+    // predicate expression
+    void visit(PredicateExpression *expr) override;
+    // list comprehension expression
+    void visit(ListComprehensionExpression *expr) override;
 
 private:
     void visitBinaryExpr(BinaryExpression *expr);

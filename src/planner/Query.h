@@ -8,7 +8,7 @@
 #define PLANNER_QUERY_H_
 
 #include "common/base/Base.h"
-#include "common/function/AggregateFunction.h"
+#include "common/expression/AggregateExpression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
 #include "context/QueryContext.h"
 #include "parser/Clauses.h"
@@ -90,6 +90,15 @@ protected:
         : SingleInputNode(qctx, kind, input), space_(space) {}
 
 protected:
+    void clone(const Explore& e) {
+        SingleInputNode::clone(e);
+        space_ = e.space_;
+        dedup_ = e.dedup_;
+        limit_ = e.limit_;
+        filter_ = e.filter_;
+        orderBy_ = e.orderBy_;
+    }
+
     GraphSpaceID space_;
     bool dedup_{false};
     int64_t limit_{std::numeric_limits<int64_t>::max()};
@@ -215,6 +224,8 @@ private:
         : Explore(qctx, Kind::kGetNeighbors, input, space) {}
 
 private:
+    void clone(const GetNeighbors& g);
+
     Expression*                                  src_{nullptr};
     std::vector<EdgeType>                        edgeTypes_;
     storage::cpp2::EdgeDirection edgeDirection_{storage::cpp2::EdgeDirection::OUT_EDGE};
@@ -502,6 +513,8 @@ private:
         isEmptyResultSet_ = isEmptyResultSet;
     }
 
+    void clone(const IndexScan &g);
+
 private:
     IndexQueryCtx                                 contexts_;
     IndexReturnCols                               returnCols_;
@@ -617,6 +630,28 @@ private:
     Project(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
       : SingleInputNode(qctx, Kind::kProject, input), cols_(cols) { }
 
+    void clone(const Project &p);
+
+private:
+    YieldColumns*               cols_{nullptr};
+};
+
+class Unwind final : public SingleInputNode {
+public:
+    static Unwind* make(QueryContext* qctx, PlanNode* input, YieldColumns* cols) {
+        return qctx->objPool()->add(new Unwind(qctx, input, cols));
+    }
+
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+    const YieldColumns* columns() const {
+        return cols_;
+    }
+
+private:
+    Unwind(QueryContext* qctx, PlanNode* input, YieldColumns* cols)
+        : SingleInputNode(qctx, Kind::kUnwind, input), cols_(cols) {}
+
 private:
     YieldColumns*               cols_{nullptr};
 };
@@ -694,6 +729,8 @@ private:
         count_ = count;
     }
 
+    void clone(const Limit &l);
+
 private:
     int64_t     offset_{-1};
     int64_t     count_{-1};
@@ -767,18 +804,10 @@ private:
  */
 class Aggregate final : public SingleInputNode {
 public:
-    struct GroupItem {
-        GroupItem(Expression* e, AggFun::Function f, bool d)
-            : expr(e), func(f), distinct(d) {}
-        Expression* expr;
-        AggFun::Function func;
-        bool distinct = false;
-    };
-
     static Aggregate* make(QueryContext* qctx,
                            PlanNode* input,
                            std::vector<Expression*>&& groupKeys,
-                           std::vector<GroupItem>&& groupItems) {
+                           std::vector<Expression*>&& groupItems) {
         return qctx->objPool()->add(
             new Aggregate(qctx, input, std::move(groupKeys), std::move(groupItems)));
     }
@@ -787,7 +816,7 @@ public:
         return groupKeys_;
     }
 
-    const std::vector<GroupItem>& groupItems() const {
+    const std::vector<Expression*>& groupItems() const {
         return groupItems_;
     }
 
@@ -797,7 +826,7 @@ private:
     Aggregate(QueryContext* qctx,
               PlanNode* input,
               std::vector<Expression*>&& groupKeys,
-              std::vector<GroupItem>&& groupItems)
+              std::vector<Expression*>&& groupItems)
         : SingleInputNode(qctx, Kind::kAggregate, input) {
         groupKeys_ = std::move(groupKeys);
         groupItems_ = std::move(groupItems);
@@ -805,7 +834,7 @@ private:
 
 private:
     std::vector<Expression*>    groupKeys_;
-    std::vector<GroupItem>      groupItems_;
+    std::vector<Expression*>    groupItems_;
 };
 
 class SwitchSpace final : public SingleInputNode {
@@ -985,6 +1014,36 @@ private:
     std::vector<Expression*>                hashKeys_;
     std::vector<Expression*>                probeKeys_;
 };
+
+/*
+ * set var = value
+ */
+class Assign final : public SingleInputNode {
+public:
+    static Assign* make(QueryContext* qctx, PlanNode* input) {
+        return qctx->objPool()->add(new Assign(qctx, input));
+    }
+
+    const std::vector<std::pair<std::string, std::unique_ptr<Expression>>>& items() const {
+        return items_;
+    }
+
+    std::unique_ptr<PlanNodeDescription> explain() const override;
+
+    void assignVar(std::string var, Expression* value) {
+        auto* varPtr = qctx_->symTable()->getVar(var);
+        DCHECK(varPtr != nullptr);
+        DCHECK(value != nullptr);
+        items_.emplace_back(std::make_pair(std::move(var), value));
+    }
+
+private:
+    Assign(QueryContext* qctx, PlanNode* input) : SingleInputNode(qctx, Kind::kAssign, input) {}
+
+private:
+    std::vector<std::pair<std::string, std::unique_ptr<Expression>>> items_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_QUERY_H_

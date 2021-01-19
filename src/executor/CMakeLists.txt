@@ -20,6 +20,7 @@ nebula_add_library(
     query/LimitExecutor.cpp
     query/MinusExecutor.cpp
     query/ProjectExecutor.cpp
+    query/UnwindExecutor.cpp
     query/SortExecutor.cpp
     query/TopNExecutor.cpp
     query/IndexScanExecutor.cpp
@@ -28,6 +29,7 @@ nebula_add_library(
     query/DataCollectExecutor.cpp
     query/DataJoinExecutor.cpp
     query/IndexScanExecutor.cpp
+    query/AssignExecutor.cpp
     algo/ConjunctPathExecutor.cpp
     algo/BFSShortestPathExecutor.cpp
     algo/ProduceSemiShortestPathExecutor.cpp
@@ -46,6 +48,7 @@ nebula_add_library(
     admin/SubmitJobExecutor.cpp
     admin/BalanceExecutor.cpp
     admin/StopBalanceExecutor.cpp
+    admin/ResetBalanceExecutor.cpp
     admin/BalanceLeadersExecutor.cpp
     admin/ShowBalanceExecutor.cpp
     admin/ShowHostsExecutor.cpp
@@ -55,6 +58,8 @@ nebula_add_library(
     admin/PartExecutor.cpp
     admin/CharsetExecutor.cpp
     admin/ShowStatsExecutor.cpp
+    admin/DownloadExecutor.cpp
+    admin/IngestExecutor.cpp
     maintain/TagExecutor.cpp
     maintain/TagIndexExecutor.cpp
     maintain/EdgeExecutor.cpp

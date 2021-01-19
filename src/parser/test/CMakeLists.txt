@@ -5,7 +5,6 @@
 
 set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:parser_obj>
-    $<TARGET_OBJECTS:common_time_function_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_network_obj>
@@ -18,7 +17,6 @@ set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:common_datatypes_obj>
     $<TARGET_OBJECTS:common_base_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
-    $<TARGET_OBJECTS:common_agg_function_obj>
     $<TARGET_OBJECTS:common_meta_thrift_obj>
     $<TARGET_OBJECTS:common_graph_thrift_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
@@ -31,6 +29,7 @@ set(PARSER_TEST_LIBS
     $<TARGET_OBJECTS:common_process_obj>
     $<TARGET_OBJECTS:common_time_utils_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
+    $<TARGET_OBJECTS:common_ws_common_obj>
     $<TARGET_OBJECTS:session_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:graph_auth_obj>

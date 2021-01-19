@@ -7,7 +7,7 @@
 #include "planner/match/SegmentsConnector.h"
 #include "planner/match/AddDependencyStrategy.h"
 #include "planner/match/AddInputStrategy.h"
-#include "planner/match/InnerJoinStrategy.h"
+#include "planner/match/CartesianProductStrategy.h"
 
 namespace nebula {
 namespace graph {
@@ -16,9 +16,16 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
                                                      CypherClauseContextBase* rightCtx,
                                                      SubPlan& left,
                                                      SubPlan& right) {
-    if (leftCtx->kind == CypherClauseKind::kReturn && rightCtx->kind == CypherClauseKind::kMatch) {
+    UNUSED(rightCtx);
+    if (leftCtx->kind == CypherClauseKind::kReturn) {
         VLOG(1) << "left tail: " << left.tail->outputVar()
-            << "right root: " << right.root->outputVar();
+                << "right root: " << right.root->outputVar();
+        addInput(left.tail, right.root);
+        left.tail = right.tail;
+        return left;
+    } else {
+        VLOG(1) << "left tail: " << left.tail->outputVar()
+                << "right root: " << right.root->outputVar();
         addInput(left.tail, right.root);
         left.tail = right.tail;
         return left;
@@ -28,9 +35,20 @@ StatusOr<SubPlan> SegmentsConnector::connectSegments(CypherClauseContextBase* le
 }
 
 PlanNode* SegmentsConnector::innerJoinSegments(QueryContext* qctx,
-                                            const PlanNode* left,
-                                            const PlanNode* right) {
-    return std::make_unique<InnerJoinStrategy>(qctx)->connect(left, right);
+                                               const PlanNode* left,
+                                               const PlanNode* right,
+                                               InnerJoinStrategy::JoinPos leftPos,
+                                               InnerJoinStrategy::JoinPos rightPos) {
+    return std::make_unique<InnerJoinStrategy>(qctx)
+                ->leftPos(leftPos)
+                ->rightPos(rightPos)
+                ->connect(left, right);
+}
+
+PlanNode* SegmentsConnector::cartesianProductSegments(QueryContext* qctx,
+                                                      const PlanNode* left,
+                                                      const PlanNode* right) {
+    return std::make_unique<CartesianProductStrategy>(qctx)->connect(left, right);
 }
 
 void SegmentsConnector::addDependency(const PlanNode* left, const PlanNode* right) {

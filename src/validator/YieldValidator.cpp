@@ -18,12 +18,25 @@ namespace nebula {
 namespace graph {
 
 YieldValidator::YieldValidator(Sentence *sentence, QueryContext *qctx)
-    : Validator(sentence, qctx) {}
+    : Validator(sentence, qctx) {
+        setNoSpaceRequired();
+    }
 
 Status YieldValidator::validateImpl() {
+    if (qctx_->vctx()->spaceChosen()) {
+        space_ = vctx_->whichSpace();
+    }
+
     auto yield = static_cast<YieldSentence *>(sentence_);
-    NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
+    if (yield->hasAgg()) {
+        NG_RETURN_IF_ERROR(makeImplicitGroupByValidator());
+    }
     NG_RETURN_IF_ERROR(validateWhere(yield->where()));
+    if (groupByValidator_) {
+        NG_RETURN_IF_ERROR(validateImplicitGroupBy());
+    } else {
+        NG_RETURN_IF_ERROR(validateYieldAndBuildOutputs(yield->yield()));
+    }
 
     if (!exprProps_.srcTagProps().empty() || !exprProps_.dstTagProps().empty() ||
         !exprProps_.edgeProps().empty()) {
@@ -38,32 +51,20 @@ Status YieldValidator::validateImpl() {
         return Status::SemanticError("Only one variable allowed to use.");
     }
 
-    if (hasAggFun_) {
-        NG_RETURN_IF_ERROR(checkAggFunAndBuildGroupItems(yield->yield()));
-    }
-
-    if (exprProps_.inputProps().empty() && exprProps_.varProps().empty()) {
+    if (!groupByValidator_ && exprProps_.inputProps().empty()
+        && exprProps_.varProps().empty() && inputVarName_.empty()) {
         // generate constant expression result into querycontext
         genConstantExprValues();
     }
 
-    return Status::OK();
-}
-
-Status YieldValidator::checkAggFunAndBuildGroupItems(const YieldClause *clause) {
-    auto yield = clause->yields();
-    for (auto column : yield->columns()) {
-        auto expr = column->expr();
-        auto fun = column->getAggFunName();
-        if (!evaluableExpr(expr) && fun.empty()) {
-            return Status::SemanticError(
-                "Input columns without aggregation are not supported in YIELD statement "
-                "without GROUP BY, near `%s'",
-                expr->toString().c_str());
+    if (!exprProps_.varProps().empty() && !userDefinedVarNameList_.empty()) {
+        // TODO: Support Multiple userDefinedVars
+        if (userDefinedVarNameList_.size() != 1) {
+            return Status::SemanticError("Multiple user defined vars not supported yet.");
         }
-
-        groupItems_.emplace_back(Aggregate::GroupItem{expr, AggFun::nameIdMap_[fun], false});
+        userDefinedVarName_ = *userDefinedVarNameList_.begin();
     }
+
     return Status::OK();
 }
 
@@ -107,6 +108,30 @@ void YieldValidator::genConstantExprValues() {
                              ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
+Status YieldValidator::makeImplicitGroupByValidator() {
+    auto* groupSentence = qctx()->objPool()->add(
+            new GroupBySentence(
+                static_cast<YieldSentence *>(sentence_)->yield()->clone().release(),
+                nullptr, nullptr));
+    groupByValidator_ = std::make_unique<GroupByValidator>(groupSentence, qctx());
+    groupByValidator_->setInputCols(inputs_);
+
+    return Status::OK();
+}
+
+Status YieldValidator::validateImplicitGroupBy() {
+    NG_RETURN_IF_ERROR(groupByValidator_->validateImpl());
+    inputs_ = groupByValidator_->inputCols();
+    outputs_ = groupByValidator_->outputCols();
+    exprProps_.unionProps(groupByValidator_->exprProps());
+
+    const auto& groupVars = groupByValidator_->userDefinedVarNameList();
+    // TODO: Support Multiple userDefinedVars
+    userDefinedVarNameList_.insert(groupVars.begin(), groupVars.end());
+
+    return Status::OK();
+}
+
 Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
     auto columns = clause->columns();
     columns_ = qctx_->objPool()->add(new YieldColumns);
@@ -122,9 +147,6 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
                 for (auto &colDef : inputs_) {
                     auto newExpr = new InputPropertyExpression(new std::string(colDef.name));
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
-                }
-                if (!column->getAggFunName().empty()) {
-                    return Status::SemanticError("could not apply aggregation function on `$-.*'");
                 }
                 continue;
             }
@@ -142,21 +164,8 @@ Status YieldValidator::validateYieldAndBuildOutputs(const YieldClause *clause) {
                                                                   new std::string(colDef.name));
                     NG_RETURN_IF_ERROR(makeOutputColumn(new YieldColumn(newExpr)));
                 }
-                if (!column->getAggFunName().empty()) {
-                    return Status::SemanticError("could not apply aggregation function on `$%s.*'",
-                                                 var->c_str());
-                }
                 continue;
             }
-        }
-
-        auto fun = column->getAggFunName();
-        if (!fun.empty()) {
-            auto foundAgg = AggFun::nameIdMap_.find(fun);
-            if (foundAgg == AggFun::nameIdMap_.end()) {
-                return Status::SemanticError("Unkown aggregate function: `%s'", fun.c_str());
-            }
-            hasAggFun_ = true;
         }
 
         NG_RETURN_IF_ERROR(makeOutputColumn(column->clone().release()));
@@ -181,6 +190,13 @@ Status YieldValidator::validateWhere(const WhereClause *clause) {
 Status YieldValidator::toPlan() {
     auto yield = static_cast<const YieldSentence *>(sentence_);
 
+    std::string inputVar;
+    if (!userDefinedVarName_.empty()) {
+        inputVar = userDefinedVarName_;
+    } else if (!constantExprVar_.empty()) {
+        inputVar = constantExprVar_;
+    }
+
     Filter *filter = nullptr;
     if (yield->where()) {
         filter = Filter::make(qctx_, nullptr, filterCondition_);
@@ -188,32 +204,46 @@ Status YieldValidator::toPlan() {
         std::transform(
             inputs_.cbegin(), inputs_.cend(), colNames.begin(), [](auto &col) { return col.name; });
         filter->setColNames(std::move(colNames));
-        if (!constantExprVar_.empty()) {
-            filter->setInputVar(constantExprVar_);
-        }
     }
 
     SingleInputNode *dedupDep = nullptr;
-    if (!hasAggFun_) {
+
+    if (groupByValidator_) {
+        groupByValidator_->toPlan();
+        auto* groupByValidatorRoot = groupByValidator_->root();
+        auto* groupByValidatorTail = groupByValidator_->tail();
+        // groupBy validator only gen Project or Aggregate Node
+        DCHECK(groupByValidatorRoot->isSingleInput());
+        DCHECK(groupByValidatorTail->isSingleInput());
+        dedupDep = static_cast<SingleInputNode*>(groupByValidatorRoot);
+        if (filter != nullptr) {
+            if (!inputVar.empty()) {
+                filter->setInputVar(inputVar);
+            }
+            static_cast<SingleInputNode*>(groupByValidatorTail)->dependsOn(filter);
+            static_cast<SingleInputNode*>(groupByValidatorTail)->setInputVar(filter->outputVar());
+            tail_ = filter;
+        } else {
+            tail_ = groupByValidatorTail;
+            if (!inputVar.empty()) {
+                static_cast<SingleInputNode*>(tail_)->setInputVar(inputVar);
+            }
+        }
+    } else {
         dedupDep = Project::make(qctx_, filter, columns_);
-    } else {
-        // We do not use group items later, so move it is safe
-        dedupDep = Aggregate::make(qctx_, filter, {}, std::move(groupItems_));
+        dedupDep->setColNames(std::move(outputColumnNames_));
+        if (filter != nullptr) {
+            dedupDep->setInputVar(filter->outputVar());
+            tail_ = filter;
+        } else {
+            tail_ = dedupDep;
+        }
+        // Otherwise the input of tail_ would be set by pipe.
+        if (!inputVar.empty()) {
+            static_cast<SingleInputNode *>(tail_)->setInputVar(inputVar);
+        }
     }
 
-    dedupDep->setColNames(std::move(outputColumnNames_));
-    if (filter != nullptr) {
-        dedupDep->setInputVar(filter->outputVar());
-        tail_ = filter;
-    } else {
-        tail_ = dedupDep;
-    }
-
-    if (!exprProps_.varProps().empty()) {
-        DCHECK_EQ(exprProps_.varProps().size(), 1u);
-        auto var = exprProps_.varProps().cbegin()->first;
-        static_cast<SingleInputNode *>(tail_)->setInputVar(var);
-    }
 
     if (yield->yield()->isDistinct()) {
         auto dedup = Dedup::make(qctx_, dedupDep);

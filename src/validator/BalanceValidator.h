@@ -17,7 +17,7 @@ namespace graph {
 class BalanceValidator final : public Validator {
 public:
     BalanceValidator(Sentence* sentence, QueryContext* context)
-            : Validator(sentence, context) {
+        : Validator(sentence, context) {
         setNoSpaceRequired();
     }
 

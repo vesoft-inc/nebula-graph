@@ -6,6 +6,7 @@
 nebula_add_library(
     mock_schema_obj OBJECT
     MockSchemaManager.cpp
+    MockIndexManager.cpp
 )
 
 set(VALIDATOR_TEST_LIBS
@@ -20,7 +21,6 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:context_obj>
     $<TARGET_OBJECTS:graph_auth_obj>
-    $<TARGET_OBJECTS:common_time_function_obj>
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_network_obj>
     $<TARGET_OBJECTS:common_fs_obj>
@@ -41,7 +41,6 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_meta_client_obj>
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
-    $<TARGET_OBJECTS:common_agg_function_obj>
     $<TARGET_OBJECTS:common_conf_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
@@ -49,6 +48,7 @@ set(VALIDATOR_TEST_LIBS
     $<TARGET_OBJECTS:common_time_utils_obj>
     $<TARGET_OBJECTS:common_graph_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
+    $<TARGET_OBJECTS:common_ws_common_obj>
 )
 
 nebula_add_test(
@@ -69,6 +69,8 @@ nebula_add_test(
         ValidatorTestBase.cpp
         ExplainValidatorTest.cpp
         GroupByValidatorTest.cpp
+        MatchValidatorTest.cpp
+        LookupValidatorTest.cpp
         SymbolsTest.cpp
     OBJECTS
         ${VALIDATOR_TEST_LIBS}

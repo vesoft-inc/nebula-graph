@@ -121,6 +121,41 @@ void RewriteMatchLabelVisitor::visit(CaseExpression *expr) {
     }
 }
 
+void RewriteMatchLabelVisitor::visit(ListComprehensionExpression *expr) {
+    if (isLabel(expr->collection())) {
+        expr->setCollection(rewriter_(expr));
+    } else {
+        expr->collection()->accept(this);
+    }
+    if (expr->hasFilter()) {
+        if (isLabel(expr->filter())) {
+            expr->setFilter(rewriter_(expr));
+        } else {
+            expr->filter()->accept(this);
+        }
+    }
+    if (expr->hasMapping()) {
+        if (isLabel(expr->mapping())) {
+            expr->setMapping(rewriter_(expr));
+        } else {
+            expr->mapping()->accept(this);
+        }
+    }
+}
+
+void RewriteMatchLabelVisitor::visit(PredicateExpression *expr) {
+    if (isLabel(expr->collection())) {
+        expr->setCollection(rewriter_(expr));
+    } else {
+        expr->collection()->accept(this);
+    }
+    if (isLabel(expr->filter())) {
+        expr->setFilter(rewriter_(expr));
+    } else {
+        expr->filter()->accept(this);
+    }
+}
+
 void RewriteMatchLabelVisitor::visitBinaryExpr(BinaryExpression *expr) {
     if (isLabel(expr->left())) {
         expr->setLeft(rewriter_(expr->left()));
@@ -141,7 +176,7 @@ RewriteMatchLabelVisitor::rewriteExprList(const std::vector<std::unique_ptr<Expr
     auto iter = std::find_if(list.cbegin(), list.cend(), [] (auto &expr) {
             return isLabel(expr.get());
     });
-    if (iter != list.cend()) {
+    if (iter == list.cend()) {
         std::for_each(list.cbegin(), list.cend(), [this] (auto &expr) {
             const_cast<Expression*>(expr.get())->accept(this);
         });

@@ -164,7 +164,11 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "CHARSET"                   { return TokenType::KW_CHARSET; }
 "COLLATE"                   { return TokenType::KW_COLLATE; }
 "COLLATION"                 { return TokenType::KW_COLLATION; }
+"ATOMIC_EDGE"               { return TokenType::KW_ATOMIC_EDGE; }
 "ALL"                       { return TokenType::KW_ALL; }
+"ANY"                       { return TokenType::KW_ANY; }
+"SINGLE"                    { return TokenType::KW_SINGLE; }
+"NONE"                      { return TokenType::KW_NONE; }
 "LEADER"                    { return TokenType::KW_LEADER; }
 "UUID"                      { return TokenType::KW_UUID; }
 "DATA"                      { return TokenType::KW_DATA; }
@@ -234,6 +238,8 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "SIGN"                      { return TokenType::KW_SIGN; }
 "SERVICE"                   { return TokenType::KW_SERVICE; }
 "TEXT_SEARCH"               { return TokenType::KW_TEXT_SEARCH; }
+"RESET"                     { return TokenType::KW_RESET; }
+"PLAN"                      { return TokenType::KW_PLAN; }
 "TRUE"                      { yylval->boolval = true; return TokenType::BOOL; }
 "FALSE"                     { yylval->boolval = false; return TokenType::BOOL; }
 

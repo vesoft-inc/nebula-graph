@@ -11,7 +11,6 @@ set(OPTIMIZER_TEST_LIB
     $<TARGET_OBJECTS:common_expression_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
     $<TARGET_OBJECTS:common_time_obj>
-    $<TARGET_OBJECTS:common_time_function_obj>
     $<TARGET_OBJECTS:common_meta_thrift_obj>
     $<TARGET_OBJECTS:common_meta_client_obj>
     $<TARGET_OBJECTS:common_meta_obj>
@@ -27,10 +26,10 @@ set(OPTIMIZER_TEST_LIB
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_process_obj>
-    $<TARGET_OBJECTS:common_agg_function_obj>
     $<TARGET_OBJECTS:common_time_utils_obj>
     $<TARGET_OBJECTS:common_graph_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
+    $<TARGET_OBJECTS:common_ws_common_obj>
     $<TARGET_OBJECTS:idgenerator_obj>
     $<TARGET_OBJECTS:expr_visitor_obj>
     $<TARGET_OBJECTS:session_obj>

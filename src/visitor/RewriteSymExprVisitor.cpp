@@ -93,6 +93,14 @@ void RewriteSymExprVisitor::visit(FunctionCallExpression *expr) {
     }
 }
 
+void RewriteSymExprVisitor::visit(AggregateExpression *expr) {
+    auto* arg = expr->arg();
+    arg->accept(this);
+    if (expr_) {
+        expr->setArg(std::move(expr_).release());
+    }
+}
+
 void RewriteSymExprVisitor::visit(UUIDExpression *expr) {
     UNUSED(expr);
     hasWrongType_ = true;
@@ -259,5 +267,36 @@ void RewriteSymExprVisitor::visit(PathBuildExpression *expr) {
         }
     }
 }
+
+void RewriteSymExprVisitor::visit(ListComprehensionExpression *expr) {
+    expr->collection()->accept(this);
+    if (expr_) {
+        expr->setCollection(expr_.release());
+    }
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (expr_) {
+            expr->setFilter(expr_.release());
+        }
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (expr_) {
+            expr->setMapping(expr_.release());
+        }
+    }
+}
+
+void RewriteSymExprVisitor::visit(PredicateExpression *expr) {
+    expr->collection()->accept(this);
+    if (expr_) {
+        expr->setCollection(expr_.release());
+    }
+    expr->filter()->accept(this);
+    if (expr_) {
+        expr->setFilter(expr_.release());
+    }
+}
+
 }   // namespace graph
 }   // namespace nebula

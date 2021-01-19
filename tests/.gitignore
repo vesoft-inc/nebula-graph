@@ -1,4 +1,6 @@
 .pytest
 .pytest_cache
-reformat-gherkin
-nebula-python
+*.lock
+csv-data-*
+nebula-test
+tck-report.json

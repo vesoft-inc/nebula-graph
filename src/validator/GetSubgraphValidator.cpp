@@ -225,15 +225,14 @@ Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& input
     getVertex->setInputVar(inputVar);
 
     auto var = vctx_->anonVarGen()->getVar();
-    auto* column = new YieldColumn(new VertexExpression(), new std::string("_vertices"));
-    qctx_->objPool()->add(column);
-    column->setAggFunction(new std::string("COLLECT"));
-    auto fun = column->getAggFunName();
+    auto* column = new VertexExpression();
+    auto* func = new AggregateExpression(new std::string("COLLECT"), column, false);
+    qctx_->objPool()->add(func);
     auto* collectVertex =
         Aggregate::make(qctx_,
                         getVertex,
                         {},
-                        {Aggregate::GroupItem(column->expr(), AggFun::nameIdMap_[fun], false)});
+                        {func});
     collectVertex->setInputVar(getVertex->outputVar());
     collectVertex->setColNames({"_vertices"});
 
@@ -259,17 +258,14 @@ Status GetSubgraphValidator::toPlan() {
         startVidsVar = dedupStartVid->outputVar();
         // collect runtime startVids
         auto var = vctx_->anonVarGen()->getVar();
-        auto* column = new YieldColumn(
-            new VariablePropertyExpression(new std::string(var), new std::string(kVid)),
-            new std::string(kVid));
-        qctx_->objPool()->add(column);
-        column->setAggFunction(new std::string("COLLECT_SET"));
-        auto fun = column->getAggFunName();
+        auto* column = new VariablePropertyExpression(new std::string(var), new std::string(kVid));
+        auto* func = new AggregateExpression(new std::string("COLLECT_SET"), column, true);
+        qctx_->objPool()->add(func);
         collectRunTimeStartVids =
             Aggregate::make(qctx_,
                             dedupStartVid,
                             {},
-                            {Aggregate::GroupItem(column->expr(), AggFun::nameIdMap_[fun], true)});
+                            {func});
         collectRunTimeStartVids->setInputVar(dedupStartVid->outputVar());
         collectRunTimeStartVids->setColNames({kVid});
         runtimeStartVar_ = collectRunTimeStartVids->outputVar();
@@ -298,17 +294,14 @@ Status GetSubgraphValidator::toPlan() {
     auto* projectVids = projectDstVidsFromGN(gn, startVidsVar);
 
     auto var = vctx_->anonVarGen()->getVar();
-    auto* column =
-        new YieldColumn(new VariablePropertyExpression(new std::string(var), new std::string(kVid)),
-                        new std::string(kVid));
-    qctx_->objPool()->add(column);
-    column->setAggFunction(new std::string("COLLECT_SET"));
-    auto fun = column->getAggFunName();
+    auto* column = new VariablePropertyExpression(new std::string(var), new std::string(kVid));
+    auto* func = new AggregateExpression(new std::string("COLLECT_SET"), column, true);
+    qctx_->objPool()->add(func);
     auto* collect =
         Aggregate::make(qctx_,
                         projectVids,
                         {},
-                        {Aggregate::GroupItem(column->expr(), AggFun::nameIdMap_[fun], true)});
+                        {func});
     collect->setInputVar(projectVids->outputVar());
     collect->setColNames({kVid});
     collectVar_ = collect->outputVar();
@@ -349,11 +342,11 @@ Status GetSubgraphValidator::toPlan() {
 StatusOr<std::vector<storage::cpp2::VertexProp>> GetSubgraphValidator::buildVertexProp() {
     // list all tag properties
     std::map<TagID, std::shared_ptr<const meta::SchemaProviderIf>> tagsSchema;
-    const auto allTagsResult = qctx()->schemaMng()->getAllVerTagSchema(space_.id);
+    const auto allTagsResult = qctx()->schemaMng()->getAllLatestVerTagSchema(space_.id);
     NG_RETURN_IF_ERROR(allTagsResult);
     const auto allTags = std::move(allTagsResult).value();
     for (const auto& tag : allTags) {
-        tagsSchema.emplace(tag.first, tag.second.back());
+        tagsSchema.emplace(tag.first, tag.second);
     }
     std::vector<storage::cpp2::VertexProp> vProps;
     for (const auto& tagSchema : tagsSchema) {

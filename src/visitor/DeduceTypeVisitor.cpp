@@ -101,6 +101,13 @@ DeduceTypeVisitor::DeduceTypeVisitor(QueryContext *qctx,
     : qctx_(qctx), vctx_(vctx), inputs_(inputs), space_(space) {
     DCHECK(qctx != nullptr);
     DCHECK(vctx != nullptr);
+    // stand alone YIELD queries can be run without a space
+    if (!vctx->spaceChosen()) {
+        vidType_ = Value::Type::__EMPTY__;
+    } else {
+        auto vidType = vctx_->whichSpace().spaceDesc.vid_type.get_type();
+        vidType_ = SchemaUtil::propTypeToValueType(vidType);
+    }
 }
 
 void DeduceTypeVisitor::visit(ConstantExpression *expr) {
@@ -175,7 +182,7 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
     auto val = expr->eval(ctx(nullptr));
     if (val.isNull()) {
         status_ =
-            Status::SemanticError("`%s` is not a valid expression ", expr->toString().c_str());
+            Status::SemanticError("`%s' is not a valid expression ", expr->toString().c_str());
         return;
     }
     type_ = val.type();
@@ -372,9 +379,14 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
         if (!ok()) return;
         argsTypeList.push_back(type_);
     }
-    auto result = FunctionManager::getReturnType(*expr->name(), argsTypeList);
+    auto funName = *expr->name();
+    if (funName == "id" || funName == "src" || funName == "dst") {
+        type_ = vidType_;
+        return;
+    }
+    auto result = FunctionManager::getReturnType(funName, argsTypeList);
     if (!result.ok()) {
-        status_ = Status::SemanticError("`%s` is not a valid expression : %s",
+        status_ = Status::SemanticError("`%s' is not a valid expression : %s",
                                         expr->toString().c_str(),
                                         result.status().toString().c_str());
         return;
@@ -382,18 +394,77 @@ void DeduceTypeVisitor::visit(FunctionCallExpression *expr) {
     type_ = result.value();
 }
 
+void DeduceTypeVisitor::visit(AggregateExpression *expr) {
+    expr->arg()->accept(this);
+    if (!ok()) return;
+    auto arg_type = type_;
+
+    auto func = AggregateExpression::NAME_ID_MAP[expr->name()->c_str()];
+    switch (func) {
+        case AggregateExpression::Function::kCount: {
+            type_ = Value::Type::INT;
+            break;
+        }
+        case AggregateExpression::Function::kSum: {
+            type_ = arg_type;
+            break;
+        }
+        case AggregateExpression::Function::kAvg: {
+            type_ = Value::Type::FLOAT;
+            break;
+        }
+        case AggregateExpression::Function::kMax: {
+            type_ = arg_type;
+            break;
+        }
+        case AggregateExpression::Function::kMin: {
+            type_ = arg_type;
+            break;
+        }
+        case AggregateExpression::Function::kStdev: {
+            type_ = Value::Type::FLOAT;
+            break;
+        }
+        case AggregateExpression::Function::kBitAnd: {
+            type_ = Value::Type::INT;
+            break;
+        }
+        case AggregateExpression::Function::kBitOr: {
+            type_ = Value::Type::INT;
+            break;
+        }
+        case AggregateExpression::Function::kBitXor: {
+            type_ = Value::Type::INT;
+            break;
+        }
+        case AggregateExpression::Function::kCollect: {
+            type_ = Value::Type::LIST;
+            break;
+        }
+        case AggregateExpression::Function::kCollectSet: {
+            type_ = Value::Type::SET;
+            break;
+        }
+        default: {
+            LOG(FATAL) << "Invalid Aggregate expression kind: "
+                       << expr->name()->c_str();
+            break;
+        }
+    }
+}
+
 void DeduceTypeVisitor::visit(UUIDExpression *) {
     type_ = Value::Type::STRING;
 }
 
 void DeduceTypeVisitor::visit(VariableExpression *) {
-    // TODO: not only dataset
-    type_ = Value::Type::DATASET;
+    // Will not deduce the actual value type of variable expression.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(VersionedVariableExpression *) {
-    // TODO: not only dataset
-    type_ = Value::Type::DATASET;
+    // Will not deduce the actual value type of versioned variable expression.
+    type_ = Value::Type::__EMPTY__;
 }
 
 void DeduceTypeVisitor::visit(ListExpression *) {
@@ -476,7 +547,7 @@ void DeduceTypeVisitor::visit(SourcePropertyExpression *expr) {
 }
 
 void DeduceTypeVisitor::visit(EdgeSrcIdExpression *) {
-    type_ = Value::Type::STRING;
+    type_ = vidType_;
 }
 
 void DeduceTypeVisitor::visit(EdgeTypeExpression *) {
@@ -488,7 +559,7 @@ void DeduceTypeVisitor::visit(EdgeRankExpression *) {
 }
 
 void DeduceTypeVisitor::visit(EdgeDstIdExpression *) {
-    type_ = Value::Type::STRING;
+    type_ = vidType_;
 }
 
 void DeduceTypeVisitor::visit(VertexExpression *) {
@@ -528,6 +599,59 @@ void DeduceTypeVisitor::visit(CaseExpression *expr) {
 
     // Will not deduce the actual value type returned by case expression.
     type_ = Value::Type::__EMPTY__;
+}
+
+void DeduceTypeVisitor::visit(PredicateExpression *expr) {
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    if (type_ == Value::Type::NULLVALUE || type_ == Value::Type::__EMPTY__) {
+        return;
+    }
+    if (type_ != Value::Type::LIST) {
+        std::stringstream ss;
+        ss << "`" << expr->toString().c_str()
+           << "': Invalid colletion type, expected type of LIST, but was:" << type_;
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+    expr->filter()->accept(this);
+    if (!ok()) return;
+
+    type_ = Value::Type::BOOL;
+}
+
+void DeduceTypeVisitor::visit(ListComprehensionExpression *expr) {
+    expr->collection()->accept(this);
+    if (!ok()) {
+        return;
+    }
+
+    if (type_ == Value::Type::NULLVALUE || type_ == Value::Type::__EMPTY__) {
+        return;
+    }
+
+    if (type_ != Value::Type::LIST) {
+        std::stringstream ss;
+        ss << "`" << expr->toString().c_str()
+           << "': Invalid colletion type, expected type of LIST, but was:" << type_;
+        status_ = Status::SemanticError(ss.str());
+        return;
+    }
+
+    if (expr->hasFilter()) {
+        expr->filter()->accept(this);
+        if (!ok()) {
+            return;
+        }
+    }
+    if (expr->hasMapping()) {
+        expr->mapping()->accept(this);
+        if (!ok()) {
+            return;
+        }
+    }
+
+    type_ = Value::Type::LIST;
 }
 
 void DeduceTypeVisitor::visitVertexPropertyExpr(PropertyExpression *expr) {

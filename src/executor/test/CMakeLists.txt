@@ -14,7 +14,6 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:common_meta_client_obj>
     $<TARGET_OBJECTS:common_stats_obj>
     $<TARGET_OBJECTS:common_time_obj>
-    $<TARGET_OBJECTS:common_time_function_obj>
     $<TARGET_OBJECTS:common_meta_thrift_obj>
     $<TARGET_OBJECTS:common_common_thrift_obj>
     $<TARGET_OBJECTS:common_thrift_obj>
@@ -28,11 +27,11 @@ SET(EXEC_QUERY_TEST_OBJS
     $<TARGET_OBJECTS:common_file_based_cluster_id_man_obj>
     $<TARGET_OBJECTS:common_charset_obj>
     $<TARGET_OBJECTS:common_function_manager_obj>
-    $<TARGET_OBJECTS:common_agg_function_obj>
     $<TARGET_OBJECTS:common_encryption_obj>
     $<TARGET_OBJECTS:common_http_client_obj>
     $<TARGET_OBJECTS:common_time_utils_obj>
     $<TARGET_OBJECTS:common_ft_es_graph_adapter_obj>
+    $<TARGET_OBJECTS:common_ws_common_obj>
     $<TARGET_OBJECTS:session_obj>
     $<TARGET_OBJECTS:graph_flags_obj>
     $<TARGET_OBJECTS:parser_obj>
@@ -63,6 +62,7 @@ nebula_add_test(
         TestMain.cpp
         LogicExecutorsTest.cpp
         ProjectTest.cpp
+        UnwindTest.cpp
         GetNeighborsTest.cpp
         DataCollectTest.cpp
         SetExecutorTest.cpp
@@ -78,6 +78,7 @@ nebula_add_test(
         ProduceSemiShortestPathTest.cpp
         ProduceAllPathsTest.cpp
         CartesianProductTest.cpp
+        AssignTest.cpp
     OBJECTS
         ${EXEC_QUERY_TEST_OBJS}
     LIBRARIES
