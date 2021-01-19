@@ -1,3 +1,4 @@
+@zhudi
 Feature: User & privilege Test
 
   Background:
@@ -239,7 +240,7 @@ Feature: User & privilege Test
       """
       REVOKE ROLE ADMIN ON user_tmp_space_3 FROM user1
       """
-    Then a ExecutionError should be raised at runtime: Improper role!
+    Then a ExecutionError should be raised at runtime:
     When executing query:
       """
       REVOKE ROLE DBA ON user_tmp_space_3 FROM user1
@@ -249,7 +250,7 @@ Feature: User & privilege Test
       """
       REVOKE ROLE DBA ON user_tmp_space_3 FROM user1
       """
-    Then a ExecutionError should be raised at runtime: not existed!
+    Then a ExecutionError should be raised at runtime:
     When executing query:
       """
       DROP SPACE IF EXISTS revoke_tmp_space
@@ -259,7 +260,7 @@ Feature: User & privilege Test
       """
       REVOKE ROLE DBA ON revoke_tmp_space FROM usertmp
       """
-    Then a ExecutionError should be raised at runtime: SpaceNotFound
+    Then a ExecutionError should be raised at runtime:
     When executing query:
       """
       DROP USER IF EXISTS user_revoke_tmp
@@ -269,4 +270,4 @@ Feature: User & privilege Test
       """
       REVOKE ROLE DBA ON user_tmp_space_3 FROM user_revoke_tmp
       """
-    Then a ExecutionError should be raised at runtime: not existed!
+    Then a ExecutionError should be raised at runtime:
