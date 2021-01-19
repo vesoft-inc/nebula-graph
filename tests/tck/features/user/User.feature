@@ -1,4 +1,3 @@
-@zhudi
 Feature: User & privilege Test
 
   Background:
