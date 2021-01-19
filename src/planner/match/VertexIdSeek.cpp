@@ -96,7 +96,7 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext *nodeCtx) {
     QueryExpressionContext dummy;
     std::pair<std::string, Expression *> vidsResult = listToAnnoVarVid(qctx, nodeCtx->ids);
 
-    auto *passThrough = PassThroughNode::make(qctx, nullptr);
+    auto* passThrough = PassThroughNode::make(qctx, nullptr);
     passThrough->setOutputVar(vidsResult.first);
     passThrough->setColNames({kVid});
     plan.root = passThrough;
