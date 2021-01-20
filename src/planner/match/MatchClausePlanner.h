@@ -60,12 +60,6 @@ private:
                           size_t startIndex,
                           SubPlan& subplan);
 
-    Status appendFetchVertexPlan(const Expression* nodeFilter,
-                                 const SpaceInfo& space,
-                                 QueryContext* qctx,
-                                 Expression* initialExpr,
-                                 SubPlan& plan);
-
     Status projectColumnsBySymbols(MatchClauseContext* matchClauseCtx,
                                    size_t startIndex,
                                    SubPlan& plan);
