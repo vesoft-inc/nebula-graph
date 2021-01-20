@@ -380,6 +380,8 @@ private:
             row_ = r.row_;
             r.row_ = nullptr;
 
+            segments_ = std::move(r.segments_);
+
             edgeName_ = std::move(r.edgeName_);
 
             edgeProps_ = r.edgeProps_;
@@ -450,6 +452,7 @@ public:
         }
         SeqLogicalRow& operator=(SeqLogicalRow &&r) noexcept {
             row_ = r.row_;
+            segments_ = std::move(r.segments_);
             r.row_ = nullptr;
             return *this;
         }
@@ -617,7 +620,7 @@ private:
 private:
     RowsType<SeqLogicalRow>                      rows_;
     RowsIter<SeqLogicalRow>                      iter_;
-    std::unordered_map<std::string, size_t>     colIndices_;
+    std::unordered_map<std::string, size_t>      colIndices_;
 };
 
 class PropIter;
@@ -822,6 +825,7 @@ public:
         PropLogicalRow& operator=(PropLogicalRow &&r) noexcept {
             row_ = r.row_;
             r.row_ = nullptr;
+            segments_ = std::move(segments_);
             return *this;
         }
 
