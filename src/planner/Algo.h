@@ -143,27 +143,47 @@ class Subgraph final : public SingleInputNode {
 public:
     static Subgraph* make(QueryContext* qctx,
                           PlanNode* input,
-                          std::string lastStepVar,
-                          std::string isLastStep) {
-        return qctx->objPool()->add(new Subgraph(qctx, input, lastStepVar, isLastStep));
+                          std::string oneMoreStepInput,
+                          std::string oneMoreStepOutput,
+                          std::string isOneMoreStep,
+                          std::string lastStep) {
+        return qctx->objPool()->add(new Subgraph(
+            qctx, input, oneMoreStepInput, oneMoreStepOutput, isOneMoreStep, lastStep));
     }
 
-    std::string lastStepVar() const {
-        return lastStepVar_;
+    std::string oneMoreStepInput() const {
+        return oneMoreStepInput_;
     }
 
-    std::string isLastStep() const {
-        return isLastStep_;
+    std::string oneMoreStepOutput() const {
+        return oneMoreStepOutput_;
+    }
+
+    std::string isOneMoreStep() const {
+        return isOneMoreStep_;
+    }
+
+    std::string lastStep() const {
+        return lastStep_;
     }
 
 private:
-    Subgraph(QueryContext* qctx, PlanNode* input, std::string lastStepVar, std::string isLastStep)
+    Subgraph(QueryContext* qctx,
+             PlanNode* input,
+             std::string oneMoreStepInput,
+             std::string oneMoreStepOutput,
+             std::string isOneMoreStep,
+             std::string lastStep)
         : SingleInputNode(qctx, Kind::kSubgraph, input),
-          lastStepVar_(lastStepVar),
-          isLastStep_(isLastStep) {}
+          oneMoreStepInput_(oneMoreStepInput),
+          oneMoreStepOutput_(oneMoreStepOutput),
+          isOneMoreStep_(isOneMoreStep),
+          lastStep_(lastStep) {}
 
-    std::string lastStepVar_;
-    std::string isLastStep_;
+    std::string oneMoreStepInput_;
+    std::string oneMoreStepOutput_;
+    std::string isOneMoreStep_;
+    std::string lastStep_;
 };
 
 }  // namespace graph

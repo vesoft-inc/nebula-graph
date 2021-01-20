@@ -14,47 +14,69 @@ namespace graph {
 folly::Future<Status> SubgraphExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* subgraph = asNode<Subgraph>(node());
-    VLOG(1) << "current: " << node()->outputVar();
-    VLOG(1) << "input: " << subgraph->inputVar();
     DataSet ds;
     ds.colNames = subgraph->colNames();
 
-    auto isLastStepVar = subgraph->isLastStep();
-    auto isLastStep = ectx_->getValue(isLastStepVar);
-    DCHECK(isLastStep.isBool());
-    if (isLastStep.getBool()) {
+    auto isOneMoreStep = ectx_->getValue(subgraph->isOneMoreStep());
+    DCHECK(isOneMoreStep.isBool());
+    if (isOneMoreStep.getBool()) {
         oneMoreStep();
         return finish(ResultBuilder().value(Value(std::move(ds))).finish());
     }
 
+    auto lastStep = ectx_->getValue(subgraph->lastStep());
+    DCHECK(lastStep.isBool());
+
+    VLOG(1) << "lastStep : " << lastStep;
+    VLOG(1) << "input: " << subgraph->inputVar() << " output: " << node()->outputVar();
     auto iter = ectx_->getResult(subgraph->inputVar()).iter();
     DCHECK(iter->isGetNeighborsIter());
     DCHECK(!!iter);
     ds.rows.reserve(iter->size());
+    if (lastStep.getBool()) {
+        std::unordered_set<std::string> visitedVid;
+        for (; iter->valid(); iter->next()) {
+            const auto& dst = iter->getEdgeProp("*", nebula::kDst);
+            if (visitedVid.emplace(dst.toString().c_str()).second) {
+                Row row;
+                row.values.emplace_back(std::move(dst));
+                ds.rows.emplace_back(std::move(row));
+            }
+        }
+        historyVids_.insert(std::make_move_iterator(visitedVid.begin()),
+                            std::make_move_iterator(visitedVid.end()));
+        VLOG(1) << "next step vid is : " << ds;
+        return finish(ResultBuilder().value(Value(std::move(ds))).finish());
+    }
+
     for (; iter->valid(); iter->next()) {
-        auto vid = iter->getColumn(nebula::kVid);
-        if (visitedVids_.emplace(vid.toString().c_str()).second) {
+        const auto& vid = iter->getColumn(nebula::kVid);
+        historyVids_.emplace(vid.toString().c_str());
+        const auto& dst = iter->getEdgeProp("*", nebula::kDst);
+        if (historyVids_.emplace(dst.toString().c_str()).second) {
             Row row;
-            row.values.emplace_back(std::move(vid));
+            row.values.emplace_back(std::move(dst));
             ds.rows.emplace_back(std::move(row));
         }
     }
+    VLOG(1) << "next step vid is : " << ds;
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
 void SubgraphExecutor::oneMoreStep() {
     auto* subgraph = asNode<Subgraph>(node());
-    auto lastStepVar = subgraph->lastStepVar();
-    auto iter = ectx_->getResult(subgraph->inputVar()).iter();
+    auto input = ectx_->getValue(subgraph->oneMoreStepInput()).getStr();
+    auto output = subgraph->oneMoreStepOutput();
+    VLOG(1) << "OneMoreStep Input: " << input << " Output: " << output;
+    auto iter = ectx_->getResult(input).iter();
     DCHECK(iter->isGetNeighborsIter());
     DCHECK(!!iter);
 
     ResultBuilder builder;
     builder.value(iter->valuePtr());
     while (iter->valid()) {
-        // get dstVid
         auto dstVid = iter->getEdgeProp("*", nebula::kDst).toString().c_str();
-        if (visitedVids_.find(dstVid) == visitedVids_.end()) {
+        if (historyVids_.find(dstVid) == historyVids_.end()) {
             iter->unstableErase();
         } else {
             iter->next();
@@ -62,7 +84,7 @@ void SubgraphExecutor::oneMoreStep() {
     }
     iter->reset();
     builder.iter(std::move(iter));
-    ectx_->setResult(lastStepVar, builder.finish());
+    ectx_->setResult(output, builder.finish());
 }
 
 }   // namespace graph

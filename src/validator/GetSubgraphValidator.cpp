@@ -249,16 +249,20 @@ Status GetSubgraphValidator::toPlan() {
     // gn->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn->setInputVar(startVidsVar);
 
-    auto* dummyStart = StartNode::make(qctx_);
-    auto isLastStep = vctx_->anonVarGen()->getVar();
-    qctx_->ectx()->setValue(isLastStep, false);
-    auto* assign = Assign::make(qctx_, dummyStart);
-    assign->assignVar(isLastStep, new ConstantExpression(true));
+    loopSteps_ = vctx_->anonVarGen()->getVar();
+    auto lastStep = vctx_->anonVarGen()->getVar();
+    auto* assign = Assign::make(qctx_, gn);
+    assign->assignVar(
+        lastStep,
+        new RelationalExpression(Expression::Kind::kRelEQ,
+                                 new VariableExpression(new std::string(loopSteps_)),
+                                 new ConstantExpression(static_cast<int32_t>(steps_.steps))));
 
+    auto* dummyStart = StartNode::make(qctx_);
     vertexPropsResult = buildVertexProp();
     NG_RETURN_IF_ERROR(vertexPropsResult);
     // auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
-    auto* gn1 = GetNeighbors::make(qctx_, assign, space.id);
+    auto* gn1 = GetNeighbors::make(qctx_, dummyStart, space.id);
     gn1->setSrc(from_.src);
     gn1->setVertexProps(std::make_unique<std::vector<storage::cpp2::VertexProp>>(
         std::move(vertexPropsResult).value()));
@@ -269,21 +273,30 @@ Status GetSubgraphValidator::toPlan() {
     // gn1->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn1->setInputVar(startVidsVar);
 
+    auto isOneMoreStep = vctx_->anonVarGen()->getVar();
+    qctx_->ectx()->setValue(isOneMoreStep, false);
+    auto oneMoreStepInput = vctx_->anonVarGen()->getVar();
+
+    auto* assign1 = Assign::make(qctx_, gn1);
+    assign1->assignVar(isOneMoreStep, new ConstantExpression(true));
+    assign1->assignVar(oneMoreStepInput, new ConstantExpression(gn1->outputVar()));
+
     auto* selectDep = StartNode::make(qctx_);
     auto* ifContidion = buildSelectCondition(steps_.steps + 1);
-    auto* select = Select::make(qctx_, selectDep, gn, gn1, ifContidion);
+    auto* select = Select::make(qctx_, selectDep, assign, assign1, ifContidion);
 
-    auto lastStepVar = vctx_->anonVarGen()->getVar();
-    auto* subgraph = Subgraph::make(qctx_, select, lastStepVar, isLastStep);
-    subgraph->setColNames({kVid});
+    auto oneMoreStepOutput = vctx_->anonVarGen()->getVar();
+    auto* subgraph =
+        Subgraph::make(qctx_, select, oneMoreStepInput, oneMoreStepOutput, isOneMoreStep, lastStep);
+    subgraph->setInputVar(gn->outputVar());
     subgraph->setOutputVar(startVidsVar);
+    subgraph->setColNames({nebula::kVid});
 
     auto* loopCondition = buildNStepLoopCondition(steps_.steps + 1);
     auto* loop = Loop::make(qctx_, collectRunTimeStartVids, subgraph, loopCondition);
 
 
-    // datacollect
-    std::vector<std::string> collects = {gn->outputVar(), lastStepVar};
+    std::vector<std::string> collects = {gn->outputVar(), oneMoreStepOutput};
     auto* dc =
         DataCollect::make(qctx_, loop, DataCollect::CollectKind::kSubgraph, std::move(collects));
     dc->setColNames({"_vertices", "_edges"});
