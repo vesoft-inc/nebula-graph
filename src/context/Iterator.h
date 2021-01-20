@@ -32,7 +32,7 @@ public:
     virtual const Value& operator[](size_t) const = 0;
     virtual size_t size() const = 0;
     virtual Kind kind() const = 0;
-    virtual std::vector<const Row*> segments() const = 0;
+    virtual const std::vector<const Row*>& segments() const = 0;
 };
 
 class Iterator {
@@ -361,7 +361,11 @@ private:
     class GetNbrLogicalRow final : public LogicalRow {
     public:
         GetNbrLogicalRow(size_t dsIdx, const Row* row, std::string edgeName, const List* edgeProps)
-            : dsIdx_(dsIdx), row_(row), edgeName_(std::move(edgeName)), edgeProps_(edgeProps) {}
+            : dsIdx_(dsIdx),
+              row_(row),
+              segments_({row}),
+              edgeName_(std::move(edgeName)),
+              edgeProps_(edgeProps) {}
 
         GetNbrLogicalRow(const GetNbrLogicalRow &) = default;
         GetNbrLogicalRow& operator=(const GetNbrLogicalRow &) = default;
@@ -398,14 +402,15 @@ private:
             return Kind::kGetNeighbors;
         }
 
-        std::vector<const Row*> segments() const override {
-            return { row_ };
+        const std::vector<const Row*>& segments() const override {
+            return segments_;
         }
 
     private:
         friend class GetNeighborsIter;
         size_t dsIdx_;
         const Row* row_;
+        std::vector<const Row*> segments_;
         std::string edgeName_;
         const List* edgeProps_;
     };
@@ -435,7 +440,7 @@ class SequentialIter final : public Iterator {
 public:
     class SeqLogicalRow final : public LogicalRow {
     public:
-        explicit SeqLogicalRow(const Row* row) : row_(row) {}
+        explicit SeqLogicalRow(const Row* row) : row_(row), segments_({row}) {}
 
         SeqLogicalRow(const SeqLogicalRow &r) = default;
         SeqLogicalRow& operator=(const SeqLogicalRow &r) = default;
@@ -464,13 +469,14 @@ public:
             return Kind::kSequential;
         }
 
-        std::vector<const Row*> segments() const override {
-            return { row_ };
+        const std::vector<const Row*>& segments() const override {
+            return segments_;
         }
 
     private:
         friend class SequentialIter;
         const Row* row_;
+        std::vector<const Row*> segments_;
     };
 
     explicit SequentialIter(std::shared_ptr<Value> value)
@@ -620,10 +626,10 @@ public:
     class JoinLogicalRow final : public LogicalRow {
     public:
         explicit JoinLogicalRow(
-            std::vector<const Row*> values,
+            std::vector<const Row*> segments,
             size_t size,
             const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
-            : values_(std::move(values)), size_(size), colIdxIndices_(colIdxIndices) {}
+            : segments_(std::move(segments)), size_(size), colIdxIndices_(colIdxIndices) {}
 
         JoinLogicalRow(const JoinLogicalRow &r) = default;
         JoinLogicalRow& operator=(const JoinLogicalRow &r) = default;
@@ -633,7 +639,7 @@ public:
         }
 
         JoinLogicalRow& operator=(JoinLogicalRow &&r) noexcept {
-            values_ = std::move(r.values_);
+            segments_ = std::move(r.segments_);
 
             size_ = r.size_;
             r.size_ = 0;
@@ -651,9 +657,9 @@ public:
                 }
                 auto keyIdx = index->second.first;
                 auto valIdx = index->second.second;
-                DCHECK_LT(keyIdx, values_.size());
-                DCHECK_LT(valIdx, values_[keyIdx]->values.size());
-                return values_[keyIdx]->values[valIdx];
+                DCHECK_LT(keyIdx, segments_.size());
+                DCHECK_LT(valIdx, segments_[keyIdx]->values.size());
+                return segments_[keyIdx]->values[valIdx];
             }
             return Value::kEmpty;
         }
@@ -666,13 +672,13 @@ public:
             return Kind::kJoin;
         }
 
-        std::vector<const Row*> segments() const override {
-            return values_;
+        const std::vector<const Row*>& segments() const override {
+            return segments_;
         }
 
     private:
         friend class JoinIter;
-        std::vector<const Row*> values_;
+        std::vector<const Row*> segments_;
         size_t size_;
         const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
     };
@@ -765,9 +771,9 @@ public:
         }
         auto segIdx = index->second.first;
         auto colIdx = index->second.second;
-        DCHECK_LT(segIdx, row.values_.size());
-        DCHECK_LT(colIdx, row.values_[segIdx]->values.size());
-        return row.values_[segIdx]->values[colIdx];
+        DCHECK_LT(segIdx, row.segments_.size());
+        DCHECK_LT(colIdx, row.segments_[segIdx]->values.size());
+        return row.segments_[segIdx]->values[colIdx];
     }
 
     const Value& getColumn(int32_t index) const override;
@@ -804,7 +810,7 @@ class PropIter final : public Iterator {
 public:
     class PropLogicalRow final : public LogicalRow {
     public:
-        explicit PropLogicalRow(const Row* row) : row_(row) {}
+        explicit PropLogicalRow(const Row* row) : row_(row), segments_({row}) {}
 
         PropLogicalRow(const PropLogicalRow &r) = default;
         PropLogicalRow& operator=(const PropLogicalRow &r) = default;
@@ -834,13 +840,14 @@ public:
             return Kind::kProp;
         }
 
-        std::vector<const Row*> segments() const override {
-            return { row_ };
+        const std::vector<const Row*>& segments() const override {
+            return segments_;
         }
 
     private:
         friend class PropIter;
         const Row* row_;
+        std::vector<const Row*> segments_;
     };
 
     explicit PropIter(std::shared_ptr<Value> value);

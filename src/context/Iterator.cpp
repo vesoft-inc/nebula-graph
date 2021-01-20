@@ -20,12 +20,12 @@ bool equal_to<const nebula::graph::LogicalRow*>::operator()(
     switch (lhs->kind()) {
         case nebula::graph::LogicalRow::Kind::kSequential:
         case nebula::graph::LogicalRow::Kind::kJoin: {
-            auto lhsValues = lhs->segments();
-            auto rhsValues = rhs->segments();
+            auto& lhsValues = lhs->segments();
+            auto& rhsValues = rhs->segments();
             if (lhsValues.size() != rhsValues.size()) {
                 return false;
             }
-            for (size_t i = lhsValues.size(); i < lhsValues.size(); ++i) {
+            for (size_t i = 0; i < lhsValues.size(); ++i) {
                 const auto* l = lhsValues[i];
                 const auto* r = rhsValues[i];
                 auto equal =
