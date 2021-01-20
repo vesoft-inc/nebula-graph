@@ -139,6 +139,33 @@ private:
     std::vector<std::vector<std::string>> allColNames_;
 };
 
+class Subgraph final : public SingleInputNode {
+public:
+    static Subgraph* make(QueryContext* qctx,
+                          PlanNode* input,
+                          std::string lastStepVar,
+                          std::string isLastStep) {
+        return qctx->objPool()->add(new Subgraph(qctx, input, lastStepVar, isLastStep));
+    }
+
+    std::string lastStepVar() const {
+        return lastStepVar_;
+    }
+
+    std::string isLastStep() const {
+        return isLastStep_;
+    }
+
+private:
+    Subgraph(QueryContext* qctx, PlanNode* input, std::string lastStepVar, std::string isLastStep)
+        : SingleInputNode(qctx, Kind::kSubgraph, input),
+          lastStepVar_(lastStepVar),
+          isLastStep_(isLastStep) {}
+
+    std::string lastStepVar_;
+    std::string isLastStep_;
+};
+
 }  // namespace graph
 }  // namespace nebula
 #endif  // PLANNER_ALGO_H_

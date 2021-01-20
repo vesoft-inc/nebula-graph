@@ -29,8 +29,6 @@ private:
 
     Status validateBothInOutBound(BothInOutClause* out);
 
-    Expression* buildFilterCondition(int64_t step);
-
     StatusOr<GetNeighbors::EdgeProps> buildEdgeProps();
 
     Status zeroStep(PlanNode* depend, const std::string& inputVar);
@@ -41,6 +39,8 @@ private:
         const std::unordered_set<EdgeType> &edges);
 
     StatusOr<std::vector<storage::cpp2::EdgeProp>> buildAllEdgeProp();
+
+    Expression* buildSelectCondition(uint32_t steps);
 
 private:
     std::unordered_set<EdgeType>                edgeTypes_;

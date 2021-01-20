@@ -68,6 +68,7 @@ protected:
     Steps                 steps_;
     std::string           srcVidColName_;
     PlanNode*             projectStartVid_{nullptr};
+    mutable std::string   loopSteps_;
 
     std::unique_ptr<ExpressionList>  startVidList_;
 };

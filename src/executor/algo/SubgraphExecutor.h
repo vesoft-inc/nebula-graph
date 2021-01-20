@@ -4,8 +4,8 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#ifndef EXECUTOR_ALGO_SUBGRAPH_H_
-#define EXECUTOR_ALGO_SUBGRAPH_H_
+#ifndef EXECUTOR_ALGO_SUBGRAPHEXECUTOR_H_
+#define EXECUTOR_ALGO_SUBGRAPHEXECUTOR_H_
 
 #include "executor/Executor.h"
 
@@ -19,13 +19,12 @@ public:
     folly::Future<Status> execute() override;
 
 private:
-    void initJoinIter(JoinIter* joinIter, Iterator* rightIter);
+    void oneMoreStep();
 
-    void doCartesianProduct(Iterator* leftIter, Iterator* rightIter, JoinIter* joinIter);
-
-    std::vector<std::vector<std::string>> colNames_;
+private:
+    std::unordered_set<std::string>   visitedVids_;
 };
 
 }   // namespace graph
 }   // namespace nebula
-#endif  // EXECUTOR_ALGO_SUBGRAPH_H_
+#endif  // EXECUTOR_ALGO_SUBGRAPHEXECUTOR_H_
