@@ -33,6 +33,7 @@ folly::Future<Status> SubgraphExecutor::execute() {
     DCHECK(iter->isGetNeighborsIter());
     DCHECK(!!iter);
     ds.rows.reserve(iter->size());
+    std::unordered_set<std::string> srcVid;
     if (lastStep.getBool()) {
         std::unordered_set<std::string> visitedVid;
         for (; iter->valid(); iter->next()) {
@@ -43,8 +44,10 @@ folly::Future<Status> SubgraphExecutor::execute() {
                 ds.rows.emplace_back(std::move(row));
             }
             const auto& vid = iter->getColumn(nebula::kVid);
-            visitedVid.emplace(vid.toString().c_str());
+            srcVid.emplace(vid.toString().c_str());
         }
+        historyVids_.insert(std::make_move_iterator(srcVid.begin()),
+                            std::make_move_iterator(srcVid.end()));
         historyVids_.insert(std::make_move_iterator(visitedVid.begin()),
                             std::make_move_iterator(visitedVid.end()));
         VLOG(1) << "next step vid is : " << ds;
@@ -59,8 +62,10 @@ folly::Future<Status> SubgraphExecutor::execute() {
             ds.rows.emplace_back(std::move(row));
         }
         const auto& vid = iter->getColumn(nebula::kVid);
-        historyVids_.emplace(vid.toString().c_str());
+        srcVid.emplace(vid.toString().c_str());
     }
+    historyVids_.insert(std::make_move_iterator(srcVid.begin()),
+                        std::make_move_iterator(srcVid.end()));
     VLOG(1) << "next step vid is : " << ds;
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
