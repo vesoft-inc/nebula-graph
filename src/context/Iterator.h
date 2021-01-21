@@ -28,11 +28,16 @@ public:
         kProp,
     };
 
+    LogicalRow() = default;
+    explicit LogicalRow(std::vector<const Row*>&& segments) : segments_(std::move(segments)) {}
     virtual ~LogicalRow() {}
     virtual const Value& operator[](size_t) const = 0;
     virtual size_t size() const = 0;
     virtual Kind kind() const = 0;
     virtual const std::vector<const Row*>& segments() const = 0;
+
+protected:
+    std::vector<const Row*> segments_;
 };
 
 class Iterator {
@@ -361,9 +366,8 @@ private:
     class GetNbrLogicalRow final : public LogicalRow {
     public:
         GetNbrLogicalRow(size_t dsIdx, const Row* row, std::string edgeName, const List* edgeProps)
-            : dsIdx_(dsIdx),
-              row_(row),
-              segments_({row}),
+            : LogicalRow({row}),
+              dsIdx_(dsIdx),
               edgeName_(std::move(edgeName)),
               edgeProps_(edgeProps) {}
 
@@ -377,9 +381,6 @@ private:
             dsIdx_ = r.dsIdx_;
             r.dsIdx_ = 0;
 
-            row_ = r.row_;
-            r.row_ = nullptr;
-
             segments_ = std::move(r.segments_);
 
             edgeName_ = std::move(r.edgeName_);
@@ -390,14 +391,18 @@ private:
         }
 
         const Value& operator[](size_t idx) const override {
-            if (idx < row_->size()) {
-                return (*row_)[idx];
+            DCHECK_EQ(segments_.size(), 1);
+            auto* row = segments_[0];
+            if (idx < row->size()) {
+                return (*row)[idx];
             }
             return Value::kNullOverflow;
         }
 
         size_t size() const override {
-            return row_->size();
+            DCHECK_EQ(segments_.size(), 1);
+            auto* row = segments_[0];
+            return row->size();
         }
 
         LogicalRow::Kind kind() const override {
@@ -411,8 +416,6 @@ private:
     private:
         friend class GetNeighborsIter;
         size_t dsIdx_;
-        const Row* row_;
-        std::vector<const Row*> segments_;
         std::string edgeName_;
         const List* edgeProps_;
     };
@@ -442,7 +445,7 @@ class SequentialIter final : public Iterator {
 public:
     class SeqLogicalRow final : public LogicalRow {
     public:
-        explicit SeqLogicalRow(const Row* row) : row_(row), segments_({row}) {}
+        explicit SeqLogicalRow(const Row* row) : LogicalRow({row}) {}
 
         SeqLogicalRow(const SeqLogicalRow &r) = default;
         SeqLogicalRow& operator=(const SeqLogicalRow &r) = default;
@@ -451,21 +454,23 @@ public:
             *this = std::move(r);
         }
         SeqLogicalRow& operator=(SeqLogicalRow &&r) noexcept {
-            row_ = r.row_;
             segments_ = std::move(r.segments_);
-            r.row_ = nullptr;
             return *this;
         }
 
         const Value& operator[](size_t idx) const override {
-            if (idx < row_->size()) {
-                return row_->values[idx];
+            DCHECK_EQ(segments_.size(), 1);
+            auto* row = segments_[0];
+            if (idx < row->size()) {
+                return row->values[idx];
             }
             return Value::kEmpty;
         }
 
         size_t size() const override {
-            return row_->size();
+            DCHECK_EQ(segments_.size(), 1);
+            auto* row = segments_[0];
+            return row->size();
         }
 
         LogicalRow::Kind kind() const override {
@@ -478,8 +483,6 @@ public:
 
     private:
         friend class SequentialIter;
-        const Row* row_;
-        std::vector<const Row*> segments_;
     };
 
     explicit SequentialIter(std::shared_ptr<Value> value)
@@ -579,8 +582,11 @@ public:
         if (index == colIndices_.end()) {
             return Value::kNullValue;
         }
-        DCHECK_LT(index->second, logicalRow.row_->values.size());
-        return logicalRow.row_->values[index->second];
+
+        DCHECK_EQ(logicalRow.segments_.size(), 1);
+        auto* row = logicalRow.segments_[0];
+        DCHECK_LT(index->second, row->values.size());
+        return row->values[index->second];
     }
 
     const Value& getColumn(int32_t index) const override;
@@ -609,7 +615,9 @@ protected:
     // Notice: We only use this interface when return results to client.
     friend class DataCollectExecutor;
     Row&& moveRow() {
-        return std::move(*const_cast<Row*>(iter_->row_));
+        DCHECK_EQ(iter_->segments_.size(), 1);
+        auto* row = iter_->segments_[0];
+        return std::move(*const_cast<Row*>(row));
     }
 
 private:
@@ -632,7 +640,7 @@ public:
             std::vector<const Row*> segments,
             size_t size,
             const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
-            : segments_(std::move(segments)), size_(size), colIdxIndices_(colIdxIndices) {}
+            : LogicalRow(std::move(segments)), size_(size), colIdxIndices_(colIdxIndices) {}
 
         JoinLogicalRow(const JoinLogicalRow &r) = default;
         JoinLogicalRow& operator=(const JoinLogicalRow &r) = default;
@@ -681,7 +689,6 @@ public:
 
     private:
         friend class JoinIter;
-        std::vector<const Row*> segments_;
         size_t size_;
         const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices_;
     };
@@ -813,7 +820,7 @@ class PropIter final : public Iterator {
 public:
     class PropLogicalRow final : public LogicalRow {
     public:
-        explicit PropLogicalRow(const Row* row) : row_(row), segments_({row}) {}
+        explicit PropLogicalRow(const Row* row) : LogicalRow({row}) {}
 
         PropLogicalRow(const PropLogicalRow &r) = default;
         PropLogicalRow& operator=(const PropLogicalRow &r) = default;
@@ -823,21 +830,23 @@ public:
         }
 
         PropLogicalRow& operator=(PropLogicalRow &&r) noexcept {
-            row_ = r.row_;
-            r.row_ = nullptr;
-            segments_ = std::move(segments_);
+            segments_ = std::move(r.segments_);
             return *this;
         }
 
         const Value& operator[](size_t idx) const override {
-            if (idx < row_->size()) {
-                return row_->values[idx];
+            DCHECK_EQ(segments_.size(), 1);
+            auto* row = segments_[0];
+            if (idx < row->size()) {
+                return row->values[idx];
             }
             return Value::kEmpty;
         }
 
         size_t size() const override {
-            return row_->size();
+            DCHECK_EQ(segments_.size(), 1);
+            auto* row = segments_[0];
+            return row->size();
         }
 
         LogicalRow::Kind kind() const override {
@@ -850,8 +859,6 @@ public:
 
     private:
         friend class PropIter;
-        const Row* row_;
-        std::vector<const Row*> segments_;
     };
 
     explicit PropIter(std::shared_ptr<Value> value);
