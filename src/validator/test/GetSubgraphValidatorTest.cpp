@@ -24,14 +24,16 @@ TEST_F(GetSubgraphValidatorTest, Base) {
         std::string query = "GET SUBGRAPH FROM \"1\"";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
-            PK::kFilter,
-            PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
-            PK::kAggregate,
-            PK::kDedup,
-            PK::kProject,
+            PK::kSubgraph,
+            PK::kSelect,
+            PK::kStart,
+            PK::kAssign,
+            PK::kAssign,
             PK::kGetNeighbors,
+            PK::kGetNeighbors,
+            PK::kStart,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -40,14 +42,16 @@ TEST_F(GetSubgraphValidatorTest, Base) {
         std::string query = "GET SUBGRAPH 3 STEPS FROM \"1\"";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
-            PK::kFilter,
-            PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
-            PK::kAggregate,
-            PK::kDedup,
-            PK::kProject,
+            PK::kSubgraph,
+            PK::kSelect,
+            PK::kStart,
+            PK::kAssign,
+            PK::kAssign,
             PK::kGetNeighbors,
+            PK::kGetNeighbors,
+            PK::kStart,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -56,14 +60,16 @@ TEST_F(GetSubgraphValidatorTest, Base) {
         std::string query = "GET SUBGRAPH FROM \"1\" BOTH like";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
-            PK::kFilter,
-            PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
-            PK::kAggregate,
-            PK::kDedup,
-            PK::kProject,
+            PK::kSubgraph,
+            PK::kSelect,
+            PK::kStart,
+            PK::kAssign,
+            PK::kAssign,
             PK::kGetNeighbors,
+            PK::kGetNeighbors,
+            PK::kStart,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -72,14 +78,16 @@ TEST_F(GetSubgraphValidatorTest, Base) {
         std::string query = "GET SUBGRAPH FROM \"1\", \"2\" IN like";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
-            PK::kFilter,
-            PK::kGetNeighbors,
             PK::kLoop,
             PK::kStart,
-            PK::kAggregate,
-            PK::kDedup,
-            PK::kProject,
+            PK::kSubgraph,
+            PK::kSelect,
+            PK::kStart,
+            PK::kAssign,
+            PK::kAssign,
             PK::kGetNeighbors,
+            PK::kGetNeighbors,
+            PK::kStart,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -92,18 +100,20 @@ TEST_F(GetSubgraphValidatorTest, Input) {
             "GO FROM \"1\" OVER like YIELD like._src AS src | GET SUBGRAPH FROM $-.src";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
-            PK::kFilter,
-            PK::kGetNeighbors,
             PK::kLoop,
             PK::kAggregate,
-            PK::kAggregate,
+            PK::kSubgraph,
             PK::kDedup,
-            PK::kDedup,
+            PK::kSelect,
             PK::kProject,
-            PK::kProject,
+            PK::kStart,
+            PK::kAssign,
+            PK::kAssign,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kGetNeighbors,
+            PK::kGetNeighbors,
+            PK::kStart,
             PK::kStart,
             PK::kStart,
         };
@@ -114,18 +124,20 @@ TEST_F(GetSubgraphValidatorTest, Input) {
             "$a = GO FROM \"1\" OVER like YIELD like._src AS src; GET SUBGRAPH FROM $a.src";
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
-            PK::kFilter,
-            PK::kGetNeighbors,
             PK::kLoop,
             PK::kAggregate,
-            PK::kAggregate,
+            PK::kSubgraph,
             PK::kDedup,
-            PK::kDedup,
+            PK::kSelect,
             PK::kProject,
-            PK::kProject,
+            PK::kStart,
+            PK::kAssign,
+            PK::kAssign,
             PK::kProject,
             PK::kGetNeighbors,
             PK::kGetNeighbors,
+            PK::kGetNeighbors,
+            PK::kStart,
             PK::kStart,
             PK::kStart,
         };

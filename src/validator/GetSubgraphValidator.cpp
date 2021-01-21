@@ -246,7 +246,6 @@ Status GetSubgraphValidator::toPlan() {
     NG_RETURN_IF_ERROR(edgePropsResult);
     gn->setEdgeProps(
         std::make_unique<std::vector<storage::cpp2::EdgeProp>>(*edgePropsResult.value()));
-    // gn->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn->setInputVar(startVidsVar);
 
     loopSteps_ = vctx_->anonVarGen()->getVar();
@@ -261,7 +260,6 @@ Status GetSubgraphValidator::toPlan() {
     auto* dummyStart = StartNode::make(qctx_);
     vertexPropsResult = buildVertexProp();
     NG_RETURN_IF_ERROR(vertexPropsResult);
-    // auto edgeProps = std::make_unique<std::vector<storage::cpp2::EdgeProp>>();
     auto* gn1 = GetNeighbors::make(qctx_, dummyStart, space.id);
     gn1->setSrc(from_.src);
     gn1->setVertexProps(std::make_unique<std::vector<storage::cpp2::VertexProp>>(
@@ -270,7 +268,6 @@ Status GetSubgraphValidator::toPlan() {
     NG_RETURN_IF_ERROR(allEdgePropResult);
     gn1->setEdgeProps(std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
         std::move(allEdgePropResult).value()));
-    // gn1->setEdgeDirection(storage::cpp2::EdgeDirection::BOTH);
     gn1->setInputVar(startVidsVar);
 
     auto isOneMoreStep = vctx_->anonVarGen()->getVar();
