@@ -6,6 +6,7 @@
 #ifndef PARSER_ADMINSENTENCES_H_
 #define PARSER_ADMINSENTENCES_H_
 
+#include <memory>
 #include "parser/Clauses.h"
 #include "parser/Sentence.h"
 #include "parser/MutateSentences.h"
@@ -154,7 +155,8 @@ public:
         VID_TYPE,
         CHARSET,
         COLLATE,
-        ATOMIC_EDGE
+        ATOMIC_EDGE,
+        GROUP_NAME
     };
 
     SpaceOptItem(OptionType op, std::string val) {
@@ -235,7 +237,7 @@ public:
             return asString();
         } else {
             LOG(ERROR) << "charset value illegal.";
-            return 0;
+            return "";
         }
     }
 
@@ -244,7 +246,16 @@ public:
             return asString();
         } else {
             LOG(ERROR) << "collate value illage.";
-            return 0;
+            return "";
+        }
+    }
+
+    std::string getGroupName() const {
+        if (isString()) {
+            return asString();
+        } else {
+            LOG(ERROR) << "group name value illage.";
+            return "";
         }
     }
 
@@ -305,6 +316,10 @@ public:
         spaceOpts_.reset(spaceOpts);
     }
 
+    void setGroupName(std::string* name) {
+        groupName_.reset(name);
+    }
+
     std::vector<SpaceOptItem*> getOpts() {
         if (spaceOpts_ == nullptr) {
             return {};
@@ -316,6 +331,7 @@ public:
 
 private:
     std::unique_ptr<std::string>     spaceName_;
+    std::unique_ptr<std::string>     groupName_;
     std::unique_ptr<SpaceOptList>    spaceOpts_;
 };
 
@@ -354,23 +370,14 @@ public:
         kind_ = Kind::kDescribeSpace;
     }
 
-    void setClusterName(std::string* clusterName) {
-        clusterName_.reset(clusterName);
-    }
-
     const std::string* spaceName() const {
         return spaceName_.get();
-    }
-
-    const std::string* clusterName() const {
-        return clusterName_.get();
     }
 
     std::string toString() const override;
 
 private:
     std::unique_ptr<std::string>     spaceName_;
-    std::unique_ptr<std::string>     clusterName_;
 };
 
 class ConfigRowItem {

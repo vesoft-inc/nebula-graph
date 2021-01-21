@@ -187,6 +187,22 @@ TEST(Parser, SpaceOperation) {
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
+        std::string query = "CREATE SPACE default_space(partition_num=9, replica_factor=3) "
+                            "ON group_0";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "CREATE SPACE default_space ON group_0";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "CREATE SPACE default_space";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
         std::string query = "CREATE SPACE default_space(partition_num=9, replica_factor=3,"
                             "charset=utf8, collate=utf8_bin)";
         auto result = parse(query);
@@ -215,6 +231,31 @@ TEST(Parser, SpaceOperation) {
                             "atomic_edge=FALSE)";
         auto result = parse(query);
         EXPECT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "USE default_space";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "DESC SPACE default_space";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "DESCRIBE SPACE default_space";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "SHOW CREATE SPACE default_space";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        std::string query = "DROP SPACE default_space";
+        auto result = parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
     }
 }
 
@@ -2669,9 +2710,8 @@ TEST(Parser, FullTextServiceTest) {
 }
 
 TEST(Parser, JobTest) {
-    GQLParser parser;
-    auto checkTest = [&parser] (const std::string& query, const std::string expectedStr) {
-        auto result = parser.parse(query);
+    auto checkTest = [] (const std::string& query, const std::string expectedStr) {
+        auto result = parse(query);
         ASSERT_TRUE(result.ok()) << query << ":" << result.status();
         ASSERT_EQ(result.value()->toString(), expectedStr);
     };
