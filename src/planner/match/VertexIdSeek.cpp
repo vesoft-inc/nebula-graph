@@ -31,18 +31,11 @@ bool VertexIdSeek::matchNode(NodeContext *nodeCtx) {
         return false;
     }
 
-    DCHECK(nodeCtx->info != nullptr);
-    auto alias = nodeCtx->info->alias;
-    if (alias == nullptr) {
-        return false;
-    }
-
-    if (node.alias == nullptr) {
+    if (node.alias == nullptr || node.anonymous) {
         // require one named node
         return false;
     }
 
-//    auto vidResult = reverseEvalVids(matchClauseCtx->where->filter.get());
     VidExtractVisitor vidExtractVisitor;
     matchClauseCtx->where->filter->accept(&vidExtractVisitor);
     auto vidResult = vidExtractVisitor.moveVidPattern();
