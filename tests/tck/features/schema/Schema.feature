@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@schema
 Feature: Insert string vid of vertex and edge
 
   Scenario: insert vertex and edge test
@@ -505,7 +504,7 @@ Feature: Insert string vid of vertex and edge
     # check result by fetch
     When executing query:
       """
-      FETCH PROP ON t "1"
+      FETCH PROP ON t "1" YIELD t.name, t.age, t.description
       """
     Then the result should be, in any order:
       | VertexID | t.name | t.age | t.description |
@@ -526,7 +525,7 @@ Feature: Insert string vid of vertex and edge
     # check result by fetch
     When executing query:
       """
-      FETCH PROP ON t "1"
+      FETCH PROP ON t "1" YIELD t.name, t.age, t.description
       """
     Then the result should be, in any order:
       | VertexID | t.name | t.age | t.description |
@@ -557,7 +556,7 @@ Feature: Insert string vid of vertex and edge
     # check result by fetch
     When executing query:
       """
-      FETCH PROP ON t "1"
+      FETCH PROP ON t "1" YIELD t.name, t.age, t.description
       """
     Then the result should be, in any order:
       | VertexID | t.name | t.age | t.description |

@@ -31,8 +31,9 @@ bool VertexIdSeek::matchNode(NodeContext *nodeCtx) {
         return false;
     }
 
-    if (!node.labels.empty()) {
-        // TODO: Only support all tags for now.
+    DCHECK(nodeCtx->info != nullptr);
+    auto alias = nodeCtx->info->alias;
+    if (alias == nullptr) {
         return false;
     }
 
@@ -103,7 +104,6 @@ StatusOr<SubPlan> VertexIdSeek::transformNode(NodeContext *nodeCtx) {
     plan.tail = passThrough;
 
     nodeCtx->initialExpr = std::unique_ptr<Expression>(vidsResult.second);
-    VLOG(1) << "root: " << plan.root->kind() << " tail: " << plan.tail->kind();
     return plan;
 }
 
