@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@jie
 Feature: Reduce
 
   Scenario: yield a reduce
@@ -26,8 +25,9 @@ Feature: Reduce
     Given a graph with space named "nba"
     When executing query:
       """
-      GO FROM "Tony Parker" OVER like WHERE like.likeness != reduce(totalNum = 5, n IN range(1, 3)
-      | $$.player.age + totalNum + n) YIELD like._dst AS id, $$.player.age AS age, like.likeness AS likeness
+      GO FROM "Tony Parker" OVER like
+      WHERE like.likeness != reduce(totalNum = 5, n IN range(1, 3) | $$.player.age + totalNum + n)
+      YIELD like._dst AS id, $$.player.age AS age, like.likeness AS likeness
       """
     Then the result should be, in any order:
       | id                  | age | likeness |
@@ -40,8 +40,10 @@ Feature: Reduce
     When executing query:
       """
       MATCH p = (n:player{name:"LeBron James"})<-[:like]-(m)
-      RETURN nodes(p)[0].age AS age1, nodes(p)[1].age AS age2, reduce(totalAge = 100, n IN nodes(p)
-      | totalAge + n.age) as r
+      RETURN
+        nodes(p)[0].age AS age1,
+        nodes(p)[1].age AS age2,
+        reduce(totalAge = 100, n IN nodes(p) | totalAge + n.age) as r
       """
     Then the result should be, in any order:
       | age1 | age2 | r   |
@@ -54,7 +56,9 @@ Feature: Reduce
     When executing query:
       """
       MATCH p = (n:player{name:"LeBron James"})-[:like]->(m)
-            RETURN nodes(p)[0].age AS age1, nodes(p)[1].age AS age2, reduce(x = 10, n IN nodes(p) | n.age - x) as x
+      RETURN nodes(p)[0].age AS age1,
+             nodes(p)[1].age AS age2,
+             reduce(x = 10, n IN nodes(p) | n.age - x) as x
       """
     Then the result should be, in any order:
       | age1 | age2 | x  |
