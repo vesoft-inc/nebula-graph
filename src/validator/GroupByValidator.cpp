@@ -46,7 +46,6 @@ Status GroupByValidator::validateYield(const YieldClause *yieldClause) {
         if (colExpr->kind() == Expression::Kind::kAggregate) {
             auto* aggExpr = static_cast<AggregateExpression*>(colExpr);
             NG_RETURN_IF_ERROR(checkAggExpr(aggExpr));
-            yieldAggs_.emplace_back(colExpr);
         } else {
             yieldCols_.emplace_back(colExpr);
         }
@@ -152,11 +151,11 @@ Status GroupByValidator::groupClauseSemanticCheck() {
         groupKeys_ = yieldCols_;
     } else {
         std::unordered_set<Expression*> groupSet(groupKeys_.begin(), groupKeys_.end());
-        FindAnySubExprVisitor groupVisitor(groupSet, true);
         for (auto* expr : yieldCols_) {
             if (evaluableExpr(expr)) {
                 continue;
             }
+            FindAnySubExprVisitor groupVisitor(groupSet, true);
             expr->accept(&groupVisitor);
             if (!groupVisitor.found()) {
                 return Status::SemanticError("Yield non-agg expression `%s' must be"
