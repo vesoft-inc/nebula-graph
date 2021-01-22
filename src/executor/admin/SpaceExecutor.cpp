@@ -56,6 +56,7 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                                     "Charset",
                                     "Collate",
                                     "Vid Type",
+                                    "Atomic Edge",
                                     "Group"};
                 Row row;
                 row.values.emplace_back(spaceId);
@@ -65,6 +66,12 @@ folly::Future<Status> DescSpaceExecutor::execute() {
                 row.values.emplace_back(properties.get_charset_name());
                 row.values.emplace_back(properties.get_collate_name());
                 row.values.emplace_back(SchemaUtil::typeToString(properties.get_vid_type()));
+                std::string sAtomicEdge{"false"};
+                if (properties.__isset.isolation_level  &&
+                    (*properties.get_isolation_level() == meta::cpp2::IsolationLevel::TOSS)) {
+                    sAtomicEdge = "true";
+                }
+                row.values.emplace_back(sAtomicEdge);
                 if (properties.__isset.group_name) {
                     row.values.emplace_back(properties.get_group_name());
                 } else {
