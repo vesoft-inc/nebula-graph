@@ -70,40 +70,39 @@ StatusOr<MatchedResult> OptRule::match(const OptGroupNode *groupNode) const {
     return matched;
 }
 
-namespace {
-// Return false if the output variable of this matched plan node is not the
-// input of other plan node
-bool checkDataflowDeps(const MatchedResult &matched, const std::string &var) {
+bool OptRule::match(const MatchedResult &matched) const {
+    // Return true if subclass doesn't override this interface,
+    // so optimizer will only check whether pattern is matched
+    return checkDataflowDeps(matched, matched.node->node()->outputVar());
+}
+
+bool OptRule::checkDataflowDeps(const MatchedResult &matched, const std::string &var) const {
     auto node = matched.node;
     auto planNode = node->node();
     if (planNode->outputVar() != var) {
         return false;
     }
-    auto qctx = planNode->qctx();
-    auto symTbl = qctx->symTable();
+    auto symTbl = planNode->qctx()->symTable();
     auto outVar = symTbl->getVar(planNode->outputVar());
     // Check whether this variable is read by multiple other plan nodes
     if (outVar->readBy.size() > 1) {
         return false;
     }
 
-    if (node->dependencies().size() == 1U) {
-        DCHECK_EQ(matched.dependencies.size(), 1U);
+    if (matched.dependencies.empty()) {
+        return true;
+    }
+
+    DCHECK_EQ(matched.dependencies.size(), node->dependencies().size());
+
+    if (matched.dependencies.size() == 1U) {
         auto singleInputNode = static_cast<const graph::SingleInputNode *>(planNode);
         return checkDataflowDeps(matched.dependencies.back(), singleInputNode->inputVar());
     }
-    DCHECK_EQ(matched.dependencies.size(), 2U);
     auto binaryInputNode = static_cast<const graph::BiInputNode *>(planNode);
     const auto &deps = matched.dependencies;
     return checkDataflowDeps(deps[0], binaryInputNode->leftInputVar()) &&
            checkDataflowDeps(deps[1], binaryInputNode->rightInputVar());
-}
-}   // namespace
-
-bool OptRule::match(const MatchedResult &matched) const {
-    // Return true if subclass doesn't override this interface,
-    // so optimizer will only check whether pattern is matched
-    return checkDataflowDeps(matched, matched.node->node()->outputVar());
 }
 
 RuleSet &RuleSet::DefaultRules() {
