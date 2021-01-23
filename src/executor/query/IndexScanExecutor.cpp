@@ -8,6 +8,7 @@
 
 #include "planner/PlanNode.h"
 #include "context/QueryContext.h"
+#include "service/GraphFlags.h"
 
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::LookupIndexResp;

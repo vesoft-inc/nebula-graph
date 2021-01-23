@@ -17,7 +17,6 @@
 
 #include "executor/StorageAccessExecutor.h"
 #include "planner/Query.h"
-#include "service/GraphFlags.h"
 
 namespace nebula {
 namespace graph {
