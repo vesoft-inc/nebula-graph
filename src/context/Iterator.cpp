@@ -309,7 +309,7 @@ Value GetNeighborsIter::getNoEdgeVertex() const {
     if (found == index.end()) {
         return Value::kNullBadType;
     }
-    DCHECK(noEdgeIter_->segments_.size(), 1);
+    DCHECK_EQ(noEdgeIter_->segments_.size(), 1);
     auto vidVal = noEdgeIter_->segments_[0]->values[found->second];
     if (!SchemaUtil::isValidVid(vidVal)) {
         return Value::kNullBadType;
@@ -319,7 +319,7 @@ Value GetNeighborsIter::getNoEdgeVertex() const {
     auto& tagPropMap = dsIndices_[0].tagPropsMap;
     bool existTag = false;
     for (auto& tagProp : tagPropMap) {
-        DCHECK(noEdgeIter_->segments_.size(), 1);
+        DCHECK_EQ(noEdgeIter_->segments_.size(), 1);
         auto& row = *(noEdgeIter_->segments_[0]);
         auto& tagPropNameList = tagProp.second.propList;
         auto tagColId = tagProp.second.colIdx;
