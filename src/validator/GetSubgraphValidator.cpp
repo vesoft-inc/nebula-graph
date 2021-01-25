@@ -163,14 +163,6 @@ StatusOr<std::vector<storage::cpp2::EdgeProp>> GetSubgraphValidator::buildAllEdg
     return eProps;
 }
 
-Expression* GetSubgraphValidator::buildSelectCondition(uint32_t steps) {
-    // loopSteps_{0} < steps
-    return qctx_->objPool()->add(new RelationalExpression(
-        Expression::Kind::kRelLT,
-        new VariableExpression(new std::string(loopSteps_)),
-                               new ConstantExpression(static_cast<int32_t>(steps))));
-}
-
 Status GetSubgraphValidator::zeroStep(PlanNode* depend, const std::string& inputVar) {
     auto& space = vctx_->whichSpace();
     std::vector<storage::cpp2::Expr> exprs;
@@ -207,33 +199,16 @@ Status GetSubgraphValidator::toPlan() {
     auto* bodyStart = StartNode::make(qctx_);
 
     std::string startVidsVar;
-    SingleInputNode* collectRunTimeStartVids = nullptr;
-
+    PlanNode* loopDep = nullptr;
     if (!from_.vids.empty() && from_.originalSrc == nullptr) {
         buildConstantInput(from_, startVidsVar);
     } else {
-        PlanNode* dedupStartVid = buildRuntimeInput(from_, projectStartVid_);
-        startVidsVar = dedupStartVid->outputVar();
-        // collect runtime startVids
-        auto var = vctx_->anonVarGen()->getVar();
-        auto* column = new VariablePropertyExpression(new std::string(var), new std::string(kVid));
-        auto* func = new AggregateExpression(new std::string("COLLECT_SET"), column, true);
-        qctx_->objPool()->add(func);
-        collectRunTimeStartVids =
-            Aggregate::make(qctx_,
-                            dedupStartVid,
-                            {},
-                            {func});
-        collectRunTimeStartVids->setInputVar(dedupStartVid->outputVar());
-        collectRunTimeStartVids->setColNames({kVid});
-        runtimeStartVar_ = collectRunTimeStartVids->outputVar();
+        loopDep = buildRuntimeInput(from_, projectStartVid_);
+        startVidsVar = loopDep->outputVar();
     }
 
     if (steps_.steps == 0) {
-        if (collectRunTimeStartVids == nullptr) {
-            return zeroStep(bodyStart, startVidsVar);
-        }
-        return zeroStep(collectRunTimeStartVids, startVidsVar);
+        return zeroStep(loopDep == nullptr ? bodyStart : loopDep, startVidsVar);
     }
 
     auto vertexPropsResult = buildVertexProp();
@@ -249,49 +224,13 @@ Status GetSubgraphValidator::toPlan() {
     gn->setInputVar(startVidsVar);
 
     loopSteps_ = vctx_->anonVarGen()->getVar();
-    auto lastStep = vctx_->anonVarGen()->getVar();
-    auto* assign = Assign::make(qctx_, gn);
-    assign->assignVar(
-        lastStep,
-        new RelationalExpression(Expression::Kind::kRelEQ,
-                                 new VariableExpression(new std::string(loopSteps_)),
-                                 new ConstantExpression(static_cast<int32_t>(steps_.steps))));
-
-    auto* dummyStart = StartNode::make(qctx_);
-    vertexPropsResult = buildVertexProp();
-    NG_RETURN_IF_ERROR(vertexPropsResult);
-    auto* gn1 = GetNeighbors::make(qctx_, dummyStart, space.id);
-    gn1->setSrc(from_.src);
-    gn1->setVertexProps(std::make_unique<std::vector<storage::cpp2::VertexProp>>(
-        std::move(vertexPropsResult).value()));
-    auto allEdgePropResult = buildAllEdgeProp();
-    NG_RETURN_IF_ERROR(allEdgePropResult);
-    gn1->setEdgeProps(std::make_unique<std::vector<storage::cpp2::EdgeProp>>(
-        std::move(allEdgePropResult).value()));
-    gn1->setInputVar(startVidsVar);
-
-    auto isOneMoreStep = vctx_->anonVarGen()->getVar();
-    qctx_->ectx()->setValue(isOneMoreStep, false);
-    auto oneMoreStepInput = vctx_->anonVarGen()->getVar();
-
-    auto* assign1 = Assign::make(qctx_, gn1);
-    assign1->assignVar(isOneMoreStep, new ConstantExpression(true));
-    assign1->assignVar(oneMoreStepInput, new ConstantExpression(gn1->outputVar()));
-
-    auto* selectDep = StartNode::make(qctx_);
-    auto* ifContidion = buildSelectCondition(steps_.steps + 1);
-    auto* select = Select::make(qctx_, selectDep, assign, assign1, ifContidion);
-
     auto oneMoreStepOutput = vctx_->anonVarGen()->getVar();
-    auto* subgraph =
-        Subgraph::make(qctx_, select, oneMoreStepInput, oneMoreStepOutput, isOneMoreStep, lastStep);
-    subgraph->setInputVar(gn->outputVar());
+    auto* subgraph = Subgraph::make(qctx_, gn, oneMoreStepOutput, loopSteps_, steps_.steps + 1);
     subgraph->setOutputVar(startVidsVar);
     subgraph->setColNames({nebula::kVid});
 
     auto* loopCondition = buildNStepLoopCondition(steps_.steps + 1);
-    auto* loop = Loop::make(qctx_, collectRunTimeStartVids, subgraph, loopCondition);
-
+    auto* loop = Loop::make(qctx_, loopDep, subgraph, loopCondition);
 
     std::vector<std::string> collects = {gn->outputVar(), oneMoreStepOutput};
     auto* dc =

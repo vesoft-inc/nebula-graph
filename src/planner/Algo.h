@@ -143,47 +143,39 @@ class Subgraph final : public SingleInputNode {
 public:
     static Subgraph* make(QueryContext* qctx,
                           PlanNode* input,
-                          std::string oneMoreStepInput,
                           std::string oneMoreStepOutput,
-                          std::string isOneMoreStep,
-                          std::string lastStep) {
-        return qctx->objPool()->add(new Subgraph(
-            qctx, input, oneMoreStepInput, oneMoreStepOutput, isOneMoreStep, lastStep));
-    }
-
-    std::string oneMoreStepInput() const {
-        return oneMoreStepInput_;
+                          std::string currentStepVar,
+                          uint32_t steps) {
+        return qctx->objPool()->add(
+            new Subgraph(qctx, input, oneMoreStepOutput, currentStepVar, steps));
     }
 
     std::string oneMoreStepOutput() const {
         return oneMoreStepOutput_;
     }
 
-    std::string isOneMoreStep() const {
-        return isOneMoreStep_;
+    std::string currentStepVar() const {
+        return currentStepVar_;
     }
 
-    std::string lastStep() const {
-        return lastStep_;
+    uint32_t steps() const {
+        return steps_;
     }
 
 private:
     Subgraph(QueryContext* qctx,
              PlanNode* input,
-             std::string oneMoreStepInput,
              std::string oneMoreStepOutput,
-             std::string isOneMoreStep,
-             std::string lastStep)
+             std::string currentStepVar,
+             uint32_t steps)
         : SingleInputNode(qctx, Kind::kSubgraph, input),
-          oneMoreStepInput_(oneMoreStepInput),
           oneMoreStepOutput_(oneMoreStepOutput),
-          isOneMoreStep_(isOneMoreStep),
-          lastStep_(lastStep) {}
+          currentStepVar_(currentStepVar),
+          steps_(steps) {}
 
-    std::string oneMoreStepInput_;
     std::string oneMoreStepOutput_;
-    std::string isOneMoreStep_;
-    std::string lastStep_;
+    std::string currentStepVar_;
+    uint32_t steps_;
 };
 
 }  // namespace graph

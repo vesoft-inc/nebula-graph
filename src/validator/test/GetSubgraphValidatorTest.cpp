@@ -27,13 +27,7 @@ TEST_F(GetSubgraphValidatorTest, Base) {
             PK::kLoop,
             PK::kStart,
             PK::kSubgraph,
-            PK::kSelect,
-            PK::kStart,
-            PK::kAssign,
-            PK::kAssign,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
-            PK::kStart,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -45,13 +39,7 @@ TEST_F(GetSubgraphValidatorTest, Base) {
             PK::kLoop,
             PK::kStart,
             PK::kSubgraph,
-            PK::kSelect,
-            PK::kStart,
-            PK::kAssign,
-            PK::kAssign,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
-            PK::kStart,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -63,13 +51,7 @@ TEST_F(GetSubgraphValidatorTest, Base) {
             PK::kLoop,
             PK::kStart,
             PK::kSubgraph,
-            PK::kSelect,
-            PK::kStart,
-            PK::kAssign,
-            PK::kAssign,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
-            PK::kStart,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -81,13 +63,7 @@ TEST_F(GetSubgraphValidatorTest, Base) {
             PK::kLoop,
             PK::kStart,
             PK::kSubgraph,
-            PK::kSelect,
-            PK::kStart,
-            PK::kAssign,
-            PK::kAssign,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
-            PK::kStart,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -101,20 +77,13 @@ TEST_F(GetSubgraphValidatorTest, Input) {
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
             PK::kLoop,
-            PK::kAggregate,
-            PK::kSubgraph,
             PK::kDedup,
-            PK::kSelect,
-            PK::kProject,
-            PK::kStart,
-            PK::kAssign,
-            PK::kAssign,
+            PK::kSubgraph,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kProject,
             PK::kStart,
-            PK::kStart,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -125,20 +94,13 @@ TEST_F(GetSubgraphValidatorTest, Input) {
         std::vector<PlanNode::Kind> expected = {
             PK::kDataCollect,
             PK::kLoop,
-            PK::kAggregate,
-            PK::kSubgraph,
             PK::kDedup,
-            PK::kSelect,
-            PK::kProject,
-            PK::kStart,
-            PK::kAssign,
-            PK::kAssign,
+            PK::kSubgraph,
             PK::kProject,
             PK::kGetNeighbors,
-            PK::kGetNeighbors,
-            PK::kGetNeighbors,
+            PK::kProject,
             PK::kStart,
-            PK::kStart,
+            PK::kGetNeighbors,
             PK::kStart,
         };
         EXPECT_TRUE(checkResult(query, expected));
@@ -167,7 +129,6 @@ TEST_F(GetSubgraphValidatorTest, Input) {
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kGetVertices,
-            PK::kAggregate,
             PK::kDedup,
             PK::kProject,
             PK::kProject,
@@ -182,7 +143,6 @@ TEST_F(GetSubgraphValidatorTest, Input) {
         std::vector<PlanNode::Kind> expected = {
             PK::kAggregate,
             PK::kGetVertices,
-            PK::kAggregate,
             PK::kDedup,
             PK::kProject,
             PK::kProject,
