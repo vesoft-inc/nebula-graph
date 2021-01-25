@@ -9,9 +9,9 @@
 namespace nebula {
 namespace graph {
 
-FindAnyExprVisitor::FindAnyExprVisitor(const std::unordered_set<Expression::Kind> &kinds)
+FindAnyExprVisitor::FindAnyExprVisitor(const std::unordered_set<Expression::Kind> kinds)
     : kinds_(kinds) {
-    DCHECK(!kinds.empty());
+    DCHECK(!kinds_.empty());
 }
 
 void FindAnyExprVisitor::visit(TypeCastingExpression *expr) {

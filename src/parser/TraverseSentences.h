@@ -298,34 +298,18 @@ private:
 class FetchVerticesSentence final : public Sentence {
 public:
     FetchVerticesSentence(NameLabelList *tags,
-                          VertexIDList *vidList,
+                          VerticesClause *vertices,
                           YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
         tags_.reset(tags);
-        vidList_.reset(vidList);
+        verticesClause_.reset(vertices);
         yieldClause_.reset(clause);
     }
 
-    FetchVerticesSentence(NameLabelList *tags,
-                          Expression   *ref,
-                          YieldClause  *clause) {
-        kind_ = Kind::kFetchVertices;
-        tags_.reset(tags);
-        vidRef_.reset(ref);
-        yieldClause_.reset(clause);
-    }
-
-    explicit FetchVerticesSentence(Expression *ref, YieldClause  *clause) {
+    explicit FetchVerticesSentence(VerticesClause *vertices, YieldClause  *clause) {
         kind_ = Kind::kFetchVertices;
         tags_ = std::make_unique<NameLabelList>();
-        vidRef_.reset(ref);
-        yieldClause_.reset(clause);
-    }
-
-    explicit FetchVerticesSentence(VertexIDList *vidList, YieldClause  *clause) {
-        kind_ = Kind::kFetchVertices;
-        tags_ = std::make_unique<NameLabelList>();
-        vidList_.reset(vidList);
+        verticesClause_.reset(vertices);
         yieldClause_.reset(clause);
     }
 
@@ -337,16 +321,20 @@ public:
         return tags_.get();
     }
 
+    VerticesClause* verticesClause() const {
+        return verticesClause_.get();
+    }
+
     auto vidList() const {
-        return vidList_->vidList();
+        return verticesClause_->vidList();
     }
 
     bool isRef() const {
-        return vidRef_ != nullptr;
+        return verticesClause_->isRef();
     }
 
     Expression* ref() const {
-        return vidRef_.get();
+        return verticesClause_->ref();
     }
 
     YieldClause* yieldClause() const {
@@ -361,8 +349,7 @@ public:
 
 private:
     std::unique_ptr<NameLabelList>  tags_;
-    std::unique_ptr<VertexIDList>   vidList_;
-    std::unique_ptr<Expression>     vidRef_;
+    std::unique_ptr<VerticesClause> verticesClause_;
     std::unique_ptr<YieldClause>    yieldClause_;
 };
 

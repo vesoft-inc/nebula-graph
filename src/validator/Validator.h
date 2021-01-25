@@ -165,7 +165,8 @@ protected:
 
     // Check the variable or input property reference
     // return the input variable
-    StatusOr<std::string> checkRef(const Expression *ref, const Value::Type type);
+    StatusOr<std::string> checkRef(const Expression* expr,
+                                   const Value::Type type = Value::Type::__EMPTY__);
 
     // Check the output for duplicate column names
     Status checkDuplicateColName();

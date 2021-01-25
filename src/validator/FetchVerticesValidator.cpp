@@ -106,10 +106,25 @@ Status FetchVerticesValidator::check() {
 
 Status FetchVerticesValidator::prepareVertices() {
     auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
+    if (!const_cast<VerticesClause*>(sentence->verticesClause())->prepare()) {
+        return Status::SemanticError("Vertices clause illegal.");
+    }
     // from ref, eval when execute
     if (sentence->isRef()) {
         srcRef_ = sentence->ref();
-        auto result = checkRef(srcRef_, vidType_);
+        auto typeResult = deduceExprType(srcRef_);
+        NG_RETURN_IF_ERROR(typeResult);
+        if (typeResult.value() != vidType_) {
+            std::stringstream ss;
+            ss << "`" << srcRef_->toString() << "', the srcs should be type of "
+                << vidType_ << ", but was`"
+                << typeResult.value() << "'";
+            return Status::SemanticError(ss.str());
+        }
+        Expression *ref = const_cast<Expression*>(ExpressionUtils::findAny(
+                    srcRef_, {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty}));
+        DCHECK(ref != nullptr);
+        auto result = checkRef(ref);
         NG_RETURN_IF_ERROR(result);
         inputVar_ = std::move(result).value();
         return Status::OK();

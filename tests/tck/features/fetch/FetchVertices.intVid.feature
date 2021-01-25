@@ -234,6 +234,14 @@ Feature: Fetch Int Vid Vertices
       | "Boris Diaw" | "Boris Diaw" | 36         |
     When executing query:
       """
+      FETCH PROP ON player hash("Tony Parker"), hash("Tim Duncan") | FETCH PROP ON player id($-.vertices_)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | vertices_             |
+      | (hash("Tony Parker")) |
+      | (hash("Tim Duncan"))  |
+    When executing query:
+      """
       YIELD hash('Tim Duncan') as id | FETCH PROP ON * $-.id yield player.name, player.age, bachelor.name, bachelor.speciality
       """
     Then the result should be, in any order, and the columns 0 should be hashed:
@@ -257,7 +265,41 @@ Feature: Fetch Int Vid Vertices
       | "Boris Diaw"  |
       | "Tony Parker" |
 
-  Scenario: Fetch vertices and then GO
+  Scenario: Output fetch result to graph traverse
+    When executing query:
+      """
+      FETCH PROP ON player hash('NON EXIST VERTEX ID') | go from id($-.vertices_) over like yield like._dst
+      """
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | like._dst |
+    When executing query:
+      """
+      FETCH PROP ON player hash("Tim Duncan") | go from id($-.vertices_) over like yield like._dst
+      """
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | like._dst       |
+      | "Manu Ginobili" |
+      | "Tony Parker"   |
+    When executing query:
+      """
+      FETCH PROP ON player hash("Tim Duncan"), hash("Yao Ming") | go from id($-.vertices_) over like yield like._dst
+      """
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | like._dst         |
+      | "Shaquile O'Neal" |
+      | "Tracy McGrady"   |
+      | "Manu Ginobili"   |
+      | "Tony Parker"     |
+    When executing query:
+      """
+      $var = FETCH PROP ON player hash("Tim Duncan"), hash("Yao Ming"); go from id($var.vertices_) over like yield like._dst
+      """
+    Then the result should be, in any order, and the columns 0 should be hashed:
+      | like._dst         |
+      | "Manu Ginobili"   |
+      | "Tony Parker"     |
+      | "Shaquile O'Neal" |
+      | "Tracy McGrady"   |
     When executing query:
       """
       FETCH PROP ON player hash('Tony Parker') YIELD player.name as Name
@@ -306,6 +348,11 @@ Feature: Fetch Int Vid Vertices
       GO FROM hash('Boris Diaw') over like YIELD like._dst as id, like._dst as id | FETCH PROP ON player $-.id YIELD player.name, player.age
       """
     Then a SemanticError should be raised at runtime:
+    When executing query:
+      """
+      FETCH PROP ON player hash("Tim Duncan") yield player.name as id | go from $-.id over like yield like._dst
+      """
+    Then a SemanticError should be raised at runtime: `$-.id', the srcs should be type of INT64, but was`STRING'
 
   Scenario: Different from v1.x
     When executing query:

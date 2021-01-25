@@ -7,6 +7,7 @@
 #include "validator/TraversalValidator.h"
 #include "common/expression/VariableExpression.h"
 #include "util/SchemaUtil.h"
+#include "util/ExpressionUtils.h"
 
 namespace nebula {
 namespace graph {
@@ -15,8 +16,20 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
     if (clause == nullptr) {
         return Status::SemanticError("From clause nullptr.");
     }
+    if (!const_cast<VerticesClause*>(clause)->prepare()) {
+        return Status::SemanticError("From clause illegal.");
+    }
     if (clause->isRef()) {
-        auto* src = clause->ref();
+        auto* originSrc = clause->ref();
+        Expression *expr = nullptr;
+        if (originSrc->kind() == Expression::Kind::kFunctionCall) {   // id($-.vertices_)
+            expr = const_cast<Expression*>(ExpressionUtils::findAny(
+                originSrc, {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty}));
+        }
+
+        auto *src = expr ? expr : originSrc;
+        DCHECK(src != nullptr);
+
         if (src->kind() != Expression::Kind::kInputProperty
                 && src->kind() != Expression::Kind::kVarProperty) {
             return Status::SemanticError(
@@ -24,7 +37,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                     " when starts are evaluated at runtime.", src->toString().c_str());
         }
         starts.fromType = src->kind() == Expression::Kind::kInputProperty ? kPipe : kVariable;
-        auto type = deduceExprType(src);
+        auto type = deduceExprType(originSrc);
         if (!type.ok()) {
             return type.status();
         }
@@ -36,7 +49,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                 << type.value() << "'";
             return Status::SemanticError(ss.str());
         }
-        starts.originalSrc = src;
+        starts.originalSrc = originSrc;
         auto* propExpr = static_cast<PropertyExpression*>(src);
         if (starts.fromType == kVariable) {
             starts.userDefinedVarName = *(propExpr->sym());

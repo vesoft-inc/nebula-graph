@@ -9,6 +9,7 @@
 #include "common/base/Base.h"
 #include "common/expression/Expression.h"
 #include "common/interface/gen-cpp2/storage_types.h"
+#include "visitor/FindAnyExprVisitor.h"
 
 namespace nebula {
 class StepClause final {
@@ -63,6 +64,10 @@ public:
         return result;
     }
 
+    size_t size() const {
+        return vidList_.size();
+    }
+
     std::string toString() const;
 
 private:
@@ -91,6 +96,27 @@ public:
     auto ref() const {
         return ref_.get();
     }
+
+    bool prepare() {
+        if (vidList_) {
+            DCHECK(ref_ == nullptr);
+            graph::FindAnyExprVisitor visitor(
+                {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty});
+            for (auto *expr : vidList_->vidList()) {
+                expr->accept(&visitor);
+                if (visitor.expr() != nullptr) {   // has $- or $var
+                    if (vidList_->size() > 1) {
+                        return false;
+                    }
+                    ref_.reset(vidList_.release()->vidList().back()->clone().release());
+                    DCHECK(vidList_ == nullptr);
+                }
+            }
+        }
+        return true;
+    }
+
+    std::string toString() const;
 
 protected:
     std::unique_ptr<VertexIDList>               vidList_;

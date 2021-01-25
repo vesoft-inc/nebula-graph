@@ -205,7 +205,7 @@ Feature: Delete string vid of vertex
       """
       GO FROM "Boris Diaw" OVER like YIELD like._type as id | DELETE VERTEX $-.id
       """
-    Then a SemanticError should be raised at runtime: The vid should be string type, but input is `INT'
+    Then a SemanticError should be raised at runtime: `$-.id', the vid should be type of STRING, but was`INT'
     # delete with pipe, get result by go
     When executing query:
       """

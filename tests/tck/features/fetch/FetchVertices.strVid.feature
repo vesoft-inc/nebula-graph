@@ -257,6 +257,14 @@ Feature: Fetch String Vertices
       | "Tim Duncan" | "Tim Duncan" | 42         | "Tim Duncan"  | "psychology"        |
     When executing query:
       """
+      FETCH PROP ON player "Tony Parker", "Tim Duncan" | FETCH PROP ON player id($-.vertices_)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | vertices_       |
+      | ("Tony Parker") |
+      | ("Tim Duncan")  |
+    When executing query:
+      """
       GO FROM "Boris Diaw" over like YIELD like._dst as id
       | FETCH PROP ON * $-.id YIELD player.name, player.age, team.name, bachelor.name, bachelor.speciality
       """
@@ -303,7 +311,6 @@ Feature: Fetch String Vertices
       | "Boris Diaw"  |
       | "Tony Parker" |
 
-  @skip
   Scenario: Output fetch result to graph traverse
     When executing query:
       """

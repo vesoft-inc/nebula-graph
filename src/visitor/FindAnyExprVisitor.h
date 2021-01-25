@@ -17,7 +17,7 @@ namespace graph {
 
 class FindAnyExprVisitor final : public ExprVisitorImpl {
 public:
-    explicit FindAnyExprVisitor(const std::unordered_set<Expression::Kind>& kinds);
+    explicit FindAnyExprVisitor(const std::unordered_set<Expression::Kind> kinds);
 
     bool ok() const override {
         // continue if not found
@@ -68,7 +68,7 @@ private:
 
     bool found_{false};
     const Expression* expr_{nullptr};
-    const std::unordered_set<Expression::Kind>& kinds_;
+    const std::unordered_set<Expression::Kind> kinds_;
 };
 
 }   // namespace graph

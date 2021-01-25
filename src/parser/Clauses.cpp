@@ -38,6 +38,17 @@ std::string VertexIDList::toString() const {
     return buf;
 }
 
+std::string VerticesClause::toString() const {
+    std::string buf;
+    buf.reserve(256);
+    if (isRef()) {
+        buf += ref_->toString();
+    } else {
+        buf += vidList_->toString();
+    }
+    return buf;
+}
+
 std::string FromClause::toString() const {
     std::string buf;
     buf.reserve(256);

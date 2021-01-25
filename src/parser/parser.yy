@@ -1724,16 +1724,20 @@ order_by_sentence
 
 fetch_vertices_sentence
     : KW_FETCH KW_PROP KW_ON name_label_list vid_list yield_clause {
-        $$ = new FetchVerticesSentence($4, $5, $6);
+        auto vertices = new VerticesClause($5);
+        $$ = new FetchVerticesSentence($4, vertices, $6);
     }
     | KW_FETCH KW_PROP KW_ON name_label_list vid_ref_expression yield_clause {
-        $$ = new FetchVerticesSentence($4, $5, $6);
+        auto vertices = new VerticesClause($5);
+        $$ = new FetchVerticesSentence($4, vertices, $6);
     }
     | KW_FETCH KW_PROP KW_ON STAR vid_list yield_clause {
-        $$ = new FetchVerticesSentence($5, $6);
+        auto vertices = new VerticesClause($5);
+        $$ = new FetchVerticesSentence(vertices, $6);
     }
     | KW_FETCH KW_PROP KW_ON STAR vid_ref_expression yield_clause {
-        $$ = new FetchVerticesSentence($5, $6);
+        auto vertices = new VerticesClause($5);
+        $$ = new FetchVerticesSentence(vertices, $6);
     }
     ;
 
@@ -2578,11 +2582,13 @@ update_edge_sentence
 
 delete_vertex_sentence
     : KW_DELETE KW_VERTEX vid_list {
-        auto sentence = new DeleteVerticesSentence($3);
+        auto vertices = new VerticesClause($3);
+        auto sentence = new DeleteVerticesSentence(vertices);
         $$ = sentence;
     }
     | KW_DELETE KW_VERTEX vid_ref_expression {
-        auto sentence = new DeleteVerticesSentence($3);
+        auto vertices = new VerticesClause($3);
+        auto sentence = new DeleteVerticesSentence(vertices);
         $$ = sentence;
     }
     ;

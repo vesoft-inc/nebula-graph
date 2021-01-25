@@ -254,19 +254,23 @@ Status InsertEdgesValidator::prepareEdges() {
 
 Status DeleteVerticesValidator::validateImpl() {
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
+    if (!const_cast<VerticesClause*>(sentence->verticesClause())->prepare()) {
+        return Status::SemanticError("Vertices clause illegal.");
+    }
     spaceId_ = vctx_->whichSpace().id;
     if (sentence->isRef()) {
         vidRef_ = sentence->vidRef();
         auto type = deduceExprType(vidRef_);
         NG_RETURN_IF_ERROR(type);
-        if (type.value() != Value::Type::STRING) {
+        if (type.value() != vidType_) {
             std::stringstream ss;
-            ss << "The vid should be string type, "
-               << "but input is `" << type.value() << "'";
+            ss << "`" << vidRef_->toString() << "', the vid should be type of "
+                << vidType_ << ", but was`"
+                << type.value() << "'";
             return Status::SemanticError(ss.str());
         }
     } else {
-        auto vIds = sentence->vidList()->vidList();
+        auto vIds = sentence->vidList();
         for (auto vId : vIds) {
             auto idStatus = SchemaUtil::toVertexID(vId, vidType_);
             NG_RETURN_IF_ERROR(idStatus);
