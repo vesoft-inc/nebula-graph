@@ -87,7 +87,6 @@ protected:
 
             List datasets;
             datasets.values.emplace_back(std::move(ds1));
-            // datasets.values.emplace_back(std::move(ds2));
 
             ResultBuilder builder;
             builder.value(Value(std::move(datasets))).iter(Iterator::Kind::kGetNeighbors);

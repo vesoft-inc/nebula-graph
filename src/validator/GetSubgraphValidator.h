@@ -40,8 +40,6 @@ private:
 
     StatusOr<std::vector<storage::cpp2::EdgeProp>> buildAllEdgeProp();
 
-    Expression* buildSelectCondition(uint32_t steps);
-
 private:
     std::unordered_set<EdgeType>                edgeTypes_;
 };
