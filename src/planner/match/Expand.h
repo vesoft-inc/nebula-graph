@@ -52,9 +52,9 @@ private:
                       const Expression* nodeFilter,
                       SubPlan* plan);
 
-    Status collectData(const PlanNode* joinLeft,
+    Status collectData(PlanNode* joinLeft,
                        const PlanNode* joinRight,
-                       const PlanNode* inUnionNode,
+                       PlanNode* inUnionNode,
                        PlanNode** passThrough,
                        SubPlan* plan);
 
@@ -63,6 +63,8 @@ private:
     // Add a passThrough node into plan so that the result of previous ndoe
     // can be used by multiple other plan nodes
     PlanNode* passThrough(const QueryContext *qctx, const PlanNode *root) const;
+
+    Expression* buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) const;
 
     template <typename T>
     T* saveObject(T* obj) const {
