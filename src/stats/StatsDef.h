@@ -15,11 +15,11 @@ DECLARE_int32(slow_query_threshold_us);
 
 namespace nebula {
 
-extern int32_t kNumQueries;
-extern int32_t kNumSlowQueries;
-extern int32_t kNumQueryErrors;
-extern int32_t kQueryLatencyUs;
-extern int32_t kSlowQueryLatencyUs;
+extern stats::CounterId kNumQueries;
+extern stats::CounterId kNumSlowQueries;
+extern stats::CounterId kNumQueryErrors;
+extern stats::CounterId kQueryLatencyUs;
+extern stats::CounterId kSlowQueryLatencyUs;
 
 void initCounters();
 

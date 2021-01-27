@@ -15,11 +15,11 @@ DEFINE_int32(slow_query_threshold_us, 200000,
 
 namespace nebula {
 
-int32_t kNumQueries;
-int32_t kNumSlowQueries;
-int32_t kNumQueryErrors;
-int32_t kQueryLatencyUs;
-int32_t kSlowQueryLatencyUs;
+stats::CounterId kNumQueries;
+stats::CounterId kNumSlowQueries;
+stats::CounterId kNumQueryErrors;
+stats::CounterId kQueryLatencyUs;
+stats::CounterId kSlowQueryLatencyUs;
 
 void initCounters() {
     kNumQueries = stats::StatsManager::registerStats("num_queries", "rate, sum");
