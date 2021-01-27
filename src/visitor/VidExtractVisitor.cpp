@@ -444,6 +444,10 @@ void VidExtractVisitor::visit(PredicateExpression *expr) {
     vidPattern_ = VidPattern{};
 }
 
+void VidExtractVisitor::visit(ReduceExpression *expr) {
+    UNUSED(expr);
+    vidPattern_ = VidPattern{};
+}
 
 std::ostream &operator<<(std::ostream &os, const VidExtractVisitor::VidPattern &vp) {
     switch (vp.spec) {

@@ -100,6 +100,7 @@ public:
     void visit(ListComprehensionExpression *expr) override;
     void visit(AggregateExpression *expr) override;
     void visit(PredicateExpression *expr) override;
+    void visit(ReduceExpression *expr) override;
 
 private:
     void visitBinaryExpr(BinaryExpression *expr);
