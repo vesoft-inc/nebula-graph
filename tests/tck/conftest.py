@@ -11,11 +11,13 @@ import io
 import csv
 import re
 
+from nebula2.common.ttypes import Value
 from nebula2.graph.ttypes import ErrorCode
 from pytest_bdd import given, parsers, then, when
 
 from tests.common.dataset_printer import DataSetPrinter
 from tests.common.comparator import DataSetComparator
+from tests.common.plan_differ import PlanDiffer
 from tests.common.configs import DATA_DIR
 from tests.common.types import SpaceDesc
 from tests.common.utils import (
@@ -115,12 +117,22 @@ def import_csv_data(request, data, graph_spaces, session, pytestconfig):
     graph_spaces["drop_space"] = True
 
 
-@when(parse("executing query:\n{query}"))
-def executing_query(query, graph_spaces, session, request):
-    ngql = " ".join(query.splitlines())
+def exec_query(request, ngql, session, graph_spaces):
     ngql = normalize_outline_scenario(request, ngql)
     graph_spaces['result_set'] = session.execute(ngql)
     graph_spaces['ngql'] = ngql
+
+
+@when(parse("executing query:\n{query}"))
+def executing_query(query, graph_spaces, session, request):
+    ngql = " ".join(query.splitlines())
+    exec_query(request, ngql, session, graph_spaces)
+
+
+@when(parse("profiling query:\n{query}"))
+def profiling_query(query, graph_spaces, session, request):
+    ngql = "PROFILE {" + " ".join(query.splitlines()) + "}"
+    exec_query(request, ngql, session, graph_spaces)
 
 
 @given(parse("wait {secs:d} seconds"))
@@ -137,6 +149,24 @@ def line_number(steps, result):
             return step.line_number
     return -1
 
+# IN literal `1, 2, 3...'
+def parse_list(s: str):
+    numbers = s.split(',')
+    numbers_list = []
+    for num in numbers:
+        numbers_list.append(int(num))
+    return numbers_list
+
+def hash_columns(ds, hashed_columns):
+    if len(hashed_columns) == 0:
+        return ds
+    for col in hashed_columns:
+        assert col < len(ds.column_names), "The hashed column should in range."
+    for row in ds.rows:
+        for col in hashed_columns:
+            if row.values[col].getType() != Value.NVAL and row.values[col].getType() != Value.__EMPTY__:
+                row.values[col] = Value(iVal = murmurhash2(row.values[col]))
+    return ds
 
 def cmp_dataset(
         request,
@@ -145,6 +175,7 @@ def cmp_dataset(
         order: bool,
         strict: bool,
         included=False,
+        hashed_columns = [],
 ) -> None:
     rs = graph_spaces['result_set']
     ngql = graph_spaces['ngql']
@@ -157,6 +188,7 @@ def cmp_dataset(
         table(result, lambda x: normalize_outline_scenario(request, x)),
         graph_spaces.get("variables", {}),
     )
+    ds = hash_columns(ds, hashed_columns)
     dscmp = DataSetComparator(strict=strict,
                               order=order,
                               included=included,
@@ -210,21 +242,33 @@ def define_list_var_alias(text, graph_spaces):
 def result_should_be_in_order(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=True, strict=True)
 
+@then(parse("the result should be, in order, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_be_in_order_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request, graph_spaces, result, order=True, strict=True, hashed_columns=parse_list(hashed_columns))
 
 @then(parse("the result should be, in order, with relax comparison:\n{result}"))
 def result_should_be_in_order_relax_cmp(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=True, strict=False)
 
+@then(parse("the result should be, in order, with relax comparison, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_be_in_order_relax_cmp_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request, graph_spaces, result, order=True, strict=False, hashed_columns=parse_list(hashed_columns))
 
 @then(parse("the result should be, in any order:\n{result}"))
 def result_should_be(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=False, strict=True)
 
+@then(parse("the result should be, in any order, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_be_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request, graph_spaces, result, order=False, strict=True, hashed_columns=parse_list(hashed_columns))
 
 @then(parse("the result should be, in any order, with relax comparison:\n{result}"))
 def result_should_be_relax_cmp(request, result, graph_spaces):
     cmp_dataset(request, graph_spaces, result, order=False, strict=False)
 
+@then(parse("the result should be, in any order, with relax comparison, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_be_relax_cmp_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request, graph_spaces, result, order=False, strict=False, hashed_columns=parse_list(hashed_columns))
 
 @then(parse("the result should include:\n{result}"))
 def result_should_include(request, result, graph_spaces):
@@ -234,6 +278,16 @@ def result_should_include(request, result, graph_spaces):
                 order=False,
                 strict=True,
                 included=True)
+
+@then(parse("the result should include, and the columns {hashed_columns} should be hashed:\n{result}"))
+def result_should_include_and_hash(request, result, graph_spaces, hashed_columns):
+    cmp_dataset(request,
+                graph_spaces,
+                result,
+                order=False,
+                strict=True,
+                included=True,
+                hashed_columns=parse_list(hashed_columns))
 
 
 @then("no side effects")
@@ -274,3 +328,19 @@ def drop_used_space(session, graph_spaces):
     if space_desc is not None:
         stmt = space_desc.drop_stmt()
         response(session, stmt)
+
+
+@then(parse("the execution plan should be:\n{plan}"))
+def check_plan(plan, graph_spaces):
+    resp = graph_spaces["result_set"]
+    expect = table(plan)
+    column_names = expect.get('column_names', [])
+    idx = column_names.index('dependencies')
+    rows = expect.get("rows", [])
+    for i, row in enumerate(rows):
+        row[idx] = [
+            int(cell.strip()) for cell in row[idx].split(",") if len(cell) > 0
+        ]
+        rows[i] = row
+    differ = PlanDiffer(resp.plan_desc(), expect)
+    assert differ.diff(), differ.err_msg()

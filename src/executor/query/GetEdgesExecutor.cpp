@@ -18,6 +18,7 @@ namespace nebula {
 namespace graph {
 
 folly::Future<Status> GetEdgesExecutor::execute() {
+    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     return getEdges();
 }
 
@@ -55,7 +56,10 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
 
     if (edges.rows.empty()) {
         // TODO: add test for empty input.
-        return finish(ResultBuilder().value(Value(DataSet(ge->colNames()))).finish());
+        return finish(ResultBuilder()
+                          .value(Value(DataSet(ge->colNames())))
+                          .iter(Iterator::Kind::kProp)
+                          .finish());
     }
 
     time::Duration getPropsTime;
@@ -70,10 +74,17 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
                    ge->limit(),
                    ge->filter())
         .via(runner())
-        .ensure([getPropsTime]() {
+        .ensure([this, getPropsTime]() {
+            if (otherStats_ != nullptr) {
+                otherStats_->emplace("total_rpc",
+                                     folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
+            }
             VLOG(1) << "Get Props Time: " << getPropsTime.elapsedInUSec() << "us";
         })
         .then([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+            if (otherStats_ != nullptr) {
+                addStats(rpcResp, *otherStats_);
+            }
             SCOPED_TIMER(&execTime_);
             return handleResp(std::move(rpcResp), ge->colNamesRef());
         });

@@ -178,31 +178,20 @@ TEST(Parser, SpaceOperation) {
     }
     {
         GQLParser parser;
-        std::string query = "USE default_space";
+        std::string query = "CREATE SPACE default_space(partition_num=9, replica_factor=3) "
+                            "ON group_0";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "DESC SPACE default_space";
+        std::string query = "CREATE SPACE default_space ON group_0";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
     {
         GQLParser parser;
-        std::string query = "DESCRIBE SPACE default_space";
-        auto result = parser.parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        GQLParser parser;
-        std::string query = "SHOW CREATE SPACE default_space";
-        auto result = parser.parse(query);
-        ASSERT_TRUE(result.ok()) << result.status();
-    }
-    {
-        GQLParser parser;
-        std::string query = "DROP SPACE default_space";
+        std::string query = "CREATE SPACE default_space";
         auto result = parser.parse(query);
         ASSERT_TRUE(result.ok()) << result.status();
     }
@@ -240,6 +229,36 @@ TEST(Parser, SpaceOperation) {
                             "atomic_edge=FALSE)";
         auto result = parser.parse(query);
         EXPECT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "USE default_space";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "DESC SPACE default_space";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "DESCRIBE SPACE default_space";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "SHOW CREATE SPACE default_space";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
+    }
+    {
+        GQLParser parser;
+        std::string query = "DROP SPACE default_space";
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << result.status();
     }
 }
 
@@ -3089,5 +3108,32 @@ TEST(Parser, FullTextServiceTest) {
         auto result = parser.parse(query);
         ASSERT_FALSE(result.ok());
     }
+}
+
+TEST(Parser, JobTest) {
+    GQLParser parser;
+    auto checkTest = [&parser] (const std::string& query, const std::string expectedStr) {
+        auto result = parser.parse(query);
+        ASSERT_TRUE(result.ok()) << query << ":" << result.status();
+        ASSERT_EQ(result.value()->toString(), expectedStr);
+    };
+    checkTest("SUBMIT JOB COMPACT", "SUBMIT JOB COMPACT");
+    checkTest("SUBMIT JOB COMPACT 111", "SUBMIT JOB COMPACT 111");
+    checkTest("SUBMIT JOB FLUSH", "SUBMIT JOB FLUSH");
+    checkTest("SUBMIT JOB FLUSH 111", "SUBMIT JOB FLUSH 111");
+    checkTest("SUBMIT JOB STATS", "SUBMIT JOB STATS");
+    checkTest("SUBMIT JOB STATS 111", "SUBMIT JOB STATS 111");
+    checkTest("SHOW JOBS", "SHOW JOBS");
+    checkTest("SHOW JOB 111", "SHOW JOB 111");
+    checkTest("STOP JOB 111", "STOP JOB 111");
+    checkTest("RECOVER JOB", "RECOVER JOB");
+    checkTest("REBUILD TAG INDEX name_index", "REBUILD TAG INDEX name_index");
+    checkTest("REBUILD EDGE INDEX name_index", "REBUILD EDGE INDEX name_index");
+    checkTest("REBUILD TAG INDEX", "REBUILD TAG INDEX ");
+    checkTest("REBUILD EDGE INDEX", "REBUILD EDGE INDEX ");
+    checkTest("REBUILD TAG INDEX name_index, age_index",
+            "REBUILD TAG INDEX name_index,age_index");
+    checkTest("REBUILD EDGE INDEX name_index, age_index",
+            "REBUILD EDGE INDEX name_index,age_index");
 }
 }   // namespace nebula

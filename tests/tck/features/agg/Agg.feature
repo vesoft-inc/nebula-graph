@@ -90,6 +90,26 @@ Feature: Basic Aggregate and GroupBy
       | "Manu Ginobili" | 41.0 |
     When executing query:
       """
+      GO 2 STEPS FROM "Tim Duncan" OVER like YIELD like._dst as dst,like._src AS src, $$.player.age AS age
+      | GROUP BY $-.dst YIELD $-.dst AS dst,collect_set($-.src) AS src,collect($-.age) AS age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst                 | src                              | age      |
+      | "Manu Ginobili"     | {"Tony Parker"}                  | [41]     |
+      | "Tim Duncan"        | {"Tony Parker", "Manu Ginobili"} | [42, 42] |
+      | "LaMarcus Aldridge" | {"Tony Parker"}                  | [33]     |
+    When executing query:
+      """
+      $var=GO 2 STEPS FROM "Tim Duncan" OVER like YIELD like._dst as dst,like._src AS src, $$.player.age AS age;
+      YIELD $var.dst AS dst,collect_set($var.src) AS src,collect($var.age) AS age
+      """
+    Then the result should be, in any order, with relax comparison:
+      | dst                 | src                              | age      |
+      | "Manu Ginobili"     | {"Tony Parker"}                  | [41]     |
+      | "Tim Duncan"        | {"Tony Parker", "Manu Ginobili"} | [42, 42] |
+      | "LaMarcus Aldridge" | {"Tony Parker"}                  | [33]     |
+    When executing query:
+      """
       GO FROM 'Aron Baynes', 'Tracy McGrady' OVER serve
          YIELD $$.team.name AS name,
                serve._dst AS id,
@@ -428,6 +448,12 @@ Feature: Basic Aggregate and GroupBy
       | GROUP BY $-.age+1 YIELD $-.age+1,age,avg(distinct $-.age) AS age
       """
     Then a SemanticError should be raised at runtime: Not supported expression `age' for props deduction.
+    When executing query:
+      """
+      GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age
+      | GROUP BY $-.age YIELD $-.age,avg(distinct $-.age),$-.dst AS dst
+      """
+    Then a SemanticError should be raised at runtime: Yield non-agg expression `$-.dst' must be functionally dependent on items in GROUP BY clause
     When executing query:
       """
       GO FROM "Tim Duncan" OVER like YIELD like._dst AS dst, $$.player.age AS age

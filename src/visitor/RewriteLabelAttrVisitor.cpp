@@ -145,6 +145,42 @@ void RewriteLabelAttrVisitor::visit(ListComprehensionExpression* expr) {
     }
 }
 
+void RewriteLabelAttrVisitor::visit(PredicateExpression* expr) {
+    if (isLabelAttrExpr(expr->collection())) {
+        auto newExpr = static_cast<LabelAttributeExpression*>(expr->collection());
+        expr->setCollection(createExpr(newExpr));
+    } else {
+        expr->collection()->accept(this);
+    }
+    if (isLabelAttrExpr(expr->filter())) {
+        auto newExpr = static_cast<LabelAttributeExpression*>(expr->filter());
+        expr->setFilter(createExpr(newExpr));
+    } else {
+        expr->filter()->accept(this);
+    }
+}
+
+void RewriteLabelAttrVisitor::visit(ReduceExpression* expr) {
+    if (isLabelAttrExpr(expr->initial())) {
+        auto newExpr = static_cast<LabelAttributeExpression*>(expr->initial());
+        expr->setCollection(createExpr(newExpr));
+    } else {
+        expr->initial()->accept(this);
+    }
+    if (isLabelAttrExpr(expr->collection())) {
+        auto newExpr = static_cast<LabelAttributeExpression*>(expr->collection());
+        expr->setCollection(createExpr(newExpr));
+    } else {
+        expr->collection()->accept(this);
+    }
+    if (isLabelAttrExpr(expr->mapping())) {
+        auto newExpr = static_cast<LabelAttributeExpression*>(expr->mapping());
+        expr->setMapping(createExpr(newExpr));
+    } else {
+        expr->mapping()->accept(this);
+    }
+}
+
 void RewriteLabelAttrVisitor::visitBinaryExpr(BinaryExpression* expr) {
     if (isLabelAttrExpr(expr->left())) {
         auto left = static_cast<const LabelAttributeExpression*>(expr->left());

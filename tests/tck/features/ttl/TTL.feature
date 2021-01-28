@@ -354,9 +354,9 @@ Feature: TTLTest
       """
       FETCH PROP ON person "1";
       """
-    Then the result should be, in any order:
-      | VertexID | person.id |
-      | "1"      | EMPTY     |
+    Then the result should be, in any order, with relax comparison:
+      | vertices_ |
+      | ("1")     |
     When executing query:
       """
       FETCH PROP ON person "1" YIELD person.id as id
@@ -366,14 +366,14 @@ Feature: TTLTest
       | "1"      | EMPTY |
     When executing query:
       """
-      FETCH PROP ON * "1";
+      FETCH PROP ON * "1" YIELD person.id, career.id
       """
     Then the result should be, in any order:
       | VertexID | person.id | career.id |
       | "1"      | EMPTY     | EMPTY     |
     When executing query:
       """
-      FETCH PROP ON person "2";
+      FETCH PROP ON person "2" YIELD person.id
       """
     Then the result should be, in any order:
       | VertexID | person.id |
@@ -387,7 +387,7 @@ Feature: TTLTest
       | "2"      | EMPTY |
     When executing query:
       """
-      FETCH PROP ON career "2";
+      FETCH PROP ON career "2" YIELD career.id
       """
     Then the result should be, in any order:
       | VertexID | career.id |
@@ -401,14 +401,14 @@ Feature: TTLTest
       | "2"      | 200       |
     When executing query:
       """
-      FETCH PROP ON * "2";
+      FETCH PROP ON * "2" YIELD person.id, career.id
       """
     Then the result should be, in any order:
       | VertexID | person.id | career.id |
       | "2"      | EMPTY     | 200       |
     When executing query:
       """
-      FETCH PROP ON friend "100"->"1","100"->"2";
+      FETCH PROP ON friend "100"->"1","100"->"2" YIELD friend.id;
       """
     Then the result should be, in any order:
       | friend._src | friend._dst | friend._rank | friend.id |
@@ -424,7 +424,7 @@ Feature: TTLTest
       | "100"       | "2"         | 0            | 200 |
     When executing query:
       """
-      FETCH PROP ON like "100"->"1","100"->"2";
+      FETCH PROP ON like "100"->"1","100"->"2" YIELD like.id;
       """
     Then the result should be, in any order:
       | like._src | like._dst | like._rank | like.id |

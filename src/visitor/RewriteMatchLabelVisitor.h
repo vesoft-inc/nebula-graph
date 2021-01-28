@@ -36,10 +36,12 @@ private:
     void visit(TypeCastingExpression*) override;
     void visit(UnaryExpression*) override;
     void visit(FunctionCallExpression*) override;
+    void visit(AggregateExpression*) override;
     void visit(ListExpression*) override;
     void visit(SetExpression*) override;
     void visit(MapExpression*) override;
     void visit(CaseExpression *) override;
+    void visit(ReduceExpression *) override;
     void visit(ConstantExpression *) override {}
     void visit(LabelExpression*) override {}
     void visit(AttributeExpression*) override;
@@ -60,6 +62,7 @@ private:
     void visit(VertexExpression*) override {}
     void visit(EdgeExpression*) override {}
     void visit(ColumnExpression*) override {}
+    void visit(PredicateExpression *) override;
     void visit(ListComprehensionExpression*) override;
 
     void visitBinaryExpr(BinaryExpression *) override;

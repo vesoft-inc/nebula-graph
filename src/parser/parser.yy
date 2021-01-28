@@ -23,9 +23,13 @@
 #include "common/expression/VariableExpression.h"
 #include "common/expression/CaseExpression.h"
 #include "common/expression/TextSearchExpression.h"
+#include "common/expression/PredicateExpression.h"
 #include "common/expression/ListComprehensionExpression.h"
 #include "common/expression/AggregateExpression.h"
 
+#include "common/expression/ReduceExpression.h"
+#include "util/ParserUtil.h"
+#include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 #include "util/ParserUtil.h"
 #include "context/QueryContext.h"
@@ -156,7 +160,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_ATOMIC_EDGE
 %token KW_DROP KW_REMOVE KW_SPACES KW_INGEST KW_INDEX KW_INDEXES
 %token KW_IF KW_NOT KW_EXISTS KW_WITH
-%token KW_COUNT KW_COUNT_DISTINCT KW_SUM KW_AVG KW_MAX KW_MIN KW_STD KW_BIT_AND KW_BIT_OR KW_BIT_XOR
+%token KW_COUNT KW_COUNT_DISTINCT KW_SUM KW_AVG KW_MAX KW_MIN KW_STD KW_BIT_AND KW_BIT_OR KW_BIT_XOR KW_COLLECT KW_COLLECT_SET
 %token KW_BY KW_DOWNLOAD KW_HDFS KW_UUID KW_CONFIGS KW_FORCE
 %token KW_GET KW_DECLARE KW_GRAPH KW_META KW_STORAGE
 %token KW_TTL KW_TTL_DURATION KW_TTL_COL KW_DATA KW_STOP
@@ -182,6 +186,8 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token KW_LISTENER KW_ELASTICSEARCH
 %token KW_AUTO KW_FUZZY KW_PREFIX KW_REGEXP KW_WILDCARD
 %token KW_TEXT KW_SEARCH KW_CLIENTS KW_SIGN KW_SERVICE KW_TEXT_SEARCH
+%token KW_ANY KW_SINGLE KW_NONE
+%token KW_REDUCE
 
 /* symbols */
 %token L_PAREN R_PAREN L_BRACKET R_BRACKET L_BRACE R_BRACE COMMA
@@ -195,7 +201,7 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %token <doubleval> DOUBLE
 %token <strval> STRING VARIABLE LABEL IPV4
 
-%type <strval> name_label unreserved_keyword agg_function
+%type <strval> name_label unreserved_keyword agg_function predicate_name
 %type <expr> expression
 %type <expr> property_expression
 %type <expr> vertex_prop_expression
@@ -215,7 +221,9 @@ static constexpr size_t MAX_ABS_INTEGER = 9223372036854775808ULL;
 %type <expr> subscript_expression
 %type <expr> attribute_expression
 %type <expr> case_expression
+%type <expr> predicate_expression
 %type <expr> list_comprehension_expression
+%type <expr> reduce_expression
 %type <expr> compound_expression
 %type <expr> aggregate_expression
 %type <expr> text_search_expression
@@ -425,6 +433,8 @@ unreserved_keyword
     | KW_BIT_AND            { $$ = new std::string("bit_and"); }
     | KW_BIT_OR             { $$ = new std::string("bit_or"); }
     | KW_BIT_XOR            { $$ = new std::string("bit_xor"); }
+    | KW_COLLECT            { $$ = new std::string("collect"); }
+    | KW_COLLECT_SET        { $$ = new std::string("collect_set"); }
     | KW_PATH               { $$ = new std::string("path"); }
     | KW_DATA               { $$ = new std::string("data"); }
     | KW_LEADER             { $$ = new std::string("leader"); }
@@ -453,6 +463,10 @@ unreserved_keyword
     | KW_META               { $$ = new std::string("meta"); }
     | KW_STORAGE            { $$ = new std::string("storage"); }
     | KW_ALL                { $$ = new std::string("all"); }
+    | KW_ANY                { $$ = new std::string("any"); }
+    | KW_SINGLE             { $$ = new std::string("single"); }
+    | KW_NONE               { $$ = new std::string("none"); }
+    | KW_REDUCE             { $$ = new std::string("reduce"); }
     | KW_SHORTEST           { $$ = new std::string("shortest"); }
     | KW_NOLOOP             { $$ = new std::string("noloop"); }
     | KW_COUNT_DISTINCT     { $$ = new std::string("count_distinct"); }
@@ -505,6 +519,8 @@ agg_function
     | KW_BIT_AND            { $$ = new std::string("BIT_AND"); }
     | KW_BIT_OR             { $$ = new std::string("BIT_OR"); }
     | KW_BIT_XOR            { $$ = new std::string("BIT_XOR"); }
+    | KW_COLLECT            { $$ = new std::string("COLLECT"); }
+    | KW_COLLECT_SET        { $$ = new std::string("COLLECT_SET"); }
     ;
 
 expression
@@ -627,7 +643,13 @@ expression
     | case_expression {
         $$ = $1;
     }
+    | predicate_expression {
+        $$ = $1;
+    }
     | list_comprehension_expression {
+        $$ = $1;
+    }
+    | reduce_expression {
         $$ = $1;
     }
     ;
@@ -749,6 +771,25 @@ when_then_list
     }
     ;
 
+predicate_name
+    : KW_ALL                { $$ = new std::string("all"); }
+    | KW_ANY                { $$ = new std::string("any"); }
+    | KW_SINGLE             { $$ = new std::string("single"); }
+    | KW_NONE               { $$ = new std::string("none"); }
+    ;
+
+predicate_expression
+    : predicate_name L_PAREN expression KW_IN expression KW_WHERE expression R_PAREN {
+        if ($3->kind() != Expression::Kind::kLabel) {
+            throw nebula::GraphParser::syntax_error(@3, "The loop variable must be a label in predicate functions");
+        }
+        auto &innerVar = *(static_cast<const LabelExpression *>($3)->name());
+        auto *expr = new PredicateExpression($1, new std::string(innerVar), $5, $7);
+        nebula::graph::ParserUtil::rewritePred(qctx, expr, innerVar);
+        $$ = expr;
+        delete $3;
+    }
+    ;
 
 list_comprehension_expression
     : L_BRACKET expression KW_IN expression KW_WHERE expression R_BRACKET {
@@ -780,6 +821,14 @@ list_comprehension_expression
         nebula::graph::ParserUtil::rewriteLC(qctx, expr, innerVar);
         $$ = expr;
         delete $2;
+    }
+    ;
+
+reduce_expression
+    : KW_REDUCE L_PAREN name_label ASSIGN expression COMMA name_label KW_IN expression PIPE expression R_PAREN {
+        auto *expr = new ReduceExpression($3, $5, $7, $9, $11);
+        nebula::graph::ParserUtil::rewriteReduce(qctx, expr, *$3, *$7);
+        $$ = expr;
     }
     ;
 
@@ -840,6 +889,9 @@ function_call_expression
     }
     | KW_DATETIME L_PAREN opt_argument_list R_PAREN {
         $$ = new FunctionCallExpression(new std::string("datetime"), $3);
+    }
+    | KW_TAGS L_PAREN opt_argument_list R_PAREN {
+        $$ = new FunctionCallExpression(new std::string("tags"), $3);
     }
     ;
 
@@ -2154,22 +2206,30 @@ describe_edge_index_sentence
     ;
 
 rebuild_tag_index_sentence
-    : KW_REBUILD KW_TAG KW_INDEX name_label {
+    : KW_REBUILD KW_TAG KW_INDEX name_label_list {
         auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
                                              meta::cpp2::AdminCmd::REBUILD_TAG_INDEX);
         sentence->addPara(*$4);
         delete $4;
         $$ = sentence;
     }
+    | KW_REBUILD KW_TAG KW_INDEX {
+        $$ = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                  meta::cpp2::AdminCmd::REBUILD_TAG_INDEX);
+    }
     ;
 
 rebuild_edge_index_sentence
-    : KW_REBUILD KW_EDGE KW_INDEX name_label {
+    : KW_REBUILD KW_EDGE KW_INDEX name_label_list {
         auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
                                              meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX);
         sentence->addPara(*$4);
         delete $4;
         $$ = sentence;
+    }
+    | KW_REBUILD KW_EDGE KW_INDEX {
+        $$ = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                  meta::cpp2::AdminCmd::REBUILD_EDGE_INDEX);
     }
     ;
 
@@ -2749,10 +2809,24 @@ create_space_sentence
         auto sentence = new CreateSpaceSentence($4, $3);
         $$ = sentence;
     }
+    | KW_CREATE KW_SPACE opt_if_not_exists name_label KW_ON name_label {
+        auto sentence = new CreateSpaceSentence($4, $3);
+        sentence->setOpts(new SpaceOptList());
+        sentence->setGroupName(*$6);
+        $$ = sentence;
+        delete $6;
+    }
     | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN {
         auto sentence = new CreateSpaceSentence($4, $3);
         sentence->setOpts($6);
         $$ = sentence;
+    }
+    | KW_CREATE KW_SPACE opt_if_not_exists name_label L_PAREN space_opt_list R_PAREN KW_ON name_label {
+        auto sentence = new CreateSpaceSentence($4, $3);
+        sentence->setOpts($6);
+        sentence->setGroupName(*$9);
+        $$ = sentence;
+        delete $9;
     }
     ;
 

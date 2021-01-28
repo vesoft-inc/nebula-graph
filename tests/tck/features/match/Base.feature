@@ -300,7 +300,7 @@ Feature: Basic match
       """
     Then a SemanticError should be raised at runtime: Only column name can be used as sort item
 
-  Scenario: Oeturn path
+  Scenario: Return path
     When executing query:
       """
       MATCH p = (n:player{name:"Tony Parker"}) return p,n
@@ -368,6 +368,11 @@ Feature: Basic match
       MATCH (v) return v
       """
     Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v) RETURN v
+    When executing query:
+      """
+      MATCH (v{name: "Tim Duncan"}) return v
+      """
+    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (v{name:Tim Duncan}) RETURN v
     When executing query:
       """
       MATCH (v:player:bachelor) RETURN v

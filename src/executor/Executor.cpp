@@ -42,6 +42,8 @@
 #include "executor/admin/ShowTSClientsExecutor.h"
 #include "executor/admin/SignInTSServiceExecutor.h"
 #include "executor/admin/SignOutTSServiceExecutor.h"
+#include "executor/admin/DownloadExecutor.h"
+#include "executor/admin/IngestExecutor.h"
 #include "executor/algo/BFSShortestPathExecutor.h"
 #include "executor/algo/ProduceSemiShortestPathExecutor.h"
 #include "executor/algo/ConjunctPathExecutor.h"
@@ -473,6 +475,12 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kSignOutTSService: {
             return pool->add(new SignOutTSServiceExecutor(node, qctx));
         }
+        case PlanNode::Kind::kDownload: {
+            return pool->add(new DownloadExecutor(node, qctx));
+        }
+        case PlanNode::Kind::kIngest: {
+            return pool->add(new IngestExecutor(node, qctx));
+        }
         case PlanNode::Kind::kUnknown: {
             LOG(FATAL) << "Unknown plan node kind " << static_cast<int32_t>(node->kind());
             break;
@@ -508,6 +516,7 @@ Status Executor::close() {
     stats.totalDurationInUs = totalDuration_.elapsedInUSec();
     stats.rows = numRows_;
     stats.execDurationInUs = execTime_;
+    stats.otherStats = std::move(otherStats_);
     qctx()->addProfilingData(node_->id(), std::move(stats));
     return Status::OK();
 }

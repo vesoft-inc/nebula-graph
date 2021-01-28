@@ -145,6 +145,14 @@ void ExprVisitorImpl::visit(PathBuildExpression *expr) {
     }
 }
 
+void ExprVisitorImpl::visit(PredicateExpression *expr) {
+    DCHECK(ok());
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    expr->filter()->accept(this);
+    if (!ok()) return;
+}
+
 void ExprVisitorImpl::visit(ListComprehensionExpression *expr) {
     DCHECK(ok());
     expr->collection()->accept(this);
@@ -157,6 +165,16 @@ void ExprVisitorImpl::visit(ListComprehensionExpression *expr) {
         expr->mapping()->accept(this);
         if (!ok()) return;
     }
+}
+
+void ExprVisitorImpl::visit(ReduceExpression *expr) {
+    DCHECK(ok());
+    expr->initial()->accept(this);
+    if (!ok()) return;
+    expr->collection()->accept(this);
+    if (!ok()) return;
+    expr->mapping()->accept(this);
+    if (!ok()) return;
 }
 
 }   // namespace graph

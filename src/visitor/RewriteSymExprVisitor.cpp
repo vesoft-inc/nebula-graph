@@ -287,5 +287,31 @@ void RewriteSymExprVisitor::visit(ListComprehensionExpression *expr) {
     }
 }
 
+void RewriteSymExprVisitor::visit(PredicateExpression *expr) {
+    expr->collection()->accept(this);
+    if (expr_) {
+        expr->setCollection(expr_.release());
+    }
+    expr->filter()->accept(this);
+    if (expr_) {
+        expr->setFilter(expr_.release());
+    }
+}
+
+void RewriteSymExprVisitor::visit(ReduceExpression *expr) {
+    expr->initial()->accept(this);
+    if (expr_) {
+        expr->setInitial(expr_.release());
+    }
+    expr->collection()->accept(this);
+    if (expr_) {
+        expr->setCollection(expr_.release());
+    }
+    expr->mapping()->accept(this);
+    if (expr_) {
+        expr->setMapping(expr_.release());
+    }
+}
+
 }   // namespace graph
 }   // namespace nebula

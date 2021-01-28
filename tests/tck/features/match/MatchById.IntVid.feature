@@ -31,9 +31,9 @@ Feature: Integer Vid Match By Id
       """
       MATCH (n) WHERE id(n) == hash('Tony Parker') RETURN id(n), labels(n)
       """
-    Then the result should be, in any order, with relax comparison:
-      | id(n)               | labels(n)  |
-      | hash('Tony Parker') | ['player'] |
+    Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
+      | id(n)         | labels(n)  |
+      | 'Tony Parker' | ['player'] |
     When executing query:
       """
       MATCH (n) WHERE id(n) == hash('not_exist_vertex') RETURN labels(n)
@@ -68,19 +68,19 @@ Feature: Integer Vid Match By Id
       """
       MATCH (n) WHERE id(n) IN [hash('LaMarcus Aldridge'), hash('Tony Parker'), hash('not_exist_vertex')] return id(n)
       """
-    Then the result should be, in any order, with relax comparison:
-      | id(n)                     |
-      | hash("LaMarcus Aldridge") |
-      | hash("Tony Parker")       |
+    Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
+      | id(n)               |
+      | "LaMarcus Aldridge" |
+      | "Tony Parker"       |
     When executing query:
       """
       MATCH (n) WHERE id(n) IN [hash('LaMarcus Aldridge'), hash('Tony Parker'), hash('not_exist_vertex')]
       return id(n), `tags`(n)
       """
-    Then the result should be, in any order, with relax comparison:
-      | id(n)                     | tags(n)    |
-      | hash("LaMarcus Aldridge") | ['player'] |
-      | hash("Tony Parker")       | ['player'] |
+    Then the result should be, in any order, with relax comparison, and the columns 0 should be hashed:
+      | id(n)               | tags(n)    |
+      | "LaMarcus Aldridge" | ['player'] |
+      | "Tony Parker"       | ['player'] |
     When executing query:
       """
       MATCH (start)-[e]-(end) WHERE id(start) IN [hash("Paul George"), hash("not_exist_vertex")]
@@ -918,3 +918,25 @@ Feature: Integer Vid Match By Id
     Then the result should be, in any order, with relax comparison:
       | COUNT(1) |
       | 927      |
+
+  Scenario: the referred vertex of id fn is not the first
+    When executing query:
+      """
+      MATCH (v1)-[:like]->(v2:player)-[:serve]->(v3)
+      WHERE id(v2) == hash('Tim Duncan')
+      RETURN v1, v3 |
+      YIELD COUNT(*)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | COUNT(*) |
+      | 10       |
+    When executing query:
+      """
+      MATCH (v1)-[:like]->(v2:player)-[:serve]->(v3)
+      WHERE id(v3) == hash('Spurs')
+      RETURN v1 |
+      YIELD COUNT(*)
+      """
+    Then the result should be, in any order, with relax comparison:
+      | COUNT(*) |
+      | 34       |

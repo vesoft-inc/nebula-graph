@@ -71,8 +71,12 @@ public:
     void visit(PathBuildExpression *expr) override;
     // column expression
     void visit(ColumnExpression *expr) override;
+    // predicate expression
+    void visit(PredicateExpression *expr) override;
     // list comprehension expression
     void visit(ListComprehensionExpression *expr) override;
+    // reduce expression
+    void visit(ReduceExpression *expr) override;
 
 private:
     void visitBinaryExpr(BinaryExpression *expr);
