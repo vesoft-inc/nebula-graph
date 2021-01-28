@@ -129,6 +129,22 @@ Feature: With clause and Unwind clause
     Then the result should be, in any order:
       | min   | max     |
       | ["a"] | ["abc"] |
+    When executing query:
+      """
+      UNWIND ['a',"abc","ab"] AS x
+      return min(x) AS min, max(x) AS max
+      """
+    Then the result should be, in any order:
+      | min | max   |
+      | "a" | "abc" |
+    When executing query:
+      """
+      UNWIND [true,false,false] AS x
+      return min(x) AS min, max(x) AS max
+      """
+    Then the result should be, in any order:
+      | min   | max  |
+      | false | true |
 
   Scenario: with unwind return
     When executing query:
