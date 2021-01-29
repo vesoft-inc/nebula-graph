@@ -44,6 +44,7 @@ public:
 private:
     Status expandSteps(const NodeInfo& node,
                        const EdgeInfo& edge,
+                       PlanNode** loopTail,
                        SubPlan* plan);
 
     Status expandStep(const EdgeInfo& edge,
@@ -58,7 +59,10 @@ private:
                        PlanNode** passThrough,
                        SubPlan* plan);
 
-    Status filterDatasetByPathLength(const EdgeInfo& edge, PlanNode* input, SubPlan* plan);
+    Status filterDatasetByPathLength(const EdgeInfo& edge,
+                                     PlanNode* input,
+                                     PlanNode* loopTail,
+                                     SubPlan* plan);
 
     // Add a passThrough node into plan so that the result of previous ndoe
     // can be used by multiple other plan nodes

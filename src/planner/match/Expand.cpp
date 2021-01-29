@@ -85,8 +85,9 @@ static Expression* buildPathExpr() {
 Status Expand::doExpand(const NodeInfo& node,
                         const EdgeInfo& edge,
                         SubPlan* plan) {
-    NG_RETURN_IF_ERROR(expandSteps(node, edge, plan));
-    NG_RETURN_IF_ERROR(filterDatasetByPathLength(edge, plan->root, plan));
+    PlanNode* loopTail = nullptr;
+    NG_RETURN_IF_ERROR(expandSteps(node, edge, &loopTail, plan));
+    NG_RETURN_IF_ERROR(filterDatasetByPathLength(edge, plan->root, loopTail, plan));
     return Status::OK();
 }
 
@@ -141,7 +142,10 @@ Status Expand::doExpand(const NodeInfo& node,
 
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project2->
 // DataJoin->Project3->[Filter]->Passthrough->Union
-Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* plan) {
+Status Expand::expandSteps(const NodeInfo& node,
+                           const EdgeInfo& edge,
+                           PlanNode** loopTail,
+                           SubPlan* plan) {
     SubPlan subplan;
     int64_t startIndex = 0;
     auto minHop = edge.range ? edge.range->min() : 1;
@@ -160,64 +164,71 @@ Status Expand::expandSteps(const NodeInfo& node, const EdgeInfo& edge, SubPlan* 
                                                               inputVar_,
                                                               subplan));
         // If maxHop > 0, the result of 0 step will be passed to next plan node
-        if (maxHop > 0) {
-            subplan.root = passThrough(matchCtx_->qctx, subplan.root);
-        } else {
-            plan->root = subplan.root;
-            return Status::OK();
-        }
+        // if (maxHop == 0) { // No need to further expand
+        //     plan->root = subplan.root;
+        //     *loopTail = subplan.root;
+        //     return Status::OK();
+        // }
     } else {  // Case 1 to n steps
         startIndex = 1;
         // Expand first step from src
         NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, &subplan));
         // Manually create a passThrough node for the first step
         // Rest steps will be passed to collectData()
-        subplan.root = passThrough(matchCtx_->qctx, subplan.root);
+        // subplan.root = passThrough(matchCtx_->qctx, subplan.root);
+    }
+    // No need to further expand if maxHop is the start Index
+    if (maxHop == startIndex) {
+        plan->root = subplan.root;
+        *loopTail = subplan.root;
+        return Status::OK();
     }
     // Result of first step expansion
-    PlanNode* passThrough = subplan.root;
-
+    PlanNode* firstStep = subplan.root;
 
     // Build Start node from first step
     SubPlan loopBodyPlan;
     PlanNode* startNode = StartNode::make(matchCtx_->qctx);
-    startNode->setOutputVar(passThrough->outputVar());
-    startNode->setColNames({kPathStr});
+    startNode->setOutputVar(firstStep->outputVar());
+    startNode->setColNames(firstStep->colNames());
+    loopBodyPlan.root = startNode;
+    loopBodyPlan.tail = startNode;
+    // Convert the start node to a passThrough node
+    loopBodyPlan.root = passThrough(matchCtx_->qctx, loopBodyPlan.root);
+    PlanNode* passThrough = loopBodyPlan.root;
 
     // Build node for Union
-    PlanNode* rNode = new PlanNode(matchCtx_->qctx, PNKind::kUnion);
-    rNode->setOutputVar(passThrough->outputVar());
+    // PlanNode* rNode = new PlanNode(matchCtx_->qctx, PNKind::kUnion);
+    // rNode->setOutputVar(firstStep->outputVar());
 
     // Construct loop body
     NG_RETURN_IF_ERROR(expandStep(edge,
-                                  startNode,                // dep
-                                  startNode->outputVar(),   // inputVar
+                                  passThrough,                // dep
+                                  passThrough->outputVar(),   // inputVar
                                   nullptr,
                                   &loopBodyPlan));
-    // auto rNode = subplan.root;
+    auto rNode = passThrough;
 
     DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
 
-    NG_RETURN_IF_ERROR(collectData(startNode,           // left join node
+    NG_RETURN_IF_ERROR(collectData(passThrough,         // left join node
                                    loopBodyPlan.root,   // right join node
                                    rNode,               // union node
-                                   &startNode,
+                                   &passThrough,        // passThrough
                                    &subplan));
     // Union node
     auto body = subplan.root;
-    // loopBodyPlan.root= rNode; // Last node in loop body
-    // loopBodyPlan.tail = startNode;
 
     // Loop condition
     auto condition = buildNStepLoopCondition(startIndex, maxHop);
 
     // Create loop
-    auto* loop = Loop::make(matchCtx_->qctx, passThrough, body, condition);
-    loop->setColNames({kPathStr});
-    loop->setOutputVar(body->outputVar());
+    auto* loop = Loop::make(matchCtx_->qctx, firstStep, body, condition);
+    // loop->setColNames({kPathStr});
+    // loop->setOutputVar(body->outputVar());
 
-    // subplan.root = loop;
-
+    *loopTail = body;
+    subplan.root = loop;
     plan->root = subplan.root;
     return Status::OK();
 }
@@ -331,6 +342,7 @@ Status Expand::collectData(PlanNode* joinLeft,
 
 Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
                                          PlanNode* input,
+                                         PlanNode* loopTail,
                                          SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
 
@@ -346,7 +358,10 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
     auto expr = std::make_unique<RelationalExpression>(
         Expression::Kind::kRelGE, edgeExpr.release(), minHopExpr.release());
     auto filter = Filter::make(qctx, input, saveObject(expr.release()));
-    filter->setColNames(input->colNames());
+
+    // Use the last plan node in loop
+    filter->setInputVar(loopTail->outputVar());
+    filter->setColNames(loopTail->colNames());
     plan->root = filter;
     // Plan->tail = curr.tail;
     return Status::OK();
@@ -361,14 +376,14 @@ PlanNode* Expand::passThrough(const QueryContext *qctx, const PlanNode *root) co
 
 Expression* Expand::buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) const {
     VLOG(1) << "maxHop: " << maxHop;
-    // ++loopSteps{0} < maxHop
+    // ++loopSteps{startIndex} <= maxHop
     auto loopSteps = matchCtx_->qctx->vctx()->anonVarGen()->getVar();
     matchCtx_->qctx->ectx()->setValue(loopSteps, startIndex);
     return matchCtx_->qctx->objPool()->add(new RelationalExpression(
-        Expression::Kind::kRelLT,
+        Expression::Kind::kRelLE,
         new UnaryExpression(
             Expression::Kind::kUnaryIncr,
-            new VersionedVariableExpression(new std::string(loopSteps), new ConstantExpression(0))),
+            new VariableExpression(new std::string(loopSteps))),
         new ConstantExpression(static_cast<int64_t>(maxHop))));
 }
 
