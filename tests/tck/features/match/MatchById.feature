@@ -941,7 +941,7 @@ Feature: Match By Id
       | COUNT(*) |
       | 34       |
 
-  Scenario: [rc1 bug] https://discuss.nebula-graph.com.cn/t/topic/2646/15
+  Scenario: [v2rc1 bug] https://discuss.nebula-graph.com.cn/t/topic/2646/15
     When executing query:
       """
       MATCH (v:player)-[e]-(v2)
