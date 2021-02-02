@@ -61,7 +61,7 @@ private:
 
     Status filterDatasetByPathLength(const EdgeInfo& edge,
                                      PlanNode* input,
-                                     PlanNode* loopTail,
+                                     const PlanNode* loopTail,
                                      SubPlan* plan);
 
     // Add a passThrough node into plan so that the result of previous ndoe
