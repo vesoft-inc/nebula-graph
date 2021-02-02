@@ -62,7 +62,7 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
     ds.colNames = std::move(colNames_);
     // the subgraph not need duplicate vertices or edges, so dedup here directly
     std::unordered_set<std::string> uniqueVids;
-    std::unordered_set<Edge> uniqueEdges;
+    std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdges;
     for (size_t i = 0; i < vars.size(); ++i) {
         const auto& hist = ectx_->getHistory(vars[i]);
         for (size_t j = 0; j < hist.size(); ++j) {
@@ -88,12 +88,14 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
                 }
             }
             auto originEdges = gnIter->getEdges();
-            for (auto& e : originEdges.values) {
-                if (!e.isEdge()) {
+            for (auto& edge : originEdges.values) {
+                if (!edge.isEdge()) {
                     continue;
                 }
-                if (uniqueEdges.emplace(e.getEdge()).second) {
-                    edges.emplace_back(std::move(e));
+                const auto& e = edge.getEdge();
+                auto edgeKey = std::make_tuple(e.src, e.type, e.ranking, e.dst);
+                if (uniqueEdges.emplace(std::move(edgeKey)).second) {
+                    edges.emplace_back(std::move(edge));
                 }
             }
             ds.rows.emplace_back(Row({std::move(vertices), std::move(edges)}));
