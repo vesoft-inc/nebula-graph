@@ -36,20 +36,20 @@ folly::Future<Status> SubgraphExecutor::execute() {
     if (currentStep == 1) {
         for (; iter->valid(); iter->next()) {
             const auto& src = iter->getColumn(nebula::kVid);
-            historyVids_.emplace(src.toString().c_str());
+            historyVids_.emplace(src);
         }
         iter->reset();
     }
     for (; iter->valid(); iter->next()) {
         const auto& dst = iter->getEdgeProp("*", nebula::kDst);
-        if (historyVids_.emplace(dst.toString().c_str()).second) {
+        if (historyVids_.emplace(dst).second) {
             Row row;
             row.values.emplace_back(std::move(dst));
             ds.rows.emplace_back(std::move(row));
         }
     }
 
-    VLOG(1) << "next step vid is : " << ds;
+    VLOG(1) << "Next step vid is : " << ds;
     return finish(ResultBuilder().value(Value(std::move(ds))).finish());
 }
 
@@ -64,8 +64,8 @@ void SubgraphExecutor::oneMoreStep() {
     ResultBuilder builder;
     builder.value(iter->valuePtr());
     while (iter->valid()) {
-        const auto& dstVid = iter->getEdgeProp("*", nebula::kDst).toString().c_str();
-        if (historyVids_.find(dstVid) == historyVids_.end()) {
+        const auto& dst = iter->getEdgeProp("*", nebula::kDst);
+        if (historyVids_.find(dst) == historyVids_.end()) {
             iter->unstableErase();
         } else {
             iter->next();

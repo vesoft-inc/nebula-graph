@@ -22,7 +22,7 @@ private:
     void oneMoreStep();
 
 private:
-    std::unordered_set<std::string>   historyVids_;
+    std::unordered_set<Value>   historyVids_;
 };
 
 }   // namespace graph
