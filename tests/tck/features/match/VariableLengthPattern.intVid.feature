@@ -327,3 +327,32 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | [[:like "Tim Duncan"<-"LaMarcus Aldridge"], [:like "LaMarcus Aldridge"<-"Tony Parker"]] | [:serve "Tony Parker"->"Spurs"] |
       | [[:like "Tim Duncan"->"Tony Parker"]]                                                   | [:serve "Tony Parker"->"Spurs"] |
       | [[:like "Tim Duncan"<-"Tony Parker"]]                                                   | [:serve "Tony Parker"->"Spurs"] |
+
+  Scenario: Return relationships by fetching them from the path
+    When executing query:
+      """
+      MATCH p= (a:player)-[e:like*2..2]->(b) RETURN relationships(p) | limit 2
+      """
+    Then the result should be, in any order, with relax comparison:
+      | relationships(p)                                                                                                          |
+      | [[:like "Paul Gasol"->"Marc Gasol" @0 {likeness: 99}], [:like "Marc Gasol"->"Paul Gasol" @0 {likeness: 99}]]              |
+      | [[:like "Kristaps Porzingis"->"Luka Doncic" @0 {likeness: 90}], [:like "Luka Doncic"->"Dirk Nowitzki" @0 {likeness: 90}]] |
+
+  Scenario: Return relationships by fetching them from the path - starting from the end
+    When executing query:
+      """
+      MATCH p= (a)-[e:like*2..2]->(b:player) RETURN relationships(p) | limit 2
+      """
+    Then the result should be, in any order, with relax comparison:
+      | relationships(p)                                                                                                               |
+      | [[:like "Paul Gasol"->"Marc Gasol" @0 {likeness: 99}], [:like "Marc Gasol"->"Paul Gasol" @0 {likeness: 99}]]                   |
+      | [[:like "Kristaps Porzingis"->"Luka Doncic" @0 {likeness: 90}], [:like "Luka Doncic"->"Kristaps Porzingis" @0 {likeness: 90}]] |
+
+  Scenario: Unimplemented features
+    # Return a var length path of length zero
+    When executing query:
+      """
+      MATCH p = (a)-[*0..1]->(b)
+      RETURN a, b, length(p) AS l
+      """
+    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH p = (a)-[*0..1]->(b) RETURN a,b,length(p) AS l

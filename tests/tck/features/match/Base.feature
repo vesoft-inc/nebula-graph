@@ -398,3 +398,32 @@ Feature: Basic match
       MATCH () --> (v) --> () return *
       """
     Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-->(v)-->() RETURN *
+    # Failing when using `length()` on a node
+    When executing query:
+      """
+      MATCH (n)
+      RETURN length(n)
+      """
+    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH (n) RETURN length(n)
+    # Failing when using `length()` on a relationship
+    When executing query:
+      """
+      MATCH ()-[r]->()
+      RETURN length(r)
+      """
+    Then a ExecutionError should be raised at runtime: Can't solve the start vids from the sentence: MATCH ()-[r]->() RETURN length(r)
+    # optional match
+    When executing query:
+      """
+      WITH null AS a
+      OPTIONAL MATCH p = (a)-[r]->()
+      RETURN relationships(p), relationships(null)
+      """
+    Then a SemanticError should be raised at runtime: OPTIONAL MATCH not supported
+    When executing query:
+      """
+      WITH null AS a
+      OPTIONAL MATCH p = (a)-[r]->()
+      RETURN nodes(p), nodes(null)
+      """
+    Then a SemanticError should be raised at runtime: OPTIONAL MATCH not supported
