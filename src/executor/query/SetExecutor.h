@@ -21,7 +21,9 @@ class SetExecutor : public Executor {
 public:
     Status checkInputDataSets();
     std::unique_ptr<Iterator> getLeftInputDataIter() const;
+    std::unique_ptr<Iterator> getVersionedLeftInputDataIter(int64_t index = -1) const;
     std::unique_ptr<Iterator> getRightInputDataIter() const;
+    std::unique_ptr<Iterator> getVersionedRightInputDataIter(int64_t index = -1) const;
 
 protected:
     SetExecutor(const std::string &name, const PlanNode *node, QueryContext *qctx)

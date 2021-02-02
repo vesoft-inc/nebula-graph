@@ -61,9 +61,23 @@ std::unique_ptr<Iterator> SetExecutor::getLeftInputDataIter() const {
     return ectx_->getResult(left).iter();
 }
 
+// Returns an iteraot of a versioned value of leftInput,
+// the default value is the second latest value
+std::unique_ptr<Iterator> SetExecutor::getVersionedLeftInputDataIter(int64_t index) const {
+    auto left = asNode<SetOp>(node())->leftInputVar();
+    return ectx_->getVersionedResult(left, index).iter();
+}
+
 std::unique_ptr<Iterator> SetExecutor::getRightInputDataIter() const {
     auto right = asNode<SetOp>(node())->rightInputVar();
     return ectx_->getResult(right).iter();
+}
+
+// Returns an iteraot of a versioned value of rightInput,
+// the default value is the second latest value
+std::unique_ptr<Iterator> SetExecutor::getVersionedRightInputDataIter(int64_t index) const {
+    auto right = asNode<SetOp>(node())->rightInputVar();
+    return ectx_->getVersionedResult(right, index).iter();
 }
 
 }   // namespace graph

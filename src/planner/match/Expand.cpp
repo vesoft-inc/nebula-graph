@@ -91,55 +91,6 @@ Status Expand::doExpand(const NodeInfo& node,
     return Status::OK();
 }
 
-// (v)-[e]-()
-// Status Expand::expandSteps(const NodeInfo& node,
-//                            const EdgeInfo& edge,
-//                            SubPlan* plan) {
-//     SubPlan subplan;
-//     int64_t startIndex = 0;
-//     auto minHop = edge.range ? edge.range->min() : 1;
-//     auto maxHop = edge.range ? edge.range->max() : 1;
-
-//     // In the case of 0 step, src node is the dst node, return the vertex directly
-//     if (minHop == 0) {
-//         subplan = *plan;
-//         startIndex = 0;
-//         // Get vertex
-//         NG_RETURN_IF_ERROR(MatchSolver::appendFetchVertexPlan(node.filter,
-//                                                               matchCtx_->space,
-//                                                               matchCtx_->qctx,
-//                                                               initialExpr_.release(),
-//                                                               inputVar_,
-//                                                               subplan));
-//         // If maxHop > 0, the result of 0 step will be passed to next plan node
-//         if (maxHop > 0) {
-//             subplan.root = passThrough(matchCtx_->qctx, subplan.root);
-//         }
-//     } else {  // Case 1 to n steps
-//         startIndex = 1;
-//         // Expand first step from src
-//         NG_RETURN_IF_ERROR(expandStep(edge, dependency_, inputVar_, node.filter, &subplan));
-//         // Manually create a passThrough node for the first step
-//         // Rest steps will be passed through in collectData()
-//         subplan.root = passThrough(matchCtx_->qctx, subplan.root);
-//     }
-
-//     PlanNode* passThrough = subplan.root;
-//     for (; startIndex < maxHop; ++startIndex) {
-//         SubPlan curr;
-//         NG_RETURN_IF_ERROR(
-//             expandStep(edge, passThrough, passThrough->outputVar(), nullptr, &curr)); //
-//             curr.root is the result of project2
-//         auto rNode = subplan.root;  // result of first step/Union
-//         DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
-//          // update passThrough, subplan.root is Union. passThrough is the result of start node
-//         NG_RETURN_IF_ERROR(collectData(passThrough, curr.root, rNode, &passThrough, &subplan));
-//     }
-//     plan->root = subplan.root;
-
-//     return Status::OK();
-// }
-
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project2->
 // DataJoin->Project3->[Filter]->Passthrough->Union
 Status Expand::expandSteps(const NodeInfo& node,
@@ -203,7 +154,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     NG_RETURN_IF_ERROR(collectData(passThrough,         // left join node
                                    loopBodyPlan.root,   // right join node
                                    rNode,               // union node
-                                   &startNode,        // passThrough
+                                   &startNode,          // passThrough
                                    &subplan));
     // Union node
     auto body = subplan.root;
@@ -310,16 +261,14 @@ Status Expand::collectData(PlanNode* joinLeft,
     project->setColNames({kPathStr});
     // [Filter]
     auto filter = MatchSolver::filtPathHasSameEdge(project, kPathStr, qctx);
-    // [Passthrough]
-    // auto pt = PassThroughNode::make(qctx, filter);
-    // pt->setColNames({kPathStr});
+    // Update start node
+    filter->setOutputVar((*passThrough)->outputVar());
     // [Union]
-    auto uNode = Union::make(qctx, filter, inUnionNode);
+    auto uNode = Union::make(qctx, filter, inUnionNode, (*passThrough)->outputVar());
     uNode->setColNames({kPathStr});
     // Update Union node for next loop iteration
     inUnionNode->setOutputVar(uNode->outputVar());
-    // Update start node
-    filter->setOutputVar((*passThrough)->outputVar());
+
     // *passThrough = filter;
     plan->root = uNode;
     return Status::OK();
