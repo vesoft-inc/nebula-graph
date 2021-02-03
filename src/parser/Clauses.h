@@ -100,8 +100,9 @@ public:
     bool prepare() {
         if (vidList_) {
             DCHECK(ref_ == nullptr);
-            graph::FindAnyExprVisitor visitor(
-                {Expression::Kind::kInputProperty, Expression::Kind::kVarProperty});
+            std::unordered_set<Expression::Kind> kinds = {Expression::Kind::kInputProperty,
+                                                          Expression::Kind::kVarProperty};
+            graph::FindAnyExprVisitor visitor(kinds);
             for (auto *expr : vidList_->vidList()) {
                 expr->accept(&visitor);
                 if (visitor.expr() != nullptr) {   // has $- or $var

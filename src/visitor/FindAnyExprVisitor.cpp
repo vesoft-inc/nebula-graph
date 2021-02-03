@@ -9,7 +9,7 @@
 namespace nebula {
 namespace graph {
 
-FindAnyExprVisitor::FindAnyExprVisitor(const std::unordered_set<Expression::Kind> kinds)
+FindAnyExprVisitor::FindAnyExprVisitor(const std::unordered_set<Expression::Kind> &kinds)
     : kinds_(kinds) {
     DCHECK(!kinds_.empty());
 }
