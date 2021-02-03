@@ -46,6 +46,7 @@ Feature: Path2 - Relationships of a path
       | [[:teammate "Tony Parker"->"Tim Duncan" @0 {end_year: 2016, start_year: 2001}]]        |
 
   @skip
+  # unimplement
   Scenario: [3] `relationships()` on null path
     When executing query:
       """

@@ -10,7 +10,7 @@ Feature: Path3 - Length of a path
   Scenario: [1] `nodes()` on null path
     When executing query:
       """
-      MATCH p = (a)-[*0..1]->(b)
+      MATCH p = (a:team)-[*0..1]->(b)
       RETURN a, length(p) AS l
       """
     Then the result should be, in any order, with relax comparison:
@@ -47,6 +47,7 @@ Feature: Path3 - Length of a path
       | ("Wizards" :team{name: "Wizards"})             | 0 |
 
   @skip
+  # unimplement
   Scenario: [2] Failing when using `length()` on a node
     When executing query:
       """
@@ -56,6 +57,7 @@ Feature: Path3 - Length of a path
     Then a SyntaxError should be raised at compile time: InvalidArgumentType
 
   @skip
+  # unimplement
   Scenario: [3] Failing when using `length()` on a relationship
     When executing query:
       """
