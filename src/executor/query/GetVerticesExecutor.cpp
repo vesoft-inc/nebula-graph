@@ -103,7 +103,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
     if (reqDs_.rows.empty()) {
         // TODO: add test for empty input.
         return finish(ResultBuilder()
-                          .value(Value(DataSet(gv->colNames())))
+                          .value(Value(DataSet(gv_->colNames())))
                           .iter(Iterator::Kind::kProp)
                           .finish());
     }
@@ -125,7 +125,7 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
             otherStats_.emplace("total_rpc",
                                  folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
         })
-        .thenValue([this, gv](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+        .thenValue([this, gv_](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
             return handleResp(std::move(rpcResp), this->gv_->colNamesRef());

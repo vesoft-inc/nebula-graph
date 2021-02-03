@@ -106,7 +106,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
     if (reqDs_.rows.empty()) {
         // TODO: add test for empty input.
         return finish(ResultBuilder()
-                          .value(Value(DataSet(ge->colNames())))
+                          .value(Value(DataSet(ge_->colNames())))
                           .iter(Iterator::Kind::kProp)
                           .finish());
     }
@@ -128,7 +128,7 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
             otherStats_.emplace("total_rpc",
                                 folly::stringPrintf("%lu(us)", getPropsTime.elapsedInUSec()));
         })
-        .thenValue([this, ge](StorageRpcResponse<GetPropResponse> &&rpcResp) {
+        .thenValue([this](StorageRpcResponse<GetPropResponse> &&rpcResp) {
             SCOPED_TIMER(&execTime_);
             addStats(rpcResp, otherStats_);
             return handleResp(std::move(rpcResp), this->ge_->colNamesRef());

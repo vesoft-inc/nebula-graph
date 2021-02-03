@@ -274,64 +274,63 @@ Status DataCollectExecutor::collectPathProps(const std::vector<std::string>& var
     // 0: vertices's props, 1: Edges's props, 2: Paths without props
     DCHECK_EQ(vars.size(), 3);
 
-    std::unordered_map<std::string, Vertex> vertexMap;
     auto vIter = ectx_->getResult(vars[0]).iter();
+    std::unordered_map<Value, Vertex> vertexMap;
     vertexMap.reserve(vIter->size());
-    DCHECK(vIter->kind() == Iterator::Kind::kProp);
+    DCHECK(vIter->isPropIter());
     for (; vIter->valid(); vIter->next()) {
-        auto vertex = vIter->getVertex();
-        if (!vertex.isVertex()) {
+        auto vertexVal = vIter->getVertex();
+        if (!vertexVal.isVertex()) {
             continue;
         }
-        auto vertexVal = vertex.getVertex();
-        auto vid = vertexVal.vid.toString().c_str();
-        vertexMap.insert(std::make_pair(std::move(vid), std::move(vertexVal)));
+        auto& vertex = vertexVal.getVertex();
+        vertexMap.insert(std::make_pair(vertex.vid, std::move(vertex)));
     }
 
-    std::unordered_map<std::tuple<Value, Value, int64_t, int64_t>, Edge> edgeMap;
     auto eIter = ectx_->getResult(vars[1]).iter();
+    std::unordered_map<std::tuple<Value, EdgeType, EdgeRanking, Value>, Edge> edgeMap;
     edgeMap.reserve(eIter->size());
-    DCHECK(eIter->kind() == Iterator::Kind::kProp);
+    DCHECK(eIter->isPropIter());
     for (; eIter->valid(); eIter->next()) {
-        auto edge = eIter->getEdge();
-        if (!edge.isEdge()) {
+        auto edgeVal = eIter->getEdge();
+        if (!edgeVal.isEdge()) {
             continue;
         }
-        auto edgeVal = edge.getEdge();
-        auto edgeKey = std::make_tuple(edgeVal.src, edgeVal.dst, edgeVal.type, edgeVal.ranking);
-        edgeMap.insert(std::make_pair(std::move(edgeKey), std::move(edgeVal)));
+        auto& edge = edgeVal.getEdge();
+        auto edgeKey = std::make_tuple(edge.src, edge.type, edge.ranking, edge.dst);
+        edgeMap.insert(std::make_pair(std::move(edgeKey), std::move(edge)));
     }
 
     auto pIter = ectx_->getResult(vars[2]).iter();
-    DCHECK(pIter->kind() == Iterator::Kind::kSequential);
+    DCHECK(pIter->isSequentialIter());
     for (; pIter->valid(); pIter->next()) {
-        auto path = pIter->getColumn(0);
-        if (!path.isPath()) {
+        auto pathVal = pIter->getColumn(0);
+        if (!pathVal.isPath()) {
             continue;
         }
-        auto pathVal = path.getPath();
-        auto srcVid = pathVal.src.vid;
-        auto found = vertexMap.find(srcVid.toString().c_str());
+        auto path = pathVal.getPath();
+        auto src = path.src.vid;
+        auto found = vertexMap.find(src);
         if (found != vertexMap.end()) {
-            pathVal.src = found->second;
+            path.src = found->second;
         }
-        for (auto& step : pathVal.steps) {
-            auto dstVid = step.dst.vid;
-            step.dst = vertexMap[dstVid.toString().c_str()];
+        for (auto& step : path.steps) {
+            auto dst = step.dst.vid;
+            step.dst = vertexMap[dst];
 
             auto type = step.type;
             auto ranking = step.ranking;
             if (type < 0) {
-                dstVid = srcVid;
-                srcVid = step.dst.vid;
+                dst = src;
+                src = step.dst.vid;
                 type = -type;
             }
-            auto edgeKey = std::make_tuple(srcVid, dstVid, type, ranking);
+            auto edgeKey = std::make_tuple(src, type, ranking, dst);
             auto edge = edgeMap[edgeKey];
             step.props = edge.props;
-            srcVid = step.dst.vid;
+            src = step.dst.vid;
         }
-        ds.rows.emplace_back(Row({std::move(pathVal)}));
+        ds.rows.emplace_back(Row({std::move(path)}));
     }
     VLOG(2) << "Path with props : \n" << ds;
     result_.setDataSet(std::move(ds));
