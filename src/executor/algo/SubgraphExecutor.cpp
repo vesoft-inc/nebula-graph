@@ -57,8 +57,7 @@ void SubgraphExecutor::oneMoreStep() {
     auto output = subgraph->oneMoreStepOutput();
     VLOG(1) << "OneMoreStep Input: " << subgraph->inputVar() << " Output: " << output;
     auto iter = ectx_->getResult(subgraph->inputVar()).iter();
-    DCHECK(iter->isGetNeighborsIter());
-    DCHECK(!!iter);
+    DCHECK(iter && iter->isGetNeighborsIter());
 
     ResultBuilder builder;
     builder.value(iter->valuePtr());
