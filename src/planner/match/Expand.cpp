@@ -137,10 +137,6 @@ Status Expand::expandSteps(const NodeInfo& node,
     loopBodyPlan.root = passThrough(matchCtx_->qctx, startNode);
     PlanNode* passThrough = loopBodyPlan.root;
 
-    // Build node for Union
-    // PlanNode* rNode = new PlanNode(matchCtx_->qctx, PNKind::kUnion);
-    // rNode->setOutputVar(firstStep->outputVar());
-
     // Construct loop body
     NG_RETURN_IF_ERROR(expandStep(edge,
                                   passThrough,                // dep
@@ -148,13 +144,14 @@ Status Expand::expandSteps(const NodeInfo& node,
                                   nullptr,
                                   &loopBodyPlan));
     auto rNode = passThrough;
+    // auto rNode = PlanNode(matchCtx_->qctx, PlanNode::Kind::kUnion);
 
     DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
 
     NG_RETURN_IF_ERROR(collectData(passThrough,         // left join node
                                    loopBodyPlan.root,   // right join node
                                    rNode,               // union node
-                                   &startNode,          // passThrough
+                                   &firstStep,          // passThrough
                                    &subplan));
     // Union node
     auto body = subplan.root;
@@ -238,7 +235,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     return Status::OK();
 }
 
-// Build subplan: DataJoin->Project->[Filter]->Passthrough->Union
+// Build subplan: DataJoin->Project->[Filter]->Union
 // In loop, start node and union node will be passed as joinLeft and inUnionNode
 Status Expand::collectData(PlanNode* joinLeft,
                            const PlanNode* joinRight,
@@ -246,6 +243,7 @@ Status Expand::collectData(PlanNode* joinLeft,
                            PlanNode** passThrough,
                            SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
+    auto ectx = qctx->ectx();
     // [dataJoin] read start node (joinLeft)
     auto join = SegmentsConnector::innerJoinSegments(qctx, joinLeft, joinRight);
     auto lpath = folly::stringPrintf("%s_%d", kPathStr, 0);
@@ -264,10 +262,18 @@ Status Expand::collectData(PlanNode* joinLeft,
     // Update start node
     filter->setOutputVar((*passThrough)->outputVar());
     // [Union]
-    auto uNode = Union::make(qctx, filter, inUnionNode, (*passThrough)->outputVar());
+    auto uNode = Union::make(qctx, filter, inUnionNode);
+    // Construct an empty dataset to initialize union outputVar
+    DataSet* emptyDataset = saveObject(new DataSet({kPathStr}));
+    ResultBuilder builder;
+    builder.value(std::move(Value(*emptyDataset))).iter(Iterator::Kind::kSequential);
+    ectx->setResult(uNode->outputVar(), builder.finish());
+    // auto emptyVariable = new Variable(uNode->outputVar());
+    // qctx->symTable()->addVar(uNode->outputVar(), emptyVariable);
+    uNode->setRightVar(uNode->outputVar());
     uNode->setColNames({kPathStr});
     // Update Union node for next loop iteration
-    inUnionNode->setOutputVar(uNode->outputVar());
+    // uNode->setOutputVar(inUnionNode->outputVar());
 
     // *passThrough = filter;
     plan->root = uNode;

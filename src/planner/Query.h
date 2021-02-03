@@ -575,29 +575,10 @@ public:
     static Union* make(QueryContext *qctx, PlanNode* left, PlanNode* right) {
         return qctx->objPool()->add(new Union(qctx, left, right));
     }
-    static Union* make(QueryContext *qctx, PlanNode* left, PlanNode* right, std::string input) {
-        return qctx->objPool()->add(new Union(qctx, left, right, input));
-    }
 
 private:
     Union(QueryContext* qctx, PlanNode* left, PlanNode* right)
         : SetOp(qctx, Kind::kUnion, left, right) {}
-
-
-    // Combine two versions of the same variable
-    Union(QueryContext* qctx, PlanNode* left, PlanNode* right, std::string input)
-        : SetOp(qctx, Kind::kUnion, left, right) {
-        dependencies_.clear();
-        dependencies_.emplace_back(left);
-        dependencies_.emplace_back(right);
-        // Rather than using the output of dependencies,
-        // use the input var as both left and right var
-        auto* inputVarPtr = qctx_->symTable()->getVar(input);
-        inputVars_.emplace_back(inputVarPtr);
-        qctx_->symTable()->readBy(inputVarPtr->name, this);
-        inputVars_.emplace_back(inputVarPtr);
-        qctx_->symTable()->readBy(inputVarPtr->name, this);
-    }
 };
 
 /**

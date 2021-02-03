@@ -18,10 +18,6 @@ folly::Future<Status> UnionExecutor::execute() {
     NG_RETURN_IF_ERROR(checkInputDataSets());
     auto left = getLeftInputDataIter();
     auto right = getRightInputDataIter();
-    // Two versions of the same variable
-    if (left->valuePtr() == right->valuePtr()) {
-        right = getVersionedRightInputDataIter();
-    }
     auto value = left->valuePtr();
     auto iter = std::make_unique<SequentialIter>(std::move(left), std::move(right));
     return finish(ResultBuilder().value(value).iter(std::move(iter)).finish());
