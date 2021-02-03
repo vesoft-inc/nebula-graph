@@ -63,13 +63,13 @@ Status DataCollectExecutor::collectSubgraph(const std::vector<std::string>& vars
     // the subgraph not need duplicate vertices or edges, so dedup here directly
     std::unordered_set<Value> uniqueVids;
     std::unordered_set<std::tuple<Value, EdgeType, EdgeRanking, Value>> uniqueEdges;
-    for (size_t i = 0; i < vars.size(); ++i) {
-        const auto& hist = ectx_->getHistory(vars[i]);
-        for (size_t j = 0; j < hist.size(); ++j) {
-            if (i == 0 && j == hist.size() - 1) {
+    for (auto i = vars.begin(); i != vars.end(); ++i) {
+        const auto& hist = ectx_->getHistory(*i);
+        for (auto j = hist.begin(); j != hist.end(); ++j) {
+            if (i == vars.begin() && j == hist.end() - 1) {
                 continue;
             }
-            auto iter = hist[j].iter();
+            auto iter = (*j).iter();
             if (!iter->isGetNeighborsIter()) {
                 std::stringstream msg;
                 msg << "Iterator should be kind of GetNeighborIter, but was: " << iter->kind();

@@ -143,18 +143,18 @@ class Subgraph final : public SingleInputNode {
 public:
     static Subgraph* make(QueryContext* qctx,
                           PlanNode* input,
-                          std::string oneMoreStepOutput,
-                          std::string currentStepVar,
+                          const std::string& oneMoreStepOutput,
+                          const std::string& currentStepVar,
                           uint32_t steps) {
         return qctx->objPool()->add(
             new Subgraph(qctx, input, oneMoreStepOutput, currentStepVar, steps));
     }
 
-    std::string oneMoreStepOutput() const {
+    const std::string& oneMoreStepOutput() const {
         return oneMoreStepOutput_;
     }
 
-    std::string currentStepVar() const {
+    const std::string& currentStepVar() const {
         return currentStepVar_;
     }
 
@@ -165,8 +165,8 @@ public:
 private:
     Subgraph(QueryContext* qctx,
              PlanNode* input,
-             std::string oneMoreStepOutput,
-             std::string currentStepVar,
+             const std::string& oneMoreStepOutput,
+             const std::string& currentStepVar,
              uint32_t steps)
         : SingleInputNode(qctx, Kind::kSubgraph, input),
           oneMoreStepOutput_(oneMoreStepOutput),

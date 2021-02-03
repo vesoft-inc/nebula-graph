@@ -199,9 +199,6 @@ PlanNode* TraversalValidator::buildRuntimeInput(Starts& starts, PlanNode*& proje
 Expression* TraversalValidator::buildNStepLoopCondition(uint32_t steps) const {
     VLOG(1) << "steps: " << steps;
     // ++loopSteps{0} <= steps
-    if (LIKELY(loopSteps_.empty())) {
-        loopSteps_ = vctx_->anonVarGen()->getVar();
-    }
     qctx_->ectx()->setValue(loopSteps_, 0);
     return qctx_->objPool()->add(new RelationalExpression(
         Expression::Kind::kRelLE,

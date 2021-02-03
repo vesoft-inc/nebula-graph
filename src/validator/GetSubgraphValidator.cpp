@@ -223,7 +223,6 @@ Status GetSubgraphValidator::toPlan() {
         std::make_unique<std::vector<storage::cpp2::EdgeProp>>(*edgePropsResult.value()));
     gn->setInputVar(startVidsVar);
 
-    loopSteps_ = vctx_->anonVarGen()->getVar();
     auto oneMoreStepOutput = vctx_->anonVarGen()->getVar();
     auto* subgraph = Subgraph::make(qctx_, gn, oneMoreStepOutput, loopSteps_, steps_.steps + 1);
     subgraph->setOutputVar(startVidsVar);
