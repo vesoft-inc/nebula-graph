@@ -83,7 +83,7 @@ StatusOr<GetNeighborsIter::DataSetIndex> GetNeighborsIter::makeDataSetIndex(cons
     dsIndex.ds = &ds;
     auto buildResult = buildIndex(&dsIndex);
     NG_RETURN_IF_ERROR(buildResult);
-    int64_t edgeStartIndex = std::move(buildResult).value();
+    edgeStartIndex_ = std::move(buildResult).value();
     if (edgeStartIndex < 0) {
         for (auto& row : dsIndex.ds->rows) {
             logicalRows_.emplace_back(idx, &row, "", nullptr);
