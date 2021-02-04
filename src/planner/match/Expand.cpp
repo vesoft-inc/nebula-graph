@@ -127,11 +127,17 @@ Status Expand::expandSteps(const NodeInfo& node,
     }
     // Result of first step expansion
     PlanNode* firstStep = subplan.root;
+    // Build a passThrough node
+    PlanNode*  firstStepPT = PassThroughNode::make(matchCtx_->qctx, firstStep);
+    firstStepPT->setColNames(firstStep->colNames());
+    firstStep->setOutputVar(firstStepPT->outputVar());
+    // PlanNode* firstStepPT = passThrough(matchCtx_->qctx, firstStep);
+
     // Build Start node from first step
     SubPlan loopBodyPlan;
     PlanNode* startNode = StartNode::make(matchCtx_->qctx);
-    startNode->setOutputVar(firstStep->outputVar());
-    startNode->setColNames(firstStep->colNames());
+    startNode->setOutputVar(firstStepPT->outputVar());
+    startNode->setColNames(firstStepPT->colNames());
     loopBodyPlan.tail = startNode;
     // Convert the start node to a passThrough node
     loopBodyPlan.root = passThrough(matchCtx_->qctx, startNode);
@@ -151,7 +157,7 @@ Status Expand::expandSteps(const NodeInfo& node,
     NG_RETURN_IF_ERROR(collectData(passThrough,         // left join node
                                    loopBodyPlan.root,   // right join node
                                    rNode,               // union node
-                                   &firstStep,          // passThrough
+                                   &firstStepPT,          // passThrough
                                    &subplan));
     // Union node
     auto body = subplan.root;
@@ -160,10 +166,16 @@ Status Expand::expandSteps(const NodeInfo& node,
     auto condition = buildNStepLoopCondition(startIndex, maxHop);
 
     // Create loop
-    auto* loop = Loop::make(matchCtx_->qctx, firstStep, body, condition);
+    auto* loop = Loop::make(matchCtx_->qctx, firstStepPT, body, condition);
 
-    *loopTail = body;
-    subplan.root = loop;
+
+    // Union the results of loop and first step
+    auto uResNode = Union::make(matchCtx_->qctx, loop, firstStep);
+    uResNode->setLeftVar(body->outputVar());
+    uResNode->setColNames({kPathStr});
+    // *loopTail = body;
+    *loopTail = uResNode;
+    subplan.root = uResNode;
     plan->root = subplan.root;
     return Status::OK();
 }
@@ -268,14 +280,9 @@ Status Expand::collectData(PlanNode* joinLeft,
     ResultBuilder builder;
     builder.value(std::move(Value(*emptyDataset))).iter(Iterator::Kind::kSequential);
     ectx->setResult(uNode->outputVar(), builder.finish());
-    // auto emptyVariable = new Variable(uNode->outputVar());
-    // qctx->symTable()->addVar(uNode->outputVar(), emptyVariable);
+    // Use the preset uNode output as the inputVar
     uNode->setRightVar(uNode->outputVar());
     uNode->setColNames({kPathStr});
-    // Update Union node for next loop iteration
-    // uNode->setOutputVar(inUnionNode->outputVar());
-
-    // *passThrough = filter;
     plan->root = uNode;
     return Status::OK();
 }
