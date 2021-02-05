@@ -16,7 +16,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
     if (clause == nullptr) {
         return Status::SemanticError("From clause nullptr.");
     }
-    if (!const_cast<VerticesClause*>(clause)->prepare()) {
+    if (!const_cast<VerticesClause*>(clause)->processInputOrVarPropertyExprInvidList()) {
         return Status::SemanticError("From clause illegal.");
     }
     if (clause->isRef()) {

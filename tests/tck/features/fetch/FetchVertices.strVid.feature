@@ -338,6 +338,16 @@ Feature: Fetch String Vertices
       | "Tony Parker"     |
     When executing query:
       """
+      FETCH PROP ON player "Tim Duncan", "Yao Ming" | go from reverse(reverse(id($-.vertices_))) over like yield like._dst
+      """
+    Then the result should be, in any order:
+      | like._dst         |
+      | "Shaquile O'Neal" |
+      | "Tracy McGrady"   |
+      | "Manu Ginobili"   |
+      | "Tony Parker"     |
+    When executing query:
+      """
       FETCH PROP ON player "Tim Duncan" yield player.name as id | go from $-.id over like yield like._dst
       """
     Then the result should be, in any order:

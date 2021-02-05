@@ -38,15 +38,32 @@ std::string VertexIDList::toString() const {
     return buf;
 }
 
-std::string VerticesClause::toString() const {
-    std::string buf;
-    buf.reserve(256);
-    if (isRef()) {
-        buf += ref_->toString();
-    } else {
-        buf += vidList_->toString();
+bool VerticesClause::processInputOrVarPropertyExprInvidList() {
+    if (vidList_) {
+        DCHECK(ref_ == nullptr);
+        std::unordered_set<Expression::Kind> kinds = {Expression::Kind::kInputProperty,
+                                                        Expression::Kind::kVarProperty};
+        graph::FindAnyExprVisitor visitor(kinds);
+        for (auto *expr : vidList_->vidList()) {
+            expr->accept(&visitor);
+            if (visitor.expr() != nullptr) {   // has $- or $var
+                if (vidList_->size() > 1) {
+                    return false;
+                }
+                ref_.reset(vidList_.release()->vidList().back()->clone().release());
+                DCHECK(vidList_ == nullptr);
+            }
+        }
     }
-    return buf;
+    return true;
+}
+
+std::string VerticesClause::toString() const {
+    if (isRef()) {
+        return ref_->toString();
+    } else {
+        return vidList_->toString();
+    }
 }
 
 std::string FromClause::toString() const {

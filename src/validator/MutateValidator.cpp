@@ -254,7 +254,8 @@ Status InsertEdgesValidator::prepareEdges() {
 
 Status DeleteVerticesValidator::validateImpl() {
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
-    if (!const_cast<VerticesClause*>(sentence->verticesClause())->prepare()) {
+    if (!const_cast<VerticesClause *>(sentence->verticesClause())
+             ->processInputOrVarPropertyExprInvidList()) {
         return Status::SemanticError("Vertices clause illegal.");
     }
     spaceId_ = vctx_->whichSpace().id;

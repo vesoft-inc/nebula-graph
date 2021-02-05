@@ -97,25 +97,7 @@ public:
         return ref_.get();
     }
 
-    bool prepare() {
-        if (vidList_) {
-            DCHECK(ref_ == nullptr);
-            std::unordered_set<Expression::Kind> kinds = {Expression::Kind::kInputProperty,
-                                                          Expression::Kind::kVarProperty};
-            graph::FindAnyExprVisitor visitor(kinds);
-            for (auto *expr : vidList_->vidList()) {
-                expr->accept(&visitor);
-                if (visitor.expr() != nullptr) {   // has $- or $var
-                    if (vidList_->size() > 1) {
-                        return false;
-                    }
-                    ref_.reset(vidList_.release()->vidList().back()->clone().release());
-                    DCHECK(vidList_ == nullptr);
-                }
-            }
-        }
-        return true;
-    }
+    bool processInputOrVarPropertyExprInvidList();
 
     std::string toString() const;
 

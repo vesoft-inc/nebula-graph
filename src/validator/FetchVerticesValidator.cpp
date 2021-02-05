@@ -106,7 +106,8 @@ Status FetchVerticesValidator::check() {
 
 Status FetchVerticesValidator::prepareVertices() {
     auto *sentence = static_cast<FetchVerticesSentence *>(sentence_);
-    if (!const_cast<VerticesClause*>(sentence->verticesClause())->prepare()) {
+    if (!const_cast<VerticesClause *>(sentence->verticesClause())
+             ->processInputOrVarPropertyExprInvidList()) {
         return Status::SemanticError("Vertices clause illegal.");
     }
     // from ref, eval when execute
