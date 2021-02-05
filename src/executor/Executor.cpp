@@ -15,8 +15,7 @@
 #include "context/ExecutionContext.h"
 #include "context/QueryContext.h"
 #include "executor/ExecutionError.h"
-#include "executor/admin/BalanceExecutor.h"
-#include "executor/admin/BalanceLeadersExecutor.h"
+#include "executor/admin/BalanceLeaderExecutor.h"
 #include "executor/admin/ChangePasswordExecutor.h"
 #include "executor/admin/CharsetExecutor.h"
 #include "executor/admin/ConfigExecutor.h"
@@ -31,9 +30,8 @@
 #include "executor/admin/ListUsersExecutor.h"
 #include "executor/admin/ListenerExecutor.h"
 #include "executor/admin/PartExecutor.h"
-#include "executor/admin/ResetBalanceExecutor.h"
 #include "executor/admin/RevokeRoleExecutor.h"
-#include "executor/admin/ShowBalanceExecutor.h"
+#include "executor/admin/ShowDataBalanceExecutor.h"
 #include "executor/admin/ShowHostsExecutor.h"
 #include "executor/admin/ShowStatsExecutor.h"
 #include "executor/admin/ShowTSClientsExecutor.h"
@@ -41,7 +39,6 @@
 #include "executor/admin/SignOutTSServiceExecutor.h"
 #include "executor/admin/SnapshotExecutor.h"
 #include "executor/admin/SpaceExecutor.h"
-#include "executor/admin/StopBalanceExecutor.h"
 #include "executor/admin/SubmitJobExecutor.h"
 #include "executor/admin/SwitchSpaceExecutor.h"
 #include "executor/admin/UpdateUserExecutor.h"
@@ -376,20 +373,11 @@ Executor *Executor::makeExecutor(QueryContext *qctx, const PlanNode *node) {
         case PlanNode::Kind::kListRoles: {
             return pool->add(new ListRolesExecutor(node, qctx));
         }
-        case PlanNode::Kind::kBalanceLeaders: {
-            return pool->add(new BalanceLeadersExecutor(node, qctx));
+        case PlanNode::Kind::kBalanceLeader: {
+            return pool->add(new BalanceLeaderExecutor(node, qctx));
         }
-        case PlanNode::Kind::kBalance: {
-            return pool->add(new BalanceExecutor(node, qctx));
-        }
-        case PlanNode::Kind::kStopBalance: {
-            return pool->add(new StopBalanceExecutor(node, qctx));
-        }
-        case PlanNode::Kind::kResetBalance: {
-            return pool->add(new ResetBalanceExecutor(node, qctx));
-        }
-        case PlanNode::Kind::kShowBalance: {
-            return pool->add(new ShowBalanceExecutor(node, qctx));
+        case PlanNode::Kind::kShowDataBalance: {
+            return pool->add(new ShowDataBalanceExecutor(node, qctx));
         }
         case PlanNode::Kind::kShowConfigs: {
             return pool->add(new ShowConfigsExecutor(node, qctx));

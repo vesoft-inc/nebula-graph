@@ -16,7 +16,6 @@ namespace graph {
 
 folly::Future<Status> ShowStatsExecutor::execute() {
     SCOPED_TIMER(&execTime_);
-
     auto spaceId = qctx()->rctx()->session()->space().id;
     return qctx()->getMetaClient()->getStatis(spaceId).via(runner()).thenValue(
         [this, spaceId](StatusOr<meta::cpp2::StatisItem> resp) {
@@ -25,8 +24,8 @@ folly::Future<Status> ShowStatsExecutor::execute() {
                            << ", Show staus failed: " << resp.status();
                 return resp.status();
             }
-            auto statisItem = std::move(resp).value();
 
+            auto statisItem = std::move(resp).value();
             DataSet dataSet({"Type", "Name", "Count"});
             std::vector<std::pair<std::string, int64_t>> tagCount;
             std::vector<std::pair<std::string, int64_t>> edgeCount;

@@ -275,6 +275,20 @@ private:
     Status toPlan() override;
 };
 
+class ShowDataBalanceValidator final : public Validator {
+public:
+    ShowDataBalanceValidator(Sentence* sentence, QueryContext* context)
+        : Validator(sentence, context) {}
+
+private:
+    Status validateImpl() override;
+
+    Status toPlan() override;
+
+private:
+    JobID jobId_;
+};
+
 class ShowTSClientsValidator final : public Validator {
 public:
     ShowTSClientsValidator(Sentence* sentence, QueryContext* context)

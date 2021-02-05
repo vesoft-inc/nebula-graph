@@ -183,16 +183,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "DropSnapshot";
         case Kind::kShowSnapshots:
             return "ShowSnapshots";
-        case Kind::kBalanceLeaders:
-            return "BalanceLeaders";
-        case Kind::kBalance:
-            return "Balance";
-        case Kind::kStopBalance:
-            return "StopBalance";
-        case Kind::kResetBalance:
-            return "ResetBalance";
-        case Kind::kShowBalance:
-            return "ShowBalance";
+        case Kind::kBalanceLeader:
+            return "BalanceLeader";
         case Kind::kSubmitJob:
             return "SubmitJob";
         case Kind::kLeftJoin:
@@ -266,6 +258,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ShowListener";
         case Kind::kShowStats:
             return "ShowStats";
+        case Kind::kShowDataBalance:
+            return "ShowDataBalance";
         // text search
         case Kind::kShowTSClients:
             return "ShowTSClients";

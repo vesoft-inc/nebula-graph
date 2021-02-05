@@ -15,7 +15,7 @@
 #include "validator/AdminJobValidator.h"
 #include "validator/AdminValidator.h"
 #include "validator/AssignmentValidator.h"
-#include "validator/BalanceValidator.h"
+#include "validator/BalanceLeaderValidator.h"
 #include "validator/ExplainValidator.h"
 #include "validator/FetchEdgesValidator.h"
 #include "validator/FetchVerticesValidator.h"
@@ -131,8 +131,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<RevokeRoleValidator>(sentence, context);
         case Sentence::Kind::kShowRoles:
             return std::make_unique<ShowRolesInSpaceValidator>(sentence, context);
-        case Sentence::Kind::kBalance:
-            return std::make_unique<BalanceValidator>(sentence, context);
+        case Sentence::Kind::kBalanceLeader:
+            return std::make_unique<BalanceLeaderValidator>(sentence, context);
         case Sentence::Kind::kAdminJob:
             return std::make_unique<AdminJobValidator>(sentence, context);
         case Sentence::Kind::kFetchVertices:
@@ -229,6 +229,8 @@ std::unique_ptr<Validator> Validator::makeValidator(Sentence* sentence, QueryCon
             return std::make_unique<ShowListenerValidator>(sentence, context);
         case Sentence::Kind::kShowStats:
             return std::make_unique<ShowStatusValidator>(sentence, context);
+        case Sentence::Kind::kShowDataBalance:
+            return std::make_unique<ShowDataBalanceValidator>(sentence, context);
         case Sentence::Kind::kShowTSClients:
             return std::make_unique<ShowTSClientsValidator>(sentence, context);
         case Sentence::Kind::kShowFTIndexes:

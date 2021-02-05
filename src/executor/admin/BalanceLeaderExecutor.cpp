@@ -4,19 +4,20 @@
  * attached with Common Clause Condition 1.0, found in the LICENSES directory.
  */
 
-#include "executor/admin/BalanceLeadersExecutor.h"
+#include "executor/admin/BalanceLeaderExecutor.h"
 #include "planner/plan/Admin.h"
 
 namespace nebula {
 namespace graph {
 
-folly::Future<Status> BalanceLeadersExecutor::execute() {
+folly::Future<Status> BalanceLeaderExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     return balanceLeaders();
 }
 
-folly::Future<Status> BalanceLeadersExecutor::balanceLeaders() {
-    return qctx()->getMetaClient()->balanceLeader()
+folly::Future<Status> BalanceLeaderExecutor::balanceLeaders() {
+    auto spaceId = qctx()->rctx()->session()->space().id;
+    return qctx()->getMetaClient()->balanceLeader(spaceId)
         .via(runner())
         .thenValue([this](StatusOr<bool> resp) {
             SCOPED_TIMER(&execTime_);

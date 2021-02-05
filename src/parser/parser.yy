@@ -375,7 +375,7 @@ static constexpr size_t kCommentLengthLimit = 256;
 %type <sentence> yield_sentence use_sentence
 
 %type <sentence> grant_sentence revoke_sentence
-%type <sentence> set_config_sentence get_config_sentence balance_sentence
+%type <sentence> set_config_sentence get_config_sentence balance_leader_sentence
 %type <sentence> sentence
 %type <seq_sentences> seq_sentences
 %type <explain_sentence> explain_sentence
@@ -2470,7 +2470,7 @@ rebuild_fulltext_index_sentence
                                   meta::cpp2::AdminCmd::REBUILD_FULLTEXT_INDEX);
     }
 add_group_sentence
-    : KW_ADD KW_GROUP name_label zone_name_list{
+    : KW_ADD KW_GROUP name_label zone_name_list {
         $$ = new AddGroupSentence($3, $4);
     }
     ;
@@ -2859,6 +2859,17 @@ admin_job_sentence
         }
         $$ = sentence;
     }
+    | KW_SUBMIT KW_JOB KW_DATA KW_BALANCE {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::DATA_BALANCE);
+        $$ = sentence;
+    }
+    | KW_SUBMIT KW_JOB KW_DATA KW_BALANCE KW_REMOVE host_list {
+        auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::ADD,
+                                             meta::cpp2::AdminCmd::DATA_BALANCE);
+        sentence->addPara($6->toString());
+        $$ = sentence;
+    }
     | KW_SHOW KW_JOBS {
         auto sentence = new AdminJobSentence(meta::cpp2::AdminJobOp::SHOW_All);
         $$ = sentence;
@@ -2965,6 +2976,9 @@ show_sentence
     | KW_SHOW KW_EDGE KW_INDEX KW_STATUS  {
         auto sentence = new ShowEdgeIndexStatusSentence();
         $$ = sentence;
+    }
+    | KW_SHOW KW_DATA KW_BALANCE {
+        $$ = new ShowDataBalanceSentence();
     }
     | KW_SHOW KW_SNAPSHOTS {
         $$ = new ShowSnapshotsSentence();
@@ -3288,24 +3302,9 @@ integer_list
     }
     ;
 
-balance_sentence
+balance_leader_sentence
     : KW_BALANCE KW_LEADER {
-        $$ = new BalanceSentence(BalanceSentence::SubType::kLeader);
-    }
-    | KW_BALANCE KW_DATA {
-        $$ = new BalanceSentence(BalanceSentence::SubType::kData);
-    }
-    | KW_BALANCE KW_DATA legal_integer {
-        $$ = new BalanceSentence($3);
-    }
-    | KW_BALANCE KW_DATA KW_STOP {
-        $$ = new BalanceSentence(BalanceSentence::SubType::kDataStop);
-    }
-    | KW_BALANCE KW_DATA KW_RESET KW_PLAN {
-        $$ = new BalanceSentence(BalanceSentence::SubType::kDataReset);
-    }
-    | KW_BALANCE KW_DATA KW_REMOVE host_list {
-        $$ = new BalanceSentence(BalanceSentence::SubType::kData, $4);
+        $$ = new BalanceLeaderSentence();
     }
     ;
 
@@ -3419,7 +3418,7 @@ maintain_sentence
     | revoke_sentence { $$ = $1; }
     | get_config_sentence { $$ = $1; }
     | set_config_sentence { $$ = $1; }
-    | balance_sentence { $$ = $1; }
+    | balance_leader_sentence { $$ = $1; }
     | add_listener_sentence { $$ = $1; }
     | remove_listener_sentence { $$ = $1; }
     | list_listener_sentence { $$ = $1; }
