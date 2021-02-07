@@ -167,6 +167,9 @@ void GraphService::onHandle(RequestContext<AuthResponse>& ctx, ErrorCode code) {
 }
 
 bool GraphService::auth(const std::string& username, const std::string& password) {
+    if (!FLAGS_enable_authorize) {
+        return true;
+    }
     if (FLAGS_auth_type == "password") {
         auto authenticator = std::make_unique<PasswordAuthenticator>(queryEngine_->metaClient());
         return authenticator->auth(username, encryption::MD5Utils::md5Encode(password));

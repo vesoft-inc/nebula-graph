@@ -106,6 +106,10 @@ void SessionManager::findSessionFromMetad(
         }
         auto session = std::move(resp).value();
         session->updateGraphAddr(myAddr_);
+        auto roles = metaClient_->getRolesByUserFromCache(session->user());
+        for (const auto &role : roles) {
+            session->setRole(role.get_space_id(), role.get_role_type());
+        }
         execInstance->rctx()->setSession(std::move(session));
         execFunc(execInstance->moveRctx());
         return execInstance->finish();

@@ -69,7 +69,8 @@ public:
         return ret->second;
     }
 
-    bool isGod() const {
+    bool isGod() {
+        folly::RWSpinLock::ReadHolder rHolder(rwSpinLock_);
         // Cloud may have multiple God accounts
         for (auto &role : roles_) {
             if (role.second == meta::cpp2::RoleType::GOD) {
