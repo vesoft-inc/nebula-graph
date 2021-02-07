@@ -85,9 +85,8 @@ static Expression* buildPathExpr() {
 Status Expand::doExpand(const NodeInfo& node,
                         const EdgeInfo& edge,
                         SubPlan* plan) {
-    PlanNode* loopTail = nullptr;
-    NG_RETURN_IF_ERROR(expandSteps(node, edge, &loopTail, plan));
-    NG_RETURN_IF_ERROR(filterDatasetByPathLength(edge, plan->root, loopTail, plan));
+    NG_RETURN_IF_ERROR(expandSteps(node, edge, plan));
+    NG_RETURN_IF_ERROR(filterDatasetByPathLength(edge, plan->root, plan));
     return Status::OK();
 }
 
@@ -95,7 +94,6 @@ Status Expand::doExpand(const NodeInfo& node,
 // DataJoin->Project3->[Filter]->Passthrough->Union
 Status Expand::expandSteps(const NodeInfo& node,
                            const EdgeInfo& edge,
-                           PlanNode** loopTail,
                            SubPlan* plan) {
     SubPlan subplan;
     int64_t startIndex = 0;
@@ -122,7 +120,6 @@ Status Expand::expandSteps(const NodeInfo& node,
     // No need to further expand if maxHop is the start Index
     if (maxHop == startIndex) {
         plan->root = subplan.root;
-        *loopTail = subplan.root;
         return Status::OK();
     }
     // Result of first step expansion
@@ -157,12 +154,11 @@ Status Expand::expandSteps(const NodeInfo& node,
     // Create loop
     auto* loop = Loop::make(matchCtx_->qctx, firstStep, body, condition);
 
-    // Union the results of each expansion which are stored in the firstStep node
+    // Unionize the results of each expansion which are stored in the firstStep node
     auto uResNode = UnionAllVersionVar::make(matchCtx_->qctx, loop);
     uResNode->setInputVar(firstStep->outputVar());
     uResNode->setColNames({kPathStr});
-    // *loopTail = body;
-    *loopTail = uResNode;
+
     subplan.root = uResNode;
     plan->root = subplan.root;
     return Status::OK();
@@ -235,7 +231,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
     return Status::OK();
 }
 
-// Build subplan: DataJoin->Project->[Filter]->Union
+// Build subplan: DataJoin->Project->Filter
 // In loop, start node and union node will be passed as joinLeft and inUnionNode
 Status Expand::collectData(PlanNode* joinLeft,
                            const PlanNode* joinRight,
@@ -265,7 +261,6 @@ Status Expand::collectData(PlanNode* joinLeft,
 
 Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
                                          PlanNode* input,
-                                         const PlanNode* loopTail,
                                          SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
 
@@ -280,21 +275,11 @@ Status Expand::filterDatasetByPathLength(const EdgeInfo& edge,
     auto minHopExpr = std::make_unique<ConstantExpression>(minHop);
     auto expr = std::make_unique<RelationalExpression>(
         Expression::Kind::kRelGE, edgeExpr.release(), minHopExpr.release());
+
     auto filter = Filter::make(qctx, input, saveObject(expr.release()));
-
-    // Use the last plan node in loop
-    filter->setInputVar(loopTail->outputVar());
-    filter->setColNames(loopTail->colNames());
+    filter->setColNames(input->colNames());
     plan->root = filter;
-    // Plan->tail = curr.tail;
     return Status::OK();
-}
-
-PlanNode* Expand::passThrough(const QueryContext *qctx, const PlanNode *root) const {
-    auto pt = PassThroughNode::make(const_cast<QueryContext*>(qctx), const_cast<PlanNode*>(root));
-    pt->setOutputVar(root->outputVar());
-    pt->setColNames(root->colNames());
-    return pt;
 }
 
 Expression* Expand::buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) const {

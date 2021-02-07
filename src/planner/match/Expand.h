@@ -44,7 +44,6 @@ public:
 private:
     Status expandSteps(const NodeInfo& node,
                        const EdgeInfo& edge,
-                       PlanNode** loopTail,
                        SubPlan* plan);
 
     Status expandStep(const EdgeInfo& edge,
@@ -60,12 +59,7 @@ private:
 
     Status filterDatasetByPathLength(const EdgeInfo& edge,
                                      PlanNode* input,
-                                     const PlanNode* loopTail,
                                      SubPlan* plan);
-
-    // Build a passThrough node so that the result of previous ndoe can be used by multiple other
-    // plan nodes
-    PlanNode* passThrough(const QueryContext *qctx, const PlanNode *root) const;
 
     Expression* buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) const;
 
