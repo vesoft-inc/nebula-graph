@@ -322,7 +322,7 @@ PlanNode* Expand::passThrough(const QueryContext *qctx, const PlanNode *root) co
 }
 
 Expression* Expand::buildNStepLoopCondition(int64_t startIndex, int64_t maxHop) const {
-    VLOG(1) << "maxHop: " << maxHop;
+    VLOG(1) << "match expand maxHop: " << maxHop;
     // ++loopSteps{startIndex} <= maxHop
     auto loopSteps = matchCtx_->qctx->vctx()->anonVarGen()->getVar();
     matchCtx_->qctx->ectx()->setValue(loopSteps, startIndex);
