@@ -132,16 +132,15 @@ Status Expand::expandSteps(const NodeInfo& node,
     startNode->setColNames(firstStep->colNames());
     loopBodyPlan.tail = startNode;
     loopBodyPlan.root = startNode;
-    PlanNode* passThrough = loopBodyPlan.root;
 
     // Construct loop body
     NG_RETURN_IF_ERROR(expandStep(edge,
-                                  passThrough,                // dep
-                                  passThrough->outputVar(),   // inputVar
+                                  startNode,                // dep
+                                  startNode->outputVar(),   // inputVar
                                   nullptr,
                                   &loopBodyPlan));
 
-    NG_RETURN_IF_ERROR(collectData(passThrough,         // left join node
+    NG_RETURN_IF_ERROR(collectData(startNode,         // left join node
                                    loopBodyPlan.root,   // right join node
                                    &firstStep,          // passThrough
                                    &subplan));
@@ -232,8 +231,7 @@ Status Expand::expandStep(const EdgeInfo& edge,
 }
 
 // Build subplan: DataJoin->Project->Filter
-// In loop, start node and union node will be passed as joinLeft and inUnionNode
-Status Expand::collectData(PlanNode* joinLeft,
+Status Expand::collectData(const PlanNode* joinLeft,
                            const PlanNode* joinRight,
                            PlanNode** passThrough,
                            SubPlan* plan) {

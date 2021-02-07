@@ -52,7 +52,7 @@ private:
                       const Expression* nodeFilter,
                       SubPlan* plan);
 
-    Status collectData(PlanNode* joinLeft,
+    Status collectData(const PlanNode* joinLeft,
                        const PlanNode* joinRight,
                        PlanNode** passThrough,
                        SubPlan* plan);

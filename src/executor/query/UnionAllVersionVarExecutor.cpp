@@ -39,8 +39,6 @@ folly::Future<Status> UnionAllVersionVarExecutor::execute() {
         inputList.emplace_back(std::move(iter));
     }
 
-    QueryExpressionContext ctx(ectx_);
-
     auto value = results[0].iter()->valuePtr();
     auto iter = std::make_unique<SequentialIter>(std::move(inputList));
     return finish(ResultBuilder().value(value).iter(std::move(iter)).finish());
