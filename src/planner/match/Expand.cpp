@@ -91,7 +91,7 @@ Status Expand::doExpand(const NodeInfo& node,
 }
 
 // Build subplan: Project->Dedup->GetNeighbors->[Filter]->Project2->
-// DataJoin->Project3->[Filter]->Passthrough->Union
+// DataJoin->Project3->[Filter]->Passthrough->Loop->UnionAllVer
 Status Expand::expandSteps(const NodeInfo& node,
                            const EdgeInfo& edge,
                            SubPlan* plan) {
