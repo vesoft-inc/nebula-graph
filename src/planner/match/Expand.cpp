@@ -127,20 +127,14 @@ Status Expand::expandSteps(const NodeInfo& node,
     }
     // Result of first step expansion
     PlanNode* firstStep = subplan.root;
-    // Build a passThrough node
-    PlanNode*  firstStepPT = PassThroughNode::make(matchCtx_->qctx, firstStep);
-    firstStepPT->setColNames(firstStep->colNames());
-    firstStep->setOutputVar(firstStepPT->outputVar());
-    // PlanNode* firstStepPT = passThrough(matchCtx_->qctx, firstStep);
 
     // Build Start node from first step
     SubPlan loopBodyPlan;
     PlanNode* startNode = StartNode::make(matchCtx_->qctx);
-    startNode->setOutputVar(firstStepPT->outputVar());
-    startNode->setColNames(firstStepPT->colNames());
+    startNode->setOutputVar(firstStep->outputVar());
+    startNode->setColNames(firstStep->colNames());
     loopBodyPlan.tail = startNode;
-    // Convert the start node to a passThrough node
-    loopBodyPlan.root = passThrough(matchCtx_->qctx, startNode);
+    loopBodyPlan.root = startNode;
     PlanNode* passThrough = loopBodyPlan.root;
 
     // Construct loop body
@@ -149,15 +143,10 @@ Status Expand::expandSteps(const NodeInfo& node,
                                   passThrough->outputVar(),   // inputVar
                                   nullptr,
                                   &loopBodyPlan));
-    auto rNode = passThrough;
-    // auto rNode = PlanNode(matchCtx_->qctx, PlanNode::Kind::kUnion);
-
-    DCHECK(rNode->kind() == PNKind::kUnion || rNode->kind() == PNKind::kPassThrough);
 
     NG_RETURN_IF_ERROR(collectData(passThrough,         // left join node
                                    loopBodyPlan.root,   // right join node
-                                   rNode,               // union node
-                                   &firstStepPT,          // passThrough
+                                   &firstStep,          // passThrough
                                    &subplan));
     // Union node
     auto body = subplan.root;
@@ -166,12 +155,11 @@ Status Expand::expandSteps(const NodeInfo& node,
     auto condition = buildNStepLoopCondition(startIndex, maxHop);
 
     // Create loop
-    auto* loop = Loop::make(matchCtx_->qctx, firstStepPT, body, condition);
+    auto* loop = Loop::make(matchCtx_->qctx, firstStep, body, condition);
 
-
-    // Union the results of loop and first step
-    auto uResNode = Union::make(matchCtx_->qctx, loop, firstStep);
-    uResNode->setLeftVar(body->outputVar());
+    // Union the results of each expansion which are stored in the firstStep node
+    auto uResNode = UnionAllVersionVar::make(matchCtx_->qctx, loop);
+    uResNode->setInputVar(firstStep->outputVar());
     uResNode->setColNames({kPathStr});
     // *loopTail = body;
     *loopTail = uResNode;
@@ -251,11 +239,9 @@ Status Expand::expandStep(const EdgeInfo& edge,
 // In loop, start node and union node will be passed as joinLeft and inUnionNode
 Status Expand::collectData(PlanNode* joinLeft,
                            const PlanNode* joinRight,
-                           PlanNode* inUnionNode,
                            PlanNode** passThrough,
                            SubPlan* plan) {
     auto qctx = matchCtx_->qctx;
-    auto ectx = qctx->ectx();
     // [dataJoin] read start node (joinLeft)
     auto join = SegmentsConnector::innerJoinSegments(qctx, joinLeft, joinRight);
     auto lpath = folly::stringPrintf("%s_%d", kPathStr, 0);
@@ -273,17 +259,7 @@ Status Expand::collectData(PlanNode* joinLeft,
     auto filter = MatchSolver::filtPathHasSameEdge(project, kPathStr, qctx);
     // Update start node
     filter->setOutputVar((*passThrough)->outputVar());
-    // [Union]
-    auto uNode = Union::make(qctx, filter, inUnionNode);
-    // Construct an empty dataset to initialize union outputVar
-    DataSet* emptyDataset = saveObject(new DataSet({kPathStr}));
-    ResultBuilder builder;
-    builder.value(std::move(Value(*emptyDataset))).iter(Iterator::Kind::kSequential);
-    ectx->setResult(uNode->outputVar(), builder.finish());
-    // Use the preset uNode output as the inputVar
-    uNode->setRightVar(uNode->outputVar());
-    uNode->setColNames({kPathStr});
-    plan->root = uNode;
+    plan->root = filter;
     return Status::OK();
 }
 

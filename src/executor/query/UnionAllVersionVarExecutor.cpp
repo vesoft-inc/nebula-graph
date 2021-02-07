@@ -25,16 +25,17 @@ folly::Future<Status> UnionAllVersionVarExecutor::execute() {
         DCHECK(!!iter);
 
         auto inputData = iter->valuePtr();
+        // Check if inputData is null
         if (UNLIKELY(!inputData)) {
             return Status::Error(
                 "UnionAllVersionVar related executor failed, input dataset is null");
         }
+        // Check if inputData is a dataset
         if (UNLIKELY(!inputData->isDataSet())) {
             std::stringstream ss;
             ss << "Invalid data types of dependencies: " << inputData->type() << ".";
             return Status::Error(ss.str());
         }
-
         inputList.emplace_back(std::move(iter));
     }
 
