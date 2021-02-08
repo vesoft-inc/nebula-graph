@@ -64,9 +64,9 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
 void GetNeighborsIter::goToFirstEdge() {
     // Go to first edge
     for (currentDs_ = dsIndices_.begin(); currentDs_ < dsIndices_.end(); ++currentDs_) {
-        colIdx_ = currentDs_->colLowerBound + 1;
         for (currentRow_ = currentDs_->ds->rows.begin();
             currentRow_ < currentDs_->ds->rows.end(); ++currentRow_) {
+            colIdx_ = currentDs_->colLowerBound + 1;
             while (colIdx_ < currentDs_->colUpperBound && !valid_) {
                 const auto& currentCol = currentRow_->operator[](colIdx_);
                 if (!currentCol.isList() || currentCol.getList().empty()) {
