@@ -446,7 +446,10 @@ SequentialIter::SequentialIter(std::shared_ptr<Value> value) : Iterator(value, K
 
 SequentialIter::SequentialIter(std::unique_ptr<Iterator> left, std::unique_ptr<Iterator> right)
     : Iterator(left->valuePtr(), Kind::kSequential) {
-    init({std::move(left), std::move(right)});
+    std::vector<std::unique_ptr<Iterator>> iterators;
+    iterators.emplace_back(std::move(left));
+    iterators.emplace_back(std::move(right));
+    init(std::move(iterators));
 }
 
 SequentialIter::SequentialIter(std::vector<std::unique_ptr<Iterator>> inputList)
