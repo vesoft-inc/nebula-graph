@@ -245,58 +245,31 @@ public:
         return copy;
     }
 
-    bool valid() const override {
-        return valid_ && iter_ < logicalRows_.end();
-    }
+    bool valid() const override;
 
-    bool noEdgeValid() const {
-        return noEdgeValid_ && noEdgeIter_ < noEdgeRows_.end();
-    }
-
-    void next() override {
-        if (valid()) {
-            ++iter_;
-        }
-    }
-
-    void noEdgeNext() {
-        if (noEdgeValid()) {
-            ++noEdgeIter_;
-        }
-    }
+    void next() override;
 
     void clear() override {
         valid_ = false;
         dsIndices_.clear();
-        logicalRows_.clear();
     }
 
     void erase() override {
-        if (valid()) {
-            iter_ = logicalRows_.erase(iter_);
-        }
+        DCHECK(false);
     }
 
     void unstableErase() override {
-        if (valid()) {
-            iter_ = eraseBySwap(logicalRows_, iter_);
-        }
+        DCHECK(false);
     }
 
     void eraseRange(size_t first, size_t last) override {
-        if (first >= last || first >= size()) {
-            return;
-        }
-        if (last > size()) {
-            logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.end());
-        } else {
-            logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.begin() + last);
-        }
-        reset();
+        UNUSED(first);
+        UNUSED(last);
+        DCHECK(false);
     }
 
     size_t size() const override {
-        return logicalRows_.size();
+        return 0;
     }
 
     const Value& getColumn(const std::string& col) const override;
@@ -311,8 +284,6 @@ public:
 
     Value getVertex() const override;
 
-    Value getNoEdgeVertex() const;
-
     Value getEdge() const override;
 
     // getVertices and getEdges arg batch interface use for subgraph
@@ -323,24 +294,21 @@ public:
     List getEdges();
 
     const LogicalRow* row() const override {
-        return &*iter_;
+        DCHECK(false);
+        return nullptr;
     }
 
 private:
     void doReset(size_t pos) override {
-        iter_ = logicalRows_.begin() + pos;
-    }
-
-    inline size_t currentSeg() const {
-        return iter_->dsIdx_;
+        UNUSED(pos);
+        valid_ = false;
+        goToFirstEdge();
     }
 
     inline const std::string& currentEdgeName() const {
-        return iter_->edgeName_;
-    }
-
-    inline const List* currentEdgeProps() const {
-        return iter_->edgeProps_;
+        DCHECK(currentDs_->tagEdgeNameIndices.find(colIdx_)
+                != currentDs_->tagEdgeNameIndices.end());
+        return currentDs_->tagEdgeNameIndices.find(colIdx_)->second;
     }
 
     struct PropIndex {
@@ -361,84 +329,40 @@ private:
         std::unordered_map<std::string, PropIndex> tagPropsMap;
         // _edge:e1:p1:p2  ->  {e1 : [column_idx, [p1, p2], {p1 : 0, p2 : 1}]}
         std::unordered_map<std::string, PropIndex> edgePropsMap;
+
+        int64_t colLowerBound{-1};
+        int64_t colUpperBound{-1};
     };
 
-    class GetNbrLogicalRow final : public LogicalRow {
-    public:
-        GetNbrLogicalRow(size_t dsIdx, const Row* row, std::string edgeName, const List* edgeProps)
-            : LogicalRow({row}),
-              dsIdx_(dsIdx),
-              edgeName_(std::move(edgeName)),
-              edgeProps_(edgeProps) {}
+    Status processList(std::shared_ptr<Value> value);
 
-        GetNbrLogicalRow(const GetNbrLogicalRow &) = default;
-        GetNbrLogicalRow& operator=(const GetNbrLogicalRow &) = default;
-
-        GetNbrLogicalRow(GetNbrLogicalRow &&r) noexcept {
-            *this = std::move(r);
-        }
-        GetNbrLogicalRow& operator=(GetNbrLogicalRow &&r) noexcept {
-            dsIdx_ = r.dsIdx_;
-            r.dsIdx_ = 0;
-
-            segments_ = std::move(r.segments_);
-
-            edgeName_ = std::move(r.edgeName_);
-
-            edgeProps_ = r.edgeProps_;
-            r.edgeProps_ = nullptr;
-            return *this;
-        }
-
-        const Value& operator[](size_t idx) const override {
-            DCHECK_EQ(segments_.size(), 1);
-            auto* row = segments_[0];
-            if (idx < row->size()) {
-                return (*row)[idx];
-            }
-            return Value::kNullOverflow;
-        }
-
-        size_t size() const override {
-            DCHECK_EQ(segments_.size(), 1);
-            auto* row = segments_[0];
-            return row->size();
-        }
-
-        LogicalRow::Kind kind() const override {
-            return Kind::kGetNeighbors;
-        }
-
-        const std::vector<const Row*>& segments() const override {
-            return segments_;
-        }
-
-    private:
-        friend class GetNeighborsIter;
-        size_t dsIdx_;
-        std::string edgeName_;
-        const List* edgeProps_;
-    };
+    void goToFirstEdge();
 
     StatusOr<int64_t> buildIndex(DataSetIndex* dsIndex);
+
     Status buildPropIndex(const std::string& props,
                           size_t columnId,
                           bool isEdge,
                           DataSetIndex* dsIndex);
-    Status processList(std::shared_ptr<Value> value);
-    StatusOr<DataSetIndex> makeDataSetIndex(const DataSet& ds, size_t idx);
-    void makeLogicalRowByEdge(int64_t edgeStartIndex, size_t idx, const DataSetIndex& dsIndex);
+
+    StatusOr<DataSetIndex> makeDataSetIndex(const DataSet& ds);
 
     FRIEND_TEST(IteratorTest, TestHead);
 
     bool                       valid_{false};
-    RowsType<GetNbrLogicalRow> logicalRows_;
-    RowsIter<GetNbrLogicalRow> iter_;
-    // rows without edges
-    bool                       noEdgeValid_{false};
-    RowsType<GetNbrLogicalRow> noEdgeRows_;
-    RowsIter<GetNbrLogicalRow> noEdgeIter_;
     std::vector<DataSetIndex>  dsIndices_;
+
+    std::vector<DataSetIndex>::iterator currentDs_;
+
+    std::vector<Row>::const_iterator    currentRow_;
+    std::vector<Row>::const_iterator    rowsUpperBound_;
+
+    int64_t                              colIdx_{-1};
+    const List*                          currentCol_{nullptr};
+
+    int64_t                              edgeIdx_{-1};
+    int64_t                              edgeIdxUpperBound_{-1};
+    const List*                          currentEdge_{nullptr};
 };
 
 class SequentialIter final : public Iterator {

@@ -51,7 +51,7 @@ class LimitTest : public QueryTestBase {
         EXPECT_EQ(proResult.value().getDataSet(), expected);                                       \
         EXPECT_EQ(proResult.state(), Result::State::kSuccess);                                     \
     } while (false)
-
+/*
 TEST_F(LimitTest, getNeighborInRange1) {
     DataSet expected({"name", "start"});
     expected.emplace_back(Row({Value("School2"), Value(2014)}));
@@ -81,5 +81,6 @@ TEST_F(LimitTest, getNeighborOutRange2) {
     DataSet expected({"name", "start"});
     LIMIT_RESUTL_CHECK("limit_out_neighbor1", 4, 2, expected);
 }
+*/
 }  // namespace graph
 }  // namespace nebula
