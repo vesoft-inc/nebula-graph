@@ -79,11 +79,12 @@ bool OptRule::match(const MatchedResult &matched) const {
 bool OptRule::checkDataflowDeps(const MatchedResult &matched, const std::string &var) const {
     auto node = matched.node;
     auto planNode = node->node();
-    if (planNode->outputVar() != var) {
+    const auto &outVarName = planNode->outputVar();
+    if (outVarName != var) {
         return false;
     }
     auto symTbl = planNode->qctx()->symTable();
-    auto outVar = symTbl->getVar(planNode->outputVar());
+    auto outVar = symTbl->getVar(outVarName);
     // Check whether this variable is read by multiple other plan nodes
     if (outVar->readBy.size() > 1) {
         return false;
