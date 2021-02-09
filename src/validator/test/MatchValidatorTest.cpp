@@ -88,7 +88,6 @@ TEST_F(MatchValidatorTest, SeekByEdgeIndex) {
                                                 PlanNode::Kind::kDedup,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kFilter,
-                                                PlanNode::Kind::kPassThrough,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kGetNeighbors,
                                                 PlanNode::Kind::kDedup,
