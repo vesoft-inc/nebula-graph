@@ -71,12 +71,12 @@ StatusOr<MatchedResult> OptRule::match(const OptGroupNode *groupNode) const {
 }
 
 bool OptRule::match(const MatchedResult &matched) const {
-    // Return true if subclass doesn't override this interface,
-    // so optimizer will only check whether pattern is matched
-    return checkDataflowDeps(matched, matched.node->node()->outputVar());
+    return checkDataflowDeps(matched, matched.node->node()->outputVar(), true);
 }
 
-bool OptRule::checkDataflowDeps(const MatchedResult &matched, const std::string &var) const {
+bool OptRule::checkDataflowDeps(const MatchedResult &matched,
+                                const std::string &var,
+                                bool isRoot) const {
     auto node = matched.node;
     auto planNode = node->node();
     const auto &outVarName = planNode->outputVar();
@@ -85,8 +85,8 @@ bool OptRule::checkDataflowDeps(const MatchedResult &matched, const std::string 
     }
     auto symTbl = planNode->qctx()->symTable();
     auto outVar = symTbl->getVar(outVarName);
-    // Check whether this variable is read by multiple other plan nodes
-    if (outVar->readBy.size() > 1) {
+    // Check whether this variable is read by multiple other plan nodes except the root
+    if (outVar->readBy.size() > 1 && !isRoot) {
         return false;
     }
 
@@ -98,12 +98,12 @@ bool OptRule::checkDataflowDeps(const MatchedResult &matched, const std::string 
 
     if (matched.dependencies.size() == 1U) {
         auto singleInputNode = static_cast<const graph::SingleInputNode *>(planNode);
-        return checkDataflowDeps(matched.dependencies.back(), singleInputNode->inputVar());
+        return checkDataflowDeps(matched.dependencies.back(), singleInputNode->inputVar(), false);
     }
     auto binaryInputNode = static_cast<const graph::BiInputNode *>(planNode);
     const auto &deps = matched.dependencies;
-    return checkDataflowDeps(deps[0], binaryInputNode->leftInputVar()) &&
-           checkDataflowDeps(deps[1], binaryInputNode->rightInputVar());
+    return checkDataflowDeps(deps[0], binaryInputNode->leftInputVar(), false) &&
+           checkDataflowDeps(deps[1], binaryInputNode->rightInputVar(), false);
 }
 
 RuleSet &RuleSet::DefaultRules() {

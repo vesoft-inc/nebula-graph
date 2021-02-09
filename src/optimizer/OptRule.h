@@ -72,7 +72,7 @@ protected:
 
     // Return false if the output variable of this matched plan node is not the
     // input of other plan node
-    bool checkDataflowDeps(const MatchedResult &matched, const std::string &var) const;
+    bool checkDataflowDeps(const MatchedResult &matched, const std::string &var, bool isRoot) const;
 };
 
 class RuleSet final {
