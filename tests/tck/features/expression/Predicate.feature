@@ -68,8 +68,31 @@ Feature: Predicate
     When executing query:
       """
       MATCH p = (n:player{name:"LeBron James"})-[:like]->(m)
-      RETURN single(n IN nodes(p) WHERE n.age > 40) as b
+      RETURN single(n IN nodes(p) WHERE n.age > 40) AS b
       """
     Then the result should be, in any order:
       | b    |
       | True |
+    When executing query:
+      """
+      WITH [1, 2, 3, 4, 5, NULL] AS a, 1.3 AS b
+      RETURN any(n IN a WHERE n > 2 + b) AS r1
+      """
+    Then the result should be, in any order:
+      | r1   |
+      | True |
+
+  Scenario: collection is not a LIST
+    Given a graph with space named "nba"
+    When executing query:
+      """
+      YIELD single(n IN "Tom" WHERE n == 3) AS r
+      """
+    Then a SemanticError should be raised at runtime: `single(n IN Tom WHERE (n==3))': Invalid colletion type, expected type of LIST, but was: STRING
+    When executing query:
+      """
+      YIELD single(n IN NULL WHERE n == 3) AS r
+      """
+    Then the result should be, in any order:
+      | r    |
+      | NULL |

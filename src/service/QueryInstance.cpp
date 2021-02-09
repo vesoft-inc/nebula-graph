@@ -16,10 +16,12 @@
 #include "scheduler/Scheduler.h"
 #include "validator/Validator.h"
 #include "util/AstUtils.h"
+#include "stats/StatsDef.h"
 
 using nebula::opt::Optimizer;
 using nebula::opt::OptRule;
 using nebula::opt::RuleSet;
+
 
 namespace nebula {
 namespace graph {
@@ -29,6 +31,7 @@ QueryInstance::QueryInstance(std::unique_ptr<QueryContext> qctx, Optimizer *opti
     optimizer_ = DCHECK_NOTNULL(optimizer);
     scheduler_ = std::make_unique<Scheduler>(qctx_.get());
 }
+
 
 void QueryInstance::execute() {
     Status status = validateAndOptimize();
@@ -54,6 +57,7 @@ void QueryInstance::execute() {
         .onError([this](const std::exception &e) { onError(Status::Error("%s", e.what())); });
 }
 
+
 Status QueryInstance::validateAndOptimize() {
     auto *rctx = qctx()->rctx();
     VLOG(1) << "Parsing query: " << rctx->query();
@@ -71,6 +75,7 @@ Status QueryInstance::validateAndOptimize() {
     return Status::OK();
 }
 
+
 bool QueryInstance::explainOrContinue() {
     if (sentence_->kind() != Sentence::Kind::kExplain) {
         return true;
@@ -79,12 +84,11 @@ bool QueryInstance::explainOrContinue() {
     return static_cast<const ExplainSentence *>(sentence_.get())->isProfile();
 }
 
+
 void QueryInstance::onFinish() {
     auto rctx = qctx()->rctx();
     VLOG(1) << "Finish query: " << rctx->query();
     auto ectx = qctx()->ectx();
-    auto latency = rctx->duration().elapsedInUSec();
-    rctx->resp().latencyInUs = latency;
     auto &spaceName = rctx->session()->space().name;
     rctx->resp().spaceName = std::make_unique<std::string>(spaceName);
     auto name = qctx()->plan()->root()->outputVar();
@@ -108,6 +112,13 @@ void QueryInstance::onFinish() {
             std::move(*qctx()->planDescription()));
     }
 
+    auto latency = rctx->duration().elapsedInUSec();
+    rctx->resp().latencyInUs = latency;
+    stats::StatsManager::addValue(kQueryLatencyUs, latency);
+    if (latency > static_cast<uint64_t>(FLAGS_slow_query_threshold_us)) {
+        stats::StatsManager::addValue(kNumSlowQueries);
+        stats::StatsManager::addValue(kSlowQueryLatencyUs, latency);
+    }
     rctx->finish();
 
     // The `QueryInstance' is the root node holding all resources during the execution.
@@ -116,6 +127,7 @@ void QueryInstance::onFinish() {
     // e.g. previously launched uncompleted async sub-tasks, EVEN on failures.
     delete this;
 }
+
 
 void QueryInstance::onError(Status status) {
     LOG(ERROR) << status;
@@ -143,6 +155,7 @@ void QueryInstance::onError(Status status) {
         case Status::Code::kIndexNotFound:
         case Status::Code::kInserted:
         case Status::Code::kKeyNotFound:
+        case Status::Code::kPartialSuccess:
         case Status::Code::kLeaderChanged:
         case Status::Code::kNoSuchFile:
         case Status::Code::kNotSupported:
@@ -161,6 +174,12 @@ void QueryInstance::onError(Status status) {
     rctx->resp().errorMsg = std::make_unique<std::string>(status.toString());
     auto latency = rctx->duration().elapsedInUSec();
     rctx->resp().latencyInUs = latency;
+    stats::StatsManager::addValue(kQueryLatencyUs, latency);
+    stats::StatsManager::addValue(kNumQueryErrors);
+    if (latency > static_cast<uint64_t>(FLAGS_slow_query_threshold_us)) {
+        stats::StatsManager::addValue(kNumSlowQueries);
+        stats::StatsManager::addValue(kSlowQueryLatencyUs, latency);
+    }
     rctx->finish();
     delete this;
 }
