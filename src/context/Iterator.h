@@ -485,36 +485,13 @@ public:
         friend class SequentialIter;
     };
 
-    explicit SequentialIter(std::shared_ptr<Value> value)
-        : Iterator(value, Kind::kSequential) {
-        DCHECK(value->isDataSet());
-        auto& ds = value->getDataSet();
-        for (auto& row : ds.rows) {
-            rows_.emplace_back(&row);
-        }
-        iter_ = rows_.begin();
-        for (size_t i = 0; i < ds.colNames.size(); ++i) {
-            colIndices_.emplace(ds.colNames[i], i);
-        }
-    }
+    explicit SequentialIter(std::shared_ptr<Value> value);
 
-    // union two sequential iterator.
-    SequentialIter(std::unique_ptr<Iterator> left, std::unique_ptr<Iterator> right)
-        : Iterator(left->valuePtr(), Kind::kSequential) {
-        DCHECK(left->isSequentialIter());
-        DCHECK(right->isSequentialIter());
-        auto lIter = static_cast<SequentialIter*>(left.get());
-        auto rIter = static_cast<SequentialIter*>(right.get());
-        rows_.insert(rows_.end(),
-                     std::make_move_iterator(lIter->begin()),
-                     std::make_move_iterator(lIter->end()));
+    // Union multiple sequential iterators
+    explicit SequentialIter(std::vector<std::unique_ptr<Iterator>> inputList);
 
-        rows_.insert(rows_.end(),
-                     std::make_move_iterator(rIter->begin()),
-                     std::make_move_iterator(rIter->end()));
-        iter_ = rows_.begin();
-        colIndices_ = lIter->getColIndices();
-    }
+    // Union two sequential iterators.
+    SequentialIter(std::unique_ptr<Iterator> left, std::unique_ptr<Iterator> right);
 
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<SequentialIter>(*this);
@@ -611,7 +588,6 @@ protected:
         return &*iter_;
     }
 
-protected:
     // Notice: We only use this interface when return results to client.
     friend class DataCollectExecutor;
     Row&& moveRow() {
@@ -625,7 +601,8 @@ private:
         iter_ = rows_.begin() + pos;
     }
 
-private:
+    void init(std::vector<std::unique_ptr<Iterator>>&& iterators);
+
     RowsType<SeqLogicalRow>                      rows_;
     RowsIter<SeqLogicalRow>                      iter_;
     std::unordered_map<std::string, size_t>      colIndices_;

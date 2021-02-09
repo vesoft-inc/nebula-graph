@@ -5,8 +5,11 @@
  */
 
 #include "planner/PlanNode.h"
+
 #include <memory>
 #include <vector>
+
+#include <folly/json.h>
 
 #include "common/graph/Response.h"
 #include "context/QueryContext.h"
@@ -44,6 +47,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "Filter";
         case Kind::kUnion:
             return "Union";
+        case Kind::kUnionAllVersionVar:
+            return "UnionAllVersionVar";
         case Kind::kIntersect:
             return "Intersect";
         case Kind::kMinus:
@@ -207,6 +212,8 @@ const char* PlanNode::toString(PlanNode::Kind kind) {
             return "ProduceAllPaths";
         case Kind::kCartesianProduct:
             return "CartesianProduct";
+        case Kind::kSubgraph:
+            return "Subgraph";
         // Group and Zone
         case Kind::kAddGroup:
             return "AddGroup";
@@ -298,8 +305,10 @@ std::unique_ptr<PlanNodeDescription> BiInputNode::explain() const {
     auto desc = PlanNode::explain();
     DCHECK(desc->dependencies == nullptr);
     desc->dependencies.reset(new std::vector<int64_t>{left()->id(), right()->id()});
-    addDescription("leftVar", leftInputVar(), desc.get());
-    addDescription("rightVar", rightInputVar(), desc.get());
+    folly::dynamic inputVar = folly::dynamic::object();
+    inputVar.insert("leftVar", leftInputVar());
+    inputVar.insert("rightVar", rightInputVar());
+    addDescription("inputVar", folly::toJson(inputVar), desc.get());
     return desc;
 }
 
