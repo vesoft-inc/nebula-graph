@@ -26,6 +26,7 @@ nebula_add_library(
     query/IndexScanExecutor.cpp
     query/SetExecutor.cpp
     query/UnionExecutor.cpp
+    query/UnionAllVersionVarExecutor.cpp
     query/DataCollectExecutor.cpp
     query/DataJoinExecutor.cpp
     query/IndexScanExecutor.cpp
@@ -35,6 +36,7 @@ nebula_add_library(
     algo/ProduceSemiShortestPathExecutor.cpp
     algo/ProduceAllPathsExecutor.cpp
     algo/CartesianProductExecutor.cpp
+    algo/SubgraphExecutor.cpp
     admin/SwitchSpaceExecutor.cpp
     admin/CreateUserExecutor.cpp
     admin/DropUserExecutor.cpp

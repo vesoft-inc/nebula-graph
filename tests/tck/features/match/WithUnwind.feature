@@ -20,6 +20,22 @@ Feature: With clause and Unwind clause
     Then the result should be, in any order, with relax comparison:
       | a       | b       |
       | [1,2,3] | "hello" |
+    When executing query:
+      """
+      WITH [1, 2, 3] AS a
+      WITH a, "hello" AS b
+      RETURN a, b
+      """
+    Then the result should be, in any order, with relax comparison:
+      | a       | b       |
+      | [1,2,3] | "hello" |
+    When executing query:
+      """
+      WITH [1, 2, 3] AS a
+      WITH a, "hello"
+      RETURN a
+      """
+    Then a SemanticError should be raised at runtime: Expression in WITH must be aliased (use AS)
 
   @skip
   Scenario: with match return
@@ -113,6 +129,38 @@ Feature: With clause and Unwind clause
       | 9 | 5 | 3 |
       | 8 | 4 | 3 |
       | 9 | 4 | 3 |
+    When executing query:
+      """
+      UNWIND [[1],[2],[2,1]] AS x
+      return min(x) AS min, max(x) AS max
+      """
+    Then the result should be, in any order:
+      | min | max    |
+      | [1] | [2, 1] |
+    When executing query:
+      """
+      UNWIND [['a'],["abc"],["ab","kajk"]] AS x
+      return min(x) AS min, max(x) AS max
+      """
+    Then the result should be, in any order:
+      | min   | max     |
+      | ["a"] | ["abc"] |
+    When executing query:
+      """
+      UNWIND ['a',"abc","ab"] AS x
+      return min(x) AS min, max(x) AS max
+      """
+    Then the result should be, in any order:
+      | min | max   |
+      | "a" | "abc" |
+    When executing query:
+      """
+      UNWIND [true,false,false] AS x
+      return min(x) AS min, max(x) AS max
+      """
+    Then the result should be, in any order:
+      | min   | max  |
+      | false | true |
 
   Scenario: with unwind return
     When executing query:
