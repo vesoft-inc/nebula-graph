@@ -21,6 +21,8 @@
 #include "context/ExecutionContext.h"
 #include "util/ScopedTimer.h"
 
+DECLARE_bool(enable_lifetime_optimize);
+
 namespace nebula {
 namespace graph {
 
@@ -97,6 +99,8 @@ protected:
     folly::Future<Status> start(Status status = Status::OK()) const;
 
     folly::Executor *runner() const;
+
+    void drop();
 
     // Store the result of this executor to execution context
     Status finish(Result &&result);

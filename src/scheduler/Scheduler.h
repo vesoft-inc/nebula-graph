@@ -25,6 +25,7 @@ namespace graph {
 class Executor;
 class QueryContext;
 class LoopExecutor;
+class PlanNode;
 
 class Scheduler final : private cpp::NonCopyable, private cpp::NonMovable {
 public:
@@ -63,6 +64,7 @@ private:
     }
 
     void analyze(Executor *executor);
+    void analyzeLifetime(const PlanNode *node, QueryContext *qctx, bool inLoop = false);
     folly::Future<Status> doSchedule(Executor *executor);
     folly::Future<Status> doScheduleParallel(const std::set<Executor *> &dependents);
     folly::Future<Status> iterate(LoopExecutor *loop);

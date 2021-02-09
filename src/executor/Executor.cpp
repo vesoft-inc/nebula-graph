@@ -89,6 +89,8 @@
 
 using folly::stringPrintf;
 
+DEFINE_bool(enable_lifetime_optimize, true, "Does enable the lifetime optimize.");
+
 namespace nebula {
 namespace graph {
 
@@ -529,9 +531,27 @@ folly::Future<Status> Executor::error(Status status) const {
     return folly::makeFuture<Status>(ExecutionError(std::move(status))).via(runner());
 }
 
+void Executor::drop() {
+    for (const auto &inputVar : node()->inputVars()) {
+        if (inputVar != nullptr) {
+            auto findResult = qctx_->lastUser(inputVar->name);
+            if (findResult.ok()) {
+                if (findResult.value() == node()->id()) {
+                    ectx_->dropResult(inputVar->name);
+                }
+            }
+        }
+    }
+}
+
 Status Executor::finish(Result &&result) {
-    numRows_ = result.size();
-    ectx_->setResult(node()->outputVar(), std::move(result));
+    if (!FLAGS_enable_lifetime_optimize || qctx_->lastUser(node()->outputVar()).ok()) {
+        numRows_ = result.size();
+        ectx_->setResult(node()->outputVar(), std::move(result));
+    }
+    if (FLAGS_enable_lifetime_optimize) {
+        drop();
+    }
     return Status::OK();
 }
 

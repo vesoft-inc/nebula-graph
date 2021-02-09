@@ -23,6 +23,10 @@ void ExecutionContext::setResult(const std::string& name, Result&& result) {
     hist.emplace_back(std::move(result));
 }
 
+void ExecutionContext::dropResult(const std::string& name) {
+    valueMap_.erase(name);
+}
+
 void ExecutionContext::deleteValue(const std::string& name) {
     valueMap_.erase(name);
 }

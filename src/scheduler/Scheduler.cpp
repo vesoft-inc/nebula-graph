@@ -13,6 +13,8 @@
 #include "executor/logic/PassThroughExecutor.h"
 #include "executor/logic/SelectExecutor.h"
 #include "planner/PlanNode.h"
+#include "planner/Logic.h"
+#include "planner/Query.h"
 
 namespace nebula {
 namespace graph {
@@ -25,6 +27,10 @@ Scheduler::PassThroughData::PassThroughData(int32_t outputs)
 Scheduler::Scheduler(QueryContext *qctx) : qctx_(DCHECK_NOTNULL(qctx)) {}
 
 folly::Future<Status> Scheduler::schedule() {
+    if (FLAGS_enable_lifetime_optimize) {
+        qctx_->addLastUser(qctx_->plan()->root()->outputVar(), -1);  // special for root
+        analyzeLifetime(qctx_->plan()->root(), qctx_);
+    }
     auto executor = Executor::create(qctx_->plan()->root(), qctx_);
     analyze(executor);
     return doSchedule(executor);
@@ -58,6 +64,37 @@ void Scheduler::analyze(Executor *executor) {
 
     for (auto dep : executor->depends()) {
         analyze(dep);
+    }
+}
+
+
+void Scheduler::analyzeLifetime(const PlanNode *node, QueryContext *qctx, bool inLoop) {
+    for (const auto& inputVar : node->inputVars()) {
+        if (inputVar != nullptr) {
+            DCHECK_NOTNULL(qctx)->addLastUser(inputVar->name,
+                                              (node->kind() == PlanNode::Kind::kLoop || inLoop) ?
+                                                  -1 : node->id());
+        }
+    }
+    switch (node->kind()) {
+        case PlanNode::Kind::kSelect: {
+            auto sel = static_cast<const Select *>(node);
+            analyzeLifetime(sel->then(), qctx, inLoop);
+            analyzeLifetime(sel->otherwise(), qctx, inLoop);
+            break;
+        }
+        case PlanNode::Kind::kLoop: {
+            auto loop = static_cast<const Loop *>(node);
+            DCHECK_NOTNULL(qctx)->addLastUser(loop->outputVar(), -1);
+            analyzeLifetime(loop->body(), qctx, true);
+            break;
+        }
+        default:
+            break;
+    }
+
+    for (auto dep : node->dependencies()) {
+        analyzeLifetime(dep, qctx, inLoop);
     }
 }
 

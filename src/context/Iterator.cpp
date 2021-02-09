@@ -361,6 +361,7 @@ List GetNeighborsIter::getVertices() {
         }
         vertices.values.emplace_back(std::move(value));
     }
+    noEdgeReset();
     return vertices;
 }
 

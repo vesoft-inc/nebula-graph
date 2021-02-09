@@ -15,16 +15,16 @@ folly::Future<Status> SortExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     auto* sort = asNode<Sort>(node());
-    auto iter = ectx_->getResult(sort->inputVar()).iter();
-    if (UNLIKELY(iter == nullptr)) {
+    Result result = ectx_->getResult(sort->inputVar());
+    if (UNLIKELY(result.iterRef() == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in sort executor");
     }
-    if (UNLIKELY(iter->isDefaultIter())) {
+    if (UNLIKELY(result.iterRef()->isDefaultIter())) {
         std::string errMsg = "Internal error: Sort executor does not supported DefaultIter";
         LOG(ERROR) << errMsg;
         return Status::Error(errMsg);
     }
-    if (UNLIKELY(iter->isGetNeighborsIter())) {
+    if (UNLIKELY(result.iterRef()->isGetNeighborsIter())) {
         std::string errMsg = "Internal error: Sort executor does not supported GetNeighborsIter";
         LOG(ERROR) << errMsg;
         return Status::Error(errMsg);
@@ -48,17 +48,17 @@ folly::Future<Status> SortExecutor::execute() {
         return false;
     };
 
-    if (iter->isSequentialIter()) {
-        auto seqIter = static_cast<SequentialIter*>(iter.get());
+    if (result.iterRef()->isSequentialIter()) {
+        auto seqIter = static_cast<SequentialIter*>(result.iterRef());
         std::sort(seqIter->begin(), seqIter->end(), comparator);
-    } else if (iter->isJoinIter()) {
-        auto joinIter = static_cast<JoinIter*>(iter.get());
+    } else if (result.iterRef()->isJoinIter()) {
+        auto joinIter = static_cast<JoinIter*>(result.iterRef());
         std::sort(joinIter->begin(), joinIter->end(), comparator);
-    } else if (iter->isPropIter()) {
-        auto propIter = static_cast<PropIter*>(iter.get());
+    } else if (result.iterRef()->isPropIter()) {
+        auto propIter = static_cast<PropIter*>(result.iterRef());
         std::sort(propIter->begin(), propIter->end(), comparator);
     }
-    return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
+    return finish(ResultBuilder().values(result.values()).iter(std::move(result).iter()).finish());
 }
 
 }   // namespace graph

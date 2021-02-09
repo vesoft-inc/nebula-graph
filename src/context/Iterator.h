@@ -242,6 +242,7 @@ public:
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<GetNeighborsIter>(*this);
         copy->reset();
+        copy->noEdgeReset();
         return copy;
     }
 
@@ -263,6 +264,10 @@ public:
         if (noEdgeValid()) {
             ++noEdgeIter_;
         }
+    }
+
+    void noEdgeReset() {
+        noEdgeIter_ = noEdgeRows_.begin();
     }
 
     void clear() override {

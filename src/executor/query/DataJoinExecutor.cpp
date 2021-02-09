@@ -30,6 +30,9 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
     VLOG(1) << "DataJoin ColNames : " << folly::join(",", colNames);
     VLOG(1) << "lhs hist: " << ectx_->getHistory(dataJoin->leftVar().first).size();
     VLOG(1) << "rhs hist: " << ectx_->getHistory(dataJoin->rightVar().first).size();
+    Result lResult = ectx_
+                       ->getVersionedResult(dataJoin->leftVar().first,
+                                            dataJoin->leftVar().second);
     auto lhsIter = ectx_
                        ->getVersionedResult(dataJoin->leftVar().first,
                                             dataJoin->leftVar().second)
@@ -41,6 +44,9 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
         ss << "Join executor does not support " << lhsIter->kind();
         return error(Status::Error(ss.str()));
     }
+    Result rResult = ectx_
+                       ->getVersionedResult(dataJoin->rightVar().first,
+                                            dataJoin->rightVar().second);
     auto rhsIter = ectx_
                        ->getVersionedResult(dataJoin->rightVar().first,
                                             dataJoin->rightVar().second)
@@ -69,7 +75,11 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
             probe(dataJoin->hashKeys(), lhsIter.get(), resultIter.get());
         }
     }
-    return finish(ResultBuilder().iter(std::move(resultIter)).finish());
+    return finish(ResultBuilder()
+        .values(lResult.values())
+        .values(rResult.values())
+        .iter(std::move(resultIter))
+        .finish());
 }
 
 void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,

@@ -56,14 +56,14 @@ Status SetExecutor::checkInputDataSets() {
         "Datasets have different columns: <%s> vs. <%s>", lcols.c_str(), rcols.c_str());
 }
 
-std::unique_ptr<Iterator> SetExecutor::getLeftInputDataIter() const {
+Result SetExecutor::getLeftInputData() const {
     auto left = asNode<SetOp>(node())->leftInputVar();
-    return ectx_->getResult(left).iter();
+    return ectx_->getResult(left);
 }
 
-std::unique_ptr<Iterator> SetExecutor::getRightInputDataIter() const {
+Result SetExecutor::getRightInputData() const {
     auto right = asNode<SetOp>(node())->rightInputVar();
-    return ectx_->getResult(right).iter();
+    return ectx_->getResult(right);
 }
 
 }   // namespace graph

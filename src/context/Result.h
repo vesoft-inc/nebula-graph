@@ -31,11 +31,15 @@ public:
     static const std::vector<Result>& EmptyResultList();
 
     std::shared_ptr<Value> valuePtr() const {
-        return core_.value;
+        return core_.values.front();
     }
 
     const Value& value() const {
-        return *core_.value;
+        return *core_.values.front();
+    }
+
+    const std::vector<std::shared_ptr<Value>>& values() const {
+        return core_.values;
     }
 
     State state() const {
@@ -46,8 +50,16 @@ public:
         return core_.iter->size();
     }
 
-    std::unique_ptr<Iterator> iter() const {
+    std::unique_ptr<Iterator> iter() const & {
         return core_.iter->copy();
+    }
+
+    std::unique_ptr<Iterator> iter() && {
+        return std::move(core_.iter);
+    }
+
+    Iterator* iterRef() {
+        return core_.iter.get();
     }
 
 private:
@@ -55,13 +67,27 @@ private:
     friend class ExecutionContext;
 
     Value&& moveValue() {
-        return std::move(*core_.value);
+        return std::move(*core_.values.front());
     }
 
     struct Core {
+        Core() = default;
+        Core(Core &&) = default;
+        Core& operator=(Core &&) = default;
+        Core(const Core &c) {
+            *this = c;
+        }
+        Core& operator=(const Core &c) {
+            state = c.state;
+            msg = c.msg;
+            values = c.values;
+            iter = c.iter->copy();
+            return *this;
+        }
+
         State state;
         std::string msg;
-        std::shared_ptr<Value> value;
+        std::vector<std::shared_ptr<Value>> values;
         std::unique_ptr<Iterator> iter;
     };
 
@@ -79,17 +105,24 @@ public:
 
     Result finish() {
         if (!core_.iter) iter(Iterator::Kind::kSequential);
-        if (!core_.value && core_.iter) value(core_.iter->valuePtr());
+        if (core_.values.empty() && core_.iter) value(core_.iter->valuePtr());
         return Result(std::move(core_));
     }
 
     ResultBuilder& value(Value&& value) {
-        core_.value = std::make_shared<Value>(std::move(value));
+        core_.values.emplace_back(std::make_shared<Value>(std::move(value)));
         return *this;
     }
 
     ResultBuilder& value(std::shared_ptr<Value> value) {
-        core_.value = value;
+        core_.values.emplace_back(value);
+        return *this;
+    }
+
+    ResultBuilder& values(std::vector<std::shared_ptr<Value>> values) {
+        core_.values.insert(core_.values.end(),
+                            std::make_move_iterator(values.begin()),
+                            std::make_move_iterator(values.end()));
         return *this;
     }
 

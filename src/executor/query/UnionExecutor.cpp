@@ -16,11 +16,11 @@ folly::Future<Status> UnionExecutor::execute() {
     SCOPED_TIMER(&execTime_);
 
     NG_RETURN_IF_ERROR(checkInputDataSets());
-    auto left = getLeftInputDataIter();
-    auto right = getRightInputDataIter();
-    auto value = left->valuePtr();
-    auto iter = std::make_unique<SequentialIter>(std::move(left), std::move(right));
-    return finish(ResultBuilder().value(value).iter(std::move(iter)).finish());
+    auto left = getLeftInputData();
+    auto right = getRightInputData();
+    auto iter = std::make_unique<SequentialIter>(std::move(left).iter(), std::move(right).iter());
+    return finish(ResultBuilder()
+        .values(left.values()).values(right.values()).iter(std::move(iter)).finish());
 }
 
 }   // namespace graph

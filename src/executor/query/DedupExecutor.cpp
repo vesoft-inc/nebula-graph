@@ -15,31 +15,29 @@ folly::Future<Status> DedupExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* dedup = asNode<Dedup>(node());
     DCHECK(!dedup->inputVar().empty());
-    auto iter = ectx_->getResult(dedup->inputVar()).iter();
+    Result result = ectx_->getResult(dedup->inputVar());
 
-    if (UNLIKELY(iter == nullptr)) {
+    if (UNLIKELY(result.iterRef() == nullptr)) {
         return Status::Error("Internal Error: iterator is nullptr");
     }
 
-    if (UNLIKELY(iter->isGetNeighborsIter())) {
-        auto e = Status::Error("Invalid iterator kind, %d", static_cast<uint16_t>(iter->kind()));
+    if (UNLIKELY(result.iterRef()->isGetNeighborsIter())) {
+        auto e = Status::Error("Invalid iterator kind, %d",
+                               static_cast<uint16_t>(result.iterRef()->kind()));
         LOG(ERROR) << e;
         return e;
     }
-    ResultBuilder builder;
-    builder.value(iter->valuePtr());
     std::unordered_set<const LogicalRow*> unique;
-    unique.reserve(iter->size());
-    while (iter->valid()) {
-        if (!unique.emplace(iter->row()).second) {
-            iter->unstableErase();
+    unique.reserve(result.iterRef()->size());
+    while (result.iterRef()->valid()) {
+        if (!unique.emplace(result.iterRef()->row()).second) {
+            result.iterRef()->unstableErase();
         } else {
-            iter->next();
+            result.iterRef()->next();
         }
     }
-    iter->reset();
-    builder.iter(std::move(iter));
-    return finish(builder.finish());
+    result.iterRef()->reset();
+    return finish(std::move(result));
 }
 
 }   // namespace graph

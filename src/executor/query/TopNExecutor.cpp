@@ -14,16 +14,16 @@ namespace graph {
 folly::Future<Status> TopNExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* topn = asNode<TopN>(node());
-    auto iter = ectx_->getResult(topn->inputVar()).iter();
-    if (UNLIKELY(iter == nullptr)) {
+    Result result = ectx_->getResult(topn->inputVar());
+    if (UNLIKELY(result.iterRef() == nullptr)) {
         return Status::Error("Internal error: nullptr iterator in topn executor");
     }
-    if (UNLIKELY(iter->isDefaultIter())) {
+    if (UNLIKELY(result.iterRef()->isDefaultIter())) {
         std::string errMsg = "Internal error: Sort executor does not supported DefaultIter";
         LOG(ERROR) << errMsg;
         return Status::Error(errMsg);
     }
-    if (UNLIKELY(iter->isGetNeighborsIter())) {
+    if (UNLIKELY(result.iterRef()->isGetNeighborsIter())) {
         std::string errMsg = "Internal error: TopN executor does not supported GetNeighborsIter";
         LOG(ERROR) << errMsg;
         return Status::Error(errMsg);
@@ -49,7 +49,7 @@ folly::Future<Status> TopNExecutor::execute() {
 
     offset_ = topn->offset();
     auto count = topn->count();
-    auto size = iter->size();
+    auto size = result.iterRef()->size();
     maxCount_ = count;
     heapSize_ = 0;
     if (size <= static_cast<size_t>(offset_)) {
@@ -61,19 +61,20 @@ folly::Future<Status> TopNExecutor::execute() {
         heapSize_ = size;
     }
     if (heapSize_ == 0) {
-        iter->clear();
-        return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
+        result.iterRef()->clear();
+        return finish(ResultBuilder()
+            .values(result.values()).iter(std::move(result).iter()).finish());
     }
 
-    if (iter->isSequentialIter()) {
-        executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(iter.get());
-    } else if (iter->isJoinIter()) {
-        executeTopN<JoinIter::JoinLogicalRow, JoinIter>(iter.get());
-    } else if (iter->isPropIter()) {
-        executeTopN<PropIter::PropLogicalRow, PropIter>(iter.get());
+    if (result.iterRef()->isSequentialIter()) {
+        executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(result.iterRef());
+    } else if (result.iterRef()->isJoinIter()) {
+        executeTopN<JoinIter::JoinLogicalRow, JoinIter>(result.iterRef());
+    } else if (result.iterRef()->isPropIter()) {
+        executeTopN<PropIter::PropLogicalRow, PropIter>(result.iterRef());
     }
-    iter->eraseRange(maxCount_, size);
-    return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
+    result.iterRef()->eraseRange(maxCount_, size);
+    return finish(ResultBuilder().values(result.values()).iter(std::move(result).iter()).finish());
 }
 
 template<typename T, typename U>

@@ -62,6 +62,8 @@ public:
 
     void setResult(const std::string& name, Result&& result);
 
+    void dropResult(const std::string& name);
+
     void deleteValue(const std::string& name);
 
     // Only keep the last several versoins of the Value

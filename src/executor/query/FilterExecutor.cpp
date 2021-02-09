@@ -17,35 +17,35 @@ namespace graph {
 folly::Future<Status> FilterExecutor::execute() {
     SCOPED_TIMER(&execTime_);
     auto* filter = asNode<Filter>(node());
-    auto iter = ectx_->getResult(filter->inputVar()).iter();
-    if (iter == nullptr || iter->isDefaultIter()) {
+    Result result = ectx_->getResult(filter->inputVar());
+    if (result.iterRef() == nullptr || result.iterRef()->isDefaultIter()) {
         LOG(ERROR) << "Internal Error: iterator is nullptr or DefaultIter";
         return Status::Error("Internal Error: iterator is nullptr or DefaultIter");
     }
 
     VLOG(2) << "Get input var: " << filter->inputVar()
-            << ", iterator type: " << static_cast<int16_t>(iter->kind())
-            << ", input data size: " << iter->size();
+            << ", iterator type: " << static_cast<int16_t>(result.iterRef()->kind())
+            << ", input data size: " << result.iterRef()->size();
 
     ResultBuilder builder;
-    builder.value(iter->valuePtr());
+    builder.values(result.values());
     QueryExpressionContext ctx(ectx_);
     auto condition = filter->condition();
-    while (iter->valid()) {
-        auto val = condition->eval(ctx(iter.get()));
+    while (result.iterRef()->valid()) {
+        auto val = condition->eval(ctx(result.iterRef()));
         if (!val.empty() && !val.isBool() && !val.isNull()) {
             return Status::Error("Internal Error: Wrong type result, "
                                  "the type should be NULL,EMPTY or BOOL");
         }
         if (val.empty() || val.isNull() || !val.getBool()) {
-            iter->unstableErase();
+            result.iterRef()->unstableErase();
         } else {
-            iter->next();
+            result.iterRef()->next();
         }
     }
 
-    iter->reset();
-    builder.iter(std::move(iter));
+    result.iterRef()->reset();
+    builder.iter(std::move(result).iter());
     return finish(builder.finish());
 }
 

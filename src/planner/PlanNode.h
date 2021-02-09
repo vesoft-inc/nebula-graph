@@ -229,6 +229,10 @@ public:
         return cost_;
     }
 
+    const auto& inputVars() const {
+        return inputVars_;
+    }
+
 protected:
     static void addDescription(std::string key, std::string value, PlanNodeDescription* desc);
 
