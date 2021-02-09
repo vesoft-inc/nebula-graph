@@ -39,11 +39,12 @@ folly::Future<Status> Scheduler::schedule() {
 void Scheduler::analyze(Executor *executor) {
     switch (executor->node()->kind()) {
         case PlanNode::Kind::kPassThrough: {
-            const auto &name = executor->node()->outputVar();
-            auto it = passThroughPromiseMap_.find(name);
+            // Use id to identify different passThrough nodes to prevent dead lock
+            auto id = executor->node()->id();
+            auto it = passThroughPromiseMap_.find(id);
             if (it == passThroughPromiseMap_.end()) {
                 PassThroughData data(executor->successors().size());
-                passThroughPromiseMap_.emplace(name, std::move(data));
+                passThroughPromiseMap_.emplace(id, std::move(data));
             }
             break;
         }
@@ -125,7 +126,7 @@ folly::Future<Status> Scheduler::doSchedule(Executor *executor) {
         }
         case PlanNode::Kind::kPassThrough: {
             auto mout = static_cast<PassThroughExecutor *>(executor);
-            auto it = passThroughPromiseMap_.find(mout->node()->outputVar());
+            auto it = passThroughPromiseMap_.find(mout->node()->id());
             CHECK(it != passThroughPromiseMap_.end());
 
             auto &data = it->second;

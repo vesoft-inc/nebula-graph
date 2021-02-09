@@ -31,6 +31,7 @@ public:
         kIndexScan,
         kFilter,
         kUnion,
+        kUnionAllVersionVar,
         kIntersect,
         kMinus,
         kProject,
@@ -118,6 +119,7 @@ public:
         kConjunctPath,
         kProduceAllPaths,
         kCartesianProduct,
+        kSubgraph,
         // zone related
         kAddGroup,
         kDropGroup,
