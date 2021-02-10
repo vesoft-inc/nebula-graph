@@ -33,14 +33,13 @@ folly::Future<Status> SubgraphExecutor::execute() {
     DCHECK(iter && iter->isGetNeighborsIter());
     ds.rows.reserve(iter->size());
     if (currentStep == 1) {
-        for (; iter->valid(); iter->next()) {
-            const auto& src = iter->getColumn(nebula::kVid);
+        for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+            const auto& src = cur->get()->getColumn(nebula::kVid, iter.get());
             historyVids_.emplace(src);
         }
-        iter->reset();
     }
-    for (; iter->valid(); iter->next()) {
-        const auto& dst = iter->getEdgeProp("*", nebula::kDst);
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+        const auto& dst = cur->get()->getEdgeProp("*", nebula::kDst, iter.get());
         if (historyVids_.emplace(dst).second) {
             Row row;
             row.values.emplace_back(std::move(dst));
@@ -61,15 +60,15 @@ void SubgraphExecutor::oneMoreStep() {
 
     ResultBuilder builder;
     builder.value(iter->valuePtr());
-    while (iter->valid()) {
-        const auto& dst = iter->getEdgeProp("*", nebula::kDst);
+    auto cur = iter->begin();
+    while (iter->valid(cur)) {
+        const auto& dst = cur->get()->getEdgeProp("*", nebula::kDst, iter.get());
         if (historyVids_.find(dst) == historyVids_.end()) {
-            iter->unstableErase();
+            cur = iter->unstableErase(cur);
         } else {
-            iter->next();
+            ++cur;
         }
     }
-    iter->reset();
     builder.iter(std::move(iter));
     ectx_->setResult(output, builder.finish());
 }

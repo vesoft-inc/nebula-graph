@@ -51,7 +51,7 @@ Status TraversalValidator::validateStarts(const VerticesClause* clause, Starts& 
                 return Status::SemanticError("`%s' is not an evaluable expression.",
                         expr->toString().c_str());
             }
-            auto vid = expr->eval(ctx(nullptr));
+            auto vid = expr->eval(ctx);
             auto vidType = space_.spaceDesc.vid_type.get_type();
             if (!SchemaUtil::isValidVid(vid, vidType)) {
                 std::stringstream ss;

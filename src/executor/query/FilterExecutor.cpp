@@ -30,21 +30,21 @@ folly::Future<Status> FilterExecutor::execute() {
     ResultBuilder builder;
     builder.value(iter->valuePtr());
     QueryExpressionContext ctx(ectx_);
+    ctx(iter.get());
     auto condition = filter->condition();
-    while (iter->valid()) {
-        auto val = condition->eval(ctx(iter.get()));
+    for (auto cur = iter->begin(); iter->valid(cur);) {
+        auto val = condition->eval(ctx(cur->get()));
         if (!val.empty() && !val.isBool() && !val.isNull()) {
             return Status::Error("Internal Error: Wrong type result, "
                                  "the type should be NULL,EMPTY or BOOL");
         }
         if (val.empty() || val.isNull() || !val.getBool()) {
-            iter->unstableErase();
+            cur = iter->unstableErase(cur);
         } else {
-            iter->next();
+            ++cur;
         }
     }
 
-    iter->reset();
     builder.iter(std::move(iter));
     return finish(builder.finish());
 }

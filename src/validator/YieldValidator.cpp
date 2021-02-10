@@ -101,7 +101,7 @@ void YieldValidator::genConstantExprValues() {
     QueryExpressionContext ctx;
     Row row;
     for (auto &column : columns_->columns()) {
-        row.values.emplace_back(Expression::eval(column->expr(), ctx(nullptr)));
+        row.values.emplace_back(Expression::eval(column->expr(), ctx));
     }
     ds.emplace_back(std::move(row));
     qctx_->ectx()->setResult(constantExprVar_,

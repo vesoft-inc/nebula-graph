@@ -73,10 +73,11 @@ TEST_F(SetExecutorTest, TestUnionAll) {
 
         DataSet resultDS;
         resultDS.colNames = result.value().getDataSet().colNames;
-        for (auto iter = result.iter(); iter->valid(); iter->next()) {
+        auto iter = result.iter();
+        for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
             Row row;
             for (auto& col : resultDS.colNames) {
-                row.values.emplace_back(iter->getColumn(col));
+                row.values.emplace_back(cur->get()->getColumn(col, iter.get()));
             }
             resultDS.emplace_back(std::move(row));
         }
@@ -275,10 +276,11 @@ TEST_F(SetExecutorTest, TestIntersect) {
 
         DataSet ds;
         ds.colNames = lds.colNames;
-        for (auto iter = result.iter(); iter->valid(); iter->next()) {
+        auto iter = result.iter();
+        for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
             Row row;
             for (auto& col : ds.colNames) {
-                row.values.emplace_back(iter->getColumn(col));
+                row.values.emplace_back(cur->get()->getColumn(col, iter.get()));
             }
             ds.emplace_back(std::move(row));
         }
@@ -382,10 +384,11 @@ TEST_F(SetExecutorTest, TestMinus) {
 
         DataSet ds;
         ds.colNames = lds.colNames;
-        for (auto iter = result.iter(); iter->valid(); iter->next()) {
+        auto iter = result.iter();
+        for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
             Row row;
             for (auto& col : ds.colNames) {
-                row.values.emplace_back(iter->getColumn(col));
+                row.values.emplace_back(cur->get()->getColumn(col, iter.get()));
             }
             ds.emplace_back(std::move(row));
         }

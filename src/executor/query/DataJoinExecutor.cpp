@@ -75,27 +75,28 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
 void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
                                       Iterator* iter) {
     QueryExpressionContext ctx(ectx_);
-    for (; iter->valid(); iter->next()) {
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
         List list;
         list.values.reserve(hashKeys.size());
         for (auto& col : hashKeys) {
-            Value val = col->eval(ctx(iter));
+            Value val = col->eval(ctx(cur->get()));
             list.values.emplace_back(std::move(val));
         }
 
         VLOG(1) << "key: " << list;
-        hashTable_->add(std::move(list), iter->row());
+        hashTable_->add(std::move(list), cur->get());
     }
 }
 
 void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
                              Iterator* probeIter, JoinIter* resultIter) {
     QueryExpressionContext ctx(ectx_);
-    for (; probeIter->valid(); probeIter->next()) {
+    ctx(probeIter);
+    for (auto cur = probeIter->begin(); probeIter->valid(cur); ++cur) {
         List list;
         list.values.reserve(probeKeys.size());
         for (auto& col : probeKeys) {
-            Value val = col->eval(ctx(probeIter));
+            Value val = col->eval(ctx(cur->get()));
             list.values.emplace_back(std::move(val));
         }
 
@@ -105,7 +106,7 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
             auto row = i->second;
             std::vector<const Row*> values;
             auto& lSegs = row->segments();
-            auto& rSegs = probeIter->row()->segments();
+            auto& rSegs = (*cur)->segments();
             if (exchange_) {
                 values.insert(values.end(), rSegs.begin(), rSegs.end());
                 values.insert(values.end(), lSegs.begin(), lSegs.end());
@@ -113,11 +114,11 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
                 values.insert(values.end(), lSegs.begin(), lSegs.end());
                 values.insert(values.end(), rSegs.begin(), rSegs.end());
             }
-            size_t size = row->size() + probeIter->row()->size();
-            JoinIter::JoinLogicalRow newRow(std::move(values), size,
+            size_t size = row->size() + (*cur)->size();
+            auto *newRow = new JoinIter::JoinLogicalRow(std::move(values), size,
                                         &resultIter->getColIdxIndices());
-            VLOG(1) << node()->outputVar() << " : " << newRow;
-            resultIter->addRow(std::move(newRow));
+            VLOG(1) << node()->outputVar() << " : " << *newRow;
+            resultIter->addRow(newRow);
         }
     }
 }

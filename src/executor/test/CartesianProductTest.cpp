@@ -70,8 +70,8 @@ protected:
         DataSet resultDs;
         resultDs.colNames = expected.colNames;
         auto iter = result.iter();
-        for (; iter->valid(); iter->next()) {
-            const auto& cols = *iter->row();
+        for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+            const auto& cols = *cur->get();
             Row row;
             for (size_t i = 0; i < cols.size(); ++i) {
                 Value col = cols[i];

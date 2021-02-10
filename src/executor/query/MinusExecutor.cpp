@@ -23,18 +23,19 @@ folly::Future<Status> MinusExecutor::execute() {
     auto rIter = getRightInputDataIter();
 
     std::unordered_set<const LogicalRow *> hashSet;
-    for (; rIter->valid(); rIter->next()) {
-        hashSet.insert(rIter->row());
+    for (auto cur = rIter->begin(); rIter->valid(cur); ++cur) {
+        hashSet.insert(cur->get());
         // TODO: should test duplicate rows
     }
 
     if (!hashSet.empty()) {
-        while (lIter->valid()) {
-            auto iter = hashSet.find(lIter->row());
+        auto cur = lIter->begin();
+        while (lIter->valid(cur)) {
+            auto iter = hashSet.find(cur->get());
             if (iter == hashSet.end()) {
-                lIter->next();
+                ++cur;
             } else {
-                lIter->unstableErase();
+                cur = lIter->unstableErase(cur);
             }
         }
     }

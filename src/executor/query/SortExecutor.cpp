@@ -5,6 +5,7 @@
  */
 
 #include "executor/query/SortExecutor.h"
+#include "common/expression/PropertyExpression.h"
 #include "planner/Query.h"
 #include "util/ScopedTimer.h"
 
@@ -30,14 +31,21 @@ folly::Future<Status> SortExecutor::execute() {
         return Status::Error(errMsg);
     }
 
-    QueryExpressionContext qctx(iter);
+    QueryExpressionContext ctx(ectx_);
+    ctx(iter.get());
     auto &factors = sort->factors();
-    auto comparator = [&factors] (const LogicalRow *lhs, const LogicalRow *rhs) {
+    auto comparator = [&factors](const std::shared_ptr<LogicalRow> lhs,
+                                 const std::shared_ptr<LogicalRow> rhs) {
+        UNUSED(lhs);
+        UNUSED(rhs);
         for (auto &item : factors) {
             auto expr = item.first;
+            UNUSED(expr);
             auto orderType = item.second;
-            auto lhsVal = expr->eval(qctx(lhs));
-            auto rhsVal = expr->eval(qctx(rhs));
+            // auto lhsVal = expr->eval(qctx(lhs));
+            // auto rhsVal = expr->eval(qctx(rhs));
+            auto lhsVal = "fbi warning";
+            auto rhsVal = "fbi warning";
             if (lhsVal == rhsVal) {
                 continue;
             }
@@ -45,7 +53,7 @@ folly::Future<Status> SortExecutor::execute() {
             if (orderType == OrderFactor::OrderType::ASCEND) {
                 return lhsVal < rhsVal;
             } else if (orderType == OrderFactor::OrderType::DESCEND) {
-                return lhsVal < rhsVal;
+                return lhsVal > rhsVal;
             }
         }
         return false;

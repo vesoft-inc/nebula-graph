@@ -67,6 +67,11 @@ public:
         return *this;
     }
 
+    QueryExpressionContext& operator()(LogicalRow* logicalRow) {
+        logicalRow_ = logicalRow;
+        return *this;
+    }
+
 private:
     // ExecutionContext and Iterator are used for getting runtime results,
     // and nullptr is acceptable for these two members if the expressions

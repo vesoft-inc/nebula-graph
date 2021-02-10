@@ -108,8 +108,8 @@ void DataJoinTest::testJoin(std::string left, std::string right,
     resultDs.colNames = {
         "src", "dst", kVid, "tag_prop", "edge_prop", kDst};
     auto iter = result.iter();
-    for (; iter->valid(); iter->next()) {
-        const auto& cols = *iter->row();
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+        const auto& cols = *cur->get();
         Row row;
         for (size_t i = 0; i < cols.size(); ++i) {
             Value col = cols[i];
@@ -201,8 +201,8 @@ TEST_F(DataJoinTest, JoinTwice) {
     resultDs.colNames = {
         "src", "dst", kVid, "tag_prop", "edge_prop", kDst, "col1"};
     auto iter = result.iter();
-    for (; iter->valid(); iter->next()) {
-        const auto& cols = *iter->row();
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+        const auto& cols = *cur->get();
         Row row;
         for (size_t i = 0; i < cols.size(); ++i) {
             Value col = cols[i];

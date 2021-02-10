@@ -50,29 +50,29 @@ folly::Future<Status> CartesianProductExecutor::execute() {
 }
 
 void CartesianProductExecutor::initJoinIter(JoinIter* joinIter, Iterator* rightIter) {
-    for (; rightIter->valid(); rightIter->next()) {
-        auto size = rightIter->row()->size();
-        JoinIter::JoinLogicalRow newRow(
-            rightIter->row()->segments(), size, &joinIter->getColIdxIndices());
-        joinIter->addRow(std::move(newRow));
+    for (auto cur = rightIter->begin(); rightIter->valid(cur); ++cur) {
+        auto size = cur->get()->size();
+        auto *newRow = new JoinIter::JoinLogicalRow(
+            cur->get()->segments(), size, &joinIter->getColIdxIndices());
+        joinIter->addRow(newRow);
     }
 }
 
 void CartesianProductExecutor::doCartesianProduct(Iterator* leftIter,
                                                   Iterator* rightIter,
                                                   JoinIter* joinIter) {
-    for (; leftIter->valid(); leftIter->next()) {
-        auto& lSegs = leftIter->row()->segments();
-        for (; rightIter->valid(); rightIter->next()) {
+    for (auto leftCur = leftIter->begin(); leftIter->valid(leftCur); ++leftCur) {
+        auto& lSegs = leftCur->get()->segments();
+        for (auto rightCur = rightIter->begin(); rightIter->valid(rightCur); ++rightCur) {
             std::vector<const Row*> values;
-            auto& rSegs = rightIter->row()->segments();
+            auto& rSegs = rightCur->get()->segments();
             values.insert(values.end(), lSegs.begin(), lSegs.end());
             values.insert(values.end(), rSegs.begin(), rSegs.end());
-            auto size = leftIter->row()->size() + rightIter->row()->size();
-            JoinIter::JoinLogicalRow newRow(std::move(values), size, &joinIter->getColIdxIndices());
-            joinIter->addRow(std::move(newRow));
+            auto size = leftCur->get()->size() + rightCur->get()->size();
+            auto *newRow = new JoinIter::JoinLogicalRow(std::move(values), size,
+                                                        &joinIter->getColIdxIndices());
+            joinIter->addRow(newRow);
         }
-        rightIter->reset();
     }
 }
 

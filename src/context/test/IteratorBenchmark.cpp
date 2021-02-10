@@ -103,7 +103,7 @@ size_t getNeighborsIterCtor(size_t iters, std::shared_ptr<nebula::Value> val) {
 size_t getColumnForGetNeighborsIter(size_t iters) {
     constexpr size_t ops = 100000UL;
     for (size_t i = 0; i < iters * ops; ++i) {
-        auto& val = gGNIter->getColumn(kVid);
+        auto& val = (*gGNIter->begin())->getColumn(kVid, gGNIter.get());
         folly::doNotOptimizeAway(val);
     }
     return iters * ops;
@@ -112,7 +112,7 @@ size_t getColumnForGetNeighborsIter(size_t iters) {
 size_t getTagProp(size_t iters) {
     constexpr size_t ops = 100000UL;
     for (size_t i = 0; i < iters * ops; ++i) {
-        auto& val = gGNIter->getTagProp("tag1", "prop1");
+        auto& val = (*gGNIter->begin())->getTagProp("tag1", "prop1", gGNIter.get());
         folly::doNotOptimizeAway(val);
     }
     return iters * ops;
@@ -121,11 +121,10 @@ size_t getTagProp(size_t iters) {
 size_t getTagProps(size_t iters) {
     constexpr size_t ops = 100000UL;
     for (size_t i = 0; i < iters * ops; ++i) {
-        for (; gGNIter->valid(); gGNIter->next()) {
-            auto& val = gGNIter->getTagProp("tag1", "prop1");
+        for (auto cur = gGNIter->begin(); gGNIter->valid(cur); ++cur) {
+            auto& val = cur->get()->getTagProp("tag1", "prop1", gGNIter.get());
             folly::doNotOptimizeAway(val);
         }
-        gGNIter->reset();
     }
     return iters * ops;
 }
@@ -133,7 +132,7 @@ size_t getTagProps(size_t iters) {
 size_t getEdgeProp(size_t iters) {
     constexpr size_t ops = 100000UL;
     for (size_t i = 0; i < iters * ops; ++i) {
-        auto& val = gGNIter->getEdgeProp("edge1", "prop1");
+        auto& val = (*gGNIter->begin())->getEdgeProp("edge1", "prop1", gGNIter.get());
         folly::doNotOptimizeAway(val);
     }
     return iters * ops;
@@ -142,7 +141,7 @@ size_t getEdgeProp(size_t iters) {
 size_t getVertex(size_t iters) {
     constexpr size_t ops = 100000UL;
     for (size_t i = 0; i < iters * ops; ++i) {
-        auto val = gGNIter->getVertex();
+        auto val = (*gGNIter->begin())->getVertex(gGNIter.get());
         folly::doNotOptimizeAway(val);
     }
     return iters * ops;
@@ -151,7 +150,7 @@ size_t getVertex(size_t iters) {
 size_t getEdge(size_t iters) {
     constexpr size_t ops = 100000UL;
     for (size_t i = 0; i < iters * ops; ++i) {
-        auto val = gGNIter->getEdge();
+        auto val = (*gGNIter->begin())->getEdge(gGNIter.get());
         folly::doNotOptimizeAway(val);
     }
     return iters * ops;

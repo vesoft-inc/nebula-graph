@@ -45,14 +45,15 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
     auto& inputResult = ectx_->getResult(inputVar);
     auto iter = inputResult.iter();
     QueryExpressionContext ctx(ectx_);
+    ctx(iter.get());
     DataSet input;
     reqDs_.colNames = {kVid};
     reqDs_.rows.reserve(iter->size());
     auto* src = gn_->src();
     std::unordered_set<Value> uniqueVid;
     const auto& spaceInfo = qctx()->rctx()->session()->space();
-    for (; iter->valid(); iter->next()) {
-        auto val = Expression::eval(src, ctx(iter.get()));
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+        auto val = Expression::eval(src, ctx(cur->get()));
         if (!SchemaUtil::isValidVid(val, spaceInfo.spaceDesc.vid_type)) {
             continue;
         }

@@ -16,15 +16,15 @@ TEST(ExpressionContextTest, GetVar) {
     ectx.setValue("v2", "Hello world");
 
     graph::QueryExpressionContext qECtx(&ectx);
-    EXPECT_EQ(Value(10), qECtx(nullptr).getVar("v1"));
-    EXPECT_EQ(Value("Hello world"), qECtx(nullptr).getVar("v2"));
+    EXPECT_EQ(Value(10), qECtx.getVar("v1"));
+    EXPECT_EQ(Value("Hello world"), qECtx.getVar("v2"));
 
     ectx.setValue("v1", "Hello world");
     ectx.setValue("v1", 3.14);
     ectx.setValue("v1", true);
-    EXPECT_EQ(Value(true), qECtx(nullptr).getVersionedVar("v1", 0));
-    EXPECT_EQ(Value(3.14), qECtx(nullptr).getVersionedVar("v1", -1));
-    EXPECT_EQ(Value(10), qECtx(nullptr).getVersionedVar("v1", 1));
+    EXPECT_EQ(Value(true), qECtx.getVersionedVar("v1", 0));
+    EXPECT_EQ(Value(3.14), qECtx.getVersionedVar("v1", -1));
+    EXPECT_EQ(Value(10), qECtx.getVersionedVar("v1", 1));
 }
 }  // namespace graph
 }  // namespace nebula

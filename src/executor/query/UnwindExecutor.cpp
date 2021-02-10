@@ -23,12 +23,13 @@ folly::Future<Status> UnwindExecutor::execute() {
     auto iter = ectx_->getResult(unwind->inputVar()).iter();
     DCHECK(!!iter);
     QueryExpressionContext ctx(ectx_);
+    ctx(iter.get());
 
     DataSet ds;
     ds.colNames = unwind->colNames();
-    for (; iter->valid(); iter->next()) {
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
         auto &unwind_col = columns[0];
-        Value list = unwind_col->expr()->eval(ctx(iter.get()));
+        Value list = unwind_col->expr()->eval(ctx(cur->get()));
         std::vector<Value> vals = extractList(list);
         for (auto &v : vals) {
             Row row;

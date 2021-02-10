@@ -25,12 +25,13 @@ folly::Future<Status> AggregateExecutor::execute() {
     auto iter = ectx_->getResult(agg->inputVar()).iter();
     DCHECK(!!iter);
     QueryExpressionContext ctx(ectx_);
+    ctx(iter.get());
 
     std::unordered_map<List, std::vector<std::unique_ptr<AggData>>, std::hash<nebula::List>> result;
-    for (; iter->valid(); iter->next()) {
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
         List list;
         for (auto* key : groupKeys) {
-            list.values.emplace_back(key->eval(ctx(iter.get())));
+            list.values.emplace_back(key->eval(ctx(cur->get())));
         }
 
         auto it = result.find(list);
@@ -48,9 +49,9 @@ folly::Future<Status> AggregateExecutor::execute() {
             auto* item = groupItems[i];
             if (item->kind() == Expression::Kind::kAggregate) {
                 static_cast<AggregateExpression*>(item)->setAggData(result[list][i].get());
-                item->eval(ctx(iter.get()));
+                item->eval(ctx(cur->get()));
             } else {
-                result[list][i]->setResult(item->eval(ctx(iter.get())));
+                result[list][i]->setResult(item->eval(ctx(cur->get())));
             }
         }
     }

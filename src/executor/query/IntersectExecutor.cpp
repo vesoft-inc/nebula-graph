@@ -24,8 +24,8 @@ folly::Future<Status> IntersectExecutor::execute() {
     auto rIter = getRightInputDataIter();
 
     std::unordered_set<const LogicalRow *> hashSet;
-    for (; rIter->valid(); rIter->next()) {
-        hashSet.insert(rIter->row());
+    for (auto cur = rIter->begin(); rIter->valid(cur); ++cur) {
+        hashSet.insert(cur->get());
         // TODO: should test duplicate rows
     }
 
@@ -38,12 +38,12 @@ folly::Future<Status> IntersectExecutor::execute() {
         return finish(builder.finish());
     }
 
-    while (lIter->valid()) {
-        auto iter = hashSet.find(lIter->row());
+    for (auto cur = lIter->begin(); lIter->valid(cur);) {
+        auto iter = hashSet.find(cur->get());
         if (iter == hashSet.end()) {
-            lIter->unstableErase();
+            cur = lIter->unstableErase(cur);
         } else {
-            lIter->next();
+            ++cur;
         }
     }
 

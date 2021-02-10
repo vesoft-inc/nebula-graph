@@ -24,8 +24,8 @@ folly::Future<Status> ProduceAllPathsExecutor::execute() {
         return Status::Error("Only accept GetNeighbotsIter.");
     }
     VLOG(1) << "Edge size: " << iter->size();
-    for (; iter->valid(); iter->next()) {
-        auto edgeVal = iter->getEdge();
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+        auto edgeVal = cur->get()->getEdge(iter.get());
         if (!edgeVal.isEdge()) {
             continue;
         }

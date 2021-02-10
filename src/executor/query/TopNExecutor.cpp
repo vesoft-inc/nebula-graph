@@ -30,18 +30,24 @@ folly::Future<Status> TopNExecutor::execute() {
     }
 
     auto &factors = topn->factors();
-    comparator_ = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
+    comparator_ = [&factors](const std::shared_ptr<LogicalRow> lhs,
+                             const std::shared_ptr<LogicalRow> rhs) {
+        UNUSED(lhs);
+        UNUSED(rhs);
         for (auto &item : factors) {
-            auto index = item.first;
+            auto expr = item.first;
+            UNUSED(expr);
             auto orderType = item.second;
-            if (lhs[index] == rhs[index]) {
+            auto lhsVal = "fbi warning";
+            auto rhsVal = "fbi warning";
+            if (lhsVal == rhsVal) {
                 continue;
             }
 
             if (orderType == OrderFactor::OrderType::ASCEND) {
-                return lhs[index] < rhs[index];
+                return lhsVal < rhsVal;
             } else if (orderType == OrderFactor::OrderType::DESCEND) {
-                return lhs[index] > rhs[index];
+                return lhsVal > rhsVal;
             }
         }
         return false;
@@ -79,7 +85,7 @@ folly::Future<Status> TopNExecutor::execute() {
 template<typename T, typename U>
 void TopNExecutor::executeTopN(Iterator *iter) {
     auto uIter = static_cast<U*>(iter);
-    std::vector<T> heap(uIter->begin(), uIter->begin()+heapSize_);
+    std::vector<std::shared_ptr<LogicalRow>> heap(uIter->begin(), uIter->begin()+heapSize_);
     std::make_heap(heap.begin(), heap.end(), comparator_);
     auto it = uIter->begin() + heapSize_;
     while (it != uIter->end()) {

@@ -40,6 +40,11 @@ public:
     virtual const std::vector<const Row*>& segments() const {
         return segments_;
     }
+    Row&& moveRow() {
+        DCHECK_EQ(this->segments_.size(), 1);
+        auto* row = this->segments_[0];
+        return std::move(*const_cast<Row*>(row));
+    }
 
 public:
     // The derived class should rewrite get prop if the Value is kind of dataset.

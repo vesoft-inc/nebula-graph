@@ -115,8 +115,8 @@ Status DataCollectExecutor::rowBasedMove(const std::vector<std::string>& vars) {
         ds.rows.reserve(ds.rows.size() + iter->size());
         if (iter->isSequentialIter() || iter->isPropIter()) {
             auto* seqIter = static_cast<SequentialIter*>(iter.get());
-            for (; seqIter->valid(); seqIter->next()) {
-                ds.rows.emplace_back(seqIter->moveRow());
+            for (auto cur = seqIter->begin(); seqIter->valid(cur); ++cur) {
+                ds.rows.emplace_back(cur->get()->moveRow());
             }
         } else {
             return Status::Error("Iterator should be kind of SequentialIter.");
@@ -142,11 +142,12 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
             auto iter = hist[i].iter();
             if (iter->isSequentialIter()) {
                 auto* seqIter = static_cast<SequentialIter*>(iter.get());
-                while (seqIter->valid()) {
-                    if (distinct && !unique.emplace(seqIter->row()).second) {
-                        seqIter->unstableErase();
+                auto cur = seqIter->begin();
+                while (seqIter->valid(cur)) {
+                    if (distinct && !unique.emplace(cur->get()).second) {
+                        cur = seqIter->unstableErase(cur);
                     } else {
-                        seqIter->next();
+                        ++cur;
                     }
                 }
             } else {
@@ -161,8 +162,8 @@ Status DataCollectExecutor::collectMToN(const std::vector<std::string>& vars,
     for (auto& iter : itersHolder) {
         if (iter->isSequentialIter()) {
             auto* seqIter = static_cast<SequentialIter*>(iter.get());
-            for (seqIter->reset(); seqIter->valid(); seqIter->next()) {
-                ds.rows.emplace_back(seqIter->moveRow());
+            for (auto cur = seqIter->begin(); seqIter->valid(cur); ++cur) {
+                ds.rows.emplace_back(cur->get()->moveRow());
             }
         }
     }
@@ -186,8 +187,8 @@ Status DataCollectExecutor::collectAllPaths(const std::vector<std::string>& vars
             auto iter = result.iter();
             if (iter->isSequentialIter()) {
                 auto* seqIter = static_cast<SequentialIter*>(iter.get());
-                for (; seqIter->valid(); seqIter->next()) {
-                    ds.rows.emplace_back(seqIter->moveRow());
+                for (auto cur = seqIter->begin(); seqIter->valid(cur); ++cur) {
+                    ds.rows.emplace_back(cur->get()->moveRow());
                 }
             } else {
                 std::stringstream msg;
@@ -219,9 +220,9 @@ Status DataCollectExecutor::collectMultiplePairShortestPath(const std::vector<st
                 return Status::Error(msg.str());
             }
             auto* seqIter = static_cast<SequentialIter*>(iter.get());
-            for (; seqIter->valid(); seqIter->next()) {
-                auto& pathVal = seqIter->getColumn("_path");
-                auto cost = seqIter->getColumn("cost");
+            for (auto cur = seqIter->begin(); seqIter->valid(cur); ++cur) {
+                auto& pathVal = cur->get()->getColumn("_path", seqIter);
+                auto cost = cur->get()->getColumn("cost", seqIter);
                 if (!pathVal.isPath()) {
                     return Status::Error("Type error `%s', should be PATH",
                                          pathVal.typeName().c_str());

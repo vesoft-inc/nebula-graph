@@ -365,7 +365,7 @@ Status SetConfigValidator::validateImpl() {
         }
 
         if (item->getValue() != nullptr) {
-            value_ = Expression::eval(item->getValue(), ctx(nullptr));
+            value_ = Expression::eval(item->getValue(), ctx);
         }
     } else {
         Map configs;
@@ -377,7 +377,7 @@ Status SetConfigValidator::validateImpl() {
             }
             name = *updateItem->getFieldName();
 
-            value = Expression::eval(const_cast<Expression*>(updateItem->value()), ctx(nullptr));
+            value = Expression::eval(const_cast<Expression*>(updateItem->value()), ctx);
 
             if (value.isNull() || (!value.isNumeric() && !value.isStr() && !value.isBool())) {
                 return Status::SemanticError("Wrong value: `%s'", name.c_str());

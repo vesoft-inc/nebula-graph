@@ -204,8 +204,8 @@ folly::Future<Status> ProduceSemiShortestPathExecutor::execute() {
 
     CostPathMapType currentCostPathMap;
 
-    for (; iter->valid(); iter->next()) {
-        auto edgeVal = iter->getEdge();
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+        auto edgeVal = cur->get()->getEdge(iter.get());
         if (!edgeVal.isEdge()) {
             continue;
         }

@@ -35,8 +35,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         auto valueIter = ectx_->getResult(gv->inputVar()).iter();
         VLOG(1) << "GV input var: " << gv->inputVar() << " iter kind: " << valueIter->kind();
         auto expCtx = QueryExpressionContext(qctx()->ectx());
-        for (; valueIter->valid(); valueIter->next()) {
-            auto src = gv->src()->eval(expCtx(valueIter.get()));
+        expCtx(valueIter.get());
+        for (auto cur = valueIter->begin(); valueIter->valid(cur); ++cur) {
+            auto src = gv->src()->eval(expCtx(cur->get()));
             VLOG(1) << "src vid: " << src;
             if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
                 LOG(WARNING) << "Mismatched vid type: " << src.type();

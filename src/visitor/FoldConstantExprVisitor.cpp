@@ -330,7 +330,7 @@ void FoldConstantExprVisitor::visitBinaryExpr(BinaryExpression *expr) {
 
 Expression *FoldConstantExprVisitor::fold(Expression *expr) const {
     QueryExpressionContext ctx;
-    auto value = expr->eval(ctx(nullptr));
+    auto value = expr->eval(ctx);
     return new ConstantExpression(std::move(value));
 }
 

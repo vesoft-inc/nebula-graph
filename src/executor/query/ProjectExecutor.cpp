@@ -21,15 +21,16 @@ folly::Future<Status> ProjectExecutor::execute() {
     auto iter = ectx_->getResult(project->inputVar()).iter();
     DCHECK(!!iter);
     QueryExpressionContext ctx(ectx_);
+    ctx(iter.get());
 
     VLOG(1) << "input: " << project->inputVar();
     DataSet ds;
     ds.colNames = project->colNames();
     ds.rows.reserve(iter->size());
-    for (; iter->valid(); iter->next()) {
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
         Row row;
         for (auto& col : columns) {
-            Value val = col->expr()->eval(ctx(iter.get()));
+            Value val = col->expr()->eval(ctx(cur->get()));
             row.values.emplace_back(std::move(val));
         }
         ds.rows.emplace_back(std::move(row));

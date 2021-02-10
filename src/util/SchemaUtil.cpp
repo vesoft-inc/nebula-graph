@@ -109,7 +109,7 @@ Status SchemaUtil::setTTLCol(SchemaPropItem* schemaProp, meta::cpp2::Schema& sch
 // static
 StatusOr<Value> SchemaUtil::toVertexID(Expression *expr, Value::Type vidType) {
     QueryExpressionContext ctx;
-    auto vidVal = expr->eval(ctx(nullptr));
+    auto vidVal = expr->eval(ctx);
     if (vidVal.type() != vidType) {
         LOG(ERROR) << expr->toString() << " is the wrong vertex id type: " << vidVal.typeName();
         return Status::Error("Wrong vertex id type: %s", expr->toString().c_str());
@@ -124,7 +124,7 @@ SchemaUtil::toValueVec(std::vector<Expression*> exprs) {
     values.reserve(exprs.size());
     QueryExpressionContext ctx;
     for (auto *expr : exprs) {
-        auto value = expr->eval(ctx(nullptr));
+        auto value = expr->eval(ctx);
          if (value.isNull() && value.getNull() != NullType::__NULL__) {
             LOG(ERROR) <<  expr->toString() << " is the wrong value type: " << value.typeName();
             return Status::Error("Wrong value type: %s", expr->toString().c_str());
@@ -152,7 +152,7 @@ StatusOr<DataSet> SchemaUtil::toDescSchema(const meta::cpp2::Schema &schema) {
             }
             if (expr->kind() == Expression::Kind::kConstant) {
                 QueryExpressionContext ctx;
-                defaultValue = Expression::eval(expr.get(), ctx(nullptr));
+                defaultValue = Expression::eval(expr.get(), ctx);
             } else {
                 defaultValue = Value(expr->toString());
             }
@@ -197,7 +197,7 @@ StatusOr<DataSet> SchemaUtil::toShowCreateSchema(bool isTag,
             }
             if (expr->kind() == Expression::Kind::kConstant) {
                 QueryExpressionContext ctx;
-                auto& value = expr->eval(ctx(nullptr));
+                auto& value = expr->eval(ctx);
                 auto toStr = value.toString();
                 if (value.isNumeric() || value.isBool()) {
                     createStr += " DEFAULT " + toStr;

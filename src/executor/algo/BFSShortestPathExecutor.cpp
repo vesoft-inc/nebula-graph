@@ -22,8 +22,8 @@ folly::Future<Status> BFSShortestPathExecutor::execute() {
     ds.colNames = node()->colNames();
     std::multimap<Value, Value> interim;
 
-    for (; iter->valid(); iter->next()) {
-        auto edgeVal = iter->getEdge();
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+        auto edgeVal = cur->get()->getEdge(iter.get());
         if (!edgeVal.isEdge()) {
             continue;
         }

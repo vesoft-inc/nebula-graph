@@ -37,11 +37,12 @@ folly::Future<Status> GetEdgesExecutor::getEdges() {
         // Accept Table such as | $a | $b | $c | $d |... which indicate src, ranking or dst
         auto valueIter = ectx_->getResult(ge->inputVar()).iter();
         auto expCtx = QueryExpressionContext(qctx()->ectx());
-        for (; valueIter->valid(); valueIter->next()) {
-            auto src = ge->src()->eval(expCtx(valueIter.get()));
-            auto type = ge->type()->eval(expCtx(valueIter.get()));
-            auto ranking = ge->ranking()->eval(expCtx(valueIter.get()));
-            auto dst = ge->dst()->eval(expCtx(valueIter.get()));
+        expCtx(valueIter.get());
+        for (auto cur = valueIter->begin(); valueIter->valid(cur); ++cur) {
+            auto src = ge->src()->eval(expCtx(cur->get()));
+            auto type = ge->type()->eval(expCtx(cur->get()));
+            auto ranking = ge->ranking()->eval(expCtx(cur->get()));
+            auto dst = ge->dst()->eval(expCtx(cur->get()));
             if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)
                     || !SchemaUtil::isValidVid(dst, spaceInfo.spaceDesc.vid_type)
                     || !type.isInt() || !ranking.isInt()) {

@@ -378,7 +378,7 @@ Status IndexScanRule::addFilterItem(RelationalExpression* expr, FilterItems* ite
     auto relType = std::is_same<E, EdgePropertyExpression>::value
                    ? Expression::Kind::kEdgeProperty
                    : Expression::Kind::kTagProperty;
-    graph::QueryExpressionContext ctx(nullptr);
+    graph::QueryExpressionContext ctx;
     if (expr->left()->kind() == relType &&
         expr->right()->kind() == Expression::Kind::kConstant) {
         auto* l = static_cast<const E*>(expr->left());

@@ -111,8 +111,8 @@ DeduceTypeVisitor::DeduceTypeVisitor(QueryContext *qctx,
 }
 
 void DeduceTypeVisitor::visit(ConstantExpression *expr) {
-    QueryExpressionContext ctx(nullptr);
-    type_ = expr->eval(ctx(nullptr)).type();
+    QueryExpressionContext ctx;
+    type_ = expr->eval(ctx).type();
 }
 
 void DeduceTypeVisitor::visit(UnaryExpression *expr) {
@@ -178,8 +178,8 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
         status_ = Status::SemanticError(out.str());
         return;
     }
-    QueryExpressionContext ctx(nullptr);
-    auto val = expr->eval(ctx(nullptr));
+    QueryExpressionContext ctx;
+    auto val = expr->eval(ctx);
     if (val.isNull()) {
         status_ =
             Status::SemanticError("`%s' is not a valid expression ", expr->toString().c_str());

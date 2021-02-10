@@ -39,9 +39,9 @@ folly::Future<Status> ConjunctPathExecutor::bfsShortestPath() {
     VLOG(1) << "forward, size: " << forward_.size();
     VLOG(1) << "backward, size: " << backward_.size();
     forward_.emplace_back();
-    for (; lIter->valid(); lIter->next()) {
-        auto& dst = lIter->getColumn(kVid);
-        auto& edge = lIter->getColumn("edge");
+    for (auto cur = lIter->begin(); lIter->valid(cur); ++cur) {
+        auto& dst = cur->get()->getColumn(kVid, lIter.get());
+        auto& edge = cur->get()->getColumn("edge", lIter.get());
         VLOG(1) << "dst: " << dst << " edge: " << edge;
         if (!edge.isEdge()) {
             forward_.back().emplace(Value(dst), nullptr);
@@ -79,10 +79,10 @@ std::vector<Row> ConjunctPathExecutor::findBfsShortestPath(
     bool isLatest,
     std::multimap<Value, const Edge*>& table) {
     std::unordered_set<Value> meets;
-    for (; iter->valid(); iter->next()) {
-        auto& dst = iter->getColumn(kVid);
+    for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
+        auto& dst = cur->get()->getColumn(kVid, iter);
         if (isLatest) {
-            auto& edge = iter->getColumn("edge");
+            auto& edge = cur->get()->getColumn("edge", iter);
             VLOG(1) << "dst: " << dst << " edge: " << edge;
             if (!edge.isEdge()) {
                 backward_.back().emplace(dst, nullptr);
@@ -186,12 +186,12 @@ folly::Future<Status> ConjunctPathExecutor::floydShortestPath() {
     ds.colNames = conjunct->colNames();
 
     CostPathsValMap forwardCostPathMap;
-    for (; lIter->valid(); lIter->next()) {
-        auto& dst = lIter->getColumn(kDst);
-        auto& src = lIter->getColumn(kSrc);
-        auto cost = lIter->getColumn("cost");
+    for (auto cur = lIter->begin(); lIter->valid(cur); ++cur) {
+        auto& dst = cur->get()->getColumn(kDst, lIter.get());
+        auto& src = cur->get()->getColumn(kSrc, lIter.get());
+        auto cost = cur->get()->getColumn("cost", lIter.get());
 
-        auto& pathList = lIter->getColumn("paths");
+        auto& pathList = cur->get()->getColumn("paths", lIter.get());
         if (!pathList.isList()) {
             continue;
         }
@@ -247,12 +247,12 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
                                     CostPathsValMap& forwardPathTable,
                                     DataSet& ds) {
     bool found = false;
-    for (; backwardPathIter->valid(); backwardPathIter->next()) {
-        auto& dst = backwardPathIter->getColumn(kDst);
-        auto& endVid = backwardPathIter->getColumn(kSrc);
-        auto cost = backwardPathIter->getColumn("cost");
+    for (auto cur = backwardPathIter->begin(); backwardPathIter->valid(cur); ++cur) {
+        auto& dst = cur->get()->getColumn(kDst, backwardPathIter);
+        auto& endVid = cur->get()->getColumn(kSrc, backwardPathIter);
+        auto cost = cur->get()->getColumn("cost", backwardPathIter);
         VLOG(1) << "Backward dst: " << dst;
-        auto& pathList = backwardPathIter->getColumn("paths");
+        auto& pathList = cur->get()->getColumn("paths", backwardPathIter);
         if (!pathList.isList()) {
             continue;
         }
@@ -286,13 +286,14 @@ bool ConjunctPathExecutor::findPath(Iterator* backwardPathIter,
 void ConjunctPathExecutor::delPathFromConditionalVar(const Value& start, const Value& end) {
     auto iter = qctx_->ectx()->getResult(conditionalVar_).iter();
 
-    while (iter->valid()) {
-        auto startVid = iter->getColumn(0);
-        auto endVid = iter->getColumn(1);
+    auto cur = iter->begin();
+    while (iter->valid(cur)) {
+        auto startVid = cur->get()->getColumn(0, iter.get());
+        auto endVid = cur->get()->getColumn(1, iter.get());
         if (startVid == endVid || (startVid == start && endVid == end)) {
-            iter->unstableErase();
+            cur = iter->unstableErase(cur);
         } else {
-            iter->next();
+            ++cur;
         }
     }
 
@@ -324,9 +325,9 @@ folly::Future<Status> ConjunctPathExecutor::allPaths() {
     ds.colNames = conjunct->colNames();
 
     std::unordered_map<Value, const List&> table;
-    for (; lIter->valid(); lIter->next()) {
-        auto& dst = lIter->getColumn(kVid);
-        auto& path = lIter->getColumn("path");
+    for (auto cur = lIter->begin(); lIter->valid(cur); ++cur) {
+        auto& dst = cur->get()->getColumn(kVid, lIter.get());
+        auto& path = cur->get()->getColumn("path", lIter.get());
         if (path.isList()) {
             VLOG(1) << "Forward dst: " << dst;
             table.emplace(dst, path.getList());
@@ -352,10 +353,10 @@ bool ConjunctPathExecutor::findAllPaths(Iterator* backwardPathsIter,
                                         std::unordered_map<Value, const List&>& forwardPathsTable,
                                         DataSet& ds) {
     bool found = false;
-    for (; backwardPathsIter->valid(); backwardPathsIter->next()) {
-        auto& dst = backwardPathsIter->getColumn(kVid);
+    for (auto cur = backwardPathsIter->begin(); backwardPathsIter->valid(cur); ++cur) {
+        auto& dst = cur->get()->getColumn(kVid, backwardPathsIter);
         VLOG(1) << "Backward dst: " << dst;
-        auto& pathList = backwardPathsIter->getColumn("path");
+        auto& pathList = cur->get()->getColumn("path", backwardPathsIter);
         if (!pathList.isList()) {
             continue;
         }
