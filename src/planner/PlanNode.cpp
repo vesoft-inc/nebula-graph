@@ -275,6 +275,19 @@ void PlanNode::calcCost() {
     VLOG(1) << "unimplemented cost calculation.";
 }
 
+void PlanNode::setInputVar(const std::string& varname, size_t idx) {
+    DCHECK_LT(idx, inputVars_.size());
+    auto* varPtr = qctx_->symTable()->getVar(varname);
+    DCHECK(varPtr != nullptr);
+    std::string oldVar = inputVars_[idx] ? inputVars_[idx]->name : "";
+    inputVars_[idx] = varPtr;
+    if (!oldVar.empty()) {
+        qctx_->symTable()->updateReadBy(oldVar, varname, this);
+    } else {
+        qctx_->symTable()->readBy(varname, this);
+    }
+}
+
 std::unique_ptr<PlanNodeDescription> PlanNode::explain() const {
     auto desc = std::make_unique<PlanNodeDescription>();
     desc->id = id_;

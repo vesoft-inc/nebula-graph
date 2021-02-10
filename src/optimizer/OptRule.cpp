@@ -90,20 +90,17 @@ bool OptRule::checkDataflowDeps(const MatchedResult &matched,
         return false;
     }
 
-    if (matched.dependencies.empty()) {
+    const auto &deps = matched.dependencies;
+    if (deps.empty()) {
         return true;
     }
-
-    DCHECK_EQ(matched.dependencies.size(), node->dependencies().size());
-
-    if (matched.dependencies.size() == 1U) {
-        auto singleInputNode = static_cast<const graph::SingleInputNode *>(planNode);
-        return checkDataflowDeps(matched.dependencies.back(), singleInputNode->inputVar(), false);
+    DCHECK_EQ(deps.size(), node->dependencies().size());
+    for (size_t i = 0; i < deps.size(); ++i) {
+        if (!checkDataflowDeps(deps[i], planNode->inputVar(i), false)) {
+            return false;
+        }
     }
-    auto binaryInputNode = static_cast<const graph::BiInputNode *>(planNode);
-    const auto &deps = matched.dependencies;
-    return checkDataflowDeps(deps[0], binaryInputNode->leftInputVar(), false) &&
-           checkDataflowDeps(deps[1], binaryInputNode->rightInputVar(), false);
+    return true;
 }
 
 RuleSet &RuleSet::DefaultRules() {
