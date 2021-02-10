@@ -30,34 +30,28 @@ folly::Future<Status> SortExecutor::execute() {
         return Status::Error(errMsg);
     }
 
+    QueryExpressionContext qctx(iter);
     auto &factors = sort->factors();
-    auto comparator = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
+    auto comparator = [&factors] (const LogicalRow *lhs, const LogicalRow *rhs) {
         for (auto &item : factors) {
-            auto index = item.first;
+            auto expr = item.first;
             auto orderType = item.second;
-            if (lhs[index] == rhs[index]) {
+            auto lhsVal = expr->eval(qctx(lhs));
+            auto rhsVal = expr->eval(qctx(rhs));
+            if (lhsVal == rhsVal) {
                 continue;
             }
 
             if (orderType == OrderFactor::OrderType::ASCEND) {
-                return lhs[index] < rhs[index];
+                return lhsVal < rhsVal;
             } else if (orderType == OrderFactor::OrderType::DESCEND) {
-                return lhs[index] > rhs[index];
+                return lhsVal < rhsVal;
             }
         }
         return false;
     };
 
-    if (iter->isSequentialIter()) {
-        auto seqIter = static_cast<SequentialIter*>(iter.get());
-        std::sort(seqIter->begin(), seqIter->end(), comparator);
-    } else if (iter->isJoinIter()) {
-        auto joinIter = static_cast<JoinIter*>(iter.get());
-        std::sort(joinIter->begin(), joinIter->end(), comparator);
-    } else if (iter->isPropIter()) {
-        auto propIter = static_cast<PropIter*>(iter.get());
-        std::sort(propIter->begin(), propIter->end(), comparator);
-    }
+    std::sort(iter->begin(), iter->end(), comparator);
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
 }
 

@@ -11,16 +11,19 @@
 
 #include <gtest/gtest_prod.h>
 
-#include "common/datatypes/Value.h"
-#include "common/datatypes/List.h"
 #include "common/datatypes/DataSet.h"
+#include "common/datatypes/List.h"
+#include "common/datatypes/Value.h"
 #include "parser/TraverseSentences.h"
 
 namespace nebula {
 namespace graph {
 
+class Iterator;
 class LogicalRow {
 public:
+    using RowsType = std::vector<std::shared_ptr<LogicalRow>>;
+    using RowsIter = typename RowsType::iterator;
     enum class Kind : uint8_t {
         kGetNeighbors,
         kSequential,
@@ -34,7 +37,43 @@ public:
     virtual const Value& operator[](size_t) const = 0;
     virtual size_t size() const = 0;
     virtual Kind kind() const = 0;
-    virtual const std::vector<const Row*>& segments() const = 0;
+    virtual const std::vector<const Row*>& segments() const {
+        return segments_;
+    }
+
+public:
+    // The derived class should rewrite get prop if the Value is kind of dataset.
+    virtual const Value& getColumn(const std::string& col, Iterator* iter) const = 0;
+
+    virtual const Value& getColumn(int32_t index, Iterator* iter) const = 0;
+
+    virtual const Value& getTagProp(const std::string&, const std::string&, Iterator*) const {
+        DLOG(FATAL) << "Shouldn't call the unimplemented method";
+        return Value::kEmpty;
+    }
+
+    virtual const Value& getEdgeProp(const std::string&, const std::string&, Iterator*) const {
+        DLOG(FATAL) << "Shouldn't call the unimplemented method";
+        return Value::kEmpty;
+    }
+
+    virtual Value getVertex(Iterator*) const {
+        return Value();
+    }
+
+    virtual Value getEdge(Iterator*) const {
+        return Value();
+    }
+
+protected:
+    const Value& getColumnByIndex(int32_t index, Iterator* iter) const {
+        UNUSED(iter);
+        auto size = this->size();
+        if (static_cast<size_t>(std::abs(index)) >= size) {
+            return Value::kNullBadType;
+        }
+        return this->operator[]((size + index) % size);
+    }
 
 protected:
     std::vector<const Row*> segments_;
@@ -42,14 +81,11 @@ protected:
 
 class Iterator {
 public:
-    template <typename T>
-    using RowsType = std::vector<T>;
-    template <typename T>
-    using RowsIter = typename RowsType<T>::iterator;
+    using RowsType = std::vector<std::shared_ptr<LogicalRow>>;
+    using RowsIter = typename RowsType::iterator;
 
     // Warning this will break the origin order of elements!
-    template <typename T>
-    static RowsIter<T> eraseBySwap(RowsType<T> &rows, RowsIter<T> i) {
+    static RowsIter eraseBySwap(RowsType& rows, RowsIter i) {
         DCHECK(!rows.empty());
         std::swap(rows.back(), *i);
         rows.pop_back();
@@ -64,8 +100,7 @@ public:
         kProp,
     };
 
-    explicit Iterator(std::shared_ptr<Value> value, Kind kind)
-        : value_(value), kind_(kind) {}
+    explicit Iterator(std::shared_ptr<Value> value, Kind kind) : value_(value), kind_(kind) {}
 
     virtual ~Iterator() = default;
 
@@ -75,33 +110,22 @@ public:
 
     virtual std::unique_ptr<Iterator> copy() const = 0;
 
-    virtual bool valid() const = 0;
+    virtual bool valid(RowsIter it) const = 0;
 
-    virtual void next() = 0;
+    virtual RowsIter begin() = 0;
+
+    virtual RowsIter end() = 0;
 
     // erase current iter
-    virtual void erase() = 0;
+    virtual RowsIter erase(RowsIter it) = 0;
 
     // Warning this will break the origin order of elements!
-    virtual void unstableErase() = 0;
-
-    virtual const LogicalRow* row() const = 0;
+    virtual RowsIter unstableErase(RowsIter it) = 0;
 
     // erase range, no include last position, if last > size(), erase to the end position
-    virtual void eraseRange(size_t first, size_t last) = 0;
-
-    // Reset iterator position to `pos' from begin. Must be sure that the `pos' position
-    // is lower than `size()' before resetting
-    void reset(size_t pos = 0) {
-        DCHECK((pos == 0 && size() == 0) || (pos < size()));
-        doReset(pos);
-    }
+    virtual RowsIter eraseRange(size_t first, size_t last) = 0;
 
     virtual void clear() = 0;
-
-    void operator++() {
-        next();
-    }
 
     virtual std::shared_ptr<Value> valuePtr() const {
         return value_;
@@ -133,105 +157,54 @@ public:
         return kind_ == Kind::kProp;
     }
 
-    // The derived class should rewrite get prop if the Value is kind of dataset.
-    virtual const Value& getColumn(const std::string& col) const = 0;
-
-    virtual const Value& getColumn(int32_t index) const = 0;
-
-    template <typename Iter>
-    const Value& getColumnByIndex(int32_t index, Iter iter) const {
-        auto size = iter->size();
-        if (static_cast<size_t>(std::abs(index)) >= size) {
-            return Value::kNullBadType;
-        }
-        return iter->operator[]((size + index) % size);
-    }
-
-    virtual const Value& getTagProp(const std::string&,
-                                    const std::string&) const {
-        DLOG(FATAL) << "Shouldn't call the unimplemented method";
-        return Value::kEmpty;
-    }
-
-    virtual const Value& getEdgeProp(const std::string&,
-                                     const std::string&) const {
-        DLOG(FATAL) << "Shouldn't call the unimplemented method";
-        return Value::kEmpty;
-    }
-
-    virtual Value getVertex() const {
-        return Value();
-    }
-
-    virtual Value getEdge() const {
-        return Value();
-    }
-
 protected:
-    virtual void doReset(size_t pos) = 0;
-
     std::shared_ptr<Value> value_;
-    Kind                   kind_;
+    Kind kind_;
 };
 
 class DefaultIter final : public Iterator {
 public:
-    explicit DefaultIter(std::shared_ptr<Value> value)
-        : Iterator(value, Kind::kDefault) {}
+    explicit DefaultIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kDefault) {}
 
     std::unique_ptr<Iterator> copy() const override {
         return std::make_unique<DefaultIter>(*this);
     }
 
-    bool valid() const override {
+    bool valid(RowsIter) const override {
         return !(counter_ > 0);
     }
 
-    void next() override {
-        counter_++;
+    RowsIter begin() override {
+        return RowsIter();
     }
 
-    void erase() override {
+    RowsIter end() override {
+        return RowsIter();
+    }
+
+    RowsIter erase(RowsIter) override {
         counter_--;
+        return RowsIter();
     }
 
-    void unstableErase() override {
+    RowsIter unstableErase(RowsIter) override {
         DLOG(ERROR) << "Unimplemented default iterator.";
         counter_--;
+        return RowsIter();
     }
 
-    void eraseRange(size_t, size_t) override {
-        return;
+    RowsIter eraseRange(size_t, size_t) override {
+        return RowsIter();
     }
 
     void clear() override {
-        reset();
     }
 
     size_t size() const override {
         return 1;
     }
 
-    const Value& getColumn(const std::string& /* col */) const override {
-        DLOG(FATAL) << "This method should not be invoked";
-        return Value::kEmpty;
-    }
-
-    const Value& getColumn(int32_t) const override {
-        DLOG(FATAL) << "This method should not be invoked";
-        return Value::kEmpty;
-    }
-
-    const LogicalRow* row() const override {
-        DLOG(FATAL) << "This method should not be invoked";
-        return nullptr;
-    }
-
 private:
-    void doReset(size_t pos) override {
-        counter_ = pos;
-    }
-
     int64_t counter_{0};
 };
 
@@ -241,28 +214,15 @@ public:
 
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<GetNeighborsIter>(*this);
-        copy->reset();
         return copy;
     }
 
-    bool valid() const override {
-        return valid_ && iter_ < logicalRows_.end();
+    bool valid(RowsIter it) const override {
+        return valid_ && it < logicalRows_.end();
     }
 
-    bool noEdgeValid() const {
-        return noEdgeValid_ && noEdgeIter_ < noEdgeRows_.end();
-    }
-
-    void next() override {
-        if (valid()) {
-            ++iter_;
-        }
-    }
-
-    void noEdgeNext() {
-        if (noEdgeValid()) {
-            ++noEdgeIter_;
-        }
+    bool noEdgevalid(RowsIter it) const {
+        return noEdgeValid_ && it < noEdgeRows_.end();
     }
 
     void clear() override {
@@ -271,49 +231,44 @@ public:
         logicalRows_.clear();
     }
 
-    void erase() override {
-        if (valid()) {
-            iter_ = logicalRows_.erase(iter_);
+    RowsIter erase(RowsIter it) override {
+        if (valid(it)) {
+            return logicalRows_.erase(it);
         }
+        return logicalRows_.end();
     }
 
-    void unstableErase() override {
-        if (valid()) {
-            iter_ = eraseBySwap(logicalRows_, iter_);
+    RowsIter unstableErase(RowsIter it) override {
+        if (valid(it)) {
+            return eraseBySwap(logicalRows_, it);
         }
+        return logicalRows_.end();
     }
 
-    void eraseRange(size_t first, size_t last) override {
+    RowsIter eraseRange(size_t first, size_t last) override {
         if (first >= last || first >= size()) {
-            return;
+            return logicalRows_.end();
         }
         if (last > size()) {
-            logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.end());
+            return logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.end());
         } else {
-            logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.begin() + last);
+            return logicalRows_.erase(logicalRows_.begin() + first, logicalRows_.begin() + last);
         }
-        reset();
     }
 
     size_t size() const override {
         return logicalRows_.size();
     }
 
-    const Value& getColumn(const std::string& col) const override;
+    RowsIter begin() override {
+        return logicalRows_.begin();
+    }
 
-    const Value& getColumn(int32_t index) const override;
+    RowsIter end() override {
+        return logicalRows_.end();
+    }
 
-    const Value& getTagProp(const std::string& tag,
-                            const std::string& prop) const override;
-
-    const Value& getEdgeProp(const std::string& edge,
-                             const std::string& prop) const override;
-
-    Value getVertex() const override;
-
-    Value getNoEdgeVertex() const;
-
-    Value getEdge() const override;
+    Value getNoEdgeVertex(RowsIter noEdgeIter) const;
 
     // getVertices and getEdges arg batch interface use for subgraph
     // Its unique based on the plan
@@ -322,27 +277,7 @@ public:
     // Its unique based on the GN interface dedup
     List getEdges();
 
-    const LogicalRow* row() const override {
-        return &*iter_;
-    }
-
 private:
-    void doReset(size_t pos) override {
-        iter_ = logicalRows_.begin() + pos;
-    }
-
-    inline size_t currentSeg() const {
-        return iter_->dsIdx_;
-    }
-
-    inline const std::string& currentEdgeName() const {
-        return iter_->edgeName_;
-    }
-
-    inline const List* currentEdgeProps() const {
-        return iter_->edgeProps_;
-    }
-
     struct PropIndex {
         size_t colIdx;
         std::vector<std::string> propList;
@@ -371,13 +306,13 @@ private:
               edgeName_(std::move(edgeName)),
               edgeProps_(edgeProps) {}
 
-        GetNbrLogicalRow(const GetNbrLogicalRow &) = default;
-        GetNbrLogicalRow& operator=(const GetNbrLogicalRow &) = default;
+        GetNbrLogicalRow(const GetNbrLogicalRow&) = default;
+        GetNbrLogicalRow& operator=(const GetNbrLogicalRow&) = default;
 
-        GetNbrLogicalRow(GetNbrLogicalRow &&r) noexcept {
+        GetNbrLogicalRow(GetNbrLogicalRow&& r) noexcept {
             *this = std::move(r);
         }
-        GetNbrLogicalRow& operator=(GetNbrLogicalRow &&r) noexcept {
+        GetNbrLogicalRow& operator=(GetNbrLogicalRow&& r) noexcept {
             dsIdx_ = r.dsIdx_;
             r.dsIdx_ = 0;
 
@@ -409,8 +344,34 @@ private:
             return Kind::kGetNeighbors;
         }
 
-        const std::vector<const Row*>& segments() const override {
-            return segments_;
+    public:
+        const Value& getColumn(const std::string& col, Iterator* iter) const override;
+
+        const Value& getColumn(int32_t index, Iterator* iter) const override;
+
+        const Value& getTagProp(const std::string& tag,
+                                const std::string& prop,
+                                Iterator* iter) const override;
+
+        const Value& getEdgeProp(const std::string& edge,
+                                 const std::string& prop,
+                                 Iterator* iter) const override;
+
+        Value getVertex(Iterator* iter) const override;
+
+        Value getEdge(Iterator* iter) const override;
+
+    private:
+        inline size_t currentSeg() const {
+            return dsIdx_;
+        }
+
+        inline const std::string& currentEdgeName() const {
+            return edgeName_;
+        }
+
+        inline const List* currentEdgeProps() const {
+            return edgeProps_;
         }
 
     private:
@@ -431,14 +392,12 @@ private:
 
     FRIEND_TEST(IteratorTest, TestHead);
 
-    bool                       valid_{false};
-    RowsType<GetNbrLogicalRow> logicalRows_;
-    RowsIter<GetNbrLogicalRow> iter_;
+    bool valid_{false};
+    RowsType logicalRows_;
     // rows without edges
-    bool                       noEdgeValid_{false};
-    RowsType<GetNbrLogicalRow> noEdgeRows_;
-    RowsIter<GetNbrLogicalRow> noEdgeIter_;
-    std::vector<DataSetIndex>  dsIndices_;
+    bool noEdgeValid_{false};
+    RowsType noEdgeRows_;
+    std::vector<DataSetIndex> dsIndices_;
 };
 
 class SequentialIter final : public Iterator {
@@ -447,13 +406,13 @@ public:
     public:
         explicit SeqLogicalRow(const Row* row) : LogicalRow({row}) {}
 
-        SeqLogicalRow(const SeqLogicalRow &r) = default;
-        SeqLogicalRow& operator=(const SeqLogicalRow &r) = default;
+        SeqLogicalRow(const SeqLogicalRow& r) = default;
+        SeqLogicalRow& operator=(const SeqLogicalRow& r) = default;
 
-        SeqLogicalRow(SeqLogicalRow &&r) noexcept {
+        SeqLogicalRow(SeqLogicalRow&& r) noexcept {
             *this = std::move(r);
         }
-        SeqLogicalRow& operator=(SeqLogicalRow &&r) noexcept {
+        SeqLogicalRow& operator=(SeqLogicalRow&& r) noexcept {
             segments_ = std::move(r.segments_);
             return *this;
         }
@@ -477,8 +436,35 @@ public:
             return Kind::kSequential;
         }
 
-        const std::vector<const Row*>& segments() const override {
-            return segments_;
+    public:
+        const Value& getColumn(const std::string& col, Iterator* iter) const override {
+            DCHECK(iter->isSequentialIter());
+            auto seqIter = static_cast<SequentialIter*>(iter);
+            auto index = seqIter->colIndices_.find(col);
+            if (index == seqIter->colIndices_.end()) {
+                return Value::kNullValue;
+            }
+
+            DCHECK_EQ(this->segments_.size(), 1);
+            auto* row = this->segments_[0];
+            DCHECK_LT(index->second, row->values.size());
+            return row->values[index->second];
+        }
+
+        const Value& getColumn(int32_t index, Iterator* iter) const override;
+
+        // TODO: We should build new iter for get props, the seq iter will
+        // not meet the requirements of match any more.
+        const Value& getTagProp(const std::string& tag,
+                                const std::string& prop,
+                                Iterator* iter) const override {
+            return getColumn(tag + "." + prop, iter);
+        }
+
+        const Value& getEdgeProp(const std::string& edge,
+                                 const std::string& prop,
+                                 Iterator* iter) const override {
+            return getColumn(edge + "." + prop, iter);
         }
 
     private:
@@ -495,50 +481,41 @@ public:
 
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<SequentialIter>(*this);
-        copy->reset();
         return copy;
     }
 
-    bool valid() const override {
-        return iter_ < rows_.end();
+    bool valid(RowsIter it) const override {
+        return it < rows_.end();
     }
 
-    void next() override {
-        if (valid()) {
-            ++iter_;
-        }
+    RowsIter erase(RowsIter it) override {
+        return rows_.erase(it);
     }
 
-    void erase() override {
-        iter_ = rows_.erase(iter_);
+    RowsIter unstableErase(RowsIter it) override {
+        return eraseBySwap(rows_, it);
     }
 
-    void unstableErase() override {
-        iter_ = eraseBySwap(rows_, iter_);
-    }
-
-    void eraseRange(size_t first, size_t last) override {
+    RowsIter eraseRange(size_t first, size_t last) override {
         if (first >= last || first >= size()) {
-            return;
+            return rows_.end();
         }
         if (last > size()) {
-            rows_.erase(rows_.begin() + first, rows_.end());
+            return rows_.erase(rows_.begin() + first, rows_.end());
         } else {
-            rows_.erase(rows_.begin() + first, rows_.begin() + last);
+            return rows_.erase(rows_.begin() + first, rows_.begin() + last);
         }
-        reset();
     }
 
     void clear() override {
         rows_.clear();
-        reset();
     }
 
-    RowsIter<SeqLogicalRow> begin() {
+    RowsIter begin() override {
         return rows_.begin();
     }
 
-    RowsIter<SeqLogicalRow> end() {
+    RowsIter end() override {
         return rows_.end();
     }
 
@@ -550,62 +527,20 @@ public:
         return rows_.size();
     }
 
-    const Value& getColumn(const std::string& col) const override {
-        if (!valid()) {
-            return Value::kNullValue;
-        }
-        auto logicalRow = *iter_;
-        auto index = colIndices_.find(col);
-        if (index == colIndices_.end()) {
-            return Value::kNullValue;
-        }
-
-        DCHECK_EQ(logicalRow.segments_.size(), 1);
-        auto* row = logicalRow.segments_[0];
-        DCHECK_LT(index->second, row->values.size());
-        return row->values[index->second];
-    }
-
-    const Value& getColumn(int32_t index) const override;
-
-    // TODO: We should build new iter for get props, the seq iter will
-    // not meet the requirements of match any more.
-    const Value& getTagProp(const std::string& tag,
-                            const std::string& prop) const override {
-        return getColumn(tag+ "." + prop);
-    }
-
-    const Value& getEdgeProp(const std::string& edge,
-                             const std::string& prop) const override {
-        return getColumn(edge + "." + prop);
-    }
-
 protected:
-    const LogicalRow* row() const override {
-        if (!valid()) {
-            return nullptr;
-        }
-        return &*iter_;
-    }
-
     // Notice: We only use this interface when return results to client.
     friend class DataCollectExecutor;
-    Row&& moveRow() {
-        DCHECK_EQ(iter_->segments_.size(), 1);
-        auto* row = iter_->segments_[0];
-        return std::move(*const_cast<Row*>(row));
-    }
+    // Row&& moveRow() {
+    //     DCHECK_EQ(iter_->segments_.size(), 1);
+    //     auto* row = iter_->segments_[0];
+    //     return std::move(*const_cast<Row*>(row));
+    // }
 
 private:
-    void doReset(size_t pos) override {
-        iter_ = rows_.begin() + pos;
-    }
-
     void init(std::vector<std::unique_ptr<Iterator>>&& iterators);
 
-    RowsType<SeqLogicalRow>                      rows_;
-    RowsIter<SeqLogicalRow>                      iter_;
-    std::unordered_map<std::string, size_t>      colIndices_;
+    RowsType rows_;
+    std::unordered_map<std::string, size_t> colIndices_;
 };
 
 class PropIter;
@@ -619,14 +554,14 @@ public:
             const std::unordered_map<size_t, std::pair<size_t, size_t>>* colIdxIndices)
             : LogicalRow(std::move(segments)), size_(size), colIdxIndices_(colIdxIndices) {}
 
-        JoinLogicalRow(const JoinLogicalRow &r) = default;
-        JoinLogicalRow& operator=(const JoinLogicalRow &r) = default;
+        JoinLogicalRow(const JoinLogicalRow& r) = default;
+        JoinLogicalRow& operator=(const JoinLogicalRow& r) = default;
 
-        JoinLogicalRow(JoinLogicalRow &&r) noexcept {
+        JoinLogicalRow(JoinLogicalRow&& r) noexcept {
             *this = std::move(r);
         }
 
-        JoinLogicalRow& operator=(JoinLogicalRow &&r) noexcept {
+        JoinLogicalRow& operator=(JoinLogicalRow&& r) noexcept {
             segments_ = std::move(r.segments_);
 
             size_ = r.size_;
@@ -660,9 +595,22 @@ public:
             return Kind::kJoin;
         }
 
-        const std::vector<const Row*>& segments() const override {
-            return segments_;
+    public:
+        const Value& getColumn(const std::string& col, Iterator* iter) const override {
+            DCHECK(iter->isJoinIter());
+            auto joinIter = static_cast<JoinIter*>(iter);
+            auto index = joinIter->colIndices_.find(col);
+            if (index == joinIter->colIndices_.end()) {
+                return Value::kNullValue;
+            }
+            auto segIdx = index->second.first;
+            auto colIdx = index->second.second;
+            DCHECK_LT(segIdx, this->segments_.size());
+            DCHECK_LT(colIdx, this->segments_[segIdx]->values.size());
+            return this->segments_[segIdx]->values[colIdx];
         }
+
+        const Value& getColumn(int32_t index, Iterator* iter) const override;
 
     private:
         friend class JoinIter;
@@ -675,14 +623,12 @@ public:
 
     void joinIndex(const Iterator* lhs, const Iterator* rhs);
 
-    void addRow(JoinLogicalRow row) {
-        rows_.emplace_back(std::move(row));
-        iter_ = rows_.begin();
+    void addRow(JoinLogicalRow* row) {
+        rows_.emplace_back(row);
     }
 
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<JoinIter>(*this);
-        copy->reset();
         return copy;
     }
 
@@ -690,56 +636,46 @@ public:
         return colNames_;
     }
 
-    bool valid() const override {
-        return iter_ < rows_.end();
+    bool valid(RowsIter it) const override {
+        return it < rows_.end();
     }
 
-    void next() override {
-        if (valid()) {
-            ++iter_;
-        }
+    RowsIter erase(RowsIter it) override {
+        return rows_.erase(it);
     }
 
-    void erase() override {
-        iter_ = rows_.erase(iter_);
+    RowsIter unstableErase(RowsIter it) override {
+        return eraseBySwap(rows_, it);
     }
 
-    void unstableErase() override {
-        iter_ = eraseBySwap(rows_, iter_);
-    }
-
-    void eraseRange(size_t first, size_t last) override {
+    RowsIter eraseRange(size_t first, size_t last) override {
         if (first >= last || first >= size()) {
-            return;
+            return rows_.end();
         }
         if (last > size()) {
-            rows_.erase(rows_.begin() + first, rows_.end());
+            return rows_.erase(rows_.begin() + first, rows_.end());
         } else {
-            rows_.erase(rows_.begin() + first, rows_.begin() + last);
+            return rows_.erase(rows_.begin() + first, rows_.begin() + last);
         }
-        reset();
     }
 
     void clear() override {
         rows_.clear();
-        reset();
     }
 
-    RowsIter<JoinLogicalRow> begin() {
+    RowsIter begin() override {
         return rows_.begin();
     }
 
-    RowsIter<JoinLogicalRow> end() {
+    RowsIter end() override {
         return rows_.end();
     }
 
-    const std::unordered_map<std::string, std::pair<size_t, size_t>>&
-    getColIndices() const {
+    const std::unordered_map<std::string, std::pair<size_t, size_t>>& getColIndices() const {
         return colIndices_;
     }
 
-    const std::unordered_map<size_t, std::pair<size_t, size_t>>&
-    getColIdxIndices() const {
+    const std::unordered_map<size_t, std::pair<size_t, size_t>>& getColIdxIndices() const {
         return colIdxIndices_;
     }
 
@@ -747,36 +683,7 @@ public:
         return rows_.size();
     }
 
-    const Value& getColumn(const std::string& col) const override {
-        if (!valid()) {
-            return Value::kNullValue;
-        }
-        auto row = *iter_;
-        auto index = colIndices_.find(col);
-        if (index == colIndices_.end()) {
-            return Value::kNullValue;
-        }
-        auto segIdx = index->second.first;
-        auto colIdx = index->second.second;
-        DCHECK_LT(segIdx, row.segments_.size());
-        DCHECK_LT(colIdx, row.segments_[segIdx]->values.size());
-        return row.segments_[segIdx]->values[colIdx];
-    }
-
-    const Value& getColumn(int32_t index) const override;
-
-    const LogicalRow* row() const override {
-        if (!valid()) {
-            return nullptr;
-        }
-        return &*iter_;
-    }
-
 private:
-    void doReset(size_t pos) override {
-        iter_ = rows_.begin() + pos;
-    }
-
     size_t buildIndexFromSeqIter(const SequentialIter* iter, size_t segIdx);
 
     size_t buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx);
@@ -784,13 +691,12 @@ private:
     size_t buildIndexFromPropIter(const PropIter* iter, size_t segIdx);
 
 private:
-    std::vector<std::string>                                       colNames_;
-    RowsType<JoinLogicalRow>                                       rows_;
-    RowsIter<JoinLogicalRow>                                       iter_;
+    std::vector<std::string> colNames_;
+    RowsType rows_;
     // colName -> segIdx, currentSegColIdx
-    std::unordered_map<std::string, std::pair<size_t, size_t>>     colIndices_;
+    std::unordered_map<std::string, std::pair<size_t, size_t>> colIndices_;
     // colIdx -> segIdx, currentSegColIdx
-    std::unordered_map<size_t, std::pair<size_t, size_t>>          colIdxIndices_;
+    std::unordered_map<size_t, std::pair<size_t, size_t>> colIdxIndices_;
 };
 
 class PropIter final : public Iterator {
@@ -799,14 +705,14 @@ public:
     public:
         explicit PropLogicalRow(const Row* row) : LogicalRow({row}) {}
 
-        PropLogicalRow(const PropLogicalRow &r) = default;
-        PropLogicalRow& operator=(const PropLogicalRow &r) = default;
+        PropLogicalRow(const PropLogicalRow& r) = default;
+        PropLogicalRow& operator=(const PropLogicalRow& r) = default;
 
-        PropLogicalRow(PropLogicalRow &&r) noexcept {
+        PropLogicalRow(PropLogicalRow&& r) noexcept {
             *this = std::move(r);
         }
 
-        PropLogicalRow& operator=(PropLogicalRow &&r) noexcept {
+        PropLogicalRow& operator=(PropLogicalRow&& r) noexcept {
             segments_ = std::move(r.segments_);
             return *this;
         }
@@ -830,9 +736,30 @@ public:
             return Kind::kProp;
         }
 
-        const std::vector<const Row*>& segments() const override {
-            return segments_;
+        const Value& getColumn(const std::string& col, Iterator* iter) const override;
+
+        const Value& getColumn(int32_t index, Iterator* iter) const override;
+
+        Value getVertex(Iterator* iter) const override;
+
+        Value getEdge(Iterator* iter) const override;
+
+        const Value& getTagProp(const std::string& tag,
+                                const std::string& prop,
+                                Iterator* iter) const override {
+            return getProp(tag, prop, iter);
         }
+
+        const Value& getEdgeProp(const std::string& edge,
+                                 const std::string& prop,
+                                 Iterator* iter) const override {
+            return getProp(edge, prop, iter);
+        }
+
+    private:
+        const Value& getProp(const std::string& name,
+                             const std::string& prop,
+                             Iterator* iter) const;
 
     private:
         friend class PropIter;
@@ -844,50 +771,41 @@ public:
 
     std::unique_ptr<Iterator> copy() const override {
         auto copy = std::make_unique<PropIter>(*this);
-        copy->reset();
         return copy;
     }
 
-    bool valid() const override {
-        return iter_ < rows_.end();
+    bool valid(RowsIter it) const override {
+        return it < rows_.end();
     }
 
-    void next() override {
-        if (valid()) {
-            ++iter_;
-        }
+    RowsIter erase(RowsIter it) override {
+        return rows_.erase(it);
     }
 
-    void erase() override {
-        iter_ = rows_.erase(iter_);
+    RowsIter unstableErase(RowsIter it) override {
+        return eraseBySwap(rows_, it);
     }
 
-    void unstableErase() override {
-        iter_ = eraseBySwap(rows_, iter_);
-    }
-
-    void eraseRange(size_t first, size_t last) override {
+    RowsIter eraseRange(size_t first, size_t last) override {
         if (first >= last || first >= size()) {
-            return;
+            return rows_.end();
         }
         if (last > size()) {
-            rows_.erase(rows_.begin() + first, rows_.end());
+            return rows_.erase(rows_.begin() + first, rows_.end());
         } else {
-            rows_.erase(rows_.begin() + first, rows_.begin() + last);
+            return rows_.erase(rows_.begin() + first, rows_.begin() + last);
         }
-        reset();
     }
 
     void clear() override {
         rows_.clear();
-        reset();
     }
 
-    RowsIter<PropLogicalRow> begin() {
+    RowsIter begin() override {
         return rows_.begin();
     }
 
-    RowsIter<PropLogicalRow> end() {
+    RowsIter end() override {
         return rows_.end();
     }
 
@@ -895,46 +813,17 @@ public:
         return rows_.size();
     }
 
-    const LogicalRow* row() const override {
-        if (!valid()) {
-            return nullptr;
-        }
-        return &*iter_;
-    }
-
     const std::unordered_map<std::string, size_t>& getColIndices() const {
         return dsIndex_.colIndices;
     }
-
-    const Value& getColumn(const std::string& col) const override;
-
-    const Value& getColumn(int32_t index) const override;
-
-    Value getVertex() const override;
-
-    Value getEdge() const override;
 
     List getVertices();
 
     List getEdges();
 
-    const Value& getProp(const std::string& name, const std::string& prop) const;
-
-    const Value& getTagProp(const std::string& tag, const std::string& prop) const override {
-        return getProp(tag, prop);
-    }
-
-    const Value& getEdgeProp(const std::string& edge, const std::string& prop) const override {
-        return getProp(edge, prop);
-    }
-
     Status buildPropIndex(const std::string& props, size_t columnIdx);
 
 private:
-    void doReset(size_t pos) override {
-        iter_ = rows_.begin() + pos;
-    }
-
     struct DataSetIndex {
         const DataSet* ds;
         // vertex | _vid | tag1.prop1 | tag1.prop2 | tag2,prop1 | tag2,prop2 | ...
@@ -944,32 +833,27 @@ private:
         std::unordered_map<std::string, size_t> colIndices;
         // {tag1 : {prop1 : 1, prop2 : 2}
         // {edge1 : {prop1 : 4, prop2 : 5}
-        std::unordered_map<std::string, std::unordered_map<std::string, size_t> > propsMap;
+        std::unordered_map<std::string, std::unordered_map<std::string, size_t>> propsMap;
     };
 
 private:
-    RowsType<PropLogicalRow>                                       rows_;
-    RowsIter<PropLogicalRow>                                       iter_;
-    DataSetIndex                                                   dsIndex_;
+    RowsType rows_;
+    DataSetIndex dsIndex_;
 };
-
-
 
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind);
 std::ostream& operator<<(std::ostream& os, LogicalRow::Kind kind);
 std::ostream& operator<<(std::ostream& os, const LogicalRow& row);
 
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula
 
 namespace std {
 
 template <>
 struct equal_to<const nebula::Row*> {
     bool operator()(const nebula::Row* lhs, const nebula::Row* rhs) const {
-        return lhs == rhs
-                   ? true
-                   : (lhs != nullptr) && (rhs != nullptr) && (*lhs == *rhs);
+        return lhs == rhs ? true : (lhs != nullptr) && (rhs != nullptr) && (*lhs == *rhs);
     }
 };
 
@@ -1004,6 +888,6 @@ struct hash<const nebula::graph::LogicalRow*> {
     }
 };
 
-}  // namespace std
+}   // namespace std
 
-#endif  // CONTEXT_ITERATOR_H_
+#endif   // CONTEXT_ITERATOR_H_

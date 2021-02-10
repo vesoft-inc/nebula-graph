@@ -5,6 +5,7 @@
  */
 
 #include "context/Iterator.h"
+#include <krb5/krb5.h>
 
 #include "common/datatypes/Edge.h"
 #include "common/datatypes/Vertex.h"
@@ -28,8 +29,7 @@ bool equal_to<const nebula::graph::LogicalRow*>::operator()(
             for (size_t i = 0; i < lhsValues.size(); ++i) {
                 const auto* l = lhsValues[i];
                 const auto* r = rhsValues[i];
-                auto equal =
-                    l == r ? true : (l != nullptr) && (r != nullptr) && (*l == *r);
+                auto equal = l == r ? true : (l != nullptr) && (r != nullptr) && (*l == *r);
                 if (!equal) {
                     return false;
                 }
@@ -42,7 +42,7 @@ bool equal_to<const nebula::graph::LogicalRow*>::operator()(
     }
     return true;
 }
-}  // namespace std
+}   // namespace std
 
 namespace nebula {
 namespace graph {
@@ -54,7 +54,6 @@ GetNeighborsIter::GetNeighborsIter(std::shared_ptr<Value> value)
         clear();
         return;
     }
-    iter_ = logicalRows_.begin();
     valid_ = true;
     noEdgeValid_ = true;
 }
@@ -86,7 +85,7 @@ StatusOr<GetNeighborsIter::DataSetIndex> GetNeighborsIter::makeDataSetIndex(cons
     int64_t edgeStartIndex = std::move(buildResult).value();
     if (edgeStartIndex < 0) {
         for (auto& row : dsIndex.ds->rows) {
-            logicalRows_.emplace_back(idx, &row, "", nullptr);
+            logicalRows_.emplace_back(new GetNbrLogicalRow(idx, &row, "", nullptr));
         }
     } else {
         makeLogicalRowByEdge(edgeStartIndex, idx, dsIndex);
@@ -114,11 +113,11 @@ void GetNeighborsIter::makeLogicalRowByEdge(int64_t edgeStartIndex,
                 auto edgeName = dsIndex.tagEdgeNameIndices.find(column);
                 DCHECK(edgeName != dsIndex.tagEdgeNameIndices.end());
                 logicalRows_.emplace_back(
-                    idx, &row, edgeName->second, &edge.getList());
+                    new GetNbrLogicalRow(idx, &row, edgeName->second, &edge.getList()));
             }
         }
         if (!existEdge) {
-            noEdgeRows_.emplace_back(idx, &row, "", nullptr);
+            noEdgeRows_.emplace_back(new GetNbrLogicalRow(idx, &row, "", nullptr));
         }
     }
 }
@@ -137,7 +136,7 @@ StatusOr<int64_t> GetNeighborsIter::buildIndex(DataSetIndex* dsIndex) {
     for (size_t i = 0; i < colNames.size(); ++i) {
         dsIndex->colIndices.emplace(colNames[i], i);
         auto& colName = colNames[i];
-        if (colName.find(nebula::kTag) == 0) {  // "_tag"
+        if (colName.find(nebula::kTag) == 0) {   // "_tag"
             NG_RETURN_IF_ERROR(buildPropIndex(colName, i, false, dsIndex));
         } else if (colName.find("_edge") == 0) {
             NG_RETURN_IF_ERROR(buildPropIndex(colName, i, true, dsIndex));
@@ -189,34 +188,33 @@ Status GetNeighborsIter::buildPropIndex(const std::string& props,
     return Status::OK();
 }
 
-const Value& GetNeighborsIter::getColumn(const std::string& col) const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
+const Value& GetNeighborsIter::GetNbrLogicalRow::getColumn(const std::string& col,
+                                                           Iterator* iter) const {
+    DCHECK(iter->isGetNeighborsIter());
+    auto getNbrIter = static_cast<GetNeighborsIter*>(iter);
     auto segment = currentSeg();
-    auto& index = dsIndices_[segment].colIndices;
+    auto& index = getNbrIter->dsIndices_[segment].colIndices;
     auto found = index.find(col);
     if (found == index.end()) {
         return Value::kEmpty;
     }
 
-    DCHECK_EQ(iter_->segments_.size(), 1);
-    auto* row = iter_->segments_[0];
+    DCHECK_EQ(this->segments_.size(), 1);
+    auto* row = this->segments_[0];
     return row->values[found->second];
 }
 
-const Value& GetNeighborsIter::getColumn(int32_t index) const {
-    return getColumnByIndex(index, iter_);
+const Value& GetNeighborsIter::GetNbrLogicalRow::getColumn(int32_t index, Iterator* iter) const {
+    return getColumnByIndex(index, iter);
 }
 
-const Value& GetNeighborsIter::getTagProp(const std::string& tag,
-                                          const std::string& prop) const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
-
+const Value& GetNeighborsIter::GetNbrLogicalRow::getTagProp(const std::string& tag,
+                                                            const std::string& prop,
+                                                            Iterator* iter) const {
+    DCHECK(iter->isGetNeighborsIter());
+    auto getNbrIter = static_cast<GetNeighborsIter*>(iter);
     auto segment = currentSeg();
-    auto &tagPropIndices = dsIndices_[segment].tagPropsMap;
+    auto& tagPropIndices = getNbrIter->dsIndices_[segment].tagPropsMap;
     auto index = tagPropIndices.find(tag);
     if (index == tagPropIndices.end()) {
         return Value::kEmpty;
@@ -226,8 +224,8 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
         return Value::kEmpty;
     }
     auto colId = index->second.colIdx;
-    DCHECK_EQ(iter_->segments_.size(), 1);
-    auto& row = *(iter_->segments_[0]);
+    DCHECK_EQ(this->segments_.size(), 1);
+    auto& row = *(this->segments_[0]);
     DCHECK_GT(row.size(), colId);
     if (!row[colId].isList()) {
         return Value::kNullBadType;
@@ -236,21 +234,19 @@ const Value& GetNeighborsIter::getTagProp(const std::string& tag,
     return list.values[propIndex->second];
 }
 
-const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
-                                           const std::string& prop) const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
-
+const Value& GetNeighborsIter::GetNbrLogicalRow::getEdgeProp(const std::string& edge,
+                                                             const std::string& prop,
+                                                             Iterator* iter) const {
+    DCHECK(iter->isGetNeighborsIter());
+    auto getNbrIter = static_cast<GetNeighborsIter*>(iter);
     auto currentEdge = currentEdgeName();
-    if (edge != "*" &&
-            (currentEdge.compare(1, std::string::npos, edge) != 0)) {
+    if (edge != "*" && (currentEdge.compare(1, std::string::npos, edge) != 0)) {
         VLOG(1) << "Current edge: " << currentEdgeName() << " Wanted: " << edge;
         return Value::kEmpty;
     }
     auto segment = currentSeg();
-    auto index = dsIndices_[segment].edgePropsMap.find(currentEdge);
-    if (index == dsIndices_[segment].edgePropsMap.end()) {
+    auto index = getNbrIter->dsIndices_[segment].edgePropsMap.find(currentEdge);
+    if (index == getNbrIter->dsIndices_[segment].edgePropsMap.end()) {
         VLOG(1) << "No edge found: " << edge;
         VLOG(1) << "Current edge: " << currentEdge;
         return Value::kEmpty;
@@ -264,22 +260,20 @@ const Value& GetNeighborsIter::getEdgeProp(const std::string& edge,
     return list->values[propIndex->second];
 }
 
-Value GetNeighborsIter::getVertex() const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
-
+Value GetNeighborsIter::GetNbrLogicalRow::getVertex(Iterator* iter) const {
+    DCHECK(iter->isGetNeighborsIter());
+    auto getNbrIter = static_cast<GetNeighborsIter*>(iter);
     auto segment = currentSeg();
-    auto vidVal = getColumn(nebula::kVid);
+    auto vidVal = getColumn(nebula::kVid, iter);
     if (!SchemaUtil::isValidVid(vidVal)) {
         return Value::kNullBadType;
     }
     Vertex vertex;
     vertex.vid = vidVal;
-    auto& tagPropMap = dsIndices_[segment].tagPropsMap;
+    auto& tagPropMap = getNbrIter->dsIndices_[segment].tagPropsMap;
     for (auto& tagProp : tagPropMap) {
-        DCHECK_EQ(iter_->segments_.size(), 1);
-        auto& row = *(iter_->segments_[0]);
+        DCHECK_EQ(this->segments_.size(), 1);
+        auto& row = *(this->segments_[0]);
         auto& tagPropNameList = tagProp.second.propList;
         auto tagColId = tagProp.second.colIdx;
         if (!row[tagColId].isList()) {
@@ -299,18 +293,14 @@ Value GetNeighborsIter::getVertex() const {
     return Value(std::move(vertex));
 }
 
-Value GetNeighborsIter::getNoEdgeVertex() const {
-    if (!noEdgeValid()) {
-        return Value::kNullValue;
-    }
-
+Value GetNeighborsIter::getNoEdgeVertex(RowsIter noEdgeIter) const {
     auto& index = dsIndices_[0].colIndices;
     auto found = index.find(nebula::kVid);
     if (found == index.end()) {
         return Value::kNullBadType;
     }
-    DCHECK_EQ(noEdgeIter_->segments_.size(), 1);
-    auto vidVal = noEdgeIter_->segments_[0]->values[found->second];
+    DCHECK_EQ((*noEdgeIter)->segments().size(), 1);
+    auto vidVal = (*noEdgeIter)->segments()[0]->values[found->second];
     if (!SchemaUtil::isValidVid(vidVal)) {
         return Value::kNullBadType;
     }
@@ -319,8 +309,8 @@ Value GetNeighborsIter::getNoEdgeVertex() const {
     auto& tagPropMap = dsIndices_[0].tagPropsMap;
     bool existTag = false;
     for (auto& tagProp : tagPropMap) {
-        DCHECK_EQ(noEdgeIter_->segments_.size(), 1);
-        auto& row = *(noEdgeIter_->segments_[0]);
+        DCHECK_EQ((*noEdgeIter)->segments().size(), 1);
+        auto& row = *((*noEdgeIter)->segments()[0]);
         auto& tagPropNameList = tagProp.second.propList;
         auto tagColId = tagProp.second.colIdx;
         if (!row[tagColId].isList()) {
@@ -346,16 +336,14 @@ Value GetNeighborsIter::getNoEdgeVertex() const {
 }
 
 List GetNeighborsIter::getVertices() {
-    DCHECK(iter_ == logicalRows_.begin());
     List vertices;
     vertices.values.reserve(size() + noEdgeRows_.size());
-    for (; valid(); next()) {
-        vertices.values.emplace_back(getVertex());
+    for (auto beg = begin(); beg != end(); ++beg) {
+        vertices.values.emplace_back((*beg)->getVertex(this));
     }
-    reset();
     // collect noEdgeRows_
-    for (noEdgeIter_ = noEdgeRows_.begin(); noEdgeValid(); noEdgeNext()) {
-        auto value = getNoEdgeVertex();
+    for (auto noEdgeIter = noEdgeRows_.begin(); noEdgeIter != noEdgeRows_.end(); ++noEdgeIter) {
+        auto value = getNoEdgeVertex(noEdgeIter);
         if (UNLIKELY(value.isBadNull())) {
             continue;
         }
@@ -364,41 +352,39 @@ List GetNeighborsIter::getVertices() {
     return vertices;
 }
 
-Value GetNeighborsIter::getEdge() const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
-
+Value GetNeighborsIter::GetNbrLogicalRow::getEdge(Iterator* iter) const {
+    DCHECK(iter->isGetNeighborsIter());
+    auto getNbrIter = static_cast<GetNeighborsIter*>(iter);
     auto segment = currentSeg();
     Edge edge;
     auto edgeName = currentEdgeName().substr(1, std::string::npos);
     edge.name = edgeName;
 
-    auto type = getEdgeProp(edgeName, kType);
+    auto type = getEdgeProp(edgeName, kType, getNbrIter);
     if (!type.isInt()) {
         return Value::kNullBadType;
     }
     edge.type = type.getInt();
 
-    auto& srcVal = getColumn(kVid);
+    auto& srcVal = getColumn(kVid, getNbrIter);
     if (!SchemaUtil::isValidVid(srcVal)) {
         return Value::kNullBadType;
     }
     edge.src = srcVal;
 
-    auto& dstVal = getEdgeProp(edgeName, kDst);
+    auto& dstVal = getEdgeProp(edgeName, kDst, getNbrIter);
     if (!SchemaUtil::isValidVid(dstVal)) {
         return Value::kNullBadType;
     }
     edge.dst = dstVal;
 
-    auto& rank = getEdgeProp(edgeName, kRank);
+    auto& rank = getEdgeProp(edgeName, kRank, getNbrIter);
     if (!rank.isInt()) {
         return Value::kNullBadType;
     }
     edge.ranking = rank.getInt();
 
-    auto& edgePropMap = dsIndices_[segment].edgePropsMap;
+    auto& edgePropMap = getNbrIter->dsIndices_[segment].edgePropsMap;
     auto edgeProp = edgePropMap.find(currentEdgeName());
     if (edgeProp == edgePropMap.end()) {
         return Value::kNullValue;
@@ -408,8 +394,7 @@ Value GetNeighborsIter::getEdge() const {
     DCHECK_EQ(edgeNamePropList.size(), propList.size());
     for (size_t i = 0; i < propList.size(); ++i) {
         auto propName = edgeNamePropList[i];
-        if (propName == kSrc || propName == kDst
-                || propName == kRank || propName == kType) {
+        if (propName == kSrc || propName == kDst || propName == kRank || propName == kType) {
             continue;
         }
         edge.props.emplace(edgeNamePropList[i], propList[i]);
@@ -418,17 +403,15 @@ Value GetNeighborsIter::getEdge() const {
 }
 
 List GetNeighborsIter::getEdges() {
-    DCHECK(iter_ == logicalRows_.begin());
     List edges;
     edges.values.reserve(size());
-    for (; valid(); next()) {
-        auto edge = getEdge();
+    for (auto beg = begin(); beg != end(); ++beg) {
+        auto edge = (*beg)->getEdge(this);
         if (edge.isEdge()) {
             const_cast<Edge&>(edge.getEdge()).format();
         }
         edges.values.emplace_back(std::move(edge));
     }
-    reset();
     return edges;
 }
 
@@ -436,9 +419,8 @@ SequentialIter::SequentialIter(std::shared_ptr<Value> value) : Iterator(value, K
     DCHECK(value->isDataSet());
     auto& ds = value->getDataSet();
     for (auto& row : ds.rows) {
-        rows_.emplace_back(&row);
+        rows_.emplace_back(new SeqLogicalRow(&row));
     }
-    iter_ = rows_.begin();
     for (size_t i = 0; i < ds.colNames.size(); ++i) {
         colIndices_.emplace(ds.colNames[i], i);
     }
@@ -469,11 +451,10 @@ void SequentialIter::init(std::vector<std::unique_ptr<Iterator>>&& iterators) {
                      std::make_move_iterator(inputIter->begin()),
                      std::make_move_iterator(inputIter->end()));
     }
-    iter_ = rows_.begin();
 }
 
-const Value& SequentialIter::getColumn(int32_t index) const {
-    return getColumnByIndex(index, iter_);
+const Value& SequentialIter::SeqLogicalRow::getColumn(int32_t index, Iterator* iter) const {
+    return getColumnByIndex(index, iter);
 }
 
 void JoinIter::joinIndex(const Iterator* lhs, const Iterator* rhs) {
@@ -566,8 +547,8 @@ size_t JoinIter::buildIndexFromJoinIter(const JoinIter* iter, size_t segIdx) {
     return nextSeg + 1;
 }
 
-const Value& JoinIter::getColumn(int32_t index) const {
-    return getColumnByIndex(index, iter_);
+const Value& JoinIter::JoinLogicalRow::getColumn(int32_t index, Iterator* iter) const {
+    return getColumnByIndex(index, iter);
 }
 
 PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) {
@@ -580,9 +561,8 @@ PropIter::PropIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kProp) 
         return;
     }
     for (auto& row : ds.rows) {
-        rows_.emplace_back(&row);
+        rows_.emplace_back(new PropLogicalRow(&row));
     }
-    iter_ = rows_.begin();
 }
 
 Status PropIter::makeDataSetIndex(const DataSet& ds) {
@@ -616,29 +596,27 @@ Status PropIter::buildPropIndex(const std::string& props, size_t columnId) {
     return Status::OK();
 }
 
-const Value& PropIter::getColumn(const std::string& col) const {
-    if (!valid()) {
+const Value& PropIter::PropLogicalRow::getColumn(const std::string& col, Iterator* iter) const {
+    DCHECK(iter->isPropIter());
+    auto propIter = static_cast<PropIter*>(iter);
+    auto index = propIter->dsIndex_.colIndices.find(col);
+    if (index == propIter->dsIndex_.colIndices.end()) {
         return Value::kNullValue;
     }
-
-    auto& logicalRow = *iter_;
-    auto index = dsIndex_.colIndices.find(col);
-    if (index == dsIndex_.colIndices.end()) {
-        return Value::kNullValue;
-    }
-    DCHECK_EQ(logicalRow.segments_.size(), 1);
-    auto* row = logicalRow.segments_[0];
+    DCHECK_EQ(this->segments_.size(), 1);
+    auto* row = this->segments_[0];
     DCHECK_LT(index->second, row->values.size());
     return row->values[index->second];
 }
 
-const Value& PropIter::getProp(const std::string& name, const std::string& prop) const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
-    DCHECK_EQ(iter_->segments_.size(), 1);
-    auto& row = *(iter_->segments_[0]);
-    auto& propsMap = dsIndex_.propsMap;
+const Value& PropIter::PropLogicalRow::getProp(const std::string& name,
+                                               const std::string& prop,
+                                               Iterator* iter) const {
+    DCHECK(iter->isPropIter());
+    auto propIter = static_cast<PropIter*>(iter);
+    DCHECK_EQ(this->segments_.size(), 1);
+    auto& row = *(this->segments_[0]);
+    auto& propsMap = propIter->dsIndex_.propsMap;
     auto index = propsMap.find(name);
     if (index == propsMap.end()) {
         return Value::kEmpty;
@@ -654,21 +632,19 @@ const Value& PropIter::getProp(const std::string& name, const std::string& prop)
     return row[colId];
 }
 
-Value PropIter::getVertex() const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
-
-    auto vidVal = getColumn(nebula::kVid);
+Value PropIter::PropLogicalRow::getVertex(Iterator* iter) const {
+    DCHECK(iter->isPropIter());
+    auto propIter = static_cast<PropIter*>(iter);
+    auto vidVal = getColumn(nebula::kVid, iter);
     if (!SchemaUtil::isValidVid(vidVal)) {
         return Value::kNullValue;
     }
     Vertex vertex;
     vertex.vid = vidVal;
-    auto& tagPropsMap = dsIndex_.propsMap;
+    auto& tagPropsMap = propIter->dsIndex_.propsMap;
     bool isVertexProps = true;
-    DCHECK_EQ(iter_->segments_.size(), 1);
-    auto& row = *(iter_->segments_[0]);
+    DCHECK_EQ(this->segments_.size(), 1);
+    auto& row = *(this->segments_[0]);
     // tagPropsMap -> <std::string, std::unordered_map<std::string, size_t> >
     for (auto& tagProp : tagPropsMap) {
         // propIndex -> std::unordered_map<std::string, size_t>
@@ -686,7 +662,7 @@ Value PropIter::getVertex() const {
         Tag tag;
         tag.name = tagProp.first;
         for (auto& propIndex : tagProp.second) {
-            if (propIndex.first == nebula::kTag) {  // "_tag"
+            if (propIndex.first == nebula::kTag) {   // "_tag"
                 continue;
             } else {
                 tag.props.emplace(propIndex.first, row[propIndex.second]);
@@ -697,15 +673,14 @@ Value PropIter::getVertex() const {
     return Value(std::move(vertex));
 }
 
-Value PropIter::getEdge() const {
-    if (!valid()) {
-        return Value::kNullValue;
-    }
+Value PropIter::PropLogicalRow::getEdge(Iterator* iter) const {
+    DCHECK(iter->isPropIter());
+    auto propIter = static_cast<PropIter*>(iter);
     Edge edge;
-    auto& edgePropsMap = dsIndex_.propsMap;
+    auto& edgePropsMap = propIter->dsIndex_.propsMap;
     bool isEdgeProps = true;
-    DCHECK_EQ(iter_->segments_.size(), 1);
-    auto& row = *(iter_->segments_[0]);
+    DCHECK_EQ(this->segments_.size(), 1);
+    auto& row = *(this->segments_[0]);
     for (auto& edgeProp : edgePropsMap) {
         for (auto& propIndex : edgeProp.second) {
             if (row[propIndex.second].empty()) {
@@ -721,33 +696,33 @@ Value PropIter::getEdge() const {
         auto edgeName = edgeProp.first;
         edge.name = edgeProp.first;
 
-        auto type = getEdgeProp(edgeName, kType);
+        auto type = getEdgeProp(edgeName, kType, propIter);
         if (!type.isInt()) {
             return Value::kNullBadType;
         }
         edge.type = type.getInt();
 
-        auto& srcVal = getEdgeProp(edgeName, kSrc);
+        auto& srcVal = getEdgeProp(edgeName, kSrc, propIter);
         if (!SchemaUtil::isValidVid(srcVal)) {
             return Value::kNullBadType;
         }
         edge.src = srcVal;
 
-        auto& dstVal = getEdgeProp(edgeName, kDst);
+        auto& dstVal = getEdgeProp(edgeName, kDst, propIter);
         if (!SchemaUtil::isValidVid(dstVal)) {
             return Value::kNullBadType;
         }
         edge.dst = dstVal;
 
-        auto rank = getEdgeProp(edgeName, kRank);
+        auto rank = getEdgeProp(edgeName, kRank, propIter);
         if (!rank.isInt()) {
             return Value::kNullBadType;
         }
         edge.ranking = rank.getInt();
 
         for (auto& propIndex : edgeProp.second) {
-            if (propIndex.first == kSrc || propIndex.first == kDst ||
-                propIndex.first == kType || propIndex.first == kRank) {
+            if (propIndex.first == kSrc || propIndex.first == kDst || propIndex.first == kType ||
+                propIndex.first == kRank) {
                 continue;
             }
             edge.props.emplace(propIndex.first, row[propIndex.second]);
@@ -758,33 +733,29 @@ Value PropIter::getEdge() const {
 }
 
 List PropIter::getVertices() {
-    DCHECK(iter_ == rows_.begin());
     List vertices;
     vertices.values.reserve(size());
-    for (; valid(); next()) {
-        vertices.values.emplace_back(getVertex());
+    for (auto beg = begin(); beg != end(); ++beg) {
+        vertices.values.emplace_back((*beg)->getVertex(this));
     }
-    reset();
     return vertices;
 }
 
 List PropIter::getEdges() {
-    DCHECK(iter_ == rows_.begin());
     List edges;
     edges.values.reserve(size());
-    for (; valid(); next()) {
-        auto edge = getEdge();
+    for (auto beg = begin(); beg != end(); ++beg) {
+        auto edge = (*beg)->getEdge(this);
         if (edge.isEdge()) {
             const_cast<Edge&>(edge.getEdge()).format();
         }
         edges.values.emplace_back(std::move(edge));
     }
-    reset();
     return edges;
 }
 
-const Value& PropIter::getColumn(int32_t index) const {
-    return getColumnByIndex(index, iter_);
+const Value& PropIter::PropLogicalRow::getColumn(int32_t index, Iterator* iter) const {
+    return getColumnByIndex(index, iter);
 }
 
 std::ostream& operator<<(std::ostream& os, Iterator::Kind kind) {
@@ -844,5 +815,5 @@ std::ostream& operator<<(std::ostream& os, const LogicalRow& row) {
     os << ss.str();
     return os;
 }
-}  // namespace graph
-}  // namespace nebula
+}   // namespace graph
+}   // namespace nebula

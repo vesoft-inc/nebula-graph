@@ -73,6 +73,7 @@ private:
     // could be evaluated as constant value.
     ExecutionContext*                 ectx_{nullptr};
     Iterator*                         iter_{nullptr};
+    LogicalRow*                       logicalRow_{nullptr};
 };
 
 }  // namespace graph

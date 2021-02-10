@@ -31,7 +31,7 @@ const Value& QueryExpressionContext::getVarProp(const std::string& var,
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getColumn(prop);
+    return logicalRow_->getColumn(prop, iter_);
 }
 
 Value QueryExpressionContext::getTagProp(const std::string& tag,
@@ -39,7 +39,7 @@ Value QueryExpressionContext::getTagProp(const std::string& tag,
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getTagProp(tag, prop);
+    return logicalRow_->getTagProp(tag, prop, iter_);
 }
 
 Value QueryExpressionContext::getEdgeProp(const std::string& edge,
@@ -47,7 +47,7 @@ Value QueryExpressionContext::getEdgeProp(const std::string& edge,
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getEdgeProp(edge, prop);
+    return logicalRow_->getEdgeProp(edge, prop, iter_);
 }
 
 Value QueryExpressionContext::getSrcProp(const std::string& tag,
@@ -55,7 +55,7 @@ Value QueryExpressionContext::getSrcProp(const std::string& tag,
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getTagProp(tag, prop);
+    return logicalRow_->getTagProp(tag, prop, iter_);
 }
 
 const Value& QueryExpressionContext::getDstProp(const std::string& tag,
@@ -63,35 +63,35 @@ const Value& QueryExpressionContext::getDstProp(const std::string& tag,
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getTagProp(tag, prop);
+    return logicalRow_->getTagProp(tag, prop, iter_);
 }
 
 const Value& QueryExpressionContext::getInputProp(const std::string& prop) const {
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getColumn(prop);
+    return logicalRow_->getColumn(prop, iter_);
 }
 
 Value QueryExpressionContext::getColumn(int32_t index) const {
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getColumn(index);
+    return logicalRow_->getColumn(index, iter_);
 }
 
 Value QueryExpressionContext::getVertex() const {
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getVertex();
+    return logicalRow_->getVertex(iter_);
 }
 
 Value QueryExpressionContext::getEdge() const {
     if (iter_ == nullptr) {
         return Value::kEmpty;
     }
-    return iter_->getEdge();
+    return logicalRow_->getEdge(iter_);
 }
 
 void QueryExpressionContext::setVar(const std::string& var, Value val) {
