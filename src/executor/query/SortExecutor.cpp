@@ -8,6 +8,7 @@
 #include "common/expression/PropertyExpression.h"
 #include "planner/Query.h"
 #include "util/ScopedTimer.h"
+#include "common/expression/ColumnExpression.h"
 
 namespace nebula {
 namespace graph {
@@ -31,21 +32,17 @@ folly::Future<Status> SortExecutor::execute() {
         return Status::Error(errMsg);
     }
 
-    QueryExpressionContext ctx(ectx_);
-    ctx(iter.get());
+    QueryExpressionContext qctx(ectx_);
+    qctx(iter.get());
     auto &factors = sort->factors();
-    auto comparator = [&factors](const std::shared_ptr<LogicalRow> lhs,
+    auto comparator = [&factors, &qctx](const std::shared_ptr<LogicalRow> lhs,
                                  const std::shared_ptr<LogicalRow> rhs) {
-        UNUSED(lhs);
-        UNUSED(rhs);
         for (auto &item : factors) {
-            auto expr = item.first;
-            UNUSED(expr);
+            auto index = item.first;
+            auto expr = std::make_unique<ColumnExpression>(index);
             auto orderType = item.second;
-            // auto lhsVal = expr->eval(qctx(lhs));
-            // auto rhsVal = expr->eval(qctx(rhs));
-            auto lhsVal = "fbi warning";
-            auto rhsVal = "fbi warning";
+            auto lhsVal = expr->eval(qctx(lhs.get()));
+            auto rhsVal = expr->eval(qctx(rhs.get()));
             if (lhsVal == rhsVal) {
                 continue;
             }

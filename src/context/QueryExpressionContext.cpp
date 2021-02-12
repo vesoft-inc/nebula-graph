@@ -26,7 +26,7 @@ const Value& QueryExpressionContext::getVersionedVar(const std::string& var,
 }
 
 const Value& QueryExpressionContext::getVarProp(const std::string& var,
-                                               const std::string& prop) const {
+                                                const std::string& prop) const {
     UNUSED(var);
     if (iter_ == nullptr) {
         return Value::kEmpty;

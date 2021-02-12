@@ -75,6 +75,7 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
 void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
                                       Iterator* iter) {
     QueryExpressionContext ctx(ectx_);
+    ctx(iter);
     for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
         List list;
         list.values.reserve(hashKeys.size());

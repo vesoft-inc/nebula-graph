@@ -7,6 +7,7 @@
 #include "executor/query/TopNExecutor.h"
 #include "planner/Query.h"
 #include "util/ScopedTimer.h"
+#include "common/expression/ColumnExpression.h"
 
 namespace nebula {
 namespace graph {
@@ -29,17 +30,17 @@ folly::Future<Status> TopNExecutor::execute() {
         return Status::Error(errMsg);
     }
 
+    QueryExpressionContext qctx(ectx_);
+    qctx(iter.get());
     auto &factors = topn->factors();
-    comparator_ = [&factors](const std::shared_ptr<LogicalRow> lhs,
+    comparator_ = [&factors, &qctx](const std::shared_ptr<LogicalRow> lhs,
                              const std::shared_ptr<LogicalRow> rhs) {
-        UNUSED(lhs);
-        UNUSED(rhs);
         for (auto &item : factors) {
-            auto expr = item.first;
-            UNUSED(expr);
+            auto index = item.first;
+            auto expr = std::make_unique<ColumnExpression>(index);
             auto orderType = item.second;
-            auto lhsVal = "fbi warning";
-            auto rhsVal = "fbi warning";
+            auto lhsVal = expr->eval(qctx(lhs.get()));
+            auto rhsVal = expr->eval(qctx(rhs.get()));
             if (lhsVal == rhsVal) {
                 continue;
             }

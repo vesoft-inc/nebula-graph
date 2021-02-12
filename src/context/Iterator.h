@@ -169,32 +169,32 @@ protected:
 
 class DefaultIter final : public Iterator {
 public:
-    explicit DefaultIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kDefault) {}
+    explicit DefaultIter(std::shared_ptr<Value> value) : Iterator(value, Kind::kDefault) {
+        dummyRows_.emplace_back(nullptr);
+    }
 
     std::unique_ptr<Iterator> copy() const override {
         return std::make_unique<DefaultIter>(*this);
     }
 
-    bool valid(RowsIter) const override {
-        return !(counter_ > 0);
+    bool valid(RowsIter it) const override {
+        return it < dummyRows_.end();
     }
 
     RowsIter begin() override {
-        return RowsIter();
+        return dummyRows_.begin();
     }
 
     RowsIter end() override {
-        return RowsIter();
+        return dummyRows_.end();
     }
 
-    RowsIter erase(RowsIter) override {
-        counter_--;
-        return RowsIter();
+    RowsIter erase(RowsIter it) override {
+        return dummyRows_.erase(it);
     }
 
     RowsIter unstableErase(RowsIter) override {
         DLOG(ERROR) << "Unimplemented default iterator.";
-        counter_--;
         return RowsIter();
     }
 
@@ -203,14 +203,15 @@ public:
     }
 
     void clear() override {
+        dummyRows_.clear();
     }
 
     size_t size() const override {
-        return 1;
+        return dummyRows_.size();
     }
 
-private:
-    int64_t counter_{0};
+public:
+    RowsType dummyRows_;
 };
 
 class GetNeighborsIter final : public Iterator {
