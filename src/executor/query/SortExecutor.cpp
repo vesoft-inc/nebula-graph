@@ -36,7 +36,7 @@ folly::Future<Status> SortExecutor::execute() {
     qctx(iter.get());
     auto &factors = sort->factors();
     auto comparator = [&factors, &qctx](const std::shared_ptr<LogicalRow> lhs,
-                                 const std::shared_ptr<LogicalRow> rhs) {
+                                        const std::shared_ptr<LogicalRow> rhs) {
         for (auto &item : factors) {
             auto index = item.first;
             auto expr = std::make_unique<ColumnExpression>(index);

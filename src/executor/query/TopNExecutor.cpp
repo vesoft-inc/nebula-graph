@@ -34,7 +34,7 @@ folly::Future<Status> TopNExecutor::execute() {
     qctx(iter.get());
     auto &factors = topn->factors();
     comparator_ = [&factors, &qctx](const std::shared_ptr<LogicalRow> lhs,
-                             const std::shared_ptr<LogicalRow> rhs) {
+                                    const std::shared_ptr<LogicalRow> rhs) {
         for (auto &item : factors) {
             auto index = item.first;
             auto expr = std::make_unique<ColumnExpression>(index);
@@ -72,24 +72,16 @@ folly::Future<Status> TopNExecutor::execute() {
         return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
     }
 
-    if (iter->isSequentialIter()) {
-        executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(iter.get());
-    } else if (iter->isJoinIter()) {
-        executeTopN<JoinIter::JoinLogicalRow, JoinIter>(iter.get());
-    } else if (iter->isPropIter()) {
-        executeTopN<PropIter::PropLogicalRow, PropIter>(iter.get());
-    }
+    executeTopN(iter.get());
     iter->eraseRange(maxCount_, size);
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
 }
 
-template<typename T, typename U>
 void TopNExecutor::executeTopN(Iterator *iter) {
-    auto uIter = static_cast<U*>(iter);
-    std::vector<std::shared_ptr<LogicalRow>> heap(uIter->begin(), uIter->begin()+heapSize_);
+    std::vector<std::shared_ptr<LogicalRow>> heap(iter->begin(), iter->begin()+heapSize_);
     std::make_heap(heap.begin(), heap.end(), comparator_);
-    auto it = uIter->begin() + heapSize_;
-    while (it != uIter->end()) {
+    auto it = iter->begin() + heapSize_;
+    while (it != iter->end()) {
         if (comparator_(*it, heap[0])) {
             std::pop_heap(heap.begin(), heap.end(), comparator_);
             heap.pop_back();
@@ -100,7 +92,7 @@ void TopNExecutor::executeTopN(Iterator *iter) {
     }
     std::sort_heap(heap.begin(), heap.end(), comparator_);
 
-    auto beg = uIter->begin();
+    auto beg = iter->begin();
     for (int i = 0; i < maxCount_; ++i) {
         beg[i] = heap[offset_+i];
     }

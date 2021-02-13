@@ -20,7 +20,6 @@ public:
     folly::Future<Status> execute() override;
 
 private:
-    template<typename T, typename U>
     void executeTopN(Iterator *iter);
 
     int64_t offset_;
