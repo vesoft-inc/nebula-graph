@@ -38,7 +38,8 @@ folly::Future<Status> IntersectExecutor::execute() {
         return finish(builder.finish());
     }
 
-    for (auto cur = lIter->begin(); lIter->valid(cur);) {
+    auto cur = lIter->begin();
+    while (lIter->valid(cur)) {
         auto iter = hashSet.find(cur->get());
         if (iter == hashSet.end()) {
             cur = lIter->unstableErase(cur);

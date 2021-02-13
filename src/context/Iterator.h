@@ -210,7 +210,7 @@ public:
         return dummyRows_.size();
     }
 
-public:
+private:
     RowsType dummyRows_;
 };
 

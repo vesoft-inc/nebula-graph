@@ -30,7 +30,8 @@ folly::Future<Status> DedupExecutor::execute() {
     builder.value(iter->valuePtr());
     std::unordered_set<const LogicalRow*> unique;
     unique.reserve(iter->size());
-    for (auto cur = iter->begin(); iter->valid(cur);) {
+    auto cur = iter->begin();
+    while (iter->valid(cur)) {
         if (!unique.emplace(cur->get()).second) {
             cur = iter->unstableErase(cur);
         } else {

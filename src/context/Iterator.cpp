@@ -5,7 +5,6 @@
  */
 
 #include "context/Iterator.h"
-#include <krb5/krb5.h>
 
 #include "common/datatypes/Edge.h"
 #include "common/datatypes/Vertex.h"
@@ -29,7 +28,8 @@ bool equal_to<const nebula::graph::LogicalRow*>::operator()(
             for (size_t i = 0; i < lhsValues.size(); ++i) {
                 const auto* l = lhsValues[i];
                 const auto* r = rhsValues[i];
-                auto equal = l == r ? true : (l != nullptr) && (r != nullptr) && (*l == *r);
+                auto equal =
+                    l == r ? true : (l != nullptr) && (r != nullptr) && (*l == *r);
                 if (!equal) {
                     return false;
                 }

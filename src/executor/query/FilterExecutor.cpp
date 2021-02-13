@@ -32,7 +32,8 @@ folly::Future<Status> FilterExecutor::execute() {
     QueryExpressionContext ctx(ectx_);
     ctx(iter.get());
     auto condition = filter->condition();
-    for (auto cur = iter->begin(); iter->valid(cur);) {
+    auto cur = iter->begin();
+    while (iter->valid(cur)) {
         auto val = condition->eval(ctx(cur->get()));
         if (!val.empty() && !val.isBool() && !val.isNull()) {
             return Status::Error("Internal Error: Wrong type result, "
