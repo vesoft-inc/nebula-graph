@@ -40,11 +40,6 @@ public:
     virtual const std::vector<const Row*>& segments() const {
         return segments_;
     }
-    Row&& moveRow() {
-        DCHECK_EQ(this->segments_.size(), 1);
-        auto* row = this->segments_[0];
-        return std::move(*const_cast<Row*>(row));
-    }
 
 public:
     // The derived class should rewrite get prop if the Value is kind of dataset.
@@ -78,6 +73,13 @@ protected:
             return Value::kNullBadType;
         }
         return this->operator[]((size + index) % size);
+    }
+    // Notice: We only use this interface when return results to client.
+    friend class DataCollectExecutor;
+    Row&& moveRow() {
+        DCHECK_EQ(this->segments_.size(), 1);
+        auto* row = this->segments_[0];
+        return std::move(*const_cast<Row*>(row));
     }
 
 protected:
@@ -532,15 +534,6 @@ public:
     size_t size() const override {
         return rows_.size();
     }
-
-protected:
-    // Notice: We only use this interface when return results to client.
-    friend class DataCollectExecutor;
-    // Row&& moveRow() {
-    //     DCHECK_EQ(iter_->segments_.size(), 1);
-    //     auto* row = iter_->segments_[0];
-    //     return std::move(*const_cast<Row*>(row));
-    // }
 
 private:
     void init(std::vector<std::unique_ptr<Iterator>>&& iterators);
