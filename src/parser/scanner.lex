@@ -33,6 +33,7 @@ NOT_ENDS_WITH               (NOT{blanks}ENDS{blanks}WITH)
 
 LABEL                       ([a-zA-Z][_a-zA-Z0-9]*)
 DEC                         ([0-9])
+EXP                         ([eE][-+]?[0-9]+)
 HEX                         ([0-9a-fA-F])
 OCT                         ([0-7])
 IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
@@ -120,6 +121,8 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
 "FLUSH"                     { return TokenType::KW_FLUSH; }
 "SUBMIT"                    { return TokenType::KW_SUBMIT; }
 "ASC"                       { return TokenType::KW_ASC; }
+"ASCENDING"                 { return TokenType::KW_ASCENDING; }
+"DESCENDING"                { return TokenType::KW_DESCENDING; }
 "DISTINCT"                  { return TokenType::KW_DISTINCT; }
 "FETCH"                     { return TokenType::KW_FETCH; }
 "PROP"                      { return TokenType::KW_PROP; }
@@ -334,7 +337,9 @@ IP_OCTET                    ([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])
                             }
 
 {DEC}*\.{DEC}+              |
-{DEC}+\.{DEC}*              {
+{DEC}+\.{DEC}*              |
+{DEC}*\.{DEC}*{EXP}         |
+{DEC}+{EXP}                 {
                                 return parseDouble();
                             }
 
