@@ -39,8 +39,7 @@ folly::Future<Status> DeleteVerticesExecutor::deleteVertices() {
         auto& inputResult = ectx_->getResult(inputVar);
         auto iter = inputResult.iter();
         vertices.reserve(iter->size());
-        QueryExpressionContext ctx(ectx_);
-        ctx(iter.get());
+        QueryExpressionContext ctx(ectx_, iter.get());
         for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
             auto val = Expression::eval(vidRef, ctx(cur->get()));
             if (val.isNull() || val.empty()) {
@@ -94,8 +93,7 @@ folly::Future<Status> DeleteEdgesExecutor::deleteEdges() {
             return Status::OK();
         }
         edgeKeys.reserve(iter->size());
-        QueryExpressionContext ctx(ectx_);
-        ctx(iter.get());
+        QueryExpressionContext ctx(ectx_, iter.get());
         for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
             for (auto &edgeKeyRef : edgeKeyRefs) {
                 storage::cpp2::EdgeKey edgeKey;

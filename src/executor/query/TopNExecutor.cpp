@@ -30,8 +30,7 @@ folly::Future<Status> TopNExecutor::execute() {
         return Status::Error(errMsg);
     }
 
-    QueryExpressionContext qctx(ectx_);
-    qctx(iter.get());
+    QueryExpressionContext qctx(ectx_, iter.get());
     auto &factors = topn->factors();
     comparator_ = [&factors, &qctx](const std::shared_ptr<LogicalRow> lhs,
                                     const std::shared_ptr<LogicalRow> rhs) {

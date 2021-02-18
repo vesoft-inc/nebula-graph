@@ -29,8 +29,7 @@ folly::Future<Status> FilterExecutor::execute() {
 
     ResultBuilder builder;
     builder.value(iter->valuePtr());
-    QueryExpressionContext ctx(ectx_);
-    ctx(iter.get());
+    QueryExpressionContext ctx(ectx_, iter.get());
     auto condition = filter->condition();
     auto cur = iter->begin();
     while (iter->valid(cur)) {

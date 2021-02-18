@@ -17,8 +17,9 @@ namespace graph {
 
 class QueryExpressionContext final : public ExpressionContext {
 public:
-    explicit QueryExpressionContext(ExecutionContext* ectx = nullptr) {
+    explicit QueryExpressionContext(ExecutionContext* ectx = nullptr, Iterator* iter = nullptr) {
         ectx_ = ectx;
+        iter_ = iter;
     }
 
     // Get the latest version value for the given variable name, such as $a, $b
@@ -61,11 +62,6 @@ public:
     Value getEdge() const override;
 
     void setVar(const std::string&, Value val) override;
-
-    QueryExpressionContext& operator()(Iterator* iter) {
-        iter_ = iter;
-        return *this;
-    }
 
     QueryExpressionContext& operator()(LogicalRow* logicalRow) {
         logicalRow_ = logicalRow;

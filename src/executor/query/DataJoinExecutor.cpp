@@ -74,8 +74,7 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
 
 void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
                                       Iterator* iter) {
-    QueryExpressionContext ctx(ectx_);
-    ctx(iter);
+    QueryExpressionContext ctx(ectx_, iter);
     for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
         List list;
         list.values.reserve(hashKeys.size());
@@ -91,8 +90,7 @@ void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
 
 void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
                              Iterator* probeIter, JoinIter* resultIter) {
-    QueryExpressionContext ctx(ectx_);
-    ctx(probeIter);
+    QueryExpressionContext ctx(ectx_, probeIter);
     for (auto cur = probeIter->begin(); probeIter->valid(cur); ++cur) {
         List list;
         list.values.reserve(probeKeys.size());

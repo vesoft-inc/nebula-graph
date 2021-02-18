@@ -20,8 +20,7 @@ folly::Future<Status> ProjectExecutor::execute() {
     auto columns = project->columns()->columns();
     auto iter = ectx_->getResult(project->inputVar()).iter();
     DCHECK(!!iter);
-    QueryExpressionContext ctx(ectx_);
-    ctx(iter.get());
+    QueryExpressionContext ctx(ectx_, iter.get());
 
     VLOG(1) << "input: " << project->inputVar();
     DataSet ds;

@@ -338,8 +338,8 @@ Value GetNeighborsIter::getNoEdgeVertex(RowsIter noEdgeIter) const {
 List GetNeighborsIter::getVertices() {
     List vertices;
     vertices.values.reserve(size() + noEdgeRows_.size());
-    for (auto beg = begin(); beg != end(); ++beg) {
-        vertices.values.emplace_back(beg->get()->getVertex(this));
+    for (auto cur = begin(); cur != end(); ++cur) {
+        vertices.values.emplace_back(cur->get()->getVertex(this));
     }
     // collect noEdgeRows_
     for (auto noEdgeIter = noEdgeRows_.begin(); noEdgeIter != noEdgeRows_.end(); ++noEdgeIter) {
@@ -405,8 +405,8 @@ Value GetNeighborsIter::GetNbrLogicalRow::getEdge(Iterator* iter) const {
 List GetNeighborsIter::getEdges() {
     List edges;
     edges.values.reserve(size());
-    for (auto beg = begin(); beg != end(); ++beg) {
-        auto edge = beg->get()->getEdge(this);
+    for (auto cur = begin(); cur != end(); ++cur) {
+        auto edge = cur->get()->getEdge(this);
         if (edge.isEdge()) {
             const_cast<Edge&>(edge.getEdge()).format();
         }
@@ -735,8 +735,8 @@ Value PropIter::PropLogicalRow::getEdge(Iterator* iter) const {
 List PropIter::getVertices() {
     List vertices;
     vertices.values.reserve(size());
-    for (auto beg = begin(); beg != end(); ++beg) {
-        vertices.values.emplace_back(beg->get()->getVertex(this));
+    for (auto cur = begin(); cur != end(); ++cur) {
+        vertices.values.emplace_back(cur->get()->getVertex(this));
     }
     return vertices;
 }
@@ -744,8 +744,8 @@ List PropIter::getVertices() {
 List PropIter::getEdges() {
     List edges;
     edges.values.reserve(size());
-    for (auto beg = begin(); beg != end(); ++beg) {
-        auto edge = beg->get()->getEdge(this);
+    for (auto cur = begin(); cur != end(); ++cur) {
+        auto edge = cur->get()->getEdge(this);
         if (edge.isEdge()) {
             const_cast<Edge&>(edge.getEdge()).format();
         }

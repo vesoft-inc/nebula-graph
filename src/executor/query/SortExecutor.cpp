@@ -32,8 +32,7 @@ folly::Future<Status> SortExecutor::execute() {
         return Status::Error(errMsg);
     }
 
-    QueryExpressionContext qctx(ectx_);
-    qctx(iter.get());
+    QueryExpressionContext qctx(ectx_, iter.get());
     auto &factors = sort->factors();
     auto comparator = [&factors, &qctx](const std::shared_ptr<LogicalRow> lhs,
                                         const std::shared_ptr<LogicalRow> rhs) {

@@ -34,10 +34,9 @@ folly::Future<Status> GetVerticesExecutor::getVertices() {
         // Accept Table such as | $a | $b | $c |... as input which one column indicate src
         auto valueIter = ectx_->getResult(gv->inputVar()).iter();
         VLOG(1) << "GV input var: " << gv->inputVar() << " iter kind: " << valueIter->kind();
-        auto expCtx = QueryExpressionContext(qctx()->ectx());
-        expCtx(valueIter.get());
+        QueryExpressionContext ctx(qctx()->ectx(), valueIter.get());
         for (auto cur = valueIter->begin(); valueIter->valid(cur); ++cur) {
-            auto src = gv->src()->eval(expCtx(cur->get()));
+            auto src = gv->src()->eval(ctx(cur->get()));
             VLOG(1) << "src vid: " << src;
             if (!SchemaUtil::isValidVid(src, spaceInfo.spaceDesc.vid_type)) {
                 LOG(WARNING) << "Mismatched vid type: " << src.type();

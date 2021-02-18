@@ -44,8 +44,7 @@ Status GetNeighborsExecutor::buildRequestDataSet() {
     VLOG(1) << node()->outputVar() << " : " << inputVar;
     auto& inputResult = ectx_->getResult(inputVar);
     auto iter = inputResult.iter();
-    QueryExpressionContext ctx(ectx_);
-    ctx(iter.get());
+    QueryExpressionContext ctx(ectx_, iter.get());
     DataSet input;
     reqDs_.colNames = {kVid};
     reqDs_.rows.reserve(iter->size());

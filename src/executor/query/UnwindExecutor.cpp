@@ -22,8 +22,7 @@ folly::Future<Status> UnwindExecutor::execute() {
 
     auto iter = ectx_->getResult(unwind->inputVar()).iter();
     DCHECK(!!iter);
-    QueryExpressionContext ctx(ectx_);
-    ctx(iter.get());
+    QueryExpressionContext ctx(ectx_, iter.get());
 
     DataSet ds;
     ds.colNames = unwind->colNames();
@@ -36,7 +35,7 @@ folly::Future<Status> UnwindExecutor::execute() {
             row.values.emplace_back(std::move(v));
             for (size_t i = 1; i < columns.size(); ++i) {
                 auto &col = columns[i];
-                Value val = col->expr()->eval(ctx(iter.get()));
+                Value val = col->expr()->eval(ctx(cur->get()));
                 row.values.emplace_back(std::move(val));
             }
             ds.rows.emplace_back(std::move(row));

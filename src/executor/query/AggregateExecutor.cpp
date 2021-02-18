@@ -24,8 +24,7 @@ folly::Future<Status> AggregateExecutor::execute() {
     auto groupItems = agg->groupItems();
     auto iter = ectx_->getResult(agg->inputVar()).iter();
     DCHECK(!!iter);
-    QueryExpressionContext ctx(ectx_);
-    ctx(iter.get());
+    QueryExpressionContext ctx(ectx_, iter.get());
 
     std::unordered_map<List, std::vector<std::unique_ptr<AggData>>, std::hash<nebula::List>> result;
     for (auto cur = iter->begin(); iter->valid(cur); ++cur) {
