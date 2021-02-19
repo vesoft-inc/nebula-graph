@@ -97,6 +97,12 @@ void GetNeighborsIter::goToFirstEdge() {
     }
     if (valid_) {
         rowsUpperBound_ = currentDs_->ds->rows.end();
+        bitIdx_ = 0;
+        if (bitset_.empty()) {
+            bitset_.push_back(true);
+        } else if (!bitset_[bitIdx_]) {
+            next();
+        }
     }
 }
 
@@ -211,6 +217,15 @@ void GetNeighborsIter::next() {
             if (!currentEdge.isList()) {
                 continue;
             }
+            ++bitIdx_;
+            DCHECK_GT(bitIdx_, -1);
+            if (static_cast<size_t>(bitIdx_) >= bitset_.size()) {
+                bitset_.push_back(true);
+            } else if (!bitset_[bitIdx_]) {
+                VLOG(1) << "Filtered: " << currentEdge << " bitidx: " << bitIdx_;
+                // current edge had been filtered.
+                continue;
+            }
             currentEdge_ = &currentEdge.getList();
             break;
         }
@@ -222,6 +237,7 @@ void GetNeighborsIter::next() {
                 if (!currentCol.isList() || currentCol.getList().empty()) {
                     continue;
                 }
+
 
                 currentCol_ = &currentCol.getList();
                 edgeIdxUpperBound_ = currentCol_->size();
@@ -247,6 +263,13 @@ void GetNeighborsIter::next() {
             break;
         }
     }
+}
+
+void GetNeighborsIter::erase() {
+    DCHECK_GE(bitIdx_, 0);
+    DCHECK_LT(bitIdx_, bitset_.size());
+    bitset_[bitIdx_] = false;
+    next();
 }
 
 const Value& GetNeighborsIter::getColumn(const std::string& col) const {

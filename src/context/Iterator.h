@@ -11,6 +11,8 @@
 
 #include <gtest/gtest_prod.h>
 
+#include <boost/dynamic_bitset.hpp>
+
 #include "common/datatypes/Value.h"
 #include "common/datatypes/List.h"
 #include "common/datatypes/DataSet.h"
@@ -254,12 +256,10 @@ public:
         dsIndices_.clear();
     }
 
-    void erase() override {
-        DCHECK(false);
-    }
+    void erase() override;
 
     void unstableErase() override {
-        DCHECK(false);
+        erase();
     }
 
     void eraseRange(size_t first, size_t last) override {
@@ -302,6 +302,7 @@ private:
     void doReset(size_t pos) override {
         UNUSED(pos);
         valid_ = false;
+        bitIdx_ = -1;
         goToFirstEdge();
     }
 
@@ -363,6 +364,9 @@ private:
     int64_t                              edgeIdx_{-1};
     int64_t                              edgeIdxUpperBound_{-1};
     const List*                          currentEdge_{nullptr};
+
+    boost::dynamic_bitset<>              bitset_;
+    int64_t                              bitIdx_{-1};
 };
 
 class SequentialIter final : public Iterator {

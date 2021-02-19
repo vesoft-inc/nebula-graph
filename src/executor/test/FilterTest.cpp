@@ -66,7 +66,7 @@ public:
         EXPECT_EQ(proSesult.value().getDataSet(), expected);                                       \
         EXPECT_EQ(proSesult.state(), Result::State::kSuccess);                                     \
     } while (false)
-/*
+
 TEST_F(FilterTest, TestGetNeighbors_src_dst) {
     DataSet expected({"name"});
     expected.emplace_back(Row({Value("Ann")}));
@@ -77,7 +77,6 @@ TEST_F(FilterTest, TestGetNeighbors_src_dst) {
                         "YIELD $^.person.name AS name WHERE study.start_year >= 2010",
                         expected);
 }
-*/
 
 TEST_F(FilterTest, TestSequential) {
     DataSet expected({"name"});
