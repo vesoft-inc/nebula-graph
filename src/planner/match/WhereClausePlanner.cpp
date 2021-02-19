@@ -35,7 +35,7 @@ Status WhereClausePlanner::buildFilter(WhereClauseContext* wctx, SubPlan& subpla
     RewriteMatchLabelVisitor visitor(std::move(rewriter));
     newFilter->accept(&visitor);
     auto* cond = wctx->qctx->objPool()->add(newFilter.release());
-    subplan.root = Filter::make(wctx->qctx, nullptr, cond);
+    subplan.root = Filter::make(wctx->qctx, nullptr, cond, true);
     subplan.tail = subplan.root;
     return Status::OK();
 }
