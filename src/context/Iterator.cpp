@@ -85,16 +85,17 @@ void GetNeighborsIter::goToFirstEdge() {
                     }
                     currentEdge_ = &currentEdge.getList();
                     valid_ = true;
-                }
-            }
+                }  // `edgeIdx_'
+            }  // `colIdx_'
             if (valid_) {
                 break;
             }
-        }
+        }  // `currentRow_'
         if (valid_) {
             break;
         }
-    }
+    }  // `currentDs_'
+
     if (valid_) {
         rowsUpperBound_ = currentDs_->ds->rows.end();
         bitIdx_ = 0;

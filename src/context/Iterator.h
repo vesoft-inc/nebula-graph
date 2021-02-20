@@ -350,13 +350,13 @@ private:
 
     FRIEND_TEST(IteratorTest, TestHead);
 
-    bool                       valid_{false};
-    std::vector<DataSetIndex>  dsIndices_;
+    bool                                 valid_{false};
+    std::vector<DataSetIndex>            dsIndices_;
 
-    std::vector<DataSetIndex>::iterator currentDs_;
+    std::vector<DataSetIndex>::iterator  currentDs_;
 
-    std::vector<Row>::const_iterator    currentRow_;
-    std::vector<Row>::const_iterator    rowsUpperBound_;
+    std::vector<Row>::const_iterator     currentRow_;
+    std::vector<Row>::const_iterator     rowsUpperBound_;
 
     int64_t                              colIdx_{-1};
     const List*                          currentCol_{nullptr};
