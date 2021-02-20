@@ -683,6 +683,9 @@ GetNeighbors::EdgeProps GoValidator::buildEdgeProps() {
 
 void GoValidator::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEdge) {
     edgeProps->reserve(over_.edgeTypes.size());
+    bool needDst = !exprProps_.dstTagProps().empty() ||
+                   (exprProps_.srcTagProps().empty() && exprProps_.dstTagProps().empty() &&
+                    exprProps_.edgeProps().empty());
     for (auto& e : over_.edgeTypes) {
         storage::cpp2::EdgeProp ep;
         if (isInEdge) {
@@ -697,7 +700,7 @@ void GoValidator::buildEdgeProps(GetNeighbors::EdgeProps& edgeProps, bool isInEd
         } else {
             std::vector<std::string> props(propsFound->second.begin(),
                                            propsFound->second.end());
-            if (propsFound->second.find(kDst) == propsFound->second.end()) {
+            if (needDst && propsFound->second.find(kDst) == propsFound->second.end()) {
                 props.emplace_back(kDst);
             }
             ep.set_props(std::move(props));
