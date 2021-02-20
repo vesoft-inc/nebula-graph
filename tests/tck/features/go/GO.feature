@@ -146,7 +146,6 @@ Feature: Go Sentence
       """
     Then the result should be, in any order, with relax comparison:
       | id            |
-      | "Kobe Bryant" |
       | "Grant Hill"  |
       | "Rudy Gay"    |
 
@@ -156,7 +155,6 @@ Feature: Go Sentence
       GO FROM "Tracy McGrady" OVER like YIELD like._dst as vid | GO FROM $-.vid OVER like YIELD 3
       """
     Then the result should be, in any order, with relax comparison:
-      | 3 |
       | 3 |
       | 3 |
       | 3 |
