@@ -2,7 +2,6 @@
 #
 # This source code is licensed under Apache 2.0 License,
 # attached with Common Clause Condition 1.0, found in the LICENSES directory.
-@go
 Feature: Go Sentence
 
   Background:
@@ -145,9 +144,9 @@ Feature: Go Sentence
       GO FROM "Tracy McGrady" OVER like YIELD like._dst as vid | GO FROM $-.vid OVER like YIELD $-.vid as id
       """
     Then the result should be, in any order, with relax comparison:
-      | id            |
-      | "Grant Hill"  |
-      | "Rudy Gay"    |
+      | id           |
+      | "Grant Hill" |
+      | "Rudy Gay"   |
 
   Scenario: pipe only yield constant
     When executing query:
