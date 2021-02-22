@@ -420,5 +420,148 @@ TEST_F(JoinTest, LeftJoinEmpty) {
         testLeftJoin("empty_var1", "empty_var2", expected, __LINE__);
     }
 }
+
+TEST_F(JoinTest, LeftJoinAndInnerjoin) {
+    std::string joinOutput;
+    {
+        std::string left = "var1";
+        std::string right = "var2";
+        VariablePropertyExpression key(new std::string(left), new std::string("_vid"));
+        std::vector<Expression*> hashKeys = {&key};
+        VariablePropertyExpression probe(new std::string(right), new std::string("dst"));
+        std::vector<Expression*> probeKeys = {&probe};
+
+        auto* join = LeftJoin::make(
+            qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
+        join->setColNames(
+            std::vector<std::string>{kVid, "tag_prop", "edge_prop", kDst, "src", "dst"});
+
+        auto joinExe = std::make_unique<LeftJoinExecutor>(join, qctx_.get());
+        auto future = joinExe->execute();
+
+        joinOutput = join->outputVar();
+    }
+
+    std::string left = joinOutput;
+    std::string right = "var3";
+    VariablePropertyExpression key(new std::string(left), new std::string("src"));
+    std::vector<Expression*> hashKeys = {&key};
+    VariablePropertyExpression probe(new std::string(right), new std::string("col1"));
+    std::vector<Expression*> probeKeys = {&probe};
+
+    auto* join = InnerJoin::make(
+        qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
+    join->setColNames(
+        std::vector<std::string>{kVid, "tag_prop", "edge_prop", kDst, "src", "dst", "col1"});
+
+    auto joinExe = std::make_unique<InnerJoinExecutor>(join, qctx_.get());
+    auto future = joinExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+    auto& result = qctx_->ectx()->getResult(join->outputVar());
+
+    DataSet resultDs;
+    resultDs.colNames = {kVid, "tag_prop", "edge_prop", kDst, "src", "dst", "col1"};
+    auto iter = result.iter();
+    for (; iter->valid(); iter->next()) {
+        const auto& cols = *iter->row();
+        Row row;
+        for (size_t i = 0; i < cols.size(); ++i) {
+            Value col = cols[i];
+            row.values.emplace_back(std::move(col));
+        }
+        resultDs.rows.emplace_back(std::move(row));
+    }
+
+    DataSet expected;
+    expected.colNames = {kVid, "tag_prop", "edge_prop", kDst, "src", "dst", "col1"};
+    for (auto i = 0; i < 2; ++i) {
+        Row row;
+        row.values.emplace_back(folly::to<std::string>(i / 2));
+        row.values.emplace_back(i);
+        row.values.emplace_back(i + 1);
+        row.values.emplace_back(folly::to<std::string>(i / 2 + 5 + i % 2));
+        row.values.emplace_back(folly::to<std::string>(i / 2 + 11));
+        row.values.emplace_back(folly::to<std::string>(i / 2));
+        row.values.emplace_back(folly::to<std::string>(11));
+        expected.rows.emplace_back(std::move(row));
+    }
+    EXPECT_EQ(resultDs, expected);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
+}
+
+TEST_F(JoinTest, InnerJoinAndLeftjoin) {
+    std::string joinOutput;
+    {
+        std::string left = "var1";
+        std::string right = "var2";
+        VariablePropertyExpression key(new std::string(left), new std::string("_vid"));
+        std::vector<Expression*> hashKeys = {&key};
+        VariablePropertyExpression probe(new std::string(right), new std::string("dst"));
+        std::vector<Expression*> probeKeys = {&probe};
+
+        auto* join = InnerJoin::make(
+            qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
+        join->setColNames(
+            std::vector<std::string>{kVid, "tag_prop", "edge_prop", kDst, "src", "dst"});
+
+        auto joinExe = std::make_unique<InnerJoinExecutor>(join, qctx_.get());
+        auto future = joinExe->execute();
+
+        joinOutput = join->outputVar();
+    }
+
+    std::string left = joinOutput;
+    std::string right = "var3";
+    VariablePropertyExpression key(new std::string(left), new std::string("src"));
+    std::vector<Expression*> hashKeys = {&key};
+    VariablePropertyExpression probe(new std::string(right), new std::string("col1"));
+    std::vector<Expression*> probeKeys = {&probe};
+
+    auto* join = LeftJoin::make(
+        qctx_.get(), nullptr, {left, 0}, {right, 0}, std::move(hashKeys), std::move(probeKeys));
+    join->setColNames(
+        std::vector<std::string>{kVid, "tag_prop", "edge_prop", kDst, "src", "dst", "col1"});
+
+    auto joinExe = std::make_unique<LeftJoinExecutor>(join, qctx_.get());
+    auto future = joinExe->execute();
+    auto status = std::move(future).get();
+    EXPECT_TRUE(status.ok());
+    auto& result = qctx_->ectx()->getResult(join->outputVar());
+
+    DataSet resultDs;
+    resultDs.colNames = {kVid, "tag_prop", "edge_prop", kDst, "src", "dst", "col1"};
+    auto iter = result.iter();
+    for (; iter->valid(); iter->next()) {
+        const auto& cols = *iter->row();
+        Row row;
+        for (size_t i = 0; i < cols.size(); ++i) {
+            Value col = cols[i];
+            row.values.emplace_back(std::move(col));
+        }
+        resultDs.rows.emplace_back(std::move(row));
+    }
+
+    DataSet expected;
+    expected.colNames = {kVid, "tag_prop", "edge_prop", kDst, "src", "dst", "col1"};
+    for (auto i = 0; i < 10; ++i) {
+        Row row;
+        row.values.emplace_back(folly::to<std::string>(i / 2));
+        row.values.emplace_back(i);
+        row.values.emplace_back(i + 1);
+        row.values.emplace_back(folly::to<std::string>(i / 2 + 5 + i % 2));
+        row.values.emplace_back(folly::to<std::string>(i / 2 + 11));
+        row.values.emplace_back(folly::to<std::string>(i / 2));
+        if (i < 2) {
+            row.values.emplace_back(folly::to<std::string>(11));
+        } else {
+            row.values.emplace_back(Value::kEmpty);
+        }
+        expected.rows.emplace_back(std::move(row));
+    }
+    EXPECT_EQ(resultDs, expected);
+    EXPECT_EQ(result.state(), Result::State::kSuccess);
+}
+
 }   // namespace graph
 }   // namespace nebula

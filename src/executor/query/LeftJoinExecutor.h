@@ -28,7 +28,7 @@ private:
                JoinIter* resultIter);
 
 private:
-    size_t rightSize_{0};
+    size_t rightColSize_{0};
 };
 }  // namespace graph
 }  // namespace nebula

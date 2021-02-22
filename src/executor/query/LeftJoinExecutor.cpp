@@ -28,7 +28,7 @@ folly::Future<Status> LeftJoinExecutor::join() {
     auto* join = asNode<Join>(node());
     auto lhsIter = ectx_->getVersionedResult(join->leftVar().first, join->leftVar().second).iter();
     auto& rhsResult = ectx_->getVersionedResult(join->rightVar().first, join->rightVar().second);
-    rightSize_ = rhsResult.valuePtr()->getDataSet().colNames.size();
+    rightColSize_ = rhsResult.valuePtr()->getDataSet().colNames.size();
     auto rhsIter = rhsResult.iter();
 
     auto resultIter = std::make_unique<JoinIter>(join->colNames());
@@ -60,9 +60,9 @@ void LeftJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
             auto& lSegs = probeIter->row()->segments();
             values.reserve(lSegs.size() + 1);
             values.insert(values.end(), lSegs.begin(), lSegs.end());
-            Row* emptyRow = qctx_->objPool()->add(new List(std::vector<Value>(rightSize_)));
+            Row* emptyRow = qctx_->objPool()->add(new List(std::vector<Value>(rightColSize_)));
             values.insert(values.end(), emptyRow);
-            size_t size = probeIter->row()->size() + rightSize_;
+            size_t size = probeIter->row()->size() + rightColSize_;
             JoinIter::JoinLogicalRow newRow(
                 std::move(values), size, &resultIter->getColIdxIndices());
             VLOG(1) << node()->outputVar() << " : " << newRow;
