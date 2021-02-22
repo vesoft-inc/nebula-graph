@@ -95,7 +95,6 @@ public:
     // Reset iterator position to `pos' from begin. Must be sure that the `pos' position
     // is lower than `size()' before resetting
     void reset(size_t pos = 0) {
-        DCHECK((pos == 0 && size() == 0) || (pos < size()));
         doReset(pos);
     }
 
@@ -231,6 +230,7 @@ public:
 
 private:
     void doReset(size_t pos) override {
+        DCHECK((pos == 0 && size() == 0) || (pos < size()));
         counter_ = pos;
     }
 
@@ -526,6 +526,7 @@ protected:
 
 private:
     void doReset(size_t pos) override {
+        DCHECK((pos == 0 && size() == 0) || (pos < size()));
         iter_ = rows_.begin() + pos;
     }
 
@@ -702,6 +703,7 @@ public:
 
 private:
     void doReset(size_t pos) override {
+        DCHECK((pos == 0 && size() == 0) || (pos < size()));
         iter_ = rows_.begin() + pos;
     }
 
@@ -860,6 +862,7 @@ public:
 
 private:
     void doReset(size_t pos) override {
+        DCHECK((pos == 0 && size() == 0) || (pos < size()));
         iter_ = rows_.begin() + pos;
     }
 

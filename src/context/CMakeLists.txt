@@ -12,9 +12,5 @@ nebula_add_library(
     Result.cpp
 )
 
-nebula_add_library(
-    iter_obj OBJECT
-    Iterator.cpp
-)
 
 nebula_add_subdirectory(test)

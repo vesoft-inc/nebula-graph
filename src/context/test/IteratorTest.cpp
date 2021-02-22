@@ -233,7 +233,33 @@ TEST(IteratorTest, GetNeighbor) {
         EXPECT_EQ(result.size(), 40);
         EXPECT_EQ(expected, result);
     }
+    // erase
+    {
+        GetNeighborsIter iter(val);
+        size_t i = 0;
+        while (iter.valid()) {
+            ++i;
+            if (i % 2 == 0) {
+                iter.erase();
+            } else {
+                iter.next();
+            }
+        }
+        EXPECT_EQ(i, 40);
 
+        std::vector<Value> expected =
+                {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+                "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"};
+        std::vector<Value> result;
+
+        int count = 0;
+        for (iter.reset(); iter.valid(); iter.next()) {
+            result.emplace_back(iter.getColumn(kVid));
+            count++;
+        }
+        EXPECT_EQ(result.size(), 20);
+        EXPECT_EQ(expected, result);
+    }
     {
         GetNeighborsIter iter(val);
         std::vector<Value> expected;
@@ -368,7 +394,28 @@ TEST(IteratorTest, GetNeighbor) {
         EXPECT_EQ(result.values.size(), 40);
         EXPECT_EQ(result.values, expected);
     }
+    // unstableErase
+    {
+        GetNeighborsIter iter(val);
+        size_t i = 0;
+        while (iter.valid()) {
+            ++i;
+            if (i % 2 == 0) {
+                iter.unstableErase();
+            } else {
+                iter.next();
+            }
+        }
+        EXPECT_EQ(i, 40);
+        std::vector<Value> result;
 
+        int count = 0;
+        for (iter.reset(); iter.valid(); iter.next()) {
+            result.emplace_back(iter.getColumn(kVid));
+            count++;
+        }
+        EXPECT_EQ(result.size(), 20);
+    }
     {
         GetNeighborsIter iter(val);
         std::vector<Value> result;
