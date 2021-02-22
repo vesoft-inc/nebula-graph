@@ -312,7 +312,6 @@ TEST(IteratorTest, GetNeighbor) {
             Vertex vertex;
             vertex.vid = folly::to<std::string>(i);
             vertex.tags.emplace_back(tag1);
-            expected.emplace_back(vertex);
             expected.emplace_back(std::move(vertex));
         }
         Tag tag2;
@@ -322,15 +321,14 @@ TEST(IteratorTest, GetNeighbor) {
             Vertex vertex;
             vertex.vid = folly::to<std::string>(i);
             vertex.tags.emplace_back(tag2);
-            expected.emplace_back(vertex);
             expected.emplace_back(std::move(vertex));
         }
         List result = iter.getVertices();
-        EXPECT_EQ(result.values.size(), 40);
+        EXPECT_EQ(result.values.size(), 20);
         EXPECT_EQ(result.values, expected);
 
         result = iter.getVertices();
-        EXPECT_EQ(result.values.size(), 40);
+        EXPECT_EQ(result.values.size(), 20);
         EXPECT_EQ(result.values, expected);
     }
     {
@@ -392,10 +390,10 @@ TEST(IteratorTest, GetNeighbor) {
     {
         GetNeighborsIter iter(val);
         List result = iter.getVertices();
-        EXPECT_EQ(result.values.size(), 40);
+        EXPECT_EQ(result.values.size(), 20);
 
         result = iter.getVertices();
-        EXPECT_EQ(result.values.size(), 40);
+        EXPECT_EQ(result.values.size(), 20);
     }
     {
         GetNeighborsIter iter(val);
