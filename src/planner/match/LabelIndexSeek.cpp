@@ -37,7 +37,7 @@ bool LabelIndexSeek::matchEdge(EdgeContext* edgeCtx) {
     const auto &edge = *edgeCtx->info;
     // require one edge at least
     if (edge.edgeTypes.size() != 1) {
-        // TODO multiple tag index seek need the IndexScan support
+        // TODO multiple edge indices seek need the IndexScan support
         return false;
     }
 
@@ -46,6 +46,7 @@ bool LabelIndexSeek::matchEdge(EdgeContext* edgeCtx) {
 
     auto indexResult = pickEdgeIndex(edgeCtx);
     if (!indexResult.ok()) {
+        LOG(ERROR) << indexResult.status();
         return false;
     }
 
@@ -84,7 +85,7 @@ StatusOr<SubPlan> LabelIndexSeek::transformNode(NodeContext* nodeCtx) {
 StatusOr<SubPlan> LabelIndexSeek::transformEdge(EdgeContext* edgeCtx) {
     SubPlan plan;
     auto* matchClauseCtx = edgeCtx->matchClauseCtx;
-    DCHECK_EQ(edgeCtx->scanInfo.indexIds.size(), 1) << "Not supported multiple tag index seek.";
+    DCHECK_EQ(edgeCtx->scanInfo.indexIds.size(), 1) << "Not supported multiple tag indices seek.";
     using IQC = nebula::storage::cpp2::IndexQueryContext;
     IQC iqctx;
     iqctx.set_index_id(edgeCtx->scanInfo.indexIds.back());
@@ -158,7 +159,7 @@ LabelIndexSeek::pickEdgeIndex(const EdgeContext* edgeCtx) {
         }
         if (candidateIndex == nullptr) {
             return Status::SemanticError("No valid index for label `%s'.",
-                                        edgeCtx->scanInfo.schemaNames[i]->c_str());
+                                         edgeCtx->scanInfo.schemaNames[i]->c_str());
         }
         indexIds.emplace_back(candidateIndex->get_index_id());
     }
