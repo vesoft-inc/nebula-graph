@@ -63,6 +63,7 @@ Status GoValidator::validateWhere(WhereClause* where) {
         ExpressionUtils::rewriteLabelAttribute<EdgePropertyExpression>(filter_);
     }
 
+    filter_ = where->filter();
     auto typeStatus = deduceExprType(filter_);
     NG_RETURN_IF_ERROR(typeStatus);
     auto type = typeStatus.value();
