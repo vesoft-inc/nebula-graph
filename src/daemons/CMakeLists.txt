@@ -10,7 +10,7 @@ nebula_add_executable(
         GraphDaemon.cpp
     OBJECTS
         $<TARGET_OBJECTS:stats_def_obj>
-        $<TARGET_OBJECTS:version_obj>
+        $<TARGET_OBJECTS:common_version_obj>
         $<TARGET_OBJECTS:util_obj>
         $<TARGET_OBJECTS:service_obj>
         $<TARGET_OBJECTS:session_obj>
