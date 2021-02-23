@@ -43,5 +43,12 @@ TEST_F(AdminValidatorTest, ShowHosts) {
     }
 }
 
+TEST_F(AdminValidatorTest, Download) {
+    // invalid url
+    {
+        ASSERT_FALSE(checkResult("DOWNLOAD HDFS \"2333333\""));
+    }
+}
+
 }  // namespace graph
 }  // namespace nebula

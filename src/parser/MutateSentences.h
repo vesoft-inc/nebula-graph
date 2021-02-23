@@ -573,6 +573,10 @@ public:
         kind_ = Kind::kDownload;
     }
 
+    bool valid() const {
+        return host_ != nullptr && port_ > 0 && path_ != nullptr;
+    }
+
     const std::string* host() const {
         return host_.get();
     }

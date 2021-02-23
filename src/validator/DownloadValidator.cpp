@@ -15,6 +15,9 @@ namespace graph {
 
 Status DownloadValidator::toPlan() {
     auto sentence = static_cast<DownloadSentence*>(sentence_);
+    if (!sentence->valid()) {
+        return Status::SemanticError("Url is malformed.");
+    }
     auto *doNode = Download::make(qctx_,
                                   nullptr,
                                   *sentence->host(),
