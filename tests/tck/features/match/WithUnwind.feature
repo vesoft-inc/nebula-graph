@@ -54,6 +54,7 @@ Feature: With clause and Unwind clause
     Then the result should be, in any order:
       | COUNT(a) |
       | 1        |
+
   Scenario: match with return
     When executing query:
       """
