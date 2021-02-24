@@ -14,6 +14,7 @@
 namespace nebula {
 namespace graph {
 folly::Future<Status> DataJoinExecutor::execute() {
+    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     return doInnerJoin();
 }
 
@@ -25,17 +26,14 @@ Status DataJoinExecutor::close() {
 folly::Future<Status> DataJoinExecutor::doInnerJoin() {
     SCOPED_TIMER(&execTime_);
 
+    time::Duration dur1;
     auto* dataJoin = asNode<DataJoin>(node());
     auto colNames = dataJoin->colNames();
-    VLOG(1) << "DataJoin ColNames : " << folly::join(",", colNames);
-    VLOG(1) << "lhs hist: " << ectx_->getHistory(dataJoin->leftVar().first).size();
-    VLOG(1) << "rhs hist: " << ectx_->getHistory(dataJoin->rightVar().first).size();
     auto lhsIter = ectx_
                        ->getVersionedResult(dataJoin->leftVar().first,
                                             dataJoin->leftVar().second)
                        .iter();
     DCHECK(!!lhsIter);
-    VLOG(1) << "lhs: " << dataJoin->leftVar().first << " " << lhsIter->size();
     if (lhsIter->isGetNeighborsIter() || lhsIter->isDefaultIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter->kind();
@@ -46,7 +44,6 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
                                             dataJoin->rightVar().second)
                        .iter();
     DCHECK(!!rhsIter);
-    VLOG(1) << "rhs: " << dataJoin->rightVar().first << " " << rhsIter->size();
     if (lhsIter->isGetNeighborsIter() || lhsIter->isDefaultIter()) {
         std::stringstream ss;
         ss << "Join executor does not support " << lhsIter->kind();
@@ -57,16 +54,26 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
     resultIter->joinIndex(lhsIter.get(), rhsIter.get());
     auto bucketSize =
         lhsIter->size() > rhsIter->size() ? rhsIter->size() : lhsIter->size();
-    hashTable_ = std::make_unique<HashTable>(bucketSize);
+    hashTable_.reserve(bucketSize);
+    resultIter->reserve(lhsIter->size() > rhsIter->size() ? lhsIter->size() : rhsIter->size());
+    otherStats_->emplace("init", folly::stringPrintf("%lu(us)", dur1.elapsedInUSec()));
 
     if (!(lhsIter->empty() || rhsIter->empty())) {
         if (lhsIter->size() < rhsIter->size()) {
+            time::Duration dur2;
             buildHashTable(dataJoin->hashKeys(), lhsIter.get());
+            otherStats_->emplace("build", folly::stringPrintf("%lu(us)", dur2.elapsedInUSec()));
+            time::Duration dur3;
             probe(dataJoin->probeKeys(), rhsIter.get(), resultIter.get());
+            otherStats_->emplace("probe", folly::stringPrintf("%lu(us)", dur3.elapsedInUSec()));
         } else {
             exchange_ = true;
+            time::Duration dur2;
             buildHashTable(dataJoin->probeKeys(), rhsIter.get());
+            otherStats_->emplace("build", folly::stringPrintf("%lu(us)", dur2.elapsedInUSec()));
+            time::Duration dur3;
             probe(dataJoin->hashKeys(), lhsIter.get(), resultIter.get());
+            otherStats_->emplace("probe", folly::stringPrintf("%lu(us)", dur3.elapsedInUSec()));
         }
     }
     return finish(ResultBuilder().iter(std::move(resultIter)).finish());
@@ -74,38 +81,31 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
 
 void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
                                       Iterator* iter) {
+    DCHECK_EQ(hashKeys.size(), 1);
+    const auto& key = hashKeys[0];
     QueryExpressionContext ctx(ectx_);
     for (; iter->valid(); iter->next()) {
-        List list;
-        list.values.reserve(hashKeys.size());
-        for (auto& col : hashKeys) {
-            Value val = col->eval(ctx(iter));
-            list.values.emplace_back(std::move(val));
-        }
+        Value val = key->eval(ctx(iter));
 
-        VLOG(1) << "key: " << list;
-        hashTable_->add(std::move(list), iter->row());
+        auto& vals = hashTable_[val];
+        vals.emplace_back(iter->row());
     }
 }
 
 void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
                              Iterator* probeIter, JoinIter* resultIter) {
+    DCHECK_EQ(probeKeys.size(), 1);
+    const auto& probe = probeKeys[0];
     QueryExpressionContext ctx(ectx_);
     for (; probeIter->valid(); probeIter->next()) {
-        List list;
-        list.values.reserve(probeKeys.size());
-        for (auto& col : probeKeys) {
-            Value val = col->eval(ctx(probeIter));
-            list.values.emplace_back(std::move(val));
-        }
+        Value val = probe->eval(ctx(probeIter));
 
-        VLOG(1) << "probe: " << list;
-        auto range = hashTable_->get(list);
-        for (auto i = range.first; i != range.second; ++i) {
-            auto row = i->second;
+        const auto& range = hashTable_.find(val);
+        for (auto* row : range->second) {
             std::vector<const Row*> values;
             auto& lSegs = row->segments();
             auto& rSegs = probeIter->row()->segments();
+            values.reserve(lSegs.size() + rSegs.size());
             if (exchange_) {
                 values.insert(values.end(), rSegs.begin(), rSegs.end());
                 values.insert(values.end(), lSegs.begin(), lSegs.end());
@@ -116,7 +116,6 @@ void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
             size_t size = row->size() + probeIter->row()->size();
             JoinIter::JoinLogicalRow newRow(std::move(values), size,
                                         &resultIter->getColIdxIndices());
-            VLOG(1) << node()->outputVar() << " : " << newRow;
             resultIter->addRow(std::move(newRow));
         }
     }

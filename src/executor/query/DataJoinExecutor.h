@@ -61,8 +61,8 @@ private:
                JoinIter* resultIter);
 
 private:
-    bool                         exchange_{false};
-    std::unique_ptr<HashTable>   hashTable_;
+    bool                                                      exchange_{false};
+    std::unordered_map<Value, std::vector<const LogicalRow*>> hashTable_;
 };
 }  // namespace graph
 }  // namespace nebula
