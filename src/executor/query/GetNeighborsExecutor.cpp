@@ -128,7 +128,6 @@ Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
             continue;
         }
 
-        DLOG(ERROR) << "DEBUG POINT gn dataset: " << *dataset;
         VLOG(1) << "Resp row size: " << dataset->rows.size() << "Resp : " << *dataset;
         list.values.emplace_back(std::move(*dataset));
     }
