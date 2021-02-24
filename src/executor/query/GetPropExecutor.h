@@ -42,6 +42,7 @@ protected:
             v.colNames = colNames;
         }
         VLOG(2) << "Dataset in get props: \n" << v << "\n";
+        DLOG(ERROR) << "DEBUG POINT gp dataset: " << v;
         return finish(ResultBuilder()
                       .value(std::move(v))
                       .iter(Iterator::Kind::kProp)
