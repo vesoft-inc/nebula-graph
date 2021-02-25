@@ -81,26 +81,35 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
 
 void DataJoinExecutor::buildHashTable(const std::vector<Expression*>& hashKeys,
                                       Iterator* iter) {
-    DCHECK_EQ(hashKeys.size(), 1);
-    const auto& key = hashKeys[0];
     QueryExpressionContext ctx(ectx_);
     for (; iter->valid(); iter->next()) {
-        Value val = key->eval(ctx(iter));
+        List list;
+        list.values.reserve(hashKeys.size());
+        for (auto& col : hashKeys) {
+            Value val = col->eval(ctx(iter));
+            list.values.emplace_back(std::move(val));
+        }
 
-        auto& vals = hashTable_[val];
+        auto& vals = hashTable_[list];
         vals.emplace_back(iter->row());
     }
 }
 
 void DataJoinExecutor::probe(const std::vector<Expression*>& probeKeys,
                              Iterator* probeIter, JoinIter* resultIter) {
-    DCHECK_EQ(probeKeys.size(), 1);
-    const auto& probe = probeKeys[0];
     QueryExpressionContext ctx(ectx_);
     for (; probeIter->valid(); probeIter->next()) {
-        Value val = probe->eval(ctx(probeIter));
+        List list;
+        list.values.reserve(probeKeys.size());
+        for (auto& col : probeKeys) {
+            Value val = col->eval(ctx(probeIter));
+            list.values.emplace_back(std::move(val));
+        }
 
-        const auto& range = hashTable_.find(val);
+        const auto& range = hashTable_.find(list);
+        if (range == hashTable_.end()) {
+            continue;
+        }
         for (auto* row : range->second) {
             std::vector<const Row*> values;
             auto& lSegs = row->segments();

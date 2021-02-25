@@ -14,37 +14,6 @@ namespace graph {
 
 class DataJoinExecutor final : public Executor {
 public:
-    class HashTable final {
-    public:
-        using Table = std::vector<std::multimap<List, const LogicalRow*>>;
-
-        explicit HashTable(size_t bucketSize) : bucketSize_(bucketSize) {
-            table_ =
-                std::vector<std::multimap<List, const LogicalRow*>>(bucketSize);
-        }
-
-        void add(List key, const LogicalRow* row) {
-            auto hash = std::hash<List>()(key);
-            auto bucket = hash % bucketSize_;
-            table_[bucket].emplace(std::move(key), row);
-        }
-
-        auto get(List& key) const {
-            auto hash = std::hash<List>()(key);
-            auto bucket = hash % bucketSize_;
-            return table_[bucket].equal_range(key);
-        }
-
-        void clear() {
-            bucketSize_ = 0;
-            table_.clear();
-        }
-
-    private:
-        size_t  bucketSize_{0};
-        Table   table_;
-    };
-
     DataJoinExecutor(const PlanNode *node, QueryContext *qctx)
         : Executor("DataJoinExecutor", node, qctx) {}
 
@@ -62,7 +31,7 @@ private:
 
 private:
     bool                                                      exchange_{false};
-    std::unordered_map<Value, std::vector<const LogicalRow*>> hashTable_;
+    std::unordered_map<List, std::vector<const LogicalRow*>>  hashTable_;
 };
 }  // namespace graph
 }  // namespace nebula
