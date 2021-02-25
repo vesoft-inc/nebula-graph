@@ -26,7 +26,6 @@ Status DataJoinExecutor::close() {
 folly::Future<Status> DataJoinExecutor::doInnerJoin() {
     SCOPED_TIMER(&execTime_);
 
-    time::Duration dur1;
     auto* dataJoin = asNode<DataJoin>(node());
     auto colNames = dataJoin->colNames();
     auto lhsIter = ectx_
@@ -56,24 +55,15 @@ folly::Future<Status> DataJoinExecutor::doInnerJoin() {
         lhsIter->size() > rhsIter->size() ? rhsIter->size() : lhsIter->size();
     hashTable_.reserve(bucketSize);
     resultIter->reserve(lhsIter->size() > rhsIter->size() ? lhsIter->size() : rhsIter->size());
-    otherStats_->emplace("init", folly::stringPrintf("%lu(us)", dur1.elapsedInUSec()));
 
     if (!(lhsIter->empty() || rhsIter->empty())) {
         if (lhsIter->size() < rhsIter->size()) {
-            time::Duration dur2;
             buildHashTable(dataJoin->hashKeys(), lhsIter.get());
-            otherStats_->emplace("build", folly::stringPrintf("%lu(us)", dur2.elapsedInUSec()));
-            time::Duration dur3;
             probe(dataJoin->probeKeys(), rhsIter.get(), resultIter.get());
-            otherStats_->emplace("probe", folly::stringPrintf("%lu(us)", dur3.elapsedInUSec()));
         } else {
             exchange_ = true;
-            time::Duration dur2;
             buildHashTable(dataJoin->probeKeys(), rhsIter.get());
-            otherStats_->emplace("build", folly::stringPrintf("%lu(us)", dur2.elapsedInUSec()));
-            time::Duration dur3;
             probe(dataJoin->hashKeys(), lhsIter.get(), resultIter.get());
-            otherStats_->emplace("probe", folly::stringPrintf("%lu(us)", dur3.elapsedInUSec()));
         }
     }
     return finish(ResultBuilder().iter(std::move(resultIter)).finish());
