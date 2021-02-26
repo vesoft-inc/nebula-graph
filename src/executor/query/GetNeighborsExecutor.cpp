@@ -14,6 +14,7 @@
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
 #include "util/ScopedTimer.h"
+#include "service/GraphFlags.h"
 
 using nebula::storage::StorageRpcResponse;
 using nebula::storage::cpp2::GetNeighborsResponse;
@@ -104,7 +105,16 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
         })
         .then([this](StorageRpcResponse<GetNeighborsResponse>&& resp) {
             if (otherStats_ != nullptr) {
-                addStats(resp, *otherStats_);
+                auto& hostLatency = resp.hostLatency();
+                for (size_t i = 0; i < hostLatency.size(); ++i) {
+                    auto& info = hostLatency[i];
+                    otherStats_->emplace(folly::stringPrintf("%s exec/total/vertices",
+                                                             std::get<0>(info).toString().c_str()),
+                                         folly::stringPrintf("%d(us)/%d(us)/%lu,",
+                                                             std::get<1>(info),
+                                                             std::get<2>(info),
+                                                             resp.responses()[i].vertices.size()));
+                }
             }
             SCOPED_TIMER(&execTime_);
             return handleResponse(resp);
@@ -112,7 +122,7 @@ folly::Future<Status> GetNeighborsExecutor::getNeighbors() {
 }
 
 Status GetNeighborsExecutor::handleResponse(RpcResponse& resps) {
-    auto result = handleCompleteness(resps, false);
+    auto result = handleCompleteness(resps, FLAGS_accept_partial_success);
     NG_RETURN_IF_ERROR(result);
     ResultBuilder builder;
     builder.state(result.value());
