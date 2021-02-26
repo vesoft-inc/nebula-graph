@@ -510,7 +510,7 @@ Status UpdateValidator::getCondition() {
             ss << "`" << filter->toString() << "', expected Boolean, but was `" << type << "'";
             return Status::SemanticError(ss.str());
         }
-        condition_ = std::move(filter->encode());
+        condition_ = filter->encode();
     }
     return Status::OK();
 }
