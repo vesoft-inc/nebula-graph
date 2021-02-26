@@ -20,6 +20,7 @@ folly::Future<Status> DataJoinExecutor::execute() {
 
 Status DataJoinExecutor::close() {
     exchange_ = false;
+    hashTable_.clear();
     return Executor::close();
 }
 
