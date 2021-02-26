@@ -14,7 +14,6 @@
 namespace nebula {
 namespace graph {
 folly::Future<Status> DataJoinExecutor::execute() {
-    otherStats_ = std::make_unique<std::unordered_map<std::string, std::string>>();
     return doInnerJoin();
 }
 
