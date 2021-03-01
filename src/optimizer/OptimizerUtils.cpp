@@ -36,14 +36,15 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             int64_t boundVar;
             if (v.isFloat()) {
                 // Check if the float value can be cast
-                if (!const_cast<Value&>(v).toFloat().second) {
+                if (!const_cast<Value&>(v).toInt().second) {
                     DLOG(FATAL) << "Float value is out of the limit of Int type ";
                     return Value::kNullBadType;
                 }
-                boundVar = floor(const_cast<Value&>(v).toFloat().first);
+                boundVar = const_cast<Value&>(v).toInt().first;
             } else {
                 boundVar = v.getInt();
             }
+
             if (boundVar == std::numeric_limits<int64_t>::max()) {
                 return Value(boundVar);
             } else {
@@ -51,7 +52,7 @@ Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const V
             }
         }
         case Value::Type::FLOAT: {
-            int64_t boundVar;
+            double_t boundVar;
             if (v.isInt()) {
                 boundVar = const_cast<Value&>(v).toFloat().first;
             } else {
@@ -202,22 +203,26 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             int64_t boundVar;
             if (v.isFloat()) {
                 // Check if the float value can be cast
-                if (!const_cast<Value&>(v).toFloat().second) {
+                if (!const_cast<Value&>(v).toInt().second) {
                     DLOG(FATAL) << "Float value is out of the limit of Int type ";
                     return Value::kNullBadType;
                 }
-                boundVar = floor(const_cast<Value&>(v).toFloat().first);
+                boundVar = const_cast<Value&>(v).toInt().first;
+                if (boundVar != std::numeric_limits<int64_t>::max()) {
+                    boundVar += 1;
+                }
             } else {
                 boundVar = v.getInt();
             }
-            if (boundVar == std::numeric_limits<int64_t>::min()) {
-                return Value(boundVar);
-            } else {
-                return Value(boundVar - 1);
-            }
+            return Value(boundVar);
+            // if (boundVar == std::numeric_limits<int64_t>::min()) {
+            //     return Value(boundVar);
+            // } else {
+            //     return Value(boundVar - 1);
+            // }
         }
         case Value::Type::FLOAT : {
-            int64_t boundVar;
+            double_t boundVar;
             if (v.isInt()) {
                 boundVar = const_cast<Value&>(v).toFloat().first;
             } else {

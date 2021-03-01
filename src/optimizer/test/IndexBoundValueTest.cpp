@@ -80,6 +80,8 @@ TEST(IndexBoundValueTest, IntTest) {
     }
     auto maxInt = std::numeric_limits<int64_t>::max();
     auto minInt = std::numeric_limits<int64_t>::min();
+    auto testDouble = 35.5;
+
     EXPECT_EQ(maxInt, OptimizerUtils::boundValue(col, OP::MAX, Value(maxInt)).getInt());
     EXPECT_EQ(maxInt, OptimizerUtils::boundValue(col, OP::MAX, Value(1L)).getInt());
     EXPECT_EQ(minInt, OptimizerUtils::boundValue(col, OP::MIN, Value(minInt)).getInt());
@@ -89,14 +91,18 @@ TEST(IndexBoundValueTest, IntTest) {
     EXPECT_EQ(maxInt, OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(maxInt)).getInt());
     EXPECT_EQ(minInt + 1,
               OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(minInt)).getInt());
-    EXPECT_EQ(maxInt - 1,
+    EXPECT_EQ(maxInt,
               OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(maxInt)).getInt());
 
     EXPECT_EQ(1, OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(0L)).getInt());
-    EXPECT_EQ(-1, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(0L)).getInt());
+    EXPECT_EQ(0, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(0L)).getInt());
 
     EXPECT_EQ(6, OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(5L)).getInt());
-    EXPECT_EQ(4, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(5L)).getInt());
+    EXPECT_EQ(5, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(5L)).getInt());
+
+    // compare int and double
+    EXPECT_EQ(36, OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(testDouble)).getInt());
+    EXPECT_EQ(36, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(testDouble)).getInt());
 }
 
 TEST(IndexBoundValueTest, DoubleTest) {
@@ -108,6 +114,7 @@ TEST(IndexBoundValueTest, DoubleTest) {
     }
     auto maxDouble = std::numeric_limits<double_t>::max();
     auto minDouble = std::numeric_limits<double_t>::min();
+
     EXPECT_EQ(maxDouble, OptimizerUtils::boundValue(col, OP::MAX, Value(maxDouble)).getFloat());
     EXPECT_EQ(maxDouble, OptimizerUtils::boundValue(col, OP::MAX, Value(1.1)).getFloat());
     EXPECT_EQ(-maxDouble, OptimizerUtils::boundValue(col, OP::MIN, Value(minDouble)).getFloat());
@@ -121,7 +128,6 @@ TEST(IndexBoundValueTest, DoubleTest) {
 
     EXPECT_EQ(5.1 - 0.0000000000000001,
               OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(5.1)));
-
     EXPECT_EQ(-(5.1 + 0.0000000000000001),
               OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(-5.1)));
 
@@ -134,9 +140,18 @@ TEST(IndexBoundValueTest, DoubleTest) {
 
     EXPECT_EQ(5.1 + 0.0000000000000001,
               OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(5.1)).getFloat());
-
     EXPECT_EQ(-(5.1 - 0.0000000000000001),
               OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(-5.1)).getFloat());
+
+    // compare int and double
+    EXPECT_EQ(50 + 0.0000000000000001,
+              OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(50)).getFloat());
+    EXPECT_EQ(-(50 - 0.0000000000000001),
+              OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(-50)).getFloat());
+    EXPECT_EQ(50 - 0.0000000000000001,
+              OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(50)).getFloat());
+    EXPECT_EQ(-(50 + 0.0000000000000001),
+              OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(-50)).getFloat());
 }
 
 TEST(IndexBoundValueTest, DateTest) {

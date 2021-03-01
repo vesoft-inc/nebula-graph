@@ -238,8 +238,8 @@ Status IndexScanRule::boundValue(const FilterItem& item,
     }
     switch (item.relOP_) {
         case Expression::Kind::kRelLE: {
-            // if c1 <= int(5) , the range pair should be (min, 6)
-            // if c1 < int(5), the range pair should be (min, 5)
+            // if c1 <= int(5) , the range pair should be [min, 6)
+            // if c1 < int(5), the range pair should be [min, 5)
             auto v = OptimizerUtils::boundValue(col, BVO::GREATER_THAN, val);
             CHECK_BOUND_VALUE(v, col.get_name());
             // where c <= 1 and c <= 2 , 1 should be valid.
@@ -273,8 +273,8 @@ Status IndexScanRule::boundValue(const FilterItem& item,
             break;
         }
         case Expression::Kind::kRelGT: {
-            // if c >= 5, the range pair should be (5, max)
-            // if c > 5, the range pair should be (6, max)
+            // if c >= 5, the range pair should be [5, max)
+            // if c > 5, the range pair should be [6, max)
             auto v = OptimizerUtils::boundValue(col, BVO::GREATER_THAN, val);
             CHECK_BOUND_VALUE(v, col.get_name());
             // where c > 1 and c > 2 , 2 should be valid.
