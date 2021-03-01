@@ -71,12 +71,10 @@ StatusOr<MatchedResult> OptRule::match(const OptGroupNode *groupNode) const {
 }
 
 bool OptRule::match(const MatchedResult &matched) const {
-    return checkDataflowDeps(matched, matched.node->node()->outputVar(), true);
+    return checkDataflowDeps(matched, matched.node->node()->outputVar());
 }
 
-bool OptRule::checkDataflowDeps(const MatchedResult &matched,
-                                const std::string &var,
-                                bool isRoot) const {
+bool OptRule::checkDataflowDeps(const MatchedResult &matched, const std::string &var) const {
     auto node = matched.node;
     auto planNode = node->node();
     const auto &outVarName = planNode->outputVar();
@@ -85,9 +83,15 @@ bool OptRule::checkDataflowDeps(const MatchedResult &matched,
     }
     auto symTbl = planNode->qctx()->symTable();
     auto outVar = symTbl->getVar(outVarName);
-    // Check whether this variable is read by multiple other plan nodes except the root
-    if (outVar->readBy.size() > 1 && !isRoot) {
-        return false;
+    // Check whether the data flow is same as the control flow in execution plan.
+    for (auto pnode : outVar->readBy) {
+        const auto &deps = node->group()->dependents();
+        auto found = std::find_if(deps.begin(), deps.end(), [=](const OptGroupNode *gnode) {
+            return gnode->node() == pnode;
+        });
+        if (found == deps.end()) {
+            return false;
+        }
     }
 
     const auto &deps = matched.dependencies;
@@ -96,7 +100,7 @@ bool OptRule::checkDataflowDeps(const MatchedResult &matched,
     }
     DCHECK_EQ(deps.size(), node->dependencies().size());
     for (size_t i = 0; i < deps.size(); ++i) {
-        if (!checkDataflowDeps(deps[i], planNode->inputVar(i), false)) {
+        if (!checkDataflowDeps(deps[i], planNode->inputVar(i))) {
             return false;
         }
     }
@@ -109,7 +113,7 @@ RuleSet &RuleSet::DefaultRules() {
 }
 
 RuleSet &RuleSet::QueryRules() {
-    static RuleSet kQueryRules("QueryRules");
+    static RuleSet kQueryRules("QueryRuleSet");
     return kQueryRules;
 }
 

@@ -49,6 +49,11 @@ public:
         return groupNodes_;
     }
 
+    void addDependent(OptGroupNode *groupNode);
+    const std::list<OptGroupNode *> &dependents() const {
+        return dependents_;
+    }
+
     Status explore(const OptRule *rule);
     Status exploreUntilMaxRound(const OptRule *rule);
     double getCost() const;
@@ -63,6 +68,7 @@ private:
 
     graph::QueryContext *qctx_{nullptr};
     std::list<OptGroupNode *> groupNodes_;
+    std::list<OptGroupNode *> dependents_;
     std::vector<const OptRule *> exploredRules_;
 };
 
@@ -74,6 +80,7 @@ public:
 
     void dependsOn(OptGroup *dep) {
         dependencies_.emplace_back(dep);
+        dep->addDependent(this);
     }
 
     const std::vector<OptGroup *> &dependencies() const {

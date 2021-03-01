@@ -229,12 +229,12 @@ public:
         return dependencies_;
     }
 
-    std::string inputVar(size_t idx = 0) const {
+    std::string inputVar(size_t idx = 0UL) const {
         DCHECK_LT(idx, inputVars_.size());
         return inputVars_[idx] ? inputVars_[idx]->name : "";
     }
 
-    void setInputVar(const std::string& varname, size_t idx = 0);
+    void setInputVar(const std::string& varname, size_t idx = 0UL);
 
     const std::vector<Variable*>& inputVars() const {
         return inputVars_;

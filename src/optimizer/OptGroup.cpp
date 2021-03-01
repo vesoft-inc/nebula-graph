@@ -42,6 +42,11 @@ OptGroupNode *OptGroup::makeGroupNode(QueryContext *qctx, PlanNode *node) {
     return groupNodes_.back();
 }
 
+void OptGroup::addDependent(OptGroupNode *groupNode) {
+    DCHECK(groupNode != nullptr);
+    dependents_.emplace_back(groupNode);
+}
+
 Status OptGroup::explore(const OptRule *rule) {
     if (isExplored(rule)) {
         return Status::OK();

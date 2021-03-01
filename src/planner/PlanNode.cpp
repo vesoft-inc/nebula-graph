@@ -276,15 +276,15 @@ void PlanNode::calcCost() {
 }
 
 void PlanNode::setInputVar(const std::string& varname, size_t idx) {
-    DCHECK_LT(idx, inputVars_.size());
-    auto* varPtr = qctx_->symTable()->getVar(varname);
+    std::string oldVar = inputVar(idx);
+    auto symTable = qctx_->symTable();
+    auto varPtr = symTable->getVar(varname);
     DCHECK(varPtr != nullptr);
-    std::string oldVar = inputVars_[idx] ? inputVars_[idx]->name : "";
     inputVars_[idx] = varPtr;
     if (!oldVar.empty()) {
-        qctx_->symTable()->updateReadBy(oldVar, varname, this);
+        symTable->updateReadBy(oldVar, varname, this);
     } else {
-        qctx_->symTable()->readBy(varname, this);
+        symTable->readBy(varname, this);
     }
 }
 
