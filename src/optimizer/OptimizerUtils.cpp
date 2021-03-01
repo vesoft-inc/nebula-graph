@@ -32,26 +32,44 @@ Value OptimizerUtils::boundValue(const meta::cpp2::ColumnDef& col,
 Value OptimizerUtils::boundValueWithGT(const meta::cpp2::ColumnDef& col, const Value& v) {
     auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
     switch (type) {
-        case Value::Type::INT : {
-            if (v.getInt() == std::numeric_limits<int64_t>::max()) {
-                return v;
+        case Value::Type::INT: {
+            int64_t boundVar;
+            if (v.isFloat()) {
+                // Check if the float value can be cast
+                if (!const_cast<Value&>(v).toFloat().second) {
+                    DLOG(FATAL) << "Float value is out of the limit of Int type ";
+                    return Value::kNullBadType;
+                }
+                boundVar = floor(const_cast<Value&>(v).toFloat().first);
             } else {
-                return v + 1;
+                boundVar = v.getInt();
+            }
+            if (boundVar == std::numeric_limits<int64_t>::max()) {
+                return Value(boundVar);
+            } else {
+                return Value(boundVar + 1);
             }
         }
-        case Value::Type::FLOAT : {
-            if (v.getFloat() > 0.0) {
-                if (v.getFloat() == std::numeric_limits<double_t>::max()) {
+        case Value::Type::FLOAT: {
+            int64_t boundVar;
+            if (v.isInt()) {
+                boundVar = const_cast<Value&>(v).toFloat().first;
+            } else {
+                boundVar = v.getFloat();
+            }
+
+            if (boundVar > 0.0) {
+                if (boundVar == std::numeric_limits<double_t>::max()) {
                     return v;
                 }
-            } else if (v.getFloat() == 0.0) {
+            } else if (boundVar == 0.0) {
                 return Value(std::numeric_limits<double_t>::min());
             } else {
-                if (v.getFloat() == -std::numeric_limits<double_t>::min()) {
+                if (boundVar == -std::numeric_limits<double_t>::min()) {
                     return Value(0.0);
                 }
             }
-            return v.getFloat() + kEpsilon;
+            return Value(boundVar + kEpsilon);
         }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length ||
@@ -181,23 +199,53 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
     auto type = SchemaUtil::propTypeToValueType(col.get_type().get_type());
     switch (type) {
         case Value::Type::INT : {
-            if (v.getInt() == std::numeric_limits<int64_t>::min()) {
-                return v;
+            int64_t boundVar;
+            if (v.isFloat()) {
+                // Check if the float value can be cast
+                if (!const_cast<Value&>(v).toFloat().second) {
+                    DLOG(FATAL) << "Float value is out of the limit of Int type ";
+                    return Value::kNullBadType;
+                }
+                boundVar = floor(const_cast<Value&>(v).toFloat().first);
             } else {
-                return v - 1;
+                boundVar = v.getInt();
+            }
+            if (boundVar == std::numeric_limits<int64_t>::min()) {
+                return Value(boundVar);
+            } else {
+                return Value(boundVar - 1);
             }
         }
         case Value::Type::FLOAT : {
-            if (v.getFloat() < 0.0) {
-                if (v.getFloat() == -std::numeric_limits<double_t>::max()) {
+            int64_t boundVar;
+            if (v.isInt()) {
+                boundVar = const_cast<Value&>(v).toFloat().first;
+            } else {
+                boundVar = v.getFloat();
+            }
+
+            if (boundVar < 0.0) {
+                if (boundVar == -std::numeric_limits<double_t>::max()) {
                     return v;
-                } else if (v.getFloat() == -std::numeric_limits<double_t>::min()) {
+                } else if (boundVar == -std::numeric_limits<double_t>::min()) {
                     return Value(0.0);
                 }
-            } else if (v.getFloat() == 0.0) {
+            } else if (boundVar == 0.0) {
                 return Value(-std::numeric_limits<double_t>::min());
             }
-            return v.getFloat() - kEpsilon;
+            return Value(boundVar - kEpsilon);
+
+
+            // if (v.getFloat() < 0.0) {
+            //     if (v.getFloat() == -std::numeric_limits<double_t>::max()) {
+            //         return v;
+            //     } else if (v.getFloat() == -std::numeric_limits<double_t>::min()) {
+            //         return Value(0.0);
+            //     }
+            // } else if (v.getFloat() == 0.0) {
+            //     return Value(-std::numeric_limits<double_t>::min());
+            // }
+            // return v.getFloat() - kEpsilon;
         }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length || col.get_type().get_type_length() == nullptr) {

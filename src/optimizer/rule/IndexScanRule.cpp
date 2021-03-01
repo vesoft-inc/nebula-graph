@@ -228,7 +228,12 @@ Status IndexScanRule::boundValue(const FilterItem& item,
                                  const meta::cpp2::ColumnDef& col,
                                  Value& begin, Value& end) const {
     auto val = item.value_;
-    if (val.type() != graph::SchemaUtil::propTypeToValueType(col.type.type)) {
+    // Allow different numeric types to compare
+    if (val.isNumeric() &&
+        (graph::SchemaUtil::propTypeToValueType(col.type.type) == Value::Type::INT ||
+         graph::SchemaUtil::propTypeToValueType(col.type.type) == Value::Type::FLOAT)) {
+        // skip the check
+    } else if (val.type() != graph::SchemaUtil::propTypeToValueType(col.type.type)) {
         return Status::SemanticError("Data type error of field : %s", col.get_name().c_str());
     }
     switch (item.relOP_) {
@@ -246,20 +251,24 @@ Status IndexScanRule::boundValue(const FilterItem& item,
             break;
         }
         case Expression::Kind::kRelGE: {
+            auto v = OptimizerUtils::boundValue(col, BVO::LESS_THAN, val);
+            CHECK_BOUND_VALUE(v, col.get_name());
             // where c >= 1 and c >= 2 , 2 should be valid.
             if (begin == Value()) {
-                begin = val;
+                begin = v;
             } else {
-                begin = val < begin ? begin : val;
+                begin = v < begin ? begin : v;
             }
             break;
         }
         case Expression::Kind::kRelLT: {
+            auto v = OptimizerUtils::boundValue(col, BVO::LESS_THAN, val);
+            CHECK_BOUND_VALUE(v, col.get_name());
             // c < 5 and c < 6 , 5 should be valid.
             if (end == Value()) {
-                end = val;
+                end = v;
             } else {
-                end = val < end ? val : end;
+                end = v < end ? v : end;
             }
             break;
         }
@@ -301,7 +310,7 @@ std::unique_ptr<Expression>
 IndexScanRule::filterExpr(const OptGroupNode *groupNode) const {
     auto in = static_cast<const IndexScan *>(groupNode->node());
     auto qct = in->queryContext();
-    // The initial IndexScan plan node has only zeor or one queryContext.
+    // The initial IndexScan plan node has only zero or one queryContext.
     // TODO(yee): Move this condition to match interface
     if (qct == nullptr) {
         return nullptr;

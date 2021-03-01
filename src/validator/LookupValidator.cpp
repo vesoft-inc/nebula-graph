@@ -397,7 +397,12 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr, const std::str
     auto type = schema->getFieldType(prop);
     QueryExpressionContext dummy(nullptr);
     auto v = Expression::eval(expr, dummy);
-    if (v.type() != SchemaUtil::propTypeToValueType(type)) {
+
+    // Allow different numeric type to compare
+    if (v.isNumeric() && (graph::SchemaUtil::propTypeToValueType(type) == Value::Type::INT ||
+                          graph::SchemaUtil::propTypeToValueType(type) == Value::Type::FLOAT)) {
+        // skip the check
+    } else if (v.type() != SchemaUtil::propTypeToValueType(type)) {
         return Status::SemanticError("Column type error : %s", prop.c_str());
     }
     return v;
