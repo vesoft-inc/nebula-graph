@@ -1,7 +1,9 @@
 Feature: Lookup by index itself
 
   Background:
-    Given a graph with space named "nba"
+    Given an empty graph
+    And load "nba" csv data to a new space
+    And wait 3 seconds
 
   Scenario: [1] tag index
     When executing query:

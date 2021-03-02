@@ -1,8 +1,9 @@
-@test
 Feature: Lookup by index itself in integer vid
 
   Background:
-    Given a graph with space named "nba_int_vid"
+    Given an empty graph
+    And load "nba_int_vid" csv data to a new space
+    And wait 3 seconds
 
   Scenario: [1] tag index
     When executing query:

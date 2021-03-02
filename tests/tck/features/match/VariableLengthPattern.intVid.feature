@@ -7,7 +7,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
   Background:
     Given a graph with space named "nba_int_vid"
 
-  Scenario: Integer Vid  single both direction edge with properties
+  Scenario: Integer Vid single both direction edge with properties
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:serve*2..3{start_year: 2000}]-(v)
@@ -24,7 +24,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | e                                                                                  | v                  |
       | [[:like "Tim Duncan"<-"Manu Ginobili"], [:like "Manu Ginobili"<-"Tiago Splitter"]] | ("Tiago Splitter") |
 
-  Scenario: Integer Vid  single direction edge with properties
+  Scenario: Integer Vid single direction edge with properties
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:serve*2..3{start_year: 2000}]->(v)
@@ -48,7 +48,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | e                                                                                  | v                  |
       | [[:like "Tim Duncan"<-"Manu Ginobili"], [:like "Manu Ginobili"<-"Tiago Splitter"]] | ("Tiago Splitter") |
 
-  Scenario: Integer Vid  single both direction edge without properties
+  Scenario: Integer Vid single both direction edge without properties
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:serve*2..3]-(v)
@@ -122,7 +122,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Boris Diaw"], [:serve "Boris Diaw"->"Hawks"]]                       | ("Hawks")             |
       | [[:serve "Tim Duncan"->"Spurs"], [:serve "Spurs"<-"Boris Diaw"], [:serve "Boris Diaw"->"Hornets"]]                     | ("Hornets")           |
 
-  Scenario: Integer Vid  single both direction edge without properties
+  Scenario: Integer Vid single both direction edge without properties
     When executing query:
       """
       MATCH (:player{name: "Tim Duncan"})-[e:like*2..3]-(v)
@@ -133,7 +133,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | COUNT(*) |
       | 292      |
 
-  Scenario: Integer Vid  single direction edge without properties
+  Scenario: Integer Vid single direction edge without properties
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:serve*2..3]->(v)
@@ -158,7 +158,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | [[:like "Tim Duncan"->"Manu Ginobili"], [:like "Manu Ginobili"->"Tim Duncan"]]                                                | ("Tim Duncan")        |
       | [[:like "Tim Duncan"->"Manu Ginobili"], [:like "Manu Ginobili"->"Tim Duncan"], [:like "Tim Duncan"->"Tony Parker"]]           | ("Tony Parker")       |
 
-  Scenario: Integer Vid  multiple both direction edge with properties
+  Scenario: Integer Vid multiple both direction edge with properties
     When executing query:
       """
       MATCH (:player{name: "Tim Duncan"})-[e:serve|like*2..3{likeness: 90}]-(v)
@@ -175,7 +175,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
     Then the result should be, in any order:
       | e | v |
 
-  Scenario: Integer Vid  multiple direction edge with properties
+  Scenario: Integer Vid multiple direction edge with properties
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:serve|like*2..3{likeness: 90}]->(v)
@@ -192,7 +192,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | e                                                                                  | v                  |
       | [[:like "Tim Duncan"<-"Manu Ginobili"], [:like "Manu Ginobili"<-"Tiago Splitter"]] | ("Tiago Splitter") |
 
-  Scenario: Integer Vid  multiple both direction edge without properties
+  Scenario: Integer Vid multiple both direction edge without properties
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:serve|like*2..3]-(v)
@@ -203,7 +203,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | COUNT(*) |
       | 927      |
 
-  Scenario: Integer Vid  multiple direction edge without properties
+  Scenario: Integer Vid multiple direction edge without properties
     When executing query:
       """
       MATCH (:player{name: "Tim Duncan"})-[e:serve|like*2..3]->(v)
@@ -229,7 +229,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | [[:like "Tim Duncan"->"Manu Ginobili"], [:like "Manu Ginobili"->"Tim Duncan"], [:serve "Tim Duncan"->"Spurs"]]                   | ("Spurs")             |
       | [[:like "Tim Duncan"->"Manu Ginobili"], [:serve "Manu Ginobili"->"Spurs"]]                                                       | ("Spurs")             |
 
-  Scenario: Integer Vid  return all
+  Scenario: Integer Vid return all
     When executing query:
       """
       MATCH (:player{name:"Tim Duncan"})-[e:like*2..3]->()
@@ -247,7 +247,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | [[:like "Tim Duncan"->"Manu Ginobili"], [:like "Manu Ginobili"->"Tim Duncan"]]                                                |
       | [[:like "Tim Duncan"->"Manu Ginobili"], [:like "Manu Ginobili"->"Tim Duncan"], [:like "Tim Duncan"->"Tony Parker"]]           |
 
-  Scenario: Integer Vid  from one step
+  Scenario: Integer Vid from one step
     When executing query:
       """
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*1]-()
@@ -268,7 +268,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | [[:like "Tim Duncan"<-"Tony Parker"]]       |
       | [[:like "Tim Duncan"<-"LaMarcus Aldridge"]] |
 
-  Scenario: Integer Vid  from one step to one step
+  Scenario: Integer Vid from one step to one step
     When executing query:
       """
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*1..1]-()
@@ -289,7 +289,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | [[:like "Tim Duncan"<-"Tony Parker"]]       |
       | [[:like "Tim Duncan"<-"LaMarcus Aldridge"]] |
 
-  Scenario: Integer Vid  filter by edges
+  Scenario: Integer Vid filter by edges
     When executing query:
       """
       MATCH (v:player{name: 'Tim Duncan'})-[e:like*2..3]-()
@@ -310,7 +310,7 @@ Feature: Integer Vid Variable length Pattern match (m to n)
       | v2                                                                                                          |
       | ("Tim Duncan" :bachelor{name: "Tim Duncan", speciality: "psychology"} :player{age: 42, name: "Tim Duncan"}) |
 
-  Scenario: Integer Vid  multi-steps and filter by node properties
+  Scenario: Integer Vid multi-steps and filter by node properties
     When executing query:
       """
       MATCH (v:player{name: 'Tim Duncan'})-[e1:like*1..2]-(v2{name: 'Tony Parker'})-[e2:serve]-(v3{name: 'Spurs'})
