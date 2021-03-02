@@ -215,11 +215,6 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
                 boundVar = v.getInt();
             }
             return Value(boundVar);
-            // if (boundVar == std::numeric_limits<int64_t>::min()) {
-            //     return Value(boundVar);
-            // } else {
-            //     return Value(boundVar - 1);
-            // }
         }
         case Value::Type::FLOAT : {
             double_t boundVar;
@@ -239,18 +234,6 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
                 return Value(-std::numeric_limits<double_t>::min());
             }
             return Value(boundVar - kEpsilon);
-
-
-            // if (v.getFloat() < 0.0) {
-            //     if (v.getFloat() == -std::numeric_limits<double_t>::max()) {
-            //         return v;
-            //     } else if (v.getFloat() == -std::numeric_limits<double_t>::min()) {
-            //         return Value(0.0);
-            //     }
-            // } else if (v.getFloat() == 0.0) {
-            //     return Value(-std::numeric_limits<double_t>::min());
-            // }
-            // return v.getFloat() - kEpsilon;
         }
         case Value::Type::STRING : {
             if (!col.type.__isset.type_length || col.get_type().get_type_length() == nullptr) {
