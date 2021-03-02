@@ -424,7 +424,8 @@ TEST(IndexScanRuleTest, BoundValueRangeTest) {
             EXPECT_EQ("col_str", hint.column_name);
             EXPECT_EQ(storage::cpp2::ScanType::RANGE, hint.scan_type);
             EXPECT_EQ(std::string(len, '\0'), hint.begin_value);
-            EXPECT_EQ("ccc", hint.end_value);
+            std::string end = std::string(3, 'c').append(7, 0x00);
+            EXPECT_EQ(end, hint.end_value);
         }
         {
             std::vector<storage::cpp2::IndexColumnHint> hints;
@@ -455,7 +456,7 @@ TEST(IndexScanRuleTest, BoundValueRangeTest) {
             EXPECT_EQ("col_str", hint.column_name);
             EXPECT_EQ(storage::cpp2::ScanType::RANGE, hint.scan_type);
             std::string begin = std::string(3, 'a').append(6, 0x00).append(1, 0x01);
-            std::string end = "ccc";
+            std::string end = std::string(3, 'c').append(7, 0x00);
             EXPECT_EQ(begin, hint.begin_value);
             EXPECT_EQ(end, hint.end_value);
         }
@@ -471,7 +472,7 @@ TEST(IndexScanRuleTest, BoundValueRangeTest) {
             const auto& hint = hints[0];
             EXPECT_EQ("col_str", hint.column_name);
             EXPECT_EQ(storage::cpp2::ScanType::RANGE, hint.scan_type);
-            std::string begin = "aaa";
+            std::string begin = std::string(3, 'a').append(7, 0x00);
             std::string end = std::string(3, 'c').append(6, 0x00).append(1, 0x01);
             EXPECT_EQ(begin, hint.begin_value);
             EXPECT_EQ(end, hint.end_value);
@@ -488,8 +489,10 @@ TEST(IndexScanRuleTest, BoundValueRangeTest) {
             const auto& hint = hints[0];
             EXPECT_EQ("col_str", hint.column_name);
             EXPECT_EQ(storage::cpp2::ScanType::RANGE, hint.scan_type);
-            EXPECT_EQ("aaa", hint.begin_value);
-            EXPECT_EQ("ccc", hint.end_value);
+            std::string begin = std::string(3, 'a').append(7, 0x00);
+            std::string end = std::string(3, 'c').append(7, 0x00);
+            EXPECT_EQ(begin, hint.begin_value);
+            EXPECT_EQ(end, hint.end_value);
         }
     }
 }

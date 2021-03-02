@@ -36,7 +36,7 @@ TEST(IndexBoundValueTest, StringTest) {
     EXPECT_EQ(maxStr, OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(maxStr)).getStr());
 
     retVal = OptimizerUtils::boundValue(col, OP::LESS_THAN, Value("aa")).getStr();
-    expected = {'a', '`', 255, 255, 255, 255, 255, 255};
+    expected = {'a', 'a', '\0', '\0', '\0', '\0', '\0', '\0'};
     EXPECT_EQ(std::string(expected.begin(), expected.end()), retVal);
 
     retVal = OptimizerUtils::boundValue(col, OP::LESS_THAN, Value("")).getStr();
@@ -48,7 +48,7 @@ TEST(IndexBoundValueTest, StringTest) {
     {
         auto actual = "ABCDEFGHIJKLMN";
         auto expectGT = "ABCDEFGI";
-        auto expectLT = "ABCDEFGG";
+        auto expectLT = "ABCDEFGH";
         EXPECT_EQ(expectGT,
                   OptimizerUtils::boundValue(col, OP::GREATER_THAN, Value(actual)).getStr());
         EXPECT_EQ(expectLT,
@@ -64,7 +64,7 @@ TEST(IndexBoundValueTest, StringTest) {
     }
     {
         std::vector<unsigned char> act = {255, 255, 255, 0, 0, 0, 0, 0};
-        std::vector<unsigned char> exp = {255, 255, 254, 255, 255, 255, 255, 255};
+        std::vector<unsigned char> exp = {255, 255, 255, 0, 0, 0, 0, 0};
         auto actStr = std::string(act.begin(), act.end());
         auto expStr = std::string(exp.begin(), exp.end());
         EXPECT_EQ(expStr, OptimizerUtils::boundValue(col, OP::LESS_THAN, Value(actStr)).getStr());
