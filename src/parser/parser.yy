@@ -31,7 +31,6 @@
 #include "util/ParserUtil.h"
 #include "context/QueryContext.h"
 #include "util/SchemaUtil.h"
-#include "util/ParserUtil.h"
 #include "context/QueryContext.h"
 
 namespace nebula {
@@ -800,6 +799,14 @@ predicate_expression
         nebula::graph::ParserUtil::rewritePred(qctx, expr, innerVar);
         $$ = expr;
         delete $3;
+    }
+    | KW_EXISTS L_PAREN expression R_PAREN {
+        auto* expr = new PredicateExpression($1, nullptr, $3, nullptr);
+        auto res = nebula::graph::ParserUtil::rewriteExists(qctx, expr, $3);
+        if (!res.ok()) {
+            throw nebula::GraphParser::syntax_error(@3, "type error");
+        }
+        $$ = expr;
     }
     ;
 
