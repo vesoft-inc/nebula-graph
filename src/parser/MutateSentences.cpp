@@ -261,11 +261,7 @@ std::string DeleteVerticesSentence::toString() const {
     std::string buf;
     buf.reserve(256);
     buf += "DELETE VERTEX ";
-    if (vidRef_ != nullptr) {
-        buf += vidRef_->toString();
-    } else {
-        buf += vidList_->toString();
-    }
+    buf += vertices_->toString();
     return buf;
 }
 
