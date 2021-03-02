@@ -239,13 +239,6 @@ Value OptimizerUtils::boundValueWithLT(const meta::cpp2::ColumnDef& col, const V
             }
             std::vector<unsigned char> bytes(v.getStr().begin(), v.getStr().end());
             bytes.resize(*col.get_type().get_type_length());
-            // for (size_t i = bytes.size();; i--) {
-            //     if (i > 0) {
-            //         if (bytes[i-1]-- != 0) break;
-            //     } else {
-            //         return Value(std::string(*col.get_type().get_type_length(), '\0'));
-            //     }
-            // }
             return Value(std::string(bytes.begin(), bytes.end()));
         }
         case Value::Type::DATE : {
