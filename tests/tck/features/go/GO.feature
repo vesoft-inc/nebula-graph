@@ -144,10 +144,9 @@ Feature: Go Sentence
       GO FROM "Tracy McGrady" OVER like YIELD like._dst as vid | GO FROM $-.vid OVER like YIELD $-.vid as id
       """
     Then the result should be, in any order, with relax comparison:
-      | id            |
-      | "Kobe Bryant" |
-      | "Grant Hill"  |
-      | "Rudy Gay"    |
+      | id           |
+      | "Grant Hill" |
+      | "Rudy Gay"   |
 
   Scenario: pipe only yield constant
     When executing query:
@@ -155,7 +154,6 @@ Feature: Go Sentence
       GO FROM "Tracy McGrady" OVER like YIELD like._dst as vid | GO FROM $-.vid OVER like YIELD 3
       """
     Then the result should be, in any order, with relax comparison:
-      | 3 |
       | 3 |
       | 3 |
       | 3 |
@@ -1070,6 +1068,13 @@ Feature: Go Sentence
       | GO FROM $-.id OVER serve
       """
     Then a SyntaxError should be raised at runtime: syntax error near `| GO FRO'
+
+  Scenario: invalid condition in where
+    When executing query:
+      """
+      GO FROM 'Tim Duncan' OVER like where like.likeness
+      """
+    Then a SemanticError should be raised at runtime: `like.likeness', expected Boolean, but was `INT'
 
   Scenario: contain
     When executing query:
