@@ -164,8 +164,9 @@ void DeduceTypeVisitor::visit(TypeCastingExpression *expr) {
     expr->operand()->accept(this);
     if (!ok()) return;
 
-    // if can't deduce type of expr's operand, ignore it
+    // if can't deduce the type of expr's operand, ignore it
     if (type_ == Value::Type::NULLVALUE || type_ == Value::Type::__EMPTY__) {
+        type_ = expr->type();
         return;
     }
 
