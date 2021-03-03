@@ -476,7 +476,7 @@ TEST_F(MatchValidatorTest, with) {
                                                 PlanNode::Kind::kAggregate,
                                                 PlanNode::Kind::kFilter,
                                                 PlanNode::Kind::kProject,
-                                                PlanNode::Kind::kDataJoin,
+                                                PlanNode::Kind::kInnerJoin,
                                                 PlanNode::Kind::kProject,
                                                 PlanNode::Kind::kGetVertices,
                                                 PlanNode::Kind::kDedup,
