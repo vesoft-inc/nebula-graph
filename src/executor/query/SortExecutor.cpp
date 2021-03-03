@@ -31,7 +31,7 @@ folly::Future<Status> SortExecutor::execute() {
     }
 
     auto &factors = sort->factors();
-    auto comparator = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
+    auto comparator = [&factors] (const Row &lhs, const Row &rhs) {
         for (auto &item : factors) {
             auto index = item.first;
             auto orderType = item.second;
@@ -52,11 +52,11 @@ folly::Future<Status> SortExecutor::execute() {
         auto seqIter = static_cast<SequentialIter*>(iter.get());
         std::sort(seqIter->begin(), seqIter->end(), comparator);
     } else if (iter->isJoinIter()) {
-        auto joinIter = static_cast<JoinIter*>(iter.get());
-        std::sort(joinIter->begin(), joinIter->end(), comparator);
+        // auto joinIter = static_cast<JoinIter*>(iter.get());
+        // std::sort(joinIter->begin(), joinIter->end(), comparator);
     } else if (iter->isPropIter()) {
-        auto propIter = static_cast<PropIter*>(iter.get());
-        std::sort(propIter->begin(), propIter->end(), comparator);
+        // auto propIter = static_cast<PropIter*>(iter.get());
+        // std::sort(propIter->begin(), propIter->end(), comparator);
     }
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
 }

@@ -30,7 +30,7 @@ folly::Future<Status> TopNExecutor::execute() {
     }
 
     auto &factors = topn->factors();
-    comparator_ = [&factors] (const LogicalRow &lhs, const LogicalRow &rhs) {
+    comparator_ = [&factors] (const Row &lhs, const Row &rhs) {
         for (auto &item : factors) {
             auto index = item.first;
             auto orderType = item.second;
@@ -66,11 +66,11 @@ folly::Future<Status> TopNExecutor::execute() {
     }
 
     if (iter->isSequentialIter()) {
-        executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(iter.get());
+        // executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(iter.get());
     } else if (iter->isJoinIter()) {
-        executeTopN<JoinIter::JoinLogicalRow, JoinIter>(iter.get());
+        // executeTopN<JoinIter::JoinLogicalRow, JoinIter>(iter.get());
     } else if (iter->isPropIter()) {
-        executeTopN<PropIter::PropLogicalRow, PropIter>(iter.get());
+        // executeTopN<PropIter::PropLogicalRow, PropIter>(iter.get());
     }
     iter->eraseRange(maxCount_, size);
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());

@@ -427,47 +427,26 @@ public:
         return copy;
     }
 
-    bool valid() const override {
-        return iter_ < rows_.end();
-    }
+    bool valid() const override;
 
-    void next() override {
-        if (valid()) {
-            ++iter_;
-        }
-    }
+    void next() override;
 
-    void erase() override {
-        iter_ = rows_.erase(iter_);
-    }
+    void erase() override;
 
-    void unstableErase() override {
-        iter_ = eraseBySwap(rows_, iter_);
-    }
+    void unstableErase() override;
 
-    void eraseRange(size_t first, size_t last) override {
-        if (first >= last || first >= size()) {
-            return;
-        }
-        if (last > size()) {
-            rows_.erase(rows_.begin() + first, rows_.end());
-        } else {
-            rows_.erase(rows_.begin() + first, rows_.begin() + last);
-        }
-        reset();
-    }
+    void eraseRange(size_t first, size_t last) override;
 
     void clear() override {
-        rows_.clear();
         reset();
     }
 
-    RowsIter<SeqLogicalRow> begin() {
-        return rows_.begin();
+    std::vector<Row>::iterator begin() {
+        return rows_->begin();
     }
 
-    RowsIter<SeqLogicalRow> end() {
-        return rows_.end();
+    std::vector<Row>::iterator end() {
+        return rows_->end();
     }
 
     const std::unordered_map<std::string, size_t>& getColIndices() const {
@@ -475,23 +454,21 @@ public:
     }
 
     size_t size() const override {
-        return rows_.size();
+        return size_;
     }
 
     const Value& getColumn(const std::string& col) const override {
         if (!valid()) {
             return Value::kNullValue;
         }
-        auto logicalRow = *iter_;
+        auto& row = *iter_;
         auto index = colIndices_.find(col);
         if (index == colIndices_.end()) {
             return Value::kNullValue;
         }
 
-        DCHECK_EQ(logicalRow.segments_.size(), 1);
-        auto* row = logicalRow.segments_[0];
-        DCHECK_LT(index->second, row->values.size());
-        return row->values[index->second];
+        DCHECK_LT(index->second, row.values.size());
+        return row.values[index->second];
     }
 
     const Value& getColumn(int32_t index) const override;
@@ -510,31 +487,26 @@ public:
 
 protected:
     const LogicalRow* row() const override {
-        if (!valid()) {
-            return nullptr;
-        }
-        return &*iter_;
+        return nullptr;
     }
 
     // Notice: We only use this interface when return results to client.
     friend class DataCollectExecutor;
     Row&& moveRow() {
-        DCHECK_EQ(iter_->segments_.size(), 1);
-        auto* row = iter_->segments_[0];
-        return std::move(*const_cast<Row*>(row));
+        return std::move(*iter_);
     }
 
 private:
-    void doReset(size_t pos) override {
-        DCHECK((pos == 0 && size() == 0) || (pos < size()));
-        iter_ = rows_.begin() + pos;
-    }
+    void doReset(size_t pos) override;
 
     void init(std::vector<std::unique_ptr<Iterator>>&& iterators);
 
-    RowsType<SeqLogicalRow>                      rows_;
-    RowsIter<SeqLogicalRow>                      iter_;
+    std::vector<Row>::iterator                   iter_;
+    std::vector<Row>*                            rows_{nullptr};
+    size_t                                       size_{0};
     std::unordered_map<std::string, size_t>      colIndices_;
+    boost::dynamic_bitset<>                      bitset_;
+    int64_t                                      bitIdx_{-1};
 };
 
 class PropIter;
