@@ -226,6 +226,54 @@ Feature: Update string vid of vertex and edge
       YIELD $^.course.name AS Name, $^.course.credits AS Credits, $$.building.name
       """
     Then a SemanticError should be raised at runtime: Has wrong expr in `($$.course.credits+1)'
+    When executing query:
+      """
+      UPDATE VERTEX "101"
+      SET course.credits = 1
+      WHEN 123
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `123', expected Boolean, but was `INT'
+    When executing query:
+      """
+      UPDATE VERTEX "101"
+      SET course.credits = 1
+      WHEN credits
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `$^.course.credits', expected Boolean, but was `INT'
+    When executing query:
+      """
+      UPSERT VERTEX "101"
+      SET course.credits = 1
+      WHEN credits
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `$^.course.credits', expected Boolean, but was `INT'
+    When executing query:
+      """
+      UPSERT VERTEX "101"
+      SET course.credits = 1
+      WHEN "xyz"
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `xyz', expected Boolean, but was `STRING'
+    When executing query:
+      """
+      UPDATE VERTEX ON course "101"
+      SET credits = 1
+      WHEN credits
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `$^.course.credits', expected Boolean, but was `INT'
+    When executing query:
+      """
+      UPSERT VERTEX ON course "101"
+      SET credits = 1
+      WHEN "xyz"
+      YIELD $^.course.name AS Name, $^.course.credits AS Credits
+      """
+    Then a SemanticError should be raised at runtime: `xyz', expected Boolean, but was `STRING'
     # make sure TagName and PropertyName must exist in all clauses
     When executing query:
       """
@@ -311,7 +359,7 @@ Feature: Update string vid of vertex and edge
       SET student_default.name = "Lily", student_default.age = "10"
       YIELD $^.student_default.name AS Name, $^.student_default.gender AS Gender
       """
-    Then a ExecutionError should be raised at runtime: Storage Error: Atomic operation failed.
+    Then a ExecutionError should be raised at runtime: Storage Error: Invalid data, may be wrong value type.
     # Insertable: vertex "113" ("Jack") --> ("Jack", "Three")
     # 113 is nonexistent, gender with default value,
     # update student_default.age with string value
@@ -321,7 +369,7 @@ Feature: Update string vid of vertex and edge
       SET student_default.name = "Ann", student_default.age = "10"
       YIELD $^.student_default.name AS Name, $^.student_default.gender AS Gender
       """
-    Then a ExecutionError should be raised at runtime: Storage Error: Atomic operation failed.
+    Then a ExecutionError should be raised at runtime: Storage Error: Invalid data, may be wrong value type.
     # Insertable success, "115" is nonexistent, name and age without default value,
     # the filter is always true.
     When executing query:
@@ -841,7 +889,7 @@ Feature: Update string vid of vertex and edge
       SET name = "Lily", age = "10"
       YIELD name AS Name, gender AS Gender
       """
-    Then a ExecutionError should be raised at runtime: Storage Error: Atomic operation failed.
+    Then a ExecutionError should be raised at runtime: Storage Error: Invalid data, may be wrong value type.
     # Insertable: vertex "113" ("Jack") --> ("Jack", "Three")
     # 113 is nonexistent, gender with default value,
     # update student_default.age with string value
@@ -851,7 +899,7 @@ Feature: Update string vid of vertex and edge
       SET name = "Ann", age = "10"
       YIELD name AS Name, gender AS Gender
       """
-    Then a ExecutionError should be raised at runtime: Storage Error: Atomic operation failed.
+    Then a ExecutionError should be raised at runtime: Storage Error: Invalid data, may be wrong value type.
     # Insertable success, "115" is nonexistent, name and age without default value,
     # the filter is always true.
     When executing query:
@@ -986,7 +1034,7 @@ Feature: Update string vid of vertex and edge
       WHEN grade > 4 AND age > 15
       YIELD grade AS Grade, year AS Year
       """
-    Then a ExecutionError should be raised at runtime: Storage Error: Edge prop not found
+    Then a SemanticError should be raised at runtime: `select.age', not found the property `age'.
     # make sure the edge(src, ranking, dst) must not exist
     When executing query:
       """
