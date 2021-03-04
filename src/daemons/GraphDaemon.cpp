@@ -86,11 +86,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (FLAGS_local_ip.empty()) {
-        LOG(ERROR) << "local_ip is empty, need to config it through config file";
-        return EXIT_FAILURE;
-    }
-
     // Get the IPv4 address the server will listen on
     std::string localIP;
     {

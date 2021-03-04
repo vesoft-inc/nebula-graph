@@ -33,7 +33,8 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
     options.serviceName_ = "graph";
     options.skipConfig_ = FLAGS_local_config;
     options.role_ = meta::cpp2::HostRole::GRAPH;
-    options.localHost_ = HostAddr{FLAGS_local_ip, FLAGS_port};
+    auto hostName = FLAGS_local_ip != "" ? FLAGS_local_ip : NetworkUtils::getHostname();
+    options.localHost_ = HostAddr{hostName, FLAGS_port};
     options.gitInfoSHA_ = gitInfoSha();
     metaClient_ =
         std::make_unique<meta::MetaClient>(ioExecutor, std::move(addrs.value()), options);
