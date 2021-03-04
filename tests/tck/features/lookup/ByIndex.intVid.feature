@@ -468,7 +468,7 @@ Feature: Lookup by index itself in integer vid
       """
       LOOKUP ON player WHERE player.age >= 40.0 YIELD player.age AS Age
       """
-    Then the result should be, in any order,and the columns 0 should be hashed:
+    Then the result should be, in any order, and the columns 0 should be hashed:
       | VertexID          | Age |
       | "Grant Hill"      | 46  |
       | "Jason Kidd"      | 45  |
