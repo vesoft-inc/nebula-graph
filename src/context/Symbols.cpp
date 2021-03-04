@@ -8,21 +8,11 @@
 
 #include <sstream>
 
-#include <folly/String.h>
-
 #include "planner/Planner.h"
+#include "util/Utils.h"
 
 namespace nebula {
 namespace graph {
-
-template <typename Container, typename Fn>
-std::string join(const Container& container, Fn fn, const std::string& delimiter = ",") {
-    std::vector<std::string> strs;
-    for (auto iter = std::begin(container), end = std::end(container); iter != end; ++iter) {
-        strs.emplace_back(fn(*iter));
-    }
-    return folly::join(delimiter, strs);
-}
 
 std::string printNode(const PlanNode* node) {
     return folly::stringPrintf("%s_%ld", PlanNode::toString(node->kind()), node->id());
@@ -31,8 +21,8 @@ std::string printNode(const PlanNode* node) {
 std::string Variable::toString() const {
     std::stringstream ss;
     ss << "name: " << name << ", type: " << type << ", colNames: <" << folly::join(",", colNames)
-       << ">, readBy: <" << join(readBy, printNode) << ">, writtenBy: <"
-       << join(writtenBy, printNode) << ">";
+       << ">, readBy: <" << util::join(readBy, printNode) << ">, writtenBy: <"
+       << util::join(writtenBy, printNode) << ">";
     return ss.str();
 }
 
