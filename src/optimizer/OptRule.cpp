@@ -90,6 +90,7 @@ bool OptRule::checkDataflowDeps(const MatchedResult &matched, const std::string 
             return gnode->node() == pnode;
         });
         if (found == deps.end()) {
+            VLOG(2) << pnode->qctx()->symTable()->toString();
             return false;
         }
     }

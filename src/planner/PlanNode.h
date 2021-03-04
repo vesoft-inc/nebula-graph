@@ -160,7 +160,7 @@ public:
         return id_;
     }
 
-    const QueryContext* qctx() const {
+    QueryContext* qctx() const {
         return qctx_;
     }
 
