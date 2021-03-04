@@ -87,7 +87,7 @@ public:
     // Warning this will break the origin order of elements!
     virtual void unstableErase() = 0;
 
-    virtual const LogicalRow* row() const = 0;
+    virtual const Row* row() const = 0;
 
     // erase range, no include last position, if last > size(), erase to the end position
     virtual void eraseRange(size_t first, size_t last) = 0;
@@ -223,7 +223,7 @@ public:
         return Value::kEmpty;
     }
 
-    const LogicalRow* row() const override {
+    const Row* row() const override {
         DLOG(FATAL) << "This method should not be invoked";
         return nullptr;
     }
@@ -293,7 +293,7 @@ public:
     // Its unique based on the GN interface dedup
     List getEdges();
 
-    const LogicalRow* row() const override {
+    const Row* row() const override {
         DCHECK(false);
         return nullptr;
     }
@@ -486,8 +486,8 @@ public:
     }
 
 protected:
-    const LogicalRow* row() const override {
-        return nullptr;
+    const Row* row() const override {
+        return &*iter_;
     }
 
     // Notice: We only use this interface when return results to client.
@@ -666,11 +666,8 @@ public:
 
     const Value& getColumn(int32_t index) const override;
 
-    const LogicalRow* row() const override {
-        if (!valid()) {
-            return nullptr;
-        }
-        return &*iter_;
+    const Row* row() const override {
+        return nullptr;
     }
 
     void reserve(size_t n) {
@@ -801,11 +798,8 @@ public:
         return rows_.size();
     }
 
-    const LogicalRow* row() const override {
-        if (!valid()) {
-            return nullptr;
-        }
-        return &*iter_;
+    const Row* row() const override {
+        return nullptr;
     }
 
     const std::unordered_map<std::string, size_t>& getColIndices() const {
