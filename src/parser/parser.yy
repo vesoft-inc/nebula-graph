@@ -1246,6 +1246,14 @@ yield_sentence
         s->setWhereClause($4);
         $$ = s;
     }
+    | KW_RETURN yield_columns {
+        auto *s = new YieldSentence($2);
+        $$ = s;
+    }
+    | KW_RETURN KW_DISTINCT yield_columns {
+        auto *s = new YieldSentence($3, true);
+        $$ = s;
+    }
     ;
 
 unwind_clause
@@ -2593,8 +2601,9 @@ delete_vertex_sentence
 download_sentence
     : KW_DOWNLOAD KW_HDFS STRING {
         auto sentence = new DownloadSentence();
-        sentence->setUrl($3);
+        sentence->setUrl(*$3);
         $$ = sentence;
+        delete $3;
     }
     ;
 

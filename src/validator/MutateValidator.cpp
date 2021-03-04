@@ -255,8 +255,8 @@ Status InsertEdgesValidator::prepareEdges() {
 Status DeleteVerticesValidator::validateImpl() {
     auto sentence = static_cast<DeleteVerticesSentence*>(sentence_);
     spaceId_ = vctx_->whichSpace().id;
-    if (sentence->isRef()) {
-        vidRef_ = sentence->vidRef();
+    if (sentence->vertices()->isRef()) {
+        vidRef_ = sentence->vertices()->ref();
         auto type = deduceExprType(vidRef_);
         NG_RETURN_IF_ERROR(type);
         if (type.value() != Value::Type::STRING) {
@@ -266,7 +266,7 @@ Status DeleteVerticesValidator::validateImpl() {
             return Status::SemanticError(ss.str());
         }
     } else {
-        auto vIds = sentence->vidList()->vidList();
+        auto vIds = sentence->vertices()->vidList();
         for (auto vId : vIds) {
             auto idStatus = SchemaUtil::toVertexID(vId, vidType_);
             NG_RETURN_IF_ERROR(idStatus);
@@ -489,15 +489,28 @@ Status UpdateValidator::initProps() {
 
 Status UpdateValidator::getCondition() {
     auto *clause = sentence_->whenClause();
-    if (clause != nullptr) {
-        auto filter = clause->filter();
-        if (filter != nullptr) {
-            std::string encodeStr;
-            auto copyFilterExpr = filter->clone();
-            NG_LOG_AND_RETURN_IF_ERROR(
-                checkAndResetSymExpr(copyFilterExpr.get(), name_, encodeStr));
-            condition_ = std::move(encodeStr);
+    if (clause && clause->filter()) {
+        auto filter = clause->filter()->clone();
+        bool hasWrongType = false;
+        auto symExpr = rewriteSymExpr(filter.get(), name_, hasWrongType, isEdge_);
+        if (hasWrongType) {
+            return Status::SemanticError("Has wrong expr in `%s'",
+                                         filter->toString().c_str());
         }
+        if (symExpr != nullptr) {
+            filter.reset(symExpr.release());
+        }
+        auto typeStatus = deduceExprType(filter.get());
+        NG_RETURN_IF_ERROR(typeStatus);
+        auto type = typeStatus.value();
+        if (type != Value::Type::BOOL
+            && type != Value::Type::NULLVALUE
+            && type != Value::Type::__EMPTY__) {
+            std::stringstream ss;
+            ss << "`" << filter->toString() << "', expected Boolean, but was `" << type << "'";
+            return Status::SemanticError(ss.str());
+        }
+        condition_ = filter->encode();
     }
     return Status::OK();
 }
