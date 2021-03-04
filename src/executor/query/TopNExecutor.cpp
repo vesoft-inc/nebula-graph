@@ -66,7 +66,7 @@ folly::Future<Status> TopNExecutor::execute() {
     }
 
     if (iter->isSequentialIter()) {
-        // executeTopN<SequentialIter::SeqLogicalRow, SequentialIter>(iter.get());
+        executeTopN<SequentialIter>(iter.get());
     } else if (iter->isJoinIter()) {
         // executeTopN<JoinIter::JoinLogicalRow, JoinIter>(iter.get());
     } else if (iter->isPropIter()) {
@@ -76,10 +76,10 @@ folly::Future<Status> TopNExecutor::execute() {
     return finish(ResultBuilder().value(iter->valuePtr()).iter(std::move(iter)).finish());
 }
 
-template<typename T, typename U>
+template<typename U>
 void TopNExecutor::executeTopN(Iterator *iter) {
     auto uIter = static_cast<U*>(iter);
-    std::vector<T> heap(uIter->begin(), uIter->begin()+heapSize_);
+    std::vector<Row> heap(uIter->begin(), uIter->begin()+heapSize_);
     std::make_heap(heap.begin(), heap.end(), comparator_);
     auto it = uIter->begin() + heapSize_;
     while (it != uIter->end()) {

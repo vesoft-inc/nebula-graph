@@ -463,11 +463,6 @@ SequentialIter::SequentialIter(std::shared_ptr<Value> value) : Iterator(value, K
     auto& ds = value->mutableDataSet();
     iter_ = ds.rows.begin();
     rows_ = &ds.rows;
-    bitIdx_ = 0;
-    if (bitset_.empty()) {
-        bitset_.push_back(true);
-        size_ = rows_->size();
-    }
     for (size_t i = 0; i < ds.colNames.size(); ++i) {
         colIndices_.emplace(ds.colNames[i], i);
     }
@@ -487,7 +482,21 @@ SequentialIter::SequentialIter(std::vector<std::unique_ptr<Iterator>> inputList)
 }
 
 void SequentialIter::init(std::vector<std::unique_ptr<Iterator>>&& iterators) {
-    UNUSED(iterators);
+    DCHECK(!iterators.empty());
+    const auto& firstIter = iterators.front();
+    DCHECK(firstIter->isSequentialIter());
+    colIndices_ = static_cast<const SequentialIter*>(firstIter.get())->getColIndices();
+    DataSet ds;
+    for (auto& iter : iterators) {
+        DCHECK(iter->isSequentialIter());
+        auto inputIter = static_cast<SequentialIter*>(iter.get());
+        ds.rows.insert(ds.rows.end(),
+                     std::make_move_iterator(inputIter->begin()),
+                     std::make_move_iterator(inputIter->end()));
+    }
+    value_ = std::make_shared<Value>(std::move(ds));
+    rows_ = &value_->mutableDataSet().rows;
+    iter_ = rows_->begin();
 }
 
 bool SequentialIter::valid() const {
@@ -495,22 +504,13 @@ bool SequentialIter::valid() const {
 }
 
 void SequentialIter::next() {
-    while (valid()) {
+    if (valid()) {
         ++iter_;
-        ++bitIdx_;
-        if (static_cast<size_t>(bitIdx_) >= bitset_.size()) {
-            bitset_.push_back(true);
-        } else if (!bitset_[bitIdx_]) {
-            continue;
-        }
-        break;
     }
 }
 
 void SequentialIter::erase() {
-    bitset_[bitIdx_] = false;
-    next();
-    --size_;
+    iter_ = rows_->erase(iter_);
 }
 
 void SequentialIter::unstableErase() {
@@ -521,26 +521,17 @@ void SequentialIter::eraseRange(size_t first, size_t last) {
     if (first >= last || first >= size()) {
         return;
     }
-    if (last >= size()) {
-        last = size();
-    }
-    for (size_t i = first; i < last; ++i) {
-        bitset_[i] = false;
+    if (last > size()) {
+        rows_->erase(rows_->begin() + first, rows_->end());
+    } else {
+        rows_->erase(rows_->begin() + first, rows_->begin() + last);
     }
     reset();
-    size_ -= last - first;
 }
 
 void SequentialIter::doReset(size_t pos) {
     DCHECK((pos == 0 && size() == 0) || (pos < size()));
     iter_ = rows_->begin() + pos;
-    bitIdx_ = 0;
-    if (bitset_.empty()) {
-        return;
-    }
-    if (!bitset_[0]) {
-        next();
-    }
 }
 
 const Value& SequentialIter::getColumn(int32_t index) const {

@@ -21,21 +21,17 @@ folly::Future<Status> CartesianProductExecutor::execute() {
         return Status::Error("vars's size : %zu, must be greater than 2", vars.size());
     }
     std::vector<std::string> emptyCol;
-    auto leftIter = std::make_unique<JoinIter>(emptyCol);
-    return finish(ResultBuilder().value(DataSet()).iter(std::move(leftIter)).finish());
+    return finish(ResultBuilder().value(DataSet()).finish());
 }
 
-void CartesianProductExecutor::initJoinIter(JoinIter* joinIter, Iterator* rightIter) {
-    UNUSED(joinIter);
+void CartesianProductExecutor::initJoinIter(Iterator* rightIter) {
     UNUSED(rightIter);
 }
 
 void CartesianProductExecutor::doCartesianProduct(Iterator* leftIter,
-                                                  Iterator* rightIter,
-                                                  JoinIter* joinIter) {
-    UNUSED(joinIter);
-    UNUSED(rightIter);
+                                                  Iterator* rightIter) {
     UNUSED(leftIter);
+    UNUSED(rightIter);
 }
 
 }   // namespace graph

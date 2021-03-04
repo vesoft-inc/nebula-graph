@@ -438,6 +438,7 @@ public:
     void eraseRange(size_t first, size_t last) override;
 
     void clear() override {
+        rows_->clear();
         reset();
     }
 
@@ -454,7 +455,7 @@ public:
     }
 
     size_t size() const override {
-        return size_;
+        return rows_->size();
     }
 
     const Value& getColumn(const std::string& col) const override {
@@ -503,10 +504,7 @@ private:
 
     std::vector<Row>::iterator                   iter_;
     std::vector<Row>*                            rows_{nullptr};
-    size_t                                       size_{0};
     std::unordered_map<std::string, size_t>      colIndices_;
-    boost::dynamic_bitset<>                      bitset_;
-    int64_t                                      bitIdx_{-1};
 };
 
 class PropIter final : public Iterator {
