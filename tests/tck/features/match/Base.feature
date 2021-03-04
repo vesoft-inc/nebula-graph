@@ -57,7 +57,7 @@ Feature: Basic match
       | 'David West'    | 38  |
       | 'Tracy McGrady' | 39  |
 
-  Scenario: Une step
+  Scenario: One step
     When executing query:
       """
       MATCH (v1:player{name: "LeBron James"}) -[r]-> (v2) RETURN type(r) AS Type, v2.name AS Name
@@ -361,6 +361,11 @@ Feature: Basic match
       MATCH (v:player{name:"abc"})
       """
     Then a SyntaxError should be raised at runtime: syntax error near `)'
+    When executing query:
+      """
+      MATCH (v:player) where v.name return v
+      """
+    Then a ExecutionError should be raised at runtime: Internal Error: Wrong type result, the type should be NULL,EMPTY or BOOL
 
   Scenario: Unimplemented features
     When executing query:

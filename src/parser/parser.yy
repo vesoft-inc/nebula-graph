@@ -893,6 +893,9 @@ function_call_expression
     | KW_TAGS L_PAREN opt_argument_list R_PAREN {
         $$ = new FunctionCallExpression(new std::string("tags"), $3);
     }
+    | KW_SIGN L_PAREN opt_argument_list R_PAREN {
+        $$ = new FunctionCallExpression(new std::string("sign"), $3);
+    }
     ;
 
 aggregate_expression
@@ -1241,6 +1244,14 @@ yield_sentence
     | KW_YIELD KW_DISTINCT yield_columns where_clause {
         auto *s = new YieldSentence($3, true);
         s->setWhereClause($4);
+        $$ = s;
+    }
+    | KW_RETURN yield_columns {
+        auto *s = new YieldSentence($2);
+        $$ = s;
+    }
+    | KW_RETURN KW_DISTINCT yield_columns {
+        auto *s = new YieldSentence($3, true);
         $$ = s;
     }
     ;
@@ -2590,8 +2601,9 @@ delete_vertex_sentence
 download_sentence
     : KW_DOWNLOAD KW_HDFS STRING {
         auto sentence = new DownloadSentence();
-        sentence->setUrl($3);
+        sentence->setUrl(*$3);
         $$ = sentence;
+        delete $3;
     }
     ;
 
