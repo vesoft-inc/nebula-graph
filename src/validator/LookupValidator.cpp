@@ -402,6 +402,9 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
     auto type = schema->getFieldType(prop);
     QueryExpressionContext dummy(nullptr);
     auto v = Expression::eval(expr, dummy);
+    // TODO(Aiee) extract the type cast logic as a method if we decide to support more cross-type
+    // comparisons.
+
     // Allow different numeric type to compare
     if (graph::SchemaUtil::propTypeToValueType(type) == Value::Type::FLOAT && v.isInt()) {
         return v.toFloat().first;
