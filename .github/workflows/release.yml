@@ -34,11 +34,28 @@ jobs:
       - name: Get package name
         id: pkg
         run: |
-          echo "::set-output name=filepath::$(find build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))"
+          filename=$(find build/cpack_output -type f \( -iname \*.deb -o -iname \*.rpm \))
+          sha256sum $filename > $filename.$SHA_EXT
+          echo "::set-output name=filepath::$filename"
+          echo "::set-output name=shafilepath::$filename.$SHA_EXT"
       - uses: ./.github/actions/upload-assets-action
         with:
           file-path: ${{ steps.pkg.outputs.filepath }}
           tag: ${{ steps.tag.outputs.tag  }}
+      - name: upload package to oss
+        run: |
+          ./ci/scripts/upload-oss.sh \
+            OSS_ENDPOINT=${{ secrets.OSS_ENDPOINT }} \
+            OSS_ID=${{ secrets.OSS_ID }} \
+            OSS_SECRET=${{ secrets.OSS_SECRET }} \
+            tag=${{ steps.tag.outputs.tag }} \
+            filepath=${{ steps.pkg.outputs.filepath }}
+          ./ci/scripts/upload-oss.sh \
+            OSS_ENDPOINT=${{ secrets.OSS_ENDPOINT }} \
+            OSS_ID=${{ secrets.OSS_ID }} \
+            OSS_SECRET=${{ secrets.OSS_SECRET }} \
+            tag=${{ steps.tag.outputs.tag }} \
+            filepath=${{ steps.pkg.outputs.shafilepath }}
 
   docker_build_graph:
     name: docker-graph
