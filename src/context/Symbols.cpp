@@ -8,21 +8,17 @@
 
 #include <sstream>
 
-#include "planner/Planner.h"
+#include "planner/PlanNode.h"
 #include "util/Utils.h"
 
 namespace nebula {
 namespace graph {
 
-std::string printNode(const PlanNode* node) {
-    return folly::stringPrintf("%s_%ld", PlanNode::toString(node->kind()), node->id());
-}
-
 std::string Variable::toString() const {
     std::stringstream ss;
     ss << "name: " << name << ", type: " << type << ", colNames: <" << folly::join(",", colNames)
-       << ">, readBy: <" << util::join(readBy, printNode) << ">, writtenBy: <"
-       << util::join(writtenBy, printNode) << ">";
+       << ">, readBy: <" << util::join(readBy, [](auto pn) { return pn->toString(); })
+       << ">, writtenBy: <" << util::join(writtenBy, [](auto pn) { return pn->toString(); }) << ">";
     return ss.str();
 }
 

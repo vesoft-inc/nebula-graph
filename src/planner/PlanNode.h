@@ -160,22 +160,11 @@ public:
         return id_;
     }
 
-    QueryContext* qctx() const {
-        return qctx_;
-    }
-
     virtual bool isSingleInput() const {
         return false;
     }
 
-    void setOutputVar(const std::string &var) {
-        DCHECK_EQ(1, outputVars_.size());
-        auto* outputVarPtr = qctx_->symTable()->getVar(var);
-        DCHECK(outputVarPtr != nullptr);
-        auto oldVar = outputVars_[0]->name;
-        outputVars_[0] = outputVarPtr;
-        qctx_->symTable()->updateWrittenBy(oldVar, var, this);
-    }
+    void setOutputVar(const std::string &var);
 
     std::string outputVar(size_t index = 0) const {
         DCHECK_LT(index, outputVars_.size());
@@ -241,6 +230,7 @@ public:
     }
 
     static const char* toString(Kind kind);
+    std::string toString() const;
 
     double cost() const {
         return cost_;
