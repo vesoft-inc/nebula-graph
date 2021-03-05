@@ -66,7 +66,7 @@ Status ExplainValidator::validateImpl() {
 }
 
 Status ExplainValidator::toPlan() {
-    // The execution has been generated in validateImpl function
+    // The execution plan has been generated in validateImpl function
     root_ = validator_->root();
     tail_ = validator_->tail();
     VLOG(1) << "root: " << root_->kind() << " tail: " << tail_->kind();
