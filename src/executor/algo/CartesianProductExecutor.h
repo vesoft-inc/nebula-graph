@@ -19,9 +19,7 @@ public:
     folly::Future<Status> execute() override;
 
 private:
-    void initJoinIter(Iterator* rightIter);
-
-    void doCartesianProduct(Iterator* leftIter, Iterator* rightIter);
+    void doCartesianProduct(const DataSet& lds, const DataSet& rds, DataSet& result);
 
     std::vector<std::vector<std::string>> colNames_;
 };
