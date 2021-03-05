@@ -392,7 +392,7 @@ Status LookupValidator::rewriteRelExpr(RelationalExpression* expr) {
 StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
                                                 const std::string& prop,
                                                 const Expression::Kind kind,
-                                                const bool leftIsAE) {
+                                                bool leftIsAE) {
     if (!evaluableExpr(expr)) {
         return Status::SemanticError("'%s' is not an evaluable expression.",
                                      expr->toString().c_str());
@@ -410,17 +410,18 @@ StatusOr<Value> LookupValidator::checkConstExpr(Expression* expr,
         return v.toFloat();
     } else if (graph::SchemaUtil::propTypeToValueType(type) == Value::Type::INT && v.isFloat()) {
         // col1 < 10.5 range: [min, 11), col1 < 10 range: [min, 10)
-        // cast float to int and add 1 to get the ceilling
+        double f = v.getFloat();
+        int iCeil = ceil(f);
+        int iFloor = floor(f);
         if ((leftIsAE && (kind == Expression::Kind::kRelGE || kind == Expression::Kind::kRelLT)) ||
             (!leftIsAE && (kind == Expression::Kind::kRelGT || kind == Expression::Kind::kRelLE))) {
-            auto castVal = v.toInt();
             // edge case col1 >= 40.0, no need to round up
-            if (castVal == v.getFloat()) {
-                return castVal;
+            if (abs(f - iCeil) < kEpsilon) {
+                return iFloor;
             }
-            return castVal + 1;
+            return iCeil;
         }
-        return v.toInt();
+        return iFloor;
     }
 
     if (v.type() != SchemaUtil::propTypeToValueType(type)) {

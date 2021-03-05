@@ -47,7 +47,7 @@ private:
     StatusOr<Value> checkConstExpr(Expression* expr,
                                    const std::string& prop,
                                    const Expression::Kind kind,
-                                   const bool leftIsAE);
+                                   bool leftIsAE);
 
     Status checkTSService();
 
