@@ -20,13 +20,13 @@ folly::Future<Status> CartesianProductExecutor::execute() {
         return Status::Error("vars's size : %zu, must be greater than 2", vars.size());
     }
     DataSet result;
-    auto& lds = const_cast<DataSet&>(ectx_->getResult(vars[0]).value().getDataSet());
+    auto* lds = const_cast<DataSet*>(&ectx_->getResult(vars[0]).value().getDataSet());
     for (size_t i = 1; i < vars.size(); ++i) {
         const auto& rds = ectx_->getResult(vars[i]).value().getDataSet();
         DataSet ds;
-        doCartesianProduct(lds, rds, ds);
+        doCartesianProduct(*lds, rds, ds);
         result = std::move(ds);
-        lds = result;
+        lds = &result;
     }
     for (auto& cols : cartesianProduct->allColNames()) {
         result.colNames.reserve(result.colNames.size() + cols.size());
