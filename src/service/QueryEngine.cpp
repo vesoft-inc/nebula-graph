@@ -9,12 +9,12 @@
 #include "common/base/Base.h"
 #include "common/meta/ServerBasedIndexManager.h"
 #include "common/meta/ServerBasedSchemaManager.h"
+#include "common/version/Version.h"
 #include "context/QueryContext.h"
 #include "optimizer/OptRule.h"
 #include "planner/PlannersRegister.h"
 #include "service/QueryInstance.h"
 #include "service/GraphFlags.h"
-#include "version/Version.h"
 
 DECLARE_bool(local_config);
 DECLARE_bool(enable_optimizer);
@@ -35,7 +35,7 @@ Status QueryEngine::init(std::shared_ptr<folly::IOThreadPoolExecutor> ioExecutor
     options.role_ = meta::cpp2::HostRole::GRAPH;
     std::string localIP = network::NetworkUtils::getIPv4FromDevice(FLAGS_listen_netdev).value();
     options.localHost_ = HostAddr{localIP, FLAGS_port};
-    options.gitInfoSHA_ = nebula::graph::gitInfoSha();
+    options.gitInfoSHA_ = gitInfoSha();
     metaClient_ =
         std::make_unique<meta::MetaClient>(ioExecutor, std::move(addrs.value()), options);
     // load data try 3 time
