@@ -84,7 +84,8 @@ Status CreateSpaceValidator::validateImpl() {
             }
             case SpaceOptItem::ATOMIC_EDGE: {
                 if (item->getAtomicEdge()) {
-                    spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::TOSS);
+                    // for 2.0 GA, no matter how this option set, don't use toss.
+                    spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::DEFAULT);
                 } else {
                     spaceDesc_.set_isolation_level(meta::cpp2::IsolationLevel::DEFAULT);
                 }
